@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getModel, listModelArtifacts } from "@/model/infrastructure/model-gateway";
 import ConversionPending from "@/conversion/presentation/conversion-pending";
 import { notFoundOnHttp404 } from "@/shared/infrastructure/http/not-found-on-404";
-import DeleteModelButton from "@/model/presentation/components/delete-model-button";
+import DeleteModelButton from "@/app/_components/delete-model-button";
 
 interface ModelPageProps {
   params: Promise<{ slug: string }>;
