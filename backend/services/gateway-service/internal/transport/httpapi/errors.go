@@ -6,23 +6,17 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-// codeOf returns a stable string code for a domain error so clients can
-// branch on it without parsing free-form messages.
-func codeOf(err error) string {
-	switch {
-	case errors.Is(err, domain.ErrSelfPlacement):
-		return "self_placement"
-	case errors.Is(err, domain.ErrInvalidInput):
-		return "invalid_input"
-	case errors.Is(err, domain.ErrProjectNotFound):
-		return "project_not_found"
-	case errors.Is(err, domain.ErrArtifactNotFound):
-		return "artifact_not_found"
-	case errors.Is(err, domain.ErrJobNotFound):
-		return "job_not_found"
-	case errors.Is(err, domain.ErrPlacementNotFound):
-		return "placement_not_found"
-	default:
-		return "internal"
-	}
+// isInvalid reports whether the error should map to 400.
+func isInvalid(err error) bool {
+	return errors.Is(err, domain.ErrInvalidInput)
+}
+
+// isNotFound reports whether the error should map to 404.
+func isNotFound(err error) bool {
+	return errors.Is(err, domain.ErrTerritoryNotFound) ||
+		errors.Is(err, domain.ErrModelNotFound) ||
+		errors.Is(err, domain.ErrArtifactNotFound) ||
+		errors.Is(err, domain.ErrJobNotFound) ||
+		errors.Is(err, domain.ErrPlacementNotFound) ||
+		errors.Is(err, domain.ErrUploadNotFound)
 }

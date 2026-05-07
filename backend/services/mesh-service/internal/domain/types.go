@@ -5,24 +5,58 @@ type Vec3 struct {
 	X, Y, Z float64
 }
 
-// Project is the mesh-service view of a catalog project — only the fields the
-// converter needs to locate the source mesh on disk. Mapped from catalog pb
-// at the catalog client boundary.
-type Project struct {
-	Slug              string
-	Title             string
-	Subtitle          string
-	Description       string
-	SourceObjPath     string
-	SourceMtlPath     string
-	SourceTexturePath string
+// Kind discriminates whether a job's outputs belong on a Territory or a
+// Model in the catalog. The conversion pipeline is identical for both;
+// only the destination artifact table differs.
+type Kind int
+
+const (
+	KindUnspecified Kind = iota
+	KindTerritory
+	KindModel
+)
+
+// String returns the lowercase canonical name for storage and logging.
+func (k Kind) String() string {
+	switch k {
+	case KindTerritory:
+		return "territory"
+	case KindModel:
+		return "model"
+	default:
+		return "unspecified"
+	}
+}
+
+// ParseKind inverts String. Unknown values return KindUnspecified.
+func ParseKind(s string) Kind {
+	switch s {
+	case "territory":
+		return KindTerritory
+	case "model":
+		return KindModel
+	default:
+		return KindUnspecified
+	}
+}
+
+// ConversionTarget is the mesh-service view of a territory or a model — the
+// fields the worker needs to fetch source bytes and submit the result back
+// to the catalog. Mapped from catalog pb at the catalog client boundary.
+type ConversionTarget struct {
+	Kind           Kind
+	Slug           string
+	Title          string
+	Description    string
+	SourceBlobHash string
 }
 
 // Artifact is what mesh-worker registers in the catalog after a successful
 // conversion. Mirrors the catalog's notion of an artifact but lives in the
 // mesh bounded context.
 type Artifact struct {
-	ProjectSlug string
+	Kind        Kind
+	Slug        string
 	LOD         uint32
 	Hash        string
 	ContentType string

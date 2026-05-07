@@ -20,6 +20,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		"http_addr", cfg.HTTPAddr,
 		"catalog_addr", cfg.CatalogGRPCAddr,
 		"mesh_addr", cfg.MeshGRPCAddr,
+		"upload_addr", cfg.UploadGRPCAddr,
 		"asset_addr", cfg.AssetHTTPAddr,
 	)
 
@@ -38,7 +39,13 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	defer m.Close()
 
-	svc := InitService(cat, m)
+	up, err := InitUpload(cfg)
+	if err != nil {
+		return fmt.Errorf("init upload: %w", err)
+	}
+	defer up.Close()
+
+	svc := InitService(cat, m, up)
 
 	assetProxy, err := InitAssetProxy(cfg)
 	if err != nil {

@@ -28,10 +28,12 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // MeshService accepts conversion jobs and reports their status. The actual
-// CPU-heavy work happens in mesh-worker, which consumes from Redis Streams
-// and writes results to the BlobStore + catalog.
+// CPU-heavy work happens in mesh-worker, which consumes from Redis Streams,
+// fetches the source ZIP archive from BlobStore by hash, extracts it, runs
+// the converter + gltfpack pipeline, and registers each LOD artifact with
+// the catalog (territory_artifacts or model_artifacts depending on Kind).
 type MeshServiceClient interface {
-	// SubmitConversion enqueues a conversion job for the given project. Returns
+	// SubmitConversion enqueues a conversion job for the given target. Returns
 	// the job state immediately; the actual conversion runs asynchronously.
 	SubmitConversion(ctx context.Context, in *SubmitConversionRequest, opts ...grpc.CallOption) (*SubmitConversionResponse, error)
 	// GetJob returns the current state of a conversion job.
@@ -71,10 +73,12 @@ func (c *meshServiceClient) GetJob(ctx context.Context, in *GetJobRequest, opts 
 // for forward compatibility.
 //
 // MeshService accepts conversion jobs and reports their status. The actual
-// CPU-heavy work happens in mesh-worker, which consumes from Redis Streams
-// and writes results to the BlobStore + catalog.
+// CPU-heavy work happens in mesh-worker, which consumes from Redis Streams,
+// fetches the source ZIP archive from BlobStore by hash, extracts it, runs
+// the converter + gltfpack pipeline, and registers each LOD artifact with
+// the catalog (territory_artifacts or model_artifacts depending on Kind).
 type MeshServiceServer interface {
-	// SubmitConversion enqueues a conversion job for the given project. Returns
+	// SubmitConversion enqueues a conversion job for the given target. Returns
 	// the job state immediately; the actual conversion runs asynchronously.
 	SubmitConversion(context.Context, *SubmitConversionRequest) (*SubmitConversionResponse, error)
 	// GetJob returns the current state of a conversion job.

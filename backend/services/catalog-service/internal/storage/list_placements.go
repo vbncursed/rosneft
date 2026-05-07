@@ -7,21 +7,21 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
-// ListPlacements returns every placement attached to a parent project, ordered
-// by creation time. An unknown parent slug yields ErrProjectNotFound rather
+// ListPlacements returns every placement attached to a territory, ordered
+// by creation time. An unknown territory yields ErrTerritoryNotFound rather
 // than an empty list — the caller wants to distinguish "no placements yet"
-// from "no such project".
-func (r *PG) ListPlacements(ctx context.Context, parentSlug string) ([]domain.Placement, error) {
-	if _, err := r.GetProject(ctx, parentSlug); err != nil {
+// from "no such territory".
+func (r *PG) ListPlacements(ctx context.Context, territorySlug string) ([]domain.Placement, error) {
+	if _, err := r.GetTerritory(ctx, territorySlug); err != nil {
 		return nil, err
 	}
 
 	const q = `SELECT ` + placementSelectCols + `
 		FROM ` + placementJoin + `
-		WHERE pp.slug = $1
+		WHERE t.slug = $1
 		ORDER BY pl.created_at`
 
-	rows, err := r.pool.Query(ctx, q, parentSlug)
+	rows, err := r.pool.Query(ctx, q, territorySlug)
 	if err != nil {
 		return nil, fmt.Errorf("storage.ListPlacements: query: %w", err)
 	}

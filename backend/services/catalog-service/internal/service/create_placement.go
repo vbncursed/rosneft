@@ -9,15 +9,10 @@ import (
 
 // CreatePlacement validates the input, fills in defaults for the transform,
 // and persists the placement. Defaults: scale {1,1,1}, position/rotation
-// zero, label empty. ParentSlug == AssetSlug is rejected here so the caller
-// gets a clean InvalidInput rather than a check-constraint error from the
-// database.
+// zero, label empty.
 func (c *Catalog) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
-	if p.ParentSlug == "" || p.AssetSlug == "" {
-		return domain.Placement{}, fmt.Errorf("service.CreatePlacement: %w: parent_slug and asset_slug are required", domain.ErrInvalidInput)
-	}
-	if p.ParentSlug == p.AssetSlug {
-		return domain.Placement{}, domain.ErrSelfPlacement
+	if p.TerritorySlug == "" || p.ModelSlug == "" {
+		return domain.Placement{}, fmt.Errorf("service.CreatePlacement: %w: territory_slug and model_slug are required", domain.ErrInvalidInput)
 	}
 	p.Scale = defaultScale(p.Scale)
 	if p.Scale.X <= 0 || p.Scale.Y <= 0 || p.Scale.Z <= 0 {
@@ -27,8 +22,8 @@ func (c *Catalog) CreatePlacement(ctx context.Context, p domain.Placement) (doma
 }
 
 // defaultScale replaces a zero-value Vec3 with {1,1,1} (uniform unit scale).
-// Mixed inputs (e.g. {2, 0, 0}) are left alone so the validation step below
-// can reject them — that prevents silent "I asked for X but got 1" surprises.
+// Mixed inputs (e.g. {2, 0, 0}) are left alone so the validation step can
+// reject them — prevents silent "I asked for X but got 1" surprises.
 func defaultScale(s domain.Vec3) domain.Vec3 {
 	if s == (domain.Vec3{}) {
 		return domain.Vec3{X: 1, Y: 1, Z: 1}

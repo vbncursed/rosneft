@@ -2,19 +2,19 @@ package storage
 
 import "github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 
-// projectColumns is the canonical SELECT/RETURNING list for projects.
-const projectColumns = `slug, title, subtitle, description,
-	source_obj_path, source_mtl_path, source_texture_path,
-	created_at, updated_at`
+// entityColumns is the SELECT/RETURNING list shared by territories and
+// models — they have identical schemas in the database.
+const entityColumns = `slug, title, description, source_blob_hash, created_at, updated_at`
 
-// artifactReturningCols is used in INSERT ... RETURNING; columns are unqualified.
+// artifactReturningCols is used in INSERT ... RETURNING. Columns are
+// unqualified.
 const artifactReturningCols = `lod, hash, content_type, size_bytes, vertices, faces,
 	bbox_min_x, bbox_min_y, bbox_min_z,
 	bbox_max_x, bbox_max_y, bbox_max_z,
 	created_at`
 
-// artifactSelectCols is used in SELECT with the projects JOIN; created_at is
-// ambiguous without an alias because projects also has a created_at column.
+// artifactSelectCols is used in SELECT with the entity JOIN; created_at
+// must be aliased because the entity table also has a created_at column.
 const artifactSelectCols = `a.lod, a.hash, a.content_type, a.size_bytes, a.vertices, a.faces,
 	a.bbox_min_x, a.bbox_min_y, a.bbox_min_z,
 	a.bbox_max_x, a.bbox_max_y, a.bbox_max_z,
@@ -25,18 +25,20 @@ type rowScanner interface {
 	Scan(dst ...any) error
 }
 
-func scanProject(r rowScanner) (domain.Project, error) {
-	var p domain.Project
-	err := r.Scan(
-		&p.Slug, &p.Title, &p.Subtitle, &p.Description,
-		&p.SourceObjPath, &p.SourceMtlPath, &p.SourceTexturePath,
-		&p.CreatedAt, &p.UpdatedAt,
-	)
-	return p, err
+func scanTerritory(r rowScanner) (domain.Territory, error) {
+	var t domain.Territory
+	err := r.Scan(&t.Slug, &t.Title, &t.Description, &t.SourceBlobHash, &t.CreatedAt, &t.UpdatedAt)
+	return t, err
+}
+
+func scanModel(r rowScanner) (domain.Model, error) {
+	var m domain.Model
+	err := r.Scan(&m.Slug, &m.Title, &m.Description, &m.SourceBlobHash, &m.CreatedAt, &m.UpdatedAt)
+	return m, err
 }
 
 func scanArtifact(r rowScanner, slug string) (domain.Artifact, error) {
-	a := domain.Artifact{ProjectSlug: slug}
+	a := domain.Artifact{Slug: slug}
 	err := r.Scan(
 		&a.LOD, &a.Hash, &a.ContentType, &a.Size, &a.Vertices, &a.Faces,
 		&a.BBoxMin.X, &a.BBoxMin.Y, &a.BBoxMin.Z,
@@ -46,10 +48,10 @@ func scanArtifact(r rowScanner, slug string) (domain.Artifact, error) {
 	return a, err
 }
 
-// placementSelectCols is the column list used by every placement read query
-// — it joins to projects twice to resolve parent/asset slugs in a single
-// round-trip rather than paying for two extra lookups per row.
-const placementSelectCols = `pl.id, pp.slug AS parent_slug, ap.slug AS asset_slug,
+// placementSelectCols joins to territories and models exactly once each
+// to resolve slugs in a single round-trip rather than firing two extra
+// lookups per row.
+const placementSelectCols = `pl.id, t.slug AS territory_slug, m.slug AS model_slug,
 	pl.position_x, pl.position_y, pl.position_z,
 	pl.rotation_x, pl.rotation_y, pl.rotation_z,
 	pl.scale_x, pl.scale_y, pl.scale_z,
@@ -57,13 +59,13 @@ const placementSelectCols = `pl.id, pp.slug AS parent_slug, ap.slug AS asset_slu
 
 // placementJoin is the FROM clause used together with placementSelectCols.
 const placementJoin = `placements pl
-	JOIN projects pp ON pp.id = pl.parent_id
-	JOIN projects ap ON ap.id = pl.asset_id`
+	JOIN territories t ON t.id = pl.territory_id
+	JOIN models m      ON m.id = pl.model_id`
 
 func scanPlacement(r rowScanner) (domain.Placement, error) {
 	var p domain.Placement
 	err := r.Scan(
-		&p.ID, &p.ParentSlug, &p.AssetSlug,
+		&p.ID, &p.TerritorySlug, &p.ModelSlug,
 		&p.Position.X, &p.Position.Y, &p.Position.Z,
 		&p.Rotation.X, &p.Rotation.Y, &p.Rotation.Z,
 		&p.Scale.X, &p.Scale.Y, &p.Scale.Z,

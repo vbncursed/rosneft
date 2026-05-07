@@ -38,7 +38,6 @@ func newRootCmd() *cobra.Command {
 	flags.String("log-level", "info", "log level: debug|info|warn|error")
 	flags.String("log-format", "json", "log format: json|text")
 	flags.Bool("auto-migrate", true, "run goose migrations on startup (serve only)")
-	flags.String("seed-file", "", "path to projects YAML to seed on startup (serve only)")
 	flags.Duration("shutdown-timeout", 15*time.Second, "graceful shutdown timeout")
 
 	cmd.AddCommand(
@@ -46,7 +45,6 @@ func newRootCmd() *cobra.Command {
 		newMigrateUpCmd(),
 		newMigrateDownCmd(),
 		newMigrateStatusCmd(),
-		newSeedCmd(),
 	)
 	return cmd
 }
@@ -101,26 +99,6 @@ func newMigrateStatusCmd() *cobra.Command {
 				return err
 			}
 			return bootstrap.RunMigrateStatus(cmd.Context(), cfg)
-		},
-	}
-}
-
-func newSeedCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "seed [file]",
-		Short: "Upsert projects from a YAML manifest",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := loadCfg(cmd)
-			if err != nil {
-				return err
-			}
-			n, err := bootstrap.RunSeed(cmd.Context(), cfg, args[0])
-			if err != nil {
-				return err
-			}
-			fmt.Fprintf(cmd.OutOrStdout(), "seeded %d projects from %s\n", n, args[0])
-			return nil
 		},
 	}
 }

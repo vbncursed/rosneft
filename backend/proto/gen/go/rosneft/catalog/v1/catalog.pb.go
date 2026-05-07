@@ -22,117 +22,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Project is a 3D model project surfaced to the frontend catalog.
-type Project struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	Slug        string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
-	Title       string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Subtitle    string                 `protobuf:"bytes,3,opt,name=subtitle,proto3" json:"subtitle,omitempty"`
-	Description string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
-	// Path to the source OBJ relative to the source root (mesh-worker reads it).
-	SourceObjPath     string                 `protobuf:"bytes,5,opt,name=source_obj_path,json=sourceObjPath,proto3" json:"source_obj_path,omitempty"`
-	SourceMtlPath     string                 `protobuf:"bytes,6,opt,name=source_mtl_path,json=sourceMtlPath,proto3" json:"source_mtl_path,omitempty"`
-	SourceTexturePath string                 `protobuf:"bytes,7,opt,name=source_texture_path,json=sourceTexturePath,proto3" json:"source_texture_path,omitempty"`
-	CreatedAt         *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt         *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *Project) Reset() {
-	*x = Project{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Project) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Project) ProtoMessage() {}
-
-func (x *Project) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Project.ProtoReflect.Descriptor instead.
-func (*Project) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *Project) GetSlug() string {
-	if x != nil {
-		return x.Slug
-	}
-	return ""
-}
-
-func (x *Project) GetTitle() string {
-	if x != nil {
-		return x.Title
-	}
-	return ""
-}
-
-func (x *Project) GetSubtitle() string {
-	if x != nil {
-		return x.Subtitle
-	}
-	return ""
-}
-
-func (x *Project) GetDescription() string {
-	if x != nil {
-		return x.Description
-	}
-	return ""
-}
-
-func (x *Project) GetSourceObjPath() string {
-	if x != nil {
-		return x.SourceObjPath
-	}
-	return ""
-}
-
-func (x *Project) GetSourceMtlPath() string {
-	if x != nil {
-		return x.SourceMtlPath
-	}
-	return ""
-}
-
-func (x *Project) GetSourceTexturePath() string {
-	if x != nil {
-		return x.SourceTexturePath
-	}
-	return ""
-}
-
-func (x *Project) GetCreatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.CreatedAt
-	}
-	return nil
-}
-
-func (x *Project) GetUpdatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.UpdatedAt
-	}
-	return nil
-}
-
-// Vec3 represents a point in 3D space (used for bounding-box corners).
+// Vec3 represents a point in 3D space (used for bounding-box corners
+// and placement transforms).
 type Vec3 struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	X             float64                `protobuf:"fixed64,1,opt,name=x,proto3" json:"x,omitempty"`
@@ -144,7 +35,7 @@ type Vec3 struct {
 
 func (x *Vec3) Reset() {
 	*x = Vec3{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[1]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -156,7 +47,7 @@ func (x *Vec3) String() string {
 func (*Vec3) ProtoMessage() {}
 
 func (x *Vec3) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[1]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -169,7 +60,7 @@ func (x *Vec3) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Vec3.ProtoReflect.Descriptor instead.
 func (*Vec3) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{1}
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Vec3) GetX() float64 {
@@ -193,13 +84,183 @@ func (x *Vec3) GetZ() float64 {
 	return 0
 }
 
-// Artifact is a converted binary asset (GLB) for a specific project + LOD.
-type Artifact struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	ProjectSlug string                 `protobuf:"bytes,1,opt,name=project_slug,json=projectSlug,proto3" json:"project_slug,omitempty"`
-	// Level-of-detail: 0 = full quality, higher = more reduced.
-	Lod uint32 `protobuf:"varint,2,opt,name=lod,proto3" json:"lod,omitempty"`
-	// Content hash used as the BlobStore key and as a strong ETag.
+// Territory is a scene the viewer renders as the parent canvas.
+// source_blob_hash points at the ZIP archive in BlobStore that
+// contains the original OBJ, MTL, and texture files.
+type Territory struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Slug           string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	Title          string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Description    string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	SourceBlobHash string                 `protobuf:"bytes,4,opt,name=source_blob_hash,json=sourceBlobHash,proto3" json:"source_blob_hash,omitempty"`
+	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt      *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *Territory) Reset() {
+	*x = Territory{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Territory) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Territory) ProtoMessage() {}
+
+func (x *Territory) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Territory.ProtoReflect.Descriptor instead.
+func (*Territory) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Territory) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *Territory) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *Territory) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *Territory) GetSourceBlobHash() string {
+	if x != nil {
+		return x.SourceBlobHash
+	}
+	return ""
+}
+
+func (x *Territory) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *Territory) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+// Model is a placeable 3D asset overlaid on a territory.
+type Model struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Slug           string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	Title          string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Description    string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	SourceBlobHash string                 `protobuf:"bytes,4,opt,name=source_blob_hash,json=sourceBlobHash,proto3" json:"source_blob_hash,omitempty"`
+	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt      *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *Model) Reset() {
+	*x = Model{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Model) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Model) ProtoMessage() {}
+
+func (x *Model) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Model.ProtoReflect.Descriptor instead.
+func (*Model) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Model) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+func (x *Model) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *Model) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *Model) GetSourceBlobHash() string {
+	if x != nil {
+		return x.SourceBlobHash
+	}
+	return ""
+}
+
+func (x *Model) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *Model) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+// TerritoryArtifact is a converted GLB output for one territory + LOD.
+type TerritoryArtifact struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TerritorySlug string                 `protobuf:"bytes,1,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
+	Lod           uint32                 `protobuf:"varint,2,opt,name=lod,proto3" json:"lod,omitempty"`
 	Hash          string                 `protobuf:"bytes,3,opt,name=hash,proto3" json:"hash,omitempty"`
 	ContentType   string                 `protobuf:"bytes,4,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
 	Size          int64                  `protobuf:"varint,5,opt,name=size,proto3" json:"size,omitempty"`
@@ -212,21 +273,21 @@ type Artifact struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Artifact) Reset() {
-	*x = Artifact{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[2]
+func (x *TerritoryArtifact) Reset() {
+	*x = TerritoryArtifact{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Artifact) String() string {
+func (x *TerritoryArtifact) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Artifact) ProtoMessage() {}
+func (*TerritoryArtifact) ProtoMessage() {}
 
-func (x *Artifact) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[2]
+func (x *TerritoryArtifact) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -237,138 +298,112 @@ func (x *Artifact) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Artifact.ProtoReflect.Descriptor instead.
-func (*Artifact) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{2}
+// Deprecated: Use TerritoryArtifact.ProtoReflect.Descriptor instead.
+func (*TerritoryArtifact) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *Artifact) GetProjectSlug() string {
+func (x *TerritoryArtifact) GetTerritorySlug() string {
 	if x != nil {
-		return x.ProjectSlug
+		return x.TerritorySlug
 	}
 	return ""
 }
 
-func (x *Artifact) GetLod() uint32 {
+func (x *TerritoryArtifact) GetLod() uint32 {
 	if x != nil {
 		return x.Lod
 	}
 	return 0
 }
 
-func (x *Artifact) GetHash() string {
+func (x *TerritoryArtifact) GetHash() string {
 	if x != nil {
 		return x.Hash
 	}
 	return ""
 }
 
-func (x *Artifact) GetContentType() string {
+func (x *TerritoryArtifact) GetContentType() string {
 	if x != nil {
 		return x.ContentType
 	}
 	return ""
 }
 
-func (x *Artifact) GetSize() int64 {
+func (x *TerritoryArtifact) GetSize() int64 {
 	if x != nil {
 		return x.Size
 	}
 	return 0
 }
 
-func (x *Artifact) GetVertices() uint64 {
+func (x *TerritoryArtifact) GetVertices() uint64 {
 	if x != nil {
 		return x.Vertices
 	}
 	return 0
 }
 
-func (x *Artifact) GetFaces() uint64 {
+func (x *TerritoryArtifact) GetFaces() uint64 {
 	if x != nil {
 		return x.Faces
 	}
 	return 0
 }
 
-func (x *Artifact) GetBboxMin() *Vec3 {
+func (x *TerritoryArtifact) GetBboxMin() *Vec3 {
 	if x != nil {
 		return x.BboxMin
 	}
 	return nil
 }
 
-func (x *Artifact) GetBboxMax() *Vec3 {
+func (x *TerritoryArtifact) GetBboxMax() *Vec3 {
 	if x != nil {
 		return x.BboxMax
 	}
 	return nil
 }
 
-func (x *Artifact) GetCreatedAt() *timestamppb.Timestamp {
+func (x *TerritoryArtifact) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
 	return nil
 }
 
-type ListProjectsRequest struct {
+// ModelArtifact is a converted GLB output for one model + LOD.
+type ModelArtifact struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	ModelSlug     string                 `protobuf:"bytes,1,opt,name=model_slug,json=modelSlug,proto3" json:"model_slug,omitempty"`
+	Lod           uint32                 `protobuf:"varint,2,opt,name=lod,proto3" json:"lod,omitempty"`
+	Hash          string                 `protobuf:"bytes,3,opt,name=hash,proto3" json:"hash,omitempty"`
+	ContentType   string                 `protobuf:"bytes,4,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
+	Size          int64                  `protobuf:"varint,5,opt,name=size,proto3" json:"size,omitempty"`
+	Vertices      uint64                 `protobuf:"varint,6,opt,name=vertices,proto3" json:"vertices,omitempty"`
+	Faces         uint64                 `protobuf:"varint,7,opt,name=faces,proto3" json:"faces,omitempty"`
+	BboxMin       *Vec3                  `protobuf:"bytes,8,opt,name=bbox_min,json=bboxMin,proto3" json:"bbox_min,omitempty"`
+	BboxMax       *Vec3                  `protobuf:"bytes,9,opt,name=bbox_max,json=bboxMax,proto3" json:"bbox_max,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ListProjectsRequest) Reset() {
-	*x = ListProjectsRequest{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListProjectsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListProjectsRequest) ProtoMessage() {}
-
-func (x *ListProjectsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListProjectsRequest.ProtoReflect.Descriptor instead.
-func (*ListProjectsRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{3}
-}
-
-type ListProjectsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Projects      []*Project             `protobuf:"bytes,1,rep,name=projects,proto3" json:"projects,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListProjectsResponse) Reset() {
-	*x = ListProjectsResponse{}
+func (x *ModelArtifact) Reset() {
+	*x = ModelArtifact{}
 	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ListProjectsResponse) String() string {
+func (x *ModelArtifact) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ListProjectsResponse) ProtoMessage() {}
+func (*ModelArtifact) ProtoMessage() {}
 
-func (x *ListProjectsResponse) ProtoReflect() protoreflect.Message {
+func (x *ModelArtifact) ProtoReflect() protoreflect.Message {
 	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -380,474 +415,90 @@ func (x *ListProjectsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListProjectsResponse.ProtoReflect.Descriptor instead.
-func (*ListProjectsResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ModelArtifact.ProtoReflect.Descriptor instead.
+func (*ModelArtifact) Descriptor() ([]byte, []int) {
 	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *ListProjectsResponse) GetProjects() []*Project {
+func (x *ModelArtifact) GetModelSlug() string {
 	if x != nil {
-		return x.Projects
-	}
-	return nil
-}
-
-type GetProjectRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetProjectRequest) Reset() {
-	*x = GetProjectRequest{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetProjectRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetProjectRequest) ProtoMessage() {}
-
-func (x *GetProjectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetProjectRequest.ProtoReflect.Descriptor instead.
-func (*GetProjectRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *GetProjectRequest) GetSlug() string {
-	if x != nil {
-		return x.Slug
+		return x.ModelSlug
 	}
 	return ""
 }
 
-type GetProjectResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Project       *Project               `protobuf:"bytes,1,opt,name=project,proto3" json:"project,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetProjectResponse) Reset() {
-	*x = GetProjectResponse{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetProjectResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetProjectResponse) ProtoMessage() {}
-
-func (x *GetProjectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetProjectResponse.ProtoReflect.Descriptor instead.
-func (*GetProjectResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *GetProjectResponse) GetProject() *Project {
-	if x != nil {
-		return x.Project
-	}
-	return nil
-}
-
-type UpsertProjectRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Project       *Project               `protobuf:"bytes,1,opt,name=project,proto3" json:"project,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpsertProjectRequest) Reset() {
-	*x = UpsertProjectRequest{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpsertProjectRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpsertProjectRequest) ProtoMessage() {}
-
-func (x *UpsertProjectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpsertProjectRequest.ProtoReflect.Descriptor instead.
-func (*UpsertProjectRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *UpsertProjectRequest) GetProject() *Project {
-	if x != nil {
-		return x.Project
-	}
-	return nil
-}
-
-type UpsertProjectResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Project       *Project               `protobuf:"bytes,1,opt,name=project,proto3" json:"project,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpsertProjectResponse) Reset() {
-	*x = UpsertProjectResponse{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpsertProjectResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpsertProjectResponse) ProtoMessage() {}
-
-func (x *UpsertProjectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpsertProjectResponse.ProtoReflect.Descriptor instead.
-func (*UpsertProjectResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *UpsertProjectResponse) GetProject() *Project {
-	if x != nil {
-		return x.Project
-	}
-	return nil
-}
-
-type RegisterArtifactRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Artifact      *Artifact              `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RegisterArtifactRequest) Reset() {
-	*x = RegisterArtifactRequest{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RegisterArtifactRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RegisterArtifactRequest) ProtoMessage() {}
-
-func (x *RegisterArtifactRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RegisterArtifactRequest.ProtoReflect.Descriptor instead.
-func (*RegisterArtifactRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *RegisterArtifactRequest) GetArtifact() *Artifact {
-	if x != nil {
-		return x.Artifact
-	}
-	return nil
-}
-
-type RegisterArtifactResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Artifact      *Artifact              `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RegisterArtifactResponse) Reset() {
-	*x = RegisterArtifactResponse{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RegisterArtifactResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RegisterArtifactResponse) ProtoMessage() {}
-
-func (x *RegisterArtifactResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RegisterArtifactResponse.ProtoReflect.Descriptor instead.
-func (*RegisterArtifactResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *RegisterArtifactResponse) GetArtifact() *Artifact {
-	if x != nil {
-		return x.Artifact
-	}
-	return nil
-}
-
-type ListArtifactsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProjectSlug   string                 `protobuf:"bytes,1,opt,name=project_slug,json=projectSlug,proto3" json:"project_slug,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListArtifactsRequest) Reset() {
-	*x = ListArtifactsRequest{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListArtifactsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListArtifactsRequest) ProtoMessage() {}
-
-func (x *ListArtifactsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListArtifactsRequest.ProtoReflect.Descriptor instead.
-func (*ListArtifactsRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *ListArtifactsRequest) GetProjectSlug() string {
-	if x != nil {
-		return x.ProjectSlug
-	}
-	return ""
-}
-
-type ListArtifactsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Artifacts     []*Artifact            `protobuf:"bytes,1,rep,name=artifacts,proto3" json:"artifacts,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListArtifactsResponse) Reset() {
-	*x = ListArtifactsResponse{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListArtifactsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListArtifactsResponse) ProtoMessage() {}
-
-func (x *ListArtifactsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListArtifactsResponse.ProtoReflect.Descriptor instead.
-func (*ListArtifactsResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *ListArtifactsResponse) GetArtifacts() []*Artifact {
-	if x != nil {
-		return x.Artifacts
-	}
-	return nil
-}
-
-type GetArtifactRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProjectSlug   string                 `protobuf:"bytes,1,opt,name=project_slug,json=projectSlug,proto3" json:"project_slug,omitempty"`
-	Lod           uint32                 `protobuf:"varint,2,opt,name=lod,proto3" json:"lod,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetArtifactRequest) Reset() {
-	*x = GetArtifactRequest{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[13]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetArtifactRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetArtifactRequest) ProtoMessage() {}
-
-func (x *GetArtifactRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[13]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetArtifactRequest.ProtoReflect.Descriptor instead.
-func (*GetArtifactRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *GetArtifactRequest) GetProjectSlug() string {
-	if x != nil {
-		return x.ProjectSlug
-	}
-	return ""
-}
-
-func (x *GetArtifactRequest) GetLod() uint32 {
+func (x *ModelArtifact) GetLod() uint32 {
 	if x != nil {
 		return x.Lod
 	}
 	return 0
 }
 
-type GetArtifactResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Artifact      *Artifact              `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetArtifactResponse) Reset() {
-	*x = GetArtifactResponse{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[14]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetArtifactResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetArtifactResponse) ProtoMessage() {}
-
-func (x *GetArtifactResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[14]
+func (x *ModelArtifact) GetHash() string {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+		return x.Hash
 	}
-	return mi.MessageOf(x)
+	return ""
 }
 
-// Deprecated: Use GetArtifactResponse.ProtoReflect.Descriptor instead.
-func (*GetArtifactResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{14}
-}
-
-func (x *GetArtifactResponse) GetArtifact() *Artifact {
+func (x *ModelArtifact) GetContentType() string {
 	if x != nil {
-		return x.Artifact
+		return x.ContentType
+	}
+	return ""
+}
+
+func (x *ModelArtifact) GetSize() int64 {
+	if x != nil {
+		return x.Size
+	}
+	return 0
+}
+
+func (x *ModelArtifact) GetVertices() uint64 {
+	if x != nil {
+		return x.Vertices
+	}
+	return 0
+}
+
+func (x *ModelArtifact) GetFaces() uint64 {
+	if x != nil {
+		return x.Faces
+	}
+	return 0
+}
+
+func (x *ModelArtifact) GetBboxMin() *Vec3 {
+	if x != nil {
+		return x.BboxMin
 	}
 	return nil
 }
 
-// Placement is a positioned instance of an asset project on a parent project.
-// position is in scene units; rotation is Euler XYZ in radians (Three.js
-// convention); scale is per-axis to allow non-uniform stretching.
+func (x *ModelArtifact) GetBboxMax() *Vec3 {
+	if x != nil {
+		return x.BboxMax
+	}
+	return nil
+}
+
+func (x *ModelArtifact) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+// Placement is one instance of a model overlaid on a territory at a
+// specific transform. Position is in scene units; rotation is Euler XYZ
+// in radians (Three.js convention); scale is per-axis to allow
+// non-uniform stretching.
 type Placement struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	ParentSlug    string                 `protobuf:"bytes,2,opt,name=parent_slug,json=parentSlug,proto3" json:"parent_slug,omitempty"`
-	AssetSlug     string                 `protobuf:"bytes,3,opt,name=asset_slug,json=assetSlug,proto3" json:"asset_slug,omitempty"`
+	TerritorySlug string                 `protobuf:"bytes,2,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
+	ModelSlug     string                 `protobuf:"bytes,3,opt,name=model_slug,json=modelSlug,proto3" json:"model_slug,omitempty"`
 	Position      *Vec3                  `protobuf:"bytes,4,opt,name=position,proto3" json:"position,omitempty"`
 	Rotation      *Vec3                  `protobuf:"bytes,5,opt,name=rotation,proto3" json:"rotation,omitempty"`
 	Scale         *Vec3                  `protobuf:"bytes,6,opt,name=scale,proto3" json:"scale,omitempty"`
@@ -860,7 +511,7 @@ type Placement struct {
 
 func (x *Placement) Reset() {
 	*x = Placement{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[15]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -872,7 +523,7 @@ func (x *Placement) String() string {
 func (*Placement) ProtoMessage() {}
 
 func (x *Placement) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[15]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -885,7 +536,7 @@ func (x *Placement) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Placement.ProtoReflect.Descriptor instead.
 func (*Placement) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{15}
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Placement) GetId() int64 {
@@ -895,16 +546,16 @@ func (x *Placement) GetId() int64 {
 	return 0
 }
 
-func (x *Placement) GetParentSlug() string {
+func (x *Placement) GetTerritorySlug() string {
 	if x != nil {
-		return x.ParentSlug
+		return x.TerritorySlug
 	}
 	return ""
 }
 
-func (x *Placement) GetAssetSlug() string {
+func (x *Placement) GetModelSlug() string {
 	if x != nil {
-		return x.AssetSlug
+		return x.ModelSlug
 	}
 	return ""
 }
@@ -951,16 +602,1232 @@ func (x *Placement) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+type ListTerritoriesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTerritoriesRequest) Reset() {
+	*x = ListTerritoriesRequest{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTerritoriesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTerritoriesRequest) ProtoMessage() {}
+
+func (x *ListTerritoriesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTerritoriesRequest.ProtoReflect.Descriptor instead.
+func (*ListTerritoriesRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{6}
+}
+
+type ListTerritoriesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Territories   []*Territory           `protobuf:"bytes,1,rep,name=territories,proto3" json:"territories,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTerritoriesResponse) Reset() {
+	*x = ListTerritoriesResponse{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTerritoriesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTerritoriesResponse) ProtoMessage() {}
+
+func (x *ListTerritoriesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTerritoriesResponse.ProtoReflect.Descriptor instead.
+func (*ListTerritoriesResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListTerritoriesResponse) GetTerritories() []*Territory {
+	if x != nil {
+		return x.Territories
+	}
+	return nil
+}
+
+type GetTerritoryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTerritoryRequest) Reset() {
+	*x = GetTerritoryRequest{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTerritoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTerritoryRequest) ProtoMessage() {}
+
+func (x *GetTerritoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTerritoryRequest.ProtoReflect.Descriptor instead.
+func (*GetTerritoryRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetTerritoryRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+type GetTerritoryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Territory     *Territory             `protobuf:"bytes,1,opt,name=territory,proto3" json:"territory,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTerritoryResponse) Reset() {
+	*x = GetTerritoryResponse{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTerritoryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTerritoryResponse) ProtoMessage() {}
+
+func (x *GetTerritoryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTerritoryResponse.ProtoReflect.Descriptor instead.
+func (*GetTerritoryResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetTerritoryResponse) GetTerritory() *Territory {
+	if x != nil {
+		return x.Territory
+	}
+	return nil
+}
+
+type UpsertTerritoryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Territory     *Territory             `protobuf:"bytes,1,opt,name=territory,proto3" json:"territory,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpsertTerritoryRequest) Reset() {
+	*x = UpsertTerritoryRequest{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpsertTerritoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpsertTerritoryRequest) ProtoMessage() {}
+
+func (x *UpsertTerritoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpsertTerritoryRequest.ProtoReflect.Descriptor instead.
+func (*UpsertTerritoryRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *UpsertTerritoryRequest) GetTerritory() *Territory {
+	if x != nil {
+		return x.Territory
+	}
+	return nil
+}
+
+type UpsertTerritoryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Territory     *Territory             `protobuf:"bytes,1,opt,name=territory,proto3" json:"territory,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpsertTerritoryResponse) Reset() {
+	*x = UpsertTerritoryResponse{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpsertTerritoryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpsertTerritoryResponse) ProtoMessage() {}
+
+func (x *UpsertTerritoryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpsertTerritoryResponse.ProtoReflect.Descriptor instead.
+func (*UpsertTerritoryResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *UpsertTerritoryResponse) GetTerritory() *Territory {
+	if x != nil {
+		return x.Territory
+	}
+	return nil
+}
+
+type DeleteTerritoryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteTerritoryRequest) Reset() {
+	*x = DeleteTerritoryRequest{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteTerritoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteTerritoryRequest) ProtoMessage() {}
+
+func (x *DeleteTerritoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteTerritoryRequest.ProtoReflect.Descriptor instead.
+func (*DeleteTerritoryRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *DeleteTerritoryRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+type DeleteTerritoryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteTerritoryResponse) Reset() {
+	*x = DeleteTerritoryResponse{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteTerritoryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteTerritoryResponse) ProtoMessage() {}
+
+func (x *DeleteTerritoryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteTerritoryResponse.ProtoReflect.Descriptor instead.
+func (*DeleteTerritoryResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{13}
+}
+
+type RegisterTerritoryArtifactRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Artifact      *TerritoryArtifact     `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterTerritoryArtifactRequest) Reset() {
+	*x = RegisterTerritoryArtifactRequest{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterTerritoryArtifactRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterTerritoryArtifactRequest) ProtoMessage() {}
+
+func (x *RegisterTerritoryArtifactRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterTerritoryArtifactRequest.ProtoReflect.Descriptor instead.
+func (*RegisterTerritoryArtifactRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *RegisterTerritoryArtifactRequest) GetArtifact() *TerritoryArtifact {
+	if x != nil {
+		return x.Artifact
+	}
+	return nil
+}
+
+type RegisterTerritoryArtifactResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Artifact      *TerritoryArtifact     `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterTerritoryArtifactResponse) Reset() {
+	*x = RegisterTerritoryArtifactResponse{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterTerritoryArtifactResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterTerritoryArtifactResponse) ProtoMessage() {}
+
+func (x *RegisterTerritoryArtifactResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterTerritoryArtifactResponse.ProtoReflect.Descriptor instead.
+func (*RegisterTerritoryArtifactResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *RegisterTerritoryArtifactResponse) GetArtifact() *TerritoryArtifact {
+	if x != nil {
+		return x.Artifact
+	}
+	return nil
+}
+
+type ListTerritoryArtifactsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TerritorySlug string                 `protobuf:"bytes,1,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTerritoryArtifactsRequest) Reset() {
+	*x = ListTerritoryArtifactsRequest{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTerritoryArtifactsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTerritoryArtifactsRequest) ProtoMessage() {}
+
+func (x *ListTerritoryArtifactsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTerritoryArtifactsRequest.ProtoReflect.Descriptor instead.
+func (*ListTerritoryArtifactsRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ListTerritoryArtifactsRequest) GetTerritorySlug() string {
+	if x != nil {
+		return x.TerritorySlug
+	}
+	return ""
+}
+
+type ListTerritoryArtifactsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Artifacts     []*TerritoryArtifact   `protobuf:"bytes,1,rep,name=artifacts,proto3" json:"artifacts,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTerritoryArtifactsResponse) Reset() {
+	*x = ListTerritoryArtifactsResponse{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTerritoryArtifactsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTerritoryArtifactsResponse) ProtoMessage() {}
+
+func (x *ListTerritoryArtifactsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTerritoryArtifactsResponse.ProtoReflect.Descriptor instead.
+func (*ListTerritoryArtifactsResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ListTerritoryArtifactsResponse) GetArtifacts() []*TerritoryArtifact {
+	if x != nil {
+		return x.Artifacts
+	}
+	return nil
+}
+
+type GetTerritoryArtifactRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TerritorySlug string                 `protobuf:"bytes,1,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
+	Lod           uint32                 `protobuf:"varint,2,opt,name=lod,proto3" json:"lod,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTerritoryArtifactRequest) Reset() {
+	*x = GetTerritoryArtifactRequest{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTerritoryArtifactRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTerritoryArtifactRequest) ProtoMessage() {}
+
+func (x *GetTerritoryArtifactRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTerritoryArtifactRequest.ProtoReflect.Descriptor instead.
+func (*GetTerritoryArtifactRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *GetTerritoryArtifactRequest) GetTerritorySlug() string {
+	if x != nil {
+		return x.TerritorySlug
+	}
+	return ""
+}
+
+func (x *GetTerritoryArtifactRequest) GetLod() uint32 {
+	if x != nil {
+		return x.Lod
+	}
+	return 0
+}
+
+type GetTerritoryArtifactResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Artifact      *TerritoryArtifact     `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTerritoryArtifactResponse) Reset() {
+	*x = GetTerritoryArtifactResponse{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTerritoryArtifactResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTerritoryArtifactResponse) ProtoMessage() {}
+
+func (x *GetTerritoryArtifactResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTerritoryArtifactResponse.ProtoReflect.Descriptor instead.
+func (*GetTerritoryArtifactResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *GetTerritoryArtifactResponse) GetArtifact() *TerritoryArtifact {
+	if x != nil {
+		return x.Artifact
+	}
+	return nil
+}
+
+type ListModelsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListModelsRequest) Reset() {
+	*x = ListModelsRequest{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListModelsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListModelsRequest) ProtoMessage() {}
+
+func (x *ListModelsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListModelsRequest.ProtoReflect.Descriptor instead.
+func (*ListModelsRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{20}
+}
+
+type ListModelsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Models        []*Model               `protobuf:"bytes,1,rep,name=models,proto3" json:"models,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListModelsResponse) Reset() {
+	*x = ListModelsResponse{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListModelsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListModelsResponse) ProtoMessage() {}
+
+func (x *ListModelsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListModelsResponse.ProtoReflect.Descriptor instead.
+func (*ListModelsResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *ListModelsResponse) GetModels() []*Model {
+	if x != nil {
+		return x.Models
+	}
+	return nil
+}
+
+type GetModelRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetModelRequest) Reset() {
+	*x = GetModelRequest{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetModelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetModelRequest) ProtoMessage() {}
+
+func (x *GetModelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetModelRequest.ProtoReflect.Descriptor instead.
+func (*GetModelRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *GetModelRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+type GetModelResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Model         *Model                 `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetModelResponse) Reset() {
+	*x = GetModelResponse{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetModelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetModelResponse) ProtoMessage() {}
+
+func (x *GetModelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetModelResponse.ProtoReflect.Descriptor instead.
+func (*GetModelResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *GetModelResponse) GetModel() *Model {
+	if x != nil {
+		return x.Model
+	}
+	return nil
+}
+
+type UpsertModelRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Model         *Model                 `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpsertModelRequest) Reset() {
+	*x = UpsertModelRequest{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpsertModelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpsertModelRequest) ProtoMessage() {}
+
+func (x *UpsertModelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpsertModelRequest.ProtoReflect.Descriptor instead.
+func (*UpsertModelRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *UpsertModelRequest) GetModel() *Model {
+	if x != nil {
+		return x.Model
+	}
+	return nil
+}
+
+type UpsertModelResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Model         *Model                 `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpsertModelResponse) Reset() {
+	*x = UpsertModelResponse{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpsertModelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpsertModelResponse) ProtoMessage() {}
+
+func (x *UpsertModelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpsertModelResponse.ProtoReflect.Descriptor instead.
+func (*UpsertModelResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *UpsertModelResponse) GetModel() *Model {
+	if x != nil {
+		return x.Model
+	}
+	return nil
+}
+
+type DeleteModelRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteModelRequest) Reset() {
+	*x = DeleteModelRequest{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteModelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteModelRequest) ProtoMessage() {}
+
+func (x *DeleteModelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteModelRequest.ProtoReflect.Descriptor instead.
+func (*DeleteModelRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *DeleteModelRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
+	}
+	return ""
+}
+
+type DeleteModelResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteModelResponse) Reset() {
+	*x = DeleteModelResponse{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteModelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteModelResponse) ProtoMessage() {}
+
+func (x *DeleteModelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteModelResponse.ProtoReflect.Descriptor instead.
+func (*DeleteModelResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{27}
+}
+
+type RegisterModelArtifactRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Artifact      *ModelArtifact         `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterModelArtifactRequest) Reset() {
+	*x = RegisterModelArtifactRequest{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterModelArtifactRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterModelArtifactRequest) ProtoMessage() {}
+
+func (x *RegisterModelArtifactRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterModelArtifactRequest.ProtoReflect.Descriptor instead.
+func (*RegisterModelArtifactRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *RegisterModelArtifactRequest) GetArtifact() *ModelArtifact {
+	if x != nil {
+		return x.Artifact
+	}
+	return nil
+}
+
+type RegisterModelArtifactResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Artifact      *ModelArtifact         `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterModelArtifactResponse) Reset() {
+	*x = RegisterModelArtifactResponse{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterModelArtifactResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterModelArtifactResponse) ProtoMessage() {}
+
+func (x *RegisterModelArtifactResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterModelArtifactResponse.ProtoReflect.Descriptor instead.
+func (*RegisterModelArtifactResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *RegisterModelArtifactResponse) GetArtifact() *ModelArtifact {
+	if x != nil {
+		return x.Artifact
+	}
+	return nil
+}
+
+type ListModelArtifactsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ModelSlug     string                 `protobuf:"bytes,1,opt,name=model_slug,json=modelSlug,proto3" json:"model_slug,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListModelArtifactsRequest) Reset() {
+	*x = ListModelArtifactsRequest{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListModelArtifactsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListModelArtifactsRequest) ProtoMessage() {}
+
+func (x *ListModelArtifactsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListModelArtifactsRequest.ProtoReflect.Descriptor instead.
+func (*ListModelArtifactsRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *ListModelArtifactsRequest) GetModelSlug() string {
+	if x != nil {
+		return x.ModelSlug
+	}
+	return ""
+}
+
+type ListModelArtifactsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Artifacts     []*ModelArtifact       `protobuf:"bytes,1,rep,name=artifacts,proto3" json:"artifacts,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListModelArtifactsResponse) Reset() {
+	*x = ListModelArtifactsResponse{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListModelArtifactsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListModelArtifactsResponse) ProtoMessage() {}
+
+func (x *ListModelArtifactsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListModelArtifactsResponse.ProtoReflect.Descriptor instead.
+func (*ListModelArtifactsResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *ListModelArtifactsResponse) GetArtifacts() []*ModelArtifact {
+	if x != nil {
+		return x.Artifacts
+	}
+	return nil
+}
+
+type GetModelArtifactRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ModelSlug     string                 `protobuf:"bytes,1,opt,name=model_slug,json=modelSlug,proto3" json:"model_slug,omitempty"`
+	Lod           uint32                 `protobuf:"varint,2,opt,name=lod,proto3" json:"lod,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetModelArtifactRequest) Reset() {
+	*x = GetModelArtifactRequest{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetModelArtifactRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetModelArtifactRequest) ProtoMessage() {}
+
+func (x *GetModelArtifactRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetModelArtifactRequest.ProtoReflect.Descriptor instead.
+func (*GetModelArtifactRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *GetModelArtifactRequest) GetModelSlug() string {
+	if x != nil {
+		return x.ModelSlug
+	}
+	return ""
+}
+
+func (x *GetModelArtifactRequest) GetLod() uint32 {
+	if x != nil {
+		return x.Lod
+	}
+	return 0
+}
+
+type GetModelArtifactResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Artifact      *ModelArtifact         `protobuf:"bytes,1,opt,name=artifact,proto3" json:"artifact,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetModelArtifactResponse) Reset() {
+	*x = GetModelArtifactResponse{}
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetModelArtifactResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetModelArtifactResponse) ProtoMessage() {}
+
+func (x *GetModelArtifactResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetModelArtifactResponse.ProtoReflect.Descriptor instead.
+func (*GetModelArtifactResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *GetModelArtifactResponse) GetArtifact() *ModelArtifact {
+	if x != nil {
+		return x.Artifact
+	}
+	return nil
+}
+
 type ListPlacementsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ParentSlug    string                 `protobuf:"bytes,1,opt,name=parent_slug,json=parentSlug,proto3" json:"parent_slug,omitempty"`
+	TerritorySlug string                 `protobuf:"bytes,1,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListPlacementsRequest) Reset() {
 	*x = ListPlacementsRequest{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[16]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -972,7 +1839,7 @@ func (x *ListPlacementsRequest) String() string {
 func (*ListPlacementsRequest) ProtoMessage() {}
 
 func (x *ListPlacementsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[16]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -985,12 +1852,12 @@ func (x *ListPlacementsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPlacementsRequest.ProtoReflect.Descriptor instead.
 func (*ListPlacementsRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{16}
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{34}
 }
 
-func (x *ListPlacementsRequest) GetParentSlug() string {
+func (x *ListPlacementsRequest) GetTerritorySlug() string {
 	if x != nil {
-		return x.ParentSlug
+		return x.TerritorySlug
 	}
 	return ""
 }
@@ -1004,7 +1871,7 @@ type ListPlacementsResponse struct {
 
 func (x *ListPlacementsResponse) Reset() {
 	*x = ListPlacementsResponse{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[17]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1016,7 +1883,7 @@ func (x *ListPlacementsResponse) String() string {
 func (*ListPlacementsResponse) ProtoMessage() {}
 
 func (x *ListPlacementsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[17]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1029,7 +1896,7 @@ func (x *ListPlacementsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPlacementsResponse.ProtoReflect.Descriptor instead.
 func (*ListPlacementsResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{17}
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ListPlacementsResponse) GetPlacements() []*Placement {
@@ -1039,13 +1906,10 @@ func (x *ListPlacementsResponse) GetPlacements() []*Placement {
 	return nil
 }
 
-// CreatePlacementRequest carries the parent + asset references plus the
-// initial transform. Fields with zero values are replaced with sensible
-// defaults: scale {1,1,1}, position/rotation zeros.
 type CreatePlacementRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ParentSlug    string                 `protobuf:"bytes,1,opt,name=parent_slug,json=parentSlug,proto3" json:"parent_slug,omitempty"`
-	AssetSlug     string                 `protobuf:"bytes,2,opt,name=asset_slug,json=assetSlug,proto3" json:"asset_slug,omitempty"`
+	TerritorySlug string                 `protobuf:"bytes,1,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
+	ModelSlug     string                 `protobuf:"bytes,2,opt,name=model_slug,json=modelSlug,proto3" json:"model_slug,omitempty"`
 	Position      *Vec3                  `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"`
 	Rotation      *Vec3                  `protobuf:"bytes,4,opt,name=rotation,proto3" json:"rotation,omitempty"`
 	Scale         *Vec3                  `protobuf:"bytes,5,opt,name=scale,proto3" json:"scale,omitempty"`
@@ -1056,7 +1920,7 @@ type CreatePlacementRequest struct {
 
 func (x *CreatePlacementRequest) Reset() {
 	*x = CreatePlacementRequest{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[18]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1068,7 +1932,7 @@ func (x *CreatePlacementRequest) String() string {
 func (*CreatePlacementRequest) ProtoMessage() {}
 
 func (x *CreatePlacementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[18]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1081,19 +1945,19 @@ func (x *CreatePlacementRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePlacementRequest.ProtoReflect.Descriptor instead.
 func (*CreatePlacementRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{18}
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{36}
 }
 
-func (x *CreatePlacementRequest) GetParentSlug() string {
+func (x *CreatePlacementRequest) GetTerritorySlug() string {
 	if x != nil {
-		return x.ParentSlug
+		return x.TerritorySlug
 	}
 	return ""
 }
 
-func (x *CreatePlacementRequest) GetAssetSlug() string {
+func (x *CreatePlacementRequest) GetModelSlug() string {
 	if x != nil {
-		return x.AssetSlug
+		return x.ModelSlug
 	}
 	return ""
 }
@@ -1135,7 +1999,7 @@ type CreatePlacementResponse struct {
 
 func (x *CreatePlacementResponse) Reset() {
 	*x = CreatePlacementResponse{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[19]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1147,7 +2011,7 @@ func (x *CreatePlacementResponse) String() string {
 func (*CreatePlacementResponse) ProtoMessage() {}
 
 func (x *CreatePlacementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[19]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1160,7 +2024,7 @@ func (x *CreatePlacementResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePlacementResponse.ProtoReflect.Descriptor instead.
 func (*CreatePlacementResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{19}
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *CreatePlacementResponse) GetPlacement() *Placement {
@@ -1170,9 +2034,6 @@ func (x *CreatePlacementResponse) GetPlacement() *Placement {
 	return nil
 }
 
-// UpdatePlacementRequest replaces the placement's transform and label
-// in full. Position, Rotation, Scale, and Label all become whatever is sent;
-// no per-field merge.
 type UpdatePlacementRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1186,7 +2047,7 @@ type UpdatePlacementRequest struct {
 
 func (x *UpdatePlacementRequest) Reset() {
 	*x = UpdatePlacementRequest{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[20]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1198,7 +2059,7 @@ func (x *UpdatePlacementRequest) String() string {
 func (*UpdatePlacementRequest) ProtoMessage() {}
 
 func (x *UpdatePlacementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[20]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1211,7 +2072,7 @@ func (x *UpdatePlacementRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePlacementRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePlacementRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{20}
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *UpdatePlacementRequest) GetId() int64 {
@@ -1258,7 +2119,7 @@ type UpdatePlacementResponse struct {
 
 func (x *UpdatePlacementResponse) Reset() {
 	*x = UpdatePlacementResponse{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[21]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1270,7 +2131,7 @@ func (x *UpdatePlacementResponse) String() string {
 func (*UpdatePlacementResponse) ProtoMessage() {}
 
 func (x *UpdatePlacementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[21]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1283,7 +2144,7 @@ func (x *UpdatePlacementResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePlacementResponse.ProtoReflect.Descriptor instead.
 func (*UpdatePlacementResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{21}
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *UpdatePlacementResponse) GetPlacement() *Placement {
@@ -1302,7 +2163,7 @@ type DeletePlacementRequest struct {
 
 func (x *DeletePlacementRequest) Reset() {
 	*x = DeletePlacementRequest{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[22]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1314,7 +2175,7 @@ func (x *DeletePlacementRequest) String() string {
 func (*DeletePlacementRequest) ProtoMessage() {}
 
 func (x *DeletePlacementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[22]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1327,7 +2188,7 @@ func (x *DeletePlacementRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePlacementRequest.ProtoReflect.Descriptor instead.
 func (*DeletePlacementRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{22}
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *DeletePlacementRequest) GetId() int64 {
@@ -1345,7 +2206,7 @@ type DeletePlacementResponse struct {
 
 func (x *DeletePlacementResponse) Reset() {
 	*x = DeletePlacementResponse{}
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[23]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1357,7 +2218,7 @@ func (x *DeletePlacementResponse) String() string {
 func (*DeletePlacementResponse) ProtoMessage() {}
 
 func (x *DeletePlacementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[23]
+	mi := &file_rosneft_catalog_v1_catalog_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1370,32 +2231,38 @@ func (x *DeletePlacementResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePlacementResponse.ProtoReflect.Descriptor instead.
 func (*DeletePlacementResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{23}
+	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{41}
 }
 
 var File_rosneft_catalog_v1_catalog_proto protoreflect.FileDescriptor
 
 const file_rosneft_catalog_v1_catalog_proto_rawDesc = "" +
 	"\n" +
-	" rosneft/catalog/v1/catalog.proto\x12\x12rosneft.catalog.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe7\x02\n" +
-	"\aProject\x12\x12\n" +
-	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
-	"\x05title\x18\x02 \x01(\tR\x05title\x12\x1a\n" +
-	"\bsubtitle\x18\x03 \x01(\tR\bsubtitle\x12 \n" +
-	"\vdescription\x18\x04 \x01(\tR\vdescription\x12&\n" +
-	"\x0fsource_obj_path\x18\x05 \x01(\tR\rsourceObjPath\x12&\n" +
-	"\x0fsource_mtl_path\x18\x06 \x01(\tR\rsourceMtlPath\x12.\n" +
-	"\x13source_texture_path\x18\a \x01(\tR\x11sourceTexturePath\x129\n" +
-	"\n" +
-	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
-	"\n" +
-	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"0\n" +
+	" rosneft/catalog/v1/catalog.proto\x12\x12rosneft.catalog.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"0\n" +
 	"\x04Vec3\x12\f\n" +
 	"\x01x\x18\x01 \x01(\x01R\x01x\x12\f\n" +
 	"\x01y\x18\x02 \x01(\x01R\x01y\x12\f\n" +
-	"\x01z\x18\x03 \x01(\x01R\x01z\"\xe1\x02\n" +
-	"\bArtifact\x12!\n" +
-	"\fproject_slug\x18\x01 \x01(\tR\vprojectSlug\x12\x10\n" +
+	"\x01z\x18\x03 \x01(\x01R\x01z\"\xf7\x01\n" +
+	"\tTerritory\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12(\n" +
+	"\x10source_blob_hash\x18\x04 \x01(\tR\x0esourceBlobHash\x129\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xf3\x01\n" +
+	"\x05Model\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12(\n" +
+	"\x10source_blob_hash\x18\x04 \x01(\tR\x0esourceBlobHash\x129\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xee\x02\n" +
+	"\x11TerritoryArtifact\x12%\n" +
+	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\x12\x10\n" +
 	"\x03lod\x18\x02 \x01(\rR\x03lod\x12\x12\n" +
 	"\x04hash\x18\x03 \x01(\tR\x04hash\x12!\n" +
 	"\fcontent_type\x18\x04 \x01(\tR\vcontentType\x12\x12\n" +
@@ -1406,37 +2273,26 @@ const file_rosneft_catalog_v1_catalog_proto_rawDesc = "" +
 	"\bbbox_max\x18\t \x01(\v2\x18.rosneft.catalog.v1.Vec3R\abboxMax\x129\n" +
 	"\n" +
 	"created_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x15\n" +
-	"\x13ListProjectsRequest\"O\n" +
-	"\x14ListProjectsResponse\x127\n" +
-	"\bprojects\x18\x01 \x03(\v2\x1b.rosneft.catalog.v1.ProjectR\bprojects\"'\n" +
-	"\x11GetProjectRequest\x12\x12\n" +
-	"\x04slug\x18\x01 \x01(\tR\x04slug\"K\n" +
-	"\x12GetProjectResponse\x125\n" +
-	"\aproject\x18\x01 \x01(\v2\x1b.rosneft.catalog.v1.ProjectR\aproject\"M\n" +
-	"\x14UpsertProjectRequest\x125\n" +
-	"\aproject\x18\x01 \x01(\v2\x1b.rosneft.catalog.v1.ProjectR\aproject\"N\n" +
-	"\x15UpsertProjectResponse\x125\n" +
-	"\aproject\x18\x01 \x01(\v2\x1b.rosneft.catalog.v1.ProjectR\aproject\"S\n" +
-	"\x17RegisterArtifactRequest\x128\n" +
-	"\bartifact\x18\x01 \x01(\v2\x1c.rosneft.catalog.v1.ArtifactR\bartifact\"T\n" +
-	"\x18RegisterArtifactResponse\x128\n" +
-	"\bartifact\x18\x01 \x01(\v2\x1c.rosneft.catalog.v1.ArtifactR\bartifact\"9\n" +
-	"\x14ListArtifactsRequest\x12!\n" +
-	"\fproject_slug\x18\x01 \x01(\tR\vprojectSlug\"S\n" +
-	"\x15ListArtifactsResponse\x12:\n" +
-	"\tartifacts\x18\x01 \x03(\v2\x1c.rosneft.catalog.v1.ArtifactR\tartifacts\"I\n" +
-	"\x12GetArtifactRequest\x12!\n" +
-	"\fproject_slug\x18\x01 \x01(\tR\vprojectSlug\x12\x10\n" +
-	"\x03lod\x18\x02 \x01(\rR\x03lod\"O\n" +
-	"\x13GetArtifactResponse\x128\n" +
-	"\bartifact\x18\x01 \x01(\v2\x1c.rosneft.catalog.v1.ArtifactR\bartifact\"\x83\x03\n" +
-	"\tPlacement\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1f\n" +
-	"\vparent_slug\x18\x02 \x01(\tR\n" +
-	"parentSlug\x12\x1d\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xe2\x02\n" +
+	"\rModelArtifact\x12\x1d\n" +
 	"\n" +
-	"asset_slug\x18\x03 \x01(\tR\tassetSlug\x124\n" +
+	"model_slug\x18\x01 \x01(\tR\tmodelSlug\x12\x10\n" +
+	"\x03lod\x18\x02 \x01(\rR\x03lod\x12\x12\n" +
+	"\x04hash\x18\x03 \x01(\tR\x04hash\x12!\n" +
+	"\fcontent_type\x18\x04 \x01(\tR\vcontentType\x12\x12\n" +
+	"\x04size\x18\x05 \x01(\x03R\x04size\x12\x1a\n" +
+	"\bvertices\x18\x06 \x01(\x04R\bvertices\x12\x14\n" +
+	"\x05faces\x18\a \x01(\x04R\x05faces\x123\n" +
+	"\bbbox_min\x18\b \x01(\v2\x18.rosneft.catalog.v1.Vec3R\abboxMin\x123\n" +
+	"\bbbox_max\x18\t \x01(\v2\x18.rosneft.catalog.v1.Vec3R\abboxMax\x129\n" +
+	"\n" +
+	"created_at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x89\x03\n" +
+	"\tPlacement\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12%\n" +
+	"\x0eterritory_slug\x18\x02 \x01(\tR\rterritorySlug\x12\x1d\n" +
+	"\n" +
+	"model_slug\x18\x03 \x01(\tR\tmodelSlug\x124\n" +
 	"\bposition\x18\x04 \x01(\v2\x18.rosneft.catalog.v1.Vec3R\bposition\x124\n" +
 	"\brotation\x18\x05 \x01(\v2\x18.rosneft.catalog.v1.Vec3R\brotation\x12.\n" +
 	"\x05scale\x18\x06 \x01(\v2\x18.rosneft.catalog.v1.Vec3R\x05scale\x12\x14\n" +
@@ -1444,19 +2300,73 @@ const file_rosneft_catalog_v1_catalog_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"8\n" +
-	"\x15ListPlacementsRequest\x12\x1f\n" +
-	"\vparent_slug\x18\x01 \x01(\tR\n" +
-	"parentSlug\"W\n" +
+	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x18\n" +
+	"\x16ListTerritoriesRequest\"Z\n" +
+	"\x17ListTerritoriesResponse\x12?\n" +
+	"\vterritories\x18\x01 \x03(\v2\x1d.rosneft.catalog.v1.TerritoryR\vterritories\")\n" +
+	"\x13GetTerritoryRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\"S\n" +
+	"\x14GetTerritoryResponse\x12;\n" +
+	"\tterritory\x18\x01 \x01(\v2\x1d.rosneft.catalog.v1.TerritoryR\tterritory\"U\n" +
+	"\x16UpsertTerritoryRequest\x12;\n" +
+	"\tterritory\x18\x01 \x01(\v2\x1d.rosneft.catalog.v1.TerritoryR\tterritory\"V\n" +
+	"\x17UpsertTerritoryResponse\x12;\n" +
+	"\tterritory\x18\x01 \x01(\v2\x1d.rosneft.catalog.v1.TerritoryR\tterritory\",\n" +
+	"\x16DeleteTerritoryRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\"\x19\n" +
+	"\x17DeleteTerritoryResponse\"e\n" +
+	" RegisterTerritoryArtifactRequest\x12A\n" +
+	"\bartifact\x18\x01 \x01(\v2%.rosneft.catalog.v1.TerritoryArtifactR\bartifact\"f\n" +
+	"!RegisterTerritoryArtifactResponse\x12A\n" +
+	"\bartifact\x18\x01 \x01(\v2%.rosneft.catalog.v1.TerritoryArtifactR\bartifact\"F\n" +
+	"\x1dListTerritoryArtifactsRequest\x12%\n" +
+	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\"e\n" +
+	"\x1eListTerritoryArtifactsResponse\x12C\n" +
+	"\tartifacts\x18\x01 \x03(\v2%.rosneft.catalog.v1.TerritoryArtifactR\tartifacts\"V\n" +
+	"\x1bGetTerritoryArtifactRequest\x12%\n" +
+	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\x12\x10\n" +
+	"\x03lod\x18\x02 \x01(\rR\x03lod\"a\n" +
+	"\x1cGetTerritoryArtifactResponse\x12A\n" +
+	"\bartifact\x18\x01 \x01(\v2%.rosneft.catalog.v1.TerritoryArtifactR\bartifact\"\x13\n" +
+	"\x11ListModelsRequest\"G\n" +
+	"\x12ListModelsResponse\x121\n" +
+	"\x06models\x18\x01 \x03(\v2\x19.rosneft.catalog.v1.ModelR\x06models\"%\n" +
+	"\x0fGetModelRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\"C\n" +
+	"\x10GetModelResponse\x12/\n" +
+	"\x05model\x18\x01 \x01(\v2\x19.rosneft.catalog.v1.ModelR\x05model\"E\n" +
+	"\x12UpsertModelRequest\x12/\n" +
+	"\x05model\x18\x01 \x01(\v2\x19.rosneft.catalog.v1.ModelR\x05model\"F\n" +
+	"\x13UpsertModelResponse\x12/\n" +
+	"\x05model\x18\x01 \x01(\v2\x19.rosneft.catalog.v1.ModelR\x05model\"(\n" +
+	"\x12DeleteModelRequest\x12\x12\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\"\x15\n" +
+	"\x13DeleteModelResponse\"]\n" +
+	"\x1cRegisterModelArtifactRequest\x12=\n" +
+	"\bartifact\x18\x01 \x01(\v2!.rosneft.catalog.v1.ModelArtifactR\bartifact\"^\n" +
+	"\x1dRegisterModelArtifactResponse\x12=\n" +
+	"\bartifact\x18\x01 \x01(\v2!.rosneft.catalog.v1.ModelArtifactR\bartifact\":\n" +
+	"\x19ListModelArtifactsRequest\x12\x1d\n" +
+	"\n" +
+	"model_slug\x18\x01 \x01(\tR\tmodelSlug\"]\n" +
+	"\x1aListModelArtifactsResponse\x12?\n" +
+	"\tartifacts\x18\x01 \x03(\v2!.rosneft.catalog.v1.ModelArtifactR\tartifacts\"J\n" +
+	"\x17GetModelArtifactRequest\x12\x1d\n" +
+	"\n" +
+	"model_slug\x18\x01 \x01(\tR\tmodelSlug\x12\x10\n" +
+	"\x03lod\x18\x02 \x01(\rR\x03lod\"Y\n" +
+	"\x18GetModelArtifactResponse\x12=\n" +
+	"\bartifact\x18\x01 \x01(\v2!.rosneft.catalog.v1.ModelArtifactR\bartifact\">\n" +
+	"\x15ListPlacementsRequest\x12%\n" +
+	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\"W\n" +
 	"\x16ListPlacementsResponse\x12=\n" +
 	"\n" +
 	"placements\x18\x01 \x03(\v2\x1d.rosneft.catalog.v1.PlacementR\n" +
-	"placements\"\x8a\x02\n" +
-	"\x16CreatePlacementRequest\x12\x1f\n" +
-	"\vparent_slug\x18\x01 \x01(\tR\n" +
-	"parentSlug\x12\x1d\n" +
+	"placements\"\x90\x02\n" +
+	"\x16CreatePlacementRequest\x12%\n" +
+	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\x12\x1d\n" +
 	"\n" +
-	"asset_slug\x18\x02 \x01(\tR\tassetSlug\x124\n" +
+	"model_slug\x18\x02 \x01(\tR\tmodelSlug\x124\n" +
 	"\bposition\x18\x03 \x01(\v2\x18.rosneft.catalog.v1.Vec3R\bposition\x124\n" +
 	"\brotation\x18\x04 \x01(\v2\x18.rosneft.catalog.v1.Vec3R\brotation\x12.\n" +
 	"\x05scale\x18\x05 \x01(\v2\x18.rosneft.catalog.v1.Vec3R\x05scale\x12\x14\n" +
@@ -1473,15 +2383,23 @@ const file_rosneft_catalog_v1_catalog_proto_rawDesc = "" +
 	"\tplacement\x18\x01 \x01(\v2\x1d.rosneft.catalog.v1.PlacementR\tplacement\"(\n" +
 	"\x16DeletePlacementRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"\x19\n" +
-	"\x17DeletePlacementResponse2\x98\b\n" +
-	"\x0eCatalogService\x12a\n" +
-	"\fListProjects\x12'.rosneft.catalog.v1.ListProjectsRequest\x1a(.rosneft.catalog.v1.ListProjectsResponse\x12[\n" +
+	"\x17DeletePlacementResponse2\xc1\x0f\n" +
+	"\x0eCatalogService\x12j\n" +
+	"\x0fListTerritories\x12*.rosneft.catalog.v1.ListTerritoriesRequest\x1a+.rosneft.catalog.v1.ListTerritoriesResponse\x12a\n" +
+	"\fGetTerritory\x12'.rosneft.catalog.v1.GetTerritoryRequest\x1a(.rosneft.catalog.v1.GetTerritoryResponse\x12j\n" +
+	"\x0fUpsertTerritory\x12*.rosneft.catalog.v1.UpsertTerritoryRequest\x1a+.rosneft.catalog.v1.UpsertTerritoryResponse\x12j\n" +
+	"\x0fDeleteTerritory\x12*.rosneft.catalog.v1.DeleteTerritoryRequest\x1a+.rosneft.catalog.v1.DeleteTerritoryResponse\x12\x88\x01\n" +
+	"\x19RegisterTerritoryArtifact\x124.rosneft.catalog.v1.RegisterTerritoryArtifactRequest\x1a5.rosneft.catalog.v1.RegisterTerritoryArtifactResponse\x12\x7f\n" +
+	"\x16ListTerritoryArtifacts\x121.rosneft.catalog.v1.ListTerritoryArtifactsRequest\x1a2.rosneft.catalog.v1.ListTerritoryArtifactsResponse\x12y\n" +
+	"\x14GetTerritoryArtifact\x12/.rosneft.catalog.v1.GetTerritoryArtifactRequest\x1a0.rosneft.catalog.v1.GetTerritoryArtifactResponse\x12[\n" +
 	"\n" +
-	"GetProject\x12%.rosneft.catalog.v1.GetProjectRequest\x1a&.rosneft.catalog.v1.GetProjectResponse\x12d\n" +
-	"\rUpsertProject\x12(.rosneft.catalog.v1.UpsertProjectRequest\x1a).rosneft.catalog.v1.UpsertProjectResponse\x12m\n" +
-	"\x10RegisterArtifact\x12+.rosneft.catalog.v1.RegisterArtifactRequest\x1a,.rosneft.catalog.v1.RegisterArtifactResponse\x12d\n" +
-	"\rListArtifacts\x12(.rosneft.catalog.v1.ListArtifactsRequest\x1a).rosneft.catalog.v1.ListArtifactsResponse\x12^\n" +
-	"\vGetArtifact\x12&.rosneft.catalog.v1.GetArtifactRequest\x1a'.rosneft.catalog.v1.GetArtifactResponse\x12g\n" +
+	"ListModels\x12%.rosneft.catalog.v1.ListModelsRequest\x1a&.rosneft.catalog.v1.ListModelsResponse\x12U\n" +
+	"\bGetModel\x12#.rosneft.catalog.v1.GetModelRequest\x1a$.rosneft.catalog.v1.GetModelResponse\x12^\n" +
+	"\vUpsertModel\x12&.rosneft.catalog.v1.UpsertModelRequest\x1a'.rosneft.catalog.v1.UpsertModelResponse\x12^\n" +
+	"\vDeleteModel\x12&.rosneft.catalog.v1.DeleteModelRequest\x1a'.rosneft.catalog.v1.DeleteModelResponse\x12|\n" +
+	"\x15RegisterModelArtifact\x120.rosneft.catalog.v1.RegisterModelArtifactRequest\x1a1.rosneft.catalog.v1.RegisterModelArtifactResponse\x12s\n" +
+	"\x12ListModelArtifacts\x12-.rosneft.catalog.v1.ListModelArtifactsRequest\x1a..rosneft.catalog.v1.ListModelArtifactsResponse\x12m\n" +
+	"\x10GetModelArtifact\x12+.rosneft.catalog.v1.GetModelArtifactRequest\x1a,.rosneft.catalog.v1.GetModelArtifactResponse\x12g\n" +
 	"\x0eListPlacements\x12).rosneft.catalog.v1.ListPlacementsRequest\x1a*.rosneft.catalog.v1.ListPlacementsResponse\x12j\n" +
 	"\x0fCreatePlacement\x12*.rosneft.catalog.v1.CreatePlacementRequest\x1a+.rosneft.catalog.v1.CreatePlacementResponse\x12j\n" +
 	"\x0fUpdatePlacement\x12*.rosneft.catalog.v1.UpdatePlacementRequest\x1a+.rosneft.catalog.v1.UpdatePlacementResponse\x12j\n" +
@@ -1499,87 +2417,134 @@ func file_rosneft_catalog_v1_catalog_proto_rawDescGZIP() []byte {
 	return file_rosneft_catalog_v1_catalog_proto_rawDescData
 }
 
-var file_rosneft_catalog_v1_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_rosneft_catalog_v1_catalog_proto_msgTypes = make([]protoimpl.MessageInfo, 42)
 var file_rosneft_catalog_v1_catalog_proto_goTypes = []any{
-	(*Project)(nil),                  // 0: rosneft.catalog.v1.Project
-	(*Vec3)(nil),                     // 1: rosneft.catalog.v1.Vec3
-	(*Artifact)(nil),                 // 2: rosneft.catalog.v1.Artifact
-	(*ListProjectsRequest)(nil),      // 3: rosneft.catalog.v1.ListProjectsRequest
-	(*ListProjectsResponse)(nil),     // 4: rosneft.catalog.v1.ListProjectsResponse
-	(*GetProjectRequest)(nil),        // 5: rosneft.catalog.v1.GetProjectRequest
-	(*GetProjectResponse)(nil),       // 6: rosneft.catalog.v1.GetProjectResponse
-	(*UpsertProjectRequest)(nil),     // 7: rosneft.catalog.v1.UpsertProjectRequest
-	(*UpsertProjectResponse)(nil),    // 8: rosneft.catalog.v1.UpsertProjectResponse
-	(*RegisterArtifactRequest)(nil),  // 9: rosneft.catalog.v1.RegisterArtifactRequest
-	(*RegisterArtifactResponse)(nil), // 10: rosneft.catalog.v1.RegisterArtifactResponse
-	(*ListArtifactsRequest)(nil),     // 11: rosneft.catalog.v1.ListArtifactsRequest
-	(*ListArtifactsResponse)(nil),    // 12: rosneft.catalog.v1.ListArtifactsResponse
-	(*GetArtifactRequest)(nil),       // 13: rosneft.catalog.v1.GetArtifactRequest
-	(*GetArtifactResponse)(nil),      // 14: rosneft.catalog.v1.GetArtifactResponse
-	(*Placement)(nil),                // 15: rosneft.catalog.v1.Placement
-	(*ListPlacementsRequest)(nil),    // 16: rosneft.catalog.v1.ListPlacementsRequest
-	(*ListPlacementsResponse)(nil),   // 17: rosneft.catalog.v1.ListPlacementsResponse
-	(*CreatePlacementRequest)(nil),   // 18: rosneft.catalog.v1.CreatePlacementRequest
-	(*CreatePlacementResponse)(nil),  // 19: rosneft.catalog.v1.CreatePlacementResponse
-	(*UpdatePlacementRequest)(nil),   // 20: rosneft.catalog.v1.UpdatePlacementRequest
-	(*UpdatePlacementResponse)(nil),  // 21: rosneft.catalog.v1.UpdatePlacementResponse
-	(*DeletePlacementRequest)(nil),   // 22: rosneft.catalog.v1.DeletePlacementRequest
-	(*DeletePlacementResponse)(nil),  // 23: rosneft.catalog.v1.DeletePlacementResponse
-	(*timestamppb.Timestamp)(nil),    // 24: google.protobuf.Timestamp
+	(*Vec3)(nil),                              // 0: rosneft.catalog.v1.Vec3
+	(*Territory)(nil),                         // 1: rosneft.catalog.v1.Territory
+	(*Model)(nil),                             // 2: rosneft.catalog.v1.Model
+	(*TerritoryArtifact)(nil),                 // 3: rosneft.catalog.v1.TerritoryArtifact
+	(*ModelArtifact)(nil),                     // 4: rosneft.catalog.v1.ModelArtifact
+	(*Placement)(nil),                         // 5: rosneft.catalog.v1.Placement
+	(*ListTerritoriesRequest)(nil),            // 6: rosneft.catalog.v1.ListTerritoriesRequest
+	(*ListTerritoriesResponse)(nil),           // 7: rosneft.catalog.v1.ListTerritoriesResponse
+	(*GetTerritoryRequest)(nil),               // 8: rosneft.catalog.v1.GetTerritoryRequest
+	(*GetTerritoryResponse)(nil),              // 9: rosneft.catalog.v1.GetTerritoryResponse
+	(*UpsertTerritoryRequest)(nil),            // 10: rosneft.catalog.v1.UpsertTerritoryRequest
+	(*UpsertTerritoryResponse)(nil),           // 11: rosneft.catalog.v1.UpsertTerritoryResponse
+	(*DeleteTerritoryRequest)(nil),            // 12: rosneft.catalog.v1.DeleteTerritoryRequest
+	(*DeleteTerritoryResponse)(nil),           // 13: rosneft.catalog.v1.DeleteTerritoryResponse
+	(*RegisterTerritoryArtifactRequest)(nil),  // 14: rosneft.catalog.v1.RegisterTerritoryArtifactRequest
+	(*RegisterTerritoryArtifactResponse)(nil), // 15: rosneft.catalog.v1.RegisterTerritoryArtifactResponse
+	(*ListTerritoryArtifactsRequest)(nil),     // 16: rosneft.catalog.v1.ListTerritoryArtifactsRequest
+	(*ListTerritoryArtifactsResponse)(nil),    // 17: rosneft.catalog.v1.ListTerritoryArtifactsResponse
+	(*GetTerritoryArtifactRequest)(nil),       // 18: rosneft.catalog.v1.GetTerritoryArtifactRequest
+	(*GetTerritoryArtifactResponse)(nil),      // 19: rosneft.catalog.v1.GetTerritoryArtifactResponse
+	(*ListModelsRequest)(nil),                 // 20: rosneft.catalog.v1.ListModelsRequest
+	(*ListModelsResponse)(nil),                // 21: rosneft.catalog.v1.ListModelsResponse
+	(*GetModelRequest)(nil),                   // 22: rosneft.catalog.v1.GetModelRequest
+	(*GetModelResponse)(nil),                  // 23: rosneft.catalog.v1.GetModelResponse
+	(*UpsertModelRequest)(nil),                // 24: rosneft.catalog.v1.UpsertModelRequest
+	(*UpsertModelResponse)(nil),               // 25: rosneft.catalog.v1.UpsertModelResponse
+	(*DeleteModelRequest)(nil),                // 26: rosneft.catalog.v1.DeleteModelRequest
+	(*DeleteModelResponse)(nil),               // 27: rosneft.catalog.v1.DeleteModelResponse
+	(*RegisterModelArtifactRequest)(nil),      // 28: rosneft.catalog.v1.RegisterModelArtifactRequest
+	(*RegisterModelArtifactResponse)(nil),     // 29: rosneft.catalog.v1.RegisterModelArtifactResponse
+	(*ListModelArtifactsRequest)(nil),         // 30: rosneft.catalog.v1.ListModelArtifactsRequest
+	(*ListModelArtifactsResponse)(nil),        // 31: rosneft.catalog.v1.ListModelArtifactsResponse
+	(*GetModelArtifactRequest)(nil),           // 32: rosneft.catalog.v1.GetModelArtifactRequest
+	(*GetModelArtifactResponse)(nil),          // 33: rosneft.catalog.v1.GetModelArtifactResponse
+	(*ListPlacementsRequest)(nil),             // 34: rosneft.catalog.v1.ListPlacementsRequest
+	(*ListPlacementsResponse)(nil),            // 35: rosneft.catalog.v1.ListPlacementsResponse
+	(*CreatePlacementRequest)(nil),            // 36: rosneft.catalog.v1.CreatePlacementRequest
+	(*CreatePlacementResponse)(nil),           // 37: rosneft.catalog.v1.CreatePlacementResponse
+	(*UpdatePlacementRequest)(nil),            // 38: rosneft.catalog.v1.UpdatePlacementRequest
+	(*UpdatePlacementResponse)(nil),           // 39: rosneft.catalog.v1.UpdatePlacementResponse
+	(*DeletePlacementRequest)(nil),            // 40: rosneft.catalog.v1.DeletePlacementRequest
+	(*DeletePlacementResponse)(nil),           // 41: rosneft.catalog.v1.DeletePlacementResponse
+	(*timestamppb.Timestamp)(nil),             // 42: google.protobuf.Timestamp
 }
 var file_rosneft_catalog_v1_catalog_proto_depIdxs = []int32{
-	24, // 0: rosneft.catalog.v1.Project.created_at:type_name -> google.protobuf.Timestamp
-	24, // 1: rosneft.catalog.v1.Project.updated_at:type_name -> google.protobuf.Timestamp
-	1,  // 2: rosneft.catalog.v1.Artifact.bbox_min:type_name -> rosneft.catalog.v1.Vec3
-	1,  // 3: rosneft.catalog.v1.Artifact.bbox_max:type_name -> rosneft.catalog.v1.Vec3
-	24, // 4: rosneft.catalog.v1.Artifact.created_at:type_name -> google.protobuf.Timestamp
-	0,  // 5: rosneft.catalog.v1.ListProjectsResponse.projects:type_name -> rosneft.catalog.v1.Project
-	0,  // 6: rosneft.catalog.v1.GetProjectResponse.project:type_name -> rosneft.catalog.v1.Project
-	0,  // 7: rosneft.catalog.v1.UpsertProjectRequest.project:type_name -> rosneft.catalog.v1.Project
-	0,  // 8: rosneft.catalog.v1.UpsertProjectResponse.project:type_name -> rosneft.catalog.v1.Project
-	2,  // 9: rosneft.catalog.v1.RegisterArtifactRequest.artifact:type_name -> rosneft.catalog.v1.Artifact
-	2,  // 10: rosneft.catalog.v1.RegisterArtifactResponse.artifact:type_name -> rosneft.catalog.v1.Artifact
-	2,  // 11: rosneft.catalog.v1.ListArtifactsResponse.artifacts:type_name -> rosneft.catalog.v1.Artifact
-	2,  // 12: rosneft.catalog.v1.GetArtifactResponse.artifact:type_name -> rosneft.catalog.v1.Artifact
-	1,  // 13: rosneft.catalog.v1.Placement.position:type_name -> rosneft.catalog.v1.Vec3
-	1,  // 14: rosneft.catalog.v1.Placement.rotation:type_name -> rosneft.catalog.v1.Vec3
-	1,  // 15: rosneft.catalog.v1.Placement.scale:type_name -> rosneft.catalog.v1.Vec3
-	24, // 16: rosneft.catalog.v1.Placement.created_at:type_name -> google.protobuf.Timestamp
-	24, // 17: rosneft.catalog.v1.Placement.updated_at:type_name -> google.protobuf.Timestamp
-	15, // 18: rosneft.catalog.v1.ListPlacementsResponse.placements:type_name -> rosneft.catalog.v1.Placement
-	1,  // 19: rosneft.catalog.v1.CreatePlacementRequest.position:type_name -> rosneft.catalog.v1.Vec3
-	1,  // 20: rosneft.catalog.v1.CreatePlacementRequest.rotation:type_name -> rosneft.catalog.v1.Vec3
-	1,  // 21: rosneft.catalog.v1.CreatePlacementRequest.scale:type_name -> rosneft.catalog.v1.Vec3
-	15, // 22: rosneft.catalog.v1.CreatePlacementResponse.placement:type_name -> rosneft.catalog.v1.Placement
-	1,  // 23: rosneft.catalog.v1.UpdatePlacementRequest.position:type_name -> rosneft.catalog.v1.Vec3
-	1,  // 24: rosneft.catalog.v1.UpdatePlacementRequest.rotation:type_name -> rosneft.catalog.v1.Vec3
-	1,  // 25: rosneft.catalog.v1.UpdatePlacementRequest.scale:type_name -> rosneft.catalog.v1.Vec3
-	15, // 26: rosneft.catalog.v1.UpdatePlacementResponse.placement:type_name -> rosneft.catalog.v1.Placement
-	3,  // 27: rosneft.catalog.v1.CatalogService.ListProjects:input_type -> rosneft.catalog.v1.ListProjectsRequest
-	5,  // 28: rosneft.catalog.v1.CatalogService.GetProject:input_type -> rosneft.catalog.v1.GetProjectRequest
-	7,  // 29: rosneft.catalog.v1.CatalogService.UpsertProject:input_type -> rosneft.catalog.v1.UpsertProjectRequest
-	9,  // 30: rosneft.catalog.v1.CatalogService.RegisterArtifact:input_type -> rosneft.catalog.v1.RegisterArtifactRequest
-	11, // 31: rosneft.catalog.v1.CatalogService.ListArtifacts:input_type -> rosneft.catalog.v1.ListArtifactsRequest
-	13, // 32: rosneft.catalog.v1.CatalogService.GetArtifact:input_type -> rosneft.catalog.v1.GetArtifactRequest
-	16, // 33: rosneft.catalog.v1.CatalogService.ListPlacements:input_type -> rosneft.catalog.v1.ListPlacementsRequest
-	18, // 34: rosneft.catalog.v1.CatalogService.CreatePlacement:input_type -> rosneft.catalog.v1.CreatePlacementRequest
-	20, // 35: rosneft.catalog.v1.CatalogService.UpdatePlacement:input_type -> rosneft.catalog.v1.UpdatePlacementRequest
-	22, // 36: rosneft.catalog.v1.CatalogService.DeletePlacement:input_type -> rosneft.catalog.v1.DeletePlacementRequest
-	4,  // 37: rosneft.catalog.v1.CatalogService.ListProjects:output_type -> rosneft.catalog.v1.ListProjectsResponse
-	6,  // 38: rosneft.catalog.v1.CatalogService.GetProject:output_type -> rosneft.catalog.v1.GetProjectResponse
-	8,  // 39: rosneft.catalog.v1.CatalogService.UpsertProject:output_type -> rosneft.catalog.v1.UpsertProjectResponse
-	10, // 40: rosneft.catalog.v1.CatalogService.RegisterArtifact:output_type -> rosneft.catalog.v1.RegisterArtifactResponse
-	12, // 41: rosneft.catalog.v1.CatalogService.ListArtifacts:output_type -> rosneft.catalog.v1.ListArtifactsResponse
-	14, // 42: rosneft.catalog.v1.CatalogService.GetArtifact:output_type -> rosneft.catalog.v1.GetArtifactResponse
-	17, // 43: rosneft.catalog.v1.CatalogService.ListPlacements:output_type -> rosneft.catalog.v1.ListPlacementsResponse
-	19, // 44: rosneft.catalog.v1.CatalogService.CreatePlacement:output_type -> rosneft.catalog.v1.CreatePlacementResponse
-	21, // 45: rosneft.catalog.v1.CatalogService.UpdatePlacement:output_type -> rosneft.catalog.v1.UpdatePlacementResponse
-	23, // 46: rosneft.catalog.v1.CatalogService.DeletePlacement:output_type -> rosneft.catalog.v1.DeletePlacementResponse
-	37, // [37:47] is the sub-list for method output_type
-	27, // [27:37] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	42, // 0: rosneft.catalog.v1.Territory.created_at:type_name -> google.protobuf.Timestamp
+	42, // 1: rosneft.catalog.v1.Territory.updated_at:type_name -> google.protobuf.Timestamp
+	42, // 2: rosneft.catalog.v1.Model.created_at:type_name -> google.protobuf.Timestamp
+	42, // 3: rosneft.catalog.v1.Model.updated_at:type_name -> google.protobuf.Timestamp
+	0,  // 4: rosneft.catalog.v1.TerritoryArtifact.bbox_min:type_name -> rosneft.catalog.v1.Vec3
+	0,  // 5: rosneft.catalog.v1.TerritoryArtifact.bbox_max:type_name -> rosneft.catalog.v1.Vec3
+	42, // 6: rosneft.catalog.v1.TerritoryArtifact.created_at:type_name -> google.protobuf.Timestamp
+	0,  // 7: rosneft.catalog.v1.ModelArtifact.bbox_min:type_name -> rosneft.catalog.v1.Vec3
+	0,  // 8: rosneft.catalog.v1.ModelArtifact.bbox_max:type_name -> rosneft.catalog.v1.Vec3
+	42, // 9: rosneft.catalog.v1.ModelArtifact.created_at:type_name -> google.protobuf.Timestamp
+	0,  // 10: rosneft.catalog.v1.Placement.position:type_name -> rosneft.catalog.v1.Vec3
+	0,  // 11: rosneft.catalog.v1.Placement.rotation:type_name -> rosneft.catalog.v1.Vec3
+	0,  // 12: rosneft.catalog.v1.Placement.scale:type_name -> rosneft.catalog.v1.Vec3
+	42, // 13: rosneft.catalog.v1.Placement.created_at:type_name -> google.protobuf.Timestamp
+	42, // 14: rosneft.catalog.v1.Placement.updated_at:type_name -> google.protobuf.Timestamp
+	1,  // 15: rosneft.catalog.v1.ListTerritoriesResponse.territories:type_name -> rosneft.catalog.v1.Territory
+	1,  // 16: rosneft.catalog.v1.GetTerritoryResponse.territory:type_name -> rosneft.catalog.v1.Territory
+	1,  // 17: rosneft.catalog.v1.UpsertTerritoryRequest.territory:type_name -> rosneft.catalog.v1.Territory
+	1,  // 18: rosneft.catalog.v1.UpsertTerritoryResponse.territory:type_name -> rosneft.catalog.v1.Territory
+	3,  // 19: rosneft.catalog.v1.RegisterTerritoryArtifactRequest.artifact:type_name -> rosneft.catalog.v1.TerritoryArtifact
+	3,  // 20: rosneft.catalog.v1.RegisterTerritoryArtifactResponse.artifact:type_name -> rosneft.catalog.v1.TerritoryArtifact
+	3,  // 21: rosneft.catalog.v1.ListTerritoryArtifactsResponse.artifacts:type_name -> rosneft.catalog.v1.TerritoryArtifact
+	3,  // 22: rosneft.catalog.v1.GetTerritoryArtifactResponse.artifact:type_name -> rosneft.catalog.v1.TerritoryArtifact
+	2,  // 23: rosneft.catalog.v1.ListModelsResponse.models:type_name -> rosneft.catalog.v1.Model
+	2,  // 24: rosneft.catalog.v1.GetModelResponse.model:type_name -> rosneft.catalog.v1.Model
+	2,  // 25: rosneft.catalog.v1.UpsertModelRequest.model:type_name -> rosneft.catalog.v1.Model
+	2,  // 26: rosneft.catalog.v1.UpsertModelResponse.model:type_name -> rosneft.catalog.v1.Model
+	4,  // 27: rosneft.catalog.v1.RegisterModelArtifactRequest.artifact:type_name -> rosneft.catalog.v1.ModelArtifact
+	4,  // 28: rosneft.catalog.v1.RegisterModelArtifactResponse.artifact:type_name -> rosneft.catalog.v1.ModelArtifact
+	4,  // 29: rosneft.catalog.v1.ListModelArtifactsResponse.artifacts:type_name -> rosneft.catalog.v1.ModelArtifact
+	4,  // 30: rosneft.catalog.v1.GetModelArtifactResponse.artifact:type_name -> rosneft.catalog.v1.ModelArtifact
+	5,  // 31: rosneft.catalog.v1.ListPlacementsResponse.placements:type_name -> rosneft.catalog.v1.Placement
+	0,  // 32: rosneft.catalog.v1.CreatePlacementRequest.position:type_name -> rosneft.catalog.v1.Vec3
+	0,  // 33: rosneft.catalog.v1.CreatePlacementRequest.rotation:type_name -> rosneft.catalog.v1.Vec3
+	0,  // 34: rosneft.catalog.v1.CreatePlacementRequest.scale:type_name -> rosneft.catalog.v1.Vec3
+	5,  // 35: rosneft.catalog.v1.CreatePlacementResponse.placement:type_name -> rosneft.catalog.v1.Placement
+	0,  // 36: rosneft.catalog.v1.UpdatePlacementRequest.position:type_name -> rosneft.catalog.v1.Vec3
+	0,  // 37: rosneft.catalog.v1.UpdatePlacementRequest.rotation:type_name -> rosneft.catalog.v1.Vec3
+	0,  // 38: rosneft.catalog.v1.UpdatePlacementRequest.scale:type_name -> rosneft.catalog.v1.Vec3
+	5,  // 39: rosneft.catalog.v1.UpdatePlacementResponse.placement:type_name -> rosneft.catalog.v1.Placement
+	6,  // 40: rosneft.catalog.v1.CatalogService.ListTerritories:input_type -> rosneft.catalog.v1.ListTerritoriesRequest
+	8,  // 41: rosneft.catalog.v1.CatalogService.GetTerritory:input_type -> rosneft.catalog.v1.GetTerritoryRequest
+	10, // 42: rosneft.catalog.v1.CatalogService.UpsertTerritory:input_type -> rosneft.catalog.v1.UpsertTerritoryRequest
+	12, // 43: rosneft.catalog.v1.CatalogService.DeleteTerritory:input_type -> rosneft.catalog.v1.DeleteTerritoryRequest
+	14, // 44: rosneft.catalog.v1.CatalogService.RegisterTerritoryArtifact:input_type -> rosneft.catalog.v1.RegisterTerritoryArtifactRequest
+	16, // 45: rosneft.catalog.v1.CatalogService.ListTerritoryArtifacts:input_type -> rosneft.catalog.v1.ListTerritoryArtifactsRequest
+	18, // 46: rosneft.catalog.v1.CatalogService.GetTerritoryArtifact:input_type -> rosneft.catalog.v1.GetTerritoryArtifactRequest
+	20, // 47: rosneft.catalog.v1.CatalogService.ListModels:input_type -> rosneft.catalog.v1.ListModelsRequest
+	22, // 48: rosneft.catalog.v1.CatalogService.GetModel:input_type -> rosneft.catalog.v1.GetModelRequest
+	24, // 49: rosneft.catalog.v1.CatalogService.UpsertModel:input_type -> rosneft.catalog.v1.UpsertModelRequest
+	26, // 50: rosneft.catalog.v1.CatalogService.DeleteModel:input_type -> rosneft.catalog.v1.DeleteModelRequest
+	28, // 51: rosneft.catalog.v1.CatalogService.RegisterModelArtifact:input_type -> rosneft.catalog.v1.RegisterModelArtifactRequest
+	30, // 52: rosneft.catalog.v1.CatalogService.ListModelArtifacts:input_type -> rosneft.catalog.v1.ListModelArtifactsRequest
+	32, // 53: rosneft.catalog.v1.CatalogService.GetModelArtifact:input_type -> rosneft.catalog.v1.GetModelArtifactRequest
+	34, // 54: rosneft.catalog.v1.CatalogService.ListPlacements:input_type -> rosneft.catalog.v1.ListPlacementsRequest
+	36, // 55: rosneft.catalog.v1.CatalogService.CreatePlacement:input_type -> rosneft.catalog.v1.CreatePlacementRequest
+	38, // 56: rosneft.catalog.v1.CatalogService.UpdatePlacement:input_type -> rosneft.catalog.v1.UpdatePlacementRequest
+	40, // 57: rosneft.catalog.v1.CatalogService.DeletePlacement:input_type -> rosneft.catalog.v1.DeletePlacementRequest
+	7,  // 58: rosneft.catalog.v1.CatalogService.ListTerritories:output_type -> rosneft.catalog.v1.ListTerritoriesResponse
+	9,  // 59: rosneft.catalog.v1.CatalogService.GetTerritory:output_type -> rosneft.catalog.v1.GetTerritoryResponse
+	11, // 60: rosneft.catalog.v1.CatalogService.UpsertTerritory:output_type -> rosneft.catalog.v1.UpsertTerritoryResponse
+	13, // 61: rosneft.catalog.v1.CatalogService.DeleteTerritory:output_type -> rosneft.catalog.v1.DeleteTerritoryResponse
+	15, // 62: rosneft.catalog.v1.CatalogService.RegisterTerritoryArtifact:output_type -> rosneft.catalog.v1.RegisterTerritoryArtifactResponse
+	17, // 63: rosneft.catalog.v1.CatalogService.ListTerritoryArtifacts:output_type -> rosneft.catalog.v1.ListTerritoryArtifactsResponse
+	19, // 64: rosneft.catalog.v1.CatalogService.GetTerritoryArtifact:output_type -> rosneft.catalog.v1.GetTerritoryArtifactResponse
+	21, // 65: rosneft.catalog.v1.CatalogService.ListModels:output_type -> rosneft.catalog.v1.ListModelsResponse
+	23, // 66: rosneft.catalog.v1.CatalogService.GetModel:output_type -> rosneft.catalog.v1.GetModelResponse
+	25, // 67: rosneft.catalog.v1.CatalogService.UpsertModel:output_type -> rosneft.catalog.v1.UpsertModelResponse
+	27, // 68: rosneft.catalog.v1.CatalogService.DeleteModel:output_type -> rosneft.catalog.v1.DeleteModelResponse
+	29, // 69: rosneft.catalog.v1.CatalogService.RegisterModelArtifact:output_type -> rosneft.catalog.v1.RegisterModelArtifactResponse
+	31, // 70: rosneft.catalog.v1.CatalogService.ListModelArtifacts:output_type -> rosneft.catalog.v1.ListModelArtifactsResponse
+	33, // 71: rosneft.catalog.v1.CatalogService.GetModelArtifact:output_type -> rosneft.catalog.v1.GetModelArtifactResponse
+	35, // 72: rosneft.catalog.v1.CatalogService.ListPlacements:output_type -> rosneft.catalog.v1.ListPlacementsResponse
+	37, // 73: rosneft.catalog.v1.CatalogService.CreatePlacement:output_type -> rosneft.catalog.v1.CreatePlacementResponse
+	39, // 74: rosneft.catalog.v1.CatalogService.UpdatePlacement:output_type -> rosneft.catalog.v1.UpdatePlacementResponse
+	41, // 75: rosneft.catalog.v1.CatalogService.DeletePlacement:output_type -> rosneft.catalog.v1.DeletePlacementResponse
+	58, // [58:76] is the sub-list for method output_type
+	40, // [40:58] is the sub-list for method input_type
+	40, // [40:40] is the sub-list for extension type_name
+	40, // [40:40] is the sub-list for extension extendee
+	0,  // [0:40] is the sub-list for field type_name
 }
 
 func init() { file_rosneft_catalog_v1_catalog_proto_init() }
@@ -1593,7 +2558,7 @@ func file_rosneft_catalog_v1_catalog_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rosneft_catalog_v1_catalog_proto_rawDesc), len(file_rosneft_catalog_v1_catalog_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   24,
+			NumMessages:   42,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

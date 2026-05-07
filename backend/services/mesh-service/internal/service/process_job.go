@@ -5,18 +5,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path/filepath"
+	"os"
 
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
 // ProcessJob runs one conversion end-to-end:
 //  1. Mark the job Running.
-//  2. Resolve the project's source path through the catalog.
-//  3. Convert the source mesh.
-//  4. Write the artifact to the BlobStore.
-//  5. Register the artifact in the catalog.
-//  6. Mark the job Succeeded with the artifact hash.
+//  2. Resolve the catalog target (territory or model) → source_blob_hash.
+//  3. Fetch the source ZIP from BlobStore and extract to a tmp dir.
+//  4. Find the .obj inside and convert it (LOD chain).
+//  5. Write each LOD artifact back to BlobStore.
+//  6. Register each artifact in the catalog (Kind decides which table).
+//  7. Mark the job Succeeded with the LOD0 artifact hash.
 //
 // On any error it marks the job Failed and returns the error so the caller
 // can decide whether to ack or retry.
@@ -56,16 +57,33 @@ func (m *Mesh) markFailed(ctx context.Context, j domain.Job, cause error) error 
 
 // runConversion does the actual work. It mutates job.ArtifactHash on success.
 func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) error {
-	project, err := m.catalog.GetProject(ctx, j.ProjectSlug)
+	target, err := m.catalog.GetTarget(ctx, j.Kind, j.Slug)
 	if err != nil {
-		if errors.Is(err, domain.ErrProjectNotFound) {
+		if errors.Is(err, domain.ErrTargetNotFound) {
 			return err
 		}
-		return fmt.Errorf("get project: %w", err)
+		return fmt.Errorf("get target: %w", err)
+	}
+	if target.SourceBlobHash == "" {
+		return fmt.Errorf("%w: target has no source_blob_hash", domain.ErrInvalidInput)
 	}
 
-	sourcePath := filepath.Join(m.sourceRoot, project.SourceObjPath)
-	results, err := m.converter.ConvertLODs(ctx, sourcePath)
+	workDir, err := os.MkdirTemp("", "mesh-job-*")
+	if err != nil {
+		return fmt.Errorf("tmp dir: %w", err)
+	}
+	defer os.RemoveAll(workDir)
+
+	if err := m.fetchAndExtract(ctx, target.SourceBlobHash, workDir); err != nil {
+		return fmt.Errorf("fetch/extract source: %w", err)
+	}
+
+	objPath, err := findFirstOBJ(workDir)
+	if err != nil {
+		return fmt.Errorf("locate obj: %w", err)
+	}
+
+	results, err := m.converter.ConvertLODs(ctx, objPath)
 	if err != nil {
 		return fmt.Errorf("convert: %w", err)
 	}
@@ -74,7 +92,7 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) error {
 	}
 
 	for i, r := range results {
-		if err := m.persistLOD(ctx, j.ProjectSlug, uint32(i), r); err != nil {
+		if err := m.persistLOD(ctx, j.Kind, j.Slug, uint32(i), r); err != nil {
 			return err
 		}
 	}
@@ -83,14 +101,15 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) error {
 }
 
 // persistLOD writes one LOD artifact to the BlobStore and registers it in
-// the catalog. LOD0 carries vertex/face/bbox metadata; lower LODs are
-// content-only.
-func (m *Mesh) persistLOD(ctx context.Context, slug string, lod uint32, r domain.ConversionResult) error {
+// the catalog under the appropriate table (territory_artifacts or
+// model_artifacts depending on Kind).
+func (m *Mesh) persistLOD(ctx context.Context, kind domain.Kind, slug string, lod uint32, r domain.ConversionResult) error {
 	if _, err := m.blobs.Put(ctx, r.ArtifactHash, r.ContentType, bytes.NewReader(r.Content)); err != nil {
 		return fmt.Errorf("blobstore put lod=%d: %w", lod, err)
 	}
 	if err := m.catalog.RegisterArtifact(ctx, domain.Artifact{
-		ProjectSlug: slug,
+		Kind:        kind,
+		Slug:        slug,
 		LOD:         lod,
 		Hash:        r.ArtifactHash,
 		ContentType: r.ContentType,

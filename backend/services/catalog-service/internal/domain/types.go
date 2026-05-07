@@ -4,27 +4,37 @@ package domain
 
 import "time"
 
-// Project is a 3D model project surfaced to the frontend catalog.
-type Project struct {
-	Slug              string    `yaml:"slug"`
-	Title             string    `yaml:"title"`
-	Subtitle          string    `yaml:"subtitle"`
-	Description       string    `yaml:"description"`
-	SourceObjPath     string    `yaml:"source_obj_path"`
-	SourceMtlPath     string    `yaml:"source_mtl_path"`
-	SourceTexturePath string    `yaml:"source_texture_path"`
-	CreatedAt         time.Time `yaml:"-"`
-	UpdatedAt         time.Time `yaml:"-"`
+// Territory is a parent scene the viewer renders as the canvas. Models are
+// placed onto it via Placement records.
+type Territory struct {
+	Slug           string    `yaml:"slug"`
+	Title          string    `yaml:"title"`
+	Description    string    `yaml:"description"`
+	SourceBlobHash string    `yaml:"source_blob_hash"`
+	CreatedAt      time.Time `yaml:"-"`
+	UpdatedAt      time.Time `yaml:"-"`
 }
 
-// Vec3 is a 3D point used for bounding-box corners.
+// Model is a placeable 3D asset overlaid on a territory.
+type Model struct {
+	Slug           string    `yaml:"slug"`
+	Title          string    `yaml:"title"`
+	Description    string    `yaml:"description"`
+	SourceBlobHash string    `yaml:"source_blob_hash"`
+	CreatedAt      time.Time `yaml:"-"`
+	UpdatedAt      time.Time `yaml:"-"`
+}
+
+// Vec3 is a 3D point used for bounding-box corners and placement transforms.
 type Vec3 struct {
 	X, Y, Z float64
 }
 
-// Artifact is a converted binary asset (GLB) at a specific LOD.
+// Artifact is a converted GLB output for a specific entity at a specific LOD.
+// Slug refers to whichever entity owns the artifact — territory_slug for
+// territory_artifacts, model_slug for model_artifacts.
 type Artifact struct {
-	ProjectSlug string
+	Slug        string
 	LOD         uint32
 	Hash        string
 	ContentType string

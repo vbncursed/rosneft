@@ -18,25 +18,30 @@ type Queue interface {
 	EnqueueJob(ctx context.Context, jobID string) error
 }
 
-// Catalog is the catalog client surface used by ProcessJob and the reconciler.
+// Catalog is the catalog client surface used by ProcessJob and the
+// reconciler. The Kind+Slug pair identifies whether a target is a territory
+// or a model; HasLOD0 reports whether the catalog already has a LOD0
+// artifact (used by the reconciler to skip already-converted entities).
 type Catalog interface {
-	GetProject(ctx context.Context, slug string) (domain.Project, error)
-	ListProjects(ctx context.Context) ([]domain.Project, error)
-	GetArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
+	GetTarget(ctx context.Context, kind domain.Kind, slug string) (domain.ConversionTarget, error)
+	ListTargets(ctx context.Context) ([]domain.ConversionTarget, error)
+	HasLOD0(ctx context.Context, kind domain.Kind, slug string) (bool, error)
 	RegisterArtifact(ctx context.Context, a domain.Artifact) error
 }
 
-// Converter turns a source mesh into one or more ConversionResults — one
-// per LOD level, ordered LOD0 → LODN. Texture and material resolution is
-// driven by the OBJ's mtllib + per-material map_Kd, so the converter only
-// needs the OBJ path; assets are siblings on disk.
+// Converter turns a source mesh on disk into one or more ConversionResults
+// — one per LOD level, ordered LOD0 → LODN. The worker hands a path to the
+// extracted .obj file; the converter resolves the OBJ's mtllib and texture
+// references relative to that file's directory.
 type Converter interface {
 	ConvertLODs(ctx context.Context, sourcePath string) ([]domain.ConversionResult, error)
 }
 
-// BlobStore is what the worker writes converted artifacts to.
+// BlobStore is what the worker writes converted artifacts to and reads
+// source archives from.
 type BlobStore interface {
 	Put(ctx context.Context, hash, contentType string, r io.Reader) (blobstore.Blob, error)
+	Get(ctx context.Context, hash string) (io.ReadCloser, blobstore.Blob, error)
 }
 
 // Mesh is the mesh business layer.
@@ -45,31 +50,26 @@ type Mesh struct {
 	catalog   Catalog
 	converter Converter
 	blobs     BlobStore
-	// sourceRoot is the directory all project source paths are resolved against.
-	// Worker code joins sourceRoot + project.SourceObjPath before passing to converter.
-	sourceRoot string
 	// idGen returns a fresh job ID; injectable for deterministic tests.
 	idGen func() string
 }
 
 // Config wires Mesh's dependencies.
 type Config struct {
-	Queue      Queue
-	Catalog    Catalog
-	Converter  Converter
-	Blobs      BlobStore
-	SourceRoot string
-	IDGen      func() string
+	Queue     Queue
+	Catalog   Catalog
+	Converter Converter
+	Blobs     BlobStore
+	IDGen     func() string
 }
 
 // New constructs a Mesh service.
 func New(cfg Config) *Mesh {
 	return &Mesh{
-		queue:      cfg.Queue,
-		catalog:    cfg.Catalog,
-		converter:  cfg.Converter,
-		blobs:      cfg.Blobs,
-		sourceRoot: cfg.SourceRoot,
-		idGen:      cfg.IDGen,
+		queue:     cfg.Queue,
+		catalog:   cfg.Catalog,
+		converter: cfg.Converter,
+		blobs:     cfg.Blobs,
+		idGen:     cfg.IDGen,
 	}
 }

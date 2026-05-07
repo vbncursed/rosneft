@@ -19,36 +19,56 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CatalogService_ListProjects_FullMethodName     = "/rosneft.catalog.v1.CatalogService/ListProjects"
-	CatalogService_GetProject_FullMethodName       = "/rosneft.catalog.v1.CatalogService/GetProject"
-	CatalogService_UpsertProject_FullMethodName    = "/rosneft.catalog.v1.CatalogService/UpsertProject"
-	CatalogService_RegisterArtifact_FullMethodName = "/rosneft.catalog.v1.CatalogService/RegisterArtifact"
-	CatalogService_ListArtifacts_FullMethodName    = "/rosneft.catalog.v1.CatalogService/ListArtifacts"
-	CatalogService_GetArtifact_FullMethodName      = "/rosneft.catalog.v1.CatalogService/GetArtifact"
-	CatalogService_ListPlacements_FullMethodName   = "/rosneft.catalog.v1.CatalogService/ListPlacements"
-	CatalogService_CreatePlacement_FullMethodName  = "/rosneft.catalog.v1.CatalogService/CreatePlacement"
-	CatalogService_UpdatePlacement_FullMethodName  = "/rosneft.catalog.v1.CatalogService/UpdatePlacement"
-	CatalogService_DeletePlacement_FullMethodName  = "/rosneft.catalog.v1.CatalogService/DeletePlacement"
+	CatalogService_ListTerritories_FullMethodName           = "/rosneft.catalog.v1.CatalogService/ListTerritories"
+	CatalogService_GetTerritory_FullMethodName              = "/rosneft.catalog.v1.CatalogService/GetTerritory"
+	CatalogService_UpsertTerritory_FullMethodName           = "/rosneft.catalog.v1.CatalogService/UpsertTerritory"
+	CatalogService_DeleteTerritory_FullMethodName           = "/rosneft.catalog.v1.CatalogService/DeleteTerritory"
+	CatalogService_RegisterTerritoryArtifact_FullMethodName = "/rosneft.catalog.v1.CatalogService/RegisterTerritoryArtifact"
+	CatalogService_ListTerritoryArtifacts_FullMethodName    = "/rosneft.catalog.v1.CatalogService/ListTerritoryArtifacts"
+	CatalogService_GetTerritoryArtifact_FullMethodName      = "/rosneft.catalog.v1.CatalogService/GetTerritoryArtifact"
+	CatalogService_ListModels_FullMethodName                = "/rosneft.catalog.v1.CatalogService/ListModels"
+	CatalogService_GetModel_FullMethodName                  = "/rosneft.catalog.v1.CatalogService/GetModel"
+	CatalogService_UpsertModel_FullMethodName               = "/rosneft.catalog.v1.CatalogService/UpsertModel"
+	CatalogService_DeleteModel_FullMethodName               = "/rosneft.catalog.v1.CatalogService/DeleteModel"
+	CatalogService_RegisterModelArtifact_FullMethodName     = "/rosneft.catalog.v1.CatalogService/RegisterModelArtifact"
+	CatalogService_ListModelArtifacts_FullMethodName        = "/rosneft.catalog.v1.CatalogService/ListModelArtifacts"
+	CatalogService_GetModelArtifact_FullMethodName          = "/rosneft.catalog.v1.CatalogService/GetModelArtifact"
+	CatalogService_ListPlacements_FullMethodName            = "/rosneft.catalog.v1.CatalogService/ListPlacements"
+	CatalogService_CreatePlacement_FullMethodName           = "/rosneft.catalog.v1.CatalogService/CreatePlacement"
+	CatalogService_UpdatePlacement_FullMethodName           = "/rosneft.catalog.v1.CatalogService/UpdatePlacement"
+	CatalogService_DeletePlacement_FullMethodName           = "/rosneft.catalog.v1.CatalogService/DeletePlacement"
 )
 
 // CatalogServiceClient is the client API for CatalogService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// CatalogService owns the project + artifact registry. Conversion pipelines
-// (mesh-worker) write artifact records here; the gateway reads them to serve
-// the frontend.
+// CatalogService owns the registry of two domain entities:
+//
+//   - Territory — a parent scene (terrain, photogrammetry mesh) the
+//     viewer walks around in.
+//   - Model     — a placeable asset (equipment, fixture) overlaid on a
+//     territory at a specific transform.
+//
+// Each entity has its own artifact family (territory_artifacts /
+// model_artifacts) holding the converted GLB outputs per LOD. Source
+// files are stored as content-addressed ZIP archives in BlobStore;
+// the catalog only keeps the hash.
 type CatalogServiceClient interface {
-	ListProjects(ctx context.Context, in *ListProjectsRequest, opts ...grpc.CallOption) (*ListProjectsResponse, error)
-	GetProject(ctx context.Context, in *GetProjectRequest, opts ...grpc.CallOption) (*GetProjectResponse, error)
-	UpsertProject(ctx context.Context, in *UpsertProjectRequest, opts ...grpc.CallOption) (*UpsertProjectResponse, error)
-	RegisterArtifact(ctx context.Context, in *RegisterArtifactRequest, opts ...grpc.CallOption) (*RegisterArtifactResponse, error)
-	ListArtifacts(ctx context.Context, in *ListArtifactsRequest, opts ...grpc.CallOption) (*ListArtifactsResponse, error)
-	GetArtifact(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*GetArtifactResponse, error)
-	// Placements: a Placement is one instance of a child project (the asset)
-	// positioned on a parent project's scene with a position/rotation/scale
-	// transform. Used by the viewer to overlay equipment, fixtures, or other
-	// CAD assets onto a base photogrammetry scene.
+	ListTerritories(ctx context.Context, in *ListTerritoriesRequest, opts ...grpc.CallOption) (*ListTerritoriesResponse, error)
+	GetTerritory(ctx context.Context, in *GetTerritoryRequest, opts ...grpc.CallOption) (*GetTerritoryResponse, error)
+	UpsertTerritory(ctx context.Context, in *UpsertTerritoryRequest, opts ...grpc.CallOption) (*UpsertTerritoryResponse, error)
+	DeleteTerritory(ctx context.Context, in *DeleteTerritoryRequest, opts ...grpc.CallOption) (*DeleteTerritoryResponse, error)
+	RegisterTerritoryArtifact(ctx context.Context, in *RegisterTerritoryArtifactRequest, opts ...grpc.CallOption) (*RegisterTerritoryArtifactResponse, error)
+	ListTerritoryArtifacts(ctx context.Context, in *ListTerritoryArtifactsRequest, opts ...grpc.CallOption) (*ListTerritoryArtifactsResponse, error)
+	GetTerritoryArtifact(ctx context.Context, in *GetTerritoryArtifactRequest, opts ...grpc.CallOption) (*GetTerritoryArtifactResponse, error)
+	ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error)
+	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*GetModelResponse, error)
+	UpsertModel(ctx context.Context, in *UpsertModelRequest, opts ...grpc.CallOption) (*UpsertModelResponse, error)
+	DeleteModel(ctx context.Context, in *DeleteModelRequest, opts ...grpc.CallOption) (*DeleteModelResponse, error)
+	RegisterModelArtifact(ctx context.Context, in *RegisterModelArtifactRequest, opts ...grpc.CallOption) (*RegisterModelArtifactResponse, error)
+	ListModelArtifacts(ctx context.Context, in *ListModelArtifactsRequest, opts ...grpc.CallOption) (*ListModelArtifactsResponse, error)
+	GetModelArtifact(ctx context.Context, in *GetModelArtifactRequest, opts ...grpc.CallOption) (*GetModelArtifactResponse, error)
 	ListPlacements(ctx context.Context, in *ListPlacementsRequest, opts ...grpc.CallOption) (*ListPlacementsResponse, error)
 	CreatePlacement(ctx context.Context, in *CreatePlacementRequest, opts ...grpc.CallOption) (*CreatePlacementResponse, error)
 	UpdatePlacement(ctx context.Context, in *UpdatePlacementRequest, opts ...grpc.CallOption) (*UpdatePlacementResponse, error)
@@ -63,60 +83,140 @@ func NewCatalogServiceClient(cc grpc.ClientConnInterface) CatalogServiceClient {
 	return &catalogServiceClient{cc}
 }
 
-func (c *catalogServiceClient) ListProjects(ctx context.Context, in *ListProjectsRequest, opts ...grpc.CallOption) (*ListProjectsResponse, error) {
+func (c *catalogServiceClient) ListTerritories(ctx context.Context, in *ListTerritoriesRequest, opts ...grpc.CallOption) (*ListTerritoriesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListProjectsResponse)
-	err := c.cc.Invoke(ctx, CatalogService_ListProjects_FullMethodName, in, out, cOpts...)
+	out := new(ListTerritoriesResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListTerritories_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *catalogServiceClient) GetProject(ctx context.Context, in *GetProjectRequest, opts ...grpc.CallOption) (*GetProjectResponse, error) {
+func (c *catalogServiceClient) GetTerritory(ctx context.Context, in *GetTerritoryRequest, opts ...grpc.CallOption) (*GetTerritoryResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetProjectResponse)
-	err := c.cc.Invoke(ctx, CatalogService_GetProject_FullMethodName, in, out, cOpts...)
+	out := new(GetTerritoryResponse)
+	err := c.cc.Invoke(ctx, CatalogService_GetTerritory_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *catalogServiceClient) UpsertProject(ctx context.Context, in *UpsertProjectRequest, opts ...grpc.CallOption) (*UpsertProjectResponse, error) {
+func (c *catalogServiceClient) UpsertTerritory(ctx context.Context, in *UpsertTerritoryRequest, opts ...grpc.CallOption) (*UpsertTerritoryResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpsertProjectResponse)
-	err := c.cc.Invoke(ctx, CatalogService_UpsertProject_FullMethodName, in, out, cOpts...)
+	out := new(UpsertTerritoryResponse)
+	err := c.cc.Invoke(ctx, CatalogService_UpsertTerritory_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *catalogServiceClient) RegisterArtifact(ctx context.Context, in *RegisterArtifactRequest, opts ...grpc.CallOption) (*RegisterArtifactResponse, error) {
+func (c *catalogServiceClient) DeleteTerritory(ctx context.Context, in *DeleteTerritoryRequest, opts ...grpc.CallOption) (*DeleteTerritoryResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RegisterArtifactResponse)
-	err := c.cc.Invoke(ctx, CatalogService_RegisterArtifact_FullMethodName, in, out, cOpts...)
+	out := new(DeleteTerritoryResponse)
+	err := c.cc.Invoke(ctx, CatalogService_DeleteTerritory_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *catalogServiceClient) ListArtifacts(ctx context.Context, in *ListArtifactsRequest, opts ...grpc.CallOption) (*ListArtifactsResponse, error) {
+func (c *catalogServiceClient) RegisterTerritoryArtifact(ctx context.Context, in *RegisterTerritoryArtifactRequest, opts ...grpc.CallOption) (*RegisterTerritoryArtifactResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListArtifactsResponse)
-	err := c.cc.Invoke(ctx, CatalogService_ListArtifacts_FullMethodName, in, out, cOpts...)
+	out := new(RegisterTerritoryArtifactResponse)
+	err := c.cc.Invoke(ctx, CatalogService_RegisterTerritoryArtifact_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *catalogServiceClient) GetArtifact(ctx context.Context, in *GetArtifactRequest, opts ...grpc.CallOption) (*GetArtifactResponse, error) {
+func (c *catalogServiceClient) ListTerritoryArtifacts(ctx context.Context, in *ListTerritoryArtifactsRequest, opts ...grpc.CallOption) (*ListTerritoryArtifactsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetArtifactResponse)
-	err := c.cc.Invoke(ctx, CatalogService_GetArtifact_FullMethodName, in, out, cOpts...)
+	out := new(ListTerritoryArtifactsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListTerritoryArtifacts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) GetTerritoryArtifact(ctx context.Context, in *GetTerritoryArtifactRequest, opts ...grpc.CallOption) (*GetTerritoryArtifactResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTerritoryArtifactResponse)
+	err := c.cc.Invoke(ctx, CatalogService_GetTerritoryArtifact_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListModelsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListModels_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*GetModelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetModelResponse)
+	err := c.cc.Invoke(ctx, CatalogService_GetModel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) UpsertModel(ctx context.Context, in *UpsertModelRequest, opts ...grpc.CallOption) (*UpsertModelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpsertModelResponse)
+	err := c.cc.Invoke(ctx, CatalogService_UpsertModel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) DeleteModel(ctx context.Context, in *DeleteModelRequest, opts ...grpc.CallOption) (*DeleteModelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteModelResponse)
+	err := c.cc.Invoke(ctx, CatalogService_DeleteModel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) RegisterModelArtifact(ctx context.Context, in *RegisterModelArtifactRequest, opts ...grpc.CallOption) (*RegisterModelArtifactResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RegisterModelArtifactResponse)
+	err := c.cc.Invoke(ctx, CatalogService_RegisterModelArtifact_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) ListModelArtifacts(ctx context.Context, in *ListModelArtifactsRequest, opts ...grpc.CallOption) (*ListModelArtifactsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListModelArtifactsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListModelArtifacts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) GetModelArtifact(ctx context.Context, in *GetModelArtifactRequest, opts ...grpc.CallOption) (*GetModelArtifactResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetModelArtifactResponse)
+	err := c.cc.Invoke(ctx, CatalogService_GetModelArtifact_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -167,20 +267,32 @@ func (c *catalogServiceClient) DeletePlacement(ctx context.Context, in *DeletePl
 // All implementations must embed UnimplementedCatalogServiceServer
 // for forward compatibility.
 //
-// CatalogService owns the project + artifact registry. Conversion pipelines
-// (mesh-worker) write artifact records here; the gateway reads them to serve
-// the frontend.
+// CatalogService owns the registry of two domain entities:
+//
+//   - Territory — a parent scene (terrain, photogrammetry mesh) the
+//     viewer walks around in.
+//   - Model     — a placeable asset (equipment, fixture) overlaid on a
+//     territory at a specific transform.
+//
+// Each entity has its own artifact family (territory_artifacts /
+// model_artifacts) holding the converted GLB outputs per LOD. Source
+// files are stored as content-addressed ZIP archives in BlobStore;
+// the catalog only keeps the hash.
 type CatalogServiceServer interface {
-	ListProjects(context.Context, *ListProjectsRequest) (*ListProjectsResponse, error)
-	GetProject(context.Context, *GetProjectRequest) (*GetProjectResponse, error)
-	UpsertProject(context.Context, *UpsertProjectRequest) (*UpsertProjectResponse, error)
-	RegisterArtifact(context.Context, *RegisterArtifactRequest) (*RegisterArtifactResponse, error)
-	ListArtifacts(context.Context, *ListArtifactsRequest) (*ListArtifactsResponse, error)
-	GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error)
-	// Placements: a Placement is one instance of a child project (the asset)
-	// positioned on a parent project's scene with a position/rotation/scale
-	// transform. Used by the viewer to overlay equipment, fixtures, or other
-	// CAD assets onto a base photogrammetry scene.
+	ListTerritories(context.Context, *ListTerritoriesRequest) (*ListTerritoriesResponse, error)
+	GetTerritory(context.Context, *GetTerritoryRequest) (*GetTerritoryResponse, error)
+	UpsertTerritory(context.Context, *UpsertTerritoryRequest) (*UpsertTerritoryResponse, error)
+	DeleteTerritory(context.Context, *DeleteTerritoryRequest) (*DeleteTerritoryResponse, error)
+	RegisterTerritoryArtifact(context.Context, *RegisterTerritoryArtifactRequest) (*RegisterTerritoryArtifactResponse, error)
+	ListTerritoryArtifacts(context.Context, *ListTerritoryArtifactsRequest) (*ListTerritoryArtifactsResponse, error)
+	GetTerritoryArtifact(context.Context, *GetTerritoryArtifactRequest) (*GetTerritoryArtifactResponse, error)
+	ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error)
+	GetModel(context.Context, *GetModelRequest) (*GetModelResponse, error)
+	UpsertModel(context.Context, *UpsertModelRequest) (*UpsertModelResponse, error)
+	DeleteModel(context.Context, *DeleteModelRequest) (*DeleteModelResponse, error)
+	RegisterModelArtifact(context.Context, *RegisterModelArtifactRequest) (*RegisterModelArtifactResponse, error)
+	ListModelArtifacts(context.Context, *ListModelArtifactsRequest) (*ListModelArtifactsResponse, error)
+	GetModelArtifact(context.Context, *GetModelArtifactRequest) (*GetModelArtifactResponse, error)
 	ListPlacements(context.Context, *ListPlacementsRequest) (*ListPlacementsResponse, error)
 	CreatePlacement(context.Context, *CreatePlacementRequest) (*CreatePlacementResponse, error)
 	UpdatePlacement(context.Context, *UpdatePlacementRequest) (*UpdatePlacementResponse, error)
@@ -195,23 +307,47 @@ type CatalogServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedCatalogServiceServer struct{}
 
-func (UnimplementedCatalogServiceServer) ListProjects(context.Context, *ListProjectsRequest) (*ListProjectsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListProjects not implemented")
+func (UnimplementedCatalogServiceServer) ListTerritories(context.Context, *ListTerritoriesRequest) (*ListTerritoriesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTerritories not implemented")
 }
-func (UnimplementedCatalogServiceServer) GetProject(context.Context, *GetProjectRequest) (*GetProjectResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetProject not implemented")
+func (UnimplementedCatalogServiceServer) GetTerritory(context.Context, *GetTerritoryRequest) (*GetTerritoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetTerritory not implemented")
 }
-func (UnimplementedCatalogServiceServer) UpsertProject(context.Context, *UpsertProjectRequest) (*UpsertProjectResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method UpsertProject not implemented")
+func (UnimplementedCatalogServiceServer) UpsertTerritory(context.Context, *UpsertTerritoryRequest) (*UpsertTerritoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpsertTerritory not implemented")
 }
-func (UnimplementedCatalogServiceServer) RegisterArtifact(context.Context, *RegisterArtifactRequest) (*RegisterArtifactResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method RegisterArtifact not implemented")
+func (UnimplementedCatalogServiceServer) DeleteTerritory(context.Context, *DeleteTerritoryRequest) (*DeleteTerritoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteTerritory not implemented")
 }
-func (UnimplementedCatalogServiceServer) ListArtifacts(context.Context, *ListArtifactsRequest) (*ListArtifactsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListArtifacts not implemented")
+func (UnimplementedCatalogServiceServer) RegisterTerritoryArtifact(context.Context, *RegisterTerritoryArtifactRequest) (*RegisterTerritoryArtifactResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RegisterTerritoryArtifact not implemented")
 }
-func (UnimplementedCatalogServiceServer) GetArtifact(context.Context, *GetArtifactRequest) (*GetArtifactResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetArtifact not implemented")
+func (UnimplementedCatalogServiceServer) ListTerritoryArtifacts(context.Context, *ListTerritoryArtifactsRequest) (*ListTerritoryArtifactsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTerritoryArtifacts not implemented")
+}
+func (UnimplementedCatalogServiceServer) GetTerritoryArtifact(context.Context, *GetTerritoryArtifactRequest) (*GetTerritoryArtifactResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetTerritoryArtifact not implemented")
+}
+func (UnimplementedCatalogServiceServer) ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListModels not implemented")
+}
+func (UnimplementedCatalogServiceServer) GetModel(context.Context, *GetModelRequest) (*GetModelResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetModel not implemented")
+}
+func (UnimplementedCatalogServiceServer) UpsertModel(context.Context, *UpsertModelRequest) (*UpsertModelResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpsertModel not implemented")
+}
+func (UnimplementedCatalogServiceServer) DeleteModel(context.Context, *DeleteModelRequest) (*DeleteModelResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteModel not implemented")
+}
+func (UnimplementedCatalogServiceServer) RegisterModelArtifact(context.Context, *RegisterModelArtifactRequest) (*RegisterModelArtifactResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RegisterModelArtifact not implemented")
+}
+func (UnimplementedCatalogServiceServer) ListModelArtifacts(context.Context, *ListModelArtifactsRequest) (*ListModelArtifactsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListModelArtifacts not implemented")
+}
+func (UnimplementedCatalogServiceServer) GetModelArtifact(context.Context, *GetModelArtifactRequest) (*GetModelArtifactResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetModelArtifact not implemented")
 }
 func (UnimplementedCatalogServiceServer) ListPlacements(context.Context, *ListPlacementsRequest) (*ListPlacementsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListPlacements not implemented")
@@ -246,110 +382,254 @@ func RegisterCatalogServiceServer(s grpc.ServiceRegistrar, srv CatalogServiceSer
 	s.RegisterService(&CatalogService_ServiceDesc, srv)
 }
 
-func _CatalogService_ListProjects_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListProjectsRequest)
+func _CatalogService_ListTerritories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTerritoriesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CatalogServiceServer).ListProjects(ctx, in)
+		return srv.(CatalogServiceServer).ListTerritories(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: CatalogService_ListProjects_FullMethodName,
+		FullMethod: CatalogService_ListTerritories_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CatalogServiceServer).ListProjects(ctx, req.(*ListProjectsRequest))
+		return srv.(CatalogServiceServer).ListTerritories(ctx, req.(*ListTerritoriesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CatalogService_GetProject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetProjectRequest)
+func _CatalogService_GetTerritory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTerritoryRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CatalogServiceServer).GetProject(ctx, in)
+		return srv.(CatalogServiceServer).GetTerritory(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: CatalogService_GetProject_FullMethodName,
+		FullMethod: CatalogService_GetTerritory_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CatalogServiceServer).GetProject(ctx, req.(*GetProjectRequest))
+		return srv.(CatalogServiceServer).GetTerritory(ctx, req.(*GetTerritoryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CatalogService_UpsertProject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpsertProjectRequest)
+func _CatalogService_UpsertTerritory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpsertTerritoryRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CatalogServiceServer).UpsertProject(ctx, in)
+		return srv.(CatalogServiceServer).UpsertTerritory(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: CatalogService_UpsertProject_FullMethodName,
+		FullMethod: CatalogService_UpsertTerritory_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CatalogServiceServer).UpsertProject(ctx, req.(*UpsertProjectRequest))
+		return srv.(CatalogServiceServer).UpsertTerritory(ctx, req.(*UpsertTerritoryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CatalogService_RegisterArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RegisterArtifactRequest)
+func _CatalogService_DeleteTerritory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteTerritoryRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CatalogServiceServer).RegisterArtifact(ctx, in)
+		return srv.(CatalogServiceServer).DeleteTerritory(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: CatalogService_RegisterArtifact_FullMethodName,
+		FullMethod: CatalogService_DeleteTerritory_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CatalogServiceServer).RegisterArtifact(ctx, req.(*RegisterArtifactRequest))
+		return srv.(CatalogServiceServer).DeleteTerritory(ctx, req.(*DeleteTerritoryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CatalogService_ListArtifacts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListArtifactsRequest)
+func _CatalogService_RegisterTerritoryArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterTerritoryArtifactRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CatalogServiceServer).ListArtifacts(ctx, in)
+		return srv.(CatalogServiceServer).RegisterTerritoryArtifact(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: CatalogService_ListArtifacts_FullMethodName,
+		FullMethod: CatalogService_RegisterTerritoryArtifact_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CatalogServiceServer).ListArtifacts(ctx, req.(*ListArtifactsRequest))
+		return srv.(CatalogServiceServer).RegisterTerritoryArtifact(ctx, req.(*RegisterTerritoryArtifactRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CatalogService_GetArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetArtifactRequest)
+func _CatalogService_ListTerritoryArtifacts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTerritoryArtifactsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CatalogServiceServer).GetArtifact(ctx, in)
+		return srv.(CatalogServiceServer).ListTerritoryArtifacts(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: CatalogService_GetArtifact_FullMethodName,
+		FullMethod: CatalogService_ListTerritoryArtifacts_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CatalogServiceServer).GetArtifact(ctx, req.(*GetArtifactRequest))
+		return srv.(CatalogServiceServer).ListTerritoryArtifacts(ctx, req.(*ListTerritoryArtifactsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_GetTerritoryArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTerritoryArtifactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).GetTerritoryArtifact(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_GetTerritoryArtifact_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).GetTerritoryArtifact(ctx, req.(*GetTerritoryArtifactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_ListModels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListModelsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ListModels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ListModels_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ListModels(ctx, req.(*ListModelsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_GetModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).GetModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_GetModel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).GetModel(ctx, req.(*GetModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_UpsertModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpsertModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).UpsertModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_UpsertModel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).UpsertModel(ctx, req.(*UpsertModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_DeleteModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).DeleteModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_DeleteModel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).DeleteModel(ctx, req.(*DeleteModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_RegisterModelArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterModelArtifactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).RegisterModelArtifact(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_RegisterModelArtifact_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).RegisterModelArtifact(ctx, req.(*RegisterModelArtifactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_ListModelArtifacts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListModelArtifactsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ListModelArtifacts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ListModelArtifacts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ListModelArtifacts(ctx, req.(*ListModelArtifactsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_GetModelArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetModelArtifactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).GetModelArtifact(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_GetModelArtifact_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).GetModelArtifact(ctx, req.(*GetModelArtifactRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -434,28 +714,60 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*CatalogServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ListProjects",
-			Handler:    _CatalogService_ListProjects_Handler,
+			MethodName: "ListTerritories",
+			Handler:    _CatalogService_ListTerritories_Handler,
 		},
 		{
-			MethodName: "GetProject",
-			Handler:    _CatalogService_GetProject_Handler,
+			MethodName: "GetTerritory",
+			Handler:    _CatalogService_GetTerritory_Handler,
 		},
 		{
-			MethodName: "UpsertProject",
-			Handler:    _CatalogService_UpsertProject_Handler,
+			MethodName: "UpsertTerritory",
+			Handler:    _CatalogService_UpsertTerritory_Handler,
 		},
 		{
-			MethodName: "RegisterArtifact",
-			Handler:    _CatalogService_RegisterArtifact_Handler,
+			MethodName: "DeleteTerritory",
+			Handler:    _CatalogService_DeleteTerritory_Handler,
 		},
 		{
-			MethodName: "ListArtifacts",
-			Handler:    _CatalogService_ListArtifacts_Handler,
+			MethodName: "RegisterTerritoryArtifact",
+			Handler:    _CatalogService_RegisterTerritoryArtifact_Handler,
 		},
 		{
-			MethodName: "GetArtifact",
-			Handler:    _CatalogService_GetArtifact_Handler,
+			MethodName: "ListTerritoryArtifacts",
+			Handler:    _CatalogService_ListTerritoryArtifacts_Handler,
+		},
+		{
+			MethodName: "GetTerritoryArtifact",
+			Handler:    _CatalogService_GetTerritoryArtifact_Handler,
+		},
+		{
+			MethodName: "ListModels",
+			Handler:    _CatalogService_ListModels_Handler,
+		},
+		{
+			MethodName: "GetModel",
+			Handler:    _CatalogService_GetModel_Handler,
+		},
+		{
+			MethodName: "UpsertModel",
+			Handler:    _CatalogService_UpsertModel_Handler,
+		},
+		{
+			MethodName: "DeleteModel",
+			Handler:    _CatalogService_DeleteModel_Handler,
+		},
+		{
+			MethodName: "RegisterModelArtifact",
+			Handler:    _CatalogService_RegisterModelArtifact_Handler,
+		},
+		{
+			MethodName: "ListModelArtifacts",
+			Handler:    _CatalogService_ListModelArtifacts_Handler,
+		},
+		{
+			MethodName: "GetModelArtifact",
+			Handler:    _CatalogService_GetModelArtifact_Handler,
 		},
 		{
 			MethodName: "ListPlacements",

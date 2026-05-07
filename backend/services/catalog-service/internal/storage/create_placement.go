@@ -12,43 +12,43 @@ import (
 )
 
 // CreatePlacement inserts a new placement and returns the row as stored
-// (including the assigned ID and timestamps). Foreign-key violations on
-// parent/asset are translated to ErrProjectNotFound; the no-self-placement
-// CHECK constraint becomes ErrSelfPlacement.
+// (including the assigned ID and timestamps). A missing territory or model
+// slug yields a domain not-found error; the scale CHECK constraint becomes
+// ErrInvalidInput.
 func (r *PG) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
 	const q = `
 		WITH inserted AS (
 			INSERT INTO placements (
-				parent_id, asset_id,
+				territory_id, model_id,
 				position_x, position_y, position_z,
 				rotation_x, rotation_y, rotation_z,
 				scale_x, scale_y, scale_z,
 				label
 			)
-			SELECT pp.id, ap.id,
+			SELECT t.id, m.id,
 				$3, $4, $5,
 				$6, $7, $8,
 				$9, $10, $11,
 				$12
-			FROM projects pp, projects ap
-			WHERE pp.slug = $1 AND ap.slug = $2
-			RETURNING id, parent_id, asset_id,
+			FROM territories t, models m
+			WHERE t.slug = $1 AND m.slug = $2
+			RETURNING id, territory_id, model_id,
 				position_x, position_y, position_z,
 				rotation_x, rotation_y, rotation_z,
 				scale_x, scale_y, scale_z,
 				label, created_at, updated_at
 		)
-		SELECT i.id, pp.slug, ap.slug,
+		SELECT i.id, t.slug, m.slug,
 			i.position_x, i.position_y, i.position_z,
 			i.rotation_x, i.rotation_y, i.rotation_z,
 			i.scale_x, i.scale_y, i.scale_z,
 			i.label, i.created_at, i.updated_at
 		FROM inserted i
-		JOIN projects pp ON pp.id = i.parent_id
-		JOIN projects ap ON ap.id = i.asset_id`
+		JOIN territories t ON t.id = i.territory_id
+		JOIN models m      ON m.id = i.model_id`
 
 	row := r.pool.QueryRow(ctx, q,
-		p.ParentSlug, p.AssetSlug,
+		p.TerritorySlug, p.ModelSlug,
 		p.Position.X, p.Position.Y, p.Position.Z,
 		p.Rotation.X, p.Rotation.Y, p.Rotation.Z,
 		p.Scale.X, p.Scale.Y, p.Scale.Z,
@@ -57,18 +57,14 @@ func (r *PG) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Pl
 	out, err := scanPlacement(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			// Either parent or asset slug didn't match — the WITH stage
-			// produced no row, so the JOIN found nothing to return.
-			return domain.Placement{}, domain.ErrProjectNotFound
+			// One side of the WHERE didn't match — caller has to figure out
+			// which by re-checking, but the not-found signal is enough for
+			// transport to map to 404.
+			return domain.Placement{}, domain.ErrTerritoryNotFound
 		}
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23514" { // check_violation
-			switch pgErr.ConstraintName {
-			case "placements_no_self":
-				return domain.Placement{}, domain.ErrSelfPlacement
-			case "placements_scale_positive":
-				return domain.Placement{}, fmt.Errorf("storage.CreatePlacement: %w: scale must be positive", domain.ErrInvalidInput)
-			}
+		if errors.As(err, &pgErr) && pgErr.Code == "23514" && pgErr.ConstraintName == "placements_scale_positive" {
+			return domain.Placement{}, fmt.Errorf("storage.CreatePlacement: %w: scale must be positive", domain.ErrInvalidInput)
 		}
 		return domain.Placement{}, fmt.Errorf("storage.CreatePlacement: %w", err)
 	}

@@ -5,29 +5,76 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-func projectFromProto(p *catalogv1.Project) domain.Project {
-	if p == nil {
-		return domain.Project{}
+func territoryFromProto(t *catalogv1.Territory) domain.Territory {
+	if t == nil {
+		return domain.Territory{}
 	}
-	return domain.Project{
-		Slug:              p.GetSlug(),
-		Title:             p.GetTitle(),
-		Subtitle:          p.GetSubtitle(),
-		Description:       p.GetDescription(),
-		SourceObjPath:     p.GetSourceObjPath(),
-		SourceMtlPath:     p.GetSourceMtlPath(),
-		SourceTexturePath: p.GetSourceTexturePath(),
-		CreatedAt:         p.GetCreatedAt().AsTime(),
-		UpdatedAt:         p.GetUpdatedAt().AsTime(),
+	return domain.Territory{
+		Slug:           t.GetSlug(),
+		Title:          t.GetTitle(),
+		Description:    t.GetDescription(),
+		SourceBlobHash: t.GetSourceBlobHash(),
+		CreatedAt:      t.GetCreatedAt().AsTime(),
+		UpdatedAt:      t.GetUpdatedAt().AsTime(),
 	}
 }
 
-func artifactFromProto(a *catalogv1.Artifact) domain.Artifact {
+func territoryToProto(t domain.Territory) *catalogv1.Territory {
+	return &catalogv1.Territory{
+		Slug:           t.Slug,
+		Title:          t.Title,
+		Description:    t.Description,
+		SourceBlobHash: t.SourceBlobHash,
+	}
+}
+
+func modelFromProto(m *catalogv1.Model) domain.Model {
+	if m == nil {
+		return domain.Model{}
+	}
+	return domain.Model{
+		Slug:           m.GetSlug(),
+		Title:          m.GetTitle(),
+		Description:    m.GetDescription(),
+		SourceBlobHash: m.GetSourceBlobHash(),
+		CreatedAt:      m.GetCreatedAt().AsTime(),
+		UpdatedAt:      m.GetUpdatedAt().AsTime(),
+	}
+}
+
+func modelToProto(m domain.Model) *catalogv1.Model {
+	return &catalogv1.Model{
+		Slug:           m.Slug,
+		Title:          m.Title,
+		Description:    m.Description,
+		SourceBlobHash: m.SourceBlobHash,
+	}
+}
+
+func territoryArtifactFromProto(a *catalogv1.TerritoryArtifact) domain.Artifact {
 	if a == nil {
 		return domain.Artifact{}
 	}
 	return domain.Artifact{
-		ProjectSlug: a.GetProjectSlug(),
+		Slug:        a.GetTerritorySlug(),
+		LOD:         a.GetLod(),
+		Hash:        a.GetHash(),
+		ContentType: a.GetContentType(),
+		Size:        a.GetSize(),
+		Vertices:    a.GetVertices(),
+		Faces:       a.GetFaces(),
+		BBoxMin:     vec3FromProto(a.GetBboxMin()),
+		BBoxMax:     vec3FromProto(a.GetBboxMax()),
+		CreatedAt:   a.GetCreatedAt().AsTime(),
+	}
+}
+
+func modelArtifactFromProto(a *catalogv1.ModelArtifact) domain.Artifact {
+	if a == nil {
+		return domain.Artifact{}
+	}
+	return domain.Artifact{
+		Slug:        a.GetModelSlug(),
 		LOD:         a.GetLod(),
 		Hash:        a.GetHash(),
 		ContentType: a.GetContentType(),
@@ -56,14 +103,14 @@ func placementFromProto(p *catalogv1.Placement) domain.Placement {
 		return domain.Placement{}
 	}
 	return domain.Placement{
-		ID:         p.GetId(),
-		ParentSlug: p.GetParentSlug(),
-		AssetSlug:  p.GetAssetSlug(),
-		Position:   vec3FromProto(p.GetPosition()),
-		Rotation:   vec3FromProto(p.GetRotation()),
-		Scale:      vec3FromProto(p.GetScale()),
-		Label:      p.GetLabel(),
-		CreatedAt:  p.GetCreatedAt().AsTime(),
-		UpdatedAt:  p.GetUpdatedAt().AsTime(),
+		ID:            p.GetId(),
+		TerritorySlug: p.GetTerritorySlug(),
+		ModelSlug:     p.GetModelSlug(),
+		Position:      vec3FromProto(p.GetPosition()),
+		Rotation:      vec3FromProto(p.GetRotation()),
+		Scale:         vec3FromProto(p.GetScale()),
+		Label:         p.GetLabel(),
+		CreatedAt:     p.GetCreatedAt().AsTime(),
+		UpdatedAt:     p.GetUpdatedAt().AsTime(),
 	}
 }

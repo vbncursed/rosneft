@@ -1,4 +1,4 @@
-name: rosneft
+name: andrey
 
 services:
   postgres:
@@ -37,14 +37,19 @@ services:
     depends_on:
       catalog: { condition: service_started }
       mesh-api: { condition: service_started }
+      upload: { condition: service_started }
       asset: { condition: service_started }
     environment:
       GATEWAY_HTTP_ADDR: ":8080"
       GATEWAY_CATALOG_GRPC_ADDR: "catalog:9001"
       GATEWAY_MESH_GRPC_ADDR: "mesh-api:9002"
+      GATEWAY_UPLOAD_GRPC_ADDR: "upload:9003"
       GATEWAY_ASSET_HTTP_ADDR: "http://asset:8081"
       GATEWAY_ALLOWED_ORIGINS: "*"
       GATEWAY_LOG_LEVEL: "info"
+      # Upload chunks can be hundreds of MB; raise WriteTimeout to give
+      # the gateway → upload-service stream time to drain.
+      GATEWAY_WRITE_TIMEOUT: "30m"
     ports:
       - "8080:8080"
 
@@ -60,7 +65,6 @@ services:
       CATALOG_GRPC_ADDR: ":9001"
       CATALOG_DB_DSN: "postgres://rosneft:rosneft@postgres:5432/rosneft?sslmode=disable"
       CATALOG_AUTO_MIGRATE: "true"
-      CATALOG_SEED_FILE: "/data/projects.yaml"
       CATALOG_LOG_LEVEL: "info"
 
   mesh-api:
@@ -89,7 +93,6 @@ services:
       MESH_REDIS_ADDR: "redis:6379"
       MESH_CATALOG_GRPC_ADDR: "catalog:9001"
       MESH_BLOB_DIR: "/var/blob"
-      MESH_SOURCE_DIR: "/var/source"
       MESH_WORKER_NAME: "mesh-worker-1"
       MESH_LOG_LEVEL: "info"
       MESH_DRACO_ENABLED: "true"
@@ -100,13 +103,11 @@ services:
       # Named volume so Docker manages permissions: the volume is
       # initialised from /var/blob in the image (which the Dockerfile
       # pre-creates as nonroot:nonroot), so the worker writes without
-      # the bind-mount root-owned-mountpoint problem. Shared with the
-      # asset service in read-only mode below.
+      # the bind-mount root-owned-mountpoint problem. Source archives
+      # uploaded via /api/uploads land here as content-addressed blobs;
+      # the worker fetches them by hash, extracts to a tmpfs working
+      # dir, and writes the converted GLBs back to the same store.
       - blob-data:/var/blob
-      # Source meshes (.obj/.mtl/.jpg) are dev-supplied input — keep as
-      # a read-only bind mount so contributors can drop files in
-      # backend/data/source/<asset>/ and see them picked up.
-      - ./backend/data/source:/var/source:ro
 
   asset:
     build:
@@ -118,6 +119,22 @@ services:
       ASSET_LOG_LEVEL: "info"
     volumes:
       - blob-data:/var/blob:ro
+
+  upload:
+    build:
+      context: ./backend
+      dockerfile: services/upload-service/Dockerfile
+    environment:
+      UPLOAD_GRPC_ADDR: ":9003"
+      UPLOAD_BLOB_DIR: "/var/blob"
+      UPLOAD_INCOMING_DIR: "/var/upload/incoming"
+      UPLOAD_MAX_UPLOAD_BYTES: "2147483648"
+      UPLOAD_LOG_LEVEL: "info"
+    volumes:
+      # Writes finalized blobs to the same content-addressed volume the
+      # mesh-worker reads from.
+      - blob-data:/var/blob
+      - upload-incoming:/var/upload/incoming
 
   frontend:
     # Build context is the frontend/ directory at the repo root.
@@ -140,3 +157,4 @@ volumes:
   postgres-data:
   redis-data:
   blob-data:
+  upload-incoming:

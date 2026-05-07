@@ -7,15 +7,26 @@ option go_package = "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/m
 import "google/protobuf/timestamp.proto";
 
 // MeshService accepts conversion jobs and reports their status. The actual
-// CPU-heavy work happens in mesh-worker, which consumes from Redis Streams
-// and writes results to the BlobStore + catalog.
+// CPU-heavy work happens in mesh-worker, which consumes from Redis Streams,
+// fetches the source ZIP archive from BlobStore by hash, extracts it, runs
+// the converter + gltfpack pipeline, and registers each LOD artifact with
+// the catalog (territory_artifacts or model_artifacts depending on Kind).
 service MeshService {
-  // SubmitConversion enqueues a conversion job for the given project. Returns
+  // SubmitConversion enqueues a conversion job for the given target. Returns
   // the job state immediately; the actual conversion runs asynchronously.
   rpc SubmitConversion(SubmitConversionRequest) returns (SubmitConversionResponse);
 
   // GetJob returns the current state of a conversion job.
   rpc GetJob(GetJobRequest) returns (GetJobResponse);
+}
+
+// Kind discriminates whether a job's output artifacts belong on a Territory
+// or a Model in the catalog. The conversion pipeline is identical for both;
+// only the destination artifact table differs.
+enum Kind {
+  KIND_UNSPECIFIED = 0;
+  KIND_TERRITORY = 1;
+  KIND_MODEL = 2;
 }
 
 enum JobStatus {
@@ -28,18 +39,20 @@ enum JobStatus {
 
 message Job {
   string id = 1;
-  string project_slug = 2;
-  JobStatus status = 3;
+  Kind kind = 2;
+  string slug = 3;
+  JobStatus status = 4;
   // ErrorMessage is set when status == JOB_STATUS_FAILED.
-  string error_message = 4;
+  string error_message = 5;
   // ArtifactHash is set when status == JOB_STATUS_SUCCEEDED.
-  string artifact_hash = 5;
-  google.protobuf.Timestamp created_at = 6;
-  google.protobuf.Timestamp updated_at = 7;
+  string artifact_hash = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
 }
 
 message SubmitConversionRequest {
-  string project_slug = 1;
+  Kind kind = 1;
+  string slug = 2;
 }
 
 message SubmitConversionResponse {

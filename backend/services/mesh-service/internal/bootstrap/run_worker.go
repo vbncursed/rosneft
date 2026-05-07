@@ -64,7 +64,7 @@ func RunWorker(ctx context.Context, cfg config.Config) error {
 	if err != nil {
 		return err
 	}
-	svc := InitServiceWorker(store, cat, conv, blobs, cfg.SourceDir)
+	svc := InitServiceWorker(store, cat, conv, blobs)
 
 	w := InitWorker(store, svc, logger, cfg)
 

@@ -9,8 +9,8 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -21,6 +21,24 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/oapi-codegen/runtime"
 )
+
+// Defines values for JobKind.
+const (
+	JobKindModel     JobKind = "model"
+	JobKindTerritory JobKind = "territory"
+)
+
+// Valid indicates whether the value is a known member of the JobKind enum.
+func (e JobKind) Valid() bool {
+	switch e {
+	case JobKindModel:
+		return true
+	case JobKindTerritory:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for JobStatus.
 const (
@@ -48,10 +66,9 @@ func (e JobStatus) Valid() bool {
 
 // Artifact defines model for Artifact.
 type Artifact struct {
-	// Artifacts All available LODs for this project, sorted by lod ascending.
-	// Populated by /scene; absent (null) on /artifacts and /artifacts/{lod}
-	// list/get endpoints where the array would be redundant. The
-	// top-level fields (bbox, contentType, createdAt) reflect LOD0.
+	// Artifacts All available LODs for this owner, sorted by lod ascending.
+	// Populated by /scene; absent on /artifacts list/get endpoints
+	// where the array would be redundant.
 	Artifacts   *[]LodArtifact `json:"artifacts,omitempty"`
 	BboxMax     *Vec3          `json:"bboxMax,omitempty"`
 	BboxMin     *Vec3          `json:"bboxMin,omitempty"`
@@ -60,19 +77,33 @@ type Artifact struct {
 	Faces       *int64         `json:"faces,omitempty"`
 	Hash        string         `json:"hash"`
 	Lod         int32          `json:"lod"`
-	ProjectSlug string         `json:"projectSlug"`
 	Size        int64          `json:"size"`
-	Vertices    *int64         `json:"vertices,omitempty"`
+
+	// Slug Owner slug (territory or model, depending on the endpoint).
+	Slug     string `json:"slug"`
+	Vertices *int64 `json:"vertices,omitempty"`
 }
 
 // AssetOption defines model for AssetOption.
 type AssetOption struct {
-	// Artifacts All available LODs for this asset, sorted by lod ascending.
-	// Empty when the asset has no successful conversion yet — the
+	// Artifacts All available LODs for this model, sorted by lod ascending.
+	// Empty when the model has no successful conversion yet — the
 	// frontend can grey it out in the picker.
 	Artifacts []LodArtifact `json:"artifacts"`
 	Slug      string        `json:"slug"`
 	Title     string        `json:"title"`
+}
+
+// EntityCreate Body for POST /api/territories and POST /api/models. The client
+// first uploads the source ZIP via /api/uploads, then attaches the
+// returned hash here. The gateway forwards the entity to catalog
+// and queues a conversion job; the response carries both the new
+// entity and the queued Job for SSE subscription.
+type EntityCreate struct {
+	Description    *string `json:"description,omitempty"`
+	Slug           string  `json:"slug"`
+	SourceBlobHash string  `json:"sourceBlobHash"`
+	Title          string  `json:"title"`
 }
 
 // Error defines model for Error.
@@ -87,17 +118,23 @@ type Job struct {
 	CreatedAt    *time.Time `json:"createdAt,omitempty"`
 	ErrorMessage *string    `json:"errorMessage,omitempty"`
 	Id           string     `json:"id"`
-	ProjectSlug  string     `json:"projectSlug"`
-	Status       JobStatus  `json:"status"`
-	UpdatedAt    *time.Time `json:"updatedAt,omitempty"`
+
+	// Kind Which catalog domain the job's outputs belong to.
+	Kind      JobKind    `json:"kind"`
+	Slug      string     `json:"slug"`
+	Status    JobStatus  `json:"status"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }
+
+// JobKind Which catalog domain the job's outputs belong to.
+type JobKind string
 
 // JobStatus defines model for JobStatus.
 type JobStatus string
 
-// LodArtifact Minimal descriptor for one LOD level of a project. Carries only
-// size/geometry stats — bbox, contentType, createdAt are LOD-invariant
-// and live on the parent Artifact.
+// LodArtifact Minimal descriptor for one LOD level. Carries only size/geometry
+// stats — bbox, contentType, createdAt are LOD-invariant and live
+// on the parent Artifact.
 type LodArtifact struct {
 	Faces    *int64 `json:"faces,omitempty"`
 	Hash     string `json:"hash"`
@@ -106,23 +143,39 @@ type LodArtifact struct {
 	Vertices *int64 `json:"vertices,omitempty"`
 }
 
+// Model defines model for Model.
+type Model struct {
+	CreatedAt      *time.Time `json:"createdAt,omitempty"`
+	Description    *string    `json:"description,omitempty"`
+	Slug           string     `json:"slug"`
+	SourceBlobHash string     `json:"sourceBlobHash"`
+	Title          string     `json:"title"`
+	UpdatedAt      *time.Time `json:"updatedAt,omitempty"`
+}
+
+// ModelCreated defines model for ModelCreated.
+type ModelCreated struct {
+	Job   Job   `json:"job"`
+	Model Model `json:"model"`
+}
+
 // Placement defines model for Placement.
 type Placement struct {
-	AssetSlug  string     `json:"assetSlug"`
-	CreatedAt  *time.Time `json:"createdAt,omitempty"`
-	Id         int64      `json:"id"`
-	Label      *string    `json:"label,omitempty"`
-	ParentSlug string     `json:"parentSlug"`
-	Position   Vec3       `json:"position"`
-	Rotation   Vec3       `json:"rotation"`
-	Scale      Vec3       `json:"scale"`
-	UpdatedAt  *time.Time `json:"updatedAt,omitempty"`
+	CreatedAt     *time.Time `json:"createdAt,omitempty"`
+	Id            int64      `json:"id"`
+	Label         *string    `json:"label,omitempty"`
+	ModelSlug     string     `json:"modelSlug"`
+	Position      Vec3       `json:"position"`
+	Rotation      Vec3       `json:"rotation"`
+	Scale         Vec3       `json:"scale"`
+	TerritorySlug string     `json:"territorySlug"`
+	UpdatedAt     *time.Time `json:"updatedAt,omitempty"`
 }
 
 // PlacementCreate defines model for PlacementCreate.
 type PlacementCreate struct {
-	AssetSlug string  `json:"assetSlug"`
 	Label     *string `json:"label,omitempty"`
+	ModelSlug string  `json:"modelSlug"`
 	Position  *Vec3   `json:"position,omitempty"`
 	Rotation  *Vec3   `json:"rotation,omitempty"`
 	Scale     *Vec3   `json:"scale,omitempty"`
@@ -136,29 +189,51 @@ type PlacementUpdate struct {
 	Scale    *Vec3   `json:"scale,omitempty"`
 }
 
-// Project defines model for Project.
-type Project struct {
-	CreatedAt         *time.Time `json:"createdAt,omitempty"`
-	Description       *string    `json:"description,omitempty"`
-	Slug              string     `json:"slug"`
-	SourceMtlPath     *string    `json:"sourceMtlPath,omitempty"`
-	SourceObjPath     *string    `json:"sourceObjPath,omitempty"`
-	SourceTexturePath *string    `json:"sourceTexturePath,omitempty"`
-	Subtitle          *string    `json:"subtitle,omitempty"`
-	Title             string     `json:"title"`
-	UpdatedAt         *time.Time `json:"updatedAt,omitempty"`
-}
-
-// SceneBundle Single-shot bundle for the viewer page. Includes the requested project,
-// its current LOD0 artifact (when present), all placements on it, and an
-// asset-option list (every catalog project with its current artifact hash)
-// suitable for the placement-picker dropdown. Eliminates the N+1 round
-// trips the frontend would otherwise need on first paint.
+// SceneBundle Single-shot bundle for the viewer page. Includes the requested
+// territory, its current LOD0 artifact (when present), all
+// placements on it, and the list of available models with their
+// artifacts for the placement picker.
 type SceneBundle struct {
 	Artifact     *Artifact     `json:"artifact,omitempty"`
-	AssetOptions []AssetOption `json:"assetOptions"`
+	ModelOptions []AssetOption `json:"modelOptions"`
 	Placements   []Placement   `json:"placements"`
-	Project      Project       `json:"project"`
+	Territory    Territory     `json:"territory"`
+}
+
+// Territory defines model for Territory.
+type Territory struct {
+	CreatedAt      *time.Time `json:"createdAt,omitempty"`
+	Description    *string    `json:"description,omitempty"`
+	Slug           string     `json:"slug"`
+	SourceBlobHash string     `json:"sourceBlobHash"`
+	Title          string     `json:"title"`
+	UpdatedAt      *time.Time `json:"updatedAt,omitempty"`
+}
+
+// TerritoryCreated defines model for TerritoryCreated.
+type TerritoryCreated struct {
+	Job       Job       `json:"job"`
+	Territory Territory `json:"territory"`
+}
+
+// UploadFinalized defines model for UploadFinalized.
+type UploadFinalized struct {
+	Hash string `json:"hash"`
+	Size int64  `json:"size"`
+}
+
+// UploadInitiate defines model for UploadInitiate.
+type UploadInitiate struct {
+	ContentType *string `json:"contentType,omitempty"`
+	Size        int64   `json:"size"`
+}
+
+// UploadSession defines model for UploadSession.
+type UploadSession struct {
+	ContentType *string `json:"contentType,omitempty"`
+	Id          string  `json:"id"`
+	Offset      int64   `json:"offset"`
+	Size        int64   `json:"size"`
 }
 
 // Vec3 defines model for Vec3.
@@ -177,14 +252,16 @@ type Internal = Error
 // NotFound defines model for NotFound.
 type NotFound = Error
 
-// ListProjectsParams defines parameters for ListProjects.
-type ListProjectsParams struct {
-	// Limit Page size. Omit or set to 0 for no pagination.
-	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
-
-	// Cursor Opaque cursor from a previous response's X-Next-Cursor header.
-	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+// AppendUploadChunkParams defines parameters for AppendUploadChunk.
+type AppendUploadChunkParams struct {
+	UploadOffset int64 `json:"Upload-Offset"`
 }
+
+// CreateModelJSONRequestBody defines body for CreateModel for application/json ContentType.
+type CreateModelJSONRequestBody = EntityCreate
+
+// CreateTerritoryJSONRequestBody defines body for CreateTerritory for application/json ContentType.
+type CreateTerritoryJSONRequestBody = EntityCreate
 
 // CreatePlacementJSONRequestBody defines body for CreatePlacement for application/json ContentType.
 type CreatePlacementJSONRequestBody = PlacementCreate
@@ -192,110 +269,212 @@ type CreatePlacementJSONRequestBody = PlacementCreate
 // UpdatePlacementJSONRequestBody defines body for UpdatePlacement for application/json ContentType.
 type UpdatePlacementJSONRequestBody = PlacementUpdate
 
+// InitiateUploadJSONRequestBody defines body for InitiateUpload for application/json ContentType.
+type InitiateUploadJSONRequestBody = UploadInitiate
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Get conversion job status
-	// (GET /api/jobs/{id})
-	GetJob(w http.ResponseWriter, r *http.Request, id string)
-	// List catalog projects (optionally paginated)
-	// (GET /api/projects)
-	ListProjects(w http.ResponseWriter, r *http.Request, params ListProjectsParams)
-	// Get a project by slug
-	// (GET /api/projects/{slug})
-	GetProject(w http.ResponseWriter, r *http.Request, slug string)
-	// List converted artifacts for a project
-	// (GET /api/projects/{slug}/artifacts)
-	ListArtifacts(w http.ResponseWriter, r *http.Request, slug string)
-	// Get artifact metadata for a specific LOD
-	// (GET /api/projects/{slug}/artifacts/{lod})
-	GetArtifact(w http.ResponseWriter, r *http.Request, slug string, lod int32)
-	// Trigger an OBJ→GLB conversion job
-	// (POST /api/projects/{slug}/convert)
-	SubmitConversion(w http.ResponseWriter, r *http.Request, slug string)
-	// List placements attached to a parent project
-	// (GET /api/projects/{slug}/placements)
+	// List models
+	// (GET /api/models)
+	ListModels(w http.ResponseWriter, r *http.Request)
+	// Register a model and queue its conversion
+	// (POST /api/models)
+	CreateModel(w http.ResponseWriter, r *http.Request)
+	// Delete a model
+	// (DELETE /api/models/{slug})
+	DeleteModel(w http.ResponseWriter, r *http.Request, slug string)
+	// Get a model by slug
+	// (GET /api/models/{slug})
+	GetModel(w http.ResponseWriter, r *http.Request, slug string)
+	// List converted artifacts for a model
+	// (GET /api/models/{slug}/artifacts)
+	ListModelArtifacts(w http.ResponseWriter, r *http.Request, slug string)
+	// Get one converted artifact (model)
+	// (GET /api/models/{slug}/artifacts/{lod})
+	GetModelArtifact(w http.ResponseWriter, r *http.Request, slug string, lod int32)
+	// List territories
+	// (GET /api/territories)
+	ListTerritories(w http.ResponseWriter, r *http.Request)
+	// Register a territory and queue its conversion
+	// (POST /api/territories)
+	CreateTerritory(w http.ResponseWriter, r *http.Request)
+	// Delete a territory and its placements
+	// (DELETE /api/territories/{slug})
+	DeleteTerritory(w http.ResponseWriter, r *http.Request, slug string)
+	// Get a territory by slug
+	// (GET /api/territories/{slug})
+	GetTerritory(w http.ResponseWriter, r *http.Request, slug string)
+	// List converted artifacts for a territory
+	// (GET /api/territories/{slug}/artifacts)
+	ListTerritoryArtifacts(w http.ResponseWriter, r *http.Request, slug string)
+	// Get one converted artifact (territory)
+	// (GET /api/territories/{slug}/artifacts/{lod})
+	GetTerritoryArtifact(w http.ResponseWriter, r *http.Request, slug string, lod int32)
+	// List placements on a territory
+	// (GET /api/territories/{slug}/placements)
 	ListPlacements(w http.ResponseWriter, r *http.Request, slug string)
-	// Place an asset project onto a parent project's scene
-	// (POST /api/projects/{slug}/placements)
+	// Add a placement to a territory
+	// (POST /api/territories/{slug}/placements)
 	CreatePlacement(w http.ResponseWriter, r *http.Request, slug string)
 	// Remove a placement
-	// (DELETE /api/projects/{slug}/placements/{id})
+	// (DELETE /api/territories/{slug}/placements/{id})
 	DeletePlacement(w http.ResponseWriter, r *http.Request, slug string, id int64)
-	// Replace a placement's transform and label
-	// (PUT /api/projects/{slug}/placements/{id})
+	// Replace a placement's transform
+	// (PUT /api/territories/{slug}/placements/{id})
 	UpdatePlacement(w http.ResponseWriter, r *http.Request, slug string, id int64)
 	// Single-shot bundle for the viewer page
-	// (GET /api/projects/{slug}/scene)
+	// (GET /api/territories/{slug}/scene)
 	GetSceneBundle(w http.ResponseWriter, r *http.Request, slug string)
+	// Start a chunked upload session
+	// (POST /api/uploads)
+	InitiateUpload(w http.ResponseWriter, r *http.Request)
+	// Discard an in-progress session
+	// (DELETE /api/uploads/{id})
+	AbortUpload(w http.ResponseWriter, r *http.Request, id string)
+	// Query the current offset of a session
+	// (HEAD /api/uploads/{id})
+	GetUploadStatus(w http.ResponseWriter, r *http.Request, id string)
+	// Append bytes to a session at the given offset
+	// (PATCH /api/uploads/{id})
+	AppendUploadChunk(w http.ResponseWriter, r *http.Request, id string, params AppendUploadChunkParams)
+	// Close a session and publish the bytes to BlobStore
+	// (POST /api/uploads/{id}/finalize)
+	FinalizeUpload(w http.ResponseWriter, r *http.Request, id string)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
 
-// Get conversion job status
-// (GET /api/jobs/{id})
-func (_ Unimplemented) GetJob(w http.ResponseWriter, r *http.Request, id string) {
+// List models
+// (GET /api/models)
+func (_ Unimplemented) ListModels(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// List catalog projects (optionally paginated)
-// (GET /api/projects)
-func (_ Unimplemented) ListProjects(w http.ResponseWriter, r *http.Request, params ListProjectsParams) {
+// Register a model and queue its conversion
+// (POST /api/models)
+func (_ Unimplemented) CreateModel(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get a project by slug
-// (GET /api/projects/{slug})
-func (_ Unimplemented) GetProject(w http.ResponseWriter, r *http.Request, slug string) {
+// Delete a model
+// (DELETE /api/models/{slug})
+func (_ Unimplemented) DeleteModel(w http.ResponseWriter, r *http.Request, slug string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// List converted artifacts for a project
-// (GET /api/projects/{slug}/artifacts)
-func (_ Unimplemented) ListArtifacts(w http.ResponseWriter, r *http.Request, slug string) {
+// Get a model by slug
+// (GET /api/models/{slug})
+func (_ Unimplemented) GetModel(w http.ResponseWriter, r *http.Request, slug string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get artifact metadata for a specific LOD
-// (GET /api/projects/{slug}/artifacts/{lod})
-func (_ Unimplemented) GetArtifact(w http.ResponseWriter, r *http.Request, slug string, lod int32) {
+// List converted artifacts for a model
+// (GET /api/models/{slug}/artifacts)
+func (_ Unimplemented) ListModelArtifacts(w http.ResponseWriter, r *http.Request, slug string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Trigger an OBJ→GLB conversion job
-// (POST /api/projects/{slug}/convert)
-func (_ Unimplemented) SubmitConversion(w http.ResponseWriter, r *http.Request, slug string) {
+// Get one converted artifact (model)
+// (GET /api/models/{slug}/artifacts/{lod})
+func (_ Unimplemented) GetModelArtifact(w http.ResponseWriter, r *http.Request, slug string, lod int32) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// List placements attached to a parent project
-// (GET /api/projects/{slug}/placements)
+// List territories
+// (GET /api/territories)
+func (_ Unimplemented) ListTerritories(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Register a territory and queue its conversion
+// (POST /api/territories)
+func (_ Unimplemented) CreateTerritory(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete a territory and its placements
+// (DELETE /api/territories/{slug})
+func (_ Unimplemented) DeleteTerritory(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get a territory by slug
+// (GET /api/territories/{slug})
+func (_ Unimplemented) GetTerritory(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List converted artifacts for a territory
+// (GET /api/territories/{slug}/artifacts)
+func (_ Unimplemented) ListTerritoryArtifacts(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get one converted artifact (territory)
+// (GET /api/territories/{slug}/artifacts/{lod})
+func (_ Unimplemented) GetTerritoryArtifact(w http.ResponseWriter, r *http.Request, slug string, lod int32) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List placements on a territory
+// (GET /api/territories/{slug}/placements)
 func (_ Unimplemented) ListPlacements(w http.ResponseWriter, r *http.Request, slug string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Place an asset project onto a parent project's scene
-// (POST /api/projects/{slug}/placements)
+// Add a placement to a territory
+// (POST /api/territories/{slug}/placements)
 func (_ Unimplemented) CreatePlacement(w http.ResponseWriter, r *http.Request, slug string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Remove a placement
-// (DELETE /api/projects/{slug}/placements/{id})
+// (DELETE /api/territories/{slug}/placements/{id})
 func (_ Unimplemented) DeletePlacement(w http.ResponseWriter, r *http.Request, slug string, id int64) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Replace a placement's transform and label
-// (PUT /api/projects/{slug}/placements/{id})
+// Replace a placement's transform
+// (PUT /api/territories/{slug}/placements/{id})
 func (_ Unimplemented) UpdatePlacement(w http.ResponseWriter, r *http.Request, slug string, id int64) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Single-shot bundle for the viewer page
-// (GET /api/projects/{slug}/scene)
+// (GET /api/territories/{slug}/scene)
 func (_ Unimplemented) GetSceneBundle(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Start a chunked upload session
+// (POST /api/uploads)
+func (_ Unimplemented) InitiateUpload(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Discard an in-progress session
+// (DELETE /api/uploads/{id})
+func (_ Unimplemented) AbortUpload(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Query the current offset of a session
+// (HEAD /api/uploads/{id})
+func (_ Unimplemented) GetUploadStatus(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Append bytes to a session at the given offset
+// (PATCH /api/uploads/{id})
+func (_ Unimplemented) AppendUploadChunk(w http.ResponseWriter, r *http.Request, id string, params AppendUploadChunkParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Close a session and publish the bytes to BlobStore
+// (POST /api/uploads/{id}/finalize)
+func (_ Unimplemented) FinalizeUpload(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -308,23 +487,11 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
-// GetJob operation middleware
-func (siw *ServerInterfaceWrapper) GetJob(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-	_ = err
-
-	// ------------- Path parameter "id" -------------
-	var id string
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
+// ListModels operation middleware
+func (siw *ServerInterfaceWrapper) ListModels(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetJob(w, r, id)
+		siw.Handler.ListModels(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -334,43 +501,11 @@ func (siw *ServerInterfaceWrapper) GetJob(w http.ResponseWriter, r *http.Request
 	handler.ServeHTTP(w, r)
 }
 
-// ListProjects operation middleware
-func (siw *ServerInterfaceWrapper) ListProjects(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-	_ = err
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params ListProjectsParams
-
-	// ------------- Optional query parameter "limit" -------------
-
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
-	if err != nil {
-		var requiredError *runtime.RequiredParameterError
-		if errors.As(err, &requiredError) {
-			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
-		} else {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
-		}
-		return
-	}
-
-	// ------------- Optional query parameter "cursor" -------------
-
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
-	if err != nil {
-		var requiredError *runtime.RequiredParameterError
-		if errors.As(err, &requiredError) {
-			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
-		} else {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
-		}
-		return
-	}
+// CreateModel operation middleware
+func (siw *ServerInterfaceWrapper) CreateModel(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListProjects(w, r, params)
+		siw.Handler.CreateModel(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -380,8 +515,8 @@ func (siw *ServerInterfaceWrapper) ListProjects(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
-// GetProject operation middleware
-func (siw *ServerInterfaceWrapper) GetProject(w http.ResponseWriter, r *http.Request) {
+// DeleteModel operation middleware
+func (siw *ServerInterfaceWrapper) DeleteModel(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	_ = err
@@ -396,7 +531,7 @@ func (siw *ServerInterfaceWrapper) GetProject(w http.ResponseWriter, r *http.Req
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetProject(w, r, slug)
+		siw.Handler.DeleteModel(w, r, slug)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -406,8 +541,8 @@ func (siw *ServerInterfaceWrapper) GetProject(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
-// ListArtifacts operation middleware
-func (siw *ServerInterfaceWrapper) ListArtifacts(w http.ResponseWriter, r *http.Request) {
+// GetModel operation middleware
+func (siw *ServerInterfaceWrapper) GetModel(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	_ = err
@@ -422,7 +557,7 @@ func (siw *ServerInterfaceWrapper) ListArtifacts(w http.ResponseWriter, r *http.
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListArtifacts(w, r, slug)
+		siw.Handler.GetModel(w, r, slug)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -432,8 +567,34 @@ func (siw *ServerInterfaceWrapper) ListArtifacts(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
-// GetArtifact operation middleware
-func (siw *ServerInterfaceWrapper) GetArtifact(w http.ResponseWriter, r *http.Request) {
+// ListModelArtifacts operation middleware
+func (siw *ServerInterfaceWrapper) ListModelArtifacts(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListModelArtifacts(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetModelArtifact operation middleware
+func (siw *ServerInterfaceWrapper) GetModelArtifact(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	_ = err
@@ -457,7 +618,7 @@ func (siw *ServerInterfaceWrapper) GetArtifact(w http.ResponseWriter, r *http.Re
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetArtifact(w, r, slug, lod)
+		siw.Handler.GetModelArtifact(w, r, slug, lod)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -467,8 +628,36 @@ func (siw *ServerInterfaceWrapper) GetArtifact(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
-// SubmitConversion operation middleware
-func (siw *ServerInterfaceWrapper) SubmitConversion(w http.ResponseWriter, r *http.Request) {
+// ListTerritories operation middleware
+func (siw *ServerInterfaceWrapper) ListTerritories(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTerritories(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateTerritory operation middleware
+func (siw *ServerInterfaceWrapper) CreateTerritory(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateTerritory(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteTerritory operation middleware
+func (siw *ServerInterfaceWrapper) DeleteTerritory(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	_ = err
@@ -483,7 +672,94 @@ func (siw *ServerInterfaceWrapper) SubmitConversion(w http.ResponseWriter, r *ht
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.SubmitConversion(w, r, slug)
+		siw.Handler.DeleteTerritory(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTerritory operation middleware
+func (siw *ServerInterfaceWrapper) GetTerritory(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTerritory(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListTerritoryArtifacts operation middleware
+func (siw *ServerInterfaceWrapper) ListTerritoryArtifacts(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTerritoryArtifacts(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTerritoryArtifact operation middleware
+func (siw *ServerInterfaceWrapper) GetTerritoryArtifact(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "lod" -------------
+	var lod int32
+
+	err = runtime.BindStyledParameterWithOptions("simple", "lod", chi.URLParam(r, "lod"), &lod, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int32"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "lod", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTerritoryArtifact(w, r, slug, lod)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -641,6 +917,152 @@ func (siw *ServerInterfaceWrapper) GetSceneBundle(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// InitiateUpload operation middleware
+func (siw *ServerInterfaceWrapper) InitiateUpload(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.InitiateUpload(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AbortUpload operation middleware
+func (siw *ServerInterfaceWrapper) AbortUpload(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AbortUpload(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetUploadStatus operation middleware
+func (siw *ServerInterfaceWrapper) GetUploadStatus(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUploadStatus(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AppendUploadChunk operation middleware
+func (siw *ServerInterfaceWrapper) AppendUploadChunk(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AppendUploadChunkParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Upload-Offset" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Upload-Offset")]; found {
+		var UploadOffset int64
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Upload-Offset", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Upload-Offset", valueList[0], &UploadOffset, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "integer", Format: "int64"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Upload-Offset", Err: err})
+			return
+		}
+
+		params.UploadOffset = UploadOffset
+
+	} else {
+		err := fmt.Errorf("Header parameter Upload-Offset is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Upload-Offset", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AppendUploadChunk(w, r, id, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// FinalizeUpload operation middleware
+func (siw *ServerInterfaceWrapper) FinalizeUpload(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.FinalizeUpload(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -755,37 +1177,70 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/jobs/{id}", wrapper.GetJob)
+		r.Get(options.BaseURL+"/api/models", wrapper.ListModels)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/projects", wrapper.ListProjects)
+		r.Post(options.BaseURL+"/api/models", wrapper.CreateModel)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/projects/{slug}", wrapper.GetProject)
+		r.Delete(options.BaseURL+"/api/models/{slug}", wrapper.DeleteModel)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/projects/{slug}/artifacts", wrapper.ListArtifacts)
+		r.Get(options.BaseURL+"/api/models/{slug}", wrapper.GetModel)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/projects/{slug}/artifacts/{lod}", wrapper.GetArtifact)
+		r.Get(options.BaseURL+"/api/models/{slug}/artifacts", wrapper.ListModelArtifacts)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/projects/{slug}/convert", wrapper.SubmitConversion)
+		r.Get(options.BaseURL+"/api/models/{slug}/artifacts/{lod}", wrapper.GetModelArtifact)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/projects/{slug}/placements", wrapper.ListPlacements)
+		r.Get(options.BaseURL+"/api/territories", wrapper.ListTerritories)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/projects/{slug}/placements", wrapper.CreatePlacement)
+		r.Post(options.BaseURL+"/api/territories", wrapper.CreateTerritory)
 	})
 	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/api/projects/{slug}/placements/{id}", wrapper.DeletePlacement)
+		r.Delete(options.BaseURL+"/api/territories/{slug}", wrapper.DeleteTerritory)
 	})
 	r.Group(func(r chi.Router) {
-		r.Put(options.BaseURL+"/api/projects/{slug}/placements/{id}", wrapper.UpdatePlacement)
+		r.Get(options.BaseURL+"/api/territories/{slug}", wrapper.GetTerritory)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/projects/{slug}/scene", wrapper.GetSceneBundle)
+		r.Get(options.BaseURL+"/api/territories/{slug}/artifacts", wrapper.ListTerritoryArtifacts)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/territories/{slug}/artifacts/{lod}", wrapper.GetTerritoryArtifact)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/territories/{slug}/placements", wrapper.ListPlacements)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/territories/{slug}/placements", wrapper.CreatePlacement)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/territories/{slug}/placements/{id}", wrapper.DeletePlacement)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/territories/{slug}/placements/{id}", wrapper.UpdatePlacement)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/territories/{slug}/scene", wrapper.GetSceneBundle)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/uploads", wrapper.InitiateUpload)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/uploads/{id}", wrapper.AbortUpload)
+	})
+	r.Group(func(r chi.Router) {
+		r.Head(options.BaseURL+"/api/uploads/{id}", wrapper.GetUploadStatus)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/uploads/{id}", wrapper.AppendUploadChunk)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/uploads/{id}/finalize", wrapper.FinalizeUpload)
 	})
 
 	return r
@@ -797,17 +1252,16 @@ type InternalJSONResponse Error
 
 type NotFoundJSONResponse Error
 
-type GetJobRequestObject struct {
-	Id string `json:"id"`
+type ListModelsRequestObject struct {
 }
 
-type GetJobResponseObject interface {
-	VisitGetJobResponse(w http.ResponseWriter) error
+type ListModelsResponseObject interface {
+	VisitListModelsResponse(w http.ResponseWriter) error
 }
 
-type GetJob200JSONResponse Job
+type ListModels200JSONResponse []Model
 
-func (response GetJob200JSONResponse) VisitGetJobResponse(w http.ResponseWriter) error {
+func (response ListModels200JSONResponse) VisitListModelsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -819,83 +1273,9 @@ func (response GetJob200JSONResponse) VisitGetJobResponse(w http.ResponseWriter)
 	return err
 }
 
-type GetJob400JSONResponse struct{ BadRequestJSONResponse }
+type ListModels500JSONResponse struct{ InternalJSONResponse }
 
-func (response GetJob400JSONResponse) VisitGetJobResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetJob404JSONResponse struct{ NotFoundJSONResponse }
-
-func (response GetJob404JSONResponse) VisitGetJobResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ListProjectsRequestObject struct {
-	Params ListProjectsParams
-}
-
-type ListProjectsResponseObject interface {
-	VisitListProjectsResponse(w http.ResponseWriter) error
-}
-
-type ListProjects200ResponseHeaders struct {
-	XNextCursor *string
-}
-
-type ListProjects200JSONResponse struct {
-	Body    []Project
-	Headers ListProjects200ResponseHeaders
-}
-
-func (response ListProjects200JSONResponse) VisitListProjectsResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	if response.Headers.XNextCursor != nil {
-		w.Header().Set("X-Next-Cursor", fmt.Sprint(*response.Headers.XNextCursor))
-	}
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ListProjects400JSONResponse struct{ BadRequestJSONResponse }
-
-func (response ListProjects400JSONResponse) VisitListProjectsResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ListProjects500JSONResponse struct{ InternalJSONResponse }
-
-func (response ListProjects500JSONResponse) VisitListProjectsResponse(w http.ResponseWriter) error {
+func (response ListModels500JSONResponse) VisitListModelsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -907,182 +1287,17 @@ func (response ListProjects500JSONResponse) VisitListProjectsResponse(w http.Res
 	return err
 }
 
-type GetProjectRequestObject struct {
-	Slug string `json:"slug"`
+type CreateModelRequestObject struct {
+	Body *CreateModelJSONRequestBody
 }
 
-type GetProjectResponseObject interface {
-	VisitGetProjectResponse(w http.ResponseWriter) error
+type CreateModelResponseObject interface {
+	VisitCreateModelResponse(w http.ResponseWriter) error
 }
 
-type GetProject200JSONResponse Project
+type CreateModel202JSONResponse ModelCreated
 
-func (response GetProject200JSONResponse) VisitGetProjectResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetProject400JSONResponse struct{ BadRequestJSONResponse }
-
-func (response GetProject400JSONResponse) VisitGetProjectResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetProject404JSONResponse struct{ NotFoundJSONResponse }
-
-func (response GetProject404JSONResponse) VisitGetProjectResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetProject500JSONResponse struct{ InternalJSONResponse }
-
-func (response GetProject500JSONResponse) VisitGetProjectResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ListArtifactsRequestObject struct {
-	Slug string `json:"slug"`
-}
-
-type ListArtifactsResponseObject interface {
-	VisitListArtifactsResponse(w http.ResponseWriter) error
-}
-
-type ListArtifacts200JSONResponse []Artifact
-
-func (response ListArtifacts200JSONResponse) VisitListArtifactsResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ListArtifacts400JSONResponse struct{ BadRequestJSONResponse }
-
-func (response ListArtifacts400JSONResponse) VisitListArtifactsResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ListArtifacts500JSONResponse struct{ InternalJSONResponse }
-
-func (response ListArtifacts500JSONResponse) VisitListArtifactsResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetArtifactRequestObject struct {
-	Slug string `json:"slug"`
-	Lod  int32  `json:"lod"`
-}
-
-type GetArtifactResponseObject interface {
-	VisitGetArtifactResponse(w http.ResponseWriter) error
-}
-
-type GetArtifact200JSONResponse Artifact
-
-func (response GetArtifact200JSONResponse) VisitGetArtifactResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetArtifact400JSONResponse struct{ BadRequestJSONResponse }
-
-func (response GetArtifact400JSONResponse) VisitGetArtifactResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type GetArtifact404JSONResponse struct{ NotFoundJSONResponse }
-
-func (response GetArtifact404JSONResponse) VisitGetArtifactResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SubmitConversionRequestObject struct {
-	Slug string `json:"slug"`
-}
-
-type SubmitConversionResponseObject interface {
-	VisitSubmitConversionResponse(w http.ResponseWriter) error
-}
-
-type SubmitConversion202JSONResponse Job
-
-func (response SubmitConversion202JSONResponse) VisitSubmitConversionResponse(w http.ResponseWriter) error {
+func (response CreateModel202JSONResponse) VisitCreateModelResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -1094,9 +1309,9 @@ func (response SubmitConversion202JSONResponse) VisitSubmitConversionResponse(w 
 	return err
 }
 
-type SubmitConversion400JSONResponse struct{ BadRequestJSONResponse }
+type CreateModel400JSONResponse struct{ BadRequestJSONResponse }
 
-func (response SubmitConversion400JSONResponse) VisitSubmitConversionResponse(w http.ResponseWriter) error {
+func (response CreateModel400JSONResponse) VisitCreateModelResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -1108,9 +1323,498 @@ func (response SubmitConversion400JSONResponse) VisitSubmitConversionResponse(w 
 	return err
 }
 
-type SubmitConversion500JSONResponse struct{ InternalJSONResponse }
+type CreateModel500JSONResponse struct{ InternalJSONResponse }
 
-func (response SubmitConversion500JSONResponse) VisitSubmitConversionResponse(w http.ResponseWriter) error {
+func (response CreateModel500JSONResponse) VisitCreateModelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteModelRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type DeleteModelResponseObject interface {
+	VisitDeleteModelResponse(w http.ResponseWriter) error
+}
+
+type DeleteModel204Response struct {
+}
+
+func (response DeleteModel204Response) VisitDeleteModelResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteModel400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response DeleteModel400JSONResponse) VisitDeleteModelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteModel404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteModel404JSONResponse) VisitDeleteModelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteModel500JSONResponse struct{ InternalJSONResponse }
+
+func (response DeleteModel500JSONResponse) VisitDeleteModelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetModelRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type GetModelResponseObject interface {
+	VisitGetModelResponse(w http.ResponseWriter) error
+}
+
+type GetModel200JSONResponse Model
+
+func (response GetModel200JSONResponse) VisitGetModelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetModel404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetModel404JSONResponse) VisitGetModelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetModel500JSONResponse struct{ InternalJSONResponse }
+
+func (response GetModel500JSONResponse) VisitGetModelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListModelArtifactsRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type ListModelArtifactsResponseObject interface {
+	VisitListModelArtifactsResponse(w http.ResponseWriter) error
+}
+
+type ListModelArtifacts200JSONResponse []Artifact
+
+func (response ListModelArtifacts200JSONResponse) VisitListModelArtifactsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListModelArtifacts404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListModelArtifacts404JSONResponse) VisitListModelArtifactsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListModelArtifacts500JSONResponse struct{ InternalJSONResponse }
+
+func (response ListModelArtifacts500JSONResponse) VisitListModelArtifactsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetModelArtifactRequestObject struct {
+	Slug string `json:"slug"`
+	Lod  int32  `json:"lod"`
+}
+
+type GetModelArtifactResponseObject interface {
+	VisitGetModelArtifactResponse(w http.ResponseWriter) error
+}
+
+type GetModelArtifact200JSONResponse Artifact
+
+func (response GetModelArtifact200JSONResponse) VisitGetModelArtifactResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetModelArtifact404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetModelArtifact404JSONResponse) VisitGetModelArtifactResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetModelArtifact500JSONResponse struct{ InternalJSONResponse }
+
+func (response GetModelArtifact500JSONResponse) VisitGetModelArtifactResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTerritoriesRequestObject struct {
+}
+
+type ListTerritoriesResponseObject interface {
+	VisitListTerritoriesResponse(w http.ResponseWriter) error
+}
+
+type ListTerritories200JSONResponse []Territory
+
+func (response ListTerritories200JSONResponse) VisitListTerritoriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTerritories500JSONResponse struct{ InternalJSONResponse }
+
+func (response ListTerritories500JSONResponse) VisitListTerritoriesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTerritoryRequestObject struct {
+	Body *CreateTerritoryJSONRequestBody
+}
+
+type CreateTerritoryResponseObject interface {
+	VisitCreateTerritoryResponse(w http.ResponseWriter) error
+}
+
+type CreateTerritory202JSONResponse TerritoryCreated
+
+func (response CreateTerritory202JSONResponse) VisitCreateTerritoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTerritory400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateTerritory400JSONResponse) VisitCreateTerritoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateTerritory500JSONResponse struct{ InternalJSONResponse }
+
+func (response CreateTerritory500JSONResponse) VisitCreateTerritoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTerritoryRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type DeleteTerritoryResponseObject interface {
+	VisitDeleteTerritoryResponse(w http.ResponseWriter) error
+}
+
+type DeleteTerritory204Response struct {
+}
+
+func (response DeleteTerritory204Response) VisitDeleteTerritoryResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteTerritory404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteTerritory404JSONResponse) VisitDeleteTerritoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteTerritory500JSONResponse struct{ InternalJSONResponse }
+
+func (response DeleteTerritory500JSONResponse) VisitDeleteTerritoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTerritoryRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type GetTerritoryResponseObject interface {
+	VisitGetTerritoryResponse(w http.ResponseWriter) error
+}
+
+type GetTerritory200JSONResponse Territory
+
+func (response GetTerritory200JSONResponse) VisitGetTerritoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTerritory404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetTerritory404JSONResponse) VisitGetTerritoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTerritory500JSONResponse struct{ InternalJSONResponse }
+
+func (response GetTerritory500JSONResponse) VisitGetTerritoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTerritoryArtifactsRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type ListTerritoryArtifactsResponseObject interface {
+	VisitListTerritoryArtifactsResponse(w http.ResponseWriter) error
+}
+
+type ListTerritoryArtifacts200JSONResponse []Artifact
+
+func (response ListTerritoryArtifacts200JSONResponse) VisitListTerritoryArtifactsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTerritoryArtifacts404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListTerritoryArtifacts404JSONResponse) VisitListTerritoryArtifactsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTerritoryArtifacts500JSONResponse struct{ InternalJSONResponse }
+
+func (response ListTerritoryArtifacts500JSONResponse) VisitListTerritoryArtifactsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTerritoryArtifactRequestObject struct {
+	Slug string `json:"slug"`
+	Lod  int32  `json:"lod"`
+}
+
+type GetTerritoryArtifactResponseObject interface {
+	VisitGetTerritoryArtifactResponse(w http.ResponseWriter) error
+}
+
+type GetTerritoryArtifact200JSONResponse Artifact
+
+func (response GetTerritoryArtifact200JSONResponse) VisitGetTerritoryArtifactResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTerritoryArtifact404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetTerritoryArtifact404JSONResponse) VisitGetTerritoryArtifactResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTerritoryArtifact500JSONResponse struct{ InternalJSONResponse }
+
+func (response GetTerritoryArtifact500JSONResponse) VisitGetTerritoryArtifactResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -1140,20 +1844,6 @@ func (response ListPlacements200JSONResponse) VisitListPlacementsResponse(w http
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ListPlacements400JSONResponse struct{ BadRequestJSONResponse }
-
-func (response ListPlacements400JSONResponse) VisitListPlacementsResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -1266,20 +1956,6 @@ type DeletePlacement204Response struct {
 func (response DeletePlacement204Response) VisitDeletePlacementResponse(w http.ResponseWriter) error {
 	w.WriteHeader(204)
 	return nil
-}
-
-type DeletePlacement400JSONResponse struct{ BadRequestJSONResponse }
-
-func (response DeletePlacement400JSONResponse) VisitDeletePlacementResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
 }
 
 type DeletePlacement404JSONResponse struct{ NotFoundJSONResponse }
@@ -1398,20 +2074,6 @@ func (response GetSceneBundle200JSONResponse) VisitGetSceneBundleResponse(w http
 	return err
 }
 
-type GetSceneBundle400JSONResponse struct{ BadRequestJSONResponse }
-
-func (response GetSceneBundle400JSONResponse) VisitGetSceneBundleResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
 type GetSceneBundle404JSONResponse struct{ NotFoundJSONResponse }
 
 func (response GetSceneBundle404JSONResponse) VisitGetSceneBundleResponse(w http.ResponseWriter) error {
@@ -1440,41 +2102,342 @@ func (response GetSceneBundle500JSONResponse) VisitGetSceneBundleResponse(w http
 	return err
 }
 
+type InitiateUploadRequestObject struct {
+	Body *InitiateUploadJSONRequestBody
+}
+
+type InitiateUploadResponseObject interface {
+	VisitInitiateUploadResponse(w http.ResponseWriter) error
+}
+
+type InitiateUpload201JSONResponse UploadSession
+
+func (response InitiateUpload201JSONResponse) VisitInitiateUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type InitiateUpload400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response InitiateUpload400JSONResponse) VisitInitiateUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type InitiateUpload500JSONResponse struct{ InternalJSONResponse }
+
+func (response InitiateUpload500JSONResponse) VisitInitiateUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AbortUploadRequestObject struct {
+	Id string `json:"id"`
+}
+
+type AbortUploadResponseObject interface {
+	VisitAbortUploadResponse(w http.ResponseWriter) error
+}
+
+type AbortUpload204Response struct {
+}
+
+func (response AbortUpload204Response) VisitAbortUploadResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type AbortUpload500JSONResponse struct{ InternalJSONResponse }
+
+func (response AbortUpload500JSONResponse) VisitAbortUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetUploadStatusRequestObject struct {
+	Id string `json:"id"`
+}
+
+type GetUploadStatusResponseObject interface {
+	VisitGetUploadStatusResponse(w http.ResponseWriter) error
+}
+
+type GetUploadStatus200ResponseHeaders struct {
+	UploadLength *int64
+	UploadOffset *int64
+}
+
+type GetUploadStatus200Response struct {
+	Headers GetUploadStatus200ResponseHeaders
+}
+
+func (response GetUploadStatus200Response) VisitGetUploadStatusResponse(w http.ResponseWriter) error {
+	if response.Headers.UploadLength != nil {
+		w.Header().Set("Upload-Length", fmt.Sprint(*response.Headers.UploadLength))
+	}
+	if response.Headers.UploadOffset != nil {
+		w.Header().Set("Upload-Offset", fmt.Sprint(*response.Headers.UploadOffset))
+	}
+	w.WriteHeader(200)
+	return nil
+}
+
+type GetUploadStatus404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetUploadStatus404JSONResponse) VisitGetUploadStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetUploadStatus500JSONResponse struct{ InternalJSONResponse }
+
+func (response GetUploadStatus500JSONResponse) VisitGetUploadStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AppendUploadChunkRequestObject struct {
+	Id     string `json:"id"`
+	Params AppendUploadChunkParams
+	Body   io.Reader
+}
+
+type AppendUploadChunkResponseObject interface {
+	VisitAppendUploadChunkResponse(w http.ResponseWriter) error
+}
+
+type AppendUploadChunk204ResponseHeaders struct {
+	UploadOffset *int64
+}
+
+type AppendUploadChunk204Response struct {
+	Headers AppendUploadChunk204ResponseHeaders
+}
+
+func (response AppendUploadChunk204Response) VisitAppendUploadChunkResponse(w http.ResponseWriter) error {
+	if response.Headers.UploadOffset != nil {
+		w.Header().Set("Upload-Offset", fmt.Sprint(*response.Headers.UploadOffset))
+	}
+	w.WriteHeader(204)
+	return nil
+}
+
+type AppendUploadChunk400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response AppendUploadChunk400JSONResponse) VisitAppendUploadChunkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AppendUploadChunk404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response AppendUploadChunk404JSONResponse) VisitAppendUploadChunkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type AppendUploadChunk500JSONResponse struct{ InternalJSONResponse }
+
+func (response AppendUploadChunk500JSONResponse) VisitAppendUploadChunkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type FinalizeUploadRequestObject struct {
+	Id string `json:"id"`
+}
+
+type FinalizeUploadResponseObject interface {
+	VisitFinalizeUploadResponse(w http.ResponseWriter) error
+}
+
+type FinalizeUpload200JSONResponse UploadFinalized
+
+func (response FinalizeUpload200JSONResponse) VisitFinalizeUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type FinalizeUpload400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response FinalizeUpload400JSONResponse) VisitFinalizeUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type FinalizeUpload404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response FinalizeUpload404JSONResponse) VisitFinalizeUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type FinalizeUpload500JSONResponse struct{ InternalJSONResponse }
+
+func (response FinalizeUpload500JSONResponse) VisitFinalizeUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// Get conversion job status
-	// (GET /api/jobs/{id})
-	GetJob(ctx context.Context, request GetJobRequestObject) (GetJobResponseObject, error)
-	// List catalog projects (optionally paginated)
-	// (GET /api/projects)
-	ListProjects(ctx context.Context, request ListProjectsRequestObject) (ListProjectsResponseObject, error)
-	// Get a project by slug
-	// (GET /api/projects/{slug})
-	GetProject(ctx context.Context, request GetProjectRequestObject) (GetProjectResponseObject, error)
-	// List converted artifacts for a project
-	// (GET /api/projects/{slug}/artifacts)
-	ListArtifacts(ctx context.Context, request ListArtifactsRequestObject) (ListArtifactsResponseObject, error)
-	// Get artifact metadata for a specific LOD
-	// (GET /api/projects/{slug}/artifacts/{lod})
-	GetArtifact(ctx context.Context, request GetArtifactRequestObject) (GetArtifactResponseObject, error)
-	// Trigger an OBJ→GLB conversion job
-	// (POST /api/projects/{slug}/convert)
-	SubmitConversion(ctx context.Context, request SubmitConversionRequestObject) (SubmitConversionResponseObject, error)
-	// List placements attached to a parent project
-	// (GET /api/projects/{slug}/placements)
+	// List models
+	// (GET /api/models)
+	ListModels(ctx context.Context, request ListModelsRequestObject) (ListModelsResponseObject, error)
+	// Register a model and queue its conversion
+	// (POST /api/models)
+	CreateModel(ctx context.Context, request CreateModelRequestObject) (CreateModelResponseObject, error)
+	// Delete a model
+	// (DELETE /api/models/{slug})
+	DeleteModel(ctx context.Context, request DeleteModelRequestObject) (DeleteModelResponseObject, error)
+	// Get a model by slug
+	// (GET /api/models/{slug})
+	GetModel(ctx context.Context, request GetModelRequestObject) (GetModelResponseObject, error)
+	// List converted artifacts for a model
+	// (GET /api/models/{slug}/artifacts)
+	ListModelArtifacts(ctx context.Context, request ListModelArtifactsRequestObject) (ListModelArtifactsResponseObject, error)
+	// Get one converted artifact (model)
+	// (GET /api/models/{slug}/artifacts/{lod})
+	GetModelArtifact(ctx context.Context, request GetModelArtifactRequestObject) (GetModelArtifactResponseObject, error)
+	// List territories
+	// (GET /api/territories)
+	ListTerritories(ctx context.Context, request ListTerritoriesRequestObject) (ListTerritoriesResponseObject, error)
+	// Register a territory and queue its conversion
+	// (POST /api/territories)
+	CreateTerritory(ctx context.Context, request CreateTerritoryRequestObject) (CreateTerritoryResponseObject, error)
+	// Delete a territory and its placements
+	// (DELETE /api/territories/{slug})
+	DeleteTerritory(ctx context.Context, request DeleteTerritoryRequestObject) (DeleteTerritoryResponseObject, error)
+	// Get a territory by slug
+	// (GET /api/territories/{slug})
+	GetTerritory(ctx context.Context, request GetTerritoryRequestObject) (GetTerritoryResponseObject, error)
+	// List converted artifacts for a territory
+	// (GET /api/territories/{slug}/artifacts)
+	ListTerritoryArtifacts(ctx context.Context, request ListTerritoryArtifactsRequestObject) (ListTerritoryArtifactsResponseObject, error)
+	// Get one converted artifact (territory)
+	// (GET /api/territories/{slug}/artifacts/{lod})
+	GetTerritoryArtifact(ctx context.Context, request GetTerritoryArtifactRequestObject) (GetTerritoryArtifactResponseObject, error)
+	// List placements on a territory
+	// (GET /api/territories/{slug}/placements)
 	ListPlacements(ctx context.Context, request ListPlacementsRequestObject) (ListPlacementsResponseObject, error)
-	// Place an asset project onto a parent project's scene
-	// (POST /api/projects/{slug}/placements)
+	// Add a placement to a territory
+	// (POST /api/territories/{slug}/placements)
 	CreatePlacement(ctx context.Context, request CreatePlacementRequestObject) (CreatePlacementResponseObject, error)
 	// Remove a placement
-	// (DELETE /api/projects/{slug}/placements/{id})
+	// (DELETE /api/territories/{slug}/placements/{id})
 	DeletePlacement(ctx context.Context, request DeletePlacementRequestObject) (DeletePlacementResponseObject, error)
-	// Replace a placement's transform and label
-	// (PUT /api/projects/{slug}/placements/{id})
+	// Replace a placement's transform
+	// (PUT /api/territories/{slug}/placements/{id})
 	UpdatePlacement(ctx context.Context, request UpdatePlacementRequestObject) (UpdatePlacementResponseObject, error)
 	// Single-shot bundle for the viewer page
-	// (GET /api/projects/{slug}/scene)
+	// (GET /api/territories/{slug}/scene)
 	GetSceneBundle(ctx context.Context, request GetSceneBundleRequestObject) (GetSceneBundleResponseObject, error)
+	// Start a chunked upload session
+	// (POST /api/uploads)
+	InitiateUpload(ctx context.Context, request InitiateUploadRequestObject) (InitiateUploadResponseObject, error)
+	// Discard an in-progress session
+	// (DELETE /api/uploads/{id})
+	AbortUpload(ctx context.Context, request AbortUploadRequestObject) (AbortUploadResponseObject, error)
+	// Query the current offset of a session
+	// (HEAD /api/uploads/{id})
+	GetUploadStatus(ctx context.Context, request GetUploadStatusRequestObject) (GetUploadStatusResponseObject, error)
+	// Append bytes to a session at the given offset
+	// (PATCH /api/uploads/{id})
+	AppendUploadChunk(ctx context.Context, request AppendUploadChunkRequestObject) (AppendUploadChunkResponseObject, error)
+	// Close a session and publish the bytes to BlobStore
+	// (POST /api/uploads/{id}/finalize)
+	FinalizeUpload(ctx context.Context, request FinalizeUploadRequestObject) (FinalizeUploadResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -1506,25 +2469,23 @@ type strictHandler struct {
 	options     StrictHTTPServerOptions
 }
 
-// GetJob operation middleware
-func (sh *strictHandler) GetJob(w http.ResponseWriter, r *http.Request, id string) {
-	var request GetJobRequestObject
-
-	request.Id = id
+// ListModels operation middleware
+func (sh *strictHandler) ListModels(w http.ResponseWriter, r *http.Request) {
+	var request ListModelsRequestObject
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetJob(ctx, request.(GetJobRequestObject))
+		return sh.ssi.ListModels(ctx, request.(ListModelsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetJob")
+		handler = middleware(handler, "ListModels")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetJobResponseObject); ok {
-		if err := validResponse.VisitGetJobResponse(w); err != nil {
+	} else if validResponse, ok := response.(ListModelsResponseObject); ok {
+		if err := validResponse.VisitListModelsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1532,25 +2493,30 @@ func (sh *strictHandler) GetJob(w http.ResponseWriter, r *http.Request, id strin
 	}
 }
 
-// ListProjects operation middleware
-func (sh *strictHandler) ListProjects(w http.ResponseWriter, r *http.Request, params ListProjectsParams) {
-	var request ListProjectsRequestObject
+// CreateModel operation middleware
+func (sh *strictHandler) CreateModel(w http.ResponseWriter, r *http.Request) {
+	var request CreateModelRequestObject
 
-	request.Params = params
+	var body CreateModelJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.ListProjects(ctx, request.(ListProjectsRequestObject))
+		return sh.ssi.CreateModel(ctx, request.(CreateModelRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ListProjects")
+		handler = middleware(handler, "CreateModel")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(ListProjectsResponseObject); ok {
-		if err := validResponse.VisitListProjectsResponse(w); err != nil {
+	} else if validResponse, ok := response.(CreateModelResponseObject); ok {
+		if err := validResponse.VisitCreateModelResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1558,25 +2524,25 @@ func (sh *strictHandler) ListProjects(w http.ResponseWriter, r *http.Request, pa
 	}
 }
 
-// GetProject operation middleware
-func (sh *strictHandler) GetProject(w http.ResponseWriter, r *http.Request, slug string) {
-	var request GetProjectRequestObject
+// DeleteModel operation middleware
+func (sh *strictHandler) DeleteModel(w http.ResponseWriter, r *http.Request, slug string) {
+	var request DeleteModelRequestObject
 
 	request.Slug = slug
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetProject(ctx, request.(GetProjectRequestObject))
+		return sh.ssi.DeleteModel(ctx, request.(DeleteModelRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetProject")
+		handler = middleware(handler, "DeleteModel")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetProjectResponseObject); ok {
-		if err := validResponse.VisitGetProjectResponse(w); err != nil {
+	} else if validResponse, ok := response.(DeleteModelResponseObject); ok {
+		if err := validResponse.VisitDeleteModelResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1584,25 +2550,25 @@ func (sh *strictHandler) GetProject(w http.ResponseWriter, r *http.Request, slug
 	}
 }
 
-// ListArtifacts operation middleware
-func (sh *strictHandler) ListArtifacts(w http.ResponseWriter, r *http.Request, slug string) {
-	var request ListArtifactsRequestObject
+// GetModel operation middleware
+func (sh *strictHandler) GetModel(w http.ResponseWriter, r *http.Request, slug string) {
+	var request GetModelRequestObject
 
 	request.Slug = slug
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.ListArtifacts(ctx, request.(ListArtifactsRequestObject))
+		return sh.ssi.GetModel(ctx, request.(GetModelRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ListArtifacts")
+		handler = middleware(handler, "GetModel")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(ListArtifactsResponseObject); ok {
-		if err := validResponse.VisitListArtifactsResponse(w); err != nil {
+	} else if validResponse, ok := response.(GetModelResponseObject); ok {
+		if err := validResponse.VisitGetModelResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1610,26 +2576,52 @@ func (sh *strictHandler) ListArtifacts(w http.ResponseWriter, r *http.Request, s
 	}
 }
 
-// GetArtifact operation middleware
-func (sh *strictHandler) GetArtifact(w http.ResponseWriter, r *http.Request, slug string, lod int32) {
-	var request GetArtifactRequestObject
+// ListModelArtifacts operation middleware
+func (sh *strictHandler) ListModelArtifacts(w http.ResponseWriter, r *http.Request, slug string) {
+	var request ListModelArtifactsRequestObject
+
+	request.Slug = slug
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListModelArtifacts(ctx, request.(ListModelArtifactsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListModelArtifacts")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListModelArtifactsResponseObject); ok {
+		if err := validResponse.VisitListModelArtifactsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetModelArtifact operation middleware
+func (sh *strictHandler) GetModelArtifact(w http.ResponseWriter, r *http.Request, slug string, lod int32) {
+	var request GetModelArtifactRequestObject
 
 	request.Slug = slug
 	request.Lod = lod
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetArtifact(ctx, request.(GetArtifactRequestObject))
+		return sh.ssi.GetModelArtifact(ctx, request.(GetModelArtifactRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetArtifact")
+		handler = middleware(handler, "GetModelArtifact")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetArtifactResponseObject); ok {
-		if err := validResponse.VisitGetArtifactResponse(w); err != nil {
+	} else if validResponse, ok := response.(GetModelArtifactResponseObject); ok {
+		if err := validResponse.VisitGetModelArtifactResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1637,25 +2629,159 @@ func (sh *strictHandler) GetArtifact(w http.ResponseWriter, r *http.Request, slu
 	}
 }
 
-// SubmitConversion operation middleware
-func (sh *strictHandler) SubmitConversion(w http.ResponseWriter, r *http.Request, slug string) {
-	var request SubmitConversionRequestObject
-
-	request.Slug = slug
+// ListTerritories operation middleware
+func (sh *strictHandler) ListTerritories(w http.ResponseWriter, r *http.Request) {
+	var request ListTerritoriesRequestObject
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.SubmitConversion(ctx, request.(SubmitConversionRequestObject))
+		return sh.ssi.ListTerritories(ctx, request.(ListTerritoriesRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "SubmitConversion")
+		handler = middleware(handler, "ListTerritories")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(SubmitConversionResponseObject); ok {
-		if err := validResponse.VisitSubmitConversionResponse(w); err != nil {
+	} else if validResponse, ok := response.(ListTerritoriesResponseObject); ok {
+		if err := validResponse.VisitListTerritoriesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateTerritory operation middleware
+func (sh *strictHandler) CreateTerritory(w http.ResponseWriter, r *http.Request) {
+	var request CreateTerritoryRequestObject
+
+	var body CreateTerritoryJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateTerritory(ctx, request.(CreateTerritoryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateTerritory")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateTerritoryResponseObject); ok {
+		if err := validResponse.VisitCreateTerritoryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteTerritory operation middleware
+func (sh *strictHandler) DeleteTerritory(w http.ResponseWriter, r *http.Request, slug string) {
+	var request DeleteTerritoryRequestObject
+
+	request.Slug = slug
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteTerritory(ctx, request.(DeleteTerritoryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteTerritory")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteTerritoryResponseObject); ok {
+		if err := validResponse.VisitDeleteTerritoryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetTerritory operation middleware
+func (sh *strictHandler) GetTerritory(w http.ResponseWriter, r *http.Request, slug string) {
+	var request GetTerritoryRequestObject
+
+	request.Slug = slug
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTerritory(ctx, request.(GetTerritoryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTerritory")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetTerritoryResponseObject); ok {
+		if err := validResponse.VisitGetTerritoryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListTerritoryArtifacts operation middleware
+func (sh *strictHandler) ListTerritoryArtifacts(w http.ResponseWriter, r *http.Request, slug string) {
+	var request ListTerritoryArtifactsRequestObject
+
+	request.Slug = slug
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTerritoryArtifacts(ctx, request.(ListTerritoryArtifactsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTerritoryArtifacts")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTerritoryArtifactsResponseObject); ok {
+		if err := validResponse.VisitListTerritoryArtifactsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetTerritoryArtifact operation middleware
+func (sh *strictHandler) GetTerritoryArtifact(w http.ResponseWriter, r *http.Request, slug string, lod int32) {
+	var request GetTerritoryArtifactRequestObject
+
+	request.Slug = slug
+	request.Lod = lod
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTerritoryArtifact(ctx, request.(GetTerritoryArtifactRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTerritoryArtifact")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetTerritoryArtifactResponseObject); ok {
+		if err := validResponse.VisitGetTerritoryArtifactResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1809,58 +2935,202 @@ func (sh *strictHandler) GetSceneBundle(w http.ResponseWriter, r *http.Request, 
 	}
 }
 
+// InitiateUpload operation middleware
+func (sh *strictHandler) InitiateUpload(w http.ResponseWriter, r *http.Request) {
+	var request InitiateUploadRequestObject
+
+	var body InitiateUploadJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.InitiateUpload(ctx, request.(InitiateUploadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "InitiateUpload")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(InitiateUploadResponseObject); ok {
+		if err := validResponse.VisitInitiateUploadResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AbortUpload operation middleware
+func (sh *strictHandler) AbortUpload(w http.ResponseWriter, r *http.Request, id string) {
+	var request AbortUploadRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AbortUpload(ctx, request.(AbortUploadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AbortUpload")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AbortUploadResponseObject); ok {
+		if err := validResponse.VisitAbortUploadResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetUploadStatus operation middleware
+func (sh *strictHandler) GetUploadStatus(w http.ResponseWriter, r *http.Request, id string) {
+	var request GetUploadStatusRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetUploadStatus(ctx, request.(GetUploadStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetUploadStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetUploadStatusResponseObject); ok {
+		if err := validResponse.VisitGetUploadStatusResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AppendUploadChunk operation middleware
+func (sh *strictHandler) AppendUploadChunk(w http.ResponseWriter, r *http.Request, id string, params AppendUploadChunkParams) {
+	var request AppendUploadChunkRequestObject
+
+	request.Id = id
+	request.Params = params
+
+	request.Body = r.Body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AppendUploadChunk(ctx, request.(AppendUploadChunkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AppendUploadChunk")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AppendUploadChunkResponseObject); ok {
+		if err := validResponse.VisitAppendUploadChunkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// FinalizeUpload operation middleware
+func (sh *strictHandler) FinalizeUpload(w http.ResponseWriter, r *http.Request, id string) {
+	var request FinalizeUploadRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.FinalizeUpload(ctx, request.(FinalizeUploadRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "FinalizeUpload")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(FinalizeUploadResponseObject); ok {
+		if err := validResponse.VisitFinalizeUploadResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, compressed with deflate, json marshaled OpenAPI spec.
 // Stored as a slice of fixed-width chunks rather than one concatenated
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

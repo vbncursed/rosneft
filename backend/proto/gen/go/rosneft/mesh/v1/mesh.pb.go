@@ -22,6 +22,58 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Kind discriminates whether a job's output artifacts belong on a Territory
+// or a Model in the catalog. The conversion pipeline is identical for both;
+// only the destination artifact table differs.
+type Kind int32
+
+const (
+	Kind_KIND_UNSPECIFIED Kind = 0
+	Kind_KIND_TERRITORY   Kind = 1
+	Kind_KIND_MODEL       Kind = 2
+)
+
+// Enum value maps for Kind.
+var (
+	Kind_name = map[int32]string{
+		0: "KIND_UNSPECIFIED",
+		1: "KIND_TERRITORY",
+		2: "KIND_MODEL",
+	}
+	Kind_value = map[string]int32{
+		"KIND_UNSPECIFIED": 0,
+		"KIND_TERRITORY":   1,
+		"KIND_MODEL":       2,
+	}
+)
+
+func (x Kind) Enum() *Kind {
+	p := new(Kind)
+	*p = x
+	return p
+}
+
+func (x Kind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Kind) Descriptor() protoreflect.EnumDescriptor {
+	return file_rosneft_mesh_v1_mesh_proto_enumTypes[0].Descriptor()
+}
+
+func (Kind) Type() protoreflect.EnumType {
+	return &file_rosneft_mesh_v1_mesh_proto_enumTypes[0]
+}
+
+func (x Kind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Kind.Descriptor instead.
+func (Kind) EnumDescriptor() ([]byte, []int) {
+	return file_rosneft_mesh_v1_mesh_proto_rawDescGZIP(), []int{0}
+}
+
 type JobStatus int32
 
 const (
@@ -61,11 +113,11 @@ func (x JobStatus) String() string {
 }
 
 func (JobStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_rosneft_mesh_v1_mesh_proto_enumTypes[0].Descriptor()
+	return file_rosneft_mesh_v1_mesh_proto_enumTypes[1].Descriptor()
 }
 
 func (JobStatus) Type() protoreflect.EnumType {
-	return &file_rosneft_mesh_v1_mesh_proto_enumTypes[0]
+	return &file_rosneft_mesh_v1_mesh_proto_enumTypes[1]
 }
 
 func (x JobStatus) Number() protoreflect.EnumNumber {
@@ -74,20 +126,21 @@ func (x JobStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use JobStatus.Descriptor instead.
 func (JobStatus) EnumDescriptor() ([]byte, []int) {
-	return file_rosneft_mesh_v1_mesh_proto_rawDescGZIP(), []int{0}
+	return file_rosneft_mesh_v1_mesh_proto_rawDescGZIP(), []int{1}
 }
 
 type Job struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	Id          string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	ProjectSlug string                 `protobuf:"bytes,2,opt,name=project_slug,json=projectSlug,proto3" json:"project_slug,omitempty"`
-	Status      JobStatus              `protobuf:"varint,3,opt,name=status,proto3,enum=rosneft.mesh.v1.JobStatus" json:"status,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Id     string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Kind   Kind                   `protobuf:"varint,2,opt,name=kind,proto3,enum=rosneft.mesh.v1.Kind" json:"kind,omitempty"`
+	Slug   string                 `protobuf:"bytes,3,opt,name=slug,proto3" json:"slug,omitempty"`
+	Status JobStatus              `protobuf:"varint,4,opt,name=status,proto3,enum=rosneft.mesh.v1.JobStatus" json:"status,omitempty"`
 	// ErrorMessage is set when status == JOB_STATUS_FAILED.
-	ErrorMessage string `protobuf:"bytes,4,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	ErrorMessage string `protobuf:"bytes,5,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
 	// ArtifactHash is set when status == JOB_STATUS_SUCCEEDED.
-	ArtifactHash  string                 `protobuf:"bytes,5,opt,name=artifact_hash,json=artifactHash,proto3" json:"artifact_hash,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	ArtifactHash  string                 `protobuf:"bytes,6,opt,name=artifact_hash,json=artifactHash,proto3" json:"artifact_hash,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -129,9 +182,16 @@ func (x *Job) GetId() string {
 	return ""
 }
 
-func (x *Job) GetProjectSlug() string {
+func (x *Job) GetKind() Kind {
 	if x != nil {
-		return x.ProjectSlug
+		return x.Kind
+	}
+	return Kind_KIND_UNSPECIFIED
+}
+
+func (x *Job) GetSlug() string {
+	if x != nil {
+		return x.Slug
 	}
 	return ""
 }
@@ -173,7 +233,8 @@ func (x *Job) GetUpdatedAt() *timestamppb.Timestamp {
 
 type SubmitConversionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProjectSlug   string                 `protobuf:"bytes,1,opt,name=project_slug,json=projectSlug,proto3" json:"project_slug,omitempty"`
+	Kind          Kind                   `protobuf:"varint,1,opt,name=kind,proto3,enum=rosneft.mesh.v1.Kind" json:"kind,omitempty"`
+	Slug          string                 `protobuf:"bytes,2,opt,name=slug,proto3" json:"slug,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -208,9 +269,16 @@ func (*SubmitConversionRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_mesh_v1_mesh_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *SubmitConversionRequest) GetProjectSlug() string {
+func (x *SubmitConversionRequest) GetKind() Kind {
 	if x != nil {
-		return x.ProjectSlug
+		return x.Kind
+	}
+	return Kind_KIND_UNSPECIFIED
+}
+
+func (x *SubmitConversionRequest) GetSlug() string {
+	if x != nil {
+		return x.Slug
 	}
 	return ""
 }
@@ -351,25 +419,32 @@ var File_rosneft_mesh_v1_mesh_proto protoreflect.FileDescriptor
 
 const file_rosneft_mesh_v1_mesh_proto_rawDesc = "" +
 	"\n" +
-	"\x1arosneft/mesh/v1/mesh.proto\x12\x0frosneft.mesh.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xac\x02\n" +
+	"\x1arosneft/mesh/v1/mesh.proto\x12\x0frosneft.mesh.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc8\x02\n" +
 	"\x03Job\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
-	"\fproject_slug\x18\x02 \x01(\tR\vprojectSlug\x122\n" +
-	"\x06status\x18\x03 \x01(\x0e2\x1a.rosneft.mesh.v1.JobStatusR\x06status\x12#\n" +
-	"\rerror_message\x18\x04 \x01(\tR\ferrorMessage\x12#\n" +
-	"\rartifact_hash\x18\x05 \x01(\tR\fartifactHash\x129\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12)\n" +
+	"\x04kind\x18\x02 \x01(\x0e2\x15.rosneft.mesh.v1.KindR\x04kind\x12\x12\n" +
+	"\x04slug\x18\x03 \x01(\tR\x04slug\x122\n" +
+	"\x06status\x18\x04 \x01(\x0e2\x1a.rosneft.mesh.v1.JobStatusR\x06status\x12#\n" +
+	"\rerror_message\x18\x05 \x01(\tR\ferrorMessage\x12#\n" +
+	"\rartifact_hash\x18\x06 \x01(\tR\fartifactHash\x129\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"<\n" +
-	"\x17SubmitConversionRequest\x12!\n" +
-	"\fproject_slug\x18\x01 \x01(\tR\vprojectSlug\"B\n" +
+	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"X\n" +
+	"\x17SubmitConversionRequest\x12)\n" +
+	"\x04kind\x18\x01 \x01(\x0e2\x15.rosneft.mesh.v1.KindR\x04kind\x12\x12\n" +
+	"\x04slug\x18\x02 \x01(\tR\x04slug\"B\n" +
 	"\x18SubmitConversionResponse\x12&\n" +
 	"\x03job\x18\x01 \x01(\v2\x14.rosneft.mesh.v1.JobR\x03job\"\x1f\n" +
 	"\rGetJobRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"8\n" +
 	"\x0eGetJobResponse\x12&\n" +
-	"\x03job\x18\x01 \x01(\v2\x14.rosneft.mesh.v1.JobR\x03job*\x88\x01\n" +
+	"\x03job\x18\x01 \x01(\v2\x14.rosneft.mesh.v1.JobR\x03job*@\n" +
+	"\x04Kind\x12\x14\n" +
+	"\x10KIND_UNSPECIFIED\x10\x00\x12\x12\n" +
+	"\x0eKIND_TERRITORY\x10\x01\x12\x0e\n" +
+	"\n" +
+	"KIND_MODEL\x10\x02*\x88\x01\n" +
 	"\tJobStatus\x12\x1a\n" +
 	"\x16JOB_STATUS_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12JOB_STATUS_PENDING\x10\x01\x12\x16\n" +
@@ -392,32 +467,35 @@ func file_rosneft_mesh_v1_mesh_proto_rawDescGZIP() []byte {
 	return file_rosneft_mesh_v1_mesh_proto_rawDescData
 }
 
-var file_rosneft_mesh_v1_mesh_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_rosneft_mesh_v1_mesh_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_rosneft_mesh_v1_mesh_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_rosneft_mesh_v1_mesh_proto_goTypes = []any{
-	(JobStatus)(0),                   // 0: rosneft.mesh.v1.JobStatus
-	(*Job)(nil),                      // 1: rosneft.mesh.v1.Job
-	(*SubmitConversionRequest)(nil),  // 2: rosneft.mesh.v1.SubmitConversionRequest
-	(*SubmitConversionResponse)(nil), // 3: rosneft.mesh.v1.SubmitConversionResponse
-	(*GetJobRequest)(nil),            // 4: rosneft.mesh.v1.GetJobRequest
-	(*GetJobResponse)(nil),           // 5: rosneft.mesh.v1.GetJobResponse
-	(*timestamppb.Timestamp)(nil),    // 6: google.protobuf.Timestamp
+	(Kind)(0),                        // 0: rosneft.mesh.v1.Kind
+	(JobStatus)(0),                   // 1: rosneft.mesh.v1.JobStatus
+	(*Job)(nil),                      // 2: rosneft.mesh.v1.Job
+	(*SubmitConversionRequest)(nil),  // 3: rosneft.mesh.v1.SubmitConversionRequest
+	(*SubmitConversionResponse)(nil), // 4: rosneft.mesh.v1.SubmitConversionResponse
+	(*GetJobRequest)(nil),            // 5: rosneft.mesh.v1.GetJobRequest
+	(*GetJobResponse)(nil),           // 6: rosneft.mesh.v1.GetJobResponse
+	(*timestamppb.Timestamp)(nil),    // 7: google.protobuf.Timestamp
 }
 var file_rosneft_mesh_v1_mesh_proto_depIdxs = []int32{
-	0, // 0: rosneft.mesh.v1.Job.status:type_name -> rosneft.mesh.v1.JobStatus
-	6, // 1: rosneft.mesh.v1.Job.created_at:type_name -> google.protobuf.Timestamp
-	6, // 2: rosneft.mesh.v1.Job.updated_at:type_name -> google.protobuf.Timestamp
-	1, // 3: rosneft.mesh.v1.SubmitConversionResponse.job:type_name -> rosneft.mesh.v1.Job
-	1, // 4: rosneft.mesh.v1.GetJobResponse.job:type_name -> rosneft.mesh.v1.Job
-	2, // 5: rosneft.mesh.v1.MeshService.SubmitConversion:input_type -> rosneft.mesh.v1.SubmitConversionRequest
-	4, // 6: rosneft.mesh.v1.MeshService.GetJob:input_type -> rosneft.mesh.v1.GetJobRequest
-	3, // 7: rosneft.mesh.v1.MeshService.SubmitConversion:output_type -> rosneft.mesh.v1.SubmitConversionResponse
-	5, // 8: rosneft.mesh.v1.MeshService.GetJob:output_type -> rosneft.mesh.v1.GetJobResponse
-	7, // [7:9] is the sub-list for method output_type
-	5, // [5:7] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	0, // 0: rosneft.mesh.v1.Job.kind:type_name -> rosneft.mesh.v1.Kind
+	1, // 1: rosneft.mesh.v1.Job.status:type_name -> rosneft.mesh.v1.JobStatus
+	7, // 2: rosneft.mesh.v1.Job.created_at:type_name -> google.protobuf.Timestamp
+	7, // 3: rosneft.mesh.v1.Job.updated_at:type_name -> google.protobuf.Timestamp
+	0, // 4: rosneft.mesh.v1.SubmitConversionRequest.kind:type_name -> rosneft.mesh.v1.Kind
+	2, // 5: rosneft.mesh.v1.SubmitConversionResponse.job:type_name -> rosneft.mesh.v1.Job
+	2, // 6: rosneft.mesh.v1.GetJobResponse.job:type_name -> rosneft.mesh.v1.Job
+	3, // 7: rosneft.mesh.v1.MeshService.SubmitConversion:input_type -> rosneft.mesh.v1.SubmitConversionRequest
+	5, // 8: rosneft.mesh.v1.MeshService.GetJob:input_type -> rosneft.mesh.v1.GetJobRequest
+	4, // 9: rosneft.mesh.v1.MeshService.SubmitConversion:output_type -> rosneft.mesh.v1.SubmitConversionResponse
+	6, // 10: rosneft.mesh.v1.MeshService.GetJob:output_type -> rosneft.mesh.v1.GetJobResponse
+	9, // [9:11] is the sub-list for method output_type
+	7, // [7:9] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_rosneft_mesh_v1_mesh_proto_init() }
@@ -430,7 +508,7 @@ func file_rosneft_mesh_v1_mesh_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rosneft_mesh_v1_mesh_proto_rawDesc), len(file_rosneft_mesh_v1_mesh_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
