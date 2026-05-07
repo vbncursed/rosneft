@@ -74,7 +74,9 @@ type Artifact struct {
 	LODs        []LodArtifact
 }
 
-// Job is the gateway view of a conversion job.
+// Job is the gateway view of a conversion job. Progress (0..1) + Stage
+// are coarse worker checkpoints, surfaced through SSE so the frontend can
+// render a determinate progress bar.
 type Job struct {
 	ID           string
 	Kind         Kind
@@ -82,6 +84,8 @@ type Job struct {
 	Status       JobStatus
 	ErrorMessage string
 	ArtifactHash string
+	Progress     float32
+	Stage        string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

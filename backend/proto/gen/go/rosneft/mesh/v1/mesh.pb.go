@@ -138,9 +138,16 @@ type Job struct {
 	// ErrorMessage is set when status == JOB_STATUS_FAILED.
 	ErrorMessage string `protobuf:"bytes,5,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
 	// ArtifactHash is set when status == JOB_STATUS_SUCCEEDED.
-	ArtifactHash  string                 `protobuf:"bytes,6,opt,name=artifact_hash,json=artifactHash,proto3" json:"artifact_hash,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	ArtifactHash string                 `protobuf:"bytes,6,opt,name=artifact_hash,json=artifactHash,proto3" json:"artifact_hash,omitempty"`
+	CreatedAt    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt    *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Progress is the fraction of conversion work completed in [0, 1].
+	// Worker bumps at coarse stage boundaries; SSE forwards every change.
+	Progress float32 `protobuf:"fixed32,9,opt,name=progress,proto3" json:"progress,omitempty"`
+	// Stage is a short machine-readable label for the current phase
+	// ("fetching", "extracting", "parsing", "encoding", "compressing",
+	// "lod-1", "lod-2", "registering"). Frontend maps to a human string.
+	Stage         string `protobuf:"bytes,10,opt,name=stage,proto3" json:"stage,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -229,6 +236,20 @@ func (x *Job) GetUpdatedAt() *timestamppb.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *Job) GetProgress() float32 {
+	if x != nil {
+		return x.Progress
+	}
+	return 0
+}
+
+func (x *Job) GetStage() string {
+	if x != nil {
+		return x.Stage
+	}
+	return ""
 }
 
 type SubmitConversionRequest struct {
@@ -419,7 +440,7 @@ var File_rosneft_mesh_v1_mesh_proto protoreflect.FileDescriptor
 
 const file_rosneft_mesh_v1_mesh_proto_rawDesc = "" +
 	"\n" +
-	"\x1arosneft/mesh/v1/mesh.proto\x12\x0frosneft.mesh.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc8\x02\n" +
+	"\x1arosneft/mesh/v1/mesh.proto\x12\x0frosneft.mesh.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xfa\x02\n" +
 	"\x03Job\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12)\n" +
 	"\x04kind\x18\x02 \x01(\x0e2\x15.rosneft.mesh.v1.KindR\x04kind\x12\x12\n" +
@@ -430,7 +451,10 @@ const file_rosneft_mesh_v1_mesh_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"X\n" +
+	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x1a\n" +
+	"\bprogress\x18\t \x01(\x02R\bprogress\x12\x14\n" +
+	"\x05stage\x18\n" +
+	" \x01(\tR\x05stage\"X\n" +
 	"\x17SubmitConversionRequest\x12)\n" +
 	"\x04kind\x18\x01 \x01(\x0e2\x15.rosneft.mesh.v1.KindR\x04kind\x12\x12\n" +
 	"\x04slug\x18\x02 \x01(\tR\x04slug\"B\n" +

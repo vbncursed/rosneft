@@ -50,6 +50,10 @@ func ParseJobStatus(s string) JobStatus {
 // Job is a unit of conversion work flowing through the mesh pipeline. Kind
 // + Slug together identify the catalog entity whose source bytes are being
 // converted; the same Kind drives where the resulting artifact is registered.
+//
+// Progress (0..1) and Stage are coarse-grained checkpoints emitted by the
+// worker — they let the conversion-pending screen show a determinate bar
+// instead of an indeterminate pulse.
 type Job struct {
 	ID           string
 	Kind         Kind
@@ -57,6 +61,8 @@ type Job struct {
 	Status       JobStatus
 	ErrorMessage string
 	ArtifactHash string
+	Progress     float32
+	Stage        string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

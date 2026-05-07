@@ -1,6 +1,17 @@
 import type { NextConfig } from "next";
 
-const gatewayUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+// Server-side rewrite target. Resolved at runtime inside rewrites() so
+// the standalone build doesn't bake the build-time env value into the
+// bundle. NEXT_PUBLIC_API_URL is the browser-side URL and stays
+// separate because EventSource for SSE has to bypass the Node proxy
+// that buffers stream frames.
+function gatewayUrl(): string {
+  return (
+    process.env.GATEWAY_URL ??
+    process.env.NEXT_PUBLIC_API_URL ??
+    "http://localhost:8080"
+  );
+}
 
 const nextConfig: NextConfig = {
   // standalone output bundles a minimal node_modules into .next/standalone
@@ -21,7 +32,7 @@ const nextConfig: NextConfig = {
   // NEXT_PUBLIC_API_URL directly (see src/shared/infrastructure/http/client.ts).
   async rewrites() {
     return [
-      { source: "/api/:path*", destination: `${gatewayUrl}/api/:path*` },
+      { source: "/api/:path*", destination: `${gatewayUrl()}/api/:path*` },
     ];
   },
 };

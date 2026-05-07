@@ -20,7 +20,6 @@ type Config struct {
 	RedisDB          int           `mapstructure:"redis-db"`
 	CatalogGRPCAddr  string        `mapstructure:"catalog-grpc-addr"`
 	BlobDir          string        `mapstructure:"blob-dir"`
-	SourceDir        string        `mapstructure:"source-dir"`
 	WorkerName       string        `mapstructure:"worker-name"`
 	BlockTimeout     time.Duration `mapstructure:"block-timeout"`
 	MaxConcurrentJobs int          `mapstructure:"max-concurrent-jobs"`
@@ -132,9 +131,6 @@ func (c Config) ValidateWorker() error {
 	}
 	if c.BlobDir == "" {
 		return fmt.Errorf("config: blob-dir is required")
-	}
-	if c.SourceDir == "" {
-		return fmt.Errorf("config: source-dir is required")
 	}
 	return nil
 }

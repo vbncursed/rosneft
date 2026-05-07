@@ -369,6 +369,17 @@ export interface components {
             status: components["schemas"]["JobStatus"];
             errorMessage?: string;
             artifactHash?: string;
+            /**
+             * Format: float
+             * @description Fraction of conversion work completed (0..1).
+             */
+            progress?: number;
+            /**
+             * @description Coarse-grained phase label set by the worker — one of
+             *     "fetching" / "extracting" / "parsing" / "encoding" /
+             *     "compressing" / "lod-N" / "registering".
+             */
+            stage?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */

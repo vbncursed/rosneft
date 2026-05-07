@@ -138,18 +138,27 @@ services:
 
   frontend:
     # Build context is the frontend/ directory at the repo root.
-    # NEXT_PUBLIC_API_URL is consumed at build time (baked into the
-    # client bundle and used by next.config rewrites) and at runtime
-    # (process.env in the standalone server).
+    # NEXT_PUBLIC_API_URL is baked into the client bundle and must be
+    # reachable from the BROWSER — useJobStream opens EventSource
+    # against this URL directly to bypass Next.js's Node HTTP buffer
+    # (proxy rewrites delay SSE frames until connection close).
+    # GATEWAY_URL is the compose-internal hostname used by the
+    # Next.js server for SSR fetches and the /api/* rewrite.
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: "http://gateway:8080"
+        # Browser-side URL (baked into client bundle).
+        NEXT_PUBLIC_API_URL: "http://localhost:8080"
+        # Server-side URL (baked into Next.js routes manifest at build).
+        # Must be the compose-internal hostname so the standalone server
+        # can reach the gateway from inside the container.
+        GATEWAY_URL: "http://gateway:8080"
     depends_on:
       gateway: { condition: service_started }
     environment:
-      NEXT_PUBLIC_API_URL: "http://gateway:8080"
+      GATEWAY_URL: "http://gateway:8080"
+      NEXT_PUBLIC_API_URL: "http://localhost:8080"
     ports:
       - "3000:3000"
 

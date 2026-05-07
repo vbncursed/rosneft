@@ -48,6 +48,13 @@ message Job {
   string artifact_hash = 6;
   google.protobuf.Timestamp created_at = 7;
   google.protobuf.Timestamp updated_at = 8;
+  // Progress is the fraction of conversion work completed in [0, 1].
+  // Worker bumps at coarse stage boundaries; SSE forwards every change.
+  float progress = 9;
+  // Stage is a short machine-readable label for the current phase
+  // ("fetching", "extracting", "parsing", "encoding", "compressing",
+  // "lod-1", "lod-2", "registering"). Frontend maps to a human string.
+  string stage = 10;
 }
 
 message SubmitConversionRequest {

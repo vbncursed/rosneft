@@ -9,7 +9,7 @@ export default function NewModelPage() {
       <UploadForm
         kind="Модель"
         redirectBase="/models"
-        redirectAfter="list"
+        redirectAfter="detail"
         create={async (body) => {
           const { model, job } = await createModel(body);
           return { slug: model.slug, job };

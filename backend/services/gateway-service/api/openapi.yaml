@@ -115,6 +115,18 @@ components:
         status: { $ref: '#/components/schemas/JobStatus' }
         errorMessage: { type: string }
         artifactHash: { type: string }
+        progress:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Fraction of conversion work completed (0..1).
+        stage:
+          type: string
+          description: |
+            Coarse-grained phase label set by the worker — one of
+            "fetching" / "extracting" / "parsing" / "encoding" /
+            "compressing" / "lod-N" / "registering".
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 

@@ -28,8 +28,14 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # into the client bundle. Default to the in-network gateway address so a
 # default `docker compose up` works end-to-end. Override via --build-arg
 # for other deployments.
-ARG NEXT_PUBLIC_API_URL=http://gateway:8080
+ARG NEXT_PUBLIC_API_URL=http://localhost:8080
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+# GATEWAY_URL is the compose-internal hostname. Next.js 16 standalone
+# bakes the rewrite destination into the routes-manifest at build time,
+# so this MUST be set during `next build` — runtime env is too late.
+ARG GATEWAY_URL=http://gateway:8080
+ENV GATEWAY_URL=${GATEWAY_URL}
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .

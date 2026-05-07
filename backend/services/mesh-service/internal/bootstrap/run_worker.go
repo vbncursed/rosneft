@@ -26,7 +26,6 @@ func RunWorker(ctx context.Context, cfg config.Config) error {
 		"redis_addr", cfg.RedisAddr,
 		"catalog_addr", cfg.CatalogGRPCAddr,
 		"blob_dir", cfg.BlobDir,
-		"source_dir", cfg.SourceDir,
 		"worker", cfg.WorkerName,
 	)
 

@@ -16,6 +16,8 @@ func jobFromProto(j *meshv1.Job) domain.Job {
 		Status:       statusFromProto(j.GetStatus()),
 		ErrorMessage: j.GetErrorMessage(),
 		ArtifactHash: j.GetArtifactHash(),
+		Progress:     j.GetProgress(),
+		Stage:        j.GetStage(),
 		CreatedAt:    j.GetCreatedAt().AsTime(),
 		UpdatedAt:    j.GetUpdatedAt().AsTime(),
 	}

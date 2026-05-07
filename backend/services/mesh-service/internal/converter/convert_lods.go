@@ -28,7 +28,14 @@ func (c *Converter) ConvertLODs(ctx context.Context, sourcePath string) ([]domai
 		return out, nil
 	}
 
+	// Per-LOD progress span: each ratio bumps the bar evenly between the
+	// post-encode 0.65 and the 0.95 ceiling left for the worker's register
+	// pass. Reporting fires before each gltfpack invocation so the user
+	// sees movement even if a single LOD takes 30s+ to simplify.
+	const lodStart, lodSpan = float32(0.65), float32(0.30)
+	per := lodSpan / float32(len(c.lodRatios))
 	for i, ratio := range c.lodRatios {
+		report(ctx, fmt.Sprintf("lod-%d", i+1), lodStart+per*float32(i))
 		lod, err := c.simplifyLOD(ctx, base.Content, ratio)
 		if err != nil {
 			// Per-LOD failures shouldn't fail the whole job — LOD0 is still
