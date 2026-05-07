@@ -34,6 +34,7 @@ func (c *Converter) Convert(ctx context.Context, sourcePath string) (domain.Conv
 	}
 	defer f.Close()
 
+	report(ctx, "parsing", 0.30)
 	src, err := parseOBJ(f)
 	if err != nil {
 		return domain.ConversionResult{}, fmt.Errorf("converter: parse: %w", err)
@@ -42,6 +43,7 @@ func (c *Converter) Convert(ctx context.Context, sourcePath string) (domain.Conv
 		return domain.ConversionResult{}, err
 	}
 
+	report(ctx, "encoding", 0.45)
 	origMin, origMax := normalize(src.positions)
 
 	materials := buildGLMaterials(ctx, src, sourcePath)
@@ -51,6 +53,7 @@ func (c *Converter) Convert(ctx context.Context, sourcePath string) (domain.Conv
 		return domain.ConversionResult{}, fmt.Errorf("converter: write: %w", err)
 	}
 
+	report(ctx, "compressing", 0.55)
 	body, err = c.compress(ctx, body)
 	if err != nil {
 		return domain.ConversionResult{}, err

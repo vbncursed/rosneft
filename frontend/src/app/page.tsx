@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { listTerritories } from "@/territory/infrastructure/territory-gateway";
 import { listModels } from "@/model/infrastructure/model-gateway";
+import DeleteTerritoryButton from "@/territory/presentation/components/delete-territory-button";
+import DeleteModelButton from "@/model/presentation/components/delete-model-button";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +36,9 @@ export default async function Home() {
           empty="Каталог пуст. Загрузите первую территорию."
           items={territories}
           itemHref={(t) => `/territories/${t.slug}`}
-          itemAccent="cyan"
+          renderDelete={(item) => (
+            <DeleteTerritoryButton slug={item.slug} label={item.title} />
+          )}
         />
 
         <Section
@@ -43,8 +47,10 @@ export default async function Home() {
           newLabel="Загрузить модель"
           empty="Моделей пока нет. Загрузите первую."
           items={models}
-          itemHref={() => null}
-          itemAccent="amber"
+          itemHref={(m) => `/models/${m.slug}`}
+          renderDelete={(item) => (
+            <DeleteModelButton slug={item.slug} label={item.title} />
+          )}
         />
       </section>
     </main>
@@ -64,7 +70,7 @@ interface SectionProps {
   empty: string;
   items: CatalogItem[];
   itemHref: (item: CatalogItem) => string | null;
-  itemAccent: "cyan" | "amber";
+  renderDelete?: (item: CatalogItem) => React.ReactNode;
 }
 
 function Section({
@@ -74,12 +80,8 @@ function Section({
   empty,
   items,
   itemHref,
-  itemAccent,
+  renderDelete,
 }: SectionProps) {
-  const accent =
-    itemAccent === "cyan"
-      ? "border-cyan-300/30 bg-cyan-300/10 text-cyan-200"
-      : "border-amber-300/30 bg-amber-300/10 text-amber-200";
   return (
     <section>
       <div className="flex items-end justify-between gap-4">
@@ -102,16 +104,9 @@ function Section({
             const href = itemHref(item);
             const Card = (
               <article className="group h-full rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur transition duration-300 hover:border-white/30 hover:bg-white/[0.06]">
-                <div className="flex items-start justify-between gap-4">
-                  <h3 className="text-2xl font-semibold tracking-tight text-white">
-                    {item.title}
-                  </h3>
-                  <span
-                    className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.2em] ${accent}`}
-                  >
-                    {href ? "Open" : "—"}
-                  </span>
-                </div>
+                <h3 className="pr-24 text-2xl font-semibold tracking-tight text-white">
+                  {item.title}
+                </h3>
                 {item.description ? (
                   <p className="mt-6 line-clamp-3 text-sm leading-6 text-neutral-300">
                     {item.description}
@@ -127,12 +122,21 @@ function Section({
                 </div>
               </article>
             );
-            return href ? (
-              <Link key={item.slug} href={href} className="cursor-pointer">
-                {Card}
-              </Link>
-            ) : (
-              <div key={item.slug}>{Card}</div>
+            return (
+              <div key={item.slug} className="relative">
+                {href ? (
+                  <Link href={href} className="cursor-pointer">
+                    {Card}
+                  </Link>
+                ) : (
+                  Card
+                )}
+                {renderDelete ? (
+                  <div className="absolute right-3 top-3 z-10">
+                    {renderDelete(item)}
+                  </div>
+                ) : null}
+              </div>
             );
           })}
         </div>

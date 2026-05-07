@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/converter"
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
@@ -56,7 +57,13 @@ func (m *Mesh) markFailed(ctx context.Context, j domain.Job, cause error) error 
 }
 
 // runConversion does the actual work. It mutates job.ArtifactHash on success.
+// Progress checkpoints (0..1) bump in coarse stages — frontend renders a
+// determinate bar so the user can tell the difference between "stuck" and
+// "running long". Errors from UpdateProgress are swallowed: a missed tick
+// must not fail the conversion.
 func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) error {
+	_ = m.UpdateProgress(ctx, j.ID, 0.05, "fetching")
+
 	target, err := m.catalog.GetTarget(ctx, j.Kind, j.Slug)
 	if err != nil {
 		if errors.Is(err, domain.ErrTargetNotFound) {
@@ -77,13 +84,19 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) error {
 	if err := m.fetchAndExtract(ctx, target.SourceBlobHash, workDir); err != nil {
 		return fmt.Errorf("fetch/extract source: %w", err)
 	}
+	_ = m.UpdateProgress(ctx, j.ID, 0.20, "extracting")
 
 	objPath, err := findFirstOBJ(workDir)
 	if err != nil {
 		return fmt.Errorf("locate obj: %w", err)
 	}
+	_ = m.UpdateProgress(ctx, j.ID, 0.30, "parsing")
 
-	results, err := m.converter.ConvertLODs(ctx, objPath)
+	jobID := j.ID
+	convCtx := converter.WithProgress(ctx, func(stage string, fraction float32) {
+		_ = m.UpdateProgress(ctx, jobID, fraction, stage)
+	})
+	results, err := m.converter.ConvertLODs(convCtx, objPath)
 	if err != nil {
 		return fmt.Errorf("convert: %w", err)
 	}
@@ -91,12 +104,18 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) error {
 		return fmt.Errorf("convert: no LOD results")
 	}
 
+	// Per-LOD register pass. Distribute the remaining 0.30 evenly across
+	// every result so the bar moves smoothly toward 1.0 as artifacts land.
+	span := float32(0.30) / float32(len(results))
 	for i, r := range results {
 		if err := m.persistLOD(ctx, j.Kind, j.Slug, uint32(i), r); err != nil {
 			return err
 		}
+		_ = m.UpdateProgress(ctx, j.ID, 0.70+span*float32(i+1), fmt.Sprintf("lod-%d", i))
 	}
 	j.ArtifactHash = results[0].ArtifactHash
+	j.Progress = 1.0
+	j.Stage = "registering"
 	return nil
 }
 

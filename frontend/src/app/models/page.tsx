@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listModels } from "@/model/infrastructure/model-gateway";
+import DeleteModelButton from "@/model/presentation/components/delete-model-button";
 
 export const dynamic = "force-dynamic";
 
@@ -35,17 +36,25 @@ export default async function ModelsPage() {
             {models.map((m) => (
               <article
                 key={m.slug}
-                className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur"
+                className="relative rounded-3xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur"
               >
-                <h2 className="text-2xl font-semibold tracking-tight text-white">
-                  {m.title}
-                </h2>
-                {m.description ? (
-                  <p className="mt-4 line-clamp-3 text-sm leading-6 text-neutral-300">
-                    {m.description}
-                  </p>
-                ) : null}
-                <p className="mt-6 text-xs text-neutral-500">{m.slug}</p>
+                <div className="absolute right-3 top-3 z-10">
+                  <DeleteModelButton slug={m.slug} label={m.title} />
+                </div>
+                <Link
+                  href={`/models/${m.slug}`}
+                  className="block cursor-pointer"
+                >
+                  <h2 className="text-2xl font-semibold tracking-tight text-white">
+                    {m.title}
+                  </h2>
+                  {m.description ? (
+                    <p className="mt-4 line-clamp-3 text-sm leading-6 text-neutral-300">
+                      {m.description}
+                    </p>
+                  ) : null}
+                  <p className="mt-6 text-xs text-neutral-500">{m.slug}</p>
+                </Link>
               </article>
             ))}
           </div>

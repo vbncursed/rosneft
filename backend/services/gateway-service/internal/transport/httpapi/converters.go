@@ -127,6 +127,13 @@ func jobToAPI(j domain.Job) Job {
 	if j.ArtifactHash != "" {
 		out.ArtifactHash = &j.ArtifactHash
 	}
+	if j.Progress > 0 {
+		p := j.Progress
+		out.Progress = &p
+	}
+	if j.Stage != "" {
+		out.Stage = &j.Stage
+	}
 	if !j.CreatedAt.IsZero() {
 		out.CreatedAt = &j.CreatedAt
 	}

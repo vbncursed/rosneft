@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
@@ -25,6 +26,10 @@ func (r *Redis) GetJob(ctx context.Context, id string) (domain.Job, error) {
 		Status:       domain.ParseJobStatus(res["status"]),
 		ErrorMessage: res["error_message"],
 		ArtifactHash: res["artifact_hash"],
+		Stage:        res["stage"],
+	}
+	if p, err := strconv.ParseFloat(res["progress"], 32); err == nil {
+		j.Progress = float32(p)
 	}
 	if t, err := time.Parse(time.RFC3339Nano, res["created_at"]); err == nil {
 		j.CreatedAt = t

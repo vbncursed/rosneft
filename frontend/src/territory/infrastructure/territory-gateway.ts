@@ -74,6 +74,8 @@ function mapJob(d: JobDto): Job {
     status: d.status,
     errorMessage: d.errorMessage,
     artifactHash: d.artifactHash,
+    progress: d.progress,
+    stage: d.stage,
     createdAt: d.createdAt,
     updatedAt: d.updatedAt,
   };

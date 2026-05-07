@@ -15,6 +15,8 @@ func jobToProto(j domain.Job) *meshv1.Job {
 		Status:       statusToProto(j.Status),
 		ErrorMessage: j.ErrorMessage,
 		ArtifactHash: j.ArtifactHash,
+		Progress:     j.Progress,
+		Stage:        j.Stage,
 		CreatedAt:    timestamppb.New(j.CreatedAt),
 		UpdatedAt:    timestamppb.New(j.UpdatedAt),
 	}

@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
@@ -24,6 +25,8 @@ func (r *Redis) SaveJob(ctx context.Context, j domain.Job) error {
 		"status":        j.Status.String(),
 		"error_message": j.ErrorMessage,
 		"artifact_hash": j.ArtifactHash,
+		"progress":      strconv.FormatFloat(float64(j.Progress), 'f', 4, 32),
+		"stage":         j.Stage,
 		"created_at":    j.CreatedAt.Format(time.RFC3339Nano),
 		"updated_at":    j.UpdatedAt.Format(time.RFC3339Nano),
 	}

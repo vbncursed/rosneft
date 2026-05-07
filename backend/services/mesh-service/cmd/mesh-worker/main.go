@@ -35,7 +35,6 @@ func newRootCmd() *cobra.Command {
 	flags.Int("redis-db", 0, "Redis logical database index")
 	flags.String("catalog-grpc-addr", "catalog:9001", "Catalog gRPC address")
 	flags.String("blob-dir", "", "BlobStore root directory (or set MESH_BLOB_DIR)")
-	flags.String("source-dir", "", "Source mesh root directory (or set MESH_SOURCE_DIR)")
 	flags.String("worker-name", "mesh-worker-1", "Consumer name within the group")
 	flags.Duration("block-timeout", 5*time.Second, "XREADGROUP block duration per poll")
 	flags.Int("max-concurrent-jobs", 0, "max parallel conversions (0 = GOMAXPROCS)")

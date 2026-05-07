@@ -2,11 +2,35 @@ import { httpDelete, httpGet, httpPost } from "@/shared/infrastructure/http/clie
 import type { components } from "@/shared/infrastructure/api/dto";
 import type { Model } from "@/model/domain/model";
 import type { Job } from "@/shared/domain/job";
+import type { Artifact } from "@/shared/domain/artifact";
+import type { LodArtifact } from "@/shared/domain/lod-artifact";
 
 type ModelDto = components["schemas"]["Model"];
 type ModelCreatedDto = components["schemas"]["ModelCreated"];
 type EntityCreate = components["schemas"]["EntityCreate"];
 type JobDto = components["schemas"]["Job"];
+type ArtifactDto = components["schemas"]["Artifact"];
+type LodArtifactDto = components["schemas"]["LodArtifact"];
+
+function mapLod(d: LodArtifactDto): LodArtifact {
+  return { lod: d.lod, hash: d.hash, size: d.size, vertices: d.vertices, faces: d.faces };
+}
+
+function mapArtifact(d: ArtifactDto): Artifact {
+  return {
+    slug: d.slug,
+    lod: d.lod,
+    hash: d.hash,
+    contentType: d.contentType,
+    size: d.size,
+    vertices: d.vertices,
+    faces: d.faces,
+    bboxMin: d.bboxMin,
+    bboxMax: d.bboxMax,
+    createdAt: d.createdAt,
+    lods: d.artifacts ? d.artifacts.map(mapLod) : undefined,
+  };
+}
 
 function mapModel(d: ModelDto): Model {
   return {
@@ -27,6 +51,8 @@ function mapJob(d: JobDto): Job {
     status: d.status,
     errorMessage: d.errorMessage,
     artifactHash: d.artifactHash,
+    progress: d.progress,
+    stage: d.stage,
     createdAt: d.createdAt,
     updatedAt: d.updatedAt,
   };
@@ -51,4 +77,11 @@ export async function createModel(
 
 export async function deleteModel(slug: string): Promise<void> {
   return httpDelete(`/api/models/${encodeURIComponent(slug)}`);
+}
+
+export async function listModelArtifacts(slug: string): Promise<Artifact[]> {
+  const data = await httpGet<ArtifactDto[]>(
+    `/api/models/${encodeURIComponent(slug)}/artifacts`,
+  );
+  return data.map(mapArtifact);
 }
