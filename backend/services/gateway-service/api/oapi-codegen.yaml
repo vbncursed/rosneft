@@ -1,0 +1,14 @@
+# Configuration for oapi-codegen — schema-first server stub generation.
+# Run via `make openapi-gen` from backend/.
+package: httpapi
+
+generate:
+  std-http-server: true   # net/http 1.22+ ServeMux (no third-party router)
+  models: true
+  embedded-spec: true     # embeds the spec into the binary for /openapi.yaml
+  strict-server: true     # typed handler signatures with error returns
+
+output: internal/transport/httpapi/openapi_gen.go
+
+output-options:
+  skip-prune: true

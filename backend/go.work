@@ -1,0 +1,10 @@
+go 1.26
+
+use (
+	./pkg
+	./proto
+	./services/asset-service
+	./services/catalog-service
+	./services/gateway-service
+	./services/mesh-service
+)

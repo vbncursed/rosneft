@@ -1,0 +1,169 @@
+import { Suspense, useCallback, useRef } from "react";
+import { Canvas, type ThreeEvent } from "@react-three/fiber";
+import { AdaptiveDpr, Bounds } from "@react-three/drei";
+import CameraRig from "@/viewer/presentation/three/camera-rig";
+import Lighting from "@/viewer/presentation/three/lighting";
+import GltfModel from "@/viewer/presentation/three/gltf-model";
+import GlbPreloader from "@/viewer/presentation/three/glb-preloader";
+import Ktx2Init from "@/viewer/presentation/three/ktx2-init";
+import type { LodArtifact } from "@/catalog/domain/lod-artifact";
+import MeasurementLayer from "@/measurement/presentation/three/measurement-layer";
+import type { Chain } from "@/measurement/domain/chain";
+import type { MeasurePoint } from "@/measurement/domain/measurement";
+import type { GizmoMode } from "@/placement/domain/gizmo-mode";
+import type {
+  PlacementTransform,
+  ResolvedPlacement,
+} from "@/placement/domain/placement";
+import PlacementsLayer from "@/placement/presentation/three/placements-layer";
+
+// Stable literal references so react-three-fiber doesn't tear down and
+// recreate the gridHelper / background colour on every render of this
+// component. RTF reconciles `args` by reference; new array literals each
+// render trigger a dispose+reconstruct cycle for the underlying
+// THREE.Object3D.
+// near=0.1 (not 0.01) keeps the depth-buffer precision sane against
+// far=500 — log2(500/0.1) fits a 24-bit depth buffer comfortably; 500/0.01
+// invites Z-fighting on coplanar geometry without a measurable benefit
+// at the converter's normalised scale (max-axis = 2).
+const CAMERA = { position: [0, 0, 3] as [number, number, number], fov: 50, near: 0.1, far: 500 };
+// Lower bound is intentionally below 1: AdaptiveDpr drops dpr toward the
+// lower bound while CameraRig is calling performance.regress() during a
+// wheel zoom. Half-resolution renders are ~4x cheaper per pixel and read
+// fine for the few hundred ms of an active gesture; full quality is
+// restored once the gesture ends.
+const DPR_RANGE: [number, number] = [0.5, 1.5];
+const GL_CONFIG = { antialias: true, alpha: false };
+const BG_ARGS: [string] = ["#121212"];
+const GRID_ARGS: [number, number, string, string] = [6, 24, "#2f2f2f", "#1e1e1e"];
+const GRID_POSITION: [number, number, number] = [0, -1.2, 0];
+
+interface SceneCanvasProps {
+  parentLods: LodArtifact[];
+  resetVersion: number;
+  placements: ResolvedPlacement[];
+  selectedId: number | null;
+  mode: GizmoMode;
+  measureMode: boolean;
+  chains: Chain[];
+  activeChainId: number | null;
+  unitRatio: number;
+  onSelect: (id: number | null) => void;
+  onCommit: (id: number, transform: PlacementTransform) => void;
+  onMeasureClick: (point: MeasurePoint) => void;
+  onCloseActiveChain: () => void;
+  onRemoveSegment: (chainId: number, segmentIndex: number) => void;
+  onRemoveChain: (chainId: number) => void;
+}
+
+export default function SceneCanvas({
+  parentLods,
+  resetVersion,
+  placements,
+  selectedId,
+  mode,
+  measureMode,
+  chains,
+  activeChainId,
+  unitRatio,
+  onSelect,
+  onCommit,
+  onMeasureClick,
+  onCloseActiveChain,
+  onRemoveSegment,
+  onRemoveChain,
+}: SceneCanvasProps) {
+  const handlePointerMissed = useCallback(() => {
+    // In measure mode an empty-space click is just "no surface" — leave the
+    // pending point alone. Otherwise treat empty clicks as deselect.
+    if (!measureMode) onSelect(null);
+  }, [measureMode, onSelect]);
+
+  // Dedupe handle: R3F dispatches one synthetic event per raycast
+  // intersection, but they all share the same DOM nativeEvent. We
+  // process only the first event per native click; the rest are ignored.
+  // (stopPropagation alone is not enough — separate intersection events
+  // start with fresh `stopped` state and can still reach the wrapper.)
+  const lastNativeRef = useRef<Event | null>(null);
+
+  // Wrapper-group click is the catch-all for in-scene measurement points.
+  // Use the first intersection's world point — that's the surface the
+  // user actually targeted, regardless of how many objects sit behind it.
+  const handleSceneClick = useCallback(
+    (event: ThreeEvent<MouseEvent>) => {
+      if (!measureMode) return;
+      if (lastNativeRef.current === event.nativeEvent) return;
+      lastNativeRef.current = event.nativeEvent;
+      event.stopPropagation();
+      const hit = event.intersections[0]?.point ?? event.point;
+      onMeasureClick({ x: hit.x, y: hit.y, z: hit.z });
+    },
+    [measureMode, onMeasureClick],
+  );
+
+  return (
+    <Canvas
+      camera={CAMERA}
+      gl={GL_CONFIG}
+      dpr={DPR_RANGE}
+      // frameloop="demand" turns off the always-on 60fps render loop.
+      // R3F now renders only when invalidate() is called: on prop/state
+      // changes, on Suspense resolution, and — for camera input — when
+      // CameraRig fires an explicit invalidate at the end of a zoom or
+      // drag. Mid-zoom frames are no longer drawn, which is what was
+      // pegging the GPU on heavy KTX2 meshes.
+      frameloop="demand"
+      onPointerMissed={handlePointerMissed}
+    >
+      <color attach="background" args={BG_ARGS} />
+      {/* Detect WebGL compressed-texture support before any GLB parses,
+          so KTX2 transcoding hits GPU formats instead of RGBA8. */}
+      <Ktx2Init />
+      {/* Warm useGLTF's cache only after Ktx2Init has configured the
+          loader — preloading from outside Canvas would race the KTX2
+          setup and corrupt texture decoding. */}
+      <GlbPreloader parentLods={parentLods} placements={placements} />
+      <Lighting />
+
+      {/* Always wire the click handler — handleSceneClick early-returns when
+          measureMode is off. Toggling between defined/undefined would force
+          the group to re-attach DOM listeners on every mode change. */}
+      <group onClick={handleSceneClick}>
+        {/* `observe` would re-fit the camera every time <Detailed> swaps
+            an LOD child (its bbox change is what observe watches). That
+            fights OrbitControls during a wheel zoom and reads as a freeze
+            at every LOD threshold. We fit once on mount via `fit` and
+            route explicit resets through CameraRig/resetVersion. */}
+        <Bounds fit clip margin={1.2}>
+          <GltfModel lods={parentLods} />
+        </Bounds>
+
+        <Suspense fallback={null}>
+          <PlacementsLayer
+            placements={placements}
+            selectedId={selectedId}
+            mode={mode}
+            measureMode={measureMode}
+            onSelect={onSelect}
+            onCommit={onCommit}
+          />
+        </Suspense>
+      </group>
+
+      <MeasurementLayer
+        chains={chains}
+        activeChainId={activeChainId}
+        unitRatio={unitRatio}
+        onCloseActive={onCloseActiveChain}
+        onRemoveSegment={onRemoveSegment}
+        onRemoveChain={onRemoveChain}
+      />
+
+      <CameraRig resetVersion={resetVersion} />
+      <gridHelper args={GRID_ARGS} position={GRID_POSITION} />
+      {/* Drop DPR while the user is interacting (camera drag, gizmo drag)
+          and restore it on idle — keeps frame rate up on weaker GPUs. */}
+      <AdaptiveDpr pixelated />
+    </Canvas>
+  );
+}

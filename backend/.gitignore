@@ -1,0 +1,28 @@
+# Build artifacts
+/bin/
+/dist/
+
+# Local data
+/data/
+*.pid
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Test
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Env
+.env
+.env.local
+
+# Generated proto code (uncomment if generated code should not be committed)
+# /proto/gen/
+
+# Docker
+.docker-volume/

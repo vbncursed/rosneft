@@ -1,0 +1,64 @@
+# Root .gitignore for the rosneft monorepo. Covers JS/TS (frontend), shared
+# IDE/OS noise, env files, and logs. Go-specific rules live in
+# backend/.gitignore so the Go module sees them locally too.
+
+# ── Dependencies ────────────────────────────────────────────────────────────
+node_modules/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# ── Build artifacts (frontend) ──────────────────────────────────────────────
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# ── Test / coverage ─────────────────────────────────────────────────────────
+coverage/
+*.lcov
+
+# ── Env / secrets ───────────────────────────────────────────────────────────
+.env
+.env.*
+*.pem
+*.key
+
+# ── Debug / logs ────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ── IDE / editors ───────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── OS noise ────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Tooling caches / scratch ────────────────────────────────────────────────
+.cache/
+.turbo/
+.vercel
+.planning/
+
+# ── Local backups / patches ─────────────────────────────────────────────────
+*.bak
+*.orig
+*.rej
+
+# ── Local debug screenshots dropped in the repo root by the dev session ─────
+view.png

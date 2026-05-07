@@ -1,0 +1,37 @@
+package service
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
+)
+
+// CreatePlacement validates the input, fills in defaults for the transform,
+// and persists the placement. Defaults: scale {1,1,1}, position/rotation
+// zero, label empty. ParentSlug == AssetSlug is rejected here so the caller
+// gets a clean InvalidInput rather than a check-constraint error from the
+// database.
+func (c *Catalog) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
+	if p.ParentSlug == "" || p.AssetSlug == "" {
+		return domain.Placement{}, fmt.Errorf("service.CreatePlacement: %w: parent_slug and asset_slug are required", domain.ErrInvalidInput)
+	}
+	if p.ParentSlug == p.AssetSlug {
+		return domain.Placement{}, domain.ErrSelfPlacement
+	}
+	p.Scale = defaultScale(p.Scale)
+	if p.Scale.X <= 0 || p.Scale.Y <= 0 || p.Scale.Z <= 0 {
+		return domain.Placement{}, fmt.Errorf("service.CreatePlacement: %w: scale components must be positive", domain.ErrInvalidInput)
+	}
+	return c.repo.CreatePlacement(ctx, p)
+}
+
+// defaultScale replaces a zero-value Vec3 with {1,1,1} (uniform unit scale).
+// Mixed inputs (e.g. {2, 0, 0}) are left alone so the validation step below
+// can reject them — that prevents silent "I asked for X but got 1" surprises.
+func defaultScale(s domain.Vec3) domain.Vec3 {
+	if s == (domain.Vec3{}) {
+		return domain.Vec3{X: 1, Y: 1, Z: 1}
+	}
+	return s
+}

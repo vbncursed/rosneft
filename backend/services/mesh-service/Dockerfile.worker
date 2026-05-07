@@ -1,0 +1,64 @@
+# syntax=docker/dockerfile:1.7
+
+# ---------- gltfpack: Draco encoder used by the converter ----------
+# We build gltfpack from zeux/meshoptimizer source so the resulting binary
+# has predictable provenance (vs. fetching pre-built artefacts) and is
+# pinned to a known release.
+FROM debian:12-slim AS gltfpack-build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git ca-certificates build-essential cmake \
+    && rm -rf /var/lib/apt/lists/*
+ARG MESHOPT_VERSION=v0.22
+# basis_universal master keeps renaming fields between releases; pin to the
+# 1.16.x line which still uses the field names meshoptimizer v0.22 expects
+# (m_max_selector_clusters, m_no_ktx2_zstandard_supercompression, …).
+ARG BASISU_VERSION=1.16.4
+RUN git clone --depth 1 --branch ${MESHOPT_VERSION} \
+        https://github.com/zeux/meshoptimizer.git /src \
+ && git clone --depth 1 --branch ${BASISU_VERSION} \
+        https://github.com/BinomialLLC/basis_universal.git /src/gltf/basisu
+WORKDIR /src
+# MESHOPT_BASISU_PATH must point at a checkout of BinomialLLC/basis_universal
+# so gltfpack links against the encoder; without it `-tc` (KTX2 / KHR_texture_basisu)
+# fails at runtime with "gltfpack was built without BasisU support".
+RUN cmake -DCMAKE_BUILD_TYPE=Release \
+          -DMESHOPT_BUILD_GLTFPACK=ON \
+          -DMESHOPT_BASISU_PATH=/src/gltf/basisu \
+          -B build \
+    && cmake --build build -j --target gltfpack \
+    && strip build/gltfpack
+
+# ---------- mesh-worker: the Go binary ----------
+FROM golang:1.26-alpine AS build
+WORKDIR /src
+
+COPY go.work go.work.su[m] ./
+COPY proto/go.mod proto/go.su[m] ./proto/
+COPY pkg/go.mod pkg/go.su[m] ./pkg/
+COPY services/gateway-service/go.mod services/gateway-service/go.su[m] ./services/gateway-service/
+COPY services/catalog-service/go.mod services/catalog-service/go.su[m] ./services/catalog-service/
+COPY services/mesh-service/go.mod services/mesh-service/go.su[m] ./services/mesh-service/
+COPY services/asset-service/go.mod services/asset-service/go.su[m] ./services/asset-service/
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    cd services/mesh-service && go mod download
+
+COPY proto/ ./proto/
+COPY pkg/ ./pkg/
+COPY services/mesh-service/ ./services/mesh-service/
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    cd services/mesh-service && \
+    CGO_ENABLED=0 GOOS=linux go build \
+        -trimpath -ldflags="-s -w" \
+        -o /out/mesh-worker ./cmd/mesh-worker
+
+# ---------- final: distroless/cc carries glibc + libstdc++ for gltfpack ----------
+FROM gcr.io/distroless/cc-debian12:nonroot
+COPY --from=build          /out/mesh-worker     /mesh-worker
+COPY --from=gltfpack-build /src/build/gltfpack  /usr/local/bin/gltfpack
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+USER nonroot:nonroot
+ENTRYPOINT ["/mesh-worker"]
