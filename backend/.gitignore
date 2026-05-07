@@ -2,8 +2,14 @@
 /bin/
 /dist/
 
-# Local data
-/data/
+# Local data — blob storage now lives in a Docker named volume, so we
+# don't need the host blob/ tracked at all. source/ stays as a bind
+# mount but contains user-supplied .obj/.mtl/.jpg files that should
+# never be committed; we only track the empty directory via .gitkeep
+# so a fresh clone has the mount target ready.
+/data/blob/
+/data/source/*
+!/data/source/.gitkeep
 *.pid
 
 # IDE

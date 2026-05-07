@@ -25,8 +25,15 @@ RUN --mount=type=cache,target=/go/pkg/mod \
         -trimpath -ldflags="-s -w" \
         -o /out/asset ./cmd/asset
 
+# Pre-create the BlobStore root in the build stage so the named volume
+# attached at /var/blob inherits nonroot ownership instead of falling
+# back to root:root (which is what Docker does when the mount target
+# does not exist in the final image).
+RUN mkdir -p /out/blob
+
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/asset /asset
+COPY --from=build --chown=nonroot:nonroot /out/blob /var/blob
 USER nonroot:nonroot
 EXPOSE 8081
 ENTRYPOINT ["/asset"]

@@ -97,7 +97,15 @@ services:
       MESH_DRACO_BIN: "gltfpack"
       MESH_LOD_RATIOS: "0.5,0.25"
     volumes:
-      - ./backend/data/blob:/var/blob
+      # Named volume so Docker manages permissions: the volume is
+      # initialised from /var/blob in the image (which the Dockerfile
+      # pre-creates as nonroot:nonroot), so the worker writes without
+      # the bind-mount root-owned-mountpoint problem. Shared with the
+      # asset service in read-only mode below.
+      - blob-data:/var/blob
+      # Source meshes (.obj/.mtl/.jpg) are dev-supplied input — keep as
+      # a read-only bind mount so contributors can drop files in
+      # backend/data/source/<asset>/ and see them picked up.
       - ./backend/data/source:/var/source:ro
 
   asset:
@@ -109,7 +117,7 @@ services:
       ASSET_BLOB_DIR: "/var/blob"
       ASSET_LOG_LEVEL: "info"
     volumes:
-      - ./backend/data/blob:/var/blob:ro
+      - blob-data:/var/blob:ro
 
   frontend:
     # Build context is the frontend/ directory at the repo root.
@@ -131,3 +139,4 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  blob-data:

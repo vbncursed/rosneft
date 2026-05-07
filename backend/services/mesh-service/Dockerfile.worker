@@ -55,10 +55,18 @@ RUN --mount=type=cache,target=/go/pkg/mod \
         -trimpath -ldflags="-s -w" \
         -o /out/mesh-worker ./cmd/mesh-worker
 
+# Pre-create the BlobStore root in the build stage so we can COPY it into
+# the distroless image with nonroot ownership. Without this step, mounting
+# a named volume on /var/blob (which doesn't exist in the final image)
+# would let Docker create the mount-point as root:root, and the nonroot
+# worker would fail with EACCES on the first os.MkdirAll for a shard dir.
+RUN mkdir -p /out/blob
+
 # ---------- final: distroless/cc carries glibc + libstdc++ for gltfpack ----------
 FROM gcr.io/distroless/cc-debian12:nonroot
 COPY --from=build          /out/mesh-worker     /mesh-worker
 COPY --from=gltfpack-build /src/build/gltfpack  /usr/local/bin/gltfpack
+COPY --from=build --chown=nonroot:nonroot /out/blob /var/blob
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 USER nonroot:nonroot
 ENTRYPOINT ["/mesh-worker"]
