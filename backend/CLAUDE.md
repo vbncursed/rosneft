@@ -7,7 +7,7 @@ Guidance for Claude Code when working in `backend/`.
 - **Go 1.26**, `go.work` workspace with one module per service (`services/*`) plus `pkg/` and `proto/`.
 - **Postgres 17** (catalog), **Redis 8 Streams** (mesh job queue), filesystem `BlobStore` (asset).
 - **gRPC** for service-to-service, **HTTP/JSON** for the gateway, OpenAPI spec served by gateway with Scalar UI.
-- **Docker Compose** orchestrates the seven containers: `postgres`, `redis`, `gateway`, `catalog`, `mesh-api`, `mesh-worker`, `asset`.
+- **Docker Compose** orchestrates the eight containers: `postgres`, `redis`, `gateway`, `catalog`, `mesh-api`, `mesh-worker`, `asset`, `frontend`. The compose file lives at the repo root (`docker-compose.yml`) so the frontend can be a sibling build context; `make compose-up` from `backend/` still works via `-f ../docker-compose.yml`.
 
 ## Services
 

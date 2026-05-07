@@ -34,14 +34,14 @@ tidy: ## go mod tidy across all modules
 		(cd $$mod && go mod tidy) || exit 1; \
 	done
 
-compose-up: ## Build images and start all services
-	docker compose up --build -d
+compose-up: ## Build images and start all services (compose lives at the repo root)
+	docker compose -f ../docker-compose.yml up --build -d
 
 compose-down: ## Stop and remove all services
-	docker compose down
+	docker compose -f ../docker-compose.yml down
 
 compose-logs: ## Tail logs from all services
-	docker compose logs -f
+	docker compose -f ../docker-compose.yml logs -f
 
 proto-gen: ## Generate Go code from .proto definitions (requires buf)
 	cd proto && buf generate

@@ -3,6 +3,12 @@ import type { NextConfig } from "next";
 const gatewayUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 const nextConfig: NextConfig = {
+  // standalone output bundles a minimal node_modules into .next/standalone
+  // so the production Docker image only needs the standalone tree + the
+  // static assets — no full node_modules copy. Image size drops from
+  // ~700MB to ~200MB.
+  output: "standalone",
+
   // Tree-shake barrel imports for these libraries — drei in particular
   // re-exports 100+ components from a single index, so a one-symbol
   // import would otherwise pull a chunk of unused features.

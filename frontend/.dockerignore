@@ -1,0 +1,33 @@
+# Build context excludes — keep the docker build context small and
+# deterministic. Anything matched here never reaches the build stage,
+# which makes COPY layers reproducible across machines.
+
+node_modules
+.next
+out
+build
+dist
+
+# Local debug noise
+view.png
+*.log
+
+# Editor / OS
+.DS_Store
+.idea
+.vscode
+*.swp
+*.swo
+
+# Env files (never bake secrets into the image)
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+
+# Docs that don't need to ship with the image
+README.md
+CLAUDE.md
