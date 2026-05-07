@@ -5,13 +5,12 @@ package catalog
 
 import (
 	"errors"
-	"fmt"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
+	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
@@ -24,9 +23,9 @@ type Client struct {
 
 // Dial opens a connection to the catalog service. The caller must Close it.
 func Dial(target string) (*Client, error) {
-	conn, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpcutil.Dial(target)
 	if err != nil {
-		return nil, fmt.Errorf("catalog.Dial: %w", err)
+		return nil, err
 	}
 	return &Client{conn: conn, cc: catalogv1.NewCatalogServiceClient(conn)}, nil
 }

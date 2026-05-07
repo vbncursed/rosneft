@@ -4,13 +4,12 @@ package mesh
 
 import (
 	"errors"
-	"fmt"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
+	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 	meshv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/mesh/v1"
 )
 
@@ -22,9 +21,9 @@ type Client struct {
 
 // Dial opens a connection to the mesh service.
 func Dial(target string) (*Client, error) {
-	conn, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpcutil.Dial(target)
 	if err != nil {
-		return nil, fmt.Errorf("mesh.Dial: %w", err)
+		return nil, err
 	}
 	return &Client{conn: conn, cc: meshv1.NewMeshServiceClient(conn)}, nil
 }

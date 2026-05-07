@@ -27,7 +27,9 @@ func (r *PG) ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.
 	}
 	defer rows.Close()
 
-	out := make([]domain.Artifact, 0)
+	// 4 LOD levels per territory is the typical case; preallocate to avoid
+	// slice growth copies during normal operation.
+	out := make([]domain.Artifact, 0, 4)
 	for rows.Next() {
 		a, err := scanArtifact(rows, slug)
 		if err != nil {

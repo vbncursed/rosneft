@@ -27,7 +27,9 @@ func (r *PG) ListPlacements(ctx context.Context, territorySlug string) ([]domain
 	}
 	defer rows.Close()
 
-	out := make([]domain.Placement, 0)
+	// 16 placements per territory is the typical scene; preallocate to
+	// avoid slice growth copies during the SceneBundle hot path.
+	out := make([]domain.Placement, 0, 16)
 	for rows.Next() {
 		p, err := scanPlacement(rows)
 		if err != nil {

@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
+	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 	uploadv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/upload/v1"
 	"github.com/vbncursed/rosneft/backend/services/upload-service/internal/config"
 	grpctransport "github.com/vbncursed/rosneft/backend/services/upload-service/internal/transport/grpcapi"
@@ -36,7 +37,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	svc := InitService(cfg, store, blobs)
 
-	grpcSrv := grpc.NewServer()
+	grpcSrv := grpcutil.NewServer(logger)
 	grpctransport.New(svc).Register(grpcSrv)
 
 	healthSrv := health.NewServer()

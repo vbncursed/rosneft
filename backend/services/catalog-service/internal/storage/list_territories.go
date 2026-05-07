@@ -17,7 +17,9 @@ func (r *PG) ListTerritories(ctx context.Context) ([]domain.Territory, error) {
 	}
 	defer rows.Close()
 
-	out := make([]domain.Territory, 0)
+	// 32 territories covers the typical catalog without realloc;
+	// the slice will grow naturally if the catalog gets larger.
+	out := make([]domain.Territory, 0, 32)
 	for rows.Next() {
 		t, err := scanTerritory(rows)
 		if err != nil {

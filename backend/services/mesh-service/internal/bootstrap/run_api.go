@@ -36,7 +36,7 @@ func RunAPI(ctx context.Context, cfg config.Config) error {
 	}
 
 	svc := InitServiceAPI(store)
-	grpcSrv, healthSrv := InitGRPCServer(svc)
+	grpcSrv, healthSrv := InitGRPCServer(svc, logger)
 
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {

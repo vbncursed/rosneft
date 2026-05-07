@@ -62,8 +62,7 @@ func (r *PG) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Pl
 			// transport to map to 404.
 			return domain.Placement{}, domain.ErrTerritoryNotFound
 		}
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23514" && pgErr.ConstraintName == "placements_scale_positive" {
+		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23514" && pgErr.ConstraintName == "placements_scale_positive" {
 			return domain.Placement{}, fmt.Errorf("storage.CreatePlacement: %w: scale must be positive", domain.ErrInvalidInput)
 		}
 		return domain.Placement{}, fmt.Errorf("storage.CreatePlacement: %w", err)

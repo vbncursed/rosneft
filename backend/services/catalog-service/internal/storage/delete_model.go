@@ -16,8 +16,7 @@ import (
 func (r *PG) DeleteModel(ctx context.Context, slug string) error {
 	tag, err := r.pool.Exec(ctx, `DELETE FROM models WHERE slug = $1`, slug)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23503" { // foreign_key_violation
+		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23503" { // foreign_key_violation
 			return fmt.Errorf("storage.DeleteModel: %w: model is in use by placements", domain.ErrInvalidInput)
 		}
 		return fmt.Errorf("storage.DeleteModel: %w", err)
