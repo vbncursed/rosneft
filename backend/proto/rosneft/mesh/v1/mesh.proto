@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package rosneft.mesh.v1;
+
+option go_package = "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/mesh/v1;meshv1";
+
+import "google/protobuf/timestamp.proto";
+
+// MeshService accepts conversion jobs and reports their status. The actual
+// CPU-heavy work happens in mesh-worker, which consumes from Redis Streams
+// and writes results to the BlobStore + catalog.
+service MeshService {
+  // SubmitConversion enqueues a conversion job for the given project. Returns
+  // the job state immediately; the actual conversion runs asynchronously.
+  rpc SubmitConversion(SubmitConversionRequest) returns (SubmitConversionResponse);
+
+  // GetJob returns the current state of a conversion job.
+  rpc GetJob(GetJobRequest) returns (GetJobResponse);
+}
+
+enum JobStatus {
+  JOB_STATUS_UNSPECIFIED = 0;
+  JOB_STATUS_PENDING = 1;
+  JOB_STATUS_RUNNING = 2;
+  JOB_STATUS_SUCCEEDED = 3;
+  JOB_STATUS_FAILED = 4;
+}
+
+message Job {
+  string id = 1;
+  string project_slug = 2;
+  JobStatus status = 3;
+  // ErrorMessage is set when status == JOB_STATUS_FAILED.
+  string error_message = 4;
+  // ArtifactHash is set when status == JOB_STATUS_SUCCEEDED.
+  string artifact_hash = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message SubmitConversionRequest {
+  string project_slug = 1;
+}
+
+message SubmitConversionResponse {
+  Job job = 1;
+}
+
+message GetJobRequest {
+  string id = 1;
+}
+
+message GetJobResponse {
+  Job job = 1;
+}

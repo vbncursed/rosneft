@@ -1,0 +1,116 @@
+name: rosneft
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: rosneft
+      POSTGRES_USER: rosneft
+      POSTGRES_PASSWORD: rosneft
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rosneft -d rosneft"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway-service/Dockerfile
+    depends_on:
+      catalog: { condition: service_started }
+      mesh-api: { condition: service_started }
+      asset: { condition: service_started }
+    environment:
+      GATEWAY_HTTP_ADDR: ":8080"
+      GATEWAY_CATALOG_GRPC_ADDR: "catalog:9001"
+      GATEWAY_MESH_GRPC_ADDR: "mesh-api:9002"
+      GATEWAY_ASSET_HTTP_ADDR: "http://asset:8081"
+      GATEWAY_ALLOWED_ORIGINS: "*"
+      GATEWAY_LOG_LEVEL: "info"
+    ports:
+      - "8080:8080"
+
+  catalog:
+    build:
+      context: .
+      dockerfile: services/catalog-service/Dockerfile
+    depends_on:
+      postgres: { condition: service_healthy }
+    ports:
+      - "9001:9001"
+    environment:
+      CATALOG_GRPC_ADDR: ":9001"
+      CATALOG_DB_DSN: "postgres://rosneft:rosneft@postgres:5432/rosneft?sslmode=disable"
+      CATALOG_AUTO_MIGRATE: "true"
+      CATALOG_SEED_FILE: "/data/projects.yaml"
+      CATALOG_LOG_LEVEL: "info"
+
+  mesh-api:
+    build:
+      context: .
+      dockerfile: services/mesh-service/Dockerfile.api
+    depends_on:
+      redis: { condition: service_healthy }
+      catalog: { condition: service_started }
+    ports:
+      - "9002:9002"
+    environment:
+      MESH_GRPC_ADDR: ":9002"
+      MESH_REDIS_ADDR: "redis:6379"
+      MESH_CATALOG_GRPC_ADDR: "catalog:9001"
+      MESH_LOG_LEVEL: "info"
+
+  mesh-worker:
+    build:
+      context: .
+      dockerfile: services/mesh-service/Dockerfile.worker
+    depends_on:
+      redis: { condition: service_healthy }
+      catalog: { condition: service_started }
+    environment:
+      MESH_REDIS_ADDR: "redis:6379"
+      MESH_CATALOG_GRPC_ADDR: "catalog:9001"
+      MESH_BLOB_DIR: "/var/blob"
+      MESH_SOURCE_DIR: "/var/source"
+      MESH_WORKER_NAME: "mesh-worker-1"
+      MESH_LOG_LEVEL: "info"
+      MESH_DRACO_ENABLED: "true"
+      MESH_KTX2_ENABLED: "true"
+      MESH_DRACO_BIN: "gltfpack"
+      MESH_LOD_RATIOS: "0.5,0.25"
+    volumes:
+      - ./data/blob:/var/blob
+      - ./data/source:/var/source:ro
+
+  asset:
+    build:
+      context: .
+      dockerfile: services/asset-service/Dockerfile
+    environment:
+      ASSET_HTTP_ADDR: ":8081"
+      ASSET_BLOB_DIR: "/var/blob"
+      ASSET_LOG_LEVEL: "info"
+    volumes:
+      - ./data/blob:/var/blob:ro
+
+volumes:
+  postgres-data:
+  redis-data:

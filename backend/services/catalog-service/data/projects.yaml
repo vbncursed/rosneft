@@ -1,0 +1,33 @@
+# Mirrored from frontend/lib/projects.ts. The seeder upserts these on startup
+# so the database becomes the source of truth for the catalog.
+projects:
+  - slug: dji-wp-46-cut
+    title: DJI WP 46 CUT
+    subtitle: Актуальный проект
+    description: |
+      Новая актуальная версия проекта с OBJ-моделью, MTL-материалом и
+      JPG-текстурой из каталога DJI_WP 46_CUT.
+    source_obj_path: "DJI_WP 46_CUT/sf46_17.02.2026.obj"
+    source_mtl_path: "DJI_WP 46_CUT/sf46_17.02.2026.mtl"
+    source_texture_path: "DJI_WP 46_CUT/sf46_17.02.2026.jpg"
+
+  - slug: sf-46slicllineobj
+    title: SF-46 Slice CLL Line
+    subtitle: Предыдущий проект
+    description: |
+      Предыдущая версия проекта с OBJ-моделью, MTL-материалом и JPG-текстурой
+      для просмотра рельефа и проверки привязки изображения.
+    source_obj_path: "object1/sf-46slicllineobj.obj"
+    source_mtl_path: "object1/sf-46slicllineobj.mtl"
+    source_texture_path: "object1/sf-46slicllineobj.jpg"
+
+  - slug: testing-equipment-v8
+    title: Testing Equipment v8
+    subtitle: Многоматериальная модель
+    description: |
+      Тестовая модель оборудования из SketchUp с десятками цветных
+      материалов (Kd) и несколькими JPG/PNG-текстурами (map_Kd) — проверяет
+      работу конвертера на смешанных материалах.
+    source_obj_path: "testing-equipment-v8/Testing equipment  v8 2_obj.obj"
+    source_mtl_path: "testing-equipment-v8/Testing equipment  v8 2_obj.mtl"
+    source_texture_path: ""

@@ -1,0 +1,14 @@
+.git/
+.idea/
+.vscode/
+*.md
+!README.md
+
+/bin/
+/data/
+**/.env
+**/.env.local
+
+*.test
+*.out
+coverage.*

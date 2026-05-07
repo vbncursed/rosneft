@@ -1,0 +1,436 @@
+openapi: 3.0.3
+info:
+  title: Rosneft Backend Gateway API
+  version: 0.1.0
+  description: |
+    Public REST surface for the Rosneft 3D viewer frontend. Internal
+    services (catalog, mesh) are accessed via gRPC; this gateway is the
+    only externally exposed component.
+
+    Note: binary asset streaming (`GET /api/assets/{hash}`) is implemented
+    as a transparent reverse proxy to asset-service and is intentionally
+    not described here as a typed endpoint — clients should treat it as
+    raw binary content (`model/gltf-binary` or `image/jpeg`) with Range,
+    ETag, and immutable cache headers.
+servers:
+  - url: http://localhost:8080
+    description: Local docker-compose
+
+components:
+  schemas:
+    Vec3:
+      type: object
+      required: [x, y, z]
+      properties:
+        x: { type: number, format: double }
+        y: { type: number, format: double }
+        z: { type: number, format: double }
+    Project:
+      type: object
+      required: [slug, title]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        subtitle: { type: string }
+        description: { type: string }
+        sourceObjPath: { type: string }
+        sourceMtlPath: { type: string }
+        sourceTexturePath: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    LodArtifact:
+      type: object
+      required: [lod, hash, size]
+      description: |
+        Minimal descriptor for one LOD level of a project. Carries only
+        size/geometry stats — bbox, contentType, createdAt are LOD-invariant
+        and live on the parent Artifact.
+      properties:
+        lod: { type: integer, format: int32, minimum: 0 }
+        hash: { type: string }
+        size: { type: integer, format: int64 }
+        vertices: { type: integer, format: int64 }
+        faces: { type: integer, format: int64 }
+    Artifact:
+      type: object
+      required: [projectSlug, lod, hash, contentType, size]
+      properties:
+        projectSlug: { type: string }
+        lod: { type: integer, format: int32, minimum: 0 }
+        hash: { type: string }
+        contentType: { type: string }
+        size: { type: integer, format: int64 }
+        vertices: { type: integer, format: int64 }
+        faces: { type: integer, format: int64 }
+        bboxMin: { $ref: '#/components/schemas/Vec3' }
+        bboxMax: { $ref: '#/components/schemas/Vec3' }
+        createdAt: { type: string, format: date-time }
+        artifacts:
+          type: array
+          description: |
+            All available LODs for this project, sorted by lod ascending.
+            Populated by /scene; absent (null) on /artifacts and /artifacts/{lod}
+            list/get endpoints where the array would be redundant. The
+            top-level fields (bbox, contentType, createdAt) reflect LOD0.
+          items: { $ref: '#/components/schemas/LodArtifact' }
+    JobStatus:
+      type: string
+      enum: [pending, running, succeeded, failed]
+    Job:
+      type: object
+      required: [id, projectSlug, status]
+      properties:
+        id: { type: string }
+        projectSlug: { type: string }
+        status: { $ref: '#/components/schemas/JobStatus' }
+        errorMessage: { type: string }
+        artifactHash: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    Placement:
+      type: object
+      required: [id, parentSlug, assetSlug, position, rotation, scale]
+      properties:
+        id: { type: integer, format: int64 }
+        parentSlug: { type: string }
+        assetSlug: { type: string }
+        position: { $ref: '#/components/schemas/Vec3' }
+        rotation: { $ref: '#/components/schemas/Vec3' }
+        scale: { $ref: '#/components/schemas/Vec3' }
+        label: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    PlacementCreate:
+      type: object
+      required: [assetSlug]
+      properties:
+        assetSlug: { type: string }
+        position: { $ref: '#/components/schemas/Vec3' }
+        rotation: { $ref: '#/components/schemas/Vec3' }
+        scale: { $ref: '#/components/schemas/Vec3' }
+        label: { type: string }
+    PlacementUpdate:
+      type: object
+      properties:
+        position: { $ref: '#/components/schemas/Vec3' }
+        rotation: { $ref: '#/components/schemas/Vec3' }
+        scale: { $ref: '#/components/schemas/Vec3' }
+        label: { type: string }
+    AssetOption:
+      type: object
+      required: [slug, title, artifacts]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        artifacts:
+          type: array
+          description: |
+            All available LODs for this asset, sorted by lod ascending.
+            Empty when the asset has no successful conversion yet — the
+            frontend can grey it out in the picker.
+          items: { $ref: '#/components/schemas/LodArtifact' }
+    SceneBundle:
+      type: object
+      required: [project, placements, assetOptions]
+      description: |
+        Single-shot bundle for the viewer page. Includes the requested project,
+        its current LOD0 artifact (when present), all placements on it, and an
+        asset-option list (every catalog project with its current artifact hash)
+        suitable for the placement-picker dropdown. Eliminates the N+1 round
+        trips the frontend would otherwise need on first paint.
+      properties:
+        project: { $ref: '#/components/schemas/Project' }
+        artifact: { $ref: '#/components/schemas/Artifact' }
+        placements:
+          type: array
+          items: { $ref: '#/components/schemas/Placement' }
+        assetOptions:
+          type: array
+          items: { $ref: '#/components/schemas/AssetOption' }
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Internal:
+      description: Internal server error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+paths:
+  /api/projects:
+    get:
+      operationId: listProjects
+      summary: List catalog projects (optionally paginated)
+      description: |
+        Returns the slug-sorted catalog. When neither `limit` nor `cursor`
+        is supplied the server returns everything (current behaviour).
+        Supplying `limit` enables cursor pagination: the response includes
+        a non-empty `X-Next-Cursor` header when more pages exist; pass it
+        back as `cursor` to fetch the next page.
+      tags: [catalog]
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Page size. Omit or set to 0 for no pagination.
+          schema: { type: integer, format: int32, minimum: 0, maximum: 1000 }
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque cursor from a previous response's X-Next-Cursor header.
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Next-Cursor:
+              description: Cursor for the next page; absent when no more pages.
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Project' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/projects/{slug}:
+    get:
+      operationId: getProject
+      summary: Get a project by slug
+      tags: [catalog]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Project' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/projects/{slug}/scene:
+    get:
+      operationId: getSceneBundle
+      summary: Single-shot bundle for the viewer page
+      description: |
+        Aggregates project + LOD0 artifact + placements + asset options in one
+        response. Replaces 4+ parallel client requests with a single round trip.
+      tags: [catalog]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SceneBundle' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/projects/{slug}/artifacts:
+    get:
+      operationId: listArtifacts
+      summary: List converted artifacts for a project
+      tags: [catalog]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Artifact' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/projects/{slug}/artifacts/{lod}:
+    get:
+      operationId: getArtifact
+      summary: Get artifact metadata for a specific LOD
+      tags: [catalog]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+        - name: lod
+          in: path
+          required: true
+          schema: { type: integer, format: int32, minimum: 0 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Artifact' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/projects/{slug}/convert:
+    post:
+      operationId: submitConversion
+      summary: Trigger an OBJ→GLB conversion job
+      tags: [mesh]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '202':
+          description: Accepted; the conversion runs asynchronously
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Job' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/jobs/{id}:
+    get:
+      operationId: getJob
+      summary: Get conversion job status
+      tags: [mesh]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Job' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/projects/{slug}/placements:
+    get:
+      operationId: listPlacements
+      summary: List placements attached to a parent project
+      tags: [placements]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Placement' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+    post:
+      operationId: createPlacement
+      summary: Place an asset project onto a parent project's scene
+      description: |
+        Creates a new placement that overlays the asset project's GLB on top
+        of the parent project. Defaults: position {0,0,0}, rotation {0,0,0},
+        scale {1,1,1}, empty label. Asset and parent must both exist;
+        placing a project onto itself is rejected with 400.
+      tags: [placements]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlacementCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Placement' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/projects/{slug}/placements/{id}:
+    put:
+      operationId: updatePlacement
+      summary: Replace a placement's transform and label
+      description: |
+        Full replace — every transform field on the request body becomes the
+        new value. Omitted fields fall back to defaults (scale {1,1,1},
+        zero position/rotation, empty label).
+      tags: [placements]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlacementUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Placement' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+    delete:
+      operationId: deletePlacement
+      summary: Remove a placement
+      tags: [placements]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '204':
+          description: No Content
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
