@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { listTerritories } from "@/territory/infrastructure/territory-gateway";
 import { listModels } from "@/model/infrastructure/model-gateway";
-import DeleteTerritoryButton from "@/territory/presentation/components/delete-territory-button";
-import DeleteModelButton from "@/model/presentation/components/delete-model-button";
+import DeleteTerritoryButton from "@/app/_components/delete-territory-button";
+import DeleteModelButton from "@/app/_components/delete-model-button";
 
 export const dynamic = "force-dynamic";
 

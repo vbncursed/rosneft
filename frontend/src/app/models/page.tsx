@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { listModels } from "@/model/infrastructure/model-gateway";
-import DeleteModelButton from "@/model/presentation/components/delete-model-button";
+import DeleteModelButton from "@/app/_components/delete-model-button";
 
 export const dynamic = "force-dynamic";
 
