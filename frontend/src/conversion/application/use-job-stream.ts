@@ -1,10 +1,11 @@
 import { useEffect } from "react";
-import type { Job } from "@/catalog/domain/job";
-import { isTerminal } from "@/catalog/domain/job";
+import type { Job, JobKind } from "@/shared/domain/job";
+import { isTerminal } from "@/shared/domain/job";
 
 interface JobEventPayload {
   id: string;
-  projectSlug: string;
+  kind: JobKind;
+  slug: string;
   status: Job["status"];
   errorMessage?: string;
   artifactHash?: string;
@@ -17,8 +18,7 @@ interface JobEventPayload {
 // EventSource automatically when the server hangs up after a terminal
 // status; we also call .close() on unmount to be safe.
 //
-// jobId === null means "no subscription yet" — the caller passes a real
-// id once the conversion has been submitted.
+// jobId === null means "no subscription yet".
 export function useJobStream(
   jobId: string | null,
   onUpdate: (job: Job) => void,
@@ -33,7 +33,8 @@ export function useJobStream(
         const payload = JSON.parse(event.data) as JobEventPayload;
         const job: Job = {
           id: payload.id,
-          projectSlug: payload.projectSlug,
+          kind: payload.kind,
+          slug: payload.slug,
           status: payload.status,
           errorMessage: payload.errorMessage,
           artifactHash: payload.artifactHash,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { LodArtifact } from "@/catalog/domain/lod-artifact";
+import type { LodArtifact } from "@/shared/domain/lod-artifact";
 import { useMeasurementTool } from "@/measurement/application/use-measurement-tool";
 import { computeUnitRatio } from "@/measurement/domain/unit-ratio";
 import { usePlacementsEditor } from "@/placement/application/use-placements-editor";
@@ -17,20 +17,20 @@ export interface ModelViewerProps {
   parentLods: LodArtifact[];
   title: string;
   metadata: ModelMetadata;
-  parentSlug: string;
+  territorySlug: string;
   initialPlacements: ResolvedPlacement[];
-  assetOptions: PlacementAssetOption[];
+  modelOptions: PlacementAssetOption[];
 }
 
 export default function ModelViewer({
   parentLods,
   title,
   metadata,
-  parentSlug,
+  territorySlug,
   initialPlacements,
-  assetOptions,
+  modelOptions,
 }: ModelViewerProps) {
-  const editor = usePlacementsEditor(parentSlug, initialPlacements, assetOptions);
+  const editor = usePlacementsEditor(territorySlug, initialPlacements, modelOptions);
   const measure = useMeasurementTool();
   const [resetVersion, setResetVersion] = useState(0);
 
@@ -125,7 +125,7 @@ export default function ModelViewer({
       <div className="pointer-events-none absolute top-4 right-4 bottom-4 flex flex-col items-end gap-3">
         <PlacementsPanel
           placements={editor.placements}
-          assets={assetOptions}
+          assets={modelOptions}
           mutation={editor.mutation}
           errorMessage={editor.errorMessage}
           selectedId={editor.selectedId}

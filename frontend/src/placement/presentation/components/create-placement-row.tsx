@@ -4,7 +4,7 @@ import type { PlacementAssetOption } from "@/placement/domain/asset-option";
 interface CreatePlacementRowProps {
   assets: PlacementAssetOption[];
   disabled: boolean;
-  onCreate: (assetSlug: string) => Promise<void> | void;
+  onCreate: (modelSlug: string) => Promise<void> | void;
 }
 
 export default function CreatePlacementRow({

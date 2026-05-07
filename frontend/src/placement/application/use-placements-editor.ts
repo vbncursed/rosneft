@@ -27,13 +27,13 @@ import { formatError } from "@/shared/infrastructure/http/format-error";
 // pre-resolve placement out for the server-acknowledged version inside
 // startTransition so React keeps the UI responsive during the round-trip.
 //
-// LOD chains are derived from assetOptions (loaded once with the page
+// LOD chains are derived from modelOptions (loaded once with the page
 // bundle) via a slug → lods map, so CRUD doesn't need a per-placement
 // getArtifact round-trip.
 export function usePlacementsEditor(
-  parentSlug: string,
+  territorySlug: string,
   initial: ResolvedPlacement[],
-  assetOptions: PlacementAssetOption[],
+  modelOptions: PlacementAssetOption[],
 ) {
   const [placements, setPlacements] = useState<ResolvedPlacement[]>(initial);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -46,22 +46,22 @@ export function usePlacementsEditor(
     (p: Placement): ResolvedPlacement => ({
       ...p,
       lods:
-        assetOptions.find((option) => option.slug === p.assetSlug)?.lods ?? [],
+        modelOptions.find((option) => option.slug === p.modelSlug)?.lods ?? [],
     }),
-    [assetOptions],
+    [modelOptions],
   );
 
   const refresh = useCallback(async () => {
-    const fresh = await listPlacements(parentSlug);
+    const fresh = await listPlacements(territorySlug);
     setPlacements(fresh.map(resolve));
-  }, [parentSlug, resolve]);
+  }, [territorySlug, resolve]);
 
   const create = useCallback(
-    async (assetSlug: string) => {
+    async (modelSlug: string) => {
       setMutation(creating);
       setErrorMessage(null);
       try {
-        const placement = await createPlacement(parentSlug, { assetSlug });
+        const placement = await createPlacement(territorySlug, { modelSlug });
         const resolved = resolve(placement);
         startTransition(() => setPlacements((prev) => [...prev, resolved]));
       } catch (err) {
@@ -70,7 +70,7 @@ export function usePlacementsEditor(
         setMutation(idle);
       }
     },
-    [parentSlug, resolve],
+    [territorySlug, resolve],
   );
 
   const update = useCallback(
@@ -78,7 +78,7 @@ export function usePlacementsEditor(
       setMutation(mutating(id));
       setErrorMessage(null);
       try {
-        const placement = await updatePlacement(parentSlug, id, body);
+        const placement = await updatePlacement(territorySlug, id, body);
         const resolved = resolve(placement);
         startTransition(() =>
           setPlacements((prev) =>
@@ -91,7 +91,7 @@ export function usePlacementsEditor(
         setMutation(idle);
       }
     },
-    [parentSlug, resolve],
+    [territorySlug, resolve],
   );
 
   const remove = useCallback(
@@ -99,7 +99,7 @@ export function usePlacementsEditor(
       setMutation(mutating(id));
       setErrorMessage(null);
       try {
-        await deletePlacement(parentSlug, id);
+        await deletePlacement(territorySlug, id);
         startTransition(() => {
           setPlacements((prev) => prev.filter((p) => p.id !== id));
           setSelectedId((current) => (current === id ? null : current));
@@ -111,7 +111,7 @@ export function usePlacementsEditor(
         setMutation(idle);
       }
     },
-    [parentSlug, refresh],
+    [territorySlug, refresh],
   );
 
   // Keep a ref to the current placements so commitTransform stays

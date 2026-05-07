@@ -6,7 +6,7 @@ import Lighting from "@/viewer/presentation/three/lighting";
 import GltfModel from "@/viewer/presentation/three/gltf-model";
 import GlbPreloader from "@/viewer/presentation/three/glb-preloader";
 import Ktx2Init from "@/viewer/presentation/three/ktx2-init";
-import type { LodArtifact } from "@/catalog/domain/lod-artifact";
+import type { LodArtifact } from "@/shared/domain/lod-artifact";
 import MeasurementLayer from "@/measurement/presentation/three/measurement-layer";
 import type { Chain } from "@/measurement/domain/chain";
 import type { MeasurePoint } from "@/measurement/domain/measurement";

@@ -4,59 +4,54 @@
  */
 
 export interface paths {
-    "/api/projects": {
+    "/api/territories": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /**
-         * List catalog projects (optionally paginated)
-         * @description Returns the slug-sorted catalog. When neither `limit` nor `cursor`
-         *     is supplied the server returns everything (current behaviour).
-         *     Supplying `limit` enables cursor pagination: the response includes
-         *     a non-empty `X-Next-Cursor` header when more pages exist; pass it
-         *     back as `cursor` to fetch the next page.
-         */
-        get: operations["listProjects"];
+        /** List territories */
+        get: operations["listTerritories"];
         put?: never;
-        post?: never;
+        /** Register a territory and queue its conversion */
+        post: operations["createTerritory"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{slug}": {
+    "/api/territories/{slug}": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                slug: string;
+            };
             cookie?: never;
         };
-        /** Get a project by slug */
-        get: operations["getProject"];
+        /** Get a territory by slug */
+        get: operations["getTerritory"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete a territory and its placements */
+        delete: operations["deleteTerritory"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{slug}/scene": {
+    "/api/territories/{slug}/scene": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                slug: string;
+            };
             cookie?: never;
         };
-        /**
-         * Single-shot bundle for the viewer page
-         * @description Aggregates project + LOD0 artifact + placements + asset options in one
-         *     response. Replaces 4+ parallel client requests with a single round trip.
-         */
+        /** Single-shot bundle for the viewer page */
         get: operations["getSceneBundle"];
         put?: never;
         post?: never;
@@ -66,15 +61,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{slug}/artifacts": {
+    "/api/territories/{slug}/artifacts": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                slug: string;
+            };
             cookie?: never;
         };
-        /** List converted artifacts for a project */
-        get: operations["listArtifacts"];
+        /** List converted artifacts for a territory */
+        get: operations["listTerritoryArtifacts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -83,15 +80,18 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{slug}/artifacts/{lod}": {
+    "/api/territories/{slug}/artifacts/{lod}": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                slug: string;
+                lod: number;
+            };
             cookie?: never;
         };
-        /** Get artifact metadata for a specific LOD */
-        get: operations["getArtifact"];
+        /** Get one converted artifact (territory) */
+        get: operations["getTerritoryArtifact"];
         put?: never;
         post?: never;
         delete?: never;
@@ -100,57 +100,19 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{slug}/convert": {
+    "/api/territories/{slug}/placements": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                slug: string;
+            };
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        /** Trigger an OBJ→GLB conversion job */
-        post: operations["submitConversion"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/jobs/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get conversion job status */
-        get: operations["getJob"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/projects/{slug}/placements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List placements attached to a parent project */
+        /** List placements on a territory */
         get: operations["listPlacements"];
         put?: never;
-        /**
-         * Place an asset project onto a parent project's scene
-         * @description Creates a new placement that overlays the asset project's GLB on top
-         *     of the parent project. Defaults: position {0,0,0}, rotation {0,0,0},
-         *     scale {1,1,1}, empty label. Asset and parent must both exist;
-         *     placing a project onto itself is rejected with 400.
-         */
+        /** Add a placement to a territory */
         post: operations["createPlacement"];
         delete?: never;
         options?: never;
@@ -158,7 +120,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/{slug}/placements/{id}": {
+    "/api/territories/{slug}/placements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace a placement's transform */
+        put: operations["updatePlacement"];
+        post?: never;
+        /** Remove a placement */
+        delete: operations["deletePlacement"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List models */
+        get: operations["listModels"];
+        put?: never;
+        /** Register a model and queue its conversion */
+        post: operations["createModel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        /** Get a model by slug */
+        get: operations["getModel"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete a model
+         * @description Refuses to delete a model still referenced by placements.
+         */
+        delete: operations["deleteModel"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/{slug}/artifacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        /** List converted artifacts for a model */
+        get: operations["listModelArtifacts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/models/{slug}/artifacts/{lod}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                lod: number;
+            };
+            cookie?: never;
+        };
+        /** Get one converted artifact (model) */
+        get: operations["getModelArtifact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/uploads": {
         parameters: {
             query?: never;
             header?: never;
@@ -166,16 +229,55 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /**
-         * Replace a placement's transform and label
-         * @description Full replace — every transform field on the request body becomes the
-         *     new value. Omitted fields fall back to defaults (scale {1,1,1},
-         *     zero position/rotation, empty label).
-         */
-        put: operations["updatePlacement"];
+        put?: never;
+        /** Start a chunked upload session */
+        post: operations["initiateUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/uploads/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         post?: never;
-        /** Remove a placement */
-        delete: operations["deletePlacement"];
+        /** Discard an in-progress session */
+        delete: operations["abortUpload"];
+        options?: never;
+        /** Query the current offset of a session */
+        head: operations["getUploadStatus"];
+        /**
+         * Append bytes to a session at the given offset
+         * @description Body is the raw chunk; the absolute byte offset goes in the
+         *     `Upload-Offset` header. The server returns the new total in
+         *     the `Upload-Offset` response header.
+         */
+        patch: operations["appendUploadChunk"];
+        trace?: never;
+    };
+    "/api/uploads/{id}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close a session and publish the bytes to BlobStore */
+        post: operations["finalizeUpload"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -193,23 +295,30 @@ export interface components {
             /** Format: double */
             z: number;
         };
-        Project: {
+        Territory: {
             slug: string;
             title: string;
-            subtitle?: string;
             description?: string;
-            sourceObjPath?: string;
-            sourceMtlPath?: string;
-            sourceTexturePath?: string;
+            sourceBlobHash: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        Model: {
+            slug: string;
+            title: string;
+            description?: string;
+            sourceBlobHash: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
         };
         /**
-         * @description Minimal descriptor for one LOD level of a project. Carries only
-         *     size/geometry stats — bbox, contentType, createdAt are LOD-invariant
-         *     and live on the parent Artifact.
+         * @description Minimal descriptor for one LOD level. Carries only size/geometry
+         *     stats — bbox, contentType, createdAt are LOD-invariant and live
+         *     on the parent Artifact.
          */
         LodArtifact: {
             /** Format: int32 */
@@ -223,7 +332,8 @@ export interface components {
             faces?: number;
         };
         Artifact: {
-            projectSlug: string;
+            /** @description Owner slug (territory or model, depending on the endpoint). */
+            slug: string;
             /** Format: int32 */
             lod: number;
             hash: string;
@@ -239,18 +349,23 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
             /**
-             * @description All available LODs for this project, sorted by lod ascending.
-             *     Populated by /scene; absent (null) on /artifacts and /artifacts/{lod}
-             *     list/get endpoints where the array would be redundant. The
-             *     top-level fields (bbox, contentType, createdAt) reflect LOD0.
+             * @description All available LODs for this owner, sorted by lod ascending.
+             *     Populated by /scene; absent on /artifacts list/get endpoints
+             *     where the array would be redundant.
              */
             artifacts?: components["schemas"]["LodArtifact"][];
         };
         /** @enum {string} */
         JobStatus: "pending" | "running" | "succeeded" | "failed";
+        /**
+         * @description Which catalog domain the job's outputs belong to.
+         * @enum {string}
+         */
+        JobKind: "territory" | "model";
         Job: {
             id: string;
-            projectSlug: string;
+            kind: components["schemas"]["JobKind"];
+            slug: string;
             status: components["schemas"]["JobStatus"];
             errorMessage?: string;
             artifactHash?: string;
@@ -262,8 +377,8 @@ export interface components {
         Placement: {
             /** Format: int64 */
             id: number;
-            parentSlug: string;
-            assetSlug: string;
+            territorySlug: string;
+            modelSlug: string;
             position: components["schemas"]["Vec3"];
             rotation: components["schemas"]["Vec3"];
             scale: components["schemas"]["Vec3"];
@@ -274,7 +389,7 @@ export interface components {
             updatedAt?: string;
         };
         PlacementCreate: {
-            assetSlug: string;
+            modelSlug: string;
             position?: components["schemas"]["Vec3"];
             rotation?: components["schemas"]["Vec3"];
             scale?: components["schemas"]["Vec3"];
@@ -286,28 +401,66 @@ export interface components {
             scale?: components["schemas"]["Vec3"];
             label?: string;
         };
+        /**
+         * @description Body for POST /api/territories and POST /api/models. The client
+         *     first uploads the source ZIP via /api/uploads, then attaches the
+         *     returned hash here. The gateway forwards the entity to catalog
+         *     and queues a conversion job; the response carries both the new
+         *     entity and the queued Job for SSE subscription.
+         */
+        EntityCreate: {
+            slug: string;
+            title: string;
+            description?: string;
+            sourceBlobHash: string;
+        };
+        TerritoryCreated: {
+            territory: components["schemas"]["Territory"];
+            job: components["schemas"]["Job"];
+        };
+        ModelCreated: {
+            model: components["schemas"]["Model"];
+            job: components["schemas"]["Job"];
+        };
         AssetOption: {
             slug: string;
             title: string;
             /**
-             * @description All available LODs for this asset, sorted by lod ascending.
-             *     Empty when the asset has no successful conversion yet — the
+             * @description All available LODs for this model, sorted by lod ascending.
+             *     Empty when the model has no successful conversion yet — the
              *     frontend can grey it out in the picker.
              */
             artifacts: components["schemas"]["LodArtifact"][];
         };
         /**
-         * @description Single-shot bundle for the viewer page. Includes the requested project,
-         *     its current LOD0 artifact (when present), all placements on it, and an
-         *     asset-option list (every catalog project with its current artifact hash)
-         *     suitable for the placement-picker dropdown. Eliminates the N+1 round
-         *     trips the frontend would otherwise need on first paint.
+         * @description Single-shot bundle for the viewer page. Includes the requested
+         *     territory, its current LOD0 artifact (when present), all
+         *     placements on it, and the list of available models with their
+         *     artifacts for the placement picker.
          */
         SceneBundle: {
-            project: components["schemas"]["Project"];
+            territory: components["schemas"]["Territory"];
             artifact?: components["schemas"]["Artifact"];
             placements: components["schemas"]["Placement"][];
-            assetOptions: components["schemas"]["AssetOption"][];
+            modelOptions: components["schemas"]["AssetOption"][];
+        };
+        UploadInitiate: {
+            /** Format: int64 */
+            size: number;
+            contentType?: string;
+        };
+        UploadSession: {
+            id: string;
+            /** Format: int64 */
+            size: number;
+            /** Format: int64 */
+            offset: number;
+            contentType?: string;
+        };
+        UploadFinalized: {
+            hash: string;
+            /** Format: int64 */
+            size: number;
         };
         Error: {
             code: string;
@@ -350,14 +503,9 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    listProjects: {
+    listTerritories: {
         parameters: {
-            query?: {
-                /** @description Page size. Omit or set to 0 for no pagination. */
-                limit?: number;
-                /** @description Opaque cursor from a previous response's X-Next-Cursor header. */
-                cursor?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -367,19 +515,42 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
-                    /** @description Cursor for the next page; absent when no more pages. */
-                    "X-Next-Cursor"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Project"][];
+                    "application/json": components["schemas"]["Territory"][];
+                };
+            };
+            500: components["responses"]["Internal"];
+        };
+    };
+    createTerritory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntityCreate"];
+            };
+        };
+        responses: {
+            /** @description Territory created and conversion queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TerritoryCreated"];
                 };
             };
             400: components["responses"]["BadRequest"];
             500: components["responses"]["Internal"];
         };
     };
-    getProject: {
+    getTerritory: {
         parameters: {
             query?: never;
             header?: never;
@@ -396,10 +567,31 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Project"];
+                    "application/json": components["schemas"]["Territory"];
                 };
             };
-            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    deleteTerritory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             404: components["responses"]["NotFound"];
             500: components["responses"]["Internal"];
         };
@@ -424,12 +616,11 @@ export interface operations {
                     "application/json": components["schemas"]["SceneBundle"];
                 };
             };
-            400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["Internal"];
         };
     };
-    listArtifacts: {
+    listTerritoryArtifacts: {
         parameters: {
             query?: never;
             header?: never;
@@ -449,11 +640,11 @@ export interface operations {
                     "application/json": components["schemas"]["Artifact"][];
                 };
             };
-            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
             500: components["responses"]["Internal"];
         };
     };
-    getArtifact: {
+    getTerritoryArtifact: {
         parameters: {
             query?: never;
             header?: never;
@@ -474,56 +665,8 @@ export interface operations {
                     "application/json": components["schemas"]["Artifact"];
                 };
             };
-            400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
-        };
-    };
-    submitConversion: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Accepted; the conversion runs asynchronously */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Job"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
             500: components["responses"]["Internal"];
-        };
-    };
-    getJob: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Job"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            404: components["responses"]["NotFound"];
         };
     };
     listPlacements: {
@@ -546,7 +689,6 @@ export interface operations {
                     "application/json": components["schemas"]["Placement"][];
                 };
             };
-            400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["Internal"];
         };
@@ -622,12 +764,280 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No Content */
+            /** @description Deleted */
             204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    listModels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Model"][];
+                };
+            };
+            500: components["responses"]["Internal"];
+        };
+    };
+    createModel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntityCreate"];
+            };
+        };
+        responses: {
+            /** @description Model created and conversion queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelCreated"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    getModel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Model"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    deleteModel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    listModelArtifacts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Artifact"][];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    getModelArtifact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                lod: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Artifact"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    initiateUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadInitiate"];
+            };
+        };
+        responses: {
+            /** @description Session created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadSession"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    abortUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Aborted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            500: components["responses"]["Internal"];
+        };
+    };
+    getUploadStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    "Upload-Offset"?: number;
+                    "Upload-Length"?: number;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    appendUploadChunk: {
+        parameters: {
+            query?: never;
+            header: {
+                "Upload-Offset": number;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Accepted; current offset returned in Upload-Offset */
+            204: {
+                headers: {
+                    "Upload-Offset"?: number;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    finalizeUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadFinalized"];
+                };
             };
             400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];

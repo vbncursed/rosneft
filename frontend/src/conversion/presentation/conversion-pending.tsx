@@ -5,10 +5,15 @@ import { useConversionWatcher } from "@/conversion/application/use-conversion-wa
 interface ConversionPendingProps {
   title: string;
   slug: string;
+  // jobId is provided when the user just created the entity in this
+  // session — we can subscribe to SSE for live progress. When absent
+  // (e.g. revisiting a territory whose conversion was queued by the
+  // background reconciler), the watcher falls back to polling.
+  jobId?: string | null;
 }
 
 const STATUS_COPY: Record<string, string> = {
-  submitting: "Постановка задачи в очередь…",
+  polling: "Ожидание начала конвертации…",
   pending: "Задача в очереди.",
   running: "Идёт конвертация модели.",
   succeeded: "Готово, обновляем страницу…",
@@ -16,15 +21,12 @@ const STATUS_COPY: Record<string, string> = {
   unavailable: "Не удалось подписаться на статус задачи.",
 };
 
-// ConversionPending is shown when the catalog has a project but mesh-worker
-// has not yet produced a LOD0 artifact. The watcher posts /convert on
-// mount, subscribes to the SSE event stream for the resulting job id, and
-// triggers a router.refresh() the moment the job reports succeeded.
 export default function ConversionPending({
   title,
   slug,
+  jobId = null,
 }: ConversionPendingProps) {
-  const { status, error } = useConversionWatcher(slug);
+  const { status, error } = useConversionWatcher(jobId);
   const message = STATUS_COPY[status] ?? STATUS_COPY.running;
   const failed = status === "failed" || status === "unavailable";
 

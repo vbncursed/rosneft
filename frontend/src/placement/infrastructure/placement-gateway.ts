@@ -16,8 +16,8 @@ type PlacementDto = components["schemas"]["Placement"];
 function mapPlacement(d: PlacementDto): Placement {
   return {
     id: d.id,
-    parentSlug: d.parentSlug,
-    assetSlug: d.assetSlug,
+    territorySlug: d.territorySlug,
+    modelSlug: d.modelSlug,
     position: d.position,
     rotation: d.rotation,
     scale: d.scale,
@@ -26,41 +26,34 @@ function mapPlacement(d: PlacementDto): Placement {
   };
 }
 
-export async function listPlacements(parentSlug: string): Promise<Placement[]> {
-  const data = await httpGet<PlacementDto[]>(
-    `/api/projects/${encodeURIComponent(parentSlug)}/placements`,
-  );
+const base = (slug: string) =>
+  `/api/territories/${encodeURIComponent(slug)}/placements`;
+
+export async function listPlacements(territorySlug: string): Promise<Placement[]> {
+  const data = await httpGet<PlacementDto[]>(base(territorySlug));
   return data.map(mapPlacement);
 }
 
 export async function createPlacement(
-  parentSlug: string,
+  territorySlug: string,
   body: PlacementCreate,
 ): Promise<Placement> {
-  const data = await httpPost<PlacementDto>(
-    `/api/projects/${encodeURIComponent(parentSlug)}/placements`,
-    body,
-  );
+  const data = await httpPost<PlacementDto>(base(territorySlug), body);
   return mapPlacement(data);
 }
 
 export async function updatePlacement(
-  parentSlug: string,
+  territorySlug: string,
   id: number,
   body: PlacementUpdate,
 ): Promise<Placement> {
-  const data = await httpPut<PlacementDto>(
-    `/api/projects/${encodeURIComponent(parentSlug)}/placements/${id}`,
-    body,
-  );
+  const data = await httpPut<PlacementDto>(`${base(territorySlug)}/${id}`, body);
   return mapPlacement(data);
 }
 
 export async function deletePlacement(
-  parentSlug: string,
+  territorySlug: string,
   id: number,
 ): Promise<void> {
-  return httpDelete(
-    `/api/projects/${encodeURIComponent(parentSlug)}/placements/${id}`,
-  );
+  return httpDelete(`${base(territorySlug)}/${id}`);
 }

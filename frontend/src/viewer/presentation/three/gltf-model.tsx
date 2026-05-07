@@ -1,7 +1,7 @@
 import { Suspense, useMemo } from "react";
 import { Detailed, useGLTF } from "@react-three/drei";
-import { assetUrl } from "@/catalog/infrastructure/asset-url";
-import type { LodArtifact } from "@/catalog/domain/lod-artifact";
+import { assetUrl } from "@/shared/infrastructure/asset-url";
+import type { LodArtifact } from "@/shared/domain/lod-artifact";
 import { extendGltfLoader } from "@/viewer/presentation/three/gltf-loader-setup";
 
 interface GltfModelProps {

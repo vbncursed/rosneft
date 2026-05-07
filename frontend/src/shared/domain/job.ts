@@ -1,8 +1,10 @@
 export type JobStatus = "pending" | "running" | "succeeded" | "failed";
+export type JobKind = "territory" | "model";
 
 export interface Job {
   id: string;
-  projectSlug: string;
+  kind: JobKind;
+  slug: string;
   status: JobStatus;
   errorMessage?: string;
   artifactHash?: string;

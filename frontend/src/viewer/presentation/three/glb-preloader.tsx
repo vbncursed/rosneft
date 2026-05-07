@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 import { useGLTF } from "@react-three/drei";
-import { assetUrl } from "@/catalog/infrastructure/asset-url";
+import { assetUrl } from "@/shared/infrastructure/asset-url";
 import {
   orderByPreferred,
   type LodArtifact,
-} from "@/catalog/domain/lod-artifact";
+} from "@/shared/domain/lod-artifact";
 import type { ResolvedPlacement } from "@/placement/domain/placement";
 import { extendGltfLoader } from "@/viewer/presentation/three/gltf-loader-setup";
 
