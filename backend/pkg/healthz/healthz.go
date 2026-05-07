@@ -70,11 +70,13 @@ func (h *Handler) MarkNotReady() { h.ready.Store(false) }
 
 // Mount registers GET /healthz and GET /readyz on mux.
 func (h *Handler) Mount(mux *http.ServeMux) {
-	mux.HandleFunc("GET /healthz", h.live)
-	mux.HandleFunc("GET /readyz", h.readyHandler)
+	mux.HandleFunc("GET /healthz", h.Live)
+	mux.HandleFunc("GET /readyz", h.Ready)
 }
 
-func (h *Handler) live(w http.ResponseWriter, _ *http.Request) {
+// Live is the liveness handler — exported so routers without a
+// *http.ServeMux contract (chi, gorilla, …) can register it directly.
+func (h *Handler) Live(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status":  "ok",
 		"service": h.service,
@@ -82,7 +84,9 @@ func (h *Handler) live(w http.ResponseWriter, _ *http.Request) {
 	})
 }
 
-func (h *Handler) readyHandler(w http.ResponseWriter, r *http.Request) {
+// Ready is the readiness handler — exported alongside Live for routers
+// without a *http.ServeMux contract.
+func (h *Handler) Ready(w http.ResponseWriter, r *http.Request) {
 	if !h.ready.Load() {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]any{
 			"status":  "not_ready",
