@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package rosneft.upload.v1;
+
+option go_package = "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/upload/v1;uploadv1";
+
+// UploadService is a resumable chunked upload backend. The gateway terminates
+// the public tus-style HTTP protocol and translates each operation into one
+// of these RPCs. Partial uploads live on the upload-service local filesystem
+// (or shared volume in multi-replica deployments); on Finalize the bytes are
+// hashed and moved into BlobStore.
+service UploadService {
+  // Initiate creates a new upload session for an expected total size.
+  rpc Initiate(InitiateRequest) returns (InitiateResponse);
+
+  // WriteChunk appends bytes to a session at a given offset. Client streams
+  // one or more chunks per call; each chunk includes the upload_id and the
+  // absolute offset for idempotency. Server returns the total bytes received
+  // so the gateway can drive the tus Upload-Offset response.
+  rpc WriteChunk(stream WriteChunkRequest) returns (WriteChunkResponse);
+
+  // GetStatus returns the current offset for resumability.
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
+
+  // Finalize closes a completed upload, hashes the bytes, and stores them in
+  // BlobStore. Returns the content hash and the byte size.
+  rpc Finalize(FinalizeRequest) returns (FinalizeResponse);
+
+  // Abort discards a partial upload session.
+  rpc Abort(AbortRequest) returns (AbortResponse);
+}
+
+message InitiateRequest {
+  // Expected total size in bytes (Upload-Length from tus).
+  int64 size = 1;
+  // Optional content type the client declared.
+  string content_type = 2;
+}
+message InitiateResponse {
+  string upload_id = 1;
+}
+
+message WriteChunkRequest {
+  string upload_id = 1;
+  // Absolute byte offset where this chunk starts. Server rejects mismatches
+  // to keep the stream monotonically increasing.
+  int64 offset = 2;
+  bytes data = 3;
+}
+message WriteChunkResponse {
+  // Total bytes received after this batch of chunks.
+  int64 offset = 1;
+}
+
+message GetStatusRequest {
+  string upload_id = 1;
+}
+message GetStatusResponse {
+  int64 offset = 1;
+  int64 size = 2;
+}
+
+message FinalizeRequest {
+  string upload_id = 1;
+}
+message FinalizeResponse {
+  // Content hash of the finalized blob (SHA-256 hex, lower case).
+  string blob_hash = 1;
+  int64 size = 2;
+}
+
+message AbortRequest {
+  string upload_id = 1;
+}
+message AbortResponse {}

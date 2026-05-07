@@ -22,23 +22,23 @@ func InitServiceAPI(queue *storage.Redis) *service.Mesh {
 }
 
 // InitServiceWorker builds the mesh service surface used by mesh-worker —
-// the full pipeline (queue + catalog + converter + blobstore + source root).
-// IDGen is required because the reconciler calls SubmitConversion to enqueue
-// missing artifacts, and SubmitConversion mints a job ID for each new job.
+// the full pipeline (queue + catalog + converter + blobstore). Source bytes
+// are now fetched from the BlobStore by hash; mesh-worker no longer needs a
+// host-mounted source directory. IDGen is required because the reconciler
+// calls SubmitConversion to enqueue missing artifacts, and SubmitConversion
+// mints a job ID for each new job.
 func InitServiceWorker(
 	queue *storage.Redis,
 	cat *catalog.Client,
 	conv *converter.Converter,
 	blobs *blobstore.FS,
-	sourceDir string,
 ) *service.Mesh {
 	return service.New(service.Config{
-		Queue:      queue,
-		Catalog:    cat,
-		Converter:  conv,
-		Blobs:      blobs,
-		SourceRoot: sourceDir,
-		IDGen:      newJobID,
+		Queue:     queue,
+		Catalog:   cat,
+		Converter: conv,
+		Blobs:     blobs,
+		IDGen:     newJobID,
 	})
 }
 

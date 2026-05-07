@@ -20,7 +20,8 @@ func (r *Redis) GetJob(ctx context.Context, id string) (domain.Job, error) {
 
 	j := domain.Job{
 		ID:           res["id"],
-		ProjectSlug:  res["project_slug"],
+		Kind:         domain.ParseKind(res["kind"]),
+		Slug:         res["slug"],
 		Status:       domain.ParseJobStatus(res["status"]),
 		ErrorMessage: res["error_message"],
 		ArtifactHash: res["artifact_hash"],

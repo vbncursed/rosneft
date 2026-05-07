@@ -10,6 +10,7 @@ COPY services/gateway-service/go.mod services/gateway-service/go.su[m] ./service
 COPY services/catalog-service/go.mod services/catalog-service/go.su[m] ./services/catalog-service/
 COPY services/mesh-service/go.mod services/mesh-service/go.su[m] ./services/mesh-service/
 COPY services/asset-service/go.mod services/asset-service/go.su[m] ./services/asset-service/
+COPY services/upload-service/go.mod services/upload-service/go.su[m] ./services/upload-service/
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \

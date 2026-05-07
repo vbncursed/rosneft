@@ -6,54 +6,74 @@ option go_package = "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/c
 
 import "google/protobuf/timestamp.proto";
 
-// CatalogService owns the project + artifact registry. Conversion pipelines
-// (mesh-worker) write artifact records here; the gateway reads them to serve
-// the frontend.
+// CatalogService owns the registry of two domain entities:
+//
+//   - Territory — a parent scene (terrain, photogrammetry mesh) the
+//     viewer walks around in.
+//   - Model     — a placeable asset (equipment, fixture) overlaid on a
+//     territory at a specific transform.
+//
+// Each entity has its own artifact family (territory_artifacts /
+// model_artifacts) holding the converted GLB outputs per LOD. Source
+// files are stored as content-addressed ZIP archives in BlobStore;
+// the catalog only keeps the hash.
 service CatalogService {
-  rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
-  rpc GetProject(GetProjectRequest) returns (GetProjectResponse);
-  rpc UpsertProject(UpsertProjectRequest) returns (UpsertProjectResponse);
-  rpc RegisterArtifact(RegisterArtifactRequest) returns (RegisterArtifactResponse);
-  rpc ListArtifacts(ListArtifactsRequest) returns (ListArtifactsResponse);
-  rpc GetArtifact(GetArtifactRequest) returns (GetArtifactResponse);
+  rpc ListTerritories(ListTerritoriesRequest) returns (ListTerritoriesResponse);
+  rpc GetTerritory(GetTerritoryRequest) returns (GetTerritoryResponse);
+  rpc UpsertTerritory(UpsertTerritoryRequest) returns (UpsertTerritoryResponse);
+  rpc DeleteTerritory(DeleteTerritoryRequest) returns (DeleteTerritoryResponse);
+  rpc RegisterTerritoryArtifact(RegisterTerritoryArtifactRequest) returns (RegisterTerritoryArtifactResponse);
+  rpc ListTerritoryArtifacts(ListTerritoryArtifactsRequest) returns (ListTerritoryArtifactsResponse);
+  rpc GetTerritoryArtifact(GetTerritoryArtifactRequest) returns (GetTerritoryArtifactResponse);
 
-  // Placements: a Placement is one instance of a child project (the asset)
-  // positioned on a parent project's scene with a position/rotation/scale
-  // transform. Used by the viewer to overlay equipment, fixtures, or other
-  // CAD assets onto a base photogrammetry scene.
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+  rpc GetModel(GetModelRequest) returns (GetModelResponse);
+  rpc UpsertModel(UpsertModelRequest) returns (UpsertModelResponse);
+  rpc DeleteModel(DeleteModelRequest) returns (DeleteModelResponse);
+  rpc RegisterModelArtifact(RegisterModelArtifactRequest) returns (RegisterModelArtifactResponse);
+  rpc ListModelArtifacts(ListModelArtifactsRequest) returns (ListModelArtifactsResponse);
+  rpc GetModelArtifact(GetModelArtifactRequest) returns (GetModelArtifactResponse);
+
   rpc ListPlacements(ListPlacementsRequest) returns (ListPlacementsResponse);
   rpc CreatePlacement(CreatePlacementRequest) returns (CreatePlacementResponse);
   rpc UpdatePlacement(UpdatePlacementRequest) returns (UpdatePlacementResponse);
   rpc DeletePlacement(DeletePlacementRequest) returns (DeletePlacementResponse);
 }
 
-// Project is a 3D model project surfaced to the frontend catalog.
-message Project {
-  string slug = 1;
-  string title = 2;
-  string subtitle = 3;
-  string description = 4;
-  // Path to the source OBJ relative to the source root (mesh-worker reads it).
-  string source_obj_path = 5;
-  string source_mtl_path = 6;
-  string source_texture_path = 7;
-  google.protobuf.Timestamp created_at = 8;
-  google.protobuf.Timestamp updated_at = 9;
-}
-
-// Vec3 represents a point in 3D space (used for bounding-box corners).
+// Vec3 represents a point in 3D space (used for bounding-box corners
+// and placement transforms).
 message Vec3 {
   double x = 1;
   double y = 2;
   double z = 3;
 }
 
-// Artifact is a converted binary asset (GLB) for a specific project + LOD.
-message Artifact {
-  string project_slug = 1;
-  // Level-of-detail: 0 = full quality, higher = more reduced.
+// Territory is a scene the viewer renders as the parent canvas.
+// source_blob_hash points at the ZIP archive in BlobStore that
+// contains the original OBJ, MTL, and texture files.
+message Territory {
+  string slug = 1;
+  string title = 2;
+  string description = 3;
+  string source_blob_hash = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+// Model is a placeable 3D asset overlaid on a territory.
+message Model {
+  string slug = 1;
+  string title = 2;
+  string description = 3;
+  string source_blob_hash = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+// TerritoryArtifact is a converted GLB output for one territory + LOD.
+message TerritoryArtifact {
+  string territory_slug = 1;
   uint32 lod = 2;
-  // Content hash used as the BlobStore key and as a strong ETag.
   string hash = 3;
   string content_type = 4;
   int64 size = 5;
@@ -64,54 +84,28 @@ message Artifact {
   google.protobuf.Timestamp created_at = 10;
 }
 
-message ListProjectsRequest {}
-message ListProjectsResponse {
-  repeated Project projects = 1;
-}
-
-message GetProjectRequest {
-  string slug = 1;
-}
-message GetProjectResponse {
-  Project project = 1;
-}
-
-message UpsertProjectRequest {
-  Project project = 1;
-}
-message UpsertProjectResponse {
-  Project project = 1;
-}
-
-message RegisterArtifactRequest {
-  Artifact artifact = 1;
-}
-message RegisterArtifactResponse {
-  Artifact artifact = 1;
-}
-
-message ListArtifactsRequest {
-  string project_slug = 1;
-}
-message ListArtifactsResponse {
-  repeated Artifact artifacts = 1;
-}
-
-message GetArtifactRequest {
-  string project_slug = 1;
+// ModelArtifact is a converted GLB output for one model + LOD.
+message ModelArtifact {
+  string model_slug = 1;
   uint32 lod = 2;
-}
-message GetArtifactResponse {
-  Artifact artifact = 1;
+  string hash = 3;
+  string content_type = 4;
+  int64 size = 5;
+  uint64 vertices = 6;
+  uint64 faces = 7;
+  Vec3 bbox_min = 8;
+  Vec3 bbox_max = 9;
+  google.protobuf.Timestamp created_at = 10;
 }
 
-// Placement is a positioned instance of an asset project on a parent project.
-// position is in scene units; rotation is Euler XYZ in radians (Three.js
-// convention); scale is per-axis to allow non-uniform stretching.
+// Placement is one instance of a model overlaid on a territory at a
+// specific transform. Position is in scene units; rotation is Euler XYZ
+// in radians (Three.js convention); scale is per-axis to allow
+// non-uniform stretching.
 message Placement {
   int64 id = 1;
-  string parent_slug = 2;
-  string asset_slug = 3;
+  string territory_slug = 2;
+  string model_slug = 3;
   Vec3 position = 4;
   Vec3 rotation = 5;
   Vec3 scale = 6;
@@ -120,19 +114,114 @@ message Placement {
   google.protobuf.Timestamp updated_at = 9;
 }
 
+// ─── Territory RPCs ─────────────────────────────────────────────────────────
+
+message ListTerritoriesRequest {}
+message ListTerritoriesResponse {
+  repeated Territory territories = 1;
+}
+
+message GetTerritoryRequest {
+  string slug = 1;
+}
+message GetTerritoryResponse {
+  Territory territory = 1;
+}
+
+message UpsertTerritoryRequest {
+  Territory territory = 1;
+}
+message UpsertTerritoryResponse {
+  Territory territory = 1;
+}
+
+message DeleteTerritoryRequest {
+  string slug = 1;
+}
+message DeleteTerritoryResponse {}
+
+message RegisterTerritoryArtifactRequest {
+  TerritoryArtifact artifact = 1;
+}
+message RegisterTerritoryArtifactResponse {
+  TerritoryArtifact artifact = 1;
+}
+
+message ListTerritoryArtifactsRequest {
+  string territory_slug = 1;
+}
+message ListTerritoryArtifactsResponse {
+  repeated TerritoryArtifact artifacts = 1;
+}
+
+message GetTerritoryArtifactRequest {
+  string territory_slug = 1;
+  uint32 lod = 2;
+}
+message GetTerritoryArtifactResponse {
+  TerritoryArtifact artifact = 1;
+}
+
+// ─── Model RPCs ─────────────────────────────────────────────────────────────
+
+message ListModelsRequest {}
+message ListModelsResponse {
+  repeated Model models = 1;
+}
+
+message GetModelRequest {
+  string slug = 1;
+}
+message GetModelResponse {
+  Model model = 1;
+}
+
+message UpsertModelRequest {
+  Model model = 1;
+}
+message UpsertModelResponse {
+  Model model = 1;
+}
+
+message DeleteModelRequest {
+  string slug = 1;
+}
+message DeleteModelResponse {}
+
+message RegisterModelArtifactRequest {
+  ModelArtifact artifact = 1;
+}
+message RegisterModelArtifactResponse {
+  ModelArtifact artifact = 1;
+}
+
+message ListModelArtifactsRequest {
+  string model_slug = 1;
+}
+message ListModelArtifactsResponse {
+  repeated ModelArtifact artifacts = 1;
+}
+
+message GetModelArtifactRequest {
+  string model_slug = 1;
+  uint32 lod = 2;
+}
+message GetModelArtifactResponse {
+  ModelArtifact artifact = 1;
+}
+
+// ─── Placement RPCs ─────────────────────────────────────────────────────────
+
 message ListPlacementsRequest {
-  string parent_slug = 1;
+  string territory_slug = 1;
 }
 message ListPlacementsResponse {
   repeated Placement placements = 1;
 }
 
-// CreatePlacementRequest carries the parent + asset references plus the
-// initial transform. Fields with zero values are replaced with sensible
-// defaults: scale {1,1,1}, position/rotation zeros.
 message CreatePlacementRequest {
-  string parent_slug = 1;
-  string asset_slug = 2;
+  string territory_slug = 1;
+  string model_slug = 2;
   Vec3 position = 3;
   Vec3 rotation = 4;
   Vec3 scale = 5;
@@ -142,9 +231,6 @@ message CreatePlacementResponse {
   Placement placement = 1;
 }
 
-// UpdatePlacementRequest replaces the placement's transform and label
-// in full. Position, Rotation, Scale, and Label all become whatever is sent;
-// no per-field merge.
 message UpdatePlacementRequest {
   int64 id = 1;
   Vec3 position = 2;

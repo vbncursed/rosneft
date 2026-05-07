@@ -7,7 +7,7 @@ import (
 )
 
 func (s *Server) SubmitConversion(ctx context.Context, req *meshv1.SubmitConversionRequest) (*meshv1.SubmitConversionResponse, error) {
-	job, err := s.svc.SubmitConversion(ctx, req.GetProjectSlug())
+	job, err := s.svc.SubmitConversion(ctx, kindFromProto(req.GetKind()), req.GetSlug())
 	if err != nil {
 		return nil, mapError(err)
 	}

@@ -19,7 +19,7 @@ import (
 // Service is the mesh-service surface this transport calls. ProcessJob is
 // driven by the worker, not the API, so it is intentionally absent here.
 type Service interface {
-	SubmitConversion(ctx context.Context, projectSlug string) (domain.Job, error)
+	SubmitConversion(ctx context.Context, kind domain.Kind, slug string) (domain.Job, error)
 	GetJob(ctx context.Context, id string) (domain.Job, error)
 }
 
@@ -47,7 +47,7 @@ func mapError(err error) error {
 	switch {
 	case errors.Is(err, domain.ErrInvalidInput):
 		return status.Error(codes.InvalidArgument, err.Error())
-	case errors.Is(err, domain.ErrJobNotFound), errors.Is(err, domain.ErrProjectNotFound):
+	case errors.Is(err, domain.ErrJobNotFound), errors.Is(err, domain.ErrTargetNotFound):
 		return status.Error(codes.NotFound, err.Error())
 	default:
 		return status.Errorf(codes.Internal, "internal: %v", err)

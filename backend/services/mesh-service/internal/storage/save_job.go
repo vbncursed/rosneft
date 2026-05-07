@@ -19,7 +19,8 @@ func (r *Redis) SaveJob(ctx context.Context, j domain.Job) error {
 
 	fields := map[string]any{
 		"id":            j.ID,
-		"project_slug":  j.ProjectSlug,
+		"kind":          j.Kind.String(),
+		"slug":          j.Slug,
 		"status":        j.Status.String(),
 		"error_message": j.ErrorMessage,
 		"artifact_hash": j.ArtifactHash,

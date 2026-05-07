@@ -19,7 +19,6 @@ type Config struct {
 	LogLevel        string        `mapstructure:"log-level"`
 	LogFormat       string        `mapstructure:"log-format"`
 	AutoMigrate     bool          `mapstructure:"auto-migrate"`
-	SeedFile        string        `mapstructure:"seed-file"`
 	ShutdownTimeout time.Duration `mapstructure:"shutdown-timeout"`
 }
 

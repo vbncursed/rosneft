@@ -13,11 +13,10 @@ import (
 
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/config"
-	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/seed"
 )
 
 // RunServe is the full lifecycle of `catalog serve`: migrations → pool →
-// service → gRPC server → optional seed → listen → graceful shutdown.
+// service → gRPC server → listen → graceful shutdown.
 func RunServe(ctx context.Context, cfg config.Config) error {
 	logger := InitLogger(cfg)
 	logger.Info("catalog: starting", "grpc_addr", cfg.GRPCAddr)
@@ -39,14 +38,6 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	defer pool.Close()
 
 	svc := InitService(InitStorage(pool))
-
-	if cfg.SeedFile != "" {
-		n, err := seed.FromFile(rootCtx, svc, cfg.SeedFile)
-		if err != nil {
-			return fmt.Errorf("seed: %w", err)
-		}
-		logger.Info("catalog: seeded projects", "count", n, "file", cfg.SeedFile)
-	}
 
 	grpcSrv, healthSrv := InitGRPCServer(svc)
 

@@ -23,20 +23,20 @@ func (r *PG) UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Pl
 				label      = $11,
 				updated_at = NOW()
 			WHERE id = $1
-			RETURNING id, parent_id, asset_id,
+			RETURNING id, territory_id, model_id,
 				position_x, position_y, position_z,
 				rotation_x, rotation_y, rotation_z,
 				scale_x, scale_y, scale_z,
 				label, created_at, updated_at
 		)
-		SELECT u.id, pp.slug, ap.slug,
+		SELECT u.id, t.slug, m.slug,
 			u.position_x, u.position_y, u.position_z,
 			u.rotation_x, u.rotation_y, u.rotation_z,
 			u.scale_x, u.scale_y, u.scale_z,
 			u.label, u.created_at, u.updated_at
 		FROM updated u
-		JOIN projects pp ON pp.id = u.parent_id
-		JOIN projects ap ON ap.id = u.asset_id`
+		JOIN territories t ON t.id = u.territory_id
+		JOIN models m      ON m.id = u.model_id`
 
 	row := r.pool.QueryRow(ctx, q,
 		p.ID,

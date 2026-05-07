@@ -8,8 +8,9 @@ import (
 )
 
 // UpdatePlacement replaces the transform + label of an existing placement.
-// ParentSlug / AssetSlug on the input are ignored — clients cannot move a
-// placement between projects via update; they delete and re-create instead.
+// TerritorySlug / ModelSlug on the input are ignored — clients cannot move
+// a placement to a different territory or swap the model via update; they
+// delete and re-create instead.
 func (c *Catalog) UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
 	if p.ID == 0 {
 		return domain.Placement{}, fmt.Errorf("service.UpdatePlacement: %w: id is required", domain.ErrInvalidInput)

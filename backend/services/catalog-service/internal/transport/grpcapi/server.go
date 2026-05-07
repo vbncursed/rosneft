@@ -18,15 +18,23 @@ import (
 
 // Service is the catalog surface this transport calls.
 type Service interface {
-	UpsertProject(ctx context.Context, p domain.Project) (domain.Project, error)
-	GetProject(ctx context.Context, slug string) (domain.Project, error)
-	ListProjects(ctx context.Context) ([]domain.Project, error)
+	UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
+	GetTerritory(ctx context.Context, slug string) (domain.Territory, error)
+	ListTerritories(ctx context.Context) ([]domain.Territory, error)
+	DeleteTerritory(ctx context.Context, slug string) error
+	RegisterTerritoryArtifact(ctx context.Context, a domain.Artifact) (domain.Artifact, error)
+	GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
+	ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
 
-	RegisterArtifact(ctx context.Context, a domain.Artifact) (domain.Artifact, error)
-	GetArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
-	ListArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
+	UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error)
+	GetModel(ctx context.Context, slug string) (domain.Model, error)
+	ListModels(ctx context.Context) ([]domain.Model, error)
+	DeleteModel(ctx context.Context, slug string) error
+	RegisterModelArtifact(ctx context.Context, a domain.Artifact) (domain.Artifact, error)
+	GetModelArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
+	ListModelArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
 
-	ListPlacements(ctx context.Context, parentSlug string) ([]domain.Placement, error)
+	ListPlacements(ctx context.Context, territorySlug string) ([]domain.Placement, error)
 	CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, id int64) error
@@ -54,9 +62,10 @@ func mapError(err error) error {
 		return nil
 	}
 	switch {
-	case errors.Is(err, domain.ErrInvalidInput), errors.Is(err, domain.ErrSelfPlacement):
+	case errors.Is(err, domain.ErrInvalidInput):
 		return status.Error(codes.InvalidArgument, err.Error())
-	case errors.Is(err, domain.ErrProjectNotFound),
+	case errors.Is(err, domain.ErrTerritoryNotFound),
+		errors.Is(err, domain.ErrModelNotFound),
 		errors.Is(err, domain.ErrArtifactNotFound),
 		errors.Is(err, domain.ErrPlacementNotFound):
 		return status.Error(codes.NotFound, err.Error())

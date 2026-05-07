@@ -5,8 +5,7 @@ package domain
 
 import "time"
 
-// JobStatus mirrors the mesh-service job lifecycle. Stored as a string in
-// Redis and surfaced to the frontend as enum values.
+// JobStatus mirrors the mesh-service job lifecycle.
 type JobStatus string
 
 const (
@@ -16,27 +15,40 @@ const (
 	JobStatusFailed    JobStatus = "failed"
 )
 
-// Vec3 is a 3D point used for bounding-box corners.
+// Kind is which catalog domain a Job's artifacts belong to.
+type Kind string
+
+const (
+	KindTerritory Kind = "territory"
+	KindModel     Kind = "model"
+)
+
+// Vec3 is a 3D point used for bounding-box corners and placement transforms.
 type Vec3 struct {
 	X, Y, Z float64
 }
 
-// Project is the gateway view of a catalog project.
-type Project struct {
-	Slug              string
-	Title             string
-	Subtitle          string
-	Description       string
-	SourceObjPath     string
-	SourceMtlPath     string
-	SourceTexturePath string
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+// Territory is the gateway view of a catalog territory.
+type Territory struct {
+	Slug           string
+	Title          string
+	Description    string
+	SourceBlobHash string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
-// LodArtifact is the minimal descriptor for one LOD level. Used inside
-// Artifact.LODs and AssetOption.LODs so a single response carries the full
-// chain — frontend can pick any LOD without another request.
+// Model is the gateway view of a catalog model.
+type Model struct {
+	Slug           string
+	Title          string
+	Description    string
+	SourceBlobHash string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+// LodArtifact is the minimal descriptor for one LOD level.
 type LodArtifact struct {
 	LOD      uint32
 	Hash     string
@@ -47,10 +59,9 @@ type LodArtifact struct {
 
 // Artifact is the gateway view of a converted artifact. Top-level fields
 // (bbox, contentType, createdAt) reflect LOD0 — they are LOD-invariant for
-// our pipeline. LODs is the optional full chain, populated by SceneBundle
-// and left nil on standalone list/get endpoints to avoid redundancy.
+// our pipeline. LODs is the optional full chain.
 type Artifact struct {
-	ProjectSlug string
+	Slug        string
 	LOD         uint32
 	Hash        string
 	ContentType string
@@ -66,7 +77,8 @@ type Artifact struct {
 // Job is the gateway view of a conversion job.
 type Job struct {
 	ID           string
-	ProjectSlug  string
+	Kind         Kind
+	Slug         string
 	Status       JobStatus
 	ErrorMessage string
 	ArtifactHash string
@@ -74,44 +86,47 @@ type Job struct {
 	UpdatedAt    time.Time
 }
 
-// ProjectPage is one page of catalog projects. NextCursor is empty when
-// there are no more pages. Items are sorted by slug.
-type ProjectPage struct {
-	Items      []Project
-	NextCursor string
-}
-
-// AssetOption is one entry in the placement-picker dropdown — it is a project
-// the user can drop into another scene. LODs carries every available level
-// for this asset; empty when the project has no successful conversion yet
-// (frontend can grey it out).
+// AssetOption is one entry in the placement-picker dropdown — a model the
+// user can drop onto a territory. LODs carries every available level;
+// empty when the model has no successful conversion yet.
 type AssetOption struct {
 	Slug  string
 	Title string
 	LODs  []LodArtifact
 }
 
-// SceneBundle is the single-shot payload for the viewer page. Artifact is a
-// pointer because a freshly created project may not yet have a LOD0 artifact;
-// the frontend renders a "conversion pending" placeholder in that case.
+// SceneBundle is the single-shot payload for the viewer page. Artifact is
+// nil if the territory has no LOD0 yet (conversion pending).
 type SceneBundle struct {
-	Project      Project
+	Territory    Territory
 	Artifact     *Artifact
 	Placements   []Placement
-	AssetOptions []AssetOption
+	ModelOptions []AssetOption
 }
 
-// Placement is the gateway view of a positioned asset on a parent project.
-// Position is in scene units; Rotation is Euler XYZ in radians; Scale is
-// per-axis to allow non-uniform stretching.
+// Placement is the gateway view of a positioned model on a territory.
 type Placement struct {
-	ID         int64
-	ParentSlug string
-	AssetSlug  string
-	Position   Vec3
-	Rotation   Vec3
-	Scale      Vec3
-	Label      string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID            int64
+	TerritorySlug string
+	ModelSlug     string
+	Position      Vec3
+	Rotation      Vec3
+	Scale         Vec3
+	Label         string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+// UploadSession mirrors the upload-service session for the frontend.
+type UploadSession struct {
+	ID          string
+	Size        int64
+	Offset      int64
+	ContentType string
+}
+
+// FinalizedBlob is what /api/uploads/{id}/finalize returns.
+type FinalizedBlob struct {
+	Hash string
+	Size int64
 }

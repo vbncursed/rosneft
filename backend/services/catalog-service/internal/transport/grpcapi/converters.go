@@ -7,35 +7,78 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
-func projectToProto(p domain.Project) *catalogv1.Project {
-	return &catalogv1.Project{
-		Slug:              p.Slug,
-		Title:             p.Title,
-		Subtitle:          p.Subtitle,
-		Description:       p.Description,
-		SourceObjPath:     p.SourceObjPath,
-		SourceMtlPath:     p.SourceMtlPath,
-		SourceTexturePath: p.SourceTexturePath,
-		CreatedAt:         timestamppb.New(p.CreatedAt),
-		UpdatedAt:         timestamppb.New(p.UpdatedAt),
+func territoryToProto(t domain.Territory) *catalogv1.Territory {
+	return &catalogv1.Territory{
+		Slug:           t.Slug,
+		Title:          t.Title,
+		Description:    t.Description,
+		SourceBlobHash: t.SourceBlobHash,
+		CreatedAt:      timestamppb.New(t.CreatedAt),
+		UpdatedAt:      timestamppb.New(t.UpdatedAt),
 	}
 }
 
-func projectFromProto(p *catalogv1.Project) domain.Project {
-	return domain.Project{
-		Slug:              p.GetSlug(),
-		Title:             p.GetTitle(),
-		Subtitle:          p.GetSubtitle(),
-		Description:       p.GetDescription(),
-		SourceObjPath:     p.GetSourceObjPath(),
-		SourceMtlPath:     p.GetSourceMtlPath(),
-		SourceTexturePath: p.GetSourceTexturePath(),
+func territoryFromProto(t *catalogv1.Territory) domain.Territory {
+	return domain.Territory{
+		Slug:           t.GetSlug(),
+		Title:          t.GetTitle(),
+		Description:    t.GetDescription(),
+		SourceBlobHash: t.GetSourceBlobHash(),
 	}
 }
 
-func artifactToProto(a domain.Artifact) *catalogv1.Artifact {
-	return &catalogv1.Artifact{
-		ProjectSlug: a.ProjectSlug,
+func modelToProto(m domain.Model) *catalogv1.Model {
+	return &catalogv1.Model{
+		Slug:           m.Slug,
+		Title:          m.Title,
+		Description:    m.Description,
+		SourceBlobHash: m.SourceBlobHash,
+		CreatedAt:      timestamppb.New(m.CreatedAt),
+		UpdatedAt:      timestamppb.New(m.UpdatedAt),
+	}
+}
+
+func modelFromProto(m *catalogv1.Model) domain.Model {
+	return domain.Model{
+		Slug:           m.GetSlug(),
+		Title:          m.GetTitle(),
+		Description:    m.GetDescription(),
+		SourceBlobHash: m.GetSourceBlobHash(),
+	}
+}
+
+func territoryArtifactToProto(a domain.Artifact) *catalogv1.TerritoryArtifact {
+	return &catalogv1.TerritoryArtifact{
+		TerritorySlug: a.Slug,
+		Lod:           a.LOD,
+		Hash:          a.Hash,
+		ContentType:   a.ContentType,
+		Size:          a.Size,
+		Vertices:      a.Vertices,
+		Faces:         a.Faces,
+		BboxMin:       vec3ToProto(a.BBoxMin),
+		BboxMax:       vec3ToProto(a.BBoxMax),
+		CreatedAt:     timestamppb.New(a.CreatedAt),
+	}
+}
+
+func territoryArtifactFromProto(a *catalogv1.TerritoryArtifact) domain.Artifact {
+	return domain.Artifact{
+		Slug:        a.GetTerritorySlug(),
+		LOD:         a.GetLod(),
+		Hash:        a.GetHash(),
+		ContentType: a.GetContentType(),
+		Size:        a.GetSize(),
+		Vertices:    a.GetVertices(),
+		Faces:       a.GetFaces(),
+		BBoxMin:     vec3FromProto(a.GetBboxMin()),
+		BBoxMax:     vec3FromProto(a.GetBboxMax()),
+	}
+}
+
+func modelArtifactToProto(a domain.Artifact) *catalogv1.ModelArtifact {
+	return &catalogv1.ModelArtifact{
+		ModelSlug:   a.Slug,
 		Lod:         a.LOD,
 		Hash:        a.Hash,
 		ContentType: a.ContentType,
@@ -48,9 +91,9 @@ func artifactToProto(a domain.Artifact) *catalogv1.Artifact {
 	}
 }
 
-func artifactFromProto(a *catalogv1.Artifact) domain.Artifact {
+func modelArtifactFromProto(a *catalogv1.ModelArtifact) domain.Artifact {
 	return domain.Artifact{
-		ProjectSlug: a.GetProjectSlug(),
+		Slug:        a.GetModelSlug(),
 		LOD:         a.GetLod(),
 		Hash:        a.GetHash(),
 		ContentType: a.GetContentType(),
@@ -75,14 +118,14 @@ func vec3FromProto(v *catalogv1.Vec3) domain.Vec3 {
 
 func placementToProto(p domain.Placement) *catalogv1.Placement {
 	return &catalogv1.Placement{
-		Id:         p.ID,
-		ParentSlug: p.ParentSlug,
-		AssetSlug:  p.AssetSlug,
-		Position:   vec3ToProto(p.Position),
-		Rotation:   vec3ToProto(p.Rotation),
-		Scale:      vec3ToProto(p.Scale),
-		Label:      p.Label,
-		CreatedAt:  timestamppb.New(p.CreatedAt),
-		UpdatedAt:  timestamppb.New(p.UpdatedAt),
+		Id:            p.ID,
+		TerritorySlug: p.TerritorySlug,
+		ModelSlug:     p.ModelSlug,
+		Position:      vec3ToProto(p.Position),
+		Rotation:      vec3ToProto(p.Rotation),
+		Scale:         vec3ToProto(p.Scale),
+		Label:         p.Label,
+		CreatedAt:     timestamppb.New(p.CreatedAt),
+		UpdatedAt:     timestamppb.New(p.UpdatedAt),
 	}
 }

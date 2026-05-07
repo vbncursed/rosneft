@@ -47,10 +47,13 @@ func ParseJobStatus(s string) JobStatus {
 	}
 }
 
-// Job is a unit of conversion work flowing through the mesh pipeline.
+// Job is a unit of conversion work flowing through the mesh pipeline. Kind
+// + Slug together identify the catalog entity whose source bytes are being
+// converted; the same Kind drives where the resulting artifact is registered.
 type Job struct {
 	ID           string
-	ProjectSlug  string
+	Kind         Kind
+	Slug         string
 	Status       JobStatus
 	ErrorMessage string
 	ArtifactHash string

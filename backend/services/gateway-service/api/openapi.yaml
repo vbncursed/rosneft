@@ -1,17 +1,27 @@
 openapi: 3.0.3
 info:
   title: Rosneft Backend Gateway API
-  version: 0.1.0
+  version: 0.2.0
   description: |
     Public REST surface for the Rosneft 3D viewer frontend. Internal
-    services (catalog, mesh) are accessed via gRPC; this gateway is the
-    only externally exposed component.
+    services (catalog, mesh, upload) are reached via gRPC; this gateway
+    is the only externally exposed component.
 
-    Note: binary asset streaming (`GET /api/assets/{hash}`) is implemented
-    as a transparent reverse proxy to asset-service and is intentionally
-    not described here as a typed endpoint — clients should treat it as
-    raw binary content (`model/gltf-binary` or `image/jpeg`) with Range,
-    ETag, and immutable cache headers.
+    The catalog is split into two domains:
+      • Territories — parent scenes the viewer renders as a canvas.
+      • Models      — placeable 3D assets overlaid on a territory.
+
+    Source files (OBJ + MTL + textures) are uploaded as a ZIP archive
+    through the chunked /api/uploads endpoints; the resulting blob hash is
+    then attached to a Territory or Model. The mesh-worker fetches the
+    archive from BlobStore, runs the converter, and registers the GLB
+    artifacts back in the catalog.
+
+    Note: binary artifact streaming (`GET /api/assets/{hash}`) is
+    implemented as a transparent reverse proxy to asset-service and is
+    intentionally not described here as a typed endpoint — clients should
+    treat it as raw binary content (`model/gltf-binary`) with Range, ETag,
+    and immutable cache headers.
 servers:
   - url: http://localhost:8080
     description: Local docker-compose
@@ -25,37 +35,50 @@ components:
         x: { type: number, format: double }
         y: { type: number, format: double }
         z: { type: number, format: double }
-    Project:
+
+    Territory:
       type: object
-      required: [slug, title]
+      required: [slug, title, sourceBlobHash]
       properties:
         slug: { type: string }
         title: { type: string }
-        subtitle: { type: string }
         description: { type: string }
-        sourceObjPath: { type: string }
-        sourceMtlPath: { type: string }
-        sourceTexturePath: { type: string }
+        sourceBlobHash: { type: string }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+
+    Model:
+      type: object
+      required: [slug, title, sourceBlobHash]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        sourceBlobHash: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
     LodArtifact:
       type: object
       required: [lod, hash, size]
       description: |
-        Minimal descriptor for one LOD level of a project. Carries only
-        size/geometry stats — bbox, contentType, createdAt are LOD-invariant
-        and live on the parent Artifact.
+        Minimal descriptor for one LOD level. Carries only size/geometry
+        stats — bbox, contentType, createdAt are LOD-invariant and live
+        on the parent Artifact.
       properties:
         lod: { type: integer, format: int32, minimum: 0 }
         hash: { type: string }
         size: { type: integer, format: int64 }
         vertices: { type: integer, format: int64 }
         faces: { type: integer, format: int64 }
+
     Artifact:
       type: object
-      required: [projectSlug, lod, hash, contentType, size]
+      required: [slug, lod, hash, contentType, size]
       properties:
-        projectSlug: { type: string }
+        slug:
+          type: string
+          description: Owner slug (territory or model, depending on the endpoint).
         lod: { type: integer, format: int32, minimum: 0 }
         hash: { type: string }
         contentType: { type: string }
@@ -68,47 +91,57 @@ components:
         artifacts:
           type: array
           description: |
-            All available LODs for this project, sorted by lod ascending.
-            Populated by /scene; absent (null) on /artifacts and /artifacts/{lod}
-            list/get endpoints where the array would be redundant. The
-            top-level fields (bbox, contentType, createdAt) reflect LOD0.
+            All available LODs for this owner, sorted by lod ascending.
+            Populated by /scene; absent on /artifacts list/get endpoints
+            where the array would be redundant.
           items: { $ref: '#/components/schemas/LodArtifact' }
+
     JobStatus:
       type: string
       enum: [pending, running, succeeded, failed]
+
+    JobKind:
+      type: string
+      description: Which catalog domain the job's outputs belong to.
+      enum: [territory, model]
+
     Job:
       type: object
-      required: [id, projectSlug, status]
+      required: [id, kind, slug, status]
       properties:
         id: { type: string }
-        projectSlug: { type: string }
+        kind: { $ref: '#/components/schemas/JobKind' }
+        slug: { type: string }
         status: { $ref: '#/components/schemas/JobStatus' }
         errorMessage: { type: string }
         artifactHash: { type: string }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+
     Placement:
       type: object
-      required: [id, parentSlug, assetSlug, position, rotation, scale]
+      required: [id, territorySlug, modelSlug, position, rotation, scale]
       properties:
         id: { type: integer, format: int64 }
-        parentSlug: { type: string }
-        assetSlug: { type: string }
+        territorySlug: { type: string }
+        modelSlug: { type: string }
         position: { $ref: '#/components/schemas/Vec3' }
         rotation: { $ref: '#/components/schemas/Vec3' }
         scale: { $ref: '#/components/schemas/Vec3' }
         label: { type: string }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+
     PlacementCreate:
       type: object
-      required: [assetSlug]
+      required: [modelSlug]
       properties:
-        assetSlug: { type: string }
+        modelSlug: { type: string }
         position: { $ref: '#/components/schemas/Vec3' }
         rotation: { $ref: '#/components/schemas/Vec3' }
         scale: { $ref: '#/components/schemas/Vec3' }
         label: { type: string }
+
     PlacementUpdate:
       type: object
       properties:
@@ -116,6 +149,36 @@ components:
         rotation: { $ref: '#/components/schemas/Vec3' }
         scale: { $ref: '#/components/schemas/Vec3' }
         label: { type: string }
+
+    EntityCreate:
+      type: object
+      required: [slug, title, sourceBlobHash]
+      description: |
+        Body for POST /api/territories and POST /api/models. The client
+        first uploads the source ZIP via /api/uploads, then attaches the
+        returned hash here. The gateway forwards the entity to catalog
+        and queues a conversion job; the response carries both the new
+        entity and the queued Job for SSE subscription.
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        sourceBlobHash: { type: string }
+
+    TerritoryCreated:
+      type: object
+      required: [territory, job]
+      properties:
+        territory: { $ref: '#/components/schemas/Territory' }
+        job: { $ref: '#/components/schemas/Job' }
+
+    ModelCreated:
+      type: object
+      required: [model, job]
+      properties:
+        model: { $ref: '#/components/schemas/Model' }
+        job: { $ref: '#/components/schemas/Job' }
+
     AssetOption:
       type: object
       required: [slug, title, artifacts]
@@ -125,34 +188,59 @@ components:
         artifacts:
           type: array
           description: |
-            All available LODs for this asset, sorted by lod ascending.
-            Empty when the asset has no successful conversion yet — the
+            All available LODs for this model, sorted by lod ascending.
+            Empty when the model has no successful conversion yet — the
             frontend can grey it out in the picker.
           items: { $ref: '#/components/schemas/LodArtifact' }
+
     SceneBundle:
       type: object
-      required: [project, placements, assetOptions]
+      required: [territory, placements, modelOptions]
       description: |
-        Single-shot bundle for the viewer page. Includes the requested project,
-        its current LOD0 artifact (when present), all placements on it, and an
-        asset-option list (every catalog project with its current artifact hash)
-        suitable for the placement-picker dropdown. Eliminates the N+1 round
-        trips the frontend would otherwise need on first paint.
+        Single-shot bundle for the viewer page. Includes the requested
+        territory, its current LOD0 artifact (when present), all
+        placements on it, and the list of available models with their
+        artifacts for the placement picker.
       properties:
-        project: { $ref: '#/components/schemas/Project' }
+        territory: { $ref: '#/components/schemas/Territory' }
         artifact: { $ref: '#/components/schemas/Artifact' }
         placements:
           type: array
           items: { $ref: '#/components/schemas/Placement' }
-        assetOptions:
+        modelOptions:
           type: array
           items: { $ref: '#/components/schemas/AssetOption' }
+
+    UploadInitiate:
+      type: object
+      required: [size]
+      properties:
+        size: { type: integer, format: int64, minimum: 1 }
+        contentType: { type: string }
+
+    UploadSession:
+      type: object
+      required: [id, size, offset]
+      properties:
+        id: { type: string }
+        size: { type: integer, format: int64 }
+        offset: { type: integer, format: int64 }
+        contentType: { type: string }
+
+    UploadFinalized:
+      type: object
+      required: [hash, size]
+      properties:
+        hash: { type: string }
+        size: { type: integer, format: int64 }
+
     Error:
       type: object
       required: [code, message]
       properties:
         code: { type: string }
         message: { type: string }
+
   responses:
     NotFound:
       description: Resource not found
@@ -171,96 +259,94 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
 
 paths:
-  /api/projects:
+  /api/territories:
     get:
-      operationId: listProjects
-      summary: List catalog projects (optionally paginated)
-      description: |
-        Returns the slug-sorted catalog. When neither `limit` nor `cursor`
-        is supplied the server returns everything (current behaviour).
-        Supplying `limit` enables cursor pagination: the response includes
-        a non-empty `X-Next-Cursor` header when more pages exist; pass it
-        back as `cursor` to fetch the next page.
-      tags: [catalog]
-      parameters:
-        - name: limit
-          in: query
-          required: false
-          description: Page size. Omit or set to 0 for no pagination.
-          schema: { type: integer, format: int32, minimum: 0, maximum: 1000 }
-        - name: cursor
-          in: query
-          required: false
-          description: Opaque cursor from a previous response's X-Next-Cursor header.
-          schema: { type: string }
+      operationId: listTerritories
+      summary: List territories
+      tags: [territories]
       responses:
         '200':
           description: OK
-          headers:
-            X-Next-Cursor:
-              description: Cursor for the next page; absent when no more pages.
-              schema: { type: string }
           content:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/Project' }
+                items: { $ref: '#/components/schemas/Territory' }
+        '500': { $ref: '#/components/responses/Internal' }
+    post:
+      operationId: createTerritory
+      summary: Register a territory and queue its conversion
+      tags: [territories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EntityCreate' }
+      responses:
+        '202':
+          description: Territory created and conversion queued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TerritoryCreated' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '500': { $ref: '#/components/responses/Internal' }
 
-  /api/projects/{slug}:
+  /api/territories/{slug}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
     get:
-      operationId: getProject
-      summary: Get a project by slug
-      tags: [catalog]
-      parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
+      operationId: getTerritory
+      summary: Get a territory by slug
+      tags: [territories]
       responses:
         '200':
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Project' }
-        '400': { $ref: '#/components/responses/BadRequest' }
+              schema: { $ref: '#/components/schemas/Territory' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+    delete:
+      operationId: deleteTerritory
+      summary: Delete a territory and its placements
+      tags: [territories]
+      responses:
+        '204': { description: Deleted }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
 
-  /api/projects/{slug}/scene:
+  /api/territories/{slug}/scene:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
     get:
       operationId: getSceneBundle
       summary: Single-shot bundle for the viewer page
-      description: |
-        Aggregates project + LOD0 artifact + placements + asset options in one
-        response. Replaces 4+ parallel client requests with a single round trip.
-      tags: [catalog]
-      parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
+      tags: [territories]
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/SceneBundle' }
-        '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
 
-  /api/projects/{slug}/artifacts:
+  /api/territories/{slug}/artifacts:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
     get:
-      operationId: listArtifacts
-      summary: List converted artifacts for a project
-      tags: [catalog]
-      parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
+      operationId: listTerritoryArtifacts
+      summary: List converted artifacts for a territory
+      tags: [territories]
       responses:
         '200':
           description: OK
@@ -269,80 +355,42 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/Artifact' }
-        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
 
-  /api/projects/{slug}/artifacts/{lod}:
+  /api/territories/{slug}/artifacts/{lod}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+      - name: lod
+        in: path
+        required: true
+        schema: { type: integer, format: int32, minimum: 0 }
     get:
-      operationId: getArtifact
-      summary: Get artifact metadata for a specific LOD
-      tags: [catalog]
-      parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
-        - name: lod
-          in: path
-          required: true
-          schema: { type: integer, format: int32, minimum: 0 }
+      operationId: getTerritoryArtifact
+      summary: Get one converted artifact (territory)
+      tags: [territories]
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Artifact' }
-        '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
-
-  /api/projects/{slug}/convert:
-    post:
-      operationId: submitConversion
-      summary: Trigger an OBJ→GLB conversion job
-      tags: [mesh]
-      parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
-      responses:
-        '202':
-          description: Accepted; the conversion runs asynchronously
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Job' }
-        '400': { $ref: '#/components/responses/BadRequest' }
         '500': { $ref: '#/components/responses/Internal' }
 
-  /api/jobs/{id}:
-    get:
-      operationId: getJob
-      summary: Get conversion job status
-      tags: [mesh]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: string }
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Job' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '404': { $ref: '#/components/responses/NotFound' }
-
-  /api/projects/{slug}/placements:
+  /api/territories/{slug}/placements:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
     get:
       operationId: listPlacements
-      summary: List placements attached to a parent project
+      summary: List placements on a territory
       tags: [placements]
-      parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
       responses:
         '200':
           description: OK
@@ -351,23 +399,12 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/Placement' }
-        '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
     post:
       operationId: createPlacement
-      summary: Place an asset project onto a parent project's scene
-      description: |
-        Creates a new placement that overlays the asset project's GLB on top
-        of the parent project. Defaults: position {0,0,0}, rotation {0,0,0},
-        scale {1,1,1}, empty label. Asset and parent must both exist;
-        placing a project onto itself is rejected with 400.
+      summary: Add a placement to a territory
       tags: [placements]
-      parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
       requestBody:
         required: true
         content:
@@ -383,24 +420,20 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
 
-  /api/projects/{slug}/placements/{id}:
+  /api/territories/{slug}/placements/{id}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
     put:
       operationId: updatePlacement
-      summary: Replace a placement's transform and label
-      description: |
-        Full replace — every transform field on the request body becomes the
-        new value. Omitted fields fall back to defaults (scale {1,1,1},
-        zero position/rotation, empty label).
+      summary: Replace a placement's transform
       tags: [placements]
-      parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer, format: int64 }
       requestBody:
         required: true
         content:
@@ -419,18 +452,208 @@ paths:
       operationId: deletePlacement
       summary: Remove a placement
       tags: [placements]
+      responses:
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/models:
+    get:
+      operationId: listModels
+      summary: List models
+      tags: [models]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Model' }
+        '500': { $ref: '#/components/responses/Internal' }
+    post:
+      operationId: createModel
+      summary: Register a model and queue its conversion
+      tags: [models]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EntityCreate' }
+      responses:
+        '202':
+          description: Model created and conversion queued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ModelCreated' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/models/{slug}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: getModel
+      summary: Get a model by slug
+      tags: [models]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Model' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+    delete:
+      operationId: deleteModel
+      summary: Delete a model
+      description: Refuses to delete a model still referenced by placements.
+      tags: [models]
+      responses:
+        '204': { description: Deleted }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/models/{slug}/artifacts:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: listModelArtifacts
+      summary: List converted artifacts for a model
+      tags: [models]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Artifact' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/models/{slug}/artifacts/{lod}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+      - name: lod
+        in: path
+        required: true
+        schema: { type: integer, format: int32, minimum: 0 }
+    get:
+      operationId: getModelArtifact
+      summary: Get one converted artifact (model)
+      tags: [models]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Artifact' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/uploads:
+    post:
+      operationId: initiateUpload
+      summary: Start a chunked upload session
+      tags: [uploads]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UploadInitiate' }
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UploadSession' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/uploads/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    head:
+      operationId: getUploadStatus
+      summary: Query the current offset of a session
+      tags: [uploads]
+      responses:
+        '200':
+          description: OK
+          headers:
+            Upload-Offset:
+              schema: { type: integer, format: int64 }
+            Upload-Length:
+              schema: { type: integer, format: int64 }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+    patch:
+      operationId: appendUploadChunk
+      summary: Append bytes to a session at the given offset
+      description: |
+        Body is the raw chunk; the absolute byte offset goes in the
+        `Upload-Offset` header. The server returns the new total in
+        the `Upload-Offset` response header.
+      tags: [uploads]
       parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
-        - name: id
-          in: path
+        - name: Upload-Offset
+          in: header
           required: true
           schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
       responses:
         '204':
-          description: No Content
+          description: Accepted; current offset returned in Upload-Offset
+          headers:
+            Upload-Offset:
+              schema: { type: integer, format: int64 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+    delete:
+      operationId: abortUpload
+      summary: Discard an in-progress session
+      tags: [uploads]
+      responses:
+        '204': { description: Aborted }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/uploads/{id}/finalize:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: finalizeUpload
+      summary: Close a session and publish the bytes to BlobStore
+      tags: [uploads]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UploadFinalized' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
