@@ -3,7 +3,7 @@
 package: httpapi
 
 generate:
-  std-http-server: true   # net/http 1.22+ ServeMux (no third-party router)
+  chi-server: true        # github.com/go-chi/chi/v5 router
   models: true
   embedded-spec: true     # embeds the spec into the binary for /openapi.yaml
   strict-server: true     # typed handler signatures with error returns

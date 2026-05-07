@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
@@ -31,7 +33,7 @@ const jobEventKeepalive = 15 * time.Second
 // compression middlewares) — those middlewares buffer/transform the body,
 // which would defeat the streaming contract.
 func (s *Server) WatchJobEvents(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+	id := chi.URLParam(r, "id")
 	if id == "" {
 		http.Error(w, "missing job id", http.StatusBadRequest)
 		return

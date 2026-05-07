@@ -1,7 +1,15 @@
 package bootstrap
 
 import (
+	"io"
+	"log/slog"
 	"net/http"
+
+	"github.com/andybalholm/brotli"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+	slogchi "github.com/samber/slog-chi"
 
 	"github.com/vbncursed/rosneft/backend/pkg/healthz"
 
@@ -17,47 +25,104 @@ var (
 	_ httpapi.StrictServerInterface = (*httpapi.Server)(nil)
 )
 
-// InitMux builds the HTTP mux: openapi-driven handlers (wrapped with ETag +
-// compression middleware) + healthz + binary asset proxy + Scalar UI.
+// InitRouter builds the chi.Router stack:
 //
-// Asset proxy is intentionally registered on the outer mux so it bypasses the
-// JSON middleware chain — GLB binaries already carry asset-service ETag and
-// would only waste CPU if compressed (Draco output is incompressible noise).
-func InitMux(svc *service.Gateway, assetProxy http.Handler, cfg config.Config) (*http.ServeMux, *healthz.Handler) {
-	mux := http.NewServeMux()
+//	[CORS, RequestID, RealIP, Recoverer, slog-chi]      ← root
+//	  /healthz, /readyz, /docs, /openapi.json
+//	  /api/assets/{hash}                                ← binary proxy
+//	  /api/jobs/{id}/events                             ← SSE
+//	  /api/* sub-router
+//	    [ETag, Compress(br/gzip/deflate)]
+//	    openapi strict handlers
+//
+// Asset proxy and SSE sit on the root router so they bypass the JSON
+// middleware chain — GLB binaries already carry asset-service ETag and
+// would only waste CPU if compressed; SSE must not be buffered.
+func InitRouter(
+	svc *service.Gateway,
+	assetProxy http.Handler,
+	logger *slog.Logger,
+	cfg config.Config,
+) (chi.Router, *healthz.Handler) {
+	r := chi.NewRouter()
+
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   resolveOrigins(cfg.AllowedOrigins),
+		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowedHeaders:   []string{"Content-Type", "If-None-Match", "Authorization"},
+		ExposedHeaders:   []string{"ETag", "Content-Length", "Content-Range", "X-Next-Cursor"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Recoverer)
+	r.Use(slogchi.NewWithConfig(logger, slogchi.Config{
+		DefaultLevel:     slog.LevelInfo,
+		ClientErrorLevel: slog.LevelWarn,
+		ServerErrorLevel: slog.LevelError,
+		WithRequestID:    true,
+		Filters: []slogchi.Filter{
+			slogchi.IgnorePath("/healthz", "/readyz"),
+		},
+	}))
 
 	hz := healthz.New(healthz.Config{Service: "gateway-service"})
-	hz.Mount(mux)
 	hz.MarkReady()
+	r.Get("/healthz", hz.Live)
+	r.Get("/readyz", hz.Ready)
 
 	apiServer := httpapi.New(svc)
+	r.Get("/docs", apiServer.ServeDocs)
+	r.Get("/openapi.json", apiServer.ServeSpec)
 
-	// Sub-mux for typed OpenAPI routes — wrapped with ETag + compression.
-	apiMux := http.NewServeMux()
-	_ = httpapi.HandlerWithOptions(
-		httpapi.NewStrictHandler(apiServer, nil),
-		httpapi.StdHTTPServerOptions{BaseRouter: apiMux},
+	// Binary asset proxy + SSE — outside the JSON middleware chain.
+	r.Get("/api/assets/{hash}", assetProxy.ServeHTTP)
+	r.Head("/api/assets/{hash}", assetProxy.ServeHTTP)
+	r.Get("/api/jobs/{id}/events", apiServer.WatchJobEvents)
+
+	// /api JSON sub-router with ETag + Compress.
+	r.Group(func(api chi.Router) {
+		api.Use(httpapi.ETagMiddleware)
+		api.Use(newCompressor().Handler)
+		httpapi.HandlerFromMux(
+			httpapi.NewStrictHandler(apiServer, nil),
+			api,
+		)
+	})
+
+	return r, hz
+}
+
+// resolveOrigins maps the configured origin list onto go-chi/cors syntax.
+// An empty slice or {"*"} becomes []{"*"} (any origin allowed).
+func resolveOrigins(origins []string) []string {
+	if len(origins) == 0 {
+		return []string{"*"}
+	}
+	return origins
+}
+
+// newCompressor configures chi's Compressor with brotli registered alongside
+// the default gzip/deflate. Brotli ratio is ~15% better than gzip for JSON;
+// chi negotiates Accept-Encoding by client q-value and picks the best match.
+//
+// Compression level 5 is a balanced default — gzip's "best compression" (9)
+// burns CPU for marginal size gain on JSON payloads in the kB range.
+func newCompressor() *middleware.Compressor {
+	const level = 5
+	c := middleware.NewCompressor(
+		level,
+		"application/json",
+		"application/javascript",
+		"application/xml",
+		"text/plain",
+		"text/html",
+		"text/css",
 	)
-	wrappedAPI := httpapi.ETagMiddleware(httpapi.CompressionMiddleware(apiMux))
-	mux.Handle("/api/", wrappedAPI)
-
-	// API reference UI (Scalar) + machine-readable spec.
-	mux.HandleFunc("GET /docs", apiServer.ServeDocs)
-	mux.HandleFunc("GET /openapi.json", apiServer.ServeSpec)
-
-	// SSE conversion stream — registered outside the JSON middleware chain
-	// so ETag and compression don't buffer or transform the event stream.
-	mux.HandleFunc("GET /api/jobs/{id}/events", apiServer.WatchJobEvents)
-
-	// Binary asset proxy — most-specific patterns win in Go 1.22+ ServeMux,
-	// so /api/assets/{hash} overrides the /api/ catch-all above.
-	mux.Handle("GET /api/assets/{hash}", assetProxy)
-	mux.Handle("HEAD /api/assets/{hash}", assetProxy)
-
-	return mux, hz
+	c.SetEncoder("br", func(w io.Writer, lvl int) io.Writer {
+		return brotli.NewWriterLevel(w, lvl)
+	})
+	return c
 }
 
-// WithCORS wraps mux with the configured CORS middleware.
-func WithCORS(mux *http.ServeMux, cfg config.Config) http.Handler {
-	return httpapi.CORSMiddleware(cfg.AllowedOrigins)(mux)
-}

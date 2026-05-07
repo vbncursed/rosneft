@@ -45,12 +45,11 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("init asset proxy: %w", err)
 	}
 
-	mux, hz := InitMux(svc, assetProxy, cfg)
-	handler := WithCORS(mux, cfg)
+	router, hz := InitRouter(svc, assetProxy, logger, cfg)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           handler,
+		Handler:           router,
 		ReadHeaderTimeout: cfg.ReadTimeout,
 		ReadTimeout:       cfg.ReadTimeout,
 		WriteTimeout:      cfg.WriteTimeout,
