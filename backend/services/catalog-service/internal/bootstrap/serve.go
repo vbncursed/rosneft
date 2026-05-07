@@ -39,7 +39,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 
 	svc := InitService(InitStorage(pool))
 
-	grpcSrv, healthSrv := InitGRPCServer(svc)
+	grpcSrv, healthSrv := InitGRPCServer(svc, logger)
 
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {

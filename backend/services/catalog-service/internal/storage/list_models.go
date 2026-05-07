@@ -17,7 +17,9 @@ func (r *PG) ListModels(ctx context.Context) ([]domain.Model, error) {
 	}
 	defer rows.Close()
 
-	out := make([]domain.Model, 0)
+	// 64 models covers the typical catalog without realloc;
+	// the slice will grow naturally if the catalog gets larger.
+	out := make([]domain.Model, 0, 64)
 	for rows.Next() {
 		m, err := scanModel(rows)
 		if err != nil {
