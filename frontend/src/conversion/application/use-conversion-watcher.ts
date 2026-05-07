@@ -1,49 +1,29 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { submitConversion } from "@/catalog/infrastructure/catalog-gateway";
-import type { Job, JobStatus } from "@/catalog/domain/job";
+import type { Job, JobStatus } from "@/shared/domain/job";
 import { useJobStream } from "@/conversion/application/use-job-stream";
-import { formatError } from "@/shared/infrastructure/http/format-error";
 
 export interface UseConversionWatcher {
-  status: JobStatus | "submitting" | "unavailable";
+  status: JobStatus | "polling" | "unavailable";
   error: string | null;
 }
 
-// useConversionWatcher orchestrates the pending-conversion screen:
-// 1. POST /convert when the screen mounts → get a jobId.
-// 2. Subscribe to the SSE stream for that jobId.
-// 3. router.refresh() once the job reports succeeded — the page rebuilds
-//    against the now-present LOD0 artifact and swaps in the viewer.
-//
-// Submission is idempotent operationally (worker re-converts the same OBJ
-// to the same blob hash + catalog upserts), so a refresh that races the
-// reconciler-enqueued job is safe.
-export function useConversionWatcher(slug: string): UseConversionWatcher {
+const POLL_INTERVAL_MS = 4000;
+
+// useConversionWatcher drives the pending-conversion screen.
+// 1. If the caller passes a jobId (we just created the territory and
+//    received it from POST /api/territories), subscribe to SSE for live
+//    updates and trigger a router.refresh() on succeeded.
+// 2. Otherwise (e.g. navigating to a territory whose conversion was
+//    queued elsewhere by the worker reconciler), fall back to polling
+//    the page every POLL_INTERVAL_MS — when the artifact lands the page
+//    re-renders into the viewer.
+export function useConversionWatcher(jobId: string | null): UseConversionWatcher {
   const router = useRouter();
-  const [jobId, setJobId] = useState<string | null>(null);
   const [status, setStatus] = useState<UseConversionWatcher["status"]>(
-    "submitting",
+    jobId ? "pending" : "polling",
   );
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    submitConversion(slug)
-      .then((job) => {
-        if (cancelled) return;
-        setJobId(job.id);
-        setStatus(job.status);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setStatus("unavailable");
-        setError(formatError(err));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [slug]);
 
   const onUpdate = useCallback(
     (job: Job) => {
@@ -53,8 +33,16 @@ export function useConversionWatcher(slug: string): UseConversionWatcher {
     },
     [router],
   );
-
   useJobStream(jobId, onUpdate);
+
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (jobId) return;
+    intervalRef.current = setInterval(() => router.refresh(), POLL_INTERVAL_MS);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [jobId, router]);
 
   return { status, error };
 }

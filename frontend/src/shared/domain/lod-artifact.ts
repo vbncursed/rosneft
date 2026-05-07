@@ -1,7 +1,7 @@
-// LodArtifact is one entry of an asset's LOD chain — the same project
-// can have several converted GLBs at different polygon counts (LOD0 = full,
+// LodArtifact is one entry of a converted LOD chain. The same source can
+// produce several GLBs at different polygon counts (LOD0 = full quality,
 // LOD1 ≈ 50%, LOD2 ≈ 25%, configurable on the backend). Each carries its
-// own content-addressed hash, so the browser caches every LOD independently.
+// own content-addressed hash so the browser caches every LOD independently.
 export interface LodArtifact {
   lod: number;
   hash: string;
@@ -13,8 +13,7 @@ export interface LodArtifact {
 // orderByPreferred returns the chain sorted by closeness to the requested
 // LOD number. The first entry is the best match; the rest form the
 // fallback ladder used by the LOD error boundary when a chosen LOD fails
-// to load. Ties (e.g. preferred=1, chain has 0 and 2) break toward higher
-// quality — lower lod number, more triangles, better-looking pick.
+// to load. Ties break toward higher quality (lower lod number).
 export function orderByPreferred(
   chain: LodArtifact[],
   preferred: number,
@@ -27,8 +26,8 @@ export function orderByPreferred(
 }
 
 // pickLod returns the requested LOD if present, otherwise the closest
-// available entry (see orderByPreferred). Returns null only when the
-// chain is empty, which the caller treats as "asset not converted yet".
+// available entry. Returns null only when the chain is empty, which the
+// caller treats as "asset not converted yet".
 export function pickLod(
   chain: LodArtifact[],
   preferred = 0,

@@ -25,7 +25,7 @@ interface PlacementsPanelProps {
   mode: GizmoMode;
   onSelect: (id: number | null) => void;
   onModeChange: (mode: GizmoMode) => void;
-  onCreate: (assetSlug: string) => Promise<void> | void;
+  onCreate: (modelSlug: string) => Promise<void> | void;
   onUpdate: (id: number, body: PlacementUpdate) => Promise<void> | void;
   onDelete: (id: number) => Promise<void> | void;
 }

@@ -8,13 +8,13 @@ import {
   useRef,
   useState,
 } from "react";
-import type { LodArtifact } from "@/catalog/domain/lod-artifact";
+import type { LodArtifact } from "@/shared/domain/lod-artifact";
 import type { Group, Object3D } from "three";
 import type { ThreeEvent } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { SkeletonUtils } from "three-stdlib";
-import { lodUrl } from "@/catalog/application/lod-url";
-import { orderByPreferred } from "@/catalog/domain/lod-artifact";
+import { lodUrl } from "@/shared/application/lod-url";
+import { orderByPreferred } from "@/shared/domain/lod-artifact";
 import type { ResolvedPlacement } from "@/placement/domain/placement";
 import { extendGltfLoader } from "@/viewer/presentation/three/gltf-loader-setup";
 import LodErrorBoundary from "@/viewer/presentation/three/lod-error-boundary";

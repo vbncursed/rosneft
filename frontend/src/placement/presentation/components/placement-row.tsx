@@ -20,7 +20,7 @@ function PlacementRowImpl({
   onSelect,
   onDelete,
 }: PlacementRowProps) {
-  const headline = placement.label || placement.assetSlug;
+  const headline = placement.label || placement.modelSlug;
 
   const handleSelect = useCallback(() => {
     // Click on a selected row toggles the selection off — the same
@@ -47,7 +47,7 @@ function PlacementRowImpl({
       >
         <p className="truncate text-sm font-medium text-neutral-100">{headline}</p>
         <p className="truncate text-[11px] text-neutral-400">
-          {placement.assetSlug} · #{placement.id}
+          {placement.modelSlug} · #{placement.id}
         </p>
       </button>
       <button

@@ -34,8 +34,8 @@ func (s *WatchJobEventsSuite) TestEmitsSnapshotAndTerminatesOnSuccess() {
 	rec := &flushRecorder{ResponseRecorder: httptest.NewRecorder()}
 	now := time.Now()
 	jobs := []domain.Job{
-		{ID: "j1", ProjectSlug: "p", Status: domain.JobStatusRunning, UpdatedAt: now},
-		{ID: "j1", ProjectSlug: "p", Status: domain.JobStatusSucceeded, UpdatedAt: now.Add(time.Second)},
+		{ID: "j1", Slug: "p", Status: domain.JobStatusRunning, UpdatedAt: now},
+		{ID: "j1", Slug: "p", Status: domain.JobStatusSucceeded, UpdatedAt: now.Add(time.Second)},
 	}
 	calls := atomic.Int32{}
 	fetch := func(_ context.Context, _ string) (domain.Job, error) {
@@ -77,7 +77,7 @@ func (s *WatchJobEventsSuite) TestRespectsContextCancel() {
 	rec := &flushRecorder{ResponseRecorder: httptest.NewRecorder()}
 	fetch := func(_ context.Context, _ string) (domain.Job, error) {
 		return domain.Job{
-			ID: "j1", ProjectSlug: "p",
+			ID: "j1", Slug: "p",
 			Status:    domain.JobStatusRunning,
 			UpdatedAt: time.Now(),
 		}, nil

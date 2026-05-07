@@ -1,51 +1,49 @@
 import { notFound } from "next/navigation";
 import ConversionPending from "@/conversion/presentation/conversion-pending";
 import ViewerEntry from "@/viewer/presentation/components/viewer-entry";
-import { getSceneBundle } from "@/catalog/infrastructure/catalog-gateway";
-import { bboxAxis } from "@/catalog/domain/artifact";
-import type { LodArtifact } from "@/catalog/domain/lod-artifact";
+import { getSceneBundle } from "@/territory/infrastructure/territory-gateway";
+import { bboxAxis } from "@/shared/domain/artifact";
+import type { LodArtifact } from "@/shared/domain/lod-artifact";
 import { notFoundOnHttp404 } from "@/shared/infrastructure/http/not-found-on-404";
 import type { Placement, ResolvedPlacement } from "@/placement/domain/placement";
 import type { PlacementAssetOption } from "@/placement/domain/asset-option";
 import type { ModelMetadata } from "@/viewer/domain/model-metadata";
 
-interface ProjectPageProps {
+interface TerritoryPageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ jobId?: string }>;
 }
 
-// Force dynamic rendering — every page load fetches fresh project + artifact
-// + placement state from the catalog. We do not pre-render, since the
-// catalog can grow without redeploys.
 export const dynamic = "force-dynamic";
 
 function resolvePlacements(
   placements: Placement[],
   options: PlacementAssetOption[],
 ): ResolvedPlacement[] {
-  // assetOptions already carries the LOD chain per asset — join by slug
-  // so each placement gets the chain it needs without extra catalog calls.
   const lodsBySlug = new Map(options.map((o) => [o.slug, o.lods]));
   return placements.map((p) => ({
     ...p,
-    lods: lodsBySlug.get(p.assetSlug) ?? [],
+    lods: lodsBySlug.get(p.modelSlug) ?? [],
   }));
 }
 
-export default async function ProjectPage({ params }: ProjectPageProps) {
+export default async function TerritoryPage({
+  params,
+  searchParams,
+}: TerritoryPageProps) {
   const { slug } = await params;
+  const { jobId } = await searchParams;
 
   const bundle = await getSceneBundle(slug).catch(notFoundOnHttp404(null));
   if (!bundle) notFound();
 
-  const { project, artifact, placements, assetOptions } = bundle;
+  const { territory, artifact, placements, modelOptions } = bundle;
   if (!artifact) {
-    return <ConversionPending title={project.title} slug={slug} />;
+    return (
+      <ConversionPending title={territory.title} slug={slug} jobId={jobId ?? null} />
+    );
   }
 
-  // The /scene endpoint populates artifact.lods with the parent's full
-  // chain. Fall back to a single-entry chain built from the top-level
-  // hash if it's missing for any reason — keeps rendering reliable
-  // against partial backend responses.
   const parentLods: LodArtifact[] = artifact.lods ?? [
     {
       lod: artifact.lod,
@@ -57,7 +55,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   ];
 
   const metadata: ModelMetadata = {
-    name: project.title,
+    name: territory.title,
     vertices: artifact.vertices ?? 0,
     faces: artifact.faces ?? 0,
     dimensions: {
@@ -71,11 +69,11 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     <main className="relative h-screen w-screen overflow-hidden bg-black">
       <ViewerEntry
         parentLods={parentLods}
-        title={project.title}
+        title={territory.title}
         metadata={metadata}
-        parentSlug={slug}
-        initialPlacements={resolvePlacements(placements, assetOptions)}
-        assetOptions={assetOptions}
+        territorySlug={slug}
+        initialPlacements={resolvePlacements(placements, modelOptions)}
+        modelOptions={modelOptions}
       />
     </main>
   );
