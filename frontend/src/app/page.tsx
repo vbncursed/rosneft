@@ -17,23 +17,23 @@ export default async function Home() {
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-6 py-16 sm:px-10">
         <header>
           <p className="text-xs uppercase tracking-[0.36em] text-cyan-300/80">
-            Rosneft Viewer
+            Andrey Viewer
           </p>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white sm:text-6xl">
-            Территории и модели
+            Territories and models
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-neutral-300 sm:text-lg">
-            Территория — это сцена, по которой ходишь во вьювере. Модель —
-            ассет, который ставится поверх. Загружайте источники как ZIP,
-            mesh-worker конвертирует их в GLB-цепочку LOD.
+            A territory is the scene you walk through in the viewer. A model is
+            an asset placed on top of it. Upload sources as a ZIP and
+            mesh-worker converts them into a GLB LOD chain.
           </p>
         </header>
 
         <Section
-          title="Территории"
+          title="Territories"
           newHref="/territories/new"
-          newLabel="Загрузить территорию"
-          empty="Каталог пуст. Загрузите первую территорию."
+          newLabel="Upload territory"
+          empty="The catalog is empty. Upload your first territory."
           items={territories}
           itemHref={(t) => `/territories/${t.slug}`}
           renderDelete={(item) => (
@@ -42,10 +42,10 @@ export default async function Home() {
         />
 
         <Section
-          title="Модели"
+          title="Models"
           newHref="/models/new"
-          newLabel="Загрузить модель"
-          empty="Моделей пока нет. Загрузите первую."
+          newLabel="Upload model"
+          empty="No models yet. Upload your first one."
           items={models}
           itemHref={(m) => `/models/${m.slug}`}
           renderDelete={(item) => (
@@ -116,7 +116,7 @@ function Section({
                   <span>{item.slug}</span>
                   {href ? (
                     <span className="transition duration-300 group-hover:translate-x-1 group-hover:text-white">
-                      Открыть
+                      Open
                     </span>
                   ) : null}
                 </div>

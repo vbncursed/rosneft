@@ -43,7 +43,7 @@ export default function CreatePlacementRow({
           className="flex-1 cursor-pointer rounded-md border border-white/15 bg-black/40 px-2 py-1.5 text-sm text-neutral-100 outline-none transition-colors focus:border-white/40 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {assets.length === 0 ? (
-            <option value="">нет моделей</option>
+            <option value="">no models</option>
           ) : (
             assets.map((asset) => (
               <option
@@ -52,7 +52,7 @@ export default function CreatePlacementRow({
                 disabled={!usable(asset)}
               >
                 {asset.title}
-                {!usable(asset) ? " — не сконвертирован" : ""}
+                {!usable(asset) ? " — not converted" : ""}
               </option>
             ))
           )}
@@ -68,7 +68,7 @@ export default function CreatePlacementRow({
       </div>
       {noUsable && assets.length > 0 ? (
         <p className="text-[10px] text-neutral-500">
-          Все модели либо ещё конвертируются, либо упали. Открой{" "}
+          All models are still converting or have failed. Open{" "}
           <Link href="/models" className="text-cyan-300 underline">/models</Link>.
         </p>
       ) : null}

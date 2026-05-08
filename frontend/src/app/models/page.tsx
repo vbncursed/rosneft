@@ -13,23 +13,23 @@ export default async function ModelsPage() {
         <header className="flex items-end justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.36em] text-amber-200/80">
-              Каталог моделей
+              Model catalog
             </p>
             <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-              Модели для размещения
+              Models for placement
             </h1>
           </div>
           <Link
             href="/models/new"
             className="cursor-pointer rounded-full bg-white px-5 py-2.5 text-xs uppercase tracking-[0.2em] text-black transition-colors duration-200 hover:bg-amber-200"
           >
-            + Загрузить
+            + Upload
           </Link>
         </header>
 
         {models.length === 0 ? (
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-neutral-300">
-            Моделей пока нет. Загрузите первую.
+            No models yet. Upload your first one.
           </div>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">

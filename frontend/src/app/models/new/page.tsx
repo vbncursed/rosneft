@@ -7,7 +7,7 @@ export default function NewModelPage() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#2a1f10_0%,#0b0d10_38%,#060708_100%)] px-6 py-16 sm:px-10">
       <UploadForm
-        kind="Модель"
+        kind="Model"
         redirectBase="/models"
         redirectAfter="detail"
         create={async (body) => {

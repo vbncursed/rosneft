@@ -14,28 +14,28 @@ interface ConversionPendingProps {
 }
 
 const STAGE_COPY: Record<string, string> = {
-  fetching: "Получение архива…",
-  extracting: "Распаковка ZIP…",
-  parsing: "Парсинг OBJ…",
-  encoding: "Сборка glTF…",
-  compressing: "Сжатие текстур и геометрии…",
-  registering: "Регистрация артефактов…",
+  fetching: "Fetching archive…",
+  extracting: "Extracting ZIP…",
+  parsing: "Parsing OBJ…",
+  encoding: "Building glTF…",
+  compressing: "Compressing textures and geometry…",
+  registering: "Registering artifacts…",
 };
 
 const STATUS_COPY: Record<string, string> = {
-  polling: "Ожидание начала конвертации…",
-  pending: "Задача в очереди.",
-  running: "Идёт конвертация.",
-  succeeded: "Готово, обновляем страницу…",
-  failed: "Конвертация завершилась с ошибкой.",
-  unavailable: "Не удалось подписаться на статус задачи.",
+  polling: "Waiting for conversion to start…",
+  pending: "Job queued.",
+  running: "Conversion in progress.",
+  succeeded: "Done, refreshing the page…",
+  failed: "Conversion failed.",
+  unavailable: "Could not subscribe to job status.",
 };
 
 function stageLabel(stage: string | null): string | null {
   if (!stage) return null;
   if (STAGE_COPY[stage]) return STAGE_COPY[stage];
   if (stage.startsWith("lod-")) {
-    return `LOD ${stage.slice(4)}: запись артефакта…`;
+    return `LOD ${stage.slice(4)}: writing artifact…`;
   }
   return stage;
 }
@@ -57,21 +57,21 @@ export default function ConversionPending({
         href="/"
         className="absolute left-4 top-4 cursor-pointer rounded-full border border-white/15 bg-white/[0.04] px-4 py-2 text-xs uppercase tracking-[0.2em] text-white transition-colors duration-200 hover:bg-white/[0.1]"
       >
-        ← Каталог
+        ← Catalog
       </Link>
       <div className="w-full max-w-xl space-y-5">
         <p className="text-xs uppercase tracking-[0.36em] text-cyan-300/80">
           {title}
         </p>
         <h1 className="text-2xl font-semibold text-white">
-          {failed ? "Конвертация не удалась" : "Идёт конвертация модели"}
+          {failed ? "Conversion failed" : "Converting model"}
         </h1>
         <p className="text-sm leading-6">
           {headline}
           {!failed && (
             <>
               {" "}
-              mesh-worker обрабатывает{" "}
+              mesh-worker is processing{" "}
               <code className="rounded bg-white/10 px-2 py-1 text-cyan-200">
                 {slug}
               </code>
