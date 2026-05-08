@@ -34,11 +34,11 @@ export default async function ModelPage({ params, searchParams }: ModelPageProps
         href="/"
         className="mx-auto mb-6 block w-full max-w-2xl text-xs uppercase tracking-[0.2em] text-neutral-400 transition-colors duration-200 hover:text-white"
       >
-        ← Каталог
+        ← Catalog
       </Link>
       <article className="mx-auto max-w-2xl space-y-6 rounded-3xl border border-white/10 bg-white/[0.03] p-8 backdrop-blur">
         <div className="flex items-start justify-between gap-4">
-          <p className="text-xs uppercase tracking-[0.36em] text-amber-200/80">Модель</p>
+          <p className="text-xs uppercase tracking-[0.36em] text-amber-200/80">Model</p>
           <DeleteModelButton slug={slug} label={model.title} redirectTo="/" />
         </div>
         <h1 className="text-3xl font-semibold tracking-tight text-white">{model.title}</h1>
@@ -56,9 +56,9 @@ export default async function ModelPage({ params, searchParams }: ModelPageProps
           </div>
         </dl>
         <p className="text-sm leading-6 text-neutral-300">
-          Модель готова — её можно положить на любую территорию через панель
-          размещения. Откройте{" "}
-          <Link href="/" className="text-cyan-300 underline">каталог</Link>{" "}и выберите территорию.
+          The model is ready — drop it onto any territory via the placement
+          panel. Open the{" "}
+          <Link href="/" className="text-cyan-300 underline">catalog</Link>{" "}and pick a territory.
         </p>
       </article>
     </main>

@@ -9,12 +9,12 @@ interface ProgressBarProps {
 
 const LABELS: Record<UploadStatus, string> = {
   idle: "",
-  initiating: "Инициализация…",
-  uploading: "Загрузка чанков",
-  finalizing: "Финализация…",
-  succeeded: "Готово",
-  failed: "Ошибка",
-  cancelled: "Отменено",
+  initiating: "Initializing…",
+  uploading: "Uploading chunks",
+  finalizing: "Finalizing…",
+  succeeded: "Done",
+  failed: "Error",
+  cancelled: "Cancelled",
 };
 
 export default function ProgressBar({ status, progress }: ProgressBarProps) {

@@ -13,7 +13,7 @@ interface DeleteButtonProps {
   redirectTo?: string;
   // Tailwind class override for the trigger.
   className?: string;
-  // Trigger label; defaults to "Удалить".
+  // Trigger label; defaults to "Delete".
   children?: React.ReactNode;
 }
 
@@ -35,7 +35,7 @@ export default function DeleteButton({
   const handle = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm(`Удалить «${label}»?`)) return;
+    if (!confirm(`Delete "${label}"?`)) return;
     setError(null);
     startTransition(async () => {
       try {
@@ -43,7 +43,7 @@ export default function DeleteButton({
         if (redirectTo) router.push(redirectTo);
         else router.refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "ошибка");
+        setError(err instanceof Error ? err.message : "error");
       }
     });
   };
@@ -59,7 +59,7 @@ export default function DeleteButton({
           "cursor-pointer rounded-full border border-red-300/40 bg-red-500/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-red-200 transition-colors duration-200 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
         }
       >
-        {pending ? "Удаление…" : (children ?? "Удалить")}
+        {pending ? "Deleting…" : (children ?? "Delete")}
       </button>
       {error ? (
         <span className="text-[10px] text-red-300">{error}</span>

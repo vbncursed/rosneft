@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rosneft 3D Viewer",
+  title: "Andrey 3D Viewer",
   description: "Interactive viewer for OBJ models",
 };
 

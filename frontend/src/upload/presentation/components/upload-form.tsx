@@ -8,7 +8,7 @@ import Field from "@/upload/presentation/components/field";
 import ProgressBar from "@/upload/presentation/components/progress-bar";
 
 interface UploadFormProps {
-  kind: "Территория" | "Модель";
+  kind: "Territory" | "Model";
   // create is the gateway call: createTerritory or createModel. Returns
   // the created entity slug + queued conversion job for SSE redirect.
   create: (body: {
@@ -61,7 +61,7 @@ export default function UploadForm({
             : "/";
         router.push(target);
       } catch (err) {
-        setSubmitError(err instanceof Error ? err.message : "ошибка");
+        setSubmitError(err instanceof Error ? err.message : "error");
       } finally {
         setSubmitting(false);
       }
@@ -76,27 +76,27 @@ export default function UploadForm({
     >
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.36em] text-cyan-300/80">
-          Загрузка
+          Upload
         </p>
         <h1 className="text-2xl font-semibold tracking-tight text-white">
-          Новая {kind.toLowerCase()}
+          New {kind.toLowerCase()}
         </h1>
         <p className="text-sm leading-6 text-neutral-300">
-          ZIP с OBJ + MTL + текстурами. Поддерживается возобновление при обрыве
-          сети — чанки по 8 МБ.
+          ZIP with OBJ + MTL + textures. Resumable on network drops —
+          8 MB chunks.
         </p>
       </div>
 
       <Field
         label="Slug"
-        hint="Латиница, цифры, дефисы. Используется в URL."
+        hint="Latin letters, digits, hyphens. Used in the URL."
         value={slug}
         onChange={setSlug}
         required
       />
-      <Field label="Название" value={title} onChange={setTitle} required />
+      <Field label="Title" value={title} onChange={setTitle} required />
       <Field
-        label="Описание"
+        label="Description"
         value={description}
         onChange={setDescription}
         multiline
@@ -104,7 +104,7 @@ export default function UploadForm({
 
       <div>
         <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-neutral-400">
-          Архив
+          Archive
         </label>
         <input
           type="file"
@@ -114,7 +114,7 @@ export default function UploadForm({
         />
         {file ? (
           <p className="mt-2 text-xs text-neutral-400">
-            {file.name} · {(file.size / 1024 / 1024).toFixed(1)} МБ
+            {file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB
           </p>
         ) : null}
       </div>
@@ -133,7 +133,7 @@ export default function UploadForm({
           disabled={!valid || submitting}
           className="cursor-pointer rounded-full bg-white px-6 py-3 text-xs uppercase tracking-[0.2em] text-black transition-colors duration-200 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-white/30 disabled:text-white/50"
         >
-          {submitting ? "Загрузка…" : "Загрузить и конвертировать"}
+          {submitting ? "Uploading…" : "Upload and convert"}
         </button>
         {submitting ? (
           <button
@@ -141,7 +141,7 @@ export default function UploadForm({
             onClick={cancel}
             className="cursor-pointer rounded-full border border-white/20 px-6 py-3 text-xs uppercase tracking-[0.2em] text-white transition-colors duration-200 hover:bg-white/[0.08]"
           >
-            Отмена
+            Cancel
           </button>
         ) : null}
       </div>
