@@ -50,7 +50,7 @@ Postgres is required:
 
 ```bash
 docker run -d --name pg -p 5432:5432 \
-  -e POSTGRES_USER=rosneft -e POSTGRES_PASSWORD=rosneft -e POSTGRES_DB=rosneft \
+  -e POSTGRES_USER=andrey -e POSTGRES_PASSWORD=andrey -e POSTGRES_DB=andrey \
   postgres:17
 ```
 
@@ -59,7 +59,7 @@ Then from `backend/`:
 ```bash
 make build
 ./bin/catalog \
-  --db-dsn "postgres://rosneft:rosneft@localhost:5432/rosneft?sslmode=disable" \
+  --db-dsn "postgres://andrey:andrey@localhost:5432/andrey?sslmode=disable" \
   --grpc-addr :9001 \
   --seed-file services/catalog-service/data/projects.yaml
 ```

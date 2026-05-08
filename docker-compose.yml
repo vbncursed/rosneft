@@ -4,15 +4,15 @@ services:
   postgres:
     image: postgres:17
     environment:
-      POSTGRES_DB: rosneft
-      POSTGRES_USER: rosneft
-      POSTGRES_PASSWORD: rosneft
+      POSTGRES_DB: andrey
+      POSTGRES_USER: andrey
+      POSTGRES_PASSWORD: andrey
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rosneft -d rosneft"]
+      test: ["CMD-SHELL", "pg_isready -U andrey -d andrey"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -63,7 +63,7 @@ services:
       - "9001"
     environment:
       CATALOG_GRPC_ADDR: ":9001"
-      CATALOG_DB_DSN: "postgres://rosneft:rosneft@postgres:5432/rosneft?sslmode=disable"
+      CATALOG_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
       CATALOG_AUTO_MIGRATE: "true"
       CATALOG_LOG_LEVEL: "info"
 
