@@ -59,8 +59,8 @@ services:
       dockerfile: services/catalog-service/Dockerfile
     depends_on:
       postgres: { condition: service_healthy }
-    ports:
-      - "9001:9001"
+    expose:
+      - "9001"
     environment:
       CATALOG_GRPC_ADDR: ":9001"
       CATALOG_DB_DSN: "postgres://rosneft:rosneft@postgres:5432/rosneft?sslmode=disable"
@@ -74,8 +74,8 @@ services:
     depends_on:
       redis: { condition: service_healthy }
       catalog: { condition: service_started }
-    ports:
-      - "9002:9002"
+    expose:
+      - "9002"
     environment:
       MESH_GRPC_ADDR: ":9002"
       MESH_REDIS_ADDR: "redis:6379"
@@ -124,6 +124,8 @@ services:
     build:
       context: ./backend
       dockerfile: services/upload-service/Dockerfile
+    expose:
+      - "9003"
     environment:
       UPLOAD_GRPC_ADDR: ":9003"
       UPLOAD_BLOB_DIR: "/var/blob"
