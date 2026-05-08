@@ -1,4 +1,4 @@
-# Rosneft 3D Viewer
+# Andrey 3D Viewer
 
 Browser-native 3D viewer for very large OBJ models. Heavy work — OBJ parsing,
 multi-material GLB conversion (with Draco compression, KTX2 textures, and
@@ -8,8 +8,8 @@ the browser fetches compact binary artifacts instead of 100+ MB ASCII files.
 ## Repository layout
 
 ```
-rosneft/
-├── backend/        # Go 1.26 microservices (gateway, catalog, mesh, asset)
+andrey/
+├── backend/        # Go 1.26 microservices (gateway, catalog, mesh, upload, asset)
 ├── frontend/       # Next.js 16 + React 19 viewer (RSC + react-three-fiber)
 ├── documentation/  # external reference material checked in for offline use
 ├── CLAUDE.md       # repo-wide guidance for Claude Code
@@ -38,10 +38,11 @@ Go 1.26 multi-module workspace (`go.work`). Services:
 
 | Service           | Purpose                                                       | Network            |
 | ----------------- | ------------------------------------------------------------- | ------------------ |
-| `gateway-service` | REST + OpenAPI + scene bundle + SSE + ETag/Brotli middlewares | `:8080` (external) |
-| `catalog-service` | Project / artifact / placement registry                       | gRPC `:9001`       |
-| `mesh-service`    | OBJ → GLB + Draco + KTX2 + LOD (`mesh-api` + `mesh-worker`)   | gRPC `:9002`       |
-| `asset-service`   | Binary artifact server (Range / ETag / immutable cache)       | `:8081` (via gw)   |
+| `gateway-service` | REST + OpenAPI + scene bundle + SSE + ETag/Brotli middlewares | `:8080` (external)        |
+| `catalog-service` | Territory / model / artifact / placement registry             | gRPC `:9001` (internal)   |
+| `mesh-service`    | OBJ → GLB + Draco + KTX2 + LOD (`mesh-api` + `mesh-worker`)   | gRPC `:9002` (internal)   |
+| `upload-service`  | Resumable chunked uploads (gRPC streaming)                    | gRPC `:9003` (internal)   |
+| `asset-service`   | Binary artifact server (Range / ETag / immutable cache)       | `:8081` (via gw)          |
 
 Persistence: PostgreSQL 17 + Redis 8 Streams + local FS blob store
 (S3-ready behind `BlobStore`). The mesh-worker container ships `gltfpack`

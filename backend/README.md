@@ -1,6 +1,6 @@
-# Rosneft Backend
+# Andrey Backend
 
-Microservices backend for the Rosneft 3D viewer. Heavy work (OBJ parsing,
+Microservices backend for the Andrey 3D viewer. Heavy work (OBJ parsing,
 glTF/GLB conversion, Draco compression, KTX2 textures, LOD generation, blob
 storage) lives here so the frontend can fetch compact binary assets instead
 of 100+ MB ASCII files.
@@ -21,9 +21,15 @@ of 100+ MB ASCII files.
 | Service           | Purpose                                                          | Internal       | External           |
 | ----------------- | ---------------------------------------------------------------- | -------------- | ------------------ |
 | `gateway-service` | REST/OpenAPI + scene bundle + SSE + ETag/Brotli middlewares      | —              | `:8080`            |
-| `catalog-service` | Project + model + placement registry (Postgres)                  | gRPC `:9001`   | —                  |
+| `catalog-service` | Territory + model + artifact + placement registry (Postgres)     | gRPC `:9001`   | —                  |
 | `mesh-service`    | OBJ → GLB + Draco + KTX2 + LOD (`mesh-api` + `mesh-worker`)      | gRPC `:9002`   | —                  |
+| `upload-service`  | Resumable chunked uploads (gRPC streaming)                       | gRPC `:9003`   | —                  |
 | `asset-service`   | Binary artifact server (Range / ETag / immutable cache)          | —              | `:8081` (via gw)   |
+
+`gateway` is the only service published on the host. `catalog`, `mesh-api`,
+`upload`, and `asset` bind to the internal Compose network only — their
+ports are reachable from sibling services by service name (`catalog:9001`,
+…) but not from the host.
 
 Each service owns a README with its full env-var table and routing layout.
 

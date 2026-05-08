@@ -1,6 +1,6 @@
 # gateway-service
 
-Public HTTP edge of the Rosneft backend. Translates `/api/*` REST calls into
+Public HTTP edge of the Andrey backend. Translates `/api/*` REST calls into
 gRPC requests against `catalog` and `mesh-api`, proxies binary asset traffic
 to `asset`, streams conversion progress over SSE, and serves the OpenAPI
 spec + Scalar UI for human/agent discovery.

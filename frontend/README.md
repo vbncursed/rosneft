@@ -1,6 +1,6 @@
-# Rosneft Frontend
+# Andrey Frontend
 
-Next.js 16 + React 19 viewer for the Rosneft 3D platform. Talks to
+Next.js 16 + React 19 viewer for the Andrey 3D platform. Talks to
 `gateway-service` over REST (rewritten same-origin in dev via
 `next.config.ts`) and renders converted GLBs with `@react-three/fiber`.
 
