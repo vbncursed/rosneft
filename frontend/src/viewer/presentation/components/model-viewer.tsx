@@ -137,7 +137,6 @@ export default function ModelViewer({
           placements={editor.placements}
           assets={modelOptions}
           mutation={editor.mutation}
-          errorMessage={editor.errorMessage}
           selectedId={editor.selectedId}
           mode={editor.mode}
           onSelect={editor.setSelectedId}

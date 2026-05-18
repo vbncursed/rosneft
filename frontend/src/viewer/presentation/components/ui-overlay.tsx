@@ -1,9 +1,10 @@
-import { memo } from "react";
+import { memo, useEffect } from "react";
 import LoadingProgress from "@/viewer/presentation/components/loading-progress";
 import ModelInfoPanel from "@/viewer/presentation/components/model-info-panel";
 import ResetCameraButton from "@/viewer/presentation/components/reset-camera-button";
 import MeasureButton from "@/measurement/presentation/components/measure-button";
 import type { ModelMetadata } from "@/viewer/domain/model-metadata";
+import { notify } from "@/shared/presentation/toast/use-toast";
 
 interface UIOverlayProps {
   progress: number;
@@ -34,6 +35,10 @@ function UIOverlayImpl({
   onToggleMeasure,
   onClearMeasurements,
 }: UIOverlayProps) {
+  useEffect(() => {
+    if (error) notify.error(`Failed to load model: ${error}`);
+  }, [error]);
+
   return (
     <div className="pointer-events-none absolute inset-0 flex select-none flex-col justify-between p-4 sm:p-6">
       <div className="pointer-events-auto flex justify-start">
@@ -42,11 +47,6 @@ function UIOverlayImpl({
 
       <div className="pointer-events-auto flex flex-col items-start gap-3">
         {!isLoaded && !error ? <LoadingProgress progress={progress} /> : null}
-        {error ? (
-          <p className="rounded-xl border border-red-300/35 bg-red-500/20 px-4 py-3 text-sm text-red-100">
-            Failed to load model: {error}
-          </p>
-        ) : null}
 
         <div className="flex flex-wrap items-center gap-2">
           <ResetCameraButton onReset={onReset} />

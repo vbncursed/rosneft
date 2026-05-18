@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { notify } from "@/shared/presentation/toast/use-toast";
+import { confirmAction } from "@/shared/presentation/confirm/use-confirm";
 
 interface DeleteButtonProps {
   // What we're deleting (used in the confirm prompt).
@@ -30,40 +32,40 @@ export default function DeleteButton({
 }: DeleteButtonProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
 
-  const handle = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handle = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm(`Delete "${label}"?`)) return;
-    setError(null);
+    const ok = await confirmAction({
+      title: "Delete",
+      message: `Delete "${label}"? This action cannot be undone.`,
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+      danger: true,
+    });
+    if (!ok) return;
     startTransition(async () => {
       try {
         await onDelete();
         if (redirectTo) router.push(redirectTo);
         else router.refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "error");
+        notify.error(err instanceof Error ? err.message : "Delete failed");
       }
     });
   };
 
   return (
-    <span className="inline-flex flex-col items-end gap-1">
-      <button
-        type="button"
-        onClick={handle}
-        disabled={pending}
-        className={
-          className ??
-          "cursor-pointer rounded-full border border-red-300/40 bg-red-500/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-red-200 transition-colors duration-200 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-        }
-      >
-        {pending ? "Deleting…" : (children ?? "Delete")}
-      </button>
-      {error ? (
-        <span className="text-[10px] text-red-300">{error}</span>
-      ) : null}
-    </span>
+    <button
+      type="button"
+      onClick={handle}
+      disabled={pending}
+      className={
+        className ??
+        "cursor-pointer rounded-full border border-red-300/40 bg-red-500/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-red-200 transition-colors duration-200 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+      }
+    >
+      {pending ? "Deleting…" : (children ?? "Delete")}
+    </button>
   );
 }

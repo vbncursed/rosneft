@@ -20,7 +20,6 @@ interface PlacementsPanelProps {
   placements: ResolvedPlacement[];
   assets: PlacementAssetOption[];
   mutation: MutationState;
-  errorMessage: string | null;
   selectedId: number | null;
   mode: GizmoMode;
   onSelect: (id: number | null) => void;
@@ -34,7 +33,6 @@ export default function PlacementsPanel({
   placements,
   assets,
   mutation,
-  errorMessage,
   selectedId,
   mode,
   onSelect,
@@ -108,12 +106,6 @@ export default function PlacementsPanel({
           Click a placement in the list or in the scene to enable the gizmo.
         </p>
       )}
-
-      {errorMessage ? (
-        <p className="rounded-md border border-red-300/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
-          {errorMessage}
-        </p>
-      ) : null}
 
       <div className="flex-1 overflow-y-auto pr-1">
         {placements.length === 0 ? (
