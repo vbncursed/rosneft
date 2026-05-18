@@ -113,7 +113,17 @@ function PlacementBody({
   // SkeletonUtils.clone keeps SkinnedMesh / Bone refs intact for skinned
   // assets and behaves like Object3D.clone for static ones. The clone is
   // memoized per source scene so re-renders don't churn the GPU buffers.
-  const cloned = useMemo(() => SkeletonUtils.clone(scene), [scene]);
+  // We also zero the clone's own root transform: some converters
+  // (gltfpack in particular) leave a non-identity translation/rotation
+  // on the GLB root node, which would otherwise drift the visible mesh
+  // away from the wrapper group origin once the placement is scaled.
+  const cloned = useMemo(() => {
+    const c = SkeletonUtils.clone(scene);
+    c.position.set(0, 0, 0);
+    c.rotation.set(0, 0, 0);
+    c.scale.set(1, 1, 1);
+    return c;
+  }, [scene]);
   const groupRef = useRef<Group>(null);
   useImperativeHandle(ref, () => groupRef.current as Object3D, []);
 

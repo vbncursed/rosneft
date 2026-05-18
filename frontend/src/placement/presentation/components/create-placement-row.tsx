@@ -40,7 +40,7 @@ export default function CreatePlacementRow({
           value={pickedSlug}
           onChange={(event) => setPickedSlug(event.target.value)}
           disabled={disabled || noUsable}
-          className="flex-1 cursor-pointer rounded-md border border-white/15 bg-black/40 px-2 py-1.5 text-sm text-neutral-100 outline-none transition-colors focus:border-white/40 disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-w-0 flex-1 cursor-pointer rounded-md border border-white/15 bg-black/40 px-2 py-1.5 text-sm text-neutral-100 outline-none transition-colors focus:border-white/40 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {assets.length === 0 ? (
             <option value="">no models</option>
@@ -61,7 +61,7 @@ export default function CreatePlacementRow({
           type="button"
           disabled={disabled || !pickedSlug || noUsable}
           onClick={() => pickedSlug && onCreate(pickedSlug)}
-          className="cursor-pointer rounded-md border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+          className="shrink-0 cursor-pointer rounded-md border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Place
         </button>

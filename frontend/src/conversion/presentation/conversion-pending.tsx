@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useConversionWatcher } from "@/conversion/application/use-conversion-watcher";
+import { notify } from "@/shared/presentation/toast/use-toast";
 
 interface ConversionPendingProps {
   title: string;
@@ -51,6 +53,12 @@ export default function ConversionPending({
   const headline = stageMsg ?? STATUS_COPY[status] ?? STATUS_COPY.running;
   const percent = Math.round(progress * 100);
 
+  // Mirror server-reported conversion errors into the global toast
+  // stack so the user catches them even after navigating away.
+  useEffect(() => {
+    if (error) notify.error(`${title}: ${error}`);
+  }, [error, title]);
+
   return (
     <main className="relative flex h-screen w-screen items-center justify-center bg-black px-6 text-center text-neutral-300">
       <Link
@@ -79,11 +87,6 @@ export default function ConversionPending({
             </>
           )}
         </p>
-        {error ? (
-          <p className="rounded-md border border-red-300/40 bg-red-500/10 px-3 py-2 text-xs text-red-200">
-            {error}
-          </p>
-        ) : null}
         {!failed ? (
           <div className="mx-auto w-full max-w-md space-y-2">
             {progress > 0 ? (

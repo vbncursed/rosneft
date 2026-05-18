@@ -20,6 +20,7 @@ import {
   type MutationState,
 } from "@/placement/domain/mutation-state";
 import { formatError } from "@/shared/infrastructure/http/format-error";
+import { notify } from "@/shared/presentation/toast/use-toast";
 
 const DEFAULT_SCALE = 0.1;
 
@@ -62,7 +63,6 @@ export function usePlacementsEditor(
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [mode, setMode] = useState<GizmoMode>("translate");
   const [mutation, setMutation] = useState<MutationState>(idle);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   const resolve = useCallback(
@@ -82,7 +82,6 @@ export function usePlacementsEditor(
   const create = useCallback(
     async (modelSlug: string) => {
       setMutation(creating);
-      setErrorMessage(null);
       try {
         // Both territory and model GLBs are normalised to max-axis=2,
         // so scale 1 would render the model as large as the whole
@@ -98,7 +97,7 @@ export function usePlacementsEditor(
         const resolved = resolve(placement);
         startTransition(() => setPlacements((prev) => [...prev, resolved]));
       } catch (err) {
-        setErrorMessage(formatError(err));
+        notify.error(formatError(err));
       } finally {
         setMutation(idle);
       }
@@ -109,7 +108,6 @@ export function usePlacementsEditor(
   const update = useCallback(
     async (id: number, body: PlacementUpdate) => {
       setMutation(mutating(id));
-      setErrorMessage(null);
       try {
         const placement = await updatePlacement(territorySlug, id, body);
         const resolved = resolve(placement);
@@ -119,7 +117,7 @@ export function usePlacementsEditor(
           ),
         );
       } catch (err) {
-        setErrorMessage(formatError(err));
+        notify.error(formatError(err));
       } finally {
         setMutation(idle);
       }
@@ -130,7 +128,6 @@ export function usePlacementsEditor(
   const remove = useCallback(
     async (id: number) => {
       setMutation(mutating(id));
-      setErrorMessage(null);
       try {
         await deletePlacement(territorySlug, id);
         startTransition(() => {
@@ -138,7 +135,7 @@ export function usePlacementsEditor(
           setSelectedId((current) => (current === id ? null : current));
         });
       } catch (err) {
-        setErrorMessage(formatError(err));
+        notify.error(formatError(err));
         await refresh().catch(() => undefined);
       } finally {
         setMutation(idle);
@@ -171,7 +168,6 @@ export function usePlacementsEditor(
     selectedId,
     mode,
     mutation,
-    errorMessage,
     setSelectedId,
     setMode,
     create,

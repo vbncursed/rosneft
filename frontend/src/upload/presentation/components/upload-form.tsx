@@ -6,6 +6,7 @@ import { useChunkedUpload } from "@/upload/application/use-chunked-upload";
 import type { Job } from "@/shared/domain/job";
 import Field from "@/upload/presentation/components/field";
 import ProgressBar from "@/upload/presentation/components/progress-bar";
+import { notify } from "@/shared/presentation/toast/use-toast";
 
 interface UploadFormProps {
   kind: "Territory" | "Model";
@@ -35,8 +36,7 @@ export default function UploadForm({
   const [description, setDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const { status, progress, error, upload, cancel } = useChunkedUpload();
+  const { status, progress, upload, cancel } = useChunkedUpload();
 
   const valid = SLUG_RE.test(slug) && title.trim() !== "" && file !== null;
 
@@ -45,7 +45,6 @@ export default function UploadForm({
       e.preventDefault();
       if (!file || submitting) return;
       setSubmitting(true);
-      setSubmitError(null);
       try {
         const blob = await upload(file);
         if (!blob) return;
@@ -61,7 +60,7 @@ export default function UploadForm({
             : "/";
         router.push(target);
       } catch (err) {
-        setSubmitError(err instanceof Error ? err.message : "error");
+        notify.error(err instanceof Error ? err.message : "Upload failed");
       } finally {
         setSubmitting(false);
       }
@@ -120,12 +119,6 @@ export default function UploadForm({
       </div>
 
       <ProgressBar status={status} progress={progress} />
-
-      {(error || submitError) ? (
-        <p className="rounded-md border border-red-300/40 bg-red-500/10 px-3 py-2 text-xs text-red-200">
-          {error ?? submitError}
-        </p>
-      ) : null}
 
       <div className="flex gap-3">
         <button
