@@ -437,6 +437,14 @@ export interface components {
             slug: string;
             title: string;
             /**
+             * @description Original (pre-normalize) bounding-box minimum of the source
+             *     mesh. Carried so the frontend can compute a real-size scale
+             *     when dropping a model onto a territory.
+             */
+            bboxMin?: components["schemas"]["Vec3"];
+            /** @description Original (pre-normalize) bounding-box maximum. */
+            bboxMax?: components["schemas"]["Vec3"];
+            /**
              * @description All available LODs for this model, sorted by lod ascending.
              *     Empty when the model has no successful conversion yet — the
              *     frontend can grey it out in the picker.

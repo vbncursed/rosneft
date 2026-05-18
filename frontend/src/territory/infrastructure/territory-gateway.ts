@@ -63,7 +63,13 @@ function mapPlacement(d: PlacementDto): Placement {
 }
 
 function mapAssetOption(d: AssetOptionDto): PlacementAssetOption {
-  return { slug: d.slug, title: d.title, lods: d.artifacts.map(mapLod) };
+  return {
+    slug: d.slug,
+    title: d.title,
+    bboxMin: d.bboxMin,
+    bboxMax: d.bboxMax,
+    lods: d.artifacts.map(mapLod),
+  };
 }
 
 function mapJob(d: JobDto): Job {

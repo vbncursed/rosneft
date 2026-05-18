@@ -27,8 +27,8 @@ export default function CameraRig({ resetVersion }: CameraRigProps) {
     controls.rotateSpeed = 0.7;
     controls.panSpeed = 0.9;
     controls.zoomSpeed = 0.9;
-    controls.minDistance = 0.4;
-    controls.maxDistance = 30;
+    controls.minDistance = 0.01;
+    controls.maxDistance = 100;
     controlsRef.current = controls;
 
     // makeDefault-equivalent: PlacementsLayer reads controls via
