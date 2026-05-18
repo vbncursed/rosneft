@@ -36,15 +36,20 @@ export default function PlacementForm({
 }: PlacementFormProps) {
   const [pos, setPos] = useState<Vec3>(roundedVec(placement.position));
   const [rotDeg, setRotDeg] = useState<Vec3>(rotationToDegrees(placement.rotation));
-  const [scale, setScale] = useState<Vec3>(roundedVec(placement.scale));
+  const [scale, setScale] = useState<number>(roundAxis(placement.scale.x));
   const [label, setLabel] = useState(placement.label);
+
+  // Slider stretches around the current value so a placement already
+  // scaled above the default ceiling stays reachable on both sides.
+  const scaleMax = Math.max(3, scale * 1.5);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const s = scale > 0 ? scale : 0.001;
     onSave({
       position: pos,
       rotation: rotationToRadians(rotDeg),
-      scale,
+      scale: { x: s, y: s, z: s },
       label,
     });
   };
@@ -60,7 +65,22 @@ export default function PlacementForm({
 
       <Vec3Field label="Position" value={pos} onChange={setPos} step={0.05} />
       <Vec3Field label="Rotation (deg)" value={rotDeg} onChange={setRotDeg} step={5} />
-      <Vec3Field label="Scale" value={scale} onChange={setScale} step={0.05} min={0.001} />
+
+      <label className="flex flex-col gap-1.5">
+        <span className="flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-neutral-400">
+          <span>Scale</span>
+          <span className="tabular-nums text-neutral-200">×{scale.toFixed(3)}</span>
+        </span>
+        <input
+          type="range"
+          min={0.001}
+          max={scaleMax}
+          step={0.001}
+          value={scale}
+          onChange={(event) => setScale(Number(event.target.value))}
+          className="h-1 w-full cursor-pointer appearance-none rounded-full bg-white/15 accent-white outline-none"
+        />
+      </label>
 
       <label className="flex flex-col gap-1">
         <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">

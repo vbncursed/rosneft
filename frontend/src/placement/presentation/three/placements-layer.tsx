@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Object3D } from "three";
+import type { Group, Object3D } from "three";
 import { useThree } from "@react-three/fiber";
 import { TransformControls } from "@react-three/drei";
 import type {
@@ -31,13 +31,35 @@ interface DraggingChangedEvent {
 // string. Narrow local view onto the event API gives back the right type
 // without leaking `any` outward.
 type DraggingChangedListener = (event: DraggingChangedEvent) => void;
-interface DraggingChangedEmitter {
+type ObjectChangeListener = () => void;
+interface TransformEmitter {
   addEventListener(type: "dragging-changed", listener: DraggingChangedListener): void;
   removeEventListener(type: "dragging-changed", listener: DraggingChangedListener): void;
+  addEventListener(type: "objectChange", listener: ObjectChangeListener): void;
+  removeEventListener(type: "objectChange", listener: ObjectChangeListener): void;
 }
 
-function asEmitter(tc: TransformControlsImpl): DraggingChangedEmitter {
-  return tc as unknown as DraggingChangedEmitter;
+function asEmitter(tc: TransformControlsImpl): TransformEmitter {
+  return tc as unknown as TransformEmitter;
+}
+
+// three-stdlib's TransformControls keeps its handle groups under
+// `gizmo` (a TransformControlsGizmo whose own `gizmo` and `picker`
+// dictionaries hold the per-mode groups). Scale mode in this fork has
+// no single central XYZ cube — it ships three uniform-scale cubes
+// named `XYZX` / `XYZY` / `XYZZ` at the tips of each axis. We keep
+// just one (`XYZX`) so the user sees a single grabbable handle.
+interface ScaleGizmo {
+  gizmo: {
+    gizmo: { scale: Group };
+    picker: { scale: Group };
+    updateMatrixWorld: (force?: boolean) => void;
+  };
+}
+
+function scaleHandles(tc: TransformControlsImpl): Object3D[] {
+  const g = tc as unknown as ScaleGizmo;
+  return [...g.gizmo.gizmo.scale.children, ...g.gizmo.picker.scale.children];
 }
 
 // PlacementsLayer renders every placement and, when one is selected,
@@ -73,15 +95,61 @@ export default function PlacementsLayer({
     const tc = tcRef.current;
     if (!tc || !orbit) return;
     const emitter = asEmitter(tc);
+    const lastScale = { v: 1 };
     const onChange: DraggingChangedListener = (event) => {
       orbit.enabled = !event.value;
+      if (event.value && target) lastScale.v = target.scale.x;
       if (!event.value) commitFromTarget();
     };
+    // In scale mode, force uniform scaling: detect the axis the user
+    // dragged and propagate to the other two. Source models are already
+    // correctly proportioned, so per-axis scale would only distort them.
+    const onObjectChange: ObjectChangeListener = () => {
+      if (mode !== "scale" || !target) return;
+      const s = target.scale;
+      const prev = lastScale.v;
+      const dx = Math.abs(s.x - prev);
+      const dy = Math.abs(s.y - prev);
+      const dz = Math.abs(s.z - prev);
+      let next = dx >= dy && dx >= dz ? s.x : dy >= dz ? s.y : s.z;
+      // three-stdlib's scale math flips sign when the drag crosses
+      // the gizmo origin — clamp to a small positive floor so users
+      // can't accidentally invert the model.
+      if (next < 0.01) next = 0.01;
+      if (s.x !== next || s.y !== next || s.z !== next) {
+        s.set(next, next, next);
+      }
+      lastScale.v = next;
+    };
     emitter.addEventListener("dragging-changed", onChange);
+    emitter.addEventListener("objectChange", onObjectChange);
     return () => {
       emitter.removeEventListener("dragging-changed", onChange);
+      emitter.removeEventListener("objectChange", onObjectChange);
     };
-  }, [orbit, commitFromTarget]);
+  }, [orbit, commitFromTarget, mode, target]);
+
+  // Monkey-patch the internal gizmo so only the central uniform-XYZ cube
+  // is visible / pickable in scale mode. three's TransformControlsGizmo
+  // resets handle.visible every frame inside its own updateMatrixWorld,
+  // so a one-shot set via useEffect doesn't stick — we wrap that method
+  // and re-apply the hide rule after the original runs.
+  useEffect(() => {
+    const tc = tcRef.current;
+    if (!tc) return;
+    const gizmo = (tc as unknown as ScaleGizmo).gizmo;
+    const original = gizmo.updateMatrixWorld;
+    gizmo.updateMatrixWorld = function patched(force) {
+      original.call(this, force);
+      if (tc.getMode() !== "scale") return;
+      for (const h of scaleHandles(tc)) {
+        if (h.name !== "XYZX") h.visible = false;
+      }
+    };
+    return () => {
+      gizmo.updateMatrixWorld = original;
+    };
+  }, [target]);
 
   return (
     <>

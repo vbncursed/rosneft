@@ -21,6 +21,24 @@ import {
 } from "@/placement/domain/mutation-state";
 import { formatError } from "@/shared/infrastructure/http/format-error";
 
+const DEFAULT_SCALE = 0.1;
+
+function realWorldRatio(
+  options: PlacementAssetOption[],
+  modelSlug: string,
+  territoryMaxDim: number,
+): number {
+  if (territoryMaxDim <= 0) return DEFAULT_SCALE;
+  const m = options.find((o) => o.slug === modelSlug);
+  if (!m?.bboxMin || !m?.bboxMax) return DEFAULT_SCALE;
+  const dx = m.bboxMax.x - m.bboxMin.x;
+  const dy = m.bboxMax.y - m.bboxMin.y;
+  const dz = m.bboxMax.z - m.bboxMin.z;
+  const modelMax = Math.max(dx, dy, dz);
+  if (modelMax <= 0) return DEFAULT_SCALE;
+  return modelMax / territoryMaxDim;
+}
+
 // usePlacementsEditor owns every piece of placement-editor state: the
 // list, the gizmo selection + mode, the in-flight mutation, and the
 // last error. Mutations stay optimistic — the CRUD handlers swap the
@@ -30,10 +48,15 @@ import { formatError } from "@/shared/infrastructure/http/format-error";
 // LOD chains are derived from modelOptions (loaded once with the page
 // bundle) via a slug → lods map, so CRUD doesn't need a per-placement
 // getArtifact round-trip.
+// territoryMaxDim is the longest side of the territory's source-mesh
+// bbox in real-world units. Used to size freshly-placed models in 1:1
+// proportions against the territory. Pass 0 when unknown — the editor
+// falls back to a small default scale.
 export function usePlacementsEditor(
   territorySlug: string,
   initial: ResolvedPlacement[],
   modelOptions: PlacementAssetOption[],
+  territoryMaxDim: number,
 ) {
   const [placements, setPlacements] = useState<ResolvedPlacement[]>(initial);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -61,7 +84,17 @@ export function usePlacementsEditor(
       setMutation(creating);
       setErrorMessage(null);
       try {
-        const placement = await createPlacement(territorySlug, { modelSlug });
+        // Both territory and model GLBs are normalised to max-axis=2,
+        // so scale 1 would render the model as large as the whole
+        // territory. Use the source-mesh bbox ratio to land the
+        // placement at real-world proportions: scale = modelMax /
+        // territoryMax. Fall back to 0.1 when either side lacks bbox
+        // metadata (older artifacts, conversion still pending, etc.).
+        const ratio = realWorldRatio(modelOptions, modelSlug, territoryMaxDim);
+        const placement = await createPlacement(territorySlug, {
+          modelSlug,
+          scale: { x: ratio, y: ratio, z: ratio },
+        });
         const resolved = resolve(placement);
         startTransition(() => setPlacements((prev) => [...prev, resolved]));
       } catch (err) {
@@ -70,7 +103,7 @@ export function usePlacementsEditor(
         setMutation(idle);
       }
     },
-    [territorySlug, resolve],
+    [territorySlug, resolve, modelOptions, territoryMaxDim],
   );
 
   const update = useCallback(

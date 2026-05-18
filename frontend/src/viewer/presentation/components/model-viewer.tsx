@@ -30,7 +30,17 @@ export default function ModelViewer({
   initialPlacements,
   modelOptions,
 }: ModelViewerProps) {
-  const editor = usePlacementsEditor(territorySlug, initialPlacements, modelOptions);
+  const territoryMaxDim = useMemo(
+    () => Math.max(metadata.dimensions.x, metadata.dimensions.y, metadata.dimensions.z),
+    [metadata.dimensions],
+  );
+
+  const editor = usePlacementsEditor(
+    territorySlug,
+    initialPlacements,
+    modelOptions,
+    territoryMaxDim,
+  );
   const measure = useMeasurementTool();
   const [resetVersion, setResetVersion] = useState(0);
 

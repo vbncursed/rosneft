@@ -35,7 +35,7 @@ function UIOverlayImpl({
   onClearMeasurements,
 }: UIOverlayProps) {
   return (
-    <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-4 sm:p-6">
+    <div className="pointer-events-none absolute inset-0 flex select-none flex-col justify-between p-4 sm:p-6">
       <div className="pointer-events-auto flex justify-start">
         <ModelInfoPanel metadata={metadata} />
       </div>

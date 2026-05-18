@@ -92,11 +92,15 @@ type Job struct {
 
 // AssetOption is one entry in the placement-picker dropdown — a model the
 // user can drop onto a territory. LODs carries every available level;
-// empty when the model has no successful conversion yet.
+// empty when the model has no successful conversion yet. BBoxMin/Max
+// hold the source mesh's pre-normalize bounds so the client can size a
+// freshly-placed model against the territory's real-world dimensions.
 type AssetOption struct {
-	Slug  string
-	Title string
-	LODs  []LodArtifact
+	Slug    string
+	Title   string
+	BBoxMin *Vec3
+	BBoxMax *Vec3
+	LODs    []LodArtifact
 }
 
 // SceneBundle is the single-shot payload for the viewer page. Artifact is

@@ -197,6 +197,15 @@ components:
       properties:
         slug: { type: string }
         title: { type: string }
+        bboxMin:
+          $ref: '#/components/schemas/Vec3'
+          description: |
+            Original (pre-normalize) bounding-box minimum of the source
+            mesh. Carried so the frontend can compute a real-size scale
+            when dropping a model onto a territory.
+        bboxMax:
+          $ref: '#/components/schemas/Vec3'
+          description: Original (pre-normalize) bounding-box maximum.
         artifacts:
           type: array
           description: |

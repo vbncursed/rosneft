@@ -153,11 +153,20 @@ func sceneBundleToAPI(b domain.SceneBundle) SceneBundle {
 		out.Placements[i] = placementToAPI(p)
 	}
 	for i, m := range b.ModelOptions {
-		out.ModelOptions[i] = AssetOption{
+		opt := AssetOption{
 			Slug:      m.Slug,
 			Title:     m.Title,
 			Artifacts: lodChainToAPI(m.LODs),
 		}
+		if m.BBoxMin != nil {
+			bb := vec3ToAPI(*m.BBoxMin)
+			opt.BboxMin = &bb
+		}
+		if m.BBoxMax != nil {
+			bb := vec3ToAPI(*m.BBoxMax)
+			opt.BboxMax = &bb
+		}
+		out.ModelOptions[i] = opt
 	}
 	if b.Artifact != nil {
 		a := artifactToAPI(*b.Artifact, true)

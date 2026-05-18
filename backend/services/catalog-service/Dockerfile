@@ -28,7 +28,6 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/catalog /catalog
-COPY --from=build /src/services/catalog-service/data /data
 USER nonroot:nonroot
 EXPOSE 9001
 ENTRYPOINT ["/catalog"]
