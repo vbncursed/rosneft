@@ -135,7 +135,7 @@ export default function SceneCanvas({
             at every LOD threshold. We fit once on mount via `fit` and
             route explicit resets through CameraRig/resetVersion. */}
         <Bounds fit clip margin={1.2}>
-          <GltfModel lods={parentLods} />
+          <GltfModel lods={parentLods} raycastable={measureMode} />
         </Bounds>
 
         <Suspense fallback={null}>
