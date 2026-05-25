@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U andrey -d andrey"]
       interval: 5s
@@ -95,10 +95,6 @@ services:
       MESH_BLOB_DIR: "/var/blob"
       MESH_WORKER_NAME: "mesh-worker-1"
       MESH_LOG_LEVEL: "info"
-      MESH_DRACO_ENABLED: "true"
-      MESH_KTX2_ENABLED: "true"
-      MESH_DRACO_BIN: "gltfpack"
-      MESH_LOD_RATIOS: "0.5,0.25"
     volumes:
       # Named volume so Docker manages permissions: the volume is
       # initialised from /var/blob in the image (which the Dockerfile
