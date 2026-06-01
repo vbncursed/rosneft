@@ -1,9 +1,36 @@
 import { useGLTF } from "@react-three/drei";
 import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js";
+import { BufferGeometry, Mesh } from "three";
+import {
+  acceleratedRaycast,
+  computeBoundsTree,
+  disposeBoundsTree,
+} from "three-mesh-bvh";
 import type {
   KTX2Loader as StdlibKTX2Loader,
   GLTFLoader,
 } from "three-stdlib";
+
+// One-time prototype patch: route every Mesh.raycast through three-mesh-bvh's
+// accelerated implementation. Without a BVH the accelerated path falls back
+// to the stock raycast, so this is safe for meshes we don't explicitly
+// compute a bounds tree on — only the territory builds one (see
+// gltf-model.tsx). With a BVH, raycast against a triangle-rich territory
+// drops from ~5ms to ~50µs, which is what makes per-frame snap-to-surface
+// during a placement drag stop micro-freezing.
+//
+// Patching here (not in a useEffect) guarantees the new method is in place
+// before any useGLTF call resolves a Mesh — gltf-model.tsx imports this
+// module, so module init runs first.
+// three ships an ambient declaration of computeBoundsTree that pre-types
+// the prototype slot to MeshBVH; three-mesh-bvh's exported function is
+// typed against GeometryBVH (a structural subset). The runtime is correct
+// — same function, same behaviour — only the declared return type
+// disagrees, so cast through unknown to silence TS without leaking any.
+BufferGeometry.prototype.computeBoundsTree =
+  computeBoundsTree as unknown as typeof BufferGeometry.prototype.computeBoundsTree;
+BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+Mesh.prototype.raycast = acceleratedRaycast;
 
 // Module-level side effect: register the self-hosted Draco decoder under
 // /public/draco. Without this, GLBs that carry KHR_draco_mesh_compression
