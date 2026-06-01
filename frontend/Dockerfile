@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-#
 # Multi-stage build for the rosneft frontend (Next.js 16 + React 19).
 # Layout:
 #   deps    — yarn install with cache mount (lockfile is the only invalidation)

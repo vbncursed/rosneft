@@ -69,7 +69,20 @@ export default function PlacementForm({
       <label className="flex flex-col gap-1.5">
         <span className="flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-neutral-400">
           <span>Scale</span>
-          <span className="tabular-nums text-neutral-200">×{scale.toFixed(3)}</span>
+          <span className="flex items-center gap-0.5 text-neutral-200">
+            <span aria-hidden>×</span>
+            <input
+              type="number"
+              min={0.0001}
+              step="any"
+              value={scale}
+              onChange={(event) => {
+                const next = Number(event.target.value);
+                if (Number.isFinite(next)) setScale(next);
+              }}
+              className="w-16 rounded-sm border border-white/10 bg-black/30 px-1 py-0.5 text-right text-[11px] tabular-nums tracking-normal text-neutral-100 outline-none transition-colors focus:border-white/40"
+            />
+          </span>
         </span>
         <input
           type="range"
