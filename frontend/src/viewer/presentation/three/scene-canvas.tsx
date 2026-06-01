@@ -1,6 +1,7 @@
 import { Suspense, useCallback, useRef } from "react";
 import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import { AdaptiveDpr, Bounds } from "@react-three/drei";
+import type { Group } from "three";
 import CameraRig from "@/viewer/presentation/three/camera-rig";
 import Lighting from "@/viewer/presentation/three/lighting";
 import GltfModel from "@/viewer/presentation/three/gltf-model";
@@ -45,6 +46,7 @@ interface SceneCanvasProps {
   selectedId: number | null;
   mode: GizmoMode;
   measureMode: boolean;
+  snapEnabled: boolean;
   chains: Chain[];
   activeChainId: number | null;
   unitRatio: number;
@@ -63,6 +65,7 @@ export default function SceneCanvas({
   selectedId,
   mode,
   measureMode,
+  snapEnabled,
   chains,
   activeChainId,
   unitRatio,
@@ -85,6 +88,11 @@ export default function SceneCanvas({
   // (stopPropagation alone is not enough — separate intersection events
   // start with fresh `stopped` state and can still reach the wrapper.)
   const lastNativeRef = useRef<Event | null>(null);
+  // Shared ref to the territory's outer group. PlacementsLayer points its
+  // surface-snap raycaster at it; GltfModel forwards through to <group>.
+  // Lives here (not in PlacementsLayer) so the two siblings can reach the
+  // same Object3D without lifting state to ModelViewer.
+  const territoryRef = useRef<Group>(null);
 
   // Wrapper-group click is the catch-all for in-scene measurement points.
   // Use the first intersection's world point — that's the surface the
@@ -135,7 +143,7 @@ export default function SceneCanvas({
             at every LOD threshold. We fit once on mount via `fit` and
             route explicit resets through CameraRig/resetVersion. */}
         <Bounds fit clip margin={1.2}>
-          <GltfModel lods={parentLods} raycastable={measureMode} />
+          <GltfModel lods={parentLods} raycastable={measureMode} groupRef={territoryRef} />
         </Bounds>
 
         <Suspense fallback={null}>
@@ -144,6 +152,8 @@ export default function SceneCanvas({
             selectedId={selectedId}
             mode={mode}
             measureMode={measureMode}
+            territoryRef={territoryRef}
+            snapEnabled={snapEnabled}
             onSelect={onSelect}
             onCommit={onCommit}
           />

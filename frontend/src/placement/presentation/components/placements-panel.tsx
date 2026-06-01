@@ -15,6 +15,7 @@ import EmptyState from "@/placement/presentation/components/empty-state";
 import ModeToggle from "@/placement/presentation/components/mode-toggle";
 import PlacementForm from "@/placement/presentation/components/placement-form";
 import PlacementRow from "@/placement/presentation/components/placement-row";
+import SnapToggle from "@/placement/presentation/components/snap-toggle";
 
 interface PlacementsPanelProps {
   placements: ResolvedPlacement[];
@@ -22,8 +23,10 @@ interface PlacementsPanelProps {
   mutation: MutationState;
   selectedId: number | null;
   mode: GizmoMode;
+  snapEnabled: boolean;
   onSelect: (id: number | null) => void;
   onModeChange: (mode: GizmoMode) => void;
+  onToggleSnap: (enabled: boolean) => void;
   onCreate: (modelSlug: string) => Promise<void> | void;
   onUpdate: (id: number, body: PlacementUpdate) => Promise<void> | void;
   onDelete: (id: number) => Promise<void> | void;
@@ -35,8 +38,10 @@ export default function PlacementsPanel({
   mutation,
   selectedId,
   mode,
+  snapEnabled,
   onSelect,
   onModeChange,
+  onToggleSnap,
   onCreate,
   onUpdate,
   onDelete,
@@ -100,7 +105,14 @@ export default function PlacementsPanel({
       />
 
       {selectedId != null ? (
-        <ModeToggle mode={mode} onChange={onModeChange} />
+        <div className="flex flex-col gap-2">
+          <ModeToggle mode={mode} onChange={onModeChange} />
+          {/* Snap is meaningful only for translation; keep it close to the
+              mode buttons so the relationship reads at a glance. The
+              control is always rendered (not gated on mode === translate)
+              so the user can pre-arm it before switching back to Move. */}
+          <SnapToggle enabled={snapEnabled} onChange={onToggleSnap} />
+        </div>
       ) : (
         <p className="rounded-md border border-dashed border-white/15 px-3 py-2 text-[11px] text-neutral-400">
           Click a placement in the list or in the scene to enable the gizmo.

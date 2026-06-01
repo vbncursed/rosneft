@@ -1,4 +1,4 @@
-import { Suspense, useLayoutEffect, useRef } from "react";
+import { Suspense, useLayoutEffect, type Ref } from "react";
 import { useGLTF } from "@react-three/drei";
 import type { Group, Mesh } from "three";
 import { assetUrl } from "@/shared/infrastructure/asset-url";
@@ -14,6 +14,9 @@ interface GltfModelProps {
   // the user actually needs surface picking; otherwise we no-op the
   // raycast and let the wheel handler stay cheap.
   raycastable: boolean;
+  // Forwarded so other layers (placement snap-to-surface) can call the
+  // mesh's original raycast directly without flipping the public flag.
+  groupRef?: Ref<Group>;
 }
 
 // Three.Mesh.prototype.raycast iterates every triangle to find ray
@@ -21,31 +24,33 @@ interface GltfModelProps {
 // without touching the underlying geometry.
 const noopRaycast = () => undefined;
 
-function GltfPrimitive({ url, raycastable }: { url: string; raycastable: boolean }) {
+function GltfPrimitive({
+  url,
+  raycastable,
+  groupRef,
+}: {
+  url: string;
+  raycastable: boolean;
+  groupRef?: Ref<Group>;
+}) {
   // mesh-worker has already centered + scaled (max axis = 2) and
   // converted Z-up → Y-up, so we render the scene as-is. extendGltfLoader
   // wires up KTX2 transcoding; Draco is enabled via the second arg.
   const { scene } = useGLTF(url, true, true, extendGltfLoader);
-  const groupRef = useRef<Group>(null);
 
-  // Toggle per-mesh raycast functions instead of unmounting the subtree —
-  // unmounting would tear down GPU buffers and re-allocate on every
-  // measure-mode flip. We cache each mesh's original raycast so we can
-  // restore it cleanly.
+  // The first time we see a mesh, stash its real raycast in userData so
+  // any layer that needs surface intersection (placement snap, measure
+  // tool, programmatic raycast) can invoke it even while raycastable is
+  // false. After that we only swap m.raycast between noop and the cached
+  // origRaycast — never overwrite userData.origRaycast again.
   useLayoutEffect(() => {
-    const root = groupRef.current;
-    if (!root) return;
-    const originals = new Map<Mesh, Mesh["raycast"]>();
-    root.traverse((o) => {
+    scene.traverse((o) => {
       const m = o as Mesh;
-      if (m.isMesh) {
-        originals.set(m, m.raycast);
-        m.raycast = raycastable ? originals.get(m)! : noopRaycast;
-      }
+      if (!m.isMesh) return;
+      if (!m.userData.origRaycast) m.userData.origRaycast = m.raycast;
+      const orig = m.userData.origRaycast as Mesh["raycast"];
+      m.raycast = raycastable ? orig : noopRaycast;
     });
-    return () => {
-      for (const [m, orig] of originals) m.raycast = orig;
-    };
   }, [scene, raycastable]);
 
   return (
@@ -61,12 +66,12 @@ function GltfPrimitive({ url, raycastable }: { url: string; raycastable: boolean
 // and the GPU just redraws the same vertex/index buffers under a different
 // view matrix. lower LODs in the chain are not loaded — the catalog still
 // produces them, but the viewer ignores them.
-export default function GltfModel({ lods, raycastable }: GltfModelProps) {
+export default function GltfModel({ lods, raycastable, groupRef }: GltfModelProps) {
   const top = pickLod(lods, 0);
   if (!top) return null;
   return (
     <Suspense fallback={null}>
-      <GltfPrimitive url={assetUrl(top.hash)} raycastable={raycastable} />
+      <GltfPrimitive url={assetUrl(top.hash)} raycastable={raycastable} groupRef={groupRef} />
     </Suspense>
   );
 }

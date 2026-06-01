@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import type { Group, Object3D } from "three";
 import { useThree } from "@react-three/fiber";
 import { TransformControls } from "@react-three/drei";
@@ -12,12 +12,18 @@ import type {
   ResolvedPlacement,
 } from "@/placement/domain/placement";
 import PlacementInstance from "@/placement/presentation/three/placement-instance";
+import { raycastSurfaceY } from "@/placement/application/snap-to-surface";
 
 interface PlacementsLayerProps {
   placements: ResolvedPlacement[];
   selectedId: number | null;
   mode: GizmoMode;
   measureMode: boolean;
+  // The territory's outermost group. When present, translate-mode drags
+  // resolve the surface Y under the gizmo and either snap to it (snap on)
+  // or use it as a floor (snap off — prevents burying the model).
+  territoryRef: RefObject<Object3D | null>;
+  snapEnabled: boolean;
   onSelect: (id: number | null) => void;
   onCommit: (id: number, transform: PlacementTransform) => void;
 }
@@ -72,6 +78,8 @@ export default function PlacementsLayer({
   selectedId,
   mode,
   measureMode,
+  territoryRef,
+  snapEnabled,
   onSelect,
   onCommit,
 }: PlacementsLayerProps) {
@@ -80,16 +88,44 @@ export default function PlacementsLayer({
   const orbit = useThree(
     (state) => state.controls as OrbitControlsImpl | null,
   );
+  const invalidate = useThree((state) => state.invalidate);
+
+  // Apply surface logic in-place on the gizmo target. Two modes:
+  //   snap on  → set Y to the resolved surface (object hugs terrain).
+  //   snap off → use surface as a floor (object can hover, never bury).
+  // Returns true if any write happened, so callers can decide whether to
+  // request a re-render under frameloop="demand".
+  const applySurface = useCallback(() => {
+    const obj = target;
+    const territory = territoryRef.current;
+    if (!obj || !territory || mode !== "translate") return false;
+    const surfaceY = raycastSurfaceY(territory, obj.position.x, obj.position.z);
+    if (surfaceY == null) return false;
+    if (snapEnabled) {
+      if (obj.position.y === surfaceY) return false;
+      obj.position.y = surfaceY;
+      return true;
+    }
+    if (obj.position.y < surfaceY) {
+      obj.position.y = surfaceY;
+      return true;
+    }
+    return false;
+  }, [target, territoryRef, mode, snapEnabled]);
 
   const commitFromTarget = useCallback(() => {
     const obj = target;
     if (!obj || selectedId == null) return;
+    // Final pass: ensure the committed transform matches whatever the
+    // user sees (surface-clamped) even if the last objectChange tick was
+    // ahead of the most recent raycast.
+    applySurface();
     onCommit(selectedId, {
       position: { x: obj.position.x, y: obj.position.y, z: obj.position.z },
       rotation: { x: obj.rotation.x, y: obj.rotation.y, z: obj.rotation.z },
       scale: { x: obj.scale.x, y: obj.scale.y, z: obj.scale.z },
     });
-  }, [onCommit, selectedId, target]);
+  }, [applySurface, onCommit, selectedId, target]);
 
   useEffect(() => {
     const tc = tcRef.current;
@@ -105,6 +141,13 @@ export default function PlacementsLayer({
     // dragged and propagate to the other two. Source models are already
     // correctly proportioned, so per-axis scale would only distort them.
     const onObjectChange: ObjectChangeListener = () => {
+      if (mode === "translate" && target) {
+        // Snap (or floor) the gizmo target every drag tick. Cheap: one
+        // downward ray against the territory mesh, regardless of triangle
+        // count. invalidate() repaints under frameloop="demand"; without
+        // it the snapped Y wouldn't be visible until the next R3F event.
+        if (applySurface()) invalidate();
+      }
       if (mode !== "scale" || !target) return;
       const s = target.scale;
       const prev = lastScale.v;
@@ -127,7 +170,7 @@ export default function PlacementsLayer({
       emitter.removeEventListener("dragging-changed", onChange);
       emitter.removeEventListener("objectChange", onObjectChange);
     };
-  }, [orbit, commitFromTarget, mode, target]);
+  }, [orbit, commitFromTarget, mode, target, applySurface, invalidate]);
 
   // Monkey-patch the internal gizmo so only the central uniform-XYZ cube
   // is visible / pickable in scale mode. three's TransformControlsGizmo
