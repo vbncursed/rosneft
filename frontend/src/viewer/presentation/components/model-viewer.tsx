@@ -43,6 +43,13 @@ export default function ModelViewer({
   );
   const measure = useMeasurementTool();
   const [resetVersion, setResetVersion] = useState(0);
+  // Surface magnetism: when true, the translate gizmo glues the placement
+  // to the territory Y under it. When false, the same raycast acts as a
+  // floor so dragged objects can hover but never bury into the terrain.
+  // Default off — new users get unconstrained translation, opt-in to the
+  // assist via the panel toggle or G.
+  const [snapEnabled, setSnapEnabled] = useState(false);
+  const toggleSnap = useCallback(() => setSnapEnabled((v) => !v), []);
 
   const unitRatio = useMemo(
     () => computeUnitRatio(metadata.dimensions),
@@ -97,6 +104,7 @@ export default function ModelViewer({
     t: () => editor.setMode("translate"),
     r: () => editor.setMode("rotate"),
     s: () => editor.setMode("scale"),
+    g: toggleSnap,
   });
 
   return (
@@ -108,6 +116,7 @@ export default function ModelViewer({
         selectedId={editor.selectedId}
         mode={editor.mode}
         measureMode={measure.measureMode}
+        snapEnabled={snapEnabled}
         chains={measure.chains}
         activeChainId={measure.activeChainId}
         unitRatio={unitRatio}
@@ -139,8 +148,10 @@ export default function ModelViewer({
           mutation={editor.mutation}
           selectedId={editor.selectedId}
           mode={editor.mode}
+          snapEnabled={snapEnabled}
           onSelect={editor.setSelectedId}
           onModeChange={editor.setMode}
+          onToggleSnap={toggleSnap}
           onCreate={editor.create}
           onUpdate={editor.update}
           onDelete={editor.remove}
