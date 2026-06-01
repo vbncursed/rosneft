@@ -47,6 +47,12 @@ function GltfPrimitive({
     scene.traverse((o) => {
       const m = o as Mesh;
       if (!m.isMesh) return;
+      // Build a BVH once per geometry. acceleratedRaycast (set globally in
+      // gltf-loader-setup.ts) reads geometry.boundsTree and falls back to
+      // the stock per-triangle scan when absent, so this is the place that
+      // unlocks ~100x faster raycasts on the territory mesh — vital for
+      // per-frame snap-to-surface during a placement drag.
+      if (!m.geometry.boundsTree) m.geometry.computeBoundsTree();
       if (!m.userData.origRaycast) m.userData.origRaycast = m.raycast;
       const orig = m.userData.origRaycast as Mesh["raycast"];
       m.raycast = raycastable ? orig : noopRaycast;
