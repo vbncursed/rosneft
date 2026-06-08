@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useChunkedUpload } from "@/upload/application/use-chunked-upload";
 import Field from "@/upload/presentation/components/field";
@@ -27,7 +28,19 @@ export default function PanoramaUploadForm({
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const { status, progress, upload } = useChunkedUpload();
+  const { status, progress, upload, cancel } = useChunkedUpload();
+  const territoryHref = `/territories/${encodeURIComponent(territorySlug)}`;
+
+  // While the upload is in flight, "Cancel" aborts the AbortController
+  // inside useChunkedUpload — the catch in `onSubmit` then sets the
+  // form back to idle. Otherwise it just navigates back to the viewer.
+  const onCancel = useCallback(() => {
+    if (submitting) {
+      cancel();
+      return;
+    }
+    router.push(territoryHref);
+  }, [cancel, router, submitting, territoryHref]);
 
   const valid = SLUG_RE.test(slug) && title.trim() !== "" && file !== null;
 
@@ -45,14 +58,14 @@ export default function PanoramaUploadForm({
           sourceBlobHash: blob.hash,
         });
         notify.success("Panorama uploaded");
-        router.push(`/territories/${encodeURIComponent(territorySlug)}`);
+        router.push(territoryHref);
       } catch (err) {
         notify.error(err instanceof Error ? err.message : "Upload failed");
       } finally {
         setSubmitting(false);
       }
     },
-    [file, router, slug, submitting, territorySlug, title, upload],
+    [file, router, slug, submitting, territoryHref, territorySlug, title, upload],
   );
 
   return (
@@ -60,6 +73,14 @@ export default function PanoramaUploadForm({
       onSubmit={onSubmit}
       className="mx-auto flex w-full max-w-xl flex-col gap-6 rounded-3xl border border-white/10 bg-white/[0.03] p-8 backdrop-blur"
     >
+      <Link
+        href={territoryHref}
+        className="-mb-2 inline-flex w-fit items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-neutral-400 transition-colors hover:text-cyan-200"
+      >
+        <span aria-hidden="true">←</span>
+        <span>Back to {territoryTitle}</span>
+      </Link>
+
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.36em] text-cyan-300/80">
           Panorama
@@ -98,13 +119,22 @@ export default function PanoramaUploadForm({
 
       <ProgressBar status={status} progress={progress} />
 
-      <button
-        type="submit"
-        disabled={!valid || submitting}
-        className="cursor-pointer rounded-full bg-cyan-300 px-6 py-3 text-sm font-semibold text-neutral-900 transition-colors hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        {submitting ? "Uploading…" : "Upload panorama"}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={!valid || submitting}
+          className="cursor-pointer rounded-full bg-cyan-300 px-6 py-3 text-sm font-semibold text-neutral-900 transition-colors hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {submitting ? "Uploading…" : "Upload panorama"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="cursor-pointer rounded-full border border-white/20 bg-transparent px-5 py-3 text-sm text-neutral-200 transition-colors hover:bg-white/[0.06]"
+        >
+          {submitting ? "Cancel upload" : "Cancel"}
+        </button>
+      </div>
     </form>
   );
 }
