@@ -73,3 +73,25 @@ func scanPlacement(r rowScanner) (domain.Placement, error) {
 	)
 	return p, err
 }
+
+// panoramaSelectCols joins to territories once to resolve the slug in a
+// single round-trip rather than firing an extra lookup per row.
+const panoramaSelectCols = `pa.id, t.slug AS territory_slug, pa.slug, pa.title,
+	pa.source_blob_hash,
+	pa.position_x, pa.position_y, pa.position_z,
+	pa.yaw_offset, pa.created_at, pa.updated_at`
+
+// panoramaJoin is the FROM clause used together with panoramaSelectCols.
+const panoramaJoin = `panoramas pa
+	JOIN territories t ON t.id = pa.territory_id`
+
+func scanPanorama(r rowScanner) (domain.Panorama, error) {
+	var p domain.Panorama
+	err := r.Scan(
+		&p.ID, &p.TerritorySlug, &p.Slug, &p.Title,
+		&p.SourceBlobHash,
+		&p.Position.X, &p.Position.Y, &p.Position.Z,
+		&p.YawOffset, &p.CreatedAt, &p.UpdatedAt,
+	)
+	return p, err
+}

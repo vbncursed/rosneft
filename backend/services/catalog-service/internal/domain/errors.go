@@ -10,5 +10,6 @@ var (
 	ErrModelNotFound     = errors.New("model not found")
 	ErrArtifactNotFound  = errors.New("artifact not found")
 	ErrPlacementNotFound = errors.New("placement not found")
+	ErrPanoramaNotFound  = errors.New("panorama not found")
 	ErrInvalidInput      = errors.New("invalid input")
 )

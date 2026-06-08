@@ -18,6 +18,7 @@ type fakeCatalog struct {
 	terrArts    map[string][]domain.Artifact
 	modelArts   map[string][]domain.Artifact
 	placements  map[int64]domain.Placement
+	panoramas   map[int64]domain.Panorama
 	nextID      int64
 
 	ErrUpsertTerritory error
@@ -27,11 +28,16 @@ type fakeCatalog struct {
 	ErrListTerrArts    error
 	ErrCreatePlacement error
 	ErrUpdatePlacement error
+	ErrListPanoramas   error
+	ErrCreatePanorama  error
+	ErrUpdatePanorama  error
 
 	LastUpsertTerritory domain.Territory
 	LastUpsertModel     domain.Model
 	LastCreatePlacement domain.Placement
 	LastUpdatePlacement domain.Placement
+	LastCreatePanorama  domain.Panorama
+	LastUpdatePanorama  domain.Panorama
 }
 
 func newFakeCatalog() *fakeCatalog {
@@ -41,5 +47,6 @@ func newFakeCatalog() *fakeCatalog {
 		terrArts:    map[string][]domain.Artifact{},
 		modelArts:   map[string][]domain.Artifact{},
 		placements:  map[int64]domain.Placement{},
+		panoramas:   map[int64]domain.Panorama{},
 	}
 }

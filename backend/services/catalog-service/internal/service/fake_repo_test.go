@@ -21,11 +21,14 @@ type fakeRepo struct {
 	terrArts    map[string][]domain.Artifact
 	modelArts   map[string][]domain.Artifact
 	placements  map[int64]domain.Placement
+	panoramas   map[int64]domain.Panorama
 	nextID      int64
 
 	ErrUpsertTerritory           error
 	ErrCreatePlacement           error
 	ErrUpdatePlacement           error
+	ErrCreatePanorama            error
+	ErrUpdatePanorama            error
 	ErrRegisterTerritoryArtifact error
 	ErrRegisterModelArtifact     error
 
@@ -33,6 +36,8 @@ type fakeRepo struct {
 	LastUpsertModel               domain.Model
 	LastCreatePlacement           domain.Placement
 	LastUpdatePlacement           domain.Placement
+	LastCreatePanorama            domain.Panorama
+	LastUpdatePanorama            domain.Panorama
 	LastRegisterTerritoryArtifact domain.Artifact
 	LastRegisterModelArtifact     domain.Artifact
 }
@@ -44,5 +49,6 @@ func newFakeRepo() *fakeRepo {
 		terrArts:    map[string][]domain.Artifact{},
 		modelArts:   map[string][]domain.Artifact{},
 		placements:  map[int64]domain.Placement{},
+		panoramas:   map[int64]domain.Panorama{},
 	}
 }

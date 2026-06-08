@@ -7,6 +7,7 @@ import type { Job } from "@/shared/domain/job";
 import type { LodArtifact } from "@/shared/domain/lod-artifact";
 import type { Placement } from "@/placement/domain/placement";
 import type { PlacementAssetOption } from "@/placement/domain/asset-option";
+import type { Panorama } from "@/panorama/domain/panorama";
 
 type TerritoryDto = components["schemas"]["Territory"];
 type ArtifactDto = components["schemas"]["Artifact"];
@@ -15,6 +16,7 @@ type SceneBundleDto = components["schemas"]["SceneBundle"];
 type TerritoryCreatedDto = components["schemas"]["TerritoryCreated"];
 type PlacementDto = components["schemas"]["Placement"];
 type AssetOptionDto = components["schemas"]["AssetOption"];
+type PanoramaDto = components["schemas"]["Panorama"];
 type EntityCreate = components["schemas"]["EntityCreate"];
 type JobDto = components["schemas"]["Job"];
 
@@ -72,6 +74,19 @@ function mapAssetOption(d: AssetOptionDto): PlacementAssetOption {
   };
 }
 
+function mapPanorama(d: PanoramaDto): Panorama {
+  return {
+    id: d.id,
+    territorySlug: d.territorySlug,
+    slug: d.slug,
+    title: d.title,
+    sourceBlobHash: d.sourceBlobHash,
+    position: d.position,
+    yawOffset: d.yawOffset,
+    updatedAt: d.updatedAt ?? "",
+  };
+}
+
 function mapJob(d: JobDto): Job {
   return {
     id: d.id,
@@ -117,5 +132,6 @@ export async function getSceneBundle(slug: string): Promise<SceneBundle> {
     artifact: data.artifact ? mapArtifact(data.artifact) : null,
     placements: data.placements.map(mapPlacement),
     modelOptions: data.modelOptions.map(mapAssetOption),
+    panoramas: data.panoramas ? data.panoramas.map(mapPanorama) : [],
   };
 }

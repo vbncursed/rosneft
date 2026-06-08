@@ -62,3 +62,8 @@ desktop.ini
 
 # ── Local debug screenshots dropped in the repo root by the dev session ─────
 view.png
+
+# ── Raw panorama source archives (Marzipano tile bundles, hundreds of MB) ───
+WELL-PAD_*_3D-TOUR_*/
+panoramas_equirect/
+equirect_panoramas/

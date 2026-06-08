@@ -116,6 +116,20 @@ func vec3FromProto(v *catalogv1.Vec3) domain.Vec3 {
 	return domain.Vec3{X: v.GetX(), Y: v.GetY(), Z: v.GetZ()}
 }
 
+func panoramaToProto(p domain.Panorama) *catalogv1.Panorama {
+	return &catalogv1.Panorama{
+		Id:             p.ID,
+		TerritorySlug:  p.TerritorySlug,
+		Slug:           p.Slug,
+		Title:          p.Title,
+		SourceBlobHash: p.SourceBlobHash,
+		Position:       vec3ToProto(p.Position),
+		YawOffset:      p.YawOffset,
+		CreatedAt:      timestamppb.New(p.CreatedAt),
+		UpdatedAt:      timestamppb.New(p.UpdatedAt),
+	}
+}
+
 func placementToProto(p domain.Placement) *catalogv1.Placement {
 	return &catalogv1.Placement{
 		Id:            p.ID,

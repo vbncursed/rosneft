@@ -1,0 +1,110 @@
+"use client";
+
+import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useChunkedUpload } from "@/upload/application/use-chunked-upload";
+import Field from "@/upload/presentation/components/field";
+import ProgressBar from "@/upload/presentation/components/progress-bar";
+import { notify } from "@/shared/presentation/toast/use-toast";
+import { createPanorama } from "@/panorama/infrastructure/panorama-gateway";
+
+interface PanoramaUploadFormProps {
+  territorySlug: string;
+  territoryTitle: string;
+}
+
+const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+
+// PanoramaUploadForm uploads an equirect JPG/PNG via the chunked-upload
+// pipeline, then creates a Panorama anchored at the territory origin
+// (0,0,0). Anchor + yaw are edited later from the placements panel.
+export default function PanoramaUploadForm({
+  territorySlug,
+  territoryTitle,
+}: PanoramaUploadFormProps) {
+  const router = useRouter();
+  const [slug, setSlug] = useState("");
+  const [title, setTitle] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const { status, progress, upload } = useChunkedUpload();
+
+  const valid = SLUG_RE.test(slug) && title.trim() !== "" && file !== null;
+
+  const onSubmit = useCallback(
+    async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      if (!file || submitting) return;
+      setSubmitting(true);
+      try {
+        const blob = await upload(file);
+        if (!blob) return;
+        await createPanorama(territorySlug, {
+          slug,
+          title: title.trim(),
+          sourceBlobHash: blob.hash,
+        });
+        notify.success("Panorama uploaded");
+        router.push(`/territories/${encodeURIComponent(territorySlug)}`);
+      } catch (err) {
+        notify.error(err instanceof Error ? err.message : "Upload failed");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [file, router, slug, submitting, territorySlug, title, upload],
+  );
+
+  return (
+    <form
+      onSubmit={onSubmit}
+      className="mx-auto flex w-full max-w-xl flex-col gap-6 rounded-3xl border border-white/10 bg-white/[0.03] p-8 backdrop-blur"
+    >
+      <div className="space-y-1">
+        <p className="text-xs uppercase tracking-[0.36em] text-cyan-300/80">
+          Panorama
+        </p>
+        <h1 className="text-2xl font-semibold tracking-tight text-white">
+          Anchor a 360° capture to {territoryTitle}
+        </h1>
+        <p className="text-sm text-neutral-400">
+          Equirectangular JPG or PNG from Insta360 Pro. Anchor and yaw can be
+          adjusted from the viewer panel after upload.
+        </p>
+      </div>
+
+      <Field
+        label="Slug"
+        hint="lowercase, hyphenated (e.g. north-pad-entrance)"
+        value={slug}
+        onChange={setSlug}
+        required
+      />
+
+      <Field label="Title" value={title} onChange={setTitle} required />
+
+      <div>
+        <label className="block text-xs uppercase tracking-[0.2em] text-neutral-400">
+          Equirect image *
+        </label>
+        <input
+          type="file"
+          accept="image/jpeg,image/png"
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          required
+          className="mt-2 block w-full text-sm text-neutral-300 file:mr-4 file:cursor-pointer file:rounded-full file:border-0 file:bg-cyan-300 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-neutral-900 hover:file:bg-cyan-200"
+        />
+      </div>
+
+      <ProgressBar status={status} progress={progress} />
+
+      <button
+        type="submit"
+        disabled={!valid || submitting}
+        className="cursor-pointer rounded-full bg-cyan-300 px-6 py-3 text-sm font-semibold text-neutral-900 transition-colors hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {submitting ? "Uploading…" : "Upload panorama"}
+      </button>
+    </form>
+  );
+}

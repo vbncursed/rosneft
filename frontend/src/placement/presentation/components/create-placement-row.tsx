@@ -1,6 +1,8 @@
-import { useId, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { PlacementAssetOption } from "@/placement/domain/asset-option";
+import Dropdown from "@/shared/presentation/components/dropdown/dropdown";
+import type { DropdownOption } from "@/shared/presentation/components/dropdown/dropdown-option";
 
 interface CreatePlacementRowProps {
   assets: PlacementAssetOption[];
@@ -16,47 +18,45 @@ function usable(asset: PlacementAssetOption): boolean {
   return asset.lods.length > 0;
 }
 
+const NO_MODELS_VALUE = "";
+
 export default function CreatePlacementRow({
   assets,
   disabled,
   onCreate,
 }: CreatePlacementRowProps) {
-  const selectId = useId();
+  const options = useMemo<DropdownOption[]>(
+    () =>
+      assets.length === 0
+        ? [{ value: NO_MODELS_VALUE, label: "no models", disabled: true }]
+        : assets.map((asset) => ({
+            value: asset.slug,
+            label: asset.title,
+            disabled: !usable(asset),
+            hint: usable(asset) ? undefined : "not converted",
+          })),
+    [assets],
+  );
+
   const firstUsable = useMemo(() => assets.find(usable)?.slug ?? "", [assets]);
   const [pickedSlug, setPickedSlug] = useState(firstUsable);
   const noUsable = assets.length === 0 || !assets.some(usable);
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-      <label
-        htmlFor={selectId}
-        className="text-[10px] uppercase tracking-[0.18em] text-neutral-400"
-      >
+      <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">
         Add model
-      </label>
+      </span>
       <div className="flex gap-2">
-        <select
-          id={selectId}
+        <Dropdown
+          ariaLabel="Pick a model"
           value={pickedSlug}
-          onChange={(event) => setPickedSlug(event.target.value)}
+          options={options}
+          onChange={setPickedSlug}
           disabled={disabled || noUsable}
-          className="min-w-0 flex-1 cursor-pointer rounded-md border border-white/15 bg-black/40 px-2 py-1.5 text-sm text-neutral-100 outline-none transition-colors focus:border-white/40 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {assets.length === 0 ? (
-            <option value="">no models</option>
-          ) : (
-            assets.map((asset) => (
-              <option
-                key={asset.slug}
-                value={asset.slug}
-                disabled={!usable(asset)}
-              >
-                {asset.title}
-                {!usable(asset) ? " — not converted" : ""}
-              </option>
-            ))
-          )}
-        </select>
+          placeholder="Pick a model"
+          className="min-w-0 flex-1"
+        />
         <button
           type="button"
           disabled={disabled || !pickedSlug || noUsable}
