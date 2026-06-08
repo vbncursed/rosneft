@@ -162,6 +162,50 @@ components:
         scale: { $ref: '#/components/schemas/Vec3' }
         label: { type: string }
 
+    Panorama:
+      type: object
+      required: [id, territorySlug, slug, title, sourceBlobHash, position, yawOffset]
+      description: |
+        Equirectangular panorama (Insta360 Pro source) anchored to a point
+        in a territory's scene-units space. The viewer "panorama mode"
+        teleports the camera to position and renders a sphere skybox;
+        placements stay shared with the 3D view so equipment placed in
+        either mode is visible from the other.
+      properties:
+        id: { type: integer, format: int64 }
+        territorySlug: { type: string }
+        slug: { type: string }
+        title: { type: string }
+        sourceBlobHash:
+          type: string
+          description: BlobStore hash for the equirect JPG/PNG; served via /api/assets/{hash}.
+        position: { $ref: '#/components/schemas/Vec3' }
+        yawOffset:
+          type: number
+          format: double
+          description: |
+            Rotation around the sphere's Y axis (radians) to align the
+            panorama's implicit "north" with the territory's axes.
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    PanoramaCreate:
+      type: object
+      required: [slug, title, sourceBlobHash]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        sourceBlobHash: { type: string }
+        position: { $ref: '#/components/schemas/Vec3' }
+        yawOffset: { type: number, format: double }
+
+    PanoramaUpdate:
+      type: object
+      properties:
+        title: { type: string }
+        position: { $ref: '#/components/schemas/Vec3' }
+        yawOffset: { type: number, format: double }
+
     EntityCreate:
       type: object
       required: [slug, title, sourceBlobHash]
@@ -231,6 +275,13 @@ components:
         modelOptions:
           type: array
           items: { $ref: '#/components/schemas/AssetOption' }
+        panoramas:
+          type: array
+          description: |
+            Equirect panoramas anchored to this territory. The viewer
+            renders them as toggleable alternate camera modes; placements
+            stay shared between the 3D and panorama views.
+          items: { $ref: '#/components/schemas/Panorama' }
 
     UploadInitiate:
       type: object
@@ -473,6 +524,82 @@ paths:
       operationId: deletePlacement
       summary: Remove a placement
       tags: [placements]
+      responses:
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/territories/{slug}/panoramas:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: listPanoramas
+      summary: List panoramas anchored to a territory
+      tags: [panoramas]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Panorama' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+    post:
+      operationId: createPanorama
+      summary: Anchor a new equirect panorama in the territory
+      tags: [panoramas]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PanoramaCreate' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Panorama' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/territories/{slug}/panoramas/{id}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
+    put:
+      operationId: updatePanorama
+      summary: Replace a panorama's title, position, and yaw offset
+      tags: [panoramas]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PanoramaUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Panorama' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+    delete:
+      operationId: deletePanorama
+      summary: Remove a panorama
+      tags: [panoramas]
       responses:
         '204': { description: Deleted }
         '404': { $ref: '#/components/responses/NotFound' }

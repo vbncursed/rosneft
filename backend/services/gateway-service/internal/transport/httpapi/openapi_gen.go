@@ -169,6 +169,44 @@ type ModelCreated struct {
 	Model Model `json:"model"`
 }
 
+// Panorama Equirectangular panorama (Insta360 Pro source) anchored to a point
+// in a territory's scene-units space. The viewer "panorama mode"
+// teleports the camera to position and renders a sphere skybox;
+// placements stay shared with the 3D view so equipment placed in
+// either mode is visible from the other.
+type Panorama struct {
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	Id        int64      `json:"id"`
+	Position  Vec3       `json:"position"`
+	Slug      string     `json:"slug"`
+
+	// SourceBlobHash BlobStore hash for the equirect JPG/PNG; served via /api/assets/{hash}.
+	SourceBlobHash string     `json:"sourceBlobHash"`
+	TerritorySlug  string     `json:"territorySlug"`
+	Title          string     `json:"title"`
+	UpdatedAt      *time.Time `json:"updatedAt,omitempty"`
+
+	// YawOffset Rotation around the sphere's Y axis (radians) to align the
+	// panorama's implicit "north" with the territory's axes.
+	YawOffset float64 `json:"yawOffset"`
+}
+
+// PanoramaCreate defines model for PanoramaCreate.
+type PanoramaCreate struct {
+	Position       *Vec3    `json:"position,omitempty"`
+	Slug           string   `json:"slug"`
+	SourceBlobHash string   `json:"sourceBlobHash"`
+	Title          string   `json:"title"`
+	YawOffset      *float64 `json:"yawOffset,omitempty"`
+}
+
+// PanoramaUpdate defines model for PanoramaUpdate.
+type PanoramaUpdate struct {
+	Position  *Vec3    `json:"position,omitempty"`
+	Title     *string  `json:"title,omitempty"`
+	YawOffset *float64 `json:"yawOffset,omitempty"`
+}
+
 // Placement defines model for Placement.
 type Placement struct {
 	CreatedAt     *time.Time `json:"createdAt,omitempty"`
@@ -206,8 +244,13 @@ type PlacementUpdate struct {
 type SceneBundle struct {
 	Artifact     *Artifact     `json:"artifact,omitempty"`
 	ModelOptions []AssetOption `json:"modelOptions"`
-	Placements   []Placement   `json:"placements"`
-	Territory    Territory     `json:"territory"`
+
+	// Panoramas Equirect panoramas anchored to this territory. The viewer
+	// renders them as toggleable alternate camera modes; placements
+	// stay shared between the 3D and panorama views.
+	Panoramas  *[]Panorama `json:"panoramas,omitempty"`
+	Placements []Placement `json:"placements"`
+	Territory  Territory   `json:"territory"`
 }
 
 // Territory defines model for Territory.
@@ -273,6 +316,12 @@ type CreateModelJSONRequestBody = EntityCreate
 // CreateTerritoryJSONRequestBody defines body for CreateTerritory for application/json ContentType.
 type CreateTerritoryJSONRequestBody = EntityCreate
 
+// CreatePanoramaJSONRequestBody defines body for CreatePanorama for application/json ContentType.
+type CreatePanoramaJSONRequestBody = PanoramaCreate
+
+// UpdatePanoramaJSONRequestBody defines body for UpdatePanorama for application/json ContentType.
+type UpdatePanoramaJSONRequestBody = PanoramaUpdate
+
 // CreatePlacementJSONRequestBody defines body for CreatePlacement for application/json ContentType.
 type CreatePlacementJSONRequestBody = PlacementCreate
 
@@ -320,6 +369,18 @@ type ServerInterface interface {
 	// Get one converted artifact (territory)
 	// (GET /api/territories/{slug}/artifacts/{lod})
 	GetTerritoryArtifact(w http.ResponseWriter, r *http.Request, slug string, lod int32)
+	// List panoramas anchored to a territory
+	// (GET /api/territories/{slug}/panoramas)
+	ListPanoramas(w http.ResponseWriter, r *http.Request, slug string)
+	// Anchor a new equirect panorama in the territory
+	// (POST /api/territories/{slug}/panoramas)
+	CreatePanorama(w http.ResponseWriter, r *http.Request, slug string)
+	// Remove a panorama
+	// (DELETE /api/territories/{slug}/panoramas/{id})
+	DeletePanorama(w http.ResponseWriter, r *http.Request, slug string, id int64)
+	// Replace a panorama's title, position, and yaw offset
+	// (PUT /api/territories/{slug}/panoramas/{id})
+	UpdatePanorama(w http.ResponseWriter, r *http.Request, slug string, id int64)
 	// List placements on a territory
 	// (GET /api/territories/{slug}/placements)
 	ListPlacements(w http.ResponseWriter, r *http.Request, slug string)
@@ -425,6 +486,30 @@ func (_ Unimplemented) ListTerritoryArtifacts(w http.ResponseWriter, r *http.Req
 // Get one converted artifact (territory)
 // (GET /api/territories/{slug}/artifacts/{lod})
 func (_ Unimplemented) GetTerritoryArtifact(w http.ResponseWriter, r *http.Request, slug string, lod int32) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List panoramas anchored to a territory
+// (GET /api/territories/{slug}/panoramas)
+func (_ Unimplemented) ListPanoramas(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Anchor a new equirect panorama in the territory
+// (POST /api/territories/{slug}/panoramas)
+func (_ Unimplemented) CreatePanorama(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Remove a panorama
+// (DELETE /api/territories/{slug}/panoramas/{id})
+func (_ Unimplemented) DeletePanorama(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Replace a panorama's title, position, and yaw offset
+// (PUT /api/territories/{slug}/panoramas/{id})
+func (_ Unimplemented) UpdatePanorama(w http.ResponseWriter, r *http.Request, slug string, id int64) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -770,6 +855,128 @@ func (siw *ServerInterfaceWrapper) GetTerritoryArtifact(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetTerritoryArtifact(w, r, slug, lod)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListPanoramas operation middleware
+func (siw *ServerInterfaceWrapper) ListPanoramas(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListPanoramas(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreatePanorama operation middleware
+func (siw *ServerInterfaceWrapper) CreatePanorama(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePanorama(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeletePanorama operation middleware
+func (siw *ServerInterfaceWrapper) DeletePanorama(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeletePanorama(w, r, slug, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdatePanorama operation middleware
+func (siw *ServerInterfaceWrapper) UpdatePanorama(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdatePanorama(w, r, slug, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1221,6 +1428,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/territories/{slug}/artifacts/{lod}", wrapper.GetTerritoryArtifact)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/territories/{slug}/panoramas", wrapper.ListPanoramas)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/territories/{slug}/panoramas", wrapper.CreatePanorama)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/territories/{slug}/panoramas/{id}", wrapper.DeletePanorama)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/territories/{slug}/panoramas/{id}", wrapper.UpdatePanorama)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/territories/{slug}/placements", wrapper.ListPlacements)
@@ -1836,6 +2055,232 @@ func (response GetTerritoryArtifact500JSONResponse) VisitGetTerritoryArtifactRes
 	return err
 }
 
+type ListPanoramasRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type ListPanoramasResponseObject interface {
+	VisitListPanoramasResponse(w http.ResponseWriter) error
+}
+
+type ListPanoramas200JSONResponse []Panorama
+
+func (response ListPanoramas200JSONResponse) VisitListPanoramasResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPanoramas404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListPanoramas404JSONResponse) VisitListPanoramasResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListPanoramas500JSONResponse struct{ InternalJSONResponse }
+
+func (response ListPanoramas500JSONResponse) VisitListPanoramasResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePanoramaRequestObject struct {
+	Slug string `json:"slug"`
+	Body *CreatePanoramaJSONRequestBody
+}
+
+type CreatePanoramaResponseObject interface {
+	VisitCreatePanoramaResponse(w http.ResponseWriter) error
+}
+
+type CreatePanorama201JSONResponse Panorama
+
+func (response CreatePanorama201JSONResponse) VisitCreatePanoramaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePanorama400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreatePanorama400JSONResponse) VisitCreatePanoramaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePanorama404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreatePanorama404JSONResponse) VisitCreatePanoramaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePanorama500JSONResponse struct{ InternalJSONResponse }
+
+func (response CreatePanorama500JSONResponse) VisitCreatePanoramaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePanoramaRequestObject struct {
+	Slug string `json:"slug"`
+	Id   int64  `json:"id"`
+}
+
+type DeletePanoramaResponseObject interface {
+	VisitDeletePanoramaResponse(w http.ResponseWriter) error
+}
+
+type DeletePanorama204Response struct {
+}
+
+func (response DeletePanorama204Response) VisitDeletePanoramaResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeletePanorama404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeletePanorama404JSONResponse) VisitDeletePanoramaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeletePanorama500JSONResponse struct{ InternalJSONResponse }
+
+func (response DeletePanorama500JSONResponse) VisitDeletePanoramaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePanoramaRequestObject struct {
+	Slug string `json:"slug"`
+	Id   int64  `json:"id"`
+	Body *UpdatePanoramaJSONRequestBody
+}
+
+type UpdatePanoramaResponseObject interface {
+	VisitUpdatePanoramaResponse(w http.ResponseWriter) error
+}
+
+type UpdatePanorama200JSONResponse Panorama
+
+func (response UpdatePanorama200JSONResponse) VisitUpdatePanoramaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePanorama400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdatePanorama400JSONResponse) VisitUpdatePanoramaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePanorama404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdatePanorama404JSONResponse) VisitUpdatePanoramaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdatePanorama500JSONResponse struct{ InternalJSONResponse }
+
+func (response UpdatePanorama500JSONResponse) VisitUpdatePanoramaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListPlacementsRequestObject struct {
 	Slug string `json:"slug"`
 }
@@ -2418,6 +2863,18 @@ type StrictServerInterface interface {
 	// Get one converted artifact (territory)
 	// (GET /api/territories/{slug}/artifacts/{lod})
 	GetTerritoryArtifact(ctx context.Context, request GetTerritoryArtifactRequestObject) (GetTerritoryArtifactResponseObject, error)
+	// List panoramas anchored to a territory
+	// (GET /api/territories/{slug}/panoramas)
+	ListPanoramas(ctx context.Context, request ListPanoramasRequestObject) (ListPanoramasResponseObject, error)
+	// Anchor a new equirect panorama in the territory
+	// (POST /api/territories/{slug}/panoramas)
+	CreatePanorama(ctx context.Context, request CreatePanoramaRequestObject) (CreatePanoramaResponseObject, error)
+	// Remove a panorama
+	// (DELETE /api/territories/{slug}/panoramas/{id})
+	DeletePanorama(ctx context.Context, request DeletePanoramaRequestObject) (DeletePanoramaResponseObject, error)
+	// Replace a panorama's title, position, and yaw offset
+	// (PUT /api/territories/{slug}/panoramas/{id})
+	UpdatePanorama(ctx context.Context, request UpdatePanoramaRequestObject) (UpdatePanoramaResponseObject, error)
 	// List placements on a territory
 	// (GET /api/territories/{slug}/placements)
 	ListPlacements(ctx context.Context, request ListPlacementsRequestObject) (ListPlacementsResponseObject, error)
@@ -2799,6 +3256,126 @@ func (sh *strictHandler) GetTerritoryArtifact(w http.ResponseWriter, r *http.Req
 	}
 }
 
+// ListPanoramas operation middleware
+func (sh *strictHandler) ListPanoramas(w http.ResponseWriter, r *http.Request, slug string) {
+	var request ListPanoramasRequestObject
+
+	request.Slug = slug
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListPanoramas(ctx, request.(ListPanoramasRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListPanoramas")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListPanoramasResponseObject); ok {
+		if err := validResponse.VisitListPanoramasResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreatePanorama operation middleware
+func (sh *strictHandler) CreatePanorama(w http.ResponseWriter, r *http.Request, slug string) {
+	var request CreatePanoramaRequestObject
+
+	request.Slug = slug
+
+	var body CreatePanoramaJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreatePanorama(ctx, request.(CreatePanoramaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreatePanorama")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreatePanoramaResponseObject); ok {
+		if err := validResponse.VisitCreatePanoramaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeletePanorama operation middleware
+func (sh *strictHandler) DeletePanorama(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	var request DeletePanoramaRequestObject
+
+	request.Slug = slug
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeletePanorama(ctx, request.(DeletePanoramaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeletePanorama")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeletePanoramaResponseObject); ok {
+		if err := validResponse.VisitDeletePanoramaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdatePanorama operation middleware
+func (sh *strictHandler) UpdatePanorama(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	var request UpdatePanoramaRequestObject
+
+	request.Slug = slug
+	request.Id = id
+
+	var body UpdatePanoramaJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdatePanorama(ctx, request.(UpdatePanoramaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdatePanorama")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdatePanoramaResponseObject); ok {
+		if err := validResponse.VisitUpdatePanoramaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // ListPlacements operation middleware
 func (sh *strictHandler) ListPlacements(w http.ResponseWriter, r *http.Request, slug string) {
 	var request ListPlacementsRequestObject
@@ -3088,61 +3665,70 @@ func (sh *strictHandler) FinalizeUpload(w http.ResponseWriter, r *http.Request, 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"7FzrbhtHln6Vg94FLGFaohJnBwP5l2/xypEjraTZxU5owNXdh+yyi1U9VdWkGIFAHmKeYB8tT7KoS9/I",
+	"apKyJEoOol8iu67n+p1L8yZKxaQQHLlW0fFNJFEVgiu0H16R7AL/WaLS5lMquEZu/yVFwWhKNBV88FkJ",
+	"br5TaY4TYv77d4mj6Dj6t0Gz9MA9VYO3UgoZLRaLOMpQpZIWZpHoODrhU8JoBtJvuIijE65RcsJ2sbnb",
+	"CRTKKUpANzCOfhb6R1Hy7OGPcIFKlDJF4ELDyO5pBvl5ZtmXUtMRSe0BCikKlJo6PhH/xH7oLvuSMSBT",
+	"QhlJGMLp2RsFIyFB51SBmHGUMSghNWaQzIGJDIhKkWeUjw+H/FwUJSP+4cA8wBdAEoVcg+AwqPcFRpUe",
+	"jFED8qwQlGs15LMcJYLOEYiUZA4zUbIMEgSJWckzwvXhkEdxRDVO1Ca6nYqsvv8ijvS8wOg4sgubz0ki",
+	"rj+Q602r/Demz+vhlG873HP+ym56U22utKR8bJ9LNFR6aVkzEnJCdHQcZUTjgaYTjOLVKSOSOt7VwynX",
+	"f/2hGUq5xjFaIcyJyoP7MpEtL/H8+yiOJpTTSTmJjo9Cyyn6K265s2LleFWmzozcgHkGexqlpFrIOQgJ",
+	"E5EhiyHDwomQERLD/0oo9g9DpJgaQd6WGos4MhaCSsyi41/cAR0hPJ263PK3/VgvJJLP6ETopVKoz/yd",
+	"7kmjPAH6NertpNBzmOXoCGPHQ04UcAGqTFNUalQySAWfolRUcJijht9/+5cZPuQjae+WQUo4jCXOgWoQ",
+	"pQbq1ito+gXlt6JWlXStSISmmoU0Lcx8Nzpu8SzE7rdcUz1/bTV1lamvRDa3bDw/u7yCASnooJJsigoI",
+	"z1pPLNfUIVzlCCmjyPWQj6hUGsqCCZIpywtvzv9xcg5TStxM/zw2AzgQrUmao3K8lahLyTEz4pCDsZ1u",
+	"hzHROCP2dDMi/eJobwNaQEo0YWI85OaM/yyxNMdtC9BnkbywcyrXDimR9laJ0Ll9wnE25H5Js4z5zi6V",
+	"wXuRWLpcXr4FVSY1zZyMdZWmQ9IAW3v57Uj1ionkP/tM3deJxNLCQbmwDnnFAKQiC9v6CSpFxlscxa7Q",
+	"jA/t/V4k/aanlxRf4W0snvnQe/I4olnw6y/UQZ912vxeJD+ZYQsrDmOJKmA0f5QkNf+CGLVlcybkFzBr",
+	"MjQGc+/o8PA76yTqa42YINqQkVw7l/Zd0L3xcpJ0XdaqkGl/+e7JXgsiFR6MJaFG+YqcKARGEjRgUBsb",
+	"brTBHBSlNcSCI4jRkA+jEeo0p3w8jGAAwwivtb1l/UVBpGo95qnI/Ecz21zbEKsZwUR28LP/X+KYKo3S",
+	"PnXKFrqRLtUW/Ll0AxdxVBbZ7WRnSaip8bNWKuJK1/wpeuT7Jy9BXaL/T07TvDJdkIkJ8Q7ss0ieKePR",
+	"ilIrSJAJPgYtjEggNyz/JaoRh5EKY4lbWze0aW59fFNP9bAkiiNZcu7+s14XMzQ3GhHKMAuu13aUK9f5",
+	"YASSMKi+FdLaTCMpp2dvgOEU2SG89mZXcDYHA0sGYxQT1HI+5IaIyoqX8aExtDBMDLXCA5F2xQPKp0RS",
+	"wrU114xOccg91iqINPC8OmzITn8b2PMusLCDB3sR4AcrPaum//b29TE8392V+fbO0lLMYahslXCfnTvb",
+	"YIysE60ov26sY8/yod3U2G4WOuI54UISF4h3tfStXSTVhI9LRiQUfiTsnRj9e/7XIziXwuO2fSA8zYXE",
+	"zIAsAjZ+GXLKgUBtgZ4psEHxQcmpVqAKknrQNqU4Q2l9gN/EnHsYDblGhoWQ2uG4lExQErNFIRS1HtJo",
+	"tESeoTRAThU2ilZf5om4fjHkBSMpTgydQGkyB5UTc8YZ9VDu+Ru7NygBhmiFGQp2UgaUDzlSnaOL1IAq",
+	"mFJFTRgzkmJi5wvzOGQ0vkIraLalqld3v3PgsKpOSzCfGbcgJDqQ7eI2BPSSAe/P3w3Of373wuWBsga4",
+	"ExMsqsGNmbYIRrG1UFzeNqr5CkWOozmZnY1GCgPe6EJo4iRJitKjeSdGzxT8L5BrqmBPkowSrvatdDM6",
+	"5i4IqcT1mQI6KRhNqYZhxIXU+TBqpKytAeQalROY5uSiTFjr2BU6C4GJLt3iDUapJSttGqwzBE3I1xXo",
+	"BxS6W7C+w8fbEvD2Brwiyt+txN2dKPd4sdWzVqbuXlz01sbIYv9w6GdcT69635Z00qvp1vKXEkfqrfiy",
+	"0RrdSySwrLwNhTqKWl+1usXHdezuU9g/AGNCWMaeey1B+pS1nyBP68orN7s0oOlVyTMWCMgvKR8zPFC5",
+	"0JDYMbWf9qiqIGM8hBOesjJz2bOqaoSZAVheJmMwoCwtpQ2ITs/eHEGVW4E9m4I18TdyvR8DYayDrQQH",
+	"quM6Gcao0iBGrbyvywHWHpHKIW+qIdV56wU7idlwumcTNdtpWru5S13bNbZK9bbz3YFUb+X5VT9wrhGz",
+	"6oBjm/muqd7Gv0NeAVmd4wSIAi3GY4aWgoTZmpuuQbC5lXrREE3ZsLiGuAnqGfq8+fM3ljU1uDbbqVuk",
+	"vesgIUSIev+tSdt4qsB6Tb5iwypX9cBlO9FOebSOtyQIIRty1d78zzB3S5RUU+0eQt17Zn9f2Pt3W1n4",
+	"kXLC6K+hE/cmcrZOySydalN2xZ3ohFNNg95rU1G191x1hum7zeXB9Ye7RKWC5b9NZ+tJl4tVwLumtvqV",
+	"dLfAy06uNwzd0HrflYtdb4XG42i+5bhfvyZsuTaxW2Qmrx7cjKV8JFa90HmZMJrCxdvLK1ClHJG0AQYX",
+	"QnEc6Sr7gRKqSqnBCa63Y8hNUE9TVLDnM88xTFDlsS/b7dv0qkSS5j70H1+cv37h/Juvwg05dYDDJnHx",
+	"2i1t/y2EwgxqxT4c8iG3FUKf5aYKVMGoBsqN05wJn/dWx0MO8Ptv/wdXrYrj77/9q0rl2hSTagOgOj1k",
+	"S32ET4lxfm6RDw6Y2D+7iPEX1uEap2nTGCCmKBmhmYE5rXSWPfKlK1uOKDOEOnv1Hv4CH65O4S+g8VqX",
+	"EpWjk6MZZu4Q/zg5ByLT3GaidS5FOXaZgjQv+RfMOuXPpkmkLkyWTFM+hoSJxKVmqDLrNEVSn4a7arcb",
+	"2Ks6vGH4eOCLNLYsU1VV/aFcgqtO/8QgS+4zcLYapVHGPvPm6i7u4bvTV21cl5D0S1Vq92y1NPtZaDyG",
+	"hHIi5w3GVFoimZhr7X169/YqkEj6tG/vSScFsy69oqaWhCvPfYlTlAqhkOLaFnztCgdelu2Z7RrWYFHh",
+	"pJEL7YsRCWa2luwXnheY1eS38uEK2ApULkpm4LNxeUC1mSDJrLqVt4iw98lijsGY6dGBe/Zp38HgC8LH",
+	"GMPbKzKOXTmaTialtrKXGh5CjsTIrS9nOYcfVbr7iqRfkGfwzte7X56fRLYK4Ex0dHT4/eGRtbIFclLQ",
+	"6Dh6fnh0+NxgIqJza95a5XnzceyMsTGANrw5yaLj6JQq7ZTERKbtdrfvj45u1ee1FTb0WexlXLjaAHb2",
+	"kxn1H+4MoRXrsw7qxjjbIVZOJsTAC3szH5gY+pKxqoNMFX10YWGAIA7kfPB5dR9JvRLZ/P6a3tq9F4uu",
+	"O9CyxMUKI76/t707JYsA2e3zqsRm1alVn3ZNEIYvP2zDl1a/5B1ZeeHNEBDfI1R3d7igtj5iiNGLuK0I",
+	"gxsDgBfOoTIMdb9c4KhUxmIKcEPqbZWmjIHEEUrkqetpaiKQwyhekqU3dnojSx2m/rC6sxv/tRT+wS25",
+	"fkrdwnlHlrzpUCasYEGD8w51D0GO7lfK+63KTgn1DnUtP8kcqvArYI6IJBM0zjY6/uUmoua8xpRHccTJ",
+	"xEJrN7drLeIWTZYjv49B2R902vnWe4WX9dBdeIf+5rsnwUrrUSqElEE3w7VWEx6Bt4MbJrJFL4crNaxJ",
+	"/oDq2LD1yWik4BjgJOxZYu7vjIlxcBnXr9G/yq26TBpBabVwrlX8VuC1E61vpXp2hgt1544Vs9vfbkKI",
+	"V6001B8NJa5k/AKMaGLPJ4wWm378LRBjl/sBrQlixxDi68rGrVDfY0C4LpUMfTpp9T7t6PMra25/dP8i",
+	"+qRgXkPJVai3YlweEBOsCu2WoK8m65/Ab3vg165IPDVub4aBKyz/EwpaKFhzdX+3bH0sTFiJTqf03Wso",
+	"zutRu7AP/RXqp2Mfwu0AYevQ0PihbMN68FrT82Gw61Kz4Vbo9bt73z0kHDWgffoZtpdWioAAx1nTk1s3",
+	"efjCyybp2kbRBzc02wLVdoTmqYLaC5yIqQG1RXPanWld2HTT7S13uOJtlLkM6LLrhNuRLvu2u610+Wgn",
+	"ulwZ+qetxhdog6mWRD5TYKt9cf2Wgyu2zskMfAvD7XW506bV77Xbcd0O3HZ/J9gT8tudPscef93Q7ZEc",
+	"dk3JB9LypXbjXbvsRlC+bZ+dZUbR60bXfgDYFqit9HpbJ90RlKfvpVvH3Z2yPY6f3pUKP5KnXqfC35yr",
+	"ri5jfLUkXBnmf4X62ma1dcmXdu//AzKnvc3TcL3bvdfwSAk135nnXwELcK7q43WNsw+k0Estwzt2yd2e",
+	"4IDQ+EdV+ecRCj2XmkgNpO6qdGwD5c/cyE7Fz0ZX/TcbnerLREjd4vImh2rH491LM1SlRGZAOFB+UP2Q",
+	"yNqbxVGOJAsaGc9K9wMQYSuzYg/ccla7bnx/+MEp8rHOuyK0Tb+2n968AHmb6YtdW6b/KlG6nzmpXpZy",
+	"QZl942kDCzYbpQ0gIxQWEJ3mPb/R5NuvJZk5JXAdxCRRgpUaIZlrrE4/Fqh80mjIP3VY8sm3orrmYf+j",
+	"f+4HmFT1i0ighSbMvjRvvlleoP41Jb+S7WldUqWiQJ65ea/NYaMwvdwKDcW60nNnhLadpRapRn3gepZ7",
+	"JNa1+wbet9nCTIcsR5pioTF7sSx29S9hUQ7LtFjV0bso2ROPraz8WJlWLrDyughEWykd0yny1QzKeuM/",
+	"GPmXhKyzfwj1DQKI6tWkPtdydM9+vHkV6ptF56+ZUNjmOs+gKBNGlXu3ohaM+r2GsBCYRa2Jc0zukuJU",
+	"pIRBJtIvKA/s6ZRZppTMWCati+PBgJkxuVD6+G9HfzuKFh8X/x8AAP//",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

@@ -1,7 +1,7 @@
 import { Suspense, useCallback, useRef } from "react";
 import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import { AdaptiveDpr, Bounds } from "@react-three/drei";
-import type { Group } from "three";
+import type { Group, Mesh } from "three";
 import CameraRig from "@/viewer/presentation/three/camera-rig";
 import Lighting from "@/viewer/presentation/three/lighting";
 import GltfModel from "@/viewer/presentation/three/gltf-model";
@@ -17,6 +17,12 @@ import type {
   ResolvedPlacement,
 } from "@/placement/domain/placement";
 import PlacementsLayer from "@/placement/presentation/three/placements-layer";
+import type { Panorama } from "@/panorama/domain/panorama";
+import PanoramaSphere from "@/panorama/presentation/three/panorama-sphere";
+import PanoramaRig from "@/panorama/presentation/three/panorama-rig";
+import CameraPositionTracker from "@/panorama/presentation/three/camera-position-tracker";
+import type { Vec3 } from "@/shared/domain/vec3";
+import type { RefObject } from "react";
 
 // Stable literal references so react-three-fiber doesn't tear down and
 // recreate the gridHelper / background colour on every render of this
@@ -47,6 +53,15 @@ interface SceneCanvasProps {
   mode: GizmoMode;
   measureMode: boolean;
   snapEnabled: boolean;
+  // When non-null, the viewer renders the panorama sphere skybox in
+  // place of the territory mesh. Placements still render against the
+  // same coordinate space; snap targets the sphere instead of the
+  // territory floor.
+  activePanorama: Panorama | null;
+  // Ref mutated by an in-Canvas tracker so the parent can read the
+  // current camera position on demand (e.g. "Set panorama anchor from
+  // camera"). Lives in ModelViewer; SceneCanvas just wires it through.
+  cameraPositionRef: RefObject<Vec3 | null>;
   chains: Chain[];
   activeChainId: number | null;
   unitRatio: number;
@@ -66,6 +81,8 @@ export default function SceneCanvas({
   mode,
   measureMode,
   snapEnabled,
+  activePanorama,
+  cameraPositionRef,
   chains,
   activeChainId,
   unitRatio,
@@ -93,6 +110,12 @@ export default function SceneCanvas({
   // Lives here (not in PlacementsLayer) so the two siblings can reach the
   // same Object3D without lifting state to ModelViewer.
   const territoryRef = useRef<Group>(null);
+  // When a panorama is active, snap targets this mesh instead of the
+  // territory GLB. Persisting both refs keeps the swap free of remounts.
+  const panoramaRef = useRef<Mesh>(null);
+  // PlacementsLayer's territoryRef is whatever surface snap should hit.
+  // In panorama mode that's the sphere; otherwise the territory GLB.
+  const snapTargetRef = activePanorama ? panoramaRef : territoryRef;
 
   // Wrapper-group click is the catch-all for in-scene measurement points.
   // Use the first intersection's world point — that's the surface the
@@ -142,9 +165,23 @@ export default function SceneCanvas({
             fights OrbitControls during a wheel zoom and reads as a freeze
             at every LOD threshold. We fit once on mount via `fit` and
             route explicit resets through CameraRig/resetVersion. */}
+        {/* Territory mesh hides while a panorama is active — the sphere
+            replaces it as the visible scene. The ref stays mounted via
+            `visible=false` so subsequent toggles avoid re-loading the
+            GLB. Bounds only auto-fits on initial mount; that fit stays
+            valid across panorama toggles. */}
         <Bounds fit clip margin={1.2}>
-          <GltfModel lods={parentLods} raycastable={measureMode} groupRef={territoryRef} />
+          <group visible={!activePanorama}>
+            <GltfModel lods={parentLods} raycastable={measureMode} groupRef={territoryRef} />
+          </group>
         </Bounds>
+
+        {activePanorama && (
+          <Suspense fallback={null}>
+            <PanoramaSphere panorama={activePanorama} meshRef={panoramaRef} />
+            <PanoramaRig panorama={activePanorama} />
+          </Suspense>
+        )}
 
         <Suspense fallback={null}>
           <PlacementsLayer
@@ -152,7 +189,7 @@ export default function SceneCanvas({
             selectedId={selectedId}
             mode={mode}
             measureMode={measureMode}
-            territoryRef={territoryRef}
+            territoryRef={snapTargetRef}
             snapEnabled={snapEnabled}
             onSelect={onSelect}
             onCommit={onCommit}
@@ -170,6 +207,7 @@ export default function SceneCanvas({
       />
 
       <CameraRig resetVersion={resetVersion} />
+      <CameraPositionTracker positionRef={cameraPositionRef} />
       <gridHelper args={GRID_ARGS} position={GRID_POSITION} />
       {/* Drop DPR while the user is interacting (camera drag, gizmo drag)
           and restore it on idle — keeps frame rate up on weaker GPUs. */}

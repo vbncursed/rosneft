@@ -33,6 +33,11 @@ type Repository interface {
 	CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, id int64) error
+
+	ListPanoramas(ctx context.Context, territorySlug string) ([]domain.Panorama, error)
+	CreatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
+	UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
+	DeletePanorama(ctx context.Context, id int64) error
 }
 
 // Catalog is the catalog service.

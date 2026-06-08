@@ -27,6 +27,7 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug string) (domain.Scene
 		artifacts  []domain.Artifact
 		placements []domain.Placement
 		models     []domain.Model
+		panoramas  []domain.Panorama
 	)
 
 	gr, gctx := errgroup.WithContext(ctx)
@@ -62,12 +63,21 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug string) (domain.Scene
 		models = m
 		return nil
 	})
+	gr.Go(func() error {
+		p, err := g.catalog.ListPanoramas(gctx, slug)
+		if err != nil && !errors.Is(err, domain.ErrTerritoryNotFound) {
+			return err
+		}
+		panoramas = p
+		return nil
+	})
 	if err := gr.Wait(); err != nil {
 		return domain.SceneBundle{}, err
 	}
 
 	bundle.Territory = territory
 	bundle.Placements = nilToEmptyPlacements(placements)
+	bundle.Panoramas = nilToEmptyPanoramas(panoramas)
 	if a, ok := pickLOD0(artifacts); ok {
 		a.LODs = lodChain(artifacts)
 		bundle.Artifact = &a
@@ -105,6 +115,13 @@ func lodChain(arts []domain.Artifact) []domain.LodArtifact {
 func nilToEmptyPlacements(in []domain.Placement) []domain.Placement {
 	if in == nil {
 		return []domain.Placement{}
+	}
+	return in
+}
+
+func nilToEmptyPanoramas(in []domain.Panorama) []domain.Panorama {
+	if in == nil {
+		return []domain.Panorama{}
 	}
 	return in
 }

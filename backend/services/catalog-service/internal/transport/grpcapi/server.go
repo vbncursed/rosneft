@@ -38,6 +38,11 @@ type Service interface {
 	CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, id int64) error
+
+	ListPanoramas(ctx context.Context, territorySlug string) ([]domain.Panorama, error)
+	CreatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
+	UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
+	DeletePanorama(ctx context.Context, id int64) error
 }
 
 // Server implements catalogv1.CatalogServiceServer over a Service.
@@ -67,7 +72,8 @@ func mapError(err error) error {
 	case errors.Is(err, domain.ErrTerritoryNotFound),
 		errors.Is(err, domain.ErrModelNotFound),
 		errors.Is(err, domain.ErrArtifactNotFound),
-		errors.Is(err, domain.ErrPlacementNotFound):
+		errors.Is(err, domain.ErrPlacementNotFound),
+		errors.Is(err, domain.ErrPanoramaNotFound):
 		return status.Error(codes.NotFound, err.Error())
 	default:
 		return status.Errorf(codes.Internal, "internal: %v", err)

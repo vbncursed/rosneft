@@ -37,7 +37,7 @@ export default async function TerritoryPage({
   const bundle = await getSceneBundle(slug).catch(notFoundOnHttp404(null));
   if (!bundle) notFound();
 
-  const { territory, artifact, placements, modelOptions } = bundle;
+  const { territory, artifact, placements, modelOptions, panoramas } = bundle;
   if (!artifact) {
     return (
       <ConversionPending title={territory.title} slug={slug} jobId={jobId ?? null} />
@@ -74,6 +74,7 @@ export default async function TerritoryPage({
         territorySlug={slug}
         initialPlacements={resolvePlacements(placements, modelOptions)}
         modelOptions={modelOptions}
+        panoramas={panoramas}
       />
     </main>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { LodArtifact } from "@/shared/domain/lod-artifact";
 import { useMeasurementTool } from "@/measurement/application/use-measurement-tool";
 import { computeUnitRatio } from "@/measurement/domain/unit-ratio";
@@ -8,6 +8,11 @@ import { usePlacementsEditor } from "@/placement/application/use-placements-edit
 import PlacementsPanel from "@/placement/presentation/components/placements-panel";
 import type { PlacementAssetOption } from "@/placement/domain/asset-option";
 import type { ResolvedPlacement } from "@/placement/domain/placement";
+import type { Panorama } from "@/panorama/domain/panorama";
+import PanoramaToolbar from "@/panorama/presentation/components/panorama-toolbar";
+import { usePanoramaOrchestration } from "@/panorama/application/use-panorama-orchestration";
+import { usePanoramas } from "@/panorama/application/use-panoramas";
+import type { Vec3 } from "@/shared/domain/vec3";
 import { useKeyboardShortcuts } from "@/viewer/application/use-keyboard-shortcuts";
 import type { ModelMetadata } from "@/viewer/domain/model-metadata";
 import SceneCanvas from "@/viewer/presentation/three/scene-canvas";
@@ -20,6 +25,7 @@ export interface ModelViewerProps {
   territorySlug: string;
   initialPlacements: ResolvedPlacement[];
   modelOptions: PlacementAssetOption[];
+  panoramas: Panorama[];
 }
 
 export default function ModelViewer({
@@ -29,12 +35,21 @@ export default function ModelViewer({
   territorySlug,
   initialPlacements,
   modelOptions,
+  panoramas: initialPanoramas,
 }: ModelViewerProps) {
+  const { panoramas, update: updatePanoramaState } = usePanoramas(
+    territorySlug,
+    initialPanoramas,
+  );
+  const panorama = usePanoramaOrchestration(panoramas);
+  // Mirror of the live R3F camera position — written each "change" by
+  // CameraPositionTracker, read by the panorama edit panel.
+  const cameraPositionRef = useRef<Vec3 | null>(null);
+
   const territoryMaxDim = useMemo(
     () => Math.max(metadata.dimensions.x, metadata.dimensions.y, metadata.dimensions.z),
     [metadata.dimensions],
   );
-
   const editor = usePlacementsEditor(
     territorySlug,
     initialPlacements,
@@ -46,8 +61,6 @@ export default function ModelViewer({
   // Surface magnetism: when true, the translate gizmo glues the placement
   // to the territory Y under it. When false, the same raycast acts as a
   // floor so dragged objects can hover but never bury into the terrain.
-  // Default off — new users get unconstrained translation, opt-in to the
-  // assist via the panel toggle or G.
   const [snapEnabled, setSnapEnabled] = useState(false);
   const toggleSnap = useCallback(() => setSnapEnabled((v) => !v), []);
 
@@ -57,16 +70,16 @@ export default function ModelViewer({
   );
 
   // UIOverlay is memoed; passing a fresh `{ ...metadata, name: title }`
-  // literal each render would defeat the shallow-equality skip. Build
-  // it once per (metadata, title) change.
+  // literal each render would defeat the shallow-equality skip.
   const overlayMetadata = useMemo(
     () => ({ ...metadata, name: title }),
     [metadata, title],
   );
 
-  const handleReset = useCallback(() => {
-    setResetVersion((value) => value + 1);
-  }, []);
+  const handleReset = useCallback(
+    () => setResetVersion((value) => value + 1),
+    [],
+  );
 
   // Total visible segments across all chains — feeds the Clear (N) badge
   // and lets the overlay know whether anything is currently drawn.
@@ -85,10 +98,8 @@ export default function ModelViewer({
     measure.toggle();
   }, [editor, measure]);
 
-  // Esc behaves layered: an open measurement chain is broken first, the
-  // next press exits measure mode (and deselects any placement). This
-  // matches the polyline UX — users can stop a chain without leaving
-  // the tool, and a second tap fully exits.
+  // Esc behaves layered: an open chain breaks first, the next press
+  // exits measure mode (and deselects any placement).
   const handleEscape = useCallback(() => {
     if (measure.measureMode && measure.activeChainId != null) {
       measure.cancelChain();
@@ -105,6 +116,7 @@ export default function ModelViewer({
     r: () => editor.setMode("rotate"),
     s: () => editor.setMode("scale"),
     g: toggleSnap,
+    p: panorama.cycle,
   });
 
   return (
@@ -117,6 +129,8 @@ export default function ModelViewer({
         mode={editor.mode}
         measureMode={measure.measureMode}
         snapEnabled={snapEnabled}
+        activePanorama={panorama.activePanorama}
+        cameraPositionRef={cameraPositionRef}
         chains={measure.chains}
         activeChainId={measure.activeChainId}
         unitRatio={unitRatio}
@@ -142,6 +156,21 @@ export default function ModelViewer({
       />
 
       <div className="pointer-events-none absolute top-4 right-4 bottom-4 flex flex-col items-end gap-3">
+        <PanoramaToolbar
+          territorySlug={territorySlug}
+          panoramas={panoramas}
+          activeId={panorama.activePanoramaId}
+          editingPanorama={panorama.editingPanorama}
+          inPanoramaMode={
+            panorama.editingPanorama != null &&
+            panorama.activePanoramaId === panorama.editingPanorama.id
+          }
+          cameraPositionRef={cameraPositionRef}
+          onActivate={panorama.activate}
+          onSavePanorama={updatePanoramaState}
+          onToggleView={panorama.toggleView}
+          onCloseEdit={panorama.closeEdit}
+        />
         <PlacementsPanel
           placements={editor.placements}
           assets={modelOptions}

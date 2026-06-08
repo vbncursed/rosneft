@@ -104,12 +104,16 @@ type AssetOption struct {
 }
 
 // SceneBundle is the single-shot payload for the viewer page. Artifact is
-// nil if the territory has no LOD0 yet (conversion pending).
+// nil if the territory has no LOD0 yet (conversion pending). Panoramas is
+// the list of equirect captures anchored to this territory; the viewer
+// shows them as toggleable alternate camera modes that reuse the same
+// placement set.
 type SceneBundle struct {
 	Territory    Territory
 	Artifact     *Artifact
 	Placements   []Placement
 	ModelOptions []AssetOption
+	Panoramas    []Panorama
 }
 
 // Placement is the gateway view of a positioned model on a territory.

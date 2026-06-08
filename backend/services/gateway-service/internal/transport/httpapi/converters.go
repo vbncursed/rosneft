@@ -143,6 +143,25 @@ func jobToAPI(j domain.Job) Job {
 	return out
 }
 
+func panoramaToAPI(p domain.Panorama) Panorama {
+	out := Panorama{
+		Id:             p.ID,
+		TerritorySlug:  p.TerritorySlug,
+		Slug:           p.Slug,
+		Title:          p.Title,
+		SourceBlobHash: p.SourceBlobHash,
+		Position:       vec3ToAPI(p.Position),
+		YawOffset:      p.YawOffset,
+	}
+	if !p.CreatedAt.IsZero() {
+		out.CreatedAt = &p.CreatedAt
+	}
+	if !p.UpdatedAt.IsZero() {
+		out.UpdatedAt = &p.UpdatedAt
+	}
+	return out
+}
+
 func sceneBundleToAPI(b domain.SceneBundle) SceneBundle {
 	out := SceneBundle{
 		Territory:    territoryToAPI(b.Territory),
@@ -171,6 +190,13 @@ func sceneBundleToAPI(b domain.SceneBundle) SceneBundle {
 	if b.Artifact != nil {
 		a := artifactToAPI(*b.Artifact, true)
 		out.Artifact = &a
+	}
+	if len(b.Panoramas) > 0 {
+		pans := make([]Panorama, len(b.Panoramas))
+		for i, p := range b.Panoramas {
+			pans[i] = panoramaToAPI(p)
+		}
+		out.Panoramas = &pans
 	}
 	return out
 }

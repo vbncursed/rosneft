@@ -141,6 +141,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/territories/{slug}/panoramas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        /** List panoramas anchored to a territory */
+        get: operations["listPanoramas"];
+        put?: never;
+        /** Anchor a new equirect panorama in the territory */
+        post: operations["createPanorama"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/territories/{slug}/panoramas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace a panorama's title, position, and yaw offset */
+        put: operations["updatePanorama"];
+        post?: never;
+        /** Remove a panorama */
+        delete: operations["deletePanorama"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models": {
         parameters: {
             query?: never;
@@ -413,6 +454,47 @@ export interface components {
             label?: string;
         };
         /**
+         * @description Equirectangular panorama (Insta360 Pro source) anchored to a point
+         *     in a territory's scene-units space. The viewer "panorama mode"
+         *     teleports the camera to position and renders a sphere skybox;
+         *     placements stay shared with the 3D view so equipment placed in
+         *     either mode is visible from the other.
+         */
+        Panorama: {
+            /** Format: int64 */
+            id: number;
+            territorySlug: string;
+            slug: string;
+            title: string;
+            /** @description BlobStore hash for the equirect JPG/PNG; served via /api/assets/{hash}. */
+            sourceBlobHash: string;
+            position: components["schemas"]["Vec3"];
+            /**
+             * Format: double
+             * @description Rotation around the sphere's Y axis (radians) to align the
+             *     panorama's implicit "north" with the territory's axes.
+             */
+            yawOffset: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        PanoramaCreate: {
+            slug: string;
+            title: string;
+            sourceBlobHash: string;
+            position?: components["schemas"]["Vec3"];
+            /** Format: double */
+            yawOffset?: number;
+        };
+        PanoramaUpdate: {
+            title?: string;
+            position?: components["schemas"]["Vec3"];
+            /** Format: double */
+            yawOffset?: number;
+        };
+        /**
          * @description Body for POST /api/territories and POST /api/models. The client
          *     first uploads the source ZIP via /api/uploads, then attaches the
          *     returned hash here. The gateway forwards the entity to catalog
@@ -462,6 +544,12 @@ export interface components {
             artifact?: components["schemas"]["Artifact"];
             placements: components["schemas"]["Placement"][];
             modelOptions: components["schemas"]["AssetOption"][];
+            /**
+             * @description Equirect panoramas anchored to this territory. The viewer
+             *     renders them as toggleable alternate camera modes; placements
+             *     stay shared between the 3D and panorama views.
+             */
+            panoramas?: components["schemas"]["Panorama"][];
         };
         UploadInitiate: {
             /** Format: int64 */
@@ -772,6 +860,112 @@ export interface operations {
         };
     };
     deletePlacement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    listPanoramas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Panorama"][];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    createPanorama: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PanoramaCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Panorama"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    updatePanorama: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PanoramaUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Panorama"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    deletePanorama: {
         parameters: {
             query?: never;
             header?: never;
