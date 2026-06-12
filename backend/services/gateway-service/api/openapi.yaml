@@ -223,6 +223,15 @@ components:
         externalPanoramaUrl: { type: string }
         sourceBlobHash: { type: string }
 
+    TerritoryUpdate:
+      type: object
+      description: |
+        Body for PATCH /api/territories/{slug}. Updates mutable fields only;
+        the source archive and conversion are untouched. Omitted fields are
+        left unchanged.
+      properties:
+        externalPanoramaUrl: { type: string }
+
     TerritoryCreated:
       type: object
       required: [territory, job]
@@ -381,6 +390,24 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Territory' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+    patch:
+      operationId: updateTerritory
+      summary: Update mutable territory fields (no re-conversion)
+      tags: [territories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TerritoryUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Territory' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
     delete:

@@ -61,6 +61,18 @@ export function httpPut<T>(path: string, body: unknown): Promise<T> {
   );
 }
 
+export function httpPatch<T>(path: string, body: unknown): Promise<T> {
+  return send<T>(
+    path,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    true,
+  );
+}
+
 export function httpDelete(path: string): Promise<void> {
   return send<void>(path, { method: "DELETE" }, false);
 }

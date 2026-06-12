@@ -1,4 +1,9 @@
-import { httpDelete, httpGet, httpPost } from "@/shared/infrastructure/http/client";
+import {
+  httpDelete,
+  httpGet,
+  httpPatch,
+  httpPost,
+} from "@/shared/infrastructure/http/client";
 import type { components } from "@/shared/infrastructure/api/dto";
 import type { Territory } from "@/territory/domain/territory";
 import type { SceneBundle } from "@/territory/domain/scene-bundle";
@@ -118,6 +123,19 @@ export async function createTerritory(
 ): Promise<{ territory: Territory; job: Job }> {
   const data = await httpPost<TerritoryCreatedDto>("/api/territories", body);
   return { territory: mapTerritory(data.territory), job: mapJob(data.job) };
+}
+
+type TerritoryUpdate = components["schemas"]["TerritoryUpdate"];
+
+export async function updateTerritory(
+  slug: string,
+  patch: TerritoryUpdate,
+): Promise<Territory> {
+  const data = await httpPatch<TerritoryDto>(
+    `/api/territories/${encodeURIComponent(slug)}`,
+    patch,
+  );
+  return mapTerritory(data);
 }
 
 export async function deleteTerritory(slug: string): Promise<void> {

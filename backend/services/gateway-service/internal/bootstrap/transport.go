@@ -48,7 +48,7 @@ func InitRouter(
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   resolveOrigins(cfg.AllowedOrigins),
-		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},
 		AllowedHeaders:   []string{"Content-Type", "If-None-Match", "Authorization"},
 		ExposedHeaders:   []string{"ETag", "Content-Length", "Content-Range", "X-Next-Cursor"},
 		AllowCredentials: true,
@@ -125,4 +125,3 @@ func newCompressor() *middleware.Compressor {
 	})
 	return c
 }
-

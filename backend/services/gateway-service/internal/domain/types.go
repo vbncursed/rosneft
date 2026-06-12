@@ -39,6 +39,13 @@ type Territory struct {
 	UpdatedAt           time.Time
 }
 
+// TerritoryUpdate carries the mutable fields of PATCH /api/territories/{slug}.
+// Each field is a pointer: nil means "leave unchanged", so a caller can clear
+// a value (empty string) distinctly from not touching it.
+type TerritoryUpdate struct {
+	ExternalPanoramaURL *string
+}
+
 // Model is the gateway view of a catalog model.
 type Model struct {
 	Slug           string

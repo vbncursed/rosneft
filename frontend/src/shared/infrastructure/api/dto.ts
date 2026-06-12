@@ -39,7 +39,8 @@ export interface paths {
         delete: operations["deleteTerritory"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Update mutable territory fields (no re-conversion) */
+        patch: operations["updateTerritory"];
         trace?: never;
     };
     "/api/territories/{slug}/scene": {
@@ -509,6 +510,14 @@ export interface components {
             externalPanoramaUrl?: string;
             sourceBlobHash: string;
         };
+        /**
+         * @description Body for PATCH /api/territories/{slug}. Updates mutable fields only;
+         *     the source archive and conversion are untouched. Omitted fields are
+         *     left unchanged.
+         */
+        TerritoryUpdate: {
+            externalPanoramaUrl?: string;
+        };
         TerritoryCreated: {
             territory: components["schemas"]["Territory"];
             job: components["schemas"]["Job"];
@@ -701,6 +710,35 @@ export interface operations {
                 };
                 content?: never;
             };
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    updateTerritory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TerritoryUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Territory"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["Internal"];
         };

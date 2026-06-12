@@ -39,6 +39,28 @@ func (g *Gateway) CreateTerritory(ctx context.Context, t domain.Territory) (doma
 	return saved, job, nil
 }
 
+// UpdateTerritory patches a territory's mutable fields by slug without
+// touching the source archive or re-queuing a conversion. It is a
+// read-modify-write over the existing catalog RPCs: fetch, apply the
+// non-nil patch fields, upsert the merged row back.
+func (g *Gateway) UpdateTerritory(ctx context.Context, slug string, update domain.TerritoryUpdate) (domain.Territory, error) {
+	if slug == "" {
+		return domain.Territory{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
+	}
+	current, err := g.catalog.GetTerritory(ctx, slug)
+	if err != nil {
+		return domain.Territory{}, err
+	}
+	if update.ExternalPanoramaURL != nil {
+		current.ExternalPanoramaURL = *update.ExternalPanoramaURL
+	}
+	saved, err := g.catalog.UpsertTerritory(ctx, current)
+	if err != nil {
+		return domain.Territory{}, fmt.Errorf("update territory: %w", err)
+	}
+	return saved, nil
+}
+
 // DeleteTerritory removes a territory by slug.
 func (g *Gateway) DeleteTerritory(ctx context.Context, slug string) error {
 	if slug == "" {

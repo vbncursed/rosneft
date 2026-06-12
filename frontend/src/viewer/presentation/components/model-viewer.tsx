@@ -10,7 +10,7 @@ import type { PlacementAssetOption } from "@/placement/domain/asset-option";
 import type { ResolvedPlacement } from "@/placement/domain/placement";
 import type { Panorama } from "@/panorama/domain/panorama";
 import PanoramaToolbar from "@/panorama/presentation/components/panorama-toolbar";
-import ExternalPanoramaLink from "@/panorama/presentation/components/external-panorama-link";
+import ExternalPanoramaControl from "@/panorama/presentation/components/external-panorama-control";
 import { usePanoramaOrchestration } from "@/panorama/application/use-panorama-orchestration";
 import { usePanoramas } from "@/panorama/application/use-panoramas";
 import type { Vec3 } from "@/shared/domain/vec3";
@@ -174,7 +174,10 @@ export default function ModelViewer({
           onToggleView={panorama.toggleView}
           onCloseEdit={panorama.closeEdit}
         />
-        <ExternalPanoramaLink url={externalPanoramaUrl} />
+        <ExternalPanoramaControl
+          territorySlug={territorySlug}
+          initialUrl={externalPanoramaUrl}
+        />
         <PlacementsPanel
           placements={editor.placements}
           assets={modelOptions}

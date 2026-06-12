@@ -18,6 +18,7 @@ type Service interface {
 	ListTerritories(ctx context.Context) ([]domain.Territory, error)
 	GetTerritory(ctx context.Context, slug string) (domain.Territory, error)
 	CreateTerritory(ctx context.Context, t domain.Territory) (domain.Territory, domain.Job, error)
+	UpdateTerritory(ctx context.Context, slug string, update domain.TerritoryUpdate) (domain.Territory, error)
 	DeleteTerritory(ctx context.Context, slug string) error
 	ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
 	GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
