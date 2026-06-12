@@ -95,8 +95,10 @@ type Territory struct {
 	SourceBlobHash string                 `protobuf:"bytes,4,opt,name=source_blob_hash,json=sourceBlobHash,proto3" json:"source_blob_hash,omitempty"`
 	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt      *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Optional link to an externally-hosted panorama tour. Empty = unset.
+	ExternalPanoramaUrl string `protobuf:"bytes,7,opt,name=external_panorama_url,json=externalPanoramaUrl,proto3" json:"external_panorama_url,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Territory) Reset() {
@@ -169,6 +171,13 @@ func (x *Territory) GetUpdatedAt() *timestamppb.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *Territory) GetExternalPanoramaUrl() string {
+	if x != nil {
+		return x.ExternalPanoramaUrl
+	}
+	return ""
 }
 
 // Model is a placeable 3D asset overlaid on a territory.
@@ -2767,7 +2776,7 @@ const file_rosneft_catalog_v1_catalog_proto_rawDesc = "" +
 	"\x04Vec3\x12\f\n" +
 	"\x01x\x18\x01 \x01(\x01R\x01x\x12\f\n" +
 	"\x01y\x18\x02 \x01(\x01R\x01y\x12\f\n" +
-	"\x01z\x18\x03 \x01(\x01R\x01z\"\xf7\x01\n" +
+	"\x01z\x18\x03 \x01(\x01R\x01z\"\xab\x02\n" +
 	"\tTerritory\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
@@ -2776,7 +2785,8 @@ const file_rosneft_catalog_v1_catalog_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xf3\x01\n" +
+	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x122\n" +
+	"\x15external_panorama_url\x18\a \x01(\tR\x13externalPanoramaUrl\"\xf3\x01\n" +
 	"\x05Model\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +

@@ -11,16 +11,17 @@ import (
 // row as stored, including timestamps assigned by the database.
 func (r *PG) UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error) {
 	const q = `
-		INSERT INTO territories (slug, title, description, source_blob_hash)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO territories (slug, title, description, source_blob_hash, external_panorama_url)
+		VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (slug) DO UPDATE SET
-			title            = EXCLUDED.title,
-			description      = EXCLUDED.description,
-			source_blob_hash = EXCLUDED.source_blob_hash,
-			updated_at       = NOW()
-		RETURNING ` + entityColumns
+			title                 = EXCLUDED.title,
+			description           = EXCLUDED.description,
+			source_blob_hash      = EXCLUDED.source_blob_hash,
+			external_panorama_url = EXCLUDED.external_panorama_url,
+			updated_at            = NOW()
+		RETURNING ` + territoryColumns
 
-	row := r.pool.QueryRow(ctx, q, t.Slug, t.Title, t.Description, t.SourceBlobHash)
+	row := r.pool.QueryRow(ctx, q, t.Slug, t.Title, t.Description, t.SourceBlobHash, t.ExternalPanoramaURL)
 	out, err := scanTerritory(row)
 	if err != nil {
 		return domain.Territory{}, fmt.Errorf("storage.UpsertTerritory: %w", err)

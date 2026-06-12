@@ -63,6 +63,8 @@ message Territory {
   string source_blob_hash = 4;
   google.protobuf.Timestamp created_at = 5;
   google.protobuf.Timestamp updated_at = 6;
+  // Optional link to an externally-hosted panorama tour. Empty = unset.
+  string external_panorama_url = 7;
 }
 
 // Model is a placeable 3D asset overlaid on a territory.

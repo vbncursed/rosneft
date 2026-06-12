@@ -98,11 +98,16 @@ func entityToTerritory(body EntityCreate) domain.Territory {
 	if body.Description != nil {
 		desc = *body.Description
 	}
+	panoramaURL := ""
+	if body.ExternalPanoramaUrl != nil {
+		panoramaURL = *body.ExternalPanoramaUrl
+	}
 	return domain.Territory{
-		Slug:           body.Slug,
-		Title:          body.Title,
-		Description:    desc,
-		SourceBlobHash: body.SourceBlobHash,
+		Slug:                body.Slug,
+		Title:               body.Title,
+		Description:         desc,
+		ExternalPanoramaURL: panoramaURL,
+		SourceBlobHash:      body.SourceBlobHash,
 	}
 }
 

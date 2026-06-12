@@ -10,21 +10,23 @@ func territoryFromProto(t *catalogv1.Territory) domain.Territory {
 		return domain.Territory{}
 	}
 	return domain.Territory{
-		Slug:           t.GetSlug(),
-		Title:          t.GetTitle(),
-		Description:    t.GetDescription(),
-		SourceBlobHash: t.GetSourceBlobHash(),
-		CreatedAt:      t.GetCreatedAt().AsTime(),
-		UpdatedAt:      t.GetUpdatedAt().AsTime(),
+		Slug:                t.GetSlug(),
+		Title:               t.GetTitle(),
+		Description:         t.GetDescription(),
+		SourceBlobHash:      t.GetSourceBlobHash(),
+		ExternalPanoramaURL: t.GetExternalPanoramaUrl(),
+		CreatedAt:           t.GetCreatedAt().AsTime(),
+		UpdatedAt:           t.GetUpdatedAt().AsTime(),
 	}
 }
 
 func territoryToProto(t domain.Territory) *catalogv1.Territory {
 	return &catalogv1.Territory{
-		Slug:           t.Slug,
-		Title:          t.Title,
-		Description:    t.Description,
-		SourceBlobHash: t.SourceBlobHash,
+		Slug:                t.Slug,
+		Title:               t.Title,
+		Description:         t.Description,
+		SourceBlobHash:      t.SourceBlobHash,
+		ExternalPanoramaUrl: t.ExternalPanoramaURL,
 	}
 }
 

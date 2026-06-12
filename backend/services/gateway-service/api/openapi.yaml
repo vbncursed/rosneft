@@ -43,6 +43,7 @@ components:
         slug: { type: string }
         title: { type: string }
         description: { type: string }
+        externalPanoramaUrl: { type: string }
         sourceBlobHash: { type: string }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
@@ -219,6 +220,7 @@ components:
         slug: { type: string }
         title: { type: string }
         description: { type: string }
+        externalPanoramaUrl: { type: string }
         sourceBlobHash: { type: string }
 
     TerritoryCreated:

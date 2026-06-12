@@ -9,7 +9,7 @@ import (
 
 // ListTerritories returns every territory ordered by slug for stable output.
 func (r *PG) ListTerritories(ctx context.Context) ([]domain.Territory, error) {
-	const q = `SELECT ` + entityColumns + ` FROM territories ORDER BY slug`
+	const q = `SELECT ` + territoryColumns + ` FROM territories ORDER BY slug`
 
 	rows, err := r.pool.Query(ctx, q)
 	if err != nil {

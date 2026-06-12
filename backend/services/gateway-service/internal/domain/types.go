@@ -30,12 +30,13 @@ type Vec3 struct {
 
 // Territory is the gateway view of a catalog territory.
 type Territory struct {
-	Slug           string
-	Title          string
-	Description    string
-	SourceBlobHash string
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	Slug                string
+	Title               string
+	Description         string
+	ExternalPanoramaURL string
+	SourceBlobHash      string
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
 }
 
 // Model is the gateway view of a catalog model.

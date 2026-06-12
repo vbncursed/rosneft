@@ -16,10 +16,14 @@ interface UploadFormProps {
     slug: string;
     title: string;
     description?: string;
+    externalPanoramaUrl?: string;
     sourceBlobHash: string;
   }) => Promise<{ slug: string; job: Job }>;
   redirectBase: string; // e.g. "/territories"
   redirectAfter?: "list" | "detail";
+  // Territories can carry an external panorama-tour link; models can't.
+  // Off by default so the model upload form stays unchanged.
+  showPanoramaUrl?: boolean;
 }
 
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
@@ -29,11 +33,13 @@ export default function UploadForm({
   create,
   redirectBase,
   redirectAfter = "detail",
+  showPanoramaUrl = false,
 }: UploadFormProps) {
   const router = useRouter();
   const [slug, setSlug] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [externalPanoramaUrl, setExternalPanoramaUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { status, progress, upload, cancel } = useChunkedUpload();
@@ -52,6 +58,9 @@ export default function UploadForm({
           slug,
           title: title.trim(),
           description: description.trim() || undefined,
+          externalPanoramaUrl: showPanoramaUrl
+            ? externalPanoramaUrl.trim() || undefined
+            : undefined,
           sourceBlobHash: blob.hash,
         });
         const target =
@@ -65,7 +74,7 @@ export default function UploadForm({
         setSubmitting(false);
       }
     },
-    [create, description, file, redirectAfter, redirectBase, router, slug, submitting, title, upload],
+    [create, description, externalPanoramaUrl, file, redirectAfter, redirectBase, router, showPanoramaUrl, slug, submitting, title, upload],
   );
 
   return (
@@ -100,6 +109,14 @@ export default function UploadForm({
         onChange={setDescription}
         multiline
       />
+      {showPanoramaUrl ? (
+        <Field
+          label="Panorama tour URL"
+          hint="Optional. Link to an externally-hosted 360° tour; shown as a button in the viewer."
+          value={externalPanoramaUrl}
+          onChange={setExternalPanoramaUrl}
+        />
+      ) : null}
 
       <div>
         <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-neutral-400">

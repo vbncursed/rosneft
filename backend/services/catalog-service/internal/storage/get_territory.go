@@ -12,7 +12,7 @@ import (
 
 // GetTerritory returns a single territory by slug.
 func (r *PG) GetTerritory(ctx context.Context, slug string) (domain.Territory, error) {
-	const q = `SELECT ` + entityColumns + ` FROM territories WHERE slug = $1`
+	const q = `SELECT ` + territoryColumns + ` FROM territories WHERE slug = $1`
 
 	row := r.pool.QueryRow(ctx, q, slug)
 	t, err := scanTerritory(row)
