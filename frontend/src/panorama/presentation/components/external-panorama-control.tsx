@@ -33,7 +33,7 @@ export default function ExternalPanoramaControl({
 
   if (editing) {
     return (
-      <div className="pointer-events-auto w-72 rounded-xl border border-white/20 bg-black/50 p-3 shadow-xl backdrop-blur">
+      <div className="pointer-events-auto w-full rounded-xl border border-white/20 bg-black/50 p-3 shadow-xl backdrop-blur">
         <label className="mb-1 block text-[10px] uppercase tracking-[0.18em] text-neutral-400">
           Panorama tour URL
         </label>
