@@ -6,12 +6,25 @@ interface ExternalPanoramaLinkProps {
   url?: string;
 }
 
+// isSafeHttpUrl gates the href sink to http(s) only. The URL is operator
+// supplied, but rendering it into an <a href> would otherwise let a
+// `javascript:` (or `data:`) value execute on click — an XSS vector that
+// rel="noopener" does not cover. A non-http(s) value renders no button.
+function isSafeHttpUrl(raw: string): boolean {
+  try {
+    const { protocol } = new URL(raw);
+    return protocol === "https:" || protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
 // ExternalPanoramaLink is a standalone right-rail overlay button that opens
 // a territory's externally-hosted 360° tour in a new tab. It deliberately
 // mirrors the glass-overlay style (rounded-xl, translucent, backdrop-blur)
 // of the panorama toolbar so the right rail reads as one visual family.
 function ExternalPanoramaLinkImpl({ url }: ExternalPanoramaLinkProps) {
-  if (!url) return null;
+  if (!url || !isSafeHttpUrl(url)) return null;
 
   return (
     <a
