@@ -340,6 +340,7 @@ export interface components {
             slug: string;
             title: string;
             description?: string;
+            externalPanoramaUrl?: string;
             sourceBlobHash: string;
             /** Format: date-time */
             createdAt?: string;
@@ -505,6 +506,7 @@ export interface components {
             slug: string;
             title: string;
             description?: string;
+            externalPanoramaUrl?: string;
             sourceBlobHash: string;
         };
         TerritoryCreated: {

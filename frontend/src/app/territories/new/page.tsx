@@ -10,6 +10,7 @@ export default function NewTerritoryPage() {
         kind="Territory"
         redirectBase="/territories"
         redirectAfter="detail"
+        showPanoramaUrl
         create={async (body) => {
           const { territory, job } = await createTerritory(body);
           return { slug: territory.slug, job };

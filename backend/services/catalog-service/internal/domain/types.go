@@ -7,12 +7,13 @@ import "time"
 // Territory is a parent scene the viewer renders as the canvas. Models are
 // placed onto it via Placement records.
 type Territory struct {
-	Slug           string    `yaml:"slug"`
-	Title          string    `yaml:"title"`
-	Description    string    `yaml:"description"`
-	SourceBlobHash string    `yaml:"source_blob_hash"`
-	CreatedAt      time.Time `yaml:"-"`
-	UpdatedAt      time.Time `yaml:"-"`
+	Slug                string    `yaml:"slug"`
+	Title               string    `yaml:"title"`
+	Description         string    `yaml:"description"`
+	ExternalPanoramaURL string    `yaml:"external_panorama_url"`
+	SourceBlobHash      string    `yaml:"source_blob_hash"`
+	CreatedAt           time.Time `yaml:"-"`
+	UpdatedAt           time.Time `yaml:"-"`
 }
 
 // Model is a placeable 3D asset overlaid on a territory.

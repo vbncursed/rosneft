@@ -13,6 +13,9 @@ func territoryToAPI(t domain.Territory) Territory {
 	if t.Description != "" {
 		out.Description = &t.Description
 	}
+	if t.ExternalPanoramaURL != "" {
+		out.ExternalPanoramaUrl = &t.ExternalPanoramaURL
+	}
 	if !t.CreatedAt.IsZero() {
 		out.CreatedAt = &t.CreatedAt
 	}

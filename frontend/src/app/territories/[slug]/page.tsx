@@ -75,6 +75,7 @@ export default async function TerritoryPage({
         initialPlacements={resolvePlacements(placements, modelOptions)}
         modelOptions={modelOptions}
         panoramas={panoramas}
+        externalPanoramaUrl={territory.externalPanoramaUrl}
       />
     </main>
   );

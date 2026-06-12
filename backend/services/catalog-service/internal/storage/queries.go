@@ -2,9 +2,15 @@ package storage
 
 import "github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 
-// entityColumns is the SELECT/RETURNING list shared by territories and
-// models — they have identical schemas in the database.
+// entityColumns is the SELECT/RETURNING list for models. Territories used
+// to share it, but they now carry an extra external_panorama_url column —
+// see territoryColumns. Models keep the original shape.
 const entityColumns = `slug, title, description, source_blob_hash, created_at, updated_at`
+
+// territoryColumns is the territory-only SELECT/RETURNING list. Same as
+// entityColumns plus external_panorama_url, slotted right after
+// source_blob_hash to match scanTerritory's Scan order.
+const territoryColumns = `slug, title, description, source_blob_hash, external_panorama_url, created_at, updated_at`
 
 // artifactReturningCols is used in INSERT ... RETURNING. Columns are
 // unqualified.
@@ -27,7 +33,7 @@ type rowScanner interface {
 
 func scanTerritory(r rowScanner) (domain.Territory, error) {
 	var t domain.Territory
-	err := r.Scan(&t.Slug, &t.Title, &t.Description, &t.SourceBlobHash, &t.CreatedAt, &t.UpdatedAt)
+	err := r.Scan(&t.Slug, &t.Title, &t.Description, &t.SourceBlobHash, &t.ExternalPanoramaURL, &t.CreatedAt, &t.UpdatedAt)
 	return t, err
 }
 

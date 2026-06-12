@@ -25,6 +25,7 @@ function mapTerritory(d: TerritoryDto): Territory {
     slug: d.slug,
     title: d.title,
     description: d.description,
+    externalPanoramaUrl: d.externalPanoramaUrl,
     sourceBlobHash: d.sourceBlobHash,
     createdAt: d.createdAt,
     updatedAt: d.updatedAt,
