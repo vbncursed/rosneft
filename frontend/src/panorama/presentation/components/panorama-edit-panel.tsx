@@ -76,7 +76,12 @@ export default function PanoramaEditPanel({
       <button
         type="button"
         onClick={onToggleView}
-        className="mb-3 w-full cursor-pointer rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-xs text-neutral-200 transition-colors hover:bg-white/10"
+        aria-pressed={inPanoramaMode}
+        className={`mb-3 w-full cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
+          inPanoramaMode
+            ? "border-cyan-300/60 bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/20"
+            : "border-white/25 bg-white/10 text-white hover:bg-white/20"
+        }`}
       >
         {inPanoramaMode ? "Switch to 3D view" : "Enter panorama view"}
       </button>

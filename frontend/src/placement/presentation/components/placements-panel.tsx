@@ -80,7 +80,7 @@ export default function PlacementsPanel({
   }
 
   return (
-    <aside className="pointer-events-auto flex h-full w-[340px] flex-col gap-3 rounded-2xl border border-white/15 bg-black/55 p-4 text-neutral-100 shadow-2xl backdrop-blur-md">
+    <aside className="pointer-events-auto flex min-h-0 w-[340px] flex-1 flex-col gap-3 rounded-2xl border border-white/15 bg-black/55 p-4 text-neutral-100 shadow-2xl backdrop-blur-md">
       <header className="flex items-center justify-between gap-2">
         <div>
           <p className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">

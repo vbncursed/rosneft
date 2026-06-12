@@ -43,7 +43,7 @@ function PlacementRowImpl({
       <button
         type="button"
         onClick={handleSelect}
-        className="flex-1 cursor-pointer text-left"
+        className="min-w-0 flex-1 cursor-pointer text-left"
       >
         <p className="truncate text-sm font-medium text-neutral-100">{headline}</p>
         <p className="truncate text-[11px] text-neutral-400">
@@ -54,7 +54,7 @@ function PlacementRowImpl({
         type="button"
         onClick={handleDelete}
         disabled={pending}
-        className="cursor-pointer rounded-md border border-red-300/30 px-2 py-1 text-[11px] text-red-200 transition-colors hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+        className="shrink-0 cursor-pointer rounded-md border border-red-300/30 px-2 py-1 text-[11px] text-red-200 transition-colors hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-50"
         aria-label={`Delete placement ${headline}`}
       >
         Remove
