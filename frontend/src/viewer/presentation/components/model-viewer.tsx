@@ -5,12 +5,12 @@ import type { LodArtifact } from "@/shared/domain/lod-artifact";
 import { useMeasurementTool } from "@/measurement/application/use-measurement-tool";
 import { computeUnitRatio } from "@/measurement/domain/unit-ratio";
 import { usePlacementsEditor } from "@/placement/application/use-placements-editor";
-import PlacementsPanel from "@/placement/presentation/components/placements-panel";
+import PlacementsSection from "@/placement/presentation/components/placements-section";
 import type { PlacementAssetOption } from "@/placement/domain/asset-option";
 import type { ResolvedPlacement } from "@/placement/domain/placement";
 import type { Panorama } from "@/panorama/domain/panorama";
-import PanoramaToolbar from "@/panorama/presentation/components/panorama-toolbar";
-import ExternalPanoramaControl from "@/panorama/presentation/components/external-panorama-control";
+import PanoramaSection from "@/panorama/presentation/components/panorama-section";
+import OverlaysPanel from "@/viewer/presentation/components/overlays-panel";
 import { usePanoramaOrchestration } from "@/panorama/application/use-panorama-orchestration";
 import { usePanoramas } from "@/panorama/application/use-panoramas";
 import type { Vec3 } from "@/shared/domain/vec3";
@@ -159,38 +159,27 @@ export default function ModelViewer({
       />
 
       <div className="pointer-events-none absolute top-4 right-4 bottom-4 flex flex-col items-end gap-3">
-        <PanoramaToolbar
-          territorySlug={territorySlug}
-          panoramas={panoramas}
-          activeId={panorama.activePanoramaId}
-          editingPanorama={panorama.editingPanorama}
-          inPanoramaMode={
-            panorama.editingPanorama != null &&
-            panorama.activePanoramaId === panorama.editingPanorama.id
+        <OverlaysPanel
+          placementsCount={editor.placements.length}
+          selectedPlacementId={editor.selectedId}
+          view={
+            <PanoramaSection
+              territorySlug={territorySlug}
+              panorama={panorama}
+              panoramas={panoramas}
+              cameraPositionRef={cameraPositionRef}
+              externalPanoramaUrl={externalPanoramaUrl}
+              onSavePanorama={updatePanoramaState}
+            />
           }
-          cameraPositionRef={cameraPositionRef}
-          onActivate={panorama.activate}
-          onSavePanorama={updatePanoramaState}
-          onToggleView={panorama.toggleView}
-          onCloseEdit={panorama.closeEdit}
-        />
-        <ExternalPanoramaControl
-          territorySlug={territorySlug}
-          initialUrl={externalPanoramaUrl}
-        />
-        <PlacementsPanel
-          placements={editor.placements}
-          assets={modelOptions}
-          mutation={editor.mutation}
-          selectedId={editor.selectedId}
-          mode={editor.mode}
-          snapEnabled={snapEnabled}
-          onSelect={editor.setSelectedId}
-          onModeChange={editor.setMode}
-          onToggleSnap={toggleSnap}
-          onCreate={editor.create}
-          onUpdate={editor.update}
-          onDelete={editor.remove}
+          placements={
+            <PlacementsSection
+              editor={editor}
+              assets={modelOptions}
+              snapEnabled={snapEnabled}
+              onToggleSnap={toggleSnap}
+            />
+          }
         />
       </div>
     </div>
