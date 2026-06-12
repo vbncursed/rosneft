@@ -38,7 +38,7 @@ export default function PanoramaToolbar({
 }: PanoramaToolbarProps) {
   return (
     <>
-      <div className="pointer-events-auto flex items-center gap-3 rounded-md border border-white/10 bg-neutral-900/85 px-3 py-2 backdrop-blur">
+      <div className="pointer-events-auto flex items-center gap-3 rounded-xl border border-white/20 bg-black/50 px-3 py-2 shadow-xl backdrop-blur">
         <PanoramaPicker
           panoramas={panoramas}
           activeId={activeId}

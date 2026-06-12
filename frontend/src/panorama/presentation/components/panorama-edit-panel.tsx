@@ -58,7 +58,7 @@ export default function PanoramaEditPanel({
   };
 
   return (
-    <div className="pointer-events-auto w-72 rounded-lg border border-white/10 bg-neutral-900/85 p-3 backdrop-blur">
+    <div className="pointer-events-auto w-72 rounded-xl border border-white/20 bg-black/50 p-3 shadow-xl backdrop-blur">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="truncate text-xs font-semibold uppercase tracking-wider text-cyan-300/80">
           {panorama.title}
