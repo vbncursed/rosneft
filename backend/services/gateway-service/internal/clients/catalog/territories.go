@@ -49,6 +49,16 @@ func (c *Client) DeleteTerritory(ctx context.Context, slug string) error {
 	return nil
 }
 
+// DeleteTerritoryArtifacts clears every LOD artifact of a territory, resetting
+// it to pending before a source-replacement re-conversion.
+func (c *Client) DeleteTerritoryArtifacts(ctx context.Context, slug string) error {
+	_, err := c.cc.DeleteTerritoryArtifacts(ctx, &catalogv1.DeleteTerritoryArtifactsRequest{TerritorySlug: slug})
+	if err != nil {
+		return fmt.Errorf("catalog.DeleteTerritoryArtifacts: %w", mapStatusErr(err, domain.ErrTerritoryNotFound))
+	}
+	return nil
+}
+
 // ListTerritoryArtifacts returns every territory artifact ordered by LOD.
 func (c *Client) ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error) {
 	resp, err := c.cc.ListTerritoryArtifacts(ctx, &catalogv1.ListTerritoryArtifactsRequest{TerritorySlug: slug})

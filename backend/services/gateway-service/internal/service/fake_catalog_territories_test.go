@@ -60,6 +60,17 @@ func (c *fakeCatalog) ListTerritoryArtifacts(_ context.Context, slug string) ([]
 	return slices.Clone(c.terrArts[slug]), nil
 }
 
+func (c *fakeCatalog) DeleteTerritoryArtifacts(_ context.Context, slug string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.LastDeleteTerritoryArtifacts = slug
+	if c.ErrDeleteTerritoryArtifacts != nil {
+		return c.ErrDeleteTerritoryArtifacts
+	}
+	delete(c.terrArts, slug)
+	return nil
+}
+
 func (c *fakeCatalog) GetTerritoryArtifact(_ context.Context, slug string, lod uint32) (domain.Artifact, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

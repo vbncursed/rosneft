@@ -76,6 +76,45 @@ func (s *TerritoriesSuite) TestCreateSurfaceMeshErrorWithSavedTerritory() {
 	assert.Equal(s.T(), job.ID, "")
 }
 
+func (s *TerritoriesSuite) TestReplaceSourceRejectsEmptyInputs() {
+	_, _, err := s.svc.ReplaceTerritorySource(s.T().Context(), "", "h")
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+	_, _, err = s.svc.ReplaceTerritorySource(s.T().Context(), "t1", "")
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *TerritoriesSuite) TestReplaceSourceReturnsNotFoundForUnknown() {
+	_, _, err := s.svc.ReplaceTerritorySource(s.T().Context(), "missing", "h2")
+	assert.Assert(s.T(), errors.Is(err, domain.ErrTerritoryNotFound))
+}
+
+func (s *TerritoriesSuite) TestReplaceSourceSwapsHashClearsArtifactsAndQueues() {
+	_, _, err := s.svc.CreateTerritory(s.T().Context(),
+		domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "old"})
+	assert.NilError(s.T(), err)
+	s.cat.terrArts["t1"] = []domain.Artifact{{Slug: "t1", LOD: 0, Hash: "oldglb"}}
+
+	saved, job, err := s.svc.ReplaceTerritorySource(s.T().Context(), "t1", "new")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), saved.SourceBlobHash, "new")
+	assert.Equal(s.T(), s.cat.LastDeleteTerritoryArtifacts, "t1")
+	assert.Equal(s.T(), job.ID, "job-1")
+	assert.Equal(s.T(), s.mesh.LastSubmitKind, domain.KindTerritory)
+	assert.Equal(s.T(), s.mesh.LastSubmitSlug, "t1")
+}
+
+func (s *TerritoriesSuite) TestReplaceSourceSurfacesMeshErrorWithSavedTerritory() {
+	_, _, err := s.svc.CreateTerritory(s.T().Context(),
+		domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "old"})
+	assert.NilError(s.T(), err)
+	s.mesh.ErrSubmit = errors.New("redis down")
+
+	saved, job, err := s.svc.ReplaceTerritorySource(s.T().Context(), "t1", "new")
+	assert.ErrorContains(s.T(), err, "redis down")
+	assert.Equal(s.T(), saved.SourceBlobHash, "new")
+	assert.Equal(s.T(), job.ID, "")
+}
+
 func (s *TerritoriesSuite) TestDeleteRejectsEmptySlug() {
 	err := s.svc.DeleteTerritory(s.T().Context(), "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))

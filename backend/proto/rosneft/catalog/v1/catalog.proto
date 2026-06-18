@@ -25,6 +25,7 @@ service CatalogService {
   rpc RegisterTerritoryArtifact(RegisterTerritoryArtifactRequest) returns (RegisterTerritoryArtifactResponse);
   rpc ListTerritoryArtifacts(ListTerritoryArtifactsRequest) returns (ListTerritoryArtifactsResponse);
   rpc GetTerritoryArtifact(GetTerritoryArtifactRequest) returns (GetTerritoryArtifactResponse);
+  rpc DeleteTerritoryArtifacts(DeleteTerritoryArtifactsRequest) returns (DeleteTerritoryArtifactsResponse);
 
   rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
   rpc GetModel(GetModelRequest) returns (GetModelResponse);
@@ -168,6 +169,13 @@ message GetTerritoryArtifactRequest {
 message GetTerritoryArtifactResponse {
   TerritoryArtifact artifact = 1;
 }
+
+// DeleteTerritoryArtifacts clears every LOD artifact of a territory, used to
+// reset it to a pending state before a source-replacement re-conversion.
+message DeleteTerritoryArtifactsRequest {
+  string territory_slug = 1;
+}
+message DeleteTerritoryArtifactsResponse {}
 
 // ─── Model RPCs ─────────────────────────────────────────────────────────────
 

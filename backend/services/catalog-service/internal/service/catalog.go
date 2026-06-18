@@ -21,6 +21,7 @@ type Repository interface {
 	RegisterTerritoryArtifact(ctx context.Context, a domain.Artifact) (domain.Artifact, error)
 	GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
 	ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
+	DeleteTerritoryArtifacts(ctx context.Context, slug string) error
 
 	UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error)
 	CreateModel(ctx context.Context, m domain.Model) (domain.Model, error)

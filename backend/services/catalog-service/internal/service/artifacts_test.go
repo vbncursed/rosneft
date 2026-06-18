@@ -45,6 +45,23 @@ func (s *ArtifactsSuite) TestRegisterTerritoryForwardsValidInput() {
 	assert.DeepEqual(s.T(), s.repo.LastRegisterTerritoryArtifact, in)
 }
 
+func (s *ArtifactsSuite) TestDeleteTerritoryArtifactsRejectsEmptySlug() {
+	err := s.svc.DeleteTerritoryArtifacts(s.T().Context(), "")
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *ArtifactsSuite) TestDeleteTerritoryArtifactsClearsRows() {
+	_, err := s.svc.RegisterTerritoryArtifact(s.T().Context(),
+		domain.Artifact{Slug: "t1", LOD: 0, Hash: "abc"})
+	assert.NilError(s.T(), err)
+
+	assert.NilError(s.T(), s.svc.DeleteTerritoryArtifacts(s.T().Context(), "t1"))
+
+	got, err := s.svc.ListTerritoryArtifacts(s.T().Context(), "t1")
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), cmp.Len(got, 0))
+}
+
 func (s *ArtifactsSuite) TestRegisterModelRejectsEmptySlug() {
 	_, err := s.svc.RegisterModelArtifact(s.T().Context(), domain.Artifact{Hash: "h"})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))

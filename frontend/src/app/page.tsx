@@ -3,6 +3,7 @@ import { listTerritories } from "@/territory/infrastructure/territory-gateway";
 import { listModels } from "@/model/infrastructure/model-gateway";
 import DeleteTerritoryButton from "@/app/_components/delete-territory-button";
 import DeleteModelButton from "@/app/_components/delete-model-button";
+import ReplaceSourceButton from "@/app/_components/replace-source-button";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,10 @@ export default async function Home() {
           items={territories}
           itemHref={(t) => `/territories/${t.slug}`}
           renderDelete={(item) => (
-            <DeleteTerritoryButton slug={item.slug} label={item.title} />
+            <div className="flex items-center gap-2">
+              <ReplaceSourceButton slug={item.slug} />
+              <DeleteTerritoryButton slug={item.slug} label={item.title} />
+            </div>
           )}
         />
 
@@ -104,7 +108,7 @@ function Section({
             const href = itemHref(item);
             const Card = (
               <article className="group h-full rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur transition duration-300 hover:border-white/30 hover:bg-white/[0.06]">
-                <h3 className="pr-24 text-2xl font-semibold tracking-tight text-white">
+                <h3 className="pr-36 text-2xl font-semibold tracking-tight text-white">
                   {item.title}
                 </h3>
                 {item.description ? (

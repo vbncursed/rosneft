@@ -26,6 +26,7 @@ type fakeRepo struct {
 
 	ErrUpsertTerritory           error
 	ErrCreateTerritory           error
+	ErrDeleteTerritoryArtifacts  error
 	ErrCreateModel               error
 	ErrCreatePlacement           error
 	ErrUpdatePlacement           error
