@@ -101,3 +101,13 @@ func (r *fakeRepo) ListTerritoryArtifacts(_ context.Context, slug string) ([]dom
 	defer r.mu.Unlock()
 	return slices.Clone(r.terrArts[slug]), nil
 }
+
+func (r *fakeRepo) DeleteTerritoryArtifacts(_ context.Context, slug string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.ErrDeleteTerritoryArtifacts != nil {
+		return r.ErrDeleteTerritoryArtifacts
+	}
+	delete(r.terrArts, slug)
+	return nil
+}

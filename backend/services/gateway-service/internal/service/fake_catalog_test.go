@@ -21,23 +21,25 @@ type fakeCatalog struct {
 	panoramas   map[int64]domain.Panorama
 	nextID      int64
 
-	ErrUpsertTerritory error
-	ErrUpsertModel     error
-	ErrListPlacements  error
-	ErrListModels      error
-	ErrListTerrArts    error
-	ErrCreatePlacement error
-	ErrUpdatePlacement error
-	ErrListPanoramas   error
-	ErrCreatePanorama  error
-	ErrUpdatePanorama  error
+	ErrUpsertTerritory          error
+	ErrUpsertModel              error
+	ErrListPlacements           error
+	ErrListModels               error
+	ErrListTerrArts             error
+	ErrCreatePlacement          error
+	ErrUpdatePlacement          error
+	ErrListPanoramas            error
+	ErrCreatePanorama           error
+	ErrUpdatePanorama           error
+	ErrDeleteTerritoryArtifacts error
 
-	LastUpsertTerritory domain.Territory
-	LastUpsertModel     domain.Model
-	LastCreatePlacement domain.Placement
-	LastUpdatePlacement domain.Placement
-	LastCreatePanorama  domain.Panorama
-	LastUpdatePanorama  domain.Panorama
+	LastUpsertTerritory          domain.Territory
+	LastUpsertModel              domain.Model
+	LastCreatePlacement          domain.Placement
+	LastUpdatePlacement          domain.Placement
+	LastCreatePanorama           domain.Panorama
+	LastUpdatePanorama           domain.Panorama
+	LastDeleteTerritoryArtifacts string
 }
 
 func newFakeCatalog() *fakeCatalog {

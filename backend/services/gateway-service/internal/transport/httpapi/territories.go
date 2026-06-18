@@ -43,6 +43,22 @@ func (s *Server) CreateTerritory(ctx context.Context, req CreateTerritoryRequest
 	return CreateTerritory202JSONResponse{Territory: territoryToAPI(t), Job: jobToAPI(job)}, nil
 }
 
+func (s *Server) ReplaceTerritorySource(ctx context.Context, req ReplaceTerritorySourceRequestObject) (ReplaceTerritorySourceResponseObject, error) {
+	if req.Body == nil {
+		return ReplaceTerritorySource400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: "invalid_input", Message: "missing body"}}, nil
+	}
+	t, job, err := s.svc.ReplaceTerritorySource(ctx, req.Slug, req.Body.SourceBlobHash)
+	switch {
+	case isNotFound(err):
+		return ReplaceTerritorySource404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
+	case isInvalid(err):
+		return ReplaceTerritorySource400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
+	case err != nil:
+		return ReplaceTerritorySource500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+	}
+	return ReplaceTerritorySource202JSONResponse{Territory: territoryToAPI(t), Job: jobToAPI(job)}, nil
+}
+
 func (s *Server) UpdateTerritory(ctx context.Context, req UpdateTerritoryRequestObject) (UpdateTerritoryResponseObject, error) {
 	if req.Body == nil {
 		return UpdateTerritory400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: "invalid_input", Message: "missing body"}}, nil

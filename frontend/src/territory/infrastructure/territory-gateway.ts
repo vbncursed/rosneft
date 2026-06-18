@@ -23,6 +23,7 @@ type PlacementDto = components["schemas"]["Placement"];
 type AssetOptionDto = components["schemas"]["AssetOption"];
 type PanoramaDto = components["schemas"]["Panorama"];
 type EntityCreate = components["schemas"]["EntityCreate"];
+type TerritorySourceReplace = components["schemas"]["TerritorySourceReplace"];
 type JobDto = components["schemas"]["Job"];
 
 function mapTerritory(d: TerritoryDto): Territory {
@@ -122,6 +123,20 @@ export async function createTerritory(
   body: EntityCreate,
 ): Promise<{ territory: Territory; job: Job }> {
   const data = await httpPost<TerritoryCreatedDto>("/api/territories", body);
+  return { territory: mapTerritory(data.territory), job: mapJob(data.job) };
+}
+
+// replaceTerritorySource swaps the territory's source archive in place and
+// re-queues a conversion. Placements are kept; the response carries the new
+// Job so the caller can redirect to the conversion-pending screen.
+export async function replaceTerritorySource(
+  slug: string,
+  body: TerritorySourceReplace,
+): Promise<{ territory: Territory; job: Job }> {
+  const data = await httpPost<TerritoryCreatedDto>(
+    `/api/territories/${encodeURIComponent(slug)}/source`,
+    body,
+  );
   return { territory: mapTerritory(data.territory), job: mapJob(data.job) };
 }
 

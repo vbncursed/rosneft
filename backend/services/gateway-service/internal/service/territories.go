@@ -39,6 +39,36 @@ func (g *Gateway) CreateTerritory(ctx context.Context, t domain.Territory) (doma
 	return saved, job, nil
 }
 
+// ReplaceTerritorySource swaps the territory's source archive in place and
+// re-queues a conversion, keeping the same territory (and therefore its
+// placements). The existing artifacts are cleared so the viewer shows the
+// conversion screen until the new mesh lands — mirroring the create flow.
+func (g *Gateway) ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHash string) (domain.Territory, domain.Job, error) {
+	if slug == "" {
+		return domain.Territory{}, domain.Job{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
+	}
+	if sourceBlobHash == "" {
+		return domain.Territory{}, domain.Job{}, fmt.Errorf("%w: empty source_blob_hash", domain.ErrInvalidInput)
+	}
+	current, err := g.catalog.GetTerritory(ctx, slug)
+	if err != nil {
+		return domain.Territory{}, domain.Job{}, err
+	}
+	current.SourceBlobHash = sourceBlobHash
+	saved, err := g.catalog.UpsertTerritory(ctx, current)
+	if err != nil {
+		return domain.Territory{}, domain.Job{}, fmt.Errorf("replace territory source: %w", err)
+	}
+	if err := g.catalog.DeleteTerritoryArtifacts(ctx, slug); err != nil {
+		return domain.Territory{}, domain.Job{}, fmt.Errorf("reset territory artifacts: %w", err)
+	}
+	job, err := g.mesh.SubmitConversion(ctx, domain.KindTerritory, saved.Slug)
+	if err != nil {
+		return saved, domain.Job{}, fmt.Errorf("submit conversion: %w", err)
+	}
+	return saved, job, nil
+}
+
 // UpdateTerritory patches a territory's mutable fields by slug without
 // touching the source archive or re-queuing a conversion. It is a
 // read-modify-write over the existing catalog RPCs: fetch, apply the

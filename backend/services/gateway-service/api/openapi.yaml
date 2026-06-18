@@ -235,6 +235,16 @@ components:
       properties:
         externalPanoramaUrl: { type: string }
 
+    TerritorySourceReplace:
+      type: object
+      required: [sourceBlobHash]
+      description: |
+        Body for POST /api/territories/{slug}/source. Carries the hash of a
+        freshly uploaded ZIP (via /api/uploads); the territory's source is
+        swapped to it and a new conversion is queued.
+      properties:
+        sourceBlobHash: { type: string }
+
     TerritoryCreated:
       type: object
       required: [territory, job]
@@ -419,6 +429,36 @@ paths:
       tags: [territories]
       responses:
         '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/territories/{slug}/source:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: replaceTerritorySource
+      summary: Replace a territory's source archive and re-queue conversion
+      description: |
+        Swaps the territory's source ZIP in place and queues a fresh
+        conversion. The territory (and its placements) are kept; existing
+        artifacts are cleared so the viewer shows the conversion screen until
+        the new mesh lands. Response mirrors createTerritory.
+      tags: [territories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TerritorySourceReplace' }
+      responses:
+        '202':
+          description: Source replaced and conversion queued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TerritoryCreated' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
 

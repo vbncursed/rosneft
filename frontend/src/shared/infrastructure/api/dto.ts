@@ -43,6 +43,31 @@ export interface paths {
         patch: operations["updateTerritory"];
         trace?: never;
     };
+    "/api/territories/{slug}/source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace a territory's source archive and re-queue conversion
+         * @description Swaps the territory's source ZIP in place and queues a fresh
+         *     conversion. The territory (and its placements) are kept; existing
+         *     artifacts are cleared so the viewer shows the conversion screen until
+         *     the new mesh lands. Response mirrors createTerritory.
+         */
+        post: operations["replaceTerritorySource"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/territories/{slug}/scene": {
         parameters: {
             query?: never;
@@ -522,6 +547,14 @@ export interface components {
         TerritoryUpdate: {
             externalPanoramaUrl?: string;
         };
+        /**
+         * @description Body for POST /api/territories/{slug}/source. Carries the hash of a
+         *     freshly uploaded ZIP (via /api/uploads); the territory's source is
+         *     swapped to it and a new conversion is queued.
+         */
+        TerritorySourceReplace: {
+            sourceBlobHash: string;
+        };
         TerritoryCreated: {
             territory: components["schemas"]["Territory"];
             job: components["schemas"]["Job"];
@@ -740,6 +773,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Territory"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    replaceTerritorySource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TerritorySourceReplace"];
+            };
+        };
+        responses: {
+            /** @description Source replaced and conversion queued */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TerritoryCreated"];
                 };
             };
             400: components["responses"]["BadRequest"];
