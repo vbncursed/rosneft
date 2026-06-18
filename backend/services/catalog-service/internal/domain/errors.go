@@ -12,4 +12,7 @@ var (
 	ErrPlacementNotFound = errors.New("placement not found")
 	ErrPanoramaNotFound  = errors.New("panorama not found")
 	ErrInvalidInput      = errors.New("invalid input")
+	// ErrSlugConflict means the proposed slug is already taken. The service
+	// retries with the next numbered candidate; it never reaches transport.
+	ErrSlugConflict = errors.New("slug already exists")
 )

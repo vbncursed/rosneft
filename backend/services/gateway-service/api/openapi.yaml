@@ -192,9 +192,12 @@ components:
 
     PanoramaCreate:
       type: object
-      required: [slug, title, sourceBlobHash]
+      required: [title, sourceBlobHash]
+      description: |
+        Body for POST /api/territories/{slug}/panoramas. The slug is derived
+        from the title by the catalog and made unique within the territory —
+        it is not client-supplied.
       properties:
-        slug: { type: string }
         title: { type: string }
         sourceBlobHash: { type: string }
         position: { $ref: '#/components/schemas/Vec3' }
@@ -209,15 +212,15 @@ components:
 
     EntityCreate:
       type: object
-      required: [slug, title, sourceBlobHash]
+      required: [title, sourceBlobHash]
       description: |
         Body for POST /api/territories and POST /api/models. The client
         first uploads the source ZIP via /api/uploads, then attaches the
         returned hash here. The gateway forwards the entity to catalog
         and queues a conversion job; the response carries both the new
-        entity and the queued Job for SSE subscription.
+        entity and the queued Job for SSE subscription. The slug is derived
+        from the title by the catalog and made unique — not client-supplied.
       properties:
-        slug: { type: string }
         title: { type: string }
         description: { type: string }
         externalPanoramaUrl: { type: string }

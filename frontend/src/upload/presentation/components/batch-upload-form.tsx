@@ -5,30 +5,22 @@ import { useRouter } from "next/navigation";
 import type { Job } from "@/shared/domain/job";
 import { runChunkedUpload } from "@/upload/application/run-chunked-upload";
 import { notify } from "@/shared/presentation/toast/use-toast";
-import {
-  deriveSlug,
-  deriveTitle,
-  type BatchRow,
-} from "@/upload/domain/batch-row";
+import { deriveTitle, type BatchRow } from "@/upload/domain/batch-row";
 import BatchRowView from "@/upload/presentation/components/batch-row";
 
 interface BatchUploadFormProps {
   kind: "Model" | "Territory";
   create: (body: {
-    slug: string;
     title: string;
     sourceBlobHash: string;
   }) => Promise<{ slug: string; job: Job }>;
   redirectBase: string;
 }
 
-const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
-
 function makeRow(file: File): BatchRow {
   return {
     id: `${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
     file,
-    slug: deriveSlug(file.name),
     title: deriveTitle(file.name),
     status: "idle",
     progress: 0,
@@ -55,10 +47,6 @@ export default function BatchUploadForm({
     setRows((prev) => [...prev, ...Array.from(files).map(makeRow)]);
   }, []);
 
-  const onSlug = useCallback(
-    (id: string, value: string) => updateRow(id, { slug: value }),
-    [updateRow],
-  );
   const onTitle = useCallback(
     (id: string, value: string) => updateRow(id, { title: value }),
     [updateRow],
@@ -73,7 +61,7 @@ export default function BatchUploadForm({
       e.preventDefault();
       if (submitting || rows.length === 0) return;
       const queue = rows.filter((r) => r.status !== "done");
-      if (queue.some((r) => !SLUG_RE.test(r.slug) || !r.title.trim())) return;
+      if (queue.some((r) => !r.title.trim())) return;
       setSubmitting(true);
       let lastSlug: string | null = null;
       let lastJob: Job | null = null;
@@ -88,7 +76,6 @@ export default function BatchUploadForm({
           });
           updateRow(row.id, { status: "creating", progress: 1 });
           const created = await create({
-            slug: row.slug,
             title: row.title.trim(),
             sourceBlobHash: blob.hash,
           });
@@ -116,7 +103,7 @@ export default function BatchUploadForm({
 
   const allValid =
     rows.length > 0 &&
-    rows.every((r) => r.status === "done" || (SLUG_RE.test(r.slug) && r.title.trim() !== ""));
+    rows.every((r) => r.status === "done" || r.title.trim() !== "");
 
   return (
     <form
@@ -129,8 +116,9 @@ export default function BatchUploadForm({
           New {kind.toLowerCase()}s
         </h1>
         <p className="text-sm leading-6 text-neutral-300">
-          ZIP per entry: OBJ + MTL + textures. Slug and title autofill from the
-          filename — edit before submitting. Resumable in 8 MB chunks.
+          ZIP per entry: OBJ + MTL + textures. Title autofills from the
+          filename — edit before submitting. A URL slug is generated for each
+          automatically. Resumable in 8 MB chunks.
         </p>
       </div>
 
@@ -155,7 +143,6 @@ export default function BatchUploadForm({
               key={row.id}
               row={row}
               disabled={submitting}
-              onSlug={onSlug}
               onTitle={onTitle}
               onRemove={onRemove}
             />

@@ -4,7 +4,6 @@ import type { BatchRow } from "@/upload/domain/batch-row";
 interface BatchRowProps {
   row: BatchRow;
   disabled: boolean;
-  onSlug: (id: string, value: string) => void;
   onTitle: (id: string, value: string) => void;
   onRemove: (id: string) => void;
 }
@@ -27,7 +26,7 @@ const statusTone: Record<BatchRow["status"], string> = {
   failed: "text-red-300",
 };
 
-function BatchRowImpl({ row, disabled, onSlug, onTitle, onRemove }: BatchRowProps) {
+function BatchRowImpl({ row, disabled, onTitle, onRemove }: BatchRowProps) {
   const sizeMb = (row.file.size / 1024 / 1024).toFixed(1);
   const busy = row.status === "uploading" || row.status === "finalizing" || row.status === "creating";
   return (
@@ -43,13 +42,6 @@ function BatchRowImpl({ row, disabled, onSlug, onTitle, onRemove }: BatchRowProp
       </div>
 
       <div className="flex gap-2">
-        <input
-          value={row.slug}
-          onChange={(e) => onSlug(row.id, e.target.value)}
-          disabled={disabled || busy || row.status === "done"}
-          placeholder="slug"
-          className="w-32 rounded-md border border-white/15 bg-black/40 px-2 py-1 text-sm outline-none transition-colors focus:border-white/40 disabled:cursor-not-allowed disabled:opacity-50"
-        />
         <input
           value={row.title}
           onChange={(e) => onTitle(row.id, e.target.value)}

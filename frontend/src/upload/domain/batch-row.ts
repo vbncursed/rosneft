@@ -11,26 +11,10 @@ export type BatchRowStatus =
 export interface BatchRow {
   id: string;
   file: File;
-  slug: string;
   title: string;
   status: BatchRowStatus;
   progress: number; // 0..1, only meaningful while uploading
   error?: string;
-}
-
-// deriveSlug strips the .zip extension and sanitises the rest into a
-// lowercase a-z0-9- string the catalog accepts. Whitespace and
-// underscores become hyphens; everything else is dropped. Adjacent
-// hyphens collapse, leading/trailing hyphens get trimmed.
-export function deriveSlug(filename: string): string {
-  const base = filename.replace(/\.zip$/i, "");
-  const cleaned = base
-    .toLowerCase()
-    .replace(/[\s_]+/g, "-")
-    .replace(/[^a-z0-9-]+/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return cleaned;
 }
 
 // deriveTitle keeps the original casing and word breaks so a filename

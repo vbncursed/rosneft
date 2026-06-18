@@ -33,8 +33,8 @@ func (s *Server) CreatePanorama(ctx context.Context, req CreatePanoramaRequestOb
 		yawOffset = *body.YawOffset
 	}
 	p, err := s.svc.CreatePanorama(ctx, domain.Panorama{
-		TerritorySlug:  req.Slug,
-		Slug:           body.Slug,
+		TerritorySlug: req.Slug,
+		// Slug intentionally omitted — the catalog derives it from the title.
 		Title:          body.Title,
 		SourceBlobHash: body.SourceBlobHash,
 		Position:       vec3PtrFromAPI(body.Position),

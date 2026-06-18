@@ -34,21 +34,15 @@ func (s *TerritoriesSuite) TestGetRejectsEmptySlug() {
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
-func (s *TerritoriesSuite) TestCreateRejectsEmptySlug() {
-	_, _, err := s.svc.CreateTerritory(s.T().Context(),
-		domain.Territory{Title: "x", SourceBlobHash: "h"})
-	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
-}
-
 func (s *TerritoriesSuite) TestCreateRejectsEmptyTitle() {
 	_, _, err := s.svc.CreateTerritory(s.T().Context(),
-		domain.Territory{Slug: "t1", SourceBlobHash: "h"})
+		domain.Territory{SourceBlobHash: "h"})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *TerritoriesSuite) TestCreateRejectsEmptyHash() {
 	_, _, err := s.svc.CreateTerritory(s.T().Context(),
-		domain.Territory{Slug: "t1", Title: "x"})
+		domain.Territory{Title: "x"})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 

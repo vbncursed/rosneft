@@ -121,7 +121,8 @@ func entityToTerritory(body EntityCreate) domain.Territory {
 		panoramaURL = *body.ExternalPanoramaUrl
 	}
 	return domain.Territory{
-		Slug:                body.Slug,
+		// Slug intentionally left empty — the catalog derives it from the
+		// title and resolves it to a unique value on create.
 		Title:               body.Title,
 		Description:         desc,
 		ExternalPanoramaURL: panoramaURL,

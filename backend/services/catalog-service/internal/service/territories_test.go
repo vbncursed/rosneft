@@ -27,7 +27,7 @@ func (s *TerritoriesSuite) SetupTest() {
 	s.svc = service.New(s.repo)
 }
 
-func (s *TerritoriesSuite) TestUpsertRejectsEmptySlug() {
+func (s *TerritoriesSuite) TestCreateRejectsEmptyTitle() {
 	_, err := s.svc.UpsertTerritory(s.T().Context(), domain.Territory{SourceBlobHash: "h"})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
@@ -43,6 +43,22 @@ func (s *TerritoriesSuite) TestUpsertForwardsValidInput() {
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), out.Slug, "t1")
 	assert.DeepEqual(s.T(), s.repo.LastUpsertTerritory, in)
+}
+
+func (s *TerritoriesSuite) TestCreateGeneratesSlugFromTitle() {
+	out, err := s.svc.UpsertTerritory(s.T().Context(), domain.Territory{Title: "Москва", SourceBlobHash: "h"})
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), out.Slug, "moskva")
+}
+
+func (s *TerritoriesSuite) TestCreateResolvesSlugCollision() {
+	first, err := s.svc.UpsertTerritory(s.T().Context(), domain.Territory{Title: "Москва", SourceBlobHash: "h"})
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), first.Slug, "moskva")
+
+	second, err := s.svc.UpsertTerritory(s.T().Context(), domain.Territory{Title: "Москва", SourceBlobHash: "h"})
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), second.Slug, "moskva-2")
 }
 
 func (s *TerritoriesSuite) TestUpsertPropagatesRepoError() {

@@ -21,6 +21,20 @@ func (r *fakeRepo) UpsertTerritory(_ context.Context, t domain.Territory) (domai
 	return t, nil
 }
 
+func (r *fakeRepo) CreateTerritory(_ context.Context, t domain.Territory) (domain.Territory, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.LastCreateTerritory = t
+	if r.ErrCreateTerritory != nil {
+		return domain.Territory{}, r.ErrCreateTerritory
+	}
+	if _, ok := r.territories[t.Slug]; ok {
+		return domain.Territory{}, domain.ErrSlugConflict
+	}
+	r.territories[t.Slug] = t
+	return t, nil
+}
+
 func (r *fakeRepo) GetTerritory(_ context.Context, slug string) (domain.Territory, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

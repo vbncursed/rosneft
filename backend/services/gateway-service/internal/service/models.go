@@ -22,7 +22,7 @@ func (g *Gateway) GetModel(ctx context.Context, slug string) (domain.Model, erro
 
 // CreateModel upserts the model in the catalog and queues a conversion job.
 func (g *Gateway) CreateModel(ctx context.Context, m domain.Model) (domain.Model, domain.Job, error) {
-	if err := validateEntity(m.Slug, m.Title, m.SourceBlobHash); err != nil {
+	if err := validateEntity(m.Title, m.SourceBlobHash); err != nil {
 		return domain.Model{}, domain.Job{}, err
 	}
 	saved, err := g.catalog.UpsertModel(ctx, m)

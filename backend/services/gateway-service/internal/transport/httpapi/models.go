@@ -88,7 +88,8 @@ func entityToModel(body EntityCreate) domain.Model {
 		desc = *body.Description
 	}
 	return domain.Model{
-		Slug:           body.Slug,
+		// Slug intentionally left empty — the catalog derives it from the
+		// title and resolves it to a unique value on create.
 		Title:          body.Title,
 		Description:    desc,
 		SourceBlobHash: body.SourceBlobHash,

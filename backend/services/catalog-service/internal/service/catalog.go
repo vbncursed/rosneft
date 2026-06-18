@@ -14,6 +14,7 @@ import (
 // implicitly.
 type Repository interface {
 	UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
+	CreateTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
 	GetTerritory(ctx context.Context, slug string) (domain.Territory, error)
 	ListTerritories(ctx context.Context) ([]domain.Territory, error)
 	DeleteTerritory(ctx context.Context, slug string) error
@@ -22,6 +23,7 @@ type Repository interface {
 	ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
 
 	UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error)
+	CreateModel(ctx context.Context, m domain.Model) (domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)
 	ListModels(ctx context.Context) ([]domain.Model, error)
 	DeleteModel(ctx context.Context, slug string) error
