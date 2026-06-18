@@ -33,6 +33,11 @@ func (r *fakeRepo) CreatePanorama(_ context.Context, p domain.Panorama) (domain.
 	if _, ok := r.territories[p.TerritorySlug]; !ok {
 		return domain.Panorama{}, domain.ErrTerritoryNotFound
 	}
+	for _, ex := range r.panoramas {
+		if ex.TerritorySlug == p.TerritorySlug && ex.Slug == p.Slug {
+			return domain.Panorama{}, domain.ErrSlugConflict
+		}
+	}
 	r.nextID++
 	p.ID = r.nextID
 	r.panoramas[p.ID] = p

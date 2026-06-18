@@ -6,14 +6,13 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
 // CreatePanorama inserts a new panorama. A missing territory slug yields
 // ErrTerritoryNotFound; a duplicate (territory_id, slug) yields
-// ErrInvalidInput wrapping the constraint name.
+// ErrSlugConflict so the service can retry with the next slug candidate.
 func (r *PG) CreatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error) {
 	const q = `
 		WITH inserted AS (
@@ -47,8 +46,8 @@ func (r *PG) CreatePanorama(ctx context.Context, p domain.Panorama) (domain.Pano
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Panorama{}, domain.ErrTerritoryNotFound
 		}
-		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23505" {
-			return domain.Panorama{}, fmt.Errorf("storage.CreatePanorama: %w: panorama slug already exists in this territory", domain.ErrInvalidInput)
+		if isUniqueViolation(err) {
+			return domain.Panorama{}, domain.ErrSlugConflict
 		}
 		return domain.Panorama{}, fmt.Errorf("storage.CreatePanorama: %w", err)
 	}

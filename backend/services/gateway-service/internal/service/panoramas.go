@@ -20,9 +20,6 @@ func (g *Gateway) CreatePanorama(ctx context.Context, p domain.Panorama) (domain
 	if p.TerritorySlug == "" {
 		return domain.Panorama{}, fmt.Errorf("%w: territory slug is required", domain.ErrInvalidInput)
 	}
-	if p.Slug == "" {
-		return domain.Panorama{}, fmt.Errorf("%w: slug is required", domain.ErrInvalidInput)
-	}
 	if p.Title == "" {
 		return domain.Panorama{}, fmt.Errorf("%w: title is required", domain.ErrInvalidInput)
 	}

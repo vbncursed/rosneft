@@ -21,7 +21,7 @@ export interface Panorama {
 }
 
 export interface PanoramaCreate {
-  slug: string;
+  // The slug is generated server-side from the title — not supplied here.
   title: string;
   sourceBlobHash: string;
   position?: Vec3;

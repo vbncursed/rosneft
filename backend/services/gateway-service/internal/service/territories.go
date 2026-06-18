@@ -25,7 +25,7 @@ func (g *Gateway) GetTerritory(ctx context.Context, slug string) (domain.Territo
 // conversion job. Returns both — the frontend uses the job ID to subscribe
 // to /api/jobs/{id}/events for progress.
 func (g *Gateway) CreateTerritory(ctx context.Context, t domain.Territory) (domain.Territory, domain.Job, error) {
-	if err := validateEntity(t.Slug, t.Title, t.SourceBlobHash); err != nil {
+	if err := validateEntity(t.Title, t.SourceBlobHash); err != nil {
 		return domain.Territory{}, domain.Job{}, err
 	}
 	saved, err := g.catalog.UpsertTerritory(ctx, t)
@@ -86,10 +86,10 @@ func (g *Gateway) GetTerritoryArtifact(ctx context.Context, slug string, lod uin
 }
 
 // validateEntity rejects EntityCreate-style inputs missing required fields.
-func validateEntity(slug, title, hash string) error {
+// The slug is no longer user-supplied — the catalog derives it from the
+// title — so only title and source hash are required here.
+func validateEntity(title, hash string) error {
 	switch {
-	case slug == "":
-		return fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	case title == "":
 		return fmt.Errorf("%w: empty title", domain.ErrInvalidInput)
 	case hash == "":

@@ -14,8 +14,6 @@ interface PanoramaUploadFormProps {
   territoryTitle: string;
 }
 
-const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
-
 // PanoramaUploadForm uploads an equirect JPG/PNG via the chunked-upload
 // pipeline, then creates a Panorama anchored at the territory origin
 // (0,0,0). Anchor + yaw are edited later from the placements panel.
@@ -24,7 +22,6 @@ export default function PanoramaUploadForm({
   territoryTitle,
 }: PanoramaUploadFormProps) {
   const router = useRouter();
-  const [slug, setSlug] = useState("");
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -42,7 +39,7 @@ export default function PanoramaUploadForm({
     router.push(territoryHref);
   }, [cancel, router, submitting, territoryHref]);
 
-  const valid = SLUG_RE.test(slug) && title.trim() !== "" && file !== null;
+  const valid = title.trim() !== "" && file !== null;
 
   const onSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
@@ -53,7 +50,6 @@ export default function PanoramaUploadForm({
         const blob = await upload(file);
         if (!blob) return;
         await createPanorama(territorySlug, {
-          slug,
           title: title.trim(),
           sourceBlobHash: blob.hash,
         });
@@ -65,7 +61,7 @@ export default function PanoramaUploadForm({
         setSubmitting(false);
       }
     },
-    [file, router, slug, submitting, territoryHref, territorySlug, title, upload],
+    [file, router, submitting, territoryHref, territorySlug, title, upload],
   );
 
   return (
@@ -95,14 +91,12 @@ export default function PanoramaUploadForm({
       </div>
 
       <Field
-        label="Slug"
-        hint="lowercase, hyphenated (e.g. north-pad-entrance)"
-        value={slug}
-        onChange={setSlug}
+        label="Title"
+        hint="A URL slug is generated from this automatically."
+        value={title}
+        onChange={setTitle}
         required
       />
-
-      <Field label="Title" value={title} onChange={setTitle} required />
 
       <div>
         <label className="block text-xs uppercase tracking-[0.2em] text-neutral-400">

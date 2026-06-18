@@ -11,9 +11,9 @@ import { notify } from "@/shared/presentation/toast/use-toast";
 interface UploadFormProps {
   kind: "Territory" | "Model";
   // create is the gateway call: createTerritory or createModel. Returns
-  // the created entity slug + queued conversion job for SSE redirect.
+  // the created entity slug + queued conversion job for SSE redirect. The
+  // slug is generated server-side from the title, not supplied here.
   create: (body: {
-    slug: string;
     title: string;
     description?: string;
     externalPanoramaUrl?: string;
@@ -26,8 +26,6 @@ interface UploadFormProps {
   showPanoramaUrl?: boolean;
 }
 
-const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
-
 export default function UploadForm({
   kind,
   create,
@@ -36,7 +34,6 @@ export default function UploadForm({
   showPanoramaUrl = false,
 }: UploadFormProps) {
   const router = useRouter();
-  const [slug, setSlug] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [externalPanoramaUrl, setExternalPanoramaUrl] = useState("");
@@ -44,7 +41,7 @@ export default function UploadForm({
   const [submitting, setSubmitting] = useState(false);
   const { status, progress, upload, cancel } = useChunkedUpload();
 
-  const valid = SLUG_RE.test(slug) && title.trim() !== "" && file !== null;
+  const valid = title.trim() !== "" && file !== null;
 
   const onSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
@@ -55,7 +52,6 @@ export default function UploadForm({
         const blob = await upload(file);
         if (!blob) return;
         const created = await create({
-          slug,
           title: title.trim(),
           description: description.trim() || undefined,
           externalPanoramaUrl: showPanoramaUrl
@@ -74,7 +70,7 @@ export default function UploadForm({
         setSubmitting(false);
       }
     },
-    [create, description, externalPanoramaUrl, file, redirectAfter, redirectBase, router, showPanoramaUrl, slug, submitting, title, upload],
+    [create, description, externalPanoramaUrl, file, redirectAfter, redirectBase, router, showPanoramaUrl, submitting, title, upload],
   );
 
   return (
@@ -96,13 +92,12 @@ export default function UploadForm({
       </div>
 
       <Field
-        label="Slug"
-        hint="Latin letters, digits, hyphens. Used in the URL."
-        value={slug}
-        onChange={setSlug}
+        label="Title"
+        hint="A URL slug is generated from this automatically."
+        value={title}
+        onChange={setTitle}
         required
       />
-      <Field label="Title" value={title} onChange={setTitle} required />
       <Field
         label="Description"
         value={description}

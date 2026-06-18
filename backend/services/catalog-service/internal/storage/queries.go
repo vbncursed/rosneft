@@ -1,6 +1,22 @@
 package storage
 
-import "github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
+import (
+	"errors"
+
+	"github.com/jackc/pgx/v5/pgconn"
+
+	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
+)
+
+// pgUniqueViolation is Postgres' SQLSTATE for a unique-constraint breach.
+const pgUniqueViolation = "23505"
+
+// isUniqueViolation reports whether err is a Postgres unique-constraint
+// violation — the signal that a slug candidate is already taken.
+func isUniqueViolation(err error) bool {
+	pgErr, ok := errors.AsType[*pgconn.PgError](err)
+	return ok && pgErr.Code == pgUniqueViolation
+}
 
 // entityColumns is the SELECT/RETURNING list for models. Territories used
 // to share it, but they now carry an extra external_panorama_url column —

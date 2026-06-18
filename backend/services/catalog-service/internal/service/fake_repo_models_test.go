@@ -18,6 +18,20 @@ func (r *fakeRepo) UpsertModel(_ context.Context, m domain.Model) (domain.Model,
 	return m, nil
 }
 
+func (r *fakeRepo) CreateModel(_ context.Context, m domain.Model) (domain.Model, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.LastCreateModel = m
+	if r.ErrCreateModel != nil {
+		return domain.Model{}, r.ErrCreateModel
+	}
+	if _, ok := r.models[m.Slug]; ok {
+		return domain.Model{}, domain.ErrSlugConflict
+	}
+	r.models[m.Slug] = m
+	return m, nil
+}
+
 func (r *fakeRepo) GetModel(_ context.Context, slug string) (domain.Model, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

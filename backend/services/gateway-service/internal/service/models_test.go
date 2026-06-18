@@ -35,11 +35,11 @@ func (s *ModelsSuite) TestGetRejectsEmptySlug() {
 }
 
 func (s *ModelsSuite) TestCreateRejectsMissingFields() {
-	_, _, err := s.svc.CreateModel(s.T().Context(), domain.Model{Slug: "m1", Title: "x"})
+	// Missing source hash, then missing title. The slug is no longer
+	// required — the catalog derives it from the title.
+	_, _, err := s.svc.CreateModel(s.T().Context(), domain.Model{Title: "x"})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
-	_, _, err = s.svc.CreateModel(s.T().Context(), domain.Model{Slug: "m1", SourceBlobHash: "h"})
-	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
-	_, _, err = s.svc.CreateModel(s.T().Context(), domain.Model{Title: "x", SourceBlobHash: "h"})
+	_, _, err = s.svc.CreateModel(s.T().Context(), domain.Model{SourceBlobHash: "h"})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 

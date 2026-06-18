@@ -27,7 +27,7 @@ func (s *ModelsSuite) SetupTest() {
 	s.svc = service.New(s.repo)
 }
 
-func (s *ModelsSuite) TestUpsertRejectsEmptySlug() {
+func (s *ModelsSuite) TestCreateRejectsEmptyTitle() {
 	_, err := s.svc.UpsertModel(s.T().Context(), domain.Model{SourceBlobHash: "h"})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
@@ -43,6 +43,22 @@ func (s *ModelsSuite) TestUpsertForwardsValidInput() {
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), out.Slug, "m1")
 	assert.DeepEqual(s.T(), s.repo.LastUpsertModel, in)
+}
+
+func (s *ModelsSuite) TestCreateGeneratesSlugFromTitle() {
+	out, err := s.svc.UpsertModel(s.T().Context(), domain.Model{Title: "Насос K-200", SourceBlobHash: "h"})
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), out.Slug, "nasos-k-200")
+}
+
+func (s *ModelsSuite) TestCreateResolvesSlugCollision() {
+	first, err := s.svc.UpsertModel(s.T().Context(), domain.Model{Title: "Box", SourceBlobHash: "h"})
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), first.Slug, "box")
+
+	second, err := s.svc.UpsertModel(s.T().Context(), domain.Model{Title: "Box", SourceBlobHash: "h"})
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), second.Slug, "box-2")
 }
 
 func (s *ModelsSuite) TestGetRejectsEmptySlug() {

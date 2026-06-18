@@ -25,6 +25,8 @@ type fakeRepo struct {
 	nextID      int64
 
 	ErrUpsertTerritory           error
+	ErrCreateTerritory           error
+	ErrCreateModel               error
 	ErrCreatePlacement           error
 	ErrUpdatePlacement           error
 	ErrCreatePanorama            error
@@ -33,7 +35,9 @@ type fakeRepo struct {
 	ErrRegisterModelArtifact     error
 
 	LastUpsertTerritory           domain.Territory
+	LastCreateTerritory           domain.Territory
 	LastUpsertModel               domain.Model
+	LastCreateModel               domain.Model
 	LastCreatePlacement           domain.Placement
 	LastUpdatePlacement           domain.Placement
 	LastCreatePanorama            domain.Panorama

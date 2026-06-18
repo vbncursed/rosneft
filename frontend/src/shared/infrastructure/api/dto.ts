@@ -482,8 +482,12 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        /**
+         * @description Body for POST /api/territories/{slug}/panoramas. The slug is derived
+         *     from the title by the catalog and made unique within the territory —
+         *     it is not client-supplied.
+         */
         PanoramaCreate: {
-            slug: string;
             title: string;
             sourceBlobHash: string;
             position?: components["schemas"]["Vec3"];
@@ -501,10 +505,10 @@ export interface components {
          *     first uploads the source ZIP via /api/uploads, then attaches the
          *     returned hash here. The gateway forwards the entity to catalog
          *     and queues a conversion job; the response carries both the new
-         *     entity and the queued Job for SSE subscription.
+         *     entity and the queued Job for SSE subscription. The slug is derived
+         *     from the title by the catalog and made unique — not client-supplied.
          */
         EntityCreate: {
-            slug: string;
             title: string;
             description?: string;
             externalPanoramaUrl?: string;
