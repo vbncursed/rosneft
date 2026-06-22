@@ -71,6 +71,14 @@ func (c *fakeCatalog) DeleteTerritoryArtifacts(_ context.Context, slug string) e
 	return nil
 }
 
+func (c *fakeCatalog) SetTerritoryRescaleBaseline(_ context.Context, slug string, sourceMax float64) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.LastRescaleBaselineSlug = slug
+	c.LastRescaleBaselineMax = sourceMax
+	return c.ErrSetRescaleBaseline
+}
+
 func (c *fakeCatalog) GetTerritoryArtifact(_ context.Context, slug string, lod uint32) (domain.Artifact, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

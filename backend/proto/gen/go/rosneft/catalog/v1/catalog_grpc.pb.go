@@ -19,29 +19,31 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CatalogService_ListTerritories_FullMethodName           = "/rosneft.catalog.v1.CatalogService/ListTerritories"
-	CatalogService_GetTerritory_FullMethodName              = "/rosneft.catalog.v1.CatalogService/GetTerritory"
-	CatalogService_UpsertTerritory_FullMethodName           = "/rosneft.catalog.v1.CatalogService/UpsertTerritory"
-	CatalogService_DeleteTerritory_FullMethodName           = "/rosneft.catalog.v1.CatalogService/DeleteTerritory"
-	CatalogService_RegisterTerritoryArtifact_FullMethodName = "/rosneft.catalog.v1.CatalogService/RegisterTerritoryArtifact"
-	CatalogService_ListTerritoryArtifacts_FullMethodName    = "/rosneft.catalog.v1.CatalogService/ListTerritoryArtifacts"
-	CatalogService_GetTerritoryArtifact_FullMethodName      = "/rosneft.catalog.v1.CatalogService/GetTerritoryArtifact"
-	CatalogService_DeleteTerritoryArtifacts_FullMethodName  = "/rosneft.catalog.v1.CatalogService/DeleteTerritoryArtifacts"
-	CatalogService_ListModels_FullMethodName                = "/rosneft.catalog.v1.CatalogService/ListModels"
-	CatalogService_GetModel_FullMethodName                  = "/rosneft.catalog.v1.CatalogService/GetModel"
-	CatalogService_UpsertModel_FullMethodName               = "/rosneft.catalog.v1.CatalogService/UpsertModel"
-	CatalogService_DeleteModel_FullMethodName               = "/rosneft.catalog.v1.CatalogService/DeleteModel"
-	CatalogService_RegisterModelArtifact_FullMethodName     = "/rosneft.catalog.v1.CatalogService/RegisterModelArtifact"
-	CatalogService_ListModelArtifacts_FullMethodName        = "/rosneft.catalog.v1.CatalogService/ListModelArtifacts"
-	CatalogService_GetModelArtifact_FullMethodName          = "/rosneft.catalog.v1.CatalogService/GetModelArtifact"
-	CatalogService_ListPlacements_FullMethodName            = "/rosneft.catalog.v1.CatalogService/ListPlacements"
-	CatalogService_CreatePlacement_FullMethodName           = "/rosneft.catalog.v1.CatalogService/CreatePlacement"
-	CatalogService_UpdatePlacement_FullMethodName           = "/rosneft.catalog.v1.CatalogService/UpdatePlacement"
-	CatalogService_DeletePlacement_FullMethodName           = "/rosneft.catalog.v1.CatalogService/DeletePlacement"
-	CatalogService_ListPanoramas_FullMethodName             = "/rosneft.catalog.v1.CatalogService/ListPanoramas"
-	CatalogService_CreatePanorama_FullMethodName            = "/rosneft.catalog.v1.CatalogService/CreatePanorama"
-	CatalogService_UpdatePanorama_FullMethodName            = "/rosneft.catalog.v1.CatalogService/UpdatePanorama"
-	CatalogService_DeletePanorama_FullMethodName            = "/rosneft.catalog.v1.CatalogService/DeletePanorama"
+	CatalogService_ListTerritories_FullMethodName             = "/rosneft.catalog.v1.CatalogService/ListTerritories"
+	CatalogService_GetTerritory_FullMethodName                = "/rosneft.catalog.v1.CatalogService/GetTerritory"
+	CatalogService_UpsertTerritory_FullMethodName             = "/rosneft.catalog.v1.CatalogService/UpsertTerritory"
+	CatalogService_DeleteTerritory_FullMethodName             = "/rosneft.catalog.v1.CatalogService/DeleteTerritory"
+	CatalogService_RegisterTerritoryArtifact_FullMethodName   = "/rosneft.catalog.v1.CatalogService/RegisterTerritoryArtifact"
+	CatalogService_ListTerritoryArtifacts_FullMethodName      = "/rosneft.catalog.v1.CatalogService/ListTerritoryArtifacts"
+	CatalogService_GetTerritoryArtifact_FullMethodName        = "/rosneft.catalog.v1.CatalogService/GetTerritoryArtifact"
+	CatalogService_DeleteTerritoryArtifacts_FullMethodName    = "/rosneft.catalog.v1.CatalogService/DeleteTerritoryArtifacts"
+	CatalogService_SetTerritoryRescaleBaseline_FullMethodName = "/rosneft.catalog.v1.CatalogService/SetTerritoryRescaleBaseline"
+	CatalogService_RescaleTerritoryPlacements_FullMethodName  = "/rosneft.catalog.v1.CatalogService/RescaleTerritoryPlacements"
+	CatalogService_ListModels_FullMethodName                  = "/rosneft.catalog.v1.CatalogService/ListModels"
+	CatalogService_GetModel_FullMethodName                    = "/rosneft.catalog.v1.CatalogService/GetModel"
+	CatalogService_UpsertModel_FullMethodName                 = "/rosneft.catalog.v1.CatalogService/UpsertModel"
+	CatalogService_DeleteModel_FullMethodName                 = "/rosneft.catalog.v1.CatalogService/DeleteModel"
+	CatalogService_RegisterModelArtifact_FullMethodName       = "/rosneft.catalog.v1.CatalogService/RegisterModelArtifact"
+	CatalogService_ListModelArtifacts_FullMethodName          = "/rosneft.catalog.v1.CatalogService/ListModelArtifacts"
+	CatalogService_GetModelArtifact_FullMethodName            = "/rosneft.catalog.v1.CatalogService/GetModelArtifact"
+	CatalogService_ListPlacements_FullMethodName              = "/rosneft.catalog.v1.CatalogService/ListPlacements"
+	CatalogService_CreatePlacement_FullMethodName             = "/rosneft.catalog.v1.CatalogService/CreatePlacement"
+	CatalogService_UpdatePlacement_FullMethodName             = "/rosneft.catalog.v1.CatalogService/UpdatePlacement"
+	CatalogService_DeletePlacement_FullMethodName             = "/rosneft.catalog.v1.CatalogService/DeletePlacement"
+	CatalogService_ListPanoramas_FullMethodName               = "/rosneft.catalog.v1.CatalogService/ListPanoramas"
+	CatalogService_CreatePanorama_FullMethodName              = "/rosneft.catalog.v1.CatalogService/CreatePanorama"
+	CatalogService_UpdatePanorama_FullMethodName              = "/rosneft.catalog.v1.CatalogService/UpdatePanorama"
+	CatalogService_DeletePanorama_FullMethodName              = "/rosneft.catalog.v1.CatalogService/DeletePanorama"
 )
 
 // CatalogServiceClient is the client API for CatalogService service.
@@ -68,6 +70,8 @@ type CatalogServiceClient interface {
 	ListTerritoryArtifacts(ctx context.Context, in *ListTerritoryArtifactsRequest, opts ...grpc.CallOption) (*ListTerritoryArtifactsResponse, error)
 	GetTerritoryArtifact(ctx context.Context, in *GetTerritoryArtifactRequest, opts ...grpc.CallOption) (*GetTerritoryArtifactResponse, error)
 	DeleteTerritoryArtifacts(ctx context.Context, in *DeleteTerritoryArtifactsRequest, opts ...grpc.CallOption) (*DeleteTerritoryArtifactsResponse, error)
+	SetTerritoryRescaleBaseline(ctx context.Context, in *SetTerritoryRescaleBaselineRequest, opts ...grpc.CallOption) (*SetTerritoryRescaleBaselineResponse, error)
+	RescaleTerritoryPlacements(ctx context.Context, in *RescaleTerritoryPlacementsRequest, opts ...grpc.CallOption) (*RescaleTerritoryPlacementsResponse, error)
 	ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error)
 	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*GetModelResponse, error)
 	UpsertModel(ctx context.Context, in *UpsertModelRequest, opts ...grpc.CallOption) (*UpsertModelResponse, error)
@@ -167,6 +171,26 @@ func (c *catalogServiceClient) DeleteTerritoryArtifacts(ctx context.Context, in 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DeleteTerritoryArtifactsResponse)
 	err := c.cc.Invoke(ctx, CatalogService_DeleteTerritoryArtifacts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) SetTerritoryRescaleBaseline(ctx context.Context, in *SetTerritoryRescaleBaselineRequest, opts ...grpc.CallOption) (*SetTerritoryRescaleBaselineResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetTerritoryRescaleBaselineResponse)
+	err := c.cc.Invoke(ctx, CatalogService_SetTerritoryRescaleBaseline_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) RescaleTerritoryPlacements(ctx context.Context, in *RescaleTerritoryPlacementsRequest, opts ...grpc.CallOption) (*RescaleTerritoryPlacementsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RescaleTerritoryPlacementsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_RescaleTerritoryPlacements_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -347,6 +371,8 @@ type CatalogServiceServer interface {
 	ListTerritoryArtifacts(context.Context, *ListTerritoryArtifactsRequest) (*ListTerritoryArtifactsResponse, error)
 	GetTerritoryArtifact(context.Context, *GetTerritoryArtifactRequest) (*GetTerritoryArtifactResponse, error)
 	DeleteTerritoryArtifacts(context.Context, *DeleteTerritoryArtifactsRequest) (*DeleteTerritoryArtifactsResponse, error)
+	SetTerritoryRescaleBaseline(context.Context, *SetTerritoryRescaleBaselineRequest) (*SetTerritoryRescaleBaselineResponse, error)
+	RescaleTerritoryPlacements(context.Context, *RescaleTerritoryPlacementsRequest) (*RescaleTerritoryPlacementsResponse, error)
 	ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error)
 	GetModel(context.Context, *GetModelRequest) (*GetModelResponse, error)
 	UpsertModel(context.Context, *UpsertModelRequest) (*UpsertModelResponse, error)
@@ -395,6 +421,12 @@ func (UnimplementedCatalogServiceServer) GetTerritoryArtifact(context.Context, *
 }
 func (UnimplementedCatalogServiceServer) DeleteTerritoryArtifacts(context.Context, *DeleteTerritoryArtifactsRequest) (*DeleteTerritoryArtifactsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteTerritoryArtifacts not implemented")
+}
+func (UnimplementedCatalogServiceServer) SetTerritoryRescaleBaseline(context.Context, *SetTerritoryRescaleBaselineRequest) (*SetTerritoryRescaleBaselineResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetTerritoryRescaleBaseline not implemented")
+}
+func (UnimplementedCatalogServiceServer) RescaleTerritoryPlacements(context.Context, *RescaleTerritoryPlacementsRequest) (*RescaleTerritoryPlacementsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RescaleTerritoryPlacements not implemented")
 }
 func (UnimplementedCatalogServiceServer) ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListModels not implemented")
@@ -602,6 +634,42 @@ func _CatalogService_DeleteTerritoryArtifacts_Handler(srv interface{}, ctx conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CatalogServiceServer).DeleteTerritoryArtifacts(ctx, req.(*DeleteTerritoryArtifactsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_SetTerritoryRescaleBaseline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetTerritoryRescaleBaselineRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).SetTerritoryRescaleBaseline(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_SetTerritoryRescaleBaseline_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).SetTerritoryRescaleBaseline(ctx, req.(*SetTerritoryRescaleBaselineRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_RescaleTerritoryPlacements_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RescaleTerritoryPlacementsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).RescaleTerritoryPlacements(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_RescaleTerritoryPlacements_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).RescaleTerritoryPlacements(ctx, req.(*RescaleTerritoryPlacementsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -914,6 +982,14 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteTerritoryArtifacts",
 			Handler:    _CatalogService_DeleteTerritoryArtifacts_Handler,
+		},
+		{
+			MethodName: "SetTerritoryRescaleBaseline",
+			Handler:    _CatalogService_SetTerritoryRescaleBaseline_Handler,
+		},
+		{
+			MethodName: "RescaleTerritoryPlacements",
+			Handler:    _CatalogService_RescaleTerritoryPlacements_Handler,
 		},
 		{
 			MethodName: "ListModels",

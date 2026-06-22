@@ -16,17 +16,20 @@ import (
 type fakeRepo struct {
 	mu sync.Mutex
 
-	territories map[string]domain.Territory
-	models      map[string]domain.Model
-	terrArts    map[string][]domain.Artifact
-	modelArts   map[string][]domain.Artifact
-	placements  map[int64]domain.Placement
-	panoramas   map[int64]domain.Panorama
-	nextID      int64
+	territories     map[string]domain.Territory
+	models          map[string]domain.Model
+	terrArts        map[string][]domain.Artifact
+	modelArts       map[string][]domain.Artifact
+	placements      map[int64]domain.Placement
+	panoramas       map[int64]domain.Panorama
+	rescaleBaseline map[string]float64
+	nextID          int64
 
 	ErrUpsertTerritory           error
 	ErrCreateTerritory           error
 	ErrDeleteTerritoryArtifacts  error
+	ErrSetRescaleBaseline        error
+	ErrRescalePlacements         error
 	ErrCreateModel               error
 	ErrCreatePlacement           error
 	ErrUpdatePlacement           error
@@ -45,15 +48,20 @@ type fakeRepo struct {
 	LastUpdatePanorama            domain.Panorama
 	LastRegisterTerritoryArtifact domain.Artifact
 	LastRegisterModelArtifact     domain.Artifact
+	LastSetRescaleBaselineSlug    string
+	LastSetRescaleBaselineMax     float64
+	LastRescaleSlug               string
+	LastRescaleNewMax             float64
 }
 
 func newFakeRepo() *fakeRepo {
 	return &fakeRepo{
-		territories: map[string]domain.Territory{},
-		models:      map[string]domain.Model{},
-		terrArts:    map[string][]domain.Artifact{},
-		modelArts:   map[string][]domain.Artifact{},
-		placements:  map[int64]domain.Placement{},
-		panoramas:   map[int64]domain.Panorama{},
+		territories:     map[string]domain.Territory{},
+		models:          map[string]domain.Model{},
+		terrArts:        map[string][]domain.Artifact{},
+		modelArts:       map[string][]domain.Artifact{},
+		placements:      map[int64]domain.Placement{},
+		panoramas:       map[int64]domain.Panorama{},
+		rescaleBaseline: map[string]float64{},
 	}
 }

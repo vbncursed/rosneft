@@ -26,6 +26,8 @@ service CatalogService {
   rpc ListTerritoryArtifacts(ListTerritoryArtifactsRequest) returns (ListTerritoryArtifactsResponse);
   rpc GetTerritoryArtifact(GetTerritoryArtifactRequest) returns (GetTerritoryArtifactResponse);
   rpc DeleteTerritoryArtifacts(DeleteTerritoryArtifactsRequest) returns (DeleteTerritoryArtifactsResponse);
+  rpc SetTerritoryRescaleBaseline(SetTerritoryRescaleBaselineRequest) returns (SetTerritoryRescaleBaselineResponse);
+  rpc RescaleTerritoryPlacements(RescaleTerritoryPlacementsRequest) returns (RescaleTerritoryPlacementsResponse);
 
   rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
   rpc GetModel(GetModelRequest) returns (GetModelResponse);
@@ -176,6 +178,29 @@ message DeleteTerritoryArtifactsRequest {
   string territory_slug = 1;
 }
 message DeleteTerritoryArtifactsResponse {}
+
+// SetTerritoryRescaleBaseline records the territory's current source-mesh
+// max-dimension before a source replacement clears its artifacts. The
+// post-conversion RescaleTerritoryPlacements reads it to keep placements 1:1
+// across the new normalization. Writes only when no baseline is already
+// pending, preserving the earliest value across chained replaces.
+message SetTerritoryRescaleBaselineRequest {
+  string territory_slug = 1;
+  double source_max = 2;
+}
+message SetTerritoryRescaleBaselineResponse {}
+
+// RescaleTerritoryPlacements applies a pending rescale baseline: it scales
+// every placement's position and scale by old_max / new_source_max and clears
+// the baseline, atomically. A no-op when no baseline is set. The response
+// reports how many placements were changed.
+message RescaleTerritoryPlacementsRequest {
+  string territory_slug = 1;
+  double new_source_max = 2;
+}
+message RescaleTerritoryPlacementsResponse {
+  uint32 updated = 1;
+}
 
 // ─── Model RPCs ─────────────────────────────────────────────────────────────
 

@@ -59,6 +59,9 @@ func (g *Gateway) ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHa
 	if err != nil {
 		return domain.Territory{}, domain.Job{}, fmt.Errorf("replace territory source: %w", err)
 	}
+	if err := g.captureRescaleBaseline(ctx, slug); err != nil {
+		return saved, domain.Job{}, err
+	}
 	if err := g.catalog.DeleteTerritoryArtifacts(ctx, slug); err != nil {
 		return domain.Territory{}, domain.Job{}, fmt.Errorf("reset territory artifacts: %w", err)
 	}
@@ -67,6 +70,38 @@ func (g *Gateway) ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHa
 		return saved, domain.Job{}, fmt.Errorf("submit conversion: %w", err)
 	}
 	return saved, job, nil
+}
+
+// captureRescaleBaseline records the territory's current source-mesh
+// max-dimension so the post-conversion worker can rescale placements 1:1
+// against the replacement mesh's normalization. It must run before the old
+// artifacts are cleared. A territory with no LOD0 yet (still pending) has
+// nothing to anchor to and is skipped, preserving any baseline a prior
+// in-flight replace already set (the catalog writes it only once).
+func (g *Gateway) captureRescaleBaseline(ctx context.Context, slug string) error {
+	old, err := g.catalog.GetTerritoryArtifact(ctx, slug, 0)
+	switch {
+	case err == nil:
+		if m := artifactMaxAxis(old); m > 0 {
+			if err := g.catalog.SetTerritoryRescaleBaseline(ctx, slug, m); err != nil {
+				return fmt.Errorf("set rescale baseline: %w", err)
+			}
+		}
+		return nil
+	case errors.Is(err, domain.ErrArtifactNotFound):
+		return nil
+	default:
+		return fmt.Errorf("read current artifact: %w", err)
+	}
+}
+
+// artifactMaxAxis returns the longest axis-aligned extent of an artifact's
+// source-mesh bbox — the quantity the converter normalizes to max-axis = 2.
+func artifactMaxAxis(a domain.Artifact) float64 {
+	dx := a.BBoxMax.X - a.BBoxMin.X
+	dy := a.BBoxMax.Y - a.BBoxMin.Y
+	dz := a.BBoxMax.Z - a.BBoxMin.Z
+	return max(dx, dy, dz)
 }
 
 // UpdateTerritory patches a territory's mutable fields by slug without

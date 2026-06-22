@@ -27,6 +27,7 @@ type Catalog interface {
 	ListTargets(ctx context.Context) ([]domain.ConversionTarget, error)
 	HasLOD0(ctx context.Context, kind domain.Kind, slug string) (bool, error)
 	RegisterArtifact(ctx context.Context, a domain.Artifact) error
+	RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64) error
 }
 
 // Converter turns a source mesh on disk into one or more ConversionResults
