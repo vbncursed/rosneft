@@ -32,6 +32,10 @@ type fakeCatalog struct {
 	ErrCreatePanorama           error
 	ErrUpdatePanorama           error
 	ErrDeleteTerritoryArtifacts error
+	ErrSetRescaleBaseline       error
+
+	LastRescaleBaselineSlug string
+	LastRescaleBaselineMax  float64
 
 	LastUpsertTerritory          domain.Territory
 	LastUpsertModel              domain.Model

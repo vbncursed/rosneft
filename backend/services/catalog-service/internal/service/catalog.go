@@ -22,6 +22,8 @@ type Repository interface {
 	GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
 	ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
 	DeleteTerritoryArtifacts(ctx context.Context, slug string) error
+	SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64) error
+	RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64) (int, error)
 
 	UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error)
 	CreateModel(ctx context.Context, m domain.Model) (domain.Model, error)

@@ -103,6 +103,34 @@ func (s *TerritoriesSuite) TestReplaceSourceSwapsHashClearsArtifactsAndQueues() 
 	assert.Equal(s.T(), s.mesh.LastSubmitSlug, "t1")
 }
 
+func (s *TerritoriesSuite) TestReplaceSourceSetsRescaleBaselineFromOldLOD0() {
+	_, _, err := s.svc.CreateTerritory(s.T().Context(),
+		domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "old"})
+	assert.NilError(s.T(), err)
+	// Old LOD0 source bbox: longest axis = 10 (the converter's pre-normalize max).
+	s.cat.terrArts["t1"] = []domain.Artifact{{
+		Slug: "t1", LOD: 0,
+		BBoxMin: domain.Vec3{X: 0, Y: 0, Z: 0},
+		BBoxMax: domain.Vec3{X: 10, Y: 3, Z: 4},
+	}}
+
+	_, _, err = s.svc.ReplaceTerritorySource(s.T().Context(), "t1", "new")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), s.cat.LastRescaleBaselineSlug, "t1")
+	assert.Equal(s.T(), s.cat.LastRescaleBaselineMax, 10.0)
+}
+
+func (s *TerritoriesSuite) TestReplaceSourceSkipsBaselineWhenNoLOD0() {
+	_, _, err := s.svc.CreateTerritory(s.T().Context(),
+		domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "old"})
+	assert.NilError(s.T(), err)
+	// No artifacts yet (territory still pending) → nothing to anchor a rescale to.
+
+	_, _, err = s.svc.ReplaceTerritorySource(s.T().Context(), "t1", "new")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), s.cat.LastRescaleBaselineSlug, "")
+}
+
 func (s *TerritoriesSuite) TestReplaceSourceSurfacesMeshErrorWithSavedTerritory() {
 	_, _, err := s.svc.CreateTerritory(s.T().Context(),
 		domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "old"})

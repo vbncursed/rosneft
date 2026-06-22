@@ -59,6 +59,20 @@ func (c *Client) DeleteTerritoryArtifacts(ctx context.Context, slug string) erro
 	return nil
 }
 
+// SetTerritoryRescaleBaseline records the territory's current source-mesh
+// max-dimension before a source replacement clears its artifacts, so the
+// post-conversion rescale keeps placements 1:1 against the new normalization.
+func (c *Client) SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64) error {
+	_, err := c.cc.SetTerritoryRescaleBaseline(ctx, &catalogv1.SetTerritoryRescaleBaselineRequest{
+		TerritorySlug: slug,
+		SourceMax:     sourceMax,
+	})
+	if err != nil {
+		return fmt.Errorf("catalog.SetTerritoryRescaleBaseline: %w", mapStatusErr(err, domain.ErrTerritoryNotFound))
+	}
+	return nil
+}
+
 // ListTerritoryArtifacts returns every territory artifact ordered by LOD.
 func (c *Client) ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error) {
 	resp, err := c.cc.ListTerritoryArtifacts(ctx, &catalogv1.ListTerritoryArtifactsRequest{TerritorySlug: slug})

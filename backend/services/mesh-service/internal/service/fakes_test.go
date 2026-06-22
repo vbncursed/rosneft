@@ -67,10 +67,15 @@ type fakeCatalog struct {
 	HasLOD0Set     map[string]bool // key = "kind/slug"
 	RegisteredArts []domain.Artifact
 
+	RescaleCalls  int
+	RescaleSlug   string
+	RescaleNewMax float64
+
 	ErrListTargets    error
 	ErrHasLOD0        error
 	ErrGetTarget      error
 	ErrRegisterArt    error
+	ErrRescale        error
 	GetTargetResult   domain.ConversionTarget
 	GetTargetNotFound bool
 }
@@ -122,6 +127,15 @@ func (c *fakeCatalog) RegisterArtifact(_ context.Context, a domain.Artifact) err
 	return nil
 }
 
+func (c *fakeCatalog) RescaleTerritoryPlacements(_ context.Context, slug string, newMax float64) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.RescaleCalls++
+	c.RescaleSlug = slug
+	c.RescaleNewMax = newMax
+	return c.ErrRescale
+}
+
 // fakeBlobs implements service.BlobStore. It records Put calls and serves
 // pre-staged content from Get for ProcessJob-style tests.
 type fakeBlobs struct {
@@ -162,4 +176,3 @@ func (r readCloser) Read(p []byte) (int, error) {
 }
 
 func (r readCloser) Close() error { return nil }
-

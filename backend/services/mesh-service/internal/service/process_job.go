@@ -104,6 +104,12 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) error {
 		return fmt.Errorf("convert: no LOD results")
 	}
 
+	// Keep existing placements 1:1 with the new mesh before publishing the
+	// artifacts — see rescaleAfterConvert for why ordering matters.
+	if err := m.rescaleAfterConvert(ctx, j.Kind, j.Slug, results); err != nil {
+		return err
+	}
+
 	// Per-LOD register pass. Distribute the remaining 0.30 evenly across
 	// every result so the bar moves smoothly toward 1.0 as artifacts land.
 	span := float32(0.30) / float32(len(results))

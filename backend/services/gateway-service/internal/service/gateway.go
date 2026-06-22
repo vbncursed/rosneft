@@ -19,6 +19,7 @@ type Catalog interface {
 	ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
 	GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
 	DeleteTerritoryArtifacts(ctx context.Context, slug string) error
+	SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64) error
 
 	ListModels(ctx context.Context) ([]domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)
