@@ -1,20 +1,21 @@
 # Configuration for oapi-codegen — schema-first server stub generation.
 # Run via `make openapi-gen` from backend/.
+#
+# Two-pass generation: this config emits the chi/strict SERVER (with the `auth`
+# tag excluded — those endpoints are served by the plain-chi authhttp package,
+# since login must be public and can't sit under the /api group's uniform auth
+# middleware). The FULL embedded spec (including auth, for Swagger) is generated
+# separately by oapi-codegen-spec.yaml so the served docs stay complete.
 package: httpapi
 
 generate:
   chi-server: true        # github.com/go-chi/chi/v5 router
   models: true
-  embedded-spec: true     # embeds the spec into the binary for /openapi.yaml
   strict-server: true     # typed handler signatures with error returns
 
 output: internal/transport/httpapi/openapi_gen.go
 
 output-options:
   skip-prune: true
-  # Auth endpoints are served by the plain-chi authhttp package (login must be
-  # public, which the strict /api group's uniform auth middleware can't model).
-  # Excluded from server-stub generation but still embedded in the spec, so
-  # they appear in Swagger.
   exclude-tags:
     - auth
