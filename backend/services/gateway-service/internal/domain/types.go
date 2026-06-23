@@ -138,6 +138,14 @@ type Placement struct {
 	// VisiblePanoramaIDs is the allowlist of panoramas this placement shows
 	// in (panorama mode only; the 3D view always shows every placement).
 	VisiblePanoramaIDs []int64
+	// PanoramaLabels are per-panorama names (independent of visibility).
+	PanoramaLabels []PanoramaLabel
+}
+
+// PanoramaLabel is a placement's name within one panorama.
+type PanoramaLabel struct {
+	PanoramaID int64
+	Label      string
 }
 
 // UploadSession mirrors the upload-service session for the frontend.

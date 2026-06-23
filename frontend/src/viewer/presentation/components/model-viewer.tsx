@@ -87,6 +87,9 @@ export default function ModelViewer({
   // floor so dragged objects can hover but never bury into the terrain.
   const [snapEnabled, setSnapEnabled] = useState(false);
   const toggleSnap = useCallback(() => setSnapEnabled((v) => !v), []);
+  // Show/hide the in-scene panorama markers (the clickable points in 3D).
+  const [showMarkers, setShowMarkers] = useState(true);
+  const toggleMarkers = useCallback(() => setShowMarkers((v) => !v), []);
 
   const unitRatio = useMemo(
     () => computeUnitRatio(metadata.dimensions),
@@ -156,6 +159,7 @@ export default function ModelViewer({
         activePanorama={calibration.effective ?? panorama.activePanorama}
         panoramas={panoramas}
         onActivatePanorama={panorama.activate}
+        showMarkers={showMarkers}
         calibrating={calibration.calibrating}
         panoramaOpacity={calibration.opacity}
         cameraPositionRef={cameraPositionRef}
@@ -197,6 +201,8 @@ export default function ModelViewer({
               externalPanoramaUrl={externalPanoramaUrl}
               failedPanoramaIds={failedPanoramaIds}
               calibration={calibration}
+              markersVisible={showMarkers}
+              onToggleMarkers={toggleMarkers}
               onSavePanorama={updatePanoramaState}
               onDeletePanorama={removePanorama}
             />
@@ -205,7 +211,6 @@ export default function ModelViewer({
             <PlacementsSection
               editor={editor}
               assets={modelOptions}
-              panoramas={panoramas}
               activePanoramaId={panorama.activePanorama?.id ?? null}
               snapEnabled={snapEnabled}
               onToggleSnap={toggleSnap}

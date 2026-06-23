@@ -151,6 +151,27 @@ components:
             mode only — the 3D view always shows every placement). Empty means
             hidden in every panorama.
           items: { type: integer, format: int64 }
+        panoramaLabels:
+          type: array
+          description: >
+            Per-panorama names: the same placement may read differently in
+            each panorama. Independent of visibility.
+          items: { $ref: '#/components/schemas/PanoramaLabel' }
+
+    PanoramaLabel:
+      type: object
+      required: [panoramaId, label]
+      properties:
+        panoramaId: { type: integer, format: int64 }
+        label: { type: string }
+
+    PlacementPanoramaLabelUpdate:
+      type: object
+      required: [label]
+      properties:
+        label:
+          type: string
+          description: New name; empty clears the placement's name in this panorama.
 
     PlacementCreate:
       type: object
@@ -640,6 +661,39 @@ paths:
         content:
           application/json:
             schema: { $ref: '#/components/schemas/PlacementVisibilityUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Placement' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/territories/{slug}/placements/{id}/panoramas/{panoramaId}/label:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
+      - name: panoramaId
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
+    put:
+      operationId: setPlacementPanoramaLabel
+      summary: Set a placement's name within one panorama
+      tags: [placements]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlacementPanoramaLabelUpdate' }
       responses:
         '200':
           description: OK

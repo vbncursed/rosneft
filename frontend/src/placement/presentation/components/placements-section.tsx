@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { PlacementAssetOption } from "@/placement/domain/asset-option";
 import type { PlacementUpdate } from "@/placement/domain/placement";
-import type { Panorama } from "@/panorama/domain/panorama";
 import { isCreating, isMutatingId } from "@/placement/domain/mutation-state";
 import type { usePlacementsEditor } from "@/placement/application/use-placements-editor";
 import CreatePlacementRow from "@/placement/presentation/components/create-placement-row";
@@ -9,15 +8,14 @@ import EmptyState from "@/placement/presentation/components/empty-state";
 import ModeToggle from "@/placement/presentation/components/mode-toggle";
 import PlacementForm from "@/placement/presentation/components/placement-form";
 import PlacementRow from "@/placement/presentation/components/placement-row";
-import PlacementVisibility from "@/placement/presentation/components/placement-visibility";
+import PanoramaObjectsList from "@/placement/presentation/components/panorama-objects-list";
 import SnapToggle from "@/placement/presentation/components/snap-toggle";
 
 interface PlacementsSectionProps {
   editor: ReturnType<typeof usePlacementsEditor>;
   assets: PlacementAssetOption[];
-  panoramas: Panorama[];
-  // When a panorama is active, a freshly-created placement is auto-added to
-  // its allowlist so it shows where it was dropped.
+  // When a panorama is active, the list becomes panorama-aware (per-panorama
+  // visibility + names) and new placements are auto-added to its allowlist.
   activePanoramaId: number | null;
   snapEnabled: boolean;
   onToggleSnap: (enabled: boolean) => void;
@@ -30,12 +28,16 @@ interface PlacementsSectionProps {
 export default function PlacementsSection({
   editor,
   assets,
-  panoramas,
   activePanoramaId,
   snapEnabled,
   onToggleSnap,
 }: PlacementsSectionProps) {
   const { placements, mutation, selectedId, mode } = editor;
+
+  const isPending = useCallback(
+    (id: number) => isMutatingId(mutation, id),
+    [mutation],
+  );
 
   const selected = useMemo(
     () => placements.find((p) => p.id === selectedId) ?? null,
@@ -66,6 +68,25 @@ export default function PlacementsSection({
         disabled={isCreating(mutation)}
         onCreate={handleCreate}
       />
+
+      {activePanoramaId != null ? (
+        <PanoramaObjectsList
+          placements={placements}
+          panoramaId={activePanoramaId}
+          isPending={isPending}
+          onToggleVisible={(id, visible) => {
+            const current = placements.find((p) => p.id === id);
+            if (!current) return;
+            const next = visible
+              ? [...new Set([...current.visiblePanoramaIds, activePanoramaId])]
+              : current.visiblePanoramaIds.filter((v) => v !== activePanoramaId);
+            editor.setVisibility(id, next);
+          }}
+          onRename={(id, label) =>
+            editor.setPanoramaLabel(id, activePanoramaId, label)
+          }
+        />
+      ) : null}
 
       {selectedId != null ? (
         <div className="flex flex-col gap-2">
@@ -99,20 +120,12 @@ export default function PlacementsSection({
       </div>
 
       {selected ? (
-        <div className="flex flex-col gap-2">
-          <PlacementForm
-            key={`${selected.id}:${selected.updatedAt}`}
-            placement={selected}
-            pending={isMutatingId(mutation, selected.id)}
-            onSave={handleFormSave}
-          />
-          <PlacementVisibility
-            panoramas={panoramas}
-            visibleIds={selected.visiblePanoramaIds}
-            pending={isMutatingId(mutation, selected.id)}
-            onChange={(ids) => editor.setVisibility(selected.id, ids)}
-          />
-        </div>
+        <PlacementForm
+          key={`${selected.id}:${selected.updatedAt}`}
+          placement={selected}
+          pending={isMutatingId(mutation, selected.id)}
+          onSave={handleFormSave}
+        />
       ) : null}
     </div>
   );

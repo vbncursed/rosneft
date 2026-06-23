@@ -63,6 +63,8 @@ interface SceneCanvasProps {
   // Full panorama list + activator for the in-scene markers shown in 3D view.
   panoramas: Panorama[];
   onActivatePanorama: (id: number) => void;
+  // Toggles the in-scene panorama markers (the clickable points in 3D).
+  showMarkers: boolean;
   // Overlay-calibration: show the model under a ghosted, semi-transparent
   // panorama photo so the operator can align anchor + yaw.
   calibrating: boolean;
@@ -97,6 +99,7 @@ export default function SceneCanvas({
   activePanorama,
   panoramas,
   onActivatePanorama,
+  showMarkers,
   calibrating,
   panoramaOpacity,
   cameraPositionRef,
@@ -225,7 +228,7 @@ export default function SceneCanvas({
           </Suspense>
         )}
 
-        {!activePanorama && !measureMode && (
+        {!activePanorama && !measureMode && showMarkers && (
           <PanoramaMarkersLayer
             panoramas={panoramas}
             onActivate={onActivatePanorama}

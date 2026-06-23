@@ -24,4 +24,12 @@ type Placement struct {
 	// in (panorama mode only; the 3D view always shows every placement).
 	// Empty means hidden in every panorama.
 	VisiblePanoramaIDs []int64
+	// PanoramaLabels are per-panorama names (independent of visibility).
+	PanoramaLabels []PanoramaLabel
+}
+
+// PanoramaLabel is a placement's name within one panorama.
+type PanoramaLabel struct {
+	PanoramaID int64
+	Label      string
 }

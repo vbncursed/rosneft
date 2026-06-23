@@ -99,6 +99,22 @@ func (s *Server) SetPlacementVisibility(ctx context.Context, req SetPlacementVis
 	return SetPlacementVisibility200JSONResponse(placementToAPI(p)), nil
 }
 
+func (s *Server) SetPlacementPanoramaLabel(ctx context.Context, req SetPlacementPanoramaLabelRequestObject) (SetPlacementPanoramaLabelResponseObject, error) {
+	if req.Body == nil {
+		return SetPlacementPanoramaLabel400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: "invalid_input", Message: "missing body"}}, nil
+	}
+	p, err := s.svc.SetPlacementPanoramaLabel(ctx, req.Slug, req.Id, req.PanoramaId, req.Body.Label)
+	switch {
+	case isInvalid(err):
+		return SetPlacementPanoramaLabel400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
+	case isNotFound(err):
+		return SetPlacementPanoramaLabel404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
+	case err != nil:
+		return SetPlacementPanoramaLabel500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+	}
+	return SetPlacementPanoramaLabel200JSONResponse(placementToAPI(p)), nil
+}
+
 func (s *Server) DeletePlacement(ctx context.Context, req DeletePlacementRequestObject) (DeletePlacementResponseObject, error) {
 	err := s.svc.DeletePlacement(ctx, req.Id)
 	switch {
