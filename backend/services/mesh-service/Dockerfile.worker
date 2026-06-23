@@ -27,7 +27,7 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release \
     && strip build/gltfpack
 
 # ---------- mesh-worker: the Go binary ----------
-FROM golang:1.26.3-alpine AS build
+FROM golang:1.26.4-alpine AS build
 WORKDIR /src
 
 COPY go.work go.work.su[m] ./
