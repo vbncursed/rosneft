@@ -357,6 +357,114 @@ components:
         code: { type: string }
         message: { type: string }
 
+    # --- auth domain ---
+    AuthUser:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: string }
+        username: { type: string }
+        status: { type: string, enum: [active, frozen, deleted] }
+        totpEnabled: { type: boolean }
+        roleSlugs: { type: array, items: { type: string } }
+        permissions: { type: array, items: { type: string } }
+    AuthRole:
+      type: object
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        isSystem: { type: boolean }
+        permissionSlugs: { type: array, items: { type: string } }
+    AuthPermission:
+      type: object
+      properties:
+        slug: { type: string }
+        description: { type: string }
+    LoginRequest:
+      type: object
+      required: [identifier, password]
+      properties:
+        identifier: { type: string, description: email or username }
+        password: { type: string, format: password }
+    LoginResponse:
+      type: object
+      properties:
+        token: { type: string, description: empty when twoFactorRequired }
+        twoFactorRequired: { type: boolean }
+        challengeToken: { type: string, description: present when 2FA is required }
+    Login2FARequest:
+      type: object
+      required: [challengeToken, code]
+      properties:
+        challengeToken: { type: string }
+        code: { type: string, description: TOTP or recovery code }
+    TokenResponse:
+      type: object
+      properties:
+        token: { type: string }
+    ChangePasswordRequest:
+      type: object
+      required: [oldPassword, newPassword]
+      properties:
+        oldPassword: { type: string, format: password }
+        newPassword: { type: string, format: password }
+    Setup2FAResponse:
+      type: object
+      properties:
+        secret: { type: string }
+        otpauthUrl: { type: string }
+    Enable2FARequest:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string }
+    Enable2FAResponse:
+      type: object
+      properties:
+        recoveryCodes: { type: array, items: { type: string } }
+    Disable2FARequest:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string }
+    CreateUserRequest:
+      type: object
+      required: [email, username, password]
+      properties:
+        email: { type: string }
+        username: { type: string }
+        password: { type: string, format: password }
+        roleSlugs: { type: array, items: { type: string } }
+    UpdateUserRequest:
+      type: object
+      properties:
+        roleSlugs: { type: array, items: { type: string }, description: replaces the user's roles }
+        email: { type: string }
+        username: { type: string }
+    CreateRoleRequest:
+      type: object
+      required: [slug, title]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        permissionSlugs: { type: array, items: { type: string } }
+    UpdateRoleRequest:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string }
+    SetRolePermissionsRequest:
+      type: object
+      required: [permissionSlugs]
+      properties:
+        permissionSlugs: { type: array, items: { type: string } }
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Opaque session token from POST /api/auth/login
+
   responses:
     NotFound:
       description: Resource not found
@@ -370,6 +478,16 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
     Internal:
       description: Internal server error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Missing or invalid session token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Authenticated but lacking the required permission
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -926,3 +1044,356 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
+
+  # ============================= AUTH =============================
+  /api/auth/login:
+    post:
+      tags: [auth]
+      summary: Authenticate by email/username + password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Session token, or a 2FA challenge
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: Account frozen/deleted or login throttled }
+
+  /api/auth/login/2fa:
+    post:
+      tags: [auth]
+      summary: Complete a 2FA login challenge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Login2FARequest' }
+      responses:
+        '200':
+          description: Session token
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/logout:
+    post:
+      tags: [auth]
+      summary: Revoke the current session
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204': { description: Logged out }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/me:
+    get:
+      tags: [auth]
+      summary: Current user (roles + permissions)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: The authenticated user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/me/password:
+    post:
+      tags: [auth]
+      summary: Change own password
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangePasswordRequest' }
+      responses:
+        '204': { description: Password changed }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/2fa/setup:
+    post:
+      tags: [auth]
+      summary: Provision a pending TOTP secret
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: TOTP secret + otpauth URL (render as QR)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Setup2FAResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { description: 2FA already enabled }
+
+  /api/auth/2fa/enable:
+    post:
+      tags: [auth]
+      summary: Confirm TOTP and receive recovery codes
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Enable2FARequest' }
+      responses:
+        '200':
+          description: One-time recovery codes (shown once)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Enable2FAResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/2fa/disable:
+    post:
+      tags: [auth]
+      summary: Disable TOTP
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Disable2FARequest' }
+      responses:
+        '204': { description: 2FA disabled }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/users:
+    get:
+      tags: [auth]
+      summary: List users (requires users:read)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: status, schema: { type: string, enum: [active, frozen, deleted] } }
+        - { in: query, name: includeDeleted, schema: { type: boolean } }
+      responses:
+        '200':
+          description: Users
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/AuthUser' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [auth]
+      summary: Create a user (requires users:write)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateUserRequest' }
+      responses:
+        '201':
+          description: Created user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthUser' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { description: Email or username already exists }
+
+  /api/auth/users/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      tags: [auth]
+      summary: Get a user (requires users:read)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [auth]
+      summary: Update a user's roles (requires users:write)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateUserRequest' }
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [auth]
+      summary: Soft-delete a user (requires users:delete)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204': { description: Soft-deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { description: Self-target or last-admin guard }
+
+  /api/auth/users/{id}/freeze:
+    post:
+      tags: [auth]
+      summary: Freeze a user, killing their sessions (requires users:freeze)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Frozen user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { description: Self-target or last-admin guard }
+
+  /api/auth/users/{id}/unfreeze:
+    post:
+      tags: [auth]
+      summary: Unfreeze a user (requires users:freeze)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Active user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/auth/users/{id}/restore:
+    post:
+      tags: [auth]
+      summary: Restore a soft-deleted user (requires users:delete)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Restored user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/auth/roles:
+    get:
+      tags: [auth]
+      summary: List roles (requires roles:read)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Roles
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/AuthRole' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [auth]
+      summary: Create a role (requires roles:manage)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateRoleRequest' }
+      responses:
+        '201':
+          description: Created role
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthRole' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { description: Role slug already exists }
+
+  /api/auth/roles/{slug}:
+    parameters:
+      - { in: path, name: slug, required: true, schema: { type: string } }
+    patch:
+      tags: [auth]
+      summary: Rename a role (requires roles:manage)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateRoleRequest' }
+      responses:
+        '200':
+          description: Updated role
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthRole' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [auth]
+      summary: Delete a non-system role (requires roles:manage)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { description: System role cannot be deleted }
+
+  /api/auth/roles/{slug}/permissions:
+    put:
+      tags: [auth]
+      summary: Replace a role's permissions (requires roles:manage)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: slug, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SetRolePermissionsRequest' }
+      responses:
+        '200':
+          description: Updated role
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthRole' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/auth/permissions:
+    get:
+      tags: [auth]
+      summary: List the permission catalog (requires permissions:read)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Permissions
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/AuthPermission' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
