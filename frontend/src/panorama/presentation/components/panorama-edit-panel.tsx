@@ -20,6 +20,7 @@ interface PanoramaEditPanelProps {
   onToggleView: () => void;
   onClose: () => void;
   onDelete: () => Promise<void>;
+  onCalibrate: () => void;
 }
 
 const TAU = Math.PI * 2;
@@ -45,6 +46,7 @@ export default function PanoramaEditPanel({
   onToggleView,
   onClose,
   onDelete,
+  onCalibrate,
 }: PanoramaEditPanelProps) {
   // Re-key on panorama.id so a picker switch swaps the form to fresh
   // values without an effect (which React 19's lint rejects in favour
@@ -100,6 +102,14 @@ export default function PanoramaEditPanel({
             }`}
           >
             {inPanoramaMode ? "Switch to 3D view" : "Enter panorama view"}
+          </button>
+
+          <button
+            type="button"
+            onClick={onCalibrate}
+            className="mb-3 w-full cursor-pointer rounded-lg border border-cyan-300/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-100 transition-colors hover:bg-cyan-500/20"
+          >
+            Calibrate (overlay)
           </button>
 
           <div className="space-y-3">

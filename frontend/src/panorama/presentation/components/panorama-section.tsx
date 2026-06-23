@@ -2,8 +2,10 @@ import { type RefObject } from "react";
 import type { Panorama } from "@/panorama/domain/panorama";
 import type { Vec3 } from "@/shared/domain/vec3";
 import type { usePanoramaOrchestration } from "@/panorama/application/use-panorama-orchestration";
+import type { usePanoramaCalibration } from "@/panorama/application/use-panorama-calibration";
 import PanoramaPicker from "@/panorama/presentation/components/panorama-picker";
 import PanoramaEditPanel from "@/panorama/presentation/components/panorama-edit-panel";
+import PanoramaCalibrationPanel from "@/panorama/presentation/components/panorama-calibration-panel";
 import ExternalPanoramaControl from "@/panorama/presentation/components/external-panorama-control";
 
 interface PanoramaSectionProps {
@@ -15,6 +17,7 @@ interface PanoramaSectionProps {
   // Ids whose equirect texture failed to load — the edit panel flags them
   // so the operator knows to delete and re-upload.
   failedPanoramaIds: ReadonlySet<number>;
+  calibration: ReturnType<typeof usePanoramaCalibration>;
   onSavePanorama: (
     id: number,
     patch: { position?: Vec3; yawOffset?: number },
@@ -34,6 +37,7 @@ export default function PanoramaSection({
   cameraPositionRef,
   externalPanoramaUrl,
   failedPanoramaIds,
+  calibration,
   onSavePanorama,
   onDeletePanorama,
 }: PanoramaSectionProps) {
@@ -68,7 +72,18 @@ export default function PanoramaSection({
         + Panorama
       </a>
 
-      {editingPanorama ? (
+      {editingPanorama && calibration.calibrating && calibration.draft ? (
+        <PanoramaCalibrationPanel
+          panorama={editingPanorama}
+          draft={calibration.draft}
+          opacity={calibration.opacity}
+          onNudge={calibration.nudge}
+          onSetYaw={calibration.setYaw}
+          onSetOpacity={calibration.setOpacity}
+          onSave={calibration.save}
+          onExit={calibration.cancel}
+        />
+      ) : editingPanorama ? (
         <PanoramaEditPanel
           key={editingPanorama.id}
           panorama={editingPanorama}
@@ -79,6 +94,7 @@ export default function PanoramaSection({
           onToggleView={toggleView}
           onClose={closeEdit}
           onDelete={() => onDeletePanorama(editingPanorama.id)}
+          onCalibrate={calibration.start}
         />
       ) : null}
     </div>
