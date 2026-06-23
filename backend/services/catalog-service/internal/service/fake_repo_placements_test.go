@@ -60,27 +60,6 @@ func (r *fakeRepo) SetPlacementVisibility(_ context.Context, territorySlug strin
 	return p, nil
 }
 
-func (r *fakeRepo) SetPlacementPanoramaLabel(_ context.Context, territorySlug string, placementID, panoramaID int64, label string) (domain.Placement, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	p, ok := r.placements[placementID]
-	if !ok || p.TerritorySlug != territorySlug {
-		return domain.Placement{}, domain.ErrPlacementNotFound
-	}
-	out := make([]domain.PanoramaLabel, 0, len(p.PanoramaLabels)+1)
-	for _, l := range p.PanoramaLabels {
-		if l.PanoramaID != panoramaID {
-			out = append(out, l)
-		}
-	}
-	if label != "" {
-		out = append(out, domain.PanoramaLabel{PanoramaID: panoramaID, Label: label})
-	}
-	p.PanoramaLabels = out
-	r.placements[placementID] = p
-	return p, nil
-}
-
 func (r *fakeRepo) DeletePlacement(_ context.Context, id int64) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

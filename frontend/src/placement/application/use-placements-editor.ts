@@ -3,7 +3,6 @@ import {
   createPlacement,
   deletePlacement,
   listPlacements,
-  setPlacementPanoramaLabel,
   setPlacementVisibility,
   updatePlacement,
 } from "@/placement/infrastructure/placement-gateway";
@@ -147,13 +146,6 @@ export function usePlacementsEditor(
     [territorySlug, replaceById],
   );
 
-  const setPanoramaLabel = useCallback(
-    (id: number, panoramaId: number, label: string) =>
-      replaceById(id, () =>
-        setPlacementPanoramaLabel(territorySlug, id, panoramaId, label),
-      ),
-    [territorySlug, replaceById],
-  );
 
   const remove = useCallback(
     async (id: number) => {
@@ -193,6 +185,22 @@ export function usePlacementsEditor(
     [update],
   );
 
+  // Rename keeps a placement's transform and swaps only the territory-level
+  // label — the object's single name, shown everywhere.
+  const rename = useCallback(
+    async (id: number, label: string) => {
+      const p = placementsRef.current.find((x) => x.id === id);
+      if (!p) return;
+      await update(id, {
+        position: p.position,
+        rotation: p.rotation,
+        scale: p.scale,
+        label,
+      });
+    },
+    [update],
+  );
+
   return {
     placements,
     selectedId,
@@ -203,7 +211,7 @@ export function usePlacementsEditor(
     create,
     update,
     setVisibility,
-    setPanoramaLabel,
+    rename,
     remove,
     commitTransform,
   };

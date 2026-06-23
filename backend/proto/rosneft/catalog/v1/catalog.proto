@@ -41,7 +41,6 @@ service CatalogService {
   rpc CreatePlacement(CreatePlacementRequest) returns (CreatePlacementResponse);
   rpc UpdatePlacement(UpdatePlacementRequest) returns (UpdatePlacementResponse);
   rpc SetPlacementVisibility(SetPlacementVisibilityRequest) returns (SetPlacementVisibilityResponse);
-  rpc SetPlacementPanoramaLabel(SetPlacementPanoramaLabelRequest) returns (SetPlacementPanoramaLabelResponse);
   rpc DeletePlacement(DeletePlacementRequest) returns (DeletePlacementResponse);
 
   rpc ListPanoramas(ListPanoramasRequest) returns (ListPanoramasResponse);
@@ -128,16 +127,6 @@ message Placement {
   // shown in (panorama mode only — the 3D view always shows every
   // placement). Empty means the placement is hidden in every panorama.
   repeated int64 visible_panorama_ids = 10;
-  // panorama_labels are per-panorama names: the same placement can carry a
-  // different label in each panorama. Independent of visibility — a label
-  // survives toggling the placement out of a panorama.
-  repeated PanoramaLabel panorama_labels = 11;
-}
-
-// PanoramaLabel is one placement's name within one panorama.
-message PanoramaLabel {
-  int64 panorama_id = 1;
-  string label = 2;
 }
 
 // ─── Territory RPCs ─────────────────────────────────────────────────────────
@@ -310,18 +299,6 @@ message SetPlacementVisibilityRequest {
   repeated int64 panorama_ids = 3;
 }
 message SetPlacementVisibilityResponse {
-  Placement placement = 1;
-}
-
-// SetPlacementPanoramaLabel sets (or clears, when label is empty) a
-// placement's name within one panorama. Returns the updated placement.
-message SetPlacementPanoramaLabelRequest {
-  string territory_slug = 1;
-  int64 placement_id = 2;
-  int64 panorama_id = 3;
-  string label = 4;
-}
-message SetPlacementPanoramaLabelResponse {
   Placement placement = 1;
 }
 

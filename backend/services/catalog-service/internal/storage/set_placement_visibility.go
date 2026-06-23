@@ -46,8 +46,5 @@ func (r *PG) SetPlacementVisibility(ctx context.Context, territorySlug string, p
 		}
 		return domain.Placement{}, fmt.Errorf("storage.SetPlacementVisibility: %w", err)
 	}
-	if err := r.attachLabels(ctx, &out); err != nil {
-		return domain.Placement{}, err
-	}
 	return out, nil
 }

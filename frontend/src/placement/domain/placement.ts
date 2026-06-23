@@ -23,15 +23,6 @@ export interface Placement extends PlacementTransform {
   // only — the 3D view always shows every placement). Empty = hidden in
   // every panorama.
   visiblePanoramaIds: number[];
-  // Per-panorama names: the same placement can read differently in each
-  // panorama. Independent of visibility.
-  panoramaLabels: PanoramaLabel[];
-}
-
-// PanoramaLabel is a placement's name within one panorama.
-export interface PanoramaLabel {
-  panoramaId: number;
-  label: string;
 }
 
 // ResolvedPlacement is a Placement enriched with its model's full LOD

@@ -52,18 +52,6 @@ func (g *Gateway) SetPlacementVisibility(ctx context.Context, territorySlug stri
 	return g.catalog.SetPlacementVisibility(ctx, territorySlug, placementID, panoramaIDs)
 }
 
-// SetPlacementPanoramaLabel sets (or clears) a placement's name within one
-// panorama. The catalog enforces that the panorama belongs to the territory.
-func (g *Gateway) SetPlacementPanoramaLabel(ctx context.Context, territorySlug string, placementID, panoramaID int64, label string) (domain.Placement, error) {
-	if territorySlug == "" {
-		return domain.Placement{}, fmt.Errorf("%w: empty territory slug", domain.ErrInvalidInput)
-	}
-	if placementID <= 0 || panoramaID <= 0 {
-		return domain.Placement{}, fmt.Errorf("%w: placement id and panorama id are required", domain.ErrInvalidInput)
-	}
-	return g.catalog.SetPlacementPanoramaLabel(ctx, territorySlug, placementID, panoramaID, label)
-}
-
 // DeletePlacement removes a placement by ID.
 func (g *Gateway) DeletePlacement(ctx context.Context, id int64) error {
 	if id <= 0 {
