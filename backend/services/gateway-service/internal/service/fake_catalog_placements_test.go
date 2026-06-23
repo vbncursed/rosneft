@@ -51,6 +51,18 @@ func (c *fakeCatalog) UpdatePlacement(_ context.Context, p domain.Placement) (do
 	return p, nil
 }
 
+func (c *fakeCatalog) SetPlacementVisibility(_ context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	p, ok := c.placements[placementID]
+	if !ok || p.TerritorySlug != territorySlug {
+		return domain.Placement{}, domain.ErrPlacementNotFound
+	}
+	p.VisiblePanoramaIDs = panoramaIDs
+	c.placements[placementID] = p
+	return p, nil
+}
+
 func (c *fakeCatalog) DeletePlacement(_ context.Context, id int64) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()

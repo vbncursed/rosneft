@@ -144,6 +144,13 @@ components:
         label: { type: string }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+        visiblePanoramaIds:
+          type: array
+          description: >
+            Allowlist of panorama ids this placement is shown in (panorama
+            mode only — the 3D view always shows every placement). Empty means
+            hidden in every panorama.
+          items: { type: integer, format: int64 }
 
     PlacementCreate:
       type: object
@@ -154,6 +161,10 @@ components:
         rotation: { $ref: '#/components/schemas/Vec3' }
         scale: { $ref: '#/components/schemas/Vec3' }
         label: { type: string }
+        visiblePanoramaIds:
+          type: array
+          description: Initial panorama allowlist (e.g. the active panorama).
+          items: { type: integer, format: int64 }
 
     PlacementUpdate:
       type: object
@@ -162,6 +173,15 @@ components:
         rotation: { $ref: '#/components/schemas/Vec3' }
         scale: { $ref: '#/components/schemas/Vec3' }
         label: { type: string }
+
+    PlacementVisibilityUpdate:
+      type: object
+      required: [panoramaIds]
+      properties:
+        panoramaIds:
+          type: array
+          description: Full replacement allowlist of panorama ids.
+          items: { type: integer, format: int64 }
 
     Panorama:
       type: object
@@ -598,6 +618,35 @@ paths:
       tags: [placements]
       responses:
         '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/territories/{slug}/placements/{id}/visibility:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
+    put:
+      operationId: setPlacementVisibility
+      summary: Replace a placement's panorama allowlist
+      tags: [placements]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlacementVisibilityUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Placement' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
 

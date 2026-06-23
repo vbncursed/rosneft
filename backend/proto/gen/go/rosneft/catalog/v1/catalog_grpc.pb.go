@@ -39,6 +39,7 @@ const (
 	CatalogService_ListPlacements_FullMethodName              = "/rosneft.catalog.v1.CatalogService/ListPlacements"
 	CatalogService_CreatePlacement_FullMethodName             = "/rosneft.catalog.v1.CatalogService/CreatePlacement"
 	CatalogService_UpdatePlacement_FullMethodName             = "/rosneft.catalog.v1.CatalogService/UpdatePlacement"
+	CatalogService_SetPlacementVisibility_FullMethodName      = "/rosneft.catalog.v1.CatalogService/SetPlacementVisibility"
 	CatalogService_DeletePlacement_FullMethodName             = "/rosneft.catalog.v1.CatalogService/DeletePlacement"
 	CatalogService_ListPanoramas_FullMethodName               = "/rosneft.catalog.v1.CatalogService/ListPanoramas"
 	CatalogService_CreatePanorama_FullMethodName              = "/rosneft.catalog.v1.CatalogService/CreatePanorama"
@@ -82,6 +83,7 @@ type CatalogServiceClient interface {
 	ListPlacements(ctx context.Context, in *ListPlacementsRequest, opts ...grpc.CallOption) (*ListPlacementsResponse, error)
 	CreatePlacement(ctx context.Context, in *CreatePlacementRequest, opts ...grpc.CallOption) (*CreatePlacementResponse, error)
 	UpdatePlacement(ctx context.Context, in *UpdatePlacementRequest, opts ...grpc.CallOption) (*UpdatePlacementResponse, error)
+	SetPlacementVisibility(ctx context.Context, in *SetPlacementVisibilityRequest, opts ...grpc.CallOption) (*SetPlacementVisibilityResponse, error)
 	DeletePlacement(ctx context.Context, in *DeletePlacementRequest, opts ...grpc.CallOption) (*DeletePlacementResponse, error)
 	ListPanoramas(ctx context.Context, in *ListPanoramasRequest, opts ...grpc.CallOption) (*ListPanoramasResponse, error)
 	CreatePanorama(ctx context.Context, in *CreatePanoramaRequest, opts ...grpc.CallOption) (*CreatePanoramaResponse, error)
@@ -297,6 +299,16 @@ func (c *catalogServiceClient) UpdatePlacement(ctx context.Context, in *UpdatePl
 	return out, nil
 }
 
+func (c *catalogServiceClient) SetPlacementVisibility(ctx context.Context, in *SetPlacementVisibilityRequest, opts ...grpc.CallOption) (*SetPlacementVisibilityResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetPlacementVisibilityResponse)
+	err := c.cc.Invoke(ctx, CatalogService_SetPlacementVisibility_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *catalogServiceClient) DeletePlacement(ctx context.Context, in *DeletePlacementRequest, opts ...grpc.CallOption) (*DeletePlacementResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DeletePlacementResponse)
@@ -383,6 +395,7 @@ type CatalogServiceServer interface {
 	ListPlacements(context.Context, *ListPlacementsRequest) (*ListPlacementsResponse, error)
 	CreatePlacement(context.Context, *CreatePlacementRequest) (*CreatePlacementResponse, error)
 	UpdatePlacement(context.Context, *UpdatePlacementRequest) (*UpdatePlacementResponse, error)
+	SetPlacementVisibility(context.Context, *SetPlacementVisibilityRequest) (*SetPlacementVisibilityResponse, error)
 	DeletePlacement(context.Context, *DeletePlacementRequest) (*DeletePlacementResponse, error)
 	ListPanoramas(context.Context, *ListPanoramasRequest) (*ListPanoramasResponse, error)
 	CreatePanorama(context.Context, *CreatePanoramaRequest) (*CreatePanoramaResponse, error)
@@ -457,6 +470,9 @@ func (UnimplementedCatalogServiceServer) CreatePlacement(context.Context, *Creat
 }
 func (UnimplementedCatalogServiceServer) UpdatePlacement(context.Context, *UpdatePlacementRequest) (*UpdatePlacementResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdatePlacement not implemented")
+}
+func (UnimplementedCatalogServiceServer) SetPlacementVisibility(context.Context, *SetPlacementVisibilityRequest) (*SetPlacementVisibilityResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetPlacementVisibility not implemented")
 }
 func (UnimplementedCatalogServiceServer) DeletePlacement(context.Context, *DeletePlacementRequest) (*DeletePlacementResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeletePlacement not implemented")
@@ -854,6 +870,24 @@ func _CatalogService_UpdatePlacement_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CatalogService_SetPlacementVisibility_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetPlacementVisibilityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).SetPlacementVisibility(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_SetPlacementVisibility_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).SetPlacementVisibility(ctx, req.(*SetPlacementVisibilityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CatalogService_DeletePlacement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeletePlacementRequest)
 	if err := dec(in); err != nil {
@@ -1030,6 +1064,10 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdatePlacement",
 			Handler:    _CatalogService_UpdatePlacement_Handler,
+		},
+		{
+			MethodName: "SetPlacementVisibility",
+			Handler:    _CatalogService_SetPlacementVisibility_Handler,
 		},
 		{
 			MethodName: "DeletePlacement",

@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useRef } from "react";
+import { Suspense, useCallback, useMemo, useRef } from "react";
 import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import { AdaptiveDpr, Bounds } from "@react-three/drei";
 import type { Group, Mesh } from "three";
@@ -135,6 +135,20 @@ export default function SceneCanvas({
   // In panorama mode that's the sphere; otherwise the territory GLB.
   const snapTargetRef = activePanorama ? panoramaRef : territoryRef;
 
+  // In panorama mode only the placements whose allowlist includes the active
+  // panorama render — equipment dropped for one panorama no longer leaks into
+  // the others. The 3D view (no active panorama) always shows every placement
+  // so the editor can never lose one.
+  const visiblePlacements = useMemo(
+    () =>
+      activePanorama
+        ? placements.filter((p) =>
+            p.visiblePanoramaIds.includes(activePanorama.id),
+          )
+        : placements,
+    [placements, activePanorama],
+  );
+
   // Wrapper-group click is the catch-all for in-scene measurement points.
   // Use the first intersection's world point — that's the surface the
   // user actually targeted, regardless of how many objects sit behind it.
@@ -220,7 +234,7 @@ export default function SceneCanvas({
 
         <Suspense fallback={null}>
           <PlacementsLayer
-            placements={placements}
+            placements={visiblePlacements}
             selectedId={selectedId}
             mode={mode}
             measureMode={measureMode}

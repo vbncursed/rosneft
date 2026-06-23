@@ -24,15 +24,29 @@ func (c *Client) ListPlacements(ctx context.Context, territorySlug string) ([]do
 // CreatePlacement adds a new placement.
 func (c *Client) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
 	resp, err := c.cc.CreatePlacement(ctx, &catalogv1.CreatePlacementRequest{
-		TerritorySlug: p.TerritorySlug,
-		ModelSlug:     p.ModelSlug,
-		Position:      vec3ToProto(p.Position),
-		Rotation:      vec3ToProto(p.Rotation),
-		Scale:         vec3ToProto(p.Scale),
-		Label:         p.Label,
+		TerritorySlug:      p.TerritorySlug,
+		ModelSlug:          p.ModelSlug,
+		Position:           vec3ToProto(p.Position),
+		Rotation:           vec3ToProto(p.Rotation),
+		Scale:              vec3ToProto(p.Scale),
+		Label:              p.Label,
+		VisiblePanoramaIds: p.VisiblePanoramaIDs,
 	})
 	if err != nil {
 		return domain.Placement{}, fmt.Errorf("catalog.CreatePlacement: %w", mapStatusErr(err, domain.ErrTerritoryNotFound))
+	}
+	return placementFromProto(resp.GetPlacement()), nil
+}
+
+// SetPlacementVisibility replaces a placement's panorama allowlist.
+func (c *Client) SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error) {
+	resp, err := c.cc.SetPlacementVisibility(ctx, &catalogv1.SetPlacementVisibilityRequest{
+		TerritorySlug: territorySlug,
+		PlacementId:   placementID,
+		PanoramaIds:   panoramaIDs,
+	})
+	if err != nil {
+		return domain.Placement{}, fmt.Errorf("catalog.SetPlacementVisibility: %w", mapStatusErr(err, domain.ErrPlacementNotFound))
 	}
 	return placementFromProto(resp.GetPlacement()), nil
 }

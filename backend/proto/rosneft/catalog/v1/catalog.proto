@@ -40,6 +40,7 @@ service CatalogService {
   rpc ListPlacements(ListPlacementsRequest) returns (ListPlacementsResponse);
   rpc CreatePlacement(CreatePlacementRequest) returns (CreatePlacementResponse);
   rpc UpdatePlacement(UpdatePlacementRequest) returns (UpdatePlacementResponse);
+  rpc SetPlacementVisibility(SetPlacementVisibilityRequest) returns (SetPlacementVisibilityResponse);
   rpc DeletePlacement(DeletePlacementRequest) returns (DeletePlacementResponse);
 
   rpc ListPanoramas(ListPanoramasRequest) returns (ListPanoramasResponse);
@@ -122,6 +123,10 @@ message Placement {
   string label = 7;
   google.protobuf.Timestamp created_at = 8;
   google.protobuf.Timestamp updated_at = 9;
+  // visible_panorama_ids is the allowlist of panoramas this placement is
+  // shown in (panorama mode only — the 3D view always shows every
+  // placement). Empty means the placement is hidden in every panorama.
+  repeated int64 visible_panorama_ids = 10;
 }
 
 // ─── Territory RPCs ─────────────────────────────────────────────────────────
@@ -266,6 +271,9 @@ message CreatePlacementRequest {
   Vec3 rotation = 4;
   Vec3 scale = 5;
   string label = 6;
+  // Initial panorama allowlist — a placement created while a panorama is
+  // active carries that panorama so it shows where it was dropped.
+  repeated int64 visible_panorama_ids = 7;
 }
 message CreatePlacementResponse {
   Placement placement = 1;
@@ -279,6 +287,18 @@ message UpdatePlacementRequest {
   string label = 5;
 }
 message UpdatePlacementResponse {
+  Placement placement = 1;
+}
+
+// SetPlacementVisibility replaces a placement's panorama allowlist in full
+// (the panorama_ids must all belong to the placement's territory). Returns
+// the updated placement so callers can re-key on the new updated_at.
+message SetPlacementVisibilityRequest {
+  string territory_slug = 1;
+  int64 placement_id = 2;
+  repeated int64 panorama_ids = 3;
+}
+message SetPlacementVisibilityResponse {
   Placement placement = 1;
 }
 

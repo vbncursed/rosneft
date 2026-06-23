@@ -40,6 +40,18 @@ func (g *Gateway) UpdatePlacement(ctx context.Context, p domain.Placement) (doma
 	return g.catalog.UpdatePlacement(ctx, p)
 }
 
+// SetPlacementVisibility replaces a placement's panorama allowlist. The
+// catalog enforces that every id belongs to the territory.
+func (g *Gateway) SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error) {
+	if territorySlug == "" {
+		return domain.Placement{}, fmt.Errorf("%w: empty territory slug", domain.ErrInvalidInput)
+	}
+	if placementID <= 0 {
+		return domain.Placement{}, fmt.Errorf("%w: id is required", domain.ErrInvalidInput)
+	}
+	return g.catalog.SetPlacementVisibility(ctx, territorySlug, placementID, panoramaIDs)
+}
+
 // DeletePlacement removes a placement by ID.
 func (g *Gateway) DeletePlacement(ctx context.Context, id int64) error {
 	if id <= 0 {

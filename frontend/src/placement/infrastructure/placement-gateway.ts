@@ -23,6 +23,7 @@ function mapPlacement(d: PlacementDto): Placement {
     scale: d.scale,
     label: d.label ?? "",
     updatedAt: d.updatedAt ?? "",
+    visiblePanoramaIds: d.visiblePanoramaIds ?? [],
   };
 }
 
@@ -48,6 +49,21 @@ export async function updatePlacement(
   body: PlacementUpdate,
 ): Promise<Placement> {
   const data = await httpPut<PlacementDto>(`${base(territorySlug)}/${id}`, body);
+  return mapPlacement(data);
+}
+
+// setPlacementVisibility replaces a placement's panorama allowlist in full.
+// Returns the server-acknowledged placement (new updatedAt) so callers can
+// re-key any open form.
+export async function setPlacementVisibility(
+  territorySlug: string,
+  id: number,
+  panoramaIds: number[],
+): Promise<Placement> {
+  const data = await httpPut<PlacementDto>(
+    `${base(territorySlug)}/${id}/visibility`,
+    { panoramaIds },
+  );
   return mapPlacement(data);
 }
 

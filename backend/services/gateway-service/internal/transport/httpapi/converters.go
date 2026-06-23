@@ -114,6 +114,13 @@ func placementToAPI(p domain.Placement) Placement {
 	if !p.UpdatedAt.IsZero() {
 		out.UpdatedAt = &p.UpdatedAt
 	}
+	// Always emit the allowlist (as [] when empty) so the client can filter
+	// deterministically instead of guessing at an absent field.
+	ids := p.VisiblePanoramaIDs
+	if ids == nil {
+		ids = []int64{}
+	}
+	out.VisiblePanoramaIds = &ids
 	return out
 }
 

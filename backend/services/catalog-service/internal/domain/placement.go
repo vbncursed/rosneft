@@ -20,4 +20,8 @@ type Placement struct {
 	Label         string
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+	// VisiblePanoramaIDs is the allowlist of panoramas this placement shows
+	// in (panorama mode only; the 3D view always shows every placement).
+	// Empty means hidden in every panorama.
+	VisiblePanoramaIDs []int64
 }

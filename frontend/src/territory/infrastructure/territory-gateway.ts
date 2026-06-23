@@ -68,6 +68,7 @@ function mapPlacement(d: PlacementDto): Placement {
     scale: d.scale,
     label: d.label ?? "",
     updatedAt: d.updatedAt ?? "",
+    visiblePanoramaIds: d.visiblePanoramaIds ?? [],
   };
 }
 
