@@ -24,6 +24,10 @@ function mapPlacement(d: PlacementDto): Placement {
     label: d.label ?? "",
     updatedAt: d.updatedAt ?? "",
     visiblePanoramaIds: d.visiblePanoramaIds ?? [],
+    panoramaLabels: (d.panoramaLabels ?? []).map((l) => ({
+      panoramaId: l.panoramaId,
+      label: l.label,
+    })),
   };
 }
 
@@ -63,6 +67,21 @@ export async function setPlacementVisibility(
   const data = await httpPut<PlacementDto>(
     `${base(territorySlug)}/${id}/visibility`,
     { panoramaIds },
+  );
+  return mapPlacement(data);
+}
+
+// setPlacementPanoramaLabel sets (or clears, when label is empty) a
+// placement's name within one panorama.
+export async function setPlacementPanoramaLabel(
+  territorySlug: string,
+  id: number,
+  panoramaId: number,
+  label: string,
+): Promise<Placement> {
+  const data = await httpPut<PlacementDto>(
+    `${base(territorySlug)}/${id}/panoramas/${panoramaId}/label`,
+    { label },
   );
   return mapPlacement(data);
 }

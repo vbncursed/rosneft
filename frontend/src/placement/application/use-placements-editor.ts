@@ -3,6 +3,7 @@ import {
   createPlacement,
   deletePlacement,
   listPlacements,
+  setPlacementPanoramaLabel,
   setPlacementVisibility,
   updatePlacement,
 } from "@/placement/infrastructure/placement-gateway";
@@ -107,12 +108,15 @@ export function usePlacementsEditor(
     [territorySlug, resolve, modelOptions, territoryMaxDim],
   );
 
-  const update = useCallback(
-    async (id: number, body: PlacementUpdate) => {
+  // Run a mutation that returns the server-acknowledged placement and swap
+  // it into local state optimistically. Shared by the transform, visibility
+  // and per-panorama-name edits — each returns the full placement, so the
+  // others' fields are preserved on every round-trip.
+  const replaceById = useCallback(
+    async (id: number, run: () => Promise<Placement>) => {
       setMutation(mutating(id));
       try {
-        const placement = await updatePlacement(territorySlug, id, body);
-        const resolved = resolve(placement);
+        const resolved = resolve(await run());
         startTransition(() =>
           setPlacements((prev) =>
             prev.map((p) => (p.id === id ? resolved : p)),
@@ -124,33 +128,31 @@ export function usePlacementsEditor(
         setMutation(idle);
       }
     },
-    [territorySlug, resolve],
+    [resolve],
   );
 
-  // Replace a placement's panorama allowlist. Visibility is independent of
-  // the transform, so this never touches position/rotation/scale.
+  const update = useCallback(
+    (id: number, body: PlacementUpdate) =>
+      replaceById(id, () => updatePlacement(territorySlug, id, body)),
+    [territorySlug, replaceById],
+  );
+
+  // Visibility and names are independent of the transform — these never touch
+  // position/rotation/scale.
   const setVisibility = useCallback(
-    async (id: number, panoramaIds: number[]) => {
-      setMutation(mutating(id));
-      try {
-        const placement = await setPlacementVisibility(
-          territorySlug,
-          id,
-          panoramaIds,
-        );
-        const resolved = resolve(placement);
-        startTransition(() =>
-          setPlacements((prev) =>
-            prev.map((p) => (p.id === id ? resolved : p)),
-          ),
-        );
-      } catch (err) {
-        notify.error(formatError(err));
-      } finally {
-        setMutation(idle);
-      }
-    },
-    [territorySlug, resolve],
+    (id: number, panoramaIds: number[]) =>
+      replaceById(id, () =>
+        setPlacementVisibility(territorySlug, id, panoramaIds),
+      ),
+    [territorySlug, replaceById],
+  );
+
+  const setPanoramaLabel = useCallback(
+    (id: number, panoramaId: number, label: string) =>
+      replaceById(id, () =>
+        setPlacementPanoramaLabel(territorySlug, id, panoramaId, label),
+      ),
+    [territorySlug, replaceById],
   );
 
   const remove = useCallback(
@@ -201,6 +203,7 @@ export function usePlacementsEditor(
     create,
     update,
     setVisibility,
+    setPanoramaLabel,
     remove,
     commitTransform,
   };

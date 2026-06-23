@@ -18,6 +18,9 @@ interface PanoramaSectionProps {
   // so the operator knows to delete and re-upload.
   failedPanoramaIds: ReadonlySet<number>;
   calibration: ReturnType<typeof usePanoramaCalibration>;
+  // Whether the in-scene panorama markers (clickable points in 3D) are shown.
+  markersVisible: boolean;
+  onToggleMarkers: () => void;
   onSavePanorama: (
     id: number,
     patch: { position?: Vec3; yawOffset?: number },
@@ -38,6 +41,8 @@ export default function PanoramaSection({
   externalPanoramaUrl,
   failedPanoramaIds,
   calibration,
+  markersVisible,
+  onToggleMarkers,
   onSavePanorama,
   onDeletePanorama,
 }: PanoramaSectionProps) {
@@ -59,6 +64,17 @@ export default function PanoramaSection({
         activeId={activePanorama?.id ?? null}
         onActivate={activate}
       />
+
+      {panoramas.length > 0 ? (
+        <button
+          type="button"
+          onClick={onToggleMarkers}
+          aria-pressed={!markersVisible}
+          className="cursor-pointer rounded-md border border-white/15 px-3 py-1.5 text-[11px] text-neutral-200 transition-colors hover:border-cyan-400/60 hover:text-cyan-200"
+        >
+          {markersVisible ? "Hide panorama points" : "Show panorama points"}
+        </button>
+      ) : null}
 
       <ExternalPanoramaControl
         territorySlug={territorySlug}

@@ -96,34 +96,6 @@ func lodChainToAPI(in []domain.LodArtifact) []LodArtifact {
 	return out
 }
 
-func placementToAPI(p domain.Placement) Placement {
-	out := Placement{
-		Id:            p.ID,
-		TerritorySlug: p.TerritorySlug,
-		ModelSlug:     p.ModelSlug,
-		Position:      vec3ToAPI(p.Position),
-		Rotation:      vec3ToAPI(p.Rotation),
-		Scale:         vec3ToAPI(p.Scale),
-	}
-	if p.Label != "" {
-		out.Label = &p.Label
-	}
-	if !p.CreatedAt.IsZero() {
-		out.CreatedAt = &p.CreatedAt
-	}
-	if !p.UpdatedAt.IsZero() {
-		out.UpdatedAt = &p.UpdatedAt
-	}
-	// Always emit the allowlist (as [] when empty) so the client can filter
-	// deterministically instead of guessing at an absent field.
-	ids := p.VisiblePanoramaIDs
-	if ids == nil {
-		ids = []int64{}
-	}
-	out.VisiblePanoramaIds = &ids
-	return out
-}
-
 func jobToAPI(j domain.Job) Job {
 	out := Job{
 		Id:     j.ID,

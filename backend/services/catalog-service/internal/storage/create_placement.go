@@ -67,5 +67,8 @@ func (r *PG) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Pl
 		}
 		return domain.Placement{}, fmt.Errorf("storage.CreatePlacement: %w", err)
 	}
+	if err := r.attachLabels(ctx, &out); err != nil {
+		return domain.Placement{}, err
+	}
 	return out, nil
 }

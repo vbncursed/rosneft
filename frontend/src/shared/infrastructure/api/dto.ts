@@ -187,6 +187,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/territories/{slug}/placements/{id}/panoramas/{panoramaId}/label": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+                panoramaId: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Set a placement's name within one panorama */
+        put: operations["setPlacementPanoramaLabel"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/territories/{slug}/panoramas": {
         parameters: {
             query?: never;
@@ -488,6 +509,17 @@ export interface components {
             updatedAt?: string;
             /** @description Allowlist of panorama ids this placement is shown in (panorama mode only — the 3D view always shows every placement). Empty means hidden in every panorama. */
             visiblePanoramaIds?: number[];
+            /** @description Per-panorama names: the same placement may read differently in each panorama. Independent of visibility. */
+            panoramaLabels?: components["schemas"]["PanoramaLabel"][];
+        };
+        PanoramaLabel: {
+            /** Format: int64 */
+            panoramaId: number;
+            label: string;
+        };
+        PlacementPanoramaLabelUpdate: {
+            /** @description New name; empty clears the placement's name in this panorama. */
+            label: string;
         };
         PlacementCreate: {
             modelSlug: string;
@@ -1029,6 +1061,37 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["PlacementVisibilityUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Placement"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    setPlacementPanoramaLabel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+                panoramaId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementPanoramaLabelUpdate"];
             };
         };
         responses: {

@@ -38,6 +38,7 @@ type Repository interface {
 	CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
+	SetPlacementPanoramaLabel(ctx context.Context, territorySlug string, placementID, panoramaID int64, label string) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, id int64) error
 
 	ListPanoramas(ctx context.Context, territorySlug string) ([]domain.Panorama, error)

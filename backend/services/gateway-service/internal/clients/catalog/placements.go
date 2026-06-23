@@ -51,6 +51,21 @@ func (c *Client) SetPlacementVisibility(ctx context.Context, territorySlug strin
 	return placementFromProto(resp.GetPlacement()), nil
 }
 
+// SetPlacementPanoramaLabel sets (or clears, when label is empty) a
+// placement's name within one panorama.
+func (c *Client) SetPlacementPanoramaLabel(ctx context.Context, territorySlug string, placementID, panoramaID int64, label string) (domain.Placement, error) {
+	resp, err := c.cc.SetPlacementPanoramaLabel(ctx, &catalogv1.SetPlacementPanoramaLabelRequest{
+		TerritorySlug: territorySlug,
+		PlacementId:   placementID,
+		PanoramaId:    panoramaID,
+		Label:         label,
+	})
+	if err != nil {
+		return domain.Placement{}, fmt.Errorf("catalog.SetPlacementPanoramaLabel: %w", mapStatusErr(err, domain.ErrPlacementNotFound))
+	}
+	return placementFromProto(resp.GetPlacement()), nil
+}
+
 // UpdatePlacement replaces a placement's transform and label.
 func (c *Client) UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
 	resp, err := c.cc.UpdatePlacement(ctx, &catalogv1.UpdatePlacementRequest{

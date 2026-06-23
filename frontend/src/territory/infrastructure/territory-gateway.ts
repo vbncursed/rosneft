@@ -69,6 +69,10 @@ function mapPlacement(d: PlacementDto): Placement {
     label: d.label ?? "",
     updatedAt: d.updatedAt ?? "",
     visiblePanoramaIds: d.visiblePanoramaIds ?? [],
+    panoramaLabels: (d.panoramaLabels ?? []).map((l) => ({
+      panoramaId: l.panoramaId,
+      label: l.label,
+    })),
   };
 }
 
