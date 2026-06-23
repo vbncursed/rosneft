@@ -30,6 +30,8 @@ function applyEquirectFormat(texture: Texture): void {
 interface PanoramaSphereProps {
   panorama: Panorama;
   meshRef: RefObject<Mesh | null>;
+  // < 1 ghosts the equirect over the model for overlay calibration.
+  opacity?: number;
 }
 
 // PanoramaSphere is the equirect skybox. Inverted sphere (BackSide) so
@@ -48,7 +50,7 @@ interface PanoramaSphereProps {
 // the snap raycaster traverses meshes via `userData.origRaycast` first
 // — so we stash the default raycast there and disable the public one,
 // matching the same trick gltf-model uses for the territory.
-export default function PanoramaSphere({ panorama, meshRef }: PanoramaSphereProps) {
+export default function PanoramaSphere({ panorama, meshRef, opacity = 1 }: PanoramaSphereProps) {
   const texture = useLoader(TextureLoader, assetUrl(panorama.sourceBlobHash)) as Texture;
 
   useEffect(() => {
@@ -79,9 +81,18 @@ export default function PanoramaSphere({ panorama, meshRef }: PanoramaSphereProp
       ref={meshRef}
       position={[panorama.position.x, panorama.position.y, panorama.position.z]}
       rotation={[0, panorama.yawOffset, 0]}
+      renderOrder={opacity < 1 ? 1000 : 0}
     >
       <sphereGeometry args={[50, 64, 32]} />
-      <meshBasicMaterial map={texture} side={BackSide} toneMapped={false} />
+      <meshBasicMaterial
+        map={texture}
+        side={BackSide}
+        toneMapped={false}
+        transparent={opacity < 1}
+        opacity={opacity}
+        depthTest={opacity >= 1}
+        depthWrite={opacity >= 1}
+      />
     </mesh>
   );
 }
