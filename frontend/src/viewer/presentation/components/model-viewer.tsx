@@ -149,6 +149,8 @@ export default function ModelViewer({
         measureMode={measure.measureMode}
         snapEnabled={snapEnabled}
         activePanorama={panorama.activePanorama}
+        panoramas={panoramas}
+        onActivatePanorama={panorama.activate}
         cameraPositionRef={cameraPositionRef}
         onPanoramaError={handlePanoramaError}
         chains={measure.chains}
