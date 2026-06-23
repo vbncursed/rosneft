@@ -36,12 +36,14 @@ services:
       dockerfile: services/gateway-service/Dockerfile
     depends_on:
       catalog: { condition: service_started }
+      auth: { condition: service_started }
       mesh-api: { condition: service_started }
       upload: { condition: service_started }
       asset: { condition: service_started }
     environment:
       GATEWAY_HTTP_ADDR: ":8080"
       GATEWAY_CATALOG_GRPC_ADDR: "catalog:9001"
+      GATEWAY_AUTH_GRPC_ADDR: "auth:9004"
       GATEWAY_MESH_GRPC_ADDR: "mesh-api:9002"
       GATEWAY_UPLOAD_GRPC_ADDR: "upload:9003"
       GATEWAY_ASSET_HTTP_ADDR: "http://asset:8081"
@@ -66,6 +68,29 @@ services:
       CATALOG_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
       CATALOG_AUTO_MIGRATE: "true"
       CATALOG_LOG_LEVEL: "info"
+
+  auth:
+    build:
+      context: ./backend
+      dockerfile: services/auth-service/Dockerfile
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    expose:
+      - "9004"
+    environment:
+      AUTH_GRPC_ADDR: ":9004"
+      # Shares the andrey DB with catalog; isolated by the auth_goose_db_version table.
+      AUTH_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
+      AUTH_REDIS_ADDR: "redis:6379"
+      AUTH_REDIS_DB: "1"
+      # CHANGE IN PROD: inject a real 32-byte key (openssl rand -hex 32) + strong
+      # bootstrap password via the deploy environment; these are local-only.
+      AUTH_SECRET_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+      AUTH_BOOTSTRAP_EMAIL: "admin@rosneft.local"
+      AUTH_BOOTSTRAP_USERNAME: "admin"
+      AUTH_BOOTSTRAP_PASSWORD: "change-me-now"
+      AUTH_LOG_LEVEL: "info"
 
   mesh-api:
     build:
