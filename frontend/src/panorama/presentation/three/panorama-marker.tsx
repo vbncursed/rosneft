@@ -1,6 +1,5 @@
-import { useCallback, useState } from "react";
-import { Billboard, Html } from "@react-three/drei";
-import type { ThreeEvent } from "@react-three/fiber";
+import { useState } from "react";
+import { Html } from "@react-three/drei";
 import type { Panorama } from "@/panorama/domain/panorama";
 
 interface PanoramaMarkerProps {
@@ -8,66 +7,56 @@ interface PanoramaMarkerProps {
   onActivate: (id: number) => void;
 }
 
-// Visible dot, plus a larger invisible sphere as a comfortable click/hover
-// target. depthTest off + high renderOrder draws the dot over scene
-// geometry, matching the measurement-overlay convention.
-const DOT_RADIUS = 0.03;
-const HIT_RADIUS = 0.08;
-const RENDER_ORDER = 999;
-const DOT_COLOR = "#67e8f9";
-
-// PanoramaMarker is a camera-facing dot at a panorama's anchor. Hover
-// reveals the title; click enters that panorama. stopPropagation keeps the
-// canvas-level deselect (onPointerMissed) from also firing.
+// PanoramaMarker is a glass "beacon" at a panorama's anchor: a glowing cyan
+// core with a soft halo and a gentle pulse, matching the app's cyan/glass
+// system (same tokens as the measurement chips). Rendered via drei <Html>
+// so it stays a constant screen size, always draws over the scene, and
+// clicks through the DOM rather than the raycaster. Hovering reveals the
+// title; clicking enters that panorama. The pulse is motion-safe only, so
+// it respects prefers-reduced-motion.
 export default function PanoramaMarker({
   panorama,
   onActivate,
 }: PanoramaMarkerProps) {
   const [hovered, setHovered] = useState(false);
-
-  const handleOver = useCallback((e: ThreeEvent<PointerEvent>) => {
-    e.stopPropagation();
-    setHovered(true);
-    document.body.style.cursor = "pointer";
-  }, []);
-
-  const handleOut = useCallback((e: ThreeEvent<PointerEvent>) => {
-    e.stopPropagation();
-    setHovered(false);
-    document.body.style.cursor = "";
-  }, []);
-
-  const handleClick = useCallback(
-    (e: ThreeEvent<MouseEvent>) => {
-      e.stopPropagation();
-      onActivate(panorama.id);
-    },
-    [onActivate, panorama.id],
-  );
-
   const { x, y, z } = panorama.position;
 
   return (
-    <Billboard position={[x, y, z]}>
-      <mesh onPointerOver={handleOver} onPointerOut={handleOut} onClick={handleClick}>
-        <sphereGeometry args={[HIT_RADIUS, 16, 16]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-      </mesh>
-      <mesh renderOrder={RENDER_ORDER}>
-        <circleGeometry args={[DOT_RADIUS, 24]} />
-        <meshBasicMaterial color={DOT_COLOR} depthTest={false} depthWrite={false} transparent />
-      </mesh>
-      {hovered && (
-        <Html
-          center
-          zIndexRange={[20, 10]}
-          style={{ transform: "translate(-50%, calc(-100% - 14px))" }}
+    <Html position={[x, y, z]} center zIndexRange={[20, 10]}>
+      <div className="relative">
+        <div
+          className={`pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md border border-cyan-300/40 bg-black/80 px-2 py-0.5 text-[10px] font-medium leading-tight text-cyan-100 shadow-md backdrop-blur-sm transition-all duration-150 ${
+            hovered ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"
+          }`}
         >
-          <div className="pointer-events-none select-none whitespace-nowrap rounded-md border border-cyan-300/40 bg-black/80 px-2 py-0.5 text-[10px] font-medium leading-tight text-cyan-100 shadow-md backdrop-blur-sm">
-            {panorama.title}
-          </div>
-        </Html>
-      )}
-    </Billboard>
+          {panorama.title}
+        </div>
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onActivate(panorama.id);
+          }}
+          onPointerEnter={() => setHovered(true)}
+          onPointerLeave={() => setHovered(false)}
+          aria-label={`Open panorama ${panorama.title}`}
+          className="group relative grid h-6 w-6 cursor-pointer place-items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+        >
+          <span
+            aria-hidden="true"
+            className="absolute h-6 w-6 rounded-full bg-cyan-400/30 motion-safe:animate-ping"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute h-4 w-4 rounded-full border border-cyan-300/50 bg-cyan-500/10 backdrop-blur-sm transition-colors duration-150 group-hover:border-cyan-200/80 group-hover:bg-cyan-400/20"
+          />
+          <span
+            aria-hidden="true"
+            className="relative h-2.5 w-2.5 rounded-full bg-cyan-300 shadow-[0_0_10px_2px_rgba(34,211,238,0.7)] transition-transform duration-150 group-hover:scale-125"
+          />
+        </button>
+      </div>
+    </Html>
   );
 }
