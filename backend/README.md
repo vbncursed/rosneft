@@ -9,41 +9,46 @@ of 100+ MB ASCII files.
 
 - **Go 1.26** — modern stdlib (`slices`, `maps`, `cmp`, `slog`, `errors.AsType`, `wg.Go`, `strings.SplitSeq`)
 - **gRPC** — internal service-to-service
-- **REST + OpenAPI 3.1** — gateway → frontend (schema-first, `oapi-codegen` generates Go server stubs; frontend generates TS client from the same spec)
-- **PostgreSQL 17** — catalog persistence
-- **Redis 8 (Streams)** — async conversion job queue
+- **REST + OpenAPI 3.0** — gateway → frontend (schema-first, `oapi-codegen` generates Go server stubs; frontend generates TS client from the same spec)
+- **PostgreSQL 17** — catalog + auth persistence (shared instance, separate tables / goose version table)
+- **Redis 8** — async conversion job queue (Streams) + auth sessions (opaque tokens, DB 1)
+- **Auth** — argon2id passwords, TOTP 2FA, multi-role RBAC, opaque Redis sessions (`auth-service`)
 - **Local FS** — blob storage behind `BlobStore` interface (S3-ready)
 - **Cobra + Viper** — CLI / config (flag > env > file > default)
 - **gltfpack** (built from `zeux/meshoptimizer` in the worker image) — Draco / KTX2 / LOD encoder
 
 ## Services
 
-| Service           | Purpose                                                          | Internal       | External           |
-| ----------------- | ---------------------------------------------------------------- | -------------- | ------------------ |
-| `gateway-service` | REST/OpenAPI + scene bundle + SSE + ETag/Brotli middlewares      | —              | `:8080`            |
-| `catalog-service` | Territory + model + artifact + placement registry (Postgres)     | gRPC `:9001`   | —                  |
-| `mesh-service`    | OBJ → GLB + Draco + KTX2 + LOD (`mesh-api` + `mesh-worker`)      | gRPC `:9002`   | —                  |
-| `upload-service`  | Resumable chunked uploads (gRPC streaming)                       | gRPC `:9003`   | —                  |
-| `asset-service`   | Binary artifact server (Range / ETag / immutable cache)          | —              | `:8081` (via gw)   |
+| Service           | Purpose                                                          | Internal       | External           | RPCs / routes |
+| ----------------- | ---------------------------------------------------------------- | -------------- | ------------------ | ------------- |
+| `gateway-service` | REST/OpenAPI + scene bundle + SSE + auth middleware + ETag/Brotli | —             | `:8080`            | 35 HTTP paths |
+| `catalog-service` | Territory + model + artifact + placement + panorama registry     | gRPC `:9001`   | —                  | 26 gRPC       |
+| `auth-service`    | Users, multi-role RBAC, TOTP 2FA, sessions, freeze/soft-delete   | gRPC `:9004`   | —                  | 23 gRPC       |
+| `mesh-service`    | OBJ → GLB + Draco + KTX2 + LOD (`mesh-api` + `mesh-worker`)      | gRPC `:9002`   | —                  | 2 gRPC        |
+| `upload-service`  | Resumable chunked uploads (gRPC streaming)                       | gRPC `:9003`   | —                  | 5 gRPC        |
+| `asset-service`   | Binary artifact server (Range / ETag / immutable cache)          | HTTP `:8081`   | (via gw proxy)     | 2 HTTP + health |
 
-`gateway` is the only service published on the host. `catalog`, `mesh-api`,
-`upload`, and `asset` bind to the internal Compose network only — their
-ports are reachable from sibling services by service name (`catalog:9001`,
-…) but not from the host.
+`gateway` is the only service published on the host. `catalog`, `auth`,
+`mesh-api`, `upload`, and `asset` bind to the internal Compose network only —
+their ports are reachable from sibling services by service name
+(`catalog:9001`, `auth:9004`, …) but not from the host.
 
-Each service owns a README with its full env-var table and routing layout.
+Each service owns a README with its full endpoint and env-var tables. The
+gateway's public HTTP surface (incl. `/api/auth/*`) is browsable as Swagger at
+`http://localhost:8080/docs`.
 
 ## Frontend-facing performance features
 
 These live in `gateway-service` and `mesh-service` and feed the corresponding
 frontend tasks listed in `documentation/`:
 
-- **Scene bundle endpoint** — `GET /api/projects/{slug}/scene` aggregates
-  project + LOD0 + placements + asset options in one round trip.
+- **Scene bundle endpoint** — `GET /api/territories/{slug}/scene` aggregates
+  territory + LOD0 artifact + placements + model options in one round trip.
 - **SSE conversion stream** — `GET /api/jobs/{id}/events` replaces 4-second
   client polling with a live event stream.
-- **Project pagination** — `GET /api/projects?limit=&cursor=` (header
-  `X-Next-Cursor`).
+- **Auth + RBAC** — `/api/auth/*` (login/2FA/me/admin) plus a gateway
+  middleware that authenticates the Bearer token via `auth-service` and gates
+  every mutating `/api/*` route on a per-route permission.
 - **ETag + 304** on JSON endpoints; **Brotli/gzip** content negotiation.
 - **Draco** mesh compression (default on), **KTX2** textures (opt-in),
   **LOD** generation (opt-in via `MESH_LOD_RATIOS`) — see
@@ -58,10 +63,12 @@ backend/
 ├── proto/                # .proto + generated Go (own go.mod)
 ├── pkg/                  # shared libs (own go.mod)
 └── services/             # one go.mod per service
-    ├── gateway-service/
-    ├── catalog-service/
-    ├── mesh-service/      # cmd/mesh-api + cmd/mesh-worker
-    └── asset-service/
+    ├── gateway-service/  # REST edge + auth middleware (cmd/gateway)
+    ├── catalog-service/  # Postgres registry (cmd/catalog)
+    ├── auth-service/     # users/RBAC/2FA/sessions (cmd/auth)
+    ├── mesh-service/     # cmd/mesh-api + cmd/mesh-worker
+    ├── upload-service/   # chunked uploads (cmd/upload)
+    └── asset-service/    # blob server (cmd/asset)
 ```
 
 ## Local development
