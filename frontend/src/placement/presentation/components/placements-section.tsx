@@ -4,27 +4,25 @@ import type { PlacementUpdate } from "@/placement/domain/placement";
 import { isCreating, isMutatingId } from "@/placement/domain/mutation-state";
 import type { usePlacementsEditor } from "@/placement/application/use-placements-editor";
 import CreatePlacementRow from "@/placement/presentation/components/create-placement-row";
-import EmptyState from "@/placement/presentation/components/empty-state";
 import ModeToggle from "@/placement/presentation/components/mode-toggle";
+import ObjectsList from "@/placement/presentation/components/objects-list";
 import PlacementForm from "@/placement/presentation/components/placement-form";
-import PlacementRow from "@/placement/presentation/components/placement-row";
-import PanoramaObjectsList from "@/placement/presentation/components/panorama-objects-list";
 import SnapToggle from "@/placement/presentation/components/snap-toggle";
 
 interface PlacementsSectionProps {
   editor: ReturnType<typeof usePlacementsEditor>;
   assets: PlacementAssetOption[];
-  // When a panorama is active, the list becomes panorama-aware (per-panorama
-  // visibility + names) and new placements are auto-added to its allowlist.
+  // When a panorama is active, the list gains a per-object "show here" toggle
+  // and new placements are auto-added to its allowlist.
   activePanoramaId: number | null;
   snapEnabled: boolean;
   onToggleSnap: (enabled: boolean) => void;
 }
 
-// PlacementsSection is the body of the overlays panel's "Placements" tab —
-// the create row, the gizmo mode/snap controls (shown once a placement is
-// selected), the scrollable list, and the edit form. The tabbed panel shell
-// (OverlaysPanel) owns the chrome; this component owns only the content.
+// PlacementsSection is the body of the overlays panel's "Placements" tab: the
+// create row, the gizmo mode/snap controls (shown once a placement is
+// selected), the territory objects list (name + per-panorama visibility), and
+// the transform form for the selected object.
 export default function PlacementsSection({
   editor,
   assets,
@@ -61,6 +59,19 @@ export default function PlacementsSection({
     [editor, activePanoramaId],
   );
 
+  const handleToggleVisible = useCallback(
+    (id: number, visible: boolean) => {
+      if (activePanoramaId == null) return;
+      const current = placements.find((p) => p.id === id);
+      if (!current) return;
+      const next = visible
+        ? [...new Set([...current.visiblePanoramaIds, activePanoramaId])]
+        : current.visiblePanoramaIds.filter((v) => v !== activePanoramaId);
+      editor.setVisibility(id, next);
+    },
+    [editor, placements, activePanoramaId],
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <CreatePlacementRow
@@ -69,25 +80,6 @@ export default function PlacementsSection({
         onCreate={handleCreate}
       />
 
-      {activePanoramaId != null ? (
-        <PanoramaObjectsList
-          placements={placements}
-          panoramaId={activePanoramaId}
-          isPending={isPending}
-          onToggleVisible={(id, visible) => {
-            const current = placements.find((p) => p.id === id);
-            if (!current) return;
-            const next = visible
-              ? [...new Set([...current.visiblePanoramaIds, activePanoramaId])]
-              : current.visiblePanoramaIds.filter((v) => v !== activePanoramaId);
-            editor.setVisibility(id, next);
-          }}
-          onRename={(id, label) =>
-            editor.setPanoramaLabel(id, activePanoramaId, label)
-          }
-        />
-      ) : null}
-
       {selectedId != null ? (
         <div className="flex flex-col gap-2">
           <ModeToggle mode={mode} onChange={editor.setMode} />
@@ -95,28 +87,21 @@ export default function PlacementsSection({
         </div>
       ) : (
         <p className="rounded-md border border-dashed border-white/15 px-3 py-2 text-[11px] text-neutral-400">
-          Click a placement in the list or in the scene to enable the gizmo.
+          Name an object below or click it to enable the gizmo.
         </p>
       )}
 
       <div className="flex-1 overflow-y-auto pr-1">
-        {placements.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {placements.map((p) => (
-              <li key={p.id}>
-                <PlacementRow
-                  placement={p}
-                  selected={p.id === selectedId}
-                  pending={isMutatingId(mutation, p.id)}
-                  onSelect={editor.setSelectedId}
-                  onDelete={editor.remove}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
+        <ObjectsList
+          placements={placements}
+          selectedId={selectedId}
+          activePanoramaId={activePanoramaId}
+          isPending={isPending}
+          onSelect={editor.setSelectedId}
+          onRename={editor.rename}
+          onToggleVisible={handleToggleVisible}
+          onDelete={editor.remove}
+        />
       </div>
 
       {selected ? (

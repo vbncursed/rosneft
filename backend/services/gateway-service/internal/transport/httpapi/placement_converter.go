@@ -6,7 +6,7 @@ import (
 
 // placementToAPI maps a domain placement to its API shape. The visibility
 // allowlist is always emitted (as [] when empty) so the client can filter
-// deterministically; per-panorama names ride alongside, independent of it.
+// deterministically instead of guessing at an absent field.
 func placementToAPI(p domain.Placement) Placement {
 	out := Placement{
 		Id:            p.ID,
@@ -30,10 +30,5 @@ func placementToAPI(p domain.Placement) Placement {
 		ids = []int64{}
 	}
 	out.VisiblePanoramaIds = &ids
-	labels := make([]PanoramaLabel, len(p.PanoramaLabels))
-	for i, l := range p.PanoramaLabels {
-		labels[i] = PanoramaLabel{PanoramaId: l.PanoramaID, Label: l.Label}
-	}
-	out.PanoramaLabels = &labels
 	return out
 }

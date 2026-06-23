@@ -40,14 +40,5 @@ func (r *PG) ListPlacements(ctx context.Context, territorySlug string) ([]domain
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("storage.ListPlacements: iter: %w", err)
 	}
-
-	// Stitch per-panorama names in one extra round-trip rather than an N+1.
-	labels, err := r.labelsByTerritory(ctx, territorySlug)
-	if err != nil {
-		return nil, err
-	}
-	for i := range out {
-		out[i].PanoramaLabels = labels[out[i].ID]
-	}
 	return out, nil
 }

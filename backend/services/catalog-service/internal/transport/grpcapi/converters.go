@@ -144,14 +144,5 @@ func placementToProto(p domain.Placement) *catalogv1.Placement {
 		CreatedAt:          timestamppb.New(p.CreatedAt),
 		UpdatedAt:          timestamppb.New(p.UpdatedAt),
 		VisiblePanoramaIds: p.VisiblePanoramaIDs,
-		PanoramaLabels:     panoramaLabelsToProto(p.PanoramaLabels),
 	}
-}
-
-func panoramaLabelsToProto(labels []domain.PanoramaLabel) []*catalogv1.PanoramaLabel {
-	out := make([]*catalogv1.PanoramaLabel, len(labels))
-	for i, l := range labels {
-		out[i] = &catalogv1.PanoramaLabel{PanoramaId: l.PanoramaID, Label: l.Label}
-	}
-	return out
 }
