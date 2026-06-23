@@ -1,6 +1,13 @@
 import { type RefObject, useEffect } from "react";
 import { useLoader } from "@react-three/fiber";
-import { BackSide, SRGBColorSpace, TextureLoader, type Mesh, type Texture } from "three";
+import {
+  BackSide,
+  RepeatWrapping,
+  SRGBColorSpace,
+  TextureLoader,
+  type Mesh,
+  type Texture,
+} from "three";
 import type { Panorama } from "@/panorama/domain/panorama";
 import { assetUrl } from "@/shared/infrastructure/asset-url";
 
@@ -9,6 +16,14 @@ import { assetUrl } from "@/shared/infrastructure/asset-url";
 // doesn't see it as modifying a hook return value.
 function applyEquirectFormat(texture: Texture): void {
   texture.colorSpace = SRGBColorSpace;
+  // An equirect mapped onto the inside of a BackSide sphere comes out
+  // horizontally mirrored (signage and layout read backwards). Flip the
+  // U axis to undo it; the default vertical flipY already handles the
+  // other axis. Setting repeat.x = -1 with offset.x = 1 keeps samples in
+  // [0,1] but reverses direction.
+  texture.wrapS = RepeatWrapping;
+  texture.repeat.x = -1;
+  texture.offset.x = 1;
   texture.needsUpdate = true;
 }
 
