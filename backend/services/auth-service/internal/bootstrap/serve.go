@@ -42,11 +42,14 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	defer func() { _ = rdb.Close() }()
 
-	_ = pool
-	_ = rdb
-	// Phase 7 wires InitService(pool, rdb, cfg) + EnsureBootstrapAdmin here and
-	// passes the handler to InitGRPCServer.
-	grpcSrv, healthSrv := InitGRPCServer(logger)
+	handler, userStore, err := InitService(pool, rdb, cfg)
+	if err != nil {
+		return err
+	}
+	if err := EnsureBootstrapAdmin(rootCtx, userStore, cfg); err != nil {
+		return fmt.Errorf("bootstrap admin: %w", err)
+	}
+	grpcSrv, healthSrv := InitGRPCServer(handler, logger)
 
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {
