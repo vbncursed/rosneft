@@ -43,7 +43,11 @@ func (s *Server) UpdateUser(ctx context.Context, req *authv1.UpdateUserRequest) 
 }
 
 func (s *Server) FreezeUser(ctx context.Context, req *authv1.FreezeUserRequest) (*authv1.User, error) {
-	u, err := s.users.Freeze(ctx, req.GetActorId(), req.GetId())
+	actorID, err := s.userIDFromToken(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	u, err := s.users.Freeze(ctx, actorID, req.GetId())
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -59,7 +63,11 @@ func (s *Server) UnfreezeUser(ctx context.Context, req *authv1.UnfreezeUserReque
 }
 
 func (s *Server) SoftDeleteUser(ctx context.Context, req *authv1.SoftDeleteUserRequest) (*authv1.SoftDeleteUserResponse, error) {
-	if err := s.users.SoftDelete(ctx, req.GetActorId(), req.GetId()); err != nil {
+	actorID, err := s.userIDFromToken(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	if err := s.users.SoftDelete(ctx, actorID, req.GetId()); err != nil {
 		return nil, mapError(err)
 	}
 	return &authv1.SoftDeleteUserResponse{}, nil

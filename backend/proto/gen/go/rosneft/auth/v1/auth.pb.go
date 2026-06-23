@@ -1290,7 +1290,7 @@ func (x *UpdateUserRequest) GetUsername() string {
 
 type FreezeUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ActorId       string                 `protobuf:"bytes,1,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"` // actor resolved server-side from the session, never trusted from the client
 	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1326,9 +1326,9 @@ func (*FreezeUserRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{24}
 }
 
-func (x *FreezeUserRequest) GetActorId() string {
+func (x *FreezeUserRequest) GetToken() string {
 	if x != nil {
-		return x.ActorId
+		return x.Token
 	}
 	return ""
 }
@@ -1386,7 +1386,7 @@ func (x *UnfreezeUserRequest) GetId() string {
 
 type SoftDeleteUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ActorId       string                 `protobuf:"bytes,1,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"` // actor resolved server-side from the session
 	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1422,9 +1422,9 @@ func (*SoftDeleteUserRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{26}
 }
 
-func (x *SoftDeleteUserRequest) GetActorId() string {
+func (x *SoftDeleteUserRequest) GetToken() string {
 	if x != nil {
-		return x.ActorId
+		return x.Token
 	}
 	return ""
 }
@@ -2007,14 +2007,14 @@ const file_rosneft_auth_v1_auth_proto_rawDesc = "" +
 	"\n" +
 	"role_slugs\x18\x02 \x03(\tR\troleSlugs\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email\x12\x1a\n" +
-	"\busername\x18\x04 \x01(\tR\busername\">\n" +
-	"\x11FreezeUserRequest\x12\x19\n" +
-	"\bactor_id\x18\x01 \x01(\tR\aactorId\x12\x0e\n" +
+	"\busername\x18\x04 \x01(\tR\busername\"9\n" +
+	"\x11FreezeUserRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\"%\n" +
 	"\x13UnfreezeUserRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"B\n" +
-	"\x15SoftDeleteUserRequest\x12\x19\n" +
-	"\bactor_id\x18\x01 \x01(\tR\aactorId\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"=\n" +
+	"\x15SoftDeleteUserRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\"\x18\n" +
 	"\x16SoftDeleteUserResponse\"$\n" +
 	"\x12RestoreUserRequest\x12\x0e\n" +
