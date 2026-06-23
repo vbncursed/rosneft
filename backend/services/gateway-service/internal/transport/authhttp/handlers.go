@@ -21,33 +21,42 @@ func New(client *auth.Client, logger *slog.Logger) *Handlers {
 	return &Handlers{client: client, logger: logger}
 }
 
-// Mount registers the auth routes on r. login + login/2fa are public; every
-// other handler reads and validates the Bearer token via the client.
+// Mount registers the auth routes on r. Only login + login/2fa are public.
+// Self routes require a valid session (Authenticate). Admin routes additionally
+// require a specific permission — enforced by middleware so a new admin route
+// cannot be added without a gate.
 func (h *Handlers) Mount(r chi.Router) {
 	r.Route("/api/auth", func(ar chi.Router) {
+		// Public.
 		ar.Post("/login", h.login)
 		ar.Post("/login/2fa", h.login2FA)
-		ar.Post("/logout", h.logout)
-		ar.Get("/me", h.me)
-		ar.Post("/me/password", h.changePassword)
-		ar.Post("/2fa/setup", h.setup2FA)
-		ar.Post("/2fa/enable", h.enable2FA)
-		ar.Post("/2fa/disable", h.disable2FA)
-		// admin
-		ar.Get("/users", h.listUsers)
-		ar.Post("/users", h.createUser)
-		ar.Get("/users/{id}", h.getUser)
-		ar.Patch("/users/{id}", h.updateUser)
-		ar.Post("/users/{id}/freeze", h.freezeUser)
-		ar.Post("/users/{id}/unfreeze", h.unfreezeUser)
-		ar.Delete("/users/{id}", h.softDeleteUser)
-		ar.Post("/users/{id}/restore", h.restoreUser)
-		ar.Get("/roles", h.listRoles)
-		ar.Post("/roles", h.createRole)
-		ar.Patch("/roles/{slug}", h.updateRole)
-		ar.Delete("/roles/{slug}", h.deleteRole)
-		ar.Put("/roles/{slug}/permissions", h.setRolePermissions)
-		ar.Get("/permissions", h.listPermissions)
+
+		// Authenticated — any valid session.
+		ar.Group(func(pr chi.Router) {
+			pr.Use(h.Authenticate)
+			pr.Post("/logout", h.logout)
+			pr.Get("/me", h.me)
+			pr.Post("/me/password", h.changePassword)
+			pr.Post("/2fa/setup", h.setup2FA)
+			pr.Post("/2fa/enable", h.enable2FA)
+			pr.Post("/2fa/disable", h.disable2FA)
+
+			// Admin — authenticated + per-route permission.
+			pr.With(h.require("users:read")).Get("/users", h.listUsers)
+			pr.With(h.require("users:write")).Post("/users", h.createUser)
+			pr.With(h.require("users:read")).Get("/users/{id}", h.getUser)
+			pr.With(h.require("users:write")).Patch("/users/{id}", h.updateUser)
+			pr.With(h.require("users:freeze")).Post("/users/{id}/freeze", h.freezeUser)
+			pr.With(h.require("users:freeze")).Post("/users/{id}/unfreeze", h.unfreezeUser)
+			pr.With(h.require("users:delete")).Delete("/users/{id}", h.softDeleteUser)
+			pr.With(h.require("users:delete")).Post("/users/{id}/restore", h.restoreUser)
+			pr.With(h.require("roles:read")).Get("/roles", h.listRoles)
+			pr.With(h.require("roles:manage")).Post("/roles", h.createRole)
+			pr.With(h.require("roles:manage")).Patch("/roles/{slug}", h.updateRole)
+			pr.With(h.require("roles:manage")).Delete("/roles/{slug}", h.deleteRole)
+			pr.With(h.require("roles:manage")).Put("/roles/{slug}/permissions", h.setRolePermissions)
+			pr.With(h.require("permissions:read")).Get("/permissions", h.listPermissions)
+		})
 	})
 }
 
