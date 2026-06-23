@@ -205,6 +205,8 @@ export default function ModelViewer({
             <PlacementsSection
               editor={editor}
               assets={modelOptions}
+              panoramas={panoramas}
+              activePanoramaId={panorama.activePanorama?.id ?? null}
               snapEnabled={snapEnabled}
               onToggleSnap={toggleSnap}
             />

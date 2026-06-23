@@ -220,6 +220,9 @@ type Placement struct {
 	Scale         Vec3       `json:"scale"`
 	TerritorySlug string     `json:"territorySlug"`
 	UpdatedAt     *time.Time `json:"updatedAt,omitempty"`
+
+	// VisiblePanoramaIds Allowlist of panorama ids this placement is shown in (panorama mode only — the 3D view always shows every placement). Empty means hidden in every panorama.
+	VisiblePanoramaIds *[]int64 `json:"visiblePanoramaIds,omitempty"`
 }
 
 // PlacementCreate defines model for PlacementCreate.
@@ -229,6 +232,9 @@ type PlacementCreate struct {
 	Position  *Vec3   `json:"position,omitempty"`
 	Rotation  *Vec3   `json:"rotation,omitempty"`
 	Scale     *Vec3   `json:"scale,omitempty"`
+
+	// VisiblePanoramaIds Initial panorama allowlist (e.g. the active panorama).
+	VisiblePanoramaIds *[]int64 `json:"visiblePanoramaIds,omitempty"`
 }
 
 // PlacementUpdate defines model for PlacementUpdate.
@@ -237,6 +243,12 @@ type PlacementUpdate struct {
 	Position *Vec3   `json:"position,omitempty"`
 	Rotation *Vec3   `json:"rotation,omitempty"`
 	Scale    *Vec3   `json:"scale,omitempty"`
+}
+
+// PlacementVisibilityUpdate defines model for PlacementVisibilityUpdate.
+type PlacementVisibilityUpdate struct {
+	// PanoramaIds Full replacement allowlist of panorama ids.
+	PanoramaIds []int64 `json:"panoramaIds"`
 }
 
 // SceneBundle Single-shot bundle for the viewer page. Includes the requested
@@ -348,6 +360,9 @@ type CreatePlacementJSONRequestBody = PlacementCreate
 // UpdatePlacementJSONRequestBody defines body for UpdatePlacement for application/json ContentType.
 type UpdatePlacementJSONRequestBody = PlacementUpdate
 
+// SetPlacementVisibilityJSONRequestBody defines body for SetPlacementVisibility for application/json ContentType.
+type SetPlacementVisibilityJSONRequestBody = PlacementVisibilityUpdate
+
 // ReplaceTerritorySourceJSONRequestBody defines body for ReplaceTerritorySource for application/json ContentType.
 type ReplaceTerritorySourceJSONRequestBody = TerritorySourceReplace
 
@@ -419,6 +434,9 @@ type ServerInterface interface {
 	// Replace a placement's transform
 	// (PUT /api/territories/{slug}/placements/{id})
 	UpdatePlacement(w http.ResponseWriter, r *http.Request, slug string, id int64)
+	// Replace a placement's panorama allowlist
+	// (PUT /api/territories/{slug}/placements/{id}/visibility)
+	SetPlacementVisibility(w http.ResponseWriter, r *http.Request, slug string, id int64)
 	// Single-shot bundle for the viewer page
 	// (GET /api/territories/{slug}/scene)
 	GetSceneBundle(w http.ResponseWriter, r *http.Request, slug string)
@@ -569,6 +587,12 @@ func (_ Unimplemented) DeletePlacement(w http.ResponseWriter, r *http.Request, s
 // Replace a placement's transform
 // (PUT /api/territories/{slug}/placements/{id})
 func (_ Unimplemented) UpdatePlacement(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Replace a placement's panorama allowlist
+// (PUT /api/territories/{slug}/placements/{id}/visibility)
+func (_ Unimplemented) SetPlacementVisibility(w http.ResponseWriter, r *http.Request, slug string, id int64) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1175,6 +1199,41 @@ func (siw *ServerInterfaceWrapper) UpdatePlacement(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// SetPlacementVisibility operation middleware
+func (siw *ServerInterfaceWrapper) SetPlacementVisibility(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetPlacementVisibility(w, r, slug, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetSceneBundle operation middleware
 func (siw *ServerInterfaceWrapper) GetSceneBundle(w http.ResponseWriter, r *http.Request) {
 
@@ -1548,6 +1607,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/territories/{slug}/placements/{id}", wrapper.UpdatePlacement)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/territories/{slug}/placements/{id}/visibility", wrapper.SetPlacementVisibility)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/territories/{slug}/scene", wrapper.GetSceneBundle)
@@ -2671,6 +2733,72 @@ func (response UpdatePlacement500JSONResponse) VisitUpdatePlacementResponse(w ht
 	return err
 }
 
+type SetPlacementVisibilityRequestObject struct {
+	Slug string `json:"slug"`
+	Id   int64  `json:"id"`
+	Body *SetPlacementVisibilityJSONRequestBody
+}
+
+type SetPlacementVisibilityResponseObject interface {
+	VisitSetPlacementVisibilityResponse(w http.ResponseWriter) error
+}
+
+type SetPlacementVisibility200JSONResponse Placement
+
+func (response SetPlacementVisibility200JSONResponse) VisitSetPlacementVisibilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPlacementVisibility400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response SetPlacementVisibility400JSONResponse) VisitSetPlacementVisibilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPlacementVisibility404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response SetPlacementVisibility404JSONResponse) VisitSetPlacementVisibilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetPlacementVisibility500JSONResponse struct{ InternalJSONResponse }
+
+func (response SetPlacementVisibility500JSONResponse) VisitSetPlacementVisibilityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetSceneBundleRequestObject struct {
 	Slug string `json:"slug"`
 }
@@ -3119,6 +3247,9 @@ type StrictServerInterface interface {
 	// Replace a placement's transform
 	// (PUT /api/territories/{slug}/placements/{id})
 	UpdatePlacement(ctx context.Context, request UpdatePlacementRequestObject) (UpdatePlacementResponseObject, error)
+	// Replace a placement's panorama allowlist
+	// (PUT /api/territories/{slug}/placements/{id}/visibility)
+	SetPlacementVisibility(ctx context.Context, request SetPlacementVisibilityRequestObject) (SetPlacementVisibilityResponseObject, error)
 	// Single-shot bundle for the viewer page
 	// (GET /api/territories/{slug}/scene)
 	GetSceneBundle(ctx context.Context, request GetSceneBundleRequestObject) (GetSceneBundleResponseObject, error)
@@ -3764,6 +3895,40 @@ func (sh *strictHandler) UpdatePlacement(w http.ResponseWriter, r *http.Request,
 	}
 }
 
+// SetPlacementVisibility operation middleware
+func (sh *strictHandler) SetPlacementVisibility(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	var request SetPlacementVisibilityRequestObject
+
+	request.Slug = slug
+	request.Id = id
+
+	var body SetPlacementVisibilityJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetPlacementVisibility(ctx, request.(SetPlacementVisibilityRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetPlacementVisibility")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetPlacementVisibilityResponseObject); ok {
+		if err := validResponse.VisitSetPlacementVisibilityResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetSceneBundle operation middleware
 func (sh *strictHandler) GetSceneBundle(w http.ResponseWriter, r *http.Request, slug string) {
 	var request GetSceneBundleRequestObject
@@ -3966,77 +4131,80 @@ func (sh *strictHandler) FinalizeUpload(w http.ResponseWriter, r *http.Request, 
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
+	"MqOZtM4OhkNmxsyE0gd/2//bfnT98fr/AwAA//8=",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

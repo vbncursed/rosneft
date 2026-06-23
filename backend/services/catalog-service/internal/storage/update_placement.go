@@ -27,13 +27,13 @@ func (r *PG) UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Pl
 				position_x, position_y, position_z,
 				rotation_x, rotation_y, rotation_z,
 				scale_x, scale_y, scale_z,
-				label, created_at, updated_at
+				label, created_at, updated_at, visible_panorama_ids
 		)
 		SELECT u.id, t.slug, m.slug,
 			u.position_x, u.position_y, u.position_z,
 			u.rotation_x, u.rotation_y, u.rotation_z,
 			u.scale_x, u.scale_y, u.scale_z,
-			u.label, u.created_at, u.updated_at
+			u.label, u.created_at, u.updated_at, u.visible_panorama_ids
 		FROM updated u
 		JOIN territories t ON t.id = u.territory_id
 		JOIN models m      ON m.id = u.model_id`

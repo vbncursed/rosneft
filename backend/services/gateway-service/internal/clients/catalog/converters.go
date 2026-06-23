@@ -122,14 +122,15 @@ func placementFromProto(p *catalogv1.Placement) domain.Placement {
 		return domain.Placement{}
 	}
 	return domain.Placement{
-		ID:            p.GetId(),
-		TerritorySlug: p.GetTerritorySlug(),
-		ModelSlug:     p.GetModelSlug(),
-		Position:      vec3FromProto(p.GetPosition()),
-		Rotation:      vec3FromProto(p.GetRotation()),
-		Scale:         vec3FromProto(p.GetScale()),
-		Label:         p.GetLabel(),
-		CreatedAt:     p.GetCreatedAt().AsTime(),
-		UpdatedAt:     p.GetUpdatedAt().AsTime(),
+		ID:                 p.GetId(),
+		TerritorySlug:      p.GetTerritorySlug(),
+		ModelSlug:          p.GetModelSlug(),
+		Position:           vec3FromProto(p.GetPosition()),
+		Rotation:           vec3FromProto(p.GetRotation()),
+		Scale:              vec3FromProto(p.GetScale()),
+		Label:              p.GetLabel(),
+		CreatedAt:          p.GetCreatedAt().AsTime(),
+		UpdatedAt:          p.GetUpdatedAt().AsTime(),
+		VisiblePanoramaIDs: p.GetVisiblePanoramaIds(),
 	}
 }

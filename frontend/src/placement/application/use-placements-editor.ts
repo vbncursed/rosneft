@@ -3,6 +3,7 @@ import {
   createPlacement,
   deletePlacement,
   listPlacements,
+  setPlacementVisibility,
   updatePlacement,
 } from "@/placement/infrastructure/placement-gateway";
 import type { GizmoMode } from "@/placement/domain/gizmo-mode";
@@ -80,7 +81,7 @@ export function usePlacementsEditor(
   }, [territorySlug, resolve]);
 
   const create = useCallback(
-    async (modelSlug: string) => {
+    async (modelSlug: string, visiblePanoramaIds?: number[]) => {
       setMutation(creating);
       try {
         // Both territory and model GLBs are normalised to max-axis=2,
@@ -93,6 +94,7 @@ export function usePlacementsEditor(
         const placement = await createPlacement(territorySlug, {
           modelSlug,
           scale: { x: ratio, y: ratio, z: ratio },
+          visiblePanoramaIds,
         });
         const resolved = resolve(placement);
         startTransition(() => setPlacements((prev) => [...prev, resolved]));
@@ -110,6 +112,32 @@ export function usePlacementsEditor(
       setMutation(mutating(id));
       try {
         const placement = await updatePlacement(territorySlug, id, body);
+        const resolved = resolve(placement);
+        startTransition(() =>
+          setPlacements((prev) =>
+            prev.map((p) => (p.id === id ? resolved : p)),
+          ),
+        );
+      } catch (err) {
+        notify.error(formatError(err));
+      } finally {
+        setMutation(idle);
+      }
+    },
+    [territorySlug, resolve],
+  );
+
+  // Replace a placement's panorama allowlist. Visibility is independent of
+  // the transform, so this never touches position/rotation/scale.
+  const setVisibility = useCallback(
+    async (id: number, panoramaIds: number[]) => {
+      setMutation(mutating(id));
+      try {
+        const placement = await setPlacementVisibility(
+          territorySlug,
+          id,
+          panoramaIds,
+        );
         const resolved = resolve(placement);
         startTransition(() =>
           setPlacements((prev) =>
@@ -172,6 +200,7 @@ export function usePlacementsEditor(
     setMode,
     create,
     update,
+    setVisibility,
     remove,
     commitTransform,
   };

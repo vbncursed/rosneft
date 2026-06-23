@@ -32,13 +32,18 @@ func (s *Server) CreatePlacement(ctx context.Context, req CreatePlacementRequest
 	if body.Label != nil {
 		label = *body.Label
 	}
+	var visibleIDs []int64
+	if body.VisiblePanoramaIds != nil {
+		visibleIDs = *body.VisiblePanoramaIds
+	}
 	p, err := s.svc.CreatePlacement(ctx, domain.Placement{
-		TerritorySlug: req.Slug,
-		ModelSlug:     body.ModelSlug,
-		Position:      vec3PtrFromAPI(body.Position),
-		Rotation:      vec3PtrFromAPI(body.Rotation),
-		Scale:         vec3PtrFromAPI(body.Scale),
-		Label:         label,
+		TerritorySlug:      req.Slug,
+		ModelSlug:          body.ModelSlug,
+		Position:           vec3PtrFromAPI(body.Position),
+		Rotation:           vec3PtrFromAPI(body.Rotation),
+		Scale:              vec3PtrFromAPI(body.Scale),
+		Label:              label,
+		VisiblePanoramaIDs: visibleIDs,
 	})
 	switch {
 	case isInvalid(err):
@@ -76,6 +81,22 @@ func (s *Server) UpdatePlacement(ctx context.Context, req UpdatePlacementRequest
 		return UpdatePlacement500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
 	}
 	return UpdatePlacement200JSONResponse(placementToAPI(p)), nil
+}
+
+func (s *Server) SetPlacementVisibility(ctx context.Context, req SetPlacementVisibilityRequestObject) (SetPlacementVisibilityResponseObject, error) {
+	if req.Body == nil {
+		return SetPlacementVisibility400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: "invalid_input", Message: "missing body"}}, nil
+	}
+	p, err := s.svc.SetPlacementVisibility(ctx, req.Slug, req.Id, req.Body.PanoramaIds)
+	switch {
+	case isInvalid(err):
+		return SetPlacementVisibility400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
+	case isNotFound(err):
+		return SetPlacementVisibility404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
+	case err != nil:
+		return SetPlacementVisibility500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+	}
+	return SetPlacementVisibility200JSONResponse(placementToAPI(p)), nil
 }
 
 func (s *Server) DeletePlacement(ctx context.Context, req DeletePlacementRequestObject) (DeletePlacementResponseObject, error) {

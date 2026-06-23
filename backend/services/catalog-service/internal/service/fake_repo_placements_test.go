@@ -48,6 +48,18 @@ func (r *fakeRepo) UpdatePlacement(_ context.Context, p domain.Placement) (domai
 	return p, nil
 }
 
+func (r *fakeRepo) SetPlacementVisibility(_ context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	p, ok := r.placements[placementID]
+	if !ok || p.TerritorySlug != territorySlug {
+		return domain.Placement{}, domain.ErrPlacementNotFound
+	}
+	p.VisiblePanoramaIDs = panoramaIDs
+	r.placements[placementID] = p
+	return p, nil
+}
+
 func (r *fakeRepo) DeletePlacement(_ context.Context, id int64) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

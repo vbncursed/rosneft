@@ -23,26 +23,26 @@ func (r *PG) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Pl
 				position_x, position_y, position_z,
 				rotation_x, rotation_y, rotation_z,
 				scale_x, scale_y, scale_z,
-				label
+				label, visible_panorama_ids
 			)
 			SELECT t.id, m.id,
 				$3, $4, $5,
 				$6, $7, $8,
 				$9, $10, $11,
-				$12
+				$12, COALESCE($13::bigint[], '{}')
 			FROM territories t, models m
 			WHERE t.slug = $1 AND m.slug = $2
 			RETURNING id, territory_id, model_id,
 				position_x, position_y, position_z,
 				rotation_x, rotation_y, rotation_z,
 				scale_x, scale_y, scale_z,
-				label, created_at, updated_at
+				label, created_at, updated_at, visible_panorama_ids
 		)
 		SELECT i.id, t.slug, m.slug,
 			i.position_x, i.position_y, i.position_z,
 			i.rotation_x, i.rotation_y, i.rotation_z,
 			i.scale_x, i.scale_y, i.scale_z,
-			i.label, i.created_at, i.updated_at
+			i.label, i.created_at, i.updated_at, i.visible_panorama_ids
 		FROM inserted i
 		JOIN territories t ON t.id = i.territory_id
 		JOIN models m      ON m.id = i.model_id`
@@ -52,7 +52,7 @@ func (r *PG) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Pl
 		p.Position.X, p.Position.Y, p.Position.Z,
 		p.Rotation.X, p.Rotation.Y, p.Rotation.Z,
 		p.Scale.X, p.Scale.Y, p.Scale.Z,
-		p.Label,
+		p.Label, p.VisiblePanoramaIDs,
 	)
 	out, err := scanPlacement(row)
 	if err != nil {

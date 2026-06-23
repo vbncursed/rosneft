@@ -19,6 +19,10 @@ export interface Placement extends PlacementTransform {
   // Server-side mutation marker; consumers re-key on it so a successful
   // in-scene drag refreshes any open form inputs to the new values.
   updatedAt: string;
+  // Allowlist of panorama ids this placement is shown in (panorama mode
+  // only — the 3D view always shows every placement). Empty = hidden in
+  // every panorama.
+  visiblePanoramaIds: number[];
 }
 
 // ResolvedPlacement is a Placement enriched with its model's full LOD
@@ -34,6 +38,9 @@ export interface PlacementCreate {
   rotation?: Vec3;
   scale?: Vec3;
   label?: string;
+  // Initial panorama allowlist — set to the active panorama when a
+  // placement is dropped in panorama mode.
+  visiblePanoramaIds?: number[];
 }
 
 export interface PlacementUpdate extends PlacementTransform {

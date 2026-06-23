@@ -167,6 +167,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/territories/{slug}/placements/{id}/visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace a placement's panorama allowlist */
+        put: operations["setPlacementVisibility"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/territories/{slug}/panoramas": {
         parameters: {
             query?: never;
@@ -466,6 +486,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            /** @description Allowlist of panorama ids this placement is shown in (panorama mode only — the 3D view always shows every placement). Empty means hidden in every panorama. */
+            visiblePanoramaIds?: number[];
         };
         PlacementCreate: {
             modelSlug: string;
@@ -473,12 +495,18 @@ export interface components {
             rotation?: components["schemas"]["Vec3"];
             scale?: components["schemas"]["Vec3"];
             label?: string;
+            /** @description Initial panorama allowlist (e.g. the active panorama). */
+            visiblePanoramaIds?: number[];
         };
         PlacementUpdate: {
             position?: components["schemas"]["Vec3"];
             rotation?: components["schemas"]["Vec3"];
             scale?: components["schemas"]["Vec3"];
             label?: string;
+        };
+        PlacementVisibilityUpdate: {
+            /** @description Full replacement allowlist of panorama ids. */
+            panoramaIds: number[];
         };
         /**
          * @description Equirectangular panorama (Insta360 Pro source) anchored to a point
@@ -984,6 +1012,36 @@ export interface operations {
                 };
                 content?: never;
             };
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    setPlacementVisibility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementVisibilityUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Placement"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["Internal"];
         };

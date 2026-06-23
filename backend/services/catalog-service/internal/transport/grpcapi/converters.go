@@ -134,14 +134,15 @@ func panoramaToProto(p domain.Panorama) *catalogv1.Panorama {
 
 func placementToProto(p domain.Placement) *catalogv1.Placement {
 	return &catalogv1.Placement{
-		Id:            p.ID,
-		TerritorySlug: p.TerritorySlug,
-		ModelSlug:     p.ModelSlug,
-		Position:      vec3ToProto(p.Position),
-		Rotation:      vec3ToProto(p.Rotation),
-		Scale:         vec3ToProto(p.Scale),
-		Label:         p.Label,
-		CreatedAt:     timestamppb.New(p.CreatedAt),
-		UpdatedAt:     timestamppb.New(p.UpdatedAt),
+		Id:                 p.ID,
+		TerritorySlug:      p.TerritorySlug,
+		ModelSlug:          p.ModelSlug,
+		Position:           vec3ToProto(p.Position),
+		Rotation:           vec3ToProto(p.Rotation),
+		Scale:              vec3ToProto(p.Scale),
+		Label:              p.Label,
+		CreatedAt:          timestamppb.New(p.CreatedAt),
+		UpdatedAt:          timestamppb.New(p.UpdatedAt),
+		VisiblePanoramaIds: p.VisiblePanoramaIDs,
 	}
 }

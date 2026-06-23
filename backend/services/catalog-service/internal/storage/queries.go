@@ -77,7 +77,7 @@ const placementSelectCols = `pl.id, t.slug AS territory_slug, m.slug AS model_sl
 	pl.position_x, pl.position_y, pl.position_z,
 	pl.rotation_x, pl.rotation_y, pl.rotation_z,
 	pl.scale_x, pl.scale_y, pl.scale_z,
-	pl.label, pl.created_at, pl.updated_at`
+	pl.label, pl.created_at, pl.updated_at, pl.visible_panorama_ids`
 
 // placementJoin is the FROM clause used together with placementSelectCols.
 const placementJoin = `placements pl
@@ -91,7 +91,7 @@ func scanPlacement(r rowScanner) (domain.Placement, error) {
 		&p.Position.X, &p.Position.Y, &p.Position.Z,
 		&p.Rotation.X, &p.Rotation.Y, &p.Rotation.Z,
 		&p.Scale.X, &p.Scale.Y, &p.Scale.Z,
-		&p.Label, &p.CreatedAt, &p.UpdatedAt,
+		&p.Label, &p.CreatedAt, &p.UpdatedAt, &p.VisiblePanoramaIDs,
 	)
 	return p, err
 }
