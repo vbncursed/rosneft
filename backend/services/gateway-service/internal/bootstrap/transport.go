@@ -15,6 +15,7 @@ import (
 
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/config"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/service"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/httpapi"
 )
 
@@ -41,6 +42,7 @@ var (
 func InitRouter(
 	svc *service.Gateway,
 	assetProxy http.Handler,
+	authH *authhttp.Handlers,
 	logger *slog.Logger,
 	cfg config.Config,
 ) (chi.Router, *healthz.Handler) {
@@ -81,8 +83,15 @@ func InitRouter(
 	r.Head("/api/assets/{hash}", assetProxy.ServeHTTP)
 	r.Get("/api/jobs/{id}/events", apiServer.WatchJobEvents)
 
-	// /api JSON sub-router with ETag + Compress.
+	// /api/auth/* on the root router: login/2fa are public; self/admin
+	// handlers validate the Bearer token themselves via the auth client.
+	authH.Mount(r)
+
+	// /api JSON sub-router: authenticate + per-route permission gate, then
+	// ETag + Compress, then the openapi strict handlers.
 	r.Group(func(api chi.Router) {
+		api.Use(authH.Authenticate)
+		api.Use(authhttp.RequirePermissionForRoute)
 		api.Use(httpapi.ETagMiddleware)
 		api.Use(newCompressor().Handler)
 		httpapi.HandlerFromMux(
