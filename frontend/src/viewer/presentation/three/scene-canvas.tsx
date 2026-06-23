@@ -19,6 +19,7 @@ import type {
 import PlacementsLayer from "@/placement/presentation/three/placements-layer";
 import type { Panorama } from "@/panorama/domain/panorama";
 import PanoramaSphere from "@/panorama/presentation/three/panorama-sphere";
+import PanoramaErrorBoundary from "@/panorama/presentation/components/panorama-error-boundary";
 import PanoramaRig from "@/panorama/presentation/three/panorama-rig";
 import CameraPositionTracker from "@/panorama/presentation/three/camera-position-tracker";
 import type { Vec3 } from "@/shared/domain/vec3";
@@ -62,6 +63,10 @@ interface SceneCanvasProps {
   // current camera position on demand (e.g. "Set panorama anchor from
   // camera"). Lives in ModelViewer; SceneCanvas just wires it through.
   cameraPositionRef: RefObject<Vec3 | null>;
+  // Called when the active panorama's equirect texture fails to load
+  // (e.g. a non-image blob). The boundary swallows the error so the scene
+  // survives; this lets the parent flag the broken capture.
+  onPanoramaError: (id: number) => void;
   chains: Chain[];
   activeChainId: number | null;
   unitRatio: number;
@@ -83,6 +88,7 @@ export default function SceneCanvas({
   snapEnabled,
   activePanorama,
   cameraPositionRef,
+  onPanoramaError,
   chains,
   activeChainId,
   unitRatio,
@@ -178,7 +184,13 @@ export default function SceneCanvas({
 
         {activePanorama && (
           <Suspense fallback={null}>
-            <PanoramaSphere panorama={activePanorama} meshRef={panoramaRef} />
+            <PanoramaErrorBoundary
+              key={activePanorama.id}
+              panoramaId={activePanorama.id}
+              onError={onPanoramaError}
+            >
+              <PanoramaSphere panorama={activePanorama} meshRef={panoramaRef} />
+            </PanoramaErrorBoundary>
             <PanoramaRig panorama={activePanorama} />
           </Suspense>
         )}

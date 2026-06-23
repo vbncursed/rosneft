@@ -14,6 +14,7 @@ import OverlaysPanel from "@/viewer/presentation/components/overlays-panel";
 import { usePanoramaOrchestration } from "@/panorama/application/use-panorama-orchestration";
 import { usePanoramas } from "@/panorama/application/use-panoramas";
 import type { Vec3 } from "@/shared/domain/vec3";
+import { notify } from "@/shared/presentation/toast/use-toast";
 import { useKeyboardShortcuts } from "@/viewer/application/use-keyboard-shortcuts";
 import type { ModelMetadata } from "@/viewer/domain/model-metadata";
 import SceneCanvas from "@/viewer/presentation/three/scene-canvas";
@@ -40,11 +41,26 @@ export default function ModelViewer({
   panoramas: initialPanoramas,
   externalPanoramaUrl,
 }: ModelViewerProps) {
-  const { panoramas, update: updatePanoramaState } = usePanoramas(
-    territorySlug,
-    initialPanoramas,
-  );
+  const {
+    panoramas,
+    update: updatePanoramaState,
+    remove: removePanorama,
+  } = usePanoramas(territorySlug, initialPanoramas);
   const panorama = usePanoramaOrchestration(panoramas);
+  // Ids whose equirect texture failed to decode (e.g. a non-image blob).
+  // The in-Canvas error boundary reports them here so the edit panel can
+  // flag the broken capture and nudge the operator to delete it.
+  const [failedPanoramaIds, setFailedPanoramaIds] = useState<
+    ReadonlySet<number>
+  >(() => new Set());
+  const handlePanoramaError = useCallback((id: number) => {
+    setFailedPanoramaIds((prev) =>
+      prev.has(id) ? prev : new Set(prev).add(id),
+    );
+    notify.error(
+      "Couldn't load this panorama image — it may not be a valid JPG/PNG. Delete it and upload an equirectangular image.",
+    );
+  }, []);
   // Mirror of the live R3F camera position — written each "change" by
   // CameraPositionTracker, read by the panorama edit panel.
   const cameraPositionRef = useRef<Vec3 | null>(null);
@@ -134,6 +150,7 @@ export default function ModelViewer({
         snapEnabled={snapEnabled}
         activePanorama={panorama.activePanorama}
         cameraPositionRef={cameraPositionRef}
+        onPanoramaError={handlePanoramaError}
         chains={measure.chains}
         activeChainId={measure.activeChainId}
         unitRatio={unitRatio}
@@ -169,7 +186,9 @@ export default function ModelViewer({
               panoramas={panoramas}
               cameraPositionRef={cameraPositionRef}
               externalPanoramaUrl={externalPanoramaUrl}
+              failedPanoramaIds={failedPanoramaIds}
               onSavePanorama={updatePanoramaState}
+              onDeletePanorama={removePanorama}
             />
           }
           placements={

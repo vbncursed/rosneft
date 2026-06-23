@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { updatePanorama } from "@/panorama/infrastructure/panorama-gateway";
+import {
+  deletePanorama,
+  updatePanorama,
+} from "@/panorama/infrastructure/panorama-gateway";
 import type { Panorama } from "@/panorama/domain/panorama";
 import type { Vec3 } from "@/shared/domain/vec3";
 import { formatError } from "@/shared/infrastructure/http/format-error";
@@ -55,5 +58,25 @@ export function usePanoramas(territorySlug: string, initial: Panorama[]) {
     [territorySlug],
   );
 
-  return { panoramas, update };
+  // Optimistically drop the row, then issue the DELETE. The removal is
+  // immediate (not deferred via a transition) so the broken capture
+  // disappears from the picker and unmounts its sphere the instant the
+  // user confirms; on failure we restore the previous list and surface
+  // the error.
+  const remove = useCallback(
+    async (id: number) => {
+      const prev = panoramasRef.current;
+      setPanoramas((p) => p.filter((x) => x.id !== id));
+      try {
+        await deletePanorama(territorySlug, id);
+        notify.success("Panorama deleted");
+      } catch (err) {
+        setPanoramas(prev);
+        notify.error(`Failed to delete panorama: ${formatError(err)}`);
+      }
+    },
+    [territorySlug],
+  );
+
+  return { panoramas, update, remove };
 }
