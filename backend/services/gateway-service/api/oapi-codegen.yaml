@@ -12,3 +12,9 @@ output: internal/transport/httpapi/openapi_gen.go
 
 output-options:
   skip-prune: true
+  # Auth endpoints are served by the plain-chi authhttp package (login must be
+  # public, which the strict /api group's uniform auth middleware can't model).
+  # Excluded from server-stub generation but still embedded in the spec, so
+  # they appear in Swagger.
+  exclude-tags:
+    - auth
