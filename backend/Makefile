@@ -46,9 +46,10 @@ compose-logs: ## Tail logs from all services
 proto-gen: ## Generate Go code from .proto definitions (requires buf)
 	cd proto && buf generate
 
-openapi-gen: ## Generate Go server stubs from the OpenAPI spec via oapi-codegen
+openapi-gen: ## Generate Go server stubs + embedded spec from the OpenAPI spec via oapi-codegen
 	cd services/gateway-service && \
-		oapi-codegen -config api/oapi-codegen.yaml api/openapi.yaml
+		oapi-codegen -config api/oapi-codegen.yaml api/openapi.yaml && \
+		oapi-codegen -config api/oapi-codegen-spec.yaml api/openapi.yaml
 
 clean: ## Remove build artifacts
 	rm -rf bin/

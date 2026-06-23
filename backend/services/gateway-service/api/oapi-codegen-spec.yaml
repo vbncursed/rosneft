@@ -1,0 +1,10 @@
+# Second oapi-codegen pass: embeds the FULL OpenAPI spec (all tags, including
+# `auth`) into the binary so GetSwagger()/`/openapi.json` serve the complete
+# API surface to Scalar. No server/model code — those come from
+# oapi-codegen.yaml (which excludes the auth tag from server generation).
+package: httpapi
+
+generate:
+  embedded-spec: true
+
+output: internal/transport/httpapi/openapi_spec_gen.go
