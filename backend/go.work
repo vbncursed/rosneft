@@ -4,6 +4,7 @@ use (
 	./pkg
 	./proto
 	./services/asset-service
+	./services/auth-service
 	./services/catalog-service
 	./services/gateway-service
 	./services/mesh-service

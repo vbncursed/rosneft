@@ -17,6 +17,7 @@ type Config struct {
 	CatalogGRPCAddr string        `mapstructure:"catalog-grpc-addr"`
 	MeshGRPCAddr    string        `mapstructure:"mesh-grpc-addr"`
 	UploadGRPCAddr  string        `mapstructure:"upload-grpc-addr"`
+	AuthGRPCAddr    string        `mapstructure:"auth-grpc-addr"`
 	AssetHTTPAddr   string        `mapstructure:"asset-http-addr"`
 	AllowedOrigins  []string      `mapstructure:"allowed-origins"`
 	LogLevel        string        `mapstructure:"log-level"`
@@ -40,6 +41,7 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.SetDefault("catalog-grpc-addr", "catalog:9001")
 	v.SetDefault("mesh-grpc-addr", "mesh-api:9002")
 	v.SetDefault("upload-grpc-addr", "upload:9003")
+	v.SetDefault("auth-grpc-addr", "auth:9004")
 	v.SetDefault("asset-http-addr", "http://asset:8081")
 	v.SetDefault("allowed-origins", []string{"*"})
 	v.SetDefault("log-level", "info")
@@ -73,6 +75,9 @@ func (c Config) Validate() error {
 	}
 	if c.UploadGRPCAddr == "" {
 		return fmt.Errorf("config: upload-grpc-addr is required")
+	}
+	if c.AuthGRPCAddr == "" {
+		return fmt.Errorf("config: auth-grpc-addr is required")
 	}
 	if c.AssetHTTPAddr == "" {
 		return fmt.Errorf("config: asset-http-addr is required")

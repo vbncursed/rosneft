@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/config"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
 
 // RunServe is the full lifecycle of the gateway HTTP server: catalog +
@@ -45,14 +46,21 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	defer up.Close()
 
+	authClient, err := InitAuth(cfg)
+	if err != nil {
+		return fmt.Errorf("init auth: %w", err)
+	}
+	defer authClient.Close()
+
 	svc := InitService(cat, m, up)
+	authH := authhttp.New(authClient, logger)
 
 	assetProxy, err := InitAssetProxy(cfg)
 	if err != nil {
 		return fmt.Errorf("init asset proxy: %w", err)
 	}
 
-	router, hz := InitRouter(svc, assetProxy, logger, cfg)
+	router, hz := InitRouter(svc, assetProxy, authH, logger, cfg)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,

@@ -36,6 +36,7 @@ func newRootCmd() *cobra.Command {
 	flags.String("catalog-grpc-addr", "catalog:9001", "Catalog gRPC address")
 	flags.String("mesh-grpc-addr", "mesh-api:9002", "Mesh gRPC address")
 	flags.String("upload-grpc-addr", "upload:9003", "Upload gRPC address")
+	flags.String("auth-grpc-addr", "auth:9004", "Auth gRPC address")
 	flags.String("asset-http-addr", "http://asset:8081", "Asset HTTP address")
 	flags.StringSlice("allowed-origins", []string{"*"}, "CORS allowed origins")
 	flags.String("log-level", "info", "log level: debug|info|warn|error")

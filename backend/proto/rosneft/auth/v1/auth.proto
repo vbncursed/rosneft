@@ -1,0 +1,190 @@
+syntax = "proto3";
+
+package rosneft.auth.v1;
+
+option go_package = "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/auth/v1;authv1";
+
+import "google/protobuf/timestamp.proto";
+
+// AuthService owns users, roles, permissions, sessions, and 2FA. Sessions
+// are opaque tokens stored in Redis; everything else in Postgres. The gateway
+// is the only caller.
+service AuthService {
+  // --- session / login ---
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc LoginVerify2FA(LoginVerify2FARequest) returns (LoginResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+
+  // --- self ---
+  rpc GetMe(GetMeRequest) returns (User);
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  rpc Setup2FA(Setup2FARequest) returns (Setup2FAResponse);
+  rpc Enable2FA(Enable2FARequest) returns (Enable2FAResponse);
+  rpc Disable2FA(Disable2FARequest) returns (Disable2FAResponse);
+
+  // --- user admin ---
+  rpc CreateUser(CreateUserRequest) returns (User);
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+  rpc GetUser(GetUserRequest) returns (User);
+  rpc UpdateUser(UpdateUserRequest) returns (User);
+  rpc FreezeUser(FreezeUserRequest) returns (User);
+  rpc UnfreezeUser(UnfreezeUserRequest) returns (User);
+  rpc SoftDeleteUser(SoftDeleteUserRequest) returns (SoftDeleteUserResponse);
+  rpc RestoreUser(RestoreUserRequest) returns (User);
+
+  // --- roles / permissions ---
+  rpc ListRoles(ListRolesRequest) returns (ListRolesResponse);
+  rpc CreateRole(CreateRoleRequest) returns (Role);
+  rpc UpdateRole(UpdateRoleRequest) returns (Role);
+  rpc DeleteRole(DeleteRoleRequest) returns (DeleteRoleResponse);
+  rpc SetRolePermissions(SetRolePermissionsRequest) returns (Role);
+  rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse);
+}
+
+message User {
+  string id = 1;
+  string email = 2;
+  string username = 3;
+  string status = 4; // active|frozen|deleted
+  bool totp_enabled = 5;
+  repeated string role_slugs = 6;
+  repeated string permissions = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message Role {
+  string slug = 1;
+  string title = 2;
+  bool is_system = 3;
+  repeated string permission_slugs = 4;
+}
+
+message Permission {
+  string slug = 1;
+  string description = 2;
+}
+
+message LoginRequest {
+  string identifier = 1;
+  string password = 2;
+}
+// LoginResponse carries a session token on success, OR a challenge when 2FA
+// is required (token empty, two_factor_required=true, challenge_token set).
+message LoginResponse {
+  string token = 1;
+  bool two_factor_required = 2;
+  string challenge_token = 3;
+}
+message LoginVerify2FARequest {
+  string challenge_token = 1;
+  string code = 2;
+}
+
+message LogoutRequest {
+  string token = 1;
+}
+message LogoutResponse {}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+message ValidateTokenResponse {
+  string user_id = 1;
+  repeated string permissions = 2;
+}
+
+message GetMeRequest {
+  string token = 1;
+}
+message ChangePasswordRequest {
+  string token = 1;
+  string old_password = 2;
+  string new_password = 3;
+}
+message ChangePasswordResponse {}
+
+message Setup2FARequest {
+  string token = 1;
+}
+message Setup2FAResponse {
+  string secret = 1;
+  string otpauth_url = 2;
+}
+message Enable2FARequest {
+  string token = 1;
+  string code = 2;
+}
+message Enable2FAResponse {
+  repeated string recovery_codes = 1;
+}
+message Disable2FARequest {
+  string token = 1;
+  string code = 2;
+}
+message Disable2FAResponse {}
+
+message CreateUserRequest {
+  string email = 1;
+  string username = 2;
+  string password = 3;
+  repeated string role_slugs = 4;
+}
+message ListUsersRequest {
+  string status = 1;
+  bool include_deleted = 2;
+}
+message ListUsersResponse {
+  repeated User users = 1;
+}
+message GetUserRequest {
+  string id = 1;
+}
+message UpdateUserRequest {
+  string id = 1;
+  repeated string role_slugs = 2; // replaces the user's roles when set
+  string email = 3;               // empty = unchanged
+  string username = 4;            // empty = unchanged
+}
+message FreezeUserRequest {
+  string token = 1; // actor resolved server-side from the session, never trusted from the client
+  string id = 2;
+}
+message UnfreezeUserRequest {
+  string id = 1;
+}
+message SoftDeleteUserRequest {
+  string token = 1; // actor resolved server-side from the session
+  string id = 2;
+}
+message SoftDeleteUserResponse {}
+message RestoreUserRequest {
+  string id = 1;
+}
+
+message ListRolesRequest {}
+message ListRolesResponse {
+  repeated Role roles = 1;
+}
+message CreateRoleRequest {
+  string slug = 1;
+  string title = 2;
+  repeated string permission_slugs = 3;
+}
+message UpdateRoleRequest {
+  string slug = 1;
+  string title = 2;
+}
+message DeleteRoleRequest {
+  string slug = 1;
+}
+message DeleteRoleResponse {}
+message SetRolePermissionsRequest {
+  string slug = 1;
+  repeated string permission_slugs = 2;
+}
+message ListPermissionsRequest {}
+message ListPermissionsResponse {
+  repeated Permission permissions = 1;
+}
