@@ -10,13 +10,14 @@ import (
 
 	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 	authv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/auth/v1"
+	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/transport/grpcapi"
 )
 
 // InitGRPCServer builds the gRPC server with the standard backend interceptors,
-// the health probe (SERVING), and reflection. The AuthService handler is
-// registered by the caller (RunServe) once the service layer exists (Phase 7).
-func InitGRPCServer(logger *slog.Logger) (*grpc.Server, *health.Server) {
+// the AuthService handler, the health probe (SERVING), and reflection.
+func InitGRPCServer(handler *grpcapi.Server, logger *slog.Logger) (*grpc.Server, *health.Server) {
 	srv := grpcutil.NewServer(logger)
+	handler.Register(srv)
 
 	healthSrv := health.NewServer()
 	healthSrv.SetServingStatus(authv1.AuthService_ServiceDesc.ServiceName, healthpb.HealthCheckResponse_SERVING)
