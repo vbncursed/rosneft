@@ -148,14 +148,14 @@ message UpdateUserRequest {
   string username = 4;            // empty = unchanged
 }
 message FreezeUserRequest {
-  string actor_id = 1;
+  string token = 1; // actor resolved server-side from the session, never trusted from the client
   string id = 2;
 }
 message UnfreezeUserRequest {
   string id = 1;
 }
 message SoftDeleteUserRequest {
-  string actor_id = 1;
+  string token = 1; // actor resolved server-side from the session
   string id = 2;
 }
 message SoftDeleteUserResponse {}
