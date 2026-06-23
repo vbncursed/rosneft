@@ -20,6 +20,7 @@ import PlacementsLayer from "@/placement/presentation/three/placements-layer";
 import type { Panorama } from "@/panorama/domain/panorama";
 import PanoramaSphere from "@/panorama/presentation/three/panorama-sphere";
 import PanoramaErrorBoundary from "@/panorama/presentation/components/panorama-error-boundary";
+import PanoramaMarkersLayer from "@/panorama/presentation/three/panorama-markers-layer";
 import PanoramaRig from "@/panorama/presentation/three/panorama-rig";
 import CameraPositionTracker from "@/panorama/presentation/three/camera-position-tracker";
 import type { Vec3 } from "@/shared/domain/vec3";
@@ -59,6 +60,9 @@ interface SceneCanvasProps {
   // same coordinate space; snap targets the sphere instead of the
   // territory floor.
   activePanorama: Panorama | null;
+  // Full panorama list + activator for the in-scene markers shown in 3D view.
+  panoramas: Panorama[];
+  onActivatePanorama: (id: number) => void;
   // Ref mutated by an in-Canvas tracker so the parent can read the
   // current camera position on demand (e.g. "Set panorama anchor from
   // camera"). Lives in ModelViewer; SceneCanvas just wires it through.
@@ -87,6 +91,8 @@ export default function SceneCanvas({
   measureMode,
   snapEnabled,
   activePanorama,
+  panoramas,
+  onActivatePanorama,
   cameraPositionRef,
   onPanoramaError,
   chains,
@@ -193,6 +199,13 @@ export default function SceneCanvas({
             </PanoramaErrorBoundary>
             <PanoramaRig panorama={activePanorama} />
           </Suspense>
+        )}
+
+        {!activePanorama && !measureMode && (
+          <PanoramaMarkersLayer
+            panoramas={panoramas}
+            onActivate={onActivatePanorama}
+          />
         )}
 
         <Suspense fallback={null}>
