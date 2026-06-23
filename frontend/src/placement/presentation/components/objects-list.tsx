@@ -13,11 +13,32 @@ interface ObjectsListProps {
   onDelete: (id: number) => void;
 }
 
-// One object row: an inline territory-level name (the object's single name,
-// shown everywhere), an optional per-panorama visibility toggle, and delete.
-// Focusing the name selects the object so it highlights in the scene; the
-// name commits on blur (or Enter). The row is re-keyed by the label upstream
-// so an external rename re-seeds the input.
+function PencilIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18" />
+      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+    </svg>
+  );
+}
+
+const ICON_BTN =
+  "shrink-0 cursor-pointer rounded p-1 text-neutral-400 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50";
+
+// One object row. The name is text: clicking it selects the object (clicking
+// again deselects), so it highlights in the scene. The pencil opens inline
+// editing of the object's single territory-level name; the trash deletes.
+// Both icon buttons carry a title so hovering explains them.
 function ObjectRow({
   placement,
   selected,
@@ -37,14 +58,21 @@ function ObjectRow({
   onToggleVisible: (id: number, visible: boolean) => void;
   onDelete: (id: number) => void;
 }) {
+  const [editing, setEditing] = useState(false);
   const [name, setName] = useState(placement.label);
+
   const commit = () => {
+    setEditing(false);
     if (name.trim() !== placement.label) onRename(placement.id, name.trim());
+  };
+  const cancel = () => {
+    setName(placement.label);
+    setEditing(false);
   };
 
   return (
     <li
-      className={`flex items-center gap-2 rounded-md border px-2 py-1.5 transition-colors ${
+      className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 transition-colors ${
         selected
           ? "border-cyan-400/60 bg-cyan-400/10"
           : "border-white/10 hover:border-white/25"
@@ -57,30 +85,58 @@ function ObjectRow({
           disabled={pending}
           onChange={(e) => onToggleVisible(placement.id, e.target.checked)}
           className="size-3.5 shrink-0 cursor-pointer accent-cyan-400 disabled:cursor-not-allowed"
+          title="Show in this panorama"
           aria-label="Show in this panorama"
         />
       ) : null}
-      <input
-        type="text"
-        value={name}
-        disabled={pending}
-        placeholder={placement.modelSlug}
-        onFocus={() => onSelect(placement.id)}
-        onChange={(e) => setName(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-        }}
-        className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 text-[12px] text-neutral-100 outline-none focus:border-white/15 focus:bg-black/30"
-      />
+
+      {editing ? (
+        <input
+          type="text"
+          autoFocus
+          value={name}
+          disabled={pending}
+          placeholder={placement.modelSlug}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+            else if (e.key === "Escape") cancel();
+          }}
+          className="min-w-0 flex-1 rounded border border-white/15 bg-black/30 px-1.5 py-0.5 text-[12px] text-neutral-100 outline-none focus:border-cyan-400/60"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => onSelect(selected ? null : placement.id)}
+          title={selected ? "Click to deselect" : "Click to select"}
+          className="min-w-0 flex-1 cursor-pointer truncate px-1 text-left text-[12px] text-neutral-100"
+        >
+          {placement.label || (
+            <span className="text-neutral-500">{placement.modelSlug}</span>
+          )}
+        </button>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        disabled={pending || editing}
+        title="Rename"
+        aria-label="Rename object"
+        className={ICON_BTN + " hover:text-cyan-300"}
+      >
+        <PencilIcon />
+      </button>
       <button
         type="button"
         onClick={() => onDelete(placement.id)}
         disabled={pending}
+        title="Delete"
         aria-label="Delete object"
-        className="shrink-0 cursor-pointer rounded px-1 text-[12px] text-neutral-500 transition-colors hover:text-red-400 disabled:cursor-not-allowed"
+        className={ICON_BTN + " hover:text-red-400"}
       >
-        ✕
+        <TrashIcon />
       </button>
     </li>
   );
