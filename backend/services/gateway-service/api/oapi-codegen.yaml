@@ -1,11 +1,13 @@
 # Configuration for oapi-codegen — schema-first server stub generation.
 # Run via `make openapi-gen` from backend/.
 #
-# Two-pass generation: this config emits the chi/strict SERVER (with the `auth`
-# tag excluded — those endpoints are served by the plain-chi authhttp package,
-# since login must be public and can't sit under the /api group's uniform auth
-# middleware). The FULL embedded spec (including auth, for Swagger) is generated
-# separately by oapi-codegen-spec.yaml so the served docs stay complete.
+# Two-pass generation: this config emits the chi/strict SERVER. Tags handled by
+# custom root-router handlers are excluded from stub generation:
+#   - auth   → plain-chi authhttp package (login must be public)
+#   - assets → asset-service reverse proxy
+#   - jobs   → SSE stream handler (WatchJobEvents)
+# The FULL embedded spec (all tags, for Swagger) is generated separately by
+# oapi-codegen-spec.yaml so the served docs stay complete.
 package: httpapi
 
 generate:
@@ -19,3 +21,5 @@ output-options:
   skip-prune: true
   exclude-tags:
     - auth
+    - assets
+    - jobs

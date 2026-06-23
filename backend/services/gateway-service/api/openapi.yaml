@@ -1397,3 +1397,52 @@ paths:
               schema: { type: array, items: { $ref: '#/components/schemas/AuthPermission' } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ===================== BINARY / STREAMING =====================
+  # Served by custom root-router handlers (asset reverse-proxy + SSE), not the
+  # strict /api group — documented here for completeness, excluded from server
+  # stub generation via the `assets`/`jobs` tags.
+  /api/assets/{hash}:
+    get:
+      tags: [assets]
+      summary: Stream a content-addressed GLB/binary blob
+      description: Transparent reverse proxy to asset-service. Range-aware, immutable cache, strong ETag.
+      parameters:
+        - { in: path, name: hash, required: true, schema: { type: string }, description: SHA-256 content hash }
+        - { in: header, name: Range, required: false, schema: { type: string } }
+        - { in: header, name: If-None-Match, required: false, schema: { type: string } }
+      responses:
+        '200':
+          description: Binary blob
+          content:
+            model/gltf-binary:
+              schema: { type: string, format: binary }
+        '206': { description: Partial content (Range request) }
+        '304': { description: Not Modified (If-None-Match matched the ETag) }
+        '404': { $ref: '#/components/responses/NotFound' }
+    head:
+      tags: [assets]
+      summary: Blob headers only (Content-Length, ETag) without the body
+      parameters:
+        - { in: path, name: hash, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Headers only }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/jobs/{id}/events:
+    get:
+      tags: [jobs]
+      summary: Server-Sent Events stream for one conversion job
+      description: >
+        Emits `event: job` whenever the job state changes; the stream closes on
+        succeeded/failed. The gateway polls mesh-api under the hood. Each event's
+        `data:` payload is a Job JSON (kind + slug identify the entity).
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: SSE stream (text/event-stream)
+          content:
+            text/event-stream:
+              schema: { $ref: '#/components/schemas/Job' }
+        '404': { $ref: '#/components/responses/NotFound' }
