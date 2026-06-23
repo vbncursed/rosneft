@@ -8,11 +8,14 @@ import Field from "@/upload/presentation/components/field";
 import ProgressBar from "@/upload/presentation/components/progress-bar";
 import { notify } from "@/shared/presentation/toast/use-toast";
 import { isEquirectImageSignature } from "@/panorama/domain/image-signature";
+import { exifScenePosition } from "@/panorama/application/exif-scene-position";
+import type { SourceBbox } from "@/panorama/domain/geo-anchor";
 import { createPanorama } from "@/panorama/infrastructure/panorama-gateway";
 
 interface PanoramaUploadFormProps {
   territorySlug: string;
   territoryTitle: string;
+  sourceBbox: SourceBbox | null;
 }
 
 // PanoramaUploadForm uploads an equirect JPG/PNG via the chunked-upload
@@ -21,6 +24,7 @@ interface PanoramaUploadFormProps {
 export default function PanoramaUploadForm({
   territorySlug,
   territoryTitle,
+  sourceBbox,
 }: PanoramaUploadFormProps) {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -74,11 +78,20 @@ export default function PanoramaUploadForm({
       try {
         const blob = await upload(file);
         if (!blob) return;
+        const placement = await exifScenePosition(file, sourceBbox);
         await createPanorama(territorySlug, {
           title: title.trim(),
           sourceBlobHash: blob.hash,
+          position: placement.position ?? undefined,
+          yawOffset: 0,
         });
-        notify.success("Panorama uploaded");
+        notify.success(
+          placement.position
+            ? "Panorama placed from GPS"
+            : placement.reason === "outside"
+              ? "Photo location doesn't match this territory — set position manually"
+              : "Panorama uploaded — set its position manually",
+        );
         router.push(territoryHref);
       } catch (err) {
         notify.error(err instanceof Error ? err.message : "Upload failed");
@@ -86,7 +99,7 @@ export default function PanoramaUploadForm({
         setSubmitting(false);
       }
     },
-    [file, router, submitting, territoryHref, territorySlug, title, upload],
+    [file, router, sourceBbox, submitting, territoryHref, territorySlug, title, upload],
   );
 
   return (
