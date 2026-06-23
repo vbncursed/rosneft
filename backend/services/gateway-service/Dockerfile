@@ -7,6 +7,7 @@ COPY proto/go.mod proto/go.su[m] ./proto/
 COPY pkg/go.mod pkg/go.su[m] ./pkg/
 COPY services/gateway-service/go.mod services/gateway-service/go.su[m] ./services/gateway-service/
 COPY services/catalog-service/go.mod services/catalog-service/go.su[m] ./services/catalog-service/
+COPY services/auth-service/go.mod services/auth-service/go.su[m] ./services/auth-service/
 COPY services/mesh-service/go.mod services/mesh-service/go.su[m] ./services/mesh-service/
 COPY services/asset-service/go.mod services/asset-service/go.su[m] ./services/asset-service/
 COPY services/upload-service/go.mod services/upload-service/go.su[m] ./services/upload-service/
