@@ -1,0 +1,41 @@
+package users
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
+)
+
+// List returns users filtered by status (empty = any) and, unless
+// includeDeleted, hides soft-deleted rows. Roles/permissions are NOT hydrated
+// here (list views don't need the per-user permission fan-out).
+func (s *Store) List(ctx context.Context, status string, includeDeleted bool) ([]domain.User, error) {
+	q := `SELECT ` + userColumns + ` FROM users u WHERE 1=1`
+	args := make([]any, 0, 2)
+	if status != "" {
+		args = append(args, status)
+		q += fmt.Sprintf(" AND u.status = $%d", len(args))
+	} else if !includeDeleted {
+		q += " AND u.status <> 'deleted'"
+	}
+	q += " ORDER BY u.created_at"
+
+	rows, err := s.pool.Query(ctx, q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("users.List: %w", err)
+	}
+	defer rows.Close()
+	out := make([]domain.User, 0, 16)
+	for rows.Next() {
+		u, err := scanUser(rows)
+		if err != nil {
+			return nil, fmt.Errorf("users.List: scan: %w", err)
+		}
+		out = append(out, u)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("users.List: rows: %w", err)
+	}
+	return out, nil
+}
