@@ -12,6 +12,7 @@ import type { Panorama } from "@/panorama/domain/panorama";
 import PanoramaSection from "@/panorama/presentation/components/panorama-section";
 import OverlaysPanel from "@/viewer/presentation/components/overlays-panel";
 import { usePanoramaOrchestration } from "@/panorama/application/use-panorama-orchestration";
+import { usePanoramaCalibration } from "@/panorama/application/use-panorama-calibration";
 import { usePanoramas } from "@/panorama/application/use-panoramas";
 import type { Vec3 } from "@/shared/domain/vec3";
 import { notify } from "@/shared/presentation/toast/use-toast";
@@ -47,6 +48,10 @@ export default function ModelViewer({
     remove: removePanorama,
   } = usePanoramas(territorySlug, initialPanoramas);
   const panorama = usePanoramaOrchestration(panoramas);
+  const calibration = usePanoramaCalibration(
+    panorama.editingPanorama,
+    updatePanoramaState,
+  );
   // Ids whose equirect texture failed to decode (e.g. a non-image blob).
   // The in-Canvas error boundary reports them here so the edit panel can
   // flag the broken capture and nudge the operator to delete it.
@@ -148,9 +153,11 @@ export default function ModelViewer({
         mode={editor.mode}
         measureMode={measure.measureMode}
         snapEnabled={snapEnabled}
-        activePanorama={panorama.activePanorama}
+        activePanorama={calibration.effective ?? panorama.activePanorama}
         panoramas={panoramas}
         onActivatePanorama={panorama.activate}
+        calibrating={calibration.calibrating}
+        panoramaOpacity={calibration.opacity}
         cameraPositionRef={cameraPositionRef}
         onPanoramaError={handlePanoramaError}
         chains={measure.chains}
@@ -189,6 +196,7 @@ export default function ModelViewer({
               cameraPositionRef={cameraPositionRef}
               externalPanoramaUrl={externalPanoramaUrl}
               failedPanoramaIds={failedPanoramaIds}
+              calibration={calibration}
               onSavePanorama={updatePanoramaState}
               onDeletePanorama={removePanorama}
             />

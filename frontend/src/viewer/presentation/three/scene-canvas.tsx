@@ -63,6 +63,10 @@ interface SceneCanvasProps {
   // Full panorama list + activator for the in-scene markers shown in 3D view.
   panoramas: Panorama[];
   onActivatePanorama: (id: number) => void;
+  // Overlay-calibration: show the model under a ghosted, semi-transparent
+  // panorama photo so the operator can align anchor + yaw.
+  calibrating: boolean;
+  panoramaOpacity: number;
   // Ref mutated by an in-Canvas tracker so the parent can read the
   // current camera position on demand (e.g. "Set panorama anchor from
   // camera"). Lives in ModelViewer; SceneCanvas just wires it through.
@@ -93,6 +97,8 @@ export default function SceneCanvas({
   activePanorama,
   panoramas,
   onActivatePanorama,
+  calibrating,
+  panoramaOpacity,
   cameraPositionRef,
   onPanoramaError,
   chains,
@@ -183,7 +189,7 @@ export default function SceneCanvas({
             GLB. Bounds only auto-fits on initial mount; that fit stays
             valid across panorama toggles. */}
         <Bounds fit clip margin={1.2}>
-          <group visible={!activePanorama}>
+          <group visible={!activePanorama || calibrating}>
             <GltfModel lods={parentLods} raycastable={measureMode} groupRef={territoryRef} />
           </group>
         </Bounds>
@@ -195,7 +201,11 @@ export default function SceneCanvas({
               panoramaId={activePanorama.id}
               onError={onPanoramaError}
             >
-              <PanoramaSphere panorama={activePanorama} meshRef={panoramaRef} />
+              <PanoramaSphere
+                panorama={activePanorama}
+                meshRef={panoramaRef}
+                opacity={calibrating ? panoramaOpacity : 1}
+              />
             </PanoramaErrorBoundary>
             <PanoramaRig panorama={activePanorama} />
           </Suspense>
