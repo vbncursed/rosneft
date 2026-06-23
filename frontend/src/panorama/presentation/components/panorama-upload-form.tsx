@@ -7,6 +7,7 @@ import { useChunkedUpload } from "@/upload/application/use-chunked-upload";
 import Field from "@/upload/presentation/components/field";
 import ProgressBar from "@/upload/presentation/components/progress-bar";
 import { notify } from "@/shared/presentation/toast/use-toast";
+import { isEquirectImageSignature } from "@/panorama/domain/image-signature";
 import { createPanorama } from "@/panorama/infrastructure/panorama-gateway";
 
 interface PanoramaUploadFormProps {
@@ -38,6 +39,30 @@ export default function PanoramaUploadForm({
     }
     router.push(territoryHref);
   }, [cancel, router, submitting, territoryHref]);
+
+  // Sniff the file's leading bytes on selection so a non-image (a ZIP
+  // archive picked by mistake is the classic case) is rejected before it
+  // ever reaches the upload pipeline — `accept` on the input is only a
+  // hint the OS file dialog can ignore.
+  const onFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const input = e.currentTarget;
+      const selected = input.files?.[0] ?? null;
+      if (!selected) {
+        setFile(null);
+        return;
+      }
+      const head = new Uint8Array(await selected.slice(0, 8).arrayBuffer());
+      if (!isEquirectImageSignature(head)) {
+        notify.error("Please choose an equirectangular JPG or PNG image.");
+        input.value = "";
+        setFile(null);
+        return;
+      }
+      setFile(selected);
+    },
+    [],
+  );
 
   const valid = title.trim() !== "" && file !== null;
 
@@ -105,7 +130,7 @@ export default function PanoramaUploadForm({
         <input
           type="file"
           accept="image/jpeg,image/png"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          onChange={onFileChange}
           required
           className="mt-2 block w-full text-sm text-neutral-300 file:mr-4 file:cursor-pointer file:rounded-full file:border-0 file:bg-cyan-300 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-neutral-900 hover:file:bg-cyan-200"
         />

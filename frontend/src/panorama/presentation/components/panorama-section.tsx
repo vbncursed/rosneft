@@ -12,10 +12,14 @@ interface PanoramaSectionProps {
   panoramas: Panorama[];
   cameraPositionRef: RefObject<Vec3 | null>;
   externalPanoramaUrl?: string;
+  // Ids whose equirect texture failed to load — the edit panel flags them
+  // so the operator knows to delete and re-upload.
+  failedPanoramaIds: ReadonlySet<number>;
   onSavePanorama: (
     id: number,
     patch: { position?: Vec3; yawOffset?: number },
   ) => void;
+  onDeletePanorama: (id: number) => Promise<void>;
 }
 
 // PanoramaSection is the body of the overlays panel's "View" tab. It gathers
@@ -29,10 +33,18 @@ export default function PanoramaSection({
   panoramas,
   cameraPositionRef,
   externalPanoramaUrl,
+  failedPanoramaIds,
   onSavePanorama,
+  onDeletePanorama,
 }: PanoramaSectionProps) {
-  const { activePanoramaId, editingPanorama, activate, toggleView, closeEdit } =
-    panorama;
+  const {
+    activePanorama,
+    activePanoramaId,
+    editingPanorama,
+    activate,
+    toggleView,
+    closeEdit,
+  } = panorama;
   const inPanoramaMode =
     editingPanorama != null && activePanoramaId === editingPanorama.id;
 
@@ -40,7 +52,7 @@ export default function PanoramaSection({
     <div className="flex flex-col gap-3">
       <PanoramaPicker
         panoramas={panoramas}
-        activeId={activePanoramaId}
+        activeId={activePanorama?.id ?? null}
         onActivate={activate}
       />
 
@@ -62,9 +74,11 @@ export default function PanoramaSection({
           panorama={editingPanorama}
           cameraPositionRef={cameraPositionRef}
           inPanoramaMode={inPanoramaMode}
+          failed={failedPanoramaIds.has(editingPanorama.id)}
           onSave={(patch) => onSavePanorama(editingPanorama.id, patch)}
           onToggleView={toggleView}
           onClose={closeEdit}
+          onDelete={() => onDeletePanorama(editingPanorama.id)}
         />
       ) : null}
     </div>

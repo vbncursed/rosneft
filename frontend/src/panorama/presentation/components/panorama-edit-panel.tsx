@@ -2,6 +2,7 @@ import { type RefObject, useState } from "react";
 import type { Panorama } from "@/panorama/domain/panorama";
 import type { Vec3 } from "@/shared/domain/vec3";
 import Vec3Field from "@/placement/presentation/components/vec3-field";
+import DeleteButton from "@/shared/presentation/components/delete-button";
 
 interface PanoramaEditPanelProps {
   panorama: Panorama;
@@ -11,9 +12,14 @@ interface PanoramaEditPanelProps {
   // True when the camera is currently locked inside this panorama —
   // "Set from camera" can't help there, so it's disabled.
   inPanoramaMode: boolean;
+  // True when this panorama's equirect texture failed to load — its
+  // calibration controls are useless, so we surface a fix-it hint and the
+  // delete action instead.
+  failed: boolean;
   onSave: (patch: { position?: Vec3; yawOffset?: number }) => void;
   onToggleView: () => void;
   onClose: () => void;
+  onDelete: () => Promise<void>;
 }
 
 const TAU = Math.PI * 2;
@@ -34,9 +40,11 @@ export default function PanoramaEditPanel({
   panorama,
   cameraPositionRef,
   inPanoramaMode,
+  failed,
   onSave,
   onToggleView,
   onClose,
+  onDelete,
 }: PanoramaEditPanelProps) {
   // Re-key on panorama.id so a picker switch swaps the form to fresh
   // values without an effect (which React 19's lint rejects in favour
@@ -73,65 +81,83 @@ export default function PanoramaEditPanel({
         </button>
       </div>
 
-      <button
-        type="button"
-        onClick={onToggleView}
-        aria-pressed={inPanoramaMode}
-        className={`mb-3 w-full cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
-          inPanoramaMode
-            ? "border-cyan-300/60 bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/20"
-            : "border-white/25 bg-white/10 text-white hover:bg-white/20"
-        }`}
-      >
-        {inPanoramaMode ? "Switch to 3D view" : "Enter panorama view"}
-      </button>
+      {failed ? (
+        <p className="mb-3 rounded-lg border border-amber-300/40 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-200">
+          This image failed to load — the uploaded file isn&apos;t a valid
+          equirectangular JPG or PNG. Delete this panorama and upload a correct
+          image.
+        </p>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={onToggleView}
+            aria-pressed={inPanoramaMode}
+            className={`mb-3 w-full cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
+              inPanoramaMode
+                ? "border-cyan-300/60 bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/20"
+                : "border-white/25 bg-white/10 text-white hover:bg-white/20"
+            }`}
+          >
+            {inPanoramaMode ? "Switch to 3D view" : "Enter panorama view"}
+          </button>
 
-      <div className="space-y-3">
-        <Vec3Field label="Position" value={position} onChange={setPosition} step={0.05} />
+          <div className="space-y-3">
+            <Vec3Field label="Position" value={position} onChange={setPosition} step={0.05} />
 
-        <button
-          type="button"
-          onClick={useCameraPos}
-          disabled={inPanoramaMode}
-          title={
-            inPanoramaMode
-              ? "Switch to 3D view first — camera is locked at the anchor inside the panorama"
-              : "Copy the current 3D camera position into the position fields"
-          }
-          className="w-full cursor-pointer rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-xs text-neutral-200 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Set from camera
-        </button>
+            <button
+              type="button"
+              onClick={useCameraPos}
+              disabled={inPanoramaMode}
+              title={
+                inPanoramaMode
+                  ? "Switch to 3D view first — camera is locked at the anchor inside the panorama"
+                  : "Copy the current 3D camera position into the position fields"
+              }
+              className="w-full cursor-pointer rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-xs text-neutral-200 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Set from camera
+            </button>
 
-        <div>
-          <div className="mb-1 flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">
-              Yaw offset
-            </span>
-            <span className="text-[10px] text-neutral-500">
-              {(yawOffset * RAD_TO_DEG).toFixed(1)}°
-            </span>
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">
+                  Yaw offset
+                </span>
+                <span className="text-[10px] text-neutral-500">
+                  {(yawOffset * RAD_TO_DEG).toFixed(1)}°
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={TAU}
+                step={TAU / 360}
+                value={yawOffset}
+                onChange={(e) => setYawOffset(Number.parseFloat(e.target.value))}
+                className="w-full cursor-pointer accent-cyan-300"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onSave({ position, yawOffset })}
+              disabled={!dirty}
+              className="w-full cursor-pointer rounded-md bg-cyan-300 px-2 py-1.5 text-xs font-semibold text-neutral-900 transition-colors hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Save anchor
+            </button>
           </div>
-          <input
-            type="range"
-            min={0}
-            max={TAU}
-            step={TAU / 360}
-            value={yawOffset}
-            onChange={(e) => setYawOffset(Number.parseFloat(e.target.value))}
-            className="w-full cursor-pointer accent-cyan-300"
-          />
-        </div>
+        </>
+      )}
 
-        <button
-          type="button"
-          onClick={() => onSave({ position, yawOffset })}
-          disabled={!dirty}
-          className="w-full cursor-pointer rounded-md bg-cyan-300 px-2 py-1.5 text-xs font-semibold text-neutral-900 transition-colors hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Save anchor
-        </button>
-      </div>
+      <DeleteButton
+        label={panorama.title}
+        onDelete={onDelete}
+        className="mt-3 w-full cursor-pointer rounded-md border border-red-300/40 bg-red-500/10 px-2 py-1.5 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        Delete panorama
+      </DeleteButton>
     </div>
   );
 }
