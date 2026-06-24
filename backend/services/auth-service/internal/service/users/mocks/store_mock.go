@@ -48,9 +48,9 @@ type StoreMock struct {
 	beforeGetByIDCounter uint64
 	GetByIDMock          mStoreMockGetByID
 
-	funcList          func(ctx context.Context, status string, includeDeleted bool) (ua1 []domain.User, err error)
+	funcList          func(ctx context.Context, status string, includeDeleted bool, ownerID string) (ua1 []domain.User, err error)
 	funcListOrigin    string
-	inspectFuncList   func(ctx context.Context, status string, includeDeleted bool)
+	inspectFuncList   func(ctx context.Context, status string, includeDeleted bool, ownerID string)
 	afterListCounter  uint64
 	beforeListCounter uint64
 	ListMock          mStoreMockList
@@ -1535,6 +1535,7 @@ type StoreMockListParams struct {
 	ctx            context.Context
 	status         string
 	includeDeleted bool
+	ownerID        string
 }
 
 // StoreMockListParamPtrs contains pointers to parameters of the Store.List
@@ -1542,6 +1543,7 @@ type StoreMockListParamPtrs struct {
 	ctx            *context.Context
 	status         *string
 	includeDeleted *bool
+	ownerID        *string
 }
 
 // StoreMockListResults contains results of the Store.List
@@ -1556,6 +1558,7 @@ type StoreMockListExpectationOrigins struct {
 	originCtx            string
 	originStatus         string
 	originIncludeDeleted string
+	originOwnerID        string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -1569,7 +1572,7 @@ func (mmList *mStoreMockList) Optional() *mStoreMockList {
 }
 
 // Expect sets up expected params for Store.List
-func (mmList *mStoreMockList) Expect(ctx context.Context, status string, includeDeleted bool) *mStoreMockList {
+func (mmList *mStoreMockList) Expect(ctx context.Context, status string, includeDeleted bool, ownerID string) *mStoreMockList {
 	if mmList.mock.funcList != nil {
 		mmList.mock.t.Fatalf("StoreMock.List mock is already set by Set")
 	}
@@ -1582,7 +1585,7 @@ func (mmList *mStoreMockList) Expect(ctx context.Context, status string, include
 		mmList.mock.t.Fatalf("StoreMock.List mock is already set by ExpectParams functions")
 	}
 
-	mmList.defaultExpectation.params = &StoreMockListParams{ctx, status, includeDeleted}
+	mmList.defaultExpectation.params = &StoreMockListParams{ctx, status, includeDeleted, ownerID}
 	mmList.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmList.expectations {
 		if minimock.Equal(e.params, mmList.defaultExpectation.params) {
@@ -1662,8 +1665,31 @@ func (mmList *mStoreMockList) ExpectIncludeDeletedParam3(includeDeleted bool) *m
 	return mmList
 }
 
+// ExpectOwnerIDParam4 sets up expected param ownerID for Store.List
+func (mmList *mStoreMockList) ExpectOwnerIDParam4(ownerID string) *mStoreMockList {
+	if mmList.mock.funcList != nil {
+		mmList.mock.t.Fatalf("StoreMock.List mock is already set by Set")
+	}
+
+	if mmList.defaultExpectation == nil {
+		mmList.defaultExpectation = &StoreMockListExpectation{}
+	}
+
+	if mmList.defaultExpectation.params != nil {
+		mmList.mock.t.Fatalf("StoreMock.List mock is already set by Expect")
+	}
+
+	if mmList.defaultExpectation.paramPtrs == nil {
+		mmList.defaultExpectation.paramPtrs = &StoreMockListParamPtrs{}
+	}
+	mmList.defaultExpectation.paramPtrs.ownerID = &ownerID
+	mmList.defaultExpectation.expectationOrigins.originOwnerID = minimock.CallerInfo(1)
+
+	return mmList
+}
+
 // Inspect accepts an inspector function that has same arguments as the Store.List
-func (mmList *mStoreMockList) Inspect(f func(ctx context.Context, status string, includeDeleted bool)) *mStoreMockList {
+func (mmList *mStoreMockList) Inspect(f func(ctx context.Context, status string, includeDeleted bool, ownerID string)) *mStoreMockList {
 	if mmList.mock.inspectFuncList != nil {
 		mmList.mock.t.Fatalf("Inspect function is already set for StoreMock.List")
 	}
@@ -1688,7 +1714,7 @@ func (mmList *mStoreMockList) Return(ua1 []domain.User, err error) *StoreMock {
 }
 
 // Set uses given function f to mock the Store.List method
-func (mmList *mStoreMockList) Set(f func(ctx context.Context, status string, includeDeleted bool) (ua1 []domain.User, err error)) *StoreMock {
+func (mmList *mStoreMockList) Set(f func(ctx context.Context, status string, includeDeleted bool, ownerID string) (ua1 []domain.User, err error)) *StoreMock {
 	if mmList.defaultExpectation != nil {
 		mmList.mock.t.Fatalf("Default expectation is already set for the Store.List method")
 	}
@@ -1704,14 +1730,14 @@ func (mmList *mStoreMockList) Set(f func(ctx context.Context, status string, inc
 
 // When sets expectation for the Store.List which will trigger the result defined by the following
 // Then helper
-func (mmList *mStoreMockList) When(ctx context.Context, status string, includeDeleted bool) *StoreMockListExpectation {
+func (mmList *mStoreMockList) When(ctx context.Context, status string, includeDeleted bool, ownerID string) *StoreMockListExpectation {
 	if mmList.mock.funcList != nil {
 		mmList.mock.t.Fatalf("StoreMock.List mock is already set by Set")
 	}
 
 	expectation := &StoreMockListExpectation{
 		mock:               mmList.mock,
-		params:             &StoreMockListParams{ctx, status, includeDeleted},
+		params:             &StoreMockListParams{ctx, status, includeDeleted, ownerID},
 		expectationOrigins: StoreMockListExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmList.expectations = append(mmList.expectations, expectation)
@@ -1746,17 +1772,17 @@ func (mmList *mStoreMockList) invocationsDone() bool {
 }
 
 // List implements mm_users.Store
-func (mmList *StoreMock) List(ctx context.Context, status string, includeDeleted bool) (ua1 []domain.User, err error) {
+func (mmList *StoreMock) List(ctx context.Context, status string, includeDeleted bool, ownerID string) (ua1 []domain.User, err error) {
 	mm_atomic.AddUint64(&mmList.beforeListCounter, 1)
 	defer mm_atomic.AddUint64(&mmList.afterListCounter, 1)
 
 	mmList.t.Helper()
 
 	if mmList.inspectFuncList != nil {
-		mmList.inspectFuncList(ctx, status, includeDeleted)
+		mmList.inspectFuncList(ctx, status, includeDeleted, ownerID)
 	}
 
-	mm_params := StoreMockListParams{ctx, status, includeDeleted}
+	mm_params := StoreMockListParams{ctx, status, includeDeleted, ownerID}
 
 	// Record call args
 	mmList.ListMock.mutex.Lock()
@@ -1775,7 +1801,7 @@ func (mmList *StoreMock) List(ctx context.Context, status string, includeDeleted
 		mm_want := mmList.ListMock.defaultExpectation.params
 		mm_want_ptrs := mmList.ListMock.defaultExpectation.paramPtrs
 
-		mm_got := StoreMockListParams{ctx, status, includeDeleted}
+		mm_got := StoreMockListParams{ctx, status, includeDeleted, ownerID}
 
 		if mm_want_ptrs != nil {
 
@@ -1794,6 +1820,11 @@ func (mmList *StoreMock) List(ctx context.Context, status string, includeDeleted
 					mmList.ListMock.defaultExpectation.expectationOrigins.originIncludeDeleted, *mm_want_ptrs.includeDeleted, mm_got.includeDeleted, minimock.Diff(*mm_want_ptrs.includeDeleted, mm_got.includeDeleted))
 			}
 
+			if mm_want_ptrs.ownerID != nil && !minimock.Equal(*mm_want_ptrs.ownerID, mm_got.ownerID) {
+				mmList.t.Errorf("StoreMock.List got unexpected parameter ownerID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmList.ListMock.defaultExpectation.expectationOrigins.originOwnerID, *mm_want_ptrs.ownerID, mm_got.ownerID, minimock.Diff(*mm_want_ptrs.ownerID, mm_got.ownerID))
+			}
+
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmList.t.Errorf("StoreMock.List got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 				mmList.ListMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
@@ -1806,9 +1837,9 @@ func (mmList *StoreMock) List(ctx context.Context, status string, includeDeleted
 		return (*mm_results).ua1, (*mm_results).err
 	}
 	if mmList.funcList != nil {
-		return mmList.funcList(ctx, status, includeDeleted)
+		return mmList.funcList(ctx, status, includeDeleted, ownerID)
 	}
-	mmList.t.Fatalf("Unexpected call to StoreMock.List. %v %v %v", ctx, status, includeDeleted)
+	mmList.t.Fatalf("Unexpected call to StoreMock.List. %v %v %v %v", ctx, status, includeDeleted, ownerID)
 	return
 }
 

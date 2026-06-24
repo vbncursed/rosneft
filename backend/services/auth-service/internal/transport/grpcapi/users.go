@@ -7,7 +7,11 @@ import (
 )
 
 func (s *Server) CreateUser(ctx context.Context, req *authv1.CreateUserRequest) (*authv1.User, error) {
-	u, err := s.users.Create(ctx, req.GetEmail(), req.GetUsername(), req.GetPassword(), req.GetRoleSlugs())
+	actorID, _, err := s.actor(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	u, err := s.users.Create(ctx, actorID, req.GetEmail(), req.GetUsername(), req.GetPassword(), req.GetRoleSlugs())
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -15,7 +19,11 @@ func (s *Server) CreateUser(ctx context.Context, req *authv1.CreateUserRequest) 
 }
 
 func (s *Server) ListUsers(ctx context.Context, req *authv1.ListUsersRequest) (*authv1.ListUsersResponse, error) {
-	list, err := s.users.List(ctx, req.GetStatus(), req.GetIncludeDeleted())
+	actorID, scopeAll, err := s.actor(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	list, err := s.users.List(ctx, actorID, scopeAll, req.GetStatus(), req.GetIncludeDeleted())
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -27,7 +35,11 @@ func (s *Server) ListUsers(ctx context.Context, req *authv1.ListUsersRequest) (*
 }
 
 func (s *Server) GetUser(ctx context.Context, req *authv1.GetUserRequest) (*authv1.User, error) {
-	u, err := s.users.Get(ctx, req.GetId())
+	actorID, scopeAll, err := s.actor(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	u, err := s.users.Get(ctx, actorID, scopeAll, req.GetId())
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -35,7 +47,11 @@ func (s *Server) GetUser(ctx context.Context, req *authv1.GetUserRequest) (*auth
 }
 
 func (s *Server) UpdateUser(ctx context.Context, req *authv1.UpdateUserRequest) (*authv1.User, error) {
-	u, err := s.users.Update(ctx, req.GetId(), req.GetRoleSlugs(), req.GetEmail(), req.GetUsername())
+	actorID, scopeAll, err := s.actor(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	u, err := s.users.Update(ctx, actorID, scopeAll, req.GetId(), req.GetRoleSlugs(), req.GetEmail(), req.GetUsername())
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -43,11 +59,11 @@ func (s *Server) UpdateUser(ctx context.Context, req *authv1.UpdateUserRequest) 
 }
 
 func (s *Server) FreezeUser(ctx context.Context, req *authv1.FreezeUserRequest) (*authv1.User, error) {
-	actorID, err := s.userIDFromToken(ctx, req.GetToken())
+	actorID, scopeAll, err := s.actor(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapError(err)
 	}
-	u, err := s.users.Freeze(ctx, actorID, req.GetId())
+	u, err := s.users.Freeze(ctx, actorID, scopeAll, req.GetId())
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -55,7 +71,11 @@ func (s *Server) FreezeUser(ctx context.Context, req *authv1.FreezeUserRequest) 
 }
 
 func (s *Server) UnfreezeUser(ctx context.Context, req *authv1.UnfreezeUserRequest) (*authv1.User, error) {
-	u, err := s.users.Unfreeze(ctx, req.GetId())
+	actorID, scopeAll, err := s.actor(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	u, err := s.users.Unfreeze(ctx, actorID, scopeAll, req.GetId())
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -63,18 +83,22 @@ func (s *Server) UnfreezeUser(ctx context.Context, req *authv1.UnfreezeUserReque
 }
 
 func (s *Server) SoftDeleteUser(ctx context.Context, req *authv1.SoftDeleteUserRequest) (*authv1.SoftDeleteUserResponse, error) {
-	actorID, err := s.userIDFromToken(ctx, req.GetToken())
+	actorID, scopeAll, err := s.actor(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapError(err)
 	}
-	if err := s.users.SoftDelete(ctx, actorID, req.GetId()); err != nil {
+	if err := s.users.SoftDelete(ctx, actorID, scopeAll, req.GetId()); err != nil {
 		return nil, mapError(err)
 	}
 	return &authv1.SoftDeleteUserResponse{}, nil
 }
 
 func (s *Server) RestoreUser(ctx context.Context, req *authv1.RestoreUserRequest) (*authv1.User, error) {
-	u, err := s.users.Restore(ctx, req.GetId())
+	actorID, scopeAll, err := s.actor(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	u, err := s.users.Restore(ctx, actorID, scopeAll, req.GetId())
 	if err != nil {
 		return nil, mapError(err)
 	}

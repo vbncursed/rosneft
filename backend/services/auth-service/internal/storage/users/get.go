@@ -15,7 +15,7 @@ type rowScanner interface{ Scan(dst ...any) error }
 func scanUser(r rowScanner) (domain.User, error) {
 	var u domain.User
 	err := r.Scan(&u.ID, &u.Email, &u.Username, &u.PasswordHash, &u.Status,
-		&u.TOTPEnabled, &u.TOTPSecret, &u.CreatedAt, &u.UpdatedAt, &u.DeletedAt)
+		&u.TOTPEnabled, &u.TOTPSecret, &u.CreatedAt, &u.UpdatedAt, &u.DeletedAt, &u.CreatedBy)
 	return u, err
 }
 

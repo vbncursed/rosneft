@@ -6,6 +6,7 @@ package grpcapi
 import (
 	"context"
 	"errors"
+	"slices"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -23,16 +24,17 @@ type AuthFlow interface {
 	ValidateToken(ctx context.Context, token string) (string, []string, error)
 }
 
-// UsersSvc is the user surface (self + admin).
+// UsersSvc is the user surface (self + admin). The admin methods take the
+// acting user id and whether it may see/manage every user (scopeAll).
 type UsersSvc interface {
-	Create(ctx context.Context, email, username, password string, roleSlugs []string) (domain.User, error)
-	List(ctx context.Context, status string, includeDeleted bool) ([]domain.User, error)
-	Get(ctx context.Context, id string) (domain.User, error)
-	Update(ctx context.Context, id string, roleSlugs []string, email, username string) (domain.User, error)
-	Freeze(ctx context.Context, actorID, id string) (domain.User, error)
-	Unfreeze(ctx context.Context, id string) (domain.User, error)
-	SoftDelete(ctx context.Context, actorID, id string) error
-	Restore(ctx context.Context, id string) (domain.User, error)
+	Create(ctx context.Context, actorID, email, username, password string, roleSlugs []string) (domain.User, error)
+	List(ctx context.Context, actorID string, scopeAll bool, status string, includeDeleted bool) ([]domain.User, error)
+	Get(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
+	Update(ctx context.Context, actorID string, scopeAll bool, id string, roleSlugs []string, email, username string) (domain.User, error)
+	Freeze(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
+	Unfreeze(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
+	SoftDelete(ctx context.Context, actorID string, scopeAll bool, id string) error
+	Restore(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
 	ChangePassword(ctx context.Context, userID, oldPlain, newPlain string) error
 }
 
@@ -74,6 +76,16 @@ func (s *Server) Register(srv *grpc.Server) { authv1.RegisterAuthServiceServer(s
 func (s *Server) userIDFromToken(ctx context.Context, token string) (string, error) {
 	uid, _, err := s.auth.ValidateToken(ctx, token)
 	return uid, err
+}
+
+// actor resolves a session token to (userID, scopeAll). scopeAll is true when
+// the caller holds users:read_all (admin) — i.e. may see/manage every user.
+func (s *Server) actor(ctx context.Context, token string) (string, bool, error) {
+	uid, perms, err := s.auth.ValidateToken(ctx, token)
+	if err != nil {
+		return "", false, err
+	}
+	return uid, slices.Contains(perms, "users:read_all"), nil
 }
 
 // mapError translates domain sentinels to gRPC status codes.
