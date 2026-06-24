@@ -25,7 +25,7 @@ export default function LoginForm() {
         body: JSON.stringify({ identifier, password }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Sign in failed");
+      if (!res.ok) throw new Error(data?.message ?? "Sign in failed");
       if (data.twoFactorRequired) { setChallenge(data.challengeToken); setStep("2fa"); }
       // hard navigation: re-runs the root layout's getCurrentUser so the avatar
       // appears — router.replace is soft and leaves the layout's principal stale
@@ -43,7 +43,7 @@ export default function LoginForm() {
         body: JSON.stringify({ challengeToken: challenge, code }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error ?? "Invalid code");
+      if (!res.ok) throw new Error(data?.message ?? "Invalid code");
       window.location.assign(next);
     } catch (e) { setError(e instanceof Error ? e.message : "Invalid code"); }
     finally { setBusy(false); }

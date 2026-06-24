@@ -31,7 +31,7 @@ func RequirePermissionForRoute(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		pattern := chi.RouteContext(r.Context()).RoutePattern()
 		if need, ok := routePerms[r.Method+" "+pattern]; ok && !slices.Contains(principalPerms(r.Context()), need) {
-			writeJSON(w, http.StatusForbidden, map[string]string{"error": "permission denied: " + need})
+			writeErr(w, http.StatusForbidden, "forbidden", "permission denied: "+need)
 			return
 		}
 		next.ServeHTTP(w, r)

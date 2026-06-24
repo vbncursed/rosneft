@@ -62,7 +62,7 @@ func (h *Handlers) Mount(r chi.Router) {
 
 func decode(w http.ResponseWriter, r *http.Request, dst any) bool {
 	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "bad json"})
+		writeErr(w, http.StatusBadRequest, "invalid_input", "bad json")
 		return false
 	}
 	return true

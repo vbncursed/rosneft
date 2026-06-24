@@ -12,7 +12,7 @@ func (h *Handlers) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := bearer(r)
 		if token == "" {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "missing bearer token"})
+			writeErr(w, http.StatusUnauthorized, "unauthenticated", "missing bearer token")
 			return
 		}
 		uid, perms, err := h.client.ValidateToken(r.Context(), token)
@@ -31,7 +31,7 @@ func (h *Handlers) require(perm string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !slices.Contains(principalPerms(r.Context()), perm) {
-				writeJSON(w, http.StatusForbidden, map[string]string{"error": "permission denied: " + perm})
+				writeErr(w, http.StatusForbidden, "forbidden", "permission denied: "+perm)
 				return
 			}
 			next.ServeHTTP(w, r)
