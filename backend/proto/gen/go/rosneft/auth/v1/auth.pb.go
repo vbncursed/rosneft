@@ -1014,10 +1014,11 @@ func (*Disable2FAResponse) Descriptor() ([]byte, []int) {
 
 type CreateUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
-	Username      string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
-	Password      string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
-	RoleSlugs     []string               `protobuf:"bytes,4,rep,name=role_slugs,json=roleSlugs,proto3" json:"role_slugs,omitempty"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"` // actor session token; created_by is set from it
+	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Username      string                 `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`
+	Password      string                 `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
+	RoleSlugs     []string               `protobuf:"bytes,5,rep,name=role_slugs,json=roleSlugs,proto3" json:"role_slugs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1052,6 +1053,13 @@ func (*CreateUserRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{19}
 }
 
+func (x *CreateUserRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
 func (x *CreateUserRequest) GetEmail() string {
 	if x != nil {
 		return x.Email
@@ -1082,8 +1090,9 @@ func (x *CreateUserRequest) GetRoleSlugs() []string {
 
 type ListUsersRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	Status         string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-	IncludeDeleted bool                   `protobuf:"varint,2,opt,name=include_deleted,json=includeDeleted,proto3" json:"include_deleted,omitempty"`
+	Token          string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"` // actor; scopes the result to owned users unless actor has users:read_all
+	Status         string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	IncludeDeleted bool                   `protobuf:"varint,3,opt,name=include_deleted,json=includeDeleted,proto3" json:"include_deleted,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1116,6 +1125,13 @@ func (x *ListUsersRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListUsersRequest.ProtoReflect.Descriptor instead.
 func (*ListUsersRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *ListUsersRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
 }
 
 func (x *ListUsersRequest) GetStatus() string {
@@ -1178,7 +1194,8 @@ func (x *ListUsersResponse) GetUsers() []*User {
 
 type GetUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1213,6 +1230,13 @@ func (*GetUserRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{22}
 }
 
+func (x *GetUserRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
 func (x *GetUserRequest) GetId() string {
 	if x != nil {
 		return x.Id
@@ -1222,10 +1246,11 @@ func (x *GetUserRequest) GetId() string {
 
 type UpdateUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	RoleSlugs     []string               `protobuf:"bytes,2,rep,name=role_slugs,json=roleSlugs,proto3" json:"role_slugs,omitempty"` // replaces the user's roles when set
-	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`                          // empty = unchanged
-	Username      string                 `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`                    // empty = unchanged
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	RoleSlugs     []string               `protobuf:"bytes,3,rep,name=role_slugs,json=roleSlugs,proto3" json:"role_slugs,omitempty"` // replaces the user's roles when set
+	Email         string                 `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`                          // empty = unchanged
+	Username      string                 `protobuf:"bytes,5,opt,name=username,proto3" json:"username,omitempty"`                    // empty = unchanged
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1258,6 +1283,13 @@ func (x *UpdateUserRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use UpdateUserRequest.ProtoReflect.Descriptor instead.
 func (*UpdateUserRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *UpdateUserRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
 }
 
 func (x *UpdateUserRequest) GetId() string {
@@ -1342,7 +1374,8 @@ func (x *FreezeUserRequest) GetId() string {
 
 type UnfreezeUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1375,6 +1408,13 @@ func (x *UnfreezeUserRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use UnfreezeUserRequest.ProtoReflect.Descriptor instead.
 func (*UnfreezeUserRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *UnfreezeUserRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
 }
 
 func (x *UnfreezeUserRequest) GetId() string {
@@ -1474,7 +1514,8 @@ func (*SoftDeleteUserResponse) Descriptor() ([]byte, []int) {
 
 type RestoreUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1507,6 +1548,13 @@ func (x *RestoreUserRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use RestoreUserRequest.ProtoReflect.Descriptor instead.
 func (*RestoreUserRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *RestoreUserRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
 }
 
 func (x *RestoreUserRequest) GetId() string {
@@ -1988,37 +2036,43 @@ const file_rosneft_auth_v1_auth_proto_rawDesc = "" +
 	"\x11Disable2FARequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\"\x14\n" +
-	"\x12Disable2FAResponse\"\x80\x01\n" +
+	"\x12Disable2FAResponse\"\x96\x01\n" +
 	"\x11CreateUserRequest\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
-	"\busername\x18\x02 \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\x03 \x01(\tR\bpassword\x12\x1d\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
+	"\busername\x18\x03 \x01(\tR\busername\x12\x1a\n" +
+	"\bpassword\x18\x04 \x01(\tR\bpassword\x12\x1d\n" +
 	"\n" +
-	"role_slugs\x18\x04 \x03(\tR\troleSlugs\"S\n" +
-	"\x10ListUsersRequest\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status\x12'\n" +
-	"\x0finclude_deleted\x18\x02 \x01(\bR\x0eincludeDeleted\"@\n" +
+	"role_slugs\x18\x05 \x03(\tR\troleSlugs\"i\n" +
+	"\x10ListUsersRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\x12'\n" +
+	"\x0finclude_deleted\x18\x03 \x01(\bR\x0eincludeDeleted\"@\n" +
 	"\x11ListUsersResponse\x12+\n" +
-	"\x05users\x18\x01 \x03(\v2\x15.rosneft.auth.v1.UserR\x05users\" \n" +
-	"\x0eGetUserRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"t\n" +
-	"\x11UpdateUserRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\x05users\x18\x01 \x03(\v2\x15.rosneft.auth.v1.UserR\x05users\"6\n" +
+	"\x0eGetUserRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\"\x8a\x01\n" +
+	"\x11UpdateUserRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
-	"role_slugs\x18\x02 \x03(\tR\troleSlugs\x12\x14\n" +
-	"\x05email\x18\x03 \x01(\tR\x05email\x12\x1a\n" +
-	"\busername\x18\x04 \x01(\tR\busername\"9\n" +
+	"role_slugs\x18\x03 \x03(\tR\troleSlugs\x12\x14\n" +
+	"\x05email\x18\x04 \x01(\tR\x05email\x12\x1a\n" +
+	"\busername\x18\x05 \x01(\tR\busername\"9\n" +
 	"\x11FreezeUserRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x0e\n" +
-	"\x02id\x18\x02 \x01(\tR\x02id\"%\n" +
-	"\x13UnfreezeUserRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"=\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\";\n" +
+	"\x13UnfreezeUserRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\"=\n" +
 	"\x15SoftDeleteUserRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\"\x18\n" +
-	"\x16SoftDeleteUserResponse\"$\n" +
-	"\x12RestoreUserRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x12\n" +
+	"\x16SoftDeleteUserResponse\":\n" +
+	"\x12RestoreUserRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\"\x12\n" +
 	"\x10ListRolesRequest\"@\n" +
 	"\x11ListRolesResponse\x12+\n" +
 	"\x05roles\x18\x01 \x03(\v2\x15.rosneft.auth.v1.RoleR\x05roles\"h\n" +

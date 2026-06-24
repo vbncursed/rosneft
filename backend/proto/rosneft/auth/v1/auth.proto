@@ -126,33 +126,38 @@ message Disable2FARequest {
 message Disable2FAResponse {}
 
 message CreateUserRequest {
-  string email = 1;
-  string username = 2;
-  string password = 3;
-  repeated string role_slugs = 4;
+  string token = 1; // actor session token; created_by is set from it
+  string email = 2;
+  string username = 3;
+  string password = 4;
+  repeated string role_slugs = 5;
 }
 message ListUsersRequest {
-  string status = 1;
-  bool include_deleted = 2;
+  string token = 1; // actor; scopes the result to owned users unless actor has users:read_all
+  string status = 2;
+  bool include_deleted = 3;
 }
 message ListUsersResponse {
   repeated User users = 1;
 }
 message GetUserRequest {
-  string id = 1;
+  string token = 1;
+  string id = 2;
 }
 message UpdateUserRequest {
-  string id = 1;
-  repeated string role_slugs = 2; // replaces the user's roles when set
-  string email = 3;               // empty = unchanged
-  string username = 4;            // empty = unchanged
+  string token = 1;
+  string id = 2;
+  repeated string role_slugs = 3; // replaces the user's roles when set
+  string email = 4;               // empty = unchanged
+  string username = 5;            // empty = unchanged
 }
 message FreezeUserRequest {
   string token = 1; // actor resolved server-side from the session, never trusted from the client
   string id = 2;
 }
 message UnfreezeUserRequest {
-  string id = 1;
+  string token = 1;
+  string id = 2;
 }
 message SoftDeleteUserRequest {
   string token = 1; // actor resolved server-side from the session
@@ -160,7 +165,8 @@ message SoftDeleteUserRequest {
 }
 message SoftDeleteUserResponse {}
 message RestoreUserRequest {
-  string id = 1;
+  string token = 1;
+  string id = 2;
 }
 
 message ListRolesRequest {}

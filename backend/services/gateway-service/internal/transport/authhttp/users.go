@@ -8,7 +8,7 @@ import (
 
 func (h *Handlers) listUsers(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	list, err := h.client.ListUsers(r.Context(), q.Get("status"), q.Get("includeDeleted") == "true")
+	list, err := h.client.ListUsers(r.Context(), bearer(r), q.Get("status"), q.Get("includeDeleted") == "true")
 	if err != nil {
 		fail(w, err)
 		return
@@ -24,7 +24,7 @@ func (h *Handlers) createUser(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	u, err := h.client.CreateUser(r.Context(), req.Email, req.Username, req.Password, req.RoleSlugs)
+	u, err := h.client.CreateUser(r.Context(), bearer(r), req.Email, req.Username, req.Password, req.RoleSlugs)
 	if err != nil {
 		fail(w, err)
 		return
@@ -33,7 +33,7 @@ func (h *Handlers) createUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) getUser(w http.ResponseWriter, r *http.Request) {
-	u, err := h.client.GetUser(r.Context(), chi.URLParam(r, "id"))
+	u, err := h.client.GetUser(r.Context(), bearer(r), chi.URLParam(r, "id"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -49,7 +49,7 @@ func (h *Handlers) updateUser(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	u, err := h.client.UpdateUser(r.Context(), chi.URLParam(r, "id"), req.RoleSlugs, req.Email, req.Username)
+	u, err := h.client.UpdateUser(r.Context(), bearer(r), chi.URLParam(r, "id"), req.RoleSlugs, req.Email, req.Username)
 	if err != nil {
 		fail(w, err)
 		return
@@ -67,7 +67,7 @@ func (h *Handlers) freezeUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) unfreezeUser(w http.ResponseWriter, r *http.Request) {
-	u, err := h.client.UnfreezeUser(r.Context(), chi.URLParam(r, "id"))
+	u, err := h.client.UnfreezeUser(r.Context(), bearer(r), chi.URLParam(r, "id"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -84,7 +84,7 @@ func (h *Handlers) softDeleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) restoreUser(w http.ResponseWriter, r *http.Request) {
-	u, err := h.client.RestoreUser(r.Context(), chi.URLParam(r, "id"))
+	u, err := h.client.RestoreUser(r.Context(), bearer(r), chi.URLParam(r, "id"))
 	if err != nil {
 		fail(w, err)
 		return

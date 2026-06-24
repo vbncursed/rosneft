@@ -39,3 +39,9 @@ body {
 .dropdown-menu-enter {
   animation: dropdown-enter 120ms ease-out;
 }
+
+@keyframes drift {
+  0% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-14px) scale(1.02); }
+  100% { transform: translateY(0) scale(1); }
+}

@@ -5,10 +5,20 @@ const SERVER_API_BASE =
   process.env.NEXT_PUBLIC_API_URL ??
   "http://localhost:8080";
 
-// On the client we hit same-origin so the Next.js rewrite proxies to gateway.
+// On the client we hit same-origin so the Next.js BFF proxy injects the Bearer.
 // On the server there is no host context, so an absolute URL is required.
 function apiBase(): string {
   return typeof window === "undefined" ? SERVER_API_BASE : "";
+}
+
+// On the server there is no same-origin proxy, so attach the session cookie's
+// token directly. On the client the browser sends the httpOnly cookie to the
+// same-origin /api proxy, which injects the header — so nothing to add here.
+async function authHeaders(): Promise<Record<string, string>> {
+  if (typeof window !== "undefined") return {};
+  const { cookies } = await import("next/headers");
+  const token = (await cookies()).get("session")?.value;
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 async function send<T>(
@@ -18,7 +28,7 @@ async function send<T>(
 ): Promise<T> {
   const res = await fetch(`${apiBase()}${path}`, {
     ...init,
-    headers: { Accept: "application/json", ...(init.headers ?? {}) },
+    headers: { Accept: "application/json", ...(await authHeaders()), ...(init.headers ?? {}) },
   });
   if (!res.ok) {
     let body: ApiError | null = null;

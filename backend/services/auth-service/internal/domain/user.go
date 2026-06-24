@@ -26,4 +26,5 @@ type User struct {
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	DeletedAt    *time.Time
+	CreatedBy    *string // who created this account; nil for bootstrap admin
 }

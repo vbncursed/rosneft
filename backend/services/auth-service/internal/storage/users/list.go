@@ -10,9 +10,13 @@ import (
 // List returns users filtered by status (empty = any) and, unless
 // includeDeleted, hides soft-deleted rows. Roles/permissions are NOT hydrated
 // here (list views don't need the per-user permission fan-out).
-func (s *Store) List(ctx context.Context, status string, includeDeleted bool) ([]domain.User, error) {
+func (s *Store) List(ctx context.Context, status string, includeDeleted bool, ownerID string) ([]domain.User, error) {
 	q := `SELECT ` + userColumns + ` FROM users u WHERE 1=1`
-	args := make([]any, 0, 2)
+	args := make([]any, 0, 3)
+	if ownerID != "" {
+		args = append(args, ownerID)
+		q += fmt.Sprintf(" AND u.created_by = $%d", len(args))
+	}
 	if status != "" {
 		args = append(args, status)
 		q += fmt.Sprintf(" AND u.status = $%d", len(args))
