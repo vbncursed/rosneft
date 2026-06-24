@@ -16,6 +16,8 @@ interface Props {
 
 export default function UserRow({ u, me, onEditRoles, act }: Props) {
   const self = u.id === me.id;
+  // Only the owner may freeze/delete an admin account (mirrors the backend guard).
+  const canManage = me.isOwner || !u.roleSlugs.includes("admin");
   return (
     <tr className="border-t border-white/10">
       <td className="px-3 py-2 text-sm text-white">{u.username}</td>
@@ -38,14 +40,14 @@ export default function UserRow({ u, me, onEditRoles, act }: Props) {
           {can(me, "users:write") ? (
             <button type="button" onClick={() => onEditRoles(u)} className="cursor-pointer text-neutral-300 hover:text-cyan-300">Roles</button>
           ) : null}
-          {can(me, "users:freeze") && !self && u.status !== "deleted" ? (
+          {can(me, "users:freeze") && !self && canManage && u.status !== "deleted" ? (
             u.status === "frozen" ? (
               <button type="button" onClick={() => act(() => unfreezeUser(u.id), "Unfrozen")} className="cursor-pointer text-neutral-300 hover:text-emerald-300">Unfreeze</button>
             ) : (
               <button type="button" onClick={() => act(() => freezeUser(u.id), "Frozen")} className="cursor-pointer text-neutral-300 hover:text-amber-300">Freeze</button>
             )
           ) : null}
-          {can(me, "users:delete") && !self ? (
+          {can(me, "users:delete") && !self && canManage ? (
             u.status === "deleted" ? (
               <button type="button" onClick={() => act(() => restoreUser(u.id), "Restored")} className="cursor-pointer text-neutral-300 hover:text-emerald-300">Restore</button>
             ) : (

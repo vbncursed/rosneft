@@ -33,6 +33,7 @@ type User struct {
 	Permissions   []string               `protobuf:"bytes,7,rep,name=permissions,proto3" json:"permissions,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	IsOwner       bool                   `protobuf:"varint,10,opt,name=is_owner,json=isOwner,proto3" json:"is_owner,omitempty"` // the single owner; only they may manage admin accounts
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -128,6 +129,13 @@ func (x *User) GetUpdatedAt() *timestamppb.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *User) GetIsOwner() bool {
+	if x != nil {
+		return x.IsOwner
+	}
+	return false
 }
 
 type Role struct {
@@ -1972,7 +1980,7 @@ var File_rosneft_auth_v1_auth_proto protoreflect.FileDescriptor
 
 const file_rosneft_auth_v1_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x1arosneft/auth/v1/auth.proto\x12\x0frosneft.auth.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xba\x02\n" +
+	"\x1arosneft/auth/v1/auth.proto\x12\x0frosneft.auth.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd5\x02\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
@@ -1985,7 +1993,9 @@ const file_rosneft_auth_v1_auth_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"x\n" +
+	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x19\n" +
+	"\bis_owner\x18\n" +
+	" \x01(\bR\aisOwner\"x\n" +
 	"\x04Role\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x1b\n" +

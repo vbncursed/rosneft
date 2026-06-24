@@ -129,6 +129,7 @@ type AuthRole struct {
 type AuthUser struct {
 	Email       *string         `json:"email,omitempty"`
 	Id          *string         `json:"id,omitempty"`
+	IsOwner     *bool           `json:"isOwner,omitempty"`
 	Permissions *[]string       `json:"permissions,omitempty"`
 	RoleSlugs   *[]string       `json:"roleSlugs,omitempty"`
 	Status      *AuthUserStatus `json:"status,omitempty"`
