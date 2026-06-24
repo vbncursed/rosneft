@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useCurrentUser } from "@/auth/presentation/current-user-context";
 import { can } from "@/auth/domain/principal";
 
 export default function UserMenu() {
   const p = useCurrentUser();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   if (!p) return null;
 
@@ -17,7 +15,9 @@ export default function UserMenu() {
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
-    router.replace("/login");
+    // hard navigation: forces the root layout to re-run getCurrentUser (now null)
+    // so the avatar disappears — router.replace is soft and keeps the stale layout
+    window.location.assign("/login");
   }
 
   return (
