@@ -53,7 +53,7 @@ message User {
   repeated string permissions = 7;
   google.protobuf.Timestamp created_at = 8;
   google.protobuf.Timestamp updated_at = 9;
-  bool is_owner = 10; // the single owner; only they may manage admin accounts
+  bool is_owner = 10; // root of trust: manages admins, grants owner, bypasses grant limits
 }
 
 message Role {
