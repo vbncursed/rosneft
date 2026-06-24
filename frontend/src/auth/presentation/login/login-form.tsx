@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
+import PasswordField from "@/shared/presentation/components/password-field";
 
 export default function LoginForm() {
   const rawNext = useSearchParams().get("next") || "/";
@@ -71,10 +72,7 @@ export default function LoginForm() {
             <label className={label} htmlFor="id">Email or username</label>
             <input id="id" autoFocus value={identifier} onChange={(e) => setIdentifier(e.target.value)} className={inputCls} />
           </div>
-          <div>
-            <label className={label} htmlFor="pw">Password</label>
-            <input id="pw" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} />
-          </div>
+          <PasswordField label="Password" value={password} onChange={setPassword} autoComplete="current-password" />
           <button type="submit" disabled={busy || !identifier || !password}
             className="mt-2 cursor-pointer rounded-full bg-white px-6 py-3 text-xs uppercase tracking-[0.2em] text-black transition-colors duration-200 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-white/30 disabled:text-white/50">
             {busy ? "Signing in…" : "Sign in"}

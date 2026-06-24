@@ -7,10 +7,11 @@ interface FieldProps {
   onChange: (v: string) => void;
   required?: boolean;
   multiline?: boolean;
+  error?: string | null;
 }
 
-const inputCls =
-  "mt-2 block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none transition-colors duration-200 focus:border-cyan-300/60";
+const inputBase =
+  "mt-2 block w-full rounded-xl border bg-black/40 px-4 py-3 text-sm text-white outline-none transition-colors duration-200";
 
 export default function Field({
   label,
@@ -19,7 +20,12 @@ export default function Field({
   onChange,
   required,
   multiline,
+  error,
 }: FieldProps) {
+  const border = error
+    ? "border-red-400/60 focus:border-red-400"
+    : "border-white/10 focus:border-cyan-300/60";
+  const inputCls = `${inputBase} ${border}`;
   return (
     <div>
       <label className="block text-xs uppercase tracking-[0.2em] text-neutral-400">
@@ -41,7 +47,11 @@ export default function Field({
           className={inputCls}
         />
       )}
-      {hint ? <p className="mt-1 text-xs text-neutral-500">{hint}</p> : null}
+      {error ? (
+        <p className="mt-1 text-xs text-red-300">{error}</p>
+      ) : hint ? (
+        <p className="mt-1 text-xs text-neutral-500">{hint}</p>
+      ) : null}
     </div>
   );
 }
