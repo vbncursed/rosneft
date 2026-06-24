@@ -7,6 +7,10 @@ interface ObjectsListProps {
   // When a panorama is active, each row gets a "show in this panorama" toggle.
   activePanoramaId: number | null;
   isPending: (id: number) => boolean;
+  // Permission flags: write gates rename + per-panorama visibility, delete gates
+  // the trash icon. Selecting a row to highlight it stays available to everyone.
+  canWrite: boolean;
+  canDelete: boolean;
   onSelect: (id: number | null) => void;
   onRename: (id: number, label: string) => void;
   onToggleVisible: (id: number, visible: boolean) => void;
@@ -44,6 +48,8 @@ function ObjectRow({
   selected,
   activePanoramaId,
   pending,
+  canWrite,
+  canDelete,
   onSelect,
   onRename,
   onToggleVisible,
@@ -53,6 +59,8 @@ function ObjectRow({
   selected: boolean;
   activePanoramaId: number | null;
   pending: boolean;
+  canWrite: boolean;
+  canDelete: boolean;
   onSelect: (id: number | null) => void;
   onRename: (id: number, label: string) => void;
   onToggleVisible: (id: number, visible: boolean) => void;
@@ -78,7 +86,7 @@ function ObjectRow({
           : "border-white/10 hover:border-white/25"
       }`}
     >
-      {activePanoramaId != null ? (
+      {activePanoramaId != null && canWrite ? (
         <input
           type="checkbox"
           checked={placement.visiblePanoramaIds.includes(activePanoramaId)}
@@ -118,26 +126,30 @@ function ObjectRow({
         </button>
       )}
 
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        disabled={pending || editing}
-        title="Rename"
-        aria-label="Rename object"
-        className={ICON_BTN + " hover:text-cyan-300"}
-      >
-        <PencilIcon />
-      </button>
-      <button
-        type="button"
-        onClick={() => onDelete(placement.id)}
-        disabled={pending}
-        title="Delete"
-        aria-label="Delete object"
-        className={ICON_BTN + " hover:text-red-400"}
-      >
-        <TrashIcon />
-      </button>
+      {canWrite ? (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          disabled={pending || editing}
+          title="Rename"
+          aria-label="Rename object"
+          className={ICON_BTN + " hover:text-cyan-300"}
+        >
+          <PencilIcon />
+        </button>
+      ) : null}
+      {canDelete ? (
+        <button
+          type="button"
+          onClick={() => onDelete(placement.id)}
+          disabled={pending}
+          title="Delete"
+          aria-label="Delete object"
+          className={ICON_BTN + " hover:text-red-400"}
+        >
+          <TrashIcon />
+        </button>
+      ) : null}
     </li>
   );
 }
@@ -150,6 +162,8 @@ export default function ObjectsList({
   selectedId,
   activePanoramaId,
   isPending,
+  canWrite,
+  canDelete,
   onSelect,
   onRename,
   onToggleVisible,
@@ -172,6 +186,8 @@ export default function ObjectsList({
           selected={p.id === selectedId}
           activePanoramaId={activePanoramaId}
           pending={isPending(p.id)}
+          canWrite={canWrite}
+          canDelete={canDelete}
           onSelect={onSelect}
           onRename={onRename}
           onToggleVisible={onToggleVisible}

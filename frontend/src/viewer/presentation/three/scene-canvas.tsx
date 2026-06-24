@@ -55,6 +55,9 @@ interface SceneCanvasProps {
   mode: GizmoMode;
   measureMode: boolean;
   snapEnabled: boolean;
+  // Gates the in-scene transform gizmo. Computed outside the Canvas (context
+  // can't cross the R3F boundary) and threaded down to PlacementsLayer.
+  canEditPlacements: boolean;
   // When non-null, the viewer renders the panorama sphere skybox in
   // place of the territory mesh. Placements still render against the
   // same coordinate space; snap targets the sphere instead of the
@@ -96,6 +99,7 @@ export default function SceneCanvas({
   mode,
   measureMode,
   snapEnabled,
+  canEditPlacements,
   activePanorama,
   panoramas,
   onActivatePanorama,
@@ -241,6 +245,7 @@ export default function SceneCanvas({
             selectedId={selectedId}
             mode={mode}
             measureMode={measureMode}
+            canEdit={canEditPlacements}
             territoryRef={snapTargetRef}
             snapEnabled={snapEnabled}
             onSelect={onSelect}

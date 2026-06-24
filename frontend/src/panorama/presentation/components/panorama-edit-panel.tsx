@@ -16,6 +16,10 @@ interface PanoramaEditPanelProps {
   // calibration controls are useless, so we surface a fix-it hint and the
   // delete action instead.
   failed: boolean;
+  // Permission flags: write gates the anchor/calibration editing controls,
+  // delete gates the delete action. Viewing a panorama stays open to everyone.
+  canWrite: boolean;
+  canDelete: boolean;
   onSave: (patch: { position?: Vec3; yawOffset?: number }) => void;
   onToggleView: () => void;
   onClose: () => void;
@@ -42,6 +46,8 @@ export default function PanoramaEditPanel({
   cameraPositionRef,
   inPanoramaMode,
   failed,
+  canWrite,
+  canDelete,
   onSave,
   onToggleView,
   onClose,
@@ -104,14 +110,17 @@ export default function PanoramaEditPanel({
             {inPanoramaMode ? "Switch to 3D view" : "Enter panorama view"}
           </button>
 
-          <button
-            type="button"
-            onClick={onCalibrate}
-            className="mb-3 w-full cursor-pointer rounded-lg border border-cyan-300/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-100 transition-colors hover:bg-cyan-500/20"
-          >
-            Calibrate (overlay)
-          </button>
+          {canWrite ? (
+            <button
+              type="button"
+              onClick={onCalibrate}
+              className="mb-3 w-full cursor-pointer rounded-lg border border-cyan-300/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-100 transition-colors hover:bg-cyan-500/20"
+            >
+              Calibrate (overlay)
+            </button>
+          ) : null}
 
+          {canWrite ? (
           <div className="space-y-3">
             <Vec3Field label="Position" value={position} onChange={setPosition} step={0.05} />
 
@@ -158,16 +167,19 @@ export default function PanoramaEditPanel({
               Save anchor
             </button>
           </div>
+          ) : null}
         </>
       )}
 
-      <DeleteButton
-        label={panorama.title}
-        onDelete={onDelete}
-        className="mt-3 w-full cursor-pointer rounded-md border border-red-300/40 bg-red-500/10 px-2 py-1.5 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        Delete panorama
-      </DeleteButton>
+      {canDelete ? (
+        <DeleteButton
+          label={panorama.title}
+          onDelete={onDelete}
+          className="mt-3 w-full cursor-pointer rounded-md border border-red-300/40 bg-red-500/10 px-2 py-1.5 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Delete panorama
+        </DeleteButton>
+      ) : null}
     </div>
   );
 }
