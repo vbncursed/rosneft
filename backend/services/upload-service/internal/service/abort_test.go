@@ -1,20 +1,24 @@
 package service_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
+	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 
 	"github.com/vbncursed/rosneft/backend/services/upload-service/internal/domain"
 	"github.com/vbncursed/rosneft/backend/services/upload-service/internal/service"
+	"github.com/vbncursed/rosneft/backend/services/upload-service/internal/service/mocks"
 )
 
 type AbortStatusSuite struct {
 	suite.Suite
-	store *fakeStore
+	store *mocks.SessionStoreMock
 	svc   *service.Upload
+	ctx   context.Context
 }
 
 func TestAbortStatusSuite(t *testing.T) {
@@ -22,55 +26,44 @@ func TestAbortStatusSuite(t *testing.T) {
 }
 
 func (s *AbortStatusSuite) SetupTest() {
-	s.store = newFakeStore()
-	s.svc = service.New(service.Config{
-		Store: s.store,
-		Blobs: &fakeBlobs{},
-		IDGen: func() string { return "sess-1" },
-	})
+	mc := minimock.NewController(s.T())
+	s.store = mocks.NewSessionStoreMock(mc)
+	s.svc = service.New(service.Config{Store: s.store, Blobs: mocks.NewBlobsMock(mc)})
+	s.ctx = s.T().Context()
 }
 
 func (s *AbortStatusSuite) TestAbortRejectsEmptyID() {
-	err := s.svc.Abort(s.T().Context(), "")
+	err := s.svc.Abort(s.ctx, "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrSessionNotFound))
 }
 
 func (s *AbortStatusSuite) TestAbortIsIdempotentOnUnknownID() {
-	// The store's Abort is a delete-or-noop, so the service does not care
-	// that the session does not exist (the contract is documented as
-	// idempotent in abort.go).
-	err := s.svc.Abort(s.T().Context(), "missing")
+	// store.Abort is delete-or-noop, so an unknown id is not an error.
+	s.store.AbortMock.Expect(s.ctx, "missing").Return(nil)
+	err := s.svc.Abort(s.ctx, "missing")
 	assert.NilError(s.T(), err)
 }
 
 func (s *AbortStatusSuite) TestAbortRemovesExisting() {
-	ctx := s.T().Context()
-	_, err := s.svc.Initiate(ctx, 100, "application/zip")
-	assert.NilError(s.T(), err)
-	assert.NilError(s.T(), s.svc.Abort(ctx, "sess-1"))
-
-	_, err = s.svc.GetStatus(ctx, "sess-1")
-	assert.Assert(s.T(), errors.Is(err, domain.ErrSessionNotFound))
+	s.store.AbortMock.Expect(s.ctx, "sess-1").Return(nil)
+	assert.NilError(s.T(), s.svc.Abort(s.ctx, "sess-1"))
 }
 
 func (s *AbortStatusSuite) TestGetStatusRejectsEmptyID() {
-	_, err := s.svc.GetStatus(s.T().Context(), "")
+	_, err := s.svc.GetStatus(s.ctx, "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrSessionNotFound))
 }
 
 func (s *AbortStatusSuite) TestGetStatusReturnsNotFoundForUnknown() {
-	_, err := s.svc.GetStatus(s.T().Context(), "missing")
+	s.store.GetStatusMock.Expect(s.ctx, "missing").Return(domain.Session{}, domain.ErrSessionNotFound)
+	_, err := s.svc.GetStatus(s.ctx, "missing")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrSessionNotFound))
 }
 
 func (s *AbortStatusSuite) TestGetStatusReportsCurrentOffset() {
-	ctx := s.T().Context()
-	_, err := s.svc.Initiate(ctx, 100, "application/zip")
-	assert.NilError(s.T(), err)
-	_, err = s.svc.WriteChunk(ctx, "sess-1", 0, []byte("12345"))
-	assert.NilError(s.T(), err)
-
-	got, err := s.svc.GetStatus(ctx, "sess-1")
+	s.store.GetStatusMock.Expect(s.ctx, "sess-1").
+		Return(domain.Session{ID: "sess-1", Offset: 5, Size: 100}, nil)
+	got, err := s.svc.GetStatus(s.ctx, "sess-1")
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), got.Offset, int64(5))
 	assert.Equal(s.T(), got.Size, int64(100))

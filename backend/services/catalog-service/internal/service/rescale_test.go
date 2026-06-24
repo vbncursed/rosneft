@@ -1,20 +1,29 @@
 package service_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
+	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/service"
+	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/service/mocks"
 )
 
+// The service layer only validates and delegates: the rescale arithmetic
+// (factor = oldMax/newMax, write-once baseline, clear-after-apply) is a
+// Postgres CTE living in internal/storage. Those mechanics belong in a storage
+// integration test, not here — the previous in-memory fake re-implemented the
+// CTE, so its math assertions were testing the fake, not the service.
 type RescaleSuite struct {
 	suite.Suite
-	repo *fakeRepo
+	repo *mocks.RepositoryMock
 	svc  *service.Catalog
+	ctx  context.Context
 }
 
 func TestRescaleSuite(t *testing.T) {
@@ -22,79 +31,42 @@ func TestRescaleSuite(t *testing.T) {
 }
 
 func (s *RescaleSuite) SetupTest() {
-	s.repo = newFakeRepo()
+	s.repo = mocks.NewRepositoryMock(minimock.NewController(s.T()))
 	s.svc = service.New(s.repo)
+	s.ctx = s.T().Context()
 }
 
 func (s *RescaleSuite) TestSetBaselineRejectsEmptySlug() {
-	err := s.svc.SetTerritoryRescaleBaseline(s.T().Context(), "", 4)
+	err := s.svc.SetTerritoryRescaleBaseline(s.ctx, "", 4)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *RescaleSuite) TestSetBaselineRejectsNonPositiveMax() {
-	err := s.svc.SetTerritoryRescaleBaseline(s.T().Context(), "t1", 0)
+	err := s.svc.SetTerritoryRescaleBaseline(s.ctx, "t1", 0)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
-	err = s.svc.SetTerritoryRescaleBaseline(s.T().Context(), "t1", -2)
+	err = s.svc.SetTerritoryRescaleBaseline(s.ctx, "t1", -2)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *RescaleSuite) TestSetBaselineDelegates() {
-	err := s.svc.SetTerritoryRescaleBaseline(s.T().Context(), "t1", 10)
+	s.repo.SetTerritoryRescaleBaselineMock.Expect(s.ctx, "t1", 10.0).Return(nil)
+	err := s.svc.SetTerritoryRescaleBaseline(s.ctx, "t1", 10)
 	assert.NilError(s.T(), err)
-	assert.Equal(s.T(), s.repo.LastSetRescaleBaselineSlug, "t1")
-	assert.Equal(s.T(), s.repo.LastSetRescaleBaselineMax, 10.0)
 }
 
 func (s *RescaleSuite) TestRescaleRejectsEmptySlug() {
-	_, err := s.svc.RescaleTerritoryPlacements(s.T().Context(), "", 4)
+	_, err := s.svc.RescaleTerritoryPlacements(s.ctx, "", 4)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *RescaleSuite) TestRescaleRejectsNonPositiveMax() {
-	_, err := s.svc.RescaleTerritoryPlacements(s.T().Context(), "t1", 0)
+	_, err := s.svc.RescaleTerritoryPlacements(s.ctx, "t1", 0)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
-func (s *RescaleSuite) TestRescaleNoopWithoutBaseline() {
-	s.repo.placements[1] = domain.Placement{ID: 1, TerritorySlug: "t1", Scale: domain.Vec3{X: 1, Y: 1, Z: 1}}
-	n, err := s.svc.RescaleTerritoryPlacements(s.T().Context(), "t1", 5)
+func (s *RescaleSuite) TestRescaleDelegatesAndReturnsCount() {
+	s.repo.RescaleTerritoryPlacementsMock.Expect(s.ctx, "t1", 5.0).Return(3, nil)
+	n, err := s.svc.RescaleTerritoryPlacements(s.ctx, "t1", 5)
 	assert.NilError(s.T(), err)
-	assert.Equal(s.T(), n, 0)
-}
-
-func (s *RescaleSuite) TestRescaleScalesPositionAndScaleThenClears() {
-	s.repo.placements[1] = domain.Placement{
-		ID: 1, TerritorySlug: "t1",
-		Position: domain.Vec3{X: 1, Y: 2, Z: 3},
-		Scale:    domain.Vec3{X: 0.5, Y: 0.5, Z: 0.5},
-	}
-	// old max 10, new max 5 → factor 2: the object keeps its real-world size
-	// and location against the new mesh.
-	assert.NilError(s.T(), s.svc.SetTerritoryRescaleBaseline(s.T().Context(), "t1", 10))
-	n, err := s.svc.RescaleTerritoryPlacements(s.T().Context(), "t1", 5)
-	assert.NilError(s.T(), err)
-	assert.Equal(s.T(), n, 1)
-	got := s.repo.placements[1]
-	assert.Equal(s.T(), got.Position, domain.Vec3{X: 2, Y: 4, Z: 6})
-	assert.Equal(s.T(), got.Scale, domain.Vec3{X: 1, Y: 1, Z: 1})
-
-	// Baseline cleared → a second rescale is a no-op.
-	n, err = s.svc.RescaleTerritoryPlacements(s.T().Context(), "t1", 5)
-	assert.NilError(s.T(), err)
-	assert.Equal(s.T(), n, 0)
-}
-
-func (s *RescaleSuite) TestSetBaselineWriteOncePreservesEarliest() {
-	assert.NilError(s.T(), s.svc.SetTerritoryRescaleBaseline(s.T().Context(), "t1", 10))
-	assert.NilError(s.T(), s.svc.SetTerritoryRescaleBaseline(s.T().Context(), "t1", 99)) // ignored
-	s.repo.placements[1] = domain.Placement{
-		ID: 1, TerritorySlug: "t1",
-		Position: domain.Vec3{X: 1, Y: 1, Z: 1},
-		Scale:    domain.Vec3{X: 1, Y: 1, Z: 1},
-	}
-	n, err := s.svc.RescaleTerritoryPlacements(s.T().Context(), "t1", 5)
-	assert.NilError(s.T(), err)
-	assert.Equal(s.T(), n, 1)
-	// Factor from the FIRST baseline (10/5 = 2), not the second (99).
-	assert.Equal(s.T(), s.repo.placements[1].Position.X, 2.0)
+	assert.Equal(s.T(), n, 3)
 }

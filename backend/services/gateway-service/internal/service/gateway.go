@@ -10,6 +10,8 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
+//go:generate minimock -i Catalog,Mesh,Upload -o ./mocks -s _mock.go
+
 // Catalog is the catalog client surface this service calls.
 type Catalog interface {
 	ListTerritories(ctx context.Context) ([]domain.Territory, error)

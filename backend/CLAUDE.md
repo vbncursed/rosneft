@@ -29,7 +29,7 @@ Guidance for Claude Code when working in `backend/`.
 - Bootstrap pattern: `internal/bootstrap/` wires service+transport+config and is the only place that touches `os.Args`/env/clients.
 - Errors are sentinels in `domain/errors.go`; transport translates them to gRPC `codes.*` / HTTP statuses.
 - **File size cap: 200 lines**, same as the frontend rule. Reviewed by hand on the backend (no ESLint equivalent).
-- **Tests**: `testify/suite` for grouping + `gotest.tools/v3/assert` for assertions. Stdlib `testing` alone is not used in new tests.
+- **Tests**: `testify/suite` for grouping + `gotest.tools/v3/assert` for assertions + `gojuno/minimock/v3` for interface mocks. Stdlib `testing` alone is not used in new tests. Service dependencies are mocked via `//go:generate minimock -i <Interfaces> -o ./mocks -s _mock.go` on the interface file (mirrors auth-service); the generated `mocks/` package is lint-exempt. Assertions stay `gotest.tools` even inside suite methods (`assert.X(s.T(), …)`, not `s.Equal()`). Build the controller per test in `SetupTest` with `minimock.NewController(s.T())` (auto-verifies on cleanup — no manual `AssertExpectations`). For an errgroup/derived-context call, match the ctx with `minimock.AnyContext`.
 
 ## Build / run
 
@@ -145,6 +145,6 @@ Validation:
 ## Tests / CI
 
 - `go test -race -shuffle=on ./...` per module — see `make test`.
-- Integration-level coverage lives inside service tests via in-memory fakes (`internal/service/*_test.go`).
-- No external dependencies in unit tests (no testcontainers); reconciler & worker behaviour is verified against fakeCatalog/fakeQueue/fakeConverter.
-- New tests use `testify/suite` for grouping and `gotest.tools/v3/assert` for assertions.
+- Service-layer coverage lives in `internal/service/*_test.go`, driven by minimock-generated mocks (`internal/service/mocks/`).
+- No external dependencies in unit tests (no testcontainers); reconciler & worker behaviour is verified against minimock `QueueMock`/`CatalogMock`/`ConverterMock`.
+- New tests use `testify/suite` for grouping, `gotest.tools/v3/assert` for assertions, and `minimock` for mocks. Note: storage-level logic that the service only forwards to (e.g. the catalog rescale CTE) is NOT covered by these service tests — it belongs in a storage integration test if/when one is added.

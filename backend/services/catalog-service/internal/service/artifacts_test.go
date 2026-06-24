@@ -1,21 +1,25 @@
 package service_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
+	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/cmp"
 
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/service"
+	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/service/mocks"
 )
 
 type ArtifactsSuite struct {
 	suite.Suite
-	repo *fakeRepo
+	repo *mocks.RepositoryMock
 	svc  *service.Catalog
+	ctx  context.Context
 }
 
 func TestArtifactsSuite(t *testing.T) {
@@ -23,102 +27,96 @@ func TestArtifactsSuite(t *testing.T) {
 }
 
 func (s *ArtifactsSuite) SetupTest() {
-	s.repo = newFakeRepo()
+	s.repo = mocks.NewRepositoryMock(minimock.NewController(s.T()))
 	s.svc = service.New(s.repo)
+	s.ctx = s.T().Context()
 }
 
 func (s *ArtifactsSuite) TestRegisterTerritoryRejectsEmptySlug() {
-	_, err := s.svc.RegisterTerritoryArtifact(s.T().Context(), domain.Artifact{Hash: "h"})
+	_, err := s.svc.RegisterTerritoryArtifact(s.ctx, domain.Artifact{Hash: "h"})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *ArtifactsSuite) TestRegisterTerritoryRejectsEmptyHash() {
-	_, err := s.svc.RegisterTerritoryArtifact(s.T().Context(), domain.Artifact{Slug: "t1"})
+	_, err := s.svc.RegisterTerritoryArtifact(s.ctx, domain.Artifact{Slug: "t1"})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *ArtifactsSuite) TestRegisterTerritoryForwardsValidInput() {
 	in := domain.Artifact{Slug: "t1", LOD: 0, Hash: "abc", Size: 100}
-	out, err := s.svc.RegisterTerritoryArtifact(s.T().Context(), in)
+	s.repo.RegisterTerritoryArtifactMock.Expect(s.ctx, in).Return(in, nil)
+	out, err := s.svc.RegisterTerritoryArtifact(s.ctx, in)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), out.Hash, "abc")
-	assert.DeepEqual(s.T(), s.repo.LastRegisterTerritoryArtifact, in)
 }
 
 func (s *ArtifactsSuite) TestDeleteTerritoryArtifactsRejectsEmptySlug() {
-	err := s.svc.DeleteTerritoryArtifacts(s.T().Context(), "")
+	err := s.svc.DeleteTerritoryArtifacts(s.ctx, "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *ArtifactsSuite) TestDeleteTerritoryArtifactsClearsRows() {
-	_, err := s.svc.RegisterTerritoryArtifact(s.T().Context(),
-		domain.Artifact{Slug: "t1", LOD: 0, Hash: "abc"})
-	assert.NilError(s.T(), err)
-
-	assert.NilError(s.T(), s.svc.DeleteTerritoryArtifacts(s.T().Context(), "t1"))
-
-	got, err := s.svc.ListTerritoryArtifacts(s.T().Context(), "t1")
-	assert.NilError(s.T(), err)
-	assert.Assert(s.T(), cmp.Len(got, 0))
+	s.repo.DeleteTerritoryArtifactsMock.Expect(s.ctx, "t1").Return(nil)
+	assert.NilError(s.T(), s.svc.DeleteTerritoryArtifacts(s.ctx, "t1"))
 }
 
 func (s *ArtifactsSuite) TestRegisterModelRejectsEmptySlug() {
-	_, err := s.svc.RegisterModelArtifact(s.T().Context(), domain.Artifact{Hash: "h"})
+	_, err := s.svc.RegisterModelArtifact(s.ctx, domain.Artifact{Hash: "h"})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *ArtifactsSuite) TestRegisterModelRejectsEmptyHash() {
-	_, err := s.svc.RegisterModelArtifact(s.T().Context(), domain.Artifact{Slug: "m1"})
+	_, err := s.svc.RegisterModelArtifact(s.ctx, domain.Artifact{Slug: "m1"})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *ArtifactsSuite) TestRegisterModelForwardsValidInput() {
 	in := domain.Artifact{Slug: "m1", LOD: 1, Hash: "xyz"}
-	_, err := s.svc.RegisterModelArtifact(s.T().Context(), in)
+	s.repo.RegisterModelArtifactMock.Expect(s.ctx, in).Return(in, nil)
+	_, err := s.svc.RegisterModelArtifact(s.ctx, in)
 	assert.NilError(s.T(), err)
-	assert.DeepEqual(s.T(), s.repo.LastRegisterModelArtifact, in)
 }
 
 func (s *ArtifactsSuite) TestGetTerritoryRejectsEmptySlug() {
-	_, err := s.svc.GetTerritoryArtifact(s.T().Context(), "", 0)
+	_, err := s.svc.GetTerritoryArtifact(s.ctx, "", 0)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *ArtifactsSuite) TestGetTerritoryReturnsNotFound() {
-	_, err := s.svc.GetTerritoryArtifact(s.T().Context(), "t1", 0)
+	s.repo.GetTerritoryArtifactMock.Expect(s.ctx, "t1", 0).Return(domain.Artifact{}, domain.ErrArtifactNotFound)
+	_, err := s.svc.GetTerritoryArtifact(s.ctx, "t1", 0)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrArtifactNotFound))
 }
 
 func (s *ArtifactsSuite) TestGetTerritoryReturnsExisting() {
-	_, err := s.svc.RegisterTerritoryArtifact(s.T().Context(), domain.Artifact{Slug: "t1", LOD: 0, Hash: "h0"})
-	assert.NilError(s.T(), err)
-	got, err := s.svc.GetTerritoryArtifact(s.T().Context(), "t1", 0)
+	s.repo.GetTerritoryArtifactMock.Expect(s.ctx, "t1", 0).Return(domain.Artifact{Slug: "t1", Hash: "h0"}, nil)
+	got, err := s.svc.GetTerritoryArtifact(s.ctx, "t1", 0)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), got.Hash, "h0")
 }
 
 func (s *ArtifactsSuite) TestGetModelRejectsEmptySlug() {
-	_, err := s.svc.GetModelArtifact(s.T().Context(), "", 0)
+	_, err := s.svc.GetModelArtifact(s.ctx, "", 0)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *ArtifactsSuite) TestListTerritoryRejectsEmptySlug() {
-	_, err := s.svc.ListTerritoryArtifacts(s.T().Context(), "")
+	_, err := s.svc.ListTerritoryArtifacts(s.ctx, "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *ArtifactsSuite) TestListTerritoryReturnsAll() {
-	ctx := s.T().Context()
-	for _, lod := range []uint32{0, 1, 2} {
-		_, err := s.svc.RegisterTerritoryArtifact(ctx, domain.Artifact{Slug: "t1", LOD: lod, Hash: "h"})
-		assert.NilError(s.T(), err)
-	}
-	got, err := s.svc.ListTerritoryArtifacts(ctx, "t1")
+	s.repo.ListTerritoryArtifactsMock.Expect(s.ctx, "t1").Return([]domain.Artifact{
+		{Slug: "t1", LOD: 0, Hash: "h"},
+		{Slug: "t1", LOD: 1, Hash: "h"},
+		{Slug: "t1", LOD: 2, Hash: "h"},
+	}, nil)
+	got, err := s.svc.ListTerritoryArtifacts(s.ctx, "t1")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), cmp.Len(got, 3))
 }
 
 func (s *ArtifactsSuite) TestListModelRejectsEmptySlug() {
-	_, err := s.svc.ListModelArtifacts(s.T().Context(), "")
+	_, err := s.svc.ListModelArtifacts(s.ctx, "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }

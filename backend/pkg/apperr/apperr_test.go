@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gotest.tools/v3/assert"
@@ -23,7 +24,15 @@ var table = map[codes.Code][]error{
 	codes.NotFound:        {errNotFound},
 }
 
-func TestToStatus(t *testing.T) {
+type AppErrSuite struct {
+	suite.Suite
+}
+
+func TestAppErrSuite(t *testing.T) {
+	suite.Run(t, new(AppErrSuite))
+}
+
+func (s *AppErrSuite) TestToStatus() {
 	tests := []struct {
 		name string
 		err  error
@@ -36,28 +45,28 @@ func TestToStatus(t *testing.T) {
 		{"unmatched becomes internal", errors.New("boom"), codes.Internal},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			got := apperr.ToStatus(tt.err, table)
 			if tt.err == nil {
-				assert.NilError(t, got)
+				assert.NilError(s.T(), got)
 				return
 			}
-			assert.Equal(t, status.Code(got), tt.want)
+			assert.Equal(s.T(), status.Code(got), tt.want)
 		})
 	}
 }
 
-func TestSlugAndHTTPStatus(t *testing.T) {
-	assert.Equal(t, apperr.Slug(codes.NotFound), apperr.SlugNotFound)
-	assert.Equal(t, apperr.Slug(codes.Internal), apperr.SlugInternal)
-	assert.Equal(t, apperr.HTTPStatus(codes.InvalidArgument), http.StatusBadRequest)
-	assert.Equal(t, apperr.HTTPStatus(codes.Unknown), http.StatusInternalServerError)
+func (s *AppErrSuite) TestSlugAndHTTPStatus() {
+	assert.Equal(s.T(), apperr.Slug(codes.NotFound), apperr.SlugNotFound)
+	assert.Equal(s.T(), apperr.Slug(codes.Internal), apperr.SlugInternal)
+	assert.Equal(s.T(), apperr.HTTPStatus(codes.InvalidArgument), http.StatusBadRequest)
+	assert.Equal(s.T(), apperr.HTTPStatus(codes.Unknown), http.StatusInternalServerError)
 }
 
-func TestWriteStatus(t *testing.T) {
+func (s *AppErrSuite) TestWriteStatus() {
 	rec := httptest.NewRecorder()
 	apperr.WriteStatus(rec, status.Error(codes.PermissionDenied, "nope"))
-	assert.Equal(t, rec.Code, http.StatusForbidden)
-	assert.Equal(t, rec.Header().Get("Content-Type"), "application/json")
-	assert.Equal(t, rec.Body.String(), `{"code":"forbidden","message":"nope"}`+"\n")
+	assert.Equal(s.T(), rec.Code, http.StatusForbidden)
+	assert.Equal(s.T(), rec.Header().Get("Content-Type"), "application/json")
+	assert.Equal(s.T(), rec.Body.String(), `{"code":"forbidden","message":"nope"}`+"\n")
 }

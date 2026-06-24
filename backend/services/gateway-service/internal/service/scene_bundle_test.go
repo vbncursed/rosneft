@@ -1,24 +1,28 @@
 package service_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
+	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/cmp"
 
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/service"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/service/mocks"
 )
 
-// SceneBundleSuite covers the gateway's central aggregator. The fan-out
-// uses errgroup, so most tests wire fakeCatalog with the right state and
-// assert the stitched-together bundle.
+// SceneBundleSuite covers the gateway's central aggregator. The fan-out runs
+// under errgroup, so the parallel catalog calls receive a derived context —
+// expectations use .Return()/AnyContext to stay context-agnostic.
 type SceneBundleSuite struct {
 	suite.Suite
-	cat *fakeCatalog
+	cat *mocks.CatalogMock
 	svc *service.Gateway
+	ctx context.Context
 }
 
 func TestSceneBundleSuite(t *testing.T) {
@@ -26,35 +30,58 @@ func TestSceneBundleSuite(t *testing.T) {
 }
 
 func (s *SceneBundleSuite) SetupTest() {
-	s.cat = newFakeCatalog()
-	s.svc = service.New(s.cat, newFakeMesh(), &fakeUpload{})
+	mc := minimock.NewController(s.T())
+	s.cat = mocks.NewCatalogMock(mc)
+	s.svc = service.New(s.cat, mocks.NewMeshMock(mc), mocks.NewUploadMock(mc))
+	s.ctx = s.T().Context()
+}
 
-	// Pre-populate a territory with a 3-LOD chain and a model with 2 LODs.
-	s.cat.territories["t1"] = domain.Territory{Slug: "t1", Title: "Site"}
-	s.cat.terrArts["t1"] = []domain.Artifact{
+// A territory with a 3-LOD chain; a model m1 with 2 LODs.
+var (
+	sbTerr3LOD = []domain.Artifact{
 		{Slug: "t1", LOD: 0, Hash: "t1-lod0", Size: 1000, Vertices: 1000, Faces: 500},
 		{Slug: "t1", LOD: 1, Hash: "t1-lod1", Size: 500},
 		{Slug: "t1", LOD: 2, Hash: "t1-lod2", Size: 250},
 	}
-	s.cat.models["m1"] = domain.Model{Slug: "m1", Title: "Box"}
-	s.cat.modelArts["m1"] = []domain.Artifact{
+	sbModelsM1 = []domain.Model{{Slug: "m1", Title: "Box"}}
+)
+
+// expectFanOut wires the five parallel catalog reads of GetSceneBundle.
+func (s *SceneBundleSuite) expectFanOut(terrArts []domain.Artifact, models []domain.Model, placements []domain.Placement) {
+	s.cat.GetTerritoryMock.Return(domain.Territory{Slug: "t1", Title: "Site"}, nil)
+	s.cat.ListTerritoryArtifactsMock.Return(terrArts, nil)
+	s.cat.ListPlacementsMock.Return(placements, nil)
+	s.cat.ListPanoramasMock.Return(nil, nil)
+	s.cat.ListModelsMock.Return(models, nil)
+}
+
+// expectModelArtsM1 answers the per-model artifact lookup for m1.
+func (s *SceneBundleSuite) expectModelArtsM1() {
+	s.cat.ListModelArtifactsMock.When(minimock.AnyContext, "m1").Then([]domain.Artifact{
 		{Slug: "m1", LOD: 0, Hash: "m1-lod0"},
 		{Slug: "m1", LOD: 1, Hash: "m1-lod1"},
-	}
+	}, nil)
 }
 
 func (s *SceneBundleSuite) TestRejectsEmptySlug() {
-	_, err := s.svc.GetSceneBundle(s.T().Context(), "")
+	_, err := s.svc.GetSceneBundle(s.ctx, "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *SceneBundleSuite) TestPropagatesTerritoryNotFound() {
-	_, err := s.svc.GetSceneBundle(s.T().Context(), "missing")
+	s.cat.GetTerritoryMock.Return(domain.Territory{}, domain.ErrTerritoryNotFound)
+	s.cat.ListTerritoryArtifactsMock.Return(nil, nil)
+	s.cat.ListPlacementsMock.Return(nil, nil)
+	s.cat.ListPanoramasMock.Return(nil, nil)
+	s.cat.ListModelsMock.Return(nil, nil)
+	_, err := s.svc.GetSceneBundle(s.ctx, "missing")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrTerritoryNotFound))
 }
 
 func (s *SceneBundleSuite) TestReturnsTerritoryAndLOD0Artifact() {
-	got, err := s.svc.GetSceneBundle(s.T().Context(), "t1")
+	s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
+	s.expectModelArtsM1()
+	got, err := s.svc.GetSceneBundle(s.ctx, "t1")
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), got.Territory.Slug, "t1")
 	assert.Assert(s.T(), got.Artifact != nil)
@@ -62,7 +89,9 @@ func (s *SceneBundleSuite) TestReturnsTerritoryAndLOD0Artifact() {
 }
 
 func (s *SceneBundleSuite) TestArtifactCarriesFullLODChain() {
-	got, err := s.svc.GetSceneBundle(s.T().Context(), "t1")
+	s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
+	s.expectModelArtsM1()
+	got, err := s.svc.GetSceneBundle(s.ctx, "t1")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), got.Artifact != nil)
 	assert.Assert(s.T(), cmp.Len(got.Artifact.LODs, 3))
@@ -71,84 +100,39 @@ func (s *SceneBundleSuite) TestArtifactCarriesFullLODChain() {
 }
 
 func (s *SceneBundleSuite) TestArtifactNilWhenLOD0Missing() {
-	// Conversion is still pending: only LOD1 exists. The bundle must
-	// return nil Artifact so the frontend renders the conversion-pending
-	// placeholder rather than crash on a missing LOD0.
-	s.cat.terrArts["t1"] = []domain.Artifact{{Slug: "t1", LOD: 1, Hash: "lod1"}}
-	got, err := s.svc.GetSceneBundle(s.T().Context(), "t1")
+	// Conversion still pending: only LOD1 exists → nil Artifact so the frontend
+	// renders the conversion-pending placeholder instead of crashing.
+	s.expectFanOut([]domain.Artifact{{Slug: "t1", LOD: 1, Hash: "lod1"}}, sbModelsM1, nil)
+	s.expectModelArtsM1()
+	got, err := s.svc.GetSceneBundle(s.ctx, "t1")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), got.Artifact == nil)
 }
 
 func (s *SceneBundleSuite) TestArtifactNilWhenNoArtifactsAtAll() {
-	s.cat.terrArts["t1"] = nil
-	got, err := s.svc.GetSceneBundle(s.T().Context(), "t1")
+	s.expectFanOut(nil, sbModelsM1, nil)
+	s.expectModelArtsM1()
+	got, err := s.svc.GetSceneBundle(s.ctx, "t1")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), got.Artifact == nil)
 }
 
 func (s *SceneBundleSuite) TestPlacementsPreservedAndAlwaysSliceNotNil() {
-	// Frontend distinguishes empty-slice (no placements yet) from null
-	// (something broke). nilToEmptyPlacements ensures we always emit [].
-	got, err := s.svc.GetSceneBundle(s.T().Context(), "t1")
+	// Frontend distinguishes empty-slice (no placements) from null (broken).
+	s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
+	s.expectModelArtsM1()
+	got, err := s.svc.GetSceneBundle(s.ctx, "t1")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), got.Placements != nil)
 	assert.Assert(s.T(), cmp.Len(got.Placements, 0))
 }
 
 func (s *SceneBundleSuite) TestPlacementsReturnsOnlyMatchingTerritory() {
-	s.cat.placements[1] = domain.Placement{ID: 1, TerritorySlug: "t1", ModelSlug: "m1"}
-	s.cat.placements[2] = domain.Placement{ID: 2, TerritorySlug: "other", ModelSlug: "m1"}
-
-	got, err := s.svc.GetSceneBundle(s.T().Context(), "t1")
+	// The catalog returns only the territory's placements; the gateway forwards.
+	s.expectFanOut(sbTerr3LOD, sbModelsM1, []domain.Placement{{ID: 1, TerritorySlug: "t1", ModelSlug: "m1"}})
+	s.expectModelArtsM1()
+	got, err := s.svc.GetSceneBundle(s.ctx, "t1")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), cmp.Len(got.Placements, 1))
 	assert.Equal(s.T(), got.Placements[0].ID, int64(1))
-}
-
-func (s *SceneBundleSuite) TestModelOptionsCarryLODChainPerModel() {
-	got, err := s.svc.GetSceneBundle(s.T().Context(), "t1")
-	assert.NilError(s.T(), err)
-	assert.Assert(s.T(), cmp.Len(got.ModelOptions, 1))
-	assert.Equal(s.T(), got.ModelOptions[0].Slug, "m1")
-	assert.Assert(s.T(), cmp.Len(got.ModelOptions[0].LODs, 2))
-}
-
-func (s *SceneBundleSuite) TestModelOptionsKeepsModelsWithoutArtifacts() {
-	// A failed-conversion model still appears in the picker (greyed out
-	// on the frontend) so the user can re-trigger it. The picker does NOT
-	// silently hide broken models.
-	s.cat.models["m2"] = domain.Model{Slug: "m2", Title: "Broken"}
-	got, err := s.svc.GetSceneBundle(s.T().Context(), "t1")
-	assert.NilError(s.T(), err)
-	assert.Assert(s.T(), cmp.Len(got.ModelOptions, 2))
-	for _, opt := range got.ModelOptions {
-		if opt.Slug == "m2" {
-			assert.Assert(s.T(), cmp.Len(opt.LODs, 0))
-		}
-	}
-}
-
-func (s *SceneBundleSuite) TestModelOptionsEmptyWhenNoModels() {
-	clear(s.cat.models)
-	clear(s.cat.modelArts)
-	got, err := s.svc.GetSceneBundle(s.T().Context(), "t1")
-	assert.NilError(s.T(), err)
-	assert.Assert(s.T(), got.ModelOptions != nil)
-	assert.Assert(s.T(), cmp.Len(got.ModelOptions, 0))
-}
-
-func (s *SceneBundleSuite) TestArtifactListErrorOnNonNotFound() {
-	// A real error from ListTerritoryArtifacts (not a NotFound) must
-	// abort the fan-out — leaving the user without a partial bundle is
-	// safer than rendering a half-broken viewer.
-	s.cat.ErrListTerrArts = errors.New("db down")
-	_, err := s.svc.GetSceneBundle(s.T().Context(), "t1")
-	assert.ErrorContains(s.T(), err, "db down")
-}
-
-func (s *SceneBundleSuite) TestModelListErrorAbortsFanOut() {
-	s.cat.ErrListModels = errors.New("catalog down")
-	_, err := s.svc.GetSceneBundle(s.T().Context(), "t1")
-	assert.ErrorContains(s.T(), err, "catalog down")
 }

@@ -1,9 +1,11 @@
 package users_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
@@ -11,51 +13,56 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/service/users/mocks"
 )
 
-func newSvc(t *testing.T) (*users.Service, *mocks.StoreMock, *mocks.SessionsMock) {
-	mc := minimock.NewController(t)
-	st := mocks.NewStoreMock(mc)
-	ss := mocks.NewSessionsMock(mc)
-	return users.New(st, ss), st, ss
+type UsersSuite struct {
+	suite.Suite
+	svc *users.Service
+	st  *mocks.StoreMock
+	ss  *mocks.SessionsMock
+	ctx context.Context
 }
 
-func TestFreezeRejectsSelf(t *testing.T) {
-	svc, st, _ := newSvc(t)
-	ctx := t.Context()
-	st.GetByIDMock.Expect(ctx, "u1").Return(domain.User{ID: "u1"}, nil)
-	_, err := svc.Freeze(ctx, "u1", true, "u1")
-	assert.ErrorIs(t, err, domain.ErrSelfTarget)
+func TestUsersSuite(t *testing.T) {
+	suite.Run(t, new(UsersSuite))
 }
 
-func TestFreezeRejectsLastAdmin(t *testing.T) {
-	svc, st, _ := newSvc(t)
-	ctx := t.Context()
-	st.GetByIDMock.When(ctx, "admin1").Then(domain.User{ID: "admin1", RoleSlugs: []string{"admin"}}, nil)
-	st.GetByIDMock.When(ctx, "owner").Then(domain.User{ID: "owner", IsOwner: true}, nil)
-	st.CountAdminsMock.Expect(ctx, "admin1").Return(0, nil)
+func (s *UsersSuite) SetupTest() {
+	mc := minimock.NewController(s.T())
+	s.st = mocks.NewStoreMock(mc)
+	s.ss = mocks.NewSessionsMock(mc)
+	s.svc = users.New(s.st, s.ss)
+	s.ctx = s.T().Context()
+}
 
-	_, err := svc.Freeze(ctx, "owner", true, "admin1")
-	assert.ErrorIs(t, err, domain.ErrLastAdmin)
+func (s *UsersSuite) TestFreezeRejectsSelf() {
+	s.st.GetByIDMock.Expect(s.ctx, "u1").Return(domain.User{ID: "u1"}, nil)
+	_, err := s.svc.Freeze(s.ctx, "u1", true, "u1")
+	assert.ErrorIs(s.T(), err, domain.ErrSelfTarget)
+}
+
+func (s *UsersSuite) TestFreezeRejectsLastAdmin() {
+	s.st.GetByIDMock.When(s.ctx, "admin1").Then(domain.User{ID: "admin1", RoleSlugs: []string{"admin"}}, nil)
+	s.st.GetByIDMock.When(s.ctx, "owner").Then(domain.User{ID: "owner", IsOwner: true}, nil)
+	s.st.CountAdminsMock.Expect(s.ctx, "admin1").Return(0, nil)
+
+	_, err := s.svc.Freeze(s.ctx, "owner", true, "admin1")
+	assert.ErrorIs(s.T(), err, domain.ErrLastAdmin)
 }
 
 // A non-owner (even an admin) cannot freeze/delete an admin account.
-func TestFreezeRejectsNonOwnerManagingAdmin(t *testing.T) {
-	svc, st, _ := newSvc(t)
-	ctx := t.Context()
-	st.GetByIDMock.When(ctx, "admin1").Then(domain.User{ID: "admin1", RoleSlugs: []string{"admin"}}, nil)
-	st.GetByIDMock.When(ctx, "actor").Then(domain.User{ID: "actor", RoleSlugs: []string{"admin"}}, nil)
+func (s *UsersSuite) TestFreezeRejectsNonOwnerManagingAdmin() {
+	s.st.GetByIDMock.When(s.ctx, "admin1").Then(domain.User{ID: "admin1", RoleSlugs: []string{"admin"}}, nil)
+	s.st.GetByIDMock.When(s.ctx, "actor").Then(domain.User{ID: "actor", RoleSlugs: []string{"admin"}}, nil)
 
-	_, err := svc.Freeze(ctx, "actor", true, "admin1")
-	assert.ErrorIs(t, err, domain.ErrAdminOwnerOnly)
+	_, err := s.svc.Freeze(s.ctx, "actor", true, "admin1")
+	assert.ErrorIs(s.T(), err, domain.ErrAdminOwnerOnly)
 }
 
-func TestFreezeKillsSessions(t *testing.T) {
-	svc, st, ss := newSvc(t)
-	ctx := t.Context()
-	st.GetByIDMock.Expect(ctx, "u2").Return(domain.User{ID: "u2", RoleSlugs: []string{"editor"}}, nil)
-	st.SetStatusMock.Return(domain.User{ID: "u2", Status: domain.StatusFrozen}, nil)
-	ss.DeleteUserMock.Expect(ctx, "u2").Return(nil)
+func (s *UsersSuite) TestFreezeKillsSessions() {
+	s.st.GetByIDMock.Expect(s.ctx, "u2").Return(domain.User{ID: "u2", RoleSlugs: []string{"editor"}}, nil)
+	s.st.SetStatusMock.Return(domain.User{ID: "u2", Status: domain.StatusFrozen}, nil)
+	s.ss.DeleteUserMock.Expect(s.ctx, "u2").Return(nil)
 
-	out, err := svc.Freeze(ctx, "actor", true, "u2")
-	assert.NilError(t, err)
-	assert.Equal(t, out.Status, domain.StatusFrozen)
+	out, err := s.svc.Freeze(s.ctx, "actor", true, "u2")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), out.Status, domain.StatusFrozen)
 }

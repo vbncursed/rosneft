@@ -1,10 +1,12 @@
 package auth_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
@@ -13,73 +15,75 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/service/auth/mocks"
 )
 
-func newSvc(t *testing.T) (*auth.Service, *mocks.UserStoreMock, *mocks.SessionStoreMock, *mocks.RecoveryStoreMock) {
-	mc := minimock.NewController(t)
-	us := mocks.NewUserStoreMock(mc)
-	ss := mocks.NewSessionStoreMock(mc)
-	rs := mocks.NewRecoveryStoreMock(mc)
-	return auth.New(us, ss, rs, nil, 720*time.Hour), us, ss, rs
+type LoginSuite struct {
+	suite.Suite
+	svc *auth.Service
+	us  *mocks.UserStoreMock
+	ss  *mocks.SessionStoreMock
+	ctx context.Context
 }
 
-func TestLoginSuccessNo2FA(t *testing.T) {
-	svc, us, ss, _ := newSvc(t)
-	ctx := t.Context()
+func TestLoginSuite(t *testing.T) {
+	suite.Run(t, new(LoginSuite))
+}
+
+func (s *LoginSuite) SetupTest() {
+	mc := minimock.NewController(s.T())
+	s.us = mocks.NewUserStoreMock(mc)
+	s.ss = mocks.NewSessionStoreMock(mc)
+	s.svc = auth.New(s.us, s.ss, mocks.NewRecoveryStoreMock(mc), nil, 720*time.Hour)
+	s.ctx = s.T().Context()
+}
+
+func (s *LoginSuite) TestLoginSuccessNo2FA() {
 	hash, _ := password.Hash("pw")
 	u := domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash, Permissions: []string{"territory:read"}}
 
-	ss.IsLockedMock.Expect(ctx, "ivan").Return(false, nil)
-	us.GetByIdentifierMock.Expect(ctx, "ivan").Return(u, nil)
-	ss.ClearFailsMock.Expect(ctx, "ivan").Return(nil)
-	ss.CreateMock.Return("tok123", nil)
+	s.ss.IsLockedMock.Expect(s.ctx, "ivan").Return(false, nil)
+	s.us.GetByIdentifierMock.Expect(s.ctx, "ivan").Return(u, nil)
+	s.ss.ClearFailsMock.Expect(s.ctx, "ivan").Return(nil)
+	s.ss.CreateMock.Return("tok123", nil)
 
-	token, challenge, err := svc.Login(ctx, "ivan", "pw")
-	assert.NilError(t, err)
-	assert.Equal(t, token, "tok123")
-	assert.Equal(t, challenge, "")
+	token, challenge, err := s.svc.Login(s.ctx, "ivan", "pw")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), token, "tok123")
+	assert.Equal(s.T(), challenge, "")
 }
 
-func TestLoginWrongPassword(t *testing.T) {
-	svc, us, ss, _ := newSvc(t)
-	ctx := t.Context()
+func (s *LoginSuite) TestLoginWrongPassword() {
 	hash, _ := password.Hash("pw")
-	ss.IsLockedMock.Expect(ctx, "ivan").Return(false, nil)
-	us.GetByIdentifierMock.Expect(ctx, "ivan").Return(domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash}, nil)
-	ss.RegisterFailMock.Expect(ctx, "ivan").Return(nil)
+	s.ss.IsLockedMock.Expect(s.ctx, "ivan").Return(false, nil)
+	s.us.GetByIdentifierMock.Expect(s.ctx, "ivan").Return(domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash}, nil)
+	s.ss.RegisterFailMock.Expect(s.ctx, "ivan").Return(nil)
 
-	_, _, err := svc.Login(ctx, "ivan", "WRONG")
-	assert.ErrorIs(t, err, domain.ErrInvalidCredential)
+	_, _, err := s.svc.Login(s.ctx, "ivan", "WRONG")
+	assert.ErrorIs(s.T(), err, domain.ErrInvalidCredential)
 }
 
-func TestLoginFrozen(t *testing.T) {
-	svc, us, ss, _ := newSvc(t)
-	ctx := t.Context()
+func (s *LoginSuite) TestLoginFrozen() {
 	hash, _ := password.Hash("pw")
-	ss.IsLockedMock.Expect(ctx, "ivan").Return(false, nil)
-	us.GetByIdentifierMock.Expect(ctx, "ivan").Return(domain.User{ID: "u1", Status: domain.StatusFrozen, PasswordHash: hash}, nil)
+	s.ss.IsLockedMock.Expect(s.ctx, "ivan").Return(false, nil)
+	s.us.GetByIdentifierMock.Expect(s.ctx, "ivan").Return(domain.User{ID: "u1", Status: domain.StatusFrozen, PasswordHash: hash}, nil)
 
-	_, _, err := svc.Login(ctx, "ivan", "pw")
-	assert.ErrorIs(t, err, domain.ErrAccountFrozen)
+	_, _, err := s.svc.Login(s.ctx, "ivan", "pw")
+	assert.ErrorIs(s.T(), err, domain.ErrAccountFrozen)
 }
 
-func TestLoginThrottled(t *testing.T) {
-	svc, _, ss, _ := newSvc(t)
-	ctx := t.Context()
-	ss.IsLockedMock.Expect(ctx, "ivan").Return(true, nil)
-	_, _, err := svc.Login(ctx, "ivan", "pw")
-	assert.ErrorIs(t, err, domain.ErrLoginThrottled)
+func (s *LoginSuite) TestLoginThrottled() {
+	s.ss.IsLockedMock.Expect(s.ctx, "ivan").Return(true, nil)
+	_, _, err := s.svc.Login(s.ctx, "ivan", "pw")
+	assert.ErrorIs(s.T(), err, domain.ErrLoginThrottled)
 }
 
-func TestLogin2FARequired(t *testing.T) {
-	svc, us, ss, _ := newSvc(t)
-	ctx := t.Context()
+func (s *LoginSuite) TestLogin2FARequired() {
 	hash, _ := password.Hash("pw")
-	ss.IsLockedMock.Expect(ctx, "ivan").Return(false, nil)
-	us.GetByIdentifierMock.Expect(ctx, "ivan").Return(domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash, TOTPEnabled: true}, nil)
-	ss.ClearFailsMock.Expect(ctx, "ivan").Return(nil)
-	ss.PutPendingMock.Expect(ctx, "u1").Return("chal1", nil)
+	s.ss.IsLockedMock.Expect(s.ctx, "ivan").Return(false, nil)
+	s.us.GetByIdentifierMock.Expect(s.ctx, "ivan").Return(domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash, TOTPEnabled: true}, nil)
+	s.ss.ClearFailsMock.Expect(s.ctx, "ivan").Return(nil)
+	s.ss.PutPendingMock.Expect(s.ctx, "u1").Return("chal1", nil)
 
-	token, challenge, err := svc.Login(ctx, "ivan", "pw")
-	assert.NilError(t, err)
-	assert.Equal(t, token, "")
-	assert.Equal(t, challenge, "chal1")
+	token, challenge, err := s.svc.Login(s.ctx, "ivan", "pw")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), token, "")
+	assert.Equal(s.T(), challenge, "chal1")
 }
