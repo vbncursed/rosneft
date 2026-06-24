@@ -25,7 +25,7 @@ func main() {
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "upload",
-		Short:         "Rosneft chunked upload service",
+		Short:         "Andrey chunked upload service",
 		Long:          "gRPC service for resumable uploads. Bytes land in BlobStore as content-addressed blobs.",
 		SilenceUsage:  true,
 		SilenceErrors: true,

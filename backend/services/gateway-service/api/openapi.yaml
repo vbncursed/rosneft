@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
-  title: Rosneft Backend Gateway API
+  title: Andrey Backend Gateway API
   version: 0.2.0
   description: |
-    Public REST surface for the Rosneft 3D viewer frontend. Internal
+    Public REST surface for the Andrey 3D viewer frontend. Internal
     services (catalog, mesh, upload) are reached via gRPC; this gateway
     is the only externally exposed component.
 

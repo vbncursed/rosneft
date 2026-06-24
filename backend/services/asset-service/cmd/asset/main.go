@@ -25,7 +25,7 @@ func main() {
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "asset",
-		Short:         "Rosneft asset HTTP server",
+		Short:         "Andrey asset HTTP server",
 		Long:          "HTTP server that streams binary artifacts from BlobStore with Range, ETag, and immutable caching.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
