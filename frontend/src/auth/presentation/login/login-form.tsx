@@ -5,7 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginForm() {
   const router = useRouter();
-  const next = useSearchParams().get("next") || "/";
+  const rawNext = useSearchParams().get("next") || "/";
+  // Only allow same-origin relative paths — reject schemes and protocol-relative
+  // URLs so ?next= can't redirect off-site after login.
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.startsWith("/\\") ? rawNext : "/";
   const [step, setStep] = useState<"creds" | "2fa">("creds");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
