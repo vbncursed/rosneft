@@ -11,6 +11,8 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
+//go:generate minimock -i Queue,Catalog,Converter,BlobStore -o ./mocks -s _mock.go
+
 // Queue is the persistence + queue contract — both API and worker use it.
 type Queue interface {
 	SaveJob(ctx context.Context, j domain.Job) error

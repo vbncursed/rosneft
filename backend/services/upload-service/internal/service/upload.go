@@ -13,6 +13,8 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/upload-service/internal/domain"
 )
 
+//go:generate minimock -i SessionStore,Blobs -o ./mocks -s _mock.go
+
 // SessionStore is what Upload needs from the on-disk session manager.
 type SessionStore interface {
 	Initiate(ctx context.Context, id string, size int64, contentType string) (domain.Session, error)

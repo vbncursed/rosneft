@@ -5,19 +5,21 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/service"
+	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/service/mocks"
 )
 
 type ReconcileSuite struct {
 	suite.Suite
-	queue   *fakeQueue
-	catalog *fakeCatalog
+	queue   *mocks.QueueMock
+	catalog *mocks.CatalogMock
 	svc     *service.Mesh
-	idCalls int
+	ctx     context.Context
 }
 
 func TestReconcileSuite(t *testing.T) {
@@ -25,81 +27,89 @@ func TestReconcileSuite(t *testing.T) {
 }
 
 func (s *ReconcileSuite) SetupTest() {
-	s.queue = newFakeQueue()
-	s.catalog = newFakeCatalog()
-	s.idCalls = 0
+	mc := minimock.NewController(s.T())
+	s.queue = mocks.NewQueueMock(mc)
+	s.catalog = mocks.NewCatalogMock(mc)
 	s.svc = service.New(service.Config{
 		Queue:   s.queue,
 		Catalog: s.catalog,
-		Blobs:   &fakeBlobs{},
-		IDGen: func() string {
-			s.idCalls++
-			return "id-" + string(rune('0'+s.idCalls))
-		},
+		Blobs:   mocks.NewBlobStoreMock(mc),
+		IDGen:   func() string { return "id" },
 	})
+	s.ctx = s.T().Context()
+}
+
+// allowSubmit stubs the SubmitConversion fan-out (save → enqueue → get) so
+// reconcile can queue missing targets; reconcile only counts the submits.
+func (s *ReconcileSuite) allowSubmit() {
+	s.queue.SaveJobMock.Return(nil)
+	s.queue.EnqueueJobMock.Return(nil)
+	s.queue.GetJobMock.Return(domain.Job{}, nil)
 }
 
 func (s *ReconcileSuite) TestNothingToReconcileWhenAllHaveLOD0() {
-	s.catalog.Targets = []domain.ConversionTarget{
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
 		{Kind: domain.KindModel, Slug: "m1", SourceBlobHash: "h"},
-	}
-	s.catalog.HasLOD0Set["territory/t1"] = true
-	s.catalog.HasLOD0Set["model/m1"] = true
+	}, nil)
+	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindTerritory, "t1").Then(true, nil)
+	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindModel, "m1").Then(true, nil)
 
-	queued, err := s.svc.ReconcileMissingArtifacts(s.T().Context())
+	queued, err := s.svc.ReconcileMissingArtifacts(s.ctx)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), queued, 0)
-	assert.Equal(s.T(), len(s.queue.enqueued), 0)
 }
 
 func (s *ReconcileSuite) TestQueuesOnlyMissingTargets() {
-	s.catalog.Targets = []domain.ConversionTarget{
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
 		{Kind: domain.KindTerritory, Slug: "t2", SourceBlobHash: "h"},
 		{Kind: domain.KindModel, Slug: "m1", SourceBlobHash: "h"},
-	}
-	s.catalog.HasLOD0Set["territory/t1"] = true
-	// t2 and m1 are missing — both should be queued.
+	}, nil)
+	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindTerritory, "t1").Then(true, nil)
+	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindTerritory, "t2").Then(false, nil)
+	s.catalog.HasLOD0Mock.When(s.ctx, domain.KindModel, "m1").Then(false, nil)
+	s.allowSubmit()
 
-	queued, err := s.svc.ReconcileMissingArtifacts(s.T().Context())
+	queued, err := s.svc.ReconcileMissingArtifacts(s.ctx)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), queued, 2)
-	assert.Equal(s.T(), len(s.queue.enqueued), 2)
 }
 
 func (s *ReconcileSuite) TestStopsOnListTargetsError() {
-	s.catalog.ErrListTargets = errors.New("catalog down")
-	_, err := s.svc.ReconcileMissingArtifacts(s.T().Context())
+	s.catalog.ListTargetsMock.Return(nil, errors.New("catalog down"))
+	_, err := s.svc.ReconcileMissingArtifacts(s.ctx)
 	assert.ErrorContains(s.T(), err, "catalog down")
 }
 
 func (s *ReconcileSuite) TestSurfaceLOD0CheckErrorOnFirstFailure() {
-	s.catalog.Targets = []domain.ConversionTarget{
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
-	}
-	s.catalog.ErrHasLOD0 = errors.New("db blip")
-	_, err := s.svc.ReconcileMissingArtifacts(s.T().Context())
+	}, nil)
+	s.catalog.HasLOD0Mock.Return(false, errors.New("db blip"))
+	_, err := s.svc.ReconcileMissingArtifacts(s.ctx)
 	assert.ErrorContains(s.T(), err, "db blip")
 }
 
 func (s *ReconcileSuite) TestStopsOnSubmitFailure() {
-	s.catalog.Targets = []domain.ConversionTarget{
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
 		{Kind: domain.KindTerritory, Slug: "t2", SourceBlobHash: "h"},
-	}
-	s.queue.ErrSave = errors.New("redis down")
-	queued, err := s.svc.ReconcileMissingArtifacts(s.T().Context())
+	}, nil)
+	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.queue.SaveJobMock.Return(errors.New("redis down"))
+
+	queued, err := s.svc.ReconcileMissingArtifacts(s.ctx)
 	assert.ErrorContains(s.T(), err, "redis down")
 	assert.Equal(s.T(), queued, 0)
 }
 
 func (s *ReconcileSuite) TestRespectsCancelledContext() {
-	s.catalog.Targets = []domain.ConversionTarget{
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
 		{Kind: domain.KindTerritory, Slug: "t2", SourceBlobHash: "h"},
-	}
-	ctx, cancel := context.WithCancel(s.T().Context())
+	}, nil)
+	ctx, cancel := context.WithCancel(s.ctx)
 	cancel()
 	_, err := s.svc.ReconcileMissingArtifacts(ctx)
 	assert.Assert(s.T(), err != nil)

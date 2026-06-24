@@ -1,21 +1,25 @@
 package service_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
+	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/service"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/service/mocks"
 )
 
 type ModelsSuite struct {
 	suite.Suite
-	cat  *fakeCatalog
-	mesh *fakeMesh
+	cat  *mocks.CatalogMock
+	mesh *mocks.MeshMock
 	svc  *service.Gateway
+	ctx  context.Context
 }
 
 func TestModelsSuite(t *testing.T) {
@@ -23,43 +27,47 @@ func TestModelsSuite(t *testing.T) {
 }
 
 func (s *ModelsSuite) SetupTest() {
-	s.cat = newFakeCatalog()
-	s.mesh = newFakeMesh()
-	s.mesh.NextJob = domain.Job{ID: "job-1", Kind: domain.KindModel, Slug: "m1", Status: domain.JobStatusPending}
-	s.svc = service.New(s.cat, s.mesh, &fakeUpload{})
+	mc := minimock.NewController(s.T())
+	s.cat = mocks.NewCatalogMock(mc)
+	s.mesh = mocks.NewMeshMock(mc)
+	s.svc = service.New(s.cat, s.mesh, mocks.NewUploadMock(mc))
+	s.ctx = s.T().Context()
 }
 
 func (s *ModelsSuite) TestGetRejectsEmptySlug() {
-	_, err := s.svc.GetModel(s.T().Context(), "")
+	_, err := s.svc.GetModel(s.ctx, "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *ModelsSuite) TestCreateRejectsMissingFields() {
-	// Missing source hash, then missing title. The slug is no longer
-	// required — the catalog derives it from the title.
-	_, _, err := s.svc.CreateModel(s.T().Context(), domain.Model{Title: "x"})
+	// Missing source hash, then missing title. The slug is no longer required —
+	// the catalog derives it from the title.
+	_, _, err := s.svc.CreateModel(s.ctx, domain.Model{Title: "x"})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
-	_, _, err = s.svc.CreateModel(s.T().Context(), domain.Model{SourceBlobHash: "h"})
+	_, _, err = s.svc.CreateModel(s.ctx, domain.Model{SourceBlobHash: "h"})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *ModelsSuite) TestCreateUpsertsAndSubmitsJob() {
-	saved, job, err := s.svc.CreateModel(s.T().Context(),
-		domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: "h"})
+	in := domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: "h"}
+	s.cat.UpsertModelMock.Expect(s.ctx, in).Return(in, nil)
+	s.mesh.SubmitConversionMock.Expect(s.ctx, domain.KindModel, "m1").
+		Return(domain.Job{ID: "job-1", Kind: domain.KindModel, Slug: "m1"}, nil)
+
+	saved, job, err := s.svc.CreateModel(s.ctx, in)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), saved.Slug, "m1")
 	assert.Equal(s.T(), job.ID, "job-1")
-	assert.Equal(s.T(), s.mesh.LastSubmitKind, domain.KindModel)
 }
 
 func (s *ModelsSuite) TestDeleteRejectsEmptySlug() {
-	err := s.svc.DeleteModel(s.T().Context(), "")
+	err := s.svc.DeleteModel(s.ctx, "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *ModelsSuite) TestArtifactsRejectEmptySlug() {
-	_, err := s.svc.ListModelArtifacts(s.T().Context(), "")
+	_, err := s.svc.ListModelArtifacts(s.ctx, "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
-	_, err = s.svc.GetModelArtifact(s.T().Context(), "", 0)
+	_, err = s.svc.GetModelArtifact(s.ctx, "", 0)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }

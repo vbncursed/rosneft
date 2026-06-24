@@ -9,6 +9,8 @@ import (
 	"github.com/vbncursed/rosneft/backend/pkg/blobstore"
 )
 
+//go:generate minimock -i Store -o ./mocks -s _mock.go
+
 // Store is what the asset service needs from the BlobStore.
 type Store interface {
 	Stat(ctx context.Context, hash string) (blobstore.Blob, error)

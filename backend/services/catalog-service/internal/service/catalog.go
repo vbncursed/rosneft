@@ -9,6 +9,8 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
+//go:generate minimock -i Repository -o ./mocks -s _mock.go
+
 // Repository is what the catalog service needs from persistence. The
 // Postgres implementation lives in internal/storage and satisfies this
 // implicitly.
