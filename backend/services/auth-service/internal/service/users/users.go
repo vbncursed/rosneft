@@ -15,7 +15,7 @@ import (
 type Store interface {
 	Create(ctx context.Context, u domain.User) (domain.User, error)
 	GetByID(ctx context.Context, id string) (domain.User, error)
-	List(ctx context.Context, status string, includeDeleted bool) ([]domain.User, error)
+	List(ctx context.Context, status string, includeDeleted bool, ownerID string) ([]domain.User, error)
 	SetStatus(ctx context.Context, id, status string, deletedAt *time.Time) (domain.User, error)
 	SetRoles(ctx context.Context, id string, roleSlugs []string) (domain.User, error)
 	ChangePassword(ctx context.Context, id, hash string) error
@@ -62,4 +62,17 @@ func (s *Service) guard(ctx context.Context, actorID, id string) error {
 
 func isAdmin(u domain.User) bool {
 	return slices.Contains(u.RoleSlugs, "admin")
+}
+
+// ownership returns the target user after enforcing the owner scope: an actor
+// without users:read_all may only touch users they created.
+func (s *Service) ownership(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error) {
+	u, err := s.store.GetByID(ctx, id)
+	if err != nil {
+		return domain.User{}, err
+	}
+	if !scopeAll && (u.CreatedBy == nil || *u.CreatedBy != actorID) {
+		return domain.User{}, domain.ErrUserNotFound
+	}
+	return u, nil
 }
