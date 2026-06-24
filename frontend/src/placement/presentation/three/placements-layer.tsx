@@ -16,6 +16,9 @@ interface PlacementsLayerProps {
   selectedId: number | null;
   mode: GizmoMode;
   measureMode: boolean;
+  // Gates the transform gizmo: a user without placement:write can still
+  // select an object (to highlight it) but gets no gizmo to move it.
+  canEdit: boolean;
   // The territory's outermost group. When present, translate-mode drags
   // resolve the surface Y under the gizmo and either snap to it (snap on)
   // or use it as a floor (snap off — prevents burying the model).
@@ -34,6 +37,7 @@ export default function PlacementsLayer({
   selectedId,
   mode,
   measureMode,
+  canEdit,
   territoryRef,
   snapEnabled,
   onSelect,
@@ -79,7 +83,7 @@ export default function PlacementsLayer({
       {/* In measure mode the gizmo is hidden — the user is picking points,
           not editing the placement. The selection survives the mode switch
           so coming back to translate/rotate/scale finds the same target. */}
-      {!measureMode && selectedId != null && target ? (
+      {canEdit && !measureMode && selectedId != null && target ? (
         <TransformControls ref={tcRef} object={target} mode={mode} size={0.85} />
       ) : null}
     </>

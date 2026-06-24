@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { listModels } from "@/model/infrastructure/model-gateway";
 import DeleteModelButton from "@/app/_components/delete-model-button";
+import { getCurrentUser } from "@/auth/application/current-user";
+import { can } from "@/auth/domain/principal";
 
 export const dynamic = "force-dynamic";
 
 export default async function ModelsPage() {
-  const models = await listModels();
+  const [models, me] = await Promise.all([listModels(), getCurrentUser()]);
+  const canWrite = can(me, "model:write");
+  const canDelete = can(me, "model:delete");
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#2a1f10_0%,#0b0d10_38%,#060708_100%)] text-white">
@@ -25,12 +29,14 @@ export default async function ModelsPage() {
               Models for placement
             </h1>
           </div>
-          <Link
-            href="/models/new"
-            className="cursor-pointer rounded-full bg-white px-5 py-2.5 text-xs uppercase tracking-[0.2em] text-black transition-colors duration-200 hover:bg-amber-200"
-          >
-            + Upload
-          </Link>
+          {canWrite ? (
+            <Link
+              href="/models/new"
+              className="cursor-pointer rounded-full bg-white px-5 py-2.5 text-xs uppercase tracking-[0.2em] text-black transition-colors duration-200 hover:bg-amber-200"
+            >
+              + Upload
+            </Link>
+          ) : null}
         </header>
 
         {models.length === 0 ? (
@@ -44,9 +50,11 @@ export default async function ModelsPage() {
                 key={m.slug}
                 className="relative rounded-3xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur"
               >
-                <div className="absolute right-3 top-3 z-10">
-                  <DeleteModelButton slug={m.slug} label={m.title} />
-                </div>
+                {canDelete ? (
+                  <div className="absolute right-3 top-3 z-10">
+                    <DeleteModelButton slug={m.slug} label={m.title} />
+                  </div>
+                ) : null}
                 <Link
                   href={`/models/${m.slug}`}
                   className="block cursor-pointer"

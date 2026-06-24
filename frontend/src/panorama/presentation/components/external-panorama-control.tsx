@@ -7,6 +7,8 @@ import ExternalPanoramaLink from "@/panorama/presentation/components/external-pa
 interface ExternalPanoramaControlProps {
   territorySlug: string;
   initialUrl?: string;
+  // Gates editing the tour URL; the read-only link stays visible regardless.
+  canEdit: boolean;
 }
 
 // ExternalPanoramaControl wraps the read-only ExternalPanoramaLink with an
@@ -17,6 +19,7 @@ interface ExternalPanoramaControlProps {
 export default function ExternalPanoramaControl({
   territorySlug,
   initialUrl,
+  canEdit,
 }: ExternalPanoramaControlProps) {
   const { url, saving, save } = useTerritoryLink(territorySlug, initialUrl);
   const [editing, setEditing] = useState(false);
@@ -31,7 +34,7 @@ export default function ExternalPanoramaControl({
     if (await save(draft.trim())) setEditing(false);
   };
 
-  if (editing) {
+  if (editing && canEdit) {
     return (
       <div className="pointer-events-auto w-full rounded-xl border border-white/20 bg-black/50 p-3 shadow-xl backdrop-blur">
         <label className="mb-1 block text-[10px] uppercase tracking-[0.18em] text-neutral-400">
@@ -70,13 +73,15 @@ export default function ExternalPanoramaControl({
   return (
     <div className="pointer-events-auto flex items-center gap-2">
       <ExternalPanoramaLink url={url} />
-      <button
-        type="button"
-        onClick={openEditor}
-        className="inline-flex cursor-pointer items-center gap-1 rounded-xl border border-white/20 bg-black/50 px-3 py-2 text-xs font-medium text-neutral-200 shadow-xl backdrop-blur transition-colors hover:bg-black/65 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-      >
-        {url ? "Edit link" : "+ Panorama link"}
-      </button>
+      {canEdit ? (
+        <button
+          type="button"
+          onClick={openEditor}
+          className="inline-flex cursor-pointer items-center gap-1 rounded-xl border border-white/20 bg-black/50 px-3 py-2 text-xs font-medium text-neutral-200 shadow-xl backdrop-blur transition-colors hover:bg-black/65 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+        >
+          {url ? "Edit link" : "+ Panorama link"}
+        </button>
+      ) : null}
     </div>
   );
 }

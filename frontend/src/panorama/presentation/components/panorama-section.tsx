@@ -1,4 +1,5 @@
 import { type RefObject } from "react";
+import { useCan } from "@/auth/presentation/current-user-context";
 import type { Panorama } from "@/panorama/domain/panorama";
 import type { Vec3 } from "@/shared/domain/vec3";
 import type { usePanoramaOrchestration } from "@/panorama/application/use-panorama-orchestration";
@@ -57,6 +58,12 @@ export default function PanoramaSection({
   const inPanoramaMode =
     editingPanorama != null && activePanoramaId === editingPanorama.id;
 
+  const can = useCan();
+  const canWrite = can("panorama:write");
+  const canDelete = can("panorama:delete");
+  // The external tour URL lives on the territory, so it follows territory:write.
+  const canEditLink = can("territory:write");
+
   return (
     <div className="flex flex-col gap-3">
       <PanoramaPicker
@@ -79,14 +86,17 @@ export default function PanoramaSection({
       <ExternalPanoramaControl
         territorySlug={territorySlug}
         initialUrl={externalPanoramaUrl}
+        canEdit={canEditLink}
       />
 
-      <a
-        href={`/territories/${encodeURIComponent(territorySlug)}/panoramas/new`}
-        className="cursor-pointer text-[10px] uppercase tracking-wider text-cyan-300/80 transition-colors hover:text-cyan-200"
-      >
-        + Panorama
-      </a>
+      {canWrite ? (
+        <a
+          href={`/territories/${encodeURIComponent(territorySlug)}/panoramas/new`}
+          className="cursor-pointer text-[10px] uppercase tracking-wider text-cyan-300/80 transition-colors hover:text-cyan-200"
+        >
+          + Panorama
+        </a>
+      ) : null}
 
       {editingPanorama && calibration.calibrating && calibration.draft ? (
         <PanoramaCalibrationPanel
@@ -106,6 +116,8 @@ export default function PanoramaSection({
           cameraPositionRef={cameraPositionRef}
           inPanoramaMode={inPanoramaMode}
           failed={failedPanoramaIds.has(editingPanorama.id)}
+          canWrite={canWrite}
+          canDelete={canDelete}
           onSave={(patch) => onSavePanorama(editingPanorama.id, patch)}
           onToggleView={toggleView}
           onClose={closeEdit}

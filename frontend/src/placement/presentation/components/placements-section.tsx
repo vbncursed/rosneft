@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import type { PlacementAssetOption } from "@/placement/domain/asset-option";
 import type { PlacementUpdate } from "@/placement/domain/placement";
 import { isCreating, isMutatingId } from "@/placement/domain/mutation-state";
+import { useCan } from "@/auth/presentation/current-user-context";
 import type { usePlacementsEditor } from "@/placement/application/use-placements-editor";
 import CreatePlacementRow from "@/placement/presentation/components/create-placement-row";
 import ModeToggle from "@/placement/presentation/components/mode-toggle";
@@ -31,6 +32,9 @@ export default function PlacementsSection({
   onToggleSnap,
 }: PlacementsSectionProps) {
   const { placements, mutation, selectedId, mode } = editor;
+  const can = useCan();
+  const canWrite = can("placement:write");
+  const canDelete = can("placement:delete");
 
   const isPending = useCallback(
     (id: number) => isMutatingId(mutation, id),
@@ -74,22 +78,26 @@ export default function PlacementsSection({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <CreatePlacementRow
-        assets={assets}
-        disabled={isCreating(mutation)}
-        onCreate={handleCreate}
-      />
+      {canWrite ? (
+        <CreatePlacementRow
+          assets={assets}
+          disabled={isCreating(mutation)}
+          onCreate={handleCreate}
+        />
+      ) : null}
 
-      {selectedId != null ? (
-        <div className="flex flex-col gap-2">
-          <ModeToggle mode={mode} onChange={editor.setMode} />
-          <SnapToggle enabled={snapEnabled} onChange={onToggleSnap} />
-        </div>
-      ) : (
-        <p className="rounded-md border border-dashed border-white/15 px-3 py-2 text-[11px] text-neutral-400">
-          Name an object below or click it to enable the gizmo.
-        </p>
-      )}
+      {canWrite ? (
+        selectedId != null ? (
+          <div className="flex flex-col gap-2">
+            <ModeToggle mode={mode} onChange={editor.setMode} />
+            <SnapToggle enabled={snapEnabled} onChange={onToggleSnap} />
+          </div>
+        ) : (
+          <p className="rounded-md border border-dashed border-white/15 px-3 py-2 text-[11px] text-neutral-400">
+            Name an object below or click it to enable the gizmo.
+          </p>
+        )
+      ) : null}
 
       <div className="flex-1 overflow-y-auto pr-1">
         <ObjectsList
@@ -97,6 +105,8 @@ export default function PlacementsSection({
           selectedId={selectedId}
           activePanoramaId={activePanoramaId}
           isPending={isPending}
+          canWrite={canWrite}
+          canDelete={canDelete}
           onSelect={editor.setSelectedId}
           onRename={editor.rename}
           onToggleVisible={handleToggleVisible}
@@ -104,7 +114,7 @@ export default function PlacementsSection({
         />
       </div>
 
-      {selected ? (
+      {canWrite && selected ? (
         <PlacementForm
           key={`${selected.id}:${selected.updatedAt}`}
           placement={selected}

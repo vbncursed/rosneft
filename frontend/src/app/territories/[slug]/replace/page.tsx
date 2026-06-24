@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import ReplaceSourceForm from "@/territory/presentation/components/replace-source-form";
 import { getTerritory } from "@/territory/infrastructure/territory-gateway";
 import { notFoundOnHttp404 } from "@/shared/infrastructure/http/not-found-on-404";
+import { requirePermission } from "@/auth/application/require-permission";
 
 interface ReplaceTerritoryPageProps {
   params: Promise<{ slug: string }>;
@@ -13,6 +14,7 @@ export default async function ReplaceTerritoryPage({
   params,
 }: ReplaceTerritoryPageProps) {
   const { slug } = await params;
+  await requirePermission("territory:write");
   const territory = await getTerritory(slug).catch(notFoundOnHttp404(null));
   if (!territory) notFound();
 

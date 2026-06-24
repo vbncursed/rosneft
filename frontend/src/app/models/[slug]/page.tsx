@@ -4,6 +4,8 @@ import { getModel, listModelArtifacts } from "@/model/infrastructure/model-gatew
 import ConversionPending from "@/conversion/presentation/conversion-pending";
 import { notFoundOnHttp404 } from "@/shared/infrastructure/http/not-found-on-404";
 import DeleteModelButton from "@/app/_components/delete-model-button";
+import { getCurrentUser } from "@/auth/application/current-user";
+import { can } from "@/auth/domain/principal";
 
 interface ModelPageProps {
   params: Promise<{ slug: string }>;
@@ -28,6 +30,8 @@ export default async function ModelPage({ params, searchParams }: ModelPageProps
     return <ConversionPending title={model.title} slug={slug} jobId={jobId ?? null} />;
   }
 
+  const canDelete = can(await getCurrentUser(), "model:delete");
+
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#2a1f10_0%,#0b0d10_38%,#060708_100%)] px-6 py-16 text-white sm:px-10">
       <Link
@@ -39,7 +43,7 @@ export default async function ModelPage({ params, searchParams }: ModelPageProps
       <article className="mx-auto max-w-2xl space-y-6 rounded-3xl border border-white/10 bg-white/[0.03] p-8 backdrop-blur">
         <div className="flex items-start justify-between gap-4">
           <p className="text-xs uppercase tracking-[0.36em] text-amber-200/80">Model</p>
-          <DeleteModelButton slug={slug} label={model.title} redirectTo="/" />
+          {canDelete ? <DeleteModelButton slug={slug} label={model.title} redirectTo="/" /> : null}
         </div>
         <h1 className="text-3xl font-semibold tracking-tight text-white">{model.title}</h1>
         {model.description ? (

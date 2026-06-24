@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { LodArtifact } from "@/shared/domain/lod-artifact";
+import { useCan } from "@/auth/presentation/current-user-context";
 import { useMeasurementTool } from "@/measurement/application/use-measurement-tool";
 import { computeUnitRatio } from "@/measurement/domain/unit-ratio";
 import { usePlacementsEditor } from "@/placement/application/use-placements-editor";
@@ -81,6 +82,9 @@ export default function ModelViewer({
     territoryMaxDim,
   );
   const measure = useMeasurementTool();
+  // Read once here, outside the R3F Canvas — React context doesn't cross the
+  // Canvas reconciler boundary, so the gizmo gate must arrive as a prop.
+  const canEditPlacements = useCan()("placement:write");
   const [resetVersion, setResetVersion] = useState(0);
   // Surface magnetism: when true, the translate gizmo glues the placement
   // to the territory Y under it. When false, the same raycast acts as a
@@ -156,6 +160,7 @@ export default function ModelViewer({
         mode={editor.mode}
         measureMode={measure.measureMode}
         snapEnabled={snapEnabled}
+        canEditPlacements={canEditPlacements}
         activePanorama={calibration.effective ?? panorama.activePanorama}
         panoramas={panoramas}
         onActivatePanorama={panorama.activate}
