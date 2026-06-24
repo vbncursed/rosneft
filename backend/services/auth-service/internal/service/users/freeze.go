@@ -6,8 +6,12 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
-// Freeze sets status=frozen (with guards) and evicts the user's sessions.
-func (s *Service) Freeze(ctx context.Context, actorID, id string) (domain.User, error) {
+// Freeze sets status=frozen (owner scope + self/last-admin guards) and evicts
+// the user's sessions.
+func (s *Service) Freeze(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error) {
+	if _, err := s.ownership(ctx, actorID, scopeAll, id); err != nil {
+		return domain.User{}, err
+	}
 	if err := s.guard(ctx, actorID, id); err != nil {
 		return domain.User{}, err
 	}
@@ -21,7 +25,10 @@ func (s *Service) Freeze(ctx context.Context, actorID, id string) (domain.User, 
 	return u, nil
 }
 
-// Unfreeze returns a frozen account to active.
-func (s *Service) Unfreeze(ctx context.Context, id string) (domain.User, error) {
+// Unfreeze returns a frozen account to active (owner scope).
+func (s *Service) Unfreeze(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error) {
+	if _, err := s.ownership(ctx, actorID, scopeAll, id); err != nil {
+		return domain.User{}, err
+	}
 	return s.store.SetStatus(ctx, id, domain.StatusActive, nil)
 }

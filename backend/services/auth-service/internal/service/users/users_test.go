@@ -19,8 +19,10 @@ func newSvc(t *testing.T) (*users.Service, *mocks.StoreMock, *mocks.SessionsMock
 }
 
 func TestFreezeRejectsSelf(t *testing.T) {
-	svc, _, _ := newSvc(t)
-	_, err := svc.Freeze(t.Context(), "u1", "u1")
+	svc, st, _ := newSvc(t)
+	ctx := t.Context()
+	st.GetByIDMock.Expect(ctx, "u1").Return(domain.User{ID: "u1"}, nil)
+	_, err := svc.Freeze(ctx, "u1", true, "u1")
 	assert.ErrorIs(t, err, domain.ErrSelfTarget)
 }
 
@@ -30,7 +32,7 @@ func TestFreezeRejectsLastAdmin(t *testing.T) {
 	st.GetByIDMock.Expect(ctx, "admin1").Return(domain.User{ID: "admin1", RoleSlugs: []string{"admin"}}, nil)
 	st.CountAdminsMock.Expect(ctx, "admin1").Return(0, nil)
 
-	_, err := svc.Freeze(ctx, "actor", "admin1")
+	_, err := svc.Freeze(ctx, "actor", true, "admin1")
 	assert.ErrorIs(t, err, domain.ErrLastAdmin)
 }
 
@@ -41,7 +43,7 @@ func TestFreezeKillsSessions(t *testing.T) {
 	st.SetStatusMock.Return(domain.User{ID: "u2", Status: domain.StatusFrozen}, nil)
 	ss.DeleteUserMock.Expect(ctx, "u2").Return(nil)
 
-	out, err := svc.Freeze(ctx, "actor", "u2")
+	out, err := svc.Freeze(ctx, "actor", true, "u2")
 	assert.NilError(t, err)
 	assert.Equal(t, out.Status, domain.StatusFrozen)
 }
