@@ -12,9 +12,17 @@ const FORWARD = [
   "if-none-match", "upload-offset", "upload-length", "content-length",
 ];
 
+function unsafe(seg: string): boolean {
+  return seg === "." || seg === ".." || seg.includes("/") || seg.includes("\\") || seg.includes("\0");
+}
+
 async function proxy(req: NextRequest, path: string[]): Promise<Response> {
+  // Reject path-traversal segments so the proxy can only ever reach /api/* on
+  // the gateway, never escape the prefix.
+  if (path.some(unsafe)) return new Response("bad path", { status: 400 });
+
   const token = (await cookies()).get(SESSION)?.value;
-  const url = `${GATEWAY}/api/${path.join("/")}${req.nextUrl.search}`;
+  const url = `${GATEWAY}/api/${path.map(encodeURIComponent).join("/")}${req.nextUrl.search}`;
 
   const headers = new Headers();
   for (const h of FORWARD) {
