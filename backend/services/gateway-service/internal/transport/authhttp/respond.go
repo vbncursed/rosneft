@@ -19,10 +19,36 @@ func writeJSON(w http.ResponseWriter, code int, body any) {
 	}
 }
 
-// fail maps a gRPC status error to an HTTP status + JSON error body.
+// writeErr emits the project-wide {code,message} error body — the same shape
+// the OpenAPI Error schema and the rest of the gateway API use, so clients can
+// read one error contract everywhere.
+func writeErr(w http.ResponseWriter, httpStatus int, code, message string) {
+	writeJSON(w, httpStatus, map[string]string{"code": code, "message": message})
+}
+
+// fail maps a gRPC status error to an HTTP status + {code,message} body.
 func fail(w http.ResponseWriter, err error) {
 	st := status.Convert(err)
-	writeJSON(w, codeToHTTP(st.Code()), map[string]string{"error": st.Message()})
+	writeErr(w, codeToHTTP(st.Code()), codeToSlug(st.Code()), st.Message())
+}
+
+func codeToSlug(c codes.Code) string {
+	switch c {
+	case codes.InvalidArgument:
+		return "invalid_input"
+	case codes.Unauthenticated:
+		return "unauthenticated"
+	case codes.PermissionDenied:
+		return "forbidden"
+	case codes.NotFound:
+		return "not_found"
+	case codes.AlreadyExists:
+		return "conflict"
+	case codes.FailedPrecondition:
+		return "unprocessable"
+	default:
+		return "internal"
+	}
 }
 
 func codeToHTTP(c codes.Code) int {
