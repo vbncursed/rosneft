@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 export default function LoginForm() {
-  const router = useRouter();
   const rawNext = useSearchParams().get("next") || "/";
   // Only allow same-origin relative paths — reject schemes and protocol-relative
   // URLs so ?next= can't redirect off-site after login.
@@ -28,7 +27,9 @@ export default function LoginForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Sign in failed");
       if (data.twoFactorRequired) { setChallenge(data.challengeToken); setStep("2fa"); }
-      else router.replace(next);
+      // hard navigation: re-runs the root layout's getCurrentUser so the avatar
+      // appears — router.replace is soft and leaves the layout's principal stale
+      else window.location.assign(next);
     } catch (e) { setError(e instanceof Error ? e.message : "Sign in failed"); }
     finally { setBusy(false); }
   }
@@ -43,7 +44,7 @@ export default function LoginForm() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Invalid code");
-      router.replace(next);
+      window.location.assign(next);
     } catch (e) { setError(e instanceof Error ? e.message : "Invalid code"); }
     finally { setBusy(false); }
   }
