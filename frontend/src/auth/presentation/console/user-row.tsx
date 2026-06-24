@@ -28,7 +28,11 @@ export default function UserRow({ u, me, onEditRoles, act }: Props) {
         </span>
       </td>
       <td className="px-3 py-2"><StatusBadge status={u.status} /></td>
-      <td className="px-3 py-2 text-xs text-neutral-400">{u.totpEnabled ? "2FA" : "—"}</td>
+      <td className="px-3 py-2">
+        <span className={`rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] ${u.totpEnabled ? "border-emerald-300/40 text-emerald-300" : "border-white/15 text-neutral-400"}`}>
+          {u.totpEnabled ? "Yes" : "No"}
+        </span>
+      </td>
       <td className="px-3 py-2 text-right">
         <div className="flex justify-end gap-2 text-xs">
           {can(me, "users:write") ? (
