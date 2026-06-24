@@ -11,7 +11,7 @@ func (s *Server) GetMe(ctx context.Context, req *authv1.GetMeRequest) (*authv1.U
 	if err != nil {
 		return nil, mapError(err)
 	}
-	u, err := s.users.Get(ctx, uid)
+	u, err := s.users.Get(ctx, uid, true, uid) // self-read bypasses the owner scope
 	if err != nil {
 		return nil, mapError(err)
 	}
