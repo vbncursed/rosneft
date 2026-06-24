@@ -39,7 +39,7 @@ func InitService(pool *pgxpool.Pool, rdb *redis.Client, cfg config.Config) (*grp
 
 	authS := authsvc.New(us, sess, rc, cipher, cfg.SessionAbsoluteTTL)
 	userS := usersvc.New(us, sess)
-	twoS := twofasvc.New(us, rc, cipher, "Rosneft")
+	twoS := twofasvc.New(us, rc, cipher, "Andrey")
 	roleS := rolesvc.New(rs, ps)
 
 	return grpcapi.New(authS, userS, twoS, roleS), us, nil

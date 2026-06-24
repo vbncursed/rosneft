@@ -1,4 +1,4 @@
-// Command gateway is the public REST/OpenAPI 3.0 edge for the Rosneft
+// Command gateway is the public REST/OpenAPI 3.0 edge for the Andrey
 // backend. The actual wiring lives in internal/bootstrap; main only sets
 // up Cobra and dispatches.
 package main
@@ -25,7 +25,7 @@ func main() {
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "gateway",
-		Short:         "Rosneft public API gateway",
+		Short:         "Andrey public API gateway",
 		Long:          "REST/OpenAPI 3.0 surface in front of catalog (gRPC), mesh (gRPC), and asset (HTTP) services.",
 		SilenceUsage:  true,
 		SilenceErrors: true,

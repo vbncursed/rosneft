@@ -24,7 +24,7 @@ func main() {
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "auth",
-		Short:         "Rosneft auth service",
+		Short:         "Andrey auth service",
 		Long:          "gRPC service that owns users, roles, permissions, sessions, and 2FA.",
 		SilenceUsage:  true,
 		SilenceErrors: true,

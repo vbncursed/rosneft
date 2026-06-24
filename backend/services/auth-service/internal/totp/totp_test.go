@@ -9,7 +9,7 @@ import (
 )
 
 func TestTOTPRoundTrip(t *testing.T) {
-	secret, url, err := totp.Generate("Rosneft", "ivan")
+	secret, url, err := totp.Generate("Andrey", "ivan")
 	assert.NilError(t, err)
 	assert.Assert(t, secret != "")
 	assert.Assert(t, len(url) > 0)

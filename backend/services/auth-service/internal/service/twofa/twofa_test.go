@@ -16,7 +16,7 @@ func TestEnableRejectsWhenAlreadyOn(t *testing.T) {
 	st := mocks.NewStoreMock(mc)
 	rc := mocks.NewRecoveryMock(mc)
 	cp := mocks.NewCipherMock(mc)
-	svc := twofa.New(st, rc, cp, "Rosneft")
+	svc := twofa.New(st, rc, cp, "Andrey")
 	ctx := t.Context()
 
 	st.GetByIDMock.Expect(ctx, "u1").Return(domain.User{ID: "u1", TOTPEnabled: true}, nil)

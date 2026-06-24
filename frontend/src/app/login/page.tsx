@@ -8,7 +8,7 @@ export default function LoginPage() {
       <section className="relative hidden overflow-hidden border-r border-white/10 md:flex md:flex-col md:justify-end md:p-12">
         <TopographicMotif />
         <div className="relative">
-          <p className="text-xs uppercase tracking-[0.36em] text-cyan-300/80">Rosneft · 3D Platform</p>
+          <p className="text-xs uppercase tracking-[0.36em] text-cyan-300/80">Andrey · 3D Platform</p>
           <h2 className="mt-4 max-w-sm text-4xl font-semibold leading-tight tracking-tight">
             Territories &amp; models, rendered with precision.
           </h2>

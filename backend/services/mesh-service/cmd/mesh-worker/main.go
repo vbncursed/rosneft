@@ -25,7 +25,7 @@ func main() {
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "mesh-worker",
-		Short:         "Rosneft mesh worker (Redis Streams consumer)",
+		Short:         "Andrey mesh worker (Redis Streams consumer)",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE:          run,

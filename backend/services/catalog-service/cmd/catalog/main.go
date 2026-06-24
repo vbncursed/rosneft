@@ -25,7 +25,7 @@ func main() {
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "catalog",
-		Short:         "Rosneft catalog service",
+		Short:         "Andrey catalog service",
 		Long:          "gRPC service that owns the project + artifact registry.",
 		SilenceUsage:  true,
 		SilenceErrors: true,

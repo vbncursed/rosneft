@@ -25,7 +25,7 @@ func main() {
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "mesh-api",
-		Short:         "Rosneft mesh API (gRPC)",
+		Short:         "Andrey mesh API (gRPC)",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE:          run,
