@@ -12,6 +12,7 @@ type userJSON struct {
 	TOTPEnabled bool     `json:"totpEnabled"`
 	RoleSlugs   []string `json:"roleSlugs"`
 	Permissions []string `json:"permissions"`
+	IsOwner     bool     `json:"isOwner"`
 }
 
 func userToJSON(u *authv1.User) userJSON {
@@ -23,6 +24,7 @@ func userToJSON(u *authv1.User) userJSON {
 		TOTPEnabled: u.GetTotpEnabled(),
 		RoleSlugs:   u.GetRoleSlugs(),
 		Permissions: u.GetPermissions(),
+		IsOwner:     u.GetIsOwner(),
 	}
 }
 

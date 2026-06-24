@@ -368,6 +368,7 @@ components:
         totpEnabled: { type: boolean }
         roleSlugs: { type: array, items: { type: string } }
         permissions: { type: array, items: { type: string } }
+        isOwner: { type: boolean }
     AuthRole:
       type: object
       properties:

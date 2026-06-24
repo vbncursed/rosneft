@@ -13,6 +13,7 @@ export function mapPrincipal(d: AuthUserDto): Principal {
     totpEnabled: d.totpEnabled ?? false,
     roleSlugs: d.roleSlugs ?? [],
     permissions: d.permissions ?? [],
+    isOwner: d.isOwner ?? false,
   };
 }
 

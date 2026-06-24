@@ -6,6 +6,7 @@ export interface Principal {
   totpEnabled: boolean;
   roleSlugs: string[];
   permissions: string[];
+  isOwner: boolean;
 }
 
 export function can(p: Principal | null, permission: string): boolean {

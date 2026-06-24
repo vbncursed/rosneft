@@ -18,6 +18,7 @@ func userToProto(u domain.User) *authv1.User {
 		Permissions: u.Permissions,
 		CreatedAt:   timestamppb.New(u.CreatedAt),
 		UpdatedAt:   timestamppb.New(u.UpdatedAt),
+		IsOwner:     u.IsOwner,
 	}
 }
 

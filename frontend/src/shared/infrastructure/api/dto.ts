@@ -1645,6 +1645,7 @@ export interface components {
             totpEnabled?: boolean;
             roleSlugs?: string[];
             permissions?: string[];
+            isOwner?: boolean;
         };
         AuthRole: {
             slug?: string;
