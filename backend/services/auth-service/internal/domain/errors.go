@@ -23,4 +23,5 @@ var (
 	ErrSystemRole        = errors.New("system role cannot be modified this way")
 	ErrLastAdmin         = errors.New("cannot remove the last admin")
 	ErrSelfTarget        = errors.New("cannot perform this action on yourself")
+	ErrAdminOwnerOnly    = errors.New("only the owner can manage admin accounts")
 )

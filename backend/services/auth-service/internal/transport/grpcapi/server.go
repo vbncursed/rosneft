@@ -107,6 +107,7 @@ func mapError(err error) error {
 	case errors.Is(err, domain.ErrAccountFrozen),
 		errors.Is(err, domain.ErrAccountDeleted),
 		errors.Is(err, domain.ErrLoginThrottled),
+		errors.Is(err, domain.ErrAdminOwnerOnly),
 		errors.Is(err, domain.Err2FARequired):
 		return status.Error(codes.PermissionDenied, err.Error())
 	case errors.Is(err, domain.ErrEmailTaken),

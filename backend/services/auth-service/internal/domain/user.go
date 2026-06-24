@@ -27,4 +27,5 @@ type User struct {
 	UpdatedAt    time.Time
 	DeletedAt    *time.Time
 	CreatedBy    *string // who created this account; nil for bootstrap admin
+	IsOwner      bool    // the single owner; only the owner may manage admin accounts
 }

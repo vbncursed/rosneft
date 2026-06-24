@@ -38,8 +38,8 @@ func New(store Store, sessions Sessions) *Service {
 	return &Service{store: store, sessions: sessions}
 }
 
-// guard enforces the self-target and last-admin invariants shared by freeze
-// and soft-delete.
+// guard enforces the self-target, owner-only-manages-admins, and last-admin
+// invariants shared by freeze and soft-delete.
 func (s *Service) guard(ctx context.Context, actorID, id string) error {
 	if actorID == id {
 		return domain.ErrSelfTarget
@@ -49,6 +49,16 @@ func (s *Service) guard(ctx context.Context, actorID, id string) error {
 		return err
 	}
 	if isAdmin(target) {
+		// Only the owner may delete/freeze an admin account. (The owner is
+		// itself an admin, so this also makes the owner untouchable: a
+		// non-owner is rejected here, and the owner hits the self-target guard.)
+		actor, err := s.store.GetByID(ctx, actorID)
+		if err != nil {
+			return err
+		}
+		if !actor.IsOwner {
+			return domain.ErrAdminOwnerOnly
+		}
 		n, err := s.store.CountAdmins(ctx, id)
 		if err != nil {
 			return err

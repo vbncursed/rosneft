@@ -18,10 +18,10 @@ func (s *Store) Create(ctx context.Context, u domain.User) (domain.User, error) 
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	const ins = `INSERT INTO users (email, username, password_hash, status, created_by)
-		VALUES ($1, $2, $3, 'active', $4) RETURNING id`
+	const ins = `INSERT INTO users (email, username, password_hash, status, created_by, is_owner)
+		VALUES ($1, $2, $3, 'active', $4, $5) RETURNING id`
 	var id string
-	if err := tx.QueryRow(ctx, ins, u.Email, u.Username, u.PasswordHash, u.CreatedBy).Scan(&id); err != nil {
+	if err := tx.QueryRow(ctx, ins, u.Email, u.Username, u.PasswordHash, u.CreatedBy, u.IsOwner).Scan(&id); err != nil {
 		switch constraintOf(err) {
 		case "users_email_key":
 			return domain.User{}, domain.ErrEmailTaken
