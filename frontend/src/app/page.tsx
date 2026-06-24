@@ -4,14 +4,21 @@ import { listModels } from "@/model/infrastructure/model-gateway";
 import DeleteTerritoryButton from "@/app/_components/delete-territory-button";
 import DeleteModelButton from "@/app/_components/delete-model-button";
 import ReplaceSourceButton from "@/app/_components/replace-source-button";
+import { getCurrentUser } from "@/auth/application/current-user";
+import { can } from "@/auth/domain/principal";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [territories, models] = await Promise.all([
+  const [territories, models, me] = await Promise.all([
     listTerritories(),
     listModels(),
+    getCurrentUser(),
   ]);
+  const territoryWrite = can(me, "territory:write");
+  const territoryDelete = can(me, "territory:delete");
+  const modelWrite = can(me, "model:write");
+  const modelDelete = can(me, "model:delete");
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#1c252f_0%,#0b0d10_38%,#060708_100%)] text-white">
@@ -32,29 +39,31 @@ export default async function Home() {
 
         <Section
           title="Territories"
-          newHref="/territories/new"
+          newHref={territoryWrite ? "/territories/new" : undefined}
           newLabel="Upload territory"
-          empty="The catalog is empty. Upload your first territory."
+          empty="The catalog is empty."
           items={territories}
           itemHref={(t) => `/territories/${t.slug}`}
-          renderDelete={(item) => (
-            <div className="flex items-center gap-2">
-              <ReplaceSourceButton slug={item.slug} />
-              <DeleteTerritoryButton slug={item.slug} label={item.title} />
-            </div>
-          )}
+          renderDelete={(item) =>
+            territoryWrite || territoryDelete ? (
+              <div className="flex items-center gap-2">
+                {territoryWrite ? <ReplaceSourceButton slug={item.slug} /> : null}
+                {territoryDelete ? <DeleteTerritoryButton slug={item.slug} label={item.title} /> : null}
+              </div>
+            ) : null
+          }
         />
 
         <Section
           title="Models"
-          newHref="/models/new"
+          newHref={modelWrite ? "/models/new" : undefined}
           newLabel="Upload model"
-          empty="No models yet. Upload your first one."
+          empty="No models yet."
           items={models}
           itemHref={(m) => `/models/${m.slug}`}
-          renderDelete={(item) => (
-            <DeleteModelButton slug={item.slug} label={item.title} />
-          )}
+          renderDelete={(item) =>
+            modelDelete ? <DeleteModelButton slug={item.slug} label={item.title} /> : null
+          }
         />
       </section>
     </main>
@@ -69,7 +78,7 @@ interface CatalogItem {
 
 interface SectionProps {
   title: string;
-  newHref: string;
+  newHref?: string;
   newLabel: string;
   empty: string;
   items: CatalogItem[];
@@ -90,12 +99,14 @@ function Section({
     <section>
       <div className="flex items-end justify-between gap-4">
         <h2 className="text-2xl font-semibold tracking-tight text-white">{title}</h2>
-        <Link
-          href={newHref}
-          className="cursor-pointer rounded-full border border-white/20 bg-white/[0.04] px-4 py-2 text-xs uppercase tracking-[0.2em] text-white transition-colors duration-200 hover:bg-white/[0.1]"
-        >
-          + {newLabel}
-        </Link>
+        {newHref ? (
+          <Link
+            href={newHref}
+            className="cursor-pointer rounded-full border border-white/20 bg-white/[0.04] px-4 py-2 text-xs uppercase tracking-[0.2em] text-white transition-colors duration-200 hover:bg-white/[0.1]"
+          >
+            + {newLabel}
+          </Link>
+        ) : null}
       </div>
 
       {items.length === 0 ? (
