@@ -6,13 +6,20 @@ import (
 
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/password"
+	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/validate"
 )
 
 // Create validates input, hashes the password, and inserts the user, recording
 // the actor as its creator (created_by).
 func (s *Service) Create(ctx context.Context, actorID, email, username, plain string, roleSlugs []string) (domain.User, error) {
-	if email == "" || username == "" || plain == "" {
-		return domain.User{}, fmt.Errorf("users.Create: %w: email, username, password required", domain.ErrInvalidInput)
+	if err := validate.Username(username); err != nil {
+		return domain.User{}, err
+	}
+	if err := validate.Email(email); err != nil {
+		return domain.User{}, err
+	}
+	if err := validate.Password(plain); err != nil {
+		return domain.User{}, err
 	}
 	hash, err := password.Hash(plain)
 	if err != nil {
