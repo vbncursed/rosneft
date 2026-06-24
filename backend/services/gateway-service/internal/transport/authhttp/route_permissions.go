@@ -12,6 +12,7 @@ import (
 // Only mutations are listed; reads need any authenticated principal.
 var routePerms = map[string]string{
 	"POST /api/territories":                          "territory:write",
+	"PATCH /api/territories/{slug}":                  "territory:write",
 	"DELETE /api/territories/{slug}":                 "territory:delete",
 	"POST /api/models":                               "model:write",
 	"DELETE /api/models/{slug}":                      "model:delete",
