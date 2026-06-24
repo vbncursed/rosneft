@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/auth"
 )
 
@@ -62,7 +63,7 @@ func (h *Handlers) Mount(r chi.Router) {
 
 func decode(w http.ResponseWriter, r *http.Request, dst any) bool {
 	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
-		writeErr(w, http.StatusBadRequest, "invalid_input", "bad json")
+		apperr.Write(w, http.StatusBadRequest, apperr.SlugInvalidInput, "bad json")
 		return false
 	}
 	return true

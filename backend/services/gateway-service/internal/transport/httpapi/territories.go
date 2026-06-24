@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 
+	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
@@ -31,7 +32,7 @@ func (s *Server) GetTerritory(ctx context.Context, req GetTerritoryRequestObject
 
 func (s *Server) CreateTerritory(ctx context.Context, req CreateTerritoryRequestObject) (CreateTerritoryResponseObject, error) {
 	if req.Body == nil {
-		return CreateTerritory400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: "invalid_input", Message: "missing body"}}, nil
+		return CreateTerritory400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
 	}
 	t, job, err := s.svc.CreateTerritory(ctx, entityToTerritory(*req.Body))
 	switch {
@@ -45,7 +46,7 @@ func (s *Server) CreateTerritory(ctx context.Context, req CreateTerritoryRequest
 
 func (s *Server) ReplaceTerritorySource(ctx context.Context, req ReplaceTerritorySourceRequestObject) (ReplaceTerritorySourceResponseObject, error) {
 	if req.Body == nil {
-		return ReplaceTerritorySource400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: "invalid_input", Message: "missing body"}}, nil
+		return ReplaceTerritorySource400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
 	}
 	t, job, err := s.svc.ReplaceTerritorySource(ctx, req.Slug, req.Body.SourceBlobHash)
 	switch {
@@ -61,7 +62,7 @@ func (s *Server) ReplaceTerritorySource(ctx context.Context, req ReplaceTerritor
 
 func (s *Server) UpdateTerritory(ctx context.Context, req UpdateTerritoryRequestObject) (UpdateTerritoryResponseObject, error) {
 	if req.Body == nil {
-		return UpdateTerritory400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: "invalid_input", Message: "missing body"}}, nil
+		return UpdateTerritory400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
 	}
 	t, err := s.svc.UpdateTerritory(ctx, req.Slug, domain.TerritoryUpdate{
 		ExternalPanoramaURL: req.Body.ExternalPanoramaUrl,

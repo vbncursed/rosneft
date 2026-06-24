@@ -5,13 +5,12 @@ package grpcapi
 
 import (
 	"context"
-	"errors"
 	"slices"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
+	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	authv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/auth/v1"
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
@@ -88,39 +87,31 @@ func (s *Server) actor(ctx context.Context, token string) (string, bool, error) 
 	return uid, slices.Contains(perms, "users:read_all"), nil
 }
 
-// mapError translates domain sentinels to gRPC status codes.
-func mapError(err error) error {
-	if err == nil {
-		return nil
-	}
-	switch {
-	case errors.Is(err, domain.ErrInvalidInput),
-		errors.Is(err, domain.ErrPermissionUnknown):
-		return status.Error(codes.InvalidArgument, err.Error())
-	case errors.Is(err, domain.ErrUserNotFound),
-		errors.Is(err, domain.ErrRoleNotFound):
-		return status.Error(codes.NotFound, err.Error())
-	case errors.Is(err, domain.ErrInvalidCredential),
-		errors.Is(err, domain.ErrSessionInvalid),
-		errors.Is(err, domain.Err2FAInvalidCode):
-		return status.Error(codes.Unauthenticated, err.Error())
-	case errors.Is(err, domain.ErrAccountFrozen),
-		errors.Is(err, domain.ErrAccountDeleted),
-		errors.Is(err, domain.ErrLoginThrottled),
-		errors.Is(err, domain.ErrAdminOwnerOnly),
-		errors.Is(err, domain.Err2FARequired):
-		return status.Error(codes.PermissionDenied, err.Error())
-	case errors.Is(err, domain.ErrEmailTaken),
-		errors.Is(err, domain.ErrUsernameTaken),
-		errors.Is(err, domain.ErrRoleSlugTaken),
-		errors.Is(err, domain.Err2FAAlreadyEnabled):
-		return status.Error(codes.AlreadyExists, err.Error())
-	case errors.Is(err, domain.ErrLastAdmin),
-		errors.Is(err, domain.ErrSelfTarget),
-		errors.Is(err, domain.ErrSystemRole),
-		errors.Is(err, domain.Err2FANotEnabled):
-		return status.Error(codes.FailedPrecondition, err.Error())
-	default:
-		return status.Errorf(codes.Internal, "internal: %v", err)
-	}
+// statusByCode lists, per gRPC code, the domain sentinels that surface as it.
+var statusByCode = map[codes.Code][]error{
+	codes.InvalidArgument: {domain.ErrInvalidInput, domain.ErrPermissionUnknown},
+	codes.NotFound:        {domain.ErrUserNotFound, domain.ErrRoleNotFound},
+	codes.Unauthenticated: {domain.ErrInvalidCredential, domain.ErrSessionInvalid, domain.Err2FAInvalidCode},
+	codes.PermissionDenied: {
+		domain.ErrAccountFrozen,
+		domain.ErrAccountDeleted,
+		domain.ErrLoginThrottled,
+		domain.ErrAdminOwnerOnly,
+		domain.Err2FARequired,
+	},
+	codes.AlreadyExists: {
+		domain.ErrEmailTaken,
+		domain.ErrUsernameTaken,
+		domain.ErrRoleSlugTaken,
+		domain.Err2FAAlreadyEnabled,
+	},
+	codes.FailedPrecondition: {
+		domain.ErrLastAdmin,
+		domain.ErrSelfTarget,
+		domain.ErrSystemRole,
+		domain.Err2FANotEnabled,
+	},
 }
+
+// mapError translates domain sentinels to gRPC status codes.
+func mapError(err error) error { return apperr.ToStatus(err, statusByCode) }

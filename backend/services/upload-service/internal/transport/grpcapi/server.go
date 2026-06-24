@@ -5,12 +5,11 @@ package grpcapi
 
 import (
 	"context"
-	"errors"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
+	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	uploadv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/upload/v1"
 	"github.com/vbncursed/rosneft/backend/services/upload-service/internal/domain"
 )
@@ -40,19 +39,11 @@ func (s *Server) Register(srv *grpc.Server) {
 	uploadv1.RegisterUploadServiceServer(srv, s)
 }
 
-// mapError translates service-layer errors to gRPC status codes.
-func mapError(err error) error {
-	if err == nil {
-		return nil
-	}
-	switch {
-	case errors.Is(err, domain.ErrInvalidInput),
-		errors.Is(err, domain.ErrOffsetMismatch),
-		errors.Is(err, domain.ErrSizeExceeded):
-		return status.Error(codes.InvalidArgument, err.Error())
-	case errors.Is(err, domain.ErrSessionNotFound):
-		return status.Error(codes.NotFound, err.Error())
-	default:
-		return status.Errorf(codes.Internal, "internal: %v", err)
-	}
+// statusByCode lists, per gRPC code, the domain sentinels that surface as it.
+var statusByCode = map[codes.Code][]error{
+	codes.InvalidArgument: {domain.ErrInvalidInput, domain.ErrOffsetMismatch, domain.ErrSizeExceeded},
+	codes.NotFound:        {domain.ErrSessionNotFound},
 }
+
+// mapError translates service-layer errors to gRPC status codes.
+func mapError(err error) error { return apperr.ToStatus(err, statusByCode) }

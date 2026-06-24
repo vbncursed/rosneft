@@ -67,3 +67,6 @@ view.png
 WELL-PAD_*_3D-TOUR_*/
 panoramas_equirect/
 equirect_panoramas/
+
+# ── Build artifacts (Go binaries dropped at repo root) ──────────────────────
+/bin/

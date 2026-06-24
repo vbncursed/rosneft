@@ -6,12 +6,11 @@ package grpcapi
 
 import (
 	"context"
-	"errors"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
+	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
@@ -65,21 +64,17 @@ func (s *Server) Register(srv *grpc.Server) {
 	catalogv1.RegisterCatalogServiceServer(srv, s)
 }
 
-// mapError translates service-layer errors to gRPC status codes.
-func mapError(err error) error {
-	if err == nil {
-		return nil
-	}
-	switch {
-	case errors.Is(err, domain.ErrInvalidInput):
-		return status.Error(codes.InvalidArgument, err.Error())
-	case errors.Is(err, domain.ErrTerritoryNotFound),
-		errors.Is(err, domain.ErrModelNotFound),
-		errors.Is(err, domain.ErrArtifactNotFound),
-		errors.Is(err, domain.ErrPlacementNotFound),
-		errors.Is(err, domain.ErrPanoramaNotFound):
-		return status.Error(codes.NotFound, err.Error())
-	default:
-		return status.Errorf(codes.Internal, "internal: %v", err)
-	}
+// statusByCode lists, per gRPC code, the domain sentinels that surface as it.
+var statusByCode = map[codes.Code][]error{
+	codes.InvalidArgument: {domain.ErrInvalidInput},
+	codes.NotFound: {
+		domain.ErrTerritoryNotFound,
+		domain.ErrModelNotFound,
+		domain.ErrArtifactNotFound,
+		domain.ErrPlacementNotFound,
+		domain.ErrPanoramaNotFound,
+	},
 }
+
+// mapError translates service-layer errors to gRPC status codes.
+func mapError(err error) error { return apperr.ToStatus(err, statusByCode) }

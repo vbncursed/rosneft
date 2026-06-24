@@ -10,6 +10,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
@@ -71,10 +72,10 @@ func codeOf(err error) string {
 	}
 	switch {
 	case isInvalid(err):
-		return "invalid_input"
+		return apperr.SlugInvalidInput
 	case isNotFound(err):
-		return "not_found"
+		return apperr.SlugNotFound
 	default:
-		return "internal"
+		return apperr.SlugInternal
 	}
 }

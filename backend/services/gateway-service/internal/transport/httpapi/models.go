@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 
+	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
@@ -31,7 +32,7 @@ func (s *Server) GetModel(ctx context.Context, req GetModelRequestObject) (GetMo
 
 func (s *Server) CreateModel(ctx context.Context, req CreateModelRequestObject) (CreateModelResponseObject, error) {
 	if req.Body == nil {
-		return CreateModel400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: "invalid_input", Message: "missing body"}}, nil
+		return CreateModel400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
 	}
 	m, job, err := s.svc.CreateModel(ctx, entityToModel(*req.Body))
 	switch {

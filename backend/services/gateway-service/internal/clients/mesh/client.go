@@ -3,11 +3,7 @@
 package mesh
 
 import (
-	"errors"
-
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 	meshv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/mesh/v1"
@@ -31,18 +27,4 @@ func Dial(target string) (*Client, error) {
 // Close releases the underlying gRPC connection.
 func (c *Client) Close() error {
 	return c.conn.Close()
-}
-
-func mapStatusErr(err error, notFoundErr error) error {
-	if err == nil {
-		return nil
-	}
-	st, ok := status.FromError(err)
-	if !ok {
-		return err
-	}
-	if st.Code() == codes.NotFound {
-		return errors.Join(notFoundErr, err)
-	}
-	return err
 }

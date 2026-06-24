@@ -3,6 +3,8 @@ package authhttp
 import (
 	"net/http"
 	"slices"
+
+	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 )
 
 // Authenticate validates the Bearer token via the auth-service and injects the
@@ -12,7 +14,7 @@ func (h *Handlers) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := bearer(r)
 		if token == "" {
-			writeErr(w, http.StatusUnauthorized, "unauthenticated", "missing bearer token")
+			apperr.Write(w, http.StatusUnauthorized, apperr.SlugUnauthenticated, "missing bearer token")
 			return
 		}
 		uid, perms, err := h.client.ValidateToken(r.Context(), token)
@@ -31,7 +33,7 @@ func (h *Handlers) require(perm string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !slices.Contains(principalPerms(r.Context()), perm) {
-				writeErr(w, http.StatusForbidden, "forbidden", "permission denied: "+perm)
+				apperr.Write(w, http.StatusForbidden, apperr.SlugForbidden, "permission denied: "+perm)
 				return
 			}
 			next.ServeHTTP(w, r)

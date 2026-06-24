@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 
+	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
@@ -25,7 +26,7 @@ func (s *Server) ListPlacements(ctx context.Context, req ListPlacementsRequestOb
 
 func (s *Server) CreatePlacement(ctx context.Context, req CreatePlacementRequestObject) (CreatePlacementResponseObject, error) {
 	if req.Body == nil {
-		return CreatePlacement400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: "invalid_input", Message: "missing body"}}, nil
+		return CreatePlacement400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
 	}
 	body := *req.Body
 	label := ""
@@ -58,7 +59,7 @@ func (s *Server) CreatePlacement(ctx context.Context, req CreatePlacementRequest
 
 func (s *Server) UpdatePlacement(ctx context.Context, req UpdatePlacementRequestObject) (UpdatePlacementResponseObject, error) {
 	if req.Body == nil {
-		return UpdatePlacement400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: "invalid_input", Message: "missing body"}}, nil
+		return UpdatePlacement400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
 	}
 	body := *req.Body
 	label := ""
@@ -85,7 +86,7 @@ func (s *Server) UpdatePlacement(ctx context.Context, req UpdatePlacementRequest
 
 func (s *Server) SetPlacementVisibility(ctx context.Context, req SetPlacementVisibilityRequestObject) (SetPlacementVisibilityResponseObject, error) {
 	if req.Body == nil {
-		return SetPlacementVisibility400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: "invalid_input", Message: "missing body"}}, nil
+		return SetPlacementVisibility400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
 	}
 	p, err := s.svc.SetPlacementVisibility(ctx, req.Slug, req.Id, req.Body.PanoramaIds)
 	switch {
