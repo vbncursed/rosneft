@@ -13,6 +13,9 @@ export default function ConsoleSidebar({ showContent }: { showContent: boolean }
   const items = showContent ? [...ITEMS, { href: "/admin/content", label: "Content" }] : ITEMS;
   return (
     <nav className="flex flex-col gap-1">
+      <Link href="/" className="mb-3 text-[10px] uppercase tracking-[0.28em] text-neutral-400 transition-colors hover:text-white">
+        ← Back to site
+      </Link>
       <p className="mb-2 text-xs uppercase tracking-[0.36em] text-cyan-300/80">Console</p>
       {items.map((it) => {
         const active = path === it.href || path.startsWith(it.href + "/");

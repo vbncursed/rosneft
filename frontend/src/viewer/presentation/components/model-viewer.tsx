@@ -188,7 +188,8 @@ export default function ModelViewer({
         onClearMeasurements={measure.clear}
       />
 
-      <div className="pointer-events-none absolute top-4 right-4 bottom-4 flex flex-col items-end gap-3">
+      {/* top-16 (not top-4): clears the global UserMenu avatar fixed at right-4 top-4 */}
+      <div className="pointer-events-none absolute top-16 right-4 bottom-4 flex flex-col items-end gap-3">
         <OverlaysPanel
           placementsCount={editor.placements.length}
           selectedPlacementId={editor.selectedId}
