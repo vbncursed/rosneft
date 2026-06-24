@@ -24,4 +24,8 @@ var (
 	ErrLastAdmin         = errors.New("cannot remove the last admin")
 	ErrSelfTarget        = errors.New("cannot perform this action on yourself")
 	ErrAdminOwnerOnly    = errors.New("only the owner can manage admin accounts")
+	// ErrPrivilegeEscalation guards role/permission grants: a non-owner may only
+	// confer access it already holds. ErrOwnerOnly guards the owner flag itself.
+	ErrPrivilegeEscalation = errors.New("you cannot grant access you do not have yourself")
+	ErrOwnerOnly           = errors.New("only an owner can grant owner status")
 )

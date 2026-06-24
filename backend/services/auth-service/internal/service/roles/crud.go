@@ -9,9 +9,12 @@ import (
 
 func (s *Service) List(ctx context.Context) ([]domain.Role, error) { return s.store.List(ctx) }
 
-func (s *Service) Create(ctx context.Context, slug, title string, permSlugs []string) (domain.Role, error) {
+func (s *Service) Create(ctx context.Context, actorID, slug, title string, permSlugs []string) (domain.Role, error) {
 	if slug == "" || title == "" {
 		return domain.Role{}, fmt.Errorf("roles.Create: %w: slug and title required", domain.ErrInvalidInput)
+	}
+	if err := s.assertCanGrant(ctx, actorID, permSlugs); err != nil {
+		return domain.Role{}, err
 	}
 	return s.store.Create(ctx, domain.Role{Slug: slug, Title: title, PermissionSlugs: permSlugs})
 }

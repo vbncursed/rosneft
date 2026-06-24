@@ -46,3 +46,7 @@ func (c *Client) SoftDeleteUser(ctx context.Context, token, id string) error {
 func (c *Client) RestoreUser(ctx context.Context, token, id string) (*authv1.User, error) {
 	return c.cc.RestoreUser(ctx, &authv1.RestoreUserRequest{Token: token, Id: id})
 }
+
+func (c *Client) SetUserOwner(ctx context.Context, token, id string, isOwner bool) (*authv1.User, error) {
+	return c.cc.SetUserOwner(ctx, &authv1.SetUserOwnerRequest{Token: token, Id: id, IsOwner: isOwner})
+}

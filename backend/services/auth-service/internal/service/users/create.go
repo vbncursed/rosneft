@@ -21,6 +21,9 @@ func (s *Service) Create(ctx context.Context, actorID, email, username, plain st
 	if err := validate.Password(plain); err != nil {
 		return domain.User{}, err
 	}
+	if err := s.assertCanGrant(ctx, actorID, roleSlugs); err != nil {
+		return domain.User{}, err
+	}
 	hash, err := password.Hash(plain)
 	if err != nil {
 		return domain.User{}, fmt.Errorf("users.Create: hash: %w", err)

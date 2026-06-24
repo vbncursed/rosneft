@@ -14,8 +14,8 @@ func (c *Client) ListRoles(ctx context.Context) ([]*authv1.Role, error) {
 	return resp.GetRoles(), nil
 }
 
-func (c *Client) CreateRole(ctx context.Context, slug, title string, perms []string) (*authv1.Role, error) {
-	return c.cc.CreateRole(ctx, &authv1.CreateRoleRequest{Slug: slug, Title: title, PermissionSlugs: perms})
+func (c *Client) CreateRole(ctx context.Context, token, slug, title string, perms []string) (*authv1.Role, error) {
+	return c.cc.CreateRole(ctx, &authv1.CreateRoleRequest{Token: token, Slug: slug, Title: title, PermissionSlugs: perms})
 }
 
 func (c *Client) UpdateRole(ctx context.Context, slug, title string) (*authv1.Role, error) {
@@ -27,8 +27,8 @@ func (c *Client) DeleteRole(ctx context.Context, slug string) error {
 	return err
 }
 
-func (c *Client) SetRolePermissions(ctx context.Context, slug string, perms []string) (*authv1.Role, error) {
-	return c.cc.SetRolePermissions(ctx, &authv1.SetRolePermissionsRequest{Slug: slug, PermissionSlugs: perms})
+func (c *Client) SetRolePermissions(ctx context.Context, token, slug string, perms []string) (*authv1.Role, error) {
+	return c.cc.SetRolePermissions(ctx, &authv1.SetRolePermissionsRequest{Token: token, Slug: slug, PermissionSlugs: perms})
 }
 
 func (c *Client) ListPermissions(ctx context.Context) ([]*authv1.Permission, error) {

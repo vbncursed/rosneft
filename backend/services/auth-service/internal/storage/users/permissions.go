@@ -35,6 +35,33 @@ func (s *Store) roleSlugsByUsers(ctx context.Context, ids []string) (map[string]
 	return out, nil
 }
 
+// PermissionsForRoles returns the union of permission slugs conferred by the
+// given role slugs — used to enforce no-privilege-escalation on role grants.
+func (s *Store) PermissionsForRoles(ctx context.Context, roleSlugs []string) ([]string, error) {
+	const q = `SELECT DISTINCT p.slug
+		FROM roles r
+		JOIN role_permissions rp ON rp.role_id = r.id
+		JOIN permissions p ON p.id = rp.permission_id
+		WHERE r.slug = ANY($1) ORDER BY p.slug`
+	rows, err := s.pool.Query(ctx, q, roleSlugs)
+	if err != nil {
+		return nil, fmt.Errorf("users.PermissionsForRoles: %w", err)
+	}
+	defer rows.Close()
+	out := make([]string, 0, 16)
+	for rows.Next() {
+		var v string
+		if err := rows.Scan(&v); err != nil {
+			return nil, fmt.Errorf("users.PermissionsForRoles: scan: %w", err)
+		}
+		out = append(out, v)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("users.PermissionsForRoles: rows: %w", err)
+	}
+	return out, nil
+}
+
 // Permissions returns the distinct permission slugs across all of the user's roles.
 func (s *Store) Permissions(ctx context.Context, id string) ([]string, error) {
 	const q = `SELECT DISTINCT p.slug

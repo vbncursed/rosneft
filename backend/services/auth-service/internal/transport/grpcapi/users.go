@@ -104,3 +104,15 @@ func (s *Server) RestoreUser(ctx context.Context, req *authv1.RestoreUserRequest
 	}
 	return userToProto(u), nil
 }
+
+func (s *Server) SetUserOwner(ctx context.Context, req *authv1.SetUserOwnerRequest) (*authv1.User, error) {
+	actorID, _, err := s.actor(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	u, err := s.users.SetOwner(ctx, actorID, req.GetId(), req.GetIsOwner())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return userToProto(u), nil
+}

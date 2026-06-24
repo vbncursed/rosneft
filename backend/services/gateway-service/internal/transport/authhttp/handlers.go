@@ -51,6 +51,9 @@ func (h *Handlers) Mount(r chi.Router) {
 			pr.With(h.require("users:freeze")).Post("/users/{id}/unfreeze", h.unfreezeUser)
 			pr.With(h.require("users:delete")).Delete("/users/{id}", h.softDeleteUser)
 			pr.With(h.require("users:delete")).Post("/users/{id}/restore", h.restoreUser)
+			// The owner flag is granted owner-to-owner; this route gate is coarse,
+			// the real "actor must be an owner" check lives in the auth service.
+			pr.With(h.require("users:write")).Post("/users/{id}/owner", h.setUserOwner)
 			pr.With(h.require("roles:read")).Get("/roles", h.listRoles)
 			pr.With(h.require("roles:manage")).Post("/roles", h.createRole)
 			pr.With(h.require("roles:manage")).Patch("/roles/{slug}", h.updateRole)

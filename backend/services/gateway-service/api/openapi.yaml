@@ -1297,6 +1297,32 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /api/auth/users/{id}/owner:
+    post:
+      tags: [auth]
+      summary: Grant or revoke the owner flag (caller must already be an owner)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [isOwner]
+              properties:
+                isOwner: { type: boolean }
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: Caller is not an owner }
+        '422': { description: Self-target guard }
+
   /api/auth/roles:
     get:
       tags: [auth]

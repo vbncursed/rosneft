@@ -32,6 +32,7 @@ service AuthService {
   rpc UnfreezeUser(UnfreezeUserRequest) returns (User);
   rpc SoftDeleteUser(SoftDeleteUserRequest) returns (SoftDeleteUserResponse);
   rpc RestoreUser(RestoreUserRequest) returns (User);
+  rpc SetUserOwner(SetUserOwnerRequest) returns (User);
 
   // --- roles / permissions ---
   rpc ListRoles(ListRolesRequest) returns (ListRolesResponse);
@@ -169,6 +170,13 @@ message RestoreUserRequest {
   string token = 1;
   string id = 2;
 }
+// SetUserOwnerRequest grants/revokes the owner flag. Only an existing owner may
+// call it (enforced server-side from the session token).
+message SetUserOwnerRequest {
+  string token = 1; // actor; must already be an owner
+  string id = 2;
+  bool is_owner = 3;
+}
 
 message ListRolesRequest {}
 message ListRolesResponse {
@@ -178,6 +186,7 @@ message CreateRoleRequest {
   string slug = 1;
   string title = 2;
   repeated string permission_slugs = 3;
+  string token = 4; // actor; a non-owner may only grant permissions it holds
 }
 message UpdateRoleRequest {
   string slug = 1;
@@ -190,6 +199,7 @@ message DeleteRoleResponse {}
 message SetRolePermissionsRequest {
   string slug = 1;
   repeated string permission_slugs = 2;
+  string token = 3; // actor; a non-owner may only grant permissions it holds
 }
 message ListPermissionsRequest {}
 message ListPermissionsResponse {

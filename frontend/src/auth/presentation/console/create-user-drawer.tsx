@@ -1,14 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Field from "@/upload/presentation/components/field";
 import PasswordField from "@/shared/presentation/components/password-field";
 import type { Role } from "@/auth/domain/role";
+import { canGrant } from "@/auth/domain/principal";
+import { useCurrentUser } from "@/auth/presentation/current-user-context";
 import { createUser } from "@/auth/infrastructure/auth-admin-gateway";
 import { validateUsername, validateEmail, validatePassword, generatePassword } from "@/auth/domain/credential-rules";
 import { notify } from "@/shared/presentation/toast/use-toast";
 
 export default function CreateUserDrawer({ roles, onClose, onCreated }: { roles: Role[]; onClose: () => void; onCreated: () => void }) {
+  const me = useCurrentUser();
+  // Only offer roles the actor is allowed to grant (no privilege escalation).
+  const grantable = useMemo(() => roles.filter((r) => canGrant(me, r.permissionSlugs)), [roles, me]);
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -48,7 +53,9 @@ export default function CreateUserDrawer({ roles, onClose, onCreated }: { roles:
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-neutral-400">Roles</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            {roles.map((r) => (
+            {grantable.length === 0 ? (
+              <p className="text-xs text-neutral-500">No roles you can assign.</p>
+            ) : grantable.map((r) => (
               <button key={r.slug} type="button" onClick={() => toggle(r.slug)}
                 className={`cursor-pointer rounded-full border px-3 py-1 text-xs transition-colors ${picked.includes(r.slug) ? "border-cyan-400/60 bg-cyan-400/10 text-cyan-100" : "border-white/15 text-neutral-300 hover:bg-white/10"}`}>
                 {r.slug}

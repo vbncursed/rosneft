@@ -47,6 +47,9 @@ export function deleteUser(id: string): Promise<void> {
 export async function restoreUser(id: string): Promise<AdminUser> {
   return mapPrincipal(await httpPost(`/api/auth/users/${encodeURIComponent(id)}/restore`));
 }
+export async function setUserOwner(id: string, isOwner: boolean): Promise<AdminUser> {
+  return mapPrincipal(await httpPost(`/api/auth/users/${encodeURIComponent(id)}/owner`, { isOwner }));
+}
 
 export async function listRoles(): Promise<Role[]> {
   return (await httpGet<RoleDto[]>("/api/auth/roles")).map(mapRole);

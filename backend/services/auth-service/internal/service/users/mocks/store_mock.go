@@ -55,6 +55,20 @@ type StoreMock struct {
 	beforeListCounter uint64
 	ListMock          mStoreMockList
 
+	funcPermissionsForRoles          func(ctx context.Context, roleSlugs []string) (sa1 []string, err error)
+	funcPermissionsForRolesOrigin    string
+	inspectFuncPermissionsForRoles   func(ctx context.Context, roleSlugs []string)
+	afterPermissionsForRolesCounter  uint64
+	beforePermissionsForRolesCounter uint64
+	PermissionsForRolesMock          mStoreMockPermissionsForRoles
+
+	funcSetOwner          func(ctx context.Context, id string, isOwner bool) (u1 domain.User, err error)
+	funcSetOwnerOrigin    string
+	inspectFuncSetOwner   func(ctx context.Context, id string, isOwner bool)
+	afterSetOwnerCounter  uint64
+	beforeSetOwnerCounter uint64
+	SetOwnerMock          mStoreMockSetOwner
+
 	funcSetRoles          func(ctx context.Context, id string, roleSlugs []string) (u1 domain.User, err error)
 	funcSetRolesOrigin    string
 	inspectFuncSetRoles   func(ctx context.Context, id string, roleSlugs []string)
@@ -92,6 +106,12 @@ func NewStoreMock(t minimock.Tester) *StoreMock {
 
 	m.ListMock = mStoreMockList{mock: m}
 	m.ListMock.callArgs = []*StoreMockListParams{}
+
+	m.PermissionsForRolesMock = mStoreMockPermissionsForRoles{mock: m}
+	m.PermissionsForRolesMock.callArgs = []*StoreMockPermissionsForRolesParams{}
+
+	m.SetOwnerMock = mStoreMockSetOwner{mock: m}
+	m.SetOwnerMock.callArgs = []*StoreMockSetOwnerParams{}
 
 	m.SetRolesMock = mStoreMockSetRoles{mock: m}
 	m.SetRolesMock.callArgs = []*StoreMockSetRolesParams{}
@@ -1911,6 +1931,723 @@ func (m *StoreMock) MinimockListInspect() {
 	}
 }
 
+type mStoreMockPermissionsForRoles struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockPermissionsForRolesExpectation
+	expectations       []*StoreMockPermissionsForRolesExpectation
+
+	callArgs []*StoreMockPermissionsForRolesParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockPermissionsForRolesExpectation specifies expectation struct of the Store.PermissionsForRoles
+type StoreMockPermissionsForRolesExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockPermissionsForRolesParams
+	paramPtrs          *StoreMockPermissionsForRolesParamPtrs
+	expectationOrigins StoreMockPermissionsForRolesExpectationOrigins
+	results            *StoreMockPermissionsForRolesResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockPermissionsForRolesParams contains parameters of the Store.PermissionsForRoles
+type StoreMockPermissionsForRolesParams struct {
+	ctx       context.Context
+	roleSlugs []string
+}
+
+// StoreMockPermissionsForRolesParamPtrs contains pointers to parameters of the Store.PermissionsForRoles
+type StoreMockPermissionsForRolesParamPtrs struct {
+	ctx       *context.Context
+	roleSlugs *[]string
+}
+
+// StoreMockPermissionsForRolesResults contains results of the Store.PermissionsForRoles
+type StoreMockPermissionsForRolesResults struct {
+	sa1 []string
+	err error
+}
+
+// StoreMockPermissionsForRolesOrigins contains origins of expectations of the Store.PermissionsForRoles
+type StoreMockPermissionsForRolesExpectationOrigins struct {
+	origin          string
+	originCtx       string
+	originRoleSlugs string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmPermissionsForRoles *mStoreMockPermissionsForRoles) Optional() *mStoreMockPermissionsForRoles {
+	mmPermissionsForRoles.optional = true
+	return mmPermissionsForRoles
+}
+
+// Expect sets up expected params for Store.PermissionsForRoles
+func (mmPermissionsForRoles *mStoreMockPermissionsForRoles) Expect(ctx context.Context, roleSlugs []string) *mStoreMockPermissionsForRoles {
+	if mmPermissionsForRoles.mock.funcPermissionsForRoles != nil {
+		mmPermissionsForRoles.mock.t.Fatalf("StoreMock.PermissionsForRoles mock is already set by Set")
+	}
+
+	if mmPermissionsForRoles.defaultExpectation == nil {
+		mmPermissionsForRoles.defaultExpectation = &StoreMockPermissionsForRolesExpectation{}
+	}
+
+	if mmPermissionsForRoles.defaultExpectation.paramPtrs != nil {
+		mmPermissionsForRoles.mock.t.Fatalf("StoreMock.PermissionsForRoles mock is already set by ExpectParams functions")
+	}
+
+	mmPermissionsForRoles.defaultExpectation.params = &StoreMockPermissionsForRolesParams{ctx, roleSlugs}
+	mmPermissionsForRoles.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmPermissionsForRoles.expectations {
+		if minimock.Equal(e.params, mmPermissionsForRoles.defaultExpectation.params) {
+			mmPermissionsForRoles.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmPermissionsForRoles.defaultExpectation.params)
+		}
+	}
+
+	return mmPermissionsForRoles
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.PermissionsForRoles
+func (mmPermissionsForRoles *mStoreMockPermissionsForRoles) ExpectCtxParam1(ctx context.Context) *mStoreMockPermissionsForRoles {
+	if mmPermissionsForRoles.mock.funcPermissionsForRoles != nil {
+		mmPermissionsForRoles.mock.t.Fatalf("StoreMock.PermissionsForRoles mock is already set by Set")
+	}
+
+	if mmPermissionsForRoles.defaultExpectation == nil {
+		mmPermissionsForRoles.defaultExpectation = &StoreMockPermissionsForRolesExpectation{}
+	}
+
+	if mmPermissionsForRoles.defaultExpectation.params != nil {
+		mmPermissionsForRoles.mock.t.Fatalf("StoreMock.PermissionsForRoles mock is already set by Expect")
+	}
+
+	if mmPermissionsForRoles.defaultExpectation.paramPtrs == nil {
+		mmPermissionsForRoles.defaultExpectation.paramPtrs = &StoreMockPermissionsForRolesParamPtrs{}
+	}
+	mmPermissionsForRoles.defaultExpectation.paramPtrs.ctx = &ctx
+	mmPermissionsForRoles.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmPermissionsForRoles
+}
+
+// ExpectRoleSlugsParam2 sets up expected param roleSlugs for Store.PermissionsForRoles
+func (mmPermissionsForRoles *mStoreMockPermissionsForRoles) ExpectRoleSlugsParam2(roleSlugs []string) *mStoreMockPermissionsForRoles {
+	if mmPermissionsForRoles.mock.funcPermissionsForRoles != nil {
+		mmPermissionsForRoles.mock.t.Fatalf("StoreMock.PermissionsForRoles mock is already set by Set")
+	}
+
+	if mmPermissionsForRoles.defaultExpectation == nil {
+		mmPermissionsForRoles.defaultExpectation = &StoreMockPermissionsForRolesExpectation{}
+	}
+
+	if mmPermissionsForRoles.defaultExpectation.params != nil {
+		mmPermissionsForRoles.mock.t.Fatalf("StoreMock.PermissionsForRoles mock is already set by Expect")
+	}
+
+	if mmPermissionsForRoles.defaultExpectation.paramPtrs == nil {
+		mmPermissionsForRoles.defaultExpectation.paramPtrs = &StoreMockPermissionsForRolesParamPtrs{}
+	}
+	mmPermissionsForRoles.defaultExpectation.paramPtrs.roleSlugs = &roleSlugs
+	mmPermissionsForRoles.defaultExpectation.expectationOrigins.originRoleSlugs = minimock.CallerInfo(1)
+
+	return mmPermissionsForRoles
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.PermissionsForRoles
+func (mmPermissionsForRoles *mStoreMockPermissionsForRoles) Inspect(f func(ctx context.Context, roleSlugs []string)) *mStoreMockPermissionsForRoles {
+	if mmPermissionsForRoles.mock.inspectFuncPermissionsForRoles != nil {
+		mmPermissionsForRoles.mock.t.Fatalf("Inspect function is already set for StoreMock.PermissionsForRoles")
+	}
+
+	mmPermissionsForRoles.mock.inspectFuncPermissionsForRoles = f
+
+	return mmPermissionsForRoles
+}
+
+// Return sets up results that will be returned by Store.PermissionsForRoles
+func (mmPermissionsForRoles *mStoreMockPermissionsForRoles) Return(sa1 []string, err error) *StoreMock {
+	if mmPermissionsForRoles.mock.funcPermissionsForRoles != nil {
+		mmPermissionsForRoles.mock.t.Fatalf("StoreMock.PermissionsForRoles mock is already set by Set")
+	}
+
+	if mmPermissionsForRoles.defaultExpectation == nil {
+		mmPermissionsForRoles.defaultExpectation = &StoreMockPermissionsForRolesExpectation{mock: mmPermissionsForRoles.mock}
+	}
+	mmPermissionsForRoles.defaultExpectation.results = &StoreMockPermissionsForRolesResults{sa1, err}
+	mmPermissionsForRoles.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmPermissionsForRoles.mock
+}
+
+// Set uses given function f to mock the Store.PermissionsForRoles method
+func (mmPermissionsForRoles *mStoreMockPermissionsForRoles) Set(f func(ctx context.Context, roleSlugs []string) (sa1 []string, err error)) *StoreMock {
+	if mmPermissionsForRoles.defaultExpectation != nil {
+		mmPermissionsForRoles.mock.t.Fatalf("Default expectation is already set for the Store.PermissionsForRoles method")
+	}
+
+	if len(mmPermissionsForRoles.expectations) > 0 {
+		mmPermissionsForRoles.mock.t.Fatalf("Some expectations are already set for the Store.PermissionsForRoles method")
+	}
+
+	mmPermissionsForRoles.mock.funcPermissionsForRoles = f
+	mmPermissionsForRoles.mock.funcPermissionsForRolesOrigin = minimock.CallerInfo(1)
+	return mmPermissionsForRoles.mock
+}
+
+// When sets expectation for the Store.PermissionsForRoles which will trigger the result defined by the following
+// Then helper
+func (mmPermissionsForRoles *mStoreMockPermissionsForRoles) When(ctx context.Context, roleSlugs []string) *StoreMockPermissionsForRolesExpectation {
+	if mmPermissionsForRoles.mock.funcPermissionsForRoles != nil {
+		mmPermissionsForRoles.mock.t.Fatalf("StoreMock.PermissionsForRoles mock is already set by Set")
+	}
+
+	expectation := &StoreMockPermissionsForRolesExpectation{
+		mock:               mmPermissionsForRoles.mock,
+		params:             &StoreMockPermissionsForRolesParams{ctx, roleSlugs},
+		expectationOrigins: StoreMockPermissionsForRolesExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmPermissionsForRoles.expectations = append(mmPermissionsForRoles.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.PermissionsForRoles return parameters for the expectation previously defined by the When method
+func (e *StoreMockPermissionsForRolesExpectation) Then(sa1 []string, err error) *StoreMock {
+	e.results = &StoreMockPermissionsForRolesResults{sa1, err}
+	return e.mock
+}
+
+// Times sets number of times Store.PermissionsForRoles should be invoked
+func (mmPermissionsForRoles *mStoreMockPermissionsForRoles) Times(n uint64) *mStoreMockPermissionsForRoles {
+	if n == 0 {
+		mmPermissionsForRoles.mock.t.Fatalf("Times of StoreMock.PermissionsForRoles mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmPermissionsForRoles.expectedInvocations, n)
+	mmPermissionsForRoles.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmPermissionsForRoles
+}
+
+func (mmPermissionsForRoles *mStoreMockPermissionsForRoles) invocationsDone() bool {
+	if len(mmPermissionsForRoles.expectations) == 0 && mmPermissionsForRoles.defaultExpectation == nil && mmPermissionsForRoles.mock.funcPermissionsForRoles == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmPermissionsForRoles.mock.afterPermissionsForRolesCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmPermissionsForRoles.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// PermissionsForRoles implements mm_users.Store
+func (mmPermissionsForRoles *StoreMock) PermissionsForRoles(ctx context.Context, roleSlugs []string) (sa1 []string, err error) {
+	mm_atomic.AddUint64(&mmPermissionsForRoles.beforePermissionsForRolesCounter, 1)
+	defer mm_atomic.AddUint64(&mmPermissionsForRoles.afterPermissionsForRolesCounter, 1)
+
+	mmPermissionsForRoles.t.Helper()
+
+	if mmPermissionsForRoles.inspectFuncPermissionsForRoles != nil {
+		mmPermissionsForRoles.inspectFuncPermissionsForRoles(ctx, roleSlugs)
+	}
+
+	mm_params := StoreMockPermissionsForRolesParams{ctx, roleSlugs}
+
+	// Record call args
+	mmPermissionsForRoles.PermissionsForRolesMock.mutex.Lock()
+	mmPermissionsForRoles.PermissionsForRolesMock.callArgs = append(mmPermissionsForRoles.PermissionsForRolesMock.callArgs, &mm_params)
+	mmPermissionsForRoles.PermissionsForRolesMock.mutex.Unlock()
+
+	for _, e := range mmPermissionsForRoles.PermissionsForRolesMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.sa1, e.results.err
+		}
+	}
+
+	if mmPermissionsForRoles.PermissionsForRolesMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmPermissionsForRoles.PermissionsForRolesMock.defaultExpectation.Counter, 1)
+		mm_want := mmPermissionsForRoles.PermissionsForRolesMock.defaultExpectation.params
+		mm_want_ptrs := mmPermissionsForRoles.PermissionsForRolesMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockPermissionsForRolesParams{ctx, roleSlugs}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmPermissionsForRoles.t.Errorf("StoreMock.PermissionsForRoles got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmPermissionsForRoles.PermissionsForRolesMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.roleSlugs != nil && !minimock.Equal(*mm_want_ptrs.roleSlugs, mm_got.roleSlugs) {
+				mmPermissionsForRoles.t.Errorf("StoreMock.PermissionsForRoles got unexpected parameter roleSlugs, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmPermissionsForRoles.PermissionsForRolesMock.defaultExpectation.expectationOrigins.originRoleSlugs, *mm_want_ptrs.roleSlugs, mm_got.roleSlugs, minimock.Diff(*mm_want_ptrs.roleSlugs, mm_got.roleSlugs))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmPermissionsForRoles.t.Errorf("StoreMock.PermissionsForRoles got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmPermissionsForRoles.PermissionsForRolesMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmPermissionsForRoles.PermissionsForRolesMock.defaultExpectation.results
+		if mm_results == nil {
+			mmPermissionsForRoles.t.Fatal("No results are set for the StoreMock.PermissionsForRoles")
+		}
+		return (*mm_results).sa1, (*mm_results).err
+	}
+	if mmPermissionsForRoles.funcPermissionsForRoles != nil {
+		return mmPermissionsForRoles.funcPermissionsForRoles(ctx, roleSlugs)
+	}
+	mmPermissionsForRoles.t.Fatalf("Unexpected call to StoreMock.PermissionsForRoles. %v %v", ctx, roleSlugs)
+	return
+}
+
+// PermissionsForRolesAfterCounter returns a count of finished StoreMock.PermissionsForRoles invocations
+func (mmPermissionsForRoles *StoreMock) PermissionsForRolesAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmPermissionsForRoles.afterPermissionsForRolesCounter)
+}
+
+// PermissionsForRolesBeforeCounter returns a count of StoreMock.PermissionsForRoles invocations
+func (mmPermissionsForRoles *StoreMock) PermissionsForRolesBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmPermissionsForRoles.beforePermissionsForRolesCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.PermissionsForRoles.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmPermissionsForRoles *mStoreMockPermissionsForRoles) Calls() []*StoreMockPermissionsForRolesParams {
+	mmPermissionsForRoles.mutex.RLock()
+
+	argCopy := make([]*StoreMockPermissionsForRolesParams, len(mmPermissionsForRoles.callArgs))
+	copy(argCopy, mmPermissionsForRoles.callArgs)
+
+	mmPermissionsForRoles.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockPermissionsForRolesDone returns true if the count of the PermissionsForRoles invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockPermissionsForRolesDone() bool {
+	if m.PermissionsForRolesMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.PermissionsForRolesMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.PermissionsForRolesMock.invocationsDone()
+}
+
+// MinimockPermissionsForRolesInspect logs each unmet expectation
+func (m *StoreMock) MinimockPermissionsForRolesInspect() {
+	for _, e := range m.PermissionsForRolesMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.PermissionsForRoles at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterPermissionsForRolesCounter := mm_atomic.LoadUint64(&m.afterPermissionsForRolesCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.PermissionsForRolesMock.defaultExpectation != nil && afterPermissionsForRolesCounter < 1 {
+		if m.PermissionsForRolesMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.PermissionsForRoles at\n%s", m.PermissionsForRolesMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.PermissionsForRoles at\n%s with params: %#v", m.PermissionsForRolesMock.defaultExpectation.expectationOrigins.origin, *m.PermissionsForRolesMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcPermissionsForRoles != nil && afterPermissionsForRolesCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.PermissionsForRoles at\n%s", m.funcPermissionsForRolesOrigin)
+	}
+
+	if !m.PermissionsForRolesMock.invocationsDone() && afterPermissionsForRolesCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.PermissionsForRoles at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.PermissionsForRolesMock.expectedInvocations), m.PermissionsForRolesMock.expectedInvocationsOrigin, afterPermissionsForRolesCounter)
+	}
+}
+
+type mStoreMockSetOwner struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockSetOwnerExpectation
+	expectations       []*StoreMockSetOwnerExpectation
+
+	callArgs []*StoreMockSetOwnerParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockSetOwnerExpectation specifies expectation struct of the Store.SetOwner
+type StoreMockSetOwnerExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockSetOwnerParams
+	paramPtrs          *StoreMockSetOwnerParamPtrs
+	expectationOrigins StoreMockSetOwnerExpectationOrigins
+	results            *StoreMockSetOwnerResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockSetOwnerParams contains parameters of the Store.SetOwner
+type StoreMockSetOwnerParams struct {
+	ctx     context.Context
+	id      string
+	isOwner bool
+}
+
+// StoreMockSetOwnerParamPtrs contains pointers to parameters of the Store.SetOwner
+type StoreMockSetOwnerParamPtrs struct {
+	ctx     *context.Context
+	id      *string
+	isOwner *bool
+}
+
+// StoreMockSetOwnerResults contains results of the Store.SetOwner
+type StoreMockSetOwnerResults struct {
+	u1  domain.User
+	err error
+}
+
+// StoreMockSetOwnerOrigins contains origins of expectations of the Store.SetOwner
+type StoreMockSetOwnerExpectationOrigins struct {
+	origin        string
+	originCtx     string
+	originId      string
+	originIsOwner string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmSetOwner *mStoreMockSetOwner) Optional() *mStoreMockSetOwner {
+	mmSetOwner.optional = true
+	return mmSetOwner
+}
+
+// Expect sets up expected params for Store.SetOwner
+func (mmSetOwner *mStoreMockSetOwner) Expect(ctx context.Context, id string, isOwner bool) *mStoreMockSetOwner {
+	if mmSetOwner.mock.funcSetOwner != nil {
+		mmSetOwner.mock.t.Fatalf("StoreMock.SetOwner mock is already set by Set")
+	}
+
+	if mmSetOwner.defaultExpectation == nil {
+		mmSetOwner.defaultExpectation = &StoreMockSetOwnerExpectation{}
+	}
+
+	if mmSetOwner.defaultExpectation.paramPtrs != nil {
+		mmSetOwner.mock.t.Fatalf("StoreMock.SetOwner mock is already set by ExpectParams functions")
+	}
+
+	mmSetOwner.defaultExpectation.params = &StoreMockSetOwnerParams{ctx, id, isOwner}
+	mmSetOwner.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmSetOwner.expectations {
+		if minimock.Equal(e.params, mmSetOwner.defaultExpectation.params) {
+			mmSetOwner.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetOwner.defaultExpectation.params)
+		}
+	}
+
+	return mmSetOwner
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.SetOwner
+func (mmSetOwner *mStoreMockSetOwner) ExpectCtxParam1(ctx context.Context) *mStoreMockSetOwner {
+	if mmSetOwner.mock.funcSetOwner != nil {
+		mmSetOwner.mock.t.Fatalf("StoreMock.SetOwner mock is already set by Set")
+	}
+
+	if mmSetOwner.defaultExpectation == nil {
+		mmSetOwner.defaultExpectation = &StoreMockSetOwnerExpectation{}
+	}
+
+	if mmSetOwner.defaultExpectation.params != nil {
+		mmSetOwner.mock.t.Fatalf("StoreMock.SetOwner mock is already set by Expect")
+	}
+
+	if mmSetOwner.defaultExpectation.paramPtrs == nil {
+		mmSetOwner.defaultExpectation.paramPtrs = &StoreMockSetOwnerParamPtrs{}
+	}
+	mmSetOwner.defaultExpectation.paramPtrs.ctx = &ctx
+	mmSetOwner.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmSetOwner
+}
+
+// ExpectIdParam2 sets up expected param id for Store.SetOwner
+func (mmSetOwner *mStoreMockSetOwner) ExpectIdParam2(id string) *mStoreMockSetOwner {
+	if mmSetOwner.mock.funcSetOwner != nil {
+		mmSetOwner.mock.t.Fatalf("StoreMock.SetOwner mock is already set by Set")
+	}
+
+	if mmSetOwner.defaultExpectation == nil {
+		mmSetOwner.defaultExpectation = &StoreMockSetOwnerExpectation{}
+	}
+
+	if mmSetOwner.defaultExpectation.params != nil {
+		mmSetOwner.mock.t.Fatalf("StoreMock.SetOwner mock is already set by Expect")
+	}
+
+	if mmSetOwner.defaultExpectation.paramPtrs == nil {
+		mmSetOwner.defaultExpectation.paramPtrs = &StoreMockSetOwnerParamPtrs{}
+	}
+	mmSetOwner.defaultExpectation.paramPtrs.id = &id
+	mmSetOwner.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmSetOwner
+}
+
+// ExpectIsOwnerParam3 sets up expected param isOwner for Store.SetOwner
+func (mmSetOwner *mStoreMockSetOwner) ExpectIsOwnerParam3(isOwner bool) *mStoreMockSetOwner {
+	if mmSetOwner.mock.funcSetOwner != nil {
+		mmSetOwner.mock.t.Fatalf("StoreMock.SetOwner mock is already set by Set")
+	}
+
+	if mmSetOwner.defaultExpectation == nil {
+		mmSetOwner.defaultExpectation = &StoreMockSetOwnerExpectation{}
+	}
+
+	if mmSetOwner.defaultExpectation.params != nil {
+		mmSetOwner.mock.t.Fatalf("StoreMock.SetOwner mock is already set by Expect")
+	}
+
+	if mmSetOwner.defaultExpectation.paramPtrs == nil {
+		mmSetOwner.defaultExpectation.paramPtrs = &StoreMockSetOwnerParamPtrs{}
+	}
+	mmSetOwner.defaultExpectation.paramPtrs.isOwner = &isOwner
+	mmSetOwner.defaultExpectation.expectationOrigins.originIsOwner = minimock.CallerInfo(1)
+
+	return mmSetOwner
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.SetOwner
+func (mmSetOwner *mStoreMockSetOwner) Inspect(f func(ctx context.Context, id string, isOwner bool)) *mStoreMockSetOwner {
+	if mmSetOwner.mock.inspectFuncSetOwner != nil {
+		mmSetOwner.mock.t.Fatalf("Inspect function is already set for StoreMock.SetOwner")
+	}
+
+	mmSetOwner.mock.inspectFuncSetOwner = f
+
+	return mmSetOwner
+}
+
+// Return sets up results that will be returned by Store.SetOwner
+func (mmSetOwner *mStoreMockSetOwner) Return(u1 domain.User, err error) *StoreMock {
+	if mmSetOwner.mock.funcSetOwner != nil {
+		mmSetOwner.mock.t.Fatalf("StoreMock.SetOwner mock is already set by Set")
+	}
+
+	if mmSetOwner.defaultExpectation == nil {
+		mmSetOwner.defaultExpectation = &StoreMockSetOwnerExpectation{mock: mmSetOwner.mock}
+	}
+	mmSetOwner.defaultExpectation.results = &StoreMockSetOwnerResults{u1, err}
+	mmSetOwner.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmSetOwner.mock
+}
+
+// Set uses given function f to mock the Store.SetOwner method
+func (mmSetOwner *mStoreMockSetOwner) Set(f func(ctx context.Context, id string, isOwner bool) (u1 domain.User, err error)) *StoreMock {
+	if mmSetOwner.defaultExpectation != nil {
+		mmSetOwner.mock.t.Fatalf("Default expectation is already set for the Store.SetOwner method")
+	}
+
+	if len(mmSetOwner.expectations) > 0 {
+		mmSetOwner.mock.t.Fatalf("Some expectations are already set for the Store.SetOwner method")
+	}
+
+	mmSetOwner.mock.funcSetOwner = f
+	mmSetOwner.mock.funcSetOwnerOrigin = minimock.CallerInfo(1)
+	return mmSetOwner.mock
+}
+
+// When sets expectation for the Store.SetOwner which will trigger the result defined by the following
+// Then helper
+func (mmSetOwner *mStoreMockSetOwner) When(ctx context.Context, id string, isOwner bool) *StoreMockSetOwnerExpectation {
+	if mmSetOwner.mock.funcSetOwner != nil {
+		mmSetOwner.mock.t.Fatalf("StoreMock.SetOwner mock is already set by Set")
+	}
+
+	expectation := &StoreMockSetOwnerExpectation{
+		mock:               mmSetOwner.mock,
+		params:             &StoreMockSetOwnerParams{ctx, id, isOwner},
+		expectationOrigins: StoreMockSetOwnerExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmSetOwner.expectations = append(mmSetOwner.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.SetOwner return parameters for the expectation previously defined by the When method
+func (e *StoreMockSetOwnerExpectation) Then(u1 domain.User, err error) *StoreMock {
+	e.results = &StoreMockSetOwnerResults{u1, err}
+	return e.mock
+}
+
+// Times sets number of times Store.SetOwner should be invoked
+func (mmSetOwner *mStoreMockSetOwner) Times(n uint64) *mStoreMockSetOwner {
+	if n == 0 {
+		mmSetOwner.mock.t.Fatalf("Times of StoreMock.SetOwner mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmSetOwner.expectedInvocations, n)
+	mmSetOwner.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmSetOwner
+}
+
+func (mmSetOwner *mStoreMockSetOwner) invocationsDone() bool {
+	if len(mmSetOwner.expectations) == 0 && mmSetOwner.defaultExpectation == nil && mmSetOwner.mock.funcSetOwner == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmSetOwner.mock.afterSetOwnerCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmSetOwner.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// SetOwner implements mm_users.Store
+func (mmSetOwner *StoreMock) SetOwner(ctx context.Context, id string, isOwner bool) (u1 domain.User, err error) {
+	mm_atomic.AddUint64(&mmSetOwner.beforeSetOwnerCounter, 1)
+	defer mm_atomic.AddUint64(&mmSetOwner.afterSetOwnerCounter, 1)
+
+	mmSetOwner.t.Helper()
+
+	if mmSetOwner.inspectFuncSetOwner != nil {
+		mmSetOwner.inspectFuncSetOwner(ctx, id, isOwner)
+	}
+
+	mm_params := StoreMockSetOwnerParams{ctx, id, isOwner}
+
+	// Record call args
+	mmSetOwner.SetOwnerMock.mutex.Lock()
+	mmSetOwner.SetOwnerMock.callArgs = append(mmSetOwner.SetOwnerMock.callArgs, &mm_params)
+	mmSetOwner.SetOwnerMock.mutex.Unlock()
+
+	for _, e := range mmSetOwner.SetOwnerMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.u1, e.results.err
+		}
+	}
+
+	if mmSetOwner.SetOwnerMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSetOwner.SetOwnerMock.defaultExpectation.Counter, 1)
+		mm_want := mmSetOwner.SetOwnerMock.defaultExpectation.params
+		mm_want_ptrs := mmSetOwner.SetOwnerMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockSetOwnerParams{ctx, id, isOwner}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmSetOwner.t.Errorf("StoreMock.SetOwner got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetOwner.SetOwnerMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmSetOwner.t.Errorf("StoreMock.SetOwner got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetOwner.SetOwnerMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+			if mm_want_ptrs.isOwner != nil && !minimock.Equal(*mm_want_ptrs.isOwner, mm_got.isOwner) {
+				mmSetOwner.t.Errorf("StoreMock.SetOwner got unexpected parameter isOwner, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetOwner.SetOwnerMock.defaultExpectation.expectationOrigins.originIsOwner, *mm_want_ptrs.isOwner, mm_got.isOwner, minimock.Diff(*mm_want_ptrs.isOwner, mm_got.isOwner))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetOwner.t.Errorf("StoreMock.SetOwner got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmSetOwner.SetOwnerMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmSetOwner.SetOwnerMock.defaultExpectation.results
+		if mm_results == nil {
+			mmSetOwner.t.Fatal("No results are set for the StoreMock.SetOwner")
+		}
+		return (*mm_results).u1, (*mm_results).err
+	}
+	if mmSetOwner.funcSetOwner != nil {
+		return mmSetOwner.funcSetOwner(ctx, id, isOwner)
+	}
+	mmSetOwner.t.Fatalf("Unexpected call to StoreMock.SetOwner. %v %v %v", ctx, id, isOwner)
+	return
+}
+
+// SetOwnerAfterCounter returns a count of finished StoreMock.SetOwner invocations
+func (mmSetOwner *StoreMock) SetOwnerAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetOwner.afterSetOwnerCounter)
+}
+
+// SetOwnerBeforeCounter returns a count of StoreMock.SetOwner invocations
+func (mmSetOwner *StoreMock) SetOwnerBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetOwner.beforeSetOwnerCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.SetOwner.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSetOwner *mStoreMockSetOwner) Calls() []*StoreMockSetOwnerParams {
+	mmSetOwner.mutex.RLock()
+
+	argCopy := make([]*StoreMockSetOwnerParams, len(mmSetOwner.callArgs))
+	copy(argCopy, mmSetOwner.callArgs)
+
+	mmSetOwner.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSetOwnerDone returns true if the count of the SetOwner invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockSetOwnerDone() bool {
+	if m.SetOwnerMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.SetOwnerMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.SetOwnerMock.invocationsDone()
+}
+
+// MinimockSetOwnerInspect logs each unmet expectation
+func (m *StoreMock) MinimockSetOwnerInspect() {
+	for _, e := range m.SetOwnerMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.SetOwner at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterSetOwnerCounter := mm_atomic.LoadUint64(&m.afterSetOwnerCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SetOwnerMock.defaultExpectation != nil && afterSetOwnerCounter < 1 {
+		if m.SetOwnerMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.SetOwner at\n%s", m.SetOwnerMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.SetOwner at\n%s with params: %#v", m.SetOwnerMock.defaultExpectation.expectationOrigins.origin, *m.SetOwnerMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSetOwner != nil && afterSetOwnerCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.SetOwner at\n%s", m.funcSetOwnerOrigin)
+	}
+
+	if !m.SetOwnerMock.invocationsDone() && afterSetOwnerCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.SetOwner at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.SetOwnerMock.expectedInvocations), m.SetOwnerMock.expectedInvocationsOrigin, afterSetOwnerCounter)
+	}
+}
+
 type mStoreMockSetRoles struct {
 	optional           bool
 	mock               *StoreMock
@@ -2704,6 +3441,10 @@ func (m *StoreMock) MinimockFinish() {
 
 			m.MinimockListInspect()
 
+			m.MinimockPermissionsForRolesInspect()
+
+			m.MinimockSetOwnerInspect()
+
 			m.MinimockSetRolesInspect()
 
 			m.MinimockSetStatusInspect()
@@ -2735,6 +3476,8 @@ func (m *StoreMock) minimockDone() bool {
 		m.MinimockCreateDone() &&
 		m.MinimockGetByIDDone() &&
 		m.MinimockListDone() &&
+		m.MinimockPermissionsForRolesDone() &&
+		m.MinimockSetOwnerDone() &&
 		m.MinimockSetRolesDone() &&
 		m.MinimockSetStatusDone()
 }
