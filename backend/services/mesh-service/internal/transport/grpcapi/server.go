@@ -6,12 +6,11 @@ package grpcapi
 
 import (
 	"context"
-	"errors"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
+	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	meshv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/mesh/v1"
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
@@ -39,17 +38,11 @@ func (s *Server) Register(srv *grpc.Server) {
 	meshv1.RegisterMeshServiceServer(srv, s)
 }
 
-// mapError translates service-layer errors to gRPC status codes.
-func mapError(err error) error {
-	if err == nil {
-		return nil
-	}
-	switch {
-	case errors.Is(err, domain.ErrInvalidInput):
-		return status.Error(codes.InvalidArgument, err.Error())
-	case errors.Is(err, domain.ErrJobNotFound), errors.Is(err, domain.ErrTargetNotFound):
-		return status.Error(codes.NotFound, err.Error())
-	default:
-		return status.Errorf(codes.Internal, "internal: %v", err)
-	}
+// statusByCode lists, per gRPC code, the domain sentinels that surface as it.
+var statusByCode = map[codes.Code][]error{
+	codes.InvalidArgument: {domain.ErrInvalidInput},
+	codes.NotFound:        {domain.ErrJobNotFound, domain.ErrTargetNotFound},
 }
+
+// mapError translates service-layer errors to gRPC status codes.
+func mapError(err error) error { return apperr.ToStatus(err, statusByCode) }

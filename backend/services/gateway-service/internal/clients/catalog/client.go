@@ -4,15 +4,10 @@
 package catalog
 
 import (
-	"errors"
-
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
-	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
 // Client wraps the catalog gRPC stub.
@@ -33,29 +28,4 @@ func Dial(target string) (*Client, error) {
 // Close releases the underlying gRPC connection.
 func (c *Client) Close() error {
 	return c.conn.Close()
-}
-
-// mapStatusErr translates remote gRPC status codes into local domain
-// sentinels. NotFound becomes notFoundErr (caller-supplied so the
-// returned sentinel matches the operation: territory / model /
-// placement / artifact). InvalidArgument becomes ErrInvalidInput so
-// the gateway httpapi layer can surface it as 400 Bad Request rather
-// than swallowing it as a generic 500. Anything else passes through
-// untouched.
-func mapStatusErr(err error, notFoundErr error) error {
-	if err == nil {
-		return nil
-	}
-	st, ok := status.FromError(err)
-	if !ok {
-		return err
-	}
-	switch st.Code() {
-	case codes.NotFound:
-		return errors.Join(notFoundErr, err)
-	case codes.InvalidArgument:
-		return errors.Join(domain.ErrInvalidInput, err)
-	default:
-		return err
-	}
 }

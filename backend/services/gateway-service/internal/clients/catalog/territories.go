@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/grpcerr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
@@ -25,7 +26,7 @@ func (c *Client) ListTerritories(ctx context.Context) ([]domain.Territory, error
 func (c *Client) GetTerritory(ctx context.Context, slug string) (domain.Territory, error) {
 	resp, err := c.cc.GetTerritory(ctx, &catalogv1.GetTerritoryRequest{Slug: slug})
 	if err != nil {
-		return domain.Territory{}, fmt.Errorf("catalog.GetTerritory: %w", mapStatusErr(err, domain.ErrTerritoryNotFound))
+		return domain.Territory{}, fmt.Errorf("catalog.GetTerritory: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
 	}
 	return territoryFromProto(resp.GetTerritory()), nil
 }
@@ -44,7 +45,7 @@ func (c *Client) UpsertTerritory(ctx context.Context, t domain.Territory) (domai
 func (c *Client) DeleteTerritory(ctx context.Context, slug string) error {
 	_, err := c.cc.DeleteTerritory(ctx, &catalogv1.DeleteTerritoryRequest{Slug: slug})
 	if err != nil {
-		return fmt.Errorf("catalog.DeleteTerritory: %w", mapStatusErr(err, domain.ErrTerritoryNotFound))
+		return fmt.Errorf("catalog.DeleteTerritory: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
 	}
 	return nil
 }
@@ -54,7 +55,7 @@ func (c *Client) DeleteTerritory(ctx context.Context, slug string) error {
 func (c *Client) DeleteTerritoryArtifacts(ctx context.Context, slug string) error {
 	_, err := c.cc.DeleteTerritoryArtifacts(ctx, &catalogv1.DeleteTerritoryArtifactsRequest{TerritorySlug: slug})
 	if err != nil {
-		return fmt.Errorf("catalog.DeleteTerritoryArtifacts: %w", mapStatusErr(err, domain.ErrTerritoryNotFound))
+		return fmt.Errorf("catalog.DeleteTerritoryArtifacts: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
 	}
 	return nil
 }
@@ -68,7 +69,7 @@ func (c *Client) SetTerritoryRescaleBaseline(ctx context.Context, slug string, s
 		SourceMax:     sourceMax,
 	})
 	if err != nil {
-		return fmt.Errorf("catalog.SetTerritoryRescaleBaseline: %w", mapStatusErr(err, domain.ErrTerritoryNotFound))
+		return fmt.Errorf("catalog.SetTerritoryRescaleBaseline: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
 	}
 	return nil
 }
@@ -77,7 +78,7 @@ func (c *Client) SetTerritoryRescaleBaseline(ctx context.Context, slug string, s
 func (c *Client) ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error) {
 	resp, err := c.cc.ListTerritoryArtifacts(ctx, &catalogv1.ListTerritoryArtifactsRequest{TerritorySlug: slug})
 	if err != nil {
-		return nil, fmt.Errorf("catalog.ListTerritoryArtifacts: %w", mapStatusErr(err, domain.ErrTerritoryNotFound))
+		return nil, fmt.Errorf("catalog.ListTerritoryArtifacts: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
 	}
 	out := make([]domain.Artifact, len(resp.GetArtifacts()))
 	for i, a := range resp.GetArtifacts() {
@@ -90,7 +91,7 @@ func (c *Client) ListTerritoryArtifacts(ctx context.Context, slug string) ([]dom
 func (c *Client) GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error) {
 	resp, err := c.cc.GetTerritoryArtifact(ctx, &catalogv1.GetTerritoryArtifactRequest{TerritorySlug: slug, Lod: lod})
 	if err != nil {
-		return domain.Artifact{}, fmt.Errorf("catalog.GetTerritoryArtifact: %w", mapStatusErr(err, domain.ErrArtifactNotFound))
+		return domain.Artifact{}, fmt.Errorf("catalog.GetTerritoryArtifact: %w", grpcerr.MapStatus(err, domain.ErrArtifactNotFound))
 	}
 	return territoryArtifactFromProto(resp.GetArtifact()), nil
 }

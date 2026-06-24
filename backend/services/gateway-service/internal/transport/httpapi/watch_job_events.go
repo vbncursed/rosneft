@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
@@ -35,13 +36,13 @@ const jobEventKeepalive = 15 * time.Second
 func (s *Server) WatchJobEvents(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
-		http.Error(w, "missing job id", http.StatusBadRequest)
+		apperr.Write(w, http.StatusBadRequest, apperr.SlugInvalidInput, "missing job id")
 		return
 	}
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		http.Error(w, "streaming not supported", http.StatusInternalServerError)
+		apperr.Write(w, http.StatusInternalServerError, apperr.SlugInternal, "streaming not supported")
 		return
 	}
 
@@ -85,7 +86,8 @@ func streamJob(
 			return
 		}
 	} else if errors.Is(err, domain.ErrJobNotFound) {
-		writeNamedEvent(w, "error", `{"code":"job_not_found"}`)
+		body, _ := json.Marshal(apperr.Body{Code: apperr.SlugNotFound, Message: "job not found"})
+		writeNamedEvent(w, "error", string(body))
 		flusher.Flush()
 		return
 	}

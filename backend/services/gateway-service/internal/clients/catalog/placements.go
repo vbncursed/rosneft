@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/grpcerr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
@@ -12,7 +13,7 @@ import (
 func (c *Client) ListPlacements(ctx context.Context, territorySlug string) ([]domain.Placement, error) {
 	resp, err := c.cc.ListPlacements(ctx, &catalogv1.ListPlacementsRequest{TerritorySlug: territorySlug})
 	if err != nil {
-		return nil, fmt.Errorf("catalog.ListPlacements: %w", mapStatusErr(err, domain.ErrTerritoryNotFound))
+		return nil, fmt.Errorf("catalog.ListPlacements: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
 	}
 	out := make([]domain.Placement, len(resp.GetPlacements()))
 	for i, p := range resp.GetPlacements() {
@@ -33,7 +34,7 @@ func (c *Client) CreatePlacement(ctx context.Context, p domain.Placement) (domai
 		VisiblePanoramaIds: p.VisiblePanoramaIDs,
 	})
 	if err != nil {
-		return domain.Placement{}, fmt.Errorf("catalog.CreatePlacement: %w", mapStatusErr(err, domain.ErrTerritoryNotFound))
+		return domain.Placement{}, fmt.Errorf("catalog.CreatePlacement: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
 	}
 	return placementFromProto(resp.GetPlacement()), nil
 }
@@ -46,7 +47,7 @@ func (c *Client) SetPlacementVisibility(ctx context.Context, territorySlug strin
 		PanoramaIds:   panoramaIDs,
 	})
 	if err != nil {
-		return domain.Placement{}, fmt.Errorf("catalog.SetPlacementVisibility: %w", mapStatusErr(err, domain.ErrPlacementNotFound))
+		return domain.Placement{}, fmt.Errorf("catalog.SetPlacementVisibility: %w", grpcerr.MapStatus(err, domain.ErrPlacementNotFound))
 	}
 	return placementFromProto(resp.GetPlacement()), nil
 }
@@ -61,7 +62,7 @@ func (c *Client) UpdatePlacement(ctx context.Context, p domain.Placement) (domai
 		Label:    p.Label,
 	})
 	if err != nil {
-		return domain.Placement{}, fmt.Errorf("catalog.UpdatePlacement: %w", mapStatusErr(err, domain.ErrPlacementNotFound))
+		return domain.Placement{}, fmt.Errorf("catalog.UpdatePlacement: %w", grpcerr.MapStatus(err, domain.ErrPlacementNotFound))
 	}
 	return placementFromProto(resp.GetPlacement()), nil
 }
@@ -70,7 +71,7 @@ func (c *Client) UpdatePlacement(ctx context.Context, p domain.Placement) (domai
 func (c *Client) DeletePlacement(ctx context.Context, id int64) error {
 	_, err := c.cc.DeletePlacement(ctx, &catalogv1.DeletePlacementRequest{Id: id})
 	if err != nil {
-		return fmt.Errorf("catalog.DeletePlacement: %w", mapStatusErr(err, domain.ErrPlacementNotFound))
+		return fmt.Errorf("catalog.DeletePlacement: %w", grpcerr.MapStatus(err, domain.ErrPlacementNotFound))
 	}
 	return nil
 }

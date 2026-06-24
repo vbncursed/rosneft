@@ -3,6 +3,8 @@ package httpapi
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 )
 
 // ServeSpec returns the OpenAPI spec as JSON. The spec is parsed from the
@@ -10,12 +12,12 @@ import (
 func (s *Server) ServeSpec(w http.ResponseWriter, _ *http.Request) {
 	spec, err := GetSwagger()
 	if err != nil {
-		http.Error(w, "spec unavailable", http.StatusInternalServerError)
+		apperr.Write(w, http.StatusInternalServerError, apperr.SlugInternal, "spec unavailable")
 		return
 	}
 	data, err := json.Marshal(spec)
 	if err != nil {
-		http.Error(w, "spec marshal failed", http.StatusInternalServerError)
+		apperr.Write(w, http.StatusInternalServerError, apperr.SlugInternal, "spec marshal failed")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

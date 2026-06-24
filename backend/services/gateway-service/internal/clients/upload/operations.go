@@ -7,6 +7,7 @@ import (
 	"io"
 
 	uploadv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/upload/v1"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/grpcerr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
@@ -56,7 +57,7 @@ func (c *Client) WriteChunk(ctx context.Context, id string, offset int64, body i
 	}
 	resp, err := stream.CloseAndRecv()
 	if err != nil {
-		return 0, fmt.Errorf("upload.WriteChunk: close: %w", mapStatusErr(err, domain.ErrUploadNotFound))
+		return 0, fmt.Errorf("upload.WriteChunk: close: %w", grpcerr.MapStatus(err, domain.ErrUploadNotFound))
 	}
 	return resp.GetOffset(), nil
 }
@@ -65,7 +66,7 @@ func (c *Client) WriteChunk(ctx context.Context, id string, offset int64, body i
 func (c *Client) GetStatus(ctx context.Context, id string) (domain.UploadSession, error) {
 	resp, err := c.cc.GetStatus(ctx, &uploadv1.GetStatusRequest{UploadId: id})
 	if err != nil {
-		return domain.UploadSession{}, fmt.Errorf("upload.GetStatus: %w", mapStatusErr(err, domain.ErrUploadNotFound))
+		return domain.UploadSession{}, fmt.Errorf("upload.GetStatus: %w", grpcerr.MapStatus(err, domain.ErrUploadNotFound))
 	}
 	return domain.UploadSession{ID: id, Size: resp.GetSize(), Offset: resp.GetOffset()}, nil
 }
@@ -74,7 +75,7 @@ func (c *Client) GetStatus(ctx context.Context, id string) (domain.UploadSession
 func (c *Client) Finalize(ctx context.Context, id string) (domain.FinalizedBlob, error) {
 	resp, err := c.cc.Finalize(ctx, &uploadv1.FinalizeRequest{UploadId: id})
 	if err != nil {
-		return domain.FinalizedBlob{}, fmt.Errorf("upload.Finalize: %w", mapStatusErr(err, domain.ErrUploadNotFound))
+		return domain.FinalizedBlob{}, fmt.Errorf("upload.Finalize: %w", grpcerr.MapStatus(err, domain.ErrUploadNotFound))
 	}
 	return domain.FinalizedBlob{Hash: resp.GetBlobHash(), Size: resp.GetSize()}, nil
 }

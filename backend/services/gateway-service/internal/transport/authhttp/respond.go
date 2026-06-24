@@ -7,8 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 )
 
 func writeJSON(w http.ResponseWriter, code int, body any) {
@@ -19,55 +18,9 @@ func writeJSON(w http.ResponseWriter, code int, body any) {
 	}
 }
 
-// writeErr emits the project-wide {code,message} error body — the same shape
-// the OpenAPI Error schema and the rest of the gateway API use, so clients can
-// read one error contract everywhere.
-func writeErr(w http.ResponseWriter, httpStatus int, code, message string) {
-	writeJSON(w, httpStatus, map[string]string{"code": code, "message": message})
-}
-
-// fail maps a gRPC status error to an HTTP status + {code,message} body.
+// fail renders a gRPC status error as the project-wide {code,message} body.
 func fail(w http.ResponseWriter, err error) {
-	st := status.Convert(err)
-	writeErr(w, codeToHTTP(st.Code()), codeToSlug(st.Code()), st.Message())
-}
-
-func codeToSlug(c codes.Code) string {
-	switch c {
-	case codes.InvalidArgument:
-		return "invalid_input"
-	case codes.Unauthenticated:
-		return "unauthenticated"
-	case codes.PermissionDenied:
-		return "forbidden"
-	case codes.NotFound:
-		return "not_found"
-	case codes.AlreadyExists:
-		return "conflict"
-	case codes.FailedPrecondition:
-		return "unprocessable"
-	default:
-		return "internal"
-	}
-}
-
-func codeToHTTP(c codes.Code) int {
-	switch c {
-	case codes.InvalidArgument:
-		return http.StatusBadRequest
-	case codes.Unauthenticated:
-		return http.StatusUnauthorized
-	case codes.PermissionDenied:
-		return http.StatusForbidden
-	case codes.NotFound:
-		return http.StatusNotFound
-	case codes.AlreadyExists:
-		return http.StatusConflict
-	case codes.FailedPrecondition:
-		return http.StatusUnprocessableEntity
-	default:
-		return http.StatusInternalServerError
-	}
+	apperr.WriteStatus(w, err)
 }
 
 // bearer extracts the token from the Authorization header.
