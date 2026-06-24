@@ -34,6 +34,7 @@ type UsersSvc interface {
 	Unfreeze(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
 	SoftDelete(ctx context.Context, actorID string, scopeAll bool, id string) error
 	Restore(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
+	SetOwner(ctx context.Context, actorID, id string, isOwner bool) (domain.User, error)
 	ChangePassword(ctx context.Context, userID, oldPlain, newPlain string) error
 }
 
@@ -47,10 +48,10 @@ type TwoFASvc interface {
 // RolesSvc is the roles/permissions surface.
 type RolesSvc interface {
 	List(ctx context.Context) ([]domain.Role, error)
-	Create(ctx context.Context, slug, title string, permSlugs []string) (domain.Role, error)
+	Create(ctx context.Context, actorID, slug, title string, permSlugs []string) (domain.Role, error)
 	UpdateTitle(ctx context.Context, slug, title string) (domain.Role, error)
 	Delete(ctx context.Context, slug string) error
-	SetPermissions(ctx context.Context, slug string, permSlugs []string) (domain.Role, error)
+	SetPermissions(ctx context.Context, actorID, slug string, permSlugs []string) (domain.Role, error)
 	ListPermissions(ctx context.Context) ([]domain.Permission, error)
 }
 
@@ -97,6 +98,8 @@ var statusByCode = map[codes.Code][]error{
 		domain.ErrAccountDeleted,
 		domain.ErrLoginThrottled,
 		domain.ErrAdminOwnerOnly,
+		domain.ErrPrivilegeEscalation,
+		domain.ErrOwnerOnly,
 		domain.Err2FARequired,
 	},
 	codes.AlreadyExists: {

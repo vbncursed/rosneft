@@ -19,7 +19,11 @@ func (s *Server) ListRoles(ctx context.Context, _ *authv1.ListRolesRequest) (*au
 }
 
 func (s *Server) CreateRole(ctx context.Context, req *authv1.CreateRoleRequest) (*authv1.Role, error) {
-	r, err := s.roles.Create(ctx, req.GetSlug(), req.GetTitle(), req.GetPermissionSlugs())
+	actorID, _, err := s.actor(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	r, err := s.roles.Create(ctx, actorID, req.GetSlug(), req.GetTitle(), req.GetPermissionSlugs())
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -42,7 +46,11 @@ func (s *Server) DeleteRole(ctx context.Context, req *authv1.DeleteRoleRequest) 
 }
 
 func (s *Server) SetRolePermissions(ctx context.Context, req *authv1.SetRolePermissionsRequest) (*authv1.Role, error) {
-	r, err := s.roles.SetPermissions(ctx, req.GetSlug(), req.GetPermissionSlugs())
+	actorID, _, err := s.actor(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	r, err := s.roles.SetPermissions(ctx, actorID, req.GetSlug(), req.GetPermissionSlugs())
 	if err != nil {
 		return nil, mapError(err)
 	}

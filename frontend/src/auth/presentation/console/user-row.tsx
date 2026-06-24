@@ -5,7 +5,7 @@ import type { Principal } from "@/auth/domain/principal";
 import { can } from "@/auth/domain/principal";
 import StatusBadge from "@/auth/presentation/console/status-badge";
 import { confirmAction } from "@/shared/presentation/confirm/use-confirm";
-import { freezeUser, unfreezeUser, deleteUser, restoreUser } from "@/auth/infrastructure/auth-admin-gateway";
+import { freezeUser, unfreezeUser, deleteUser, restoreUser, setUserOwner } from "@/auth/infrastructure/auth-admin-gateway";
 
 interface Props {
   u: AdminUser;
@@ -24,6 +24,9 @@ export default function UserRow({ u, me, onEditRoles, act }: Props) {
       <td className="px-3 py-2 text-sm text-neutral-300">{u.email}</td>
       <td className="px-3 py-2">
         <span className="flex flex-wrap gap-1">
+          {u.isOwner ? (
+            <span className="rounded-full border border-amber-300/40 bg-amber-400/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-amber-200">owner</span>
+          ) : null}
           {u.roleSlugs.map((r) => (
             <span key={r} className="rounded-full border border-white/15 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-neutral-300">{r}</span>
           ))}
@@ -39,6 +42,17 @@ export default function UserRow({ u, me, onEditRoles, act }: Props) {
         <div className="flex justify-end gap-2 text-xs">
           {can(me, "users:write") ? (
             <button type="button" onClick={() => onEditRoles(u)} className="cursor-pointer text-neutral-300 hover:text-cyan-300">Roles</button>
+          ) : null}
+          {me.isOwner && !self ? (
+            u.isOwner ? (
+              <button type="button"
+                onClick={async () => { if (await confirmAction({ title: "Revoke owner", message: `Revoke owner from ${u.username}?`, danger: true, confirmLabel: "Revoke" })) void act(() => setUserOwner(u.id, false), "Owner revoked"); }}
+                className="cursor-pointer text-neutral-300 hover:text-red-400">Revoke owner</button>
+            ) : (
+              <button type="button"
+                onClick={async () => { if (await confirmAction({ title: "Make owner", message: `Grant owner to ${u.username}? Owners can manage everyone and bypass role limits.`, confirmLabel: "Make owner" })) void act(() => setUserOwner(u.id, true), "Owner granted"); }}
+                className="cursor-pointer text-neutral-300 hover:text-amber-300">Make owner</button>
+            )
           ) : null}
           {can(me, "users:freeze") && !self && canManage && u.status !== "deleted" ? (
             u.status === "frozen" ? (

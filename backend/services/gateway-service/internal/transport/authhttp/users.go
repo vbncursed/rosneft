@@ -91,3 +91,16 @@ func (h *Handlers) restoreUser(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, userToJSON(u))
 }
+
+func (h *Handlers) setUserOwner(w http.ResponseWriter, r *http.Request) {
+	var req struct{ IsOwner bool }
+	if !decode(w, r, &req) {
+		return
+	}
+	u, err := h.client.SetUserOwner(r.Context(), bearer(r), chi.URLParam(r, "id"), req.IsOwner)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, userToJSON(u))
+}

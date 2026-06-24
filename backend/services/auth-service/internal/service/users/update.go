@@ -13,6 +13,9 @@ func (s *Service) Update(ctx context.Context, actorID string, scopeAll bool, id 
 		return domain.User{}, err
 	}
 	if roleSlugs != nil {
+		if err := s.assertCanGrant(ctx, actorID, roleSlugs); err != nil {
+			return domain.User{}, err
+		}
 		return s.store.SetRoles(ctx, id, roleSlugs)
 	}
 	return s.store.GetByID(ctx, id)

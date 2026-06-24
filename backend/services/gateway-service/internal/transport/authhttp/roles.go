@@ -23,7 +23,7 @@ func (h *Handlers) createRole(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	role, err := h.client.CreateRole(r.Context(), req.Slug, req.Title, req.PermissionSlugs)
+	role, err := h.client.CreateRole(r.Context(), bearer(r), req.Slug, req.Title, req.PermissionSlugs)
 	if err != nil {
 		fail(w, err)
 		return
@@ -59,7 +59,7 @@ func (h *Handlers) setRolePermissions(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	role, err := h.client.SetRolePermissions(r.Context(), chi.URLParam(r, "slug"), req.PermissionSlugs)
+	role, err := h.client.SetRolePermissions(r.Context(), bearer(r), chi.URLParam(r, "slug"), req.PermissionSlugs)
 	if err != nil {
 		fail(w, err)
 		return

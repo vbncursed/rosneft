@@ -36,6 +36,7 @@ const (
 	AuthService_UnfreezeUser_FullMethodName       = "/rosneft.auth.v1.AuthService/UnfreezeUser"
 	AuthService_SoftDeleteUser_FullMethodName     = "/rosneft.auth.v1.AuthService/SoftDeleteUser"
 	AuthService_RestoreUser_FullMethodName        = "/rosneft.auth.v1.AuthService/RestoreUser"
+	AuthService_SetUserOwner_FullMethodName       = "/rosneft.auth.v1.AuthService/SetUserOwner"
 	AuthService_ListRoles_FullMethodName          = "/rosneft.auth.v1.AuthService/ListRoles"
 	AuthService_CreateRole_FullMethodName         = "/rosneft.auth.v1.AuthService/CreateRole"
 	AuthService_UpdateRole_FullMethodName         = "/rosneft.auth.v1.AuthService/UpdateRole"
@@ -72,6 +73,7 @@ type AuthServiceClient interface {
 	UnfreezeUser(ctx context.Context, in *UnfreezeUserRequest, opts ...grpc.CallOption) (*User, error)
 	SoftDeleteUser(ctx context.Context, in *SoftDeleteUserRequest, opts ...grpc.CallOption) (*SoftDeleteUserResponse, error)
 	RestoreUser(ctx context.Context, in *RestoreUserRequest, opts ...grpc.CallOption) (*User, error)
+	SetUserOwner(ctx context.Context, in *SetUserOwnerRequest, opts ...grpc.CallOption) (*User, error)
 	// --- roles / permissions ---
 	ListRoles(ctx context.Context, in *ListRolesRequest, opts ...grpc.CallOption) (*ListRolesResponse, error)
 	CreateRole(ctx context.Context, in *CreateRoleRequest, opts ...grpc.CallOption) (*Role, error)
@@ -259,6 +261,16 @@ func (c *authServiceClient) RestoreUser(ctx context.Context, in *RestoreUserRequ
 	return out, nil
 }
 
+func (c *authServiceClient) SetUserOwner(ctx context.Context, in *SetUserOwnerRequest, opts ...grpc.CallOption) (*User, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(User)
+	err := c.cc.Invoke(ctx, AuthService_SetUserOwner_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *authServiceClient) ListRoles(ctx context.Context, in *ListRolesRequest, opts ...grpc.CallOption) (*ListRolesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListRolesResponse)
@@ -347,6 +359,7 @@ type AuthServiceServer interface {
 	UnfreezeUser(context.Context, *UnfreezeUserRequest) (*User, error)
 	SoftDeleteUser(context.Context, *SoftDeleteUserRequest) (*SoftDeleteUserResponse, error)
 	RestoreUser(context.Context, *RestoreUserRequest) (*User, error)
+	SetUserOwner(context.Context, *SetUserOwnerRequest) (*User, error)
 	// --- roles / permissions ---
 	ListRoles(context.Context, *ListRolesRequest) (*ListRolesResponse, error)
 	CreateRole(context.Context, *CreateRoleRequest) (*Role, error)
@@ -414,6 +427,9 @@ func (UnimplementedAuthServiceServer) SoftDeleteUser(context.Context, *SoftDelet
 }
 func (UnimplementedAuthServiceServer) RestoreUser(context.Context, *RestoreUserRequest) (*User, error) {
 	return nil, status.Error(codes.Unimplemented, "method RestoreUser not implemented")
+}
+func (UnimplementedAuthServiceServer) SetUserOwner(context.Context, *SetUserOwnerRequest) (*User, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetUserOwner not implemented")
 }
 func (UnimplementedAuthServiceServer) ListRoles(context.Context, *ListRolesRequest) (*ListRolesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRoles not implemented")
@@ -760,6 +776,24 @@ func _AuthService_RestoreUser_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_SetUserOwner_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetUserOwnerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).SetUserOwner(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_SetUserOwner_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).SetUserOwner(ctx, req.(*SetUserOwnerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AuthService_ListRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListRolesRequest)
 	if err := dec(in); err != nil {
@@ -942,6 +976,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RestoreUser",
 			Handler:    _AuthService_RestoreUser_Handler,
+		},
+		{
+			MethodName: "SetUserOwner",
+			Handler:    _AuthService_SetUserOwner_Handler,
 		},
 		{
 			MethodName: "ListRoles",
