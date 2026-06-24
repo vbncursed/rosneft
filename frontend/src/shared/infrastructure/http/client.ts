@@ -37,7 +37,14 @@ async function send<T>(
     } catch {
       // body not JSON
     }
-    throw new HttpError(res.status, body, body?.message ?? res.statusText);
+    // Gateway uses {code,message}; the auth subsystem uses {error}. Read both,
+    // then fall back to a human 403 line instead of surfacing a bare status code.
+    const detail = body?.message ?? (body as { error?: string } | null)?.error;
+    const fallback =
+      res.status === 403
+        ? "You don't have permission to do this"
+        : res.statusText || `Request failed (${res.status})`;
+    throw new HttpError(res.status, body, detail || fallback);
   }
   return parseJson ? ((await res.json()) as T) : (undefined as T);
 }
