@@ -1,6 +1,7 @@
 import { type RefObject } from "react";
 import { useCan } from "@/auth/presentation/current-user-context";
 import type { Panorama } from "@/panorama/domain/panorama";
+import type { Document } from "@/document/domain/document";
 import type { Vec3 } from "@/shared/domain/vec3";
 import type { usePanoramaOrchestration } from "@/panorama/application/use-panorama-orchestration";
 import type { usePanoramaCalibration } from "@/panorama/application/use-panorama-calibration";
@@ -13,6 +14,12 @@ interface PanoramaSectionProps {
   territorySlug: string;
   panorama: ReturnType<typeof usePanoramaOrchestration>;
   panoramas: Panorama[];
+  // The View dropdown also lists documents; selecting one shows the PDF in
+  // place of the scene (handled by the parent).
+  documents: Document[];
+  activeDocumentId: number | null;
+  onActivatePanorama: (id: number | null) => void;
+  onActivateDocument: (id: number) => void;
   cameraPositionRef: RefObject<Vec3 | null>;
   externalPanoramaUrl?: string;
   // Ids whose equirect texture failed to load — the edit panel flags them
@@ -38,6 +45,10 @@ export default function PanoramaSection({
   territorySlug,
   panorama,
   panoramas,
+  documents,
+  activeDocumentId,
+  onActivatePanorama,
+  onActivateDocument,
   cameraPositionRef,
   externalPanoramaUrl,
   failedPanoramaIds,
@@ -51,7 +62,6 @@ export default function PanoramaSection({
     activePanorama,
     activePanoramaId,
     editingPanorama,
-    activate,
     toggleView,
     closeEdit,
   } = panorama;
@@ -63,13 +73,17 @@ export default function PanoramaSection({
   const canDelete = can("panorama:delete");
   // The external tour URL lives on the territory, so it follows territory:write.
   const canEditLink = can("territory:write");
+  const canWriteDoc = can("document:write");
 
   return (
     <div className="flex flex-col gap-3">
       <PanoramaPicker
         panoramas={panoramas}
-        activeId={activePanorama?.id ?? null}
-        onActivate={activate}
+        documents={documents}
+        activePanoramaId={activePanorama?.id ?? null}
+        activeDocumentId={activeDocumentId}
+        onActivatePanorama={onActivatePanorama}
+        onActivateDocument={onActivateDocument}
       />
 
       {panoramas.length > 0 ? (
@@ -95,6 +109,15 @@ export default function PanoramaSection({
           className="cursor-pointer text-[10px] uppercase tracking-wider text-cyan-300/80 transition-colors hover:text-cyan-200"
         >
           + Panorama
+        </a>
+      ) : null}
+
+      {canWriteDoc ? (
+        <a
+          href={`/territories/${encodeURIComponent(territorySlug)}/documents/new`}
+          className="cursor-pointer text-[10px] uppercase tracking-wider text-cyan-300/80 transition-colors hover:text-cyan-200"
+        >
+          + Document
         </a>
       ) : null}
 
