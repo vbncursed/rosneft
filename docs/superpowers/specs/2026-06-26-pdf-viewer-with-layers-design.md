@@ -36,15 +36,23 @@ prebuilt viewer already provides — far more code and risk for no functional ga
 
 ## Asset vendoring
 
-- Add `pdfjs-dist` to `frontend` `dependencies`.
-- `frontend/scripts/copy-pdfjs.mjs`: copies `node_modules/pdfjs-dist/{build,web,cmaps,standard_fonts}`
-  into `frontend/public/pdfjs/` (so `viewer.html` at `public/pdfjs/web/` resolves
-  its relative `../build/pdf.mjs`, `../cmaps`, `../standard_fonts` references).
-- Wire the script to `predev` and `prebuild` npm scripts so it runs locally and
-  in the Docker build (which runs `yarn build`).
-- Gitignore `frontend/public/pdfjs/` — generated at build time, not committed
-  (avoids multi-MB repo bloat). Confirm the Docker build installs full deps
-  (not `--production`) so `pdfjs-dist` is present when `prebuild` runs.
+**Note (corrected during implementation):** the npm `pdfjs-dist@6` package no
+longer ships the prebuilt standalone viewer (`web/viewer.html`) — only the
+component library + runtime. The full viewer lives in the GitHub release
+`pdfjs-<ver>-dist.zip`. So we vendor from the release, committed (like
+`public/draco/` and `public/basis/`), not generated from `node_modules`.
+
+- Download `pdfjs-<ver>-dist.zip` from the pdf.js GitHub release; extract `build/`
+  and `web/` into `frontend/public/pdfjs/` (the zip's own layout: `viewer.html`
+  at `web/viewer.html` resolves `../build/pdf.mjs`, `./standard_fonts/`, etc.).
+- Trim to keep size reasonable (~7 MB): delete `*.map`, `*.min.mjs`,
+  `build/pdf.sandbox.mjs`, `web/debugger.*`, CJK `web/cmaps/`, and all
+  `web/locale/*` except `en-US`. Keep `web/wasm/` (on-demand JPEG2000/JBIG2/ICC
+  decoders) and `web/standard_fonts/` so non-embedded fonts and scanned images
+  render.
+- **Commit** `frontend/public/pdfjs/` to the repo. No npm dependency, no build
+  script, no build-time network — robust in Docker (the runner stage already
+  copies `/app/public`).
 
 ## DocumentView change
 

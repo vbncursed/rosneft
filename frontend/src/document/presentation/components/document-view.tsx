@@ -13,10 +13,13 @@ interface DocumentViewProps {
   onClose: () => void;
 }
 
-// DocumentView shows the selected PDF in place of the scene using the browser's
-// built-in viewer via <iframe>. It takes over the whole viewport (portaled to
-// <body>, above the z-50 profile avatar) so the avatar and overlays panel don't
-// bleed through; Exit (or Esc) returns to the 3D scene.
+// DocumentView shows the selected PDF in place of the scene via pdf.js's
+// self-hosted viewer (zoom, search, print, download, and a Layers sidebar for
+// PDFs with optional content groups). It takes over the whole viewport
+// (portaled to <body>, above the z-50 profile avatar) so the avatar and
+// overlays panel don't bleed through; Exit (or Esc) returns to the 3D scene.
+//
+// `?file` is a same-origin relative URL, which the pdf.js viewer permits.
 export default function DocumentView({ document, canDelete, onDelete, onClose }: DocumentViewProps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -27,19 +30,13 @@ export default function DocumentView({ document, canDelete, onDelete, onClose }:
   }, [onClose]);
 
   if (typeof window === "undefined") return null;
-  const url = assetUrl(document.sourceBlobHash);
+  const file = encodeURIComponent(assetUrl(document.sourceBlobHash));
+  const src = `/pdfjs/web/viewer.html?file=${file}`;
 
   return createPortal(
     <div className="fixed inset-0 z-[60] flex flex-col bg-neutral-950">
       <div className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-100">
         <span className="min-w-0 flex-1 truncate font-medium">{document.title}</span>
-        <a
-          href={url}
-          download
-          className="shrink-0 cursor-pointer rounded-md border border-white/15 bg-white/[0.06] px-3 py-1.5 text-xs transition-colors hover:bg-white/15"
-        >
-          Download
-        </a>
         {canDelete ? (
           <DeleteButton
             label={document.title}
@@ -59,7 +56,7 @@ export default function DocumentView({ document, canDelete, onDelete, onClose }:
       </div>
       <iframe
         title={document.title}
-        src={url}
+        src={src}
         className="min-h-0 flex-1 border-0 bg-neutral-900"
       />
     </div>,
