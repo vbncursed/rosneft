@@ -138,10 +138,10 @@ export default function ModelViewer({
   });
 
   return (
-    // While a document is open it takes over the viewport (portaled to body);
-    // hide the 3D canvas + blur panels so they stop painting and don't fight
-    // the PDF viewer for the GPU. State is preserved, so Exit is instant.
-    <div className={`relative h-full w-full touch-none ${docSel.active ? "hidden" : ""}`}>
+    // A document opens in a floating PiP window (scene stays live so objects
+    // can be placed against the PDF). Only its full-screen mode hides the 3D
+    // canvas, to spare the GPU. State is preserved, so toggling is instant.
+    <div className={`relative h-full w-full touch-none ${docSel.active && docSel.fullscreen ? "hidden" : ""}`}>
       <SceneCanvas
         parentLods={parentLods}
         resetVersion={resetVersion}
@@ -187,6 +187,8 @@ export default function ModelViewer({
         <DocumentView
           document={docSel.active}
           canDelete={canDeleteDoc}
+          fullscreen={docSel.fullscreen}
+          onToggleFullscreen={docSel.toggleFullscreen}
           onDelete={docSel.removeActive}
           onClose={docSel.clear}
         />
