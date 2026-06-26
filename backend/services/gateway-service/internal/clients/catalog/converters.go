@@ -117,6 +117,19 @@ func panoramaFromProto(p *catalogv1.Panorama) domain.Panorama {
 	}
 }
 
+func documentFromProto(d *catalogv1.Document) domain.Document {
+	if d == nil {
+		return domain.Document{}
+	}
+	return domain.Document{
+		ID:             d.GetId(),
+		TerritorySlug:  d.GetTerritorySlug(),
+		Title:          d.GetTitle(),
+		SourceBlobHash: d.GetSourceBlobHash(),
+		CreatedAt:      d.GetCreatedAt().AsTime(),
+	}
+}
+
 func placementFromProto(p *catalogv1.Placement) domain.Placement {
 	if p == nil {
 		return domain.Placement{}
