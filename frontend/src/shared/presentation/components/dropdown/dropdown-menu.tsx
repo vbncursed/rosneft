@@ -60,6 +60,17 @@ export default function DropdownMenu({
       className="dropdown-menu-enter z-[1000] max-h-64 origin-top overflow-y-auto rounded-md border border-white/10 bg-neutral-900/95 py-1 text-xs shadow-[0_12px_30px_rgba(0,0,0,0.45)] backdrop-blur-md"
     >
       {options.map((option, i) => {
+        if (option.header) {
+          return (
+            <li
+              key={option.value}
+              role="presentation"
+              className="select-none px-2.5 pb-1 pt-2 text-[10px] uppercase tracking-[0.18em] text-neutral-500 first:pt-1"
+            >
+              {option.label}
+            </li>
+          );
+        }
         const isSelected = option.value === value;
         const isHighlighted = i === highlightIndex;
         return (
