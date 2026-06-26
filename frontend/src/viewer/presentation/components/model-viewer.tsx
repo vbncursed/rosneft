@@ -12,7 +12,8 @@ import type { ResolvedPlacement } from "@/placement/domain/placement";
 import type { Panorama } from "@/panorama/domain/panorama";
 import PanoramaSection from "@/panorama/presentation/components/panorama-section";
 import type { Document } from "@/document/domain/document";
-import TerritoryDocuments from "@/document/presentation/components/territory-documents";
+import { useDocumentSelection } from "@/document/application/use-document-selection";
+import DocumentView from "@/document/presentation/components/document-view";
 import OverlaysPanel from "@/viewer/presentation/components/overlays-panel";
 import { usePanoramaOrchestration } from "@/panorama/application/use-panorama-orchestration";
 import { usePanoramaCalibration } from "@/panorama/application/use-panorama-calibration";
@@ -60,9 +61,7 @@ export default function ModelViewer({
   // Ids whose equirect texture failed to decode (e.g. a non-image blob).
   // The in-Canvas error boundary reports them here so the edit panel can
   // flag the broken capture and nudge the operator to delete it.
-  const [failedPanoramaIds, setFailedPanoramaIds] = useState<
-    ReadonlySet<number>
-  >(() => new Set());
+  const [failedPanoramaIds, setFailedPanoramaIds] = useState<ReadonlySet<number>>(() => new Set());
   const handlePanoramaError = useCallback((id: number) => {
     setFailedPanoramaIds((prev) =>
       prev.has(id) ? prev : new Set(prev).add(id),
@@ -75,16 +74,12 @@ export default function ModelViewer({
   // CameraPositionTracker, read by the panorama edit panel.
   const cameraPositionRef = useRef<Vec3 | null>(null);
 
-  const territoryMaxDim = useMemo(
-    () => Math.max(metadata.dimensions.x, metadata.dimensions.y, metadata.dimensions.z),
-    [metadata.dimensions],
-  );
-  const editor = usePlacementsEditor(
-    territorySlug,
-    initialPlacements,
-    modelOptions,
-    territoryMaxDim,
-  );
+  const dim = metadata.dimensions;
+  const territoryMaxDim = useMemo(() => Math.max(dim.x, dim.y, dim.z), [dim]);
+  const editor = usePlacementsEditor(territorySlug, initialPlacements, modelOptions, territoryMaxDim);
+  const leavePanorama = useCallback(() => panorama.activate(null), [panorama]);
+  const docSel = useDocumentSelection(territorySlug, documents, leavePanorama);
+  const canDeleteDoc = useCan()("document:delete");
   const measure = useMeasurementTool();
   // Read once here, outside the R3F Canvas — React context doesn't cross the
   // Canvas reconciler boundary, so the gizmo gate must arrive as a prop.
@@ -99,10 +94,7 @@ export default function ModelViewer({
   const [showMarkers, setShowMarkers] = useState(true);
   const toggleMarkers = useCallback(() => setShowMarkers((v) => !v), []);
 
-  const unitRatio = useMemo(
-    () => computeUnitRatio(metadata.dimensions),
-    [metadata],
-  );
+  const unitRatio = useMemo(() => computeUnitRatio(dim), [dim]);
 
   // UIOverlay is memoed; passing a fresh `{ ...metadata, name: title }`
   // literal each render would defeat the shallow-equality skip.
@@ -191,28 +183,40 @@ export default function ModelViewer({
         onClearMeasurements={measure.clear}
       />
 
+      {docSel.active ? (
+        <DocumentView
+          document={docSel.active}
+          canDelete={canDeleteDoc}
+          onDelete={docSel.removeActive}
+        />
+      ) : null}
+
       {/* top-16 (not top-4): clears the global UserMenu avatar fixed at right-4 top-4 */}
       <div className="pointer-events-none absolute top-16 right-4 bottom-4 flex flex-col items-end gap-3">
         <OverlaysPanel
           placementsCount={editor.placements.length}
           selectedPlacementId={editor.selectedId}
           view={
-            <div className="space-y-4">
-              <PanoramaSection
-                territorySlug={territorySlug}
-                panorama={panorama}
-                panoramas={panoramas}
-                cameraPositionRef={cameraPositionRef}
-                externalPanoramaUrl={externalPanoramaUrl}
-                failedPanoramaIds={failedPanoramaIds}
-                calibration={calibration}
-                markersVisible={showMarkers}
-                onToggleMarkers={toggleMarkers}
-                onSavePanorama={updatePanoramaState}
-                onDeletePanorama={removePanorama}
-              />
-              <TerritoryDocuments territorySlug={territorySlug} documents={documents} />
-            </div>
+            <PanoramaSection
+              territorySlug={territorySlug}
+              panorama={panorama}
+              panoramas={panoramas}
+              documents={docSel.documents}
+              activeDocumentId={docSel.activeId}
+              onActivatePanorama={(id) => {
+                docSel.clear();
+                panorama.activate(id);
+              }}
+              onActivateDocument={docSel.select}
+              cameraPositionRef={cameraPositionRef}
+              externalPanoramaUrl={externalPanoramaUrl}
+              failedPanoramaIds={failedPanoramaIds}
+              calibration={calibration}
+              markersVisible={showMarkers}
+              onToggleMarkers={toggleMarkers}
+              onSavePanorama={updatePanoramaState}
+              onDeletePanorama={removePanorama}
+            />
           }
           placements={
             <PlacementsSection
