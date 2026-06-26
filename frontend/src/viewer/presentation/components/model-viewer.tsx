@@ -54,10 +54,7 @@ export default function ModelViewer({
     remove: removePanorama,
   } = usePanoramas(territorySlug, initialPanoramas);
   const panorama = usePanoramaOrchestration(panoramas);
-  const calibration = usePanoramaCalibration(
-    panorama.editingPanorama,
-    updatePanoramaState,
-  );
+  const calibration = usePanoramaCalibration(panorama.editingPanorama, updatePanoramaState);
   // Ids whose equirect texture failed to decode (e.g. a non-image blob).
   // The in-Canvas error boundary reports them here so the edit panel can
   // flag the broken capture and nudge the operator to delete it.
@@ -188,6 +185,7 @@ export default function ModelViewer({
           document={docSel.active}
           canDelete={canDeleteDoc}
           onDelete={docSel.removeActive}
+          onClose={docSel.clear}
         />
       ) : null}
 
