@@ -19,6 +19,13 @@ type CatalogMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
+	funcCreateDocument          func(ctx context.Context, d domain.Document) (d1 domain.Document, err error)
+	funcCreateDocumentOrigin    string
+	inspectFuncCreateDocument   func(ctx context.Context, d domain.Document)
+	afterCreateDocumentCounter  uint64
+	beforeCreateDocumentCounter uint64
+	CreateDocumentMock          mCatalogMockCreateDocument
+
 	funcCreatePanorama          func(ctx context.Context, p domain.Panorama) (p1 domain.Panorama, err error)
 	funcCreatePanoramaOrigin    string
 	inspectFuncCreatePanorama   func(ctx context.Context, p domain.Panorama)
@@ -32,6 +39,13 @@ type CatalogMock struct {
 	afterCreatePlacementCounter  uint64
 	beforeCreatePlacementCounter uint64
 	CreatePlacementMock          mCatalogMockCreatePlacement
+
+	funcDeleteDocument          func(ctx context.Context, id int64) (err error)
+	funcDeleteDocumentOrigin    string
+	inspectFuncDeleteDocument   func(ctx context.Context, id int64)
+	afterDeleteDocumentCounter  uint64
+	beforeDeleteDocumentCounter uint64
+	DeleteDocumentMock          mCatalogMockDeleteDocument
 
 	funcDeleteModel          func(ctx context.Context, slug string) (err error)
 	funcDeleteModelOrigin    string
@@ -95,6 +109,13 @@ type CatalogMock struct {
 	afterGetTerritoryArtifactCounter  uint64
 	beforeGetTerritoryArtifactCounter uint64
 	GetTerritoryArtifactMock          mCatalogMockGetTerritoryArtifact
+
+	funcListDocuments          func(ctx context.Context, territorySlug string) (da1 []domain.Document, err error)
+	funcListDocumentsOrigin    string
+	inspectFuncListDocuments   func(ctx context.Context, territorySlug string)
+	afterListDocumentsCounter  uint64
+	beforeListDocumentsCounter uint64
+	ListDocumentsMock          mCatalogMockListDocuments
 
 	funcListModelArtifacts          func(ctx context.Context, slug string) (aa1 []domain.Artifact, err error)
 	funcListModelArtifactsOrigin    string
@@ -189,11 +210,17 @@ func NewCatalogMock(t minimock.Tester) *CatalogMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.CreateDocumentMock = mCatalogMockCreateDocument{mock: m}
+	m.CreateDocumentMock.callArgs = []*CatalogMockCreateDocumentParams{}
+
 	m.CreatePanoramaMock = mCatalogMockCreatePanorama{mock: m}
 	m.CreatePanoramaMock.callArgs = []*CatalogMockCreatePanoramaParams{}
 
 	m.CreatePlacementMock = mCatalogMockCreatePlacement{mock: m}
 	m.CreatePlacementMock.callArgs = []*CatalogMockCreatePlacementParams{}
+
+	m.DeleteDocumentMock = mCatalogMockDeleteDocument{mock: m}
+	m.DeleteDocumentMock.callArgs = []*CatalogMockDeleteDocumentParams{}
 
 	m.DeleteModelMock = mCatalogMockDeleteModel{mock: m}
 	m.DeleteModelMock.callArgs = []*CatalogMockDeleteModelParams{}
@@ -221,6 +248,9 @@ func NewCatalogMock(t minimock.Tester) *CatalogMock {
 
 	m.GetTerritoryArtifactMock = mCatalogMockGetTerritoryArtifact{mock: m}
 	m.GetTerritoryArtifactMock.callArgs = []*CatalogMockGetTerritoryArtifactParams{}
+
+	m.ListDocumentsMock = mCatalogMockListDocuments{mock: m}
+	m.ListDocumentsMock.callArgs = []*CatalogMockListDocumentsParams{}
 
 	m.ListModelArtifactsMock = mCatalogMockListModelArtifacts{mock: m}
 	m.ListModelArtifactsMock.callArgs = []*CatalogMockListModelArtifactsParams{}
@@ -261,6 +291,349 @@ func NewCatalogMock(t minimock.Tester) *CatalogMock {
 	t.Cleanup(m.MinimockFinish)
 
 	return m
+}
+
+type mCatalogMockCreateDocument struct {
+	optional           bool
+	mock               *CatalogMock
+	defaultExpectation *CatalogMockCreateDocumentExpectation
+	expectations       []*CatalogMockCreateDocumentExpectation
+
+	callArgs []*CatalogMockCreateDocumentParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// CatalogMockCreateDocumentExpectation specifies expectation struct of the Catalog.CreateDocument
+type CatalogMockCreateDocumentExpectation struct {
+	mock               *CatalogMock
+	params             *CatalogMockCreateDocumentParams
+	paramPtrs          *CatalogMockCreateDocumentParamPtrs
+	expectationOrigins CatalogMockCreateDocumentExpectationOrigins
+	results            *CatalogMockCreateDocumentResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// CatalogMockCreateDocumentParams contains parameters of the Catalog.CreateDocument
+type CatalogMockCreateDocumentParams struct {
+	ctx context.Context
+	d   domain.Document
+}
+
+// CatalogMockCreateDocumentParamPtrs contains pointers to parameters of the Catalog.CreateDocument
+type CatalogMockCreateDocumentParamPtrs struct {
+	ctx *context.Context
+	d   *domain.Document
+}
+
+// CatalogMockCreateDocumentResults contains results of the Catalog.CreateDocument
+type CatalogMockCreateDocumentResults struct {
+	d1  domain.Document
+	err error
+}
+
+// CatalogMockCreateDocumentOrigins contains origins of expectations of the Catalog.CreateDocument
+type CatalogMockCreateDocumentExpectationOrigins struct {
+	origin    string
+	originCtx string
+	originD   string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmCreateDocument *mCatalogMockCreateDocument) Optional() *mCatalogMockCreateDocument {
+	mmCreateDocument.optional = true
+	return mmCreateDocument
+}
+
+// Expect sets up expected params for Catalog.CreateDocument
+func (mmCreateDocument *mCatalogMockCreateDocument) Expect(ctx context.Context, d domain.Document) *mCatalogMockCreateDocument {
+	if mmCreateDocument.mock.funcCreateDocument != nil {
+		mmCreateDocument.mock.t.Fatalf("CatalogMock.CreateDocument mock is already set by Set")
+	}
+
+	if mmCreateDocument.defaultExpectation == nil {
+		mmCreateDocument.defaultExpectation = &CatalogMockCreateDocumentExpectation{}
+	}
+
+	if mmCreateDocument.defaultExpectation.paramPtrs != nil {
+		mmCreateDocument.mock.t.Fatalf("CatalogMock.CreateDocument mock is already set by ExpectParams functions")
+	}
+
+	mmCreateDocument.defaultExpectation.params = &CatalogMockCreateDocumentParams{ctx, d}
+	mmCreateDocument.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmCreateDocument.expectations {
+		if minimock.Equal(e.params, mmCreateDocument.defaultExpectation.params) {
+			mmCreateDocument.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCreateDocument.defaultExpectation.params)
+		}
+	}
+
+	return mmCreateDocument
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Catalog.CreateDocument
+func (mmCreateDocument *mCatalogMockCreateDocument) ExpectCtxParam1(ctx context.Context) *mCatalogMockCreateDocument {
+	if mmCreateDocument.mock.funcCreateDocument != nil {
+		mmCreateDocument.mock.t.Fatalf("CatalogMock.CreateDocument mock is already set by Set")
+	}
+
+	if mmCreateDocument.defaultExpectation == nil {
+		mmCreateDocument.defaultExpectation = &CatalogMockCreateDocumentExpectation{}
+	}
+
+	if mmCreateDocument.defaultExpectation.params != nil {
+		mmCreateDocument.mock.t.Fatalf("CatalogMock.CreateDocument mock is already set by Expect")
+	}
+
+	if mmCreateDocument.defaultExpectation.paramPtrs == nil {
+		mmCreateDocument.defaultExpectation.paramPtrs = &CatalogMockCreateDocumentParamPtrs{}
+	}
+	mmCreateDocument.defaultExpectation.paramPtrs.ctx = &ctx
+	mmCreateDocument.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmCreateDocument
+}
+
+// ExpectDParam2 sets up expected param d for Catalog.CreateDocument
+func (mmCreateDocument *mCatalogMockCreateDocument) ExpectDParam2(d domain.Document) *mCatalogMockCreateDocument {
+	if mmCreateDocument.mock.funcCreateDocument != nil {
+		mmCreateDocument.mock.t.Fatalf("CatalogMock.CreateDocument mock is already set by Set")
+	}
+
+	if mmCreateDocument.defaultExpectation == nil {
+		mmCreateDocument.defaultExpectation = &CatalogMockCreateDocumentExpectation{}
+	}
+
+	if mmCreateDocument.defaultExpectation.params != nil {
+		mmCreateDocument.mock.t.Fatalf("CatalogMock.CreateDocument mock is already set by Expect")
+	}
+
+	if mmCreateDocument.defaultExpectation.paramPtrs == nil {
+		mmCreateDocument.defaultExpectation.paramPtrs = &CatalogMockCreateDocumentParamPtrs{}
+	}
+	mmCreateDocument.defaultExpectation.paramPtrs.d = &d
+	mmCreateDocument.defaultExpectation.expectationOrigins.originD = minimock.CallerInfo(1)
+
+	return mmCreateDocument
+}
+
+// Inspect accepts an inspector function that has same arguments as the Catalog.CreateDocument
+func (mmCreateDocument *mCatalogMockCreateDocument) Inspect(f func(ctx context.Context, d domain.Document)) *mCatalogMockCreateDocument {
+	if mmCreateDocument.mock.inspectFuncCreateDocument != nil {
+		mmCreateDocument.mock.t.Fatalf("Inspect function is already set for CatalogMock.CreateDocument")
+	}
+
+	mmCreateDocument.mock.inspectFuncCreateDocument = f
+
+	return mmCreateDocument
+}
+
+// Return sets up results that will be returned by Catalog.CreateDocument
+func (mmCreateDocument *mCatalogMockCreateDocument) Return(d1 domain.Document, err error) *CatalogMock {
+	if mmCreateDocument.mock.funcCreateDocument != nil {
+		mmCreateDocument.mock.t.Fatalf("CatalogMock.CreateDocument mock is already set by Set")
+	}
+
+	if mmCreateDocument.defaultExpectation == nil {
+		mmCreateDocument.defaultExpectation = &CatalogMockCreateDocumentExpectation{mock: mmCreateDocument.mock}
+	}
+	mmCreateDocument.defaultExpectation.results = &CatalogMockCreateDocumentResults{d1, err}
+	mmCreateDocument.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmCreateDocument.mock
+}
+
+// Set uses given function f to mock the Catalog.CreateDocument method
+func (mmCreateDocument *mCatalogMockCreateDocument) Set(f func(ctx context.Context, d domain.Document) (d1 domain.Document, err error)) *CatalogMock {
+	if mmCreateDocument.defaultExpectation != nil {
+		mmCreateDocument.mock.t.Fatalf("Default expectation is already set for the Catalog.CreateDocument method")
+	}
+
+	if len(mmCreateDocument.expectations) > 0 {
+		mmCreateDocument.mock.t.Fatalf("Some expectations are already set for the Catalog.CreateDocument method")
+	}
+
+	mmCreateDocument.mock.funcCreateDocument = f
+	mmCreateDocument.mock.funcCreateDocumentOrigin = minimock.CallerInfo(1)
+	return mmCreateDocument.mock
+}
+
+// When sets expectation for the Catalog.CreateDocument which will trigger the result defined by the following
+// Then helper
+func (mmCreateDocument *mCatalogMockCreateDocument) When(ctx context.Context, d domain.Document) *CatalogMockCreateDocumentExpectation {
+	if mmCreateDocument.mock.funcCreateDocument != nil {
+		mmCreateDocument.mock.t.Fatalf("CatalogMock.CreateDocument mock is already set by Set")
+	}
+
+	expectation := &CatalogMockCreateDocumentExpectation{
+		mock:               mmCreateDocument.mock,
+		params:             &CatalogMockCreateDocumentParams{ctx, d},
+		expectationOrigins: CatalogMockCreateDocumentExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmCreateDocument.expectations = append(mmCreateDocument.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Catalog.CreateDocument return parameters for the expectation previously defined by the When method
+func (e *CatalogMockCreateDocumentExpectation) Then(d1 domain.Document, err error) *CatalogMock {
+	e.results = &CatalogMockCreateDocumentResults{d1, err}
+	return e.mock
+}
+
+// Times sets number of times Catalog.CreateDocument should be invoked
+func (mmCreateDocument *mCatalogMockCreateDocument) Times(n uint64) *mCatalogMockCreateDocument {
+	if n == 0 {
+		mmCreateDocument.mock.t.Fatalf("Times of CatalogMock.CreateDocument mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmCreateDocument.expectedInvocations, n)
+	mmCreateDocument.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmCreateDocument
+}
+
+func (mmCreateDocument *mCatalogMockCreateDocument) invocationsDone() bool {
+	if len(mmCreateDocument.expectations) == 0 && mmCreateDocument.defaultExpectation == nil && mmCreateDocument.mock.funcCreateDocument == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmCreateDocument.mock.afterCreateDocumentCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmCreateDocument.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// CreateDocument implements mm_service.Catalog
+func (mmCreateDocument *CatalogMock) CreateDocument(ctx context.Context, d domain.Document) (d1 domain.Document, err error) {
+	mm_atomic.AddUint64(&mmCreateDocument.beforeCreateDocumentCounter, 1)
+	defer mm_atomic.AddUint64(&mmCreateDocument.afterCreateDocumentCounter, 1)
+
+	mmCreateDocument.t.Helper()
+
+	if mmCreateDocument.inspectFuncCreateDocument != nil {
+		mmCreateDocument.inspectFuncCreateDocument(ctx, d)
+	}
+
+	mm_params := CatalogMockCreateDocumentParams{ctx, d}
+
+	// Record call args
+	mmCreateDocument.CreateDocumentMock.mutex.Lock()
+	mmCreateDocument.CreateDocumentMock.callArgs = append(mmCreateDocument.CreateDocumentMock.callArgs, &mm_params)
+	mmCreateDocument.CreateDocumentMock.mutex.Unlock()
+
+	for _, e := range mmCreateDocument.CreateDocumentMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.d1, e.results.err
+		}
+	}
+
+	if mmCreateDocument.CreateDocumentMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCreateDocument.CreateDocumentMock.defaultExpectation.Counter, 1)
+		mm_want := mmCreateDocument.CreateDocumentMock.defaultExpectation.params
+		mm_want_ptrs := mmCreateDocument.CreateDocumentMock.defaultExpectation.paramPtrs
+
+		mm_got := CatalogMockCreateDocumentParams{ctx, d}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmCreateDocument.t.Errorf("CatalogMock.CreateDocument got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreateDocument.CreateDocumentMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.d != nil && !minimock.Equal(*mm_want_ptrs.d, mm_got.d) {
+				mmCreateDocument.t.Errorf("CatalogMock.CreateDocument got unexpected parameter d, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreateDocument.CreateDocumentMock.defaultExpectation.expectationOrigins.originD, *mm_want_ptrs.d, mm_got.d, minimock.Diff(*mm_want_ptrs.d, mm_got.d))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCreateDocument.t.Errorf("CatalogMock.CreateDocument got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmCreateDocument.CreateDocumentMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCreateDocument.CreateDocumentMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCreateDocument.t.Fatal("No results are set for the CatalogMock.CreateDocument")
+		}
+		return (*mm_results).d1, (*mm_results).err
+	}
+	if mmCreateDocument.funcCreateDocument != nil {
+		return mmCreateDocument.funcCreateDocument(ctx, d)
+	}
+	mmCreateDocument.t.Fatalf("Unexpected call to CatalogMock.CreateDocument. %v %v", ctx, d)
+	return
+}
+
+// CreateDocumentAfterCounter returns a count of finished CatalogMock.CreateDocument invocations
+func (mmCreateDocument *CatalogMock) CreateDocumentAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCreateDocument.afterCreateDocumentCounter)
+}
+
+// CreateDocumentBeforeCounter returns a count of CatalogMock.CreateDocument invocations
+func (mmCreateDocument *CatalogMock) CreateDocumentBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCreateDocument.beforeCreateDocumentCounter)
+}
+
+// Calls returns a list of arguments used in each call to CatalogMock.CreateDocument.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCreateDocument *mCatalogMockCreateDocument) Calls() []*CatalogMockCreateDocumentParams {
+	mmCreateDocument.mutex.RLock()
+
+	argCopy := make([]*CatalogMockCreateDocumentParams, len(mmCreateDocument.callArgs))
+	copy(argCopy, mmCreateDocument.callArgs)
+
+	mmCreateDocument.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCreateDocumentDone returns true if the count of the CreateDocument invocations corresponds
+// the number of defined expectations
+func (m *CatalogMock) MinimockCreateDocumentDone() bool {
+	if m.CreateDocumentMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.CreateDocumentMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.CreateDocumentMock.invocationsDone()
+}
+
+// MinimockCreateDocumentInspect logs each unmet expectation
+func (m *CatalogMock) MinimockCreateDocumentInspect() {
+	for _, e := range m.CreateDocumentMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to CatalogMock.CreateDocument at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterCreateDocumentCounter := mm_atomic.LoadUint64(&m.afterCreateDocumentCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CreateDocumentMock.defaultExpectation != nil && afterCreateDocumentCounter < 1 {
+		if m.CreateDocumentMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to CatalogMock.CreateDocument at\n%s", m.CreateDocumentMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to CatalogMock.CreateDocument at\n%s with params: %#v", m.CreateDocumentMock.defaultExpectation.expectationOrigins.origin, *m.CreateDocumentMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCreateDocument != nil && afterCreateDocumentCounter < 1 {
+		m.t.Errorf("Expected call to CatalogMock.CreateDocument at\n%s", m.funcCreateDocumentOrigin)
+	}
+
+	if !m.CreateDocumentMock.invocationsDone() && afterCreateDocumentCounter > 0 {
+		m.t.Errorf("Expected %d calls to CatalogMock.CreateDocument at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.CreateDocumentMock.expectedInvocations), m.CreateDocumentMock.expectedInvocationsOrigin, afterCreateDocumentCounter)
+	}
 }
 
 type mCatalogMockCreatePanorama struct {
@@ -946,6 +1319,348 @@ func (m *CatalogMock) MinimockCreatePlacementInspect() {
 	if !m.CreatePlacementMock.invocationsDone() && afterCreatePlacementCounter > 0 {
 		m.t.Errorf("Expected %d calls to CatalogMock.CreatePlacement at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.CreatePlacementMock.expectedInvocations), m.CreatePlacementMock.expectedInvocationsOrigin, afterCreatePlacementCounter)
+	}
+}
+
+type mCatalogMockDeleteDocument struct {
+	optional           bool
+	mock               *CatalogMock
+	defaultExpectation *CatalogMockDeleteDocumentExpectation
+	expectations       []*CatalogMockDeleteDocumentExpectation
+
+	callArgs []*CatalogMockDeleteDocumentParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// CatalogMockDeleteDocumentExpectation specifies expectation struct of the Catalog.DeleteDocument
+type CatalogMockDeleteDocumentExpectation struct {
+	mock               *CatalogMock
+	params             *CatalogMockDeleteDocumentParams
+	paramPtrs          *CatalogMockDeleteDocumentParamPtrs
+	expectationOrigins CatalogMockDeleteDocumentExpectationOrigins
+	results            *CatalogMockDeleteDocumentResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// CatalogMockDeleteDocumentParams contains parameters of the Catalog.DeleteDocument
+type CatalogMockDeleteDocumentParams struct {
+	ctx context.Context
+	id  int64
+}
+
+// CatalogMockDeleteDocumentParamPtrs contains pointers to parameters of the Catalog.DeleteDocument
+type CatalogMockDeleteDocumentParamPtrs struct {
+	ctx *context.Context
+	id  *int64
+}
+
+// CatalogMockDeleteDocumentResults contains results of the Catalog.DeleteDocument
+type CatalogMockDeleteDocumentResults struct {
+	err error
+}
+
+// CatalogMockDeleteDocumentOrigins contains origins of expectations of the Catalog.DeleteDocument
+type CatalogMockDeleteDocumentExpectationOrigins struct {
+	origin    string
+	originCtx string
+	originId  string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmDeleteDocument *mCatalogMockDeleteDocument) Optional() *mCatalogMockDeleteDocument {
+	mmDeleteDocument.optional = true
+	return mmDeleteDocument
+}
+
+// Expect sets up expected params for Catalog.DeleteDocument
+func (mmDeleteDocument *mCatalogMockDeleteDocument) Expect(ctx context.Context, id int64) *mCatalogMockDeleteDocument {
+	if mmDeleteDocument.mock.funcDeleteDocument != nil {
+		mmDeleteDocument.mock.t.Fatalf("CatalogMock.DeleteDocument mock is already set by Set")
+	}
+
+	if mmDeleteDocument.defaultExpectation == nil {
+		mmDeleteDocument.defaultExpectation = &CatalogMockDeleteDocumentExpectation{}
+	}
+
+	if mmDeleteDocument.defaultExpectation.paramPtrs != nil {
+		mmDeleteDocument.mock.t.Fatalf("CatalogMock.DeleteDocument mock is already set by ExpectParams functions")
+	}
+
+	mmDeleteDocument.defaultExpectation.params = &CatalogMockDeleteDocumentParams{ctx, id}
+	mmDeleteDocument.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmDeleteDocument.expectations {
+		if minimock.Equal(e.params, mmDeleteDocument.defaultExpectation.params) {
+			mmDeleteDocument.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmDeleteDocument.defaultExpectation.params)
+		}
+	}
+
+	return mmDeleteDocument
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Catalog.DeleteDocument
+func (mmDeleteDocument *mCatalogMockDeleteDocument) ExpectCtxParam1(ctx context.Context) *mCatalogMockDeleteDocument {
+	if mmDeleteDocument.mock.funcDeleteDocument != nil {
+		mmDeleteDocument.mock.t.Fatalf("CatalogMock.DeleteDocument mock is already set by Set")
+	}
+
+	if mmDeleteDocument.defaultExpectation == nil {
+		mmDeleteDocument.defaultExpectation = &CatalogMockDeleteDocumentExpectation{}
+	}
+
+	if mmDeleteDocument.defaultExpectation.params != nil {
+		mmDeleteDocument.mock.t.Fatalf("CatalogMock.DeleteDocument mock is already set by Expect")
+	}
+
+	if mmDeleteDocument.defaultExpectation.paramPtrs == nil {
+		mmDeleteDocument.defaultExpectation.paramPtrs = &CatalogMockDeleteDocumentParamPtrs{}
+	}
+	mmDeleteDocument.defaultExpectation.paramPtrs.ctx = &ctx
+	mmDeleteDocument.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmDeleteDocument
+}
+
+// ExpectIdParam2 sets up expected param id for Catalog.DeleteDocument
+func (mmDeleteDocument *mCatalogMockDeleteDocument) ExpectIdParam2(id int64) *mCatalogMockDeleteDocument {
+	if mmDeleteDocument.mock.funcDeleteDocument != nil {
+		mmDeleteDocument.mock.t.Fatalf("CatalogMock.DeleteDocument mock is already set by Set")
+	}
+
+	if mmDeleteDocument.defaultExpectation == nil {
+		mmDeleteDocument.defaultExpectation = &CatalogMockDeleteDocumentExpectation{}
+	}
+
+	if mmDeleteDocument.defaultExpectation.params != nil {
+		mmDeleteDocument.mock.t.Fatalf("CatalogMock.DeleteDocument mock is already set by Expect")
+	}
+
+	if mmDeleteDocument.defaultExpectation.paramPtrs == nil {
+		mmDeleteDocument.defaultExpectation.paramPtrs = &CatalogMockDeleteDocumentParamPtrs{}
+	}
+	mmDeleteDocument.defaultExpectation.paramPtrs.id = &id
+	mmDeleteDocument.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmDeleteDocument
+}
+
+// Inspect accepts an inspector function that has same arguments as the Catalog.DeleteDocument
+func (mmDeleteDocument *mCatalogMockDeleteDocument) Inspect(f func(ctx context.Context, id int64)) *mCatalogMockDeleteDocument {
+	if mmDeleteDocument.mock.inspectFuncDeleteDocument != nil {
+		mmDeleteDocument.mock.t.Fatalf("Inspect function is already set for CatalogMock.DeleteDocument")
+	}
+
+	mmDeleteDocument.mock.inspectFuncDeleteDocument = f
+
+	return mmDeleteDocument
+}
+
+// Return sets up results that will be returned by Catalog.DeleteDocument
+func (mmDeleteDocument *mCatalogMockDeleteDocument) Return(err error) *CatalogMock {
+	if mmDeleteDocument.mock.funcDeleteDocument != nil {
+		mmDeleteDocument.mock.t.Fatalf("CatalogMock.DeleteDocument mock is already set by Set")
+	}
+
+	if mmDeleteDocument.defaultExpectation == nil {
+		mmDeleteDocument.defaultExpectation = &CatalogMockDeleteDocumentExpectation{mock: mmDeleteDocument.mock}
+	}
+	mmDeleteDocument.defaultExpectation.results = &CatalogMockDeleteDocumentResults{err}
+	mmDeleteDocument.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmDeleteDocument.mock
+}
+
+// Set uses given function f to mock the Catalog.DeleteDocument method
+func (mmDeleteDocument *mCatalogMockDeleteDocument) Set(f func(ctx context.Context, id int64) (err error)) *CatalogMock {
+	if mmDeleteDocument.defaultExpectation != nil {
+		mmDeleteDocument.mock.t.Fatalf("Default expectation is already set for the Catalog.DeleteDocument method")
+	}
+
+	if len(mmDeleteDocument.expectations) > 0 {
+		mmDeleteDocument.mock.t.Fatalf("Some expectations are already set for the Catalog.DeleteDocument method")
+	}
+
+	mmDeleteDocument.mock.funcDeleteDocument = f
+	mmDeleteDocument.mock.funcDeleteDocumentOrigin = minimock.CallerInfo(1)
+	return mmDeleteDocument.mock
+}
+
+// When sets expectation for the Catalog.DeleteDocument which will trigger the result defined by the following
+// Then helper
+func (mmDeleteDocument *mCatalogMockDeleteDocument) When(ctx context.Context, id int64) *CatalogMockDeleteDocumentExpectation {
+	if mmDeleteDocument.mock.funcDeleteDocument != nil {
+		mmDeleteDocument.mock.t.Fatalf("CatalogMock.DeleteDocument mock is already set by Set")
+	}
+
+	expectation := &CatalogMockDeleteDocumentExpectation{
+		mock:               mmDeleteDocument.mock,
+		params:             &CatalogMockDeleteDocumentParams{ctx, id},
+		expectationOrigins: CatalogMockDeleteDocumentExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmDeleteDocument.expectations = append(mmDeleteDocument.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Catalog.DeleteDocument return parameters for the expectation previously defined by the When method
+func (e *CatalogMockDeleteDocumentExpectation) Then(err error) *CatalogMock {
+	e.results = &CatalogMockDeleteDocumentResults{err}
+	return e.mock
+}
+
+// Times sets number of times Catalog.DeleteDocument should be invoked
+func (mmDeleteDocument *mCatalogMockDeleteDocument) Times(n uint64) *mCatalogMockDeleteDocument {
+	if n == 0 {
+		mmDeleteDocument.mock.t.Fatalf("Times of CatalogMock.DeleteDocument mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmDeleteDocument.expectedInvocations, n)
+	mmDeleteDocument.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmDeleteDocument
+}
+
+func (mmDeleteDocument *mCatalogMockDeleteDocument) invocationsDone() bool {
+	if len(mmDeleteDocument.expectations) == 0 && mmDeleteDocument.defaultExpectation == nil && mmDeleteDocument.mock.funcDeleteDocument == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmDeleteDocument.mock.afterDeleteDocumentCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmDeleteDocument.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// DeleteDocument implements mm_service.Catalog
+func (mmDeleteDocument *CatalogMock) DeleteDocument(ctx context.Context, id int64) (err error) {
+	mm_atomic.AddUint64(&mmDeleteDocument.beforeDeleteDocumentCounter, 1)
+	defer mm_atomic.AddUint64(&mmDeleteDocument.afterDeleteDocumentCounter, 1)
+
+	mmDeleteDocument.t.Helper()
+
+	if mmDeleteDocument.inspectFuncDeleteDocument != nil {
+		mmDeleteDocument.inspectFuncDeleteDocument(ctx, id)
+	}
+
+	mm_params := CatalogMockDeleteDocumentParams{ctx, id}
+
+	// Record call args
+	mmDeleteDocument.DeleteDocumentMock.mutex.Lock()
+	mmDeleteDocument.DeleteDocumentMock.callArgs = append(mmDeleteDocument.DeleteDocumentMock.callArgs, &mm_params)
+	mmDeleteDocument.DeleteDocumentMock.mutex.Unlock()
+
+	for _, e := range mmDeleteDocument.DeleteDocumentMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmDeleteDocument.DeleteDocumentMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmDeleteDocument.DeleteDocumentMock.defaultExpectation.Counter, 1)
+		mm_want := mmDeleteDocument.DeleteDocumentMock.defaultExpectation.params
+		mm_want_ptrs := mmDeleteDocument.DeleteDocumentMock.defaultExpectation.paramPtrs
+
+		mm_got := CatalogMockDeleteDocumentParams{ctx, id}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmDeleteDocument.t.Errorf("CatalogMock.DeleteDocument got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteDocument.DeleteDocumentMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmDeleteDocument.t.Errorf("CatalogMock.DeleteDocument got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteDocument.DeleteDocumentMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmDeleteDocument.t.Errorf("CatalogMock.DeleteDocument got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmDeleteDocument.DeleteDocumentMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmDeleteDocument.DeleteDocumentMock.defaultExpectation.results
+		if mm_results == nil {
+			mmDeleteDocument.t.Fatal("No results are set for the CatalogMock.DeleteDocument")
+		}
+		return (*mm_results).err
+	}
+	if mmDeleteDocument.funcDeleteDocument != nil {
+		return mmDeleteDocument.funcDeleteDocument(ctx, id)
+	}
+	mmDeleteDocument.t.Fatalf("Unexpected call to CatalogMock.DeleteDocument. %v %v", ctx, id)
+	return
+}
+
+// DeleteDocumentAfterCounter returns a count of finished CatalogMock.DeleteDocument invocations
+func (mmDeleteDocument *CatalogMock) DeleteDocumentAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDeleteDocument.afterDeleteDocumentCounter)
+}
+
+// DeleteDocumentBeforeCounter returns a count of CatalogMock.DeleteDocument invocations
+func (mmDeleteDocument *CatalogMock) DeleteDocumentBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDeleteDocument.beforeDeleteDocumentCounter)
+}
+
+// Calls returns a list of arguments used in each call to CatalogMock.DeleteDocument.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmDeleteDocument *mCatalogMockDeleteDocument) Calls() []*CatalogMockDeleteDocumentParams {
+	mmDeleteDocument.mutex.RLock()
+
+	argCopy := make([]*CatalogMockDeleteDocumentParams, len(mmDeleteDocument.callArgs))
+	copy(argCopy, mmDeleteDocument.callArgs)
+
+	mmDeleteDocument.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockDeleteDocumentDone returns true if the count of the DeleteDocument invocations corresponds
+// the number of defined expectations
+func (m *CatalogMock) MinimockDeleteDocumentDone() bool {
+	if m.DeleteDocumentMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.DeleteDocumentMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.DeleteDocumentMock.invocationsDone()
+}
+
+// MinimockDeleteDocumentInspect logs each unmet expectation
+func (m *CatalogMock) MinimockDeleteDocumentInspect() {
+	for _, e := range m.DeleteDocumentMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to CatalogMock.DeleteDocument at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterDeleteDocumentCounter := mm_atomic.LoadUint64(&m.afterDeleteDocumentCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.DeleteDocumentMock.defaultExpectation != nil && afterDeleteDocumentCounter < 1 {
+		if m.DeleteDocumentMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to CatalogMock.DeleteDocument at\n%s", m.DeleteDocumentMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to CatalogMock.DeleteDocument at\n%s with params: %#v", m.DeleteDocumentMock.defaultExpectation.expectationOrigins.origin, *m.DeleteDocumentMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcDeleteDocument != nil && afterDeleteDocumentCounter < 1 {
+		m.t.Errorf("Expected call to CatalogMock.DeleteDocument at\n%s", m.funcDeleteDocumentOrigin)
+	}
+
+	if !m.DeleteDocumentMock.invocationsDone() && afterDeleteDocumentCounter > 0 {
+		m.t.Errorf("Expected %d calls to CatalogMock.DeleteDocument at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.DeleteDocumentMock.expectedInvocations), m.DeleteDocumentMock.expectedInvocationsOrigin, afterDeleteDocumentCounter)
 	}
 }
 
@@ -4090,6 +4805,349 @@ func (m *CatalogMock) MinimockGetTerritoryArtifactInspect() {
 	if !m.GetTerritoryArtifactMock.invocationsDone() && afterGetTerritoryArtifactCounter > 0 {
 		m.t.Errorf("Expected %d calls to CatalogMock.GetTerritoryArtifact at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.GetTerritoryArtifactMock.expectedInvocations), m.GetTerritoryArtifactMock.expectedInvocationsOrigin, afterGetTerritoryArtifactCounter)
+	}
+}
+
+type mCatalogMockListDocuments struct {
+	optional           bool
+	mock               *CatalogMock
+	defaultExpectation *CatalogMockListDocumentsExpectation
+	expectations       []*CatalogMockListDocumentsExpectation
+
+	callArgs []*CatalogMockListDocumentsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// CatalogMockListDocumentsExpectation specifies expectation struct of the Catalog.ListDocuments
+type CatalogMockListDocumentsExpectation struct {
+	mock               *CatalogMock
+	params             *CatalogMockListDocumentsParams
+	paramPtrs          *CatalogMockListDocumentsParamPtrs
+	expectationOrigins CatalogMockListDocumentsExpectationOrigins
+	results            *CatalogMockListDocumentsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// CatalogMockListDocumentsParams contains parameters of the Catalog.ListDocuments
+type CatalogMockListDocumentsParams struct {
+	ctx           context.Context
+	territorySlug string
+}
+
+// CatalogMockListDocumentsParamPtrs contains pointers to parameters of the Catalog.ListDocuments
+type CatalogMockListDocumentsParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+}
+
+// CatalogMockListDocumentsResults contains results of the Catalog.ListDocuments
+type CatalogMockListDocumentsResults struct {
+	da1 []domain.Document
+	err error
+}
+
+// CatalogMockListDocumentsOrigins contains origins of expectations of the Catalog.ListDocuments
+type CatalogMockListDocumentsExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmListDocuments *mCatalogMockListDocuments) Optional() *mCatalogMockListDocuments {
+	mmListDocuments.optional = true
+	return mmListDocuments
+}
+
+// Expect sets up expected params for Catalog.ListDocuments
+func (mmListDocuments *mCatalogMockListDocuments) Expect(ctx context.Context, territorySlug string) *mCatalogMockListDocuments {
+	if mmListDocuments.mock.funcListDocuments != nil {
+		mmListDocuments.mock.t.Fatalf("CatalogMock.ListDocuments mock is already set by Set")
+	}
+
+	if mmListDocuments.defaultExpectation == nil {
+		mmListDocuments.defaultExpectation = &CatalogMockListDocumentsExpectation{}
+	}
+
+	if mmListDocuments.defaultExpectation.paramPtrs != nil {
+		mmListDocuments.mock.t.Fatalf("CatalogMock.ListDocuments mock is already set by ExpectParams functions")
+	}
+
+	mmListDocuments.defaultExpectation.params = &CatalogMockListDocumentsParams{ctx, territorySlug}
+	mmListDocuments.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmListDocuments.expectations {
+		if minimock.Equal(e.params, mmListDocuments.defaultExpectation.params) {
+			mmListDocuments.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListDocuments.defaultExpectation.params)
+		}
+	}
+
+	return mmListDocuments
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Catalog.ListDocuments
+func (mmListDocuments *mCatalogMockListDocuments) ExpectCtxParam1(ctx context.Context) *mCatalogMockListDocuments {
+	if mmListDocuments.mock.funcListDocuments != nil {
+		mmListDocuments.mock.t.Fatalf("CatalogMock.ListDocuments mock is already set by Set")
+	}
+
+	if mmListDocuments.defaultExpectation == nil {
+		mmListDocuments.defaultExpectation = &CatalogMockListDocumentsExpectation{}
+	}
+
+	if mmListDocuments.defaultExpectation.params != nil {
+		mmListDocuments.mock.t.Fatalf("CatalogMock.ListDocuments mock is already set by Expect")
+	}
+
+	if mmListDocuments.defaultExpectation.paramPtrs == nil {
+		mmListDocuments.defaultExpectation.paramPtrs = &CatalogMockListDocumentsParamPtrs{}
+	}
+	mmListDocuments.defaultExpectation.paramPtrs.ctx = &ctx
+	mmListDocuments.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmListDocuments
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Catalog.ListDocuments
+func (mmListDocuments *mCatalogMockListDocuments) ExpectTerritorySlugParam2(territorySlug string) *mCatalogMockListDocuments {
+	if mmListDocuments.mock.funcListDocuments != nil {
+		mmListDocuments.mock.t.Fatalf("CatalogMock.ListDocuments mock is already set by Set")
+	}
+
+	if mmListDocuments.defaultExpectation == nil {
+		mmListDocuments.defaultExpectation = &CatalogMockListDocumentsExpectation{}
+	}
+
+	if mmListDocuments.defaultExpectation.params != nil {
+		mmListDocuments.mock.t.Fatalf("CatalogMock.ListDocuments mock is already set by Expect")
+	}
+
+	if mmListDocuments.defaultExpectation.paramPtrs == nil {
+		mmListDocuments.defaultExpectation.paramPtrs = &CatalogMockListDocumentsParamPtrs{}
+	}
+	mmListDocuments.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmListDocuments.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmListDocuments
+}
+
+// Inspect accepts an inspector function that has same arguments as the Catalog.ListDocuments
+func (mmListDocuments *mCatalogMockListDocuments) Inspect(f func(ctx context.Context, territorySlug string)) *mCatalogMockListDocuments {
+	if mmListDocuments.mock.inspectFuncListDocuments != nil {
+		mmListDocuments.mock.t.Fatalf("Inspect function is already set for CatalogMock.ListDocuments")
+	}
+
+	mmListDocuments.mock.inspectFuncListDocuments = f
+
+	return mmListDocuments
+}
+
+// Return sets up results that will be returned by Catalog.ListDocuments
+func (mmListDocuments *mCatalogMockListDocuments) Return(da1 []domain.Document, err error) *CatalogMock {
+	if mmListDocuments.mock.funcListDocuments != nil {
+		mmListDocuments.mock.t.Fatalf("CatalogMock.ListDocuments mock is already set by Set")
+	}
+
+	if mmListDocuments.defaultExpectation == nil {
+		mmListDocuments.defaultExpectation = &CatalogMockListDocumentsExpectation{mock: mmListDocuments.mock}
+	}
+	mmListDocuments.defaultExpectation.results = &CatalogMockListDocumentsResults{da1, err}
+	mmListDocuments.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmListDocuments.mock
+}
+
+// Set uses given function f to mock the Catalog.ListDocuments method
+func (mmListDocuments *mCatalogMockListDocuments) Set(f func(ctx context.Context, territorySlug string) (da1 []domain.Document, err error)) *CatalogMock {
+	if mmListDocuments.defaultExpectation != nil {
+		mmListDocuments.mock.t.Fatalf("Default expectation is already set for the Catalog.ListDocuments method")
+	}
+
+	if len(mmListDocuments.expectations) > 0 {
+		mmListDocuments.mock.t.Fatalf("Some expectations are already set for the Catalog.ListDocuments method")
+	}
+
+	mmListDocuments.mock.funcListDocuments = f
+	mmListDocuments.mock.funcListDocumentsOrigin = minimock.CallerInfo(1)
+	return mmListDocuments.mock
+}
+
+// When sets expectation for the Catalog.ListDocuments which will trigger the result defined by the following
+// Then helper
+func (mmListDocuments *mCatalogMockListDocuments) When(ctx context.Context, territorySlug string) *CatalogMockListDocumentsExpectation {
+	if mmListDocuments.mock.funcListDocuments != nil {
+		mmListDocuments.mock.t.Fatalf("CatalogMock.ListDocuments mock is already set by Set")
+	}
+
+	expectation := &CatalogMockListDocumentsExpectation{
+		mock:               mmListDocuments.mock,
+		params:             &CatalogMockListDocumentsParams{ctx, territorySlug},
+		expectationOrigins: CatalogMockListDocumentsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmListDocuments.expectations = append(mmListDocuments.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Catalog.ListDocuments return parameters for the expectation previously defined by the When method
+func (e *CatalogMockListDocumentsExpectation) Then(da1 []domain.Document, err error) *CatalogMock {
+	e.results = &CatalogMockListDocumentsResults{da1, err}
+	return e.mock
+}
+
+// Times sets number of times Catalog.ListDocuments should be invoked
+func (mmListDocuments *mCatalogMockListDocuments) Times(n uint64) *mCatalogMockListDocuments {
+	if n == 0 {
+		mmListDocuments.mock.t.Fatalf("Times of CatalogMock.ListDocuments mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmListDocuments.expectedInvocations, n)
+	mmListDocuments.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmListDocuments
+}
+
+func (mmListDocuments *mCatalogMockListDocuments) invocationsDone() bool {
+	if len(mmListDocuments.expectations) == 0 && mmListDocuments.defaultExpectation == nil && mmListDocuments.mock.funcListDocuments == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmListDocuments.mock.afterListDocumentsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmListDocuments.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ListDocuments implements mm_service.Catalog
+func (mmListDocuments *CatalogMock) ListDocuments(ctx context.Context, territorySlug string) (da1 []domain.Document, err error) {
+	mm_atomic.AddUint64(&mmListDocuments.beforeListDocumentsCounter, 1)
+	defer mm_atomic.AddUint64(&mmListDocuments.afterListDocumentsCounter, 1)
+
+	mmListDocuments.t.Helper()
+
+	if mmListDocuments.inspectFuncListDocuments != nil {
+		mmListDocuments.inspectFuncListDocuments(ctx, territorySlug)
+	}
+
+	mm_params := CatalogMockListDocumentsParams{ctx, territorySlug}
+
+	// Record call args
+	mmListDocuments.ListDocumentsMock.mutex.Lock()
+	mmListDocuments.ListDocumentsMock.callArgs = append(mmListDocuments.ListDocumentsMock.callArgs, &mm_params)
+	mmListDocuments.ListDocumentsMock.mutex.Unlock()
+
+	for _, e := range mmListDocuments.ListDocumentsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.da1, e.results.err
+		}
+	}
+
+	if mmListDocuments.ListDocumentsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmListDocuments.ListDocumentsMock.defaultExpectation.Counter, 1)
+		mm_want := mmListDocuments.ListDocumentsMock.defaultExpectation.params
+		mm_want_ptrs := mmListDocuments.ListDocumentsMock.defaultExpectation.paramPtrs
+
+		mm_got := CatalogMockListDocumentsParams{ctx, territorySlug}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmListDocuments.t.Errorf("CatalogMock.ListDocuments got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListDocuments.ListDocumentsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmListDocuments.t.Errorf("CatalogMock.ListDocuments got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListDocuments.ListDocumentsMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmListDocuments.t.Errorf("CatalogMock.ListDocuments got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmListDocuments.ListDocumentsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmListDocuments.ListDocumentsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmListDocuments.t.Fatal("No results are set for the CatalogMock.ListDocuments")
+		}
+		return (*mm_results).da1, (*mm_results).err
+	}
+	if mmListDocuments.funcListDocuments != nil {
+		return mmListDocuments.funcListDocuments(ctx, territorySlug)
+	}
+	mmListDocuments.t.Fatalf("Unexpected call to CatalogMock.ListDocuments. %v %v", ctx, territorySlug)
+	return
+}
+
+// ListDocumentsAfterCounter returns a count of finished CatalogMock.ListDocuments invocations
+func (mmListDocuments *CatalogMock) ListDocumentsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListDocuments.afterListDocumentsCounter)
+}
+
+// ListDocumentsBeforeCounter returns a count of CatalogMock.ListDocuments invocations
+func (mmListDocuments *CatalogMock) ListDocumentsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListDocuments.beforeListDocumentsCounter)
+}
+
+// Calls returns a list of arguments used in each call to CatalogMock.ListDocuments.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmListDocuments *mCatalogMockListDocuments) Calls() []*CatalogMockListDocumentsParams {
+	mmListDocuments.mutex.RLock()
+
+	argCopy := make([]*CatalogMockListDocumentsParams, len(mmListDocuments.callArgs))
+	copy(argCopy, mmListDocuments.callArgs)
+
+	mmListDocuments.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockListDocumentsDone returns true if the count of the ListDocuments invocations corresponds
+// the number of defined expectations
+func (m *CatalogMock) MinimockListDocumentsDone() bool {
+	if m.ListDocumentsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ListDocumentsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ListDocumentsMock.invocationsDone()
+}
+
+// MinimockListDocumentsInspect logs each unmet expectation
+func (m *CatalogMock) MinimockListDocumentsInspect() {
+	for _, e := range m.ListDocumentsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to CatalogMock.ListDocuments at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterListDocumentsCounter := mm_atomic.LoadUint64(&m.afterListDocumentsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ListDocumentsMock.defaultExpectation != nil && afterListDocumentsCounter < 1 {
+		if m.ListDocumentsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to CatalogMock.ListDocuments at\n%s", m.ListDocumentsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to CatalogMock.ListDocuments at\n%s with params: %#v", m.ListDocumentsMock.defaultExpectation.expectationOrigins.origin, *m.ListDocumentsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcListDocuments != nil && afterListDocumentsCounter < 1 {
+		m.t.Errorf("Expected call to CatalogMock.ListDocuments at\n%s", m.funcListDocumentsOrigin)
+	}
+
+	if !m.ListDocumentsMock.invocationsDone() && afterListDocumentsCounter > 0 {
+		m.t.Errorf("Expected %d calls to CatalogMock.ListDocuments at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListDocumentsMock.expectedInvocations), m.ListDocumentsMock.expectedInvocationsOrigin, afterListDocumentsCounter)
 	}
 }
 
@@ -8243,9 +9301,13 @@ func (m *CatalogMock) MinimockUpsertTerritoryInspect() {
 func (m *CatalogMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
 		if !m.minimockDone() {
+			m.MinimockCreateDocumentInspect()
+
 			m.MinimockCreatePanoramaInspect()
 
 			m.MinimockCreatePlacementInspect()
+
+			m.MinimockDeleteDocumentInspect()
 
 			m.MinimockDeleteModelInspect()
 
@@ -8264,6 +9326,8 @@ func (m *CatalogMock) MinimockFinish() {
 			m.MinimockGetTerritoryInspect()
 
 			m.MinimockGetTerritoryArtifactInspect()
+
+			m.MinimockListDocumentsInspect()
 
 			m.MinimockListModelArtifactsInspect()
 
@@ -8311,8 +9375,10 @@ func (m *CatalogMock) MinimockWait(timeout mm_time.Duration) {
 func (m *CatalogMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockCreateDocumentDone() &&
 		m.MinimockCreatePanoramaDone() &&
 		m.MinimockCreatePlacementDone() &&
+		m.MinimockDeleteDocumentDone() &&
 		m.MinimockDeleteModelDone() &&
 		m.MinimockDeletePanoramaDone() &&
 		m.MinimockDeletePlacementDone() &&
@@ -8322,6 +9388,7 @@ func (m *CatalogMock) minimockDone() bool {
 		m.MinimockGetModelArtifactDone() &&
 		m.MinimockGetTerritoryDone() &&
 		m.MinimockGetTerritoryArtifactDone() &&
+		m.MinimockListDocumentsDone() &&
 		m.MinimockListModelArtifactsDone() &&
 		m.MinimockListModelsDone() &&
 		m.MinimockListPanoramasDone() &&

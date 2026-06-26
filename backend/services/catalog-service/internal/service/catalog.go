@@ -46,6 +46,10 @@ type Repository interface {
 	CreatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
 	UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
 	DeletePanorama(ctx context.Context, id int64) error
+
+	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
+	CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error)
+	DeleteDocument(ctx context.Context, id int64) error
 }
 
 // Catalog is the catalog service.

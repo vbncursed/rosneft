@@ -45,6 +45,9 @@ const (
 	CatalogService_CreatePanorama_FullMethodName              = "/rosneft.catalog.v1.CatalogService/CreatePanorama"
 	CatalogService_UpdatePanorama_FullMethodName              = "/rosneft.catalog.v1.CatalogService/UpdatePanorama"
 	CatalogService_DeletePanorama_FullMethodName              = "/rosneft.catalog.v1.CatalogService/DeletePanorama"
+	CatalogService_ListDocuments_FullMethodName               = "/rosneft.catalog.v1.CatalogService/ListDocuments"
+	CatalogService_CreateDocument_FullMethodName              = "/rosneft.catalog.v1.CatalogService/CreateDocument"
+	CatalogService_DeleteDocument_FullMethodName              = "/rosneft.catalog.v1.CatalogService/DeleteDocument"
 )
 
 // CatalogServiceClient is the client API for CatalogService service.
@@ -89,6 +92,9 @@ type CatalogServiceClient interface {
 	CreatePanorama(ctx context.Context, in *CreatePanoramaRequest, opts ...grpc.CallOption) (*CreatePanoramaResponse, error)
 	UpdatePanorama(ctx context.Context, in *UpdatePanoramaRequest, opts ...grpc.CallOption) (*UpdatePanoramaResponse, error)
 	DeletePanorama(ctx context.Context, in *DeletePanoramaRequest, opts ...grpc.CallOption) (*DeletePanoramaResponse, error)
+	ListDocuments(ctx context.Context, in *ListDocumentsRequest, opts ...grpc.CallOption) (*ListDocumentsResponse, error)
+	CreateDocument(ctx context.Context, in *CreateDocumentRequest, opts ...grpc.CallOption) (*CreateDocumentResponse, error)
+	DeleteDocument(ctx context.Context, in *DeleteDocumentRequest, opts ...grpc.CallOption) (*DeleteDocumentResponse, error)
 }
 
 type catalogServiceClient struct {
@@ -359,6 +365,36 @@ func (c *catalogServiceClient) DeletePanorama(ctx context.Context, in *DeletePan
 	return out, nil
 }
 
+func (c *catalogServiceClient) ListDocuments(ctx context.Context, in *ListDocumentsRequest, opts ...grpc.CallOption) (*ListDocumentsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDocumentsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListDocuments_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) CreateDocument(ctx context.Context, in *CreateDocumentRequest, opts ...grpc.CallOption) (*CreateDocumentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateDocumentResponse)
+	err := c.cc.Invoke(ctx, CatalogService_CreateDocument_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) DeleteDocument(ctx context.Context, in *DeleteDocumentRequest, opts ...grpc.CallOption) (*DeleteDocumentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteDocumentResponse)
+	err := c.cc.Invoke(ctx, CatalogService_DeleteDocument_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CatalogServiceServer is the server API for CatalogService service.
 // All implementations must embed UnimplementedCatalogServiceServer
 // for forward compatibility.
@@ -401,6 +437,9 @@ type CatalogServiceServer interface {
 	CreatePanorama(context.Context, *CreatePanoramaRequest) (*CreatePanoramaResponse, error)
 	UpdatePanorama(context.Context, *UpdatePanoramaRequest) (*UpdatePanoramaResponse, error)
 	DeletePanorama(context.Context, *DeletePanoramaRequest) (*DeletePanoramaResponse, error)
+	ListDocuments(context.Context, *ListDocumentsRequest) (*ListDocumentsResponse, error)
+	CreateDocument(context.Context, *CreateDocumentRequest) (*CreateDocumentResponse, error)
+	DeleteDocument(context.Context, *DeleteDocumentRequest) (*DeleteDocumentResponse, error)
 	mustEmbedUnimplementedCatalogServiceServer()
 }
 
@@ -488,6 +527,15 @@ func (UnimplementedCatalogServiceServer) UpdatePanorama(context.Context, *Update
 }
 func (UnimplementedCatalogServiceServer) DeletePanorama(context.Context, *DeletePanoramaRequest) (*DeletePanoramaResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeletePanorama not implemented")
+}
+func (UnimplementedCatalogServiceServer) ListDocuments(context.Context, *ListDocumentsRequest) (*ListDocumentsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDocuments not implemented")
+}
+func (UnimplementedCatalogServiceServer) CreateDocument(context.Context, *CreateDocumentRequest) (*CreateDocumentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateDocument not implemented")
+}
+func (UnimplementedCatalogServiceServer) DeleteDocument(context.Context, *DeleteDocumentRequest) (*DeleteDocumentResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteDocument not implemented")
 }
 func (UnimplementedCatalogServiceServer) mustEmbedUnimplementedCatalogServiceServer() {}
 func (UnimplementedCatalogServiceServer) testEmbeddedByValue()                        {}
@@ -978,6 +1026,60 @@ func _CatalogService_DeletePanorama_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CatalogService_ListDocuments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDocumentsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ListDocuments(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ListDocuments_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ListDocuments(ctx, req.(*ListDocumentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_CreateDocument_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateDocumentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).CreateDocument(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_CreateDocument_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).CreateDocument(ctx, req.(*CreateDocumentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_DeleteDocument_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteDocumentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).DeleteDocument(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_DeleteDocument_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).DeleteDocument(ctx, req.(*DeleteDocumentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CatalogService_ServiceDesc is the grpc.ServiceDesc for CatalogService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1088,6 +1190,18 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeletePanorama",
 			Handler:    _CatalogService_DeletePanorama_Handler,
+		},
+		{
+			MethodName: "ListDocuments",
+			Handler:    _CatalogService_ListDocuments_Handler,
+		},
+		{
+			MethodName: "CreateDocument",
+			Handler:    _CatalogService_CreateDocument_Handler,
+		},
+		{
+			MethodName: "DeleteDocument",
+			Handler:    _CatalogService_DeleteDocument_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

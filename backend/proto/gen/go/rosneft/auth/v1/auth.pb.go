@@ -33,7 +33,7 @@ type User struct {
 	Permissions   []string               `protobuf:"bytes,7,rep,name=permissions,proto3" json:"permissions,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	IsOwner       bool                   `protobuf:"varint,10,opt,name=is_owner,json=isOwner,proto3" json:"is_owner,omitempty"` // the single owner; only they may manage admin accounts
+	IsOwner       bool                   `protobuf:"varint,10,opt,name=is_owner,json=isOwner,proto3" json:"is_owner,omitempty"` // root of trust: manages admins, grants owner, bypasses grant limits
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

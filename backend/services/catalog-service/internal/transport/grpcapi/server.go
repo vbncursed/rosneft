@@ -46,6 +46,10 @@ type Service interface {
 	CreatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
 	UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
 	DeletePanorama(ctx context.Context, id int64) error
+
+	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
+	CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error)
+	DeleteDocument(ctx context.Context, id int64) error
 }
 
 // Server implements catalogv1.CatalogServiceServer over a Service.
@@ -73,6 +77,7 @@ var statusByCode = map[codes.Code][]error{
 		domain.ErrArtifactNotFound,
 		domain.ErrPlacementNotFound,
 		domain.ErrPanoramaNotFound,
+		domain.ErrDocumentNotFound,
 	},
 }
 
