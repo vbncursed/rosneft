@@ -22,6 +22,8 @@ var routePerms = map[string]string{
 	"POST /api/territories/{slug}/panoramas":         "panorama:write",
 	"PUT /api/territories/{slug}/panoramas/{id}":     "panorama:write",
 	"DELETE /api/territories/{slug}/panoramas/{id}":  "panorama:delete",
+	"POST /api/territories/{slug}/documents":         "document:write",
+	"DELETE /api/territories/{slug}/documents/{id}":  "document:delete",
 	"POST /api/uploads":                              "upload:create",
 	"PATCH /api/uploads/{id}":                        "upload:create",
 	"POST /api/uploads/{id}/finalize":                "upload:create",
