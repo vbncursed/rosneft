@@ -228,6 +228,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/territories/{slug}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        /** List PDF documents attached to a territory */
+        get: operations["listDocuments"];
+        put?: never;
+        /** Attach a PDF document to the territory */
+        post: operations["createDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/territories/{slug}/documents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a document */
+        delete: operations["deleteDocument"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models": {
         parameters: {
             query?: never;
@@ -1001,6 +1041,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/users/{id}/owner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Grant or revoke the owner flag (caller must already be an owner) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        isOwner: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Updated user */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuthUser"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description Caller is not an owner */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Self-target guard */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/roles": {
         parameters: {
             query?: never;
@@ -1541,6 +1640,25 @@ export interface components {
             yawOffset?: number;
         };
         /**
+         * @description A PDF attached to a territory. Served as-is from BlobStore via
+         *     /api/assets/{sourceBlobHash}; not converted, not anchored in the scene.
+         */
+        Document: {
+            /** Format: int64 */
+            id: number;
+            territorySlug: string;
+            title: string;
+            /** @description BlobStore hash for the PDF; served via /api/assets/{hash}. */
+            sourceBlobHash: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        /** @description Body for POST /api/territories/{slug}/documents. */
+        DocumentCreate: {
+            title: string;
+            sourceBlobHash: string;
+        };
+        /**
          * @description Body for POST /api/territories and POST /api/models. The client
          *     first uploads the source ZIP via /api/uploads, then attaches the
          *     returned hash here. The gateway forwards the entity to catalog
@@ -1613,6 +1731,8 @@ export interface components {
              *     stay shared between the 3D and panorama views.
              */
             panoramas?: components["schemas"]["Panorama"][];
+            /** @description PDF documents attached to this territory. */
+            documents?: components["schemas"]["Document"][];
         };
         UploadInitiate: {
             /** Format: int64 */
@@ -2220,6 +2340,82 @@ export interface operations {
         };
     };
     deletePanorama: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    listDocuments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"][];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    createDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    deleteDocument: {
         parameters: {
             query?: never;
             header?: never;
