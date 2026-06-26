@@ -11,6 +11,8 @@ import type { PlacementAssetOption } from "@/placement/domain/asset-option";
 import type { ResolvedPlacement } from "@/placement/domain/placement";
 import type { Panorama } from "@/panorama/domain/panorama";
 import PanoramaSection from "@/panorama/presentation/components/panorama-section";
+import type { Document } from "@/document/domain/document";
+import TerritoryDocuments from "@/document/presentation/components/territory-documents";
 import OverlaysPanel from "@/viewer/presentation/components/overlays-panel";
 import { usePanoramaOrchestration } from "@/panorama/application/use-panorama-orchestration";
 import { usePanoramaCalibration } from "@/panorama/application/use-panorama-calibration";
@@ -30,6 +32,7 @@ export interface ModelViewerProps {
   initialPlacements: ResolvedPlacement[];
   modelOptions: PlacementAssetOption[];
   panoramas: Panorama[];
+  documents: Document[];
   externalPanoramaUrl?: string;
 }
 
@@ -41,6 +44,7 @@ export default function ModelViewer({
   initialPlacements,
   modelOptions,
   panoramas: initialPanoramas,
+  documents,
   externalPanoramaUrl,
 }: ModelViewerProps) {
   const {
@@ -102,15 +106,9 @@ export default function ModelViewer({
 
   // UIOverlay is memoed; passing a fresh `{ ...metadata, name: title }`
   // literal each render would defeat the shallow-equality skip.
-  const overlayMetadata = useMemo(
-    () => ({ ...metadata, name: title }),
-    [metadata, title],
-  );
+  const overlayMetadata = useMemo(() => ({ ...metadata, name: title }), [metadata, title]);
 
-  const handleReset = useCallback(
-    () => setResetVersion((value) => value + 1),
-    [],
-  );
+  const handleReset = useCallback(() => setResetVersion((value) => value + 1), []);
 
   // Total visible segments across all chains — feeds the Clear (N) badge
   // and lets the overlay know whether anything is currently drawn.
@@ -199,19 +197,22 @@ export default function ModelViewer({
           placementsCount={editor.placements.length}
           selectedPlacementId={editor.selectedId}
           view={
-            <PanoramaSection
-              territorySlug={territorySlug}
-              panorama={panorama}
-              panoramas={panoramas}
-              cameraPositionRef={cameraPositionRef}
-              externalPanoramaUrl={externalPanoramaUrl}
-              failedPanoramaIds={failedPanoramaIds}
-              calibration={calibration}
-              markersVisible={showMarkers}
-              onToggleMarkers={toggleMarkers}
-              onSavePanorama={updatePanoramaState}
-              onDeletePanorama={removePanorama}
-            />
+            <div className="space-y-4">
+              <PanoramaSection
+                territorySlug={territorySlug}
+                panorama={panorama}
+                panoramas={panoramas}
+                cameraPositionRef={cameraPositionRef}
+                externalPanoramaUrl={externalPanoramaUrl}
+                failedPanoramaIds={failedPanoramaIds}
+                calibration={calibration}
+                markersVisible={showMarkers}
+                onToggleMarkers={toggleMarkers}
+                onSavePanorama={updatePanoramaState}
+                onDeletePanorama={removePanorama}
+              />
+              <TerritoryDocuments territorySlug={territorySlug} documents={documents} />
+            </div>
           }
           placements={
             <PlacementsSection

@@ -166,6 +166,24 @@ type Disable2FARequest struct {
 	Code string `json:"code"`
 }
 
+// Document A PDF attached to a territory. Served as-is from BlobStore via
+// /api/assets/{sourceBlobHash}; not converted, not anchored in the scene.
+type Document struct {
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	Id        int64      `json:"id"`
+
+	// SourceBlobHash BlobStore hash for the PDF; served via /api/assets/{hash}.
+	SourceBlobHash string `json:"sourceBlobHash"`
+	TerritorySlug  string `json:"territorySlug"`
+	Title          string `json:"title"`
+}
+
+// DocumentCreate Body for POST /api/territories/{slug}/documents.
+type DocumentCreate struct {
+	SourceBlobHash string `json:"sourceBlobHash"`
+	Title          string `json:"title"`
+}
+
 // Enable2FARequest defines model for Enable2FARequest.
 type Enable2FARequest struct {
 	Code string `json:"code"`
@@ -361,7 +379,10 @@ type PlacementVisibilityUpdate struct {
 // placements on it, and the list of available models with their
 // artifacts for the placement picker.
 type SceneBundle struct {
-	Artifact     *Artifact     `json:"artifact,omitempty"`
+	Artifact *Artifact `json:"artifact,omitempty"`
+
+	// Documents PDF documents attached to this territory.
+	Documents    *[]Document   `json:"documents,omitempty"`
 	ModelOptions []AssetOption `json:"modelOptions"`
 
 	// Panoramas Equirect panoramas anchored to this territory. The viewer
@@ -492,6 +513,9 @@ type CreateTerritoryJSONRequestBody = EntityCreate
 // UpdateTerritoryJSONRequestBody defines body for UpdateTerritory for application/json ContentType.
 type UpdateTerritoryJSONRequestBody = TerritoryUpdate
 
+// CreateDocumentJSONRequestBody defines body for CreateDocument for application/json ContentType.
+type CreateDocumentJSONRequestBody = DocumentCreate
+
 // CreatePanoramaJSONRequestBody defines body for CreatePanorama for application/json ContentType.
 type CreatePanoramaJSONRequestBody = PanoramaCreate
 
@@ -554,6 +578,15 @@ type ServerInterface interface {
 	// Get one converted artifact (territory)
 	// (GET /api/territories/{slug}/artifacts/{lod})
 	GetTerritoryArtifact(w http.ResponseWriter, r *http.Request, slug string, lod int32)
+	// List PDF documents attached to a territory
+	// (GET /api/territories/{slug}/documents)
+	ListDocuments(w http.ResponseWriter, r *http.Request, slug string)
+	// Attach a PDF document to the territory
+	// (POST /api/territories/{slug}/documents)
+	CreateDocument(w http.ResponseWriter, r *http.Request, slug string)
+	// Remove a document
+	// (DELETE /api/territories/{slug}/documents/{id})
+	DeleteDocument(w http.ResponseWriter, r *http.Request, slug string, id int64)
 	// List panoramas anchored to a territory
 	// (GET /api/territories/{slug}/panoramas)
 	ListPanoramas(w http.ResponseWriter, r *http.Request, slug string)
@@ -683,6 +716,24 @@ func (_ Unimplemented) ListTerritoryArtifacts(w http.ResponseWriter, r *http.Req
 // Get one converted artifact (territory)
 // (GET /api/territories/{slug}/artifacts/{lod})
 func (_ Unimplemented) GetTerritoryArtifact(w http.ResponseWriter, r *http.Request, slug string, lod int32) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List PDF documents attached to a territory
+// (GET /api/territories/{slug}/documents)
+func (_ Unimplemented) ListDocuments(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Attach a PDF document to the territory
+// (POST /api/territories/{slug}/documents)
+func (_ Unimplemented) CreateDocument(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Remove a document
+// (DELETE /api/territories/{slug}/documents/{id})
+func (_ Unimplemented) DeleteDocument(w http.ResponseWriter, r *http.Request, slug string, id int64) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1090,6 +1141,93 @@ func (siw *ServerInterfaceWrapper) GetTerritoryArtifact(w http.ResponseWriter, r
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetTerritoryArtifact(w, r, slug, lod)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListDocuments operation middleware
+func (siw *ServerInterfaceWrapper) ListDocuments(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListDocuments(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateDocument operation middleware
+func (siw *ServerInterfaceWrapper) CreateDocument(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateDocument(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteDocument operation middleware
+func (siw *ServerInterfaceWrapper) DeleteDocument(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteDocument(w, r, slug, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1727,6 +1865,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/territories/{slug}/artifacts/{lod}", wrapper.GetTerritoryArtifact)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/territories/{slug}/documents", wrapper.ListDocuments)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/territories/{slug}/documents", wrapper.CreateDocument)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/territories/{slug}/documents/{id}", wrapper.DeleteDocument)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/territories/{slug}/panoramas", wrapper.ListPanoramas)
@@ -2418,6 +2565,166 @@ func (response GetTerritoryArtifact404JSONResponse) VisitGetTerritoryArtifactRes
 type GetTerritoryArtifact500JSONResponse struct{ InternalJSONResponse }
 
 func (response GetTerritoryArtifact500JSONResponse) VisitGetTerritoryArtifactResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDocumentsRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type ListDocumentsResponseObject interface {
+	VisitListDocumentsResponse(w http.ResponseWriter) error
+}
+
+type ListDocuments200JSONResponse []Document
+
+func (response ListDocuments200JSONResponse) VisitListDocumentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDocuments404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListDocuments404JSONResponse) VisitListDocumentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDocuments500JSONResponse struct{ InternalJSONResponse }
+
+func (response ListDocuments500JSONResponse) VisitListDocumentsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDocumentRequestObject struct {
+	Slug string `json:"slug"`
+	Body *CreateDocumentJSONRequestBody
+}
+
+type CreateDocumentResponseObject interface {
+	VisitCreateDocumentResponse(w http.ResponseWriter) error
+}
+
+type CreateDocument201JSONResponse Document
+
+func (response CreateDocument201JSONResponse) VisitCreateDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDocument400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateDocument400JSONResponse) VisitCreateDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDocument404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreateDocument404JSONResponse) VisitCreateDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDocument500JSONResponse struct{ InternalJSONResponse }
+
+func (response CreateDocument500JSONResponse) VisitCreateDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDocumentRequestObject struct {
+	Slug string `json:"slug"`
+	Id   int64  `json:"id"`
+}
+
+type DeleteDocumentResponseObject interface {
+	VisitDeleteDocumentResponse(w http.ResponseWriter) error
+}
+
+type DeleteDocument204Response struct {
+}
+
+func (response DeleteDocument204Response) VisitDeleteDocumentResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteDocument404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteDocument404JSONResponse) VisitDeleteDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDocument500JSONResponse struct{ InternalJSONResponse }
+
+func (response DeleteDocument500JSONResponse) VisitDeleteDocumentResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -3371,6 +3678,15 @@ type StrictServerInterface interface {
 	// Get one converted artifact (territory)
 	// (GET /api/territories/{slug}/artifacts/{lod})
 	GetTerritoryArtifact(ctx context.Context, request GetTerritoryArtifactRequestObject) (GetTerritoryArtifactResponseObject, error)
+	// List PDF documents attached to a territory
+	// (GET /api/territories/{slug}/documents)
+	ListDocuments(ctx context.Context, request ListDocumentsRequestObject) (ListDocumentsResponseObject, error)
+	// Attach a PDF document to the territory
+	// (POST /api/territories/{slug}/documents)
+	CreateDocument(ctx context.Context, request CreateDocumentRequestObject) (CreateDocumentResponseObject, error)
+	// Remove a document
+	// (DELETE /api/territories/{slug}/documents/{id})
+	DeleteDocument(ctx context.Context, request DeleteDocumentRequestObject) (DeleteDocumentResponseObject, error)
 	// List panoramas anchored to a territory
 	// (GET /api/territories/{slug}/panoramas)
 	ListPanoramas(ctx context.Context, request ListPanoramasRequestObject) (ListPanoramasResponseObject, error)
@@ -3796,6 +4112,92 @@ func (sh *strictHandler) GetTerritoryArtifact(w http.ResponseWriter, r *http.Req
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetTerritoryArtifactResponseObject); ok {
 		if err := validResponse.VisitGetTerritoryArtifactResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListDocuments operation middleware
+func (sh *strictHandler) ListDocuments(w http.ResponseWriter, r *http.Request, slug string) {
+	var request ListDocumentsRequestObject
+
+	request.Slug = slug
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListDocuments(ctx, request.(ListDocumentsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListDocuments")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListDocumentsResponseObject); ok {
+		if err := validResponse.VisitListDocumentsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateDocument operation middleware
+func (sh *strictHandler) CreateDocument(w http.ResponseWriter, r *http.Request, slug string) {
+	var request CreateDocumentRequestObject
+
+	request.Slug = slug
+
+	var body CreateDocumentJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateDocument(ctx, request.(CreateDocumentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateDocument")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateDocumentResponseObject); ok {
+		if err := validResponse.VisitCreateDocumentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteDocument operation middleware
+func (sh *strictHandler) DeleteDocument(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	var request DeleteDocumentRequestObject
+
+	request.Slug = slug
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteDocument(ctx, request.(DeleteDocumentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteDocument")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteDocumentResponseObject); ok {
+		if err := validResponse.VisitDeleteDocumentResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

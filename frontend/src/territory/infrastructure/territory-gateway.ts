@@ -13,6 +13,7 @@ import type { LodArtifact } from "@/shared/domain/lod-artifact";
 import type { Placement } from "@/placement/domain/placement";
 import type { PlacementAssetOption } from "@/placement/domain/asset-option";
 import type { Panorama } from "@/panorama/domain/panorama";
+import { mapDocument } from "@/document/infrastructure/document-gateway";
 
 type TerritoryDto = components["schemas"]["Territory"];
 type ArtifactDto = components["schemas"]["Artifact"];
@@ -168,5 +169,6 @@ export async function getSceneBundle(slug: string): Promise<SceneBundle> {
     placements: data.placements.map(mapPlacement),
     modelOptions: data.modelOptions.map(mapAssetOption),
     panoramas: data.panoramas ? data.panoramas.map(mapPanorama) : [],
+    documents: data.documents ? data.documents.map(mapDocument) : [],
   };
 }
