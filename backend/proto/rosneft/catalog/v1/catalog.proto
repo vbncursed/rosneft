@@ -47,6 +47,10 @@ service CatalogService {
   rpc CreatePanorama(CreatePanoramaRequest) returns (CreatePanoramaResponse);
   rpc UpdatePanorama(UpdatePanoramaRequest) returns (UpdatePanoramaResponse);
   rpc DeletePanorama(DeletePanoramaRequest) returns (DeletePanoramaResponse);
+
+  rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse);
+  rpc CreateDocument(CreateDocumentRequest) returns (CreateDocumentResponse);
+  rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse);
 }
 
 // Vec3 represents a point in 3D space (used for bounding-box corners
@@ -363,3 +367,37 @@ message DeletePanoramaRequest {
   int64 id = 1;
 }
 message DeletePanoramaResponse {}
+
+// ─── Document RPCs ───────────────────────────────────────────────────────────
+
+// Document is a PDF attached to a territory. Unlike panoramas it has no
+// position in the scene and no slug — it is identified by id and its bytes
+// are served from BlobStore via the asset service at /api/assets/{hash}.
+message Document {
+  int64 id = 1;
+  string territory_slug = 2;
+  string title = 3;
+  string source_blob_hash = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message ListDocumentsRequest {
+  string territory_slug = 1;
+}
+message ListDocumentsResponse {
+  repeated Document documents = 1;
+}
+
+message CreateDocumentRequest {
+  string territory_slug = 1;
+  string title = 2;
+  string source_blob_hash = 3;
+}
+message CreateDocumentResponse {
+  Document document = 1;
+}
+
+message DeleteDocumentRequest {
+  int64 id = 1;
+}
+message DeleteDocumentResponse {}
