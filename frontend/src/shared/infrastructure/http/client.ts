@@ -31,6 +31,18 @@ async function send<T>(
     headers: { Accept: "application/json", ...(await authHeaders()), ...(init.headers ?? {}) },
   });
   if (!res.ok) {
+    // Server-side 401 with a session cookie present = the token expired or
+    // was revoked. Middleware only checks cookie presence, so the request
+    // reached here; bounce to /login instead of crashing the RSC with a 500.
+    // No cookie = anonymous context (e.g. /login itself) — fall through and
+    // let getCurrentUser swallow it to null.
+    if (res.status === 401 && typeof window === "undefined") {
+      const { cookies } = await import("next/headers");
+      if ((await cookies()).has("session")) {
+        const { redirect } = await import("next/navigation");
+        redirect("/login");
+      }
+    }
     let body: ApiError | null = null;
     try {
       body = (await res.json()) as ApiError;
