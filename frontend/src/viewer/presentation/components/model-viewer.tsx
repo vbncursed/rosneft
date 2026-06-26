@@ -138,7 +138,10 @@ export default function ModelViewer({
   });
 
   return (
-    <div className="relative h-full w-full touch-none">
+    // While a document is open it takes over the viewport (portaled to body);
+    // hide the 3D canvas + blur panels so they stop painting and don't fight
+    // the PDF viewer for the GPU. State is preserved, so Exit is instant.
+    <div className={`relative h-full w-full touch-none ${docSel.active ? "hidden" : ""}`}>
       <SceneCanvas
         parentLods={parentLods}
         resetVersion={resetVersion}
