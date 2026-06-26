@@ -52,6 +52,7 @@ func (s *SceneBundleSuite) expectFanOut(terrArts []domain.Artifact, models []dom
 	s.cat.ListTerritoryArtifactsMock.Return(terrArts, nil)
 	s.cat.ListPlacementsMock.Return(placements, nil)
 	s.cat.ListPanoramasMock.Return(nil, nil)
+	s.cat.ListDocumentsMock.Return(nil, nil)
 	s.cat.ListModelsMock.Return(models, nil)
 }
 
@@ -73,6 +74,7 @@ func (s *SceneBundleSuite) TestPropagatesTerritoryNotFound() {
 	s.cat.ListTerritoryArtifactsMock.Return(nil, nil)
 	s.cat.ListPlacementsMock.Return(nil, nil)
 	s.cat.ListPanoramasMock.Return(nil, nil)
+	s.cat.ListDocumentsMock.Return(nil, nil)
 	s.cat.ListModelsMock.Return(nil, nil)
 	_, err := s.svc.GetSceneBundle(s.ctx, "missing")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrTerritoryNotFound))
