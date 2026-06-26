@@ -3,6 +3,7 @@ import type { Artifact } from "@/shared/domain/artifact";
 import type { Placement } from "@/placement/domain/placement";
 import type { PlacementAssetOption } from "@/placement/domain/asset-option";
 import type { Panorama } from "@/panorama/domain/panorama";
+import type { Document } from "@/document/domain/document";
 
 // SceneBundle is the single-shot payload returned by
 // GET /api/territories/{slug}/scene. The gateway aggregates territory +
@@ -17,4 +18,5 @@ export interface SceneBundle {
   placements: Placement[];
   modelOptions: PlacementAssetOption[];
   panoramas: Panorama[];
+  documents: Document[];
 }
