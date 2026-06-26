@@ -117,3 +117,18 @@ func scanPanorama(r rowScanner) (domain.Panorama, error) {
 	)
 	return p, err
 }
+
+// documentSelectCols joins to territories once to resolve the slug in a single
+// round-trip rather than firing an extra lookup per row.
+const documentSelectCols = `d.id, t.slug AS territory_slug, d.title,
+	d.source_blob_hash, d.created_at`
+
+// documentJoin is the FROM clause used together with documentSelectCols.
+const documentJoin = `territory_documents d
+	JOIN territories t ON t.id = d.territory_id`
+
+func scanDocument(r rowScanner) (domain.Document, error) {
+	var d domain.Document
+	err := r.Scan(&d.ID, &d.TerritorySlug, &d.Title, &d.SourceBlobHash, &d.CreatedAt)
+	return d, err
+}
