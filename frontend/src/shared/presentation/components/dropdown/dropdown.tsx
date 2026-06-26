@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import type { DropdownOption } from "@/shared/presentation/components/dropdown/dropdown-option";
+import {
+  type DropdownOption,
+  isSelectable,
+} from "@/shared/presentation/components/dropdown/dropdown-option";
 import { useDropdownKeyboard } from "@/shared/presentation/components/dropdown/use-dropdown-keyboard";
 import { useAnchoredPosition } from "@/shared/presentation/components/dropdown/use-anchored-position";
 import DropdownMenu from "@/shared/presentation/components/dropdown/dropdown-menu";
@@ -47,7 +50,7 @@ export default function Dropdown({
   const [highlightIndex, setHighlightIndex] = useState(() =>
     Math.max(
       0,
-      options.findIndex((o) => o.value === value && !o.disabled),
+      options.findIndex((o) => o.value === value && isSelectable(o)),
     ),
   );
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -64,8 +67,8 @@ export default function Dropdown({
   // so keyboard navigation starts from the user's last choice each time
   // the menu opens.
   const openMenu = useCallback(() => {
-    const idx = options.findIndex((o) => o.value === value && !o.disabled);
-    setHighlightIndex(idx === -1 ? options.findIndex((o) => !o.disabled) : idx);
+    const idx = options.findIndex((o) => o.value === value && isSelectable(o));
+    setHighlightIndex(idx === -1 ? options.findIndex(isSelectable) : idx);
     setOpen(true);
   }, [options, value]);
 

@@ -23,7 +23,9 @@ export default function PanoramaPicker({
 }: PanoramaPickerProps) {
   const options = useMemo<DropdownOption[]>(
     () => [
+      { value: "__hdr_territory", label: "Territory", header: true },
       { value: SCENE_VALUE, label: "3D scene" },
+      { value: "__hdr_panoramas", label: "Panoramas", header: true },
       ...panoramas.map((p) => ({ value: String(p.id), label: p.title })),
     ],
     [panoramas],

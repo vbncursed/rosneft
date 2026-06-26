@@ -1,5 +1,8 @@
 import { type KeyboardEvent, useCallback } from "react";
-import type { DropdownOption } from "@/shared/presentation/components/dropdown/dropdown-option";
+import {
+  type DropdownOption,
+  isSelectable,
+} from "@/shared/presentation/components/dropdown/dropdown-option";
 
 interface UseDropdownKeyboardParams {
   open: boolean;
@@ -12,9 +15,9 @@ interface UseDropdownKeyboardParams {
 }
 
 // nextEnabled walks the options array in the given direction (+1 / -1)
-// starting from `from`, skipping disabled rows. Wraps at both ends so
-// ↓ from the last item lands on the first enabled one. Returns -1 when
-// every option is disabled.
+// starting from `from`, skipping non-selectable rows (disabled/headers).
+// Wraps at both ends so ↓ from the last item lands on the first
+// selectable one. Returns -1 when nothing is selectable.
 function nextEnabled(
   options: DropdownOption[],
   from: number,
@@ -24,18 +27,18 @@ function nextEnabled(
   const len = options.length;
   for (let step = 1; step <= len; step += 1) {
     const idx = (from + direction * step + len * len) % len;
-    if (!options[idx].disabled) return idx;
+    if (isSelectable(options[idx])) return idx;
   }
   return -1;
 }
 
 function firstEnabled(options: DropdownOption[]): number {
-  return options.findIndex((o) => !o.disabled);
+  return options.findIndex(isSelectable);
 }
 
 function lastEnabled(options: DropdownOption[]): number {
   for (let i = options.length - 1; i >= 0; i -= 1) {
-    if (!options[i].disabled) return i;
+    if (isSelectable(options[i])) return i;
   }
   return -1;
 }
@@ -97,7 +100,7 @@ export function useDropdownKeyboard(params: UseDropdownKeyboardParams) {
       if (key === "Enter" || key === " ") {
         event.preventDefault();
         const target = options[highlightIndex];
-        if (target && !target.disabled) onCommit(target);
+        if (target && isSelectable(target)) onCommit(target);
       }
     },
     [open, options, highlightIndex, setHighlightIndex, onOpen, onClose, onCommit],
