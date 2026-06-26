@@ -132,6 +132,16 @@ func panoramaToProto(p domain.Panorama) *catalogv1.Panorama {
 	}
 }
 
+func documentToProto(d domain.Document) *catalogv1.Document {
+	return &catalogv1.Document{
+		Id:             d.ID,
+		TerritorySlug:  d.TerritorySlug,
+		Title:          d.Title,
+		SourceBlobHash: d.SourceBlobHash,
+		CreatedAt:      timestamppb.New(d.CreatedAt),
+	}
+}
+
 func placementToProto(p domain.Placement) *catalogv1.Placement {
 	return &catalogv1.Placement{
 		Id:                 p.ID,
