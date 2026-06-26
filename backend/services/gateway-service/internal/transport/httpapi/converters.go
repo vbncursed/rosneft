@@ -144,6 +144,19 @@ func panoramaToAPI(p domain.Panorama) Panorama {
 	return out
 }
 
+func documentToAPI(d domain.Document) Document {
+	out := Document{
+		Id:             d.ID,
+		TerritorySlug:  d.TerritorySlug,
+		Title:          d.Title,
+		SourceBlobHash: d.SourceBlobHash,
+	}
+	if !d.CreatedAt.IsZero() {
+		out.CreatedAt = &d.CreatedAt
+	}
+	return out
+}
+
 func sceneBundleToAPI(b domain.SceneBundle) SceneBundle {
 	out := SceneBundle{
 		Territory:    territoryToAPI(b.Territory),
@@ -179,6 +192,13 @@ func sceneBundleToAPI(b domain.SceneBundle) SceneBundle {
 			pans[i] = panoramaToAPI(p)
 		}
 		out.Panoramas = &pans
+	}
+	if len(b.Documents) > 0 {
+		docs := make([]Document, len(b.Documents))
+		for i, d := range b.Documents {
+			docs[i] = documentToAPI(d)
+		}
+		out.Documents = &docs
 	}
 	return out
 }
