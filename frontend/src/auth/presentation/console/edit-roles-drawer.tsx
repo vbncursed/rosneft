@@ -42,14 +42,14 @@ export default function EditRolesDrawer({ user, roles, onClose, onSaved }: { use
             const locked = !grantable.has(r.slug);
             return (
               <button key={r.slug} type="button" disabled={locked} onClick={() => toggle(r.slug)}
-                title={locked ? "Requires owner privileges to assign" : undefined}
+                title={locked ? "Requires Root privileges to assign" : undefined}
                 className={`rounded-full border px-3 py-1 text-xs transition-colors ${locked ? "cursor-not-allowed border-white/10 text-neutral-600" : "cursor-pointer"} ${picked.includes(r.slug) ? "border-cyan-400/60 bg-cyan-400/10 text-cyan-100" : !locked ? "border-white/15 text-neutral-300 hover:bg-white/10" : ""}`}>
-                {r.slug}{locked ? " 🔒" : ""}
+                {r.title}{locked ? " 🔒" : ""}
               </button>
             );
           })}
         </div>
-        {blocked ? <p className="text-xs text-amber-300/80">This user holds a role only an owner can manage.</p> : null}
+        {blocked ? <p className="text-xs text-amber-300/80">This user holds a role only Root can manage.</p> : null}
         <div className="mt-2 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="cursor-pointer rounded-md border border-white/20 px-4 py-1.5 text-sm text-neutral-200 hover:bg-white/[0.06]">Cancel</button>
           <button type="button" onClick={save} disabled={busy || blocked} className="cursor-pointer rounded-md border border-white/30 bg-white/10 px-4 py-1.5 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-50">{busy ? "Saving…" : "Save"}</button>

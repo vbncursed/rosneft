@@ -58,7 +58,7 @@ export default function CreateUserDrawer({ roles, onClose, onCreated }: { roles:
             ) : grantable.map((r) => (
               <button key={r.slug} type="button" onClick={() => toggle(r.slug)}
                 className={`cursor-pointer rounded-full border px-3 py-1 text-xs transition-colors ${picked.includes(r.slug) ? "border-cyan-400/60 bg-cyan-400/10 text-cyan-100" : "border-white/15 text-neutral-300 hover:bg-white/10"}`}>
-                {r.slug}
+                {r.title}
               </button>
             ))}
           </div>

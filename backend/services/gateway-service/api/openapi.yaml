@@ -471,10 +471,10 @@ components:
         username: { type: string }
     CreateRoleRequest:
       type: object
-      required: [slug, title]
+      required: [title]
       properties:
-        slug: { type: string }
         title: { type: string }
+        slug: { type: string, description: "optional; derived from the title when omitted" }
         permissionSlugs: { type: array, items: { type: string } }
     UpdateRoleRequest:
       type: object

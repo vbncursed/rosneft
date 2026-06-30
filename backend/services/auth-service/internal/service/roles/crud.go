@@ -10,11 +10,14 @@ import (
 func (s *Service) List(ctx context.Context) ([]domain.Role, error) { return s.store.List(ctx) }
 
 func (s *Service) Create(ctx context.Context, actorID, slug, title string, permSlugs []string) (domain.Role, error) {
-	if slug == "" || title == "" {
-		return domain.Role{}, fmt.Errorf("roles.Create: %w: slug and title required", domain.ErrInvalidInput)
+	if title == "" {
+		return domain.Role{}, fmt.Errorf("roles.Create: %w: title required", domain.ErrInvalidInput)
 	}
 	if err := s.assertCanGrant(ctx, actorID, permSlugs); err != nil {
 		return domain.Role{}, err
+	}
+	if slug == "" {
+		return s.createWithDerivedSlug(ctx, title, permSlugs)
 	}
 	return s.store.Create(ctx, domain.Role{Slug: slug, Title: title, PermissionSlugs: permSlugs})
 }

@@ -552,6 +552,7 @@ type ValidateTokenResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Permissions   []string               `protobuf:"bytes,2,rep,name=permissions,proto3" json:"permissions,omitempty"`
+	IsOwner       bool                   `protobuf:"varint,3,opt,name=is_owner,json=isOwner,proto3" json:"is_owner,omitempty"` // root of trust; gateway grants it a blanket route bypass
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -598,6 +599,13 @@ func (x *ValidateTokenResponse) GetPermissions() []string {
 		return x.Permissions
 	}
 	return nil
+}
+
+func (x *ValidateTokenResponse) GetIsOwner() bool {
+	if x != nil {
+		return x.IsOwner
+	}
+	return false
 }
 
 type GetMeRequest struct {
@@ -2099,10 +2107,11 @@ const file_rosneft_auth_v1_auth_proto_rawDesc = "" +
 	"\x05token\x18\x01 \x01(\tR\x05token\"\x10\n" +
 	"\x0eLogoutResponse\",\n" +
 	"\x14ValidateTokenRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"R\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"m\n" +
 	"\x15ValidateTokenResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12 \n" +
-	"\vpermissions\x18\x02 \x03(\tR\vpermissions\"$\n" +
+	"\vpermissions\x18\x02 \x03(\tR\vpermissions\x12\x19\n" +
+	"\bis_owner\x18\x03 \x01(\bR\aisOwner\"$\n" +
 	"\fGetMeRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\"s\n" +
 	"\x15ChangePasswordRequest\x12\x14\n" +

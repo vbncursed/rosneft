@@ -33,9 +33,19 @@ func (s *RolesSuite) SetupTest() {
 	s.ctx = s.T().Context()
 }
 
-func (s *RolesSuite) TestCreateRejectsEmptySlug() {
-	_, err := s.svc.Create(s.ctx, "actor", "", "Title", nil)
+func (s *RolesSuite) TestCreateRejectsEmptyTitle() {
+	_, err := s.svc.Create(s.ctx, "actor", "", "", nil)
 	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+}
+
+// An omitted slug is derived from the title (slug is now internal-only).
+func (s *RolesSuite) TestCreateDerivesSlugFromTitle() {
+	s.actors.GetByIDMock.Expect(s.ctx, "owner").Return(domain.User{ID: "owner", IsOwner: true}, nil)
+	s.st.CreateMock.Expect(s.ctx, domain.Role{Slug: "company-owner", Title: "Company Owner"}).
+		Return(domain.Role{Slug: "company-owner", Title: "Company Owner"}, nil)
+	r, err := s.svc.Create(s.ctx, "owner", "", "Company Owner", nil)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), r.Slug, "company-owner")
 }
 
 // A non-owner cannot create a role carrying a permission it does not hold.

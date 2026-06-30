@@ -20,7 +20,7 @@ type AuthFlow interface {
 	Login(ctx context.Context, identifier, password string) (string, string, error)
 	LoginVerify2FA(ctx context.Context, challenge, code string) (string, error)
 	Logout(ctx context.Context, token string) error
-	ValidateToken(ctx context.Context, token string) (string, []string, error)
+	ValidateToken(ctx context.Context, token string) (string, []string, bool, error)
 }
 
 // UsersSvc is the user surface (self + admin). The admin methods take the
@@ -74,18 +74,19 @@ func (s *Server) Register(srv *grpc.Server) { authv1.RegisterAuthServiceServer(s
 
 // userIDFromToken resolves a session token to a user id (self endpoints).
 func (s *Server) userIDFromToken(ctx context.Context, token string) (string, error) {
-	uid, _, err := s.auth.ValidateToken(ctx, token)
+	uid, _, _, err := s.auth.ValidateToken(ctx, token)
 	return uid, err
 }
 
 // actor resolves a session token to (userID, scopeAll). scopeAll is true when
-// the caller holds users:read_all (admin) — i.e. may see/manage every user.
+// the caller holds users:read_all or is an owner — i.e. may see/manage every
+// user. Owners get scopeAll even after the admin role loses users:read_all.
 func (s *Server) actor(ctx context.Context, token string) (string, bool, error) {
-	uid, perms, err := s.auth.ValidateToken(ctx, token)
+	uid, perms, isOwner, err := s.auth.ValidateToken(ctx, token)
 	if err != nil {
 		return "", false, err
 	}
-	return uid, slices.Contains(perms, "users:read_all"), nil
+	return uid, isOwner || slices.Contains(perms, "users:read_all"), nil
 }
 
 // statusByCode lists, per gRPC code, the domain sentinels that surface as it.

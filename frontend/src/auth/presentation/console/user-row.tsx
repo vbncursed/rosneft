@@ -10,11 +10,12 @@ import { freezeUser, unfreezeUser, deleteUser, restoreUser, setUserOwner } from 
 interface Props {
   u: AdminUser;
   me: Principal;
+  roleTitle: (slug: string) => string;
   onEditRoles: (u: AdminUser) => void;
   act: (fn: () => Promise<unknown>, ok: string) => Promise<void>;
 }
 
-export default function UserRow({ u, me, onEditRoles, act }: Props) {
+export default function UserRow({ u, me, roleTitle, onEditRoles, act }: Props) {
   const self = u.id === me.id;
   // Only the owner may freeze/delete an admin account (mirrors the backend guard).
   const canManage = me.isOwner || !u.roleSlugs.includes("admin");
@@ -25,10 +26,10 @@ export default function UserRow({ u, me, onEditRoles, act }: Props) {
       <td className="px-3 py-2">
         <span className="flex flex-wrap gap-1">
           {u.isOwner ? (
-            <span className="rounded-full border border-amber-300/40 bg-amber-400/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-amber-200">owner</span>
+            <span className="rounded-full border border-amber-300/40 bg-amber-400/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-amber-200">Root</span>
           ) : null}
           {u.roleSlugs.map((r) => (
-            <span key={r} className="rounded-full border border-white/15 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-neutral-300">{r}</span>
+            <span key={r} className="rounded-full border border-white/15 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-neutral-300">{roleTitle(r)}</span>
           ))}
         </span>
       </td>
@@ -46,12 +47,12 @@ export default function UserRow({ u, me, onEditRoles, act }: Props) {
           {me.isOwner && !self ? (
             u.isOwner ? (
               <button type="button"
-                onClick={async () => { if (await confirmAction({ title: "Revoke owner", message: `Revoke owner from ${u.username}?`, danger: true, confirmLabel: "Revoke" })) void act(() => setUserOwner(u.id, false), "Owner revoked"); }}
-                className="cursor-pointer text-neutral-300 hover:text-red-400">Revoke owner</button>
+                onClick={async () => { if (await confirmAction({ title: "Revoke Root", message: `Revoke Root from ${u.username}?`, danger: true, confirmLabel: "Revoke" })) void act(() => setUserOwner(u.id, false), "Root revoked"); }}
+                className="cursor-pointer text-neutral-300 hover:text-red-400">Revoke Root</button>
             ) : (
               <button type="button"
-                onClick={async () => { if (await confirmAction({ title: "Make owner", message: `Grant owner to ${u.username}? Owners can manage everyone and bypass role limits.`, confirmLabel: "Make owner" })) void act(() => setUserOwner(u.id, true), "Owner granted"); }}
-                className="cursor-pointer text-neutral-300 hover:text-amber-300">Make owner</button>
+                onClick={async () => { if (await confirmAction({ title: "Make Root", message: `Grant Root to ${u.username}? Root has every permission and can manage everyone.`, confirmLabel: "Make Root" })) void act(() => setUserOwner(u.id, true), "Root granted"); }}
+                className="cursor-pointer text-neutral-300 hover:text-amber-300">Make Root</button>
             )
           ) : null}
           {can(me, "users:freeze") && !self && canManage && u.status !== "deleted" ? (

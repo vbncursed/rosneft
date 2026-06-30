@@ -95,6 +95,7 @@ message ValidateTokenRequest {
 message ValidateTokenResponse {
   string user_id = 1;
   repeated string permissions = 2;
+  bool is_owner = 3; // root of trust; gateway grants it a blanket route bypass
 }
 
 message GetMeRequest {

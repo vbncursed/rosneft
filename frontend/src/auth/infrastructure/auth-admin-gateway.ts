@@ -54,8 +54,8 @@ export async function setUserOwner(id: string, isOwner: boolean): Promise<AdminU
 export async function listRoles(): Promise<Role[]> {
   return (await httpGet<RoleDto[]>("/api/auth/roles")).map(mapRole);
 }
-export async function createRole(slug: string, title: string, permissionSlugs: string[]): Promise<Role> {
-  return mapRole(await httpPost("/api/auth/roles", { slug, title, permissionSlugs }));
+export async function createRole(title: string, permissionSlugs: string[]): Promise<Role> {
+  return mapRole(await httpPost("/api/auth/roles", { title, permissionSlugs }));
 }
 export async function renameRole(slug: string, title: string): Promise<Role> {
   return mapRole(await httpPatch(`/api/auth/roles/${encodeURIComponent(slug)}`, { title }));
