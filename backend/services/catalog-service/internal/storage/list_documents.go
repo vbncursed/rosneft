@@ -12,7 +12,7 @@ import (
 // an empty list so callers distinguish "no documents yet" from "no such
 // territory".
 func (r *PG) ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error) {
-	if _, err := r.GetTerritory(ctx, territorySlug); err != nil {
+	if _, err := r.GetTerritory(ctx, territorySlug, ""); err != nil { // existence check; scoped at gateway
 		return nil, err
 	}
 

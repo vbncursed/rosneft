@@ -7,11 +7,17 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
-// ListTerritories returns every territory ordered by slug for stable output.
-func (r *PG) ListTerritories(ctx context.Context) ([]domain.Territory, error) {
-	const q = `SELECT ` + territoryColumns + ` FROM territories ORDER BY slug`
+// ListTerritories returns territories ordered by slug. When scopeAdminID is
+// non-empty, only territories assigned to that admin are returned; empty means
+// no filter (Root and internal callers see everything).
+func (r *PG) ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error) {
+	const q = `SELECT ` + territoryColumns + ` FROM territories t
+WHERE ($1 = '' OR EXISTS (
+    SELECT 1 FROM territory_assignments a
+    WHERE a.territory_id = t.id AND a.admin_user_id = $1::uuid))
+ORDER BY t.slug`
 
-	rows, err := r.pool.Query(ctx, q)
+	rows, err := r.pool.Query(ctx, q, scopeAdminID)
 	if err != nil {
 		return nil, fmt.Errorf("storage.ListTerritories: query: %w", err)
 	}

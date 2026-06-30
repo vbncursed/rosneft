@@ -11,7 +11,7 @@ import (
 // LOD ascending. An unknown territory yields ErrTerritoryNotFound rather
 // than an empty list.
 func (r *PG) ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error) {
-	if _, err := r.GetTerritory(ctx, slug); err != nil {
+	if _, err := r.GetTerritory(ctx, slug, ""); err != nil { // existence check; scoped at gateway
 		return nil, err
 	}
 
