@@ -16,15 +16,17 @@ import (
 
 // Service is the gateway surface this transport calls.
 type Service interface {
-	ListTerritories(ctx context.Context) ([]domain.Territory, error)
-	GetTerritory(ctx context.Context, slug string) (domain.Territory, error)
+	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
+	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
 	CreateTerritory(ctx context.Context, t domain.Territory) (domain.Territory, domain.Job, error)
 	ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHash string) (domain.Territory, domain.Job, error)
 	UpdateTerritory(ctx context.Context, slug string, update domain.TerritoryUpdate) (domain.Territory, error)
 	DeleteTerritory(ctx context.Context, slug string) error
 	ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
 	GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
-	GetSceneBundle(ctx context.Context, slug string) (domain.SceneBundle, error)
+	GetSceneBundle(ctx context.Context, slug, scopeAdminID string) (domain.SceneBundle, error)
+	SetTerritoryAdmins(ctx context.Context, slug string, adminIDs []string) error
+	GetTerritoryAdmins(ctx context.Context, slug string) ([]string, error)
 
 	ListModels(ctx context.Context) ([]domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)

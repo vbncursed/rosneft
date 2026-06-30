@@ -5,10 +5,12 @@ import (
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
 
 func (s *Server) ListTerritories(ctx context.Context, _ ListTerritoriesRequestObject) (ListTerritoriesResponseObject, error) {
-	out, err := s.svc.ListTerritories(ctx)
+	scopeAdminID, _ := authhttp.Scope(ctx)
+	out, err := s.svc.ListTerritories(ctx, scopeAdminID)
 	if err != nil {
 		return ListTerritories500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
 	}
@@ -20,7 +22,8 @@ func (s *Server) ListTerritories(ctx context.Context, _ ListTerritoriesRequestOb
 }
 
 func (s *Server) GetTerritory(ctx context.Context, req GetTerritoryRequestObject) (GetTerritoryResponseObject, error) {
-	t, err := s.svc.GetTerritory(ctx, req.Slug)
+	scopeAdminID, _ := authhttp.Scope(ctx)
+	t, err := s.svc.GetTerritory(ctx, req.Slug, scopeAdminID)
 	switch {
 	case isNotFound(err):
 		return GetTerritory404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
@@ -116,7 +119,8 @@ func (s *Server) GetTerritoryArtifact(ctx context.Context, req GetTerritoryArtif
 }
 
 func (s *Server) GetSceneBundle(ctx context.Context, req GetSceneBundleRequestObject) (GetSceneBundleResponseObject, error) {
-	bundle, err := s.svc.GetSceneBundle(ctx, req.Slug)
+	scopeAdminID, _ := authhttp.Scope(ctx)
+	bundle, err := s.svc.GetSceneBundle(ctx, req.Slug, scopeAdminID)
 	switch {
 	case isNotFound(err):
 		return GetSceneBundle404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
