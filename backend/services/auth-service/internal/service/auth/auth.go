@@ -15,6 +15,7 @@ import (
 type UserStore interface {
 	GetByIdentifier(ctx context.Context, identifier string) (domain.User, error)
 	GetByID(ctx context.Context, id string) (domain.User, error)
+	ResolveOwningAdmin(ctx context.Context, userID string) (string, error)
 }
 
 // SessionStore is the Redis-backed session contract.

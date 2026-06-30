@@ -32,6 +32,13 @@ type UserStoreMock struct {
 	afterGetByIdentifierCounter  uint64
 	beforeGetByIdentifierCounter uint64
 	GetByIdentifierMock          mUserStoreMockGetByIdentifier
+
+	funcResolveOwningAdmin          func(ctx context.Context, userID string) (s1 string, err error)
+	funcResolveOwningAdminOrigin    string
+	inspectFuncResolveOwningAdmin   func(ctx context.Context, userID string)
+	afterResolveOwningAdminCounter  uint64
+	beforeResolveOwningAdminCounter uint64
+	ResolveOwningAdminMock          mUserStoreMockResolveOwningAdmin
 }
 
 // NewUserStoreMock returns a mock for mm_auth.UserStore
@@ -47,6 +54,9 @@ func NewUserStoreMock(t minimock.Tester) *UserStoreMock {
 
 	m.GetByIdentifierMock = mUserStoreMockGetByIdentifier{mock: m}
 	m.GetByIdentifierMock.callArgs = []*UserStoreMockGetByIdentifierParams{}
+
+	m.ResolveOwningAdminMock = mUserStoreMockResolveOwningAdmin{mock: m}
+	m.ResolveOwningAdminMock.callArgs = []*UserStoreMockResolveOwningAdminParams{}
 
 	t.Cleanup(m.MinimockFinish)
 
@@ -739,6 +749,349 @@ func (m *UserStoreMock) MinimockGetByIdentifierInspect() {
 	}
 }
 
+type mUserStoreMockResolveOwningAdmin struct {
+	optional           bool
+	mock               *UserStoreMock
+	defaultExpectation *UserStoreMockResolveOwningAdminExpectation
+	expectations       []*UserStoreMockResolveOwningAdminExpectation
+
+	callArgs []*UserStoreMockResolveOwningAdminParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// UserStoreMockResolveOwningAdminExpectation specifies expectation struct of the UserStore.ResolveOwningAdmin
+type UserStoreMockResolveOwningAdminExpectation struct {
+	mock               *UserStoreMock
+	params             *UserStoreMockResolveOwningAdminParams
+	paramPtrs          *UserStoreMockResolveOwningAdminParamPtrs
+	expectationOrigins UserStoreMockResolveOwningAdminExpectationOrigins
+	results            *UserStoreMockResolveOwningAdminResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// UserStoreMockResolveOwningAdminParams contains parameters of the UserStore.ResolveOwningAdmin
+type UserStoreMockResolveOwningAdminParams struct {
+	ctx    context.Context
+	userID string
+}
+
+// UserStoreMockResolveOwningAdminParamPtrs contains pointers to parameters of the UserStore.ResolveOwningAdmin
+type UserStoreMockResolveOwningAdminParamPtrs struct {
+	ctx    *context.Context
+	userID *string
+}
+
+// UserStoreMockResolveOwningAdminResults contains results of the UserStore.ResolveOwningAdmin
+type UserStoreMockResolveOwningAdminResults struct {
+	s1  string
+	err error
+}
+
+// UserStoreMockResolveOwningAdminOrigins contains origins of expectations of the UserStore.ResolveOwningAdmin
+type UserStoreMockResolveOwningAdminExpectationOrigins struct {
+	origin       string
+	originCtx    string
+	originUserID string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmResolveOwningAdmin *mUserStoreMockResolveOwningAdmin) Optional() *mUserStoreMockResolveOwningAdmin {
+	mmResolveOwningAdmin.optional = true
+	return mmResolveOwningAdmin
+}
+
+// Expect sets up expected params for UserStore.ResolveOwningAdmin
+func (mmResolveOwningAdmin *mUserStoreMockResolveOwningAdmin) Expect(ctx context.Context, userID string) *mUserStoreMockResolveOwningAdmin {
+	if mmResolveOwningAdmin.mock.funcResolveOwningAdmin != nil {
+		mmResolveOwningAdmin.mock.t.Fatalf("UserStoreMock.ResolveOwningAdmin mock is already set by Set")
+	}
+
+	if mmResolveOwningAdmin.defaultExpectation == nil {
+		mmResolveOwningAdmin.defaultExpectation = &UserStoreMockResolveOwningAdminExpectation{}
+	}
+
+	if mmResolveOwningAdmin.defaultExpectation.paramPtrs != nil {
+		mmResolveOwningAdmin.mock.t.Fatalf("UserStoreMock.ResolveOwningAdmin mock is already set by ExpectParams functions")
+	}
+
+	mmResolveOwningAdmin.defaultExpectation.params = &UserStoreMockResolveOwningAdminParams{ctx, userID}
+	mmResolveOwningAdmin.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmResolveOwningAdmin.expectations {
+		if minimock.Equal(e.params, mmResolveOwningAdmin.defaultExpectation.params) {
+			mmResolveOwningAdmin.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmResolveOwningAdmin.defaultExpectation.params)
+		}
+	}
+
+	return mmResolveOwningAdmin
+}
+
+// ExpectCtxParam1 sets up expected param ctx for UserStore.ResolveOwningAdmin
+func (mmResolveOwningAdmin *mUserStoreMockResolveOwningAdmin) ExpectCtxParam1(ctx context.Context) *mUserStoreMockResolveOwningAdmin {
+	if mmResolveOwningAdmin.mock.funcResolveOwningAdmin != nil {
+		mmResolveOwningAdmin.mock.t.Fatalf("UserStoreMock.ResolveOwningAdmin mock is already set by Set")
+	}
+
+	if mmResolveOwningAdmin.defaultExpectation == nil {
+		mmResolveOwningAdmin.defaultExpectation = &UserStoreMockResolveOwningAdminExpectation{}
+	}
+
+	if mmResolveOwningAdmin.defaultExpectation.params != nil {
+		mmResolveOwningAdmin.mock.t.Fatalf("UserStoreMock.ResolveOwningAdmin mock is already set by Expect")
+	}
+
+	if mmResolveOwningAdmin.defaultExpectation.paramPtrs == nil {
+		mmResolveOwningAdmin.defaultExpectation.paramPtrs = &UserStoreMockResolveOwningAdminParamPtrs{}
+	}
+	mmResolveOwningAdmin.defaultExpectation.paramPtrs.ctx = &ctx
+	mmResolveOwningAdmin.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmResolveOwningAdmin
+}
+
+// ExpectUserIDParam2 sets up expected param userID for UserStore.ResolveOwningAdmin
+func (mmResolveOwningAdmin *mUserStoreMockResolveOwningAdmin) ExpectUserIDParam2(userID string) *mUserStoreMockResolveOwningAdmin {
+	if mmResolveOwningAdmin.mock.funcResolveOwningAdmin != nil {
+		mmResolveOwningAdmin.mock.t.Fatalf("UserStoreMock.ResolveOwningAdmin mock is already set by Set")
+	}
+
+	if mmResolveOwningAdmin.defaultExpectation == nil {
+		mmResolveOwningAdmin.defaultExpectation = &UserStoreMockResolveOwningAdminExpectation{}
+	}
+
+	if mmResolveOwningAdmin.defaultExpectation.params != nil {
+		mmResolveOwningAdmin.mock.t.Fatalf("UserStoreMock.ResolveOwningAdmin mock is already set by Expect")
+	}
+
+	if mmResolveOwningAdmin.defaultExpectation.paramPtrs == nil {
+		mmResolveOwningAdmin.defaultExpectation.paramPtrs = &UserStoreMockResolveOwningAdminParamPtrs{}
+	}
+	mmResolveOwningAdmin.defaultExpectation.paramPtrs.userID = &userID
+	mmResolveOwningAdmin.defaultExpectation.expectationOrigins.originUserID = minimock.CallerInfo(1)
+
+	return mmResolveOwningAdmin
+}
+
+// Inspect accepts an inspector function that has same arguments as the UserStore.ResolveOwningAdmin
+func (mmResolveOwningAdmin *mUserStoreMockResolveOwningAdmin) Inspect(f func(ctx context.Context, userID string)) *mUserStoreMockResolveOwningAdmin {
+	if mmResolveOwningAdmin.mock.inspectFuncResolveOwningAdmin != nil {
+		mmResolveOwningAdmin.mock.t.Fatalf("Inspect function is already set for UserStoreMock.ResolveOwningAdmin")
+	}
+
+	mmResolveOwningAdmin.mock.inspectFuncResolveOwningAdmin = f
+
+	return mmResolveOwningAdmin
+}
+
+// Return sets up results that will be returned by UserStore.ResolveOwningAdmin
+func (mmResolveOwningAdmin *mUserStoreMockResolveOwningAdmin) Return(s1 string, err error) *UserStoreMock {
+	if mmResolveOwningAdmin.mock.funcResolveOwningAdmin != nil {
+		mmResolveOwningAdmin.mock.t.Fatalf("UserStoreMock.ResolveOwningAdmin mock is already set by Set")
+	}
+
+	if mmResolveOwningAdmin.defaultExpectation == nil {
+		mmResolveOwningAdmin.defaultExpectation = &UserStoreMockResolveOwningAdminExpectation{mock: mmResolveOwningAdmin.mock}
+	}
+	mmResolveOwningAdmin.defaultExpectation.results = &UserStoreMockResolveOwningAdminResults{s1, err}
+	mmResolveOwningAdmin.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmResolveOwningAdmin.mock
+}
+
+// Set uses given function f to mock the UserStore.ResolveOwningAdmin method
+func (mmResolveOwningAdmin *mUserStoreMockResolveOwningAdmin) Set(f func(ctx context.Context, userID string) (s1 string, err error)) *UserStoreMock {
+	if mmResolveOwningAdmin.defaultExpectation != nil {
+		mmResolveOwningAdmin.mock.t.Fatalf("Default expectation is already set for the UserStore.ResolveOwningAdmin method")
+	}
+
+	if len(mmResolveOwningAdmin.expectations) > 0 {
+		mmResolveOwningAdmin.mock.t.Fatalf("Some expectations are already set for the UserStore.ResolveOwningAdmin method")
+	}
+
+	mmResolveOwningAdmin.mock.funcResolveOwningAdmin = f
+	mmResolveOwningAdmin.mock.funcResolveOwningAdminOrigin = minimock.CallerInfo(1)
+	return mmResolveOwningAdmin.mock
+}
+
+// When sets expectation for the UserStore.ResolveOwningAdmin which will trigger the result defined by the following
+// Then helper
+func (mmResolveOwningAdmin *mUserStoreMockResolveOwningAdmin) When(ctx context.Context, userID string) *UserStoreMockResolveOwningAdminExpectation {
+	if mmResolveOwningAdmin.mock.funcResolveOwningAdmin != nil {
+		mmResolveOwningAdmin.mock.t.Fatalf("UserStoreMock.ResolveOwningAdmin mock is already set by Set")
+	}
+
+	expectation := &UserStoreMockResolveOwningAdminExpectation{
+		mock:               mmResolveOwningAdmin.mock,
+		params:             &UserStoreMockResolveOwningAdminParams{ctx, userID},
+		expectationOrigins: UserStoreMockResolveOwningAdminExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmResolveOwningAdmin.expectations = append(mmResolveOwningAdmin.expectations, expectation)
+	return expectation
+}
+
+// Then sets up UserStore.ResolveOwningAdmin return parameters for the expectation previously defined by the When method
+func (e *UserStoreMockResolveOwningAdminExpectation) Then(s1 string, err error) *UserStoreMock {
+	e.results = &UserStoreMockResolveOwningAdminResults{s1, err}
+	return e.mock
+}
+
+// Times sets number of times UserStore.ResolveOwningAdmin should be invoked
+func (mmResolveOwningAdmin *mUserStoreMockResolveOwningAdmin) Times(n uint64) *mUserStoreMockResolveOwningAdmin {
+	if n == 0 {
+		mmResolveOwningAdmin.mock.t.Fatalf("Times of UserStoreMock.ResolveOwningAdmin mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmResolveOwningAdmin.expectedInvocations, n)
+	mmResolveOwningAdmin.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmResolveOwningAdmin
+}
+
+func (mmResolveOwningAdmin *mUserStoreMockResolveOwningAdmin) invocationsDone() bool {
+	if len(mmResolveOwningAdmin.expectations) == 0 && mmResolveOwningAdmin.defaultExpectation == nil && mmResolveOwningAdmin.mock.funcResolveOwningAdmin == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmResolveOwningAdmin.mock.afterResolveOwningAdminCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmResolveOwningAdmin.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ResolveOwningAdmin implements mm_auth.UserStore
+func (mmResolveOwningAdmin *UserStoreMock) ResolveOwningAdmin(ctx context.Context, userID string) (s1 string, err error) {
+	mm_atomic.AddUint64(&mmResolveOwningAdmin.beforeResolveOwningAdminCounter, 1)
+	defer mm_atomic.AddUint64(&mmResolveOwningAdmin.afterResolveOwningAdminCounter, 1)
+
+	mmResolveOwningAdmin.t.Helper()
+
+	if mmResolveOwningAdmin.inspectFuncResolveOwningAdmin != nil {
+		mmResolveOwningAdmin.inspectFuncResolveOwningAdmin(ctx, userID)
+	}
+
+	mm_params := UserStoreMockResolveOwningAdminParams{ctx, userID}
+
+	// Record call args
+	mmResolveOwningAdmin.ResolveOwningAdminMock.mutex.Lock()
+	mmResolveOwningAdmin.ResolveOwningAdminMock.callArgs = append(mmResolveOwningAdmin.ResolveOwningAdminMock.callArgs, &mm_params)
+	mmResolveOwningAdmin.ResolveOwningAdminMock.mutex.Unlock()
+
+	for _, e := range mmResolveOwningAdmin.ResolveOwningAdminMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.s1, e.results.err
+		}
+	}
+
+	if mmResolveOwningAdmin.ResolveOwningAdminMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmResolveOwningAdmin.ResolveOwningAdminMock.defaultExpectation.Counter, 1)
+		mm_want := mmResolveOwningAdmin.ResolveOwningAdminMock.defaultExpectation.params
+		mm_want_ptrs := mmResolveOwningAdmin.ResolveOwningAdminMock.defaultExpectation.paramPtrs
+
+		mm_got := UserStoreMockResolveOwningAdminParams{ctx, userID}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmResolveOwningAdmin.t.Errorf("UserStoreMock.ResolveOwningAdmin got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveOwningAdmin.ResolveOwningAdminMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.userID != nil && !minimock.Equal(*mm_want_ptrs.userID, mm_got.userID) {
+				mmResolveOwningAdmin.t.Errorf("UserStoreMock.ResolveOwningAdmin got unexpected parameter userID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveOwningAdmin.ResolveOwningAdminMock.defaultExpectation.expectationOrigins.originUserID, *mm_want_ptrs.userID, mm_got.userID, minimock.Diff(*mm_want_ptrs.userID, mm_got.userID))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmResolveOwningAdmin.t.Errorf("UserStoreMock.ResolveOwningAdmin got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmResolveOwningAdmin.ResolveOwningAdminMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmResolveOwningAdmin.ResolveOwningAdminMock.defaultExpectation.results
+		if mm_results == nil {
+			mmResolveOwningAdmin.t.Fatal("No results are set for the UserStoreMock.ResolveOwningAdmin")
+		}
+		return (*mm_results).s1, (*mm_results).err
+	}
+	if mmResolveOwningAdmin.funcResolveOwningAdmin != nil {
+		return mmResolveOwningAdmin.funcResolveOwningAdmin(ctx, userID)
+	}
+	mmResolveOwningAdmin.t.Fatalf("Unexpected call to UserStoreMock.ResolveOwningAdmin. %v %v", ctx, userID)
+	return
+}
+
+// ResolveOwningAdminAfterCounter returns a count of finished UserStoreMock.ResolveOwningAdmin invocations
+func (mmResolveOwningAdmin *UserStoreMock) ResolveOwningAdminAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmResolveOwningAdmin.afterResolveOwningAdminCounter)
+}
+
+// ResolveOwningAdminBeforeCounter returns a count of UserStoreMock.ResolveOwningAdmin invocations
+func (mmResolveOwningAdmin *UserStoreMock) ResolveOwningAdminBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmResolveOwningAdmin.beforeResolveOwningAdminCounter)
+}
+
+// Calls returns a list of arguments used in each call to UserStoreMock.ResolveOwningAdmin.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmResolveOwningAdmin *mUserStoreMockResolveOwningAdmin) Calls() []*UserStoreMockResolveOwningAdminParams {
+	mmResolveOwningAdmin.mutex.RLock()
+
+	argCopy := make([]*UserStoreMockResolveOwningAdminParams, len(mmResolveOwningAdmin.callArgs))
+	copy(argCopy, mmResolveOwningAdmin.callArgs)
+
+	mmResolveOwningAdmin.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockResolveOwningAdminDone returns true if the count of the ResolveOwningAdmin invocations corresponds
+// the number of defined expectations
+func (m *UserStoreMock) MinimockResolveOwningAdminDone() bool {
+	if m.ResolveOwningAdminMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ResolveOwningAdminMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ResolveOwningAdminMock.invocationsDone()
+}
+
+// MinimockResolveOwningAdminInspect logs each unmet expectation
+func (m *UserStoreMock) MinimockResolveOwningAdminInspect() {
+	for _, e := range m.ResolveOwningAdminMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to UserStoreMock.ResolveOwningAdmin at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterResolveOwningAdminCounter := mm_atomic.LoadUint64(&m.afterResolveOwningAdminCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ResolveOwningAdminMock.defaultExpectation != nil && afterResolveOwningAdminCounter < 1 {
+		if m.ResolveOwningAdminMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to UserStoreMock.ResolveOwningAdmin at\n%s", m.ResolveOwningAdminMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to UserStoreMock.ResolveOwningAdmin at\n%s with params: %#v", m.ResolveOwningAdminMock.defaultExpectation.expectationOrigins.origin, *m.ResolveOwningAdminMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcResolveOwningAdmin != nil && afterResolveOwningAdminCounter < 1 {
+		m.t.Errorf("Expected call to UserStoreMock.ResolveOwningAdmin at\n%s", m.funcResolveOwningAdminOrigin)
+	}
+
+	if !m.ResolveOwningAdminMock.invocationsDone() && afterResolveOwningAdminCounter > 0 {
+		m.t.Errorf("Expected %d calls to UserStoreMock.ResolveOwningAdmin at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ResolveOwningAdminMock.expectedInvocations), m.ResolveOwningAdminMock.expectedInvocationsOrigin, afterResolveOwningAdminCounter)
+	}
+}
+
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *UserStoreMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
@@ -746,6 +1099,8 @@ func (m *UserStoreMock) MinimockFinish() {
 			m.MinimockGetByIDInspect()
 
 			m.MinimockGetByIdentifierInspect()
+
+			m.MinimockResolveOwningAdminInspect()
 		}
 	})
 }
@@ -770,5 +1125,6 @@ func (m *UserStoreMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockGetByIDDone() &&
-		m.MinimockGetByIdentifierDone()
+		m.MinimockGetByIdentifierDone() &&
+		m.MinimockResolveOwningAdminDone()
 }
