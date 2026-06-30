@@ -58,7 +58,11 @@ async function send<T>(
         : res.statusText || `Request failed (${res.status})`;
     throw new HttpError(res.status, body, detail || fallback);
   }
-  return parseJson ? ((await res.json()) as T) : (undefined as T);
+  // 204 No Content has an empty body — parsing it as JSON throws
+  // "Unexpected end of JSON input". Callers of no-content endpoints ignore
+  // the return, so hand back undefined.
+  if (!parseJson || res.status === 204) return undefined as T;
+  return (await res.json()) as T;
 }
 
 export function httpGet<T>(path: string): Promise<T> {
