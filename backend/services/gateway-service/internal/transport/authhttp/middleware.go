@@ -17,12 +17,12 @@ func (h *Handlers) Authenticate(next http.Handler) http.Handler {
 			apperr.Write(w, http.StatusUnauthorized, apperr.SlugUnauthenticated, "missing bearer token")
 			return
 		}
-		uid, perms, isOwner, err := h.client.ValidateToken(r.Context(), token)
+		uid, perms, isOwner, owningAdmin, err := h.client.ValidateToken(r.Context(), token)
 		if err != nil {
 			fail(w, err) // maps Unauthenticated → 401
 			return
 		}
-		next.ServeHTTP(w, r.WithContext(withPrincipal(r.Context(), uid, perms, isOwner)))
+		next.ServeHTTP(w, r.WithContext(withPrincipal(r.Context(), uid, perms, isOwner, owningAdmin)))
 	})
 }
 
