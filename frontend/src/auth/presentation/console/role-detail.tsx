@@ -28,26 +28,35 @@ export default function RoleDetail({ role, permissions, onSave, onRename, onDele
   // A non-owner can't save a role that already carries permissions it lacks.
   const blocked = grantable ? draft.some((s) => !grantable.has(s)) : false;
   const renamed = name.trim().length > 0 && name.trim() !== role.title;
+  // System roles are defined by migrations and immutable — the backend refuses
+  // edits, so the UI shows them read-only (you can still assign them to users).
+  const system = role.isSystem;
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
       <div className="flex items-center gap-3">
         <label className="sr-only" htmlFor="role-name">Role name</label>
-        <input id="role-name" value={name} onChange={(e) => setName(e.target.value)}
-          className="min-w-0 flex-1 border-b border-transparent bg-transparent text-sm font-semibold text-white outline-none transition-colors hover:border-white/15 focus:border-cyan-300/60" />
-        {renamed ? (
+        <input id="role-name" value={name} onChange={(e) => setName(e.target.value)} readOnly={system}
+          className={`min-w-0 flex-1 border-b border-transparent bg-transparent text-sm font-semibold text-white outline-none transition-colors ${system ? "" : "hover:border-white/15 focus:border-cyan-300/60"}`} />
+        {renamed && !system ? (
           <button type="button" onClick={() => onRename(role.slug, name.trim())}
             className="cursor-pointer whitespace-nowrap rounded-md border border-cyan-300/40 bg-cyan-400/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-cyan-100 hover:bg-cyan-400/20">Rename</button>
         ) : null}
-        {!role.isSystem ? (
+        {!system ? (
           <button type="button" onClick={async () => { if (await confirmAction({ title: "Delete role", message: `Delete role ${role.title}?`, danger: true })) onDelete(role.slug); }}
             className="cursor-pointer whitespace-nowrap rounded-md border border-red-300/40 bg-red-500/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-red-200 hover:bg-red-500/20">Delete</button>
         ) : null}
       </div>
-      <div className="mt-4"><PermissionMatrix all={permissions} selected={draft} onToggle={toggle} grantable={grantable} /></div>
-      {blocked ? <p className="mt-3 text-xs text-amber-300/80">This role holds permissions you don&apos;t have — only Root can change it.</p> : null}
-      <button type="button" disabled={blocked} onClick={() => onSave(role.slug, draft)}
-        className="mt-5 cursor-pointer rounded-md border border-white/30 bg-white/10 px-4 py-1.5 text-sm font-medium text-white hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50">Save permissions</button>
+      <div className="mt-4"><PermissionMatrix all={permissions} selected={draft} onToggle={toggle} disabled={system} grantable={grantable} /></div>
+      {system ? (
+        <p className="mt-3 text-xs text-neutral-500">System role — managed by the platform. Assign it to users from the Users page.</p>
+      ) : (
+        <>
+          {blocked ? <p className="mt-3 text-xs text-amber-300/80">This role holds permissions you don&apos;t have — only Root can change it.</p> : null}
+          <button type="button" disabled={blocked} onClick={() => onSave(role.slug, draft)}
+            className="mt-5 cursor-pointer rounded-md border border-white/30 bg-white/10 px-4 py-1.5 text-sm font-medium text-white hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50">Save permissions</button>
+        </>
+      )}
     </div>
   );
 }
