@@ -12,7 +12,7 @@ import (
 // than an empty list — the caller wants to distinguish "no placements yet"
 // from "no such territory".
 func (r *PG) ListPlacements(ctx context.Context, territorySlug string) ([]domain.Placement, error) {
-	if _, err := r.GetTerritory(ctx, territorySlug); err != nil {
+	if _, err := r.GetTerritory(ctx, territorySlug, ""); err != nil { // existence check; scoped at gateway
 		return nil, err
 	}
 

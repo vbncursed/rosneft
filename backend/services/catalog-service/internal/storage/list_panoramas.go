@@ -12,7 +12,7 @@ import (
 // rather than an empty list so callers distinguish "no panoramas yet"
 // from "no such territory".
 func (r *PG) ListPanoramas(ctx context.Context, territorySlug string) ([]domain.Panorama, error) {
-	if _, err := r.GetTerritory(ctx, territorySlug); err != nil {
+	if _, err := r.GetTerritory(ctx, territorySlug, ""); err != nil { // existence check; scoped at gateway
 		return nil, err
 	}
 

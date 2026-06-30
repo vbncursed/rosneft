@@ -12,7 +12,7 @@ import (
 
 // GetTerritoryArtifact returns a single territory artifact at the given LOD.
 func (r *PG) GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error) {
-	if _, err := r.GetTerritory(ctx, slug); err != nil {
+	if _, err := r.GetTerritory(ctx, slug, ""); err != nil { // existence check; scoped at gateway
 		return domain.Artifact{}, err
 	}
 
