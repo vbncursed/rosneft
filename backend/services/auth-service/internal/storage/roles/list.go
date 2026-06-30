@@ -7,9 +7,14 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
-// List returns every role with permission slugs.
-func (s *Store) List(ctx context.Context) ([]domain.Role, error) {
-	rows, err := s.pool.Query(ctx, `SELECT slug FROM roles ORDER BY slug`)
+// List returns roles visible to the caller: global roles (system + Root-created,
+// owner_admin_id IS NULL) plus, for a non-owner, the roles of its own group.
+// allAccess (Root) sees every role.
+func (s *Store) List(ctx context.Context, scopeAdminID string, allAccess bool) ([]domain.Role, error) {
+	const q = `SELECT slug FROM roles
+		WHERE owner_admin_id IS NULL OR $2 OR owner_admin_id = NULLIF($1, '')::uuid
+		ORDER BY slug`
+	rows, err := s.pool.Query(ctx, q, scopeAdminID, allAccess)
 	if err != nil {
 		return nil, fmt.Errorf("roles.List: %w", err)
 	}

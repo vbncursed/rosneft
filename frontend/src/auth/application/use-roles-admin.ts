@@ -46,7 +46,18 @@ export function useRolesAdmin() {
     loading,
     reload,
     save: (slug: string, perms: string[]) => run(() => setRolePermissions(slug, perms), "Permissions saved"),
-    create: (title: string, perms: string[]) => run(() => createRole(title, perms), "Role created"),
+    // Returns the new role's slug so the panel can select it (Delete lives there).
+    create: async (title: string, perms: string[]): Promise<string | null> => {
+      try {
+        const role = await createRole(title, perms);
+        notify.success("Role created");
+        await reload();
+        return role.slug;
+      } catch (e) {
+        notify.error(e instanceof Error ? e.message : "Action failed");
+        return null;
+      }
+    },
     rename: (slug: string, title: string) => run(() => renameRole(slug, title), "Renamed"),
     remove: (slug: string) => run(() => deleteRole(slug), "Role deleted"),
   };

@@ -10,15 +10,11 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
-// UpdateTitle renames a role. System roles are immutable (defined by
-// migrations) and refused, mirroring Delete/SetPermissions.
-func (s *Store) UpdateTitle(ctx context.Context, slug, title string) (domain.Role, error) {
-	existing, err := s.Get(ctx, slug)
-	if err != nil {
+// UpdateTitle renames a role. Refused for system roles and for roles outside
+// the actor's group (see assertMutable).
+func (s *Store) UpdateTitle(ctx context.Context, slug, title, scopeAdminID string, allAccess bool) (domain.Role, error) {
+	if err := s.assertMutable(ctx, slug, scopeAdminID, allAccess); err != nil {
 		return domain.Role{}, err
-	}
-	if existing.IsSystem {
-		return domain.Role{}, domain.ErrSystemRole
 	}
 	const q = `UPDATE roles SET title = $2, updated_at = now() WHERE slug = $1 RETURNING id`
 	var id string

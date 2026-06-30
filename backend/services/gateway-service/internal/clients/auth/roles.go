@@ -6,8 +6,8 @@ import (
 	authv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/auth/v1"
 )
 
-func (c *Client) ListRoles(ctx context.Context) ([]*authv1.Role, error) {
-	resp, err := c.cc.ListRoles(ctx, &authv1.ListRolesRequest{})
+func (c *Client) ListRoles(ctx context.Context, token string) ([]*authv1.Role, error) {
+	resp, err := c.cc.ListRoles(ctx, &authv1.ListRolesRequest{Token: token})
 	if err != nil {
 		return nil, err
 	}
@@ -18,12 +18,12 @@ func (c *Client) CreateRole(ctx context.Context, token, slug, title string, perm
 	return c.cc.CreateRole(ctx, &authv1.CreateRoleRequest{Token: token, Slug: slug, Title: title, PermissionSlugs: perms})
 }
 
-func (c *Client) UpdateRole(ctx context.Context, slug, title string) (*authv1.Role, error) {
-	return c.cc.UpdateRole(ctx, &authv1.UpdateRoleRequest{Slug: slug, Title: title})
+func (c *Client) UpdateRole(ctx context.Context, token, slug, title string) (*authv1.Role, error) {
+	return c.cc.UpdateRole(ctx, &authv1.UpdateRoleRequest{Token: token, Slug: slug, Title: title})
 }
 
-func (c *Client) DeleteRole(ctx context.Context, slug string) error {
-	_, err := c.cc.DeleteRole(ctx, &authv1.DeleteRoleRequest{Slug: slug})
+func (c *Client) DeleteRole(ctx context.Context, token, slug string) error {
+	_, err := c.cc.DeleteRole(ctx, &authv1.DeleteRoleRequest{Token: token, Slug: slug})
 	return err
 }
 

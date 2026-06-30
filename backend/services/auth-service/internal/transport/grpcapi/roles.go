@@ -6,8 +6,12 @@ import (
 	authv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/auth/v1"
 )
 
-func (s *Server) ListRoles(ctx context.Context, _ *authv1.ListRolesRequest) (*authv1.ListRolesResponse, error) {
-	list, err := s.roles.List(ctx)
+func (s *Server) ListRoles(ctx context.Context, req *authv1.ListRolesRequest) (*authv1.ListRolesResponse, error) {
+	_, owningAdmin, allAccess, err := s.roleActor(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	list, err := s.roles.List(ctx, owningAdmin, allAccess)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -19,11 +23,11 @@ func (s *Server) ListRoles(ctx context.Context, _ *authv1.ListRolesRequest) (*au
 }
 
 func (s *Server) CreateRole(ctx context.Context, req *authv1.CreateRoleRequest) (*authv1.Role, error) {
-	actorID, _, err := s.actor(ctx, req.GetToken())
+	actorID, owningAdmin, _, err := s.roleActor(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapError(err)
 	}
-	r, err := s.roles.Create(ctx, actorID, req.GetSlug(), req.GetTitle(), req.GetPermissionSlugs())
+	r, err := s.roles.Create(ctx, actorID, owningAdmin, req.GetSlug(), req.GetTitle(), req.GetPermissionSlugs())
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -31,7 +35,11 @@ func (s *Server) CreateRole(ctx context.Context, req *authv1.CreateRoleRequest) 
 }
 
 func (s *Server) UpdateRole(ctx context.Context, req *authv1.UpdateRoleRequest) (*authv1.Role, error) {
-	r, err := s.roles.UpdateTitle(ctx, req.GetSlug(), req.GetTitle())
+	_, owningAdmin, allAccess, err := s.roleActor(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	r, err := s.roles.UpdateTitle(ctx, req.GetSlug(), req.GetTitle(), owningAdmin, allAccess)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -39,18 +47,22 @@ func (s *Server) UpdateRole(ctx context.Context, req *authv1.UpdateRoleRequest) 
 }
 
 func (s *Server) DeleteRole(ctx context.Context, req *authv1.DeleteRoleRequest) (*authv1.DeleteRoleResponse, error) {
-	if err := s.roles.Delete(ctx, req.GetSlug()); err != nil {
+	_, owningAdmin, allAccess, err := s.roleActor(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	if err := s.roles.Delete(ctx, req.GetSlug(), owningAdmin, allAccess); err != nil {
 		return nil, mapError(err)
 	}
 	return &authv1.DeleteRoleResponse{}, nil
 }
 
 func (s *Server) SetRolePermissions(ctx context.Context, req *authv1.SetRolePermissionsRequest) (*authv1.Role, error) {
-	actorID, _, err := s.actor(ctx, req.GetToken())
+	actorID, owningAdmin, allAccess, err := s.roleActor(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapError(err)
 	}
-	r, err := s.roles.SetPermissions(ctx, actorID, req.GetSlug(), req.GetPermissionSlugs())
+	r, err := s.roles.SetPermissions(ctx, actorID, req.GetSlug(), req.GetPermissionSlugs(), owningAdmin, allAccess)
 	if err != nil {
 		return nil, mapError(err)
 	}
