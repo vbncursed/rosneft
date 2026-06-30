@@ -56,12 +56,18 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 	return token, "", err
 }
 
-// issue creates a session carrying a permission snapshot.
+// issue creates a session carrying a permission snapshot and the caller's
+// owning admin (resolved from the created_by chain) for territory scoping.
 func (s *Service) issue(ctx context.Context, u domain.User) (string, error) {
+	owningAdmin, err := s.users.ResolveOwningAdmin(ctx, u.ID)
+	if err != nil {
+		return "", fmt.Errorf("auth.issue: owning admin: %w", err)
+	}
 	return s.sessions.Create(ctx, domain.Session{
 		UserID:         u.ID,
 		Permissions:    u.Permissions,
 		IsOwner:        u.IsOwner,
+		OwningAdminID:  owningAdmin,
 		Status:         u.Status,
 		AbsoluteExpiry: time.Now().Add(s.absoluteTTL),
 	})

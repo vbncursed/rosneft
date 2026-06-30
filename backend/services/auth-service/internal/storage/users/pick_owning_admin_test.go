@@ -1,6 +1,10 @@
 package users
 
-import "testing"
+import (
+	"testing"
+
+	"gotest.tools/v3/assert"
+)
 
 func TestPickOwningAdmin(t *testing.T) {
 	tests := []struct {
@@ -17,9 +21,7 @@ func TestPickOwningAdmin(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := pickOwningAdmin(tt.chain); got != tt.want {
-				t.Errorf("pickOwningAdmin() = %q, want %q", got, tt.want)
-			}
+			assert.Equal(t, pickOwningAdmin(tt.chain), tt.want)
 		})
 	}
 }
