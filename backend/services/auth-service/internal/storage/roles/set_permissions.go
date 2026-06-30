@@ -10,10 +10,16 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
-// SetPermissions replaces a role's permission set.
+// SetPermissions replaces a role's permission set. System roles are immutable
+// (defined by migrations) — refused, mirroring Delete — so no one can strip
+// permissions off a built-in role like Company Owner and lock themselves out.
 func (s *Store) SetPermissions(ctx context.Context, slug string, permSlugs []string) (domain.Role, error) {
-	if _, err := s.Get(ctx, slug); err != nil {
+	r, err := s.Get(ctx, slug)
+	if err != nil {
 		return domain.Role{}, err
+	}
+	if r.IsSystem {
+		return domain.Role{}, domain.ErrSystemRole
 	}
 	if err := s.replacePermissions(ctx, slug, permSlugs); err != nil {
 		return domain.Role{}, err
