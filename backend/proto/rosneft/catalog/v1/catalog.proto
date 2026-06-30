@@ -28,6 +28,8 @@ service CatalogService {
   rpc DeleteTerritoryArtifacts(DeleteTerritoryArtifactsRequest) returns (DeleteTerritoryArtifactsResponse);
   rpc SetTerritoryRescaleBaseline(SetTerritoryRescaleBaselineRequest) returns (SetTerritoryRescaleBaselineResponse);
   rpc RescaleTerritoryPlacements(RescaleTerritoryPlacementsRequest) returns (RescaleTerritoryPlacementsResponse);
+  rpc SetTerritoryAdmins(SetTerritoryAdminsRequest) returns (SetTerritoryAdminsResponse);
+  rpc GetTerritoryAdmins(GetTerritoryAdminsRequest) returns (GetTerritoryAdminsResponse);
 
   rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
   rpc GetModel(GetModelRequest) returns (GetModelResponse);
@@ -135,16 +137,34 @@ message Placement {
 
 // ─── Territory RPCs ─────────────────────────────────────────────────────────
 
-message ListTerritoriesRequest {}
+message ListTerritoriesRequest {
+  // When non-empty, restrict the result to territories assigned to this admin.
+  // Empty means no filter (Root and internal callers see everything).
+  string scope_admin_id = 1;
+}
 message ListTerritoriesResponse {
   repeated Territory territories = 1;
 }
 
 message GetTerritoryRequest {
   string slug = 1;
+  string scope_admin_id = 2; // see ListTerritoriesRequest; empty = no scope check
 }
 message GetTerritoryResponse {
   Territory territory = 1;
+}
+
+message SetTerritoryAdminsRequest {
+  string slug = 1;
+  repeated string admin_user_ids = 2; // full replacement set
+}
+message SetTerritoryAdminsResponse {}
+
+message GetTerritoryAdminsRequest {
+  string slug = 1;
+}
+message GetTerritoryAdminsResponse {
+  repeated string admin_user_ids = 1;
 }
 
 message UpsertTerritoryRequest {

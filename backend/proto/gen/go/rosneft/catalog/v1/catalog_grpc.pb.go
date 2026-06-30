@@ -29,6 +29,8 @@ const (
 	CatalogService_DeleteTerritoryArtifacts_FullMethodName    = "/rosneft.catalog.v1.CatalogService/DeleteTerritoryArtifacts"
 	CatalogService_SetTerritoryRescaleBaseline_FullMethodName = "/rosneft.catalog.v1.CatalogService/SetTerritoryRescaleBaseline"
 	CatalogService_RescaleTerritoryPlacements_FullMethodName  = "/rosneft.catalog.v1.CatalogService/RescaleTerritoryPlacements"
+	CatalogService_SetTerritoryAdmins_FullMethodName          = "/rosneft.catalog.v1.CatalogService/SetTerritoryAdmins"
+	CatalogService_GetTerritoryAdmins_FullMethodName          = "/rosneft.catalog.v1.CatalogService/GetTerritoryAdmins"
 	CatalogService_ListModels_FullMethodName                  = "/rosneft.catalog.v1.CatalogService/ListModels"
 	CatalogService_GetModel_FullMethodName                    = "/rosneft.catalog.v1.CatalogService/GetModel"
 	CatalogService_UpsertModel_FullMethodName                 = "/rosneft.catalog.v1.CatalogService/UpsertModel"
@@ -76,6 +78,8 @@ type CatalogServiceClient interface {
 	DeleteTerritoryArtifacts(ctx context.Context, in *DeleteTerritoryArtifactsRequest, opts ...grpc.CallOption) (*DeleteTerritoryArtifactsResponse, error)
 	SetTerritoryRescaleBaseline(ctx context.Context, in *SetTerritoryRescaleBaselineRequest, opts ...grpc.CallOption) (*SetTerritoryRescaleBaselineResponse, error)
 	RescaleTerritoryPlacements(ctx context.Context, in *RescaleTerritoryPlacementsRequest, opts ...grpc.CallOption) (*RescaleTerritoryPlacementsResponse, error)
+	SetTerritoryAdmins(ctx context.Context, in *SetTerritoryAdminsRequest, opts ...grpc.CallOption) (*SetTerritoryAdminsResponse, error)
+	GetTerritoryAdmins(ctx context.Context, in *GetTerritoryAdminsRequest, opts ...grpc.CallOption) (*GetTerritoryAdminsResponse, error)
 	ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error)
 	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*GetModelResponse, error)
 	UpsertModel(ctx context.Context, in *UpsertModelRequest, opts ...grpc.CallOption) (*UpsertModelResponse, error)
@@ -199,6 +203,26 @@ func (c *catalogServiceClient) RescaleTerritoryPlacements(ctx context.Context, i
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RescaleTerritoryPlacementsResponse)
 	err := c.cc.Invoke(ctx, CatalogService_RescaleTerritoryPlacements_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) SetTerritoryAdmins(ctx context.Context, in *SetTerritoryAdminsRequest, opts ...grpc.CallOption) (*SetTerritoryAdminsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetTerritoryAdminsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_SetTerritoryAdmins_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) GetTerritoryAdmins(ctx context.Context, in *GetTerritoryAdminsRequest, opts ...grpc.CallOption) (*GetTerritoryAdminsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTerritoryAdminsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_GetTerritoryAdmins_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -421,6 +445,8 @@ type CatalogServiceServer interface {
 	DeleteTerritoryArtifacts(context.Context, *DeleteTerritoryArtifactsRequest) (*DeleteTerritoryArtifactsResponse, error)
 	SetTerritoryRescaleBaseline(context.Context, *SetTerritoryRescaleBaselineRequest) (*SetTerritoryRescaleBaselineResponse, error)
 	RescaleTerritoryPlacements(context.Context, *RescaleTerritoryPlacementsRequest) (*RescaleTerritoryPlacementsResponse, error)
+	SetTerritoryAdmins(context.Context, *SetTerritoryAdminsRequest) (*SetTerritoryAdminsResponse, error)
+	GetTerritoryAdmins(context.Context, *GetTerritoryAdminsRequest) (*GetTerritoryAdminsResponse, error)
 	ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error)
 	GetModel(context.Context, *GetModelRequest) (*GetModelResponse, error)
 	UpsertModel(context.Context, *UpsertModelRequest) (*UpsertModelResponse, error)
@@ -479,6 +505,12 @@ func (UnimplementedCatalogServiceServer) SetTerritoryRescaleBaseline(context.Con
 }
 func (UnimplementedCatalogServiceServer) RescaleTerritoryPlacements(context.Context, *RescaleTerritoryPlacementsRequest) (*RescaleTerritoryPlacementsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RescaleTerritoryPlacements not implemented")
+}
+func (UnimplementedCatalogServiceServer) SetTerritoryAdmins(context.Context, *SetTerritoryAdminsRequest) (*SetTerritoryAdminsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetTerritoryAdmins not implemented")
+}
+func (UnimplementedCatalogServiceServer) GetTerritoryAdmins(context.Context, *GetTerritoryAdminsRequest) (*GetTerritoryAdminsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetTerritoryAdmins not implemented")
 }
 func (UnimplementedCatalogServiceServer) ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListModels not implemented")
@@ -734,6 +766,42 @@ func _CatalogService_RescaleTerritoryPlacements_Handler(srv interface{}, ctx con
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CatalogServiceServer).RescaleTerritoryPlacements(ctx, req.(*RescaleTerritoryPlacementsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_SetTerritoryAdmins_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetTerritoryAdminsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).SetTerritoryAdmins(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_SetTerritoryAdmins_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).SetTerritoryAdmins(ctx, req.(*SetTerritoryAdminsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_GetTerritoryAdmins_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTerritoryAdminsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).GetTerritoryAdmins(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_GetTerritoryAdmins_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).GetTerritoryAdmins(ctx, req.(*GetTerritoryAdminsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1126,6 +1194,14 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RescaleTerritoryPlacements",
 			Handler:    _CatalogService_RescaleTerritoryPlacements_Handler,
+		},
+		{
+			MethodName: "SetTerritoryAdmins",
+			Handler:    _CatalogService_SetTerritoryAdmins_Handler,
+		},
+		{
+			MethodName: "GetTerritoryAdmins",
+			Handler:    _CatalogService_GetTerritoryAdmins_Handler,
 		},
 		{
 			MethodName: "ListModels",
