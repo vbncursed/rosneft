@@ -14,14 +14,16 @@ import (
 
 // Catalog is the catalog client surface this service calls.
 type Catalog interface {
-	ListTerritories(ctx context.Context) ([]domain.Territory, error)
-	GetTerritory(ctx context.Context, slug string) (domain.Territory, error)
+	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
+	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
 	UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
 	DeleteTerritory(ctx context.Context, slug string) error
 	ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
 	GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
 	DeleteTerritoryArtifacts(ctx context.Context, slug string) error
 	SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64) error
+	SetTerritoryAdmins(ctx context.Context, slug string, adminIDs []string) error
+	GetTerritoryAdmins(ctx context.Context, slug string) ([]string, error)
 
 	ListModels(ctx context.Context) ([]domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)

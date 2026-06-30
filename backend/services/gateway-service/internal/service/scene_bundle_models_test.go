@@ -16,7 +16,7 @@ import (
 func (s *SceneBundleSuite) TestModelOptionsCarryLODChainPerModel() {
 	s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
 	s.expectModelArtsM1()
-	got, err := s.svc.GetSceneBundle(s.ctx, "t1")
+	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), cmp.Len(got.ModelOptions, 1))
 	assert.Equal(s.T(), got.ModelOptions[0].Slug, "m1")
@@ -29,7 +29,7 @@ func (s *SceneBundleSuite) TestModelOptionsKeepsModelsWithoutArtifacts() {
 	s.expectFanOut(sbTerr3LOD, []domain.Model{{Slug: "m1", Title: "Box"}, {Slug: "m2", Title: "Broken"}}, nil)
 	s.expectModelArtsM1()
 	s.cat.ListModelArtifactsMock.When(minimock.AnyContext, "m2").Then(nil, nil)
-	got, err := s.svc.GetSceneBundle(s.ctx, "t1")
+	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), cmp.Len(got.ModelOptions, 2))
 	for _, opt := range got.ModelOptions {
@@ -42,7 +42,7 @@ func (s *SceneBundleSuite) TestModelOptionsKeepsModelsWithoutArtifacts() {
 func (s *SceneBundleSuite) TestModelOptionsEmptyWhenNoModels() {
 	// No models → buildModelOptions returns [] without any per-model lookup.
 	s.expectFanOut(sbTerr3LOD, nil, nil)
-	got, err := s.svc.GetSceneBundle(s.ctx, "t1")
+	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), got.ModelOptions != nil)
 	assert.Assert(s.T(), cmp.Len(got.ModelOptions, 0))
@@ -57,7 +57,7 @@ func (s *SceneBundleSuite) TestArtifactListErrorOnNonNotFound() {
 	s.cat.ListPanoramasMock.Return(nil, nil)
 	s.cat.ListDocumentsMock.Return(nil, nil)
 	s.cat.ListModelsMock.Return(sbModelsM1, nil)
-	_, err := s.svc.GetSceneBundle(s.ctx, "t1")
+	_, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 	assert.ErrorContains(s.T(), err, "db down")
 }
 
@@ -68,6 +68,6 @@ func (s *SceneBundleSuite) TestModelListErrorAbortsFanOut() {
 	s.cat.ListPanoramasMock.Return(nil, nil)
 	s.cat.ListDocumentsMock.Return(nil, nil)
 	s.cat.ListModelsMock.Return(nil, errors.New("catalog down"))
-	_, err := s.svc.GetSceneBundle(s.ctx, "t1")
+	_, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 	assert.ErrorContains(s.T(), err, "catalog down")
 }

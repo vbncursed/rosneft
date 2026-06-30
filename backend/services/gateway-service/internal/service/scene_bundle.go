@@ -16,7 +16,7 @@ import (
 //
 // A missing LOD0 territory artifact is not an error: SceneBundle.Artifact
 // is left nil so the frontend renders a "conversion pending" placeholder.
-func (g *Gateway) GetSceneBundle(ctx context.Context, slug string) (domain.SceneBundle, error) {
+func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string) (domain.SceneBundle, error) {
 	if slug == "" {
 		return domain.SceneBundle{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}
@@ -33,7 +33,7 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug string) (domain.Scene
 
 	gr, gctx := errgroup.WithContext(ctx)
 	gr.Go(func() error {
-		t, err := g.catalog.GetTerritory(gctx, slug)
+		t, err := g.catalog.GetTerritory(gctx, slug, scopeAdminID)
 		if err != nil {
 			return err
 		}
