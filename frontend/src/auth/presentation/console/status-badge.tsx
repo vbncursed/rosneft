@@ -6,7 +6,7 @@ const tone: Record<string, string> = {
 
 export default function StatusBadge({ status }: { status: string }) {
   return (
-    <span className={`rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] ${tone[status] ?? tone.deleted}`}>
+    <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] [text-indent:0.18em] ${tone[status] ?? tone.deleted}`}>
       {status}
     </span>
   );
