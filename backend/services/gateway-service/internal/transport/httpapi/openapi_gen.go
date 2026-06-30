@@ -149,8 +149,10 @@ type ChangePasswordRequest struct {
 // CreateRoleRequest defines model for CreateRoleRequest.
 type CreateRoleRequest struct {
 	PermissionSlugs *[]string `json:"permissionSlugs,omitempty"`
-	Slug            string    `json:"slug"`
-	Title           string    `json:"title"`
+
+	// Slug optional; derived from the title when omitted
+	Slug  *string `json:"slug,omitempty"`
+	Title string  `json:"title"`
 }
 
 // CreateUserRequest defines model for CreateUserRequest.
@@ -415,6 +417,12 @@ type Territory struct {
 	UpdatedAt           *time.Time `json:"updatedAt,omitempty"`
 }
 
+// TerritoryAdmins defines model for TerritoryAdmins.
+type TerritoryAdmins struct {
+	// UserIds Admin user ids assigned to the territory (full set).
+	UserIds []string `json:"userIds"`
+}
+
 // TerritoryCreated defines model for TerritoryCreated.
 type TerritoryCreated struct {
 	Job       Job       `json:"job"`
@@ -513,6 +521,9 @@ type CreateTerritoryJSONRequestBody = EntityCreate
 // UpdateTerritoryJSONRequestBody defines body for UpdateTerritory for application/json ContentType.
 type UpdateTerritoryJSONRequestBody = TerritoryUpdate
 
+// SetTerritoryAdminsJSONRequestBody defines body for SetTerritoryAdmins for application/json ContentType.
+type SetTerritoryAdminsJSONRequestBody = TerritoryAdmins
+
 // CreateDocumentJSONRequestBody defines body for CreateDocument for application/json ContentType.
 type CreateDocumentJSONRequestBody = DocumentCreate
 
@@ -572,6 +583,12 @@ type ServerInterface interface {
 	// Update mutable territory fields (no re-conversion)
 	// (PATCH /api/territories/{slug})
 	UpdateTerritory(w http.ResponseWriter, r *http.Request, slug string)
+	// List admins a territory is assigned to (Root only)
+	// (GET /api/territories/{slug}/admins)
+	GetTerritoryAdmins(w http.ResponseWriter, r *http.Request, slug string)
+	// Replace the admins a territory is assigned to (Root only)
+	// (PUT /api/territories/{slug}/admins)
+	SetTerritoryAdmins(w http.ResponseWriter, r *http.Request, slug string)
 	// List converted artifacts for a territory
 	// (GET /api/territories/{slug}/artifacts)
 	ListTerritoryArtifacts(w http.ResponseWriter, r *http.Request, slug string)
@@ -704,6 +721,18 @@ func (_ Unimplemented) GetTerritory(w http.ResponseWriter, r *http.Request, slug
 // Update mutable territory fields (no re-conversion)
 // (PATCH /api/territories/{slug})
 func (_ Unimplemented) UpdateTerritory(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List admins a territory is assigned to (Root only)
+// (GET /api/territories/{slug}/admins)
+func (_ Unimplemented) GetTerritoryAdmins(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Replace the admins a territory is assigned to (Root only)
+// (PUT /api/territories/{slug}/admins)
+func (_ Unimplemented) SetTerritoryAdmins(w http.ResponseWriter, r *http.Request, slug string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1080,6 +1109,58 @@ func (siw *ServerInterfaceWrapper) UpdateTerritory(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateTerritory(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTerritoryAdmins operation middleware
+func (siw *ServerInterfaceWrapper) GetTerritoryAdmins(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTerritoryAdmins(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetTerritoryAdmins operation middleware
+func (siw *ServerInterfaceWrapper) SetTerritoryAdmins(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetTerritoryAdmins(w, r, slug)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1861,6 +1942,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Patch(options.BaseURL+"/api/territories/{slug}", wrapper.UpdateTerritory)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/territories/{slug}/admins", wrapper.GetTerritoryAdmins)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/territories/{slug}/admins", wrapper.SetTerritoryAdmins)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/territories/{slug}/artifacts", wrapper.ListTerritoryArtifacts)
 	})
 	r.Group(func(r chi.Router) {
@@ -2464,6 +2551,171 @@ func (response UpdateTerritory404JSONResponse) VisitUpdateTerritoryResponse(w ht
 type UpdateTerritory500JSONResponse struct{ InternalJSONResponse }
 
 func (response UpdateTerritory500JSONResponse) VisitUpdateTerritoryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTerritoryAdminsRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type GetTerritoryAdminsResponseObject interface {
+	VisitGetTerritoryAdminsResponse(w http.ResponseWriter) error
+}
+
+type GetTerritoryAdmins200JSONResponse TerritoryAdmins
+
+func (response GetTerritoryAdmins200JSONResponse) VisitGetTerritoryAdminsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTerritoryAdmins401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response GetTerritoryAdmins401JSONResponse) VisitGetTerritoryAdminsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTerritoryAdmins403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response GetTerritoryAdmins403JSONResponse) VisitGetTerritoryAdminsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTerritoryAdmins404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response GetTerritoryAdmins404JSONResponse) VisitGetTerritoryAdminsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetTerritoryAdmins500JSONResponse struct{ InternalJSONResponse }
+
+func (response GetTerritoryAdmins500JSONResponse) VisitGetTerritoryAdminsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetTerritoryAdminsRequestObject struct {
+	Slug string `json:"slug"`
+	Body *SetTerritoryAdminsJSONRequestBody
+}
+
+type SetTerritoryAdminsResponseObject interface {
+	VisitSetTerritoryAdminsResponse(w http.ResponseWriter) error
+}
+
+type SetTerritoryAdmins204Response struct {
+}
+
+func (response SetTerritoryAdmins204Response) VisitSetTerritoryAdminsResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type SetTerritoryAdmins400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response SetTerritoryAdmins400JSONResponse) VisitSetTerritoryAdminsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetTerritoryAdmins401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response SetTerritoryAdmins401JSONResponse) VisitSetTerritoryAdminsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetTerritoryAdmins403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response SetTerritoryAdmins403JSONResponse) VisitSetTerritoryAdminsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetTerritoryAdmins404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response SetTerritoryAdmins404JSONResponse) VisitSetTerritoryAdminsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetTerritoryAdmins500JSONResponse struct{ InternalJSONResponse }
+
+func (response SetTerritoryAdmins500JSONResponse) VisitSetTerritoryAdminsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -3672,6 +3924,12 @@ type StrictServerInterface interface {
 	// Update mutable territory fields (no re-conversion)
 	// (PATCH /api/territories/{slug})
 	UpdateTerritory(ctx context.Context, request UpdateTerritoryRequestObject) (UpdateTerritoryResponseObject, error)
+	// List admins a territory is assigned to (Root only)
+	// (GET /api/territories/{slug}/admins)
+	GetTerritoryAdmins(ctx context.Context, request GetTerritoryAdminsRequestObject) (GetTerritoryAdminsResponseObject, error)
+	// Replace the admins a territory is assigned to (Root only)
+	// (PUT /api/territories/{slug}/admins)
+	SetTerritoryAdmins(ctx context.Context, request SetTerritoryAdminsRequestObject) (SetTerritoryAdminsResponseObject, error)
 	// List converted artifacts for a territory
 	// (GET /api/territories/{slug}/artifacts)
 	ListTerritoryArtifacts(ctx context.Context, request ListTerritoryArtifactsRequestObject) (ListTerritoryArtifactsResponseObject, error)
@@ -4059,6 +4317,65 @@ func (sh *strictHandler) UpdateTerritory(w http.ResponseWriter, r *http.Request,
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdateTerritoryResponseObject); ok {
 		if err := validResponse.VisitUpdateTerritoryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetTerritoryAdmins operation middleware
+func (sh *strictHandler) GetTerritoryAdmins(w http.ResponseWriter, r *http.Request, slug string) {
+	var request GetTerritoryAdminsRequestObject
+
+	request.Slug = slug
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetTerritoryAdmins(ctx, request.(GetTerritoryAdminsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetTerritoryAdmins")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetTerritoryAdminsResponseObject); ok {
+		if err := validResponse.VisitGetTerritoryAdminsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetTerritoryAdmins operation middleware
+func (sh *strictHandler) SetTerritoryAdmins(w http.ResponseWriter, r *http.Request, slug string) {
+	var request SetTerritoryAdminsRequestObject
+
+	request.Slug = slug
+
+	var body SetTerritoryAdminsJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetTerritoryAdmins(ctx, request.(SetTerritoryAdminsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetTerritoryAdmins")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetTerritoryAdminsResponseObject); ok {
+		if err := validResponse.VisitSetTerritoryAdminsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
