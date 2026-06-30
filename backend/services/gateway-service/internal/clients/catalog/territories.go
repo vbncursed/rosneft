@@ -9,9 +9,9 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-// ListTerritories returns every territory in the catalog.
-func (c *Client) ListTerritories(ctx context.Context) ([]domain.Territory, error) {
-	resp, err := c.cc.ListTerritories(ctx, &catalogv1.ListTerritoriesRequest{})
+// ListTerritories returns territories visible to scopeAdminID (empty = all).
+func (c *Client) ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error) {
+	resp, err := c.cc.ListTerritories(ctx, &catalogv1.ListTerritoriesRequest{ScopeAdminId: scopeAdminID})
 	if err != nil {
 		return nil, fmt.Errorf("catalog.ListTerritories: %w", err)
 	}
@@ -22,9 +22,10 @@ func (c *Client) ListTerritories(ctx context.Context) ([]domain.Territory, error
 	return out, nil
 }
 
-// GetTerritory fetches a territory by slug.
-func (c *Client) GetTerritory(ctx context.Context, slug string) (domain.Territory, error) {
-	resp, err := c.cc.GetTerritory(ctx, &catalogv1.GetTerritoryRequest{Slug: slug})
+// GetTerritory fetches a territory by slug, scoped to scopeAdminID when non-empty
+// (unassigned territory reads as not found).
+func (c *Client) GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error) {
+	resp, err := c.cc.GetTerritory(ctx, &catalogv1.GetTerritoryRequest{Slug: slug, ScopeAdminId: scopeAdminID})
 	if err != nil {
 		return domain.Territory{}, fmt.Errorf("catalog.GetTerritory: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
 	}
