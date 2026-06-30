@@ -42,7 +42,6 @@ func (s *LoginSuite) TestLoginSuccessNo2FA() {
 	s.ss.IsLockedMock.Expect(s.ctx, "ivan").Return(false, nil)
 	s.us.GetByIdentifierMock.Expect(s.ctx, "ivan").Return(u, nil)
 	s.ss.ClearFailsMock.Expect(s.ctx, "ivan").Return(nil)
-	s.us.ResolveOwningAdminMock.Expect(s.ctx, "u1").Return("", nil)
 	s.ss.CreateMock.Return("tok123", nil)
 
 	token, challenge, err := s.svc.Login(s.ctx, "ivan", "pw")
