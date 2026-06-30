@@ -57,18 +57,11 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 	return token, "", err
 }
 
-// issue creates a session carrying a permission snapshot and the caller's
-// owning admin (resolved from the created_by chain) for territory scoping.
+// issue creates a session proving the login is live. Authorization is re-read
+// from the database on each ValidateToken, so nothing role-derived is stored.
 func (s *Service) issue(ctx context.Context, u domain.User) (string, error) {
-	resolvedAdmin, err := s.users.ResolveOwningAdmin(ctx, u.ID)
-	if err != nil {
-		return "", fmt.Errorf("auth.issue: owning admin: %w", err)
-	}
 	return s.sessions.Create(ctx, domain.Session{
 		UserID:         u.ID,
-		Permissions:    u.Permissions,
-		IsOwner:        u.IsOwner,
-		OwningAdminID:  scopeOwningAdmin(u.RoleSlugs, resolvedAdmin, u.ID),
 		Status:         u.Status,
 		AbsoluteExpiry: time.Now().Add(s.absoluteTTL),
 	})
