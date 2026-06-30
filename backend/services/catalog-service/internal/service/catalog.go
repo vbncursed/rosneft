@@ -17,9 +17,11 @@ import (
 type Repository interface {
 	UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
 	CreateTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
-	GetTerritory(ctx context.Context, slug string) (domain.Territory, error)
-	ListTerritories(ctx context.Context) ([]domain.Territory, error)
+	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
+	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
 	DeleteTerritory(ctx context.Context, slug string) error
+	SetTerritoryAdmins(ctx context.Context, slug string, adminIDs []string) error
+	GetTerritoryAdmins(ctx context.Context, slug string) ([]string, error)
 	RegisterTerritoryArtifact(ctx context.Context, a domain.Artifact) (domain.Artifact, error)
 	GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
 	ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)

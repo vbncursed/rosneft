@@ -79,28 +79,65 @@ func (s *TerritoriesSuite) TestUpsertPropagatesRepoError() {
 }
 
 func (s *TerritoriesSuite) TestGetRejectsEmptySlug() {
-	_, err := s.svc.GetTerritory(s.ctx, "")
+	_, err := s.svc.GetTerritory(s.ctx, "", "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *TerritoriesSuite) TestGetReturnsNotFoundForUnknown() {
-	s.repo.GetTerritoryMock.Expect(s.ctx, "missing").Return(domain.Territory{}, domain.ErrTerritoryNotFound)
-	_, err := s.svc.GetTerritory(s.ctx, "missing")
+	s.repo.GetTerritoryMock.Expect(s.ctx, "missing", "").Return(domain.Territory{}, domain.ErrTerritoryNotFound)
+	_, err := s.svc.GetTerritory(s.ctx, "missing", "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrTerritoryNotFound))
 }
 
 func (s *TerritoriesSuite) TestGetReturnsExisting() {
-	s.repo.GetTerritoryMock.Expect(s.ctx, "t1").Return(domain.Territory{Slug: "t1"}, nil)
-	got, err := s.svc.GetTerritory(s.ctx, "t1")
+	s.repo.GetTerritoryMock.Expect(s.ctx, "t1", "").Return(domain.Territory{Slug: "t1"}, nil)
+	got, err := s.svc.GetTerritory(s.ctx, "t1", "")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), got.Slug, "t1")
+}
+
+func (s *TerritoriesSuite) TestGetScopedForwardsAdminID() {
+	s.repo.GetTerritoryMock.Expect(s.ctx, "t1", "admin-1").Return(domain.Territory{Slug: "t1"}, nil)
+	got, err := s.svc.GetTerritory(s.ctx, "t1", "admin-1")
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), got.Slug, "t1")
 }
 
 func (s *TerritoriesSuite) TestListReturnsEverything() {
-	s.repo.ListTerritoriesMock.Return([]domain.Territory{{Slug: "a"}, {Slug: "b"}, {Slug: "c"}}, nil)
-	got, err := s.svc.ListTerritories(s.ctx)
+	s.repo.ListTerritoriesMock.Expect(s.ctx, "").Return([]domain.Territory{{Slug: "a"}, {Slug: "b"}, {Slug: "c"}}, nil)
+	got, err := s.svc.ListTerritories(s.ctx, "")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), cmp.Len(got, 3))
+}
+
+func (s *TerritoriesSuite) TestListScopedForwardsAdminID() {
+	s.repo.ListTerritoriesMock.Expect(s.ctx, "admin-1").Return([]domain.Territory{{Slug: "a"}}, nil)
+	got, err := s.svc.ListTerritories(s.ctx, "admin-1")
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), cmp.Len(got, 1))
+}
+
+func (s *TerritoriesSuite) TestSetTerritoryAdminsRejectsEmptySlug() {
+	err := s.svc.SetTerritoryAdmins(s.ctx, "", []string{"admin-1"})
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *TerritoriesSuite) TestSetTerritoryAdminsForwards() {
+	s.repo.SetTerritoryAdminsMock.Expect(s.ctx, "t1", []string{"admin-1"}).Return(nil)
+	err := s.svc.SetTerritoryAdmins(s.ctx, "t1", []string{"admin-1"})
+	assert.NilError(s.T(), err)
+}
+
+func (s *TerritoriesSuite) TestGetTerritoryAdminsRejectsEmptySlug() {
+	_, err := s.svc.GetTerritoryAdmins(s.ctx, "")
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *TerritoriesSuite) TestGetTerritoryAdminsForwards() {
+	s.repo.GetTerritoryAdminsMock.Expect(s.ctx, "t1").Return([]string{"admin-1", "admin-2"}, nil)
+	got, err := s.svc.GetTerritoryAdmins(s.ctx, "t1")
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), cmp.Len(got, 2))
 }
 
 func (s *TerritoriesSuite) TestDeleteRejectsEmptySlug() {
