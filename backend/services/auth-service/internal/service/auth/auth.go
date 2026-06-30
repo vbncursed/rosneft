@@ -48,9 +48,17 @@ type Service struct {
 	recovery    RecoveryStore
 	cipher      Decryptor
 	absoluteTTL time.Duration
+	authz       *authzCache
 }
 
 // New constructs the auth Service.
 func New(users UserStore, sessions SessionStore, recovery RecoveryStore, cipher Decryptor, absoluteTTL time.Duration) *Service {
-	return &Service{users: users, sessions: sessions, recovery: recovery, cipher: cipher, absoluteTTL: absoluteTTL}
+	return &Service{
+		users:       users,
+		sessions:    sessions,
+		recovery:    recovery,
+		cipher:      cipher,
+		absoluteTTL: absoluteTTL,
+		authz:       newAuthzCache(authzCacheTTL),
+	}
 }
