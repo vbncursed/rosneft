@@ -17,12 +17,12 @@ func (h *Handlers) Authenticate(next http.Handler) http.Handler {
 			apperr.Write(w, http.StatusUnauthorized, apperr.SlugUnauthenticated, "missing bearer token")
 			return
 		}
-		uid, perms, err := h.client.ValidateToken(r.Context(), token)
+		uid, perms, isOwner, err := h.client.ValidateToken(r.Context(), token)
 		if err != nil {
 			fail(w, err) // maps Unauthenticated → 401
 			return
 		}
-		next.ServeHTTP(w, r.WithContext(withPrincipal(r.Context(), uid, perms)))
+		next.ServeHTTP(w, r.WithContext(withPrincipal(r.Context(), uid, perms, isOwner)))
 	})
 }
 
@@ -32,7 +32,7 @@ func (h *Handlers) Authenticate(next http.Handler) http.Handler {
 func (h *Handlers) require(perm string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !slices.Contains(principalPerms(r.Context()), perm) {
+			if !principalIsOwner(r.Context()) && !slices.Contains(principalPerms(r.Context()), perm) {
 				apperr.Write(w, http.StatusForbidden, apperr.SlugForbidden, "permission denied: "+perm)
 				return
 			}

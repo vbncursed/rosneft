@@ -29,14 +29,14 @@ export default function RoleDetail({ role, permissions, onSave, onDelete }: {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-white">{role.title} <span className="text-neutral-500">· {role.slug}</span></p>
+        <p className="text-sm font-semibold text-white">{role.title}</p>
         {!role.isSystem ? (
-          <button type="button" onClick={async () => { if (await confirmAction({ title: "Delete role", message: `Delete role ${role.slug}?`, danger: true })) onDelete(role.slug); }}
+          <button type="button" onClick={async () => { if (await confirmAction({ title: "Delete role", message: `Delete role ${role.title}?`, danger: true })) onDelete(role.slug); }}
             className="cursor-pointer rounded-full border border-red-300/40 bg-red-500/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-red-200 hover:bg-red-500/20">Delete</button>
         ) : null}
       </div>
       <div className="mt-4"><PermissionMatrix all={permissions} selected={draft} onToggle={toggle} grantable={grantable} /></div>
-      {blocked ? <p className="mt-3 text-xs text-amber-300/80">This role holds permissions you don&apos;t have — only an owner can change it.</p> : null}
+      {blocked ? <p className="mt-3 text-xs text-amber-300/80">This role holds permissions you don&apos;t have — only Root can change it.</p> : null}
       <button type="button" disabled={blocked} onClick={() => onSave(role.slug, draft)}
         className="mt-5 cursor-pointer rounded-md border border-white/30 bg-white/10 px-4 py-1.5 text-sm font-medium text-white hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50">Save permissions</button>
     </div>

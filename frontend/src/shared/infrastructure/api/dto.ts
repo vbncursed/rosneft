@@ -1831,8 +1831,9 @@ export interface components {
             username?: string;
         };
         CreateRoleRequest: {
-            slug: string;
             title: string;
+            /** @description optional; derived from the title when omitted */
+            slug?: string;
             permissionSlugs?: string[];
         };
         UpdateRoleRequest: {

@@ -16,7 +16,9 @@ export default function UsersTable({ roles }: { roles: Role[] }) {
   const { users, loading, status, setStatus, includeDeleted, setIncludeDeleted, reload, act } = useUsersAdmin();
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<AdminUser | null>(null);
-  const scoped = !can(me, "users:read_all");
+  // Root sees everyone via the backend owner bypass, even without users:read_all.
+  const scoped = !me.isOwner && !can(me, "users:read_all");
+  const roleTitle = (slug: string) => roles.find((r) => r.slug === slug)?.title ?? slug;
 
   return (
     <div>
@@ -48,7 +50,7 @@ export default function UsersTable({ roles }: { roles: Role[] }) {
               <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-neutral-500">Loading…</td></tr>
             ) : users.length === 0 ? (
               <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-neutral-500">No users.</td></tr>
-            ) : users.map((u) => <UserRow key={u.id} u={u} me={me} act={act} onEditRoles={setEditing} />)}
+            ) : users.map((u) => <UserRow key={u.id} u={u} me={me} roleTitle={roleTitle} act={act} onEditRoles={setEditing} />)}
           </tbody>
         </table>
       </div>

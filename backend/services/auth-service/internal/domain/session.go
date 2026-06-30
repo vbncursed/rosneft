@@ -7,6 +7,7 @@ import "time"
 type Session struct {
 	UserID         string    `json:"user_id"`
 	Permissions    []string  `json:"permissions"`
+	IsOwner        bool      `json:"is_owner"` // root of trust, snapshotted at login like Permissions
 	Status         string    `json:"status"`
 	AbsoluteExpiry time.Time `json:"absolute_expiry"`
 }

@@ -27,12 +27,12 @@ func (c *Client) Logout(ctx context.Context, token string) error {
 	return err
 }
 
-func (c *Client) ValidateToken(ctx context.Context, token string) (string, []string, error) {
+func (c *Client) ValidateToken(ctx context.Context, token string) (string, []string, bool, error) {
 	resp, err := c.cc.ValidateToken(ctx, &authv1.ValidateTokenRequest{Token: token})
 	if err != nil {
-		return "", nil, err
+		return "", nil, false, err
 	}
-	return resp.GetUserId(), resp.GetPermissions(), nil
+	return resp.GetUserId(), resp.GetPermissions(), resp.GetIsOwner(), nil
 }
 
 func (c *Client) GetMe(ctx context.Context, token string) (*authv1.User, error) {

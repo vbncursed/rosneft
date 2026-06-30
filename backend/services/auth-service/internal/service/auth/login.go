@@ -61,6 +61,7 @@ func (s *Service) issue(ctx context.Context, u domain.User) (string, error) {
 	return s.sessions.Create(ctx, domain.Session{
 		UserID:         u.ID,
 		Permissions:    u.Permissions,
+		IsOwner:        u.IsOwner,
 		Status:         u.Status,
 		AbsoluteExpiry: time.Now().Add(s.absoluteTTL),
 	})

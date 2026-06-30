@@ -46,7 +46,7 @@ export function useRolesAdmin() {
     loading,
     reload,
     save: (slug: string, perms: string[]) => run(() => setRolePermissions(slug, perms), "Permissions saved"),
-    create: (slug: string, title: string, perms: string[]) => run(() => createRole(slug, title, perms), "Role created"),
+    create: (title: string, perms: string[]) => run(() => createRole(title, perms), "Role created"),
     rename: (slug: string, title: string) => run(() => renameRole(slug, title), "Renamed"),
     remove: (slug: string) => run(() => deleteRole(slug), "Role deleted"),
   };
