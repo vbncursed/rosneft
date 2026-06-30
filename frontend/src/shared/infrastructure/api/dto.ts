@@ -43,6 +43,26 @@ export interface paths {
         patch: operations["updateTerritory"];
         trace?: never;
     };
+    "/api/territories/{slug}/admins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        /** List admins a territory is assigned to (Root only) */
+        get: operations["getTerritoryAdmins"];
+        /** Replace the admins a territory is assigned to (Root only) */
+        put: operations["setTerritoryAdmins"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/territories/{slug}/source": {
         parameters: {
             query?: never;
@@ -1680,6 +1700,10 @@ export interface components {
         TerritoryUpdate: {
             externalPanoramaUrl?: string;
         };
+        TerritoryAdmins: {
+            /** @description Admin user ids assigned to the territory (full set). */
+            userIds: string[];
+        };
         /**
          * @description Body for POST /api/territories/{slug}/source. Carries the hash of a
          *     freshly uploaded ZIP (via /api/uploads); the territory's source is
@@ -2015,6 +2039,61 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    getTerritoryAdmins: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TerritoryAdmins"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    setTerritoryAdmins: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TerritoryAdmins"];
+            };
+        };
+        responses: {
+            /** @description Assignments replaced */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["Internal"];
         };

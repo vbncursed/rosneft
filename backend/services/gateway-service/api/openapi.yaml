@@ -278,6 +278,15 @@ components:
       properties:
         externalPanoramaUrl: { type: string }
 
+    TerritoryAdmins:
+      type: object
+      required: [userIds]
+      properties:
+        userIds:
+          type: array
+          items: { type: string }
+          description: Admin user ids assigned to the territory (full set).
+
     TerritorySourceReplace:
       type: object
       required: [sourceBlobHash]
@@ -595,6 +604,43 @@ paths:
       tags: [territories]
       responses:
         '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/territories/{slug}/admins:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: getTerritoryAdmins
+      summary: List admins a territory is assigned to (Root only)
+      tags: [territories]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TerritoryAdmins' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+    put:
+      operationId: setTerritoryAdmins
+      summary: Replace the admins a territory is assigned to (Root only)
+      tags: [territories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TerritoryAdmins' }
+      responses:
+        '204': { description: Assignments replaced }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
 
