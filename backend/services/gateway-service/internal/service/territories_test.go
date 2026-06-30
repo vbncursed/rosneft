@@ -35,7 +35,7 @@ func (s *TerritoriesSuite) SetupTest() {
 }
 
 func (s *TerritoriesSuite) TestGetRejectsEmptySlug() {
-	_, err := s.svc.GetTerritory(s.ctx, "")
+	_, err := s.svc.GetTerritory(s.ctx, "", "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 

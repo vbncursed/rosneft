@@ -20,7 +20,7 @@ func (s *TerritoriesSuite) TestReplaceSourceRejectsEmptyInputs() {
 }
 
 func (s *TerritoriesSuite) TestReplaceSourceReturnsNotFoundForUnknown() {
-	s.cat.GetTerritoryMock.Expect(s.ctx, "missing").Return(domain.Territory{}, domain.ErrTerritoryNotFound)
+	s.cat.GetTerritoryMock.Expect(s.ctx, "missing", "").Return(domain.Territory{}, domain.ErrTerritoryNotFound)
 	_, _, err := s.svc.ReplaceTerritorySource(s.ctx, "missing", "h2")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrTerritoryNotFound))
 }
@@ -28,7 +28,7 @@ func (s *TerritoriesSuite) TestReplaceSourceReturnsNotFoundForUnknown() {
 func (s *TerritoriesSuite) TestReplaceSourceSwapsHashClearsArtifactsAndQueues() {
 	current := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "old"}
 	saved := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "new"}
-	s.cat.GetTerritoryMock.Expect(s.ctx, "t1").Return(current, nil)
+	s.cat.GetTerritoryMock.Expect(s.ctx, "t1", "").Return(current, nil)
 	s.cat.UpsertTerritoryMock.Expect(s.ctx, saved).Return(saved, nil)
 	// LOD0 exists but has no bbox → maxAxis 0 → no rescale baseline written.
 	s.cat.GetTerritoryArtifactMock.Expect(s.ctx, "t1", uint32(0)).
@@ -46,7 +46,7 @@ func (s *TerritoriesSuite) TestReplaceSourceSwapsHashClearsArtifactsAndQueues() 
 func (s *TerritoriesSuite) TestReplaceSourceSetsRescaleBaselineFromOldLOD0() {
 	current := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "old"}
 	saved := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "new"}
-	s.cat.GetTerritoryMock.Expect(s.ctx, "t1").Return(current, nil)
+	s.cat.GetTerritoryMock.Expect(s.ctx, "t1", "").Return(current, nil)
 	s.cat.UpsertTerritoryMock.Expect(s.ctx, saved).Return(saved, nil)
 	// Old LOD0 source bbox: longest axis = 10 (the converter's pre-normalize max).
 	s.cat.GetTerritoryArtifactMock.Expect(s.ctx, "t1", uint32(0)).Return(domain.Artifact{
@@ -65,7 +65,7 @@ func (s *TerritoriesSuite) TestReplaceSourceSetsRescaleBaselineFromOldLOD0() {
 func (s *TerritoriesSuite) TestReplaceSourceSkipsBaselineWhenNoLOD0() {
 	current := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "old"}
 	saved := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "new"}
-	s.cat.GetTerritoryMock.Expect(s.ctx, "t1").Return(current, nil)
+	s.cat.GetTerritoryMock.Expect(s.ctx, "t1", "").Return(current, nil)
 	s.cat.UpsertTerritoryMock.Expect(s.ctx, saved).Return(saved, nil)
 	// No LOD0 yet → nothing to anchor a rescale to; SetTerritoryRescaleBaseline
 	// is intentionally left unmocked, so any call would fail the test.
@@ -81,7 +81,7 @@ func (s *TerritoriesSuite) TestReplaceSourceSkipsBaselineWhenNoLOD0() {
 func (s *TerritoriesSuite) TestReplaceSourceSurfacesMeshErrorWithSavedTerritory() {
 	current := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "old"}
 	saved := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "new"}
-	s.cat.GetTerritoryMock.Expect(s.ctx, "t1").Return(current, nil)
+	s.cat.GetTerritoryMock.Expect(s.ctx, "t1", "").Return(current, nil)
 	s.cat.UpsertTerritoryMock.Expect(s.ctx, saved).Return(saved, nil)
 	s.cat.GetTerritoryArtifactMock.Expect(s.ctx, "t1", uint32(0)).
 		Return(domain.Artifact{}, domain.ErrArtifactNotFound)

@@ -8,17 +8,18 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-// ListTerritories proxies to catalog.
-func (g *Gateway) ListTerritories(ctx context.Context) ([]domain.Territory, error) {
-	return g.catalog.ListTerritories(ctx)
+// ListTerritories proxies to catalog, scoped to scopeAdminID (empty = all).
+func (g *Gateway) ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error) {
+	return g.catalog.ListTerritories(ctx, scopeAdminID)
 }
 
-// GetTerritory fetches a territory by slug.
-func (g *Gateway) GetTerritory(ctx context.Context, slug string) (domain.Territory, error) {
+// GetTerritory fetches a territory by slug, scoped to scopeAdminID (empty = no
+// scope check; unassigned territory reads as not found for a scoped caller).
+func (g *Gateway) GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error) {
 	if slug == "" {
 		return domain.Territory{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}
-	return g.catalog.GetTerritory(ctx, slug)
+	return g.catalog.GetTerritory(ctx, slug, scopeAdminID)
 }
 
 // CreateTerritory upserts the territory in the catalog and queues a
@@ -50,7 +51,7 @@ func (g *Gateway) ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHa
 	if sourceBlobHash == "" {
 		return domain.Territory{}, domain.Job{}, fmt.Errorf("%w: empty source_blob_hash", domain.ErrInvalidInput)
 	}
-	current, err := g.catalog.GetTerritory(ctx, slug)
+	current, err := g.catalog.GetTerritory(ctx, slug, "") // mutation flow; gated by permission
 	if err != nil {
 		return domain.Territory{}, domain.Job{}, err
 	}
@@ -112,7 +113,7 @@ func (g *Gateway) UpdateTerritory(ctx context.Context, slug string, update domai
 	if slug == "" {
 		return domain.Territory{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}
-	current, err := g.catalog.GetTerritory(ctx, slug)
+	current, err := g.catalog.GetTerritory(ctx, slug, "") // mutation flow; gated by permission
 	if err != nil {
 		return domain.Territory{}, err
 	}
