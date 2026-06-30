@@ -4,7 +4,6 @@ import { listModels } from "@/model/infrastructure/model-gateway";
 import DeleteTerritoryButton from "@/app/_components/delete-territory-button";
 import DeleteModelButton from "@/app/_components/delete-model-button";
 import ReplaceSourceButton from "@/app/_components/replace-source-button";
-import AssignAdminsButton from "@/app/_components/assign-admins-button";
 import { getCurrentUser } from "@/auth/application/current-user";
 import { can } from "@/auth/domain/principal";
 
@@ -20,7 +19,6 @@ export default async function Home() {
   const territoryDelete = can(me, "territory:delete");
   const modelWrite = can(me, "model:write");
   const modelDelete = can(me, "model:delete");
-  const isRoot = me?.isOwner ?? false;
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#1c252f_0%,#0b0d10_38%,#060708_100%)] text-white">
@@ -47,9 +45,8 @@ export default async function Home() {
           items={territories}
           itemHref={(t) => `/territories/${t.slug}`}
           renderDelete={(item) =>
-            territoryWrite || territoryDelete || isRoot ? (
+            territoryWrite || territoryDelete ? (
               <div className="flex items-center gap-2">
-                {isRoot ? <AssignAdminsButton slug={item.slug} label={item.title} /> : null}
                 {territoryWrite ? <ReplaceSourceButton slug={item.slug} /> : null}
                 {territoryDelete ? <DeleteTerritoryButton slug={item.slug} label={item.title} /> : null}
               </div>

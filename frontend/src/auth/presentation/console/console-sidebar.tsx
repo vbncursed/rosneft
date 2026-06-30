@@ -8,9 +8,13 @@ const ITEMS = [
   { href: "/admin/roles", label: "Roles & Permissions" },
 ];
 
-export default function ConsoleSidebar({ showContent }: { showContent: boolean }) {
+export default function ConsoleSidebar({ showContent, showAccess }: { showContent: boolean; showAccess: boolean }) {
   const path = usePathname();
-  const items = showContent ? [...ITEMS, { href: "/admin/content", label: "Content" }] : ITEMS;
+  const items = [
+    ...ITEMS,
+    ...(showContent ? [{ href: "/admin/content", label: "Content" }] : []),
+    ...(showAccess ? [{ href: "/admin/territories", label: "Territory access" }] : []),
+  ];
   return (
     <nav className="flex flex-col gap-1">
       <Link href="/" className="mb-3 text-[10px] uppercase tracking-[0.28em] text-neutral-400 transition-colors hover:text-white">
