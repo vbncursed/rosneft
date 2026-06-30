@@ -19,9 +19,9 @@ func New(pool *pgxpool.Pool) *Store { return &Store{pool: pool} }
 
 // Get returns one role with its permission slugs.
 func (s *Store) Get(ctx context.Context, slug string) (domain.Role, error) {
-	const q = `SELECT slug, title, is_system FROM roles WHERE slug = $1`
+	const q = `SELECT slug, title, is_system, COALESCE(owner_admin_id::text, '') FROM roles WHERE slug = $1`
 	var r domain.Role
-	if err := s.pool.QueryRow(ctx, q, slug).Scan(&r.Slug, &r.Title, &r.IsSystem); err != nil {
+	if err := s.pool.QueryRow(ctx, q, slug).Scan(&r.Slug, &r.Title, &r.IsSystem, &r.OwnerAdminID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Role{}, domain.ErrRoleNotFound
 		}

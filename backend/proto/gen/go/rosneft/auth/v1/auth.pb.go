@@ -1652,6 +1652,7 @@ func (x *SetUserOwnerRequest) GetIsOwner() bool {
 
 type ListRolesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"` // actor; scopes visible roles to the caller's group
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1684,6 +1685,13 @@ func (x *ListRolesRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListRolesRequest.ProtoReflect.Descriptor instead.
 func (*ListRolesRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *ListRolesRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
 }
 
 type ListRolesResponse struct {
@@ -1802,6 +1810,7 @@ type UpdateRoleRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
 	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Token         string                 `protobuf:"bytes,3,opt,name=token,proto3" json:"token,omitempty"` // actor; only the role's group (or Root) may rename it
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1850,9 +1859,17 @@ func (x *UpdateRoleRequest) GetTitle() string {
 	return ""
 }
 
+func (x *UpdateRoleRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
 type DeleteRoleRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	Token         string                 `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"` // actor; only the role's group (or Root) may delete it
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1890,6 +1907,13 @@ func (*DeleteRoleRequest) Descriptor() ([]byte, []int) {
 func (x *DeleteRoleRequest) GetSlug() string {
 	if x != nil {
 		return x.Slug
+	}
+	return ""
+}
+
+func (x *DeleteRoleRequest) GetToken() string {
+	if x != nil {
+		return x.Token
 	}
 	return ""
 }
@@ -2182,20 +2206,23 @@ const file_rosneft_auth_v1_auth_proto_rawDesc = "" +
 	"\x13SetUserOwnerRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\x12\x19\n" +
-	"\bis_owner\x18\x03 \x01(\bR\aisOwner\"\x12\n" +
-	"\x10ListRolesRequest\"@\n" +
+	"\bis_owner\x18\x03 \x01(\bR\aisOwner\"(\n" +
+	"\x10ListRolesRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"@\n" +
 	"\x11ListRolesResponse\x12+\n" +
 	"\x05roles\x18\x01 \x03(\v2\x15.rosneft.auth.v1.RoleR\x05roles\"~\n" +
 	"\x11CreateRoleRequest\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12)\n" +
 	"\x10permission_slugs\x18\x03 \x03(\tR\x0fpermissionSlugs\x12\x14\n" +
-	"\x05token\x18\x04 \x01(\tR\x05token\"=\n" +
+	"\x05token\x18\x04 \x01(\tR\x05token\"S\n" +
 	"\x11UpdateRoleRequest\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
-	"\x05title\x18\x02 \x01(\tR\x05title\"'\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x14\n" +
+	"\x05token\x18\x03 \x01(\tR\x05token\"=\n" +
 	"\x11DeleteRoleRequest\x12\x12\n" +
-	"\x04slug\x18\x01 \x01(\tR\x04slug\"\x14\n" +
+	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
+	"\x05token\x18\x02 \x01(\tR\x05token\"\x14\n" +
 	"\x12DeleteRoleResponse\"p\n" +
 	"\x19SetRolePermissionsRequest\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12)\n" +

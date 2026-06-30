@@ -10,11 +10,11 @@ import (
 //go:generate minimock -i Store,Perms,Actors -o ./mocks -s _mock.go
 
 type Store interface {
-	List(ctx context.Context) ([]domain.Role, error)
+	List(ctx context.Context, scopeAdminID string, allAccess bool) ([]domain.Role, error)
 	Create(ctx context.Context, r domain.Role) (domain.Role, error)
-	UpdateTitle(ctx context.Context, slug, title string) (domain.Role, error)
-	Delete(ctx context.Context, slug string) error
-	SetPermissions(ctx context.Context, slug string, permSlugs []string) (domain.Role, error)
+	UpdateTitle(ctx context.Context, slug, title, scopeAdminID string, allAccess bool) (domain.Role, error)
+	Delete(ctx context.Context, slug, scopeAdminID string, allAccess bool) error
+	SetPermissions(ctx context.Context, slug string, permSlugs []string, scopeAdminID string, allAccess bool) (domain.Role, error)
 }
 
 type Perms interface {

@@ -26,30 +26,30 @@ type StoreMock struct {
 	beforeCreateCounter uint64
 	CreateMock          mStoreMockCreate
 
-	funcDelete          func(ctx context.Context, slug string) (err error)
+	funcDelete          func(ctx context.Context, slug string, scopeAdminID string, allAccess bool) (err error)
 	funcDeleteOrigin    string
-	inspectFuncDelete   func(ctx context.Context, slug string)
+	inspectFuncDelete   func(ctx context.Context, slug string, scopeAdminID string, allAccess bool)
 	afterDeleteCounter  uint64
 	beforeDeleteCounter uint64
 	DeleteMock          mStoreMockDelete
 
-	funcList          func(ctx context.Context) (ra1 []domain.Role, err error)
+	funcList          func(ctx context.Context, scopeAdminID string, allAccess bool) (ra1 []domain.Role, err error)
 	funcListOrigin    string
-	inspectFuncList   func(ctx context.Context)
+	inspectFuncList   func(ctx context.Context, scopeAdminID string, allAccess bool)
 	afterListCounter  uint64
 	beforeListCounter uint64
 	ListMock          mStoreMockList
 
-	funcSetPermissions          func(ctx context.Context, slug string, permSlugs []string) (r1 domain.Role, err error)
+	funcSetPermissions          func(ctx context.Context, slug string, permSlugs []string, scopeAdminID string, allAccess bool) (r1 domain.Role, err error)
 	funcSetPermissionsOrigin    string
-	inspectFuncSetPermissions   func(ctx context.Context, slug string, permSlugs []string)
+	inspectFuncSetPermissions   func(ctx context.Context, slug string, permSlugs []string, scopeAdminID string, allAccess bool)
 	afterSetPermissionsCounter  uint64
 	beforeSetPermissionsCounter uint64
 	SetPermissionsMock          mStoreMockSetPermissions
 
-	funcUpdateTitle          func(ctx context.Context, slug string, title string) (r1 domain.Role, err error)
+	funcUpdateTitle          func(ctx context.Context, slug string, title string, scopeAdminID string, allAccess bool) (r1 domain.Role, err error)
 	funcUpdateTitleOrigin    string
-	inspectFuncUpdateTitle   func(ctx context.Context, slug string, title string)
+	inspectFuncUpdateTitle   func(ctx context.Context, slug string, title string, scopeAdminID string, allAccess bool)
 	afterUpdateTitleCounter  uint64
 	beforeUpdateTitleCounter uint64
 	UpdateTitleMock          mStoreMockUpdateTitle
@@ -452,14 +452,18 @@ type StoreMockDeleteExpectation struct {
 
 // StoreMockDeleteParams contains parameters of the Store.Delete
 type StoreMockDeleteParams struct {
-	ctx  context.Context
-	slug string
+	ctx          context.Context
+	slug         string
+	scopeAdminID string
+	allAccess    bool
 }
 
 // StoreMockDeleteParamPtrs contains pointers to parameters of the Store.Delete
 type StoreMockDeleteParamPtrs struct {
-	ctx  *context.Context
-	slug *string
+	ctx          *context.Context
+	slug         *string
+	scopeAdminID *string
+	allAccess    *bool
 }
 
 // StoreMockDeleteResults contains results of the Store.Delete
@@ -469,9 +473,11 @@ type StoreMockDeleteResults struct {
 
 // StoreMockDeleteOrigins contains origins of expectations of the Store.Delete
 type StoreMockDeleteExpectationOrigins struct {
-	origin     string
-	originCtx  string
-	originSlug string
+	origin             string
+	originCtx          string
+	originSlug         string
+	originScopeAdminID string
+	originAllAccess    string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -485,7 +491,7 @@ func (mmDelete *mStoreMockDelete) Optional() *mStoreMockDelete {
 }
 
 // Expect sets up expected params for Store.Delete
-func (mmDelete *mStoreMockDelete) Expect(ctx context.Context, slug string) *mStoreMockDelete {
+func (mmDelete *mStoreMockDelete) Expect(ctx context.Context, slug string, scopeAdminID string, allAccess bool) *mStoreMockDelete {
 	if mmDelete.mock.funcDelete != nil {
 		mmDelete.mock.t.Fatalf("StoreMock.Delete mock is already set by Set")
 	}
@@ -498,7 +504,7 @@ func (mmDelete *mStoreMockDelete) Expect(ctx context.Context, slug string) *mSto
 		mmDelete.mock.t.Fatalf("StoreMock.Delete mock is already set by ExpectParams functions")
 	}
 
-	mmDelete.defaultExpectation.params = &StoreMockDeleteParams{ctx, slug}
+	mmDelete.defaultExpectation.params = &StoreMockDeleteParams{ctx, slug, scopeAdminID, allAccess}
 	mmDelete.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmDelete.expectations {
 		if minimock.Equal(e.params, mmDelete.defaultExpectation.params) {
@@ -555,8 +561,54 @@ func (mmDelete *mStoreMockDelete) ExpectSlugParam2(slug string) *mStoreMockDelet
 	return mmDelete
 }
 
+// ExpectScopeAdminIDParam3 sets up expected param scopeAdminID for Store.Delete
+func (mmDelete *mStoreMockDelete) ExpectScopeAdminIDParam3(scopeAdminID string) *mStoreMockDelete {
+	if mmDelete.mock.funcDelete != nil {
+		mmDelete.mock.t.Fatalf("StoreMock.Delete mock is already set by Set")
+	}
+
+	if mmDelete.defaultExpectation == nil {
+		mmDelete.defaultExpectation = &StoreMockDeleteExpectation{}
+	}
+
+	if mmDelete.defaultExpectation.params != nil {
+		mmDelete.mock.t.Fatalf("StoreMock.Delete mock is already set by Expect")
+	}
+
+	if mmDelete.defaultExpectation.paramPtrs == nil {
+		mmDelete.defaultExpectation.paramPtrs = &StoreMockDeleteParamPtrs{}
+	}
+	mmDelete.defaultExpectation.paramPtrs.scopeAdminID = &scopeAdminID
+	mmDelete.defaultExpectation.expectationOrigins.originScopeAdminID = minimock.CallerInfo(1)
+
+	return mmDelete
+}
+
+// ExpectAllAccessParam4 sets up expected param allAccess for Store.Delete
+func (mmDelete *mStoreMockDelete) ExpectAllAccessParam4(allAccess bool) *mStoreMockDelete {
+	if mmDelete.mock.funcDelete != nil {
+		mmDelete.mock.t.Fatalf("StoreMock.Delete mock is already set by Set")
+	}
+
+	if mmDelete.defaultExpectation == nil {
+		mmDelete.defaultExpectation = &StoreMockDeleteExpectation{}
+	}
+
+	if mmDelete.defaultExpectation.params != nil {
+		mmDelete.mock.t.Fatalf("StoreMock.Delete mock is already set by Expect")
+	}
+
+	if mmDelete.defaultExpectation.paramPtrs == nil {
+		mmDelete.defaultExpectation.paramPtrs = &StoreMockDeleteParamPtrs{}
+	}
+	mmDelete.defaultExpectation.paramPtrs.allAccess = &allAccess
+	mmDelete.defaultExpectation.expectationOrigins.originAllAccess = minimock.CallerInfo(1)
+
+	return mmDelete
+}
+
 // Inspect accepts an inspector function that has same arguments as the Store.Delete
-func (mmDelete *mStoreMockDelete) Inspect(f func(ctx context.Context, slug string)) *mStoreMockDelete {
+func (mmDelete *mStoreMockDelete) Inspect(f func(ctx context.Context, slug string, scopeAdminID string, allAccess bool)) *mStoreMockDelete {
 	if mmDelete.mock.inspectFuncDelete != nil {
 		mmDelete.mock.t.Fatalf("Inspect function is already set for StoreMock.Delete")
 	}
@@ -581,7 +633,7 @@ func (mmDelete *mStoreMockDelete) Return(err error) *StoreMock {
 }
 
 // Set uses given function f to mock the Store.Delete method
-func (mmDelete *mStoreMockDelete) Set(f func(ctx context.Context, slug string) (err error)) *StoreMock {
+func (mmDelete *mStoreMockDelete) Set(f func(ctx context.Context, slug string, scopeAdminID string, allAccess bool) (err error)) *StoreMock {
 	if mmDelete.defaultExpectation != nil {
 		mmDelete.mock.t.Fatalf("Default expectation is already set for the Store.Delete method")
 	}
@@ -597,14 +649,14 @@ func (mmDelete *mStoreMockDelete) Set(f func(ctx context.Context, slug string) (
 
 // When sets expectation for the Store.Delete which will trigger the result defined by the following
 // Then helper
-func (mmDelete *mStoreMockDelete) When(ctx context.Context, slug string) *StoreMockDeleteExpectation {
+func (mmDelete *mStoreMockDelete) When(ctx context.Context, slug string, scopeAdminID string, allAccess bool) *StoreMockDeleteExpectation {
 	if mmDelete.mock.funcDelete != nil {
 		mmDelete.mock.t.Fatalf("StoreMock.Delete mock is already set by Set")
 	}
 
 	expectation := &StoreMockDeleteExpectation{
 		mock:               mmDelete.mock,
-		params:             &StoreMockDeleteParams{ctx, slug},
+		params:             &StoreMockDeleteParams{ctx, slug, scopeAdminID, allAccess},
 		expectationOrigins: StoreMockDeleteExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmDelete.expectations = append(mmDelete.expectations, expectation)
@@ -639,17 +691,17 @@ func (mmDelete *mStoreMockDelete) invocationsDone() bool {
 }
 
 // Delete implements mm_roles.Store
-func (mmDelete *StoreMock) Delete(ctx context.Context, slug string) (err error) {
+func (mmDelete *StoreMock) Delete(ctx context.Context, slug string, scopeAdminID string, allAccess bool) (err error) {
 	mm_atomic.AddUint64(&mmDelete.beforeDeleteCounter, 1)
 	defer mm_atomic.AddUint64(&mmDelete.afterDeleteCounter, 1)
 
 	mmDelete.t.Helper()
 
 	if mmDelete.inspectFuncDelete != nil {
-		mmDelete.inspectFuncDelete(ctx, slug)
+		mmDelete.inspectFuncDelete(ctx, slug, scopeAdminID, allAccess)
 	}
 
-	mm_params := StoreMockDeleteParams{ctx, slug}
+	mm_params := StoreMockDeleteParams{ctx, slug, scopeAdminID, allAccess}
 
 	// Record call args
 	mmDelete.DeleteMock.mutex.Lock()
@@ -668,7 +720,7 @@ func (mmDelete *StoreMock) Delete(ctx context.Context, slug string) (err error) 
 		mm_want := mmDelete.DeleteMock.defaultExpectation.params
 		mm_want_ptrs := mmDelete.DeleteMock.defaultExpectation.paramPtrs
 
-		mm_got := StoreMockDeleteParams{ctx, slug}
+		mm_got := StoreMockDeleteParams{ctx, slug, scopeAdminID, allAccess}
 
 		if mm_want_ptrs != nil {
 
@@ -680,6 +732,16 @@ func (mmDelete *StoreMock) Delete(ctx context.Context, slug string) (err error) 
 			if mm_want_ptrs.slug != nil && !minimock.Equal(*mm_want_ptrs.slug, mm_got.slug) {
 				mmDelete.t.Errorf("StoreMock.Delete got unexpected parameter slug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmDelete.DeleteMock.defaultExpectation.expectationOrigins.originSlug, *mm_want_ptrs.slug, mm_got.slug, minimock.Diff(*mm_want_ptrs.slug, mm_got.slug))
+			}
+
+			if mm_want_ptrs.scopeAdminID != nil && !minimock.Equal(*mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID) {
+				mmDelete.t.Errorf("StoreMock.Delete got unexpected parameter scopeAdminID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDelete.DeleteMock.defaultExpectation.expectationOrigins.originScopeAdminID, *mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID, minimock.Diff(*mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID))
+			}
+
+			if mm_want_ptrs.allAccess != nil && !minimock.Equal(*mm_want_ptrs.allAccess, mm_got.allAccess) {
+				mmDelete.t.Errorf("StoreMock.Delete got unexpected parameter allAccess, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDelete.DeleteMock.defaultExpectation.expectationOrigins.originAllAccess, *mm_want_ptrs.allAccess, mm_got.allAccess, minimock.Diff(*mm_want_ptrs.allAccess, mm_got.allAccess))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
@@ -694,9 +756,9 @@ func (mmDelete *StoreMock) Delete(ctx context.Context, slug string) (err error) 
 		return (*mm_results).err
 	}
 	if mmDelete.funcDelete != nil {
-		return mmDelete.funcDelete(ctx, slug)
+		return mmDelete.funcDelete(ctx, slug, scopeAdminID, allAccess)
 	}
-	mmDelete.t.Fatalf("Unexpected call to StoreMock.Delete. %v %v", ctx, slug)
+	mmDelete.t.Fatalf("Unexpected call to StoreMock.Delete. %v %v %v %v", ctx, slug, scopeAdminID, allAccess)
 	return
 }
 
@@ -794,12 +856,16 @@ type StoreMockListExpectation struct {
 
 // StoreMockListParams contains parameters of the Store.List
 type StoreMockListParams struct {
-	ctx context.Context
+	ctx          context.Context
+	scopeAdminID string
+	allAccess    bool
 }
 
 // StoreMockListParamPtrs contains pointers to parameters of the Store.List
 type StoreMockListParamPtrs struct {
-	ctx *context.Context
+	ctx          *context.Context
+	scopeAdminID *string
+	allAccess    *bool
 }
 
 // StoreMockListResults contains results of the Store.List
@@ -810,8 +876,10 @@ type StoreMockListResults struct {
 
 // StoreMockListOrigins contains origins of expectations of the Store.List
 type StoreMockListExpectationOrigins struct {
-	origin    string
-	originCtx string
+	origin             string
+	originCtx          string
+	originScopeAdminID string
+	originAllAccess    string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -825,7 +893,7 @@ func (mmList *mStoreMockList) Optional() *mStoreMockList {
 }
 
 // Expect sets up expected params for Store.List
-func (mmList *mStoreMockList) Expect(ctx context.Context) *mStoreMockList {
+func (mmList *mStoreMockList) Expect(ctx context.Context, scopeAdminID string, allAccess bool) *mStoreMockList {
 	if mmList.mock.funcList != nil {
 		mmList.mock.t.Fatalf("StoreMock.List mock is already set by Set")
 	}
@@ -838,7 +906,7 @@ func (mmList *mStoreMockList) Expect(ctx context.Context) *mStoreMockList {
 		mmList.mock.t.Fatalf("StoreMock.List mock is already set by ExpectParams functions")
 	}
 
-	mmList.defaultExpectation.params = &StoreMockListParams{ctx}
+	mmList.defaultExpectation.params = &StoreMockListParams{ctx, scopeAdminID, allAccess}
 	mmList.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmList.expectations {
 		if minimock.Equal(e.params, mmList.defaultExpectation.params) {
@@ -872,8 +940,54 @@ func (mmList *mStoreMockList) ExpectCtxParam1(ctx context.Context) *mStoreMockLi
 	return mmList
 }
 
+// ExpectScopeAdminIDParam2 sets up expected param scopeAdminID for Store.List
+func (mmList *mStoreMockList) ExpectScopeAdminIDParam2(scopeAdminID string) *mStoreMockList {
+	if mmList.mock.funcList != nil {
+		mmList.mock.t.Fatalf("StoreMock.List mock is already set by Set")
+	}
+
+	if mmList.defaultExpectation == nil {
+		mmList.defaultExpectation = &StoreMockListExpectation{}
+	}
+
+	if mmList.defaultExpectation.params != nil {
+		mmList.mock.t.Fatalf("StoreMock.List mock is already set by Expect")
+	}
+
+	if mmList.defaultExpectation.paramPtrs == nil {
+		mmList.defaultExpectation.paramPtrs = &StoreMockListParamPtrs{}
+	}
+	mmList.defaultExpectation.paramPtrs.scopeAdminID = &scopeAdminID
+	mmList.defaultExpectation.expectationOrigins.originScopeAdminID = minimock.CallerInfo(1)
+
+	return mmList
+}
+
+// ExpectAllAccessParam3 sets up expected param allAccess for Store.List
+func (mmList *mStoreMockList) ExpectAllAccessParam3(allAccess bool) *mStoreMockList {
+	if mmList.mock.funcList != nil {
+		mmList.mock.t.Fatalf("StoreMock.List mock is already set by Set")
+	}
+
+	if mmList.defaultExpectation == nil {
+		mmList.defaultExpectation = &StoreMockListExpectation{}
+	}
+
+	if mmList.defaultExpectation.params != nil {
+		mmList.mock.t.Fatalf("StoreMock.List mock is already set by Expect")
+	}
+
+	if mmList.defaultExpectation.paramPtrs == nil {
+		mmList.defaultExpectation.paramPtrs = &StoreMockListParamPtrs{}
+	}
+	mmList.defaultExpectation.paramPtrs.allAccess = &allAccess
+	mmList.defaultExpectation.expectationOrigins.originAllAccess = minimock.CallerInfo(1)
+
+	return mmList
+}
+
 // Inspect accepts an inspector function that has same arguments as the Store.List
-func (mmList *mStoreMockList) Inspect(f func(ctx context.Context)) *mStoreMockList {
+func (mmList *mStoreMockList) Inspect(f func(ctx context.Context, scopeAdminID string, allAccess bool)) *mStoreMockList {
 	if mmList.mock.inspectFuncList != nil {
 		mmList.mock.t.Fatalf("Inspect function is already set for StoreMock.List")
 	}
@@ -898,7 +1012,7 @@ func (mmList *mStoreMockList) Return(ra1 []domain.Role, err error) *StoreMock {
 }
 
 // Set uses given function f to mock the Store.List method
-func (mmList *mStoreMockList) Set(f func(ctx context.Context) (ra1 []domain.Role, err error)) *StoreMock {
+func (mmList *mStoreMockList) Set(f func(ctx context.Context, scopeAdminID string, allAccess bool) (ra1 []domain.Role, err error)) *StoreMock {
 	if mmList.defaultExpectation != nil {
 		mmList.mock.t.Fatalf("Default expectation is already set for the Store.List method")
 	}
@@ -914,14 +1028,14 @@ func (mmList *mStoreMockList) Set(f func(ctx context.Context) (ra1 []domain.Role
 
 // When sets expectation for the Store.List which will trigger the result defined by the following
 // Then helper
-func (mmList *mStoreMockList) When(ctx context.Context) *StoreMockListExpectation {
+func (mmList *mStoreMockList) When(ctx context.Context, scopeAdminID string, allAccess bool) *StoreMockListExpectation {
 	if mmList.mock.funcList != nil {
 		mmList.mock.t.Fatalf("StoreMock.List mock is already set by Set")
 	}
 
 	expectation := &StoreMockListExpectation{
 		mock:               mmList.mock,
-		params:             &StoreMockListParams{ctx},
+		params:             &StoreMockListParams{ctx, scopeAdminID, allAccess},
 		expectationOrigins: StoreMockListExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmList.expectations = append(mmList.expectations, expectation)
@@ -956,17 +1070,17 @@ func (mmList *mStoreMockList) invocationsDone() bool {
 }
 
 // List implements mm_roles.Store
-func (mmList *StoreMock) List(ctx context.Context) (ra1 []domain.Role, err error) {
+func (mmList *StoreMock) List(ctx context.Context, scopeAdminID string, allAccess bool) (ra1 []domain.Role, err error) {
 	mm_atomic.AddUint64(&mmList.beforeListCounter, 1)
 	defer mm_atomic.AddUint64(&mmList.afterListCounter, 1)
 
 	mmList.t.Helper()
 
 	if mmList.inspectFuncList != nil {
-		mmList.inspectFuncList(ctx)
+		mmList.inspectFuncList(ctx, scopeAdminID, allAccess)
 	}
 
-	mm_params := StoreMockListParams{ctx}
+	mm_params := StoreMockListParams{ctx, scopeAdminID, allAccess}
 
 	// Record call args
 	mmList.ListMock.mutex.Lock()
@@ -985,13 +1099,23 @@ func (mmList *StoreMock) List(ctx context.Context) (ra1 []domain.Role, err error
 		mm_want := mmList.ListMock.defaultExpectation.params
 		mm_want_ptrs := mmList.ListMock.defaultExpectation.paramPtrs
 
-		mm_got := StoreMockListParams{ctx}
+		mm_got := StoreMockListParams{ctx, scopeAdminID, allAccess}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
 				mmList.t.Errorf("StoreMock.List got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmList.ListMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.scopeAdminID != nil && !minimock.Equal(*mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID) {
+				mmList.t.Errorf("StoreMock.List got unexpected parameter scopeAdminID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmList.ListMock.defaultExpectation.expectationOrigins.originScopeAdminID, *mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID, minimock.Diff(*mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID))
+			}
+
+			if mm_want_ptrs.allAccess != nil && !minimock.Equal(*mm_want_ptrs.allAccess, mm_got.allAccess) {
+				mmList.t.Errorf("StoreMock.List got unexpected parameter allAccess, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmList.ListMock.defaultExpectation.expectationOrigins.originAllAccess, *mm_want_ptrs.allAccess, mm_got.allAccess, minimock.Diff(*mm_want_ptrs.allAccess, mm_got.allAccess))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
@@ -1006,9 +1130,9 @@ func (mmList *StoreMock) List(ctx context.Context) (ra1 []domain.Role, err error
 		return (*mm_results).ra1, (*mm_results).err
 	}
 	if mmList.funcList != nil {
-		return mmList.funcList(ctx)
+		return mmList.funcList(ctx, scopeAdminID, allAccess)
 	}
-	mmList.t.Fatalf("Unexpected call to StoreMock.List. %v", ctx)
+	mmList.t.Fatalf("Unexpected call to StoreMock.List. %v %v %v", ctx, scopeAdminID, allAccess)
 	return
 }
 
@@ -1106,16 +1230,20 @@ type StoreMockSetPermissionsExpectation struct {
 
 // StoreMockSetPermissionsParams contains parameters of the Store.SetPermissions
 type StoreMockSetPermissionsParams struct {
-	ctx       context.Context
-	slug      string
-	permSlugs []string
+	ctx          context.Context
+	slug         string
+	permSlugs    []string
+	scopeAdminID string
+	allAccess    bool
 }
 
 // StoreMockSetPermissionsParamPtrs contains pointers to parameters of the Store.SetPermissions
 type StoreMockSetPermissionsParamPtrs struct {
-	ctx       *context.Context
-	slug      *string
-	permSlugs *[]string
+	ctx          *context.Context
+	slug         *string
+	permSlugs    *[]string
+	scopeAdminID *string
+	allAccess    *bool
 }
 
 // StoreMockSetPermissionsResults contains results of the Store.SetPermissions
@@ -1126,10 +1254,12 @@ type StoreMockSetPermissionsResults struct {
 
 // StoreMockSetPermissionsOrigins contains origins of expectations of the Store.SetPermissions
 type StoreMockSetPermissionsExpectationOrigins struct {
-	origin          string
-	originCtx       string
-	originSlug      string
-	originPermSlugs string
+	origin             string
+	originCtx          string
+	originSlug         string
+	originPermSlugs    string
+	originScopeAdminID string
+	originAllAccess    string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -1143,7 +1273,7 @@ func (mmSetPermissions *mStoreMockSetPermissions) Optional() *mStoreMockSetPermi
 }
 
 // Expect sets up expected params for Store.SetPermissions
-func (mmSetPermissions *mStoreMockSetPermissions) Expect(ctx context.Context, slug string, permSlugs []string) *mStoreMockSetPermissions {
+func (mmSetPermissions *mStoreMockSetPermissions) Expect(ctx context.Context, slug string, permSlugs []string, scopeAdminID string, allAccess bool) *mStoreMockSetPermissions {
 	if mmSetPermissions.mock.funcSetPermissions != nil {
 		mmSetPermissions.mock.t.Fatalf("StoreMock.SetPermissions mock is already set by Set")
 	}
@@ -1156,7 +1286,7 @@ func (mmSetPermissions *mStoreMockSetPermissions) Expect(ctx context.Context, sl
 		mmSetPermissions.mock.t.Fatalf("StoreMock.SetPermissions mock is already set by ExpectParams functions")
 	}
 
-	mmSetPermissions.defaultExpectation.params = &StoreMockSetPermissionsParams{ctx, slug, permSlugs}
+	mmSetPermissions.defaultExpectation.params = &StoreMockSetPermissionsParams{ctx, slug, permSlugs, scopeAdminID, allAccess}
 	mmSetPermissions.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmSetPermissions.expectations {
 		if minimock.Equal(e.params, mmSetPermissions.defaultExpectation.params) {
@@ -1236,8 +1366,54 @@ func (mmSetPermissions *mStoreMockSetPermissions) ExpectPermSlugsParam3(permSlug
 	return mmSetPermissions
 }
 
+// ExpectScopeAdminIDParam4 sets up expected param scopeAdminID for Store.SetPermissions
+func (mmSetPermissions *mStoreMockSetPermissions) ExpectScopeAdminIDParam4(scopeAdminID string) *mStoreMockSetPermissions {
+	if mmSetPermissions.mock.funcSetPermissions != nil {
+		mmSetPermissions.mock.t.Fatalf("StoreMock.SetPermissions mock is already set by Set")
+	}
+
+	if mmSetPermissions.defaultExpectation == nil {
+		mmSetPermissions.defaultExpectation = &StoreMockSetPermissionsExpectation{}
+	}
+
+	if mmSetPermissions.defaultExpectation.params != nil {
+		mmSetPermissions.mock.t.Fatalf("StoreMock.SetPermissions mock is already set by Expect")
+	}
+
+	if mmSetPermissions.defaultExpectation.paramPtrs == nil {
+		mmSetPermissions.defaultExpectation.paramPtrs = &StoreMockSetPermissionsParamPtrs{}
+	}
+	mmSetPermissions.defaultExpectation.paramPtrs.scopeAdminID = &scopeAdminID
+	mmSetPermissions.defaultExpectation.expectationOrigins.originScopeAdminID = minimock.CallerInfo(1)
+
+	return mmSetPermissions
+}
+
+// ExpectAllAccessParam5 sets up expected param allAccess for Store.SetPermissions
+func (mmSetPermissions *mStoreMockSetPermissions) ExpectAllAccessParam5(allAccess bool) *mStoreMockSetPermissions {
+	if mmSetPermissions.mock.funcSetPermissions != nil {
+		mmSetPermissions.mock.t.Fatalf("StoreMock.SetPermissions mock is already set by Set")
+	}
+
+	if mmSetPermissions.defaultExpectation == nil {
+		mmSetPermissions.defaultExpectation = &StoreMockSetPermissionsExpectation{}
+	}
+
+	if mmSetPermissions.defaultExpectation.params != nil {
+		mmSetPermissions.mock.t.Fatalf("StoreMock.SetPermissions mock is already set by Expect")
+	}
+
+	if mmSetPermissions.defaultExpectation.paramPtrs == nil {
+		mmSetPermissions.defaultExpectation.paramPtrs = &StoreMockSetPermissionsParamPtrs{}
+	}
+	mmSetPermissions.defaultExpectation.paramPtrs.allAccess = &allAccess
+	mmSetPermissions.defaultExpectation.expectationOrigins.originAllAccess = minimock.CallerInfo(1)
+
+	return mmSetPermissions
+}
+
 // Inspect accepts an inspector function that has same arguments as the Store.SetPermissions
-func (mmSetPermissions *mStoreMockSetPermissions) Inspect(f func(ctx context.Context, slug string, permSlugs []string)) *mStoreMockSetPermissions {
+func (mmSetPermissions *mStoreMockSetPermissions) Inspect(f func(ctx context.Context, slug string, permSlugs []string, scopeAdminID string, allAccess bool)) *mStoreMockSetPermissions {
 	if mmSetPermissions.mock.inspectFuncSetPermissions != nil {
 		mmSetPermissions.mock.t.Fatalf("Inspect function is already set for StoreMock.SetPermissions")
 	}
@@ -1262,7 +1438,7 @@ func (mmSetPermissions *mStoreMockSetPermissions) Return(r1 domain.Role, err err
 }
 
 // Set uses given function f to mock the Store.SetPermissions method
-func (mmSetPermissions *mStoreMockSetPermissions) Set(f func(ctx context.Context, slug string, permSlugs []string) (r1 domain.Role, err error)) *StoreMock {
+func (mmSetPermissions *mStoreMockSetPermissions) Set(f func(ctx context.Context, slug string, permSlugs []string, scopeAdminID string, allAccess bool) (r1 domain.Role, err error)) *StoreMock {
 	if mmSetPermissions.defaultExpectation != nil {
 		mmSetPermissions.mock.t.Fatalf("Default expectation is already set for the Store.SetPermissions method")
 	}
@@ -1278,14 +1454,14 @@ func (mmSetPermissions *mStoreMockSetPermissions) Set(f func(ctx context.Context
 
 // When sets expectation for the Store.SetPermissions which will trigger the result defined by the following
 // Then helper
-func (mmSetPermissions *mStoreMockSetPermissions) When(ctx context.Context, slug string, permSlugs []string) *StoreMockSetPermissionsExpectation {
+func (mmSetPermissions *mStoreMockSetPermissions) When(ctx context.Context, slug string, permSlugs []string, scopeAdminID string, allAccess bool) *StoreMockSetPermissionsExpectation {
 	if mmSetPermissions.mock.funcSetPermissions != nil {
 		mmSetPermissions.mock.t.Fatalf("StoreMock.SetPermissions mock is already set by Set")
 	}
 
 	expectation := &StoreMockSetPermissionsExpectation{
 		mock:               mmSetPermissions.mock,
-		params:             &StoreMockSetPermissionsParams{ctx, slug, permSlugs},
+		params:             &StoreMockSetPermissionsParams{ctx, slug, permSlugs, scopeAdminID, allAccess},
 		expectationOrigins: StoreMockSetPermissionsExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmSetPermissions.expectations = append(mmSetPermissions.expectations, expectation)
@@ -1320,17 +1496,17 @@ func (mmSetPermissions *mStoreMockSetPermissions) invocationsDone() bool {
 }
 
 // SetPermissions implements mm_roles.Store
-func (mmSetPermissions *StoreMock) SetPermissions(ctx context.Context, slug string, permSlugs []string) (r1 domain.Role, err error) {
+func (mmSetPermissions *StoreMock) SetPermissions(ctx context.Context, slug string, permSlugs []string, scopeAdminID string, allAccess bool) (r1 domain.Role, err error) {
 	mm_atomic.AddUint64(&mmSetPermissions.beforeSetPermissionsCounter, 1)
 	defer mm_atomic.AddUint64(&mmSetPermissions.afterSetPermissionsCounter, 1)
 
 	mmSetPermissions.t.Helper()
 
 	if mmSetPermissions.inspectFuncSetPermissions != nil {
-		mmSetPermissions.inspectFuncSetPermissions(ctx, slug, permSlugs)
+		mmSetPermissions.inspectFuncSetPermissions(ctx, slug, permSlugs, scopeAdminID, allAccess)
 	}
 
-	mm_params := StoreMockSetPermissionsParams{ctx, slug, permSlugs}
+	mm_params := StoreMockSetPermissionsParams{ctx, slug, permSlugs, scopeAdminID, allAccess}
 
 	// Record call args
 	mmSetPermissions.SetPermissionsMock.mutex.Lock()
@@ -1349,7 +1525,7 @@ func (mmSetPermissions *StoreMock) SetPermissions(ctx context.Context, slug stri
 		mm_want := mmSetPermissions.SetPermissionsMock.defaultExpectation.params
 		mm_want_ptrs := mmSetPermissions.SetPermissionsMock.defaultExpectation.paramPtrs
 
-		mm_got := StoreMockSetPermissionsParams{ctx, slug, permSlugs}
+		mm_got := StoreMockSetPermissionsParams{ctx, slug, permSlugs, scopeAdminID, allAccess}
 
 		if mm_want_ptrs != nil {
 
@@ -1368,6 +1544,16 @@ func (mmSetPermissions *StoreMock) SetPermissions(ctx context.Context, slug stri
 					mmSetPermissions.SetPermissionsMock.defaultExpectation.expectationOrigins.originPermSlugs, *mm_want_ptrs.permSlugs, mm_got.permSlugs, minimock.Diff(*mm_want_ptrs.permSlugs, mm_got.permSlugs))
 			}
 
+			if mm_want_ptrs.scopeAdminID != nil && !minimock.Equal(*mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID) {
+				mmSetPermissions.t.Errorf("StoreMock.SetPermissions got unexpected parameter scopeAdminID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPermissions.SetPermissionsMock.defaultExpectation.expectationOrigins.originScopeAdminID, *mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID, minimock.Diff(*mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID))
+			}
+
+			if mm_want_ptrs.allAccess != nil && !minimock.Equal(*mm_want_ptrs.allAccess, mm_got.allAccess) {
+				mmSetPermissions.t.Errorf("StoreMock.SetPermissions got unexpected parameter allAccess, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetPermissions.SetPermissionsMock.defaultExpectation.expectationOrigins.originAllAccess, *mm_want_ptrs.allAccess, mm_got.allAccess, minimock.Diff(*mm_want_ptrs.allAccess, mm_got.allAccess))
+			}
+
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmSetPermissions.t.Errorf("StoreMock.SetPermissions got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 				mmSetPermissions.SetPermissionsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
@@ -1380,9 +1566,9 @@ func (mmSetPermissions *StoreMock) SetPermissions(ctx context.Context, slug stri
 		return (*mm_results).r1, (*mm_results).err
 	}
 	if mmSetPermissions.funcSetPermissions != nil {
-		return mmSetPermissions.funcSetPermissions(ctx, slug, permSlugs)
+		return mmSetPermissions.funcSetPermissions(ctx, slug, permSlugs, scopeAdminID, allAccess)
 	}
-	mmSetPermissions.t.Fatalf("Unexpected call to StoreMock.SetPermissions. %v %v %v", ctx, slug, permSlugs)
+	mmSetPermissions.t.Fatalf("Unexpected call to StoreMock.SetPermissions. %v %v %v %v %v", ctx, slug, permSlugs, scopeAdminID, allAccess)
 	return
 }
 
@@ -1480,16 +1666,20 @@ type StoreMockUpdateTitleExpectation struct {
 
 // StoreMockUpdateTitleParams contains parameters of the Store.UpdateTitle
 type StoreMockUpdateTitleParams struct {
-	ctx   context.Context
-	slug  string
-	title string
+	ctx          context.Context
+	slug         string
+	title        string
+	scopeAdminID string
+	allAccess    bool
 }
 
 // StoreMockUpdateTitleParamPtrs contains pointers to parameters of the Store.UpdateTitle
 type StoreMockUpdateTitleParamPtrs struct {
-	ctx   *context.Context
-	slug  *string
-	title *string
+	ctx          *context.Context
+	slug         *string
+	title        *string
+	scopeAdminID *string
+	allAccess    *bool
 }
 
 // StoreMockUpdateTitleResults contains results of the Store.UpdateTitle
@@ -1500,10 +1690,12 @@ type StoreMockUpdateTitleResults struct {
 
 // StoreMockUpdateTitleOrigins contains origins of expectations of the Store.UpdateTitle
 type StoreMockUpdateTitleExpectationOrigins struct {
-	origin      string
-	originCtx   string
-	originSlug  string
-	originTitle string
+	origin             string
+	originCtx          string
+	originSlug         string
+	originTitle        string
+	originScopeAdminID string
+	originAllAccess    string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -1517,7 +1709,7 @@ func (mmUpdateTitle *mStoreMockUpdateTitle) Optional() *mStoreMockUpdateTitle {
 }
 
 // Expect sets up expected params for Store.UpdateTitle
-func (mmUpdateTitle *mStoreMockUpdateTitle) Expect(ctx context.Context, slug string, title string) *mStoreMockUpdateTitle {
+func (mmUpdateTitle *mStoreMockUpdateTitle) Expect(ctx context.Context, slug string, title string, scopeAdminID string, allAccess bool) *mStoreMockUpdateTitle {
 	if mmUpdateTitle.mock.funcUpdateTitle != nil {
 		mmUpdateTitle.mock.t.Fatalf("StoreMock.UpdateTitle mock is already set by Set")
 	}
@@ -1530,7 +1722,7 @@ func (mmUpdateTitle *mStoreMockUpdateTitle) Expect(ctx context.Context, slug str
 		mmUpdateTitle.mock.t.Fatalf("StoreMock.UpdateTitle mock is already set by ExpectParams functions")
 	}
 
-	mmUpdateTitle.defaultExpectation.params = &StoreMockUpdateTitleParams{ctx, slug, title}
+	mmUpdateTitle.defaultExpectation.params = &StoreMockUpdateTitleParams{ctx, slug, title, scopeAdminID, allAccess}
 	mmUpdateTitle.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmUpdateTitle.expectations {
 		if minimock.Equal(e.params, mmUpdateTitle.defaultExpectation.params) {
@@ -1610,8 +1802,54 @@ func (mmUpdateTitle *mStoreMockUpdateTitle) ExpectTitleParam3(title string) *mSt
 	return mmUpdateTitle
 }
 
+// ExpectScopeAdminIDParam4 sets up expected param scopeAdminID for Store.UpdateTitle
+func (mmUpdateTitle *mStoreMockUpdateTitle) ExpectScopeAdminIDParam4(scopeAdminID string) *mStoreMockUpdateTitle {
+	if mmUpdateTitle.mock.funcUpdateTitle != nil {
+		mmUpdateTitle.mock.t.Fatalf("StoreMock.UpdateTitle mock is already set by Set")
+	}
+
+	if mmUpdateTitle.defaultExpectation == nil {
+		mmUpdateTitle.defaultExpectation = &StoreMockUpdateTitleExpectation{}
+	}
+
+	if mmUpdateTitle.defaultExpectation.params != nil {
+		mmUpdateTitle.mock.t.Fatalf("StoreMock.UpdateTitle mock is already set by Expect")
+	}
+
+	if mmUpdateTitle.defaultExpectation.paramPtrs == nil {
+		mmUpdateTitle.defaultExpectation.paramPtrs = &StoreMockUpdateTitleParamPtrs{}
+	}
+	mmUpdateTitle.defaultExpectation.paramPtrs.scopeAdminID = &scopeAdminID
+	mmUpdateTitle.defaultExpectation.expectationOrigins.originScopeAdminID = minimock.CallerInfo(1)
+
+	return mmUpdateTitle
+}
+
+// ExpectAllAccessParam5 sets up expected param allAccess for Store.UpdateTitle
+func (mmUpdateTitle *mStoreMockUpdateTitle) ExpectAllAccessParam5(allAccess bool) *mStoreMockUpdateTitle {
+	if mmUpdateTitle.mock.funcUpdateTitle != nil {
+		mmUpdateTitle.mock.t.Fatalf("StoreMock.UpdateTitle mock is already set by Set")
+	}
+
+	if mmUpdateTitle.defaultExpectation == nil {
+		mmUpdateTitle.defaultExpectation = &StoreMockUpdateTitleExpectation{}
+	}
+
+	if mmUpdateTitle.defaultExpectation.params != nil {
+		mmUpdateTitle.mock.t.Fatalf("StoreMock.UpdateTitle mock is already set by Expect")
+	}
+
+	if mmUpdateTitle.defaultExpectation.paramPtrs == nil {
+		mmUpdateTitle.defaultExpectation.paramPtrs = &StoreMockUpdateTitleParamPtrs{}
+	}
+	mmUpdateTitle.defaultExpectation.paramPtrs.allAccess = &allAccess
+	mmUpdateTitle.defaultExpectation.expectationOrigins.originAllAccess = minimock.CallerInfo(1)
+
+	return mmUpdateTitle
+}
+
 // Inspect accepts an inspector function that has same arguments as the Store.UpdateTitle
-func (mmUpdateTitle *mStoreMockUpdateTitle) Inspect(f func(ctx context.Context, slug string, title string)) *mStoreMockUpdateTitle {
+func (mmUpdateTitle *mStoreMockUpdateTitle) Inspect(f func(ctx context.Context, slug string, title string, scopeAdminID string, allAccess bool)) *mStoreMockUpdateTitle {
 	if mmUpdateTitle.mock.inspectFuncUpdateTitle != nil {
 		mmUpdateTitle.mock.t.Fatalf("Inspect function is already set for StoreMock.UpdateTitle")
 	}
@@ -1636,7 +1874,7 @@ func (mmUpdateTitle *mStoreMockUpdateTitle) Return(r1 domain.Role, err error) *S
 }
 
 // Set uses given function f to mock the Store.UpdateTitle method
-func (mmUpdateTitle *mStoreMockUpdateTitle) Set(f func(ctx context.Context, slug string, title string) (r1 domain.Role, err error)) *StoreMock {
+func (mmUpdateTitle *mStoreMockUpdateTitle) Set(f func(ctx context.Context, slug string, title string, scopeAdminID string, allAccess bool) (r1 domain.Role, err error)) *StoreMock {
 	if mmUpdateTitle.defaultExpectation != nil {
 		mmUpdateTitle.mock.t.Fatalf("Default expectation is already set for the Store.UpdateTitle method")
 	}
@@ -1652,14 +1890,14 @@ func (mmUpdateTitle *mStoreMockUpdateTitle) Set(f func(ctx context.Context, slug
 
 // When sets expectation for the Store.UpdateTitle which will trigger the result defined by the following
 // Then helper
-func (mmUpdateTitle *mStoreMockUpdateTitle) When(ctx context.Context, slug string, title string) *StoreMockUpdateTitleExpectation {
+func (mmUpdateTitle *mStoreMockUpdateTitle) When(ctx context.Context, slug string, title string, scopeAdminID string, allAccess bool) *StoreMockUpdateTitleExpectation {
 	if mmUpdateTitle.mock.funcUpdateTitle != nil {
 		mmUpdateTitle.mock.t.Fatalf("StoreMock.UpdateTitle mock is already set by Set")
 	}
 
 	expectation := &StoreMockUpdateTitleExpectation{
 		mock:               mmUpdateTitle.mock,
-		params:             &StoreMockUpdateTitleParams{ctx, slug, title},
+		params:             &StoreMockUpdateTitleParams{ctx, slug, title, scopeAdminID, allAccess},
 		expectationOrigins: StoreMockUpdateTitleExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmUpdateTitle.expectations = append(mmUpdateTitle.expectations, expectation)
@@ -1694,17 +1932,17 @@ func (mmUpdateTitle *mStoreMockUpdateTitle) invocationsDone() bool {
 }
 
 // UpdateTitle implements mm_roles.Store
-func (mmUpdateTitle *StoreMock) UpdateTitle(ctx context.Context, slug string, title string) (r1 domain.Role, err error) {
+func (mmUpdateTitle *StoreMock) UpdateTitle(ctx context.Context, slug string, title string, scopeAdminID string, allAccess bool) (r1 domain.Role, err error) {
 	mm_atomic.AddUint64(&mmUpdateTitle.beforeUpdateTitleCounter, 1)
 	defer mm_atomic.AddUint64(&mmUpdateTitle.afterUpdateTitleCounter, 1)
 
 	mmUpdateTitle.t.Helper()
 
 	if mmUpdateTitle.inspectFuncUpdateTitle != nil {
-		mmUpdateTitle.inspectFuncUpdateTitle(ctx, slug, title)
+		mmUpdateTitle.inspectFuncUpdateTitle(ctx, slug, title, scopeAdminID, allAccess)
 	}
 
-	mm_params := StoreMockUpdateTitleParams{ctx, slug, title}
+	mm_params := StoreMockUpdateTitleParams{ctx, slug, title, scopeAdminID, allAccess}
 
 	// Record call args
 	mmUpdateTitle.UpdateTitleMock.mutex.Lock()
@@ -1723,7 +1961,7 @@ func (mmUpdateTitle *StoreMock) UpdateTitle(ctx context.Context, slug string, ti
 		mm_want := mmUpdateTitle.UpdateTitleMock.defaultExpectation.params
 		mm_want_ptrs := mmUpdateTitle.UpdateTitleMock.defaultExpectation.paramPtrs
 
-		mm_got := StoreMockUpdateTitleParams{ctx, slug, title}
+		mm_got := StoreMockUpdateTitleParams{ctx, slug, title, scopeAdminID, allAccess}
 
 		if mm_want_ptrs != nil {
 
@@ -1742,6 +1980,16 @@ func (mmUpdateTitle *StoreMock) UpdateTitle(ctx context.Context, slug string, ti
 					mmUpdateTitle.UpdateTitleMock.defaultExpectation.expectationOrigins.originTitle, *mm_want_ptrs.title, mm_got.title, minimock.Diff(*mm_want_ptrs.title, mm_got.title))
 			}
 
+			if mm_want_ptrs.scopeAdminID != nil && !minimock.Equal(*mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID) {
+				mmUpdateTitle.t.Errorf("StoreMock.UpdateTitle got unexpected parameter scopeAdminID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateTitle.UpdateTitleMock.defaultExpectation.expectationOrigins.originScopeAdminID, *mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID, minimock.Diff(*mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID))
+			}
+
+			if mm_want_ptrs.allAccess != nil && !minimock.Equal(*mm_want_ptrs.allAccess, mm_got.allAccess) {
+				mmUpdateTitle.t.Errorf("StoreMock.UpdateTitle got unexpected parameter allAccess, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateTitle.UpdateTitleMock.defaultExpectation.expectationOrigins.originAllAccess, *mm_want_ptrs.allAccess, mm_got.allAccess, minimock.Diff(*mm_want_ptrs.allAccess, mm_got.allAccess))
+			}
+
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmUpdateTitle.t.Errorf("StoreMock.UpdateTitle got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 				mmUpdateTitle.UpdateTitleMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
@@ -1754,9 +2002,9 @@ func (mmUpdateTitle *StoreMock) UpdateTitle(ctx context.Context, slug string, ti
 		return (*mm_results).r1, (*mm_results).err
 	}
 	if mmUpdateTitle.funcUpdateTitle != nil {
-		return mmUpdateTitle.funcUpdateTitle(ctx, slug, title)
+		return mmUpdateTitle.funcUpdateTitle(ctx, slug, title, scopeAdminID, allAccess)
 	}
-	mmUpdateTitle.t.Fatalf("Unexpected call to StoreMock.UpdateTitle. %v %v %v", ctx, slug, title)
+	mmUpdateTitle.t.Fatalf("Unexpected call to StoreMock.UpdateTitle. %v %v %v %v %v", ctx, slug, title, scopeAdminID, allAccess)
 	return
 }
 

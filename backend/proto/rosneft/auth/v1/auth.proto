@@ -180,7 +180,9 @@ message SetUserOwnerRequest {
   bool is_owner = 3;
 }
 
-message ListRolesRequest {}
+message ListRolesRequest {
+  string token = 1; // actor; scopes visible roles to the caller's group
+}
 message ListRolesResponse {
   repeated Role roles = 1;
 }
@@ -193,9 +195,11 @@ message CreateRoleRequest {
 message UpdateRoleRequest {
   string slug = 1;
   string title = 2;
+  string token = 3; // actor; only the role's group (or Root) may rename it
 }
 message DeleteRoleRequest {
   string slug = 1;
+  string token = 2; // actor; only the role's group (or Root) may delete it
 }
 message DeleteRoleResponse {}
 message SetRolePermissionsRequest {

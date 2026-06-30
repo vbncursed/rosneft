@@ -7,9 +7,14 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
-func (s *Service) List(ctx context.Context) ([]domain.Role, error) { return s.store.List(ctx) }
+// List returns the roles visible to the caller's group (allAccess = Root).
+func (s *Service) List(ctx context.Context, scopeAdminID string, allAccess bool) ([]domain.Role, error) {
+	return s.store.List(ctx, scopeAdminID, allAccess)
+}
 
-func (s *Service) Create(ctx context.Context, actorID, slug, title string, permSlugs []string) (domain.Role, error) {
+// Create makes a new role stamped with the creator's group (ownerAdminID; empty
+// for Root = global).
+func (s *Service) Create(ctx context.Context, actorID, ownerAdminID, slug, title string, permSlugs []string) (domain.Role, error) {
 	if title == "" {
 		return domain.Role{}, fmt.Errorf("roles.Create: %w: title required", domain.ErrInvalidInput)
 	}
@@ -17,21 +22,21 @@ func (s *Service) Create(ctx context.Context, actorID, slug, title string, permS
 		return domain.Role{}, err
 	}
 	if slug == "" {
-		return s.createWithDerivedSlug(ctx, title, permSlugs)
+		return s.createWithDerivedSlug(ctx, ownerAdminID, title, permSlugs)
 	}
-	return s.store.Create(ctx, domain.Role{Slug: slug, Title: title, PermissionSlugs: permSlugs})
+	return s.store.Create(ctx, domain.Role{Slug: slug, Title: title, PermissionSlugs: permSlugs, OwnerAdminID: ownerAdminID})
 }
 
-func (s *Service) UpdateTitle(ctx context.Context, slug, title string) (domain.Role, error) {
+func (s *Service) UpdateTitle(ctx context.Context, slug, title, scopeAdminID string, allAccess bool) (domain.Role, error) {
 	if slug == "" || title == "" {
 		return domain.Role{}, fmt.Errorf("roles.UpdateTitle: %w: slug and title required", domain.ErrInvalidInput)
 	}
-	return s.store.UpdateTitle(ctx, slug, title)
+	return s.store.UpdateTitle(ctx, slug, title, scopeAdminID, allAccess)
 }
 
-func (s *Service) Delete(ctx context.Context, slug string) error {
+func (s *Service) Delete(ctx context.Context, slug, scopeAdminID string, allAccess bool) error {
 	if slug == "" {
 		return fmt.Errorf("roles.Delete: %w: empty slug", domain.ErrInvalidInput)
 	}
-	return s.store.Delete(ctx, slug)
+	return s.store.Delete(ctx, slug, scopeAdminID, allAccess)
 }

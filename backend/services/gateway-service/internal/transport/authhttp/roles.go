@@ -7,7 +7,7 @@ import (
 )
 
 func (h *Handlers) listRoles(w http.ResponseWriter, r *http.Request) {
-	list, err := h.client.ListRoles(r.Context())
+	list, err := h.client.ListRoles(r.Context(), bearer(r))
 	if err != nil {
 		fail(w, err)
 		return
@@ -36,7 +36,7 @@ func (h *Handlers) updateRole(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	role, err := h.client.UpdateRole(r.Context(), chi.URLParam(r, "slug"), req.Title)
+	role, err := h.client.UpdateRole(r.Context(), bearer(r), chi.URLParam(r, "slug"), req.Title)
 	if err != nil {
 		fail(w, err)
 		return
@@ -45,7 +45,7 @@ func (h *Handlers) updateRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) deleteRole(w http.ResponseWriter, r *http.Request) {
-	if err := h.client.DeleteRole(r.Context(), chi.URLParam(r, "slug")); err != nil {
+	if err := h.client.DeleteRole(r.Context(), bearer(r), chi.URLParam(r, "slug")); err != nil {
 		fail(w, err)
 		return
 	}

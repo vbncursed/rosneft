@@ -31,7 +31,7 @@ export default function RolesPanel() {
               {r.isSystem ? <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">system</span> : null}
             </button>
           ))}
-          <CreateRoleForm permissions={permissions} onCreate={create} />
+          <CreateRoleForm permissions={permissions} onCreate={async (title, perms) => { const slug = await create(title, perms); if (slug) setSel(slug); }} />
         </div>
 
         {sel === ROOT_ID ? (

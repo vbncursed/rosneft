@@ -7,11 +7,13 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
-// Create inserts a non-system role with the given permission slugs.
+// Create inserts a non-system role with the given permission slugs, stamped
+// with the creating group's owner_admin_id (empty = global, for Root).
 func (s *Store) Create(ctx context.Context, r domain.Role) (domain.Role, error) {
-	const q = `INSERT INTO roles (slug, title, is_system) VALUES ($1, $2, FALSE) RETURNING id`
+	const q = `INSERT INTO roles (slug, title, is_system, owner_admin_id)
+		VALUES ($1, $2, FALSE, NULLIF($3, '')::uuid) RETURNING id`
 	var id string
-	if err := s.pool.QueryRow(ctx, q, r.Slug, r.Title).Scan(&id); err != nil {
+	if err := s.pool.QueryRow(ctx, q, r.Slug, r.Title, r.OwnerAdminID).Scan(&id); err != nil {
 		if isUnique(err) {
 			return domain.Role{}, domain.ErrRoleSlugTaken
 		}

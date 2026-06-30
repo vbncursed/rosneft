@@ -47,11 +47,11 @@ type TwoFASvc interface {
 
 // RolesSvc is the roles/permissions surface.
 type RolesSvc interface {
-	List(ctx context.Context) ([]domain.Role, error)
-	Create(ctx context.Context, actorID, slug, title string, permSlugs []string) (domain.Role, error)
-	UpdateTitle(ctx context.Context, slug, title string) (domain.Role, error)
-	Delete(ctx context.Context, slug string) error
-	SetPermissions(ctx context.Context, actorID, slug string, permSlugs []string) (domain.Role, error)
+	List(ctx context.Context, scopeAdminID string, allAccess bool) ([]domain.Role, error)
+	Create(ctx context.Context, actorID, ownerAdminID, slug, title string, permSlugs []string) (domain.Role, error)
+	UpdateTitle(ctx context.Context, slug, title, scopeAdminID string, allAccess bool) (domain.Role, error)
+	Delete(ctx context.Context, slug, scopeAdminID string, allAccess bool) error
+	SetPermissions(ctx context.Context, actorID, slug string, permSlugs []string, scopeAdminID string, allAccess bool) (domain.Role, error)
 	ListPermissions(ctx context.Context) ([]domain.Permission, error)
 }
 
@@ -76,6 +76,17 @@ func (s *Server) Register(srv *grpc.Server) { authv1.RegisterAuthServiceServer(s
 func (s *Server) userIDFromToken(ctx context.Context, token string) (string, error) {
 	uid, _, _, _, err := s.auth.ValidateToken(ctx, token)
 	return uid, err
+}
+
+// roleActor resolves the caller for role operations: actor id, its owning admin
+// (the group key roles are scoped to), and whether it is Root (sees/manages
+// every group). owningAdmin is "" for Root, making Root-created roles global.
+func (s *Server) roleActor(ctx context.Context, token string) (actorID, owningAdmin string, allAccess bool, err error) {
+	uid, _, isOwner, oa, e := s.auth.ValidateToken(ctx, token)
+	if e != nil {
+		return "", "", false, e
+	}
+	return uid, oa, isOwner, nil
 }
 
 // actor resolves a session token to (userID, scopeAll). scopeAll is true when
