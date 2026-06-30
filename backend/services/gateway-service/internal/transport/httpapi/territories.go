@@ -9,7 +9,10 @@ import (
 )
 
 func (s *Server) ListTerritories(ctx context.Context, _ ListTerritoriesRequestObject) (ListTerritoriesResponseObject, error) {
-	scopeAdminID, _ := authhttp.Scope(ctx)
+	scopeAdminID, allAccess := authhttp.Scope(ctx)
+	if !allAccess && scopeAdminID == "" {
+		return ListTerritories200JSONResponse{}, nil // fail-closed: scoped caller with no resolvable admin sees nothing
+	}
 	out, err := s.svc.ListTerritories(ctx, scopeAdminID)
 	if err != nil {
 		return ListTerritories500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
@@ -22,7 +25,10 @@ func (s *Server) ListTerritories(ctx context.Context, _ ListTerritoriesRequestOb
 }
 
 func (s *Server) GetTerritory(ctx context.Context, req GetTerritoryRequestObject) (GetTerritoryResponseObject, error) {
-	scopeAdminID, _ := authhttp.Scope(ctx)
+	scopeAdminID, allAccess := authhttp.Scope(ctx)
+	if !allAccess && scopeAdminID == "" {
+		return GetTerritory404JSONResponse{NotFoundJSONResponse: notFoundResp(domain.ErrTerritoryNotFound)}, nil
+	}
 	t, err := s.svc.GetTerritory(ctx, req.Slug, scopeAdminID)
 	switch {
 	case isNotFound(err):
@@ -119,7 +125,10 @@ func (s *Server) GetTerritoryArtifact(ctx context.Context, req GetTerritoryArtif
 }
 
 func (s *Server) GetSceneBundle(ctx context.Context, req GetSceneBundleRequestObject) (GetSceneBundleResponseObject, error) {
-	scopeAdminID, _ := authhttp.Scope(ctx)
+	scopeAdminID, allAccess := authhttp.Scope(ctx)
+	if !allAccess && scopeAdminID == "" {
+		return GetSceneBundle404JSONResponse{NotFoundJSONResponse: notFoundResp(domain.ErrTerritoryNotFound)}, nil
+	}
 	bundle, err := s.svc.GetSceneBundle(ctx, req.Slug, scopeAdminID)
 	switch {
 	case isNotFound(err):
