@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
@@ -59,7 +60,7 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 // issue creates a session carrying a permission snapshot and the caller's
 // owning admin (resolved from the created_by chain) for territory scoping.
 func (s *Service) issue(ctx context.Context, u domain.User) (string, error) {
-	owningAdmin, err := s.users.ResolveOwningAdmin(ctx, u.ID)
+	resolvedAdmin, err := s.users.ResolveOwningAdmin(ctx, u.ID)
 	if err != nil {
 		return "", fmt.Errorf("auth.issue: owning admin: %w", err)
 	}
@@ -67,8 +68,18 @@ func (s *Service) issue(ctx context.Context, u domain.User) (string, error) {
 		UserID:         u.ID,
 		Permissions:    u.Permissions,
 		IsOwner:        u.IsOwner,
-		OwningAdminID:  owningAdmin,
+		OwningAdminID:  scopeOwningAdmin(u.RoleSlugs, resolvedAdmin, u.ID),
 		Status:         u.Status,
 		AbsoluteExpiry: time.Now().Add(s.absoluteTTL),
 	})
+}
+
+// scopeOwningAdmin picks a user's territory-visibility key. Guests see only
+// territories assigned directly to them, so their key is their own id; everyone
+// else inherits their tenant admin resolved from the created_by chain.
+func scopeOwningAdmin(roleSlugs []string, resolvedAdmin, selfID string) string {
+	if slices.Contains(roleSlugs, "guest") {
+		return selfID
+	}
+	return resolvedAdmin
 }

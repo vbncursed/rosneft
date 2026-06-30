@@ -15,7 +15,7 @@ export default function TerritoryAccessTable({ territories }: { territories: Ter
     <div>
       <h1 className="text-2xl font-semibold tracking-tight">Territory access</h1>
       <p className="text-xs text-neutral-400">
-        Assign which company owners can see each territory. Their teams inherit the access.
+        Grant access per territory. Company owners share it with their whole team; guests see only what you assign them.
       </p>
 
       <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
@@ -45,7 +45,7 @@ export default function TerritoryAccessTable({ territories }: { territories: Ter
                       onClick={() => setSelected(t)}
                       className="cursor-pointer rounded-full border border-white/15 px-3 py-1 text-xs text-neutral-200 transition-colors hover:bg-white/10"
                     >
-                      Assign admins
+                      Manage access
                     </button>
                   </td>
                 </tr>

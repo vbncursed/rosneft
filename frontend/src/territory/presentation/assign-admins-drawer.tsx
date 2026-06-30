@@ -7,10 +7,13 @@ import { listUsers, listRoles } from "@/auth/infrastructure/auth-admin-gateway";
 import { getTerritoryAdmins, setTerritoryAdmins } from "@/territory/infrastructure/territory-admins-gateway";
 import { notify } from "@/shared/presentation/toast/use-toast";
 
-const COMPANY_OWNER = "Company Owner";
+// Roles that can be granted territory access: a Company Owner shares the
+// territory with their whole team; a Guest sees only what they're assigned.
+const ASSIGNABLE = ["Company Owner", "Guest"];
 
 export default function AssignAdminsDrawer({ slug, title, onClose }: { slug: string; title: string; onClose: () => void }) {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [roleOf, setRoleOf] = useState<Record<string, string>>({});
   const [picked, setPicked] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -19,11 +22,13 @@ export default function AssignAdminsDrawer({ slug, title, onClose }: { slug: str
     (async () => {
       try {
         const [users, roles, assigned] = await Promise.all([listUsers("", false), listRoles(), getTerritoryAdmins(slug)]);
-        const ownerSlug = roles.find((r: Role) => r.title === COMPANY_OWNER)?.slug;
-        setAdmins(ownerSlug ? users.filter((u) => u.roleSlugs.includes(ownerSlug)) : []);
+        const titleOf = new Map(roles.filter((r: Role) => ASSIGNABLE.includes(r.title)).map((r) => [r.slug, r.title] as const));
+        const list = users.filter((u) => u.roleSlugs.some((s) => titleOf.has(s)));
+        setAdmins(list);
+        setRoleOf(Object.fromEntries(list.map((u) => [u.id, u.roleSlugs.map((s) => titleOf.get(s)).find(Boolean) ?? ""])));
         setPicked(assigned);
       } catch (e) {
-        notify.error(e instanceof Error ? e.message : "Failed to load admins");
+        notify.error(e instanceof Error ? e.message : "Failed to load users");
       } finally {
         setLoading(false);
       }
@@ -53,11 +58,11 @@ export default function AssignAdminsDrawer({ slug, title, onClose }: { slug: str
       }}
     >
       <div className="mx-4 flex w-full max-w-md flex-col gap-4 rounded-2xl border border-white/15 bg-[#0c0d10]/95 p-6">
-        <p className="text-xs uppercase tracking-[0.36em] text-cyan-300/80">Assign admins · {title}</p>
+        <p className="text-xs uppercase tracking-[0.36em] text-cyan-300/80">Grant access · {title}</p>
         {loading ? (
           <p className="text-sm text-neutral-400">Loading…</p>
         ) : admins.length === 0 ? (
-          <p className="text-sm text-neutral-400">No Company Owners to assign yet.</p>
+          <p className="text-sm text-neutral-400">No Company Owners or Guests to assign yet.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {admins.map((u) => (
@@ -72,6 +77,7 @@ export default function AssignAdminsDrawer({ slug, title, onClose }: { slug: str
                 }`}
               >
                 {u.username}
+                {roleOf[u.id] ? <span className="ml-1.5 text-[10px] text-neutral-500">{roleOf[u.id]}</span> : null}
               </button>
             ))}
           </div>
