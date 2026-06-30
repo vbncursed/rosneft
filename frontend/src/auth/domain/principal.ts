@@ -10,7 +10,9 @@ export interface Principal {
 }
 
 export function can(p: Principal | null, permission: string): boolean {
-  return !!p && p.permissions.includes(permission);
+  // Owners are the root of trust and may do anything — mirrors the backend's
+  // owner bypass and canGrant() below, so a Root with no roles isn't locked out.
+  return !!p && (p.isOwner || p.permissions.includes(permission));
 }
 
 // No-privilege-escalation, mirrored client-side so the UI never offers a grant
