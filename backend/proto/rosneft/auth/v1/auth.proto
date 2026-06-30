@@ -96,6 +96,7 @@ message ValidateTokenResponse {
   string user_id = 1;
   repeated string permissions = 2;
   bool is_owner = 3; // root of trust; gateway grants it a blanket route bypass
+  string owning_admin_id = 4; // tenant admin for territory scoping; "" for Root
 }
 
 message GetMeRequest {
