@@ -10,7 +10,7 @@ import RoleDetail from "@/auth/presentation/console/role-detail";
 const ROOT_ID = "__root__";
 
 export default function RolesPanel() {
-  const { roles, permissions, loading, save, create, remove } = useRolesAdmin();
+  const { roles, permissions, loading, save, create, rename, remove } = useRolesAdmin();
   const [sel, setSel] = useState<string | null>(null);
   const role = roles.find((r) => r.slug === sel) ?? null;
 
@@ -40,7 +40,7 @@ export default function RolesPanel() {
             <p className="mt-2 text-sm text-neutral-300">Root holds every permission and can manage all users — its access can&apos;t be edited here. Grant it from the Users page with “Make Root.”</p>
           </div>
         ) : role ? (
-          <RoleDetail key={role.slug} role={role} permissions={permissions} onSave={save} onDelete={remove} />
+          <RoleDetail key={role.slug} role={role} permissions={permissions} onSave={save} onRename={rename} onDelete={remove} />
         ) : (
           <p className="text-sm text-neutral-500">Select a role to edit its permissions.</p>
         )}
