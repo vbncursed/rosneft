@@ -30,6 +30,17 @@ func (s *UsersSuite) TestUpdateOwnerAssignsAdmin() {
 	assert.Equal(s.T(), out.RoleSlugs[0], "admin")
 }
 
+// Removing every role must reach SetRoles — an empty proto repeated arrives as
+// nil, which the old guard wrongly treated as "no change".
+func (s *UsersSuite) TestUpdateClearsAllRoles() {
+	s.st.GetByIDMock.When(s.ctx, "u2").Then(domain.User{ID: "u2", RoleSlugs: []string{"editor"}}, nil)
+	s.st.SetRolesMock.Expect(s.ctx, "u2", nil).Return(domain.User{ID: "u2"}, nil)
+
+	out, err := s.svc.Update(s.ctx, "owner", true, "u2", nil, "", "")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(out.RoleSlugs), 0)
+}
+
 func (s *UsersSuite) TestSetOwnerRejectsSelf() {
 	_, err := s.svc.SetOwner(s.ctx, "u1", "u1", true)
 	assert.ErrorIs(s.T(), err, domain.ErrSelfTarget)
