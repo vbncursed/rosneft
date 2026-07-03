@@ -15,27 +15,21 @@ COPY services/upload-service/go.mod services/upload-service/go.su[m] ./services/
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    cd services/upload-service && go mod download
+    cd services/content-service && go mod download
 
 COPY proto/ ./proto/
 COPY pkg/ ./pkg/
-COPY services/upload-service/ ./services/upload-service/
+COPY services/content-service/ ./services/content-service/
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    cd services/upload-service && \
+    cd services/content-service && \
     CGO_ENABLED=0 GOOS=linux go build \
         -trimpath -ldflags="-s -w" \
-        -o /out/upload ./cmd/upload
-
-# Pre-create both BlobStore root and the incoming-upload dir as nonroot
-# so the named volumes attached at those paths inherit nonroot ownership.
-RUN mkdir -p /out/blob /out/incoming
+        -o /out/content ./cmd/content
 
 FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=build /out/upload /upload
-COPY --from=build --chown=nonroot:nonroot /out/blob /var/blob
-COPY --from=build --chown=nonroot:nonroot /out/incoming /var/upload/incoming
+COPY --from=build /out/content /content
 USER nonroot:nonroot
-EXPOSE 9003
-ENTRYPOINT ["/upload"]
+EXPOSE 9007
+ENTRYPOINT ["/content"]
