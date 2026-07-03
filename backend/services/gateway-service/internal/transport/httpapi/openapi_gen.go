@@ -108,7 +108,11 @@ type AssetOption struct {
 	BboxMax   *Vec3         `json:"bboxMax,omitempty"`
 	BboxMin   *Vec3         `json:"bboxMin,omitempty"`
 	Slug      string        `json:"slug"`
-	Title     string        `json:"title"`
+
+	// ThumbnailBlobHash Optional thumbnail image blob hash for the picker. Empty/absent =
+	// no thumbnail. Fetch from /api/assets/{thumbnailBlobHash}.
+	ThumbnailBlobHash *string `json:"thumbnailBlobHash,omitempty"`
+	Title             string  `json:"title"`
 }
 
 // AuthPermission defines model for AuthPermission.
@@ -206,7 +210,11 @@ type EntityCreate struct {
 	Description         *string `json:"description,omitempty"`
 	ExternalPanoramaUrl *string `json:"externalPanoramaUrl,omitempty"`
 	SourceBlobHash      string  `json:"sourceBlobHash"`
-	Title               string  `json:"title"`
+
+	// ThumbnailBlobHash Optional model thumbnail image blob hash (models only; ignored for
+	// territories). Upload the image via /api/uploads first.
+	ThumbnailBlobHash *string `json:"thumbnailBlobHash,omitempty"`
+	Title             string  `json:"title"`
 }
 
 // Error defines model for Error.
@@ -285,14 +293,26 @@ type Model struct {
 	Description    *string    `json:"description,omitempty"`
 	Slug           string     `json:"slug"`
 	SourceBlobHash string     `json:"sourceBlobHash"`
-	Title          string     `json:"title"`
-	UpdatedAt      *time.Time `json:"updatedAt,omitempty"`
+
+	// ThumbnailBlobHash Optional thumbnail image blob hash. Empty/absent = no thumbnail.
+	// Fetch the image from /api/assets/{thumbnailBlobHash}.
+	ThumbnailBlobHash *string    `json:"thumbnailBlobHash,omitempty"`
+	Title             string     `json:"title"`
+	UpdatedAt         *time.Time `json:"updatedAt,omitempty"`
 }
 
 // ModelCreated defines model for ModelCreated.
 type ModelCreated struct {
 	Job   Job   `json:"job"`
 	Model Model `json:"model"`
+}
+
+// ModelUpdate Body for PATCH /api/models/{slug}. Updates mutable fields only; the
+// source archive and conversion are untouched. Omitted fields are left
+// unchanged.
+type ModelUpdate struct {
+	// ThumbnailBlobHash New thumbnail blob hash; empty string clears it.
+	ThumbnailBlobHash *string `json:"thumbnailBlobHash,omitempty"`
 }
 
 // Panorama Equirectangular panorama (Insta360 Pro source) anchored to a point
@@ -515,6 +535,9 @@ type AppendUploadChunkParams struct {
 // CreateModelJSONRequestBody defines body for CreateModel for application/json ContentType.
 type CreateModelJSONRequestBody = EntityCreate
 
+// UpdateModelJSONRequestBody defines body for UpdateModel for application/json ContentType.
+type UpdateModelJSONRequestBody = ModelUpdate
+
 // CreateTerritoryJSONRequestBody defines body for CreateTerritory for application/json ContentType.
 type CreateTerritoryJSONRequestBody = EntityCreate
 
@@ -562,6 +585,9 @@ type ServerInterface interface {
 	// Get a model by slug
 	// (GET /api/models/{slug})
 	GetModel(w http.ResponseWriter, r *http.Request, slug string)
+	// Update mutable model fields (no re-conversion)
+	// (PATCH /api/models/{slug})
+	UpdateModel(w http.ResponseWriter, r *http.Request, slug string)
 	// List converted artifacts for a model
 	// (GET /api/models/{slug}/artifacts)
 	ListModelArtifacts(w http.ResponseWriter, r *http.Request, slug string)
@@ -679,6 +705,12 @@ func (_ Unimplemented) DeleteModel(w http.ResponseWriter, r *http.Request, slug 
 // Get a model by slug
 // (GET /api/models/{slug})
 func (_ Unimplemented) GetModel(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update mutable model fields (no re-conversion)
+// (PATCH /api/models/{slug})
+func (_ Unimplemented) UpdateModel(w http.ResponseWriter, r *http.Request, slug string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -942,6 +974,32 @@ func (siw *ServerInterfaceWrapper) GetModel(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetModel(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateModel operation middleware
+func (siw *ServerInterfaceWrapper) UpdateModel(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateModel(w, r, slug)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1921,6 +1979,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/models/{slug}", wrapper.GetModel)
 	})
 	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/models/{slug}", wrapper.UpdateModel)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/models/{slug}/artifacts", wrapper.ListModelArtifacts)
 	})
 	r.Group(func(r chi.Router) {
@@ -2206,6 +2267,71 @@ func (response GetModel404JSONResponse) VisitGetModelResponse(w http.ResponseWri
 type GetModel500JSONResponse struct{ InternalJSONResponse }
 
 func (response GetModel500JSONResponse) VisitGetModelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateModelRequestObject struct {
+	Slug string `json:"slug"`
+	Body *UpdateModelJSONRequestBody
+}
+
+type UpdateModelResponseObject interface {
+	VisitUpdateModelResponse(w http.ResponseWriter) error
+}
+
+type UpdateModel200JSONResponse Model
+
+func (response UpdateModel200JSONResponse) VisitUpdateModelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateModel400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateModel400JSONResponse) VisitUpdateModelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateModel404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateModel404JSONResponse) VisitUpdateModelResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateModel500JSONResponse struct{ InternalJSONResponse }
+
+func (response UpdateModel500JSONResponse) VisitUpdateModelResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -3903,6 +4029,9 @@ type StrictServerInterface interface {
 	// Get a model by slug
 	// (GET /api/models/{slug})
 	GetModel(ctx context.Context, request GetModelRequestObject) (GetModelResponseObject, error)
+	// Update mutable model fields (no re-conversion)
+	// (PATCH /api/models/{slug})
+	UpdateModel(ctx context.Context, request UpdateModelRequestObject) (UpdateModelResponseObject, error)
 	// List converted artifacts for a model
 	// (GET /api/models/{slug}/artifacts)
 	ListModelArtifacts(ctx context.Context, request ListModelArtifactsRequestObject) (ListModelArtifactsResponseObject, error)
@@ -4124,6 +4253,39 @@ func (sh *strictHandler) GetModel(w http.ResponseWriter, r *http.Request, slug s
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetModelResponseObject); ok {
 		if err := validResponse.VisitGetModelResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateModel operation middleware
+func (sh *strictHandler) UpdateModel(w http.ResponseWriter, r *http.Request, slug string) {
+	var request UpdateModelRequestObject
+
+	request.Slug = slug
+
+	var body UpdateModelJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateModel(ctx, request.(UpdateModelRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateModel")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateModelResponseObject); ok {
+		if err := validResponse.VisitUpdateModelResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

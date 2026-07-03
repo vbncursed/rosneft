@@ -1,4 +1,9 @@
-import { httpDelete, httpGet, httpPost } from "@/shared/infrastructure/http/client";
+import {
+  httpDelete,
+  httpGet,
+  httpPatch,
+  httpPost,
+} from "@/shared/infrastructure/http/client";
 import type { components } from "@/shared/infrastructure/api/dto";
 import type { Model } from "@/model/domain/model";
 import type { Job } from "@/shared/domain/job";
@@ -8,6 +13,7 @@ import type { LodArtifact } from "@/shared/domain/lod-artifact";
 type ModelDto = components["schemas"]["Model"];
 type ModelCreatedDto = components["schemas"]["ModelCreated"];
 type EntityCreate = components["schemas"]["EntityCreate"];
+type ModelUpdate = components["schemas"]["ModelUpdate"];
 type JobDto = components["schemas"]["Job"];
 type ArtifactDto = components["schemas"]["Artifact"];
 type LodArtifactDto = components["schemas"]["LodArtifact"];
@@ -38,6 +44,7 @@ function mapModel(d: ModelDto): Model {
     title: d.title,
     description: d.description,
     sourceBlobHash: d.sourceBlobHash,
+    thumbnailBlobHash: d.thumbnailBlobHash,
     createdAt: d.createdAt,
     updatedAt: d.updatedAt,
   };
@@ -73,6 +80,19 @@ export async function createModel(
 ): Promise<{ model: Model; job: Job }> {
   const data = await httpPost<ModelCreatedDto>("/api/models", body);
   return { model: mapModel(data.model), job: mapJob(data.job) };
+}
+
+// updateModelThumbnail sets (or clears, with "") the model's thumbnail image
+// blob hash. The image must already be uploaded via the chunked-upload flow.
+export async function updateModelThumbnail(
+  slug: string,
+  thumbnailBlobHash: string,
+): Promise<Model> {
+  const data = await httpPatch<ModelDto>(
+    `/api/models/${encodeURIComponent(slug)}`,
+    { thumbnailBlobHash } satisfies ModelUpdate,
+  );
+  return mapModel(data);
 }
 
 export async function deleteModel(slug: string): Promise<void> {

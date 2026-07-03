@@ -15,6 +15,7 @@ var routePerms = map[string]string{
 	"PATCH /api/territories/{slug}":                  "territory:write",
 	"DELETE /api/territories/{slug}":                 "territory:delete",
 	"POST /api/models":                               "model:write",
+	"PATCH /api/models/{slug}":                       "model:write",
 	"DELETE /api/models/{slug}":                      "model:delete",
 	"POST /api/territories/{slug}/placements":        "placement:create",
 	"PUT /api/territories/{slug}/placements/{id}":    "placement:write",

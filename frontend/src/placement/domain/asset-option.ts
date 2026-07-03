@@ -11,6 +11,9 @@ import type { Vec3 } from "@/shared/domain/vec3";
 export interface PlacementAssetOption {
   slug: string;
   title: string;
+  // Ready-to-use image URL for the picker thumbnail; undefined = no thumbnail
+  // (the picker shows a placeholder). Resolved from the model's blob hash.
+  thumbnailUrl?: string;
   bboxMin?: Vec3;
   bboxMax?: Vec3;
   lods: LodArtifact[];
