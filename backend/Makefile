@@ -1,4 +1,4 @@
-SERVICES := gateway-service catalog-service auth-service twofa-service mesh-service asset-service upload-service
+SERVICES := gateway-service catalog-service content-service auth-service twofa-service mesh-service asset-service upload-service
 MODULES  := pkg proto $(addprefix services/,$(SERVICES))
 
 .PHONY: help build test lint fmt tidy compose-up compose-down compose-logs proto-gen openapi-gen clean
