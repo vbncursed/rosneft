@@ -37,6 +37,7 @@ services:
     depends_on:
       catalog: { condition: service_started }
       auth: { condition: service_started }
+      twofa: { condition: service_started }
       mesh-api: { condition: service_started }
       upload: { condition: service_started }
       asset: { condition: service_started }
@@ -44,6 +45,7 @@ services:
       GATEWAY_HTTP_ADDR: ":8080"
       GATEWAY_CATALOG_GRPC_ADDR: "catalog:9001"
       GATEWAY_AUTH_GRPC_ADDR: "auth:9004"
+      GATEWAY_TWOFA_GRPC_ADDR: "twofa:9006"
       GATEWAY_MESH_GRPC_ADDR: "mesh-api:9002"
       GATEWAY_UPLOAD_GRPC_ADDR: "upload:9003"
       GATEWAY_ASSET_HTTP_ADDR: "http://asset:8081"
@@ -84,13 +86,35 @@ services:
       AUTH_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
       AUTH_REDIS_ADDR: "redis:6379"
       AUTH_REDIS_DB: "1"
-      # CHANGE IN PROD: inject a real 32-byte key (openssl rand -hex 32) + strong
-      # bootstrap password via the deploy environment; these are local-only.
-      AUTH_SECRET_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+      AUTH_TWOFA_GRPC_ADDR: "twofa:9006"
+      # CHANGE IN PROD: inject a strong bootstrap password via the deploy
+      # environment; this is local-only.
       AUTH_BOOTSTRAP_EMAIL: "admin@rosneft.local"
       AUTH_BOOTSTRAP_USERNAME: "admin"
       AUTH_BOOTSTRAP_PASSWORD: "change-me-now"
       AUTH_LOG_LEVEL: "info"
+
+  twofa:
+    build:
+      context: ./backend
+      dockerfile: services/twofa-service/Dockerfile
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    expose:
+      - "9006"
+    environment:
+      TWOFA_GRPC_ADDR: ":9006"
+      # Shares the andrey DB with catalog/auth; isolated by twofa_goose_db_version.
+      TWOFA_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
+      TWOFA_REDIS_ADDR: "redis:6379"
+      TWOFA_REDIS_DB: "2"
+      TWOFA_AUTH_GRPC_ADDR: "auth:9004"
+      TWOFA_ISSUER: "Andrey"
+      # CHANGE IN PROD: inject a real 32-byte key (openssl rand -hex 32) via the
+      # deploy environment; this local-only value encrypts TOTP secrets at rest.
+      TWOFA_SECRET_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+      TWOFA_LOG_LEVEL: "info"
 
   mesh-api:
     build:
