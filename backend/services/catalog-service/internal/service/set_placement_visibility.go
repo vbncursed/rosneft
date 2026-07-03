@@ -18,13 +18,13 @@ func (c *Catalog) SetPlacementVisibility(ctx context.Context, territorySlug stri
 		return domain.Placement{}, fmt.Errorf("service.SetPlacementVisibility: %w: placement id is required", domain.ErrInvalidInput)
 	}
 
-	panoramas, err := c.repo.ListPanoramas(ctx, territorySlug)
+	panoramaIDs2, err := c.repo.ListPanoramaIDs(ctx, territorySlug)
 	if err != nil {
 		return domain.Placement{}, err
 	}
-	valid := make(map[int64]struct{}, len(panoramas))
-	for _, p := range panoramas {
-		valid[p.ID] = struct{}{}
+	valid := make(map[int64]struct{}, len(panoramaIDs2))
+	for _, id := range panoramaIDs2 {
+		valid[id] = struct{}{}
 	}
 	for _, id := range panoramaIDs {
 		if _, ok := valid[id]; !ok {

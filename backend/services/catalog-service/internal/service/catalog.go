@@ -44,14 +44,10 @@ type Repository interface {
 	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, id int64) error
 
-	ListPanoramas(ctx context.Context, territorySlug string) ([]domain.Panorama, error)
-	CreatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
-	UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
-	DeletePanorama(ctx context.Context, id int64) error
-
-	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
-	CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error)
-	DeleteDocument(ctx context.Context, id int64) error
+	// ListPanoramaIDs returns the IDs of panoramas on a territory. Panoramas
+	// themselves are owned by content-service; catalog only needs their IDs to
+	// validate placement visibility allowlists (read-only, shared DB).
+	ListPanoramaIDs(ctx context.Context, territorySlug string) ([]int64, error)
 }
 
 // Catalog is the catalog service.

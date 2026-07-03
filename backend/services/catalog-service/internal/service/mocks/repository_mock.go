@@ -19,26 +19,12 @@ type RepositoryMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
-	funcCreateDocument          func(ctx context.Context, d domain.Document) (d1 domain.Document, err error)
-	funcCreateDocumentOrigin    string
-	inspectFuncCreateDocument   func(ctx context.Context, d domain.Document)
-	afterCreateDocumentCounter  uint64
-	beforeCreateDocumentCounter uint64
-	CreateDocumentMock          mRepositoryMockCreateDocument
-
 	funcCreateModel          func(ctx context.Context, m domain.Model) (m1 domain.Model, err error)
 	funcCreateModelOrigin    string
 	inspectFuncCreateModel   func(ctx context.Context, m domain.Model)
 	afterCreateModelCounter  uint64
 	beforeCreateModelCounter uint64
 	CreateModelMock          mRepositoryMockCreateModel
-
-	funcCreatePanorama          func(ctx context.Context, p domain.Panorama) (p1 domain.Panorama, err error)
-	funcCreatePanoramaOrigin    string
-	inspectFuncCreatePanorama   func(ctx context.Context, p domain.Panorama)
-	afterCreatePanoramaCounter  uint64
-	beforeCreatePanoramaCounter uint64
-	CreatePanoramaMock          mRepositoryMockCreatePanorama
 
 	funcCreatePlacement          func(ctx context.Context, p domain.Placement) (p1 domain.Placement, err error)
 	funcCreatePlacementOrigin    string
@@ -54,26 +40,12 @@ type RepositoryMock struct {
 	beforeCreateTerritoryCounter uint64
 	CreateTerritoryMock          mRepositoryMockCreateTerritory
 
-	funcDeleteDocument          func(ctx context.Context, id int64) (err error)
-	funcDeleteDocumentOrigin    string
-	inspectFuncDeleteDocument   func(ctx context.Context, id int64)
-	afterDeleteDocumentCounter  uint64
-	beforeDeleteDocumentCounter uint64
-	DeleteDocumentMock          mRepositoryMockDeleteDocument
-
 	funcDeleteModel          func(ctx context.Context, slug string) (err error)
 	funcDeleteModelOrigin    string
 	inspectFuncDeleteModel   func(ctx context.Context, slug string)
 	afterDeleteModelCounter  uint64
 	beforeDeleteModelCounter uint64
 	DeleteModelMock          mRepositoryMockDeleteModel
-
-	funcDeletePanorama          func(ctx context.Context, id int64) (err error)
-	funcDeletePanoramaOrigin    string
-	inspectFuncDeletePanorama   func(ctx context.Context, id int64)
-	afterDeletePanoramaCounter  uint64
-	beforeDeletePanoramaCounter uint64
-	DeletePanoramaMock          mRepositoryMockDeletePanorama
 
 	funcDeletePlacement          func(ctx context.Context, id int64) (err error)
 	funcDeletePlacementOrigin    string
@@ -131,13 +103,6 @@ type RepositoryMock struct {
 	beforeGetTerritoryArtifactCounter uint64
 	GetTerritoryArtifactMock          mRepositoryMockGetTerritoryArtifact
 
-	funcListDocuments          func(ctx context.Context, territorySlug string) (da1 []domain.Document, err error)
-	funcListDocumentsOrigin    string
-	inspectFuncListDocuments   func(ctx context.Context, territorySlug string)
-	afterListDocumentsCounter  uint64
-	beforeListDocumentsCounter uint64
-	ListDocumentsMock          mRepositoryMockListDocuments
-
 	funcListModelArtifacts          func(ctx context.Context, slug string) (aa1 []domain.Artifact, err error)
 	funcListModelArtifactsOrigin    string
 	inspectFuncListModelArtifacts   func(ctx context.Context, slug string)
@@ -152,12 +117,12 @@ type RepositoryMock struct {
 	beforeListModelsCounter uint64
 	ListModelsMock          mRepositoryMockListModels
 
-	funcListPanoramas          func(ctx context.Context, territorySlug string) (pa1 []domain.Panorama, err error)
-	funcListPanoramasOrigin    string
-	inspectFuncListPanoramas   func(ctx context.Context, territorySlug string)
-	afterListPanoramasCounter  uint64
-	beforeListPanoramasCounter uint64
-	ListPanoramasMock          mRepositoryMockListPanoramas
+	funcListPanoramaIDs          func(ctx context.Context, territorySlug string) (ia1 []int64, err error)
+	funcListPanoramaIDsOrigin    string
+	inspectFuncListPanoramaIDs   func(ctx context.Context, territorySlug string)
+	afterListPanoramaIDsCounter  uint64
+	beforeListPanoramaIDsCounter uint64
+	ListPanoramaIDsMock          mRepositoryMockListPanoramaIDs
 
 	funcListPlacements          func(ctx context.Context, territorySlug string) (pa1 []domain.Placement, err error)
 	funcListPlacementsOrigin    string
@@ -222,13 +187,6 @@ type RepositoryMock struct {
 	beforeSetTerritoryRescaleBaselineCounter uint64
 	SetTerritoryRescaleBaselineMock          mRepositoryMockSetTerritoryRescaleBaseline
 
-	funcUpdatePanorama          func(ctx context.Context, p domain.Panorama) (p1 domain.Panorama, err error)
-	funcUpdatePanoramaOrigin    string
-	inspectFuncUpdatePanorama   func(ctx context.Context, p domain.Panorama)
-	afterUpdatePanoramaCounter  uint64
-	beforeUpdatePanoramaCounter uint64
-	UpdatePanoramaMock          mRepositoryMockUpdatePanorama
-
 	funcUpdatePlacement          func(ctx context.Context, p domain.Placement) (p1 domain.Placement, err error)
 	funcUpdatePlacementOrigin    string
 	inspectFuncUpdatePlacement   func(ctx context.Context, p domain.Placement)
@@ -259,14 +217,8 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 		controller.RegisterMocker(m)
 	}
 
-	m.CreateDocumentMock = mRepositoryMockCreateDocument{mock: m}
-	m.CreateDocumentMock.callArgs = []*RepositoryMockCreateDocumentParams{}
-
 	m.CreateModelMock = mRepositoryMockCreateModel{mock: m}
 	m.CreateModelMock.callArgs = []*RepositoryMockCreateModelParams{}
-
-	m.CreatePanoramaMock = mRepositoryMockCreatePanorama{mock: m}
-	m.CreatePanoramaMock.callArgs = []*RepositoryMockCreatePanoramaParams{}
 
 	m.CreatePlacementMock = mRepositoryMockCreatePlacement{mock: m}
 	m.CreatePlacementMock.callArgs = []*RepositoryMockCreatePlacementParams{}
@@ -274,14 +226,8 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 	m.CreateTerritoryMock = mRepositoryMockCreateTerritory{mock: m}
 	m.CreateTerritoryMock.callArgs = []*RepositoryMockCreateTerritoryParams{}
 
-	m.DeleteDocumentMock = mRepositoryMockDeleteDocument{mock: m}
-	m.DeleteDocumentMock.callArgs = []*RepositoryMockDeleteDocumentParams{}
-
 	m.DeleteModelMock = mRepositoryMockDeleteModel{mock: m}
 	m.DeleteModelMock.callArgs = []*RepositoryMockDeleteModelParams{}
-
-	m.DeletePanoramaMock = mRepositoryMockDeletePanorama{mock: m}
-	m.DeletePanoramaMock.callArgs = []*RepositoryMockDeletePanoramaParams{}
 
 	m.DeletePlacementMock = mRepositoryMockDeletePlacement{mock: m}
 	m.DeletePlacementMock.callArgs = []*RepositoryMockDeletePlacementParams{}
@@ -307,17 +253,14 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 	m.GetTerritoryArtifactMock = mRepositoryMockGetTerritoryArtifact{mock: m}
 	m.GetTerritoryArtifactMock.callArgs = []*RepositoryMockGetTerritoryArtifactParams{}
 
-	m.ListDocumentsMock = mRepositoryMockListDocuments{mock: m}
-	m.ListDocumentsMock.callArgs = []*RepositoryMockListDocumentsParams{}
-
 	m.ListModelArtifactsMock = mRepositoryMockListModelArtifacts{mock: m}
 	m.ListModelArtifactsMock.callArgs = []*RepositoryMockListModelArtifactsParams{}
 
 	m.ListModelsMock = mRepositoryMockListModels{mock: m}
 	m.ListModelsMock.callArgs = []*RepositoryMockListModelsParams{}
 
-	m.ListPanoramasMock = mRepositoryMockListPanoramas{mock: m}
-	m.ListPanoramasMock.callArgs = []*RepositoryMockListPanoramasParams{}
+	m.ListPanoramaIDsMock = mRepositoryMockListPanoramaIDs{mock: m}
+	m.ListPanoramaIDsMock.callArgs = []*RepositoryMockListPanoramaIDsParams{}
 
 	m.ListPlacementsMock = mRepositoryMockListPlacements{mock: m}
 	m.ListPlacementsMock.callArgs = []*RepositoryMockListPlacementsParams{}
@@ -346,9 +289,6 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 	m.SetTerritoryRescaleBaselineMock = mRepositoryMockSetTerritoryRescaleBaseline{mock: m}
 	m.SetTerritoryRescaleBaselineMock.callArgs = []*RepositoryMockSetTerritoryRescaleBaselineParams{}
 
-	m.UpdatePanoramaMock = mRepositoryMockUpdatePanorama{mock: m}
-	m.UpdatePanoramaMock.callArgs = []*RepositoryMockUpdatePanoramaParams{}
-
 	m.UpdatePlacementMock = mRepositoryMockUpdatePlacement{mock: m}
 	m.UpdatePlacementMock.callArgs = []*RepositoryMockUpdatePlacementParams{}
 
@@ -361,349 +301,6 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 	t.Cleanup(m.MinimockFinish)
 
 	return m
-}
-
-type mRepositoryMockCreateDocument struct {
-	optional           bool
-	mock               *RepositoryMock
-	defaultExpectation *RepositoryMockCreateDocumentExpectation
-	expectations       []*RepositoryMockCreateDocumentExpectation
-
-	callArgs []*RepositoryMockCreateDocumentParams
-	mutex    sync.RWMutex
-
-	expectedInvocations       uint64
-	expectedInvocationsOrigin string
-}
-
-// RepositoryMockCreateDocumentExpectation specifies expectation struct of the Repository.CreateDocument
-type RepositoryMockCreateDocumentExpectation struct {
-	mock               *RepositoryMock
-	params             *RepositoryMockCreateDocumentParams
-	paramPtrs          *RepositoryMockCreateDocumentParamPtrs
-	expectationOrigins RepositoryMockCreateDocumentExpectationOrigins
-	results            *RepositoryMockCreateDocumentResults
-	returnOrigin       string
-	Counter            uint64
-}
-
-// RepositoryMockCreateDocumentParams contains parameters of the Repository.CreateDocument
-type RepositoryMockCreateDocumentParams struct {
-	ctx context.Context
-	d   domain.Document
-}
-
-// RepositoryMockCreateDocumentParamPtrs contains pointers to parameters of the Repository.CreateDocument
-type RepositoryMockCreateDocumentParamPtrs struct {
-	ctx *context.Context
-	d   *domain.Document
-}
-
-// RepositoryMockCreateDocumentResults contains results of the Repository.CreateDocument
-type RepositoryMockCreateDocumentResults struct {
-	d1  domain.Document
-	err error
-}
-
-// RepositoryMockCreateDocumentOrigins contains origins of expectations of the Repository.CreateDocument
-type RepositoryMockCreateDocumentExpectationOrigins struct {
-	origin    string
-	originCtx string
-	originD   string
-}
-
-// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
-// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
-// Optional() makes method check to work in '0 or more' mode.
-// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
-// catch the problems when the expected method call is totally skipped during test run.
-func (mmCreateDocument *mRepositoryMockCreateDocument) Optional() *mRepositoryMockCreateDocument {
-	mmCreateDocument.optional = true
-	return mmCreateDocument
-}
-
-// Expect sets up expected params for Repository.CreateDocument
-func (mmCreateDocument *mRepositoryMockCreateDocument) Expect(ctx context.Context, d domain.Document) *mRepositoryMockCreateDocument {
-	if mmCreateDocument.mock.funcCreateDocument != nil {
-		mmCreateDocument.mock.t.Fatalf("RepositoryMock.CreateDocument mock is already set by Set")
-	}
-
-	if mmCreateDocument.defaultExpectation == nil {
-		mmCreateDocument.defaultExpectation = &RepositoryMockCreateDocumentExpectation{}
-	}
-
-	if mmCreateDocument.defaultExpectation.paramPtrs != nil {
-		mmCreateDocument.mock.t.Fatalf("RepositoryMock.CreateDocument mock is already set by ExpectParams functions")
-	}
-
-	mmCreateDocument.defaultExpectation.params = &RepositoryMockCreateDocumentParams{ctx, d}
-	mmCreateDocument.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
-	for _, e := range mmCreateDocument.expectations {
-		if minimock.Equal(e.params, mmCreateDocument.defaultExpectation.params) {
-			mmCreateDocument.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCreateDocument.defaultExpectation.params)
-		}
-	}
-
-	return mmCreateDocument
-}
-
-// ExpectCtxParam1 sets up expected param ctx for Repository.CreateDocument
-func (mmCreateDocument *mRepositoryMockCreateDocument) ExpectCtxParam1(ctx context.Context) *mRepositoryMockCreateDocument {
-	if mmCreateDocument.mock.funcCreateDocument != nil {
-		mmCreateDocument.mock.t.Fatalf("RepositoryMock.CreateDocument mock is already set by Set")
-	}
-
-	if mmCreateDocument.defaultExpectation == nil {
-		mmCreateDocument.defaultExpectation = &RepositoryMockCreateDocumentExpectation{}
-	}
-
-	if mmCreateDocument.defaultExpectation.params != nil {
-		mmCreateDocument.mock.t.Fatalf("RepositoryMock.CreateDocument mock is already set by Expect")
-	}
-
-	if mmCreateDocument.defaultExpectation.paramPtrs == nil {
-		mmCreateDocument.defaultExpectation.paramPtrs = &RepositoryMockCreateDocumentParamPtrs{}
-	}
-	mmCreateDocument.defaultExpectation.paramPtrs.ctx = &ctx
-	mmCreateDocument.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
-
-	return mmCreateDocument
-}
-
-// ExpectDParam2 sets up expected param d for Repository.CreateDocument
-func (mmCreateDocument *mRepositoryMockCreateDocument) ExpectDParam2(d domain.Document) *mRepositoryMockCreateDocument {
-	if mmCreateDocument.mock.funcCreateDocument != nil {
-		mmCreateDocument.mock.t.Fatalf("RepositoryMock.CreateDocument mock is already set by Set")
-	}
-
-	if mmCreateDocument.defaultExpectation == nil {
-		mmCreateDocument.defaultExpectation = &RepositoryMockCreateDocumentExpectation{}
-	}
-
-	if mmCreateDocument.defaultExpectation.params != nil {
-		mmCreateDocument.mock.t.Fatalf("RepositoryMock.CreateDocument mock is already set by Expect")
-	}
-
-	if mmCreateDocument.defaultExpectation.paramPtrs == nil {
-		mmCreateDocument.defaultExpectation.paramPtrs = &RepositoryMockCreateDocumentParamPtrs{}
-	}
-	mmCreateDocument.defaultExpectation.paramPtrs.d = &d
-	mmCreateDocument.defaultExpectation.expectationOrigins.originD = minimock.CallerInfo(1)
-
-	return mmCreateDocument
-}
-
-// Inspect accepts an inspector function that has same arguments as the Repository.CreateDocument
-func (mmCreateDocument *mRepositoryMockCreateDocument) Inspect(f func(ctx context.Context, d domain.Document)) *mRepositoryMockCreateDocument {
-	if mmCreateDocument.mock.inspectFuncCreateDocument != nil {
-		mmCreateDocument.mock.t.Fatalf("Inspect function is already set for RepositoryMock.CreateDocument")
-	}
-
-	mmCreateDocument.mock.inspectFuncCreateDocument = f
-
-	return mmCreateDocument
-}
-
-// Return sets up results that will be returned by Repository.CreateDocument
-func (mmCreateDocument *mRepositoryMockCreateDocument) Return(d1 domain.Document, err error) *RepositoryMock {
-	if mmCreateDocument.mock.funcCreateDocument != nil {
-		mmCreateDocument.mock.t.Fatalf("RepositoryMock.CreateDocument mock is already set by Set")
-	}
-
-	if mmCreateDocument.defaultExpectation == nil {
-		mmCreateDocument.defaultExpectation = &RepositoryMockCreateDocumentExpectation{mock: mmCreateDocument.mock}
-	}
-	mmCreateDocument.defaultExpectation.results = &RepositoryMockCreateDocumentResults{d1, err}
-	mmCreateDocument.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmCreateDocument.mock
-}
-
-// Set uses given function f to mock the Repository.CreateDocument method
-func (mmCreateDocument *mRepositoryMockCreateDocument) Set(f func(ctx context.Context, d domain.Document) (d1 domain.Document, err error)) *RepositoryMock {
-	if mmCreateDocument.defaultExpectation != nil {
-		mmCreateDocument.mock.t.Fatalf("Default expectation is already set for the Repository.CreateDocument method")
-	}
-
-	if len(mmCreateDocument.expectations) > 0 {
-		mmCreateDocument.mock.t.Fatalf("Some expectations are already set for the Repository.CreateDocument method")
-	}
-
-	mmCreateDocument.mock.funcCreateDocument = f
-	mmCreateDocument.mock.funcCreateDocumentOrigin = minimock.CallerInfo(1)
-	return mmCreateDocument.mock
-}
-
-// When sets expectation for the Repository.CreateDocument which will trigger the result defined by the following
-// Then helper
-func (mmCreateDocument *mRepositoryMockCreateDocument) When(ctx context.Context, d domain.Document) *RepositoryMockCreateDocumentExpectation {
-	if mmCreateDocument.mock.funcCreateDocument != nil {
-		mmCreateDocument.mock.t.Fatalf("RepositoryMock.CreateDocument mock is already set by Set")
-	}
-
-	expectation := &RepositoryMockCreateDocumentExpectation{
-		mock:               mmCreateDocument.mock,
-		params:             &RepositoryMockCreateDocumentParams{ctx, d},
-		expectationOrigins: RepositoryMockCreateDocumentExpectationOrigins{origin: minimock.CallerInfo(1)},
-	}
-	mmCreateDocument.expectations = append(mmCreateDocument.expectations, expectation)
-	return expectation
-}
-
-// Then sets up Repository.CreateDocument return parameters for the expectation previously defined by the When method
-func (e *RepositoryMockCreateDocumentExpectation) Then(d1 domain.Document, err error) *RepositoryMock {
-	e.results = &RepositoryMockCreateDocumentResults{d1, err}
-	return e.mock
-}
-
-// Times sets number of times Repository.CreateDocument should be invoked
-func (mmCreateDocument *mRepositoryMockCreateDocument) Times(n uint64) *mRepositoryMockCreateDocument {
-	if n == 0 {
-		mmCreateDocument.mock.t.Fatalf("Times of RepositoryMock.CreateDocument mock can not be zero")
-	}
-	mm_atomic.StoreUint64(&mmCreateDocument.expectedInvocations, n)
-	mmCreateDocument.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmCreateDocument
-}
-
-func (mmCreateDocument *mRepositoryMockCreateDocument) invocationsDone() bool {
-	if len(mmCreateDocument.expectations) == 0 && mmCreateDocument.defaultExpectation == nil && mmCreateDocument.mock.funcCreateDocument == nil {
-		return true
-	}
-
-	totalInvocations := mm_atomic.LoadUint64(&mmCreateDocument.mock.afterCreateDocumentCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmCreateDocument.expectedInvocations)
-
-	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
-}
-
-// CreateDocument implements mm_service.Repository
-func (mmCreateDocument *RepositoryMock) CreateDocument(ctx context.Context, d domain.Document) (d1 domain.Document, err error) {
-	mm_atomic.AddUint64(&mmCreateDocument.beforeCreateDocumentCounter, 1)
-	defer mm_atomic.AddUint64(&mmCreateDocument.afterCreateDocumentCounter, 1)
-
-	mmCreateDocument.t.Helper()
-
-	if mmCreateDocument.inspectFuncCreateDocument != nil {
-		mmCreateDocument.inspectFuncCreateDocument(ctx, d)
-	}
-
-	mm_params := RepositoryMockCreateDocumentParams{ctx, d}
-
-	// Record call args
-	mmCreateDocument.CreateDocumentMock.mutex.Lock()
-	mmCreateDocument.CreateDocumentMock.callArgs = append(mmCreateDocument.CreateDocumentMock.callArgs, &mm_params)
-	mmCreateDocument.CreateDocumentMock.mutex.Unlock()
-
-	for _, e := range mmCreateDocument.CreateDocumentMock.expectations {
-		if minimock.Equal(*e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.d1, e.results.err
-		}
-	}
-
-	if mmCreateDocument.CreateDocumentMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmCreateDocument.CreateDocumentMock.defaultExpectation.Counter, 1)
-		mm_want := mmCreateDocument.CreateDocumentMock.defaultExpectation.params
-		mm_want_ptrs := mmCreateDocument.CreateDocumentMock.defaultExpectation.paramPtrs
-
-		mm_got := RepositoryMockCreateDocumentParams{ctx, d}
-
-		if mm_want_ptrs != nil {
-
-			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
-				mmCreateDocument.t.Errorf("RepositoryMock.CreateDocument got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmCreateDocument.CreateDocumentMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
-			}
-
-			if mm_want_ptrs.d != nil && !minimock.Equal(*mm_want_ptrs.d, mm_got.d) {
-				mmCreateDocument.t.Errorf("RepositoryMock.CreateDocument got unexpected parameter d, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmCreateDocument.CreateDocumentMock.defaultExpectation.expectationOrigins.originD, *mm_want_ptrs.d, mm_got.d, minimock.Diff(*mm_want_ptrs.d, mm_got.d))
-			}
-
-		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmCreateDocument.t.Errorf("RepositoryMock.CreateDocument got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-				mmCreateDocument.CreateDocumentMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmCreateDocument.CreateDocumentMock.defaultExpectation.results
-		if mm_results == nil {
-			mmCreateDocument.t.Fatal("No results are set for the RepositoryMock.CreateDocument")
-		}
-		return (*mm_results).d1, (*mm_results).err
-	}
-	if mmCreateDocument.funcCreateDocument != nil {
-		return mmCreateDocument.funcCreateDocument(ctx, d)
-	}
-	mmCreateDocument.t.Fatalf("Unexpected call to RepositoryMock.CreateDocument. %v %v", ctx, d)
-	return
-}
-
-// CreateDocumentAfterCounter returns a count of finished RepositoryMock.CreateDocument invocations
-func (mmCreateDocument *RepositoryMock) CreateDocumentAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCreateDocument.afterCreateDocumentCounter)
-}
-
-// CreateDocumentBeforeCounter returns a count of RepositoryMock.CreateDocument invocations
-func (mmCreateDocument *RepositoryMock) CreateDocumentBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCreateDocument.beforeCreateDocumentCounter)
-}
-
-// Calls returns a list of arguments used in each call to RepositoryMock.CreateDocument.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmCreateDocument *mRepositoryMockCreateDocument) Calls() []*RepositoryMockCreateDocumentParams {
-	mmCreateDocument.mutex.RLock()
-
-	argCopy := make([]*RepositoryMockCreateDocumentParams, len(mmCreateDocument.callArgs))
-	copy(argCopy, mmCreateDocument.callArgs)
-
-	mmCreateDocument.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockCreateDocumentDone returns true if the count of the CreateDocument invocations corresponds
-// the number of defined expectations
-func (m *RepositoryMock) MinimockCreateDocumentDone() bool {
-	if m.CreateDocumentMock.optional {
-		// Optional methods provide '0 or more' call count restriction.
-		return true
-	}
-
-	for _, e := range m.CreateDocumentMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	return m.CreateDocumentMock.invocationsDone()
-}
-
-// MinimockCreateDocumentInspect logs each unmet expectation
-func (m *RepositoryMock) MinimockCreateDocumentInspect() {
-	for _, e := range m.CreateDocumentMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to RepositoryMock.CreateDocument at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
-		}
-	}
-
-	afterCreateDocumentCounter := mm_atomic.LoadUint64(&m.afterCreateDocumentCounter)
-	// if default expectation was set then invocations count should be greater than zero
-	if m.CreateDocumentMock.defaultExpectation != nil && afterCreateDocumentCounter < 1 {
-		if m.CreateDocumentMock.defaultExpectation.params == nil {
-			m.t.Errorf("Expected call to RepositoryMock.CreateDocument at\n%s", m.CreateDocumentMock.defaultExpectation.returnOrigin)
-		} else {
-			m.t.Errorf("Expected call to RepositoryMock.CreateDocument at\n%s with params: %#v", m.CreateDocumentMock.defaultExpectation.expectationOrigins.origin, *m.CreateDocumentMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcCreateDocument != nil && afterCreateDocumentCounter < 1 {
-		m.t.Errorf("Expected call to RepositoryMock.CreateDocument at\n%s", m.funcCreateDocumentOrigin)
-	}
-
-	if !m.CreateDocumentMock.invocationsDone() && afterCreateDocumentCounter > 0 {
-		m.t.Errorf("Expected %d calls to RepositoryMock.CreateDocument at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.CreateDocumentMock.expectedInvocations), m.CreateDocumentMock.expectedInvocationsOrigin, afterCreateDocumentCounter)
-	}
 }
 
 type mRepositoryMockCreateModel struct {
@@ -1046,349 +643,6 @@ func (m *RepositoryMock) MinimockCreateModelInspect() {
 	if !m.CreateModelMock.invocationsDone() && afterCreateModelCounter > 0 {
 		m.t.Errorf("Expected %d calls to RepositoryMock.CreateModel at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.CreateModelMock.expectedInvocations), m.CreateModelMock.expectedInvocationsOrigin, afterCreateModelCounter)
-	}
-}
-
-type mRepositoryMockCreatePanorama struct {
-	optional           bool
-	mock               *RepositoryMock
-	defaultExpectation *RepositoryMockCreatePanoramaExpectation
-	expectations       []*RepositoryMockCreatePanoramaExpectation
-
-	callArgs []*RepositoryMockCreatePanoramaParams
-	mutex    sync.RWMutex
-
-	expectedInvocations       uint64
-	expectedInvocationsOrigin string
-}
-
-// RepositoryMockCreatePanoramaExpectation specifies expectation struct of the Repository.CreatePanorama
-type RepositoryMockCreatePanoramaExpectation struct {
-	mock               *RepositoryMock
-	params             *RepositoryMockCreatePanoramaParams
-	paramPtrs          *RepositoryMockCreatePanoramaParamPtrs
-	expectationOrigins RepositoryMockCreatePanoramaExpectationOrigins
-	results            *RepositoryMockCreatePanoramaResults
-	returnOrigin       string
-	Counter            uint64
-}
-
-// RepositoryMockCreatePanoramaParams contains parameters of the Repository.CreatePanorama
-type RepositoryMockCreatePanoramaParams struct {
-	ctx context.Context
-	p   domain.Panorama
-}
-
-// RepositoryMockCreatePanoramaParamPtrs contains pointers to parameters of the Repository.CreatePanorama
-type RepositoryMockCreatePanoramaParamPtrs struct {
-	ctx *context.Context
-	p   *domain.Panorama
-}
-
-// RepositoryMockCreatePanoramaResults contains results of the Repository.CreatePanorama
-type RepositoryMockCreatePanoramaResults struct {
-	p1  domain.Panorama
-	err error
-}
-
-// RepositoryMockCreatePanoramaOrigins contains origins of expectations of the Repository.CreatePanorama
-type RepositoryMockCreatePanoramaExpectationOrigins struct {
-	origin    string
-	originCtx string
-	originP   string
-}
-
-// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
-// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
-// Optional() makes method check to work in '0 or more' mode.
-// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
-// catch the problems when the expected method call is totally skipped during test run.
-func (mmCreatePanorama *mRepositoryMockCreatePanorama) Optional() *mRepositoryMockCreatePanorama {
-	mmCreatePanorama.optional = true
-	return mmCreatePanorama
-}
-
-// Expect sets up expected params for Repository.CreatePanorama
-func (mmCreatePanorama *mRepositoryMockCreatePanorama) Expect(ctx context.Context, p domain.Panorama) *mRepositoryMockCreatePanorama {
-	if mmCreatePanorama.mock.funcCreatePanorama != nil {
-		mmCreatePanorama.mock.t.Fatalf("RepositoryMock.CreatePanorama mock is already set by Set")
-	}
-
-	if mmCreatePanorama.defaultExpectation == nil {
-		mmCreatePanorama.defaultExpectation = &RepositoryMockCreatePanoramaExpectation{}
-	}
-
-	if mmCreatePanorama.defaultExpectation.paramPtrs != nil {
-		mmCreatePanorama.mock.t.Fatalf("RepositoryMock.CreatePanorama mock is already set by ExpectParams functions")
-	}
-
-	mmCreatePanorama.defaultExpectation.params = &RepositoryMockCreatePanoramaParams{ctx, p}
-	mmCreatePanorama.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
-	for _, e := range mmCreatePanorama.expectations {
-		if minimock.Equal(e.params, mmCreatePanorama.defaultExpectation.params) {
-			mmCreatePanorama.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCreatePanorama.defaultExpectation.params)
-		}
-	}
-
-	return mmCreatePanorama
-}
-
-// ExpectCtxParam1 sets up expected param ctx for Repository.CreatePanorama
-func (mmCreatePanorama *mRepositoryMockCreatePanorama) ExpectCtxParam1(ctx context.Context) *mRepositoryMockCreatePanorama {
-	if mmCreatePanorama.mock.funcCreatePanorama != nil {
-		mmCreatePanorama.mock.t.Fatalf("RepositoryMock.CreatePanorama mock is already set by Set")
-	}
-
-	if mmCreatePanorama.defaultExpectation == nil {
-		mmCreatePanorama.defaultExpectation = &RepositoryMockCreatePanoramaExpectation{}
-	}
-
-	if mmCreatePanorama.defaultExpectation.params != nil {
-		mmCreatePanorama.mock.t.Fatalf("RepositoryMock.CreatePanorama mock is already set by Expect")
-	}
-
-	if mmCreatePanorama.defaultExpectation.paramPtrs == nil {
-		mmCreatePanorama.defaultExpectation.paramPtrs = &RepositoryMockCreatePanoramaParamPtrs{}
-	}
-	mmCreatePanorama.defaultExpectation.paramPtrs.ctx = &ctx
-	mmCreatePanorama.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
-
-	return mmCreatePanorama
-}
-
-// ExpectPParam2 sets up expected param p for Repository.CreatePanorama
-func (mmCreatePanorama *mRepositoryMockCreatePanorama) ExpectPParam2(p domain.Panorama) *mRepositoryMockCreatePanorama {
-	if mmCreatePanorama.mock.funcCreatePanorama != nil {
-		mmCreatePanorama.mock.t.Fatalf("RepositoryMock.CreatePanorama mock is already set by Set")
-	}
-
-	if mmCreatePanorama.defaultExpectation == nil {
-		mmCreatePanorama.defaultExpectation = &RepositoryMockCreatePanoramaExpectation{}
-	}
-
-	if mmCreatePanorama.defaultExpectation.params != nil {
-		mmCreatePanorama.mock.t.Fatalf("RepositoryMock.CreatePanorama mock is already set by Expect")
-	}
-
-	if mmCreatePanorama.defaultExpectation.paramPtrs == nil {
-		mmCreatePanorama.defaultExpectation.paramPtrs = &RepositoryMockCreatePanoramaParamPtrs{}
-	}
-	mmCreatePanorama.defaultExpectation.paramPtrs.p = &p
-	mmCreatePanorama.defaultExpectation.expectationOrigins.originP = minimock.CallerInfo(1)
-
-	return mmCreatePanorama
-}
-
-// Inspect accepts an inspector function that has same arguments as the Repository.CreatePanorama
-func (mmCreatePanorama *mRepositoryMockCreatePanorama) Inspect(f func(ctx context.Context, p domain.Panorama)) *mRepositoryMockCreatePanorama {
-	if mmCreatePanorama.mock.inspectFuncCreatePanorama != nil {
-		mmCreatePanorama.mock.t.Fatalf("Inspect function is already set for RepositoryMock.CreatePanorama")
-	}
-
-	mmCreatePanorama.mock.inspectFuncCreatePanorama = f
-
-	return mmCreatePanorama
-}
-
-// Return sets up results that will be returned by Repository.CreatePanorama
-func (mmCreatePanorama *mRepositoryMockCreatePanorama) Return(p1 domain.Panorama, err error) *RepositoryMock {
-	if mmCreatePanorama.mock.funcCreatePanorama != nil {
-		mmCreatePanorama.mock.t.Fatalf("RepositoryMock.CreatePanorama mock is already set by Set")
-	}
-
-	if mmCreatePanorama.defaultExpectation == nil {
-		mmCreatePanorama.defaultExpectation = &RepositoryMockCreatePanoramaExpectation{mock: mmCreatePanorama.mock}
-	}
-	mmCreatePanorama.defaultExpectation.results = &RepositoryMockCreatePanoramaResults{p1, err}
-	mmCreatePanorama.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmCreatePanorama.mock
-}
-
-// Set uses given function f to mock the Repository.CreatePanorama method
-func (mmCreatePanorama *mRepositoryMockCreatePanorama) Set(f func(ctx context.Context, p domain.Panorama) (p1 domain.Panorama, err error)) *RepositoryMock {
-	if mmCreatePanorama.defaultExpectation != nil {
-		mmCreatePanorama.mock.t.Fatalf("Default expectation is already set for the Repository.CreatePanorama method")
-	}
-
-	if len(mmCreatePanorama.expectations) > 0 {
-		mmCreatePanorama.mock.t.Fatalf("Some expectations are already set for the Repository.CreatePanorama method")
-	}
-
-	mmCreatePanorama.mock.funcCreatePanorama = f
-	mmCreatePanorama.mock.funcCreatePanoramaOrigin = minimock.CallerInfo(1)
-	return mmCreatePanorama.mock
-}
-
-// When sets expectation for the Repository.CreatePanorama which will trigger the result defined by the following
-// Then helper
-func (mmCreatePanorama *mRepositoryMockCreatePanorama) When(ctx context.Context, p domain.Panorama) *RepositoryMockCreatePanoramaExpectation {
-	if mmCreatePanorama.mock.funcCreatePanorama != nil {
-		mmCreatePanorama.mock.t.Fatalf("RepositoryMock.CreatePanorama mock is already set by Set")
-	}
-
-	expectation := &RepositoryMockCreatePanoramaExpectation{
-		mock:               mmCreatePanorama.mock,
-		params:             &RepositoryMockCreatePanoramaParams{ctx, p},
-		expectationOrigins: RepositoryMockCreatePanoramaExpectationOrigins{origin: minimock.CallerInfo(1)},
-	}
-	mmCreatePanorama.expectations = append(mmCreatePanorama.expectations, expectation)
-	return expectation
-}
-
-// Then sets up Repository.CreatePanorama return parameters for the expectation previously defined by the When method
-func (e *RepositoryMockCreatePanoramaExpectation) Then(p1 domain.Panorama, err error) *RepositoryMock {
-	e.results = &RepositoryMockCreatePanoramaResults{p1, err}
-	return e.mock
-}
-
-// Times sets number of times Repository.CreatePanorama should be invoked
-func (mmCreatePanorama *mRepositoryMockCreatePanorama) Times(n uint64) *mRepositoryMockCreatePanorama {
-	if n == 0 {
-		mmCreatePanorama.mock.t.Fatalf("Times of RepositoryMock.CreatePanorama mock can not be zero")
-	}
-	mm_atomic.StoreUint64(&mmCreatePanorama.expectedInvocations, n)
-	mmCreatePanorama.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmCreatePanorama
-}
-
-func (mmCreatePanorama *mRepositoryMockCreatePanorama) invocationsDone() bool {
-	if len(mmCreatePanorama.expectations) == 0 && mmCreatePanorama.defaultExpectation == nil && mmCreatePanorama.mock.funcCreatePanorama == nil {
-		return true
-	}
-
-	totalInvocations := mm_atomic.LoadUint64(&mmCreatePanorama.mock.afterCreatePanoramaCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmCreatePanorama.expectedInvocations)
-
-	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
-}
-
-// CreatePanorama implements mm_service.Repository
-func (mmCreatePanorama *RepositoryMock) CreatePanorama(ctx context.Context, p domain.Panorama) (p1 domain.Panorama, err error) {
-	mm_atomic.AddUint64(&mmCreatePanorama.beforeCreatePanoramaCounter, 1)
-	defer mm_atomic.AddUint64(&mmCreatePanorama.afterCreatePanoramaCounter, 1)
-
-	mmCreatePanorama.t.Helper()
-
-	if mmCreatePanorama.inspectFuncCreatePanorama != nil {
-		mmCreatePanorama.inspectFuncCreatePanorama(ctx, p)
-	}
-
-	mm_params := RepositoryMockCreatePanoramaParams{ctx, p}
-
-	// Record call args
-	mmCreatePanorama.CreatePanoramaMock.mutex.Lock()
-	mmCreatePanorama.CreatePanoramaMock.callArgs = append(mmCreatePanorama.CreatePanoramaMock.callArgs, &mm_params)
-	mmCreatePanorama.CreatePanoramaMock.mutex.Unlock()
-
-	for _, e := range mmCreatePanorama.CreatePanoramaMock.expectations {
-		if minimock.Equal(*e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.p1, e.results.err
-		}
-	}
-
-	if mmCreatePanorama.CreatePanoramaMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmCreatePanorama.CreatePanoramaMock.defaultExpectation.Counter, 1)
-		mm_want := mmCreatePanorama.CreatePanoramaMock.defaultExpectation.params
-		mm_want_ptrs := mmCreatePanorama.CreatePanoramaMock.defaultExpectation.paramPtrs
-
-		mm_got := RepositoryMockCreatePanoramaParams{ctx, p}
-
-		if mm_want_ptrs != nil {
-
-			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
-				mmCreatePanorama.t.Errorf("RepositoryMock.CreatePanorama got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmCreatePanorama.CreatePanoramaMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
-			}
-
-			if mm_want_ptrs.p != nil && !minimock.Equal(*mm_want_ptrs.p, mm_got.p) {
-				mmCreatePanorama.t.Errorf("RepositoryMock.CreatePanorama got unexpected parameter p, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmCreatePanorama.CreatePanoramaMock.defaultExpectation.expectationOrigins.originP, *mm_want_ptrs.p, mm_got.p, minimock.Diff(*mm_want_ptrs.p, mm_got.p))
-			}
-
-		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmCreatePanorama.t.Errorf("RepositoryMock.CreatePanorama got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-				mmCreatePanorama.CreatePanoramaMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmCreatePanorama.CreatePanoramaMock.defaultExpectation.results
-		if mm_results == nil {
-			mmCreatePanorama.t.Fatal("No results are set for the RepositoryMock.CreatePanorama")
-		}
-		return (*mm_results).p1, (*mm_results).err
-	}
-	if mmCreatePanorama.funcCreatePanorama != nil {
-		return mmCreatePanorama.funcCreatePanorama(ctx, p)
-	}
-	mmCreatePanorama.t.Fatalf("Unexpected call to RepositoryMock.CreatePanorama. %v %v", ctx, p)
-	return
-}
-
-// CreatePanoramaAfterCounter returns a count of finished RepositoryMock.CreatePanorama invocations
-func (mmCreatePanorama *RepositoryMock) CreatePanoramaAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCreatePanorama.afterCreatePanoramaCounter)
-}
-
-// CreatePanoramaBeforeCounter returns a count of RepositoryMock.CreatePanorama invocations
-func (mmCreatePanorama *RepositoryMock) CreatePanoramaBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCreatePanorama.beforeCreatePanoramaCounter)
-}
-
-// Calls returns a list of arguments used in each call to RepositoryMock.CreatePanorama.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmCreatePanorama *mRepositoryMockCreatePanorama) Calls() []*RepositoryMockCreatePanoramaParams {
-	mmCreatePanorama.mutex.RLock()
-
-	argCopy := make([]*RepositoryMockCreatePanoramaParams, len(mmCreatePanorama.callArgs))
-	copy(argCopy, mmCreatePanorama.callArgs)
-
-	mmCreatePanorama.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockCreatePanoramaDone returns true if the count of the CreatePanorama invocations corresponds
-// the number of defined expectations
-func (m *RepositoryMock) MinimockCreatePanoramaDone() bool {
-	if m.CreatePanoramaMock.optional {
-		// Optional methods provide '0 or more' call count restriction.
-		return true
-	}
-
-	for _, e := range m.CreatePanoramaMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	return m.CreatePanoramaMock.invocationsDone()
-}
-
-// MinimockCreatePanoramaInspect logs each unmet expectation
-func (m *RepositoryMock) MinimockCreatePanoramaInspect() {
-	for _, e := range m.CreatePanoramaMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to RepositoryMock.CreatePanorama at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
-		}
-	}
-
-	afterCreatePanoramaCounter := mm_atomic.LoadUint64(&m.afterCreatePanoramaCounter)
-	// if default expectation was set then invocations count should be greater than zero
-	if m.CreatePanoramaMock.defaultExpectation != nil && afterCreatePanoramaCounter < 1 {
-		if m.CreatePanoramaMock.defaultExpectation.params == nil {
-			m.t.Errorf("Expected call to RepositoryMock.CreatePanorama at\n%s", m.CreatePanoramaMock.defaultExpectation.returnOrigin)
-		} else {
-			m.t.Errorf("Expected call to RepositoryMock.CreatePanorama at\n%s with params: %#v", m.CreatePanoramaMock.defaultExpectation.expectationOrigins.origin, *m.CreatePanoramaMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcCreatePanorama != nil && afterCreatePanoramaCounter < 1 {
-		m.t.Errorf("Expected call to RepositoryMock.CreatePanorama at\n%s", m.funcCreatePanoramaOrigin)
-	}
-
-	if !m.CreatePanoramaMock.invocationsDone() && afterCreatePanoramaCounter > 0 {
-		m.t.Errorf("Expected %d calls to RepositoryMock.CreatePanorama at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.CreatePanoramaMock.expectedInvocations), m.CreatePanoramaMock.expectedInvocationsOrigin, afterCreatePanoramaCounter)
 	}
 }
 
@@ -2078,348 +1332,6 @@ func (m *RepositoryMock) MinimockCreateTerritoryInspect() {
 	}
 }
 
-type mRepositoryMockDeleteDocument struct {
-	optional           bool
-	mock               *RepositoryMock
-	defaultExpectation *RepositoryMockDeleteDocumentExpectation
-	expectations       []*RepositoryMockDeleteDocumentExpectation
-
-	callArgs []*RepositoryMockDeleteDocumentParams
-	mutex    sync.RWMutex
-
-	expectedInvocations       uint64
-	expectedInvocationsOrigin string
-}
-
-// RepositoryMockDeleteDocumentExpectation specifies expectation struct of the Repository.DeleteDocument
-type RepositoryMockDeleteDocumentExpectation struct {
-	mock               *RepositoryMock
-	params             *RepositoryMockDeleteDocumentParams
-	paramPtrs          *RepositoryMockDeleteDocumentParamPtrs
-	expectationOrigins RepositoryMockDeleteDocumentExpectationOrigins
-	results            *RepositoryMockDeleteDocumentResults
-	returnOrigin       string
-	Counter            uint64
-}
-
-// RepositoryMockDeleteDocumentParams contains parameters of the Repository.DeleteDocument
-type RepositoryMockDeleteDocumentParams struct {
-	ctx context.Context
-	id  int64
-}
-
-// RepositoryMockDeleteDocumentParamPtrs contains pointers to parameters of the Repository.DeleteDocument
-type RepositoryMockDeleteDocumentParamPtrs struct {
-	ctx *context.Context
-	id  *int64
-}
-
-// RepositoryMockDeleteDocumentResults contains results of the Repository.DeleteDocument
-type RepositoryMockDeleteDocumentResults struct {
-	err error
-}
-
-// RepositoryMockDeleteDocumentOrigins contains origins of expectations of the Repository.DeleteDocument
-type RepositoryMockDeleteDocumentExpectationOrigins struct {
-	origin    string
-	originCtx string
-	originId  string
-}
-
-// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
-// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
-// Optional() makes method check to work in '0 or more' mode.
-// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
-// catch the problems when the expected method call is totally skipped during test run.
-func (mmDeleteDocument *mRepositoryMockDeleteDocument) Optional() *mRepositoryMockDeleteDocument {
-	mmDeleteDocument.optional = true
-	return mmDeleteDocument
-}
-
-// Expect sets up expected params for Repository.DeleteDocument
-func (mmDeleteDocument *mRepositoryMockDeleteDocument) Expect(ctx context.Context, id int64) *mRepositoryMockDeleteDocument {
-	if mmDeleteDocument.mock.funcDeleteDocument != nil {
-		mmDeleteDocument.mock.t.Fatalf("RepositoryMock.DeleteDocument mock is already set by Set")
-	}
-
-	if mmDeleteDocument.defaultExpectation == nil {
-		mmDeleteDocument.defaultExpectation = &RepositoryMockDeleteDocumentExpectation{}
-	}
-
-	if mmDeleteDocument.defaultExpectation.paramPtrs != nil {
-		mmDeleteDocument.mock.t.Fatalf("RepositoryMock.DeleteDocument mock is already set by ExpectParams functions")
-	}
-
-	mmDeleteDocument.defaultExpectation.params = &RepositoryMockDeleteDocumentParams{ctx, id}
-	mmDeleteDocument.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
-	for _, e := range mmDeleteDocument.expectations {
-		if minimock.Equal(e.params, mmDeleteDocument.defaultExpectation.params) {
-			mmDeleteDocument.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmDeleteDocument.defaultExpectation.params)
-		}
-	}
-
-	return mmDeleteDocument
-}
-
-// ExpectCtxParam1 sets up expected param ctx for Repository.DeleteDocument
-func (mmDeleteDocument *mRepositoryMockDeleteDocument) ExpectCtxParam1(ctx context.Context) *mRepositoryMockDeleteDocument {
-	if mmDeleteDocument.mock.funcDeleteDocument != nil {
-		mmDeleteDocument.mock.t.Fatalf("RepositoryMock.DeleteDocument mock is already set by Set")
-	}
-
-	if mmDeleteDocument.defaultExpectation == nil {
-		mmDeleteDocument.defaultExpectation = &RepositoryMockDeleteDocumentExpectation{}
-	}
-
-	if mmDeleteDocument.defaultExpectation.params != nil {
-		mmDeleteDocument.mock.t.Fatalf("RepositoryMock.DeleteDocument mock is already set by Expect")
-	}
-
-	if mmDeleteDocument.defaultExpectation.paramPtrs == nil {
-		mmDeleteDocument.defaultExpectation.paramPtrs = &RepositoryMockDeleteDocumentParamPtrs{}
-	}
-	mmDeleteDocument.defaultExpectation.paramPtrs.ctx = &ctx
-	mmDeleteDocument.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
-
-	return mmDeleteDocument
-}
-
-// ExpectIdParam2 sets up expected param id for Repository.DeleteDocument
-func (mmDeleteDocument *mRepositoryMockDeleteDocument) ExpectIdParam2(id int64) *mRepositoryMockDeleteDocument {
-	if mmDeleteDocument.mock.funcDeleteDocument != nil {
-		mmDeleteDocument.mock.t.Fatalf("RepositoryMock.DeleteDocument mock is already set by Set")
-	}
-
-	if mmDeleteDocument.defaultExpectation == nil {
-		mmDeleteDocument.defaultExpectation = &RepositoryMockDeleteDocumentExpectation{}
-	}
-
-	if mmDeleteDocument.defaultExpectation.params != nil {
-		mmDeleteDocument.mock.t.Fatalf("RepositoryMock.DeleteDocument mock is already set by Expect")
-	}
-
-	if mmDeleteDocument.defaultExpectation.paramPtrs == nil {
-		mmDeleteDocument.defaultExpectation.paramPtrs = &RepositoryMockDeleteDocumentParamPtrs{}
-	}
-	mmDeleteDocument.defaultExpectation.paramPtrs.id = &id
-	mmDeleteDocument.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
-
-	return mmDeleteDocument
-}
-
-// Inspect accepts an inspector function that has same arguments as the Repository.DeleteDocument
-func (mmDeleteDocument *mRepositoryMockDeleteDocument) Inspect(f func(ctx context.Context, id int64)) *mRepositoryMockDeleteDocument {
-	if mmDeleteDocument.mock.inspectFuncDeleteDocument != nil {
-		mmDeleteDocument.mock.t.Fatalf("Inspect function is already set for RepositoryMock.DeleteDocument")
-	}
-
-	mmDeleteDocument.mock.inspectFuncDeleteDocument = f
-
-	return mmDeleteDocument
-}
-
-// Return sets up results that will be returned by Repository.DeleteDocument
-func (mmDeleteDocument *mRepositoryMockDeleteDocument) Return(err error) *RepositoryMock {
-	if mmDeleteDocument.mock.funcDeleteDocument != nil {
-		mmDeleteDocument.mock.t.Fatalf("RepositoryMock.DeleteDocument mock is already set by Set")
-	}
-
-	if mmDeleteDocument.defaultExpectation == nil {
-		mmDeleteDocument.defaultExpectation = &RepositoryMockDeleteDocumentExpectation{mock: mmDeleteDocument.mock}
-	}
-	mmDeleteDocument.defaultExpectation.results = &RepositoryMockDeleteDocumentResults{err}
-	mmDeleteDocument.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmDeleteDocument.mock
-}
-
-// Set uses given function f to mock the Repository.DeleteDocument method
-func (mmDeleteDocument *mRepositoryMockDeleteDocument) Set(f func(ctx context.Context, id int64) (err error)) *RepositoryMock {
-	if mmDeleteDocument.defaultExpectation != nil {
-		mmDeleteDocument.mock.t.Fatalf("Default expectation is already set for the Repository.DeleteDocument method")
-	}
-
-	if len(mmDeleteDocument.expectations) > 0 {
-		mmDeleteDocument.mock.t.Fatalf("Some expectations are already set for the Repository.DeleteDocument method")
-	}
-
-	mmDeleteDocument.mock.funcDeleteDocument = f
-	mmDeleteDocument.mock.funcDeleteDocumentOrigin = minimock.CallerInfo(1)
-	return mmDeleteDocument.mock
-}
-
-// When sets expectation for the Repository.DeleteDocument which will trigger the result defined by the following
-// Then helper
-func (mmDeleteDocument *mRepositoryMockDeleteDocument) When(ctx context.Context, id int64) *RepositoryMockDeleteDocumentExpectation {
-	if mmDeleteDocument.mock.funcDeleteDocument != nil {
-		mmDeleteDocument.mock.t.Fatalf("RepositoryMock.DeleteDocument mock is already set by Set")
-	}
-
-	expectation := &RepositoryMockDeleteDocumentExpectation{
-		mock:               mmDeleteDocument.mock,
-		params:             &RepositoryMockDeleteDocumentParams{ctx, id},
-		expectationOrigins: RepositoryMockDeleteDocumentExpectationOrigins{origin: minimock.CallerInfo(1)},
-	}
-	mmDeleteDocument.expectations = append(mmDeleteDocument.expectations, expectation)
-	return expectation
-}
-
-// Then sets up Repository.DeleteDocument return parameters for the expectation previously defined by the When method
-func (e *RepositoryMockDeleteDocumentExpectation) Then(err error) *RepositoryMock {
-	e.results = &RepositoryMockDeleteDocumentResults{err}
-	return e.mock
-}
-
-// Times sets number of times Repository.DeleteDocument should be invoked
-func (mmDeleteDocument *mRepositoryMockDeleteDocument) Times(n uint64) *mRepositoryMockDeleteDocument {
-	if n == 0 {
-		mmDeleteDocument.mock.t.Fatalf("Times of RepositoryMock.DeleteDocument mock can not be zero")
-	}
-	mm_atomic.StoreUint64(&mmDeleteDocument.expectedInvocations, n)
-	mmDeleteDocument.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmDeleteDocument
-}
-
-func (mmDeleteDocument *mRepositoryMockDeleteDocument) invocationsDone() bool {
-	if len(mmDeleteDocument.expectations) == 0 && mmDeleteDocument.defaultExpectation == nil && mmDeleteDocument.mock.funcDeleteDocument == nil {
-		return true
-	}
-
-	totalInvocations := mm_atomic.LoadUint64(&mmDeleteDocument.mock.afterDeleteDocumentCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmDeleteDocument.expectedInvocations)
-
-	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
-}
-
-// DeleteDocument implements mm_service.Repository
-func (mmDeleteDocument *RepositoryMock) DeleteDocument(ctx context.Context, id int64) (err error) {
-	mm_atomic.AddUint64(&mmDeleteDocument.beforeDeleteDocumentCounter, 1)
-	defer mm_atomic.AddUint64(&mmDeleteDocument.afterDeleteDocumentCounter, 1)
-
-	mmDeleteDocument.t.Helper()
-
-	if mmDeleteDocument.inspectFuncDeleteDocument != nil {
-		mmDeleteDocument.inspectFuncDeleteDocument(ctx, id)
-	}
-
-	mm_params := RepositoryMockDeleteDocumentParams{ctx, id}
-
-	// Record call args
-	mmDeleteDocument.DeleteDocumentMock.mutex.Lock()
-	mmDeleteDocument.DeleteDocumentMock.callArgs = append(mmDeleteDocument.DeleteDocumentMock.callArgs, &mm_params)
-	mmDeleteDocument.DeleteDocumentMock.mutex.Unlock()
-
-	for _, e := range mmDeleteDocument.DeleteDocumentMock.expectations {
-		if minimock.Equal(*e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.err
-		}
-	}
-
-	if mmDeleteDocument.DeleteDocumentMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmDeleteDocument.DeleteDocumentMock.defaultExpectation.Counter, 1)
-		mm_want := mmDeleteDocument.DeleteDocumentMock.defaultExpectation.params
-		mm_want_ptrs := mmDeleteDocument.DeleteDocumentMock.defaultExpectation.paramPtrs
-
-		mm_got := RepositoryMockDeleteDocumentParams{ctx, id}
-
-		if mm_want_ptrs != nil {
-
-			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
-				mmDeleteDocument.t.Errorf("RepositoryMock.DeleteDocument got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmDeleteDocument.DeleteDocumentMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
-			}
-
-			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
-				mmDeleteDocument.t.Errorf("RepositoryMock.DeleteDocument got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmDeleteDocument.DeleteDocumentMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
-			}
-
-		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmDeleteDocument.t.Errorf("RepositoryMock.DeleteDocument got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-				mmDeleteDocument.DeleteDocumentMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmDeleteDocument.DeleteDocumentMock.defaultExpectation.results
-		if mm_results == nil {
-			mmDeleteDocument.t.Fatal("No results are set for the RepositoryMock.DeleteDocument")
-		}
-		return (*mm_results).err
-	}
-	if mmDeleteDocument.funcDeleteDocument != nil {
-		return mmDeleteDocument.funcDeleteDocument(ctx, id)
-	}
-	mmDeleteDocument.t.Fatalf("Unexpected call to RepositoryMock.DeleteDocument. %v %v", ctx, id)
-	return
-}
-
-// DeleteDocumentAfterCounter returns a count of finished RepositoryMock.DeleteDocument invocations
-func (mmDeleteDocument *RepositoryMock) DeleteDocumentAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmDeleteDocument.afterDeleteDocumentCounter)
-}
-
-// DeleteDocumentBeforeCounter returns a count of RepositoryMock.DeleteDocument invocations
-func (mmDeleteDocument *RepositoryMock) DeleteDocumentBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmDeleteDocument.beforeDeleteDocumentCounter)
-}
-
-// Calls returns a list of arguments used in each call to RepositoryMock.DeleteDocument.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmDeleteDocument *mRepositoryMockDeleteDocument) Calls() []*RepositoryMockDeleteDocumentParams {
-	mmDeleteDocument.mutex.RLock()
-
-	argCopy := make([]*RepositoryMockDeleteDocumentParams, len(mmDeleteDocument.callArgs))
-	copy(argCopy, mmDeleteDocument.callArgs)
-
-	mmDeleteDocument.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockDeleteDocumentDone returns true if the count of the DeleteDocument invocations corresponds
-// the number of defined expectations
-func (m *RepositoryMock) MinimockDeleteDocumentDone() bool {
-	if m.DeleteDocumentMock.optional {
-		// Optional methods provide '0 or more' call count restriction.
-		return true
-	}
-
-	for _, e := range m.DeleteDocumentMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	return m.DeleteDocumentMock.invocationsDone()
-}
-
-// MinimockDeleteDocumentInspect logs each unmet expectation
-func (m *RepositoryMock) MinimockDeleteDocumentInspect() {
-	for _, e := range m.DeleteDocumentMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to RepositoryMock.DeleteDocument at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
-		}
-	}
-
-	afterDeleteDocumentCounter := mm_atomic.LoadUint64(&m.afterDeleteDocumentCounter)
-	// if default expectation was set then invocations count should be greater than zero
-	if m.DeleteDocumentMock.defaultExpectation != nil && afterDeleteDocumentCounter < 1 {
-		if m.DeleteDocumentMock.defaultExpectation.params == nil {
-			m.t.Errorf("Expected call to RepositoryMock.DeleteDocument at\n%s", m.DeleteDocumentMock.defaultExpectation.returnOrigin)
-		} else {
-			m.t.Errorf("Expected call to RepositoryMock.DeleteDocument at\n%s with params: %#v", m.DeleteDocumentMock.defaultExpectation.expectationOrigins.origin, *m.DeleteDocumentMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcDeleteDocument != nil && afterDeleteDocumentCounter < 1 {
-		m.t.Errorf("Expected call to RepositoryMock.DeleteDocument at\n%s", m.funcDeleteDocumentOrigin)
-	}
-
-	if !m.DeleteDocumentMock.invocationsDone() && afterDeleteDocumentCounter > 0 {
-		m.t.Errorf("Expected %d calls to RepositoryMock.DeleteDocument at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.DeleteDocumentMock.expectedInvocations), m.DeleteDocumentMock.expectedInvocationsOrigin, afterDeleteDocumentCounter)
-	}
-}
-
 type mRepositoryMockDeleteModel struct {
 	optional           bool
 	mock               *RepositoryMock
@@ -2759,348 +1671,6 @@ func (m *RepositoryMock) MinimockDeleteModelInspect() {
 	if !m.DeleteModelMock.invocationsDone() && afterDeleteModelCounter > 0 {
 		m.t.Errorf("Expected %d calls to RepositoryMock.DeleteModel at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.DeleteModelMock.expectedInvocations), m.DeleteModelMock.expectedInvocationsOrigin, afterDeleteModelCounter)
-	}
-}
-
-type mRepositoryMockDeletePanorama struct {
-	optional           bool
-	mock               *RepositoryMock
-	defaultExpectation *RepositoryMockDeletePanoramaExpectation
-	expectations       []*RepositoryMockDeletePanoramaExpectation
-
-	callArgs []*RepositoryMockDeletePanoramaParams
-	mutex    sync.RWMutex
-
-	expectedInvocations       uint64
-	expectedInvocationsOrigin string
-}
-
-// RepositoryMockDeletePanoramaExpectation specifies expectation struct of the Repository.DeletePanorama
-type RepositoryMockDeletePanoramaExpectation struct {
-	mock               *RepositoryMock
-	params             *RepositoryMockDeletePanoramaParams
-	paramPtrs          *RepositoryMockDeletePanoramaParamPtrs
-	expectationOrigins RepositoryMockDeletePanoramaExpectationOrigins
-	results            *RepositoryMockDeletePanoramaResults
-	returnOrigin       string
-	Counter            uint64
-}
-
-// RepositoryMockDeletePanoramaParams contains parameters of the Repository.DeletePanorama
-type RepositoryMockDeletePanoramaParams struct {
-	ctx context.Context
-	id  int64
-}
-
-// RepositoryMockDeletePanoramaParamPtrs contains pointers to parameters of the Repository.DeletePanorama
-type RepositoryMockDeletePanoramaParamPtrs struct {
-	ctx *context.Context
-	id  *int64
-}
-
-// RepositoryMockDeletePanoramaResults contains results of the Repository.DeletePanorama
-type RepositoryMockDeletePanoramaResults struct {
-	err error
-}
-
-// RepositoryMockDeletePanoramaOrigins contains origins of expectations of the Repository.DeletePanorama
-type RepositoryMockDeletePanoramaExpectationOrigins struct {
-	origin    string
-	originCtx string
-	originId  string
-}
-
-// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
-// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
-// Optional() makes method check to work in '0 or more' mode.
-// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
-// catch the problems when the expected method call is totally skipped during test run.
-func (mmDeletePanorama *mRepositoryMockDeletePanorama) Optional() *mRepositoryMockDeletePanorama {
-	mmDeletePanorama.optional = true
-	return mmDeletePanorama
-}
-
-// Expect sets up expected params for Repository.DeletePanorama
-func (mmDeletePanorama *mRepositoryMockDeletePanorama) Expect(ctx context.Context, id int64) *mRepositoryMockDeletePanorama {
-	if mmDeletePanorama.mock.funcDeletePanorama != nil {
-		mmDeletePanorama.mock.t.Fatalf("RepositoryMock.DeletePanorama mock is already set by Set")
-	}
-
-	if mmDeletePanorama.defaultExpectation == nil {
-		mmDeletePanorama.defaultExpectation = &RepositoryMockDeletePanoramaExpectation{}
-	}
-
-	if mmDeletePanorama.defaultExpectation.paramPtrs != nil {
-		mmDeletePanorama.mock.t.Fatalf("RepositoryMock.DeletePanorama mock is already set by ExpectParams functions")
-	}
-
-	mmDeletePanorama.defaultExpectation.params = &RepositoryMockDeletePanoramaParams{ctx, id}
-	mmDeletePanorama.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
-	for _, e := range mmDeletePanorama.expectations {
-		if minimock.Equal(e.params, mmDeletePanorama.defaultExpectation.params) {
-			mmDeletePanorama.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmDeletePanorama.defaultExpectation.params)
-		}
-	}
-
-	return mmDeletePanorama
-}
-
-// ExpectCtxParam1 sets up expected param ctx for Repository.DeletePanorama
-func (mmDeletePanorama *mRepositoryMockDeletePanorama) ExpectCtxParam1(ctx context.Context) *mRepositoryMockDeletePanorama {
-	if mmDeletePanorama.mock.funcDeletePanorama != nil {
-		mmDeletePanorama.mock.t.Fatalf("RepositoryMock.DeletePanorama mock is already set by Set")
-	}
-
-	if mmDeletePanorama.defaultExpectation == nil {
-		mmDeletePanorama.defaultExpectation = &RepositoryMockDeletePanoramaExpectation{}
-	}
-
-	if mmDeletePanorama.defaultExpectation.params != nil {
-		mmDeletePanorama.mock.t.Fatalf("RepositoryMock.DeletePanorama mock is already set by Expect")
-	}
-
-	if mmDeletePanorama.defaultExpectation.paramPtrs == nil {
-		mmDeletePanorama.defaultExpectation.paramPtrs = &RepositoryMockDeletePanoramaParamPtrs{}
-	}
-	mmDeletePanorama.defaultExpectation.paramPtrs.ctx = &ctx
-	mmDeletePanorama.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
-
-	return mmDeletePanorama
-}
-
-// ExpectIdParam2 sets up expected param id for Repository.DeletePanorama
-func (mmDeletePanorama *mRepositoryMockDeletePanorama) ExpectIdParam2(id int64) *mRepositoryMockDeletePanorama {
-	if mmDeletePanorama.mock.funcDeletePanorama != nil {
-		mmDeletePanorama.mock.t.Fatalf("RepositoryMock.DeletePanorama mock is already set by Set")
-	}
-
-	if mmDeletePanorama.defaultExpectation == nil {
-		mmDeletePanorama.defaultExpectation = &RepositoryMockDeletePanoramaExpectation{}
-	}
-
-	if mmDeletePanorama.defaultExpectation.params != nil {
-		mmDeletePanorama.mock.t.Fatalf("RepositoryMock.DeletePanorama mock is already set by Expect")
-	}
-
-	if mmDeletePanorama.defaultExpectation.paramPtrs == nil {
-		mmDeletePanorama.defaultExpectation.paramPtrs = &RepositoryMockDeletePanoramaParamPtrs{}
-	}
-	mmDeletePanorama.defaultExpectation.paramPtrs.id = &id
-	mmDeletePanorama.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
-
-	return mmDeletePanorama
-}
-
-// Inspect accepts an inspector function that has same arguments as the Repository.DeletePanorama
-func (mmDeletePanorama *mRepositoryMockDeletePanorama) Inspect(f func(ctx context.Context, id int64)) *mRepositoryMockDeletePanorama {
-	if mmDeletePanorama.mock.inspectFuncDeletePanorama != nil {
-		mmDeletePanorama.mock.t.Fatalf("Inspect function is already set for RepositoryMock.DeletePanorama")
-	}
-
-	mmDeletePanorama.mock.inspectFuncDeletePanorama = f
-
-	return mmDeletePanorama
-}
-
-// Return sets up results that will be returned by Repository.DeletePanorama
-func (mmDeletePanorama *mRepositoryMockDeletePanorama) Return(err error) *RepositoryMock {
-	if mmDeletePanorama.mock.funcDeletePanorama != nil {
-		mmDeletePanorama.mock.t.Fatalf("RepositoryMock.DeletePanorama mock is already set by Set")
-	}
-
-	if mmDeletePanorama.defaultExpectation == nil {
-		mmDeletePanorama.defaultExpectation = &RepositoryMockDeletePanoramaExpectation{mock: mmDeletePanorama.mock}
-	}
-	mmDeletePanorama.defaultExpectation.results = &RepositoryMockDeletePanoramaResults{err}
-	mmDeletePanorama.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmDeletePanorama.mock
-}
-
-// Set uses given function f to mock the Repository.DeletePanorama method
-func (mmDeletePanorama *mRepositoryMockDeletePanorama) Set(f func(ctx context.Context, id int64) (err error)) *RepositoryMock {
-	if mmDeletePanorama.defaultExpectation != nil {
-		mmDeletePanorama.mock.t.Fatalf("Default expectation is already set for the Repository.DeletePanorama method")
-	}
-
-	if len(mmDeletePanorama.expectations) > 0 {
-		mmDeletePanorama.mock.t.Fatalf("Some expectations are already set for the Repository.DeletePanorama method")
-	}
-
-	mmDeletePanorama.mock.funcDeletePanorama = f
-	mmDeletePanorama.mock.funcDeletePanoramaOrigin = minimock.CallerInfo(1)
-	return mmDeletePanorama.mock
-}
-
-// When sets expectation for the Repository.DeletePanorama which will trigger the result defined by the following
-// Then helper
-func (mmDeletePanorama *mRepositoryMockDeletePanorama) When(ctx context.Context, id int64) *RepositoryMockDeletePanoramaExpectation {
-	if mmDeletePanorama.mock.funcDeletePanorama != nil {
-		mmDeletePanorama.mock.t.Fatalf("RepositoryMock.DeletePanorama mock is already set by Set")
-	}
-
-	expectation := &RepositoryMockDeletePanoramaExpectation{
-		mock:               mmDeletePanorama.mock,
-		params:             &RepositoryMockDeletePanoramaParams{ctx, id},
-		expectationOrigins: RepositoryMockDeletePanoramaExpectationOrigins{origin: minimock.CallerInfo(1)},
-	}
-	mmDeletePanorama.expectations = append(mmDeletePanorama.expectations, expectation)
-	return expectation
-}
-
-// Then sets up Repository.DeletePanorama return parameters for the expectation previously defined by the When method
-func (e *RepositoryMockDeletePanoramaExpectation) Then(err error) *RepositoryMock {
-	e.results = &RepositoryMockDeletePanoramaResults{err}
-	return e.mock
-}
-
-// Times sets number of times Repository.DeletePanorama should be invoked
-func (mmDeletePanorama *mRepositoryMockDeletePanorama) Times(n uint64) *mRepositoryMockDeletePanorama {
-	if n == 0 {
-		mmDeletePanorama.mock.t.Fatalf("Times of RepositoryMock.DeletePanorama mock can not be zero")
-	}
-	mm_atomic.StoreUint64(&mmDeletePanorama.expectedInvocations, n)
-	mmDeletePanorama.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmDeletePanorama
-}
-
-func (mmDeletePanorama *mRepositoryMockDeletePanorama) invocationsDone() bool {
-	if len(mmDeletePanorama.expectations) == 0 && mmDeletePanorama.defaultExpectation == nil && mmDeletePanorama.mock.funcDeletePanorama == nil {
-		return true
-	}
-
-	totalInvocations := mm_atomic.LoadUint64(&mmDeletePanorama.mock.afterDeletePanoramaCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmDeletePanorama.expectedInvocations)
-
-	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
-}
-
-// DeletePanorama implements mm_service.Repository
-func (mmDeletePanorama *RepositoryMock) DeletePanorama(ctx context.Context, id int64) (err error) {
-	mm_atomic.AddUint64(&mmDeletePanorama.beforeDeletePanoramaCounter, 1)
-	defer mm_atomic.AddUint64(&mmDeletePanorama.afterDeletePanoramaCounter, 1)
-
-	mmDeletePanorama.t.Helper()
-
-	if mmDeletePanorama.inspectFuncDeletePanorama != nil {
-		mmDeletePanorama.inspectFuncDeletePanorama(ctx, id)
-	}
-
-	mm_params := RepositoryMockDeletePanoramaParams{ctx, id}
-
-	// Record call args
-	mmDeletePanorama.DeletePanoramaMock.mutex.Lock()
-	mmDeletePanorama.DeletePanoramaMock.callArgs = append(mmDeletePanorama.DeletePanoramaMock.callArgs, &mm_params)
-	mmDeletePanorama.DeletePanoramaMock.mutex.Unlock()
-
-	for _, e := range mmDeletePanorama.DeletePanoramaMock.expectations {
-		if minimock.Equal(*e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.err
-		}
-	}
-
-	if mmDeletePanorama.DeletePanoramaMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmDeletePanorama.DeletePanoramaMock.defaultExpectation.Counter, 1)
-		mm_want := mmDeletePanorama.DeletePanoramaMock.defaultExpectation.params
-		mm_want_ptrs := mmDeletePanorama.DeletePanoramaMock.defaultExpectation.paramPtrs
-
-		mm_got := RepositoryMockDeletePanoramaParams{ctx, id}
-
-		if mm_want_ptrs != nil {
-
-			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
-				mmDeletePanorama.t.Errorf("RepositoryMock.DeletePanorama got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmDeletePanorama.DeletePanoramaMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
-			}
-
-			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
-				mmDeletePanorama.t.Errorf("RepositoryMock.DeletePanorama got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmDeletePanorama.DeletePanoramaMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
-			}
-
-		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmDeletePanorama.t.Errorf("RepositoryMock.DeletePanorama got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-				mmDeletePanorama.DeletePanoramaMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmDeletePanorama.DeletePanoramaMock.defaultExpectation.results
-		if mm_results == nil {
-			mmDeletePanorama.t.Fatal("No results are set for the RepositoryMock.DeletePanorama")
-		}
-		return (*mm_results).err
-	}
-	if mmDeletePanorama.funcDeletePanorama != nil {
-		return mmDeletePanorama.funcDeletePanorama(ctx, id)
-	}
-	mmDeletePanorama.t.Fatalf("Unexpected call to RepositoryMock.DeletePanorama. %v %v", ctx, id)
-	return
-}
-
-// DeletePanoramaAfterCounter returns a count of finished RepositoryMock.DeletePanorama invocations
-func (mmDeletePanorama *RepositoryMock) DeletePanoramaAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmDeletePanorama.afterDeletePanoramaCounter)
-}
-
-// DeletePanoramaBeforeCounter returns a count of RepositoryMock.DeletePanorama invocations
-func (mmDeletePanorama *RepositoryMock) DeletePanoramaBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmDeletePanorama.beforeDeletePanoramaCounter)
-}
-
-// Calls returns a list of arguments used in each call to RepositoryMock.DeletePanorama.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmDeletePanorama *mRepositoryMockDeletePanorama) Calls() []*RepositoryMockDeletePanoramaParams {
-	mmDeletePanorama.mutex.RLock()
-
-	argCopy := make([]*RepositoryMockDeletePanoramaParams, len(mmDeletePanorama.callArgs))
-	copy(argCopy, mmDeletePanorama.callArgs)
-
-	mmDeletePanorama.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockDeletePanoramaDone returns true if the count of the DeletePanorama invocations corresponds
-// the number of defined expectations
-func (m *RepositoryMock) MinimockDeletePanoramaDone() bool {
-	if m.DeletePanoramaMock.optional {
-		// Optional methods provide '0 or more' call count restriction.
-		return true
-	}
-
-	for _, e := range m.DeletePanoramaMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	return m.DeletePanoramaMock.invocationsDone()
-}
-
-// MinimockDeletePanoramaInspect logs each unmet expectation
-func (m *RepositoryMock) MinimockDeletePanoramaInspect() {
-	for _, e := range m.DeletePanoramaMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to RepositoryMock.DeletePanorama at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
-		}
-	}
-
-	afterDeletePanoramaCounter := mm_atomic.LoadUint64(&m.afterDeletePanoramaCounter)
-	// if default expectation was set then invocations count should be greater than zero
-	if m.DeletePanoramaMock.defaultExpectation != nil && afterDeletePanoramaCounter < 1 {
-		if m.DeletePanoramaMock.defaultExpectation.params == nil {
-			m.t.Errorf("Expected call to RepositoryMock.DeletePanorama at\n%s", m.DeletePanoramaMock.defaultExpectation.returnOrigin)
-		} else {
-			m.t.Errorf("Expected call to RepositoryMock.DeletePanorama at\n%s with params: %#v", m.DeletePanoramaMock.defaultExpectation.expectationOrigins.origin, *m.DeletePanoramaMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcDeletePanorama != nil && afterDeletePanoramaCounter < 1 {
-		m.t.Errorf("Expected call to RepositoryMock.DeletePanorama at\n%s", m.funcDeletePanoramaOrigin)
-	}
-
-	if !m.DeletePanoramaMock.invocationsDone() && afterDeletePanoramaCounter > 0 {
-		m.t.Errorf("Expected %d calls to RepositoryMock.DeletePanorama at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.DeletePanoramaMock.expectedInvocations), m.DeletePanoramaMock.expectedInvocationsOrigin, afterDeletePanoramaCounter)
 	}
 }
 
@@ -5938,349 +4508,6 @@ func (m *RepositoryMock) MinimockGetTerritoryArtifactInspect() {
 	}
 }
 
-type mRepositoryMockListDocuments struct {
-	optional           bool
-	mock               *RepositoryMock
-	defaultExpectation *RepositoryMockListDocumentsExpectation
-	expectations       []*RepositoryMockListDocumentsExpectation
-
-	callArgs []*RepositoryMockListDocumentsParams
-	mutex    sync.RWMutex
-
-	expectedInvocations       uint64
-	expectedInvocationsOrigin string
-}
-
-// RepositoryMockListDocumentsExpectation specifies expectation struct of the Repository.ListDocuments
-type RepositoryMockListDocumentsExpectation struct {
-	mock               *RepositoryMock
-	params             *RepositoryMockListDocumentsParams
-	paramPtrs          *RepositoryMockListDocumentsParamPtrs
-	expectationOrigins RepositoryMockListDocumentsExpectationOrigins
-	results            *RepositoryMockListDocumentsResults
-	returnOrigin       string
-	Counter            uint64
-}
-
-// RepositoryMockListDocumentsParams contains parameters of the Repository.ListDocuments
-type RepositoryMockListDocumentsParams struct {
-	ctx           context.Context
-	territorySlug string
-}
-
-// RepositoryMockListDocumentsParamPtrs contains pointers to parameters of the Repository.ListDocuments
-type RepositoryMockListDocumentsParamPtrs struct {
-	ctx           *context.Context
-	territorySlug *string
-}
-
-// RepositoryMockListDocumentsResults contains results of the Repository.ListDocuments
-type RepositoryMockListDocumentsResults struct {
-	da1 []domain.Document
-	err error
-}
-
-// RepositoryMockListDocumentsOrigins contains origins of expectations of the Repository.ListDocuments
-type RepositoryMockListDocumentsExpectationOrigins struct {
-	origin              string
-	originCtx           string
-	originTerritorySlug string
-}
-
-// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
-// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
-// Optional() makes method check to work in '0 or more' mode.
-// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
-// catch the problems when the expected method call is totally skipped during test run.
-func (mmListDocuments *mRepositoryMockListDocuments) Optional() *mRepositoryMockListDocuments {
-	mmListDocuments.optional = true
-	return mmListDocuments
-}
-
-// Expect sets up expected params for Repository.ListDocuments
-func (mmListDocuments *mRepositoryMockListDocuments) Expect(ctx context.Context, territorySlug string) *mRepositoryMockListDocuments {
-	if mmListDocuments.mock.funcListDocuments != nil {
-		mmListDocuments.mock.t.Fatalf("RepositoryMock.ListDocuments mock is already set by Set")
-	}
-
-	if mmListDocuments.defaultExpectation == nil {
-		mmListDocuments.defaultExpectation = &RepositoryMockListDocumentsExpectation{}
-	}
-
-	if mmListDocuments.defaultExpectation.paramPtrs != nil {
-		mmListDocuments.mock.t.Fatalf("RepositoryMock.ListDocuments mock is already set by ExpectParams functions")
-	}
-
-	mmListDocuments.defaultExpectation.params = &RepositoryMockListDocumentsParams{ctx, territorySlug}
-	mmListDocuments.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
-	for _, e := range mmListDocuments.expectations {
-		if minimock.Equal(e.params, mmListDocuments.defaultExpectation.params) {
-			mmListDocuments.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListDocuments.defaultExpectation.params)
-		}
-	}
-
-	return mmListDocuments
-}
-
-// ExpectCtxParam1 sets up expected param ctx for Repository.ListDocuments
-func (mmListDocuments *mRepositoryMockListDocuments) ExpectCtxParam1(ctx context.Context) *mRepositoryMockListDocuments {
-	if mmListDocuments.mock.funcListDocuments != nil {
-		mmListDocuments.mock.t.Fatalf("RepositoryMock.ListDocuments mock is already set by Set")
-	}
-
-	if mmListDocuments.defaultExpectation == nil {
-		mmListDocuments.defaultExpectation = &RepositoryMockListDocumentsExpectation{}
-	}
-
-	if mmListDocuments.defaultExpectation.params != nil {
-		mmListDocuments.mock.t.Fatalf("RepositoryMock.ListDocuments mock is already set by Expect")
-	}
-
-	if mmListDocuments.defaultExpectation.paramPtrs == nil {
-		mmListDocuments.defaultExpectation.paramPtrs = &RepositoryMockListDocumentsParamPtrs{}
-	}
-	mmListDocuments.defaultExpectation.paramPtrs.ctx = &ctx
-	mmListDocuments.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
-
-	return mmListDocuments
-}
-
-// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.ListDocuments
-func (mmListDocuments *mRepositoryMockListDocuments) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockListDocuments {
-	if mmListDocuments.mock.funcListDocuments != nil {
-		mmListDocuments.mock.t.Fatalf("RepositoryMock.ListDocuments mock is already set by Set")
-	}
-
-	if mmListDocuments.defaultExpectation == nil {
-		mmListDocuments.defaultExpectation = &RepositoryMockListDocumentsExpectation{}
-	}
-
-	if mmListDocuments.defaultExpectation.params != nil {
-		mmListDocuments.mock.t.Fatalf("RepositoryMock.ListDocuments mock is already set by Expect")
-	}
-
-	if mmListDocuments.defaultExpectation.paramPtrs == nil {
-		mmListDocuments.defaultExpectation.paramPtrs = &RepositoryMockListDocumentsParamPtrs{}
-	}
-	mmListDocuments.defaultExpectation.paramPtrs.territorySlug = &territorySlug
-	mmListDocuments.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
-
-	return mmListDocuments
-}
-
-// Inspect accepts an inspector function that has same arguments as the Repository.ListDocuments
-func (mmListDocuments *mRepositoryMockListDocuments) Inspect(f func(ctx context.Context, territorySlug string)) *mRepositoryMockListDocuments {
-	if mmListDocuments.mock.inspectFuncListDocuments != nil {
-		mmListDocuments.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ListDocuments")
-	}
-
-	mmListDocuments.mock.inspectFuncListDocuments = f
-
-	return mmListDocuments
-}
-
-// Return sets up results that will be returned by Repository.ListDocuments
-func (mmListDocuments *mRepositoryMockListDocuments) Return(da1 []domain.Document, err error) *RepositoryMock {
-	if mmListDocuments.mock.funcListDocuments != nil {
-		mmListDocuments.mock.t.Fatalf("RepositoryMock.ListDocuments mock is already set by Set")
-	}
-
-	if mmListDocuments.defaultExpectation == nil {
-		mmListDocuments.defaultExpectation = &RepositoryMockListDocumentsExpectation{mock: mmListDocuments.mock}
-	}
-	mmListDocuments.defaultExpectation.results = &RepositoryMockListDocumentsResults{da1, err}
-	mmListDocuments.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmListDocuments.mock
-}
-
-// Set uses given function f to mock the Repository.ListDocuments method
-func (mmListDocuments *mRepositoryMockListDocuments) Set(f func(ctx context.Context, territorySlug string) (da1 []domain.Document, err error)) *RepositoryMock {
-	if mmListDocuments.defaultExpectation != nil {
-		mmListDocuments.mock.t.Fatalf("Default expectation is already set for the Repository.ListDocuments method")
-	}
-
-	if len(mmListDocuments.expectations) > 0 {
-		mmListDocuments.mock.t.Fatalf("Some expectations are already set for the Repository.ListDocuments method")
-	}
-
-	mmListDocuments.mock.funcListDocuments = f
-	mmListDocuments.mock.funcListDocumentsOrigin = minimock.CallerInfo(1)
-	return mmListDocuments.mock
-}
-
-// When sets expectation for the Repository.ListDocuments which will trigger the result defined by the following
-// Then helper
-func (mmListDocuments *mRepositoryMockListDocuments) When(ctx context.Context, territorySlug string) *RepositoryMockListDocumentsExpectation {
-	if mmListDocuments.mock.funcListDocuments != nil {
-		mmListDocuments.mock.t.Fatalf("RepositoryMock.ListDocuments mock is already set by Set")
-	}
-
-	expectation := &RepositoryMockListDocumentsExpectation{
-		mock:               mmListDocuments.mock,
-		params:             &RepositoryMockListDocumentsParams{ctx, territorySlug},
-		expectationOrigins: RepositoryMockListDocumentsExpectationOrigins{origin: minimock.CallerInfo(1)},
-	}
-	mmListDocuments.expectations = append(mmListDocuments.expectations, expectation)
-	return expectation
-}
-
-// Then sets up Repository.ListDocuments return parameters for the expectation previously defined by the When method
-func (e *RepositoryMockListDocumentsExpectation) Then(da1 []domain.Document, err error) *RepositoryMock {
-	e.results = &RepositoryMockListDocumentsResults{da1, err}
-	return e.mock
-}
-
-// Times sets number of times Repository.ListDocuments should be invoked
-func (mmListDocuments *mRepositoryMockListDocuments) Times(n uint64) *mRepositoryMockListDocuments {
-	if n == 0 {
-		mmListDocuments.mock.t.Fatalf("Times of RepositoryMock.ListDocuments mock can not be zero")
-	}
-	mm_atomic.StoreUint64(&mmListDocuments.expectedInvocations, n)
-	mmListDocuments.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmListDocuments
-}
-
-func (mmListDocuments *mRepositoryMockListDocuments) invocationsDone() bool {
-	if len(mmListDocuments.expectations) == 0 && mmListDocuments.defaultExpectation == nil && mmListDocuments.mock.funcListDocuments == nil {
-		return true
-	}
-
-	totalInvocations := mm_atomic.LoadUint64(&mmListDocuments.mock.afterListDocumentsCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmListDocuments.expectedInvocations)
-
-	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
-}
-
-// ListDocuments implements mm_service.Repository
-func (mmListDocuments *RepositoryMock) ListDocuments(ctx context.Context, territorySlug string) (da1 []domain.Document, err error) {
-	mm_atomic.AddUint64(&mmListDocuments.beforeListDocumentsCounter, 1)
-	defer mm_atomic.AddUint64(&mmListDocuments.afterListDocumentsCounter, 1)
-
-	mmListDocuments.t.Helper()
-
-	if mmListDocuments.inspectFuncListDocuments != nil {
-		mmListDocuments.inspectFuncListDocuments(ctx, territorySlug)
-	}
-
-	mm_params := RepositoryMockListDocumentsParams{ctx, territorySlug}
-
-	// Record call args
-	mmListDocuments.ListDocumentsMock.mutex.Lock()
-	mmListDocuments.ListDocumentsMock.callArgs = append(mmListDocuments.ListDocumentsMock.callArgs, &mm_params)
-	mmListDocuments.ListDocumentsMock.mutex.Unlock()
-
-	for _, e := range mmListDocuments.ListDocumentsMock.expectations {
-		if minimock.Equal(*e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.da1, e.results.err
-		}
-	}
-
-	if mmListDocuments.ListDocumentsMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmListDocuments.ListDocumentsMock.defaultExpectation.Counter, 1)
-		mm_want := mmListDocuments.ListDocumentsMock.defaultExpectation.params
-		mm_want_ptrs := mmListDocuments.ListDocumentsMock.defaultExpectation.paramPtrs
-
-		mm_got := RepositoryMockListDocumentsParams{ctx, territorySlug}
-
-		if mm_want_ptrs != nil {
-
-			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
-				mmListDocuments.t.Errorf("RepositoryMock.ListDocuments got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmListDocuments.ListDocumentsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
-			}
-
-			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
-				mmListDocuments.t.Errorf("RepositoryMock.ListDocuments got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmListDocuments.ListDocumentsMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
-			}
-
-		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmListDocuments.t.Errorf("RepositoryMock.ListDocuments got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-				mmListDocuments.ListDocumentsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmListDocuments.ListDocumentsMock.defaultExpectation.results
-		if mm_results == nil {
-			mmListDocuments.t.Fatal("No results are set for the RepositoryMock.ListDocuments")
-		}
-		return (*mm_results).da1, (*mm_results).err
-	}
-	if mmListDocuments.funcListDocuments != nil {
-		return mmListDocuments.funcListDocuments(ctx, territorySlug)
-	}
-	mmListDocuments.t.Fatalf("Unexpected call to RepositoryMock.ListDocuments. %v %v", ctx, territorySlug)
-	return
-}
-
-// ListDocumentsAfterCounter returns a count of finished RepositoryMock.ListDocuments invocations
-func (mmListDocuments *RepositoryMock) ListDocumentsAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmListDocuments.afterListDocumentsCounter)
-}
-
-// ListDocumentsBeforeCounter returns a count of RepositoryMock.ListDocuments invocations
-func (mmListDocuments *RepositoryMock) ListDocumentsBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmListDocuments.beforeListDocumentsCounter)
-}
-
-// Calls returns a list of arguments used in each call to RepositoryMock.ListDocuments.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmListDocuments *mRepositoryMockListDocuments) Calls() []*RepositoryMockListDocumentsParams {
-	mmListDocuments.mutex.RLock()
-
-	argCopy := make([]*RepositoryMockListDocumentsParams, len(mmListDocuments.callArgs))
-	copy(argCopy, mmListDocuments.callArgs)
-
-	mmListDocuments.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockListDocumentsDone returns true if the count of the ListDocuments invocations corresponds
-// the number of defined expectations
-func (m *RepositoryMock) MinimockListDocumentsDone() bool {
-	if m.ListDocumentsMock.optional {
-		// Optional methods provide '0 or more' call count restriction.
-		return true
-	}
-
-	for _, e := range m.ListDocumentsMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	return m.ListDocumentsMock.invocationsDone()
-}
-
-// MinimockListDocumentsInspect logs each unmet expectation
-func (m *RepositoryMock) MinimockListDocumentsInspect() {
-	for _, e := range m.ListDocumentsMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to RepositoryMock.ListDocuments at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
-		}
-	}
-
-	afterListDocumentsCounter := mm_atomic.LoadUint64(&m.afterListDocumentsCounter)
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ListDocumentsMock.defaultExpectation != nil && afterListDocumentsCounter < 1 {
-		if m.ListDocumentsMock.defaultExpectation.params == nil {
-			m.t.Errorf("Expected call to RepositoryMock.ListDocuments at\n%s", m.ListDocumentsMock.defaultExpectation.returnOrigin)
-		} else {
-			m.t.Errorf("Expected call to RepositoryMock.ListDocuments at\n%s with params: %#v", m.ListDocumentsMock.defaultExpectation.expectationOrigins.origin, *m.ListDocumentsMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcListDocuments != nil && afterListDocumentsCounter < 1 {
-		m.t.Errorf("Expected call to RepositoryMock.ListDocuments at\n%s", m.funcListDocumentsOrigin)
-	}
-
-	if !m.ListDocumentsMock.invocationsDone() && afterListDocumentsCounter > 0 {
-		m.t.Errorf("Expected %d calls to RepositoryMock.ListDocuments at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.ListDocumentsMock.expectedInvocations), m.ListDocumentsMock.expectedInvocationsOrigin, afterListDocumentsCounter)
-	}
-}
-
 type mRepositoryMockListModelArtifacts struct {
 	optional           bool
 	mock               *RepositoryMock
@@ -6936,50 +5163,50 @@ func (m *RepositoryMock) MinimockListModelsInspect() {
 	}
 }
 
-type mRepositoryMockListPanoramas struct {
+type mRepositoryMockListPanoramaIDs struct {
 	optional           bool
 	mock               *RepositoryMock
-	defaultExpectation *RepositoryMockListPanoramasExpectation
-	expectations       []*RepositoryMockListPanoramasExpectation
+	defaultExpectation *RepositoryMockListPanoramaIDsExpectation
+	expectations       []*RepositoryMockListPanoramaIDsExpectation
 
-	callArgs []*RepositoryMockListPanoramasParams
+	callArgs []*RepositoryMockListPanoramaIDsParams
 	mutex    sync.RWMutex
 
 	expectedInvocations       uint64
 	expectedInvocationsOrigin string
 }
 
-// RepositoryMockListPanoramasExpectation specifies expectation struct of the Repository.ListPanoramas
-type RepositoryMockListPanoramasExpectation struct {
+// RepositoryMockListPanoramaIDsExpectation specifies expectation struct of the Repository.ListPanoramaIDs
+type RepositoryMockListPanoramaIDsExpectation struct {
 	mock               *RepositoryMock
-	params             *RepositoryMockListPanoramasParams
-	paramPtrs          *RepositoryMockListPanoramasParamPtrs
-	expectationOrigins RepositoryMockListPanoramasExpectationOrigins
-	results            *RepositoryMockListPanoramasResults
+	params             *RepositoryMockListPanoramaIDsParams
+	paramPtrs          *RepositoryMockListPanoramaIDsParamPtrs
+	expectationOrigins RepositoryMockListPanoramaIDsExpectationOrigins
+	results            *RepositoryMockListPanoramaIDsResults
 	returnOrigin       string
 	Counter            uint64
 }
 
-// RepositoryMockListPanoramasParams contains parameters of the Repository.ListPanoramas
-type RepositoryMockListPanoramasParams struct {
+// RepositoryMockListPanoramaIDsParams contains parameters of the Repository.ListPanoramaIDs
+type RepositoryMockListPanoramaIDsParams struct {
 	ctx           context.Context
 	territorySlug string
 }
 
-// RepositoryMockListPanoramasParamPtrs contains pointers to parameters of the Repository.ListPanoramas
-type RepositoryMockListPanoramasParamPtrs struct {
+// RepositoryMockListPanoramaIDsParamPtrs contains pointers to parameters of the Repository.ListPanoramaIDs
+type RepositoryMockListPanoramaIDsParamPtrs struct {
 	ctx           *context.Context
 	territorySlug *string
 }
 
-// RepositoryMockListPanoramasResults contains results of the Repository.ListPanoramas
-type RepositoryMockListPanoramasResults struct {
-	pa1 []domain.Panorama
+// RepositoryMockListPanoramaIDsResults contains results of the Repository.ListPanoramaIDs
+type RepositoryMockListPanoramaIDsResults struct {
+	ia1 []int64
 	err error
 }
 
-// RepositoryMockListPanoramasOrigins contains origins of expectations of the Repository.ListPanoramas
-type RepositoryMockListPanoramasExpectationOrigins struct {
+// RepositoryMockListPanoramaIDsOrigins contains origins of expectations of the Repository.ListPanoramaIDs
+type RepositoryMockListPanoramaIDsExpectationOrigins struct {
 	origin              string
 	originCtx           string
 	originTerritorySlug string
@@ -6990,292 +5217,292 @@ type RepositoryMockListPanoramasExpectationOrigins struct {
 // Optional() makes method check to work in '0 or more' mode.
 // It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
 // catch the problems when the expected method call is totally skipped during test run.
-func (mmListPanoramas *mRepositoryMockListPanoramas) Optional() *mRepositoryMockListPanoramas {
-	mmListPanoramas.optional = true
-	return mmListPanoramas
+func (mmListPanoramaIDs *mRepositoryMockListPanoramaIDs) Optional() *mRepositoryMockListPanoramaIDs {
+	mmListPanoramaIDs.optional = true
+	return mmListPanoramaIDs
 }
 
-// Expect sets up expected params for Repository.ListPanoramas
-func (mmListPanoramas *mRepositoryMockListPanoramas) Expect(ctx context.Context, territorySlug string) *mRepositoryMockListPanoramas {
-	if mmListPanoramas.mock.funcListPanoramas != nil {
-		mmListPanoramas.mock.t.Fatalf("RepositoryMock.ListPanoramas mock is already set by Set")
+// Expect sets up expected params for Repository.ListPanoramaIDs
+func (mmListPanoramaIDs *mRepositoryMockListPanoramaIDs) Expect(ctx context.Context, territorySlug string) *mRepositoryMockListPanoramaIDs {
+	if mmListPanoramaIDs.mock.funcListPanoramaIDs != nil {
+		mmListPanoramaIDs.mock.t.Fatalf("RepositoryMock.ListPanoramaIDs mock is already set by Set")
 	}
 
-	if mmListPanoramas.defaultExpectation == nil {
-		mmListPanoramas.defaultExpectation = &RepositoryMockListPanoramasExpectation{}
+	if mmListPanoramaIDs.defaultExpectation == nil {
+		mmListPanoramaIDs.defaultExpectation = &RepositoryMockListPanoramaIDsExpectation{}
 	}
 
-	if mmListPanoramas.defaultExpectation.paramPtrs != nil {
-		mmListPanoramas.mock.t.Fatalf("RepositoryMock.ListPanoramas mock is already set by ExpectParams functions")
+	if mmListPanoramaIDs.defaultExpectation.paramPtrs != nil {
+		mmListPanoramaIDs.mock.t.Fatalf("RepositoryMock.ListPanoramaIDs mock is already set by ExpectParams functions")
 	}
 
-	mmListPanoramas.defaultExpectation.params = &RepositoryMockListPanoramasParams{ctx, territorySlug}
-	mmListPanoramas.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
-	for _, e := range mmListPanoramas.expectations {
-		if minimock.Equal(e.params, mmListPanoramas.defaultExpectation.params) {
-			mmListPanoramas.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListPanoramas.defaultExpectation.params)
+	mmListPanoramaIDs.defaultExpectation.params = &RepositoryMockListPanoramaIDsParams{ctx, territorySlug}
+	mmListPanoramaIDs.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmListPanoramaIDs.expectations {
+		if minimock.Equal(e.params, mmListPanoramaIDs.defaultExpectation.params) {
+			mmListPanoramaIDs.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListPanoramaIDs.defaultExpectation.params)
 		}
 	}
 
-	return mmListPanoramas
+	return mmListPanoramaIDs
 }
 
-// ExpectCtxParam1 sets up expected param ctx for Repository.ListPanoramas
-func (mmListPanoramas *mRepositoryMockListPanoramas) ExpectCtxParam1(ctx context.Context) *mRepositoryMockListPanoramas {
-	if mmListPanoramas.mock.funcListPanoramas != nil {
-		mmListPanoramas.mock.t.Fatalf("RepositoryMock.ListPanoramas mock is already set by Set")
+// ExpectCtxParam1 sets up expected param ctx for Repository.ListPanoramaIDs
+func (mmListPanoramaIDs *mRepositoryMockListPanoramaIDs) ExpectCtxParam1(ctx context.Context) *mRepositoryMockListPanoramaIDs {
+	if mmListPanoramaIDs.mock.funcListPanoramaIDs != nil {
+		mmListPanoramaIDs.mock.t.Fatalf("RepositoryMock.ListPanoramaIDs mock is already set by Set")
 	}
 
-	if mmListPanoramas.defaultExpectation == nil {
-		mmListPanoramas.defaultExpectation = &RepositoryMockListPanoramasExpectation{}
+	if mmListPanoramaIDs.defaultExpectation == nil {
+		mmListPanoramaIDs.defaultExpectation = &RepositoryMockListPanoramaIDsExpectation{}
 	}
 
-	if mmListPanoramas.defaultExpectation.params != nil {
-		mmListPanoramas.mock.t.Fatalf("RepositoryMock.ListPanoramas mock is already set by Expect")
+	if mmListPanoramaIDs.defaultExpectation.params != nil {
+		mmListPanoramaIDs.mock.t.Fatalf("RepositoryMock.ListPanoramaIDs mock is already set by Expect")
 	}
 
-	if mmListPanoramas.defaultExpectation.paramPtrs == nil {
-		mmListPanoramas.defaultExpectation.paramPtrs = &RepositoryMockListPanoramasParamPtrs{}
+	if mmListPanoramaIDs.defaultExpectation.paramPtrs == nil {
+		mmListPanoramaIDs.defaultExpectation.paramPtrs = &RepositoryMockListPanoramaIDsParamPtrs{}
 	}
-	mmListPanoramas.defaultExpectation.paramPtrs.ctx = &ctx
-	mmListPanoramas.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+	mmListPanoramaIDs.defaultExpectation.paramPtrs.ctx = &ctx
+	mmListPanoramaIDs.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
 
-	return mmListPanoramas
+	return mmListPanoramaIDs
 }
 
-// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.ListPanoramas
-func (mmListPanoramas *mRepositoryMockListPanoramas) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockListPanoramas {
-	if mmListPanoramas.mock.funcListPanoramas != nil {
-		mmListPanoramas.mock.t.Fatalf("RepositoryMock.ListPanoramas mock is already set by Set")
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.ListPanoramaIDs
+func (mmListPanoramaIDs *mRepositoryMockListPanoramaIDs) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockListPanoramaIDs {
+	if mmListPanoramaIDs.mock.funcListPanoramaIDs != nil {
+		mmListPanoramaIDs.mock.t.Fatalf("RepositoryMock.ListPanoramaIDs mock is already set by Set")
 	}
 
-	if mmListPanoramas.defaultExpectation == nil {
-		mmListPanoramas.defaultExpectation = &RepositoryMockListPanoramasExpectation{}
+	if mmListPanoramaIDs.defaultExpectation == nil {
+		mmListPanoramaIDs.defaultExpectation = &RepositoryMockListPanoramaIDsExpectation{}
 	}
 
-	if mmListPanoramas.defaultExpectation.params != nil {
-		mmListPanoramas.mock.t.Fatalf("RepositoryMock.ListPanoramas mock is already set by Expect")
+	if mmListPanoramaIDs.defaultExpectation.params != nil {
+		mmListPanoramaIDs.mock.t.Fatalf("RepositoryMock.ListPanoramaIDs mock is already set by Expect")
 	}
 
-	if mmListPanoramas.defaultExpectation.paramPtrs == nil {
-		mmListPanoramas.defaultExpectation.paramPtrs = &RepositoryMockListPanoramasParamPtrs{}
+	if mmListPanoramaIDs.defaultExpectation.paramPtrs == nil {
+		mmListPanoramaIDs.defaultExpectation.paramPtrs = &RepositoryMockListPanoramaIDsParamPtrs{}
 	}
-	mmListPanoramas.defaultExpectation.paramPtrs.territorySlug = &territorySlug
-	mmListPanoramas.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+	mmListPanoramaIDs.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmListPanoramaIDs.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
 
-	return mmListPanoramas
+	return mmListPanoramaIDs
 }
 
-// Inspect accepts an inspector function that has same arguments as the Repository.ListPanoramas
-func (mmListPanoramas *mRepositoryMockListPanoramas) Inspect(f func(ctx context.Context, territorySlug string)) *mRepositoryMockListPanoramas {
-	if mmListPanoramas.mock.inspectFuncListPanoramas != nil {
-		mmListPanoramas.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ListPanoramas")
+// Inspect accepts an inspector function that has same arguments as the Repository.ListPanoramaIDs
+func (mmListPanoramaIDs *mRepositoryMockListPanoramaIDs) Inspect(f func(ctx context.Context, territorySlug string)) *mRepositoryMockListPanoramaIDs {
+	if mmListPanoramaIDs.mock.inspectFuncListPanoramaIDs != nil {
+		mmListPanoramaIDs.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ListPanoramaIDs")
 	}
 
-	mmListPanoramas.mock.inspectFuncListPanoramas = f
+	mmListPanoramaIDs.mock.inspectFuncListPanoramaIDs = f
 
-	return mmListPanoramas
+	return mmListPanoramaIDs
 }
 
-// Return sets up results that will be returned by Repository.ListPanoramas
-func (mmListPanoramas *mRepositoryMockListPanoramas) Return(pa1 []domain.Panorama, err error) *RepositoryMock {
-	if mmListPanoramas.mock.funcListPanoramas != nil {
-		mmListPanoramas.mock.t.Fatalf("RepositoryMock.ListPanoramas mock is already set by Set")
+// Return sets up results that will be returned by Repository.ListPanoramaIDs
+func (mmListPanoramaIDs *mRepositoryMockListPanoramaIDs) Return(ia1 []int64, err error) *RepositoryMock {
+	if mmListPanoramaIDs.mock.funcListPanoramaIDs != nil {
+		mmListPanoramaIDs.mock.t.Fatalf("RepositoryMock.ListPanoramaIDs mock is already set by Set")
 	}
 
-	if mmListPanoramas.defaultExpectation == nil {
-		mmListPanoramas.defaultExpectation = &RepositoryMockListPanoramasExpectation{mock: mmListPanoramas.mock}
+	if mmListPanoramaIDs.defaultExpectation == nil {
+		mmListPanoramaIDs.defaultExpectation = &RepositoryMockListPanoramaIDsExpectation{mock: mmListPanoramaIDs.mock}
 	}
-	mmListPanoramas.defaultExpectation.results = &RepositoryMockListPanoramasResults{pa1, err}
-	mmListPanoramas.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmListPanoramas.mock
+	mmListPanoramaIDs.defaultExpectation.results = &RepositoryMockListPanoramaIDsResults{ia1, err}
+	mmListPanoramaIDs.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmListPanoramaIDs.mock
 }
 
-// Set uses given function f to mock the Repository.ListPanoramas method
-func (mmListPanoramas *mRepositoryMockListPanoramas) Set(f func(ctx context.Context, territorySlug string) (pa1 []domain.Panorama, err error)) *RepositoryMock {
-	if mmListPanoramas.defaultExpectation != nil {
-		mmListPanoramas.mock.t.Fatalf("Default expectation is already set for the Repository.ListPanoramas method")
+// Set uses given function f to mock the Repository.ListPanoramaIDs method
+func (mmListPanoramaIDs *mRepositoryMockListPanoramaIDs) Set(f func(ctx context.Context, territorySlug string) (ia1 []int64, err error)) *RepositoryMock {
+	if mmListPanoramaIDs.defaultExpectation != nil {
+		mmListPanoramaIDs.mock.t.Fatalf("Default expectation is already set for the Repository.ListPanoramaIDs method")
 	}
 
-	if len(mmListPanoramas.expectations) > 0 {
-		mmListPanoramas.mock.t.Fatalf("Some expectations are already set for the Repository.ListPanoramas method")
+	if len(mmListPanoramaIDs.expectations) > 0 {
+		mmListPanoramaIDs.mock.t.Fatalf("Some expectations are already set for the Repository.ListPanoramaIDs method")
 	}
 
-	mmListPanoramas.mock.funcListPanoramas = f
-	mmListPanoramas.mock.funcListPanoramasOrigin = minimock.CallerInfo(1)
-	return mmListPanoramas.mock
+	mmListPanoramaIDs.mock.funcListPanoramaIDs = f
+	mmListPanoramaIDs.mock.funcListPanoramaIDsOrigin = minimock.CallerInfo(1)
+	return mmListPanoramaIDs.mock
 }
 
-// When sets expectation for the Repository.ListPanoramas which will trigger the result defined by the following
+// When sets expectation for the Repository.ListPanoramaIDs which will trigger the result defined by the following
 // Then helper
-func (mmListPanoramas *mRepositoryMockListPanoramas) When(ctx context.Context, territorySlug string) *RepositoryMockListPanoramasExpectation {
-	if mmListPanoramas.mock.funcListPanoramas != nil {
-		mmListPanoramas.mock.t.Fatalf("RepositoryMock.ListPanoramas mock is already set by Set")
+func (mmListPanoramaIDs *mRepositoryMockListPanoramaIDs) When(ctx context.Context, territorySlug string) *RepositoryMockListPanoramaIDsExpectation {
+	if mmListPanoramaIDs.mock.funcListPanoramaIDs != nil {
+		mmListPanoramaIDs.mock.t.Fatalf("RepositoryMock.ListPanoramaIDs mock is already set by Set")
 	}
 
-	expectation := &RepositoryMockListPanoramasExpectation{
-		mock:               mmListPanoramas.mock,
-		params:             &RepositoryMockListPanoramasParams{ctx, territorySlug},
-		expectationOrigins: RepositoryMockListPanoramasExpectationOrigins{origin: minimock.CallerInfo(1)},
+	expectation := &RepositoryMockListPanoramaIDsExpectation{
+		mock:               mmListPanoramaIDs.mock,
+		params:             &RepositoryMockListPanoramaIDsParams{ctx, territorySlug},
+		expectationOrigins: RepositoryMockListPanoramaIDsExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
-	mmListPanoramas.expectations = append(mmListPanoramas.expectations, expectation)
+	mmListPanoramaIDs.expectations = append(mmListPanoramaIDs.expectations, expectation)
 	return expectation
 }
 
-// Then sets up Repository.ListPanoramas return parameters for the expectation previously defined by the When method
-func (e *RepositoryMockListPanoramasExpectation) Then(pa1 []domain.Panorama, err error) *RepositoryMock {
-	e.results = &RepositoryMockListPanoramasResults{pa1, err}
+// Then sets up Repository.ListPanoramaIDs return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockListPanoramaIDsExpectation) Then(ia1 []int64, err error) *RepositoryMock {
+	e.results = &RepositoryMockListPanoramaIDsResults{ia1, err}
 	return e.mock
 }
 
-// Times sets number of times Repository.ListPanoramas should be invoked
-func (mmListPanoramas *mRepositoryMockListPanoramas) Times(n uint64) *mRepositoryMockListPanoramas {
+// Times sets number of times Repository.ListPanoramaIDs should be invoked
+func (mmListPanoramaIDs *mRepositoryMockListPanoramaIDs) Times(n uint64) *mRepositoryMockListPanoramaIDs {
 	if n == 0 {
-		mmListPanoramas.mock.t.Fatalf("Times of RepositoryMock.ListPanoramas mock can not be zero")
+		mmListPanoramaIDs.mock.t.Fatalf("Times of RepositoryMock.ListPanoramaIDs mock can not be zero")
 	}
-	mm_atomic.StoreUint64(&mmListPanoramas.expectedInvocations, n)
-	mmListPanoramas.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmListPanoramas
+	mm_atomic.StoreUint64(&mmListPanoramaIDs.expectedInvocations, n)
+	mmListPanoramaIDs.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmListPanoramaIDs
 }
 
-func (mmListPanoramas *mRepositoryMockListPanoramas) invocationsDone() bool {
-	if len(mmListPanoramas.expectations) == 0 && mmListPanoramas.defaultExpectation == nil && mmListPanoramas.mock.funcListPanoramas == nil {
+func (mmListPanoramaIDs *mRepositoryMockListPanoramaIDs) invocationsDone() bool {
+	if len(mmListPanoramaIDs.expectations) == 0 && mmListPanoramaIDs.defaultExpectation == nil && mmListPanoramaIDs.mock.funcListPanoramaIDs == nil {
 		return true
 	}
 
-	totalInvocations := mm_atomic.LoadUint64(&mmListPanoramas.mock.afterListPanoramasCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmListPanoramas.expectedInvocations)
+	totalInvocations := mm_atomic.LoadUint64(&mmListPanoramaIDs.mock.afterListPanoramaIDsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmListPanoramaIDs.expectedInvocations)
 
 	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
 }
 
-// ListPanoramas implements mm_service.Repository
-func (mmListPanoramas *RepositoryMock) ListPanoramas(ctx context.Context, territorySlug string) (pa1 []domain.Panorama, err error) {
-	mm_atomic.AddUint64(&mmListPanoramas.beforeListPanoramasCounter, 1)
-	defer mm_atomic.AddUint64(&mmListPanoramas.afterListPanoramasCounter, 1)
+// ListPanoramaIDs implements mm_service.Repository
+func (mmListPanoramaIDs *RepositoryMock) ListPanoramaIDs(ctx context.Context, territorySlug string) (ia1 []int64, err error) {
+	mm_atomic.AddUint64(&mmListPanoramaIDs.beforeListPanoramaIDsCounter, 1)
+	defer mm_atomic.AddUint64(&mmListPanoramaIDs.afterListPanoramaIDsCounter, 1)
 
-	mmListPanoramas.t.Helper()
+	mmListPanoramaIDs.t.Helper()
 
-	if mmListPanoramas.inspectFuncListPanoramas != nil {
-		mmListPanoramas.inspectFuncListPanoramas(ctx, territorySlug)
+	if mmListPanoramaIDs.inspectFuncListPanoramaIDs != nil {
+		mmListPanoramaIDs.inspectFuncListPanoramaIDs(ctx, territorySlug)
 	}
 
-	mm_params := RepositoryMockListPanoramasParams{ctx, territorySlug}
+	mm_params := RepositoryMockListPanoramaIDsParams{ctx, territorySlug}
 
 	// Record call args
-	mmListPanoramas.ListPanoramasMock.mutex.Lock()
-	mmListPanoramas.ListPanoramasMock.callArgs = append(mmListPanoramas.ListPanoramasMock.callArgs, &mm_params)
-	mmListPanoramas.ListPanoramasMock.mutex.Unlock()
+	mmListPanoramaIDs.ListPanoramaIDsMock.mutex.Lock()
+	mmListPanoramaIDs.ListPanoramaIDsMock.callArgs = append(mmListPanoramaIDs.ListPanoramaIDsMock.callArgs, &mm_params)
+	mmListPanoramaIDs.ListPanoramaIDsMock.mutex.Unlock()
 
-	for _, e := range mmListPanoramas.ListPanoramasMock.expectations {
+	for _, e := range mmListPanoramaIDs.ListPanoramaIDsMock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.pa1, e.results.err
+			return e.results.ia1, e.results.err
 		}
 	}
 
-	if mmListPanoramas.ListPanoramasMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmListPanoramas.ListPanoramasMock.defaultExpectation.Counter, 1)
-		mm_want := mmListPanoramas.ListPanoramasMock.defaultExpectation.params
-		mm_want_ptrs := mmListPanoramas.ListPanoramasMock.defaultExpectation.paramPtrs
+	if mmListPanoramaIDs.ListPanoramaIDsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmListPanoramaIDs.ListPanoramaIDsMock.defaultExpectation.Counter, 1)
+		mm_want := mmListPanoramaIDs.ListPanoramaIDsMock.defaultExpectation.params
+		mm_want_ptrs := mmListPanoramaIDs.ListPanoramaIDsMock.defaultExpectation.paramPtrs
 
-		mm_got := RepositoryMockListPanoramasParams{ctx, territorySlug}
+		mm_got := RepositoryMockListPanoramaIDsParams{ctx, territorySlug}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
-				mmListPanoramas.t.Errorf("RepositoryMock.ListPanoramas got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmListPanoramas.ListPanoramasMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+				mmListPanoramaIDs.t.Errorf("RepositoryMock.ListPanoramaIDs got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListPanoramaIDs.ListPanoramaIDsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
 			}
 
 			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
-				mmListPanoramas.t.Errorf("RepositoryMock.ListPanoramas got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmListPanoramas.ListPanoramasMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+				mmListPanoramaIDs.t.Errorf("RepositoryMock.ListPanoramaIDs got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListPanoramaIDs.ListPanoramaIDsMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmListPanoramas.t.Errorf("RepositoryMock.ListPanoramas got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-				mmListPanoramas.ListPanoramasMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+			mmListPanoramaIDs.t.Errorf("RepositoryMock.ListPanoramaIDs got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmListPanoramaIDs.ListPanoramaIDsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		mm_results := mmListPanoramas.ListPanoramasMock.defaultExpectation.results
+		mm_results := mmListPanoramaIDs.ListPanoramaIDsMock.defaultExpectation.results
 		if mm_results == nil {
-			mmListPanoramas.t.Fatal("No results are set for the RepositoryMock.ListPanoramas")
+			mmListPanoramaIDs.t.Fatal("No results are set for the RepositoryMock.ListPanoramaIDs")
 		}
-		return (*mm_results).pa1, (*mm_results).err
+		return (*mm_results).ia1, (*mm_results).err
 	}
-	if mmListPanoramas.funcListPanoramas != nil {
-		return mmListPanoramas.funcListPanoramas(ctx, territorySlug)
+	if mmListPanoramaIDs.funcListPanoramaIDs != nil {
+		return mmListPanoramaIDs.funcListPanoramaIDs(ctx, territorySlug)
 	}
-	mmListPanoramas.t.Fatalf("Unexpected call to RepositoryMock.ListPanoramas. %v %v", ctx, territorySlug)
+	mmListPanoramaIDs.t.Fatalf("Unexpected call to RepositoryMock.ListPanoramaIDs. %v %v", ctx, territorySlug)
 	return
 }
 
-// ListPanoramasAfterCounter returns a count of finished RepositoryMock.ListPanoramas invocations
-func (mmListPanoramas *RepositoryMock) ListPanoramasAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmListPanoramas.afterListPanoramasCounter)
+// ListPanoramaIDsAfterCounter returns a count of finished RepositoryMock.ListPanoramaIDs invocations
+func (mmListPanoramaIDs *RepositoryMock) ListPanoramaIDsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListPanoramaIDs.afterListPanoramaIDsCounter)
 }
 
-// ListPanoramasBeforeCounter returns a count of RepositoryMock.ListPanoramas invocations
-func (mmListPanoramas *RepositoryMock) ListPanoramasBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmListPanoramas.beforeListPanoramasCounter)
+// ListPanoramaIDsBeforeCounter returns a count of RepositoryMock.ListPanoramaIDs invocations
+func (mmListPanoramaIDs *RepositoryMock) ListPanoramaIDsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListPanoramaIDs.beforeListPanoramaIDsCounter)
 }
 
-// Calls returns a list of arguments used in each call to RepositoryMock.ListPanoramas.
+// Calls returns a list of arguments used in each call to RepositoryMock.ListPanoramaIDs.
 // The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmListPanoramas *mRepositoryMockListPanoramas) Calls() []*RepositoryMockListPanoramasParams {
-	mmListPanoramas.mutex.RLock()
+func (mmListPanoramaIDs *mRepositoryMockListPanoramaIDs) Calls() []*RepositoryMockListPanoramaIDsParams {
+	mmListPanoramaIDs.mutex.RLock()
 
-	argCopy := make([]*RepositoryMockListPanoramasParams, len(mmListPanoramas.callArgs))
-	copy(argCopy, mmListPanoramas.callArgs)
+	argCopy := make([]*RepositoryMockListPanoramaIDsParams, len(mmListPanoramaIDs.callArgs))
+	copy(argCopy, mmListPanoramaIDs.callArgs)
 
-	mmListPanoramas.mutex.RUnlock()
+	mmListPanoramaIDs.mutex.RUnlock()
 
 	return argCopy
 }
 
-// MinimockListPanoramasDone returns true if the count of the ListPanoramas invocations corresponds
+// MinimockListPanoramaIDsDone returns true if the count of the ListPanoramaIDs invocations corresponds
 // the number of defined expectations
-func (m *RepositoryMock) MinimockListPanoramasDone() bool {
-	if m.ListPanoramasMock.optional {
+func (m *RepositoryMock) MinimockListPanoramaIDsDone() bool {
+	if m.ListPanoramaIDsMock.optional {
 		// Optional methods provide '0 or more' call count restriction.
 		return true
 	}
 
-	for _, e := range m.ListPanoramasMock.expectations {
+	for _, e := range m.ListPanoramaIDsMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
-	return m.ListPanoramasMock.invocationsDone()
+	return m.ListPanoramaIDsMock.invocationsDone()
 }
 
-// MinimockListPanoramasInspect logs each unmet expectation
-func (m *RepositoryMock) MinimockListPanoramasInspect() {
-	for _, e := range m.ListPanoramasMock.expectations {
+// MinimockListPanoramaIDsInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockListPanoramaIDsInspect() {
+	for _, e := range m.ListPanoramaIDsMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to RepositoryMock.ListPanoramas at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+			m.t.Errorf("Expected call to RepositoryMock.ListPanoramaIDs at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
 		}
 	}
 
-	afterListPanoramasCounter := mm_atomic.LoadUint64(&m.afterListPanoramasCounter)
+	afterListPanoramaIDsCounter := mm_atomic.LoadUint64(&m.afterListPanoramaIDsCounter)
 	// if default expectation was set then invocations count should be greater than zero
-	if m.ListPanoramasMock.defaultExpectation != nil && afterListPanoramasCounter < 1 {
-		if m.ListPanoramasMock.defaultExpectation.params == nil {
-			m.t.Errorf("Expected call to RepositoryMock.ListPanoramas at\n%s", m.ListPanoramasMock.defaultExpectation.returnOrigin)
+	if m.ListPanoramaIDsMock.defaultExpectation != nil && afterListPanoramaIDsCounter < 1 {
+		if m.ListPanoramaIDsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.ListPanoramaIDs at\n%s", m.ListPanoramaIDsMock.defaultExpectation.returnOrigin)
 		} else {
-			m.t.Errorf("Expected call to RepositoryMock.ListPanoramas at\n%s with params: %#v", m.ListPanoramasMock.defaultExpectation.expectationOrigins.origin, *m.ListPanoramasMock.defaultExpectation.params)
+			m.t.Errorf("Expected call to RepositoryMock.ListPanoramaIDs at\n%s with params: %#v", m.ListPanoramaIDsMock.defaultExpectation.expectationOrigins.origin, *m.ListPanoramaIDsMock.defaultExpectation.params)
 		}
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcListPanoramas != nil && afterListPanoramasCounter < 1 {
-		m.t.Errorf("Expected call to RepositoryMock.ListPanoramas at\n%s", m.funcListPanoramasOrigin)
+	if m.funcListPanoramaIDs != nil && afterListPanoramaIDsCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.ListPanoramaIDs at\n%s", m.funcListPanoramaIDsOrigin)
 	}
 
-	if !m.ListPanoramasMock.invocationsDone() && afterListPanoramasCounter > 0 {
-		m.t.Errorf("Expected %d calls to RepositoryMock.ListPanoramas at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.ListPanoramasMock.expectedInvocations), m.ListPanoramasMock.expectedInvocationsOrigin, afterListPanoramasCounter)
+	if !m.ListPanoramaIDsMock.invocationsDone() && afterListPanoramaIDsCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.ListPanoramaIDs at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListPanoramaIDsMock.expectedInvocations), m.ListPanoramaIDsMock.expectedInvocationsOrigin, afterListPanoramaIDsCounter)
 	}
 }
 
@@ -10519,349 +8746,6 @@ func (m *RepositoryMock) MinimockSetTerritoryRescaleBaselineInspect() {
 	}
 }
 
-type mRepositoryMockUpdatePanorama struct {
-	optional           bool
-	mock               *RepositoryMock
-	defaultExpectation *RepositoryMockUpdatePanoramaExpectation
-	expectations       []*RepositoryMockUpdatePanoramaExpectation
-
-	callArgs []*RepositoryMockUpdatePanoramaParams
-	mutex    sync.RWMutex
-
-	expectedInvocations       uint64
-	expectedInvocationsOrigin string
-}
-
-// RepositoryMockUpdatePanoramaExpectation specifies expectation struct of the Repository.UpdatePanorama
-type RepositoryMockUpdatePanoramaExpectation struct {
-	mock               *RepositoryMock
-	params             *RepositoryMockUpdatePanoramaParams
-	paramPtrs          *RepositoryMockUpdatePanoramaParamPtrs
-	expectationOrigins RepositoryMockUpdatePanoramaExpectationOrigins
-	results            *RepositoryMockUpdatePanoramaResults
-	returnOrigin       string
-	Counter            uint64
-}
-
-// RepositoryMockUpdatePanoramaParams contains parameters of the Repository.UpdatePanorama
-type RepositoryMockUpdatePanoramaParams struct {
-	ctx context.Context
-	p   domain.Panorama
-}
-
-// RepositoryMockUpdatePanoramaParamPtrs contains pointers to parameters of the Repository.UpdatePanorama
-type RepositoryMockUpdatePanoramaParamPtrs struct {
-	ctx *context.Context
-	p   *domain.Panorama
-}
-
-// RepositoryMockUpdatePanoramaResults contains results of the Repository.UpdatePanorama
-type RepositoryMockUpdatePanoramaResults struct {
-	p1  domain.Panorama
-	err error
-}
-
-// RepositoryMockUpdatePanoramaOrigins contains origins of expectations of the Repository.UpdatePanorama
-type RepositoryMockUpdatePanoramaExpectationOrigins struct {
-	origin    string
-	originCtx string
-	originP   string
-}
-
-// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
-// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
-// Optional() makes method check to work in '0 or more' mode.
-// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
-// catch the problems when the expected method call is totally skipped during test run.
-func (mmUpdatePanorama *mRepositoryMockUpdatePanorama) Optional() *mRepositoryMockUpdatePanorama {
-	mmUpdatePanorama.optional = true
-	return mmUpdatePanorama
-}
-
-// Expect sets up expected params for Repository.UpdatePanorama
-func (mmUpdatePanorama *mRepositoryMockUpdatePanorama) Expect(ctx context.Context, p domain.Panorama) *mRepositoryMockUpdatePanorama {
-	if mmUpdatePanorama.mock.funcUpdatePanorama != nil {
-		mmUpdatePanorama.mock.t.Fatalf("RepositoryMock.UpdatePanorama mock is already set by Set")
-	}
-
-	if mmUpdatePanorama.defaultExpectation == nil {
-		mmUpdatePanorama.defaultExpectation = &RepositoryMockUpdatePanoramaExpectation{}
-	}
-
-	if mmUpdatePanorama.defaultExpectation.paramPtrs != nil {
-		mmUpdatePanorama.mock.t.Fatalf("RepositoryMock.UpdatePanorama mock is already set by ExpectParams functions")
-	}
-
-	mmUpdatePanorama.defaultExpectation.params = &RepositoryMockUpdatePanoramaParams{ctx, p}
-	mmUpdatePanorama.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
-	for _, e := range mmUpdatePanorama.expectations {
-		if minimock.Equal(e.params, mmUpdatePanorama.defaultExpectation.params) {
-			mmUpdatePanorama.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdatePanorama.defaultExpectation.params)
-		}
-	}
-
-	return mmUpdatePanorama
-}
-
-// ExpectCtxParam1 sets up expected param ctx for Repository.UpdatePanorama
-func (mmUpdatePanorama *mRepositoryMockUpdatePanorama) ExpectCtxParam1(ctx context.Context) *mRepositoryMockUpdatePanorama {
-	if mmUpdatePanorama.mock.funcUpdatePanorama != nil {
-		mmUpdatePanorama.mock.t.Fatalf("RepositoryMock.UpdatePanorama mock is already set by Set")
-	}
-
-	if mmUpdatePanorama.defaultExpectation == nil {
-		mmUpdatePanorama.defaultExpectation = &RepositoryMockUpdatePanoramaExpectation{}
-	}
-
-	if mmUpdatePanorama.defaultExpectation.params != nil {
-		mmUpdatePanorama.mock.t.Fatalf("RepositoryMock.UpdatePanorama mock is already set by Expect")
-	}
-
-	if mmUpdatePanorama.defaultExpectation.paramPtrs == nil {
-		mmUpdatePanorama.defaultExpectation.paramPtrs = &RepositoryMockUpdatePanoramaParamPtrs{}
-	}
-	mmUpdatePanorama.defaultExpectation.paramPtrs.ctx = &ctx
-	mmUpdatePanorama.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
-
-	return mmUpdatePanorama
-}
-
-// ExpectPParam2 sets up expected param p for Repository.UpdatePanorama
-func (mmUpdatePanorama *mRepositoryMockUpdatePanorama) ExpectPParam2(p domain.Panorama) *mRepositoryMockUpdatePanorama {
-	if mmUpdatePanorama.mock.funcUpdatePanorama != nil {
-		mmUpdatePanorama.mock.t.Fatalf("RepositoryMock.UpdatePanorama mock is already set by Set")
-	}
-
-	if mmUpdatePanorama.defaultExpectation == nil {
-		mmUpdatePanorama.defaultExpectation = &RepositoryMockUpdatePanoramaExpectation{}
-	}
-
-	if mmUpdatePanorama.defaultExpectation.params != nil {
-		mmUpdatePanorama.mock.t.Fatalf("RepositoryMock.UpdatePanorama mock is already set by Expect")
-	}
-
-	if mmUpdatePanorama.defaultExpectation.paramPtrs == nil {
-		mmUpdatePanorama.defaultExpectation.paramPtrs = &RepositoryMockUpdatePanoramaParamPtrs{}
-	}
-	mmUpdatePanorama.defaultExpectation.paramPtrs.p = &p
-	mmUpdatePanorama.defaultExpectation.expectationOrigins.originP = minimock.CallerInfo(1)
-
-	return mmUpdatePanorama
-}
-
-// Inspect accepts an inspector function that has same arguments as the Repository.UpdatePanorama
-func (mmUpdatePanorama *mRepositoryMockUpdatePanorama) Inspect(f func(ctx context.Context, p domain.Panorama)) *mRepositoryMockUpdatePanorama {
-	if mmUpdatePanorama.mock.inspectFuncUpdatePanorama != nil {
-		mmUpdatePanorama.mock.t.Fatalf("Inspect function is already set for RepositoryMock.UpdatePanorama")
-	}
-
-	mmUpdatePanorama.mock.inspectFuncUpdatePanorama = f
-
-	return mmUpdatePanorama
-}
-
-// Return sets up results that will be returned by Repository.UpdatePanorama
-func (mmUpdatePanorama *mRepositoryMockUpdatePanorama) Return(p1 domain.Panorama, err error) *RepositoryMock {
-	if mmUpdatePanorama.mock.funcUpdatePanorama != nil {
-		mmUpdatePanorama.mock.t.Fatalf("RepositoryMock.UpdatePanorama mock is already set by Set")
-	}
-
-	if mmUpdatePanorama.defaultExpectation == nil {
-		mmUpdatePanorama.defaultExpectation = &RepositoryMockUpdatePanoramaExpectation{mock: mmUpdatePanorama.mock}
-	}
-	mmUpdatePanorama.defaultExpectation.results = &RepositoryMockUpdatePanoramaResults{p1, err}
-	mmUpdatePanorama.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmUpdatePanorama.mock
-}
-
-// Set uses given function f to mock the Repository.UpdatePanorama method
-func (mmUpdatePanorama *mRepositoryMockUpdatePanorama) Set(f func(ctx context.Context, p domain.Panorama) (p1 domain.Panorama, err error)) *RepositoryMock {
-	if mmUpdatePanorama.defaultExpectation != nil {
-		mmUpdatePanorama.mock.t.Fatalf("Default expectation is already set for the Repository.UpdatePanorama method")
-	}
-
-	if len(mmUpdatePanorama.expectations) > 0 {
-		mmUpdatePanorama.mock.t.Fatalf("Some expectations are already set for the Repository.UpdatePanorama method")
-	}
-
-	mmUpdatePanorama.mock.funcUpdatePanorama = f
-	mmUpdatePanorama.mock.funcUpdatePanoramaOrigin = minimock.CallerInfo(1)
-	return mmUpdatePanorama.mock
-}
-
-// When sets expectation for the Repository.UpdatePanorama which will trigger the result defined by the following
-// Then helper
-func (mmUpdatePanorama *mRepositoryMockUpdatePanorama) When(ctx context.Context, p domain.Panorama) *RepositoryMockUpdatePanoramaExpectation {
-	if mmUpdatePanorama.mock.funcUpdatePanorama != nil {
-		mmUpdatePanorama.mock.t.Fatalf("RepositoryMock.UpdatePanorama mock is already set by Set")
-	}
-
-	expectation := &RepositoryMockUpdatePanoramaExpectation{
-		mock:               mmUpdatePanorama.mock,
-		params:             &RepositoryMockUpdatePanoramaParams{ctx, p},
-		expectationOrigins: RepositoryMockUpdatePanoramaExpectationOrigins{origin: minimock.CallerInfo(1)},
-	}
-	mmUpdatePanorama.expectations = append(mmUpdatePanorama.expectations, expectation)
-	return expectation
-}
-
-// Then sets up Repository.UpdatePanorama return parameters for the expectation previously defined by the When method
-func (e *RepositoryMockUpdatePanoramaExpectation) Then(p1 domain.Panorama, err error) *RepositoryMock {
-	e.results = &RepositoryMockUpdatePanoramaResults{p1, err}
-	return e.mock
-}
-
-// Times sets number of times Repository.UpdatePanorama should be invoked
-func (mmUpdatePanorama *mRepositoryMockUpdatePanorama) Times(n uint64) *mRepositoryMockUpdatePanorama {
-	if n == 0 {
-		mmUpdatePanorama.mock.t.Fatalf("Times of RepositoryMock.UpdatePanorama mock can not be zero")
-	}
-	mm_atomic.StoreUint64(&mmUpdatePanorama.expectedInvocations, n)
-	mmUpdatePanorama.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmUpdatePanorama
-}
-
-func (mmUpdatePanorama *mRepositoryMockUpdatePanorama) invocationsDone() bool {
-	if len(mmUpdatePanorama.expectations) == 0 && mmUpdatePanorama.defaultExpectation == nil && mmUpdatePanorama.mock.funcUpdatePanorama == nil {
-		return true
-	}
-
-	totalInvocations := mm_atomic.LoadUint64(&mmUpdatePanorama.mock.afterUpdatePanoramaCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmUpdatePanorama.expectedInvocations)
-
-	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
-}
-
-// UpdatePanorama implements mm_service.Repository
-func (mmUpdatePanorama *RepositoryMock) UpdatePanorama(ctx context.Context, p domain.Panorama) (p1 domain.Panorama, err error) {
-	mm_atomic.AddUint64(&mmUpdatePanorama.beforeUpdatePanoramaCounter, 1)
-	defer mm_atomic.AddUint64(&mmUpdatePanorama.afterUpdatePanoramaCounter, 1)
-
-	mmUpdatePanorama.t.Helper()
-
-	if mmUpdatePanorama.inspectFuncUpdatePanorama != nil {
-		mmUpdatePanorama.inspectFuncUpdatePanorama(ctx, p)
-	}
-
-	mm_params := RepositoryMockUpdatePanoramaParams{ctx, p}
-
-	// Record call args
-	mmUpdatePanorama.UpdatePanoramaMock.mutex.Lock()
-	mmUpdatePanorama.UpdatePanoramaMock.callArgs = append(mmUpdatePanorama.UpdatePanoramaMock.callArgs, &mm_params)
-	mmUpdatePanorama.UpdatePanoramaMock.mutex.Unlock()
-
-	for _, e := range mmUpdatePanorama.UpdatePanoramaMock.expectations {
-		if minimock.Equal(*e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.p1, e.results.err
-		}
-	}
-
-	if mmUpdatePanorama.UpdatePanoramaMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmUpdatePanorama.UpdatePanoramaMock.defaultExpectation.Counter, 1)
-		mm_want := mmUpdatePanorama.UpdatePanoramaMock.defaultExpectation.params
-		mm_want_ptrs := mmUpdatePanorama.UpdatePanoramaMock.defaultExpectation.paramPtrs
-
-		mm_got := RepositoryMockUpdatePanoramaParams{ctx, p}
-
-		if mm_want_ptrs != nil {
-
-			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
-				mmUpdatePanorama.t.Errorf("RepositoryMock.UpdatePanorama got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmUpdatePanorama.UpdatePanoramaMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
-			}
-
-			if mm_want_ptrs.p != nil && !minimock.Equal(*mm_want_ptrs.p, mm_got.p) {
-				mmUpdatePanorama.t.Errorf("RepositoryMock.UpdatePanorama got unexpected parameter p, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmUpdatePanorama.UpdatePanoramaMock.defaultExpectation.expectationOrigins.originP, *mm_want_ptrs.p, mm_got.p, minimock.Diff(*mm_want_ptrs.p, mm_got.p))
-			}
-
-		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmUpdatePanorama.t.Errorf("RepositoryMock.UpdatePanorama got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-				mmUpdatePanorama.UpdatePanoramaMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmUpdatePanorama.UpdatePanoramaMock.defaultExpectation.results
-		if mm_results == nil {
-			mmUpdatePanorama.t.Fatal("No results are set for the RepositoryMock.UpdatePanorama")
-		}
-		return (*mm_results).p1, (*mm_results).err
-	}
-	if mmUpdatePanorama.funcUpdatePanorama != nil {
-		return mmUpdatePanorama.funcUpdatePanorama(ctx, p)
-	}
-	mmUpdatePanorama.t.Fatalf("Unexpected call to RepositoryMock.UpdatePanorama. %v %v", ctx, p)
-	return
-}
-
-// UpdatePanoramaAfterCounter returns a count of finished RepositoryMock.UpdatePanorama invocations
-func (mmUpdatePanorama *RepositoryMock) UpdatePanoramaAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmUpdatePanorama.afterUpdatePanoramaCounter)
-}
-
-// UpdatePanoramaBeforeCounter returns a count of RepositoryMock.UpdatePanorama invocations
-func (mmUpdatePanorama *RepositoryMock) UpdatePanoramaBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmUpdatePanorama.beforeUpdatePanoramaCounter)
-}
-
-// Calls returns a list of arguments used in each call to RepositoryMock.UpdatePanorama.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmUpdatePanorama *mRepositoryMockUpdatePanorama) Calls() []*RepositoryMockUpdatePanoramaParams {
-	mmUpdatePanorama.mutex.RLock()
-
-	argCopy := make([]*RepositoryMockUpdatePanoramaParams, len(mmUpdatePanorama.callArgs))
-	copy(argCopy, mmUpdatePanorama.callArgs)
-
-	mmUpdatePanorama.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockUpdatePanoramaDone returns true if the count of the UpdatePanorama invocations corresponds
-// the number of defined expectations
-func (m *RepositoryMock) MinimockUpdatePanoramaDone() bool {
-	if m.UpdatePanoramaMock.optional {
-		// Optional methods provide '0 or more' call count restriction.
-		return true
-	}
-
-	for _, e := range m.UpdatePanoramaMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	return m.UpdatePanoramaMock.invocationsDone()
-}
-
-// MinimockUpdatePanoramaInspect logs each unmet expectation
-func (m *RepositoryMock) MinimockUpdatePanoramaInspect() {
-	for _, e := range m.UpdatePanoramaMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to RepositoryMock.UpdatePanorama at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
-		}
-	}
-
-	afterUpdatePanoramaCounter := mm_atomic.LoadUint64(&m.afterUpdatePanoramaCounter)
-	// if default expectation was set then invocations count should be greater than zero
-	if m.UpdatePanoramaMock.defaultExpectation != nil && afterUpdatePanoramaCounter < 1 {
-		if m.UpdatePanoramaMock.defaultExpectation.params == nil {
-			m.t.Errorf("Expected call to RepositoryMock.UpdatePanorama at\n%s", m.UpdatePanoramaMock.defaultExpectation.returnOrigin)
-		} else {
-			m.t.Errorf("Expected call to RepositoryMock.UpdatePanorama at\n%s with params: %#v", m.UpdatePanoramaMock.defaultExpectation.expectationOrigins.origin, *m.UpdatePanoramaMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcUpdatePanorama != nil && afterUpdatePanoramaCounter < 1 {
-		m.t.Errorf("Expected call to RepositoryMock.UpdatePanorama at\n%s", m.funcUpdatePanoramaOrigin)
-	}
-
-	if !m.UpdatePanoramaMock.invocationsDone() && afterUpdatePanoramaCounter > 0 {
-		m.t.Errorf("Expected %d calls to RepositoryMock.UpdatePanorama at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.UpdatePanoramaMock.expectedInvocations), m.UpdatePanoramaMock.expectedInvocationsOrigin, afterUpdatePanoramaCounter)
-	}
-}
-
 type mRepositoryMockUpdatePlacement struct {
 	optional           bool
 	mock               *RepositoryMock
@@ -11895,21 +9779,13 @@ func (m *RepositoryMock) MinimockUpsertTerritoryInspect() {
 func (m *RepositoryMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
 		if !m.minimockDone() {
-			m.MinimockCreateDocumentInspect()
-
 			m.MinimockCreateModelInspect()
-
-			m.MinimockCreatePanoramaInspect()
 
 			m.MinimockCreatePlacementInspect()
 
 			m.MinimockCreateTerritoryInspect()
 
-			m.MinimockDeleteDocumentInspect()
-
 			m.MinimockDeleteModelInspect()
-
-			m.MinimockDeletePanoramaInspect()
 
 			m.MinimockDeletePlacementInspect()
 
@@ -11927,13 +9803,11 @@ func (m *RepositoryMock) MinimockFinish() {
 
 			m.MinimockGetTerritoryArtifactInspect()
 
-			m.MinimockListDocumentsInspect()
-
 			m.MinimockListModelArtifactsInspect()
 
 			m.MinimockListModelsInspect()
 
-			m.MinimockListPanoramasInspect()
+			m.MinimockListPanoramaIDsInspect()
 
 			m.MinimockListPlacementsInspect()
 
@@ -11952,8 +9826,6 @@ func (m *RepositoryMock) MinimockFinish() {
 			m.MinimockSetTerritoryAdminsInspect()
 
 			m.MinimockSetTerritoryRescaleBaselineInspect()
-
-			m.MinimockUpdatePanoramaInspect()
 
 			m.MinimockUpdatePlacementInspect()
 
@@ -11983,14 +9855,10 @@ func (m *RepositoryMock) MinimockWait(timeout mm_time.Duration) {
 func (m *RepositoryMock) minimockDone() bool {
 	done := true
 	return done &&
-		m.MinimockCreateDocumentDone() &&
 		m.MinimockCreateModelDone() &&
-		m.MinimockCreatePanoramaDone() &&
 		m.MinimockCreatePlacementDone() &&
 		m.MinimockCreateTerritoryDone() &&
-		m.MinimockDeleteDocumentDone() &&
 		m.MinimockDeleteModelDone() &&
-		m.MinimockDeletePanoramaDone() &&
 		m.MinimockDeletePlacementDone() &&
 		m.MinimockDeleteTerritoryDone() &&
 		m.MinimockDeleteTerritoryArtifactsDone() &&
@@ -11999,10 +9867,9 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockGetTerritoryDone() &&
 		m.MinimockGetTerritoryAdminsDone() &&
 		m.MinimockGetTerritoryArtifactDone() &&
-		m.MinimockListDocumentsDone() &&
 		m.MinimockListModelArtifactsDone() &&
 		m.MinimockListModelsDone() &&
-		m.MinimockListPanoramasDone() &&
+		m.MinimockListPanoramaIDsDone() &&
 		m.MinimockListPlacementsDone() &&
 		m.MinimockListTerritoriesDone() &&
 		m.MinimockListTerritoryArtifactsDone() &&
@@ -12012,7 +9879,6 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockSetPlacementVisibilityDone() &&
 		m.MinimockSetTerritoryAdminsDone() &&
 		m.MinimockSetTerritoryRescaleBaselineDone() &&
-		m.MinimockUpdatePanoramaDone() &&
 		m.MinimockUpdatePlacementDone() &&
 		m.MinimockUpsertModelDone() &&
 		m.MinimockUpsertTerritoryDone()
