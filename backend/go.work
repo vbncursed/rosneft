@@ -6,6 +6,7 @@ use (
 	./services/asset-service
 	./services/auth-service
 	./services/catalog-service
+	./services/content-service
 	./services/gateway-service
 	./services/mesh-service
 	./services/twofa-service
