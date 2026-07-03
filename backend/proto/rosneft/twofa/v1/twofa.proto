@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package rosneft.twofa.v1;
+
+option go_package = "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/twofa/v1;twofav1";
+
+// TwoFAService owns all TOTP/recovery state and logic. The gateway calls the
+// management RPCs (caller authenticated by a session token, resolved via
+// auth.GetMe); auth-service calls the internal RPCs during login with a
+// trusted user id.
+service TwoFAService {
+  // Management surface.
+  rpc Setup(SetupRequest) returns (SetupResponse);
+  rpc Enable(EnableRequest) returns (EnableResponse);
+  rpc Disable(DisableRequest) returns (DisableResponse);
+  rpc RegenerateRecoveryCodes(RegenerateRequest) returns (RegenerateResponse);
+
+  // Internal surface (called by auth-service during login).
+  rpc IsEnabled(IsEnabledRequest) returns (IsEnabledResponse);
+  rpc Verify(VerifyRequest) returns (VerifyResponse);
+}
+
+message SetupRequest { string token = 1; }
+message SetupResponse {
+  string secret = 1;
+  string otpauth_url = 2;
+}
+message EnableRequest {
+  string token = 1;
+  string code = 2;
+}
+message EnableResponse { repeated string recovery_codes = 1; }
+message DisableRequest {
+  string token = 1;
+  string code = 2;
+}
+message DisableResponse {}
+message RegenerateRequest {
+  string token = 1;
+  string code = 2;
+}
+message RegenerateResponse { repeated string recovery_codes = 1; }
+
+message IsEnabledRequest { string user_id = 1; }
+message IsEnabledResponse { bool enabled = 1; }
+message VerifyRequest {
+  string user_id = 1;
+  string code = 2;
+}
+message VerifyResponse { bool valid = 1; }

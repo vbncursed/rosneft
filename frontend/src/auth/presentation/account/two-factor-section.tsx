@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { setup2FA, enable2FA, disable2FA } from "@/auth/infrastructure/auth-gateway";
+import { setup2FA, enable2FA, disable2FA, regenerateRecoveryCodes } from "@/auth/infrastructure/auth-gateway";
 import { notify } from "@/shared/presentation/toast/use-toast";
 import RecoveryCodes from "@/auth/presentation/account/recovery-codes";
 
-type Mode = "idle" | "setup" | "codes" | "disable";
+type Mode = "idle" | "setup" | "codes" | "disable" | "regen";
 
 export default function TwoFactorSection({ initiallyEnabled }: { initiallyEnabled: boolean }) {
   const [enabled, setEnabled] = useState(initiallyEnabled);
@@ -60,6 +60,18 @@ export default function TwoFactorSection({ initiallyEnabled }: { initiallyEnable
       setBusy(false);
     }
   }
+  async function regenerate() {
+    setBusy(true);
+    try {
+      setCodes(await regenerateRecoveryCodes(code));
+      setCode("");
+      setMode("codes");
+    } catch (e) {
+      notify.error(e instanceof Error ? e.message : "Invalid code");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   if (mode === "codes") {
     return (
@@ -82,7 +94,21 @@ export default function TwoFactorSection({ initiallyEnabled }: { initiallyEnable
       ) : null}
 
       {mode === "idle" && enabled ? (
-        <button type="button" onClick={() => setMode("disable")} className="cursor-pointer self-start rounded-full border border-red-300/40 bg-red-500/10 px-6 py-3 text-xs uppercase tracking-[0.2em] text-red-200 hover:bg-red-500/20">Disable 2FA</button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => setMode("regen")} className="cursor-pointer rounded-full border border-white/20 px-6 py-3 text-xs uppercase tracking-[0.2em] text-white hover:bg-white/[0.08]">Regenerate recovery codes</button>
+          <button type="button" onClick={() => setMode("disable")} className="cursor-pointer rounded-full border border-red-300/40 bg-red-500/10 px-6 py-3 text-xs uppercase tracking-[0.2em] text-red-200 hover:bg-red-500/20">Disable 2FA</button>
+        </div>
+      ) : null}
+
+      {mode === "regen" ? (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-neutral-300">Enter a current code to replace your recovery codes. Existing codes stop working.</p>
+          <input value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" placeholder="000000" className={codeInput} />
+          <div className="flex gap-2">
+            <button type="button" disabled={busy || !code} onClick={regenerate} className="cursor-pointer rounded-full bg-white px-6 py-2 text-xs uppercase tracking-[0.2em] text-black hover:bg-cyan-200 disabled:bg-white/30">{busy ? "…" : "Regenerate"}</button>
+            <button type="button" onClick={() => { setMode("idle"); setCode(""); }} className="cursor-pointer rounded-full border border-white/20 px-6 py-2 text-xs uppercase tracking-[0.2em] text-white hover:bg-white/[0.08]">Cancel</button>
+          </div>
+        </div>
       ) : null}
 
       {mode === "setup" ? (

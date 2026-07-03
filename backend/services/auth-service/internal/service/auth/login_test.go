@@ -20,6 +20,7 @@ type LoginSuite struct {
 	svc *auth.Service
 	us  *mocks.UserStoreMock
 	ss  *mocks.SessionStoreMock
+	tf  *mocks.TwoFAVerifierMock
 	ctx context.Context
 }
 
@@ -31,7 +32,8 @@ func (s *LoginSuite) SetupTest() {
 	mc := minimock.NewController(s.T())
 	s.us = mocks.NewUserStoreMock(mc)
 	s.ss = mocks.NewSessionStoreMock(mc)
-	s.svc = auth.New(s.us, s.ss, mocks.NewRecoveryStoreMock(mc), nil, 720*time.Hour)
+	s.tf = mocks.NewTwoFAVerifierMock(mc)
+	s.svc = auth.New(s.us, s.ss, s.tf, 720*time.Hour)
 	s.ctx = s.T().Context()
 }
 
@@ -42,6 +44,7 @@ func (s *LoginSuite) TestLoginSuccessNo2FA() {
 	s.ss.IsLockedMock.Expect(s.ctx, "ivan").Return(false, nil)
 	s.us.GetByIdentifierMock.Expect(s.ctx, "ivan").Return(u, nil)
 	s.ss.ClearFailsMock.Expect(s.ctx, "ivan").Return(nil)
+	s.tf.IsEnabledMock.Expect(s.ctx, "u1").Return(false, nil)
 	s.ss.CreateMock.Return("tok123", nil)
 
 	token, challenge, err := s.svc.Login(s.ctx, "ivan", "pw")
@@ -78,8 +81,9 @@ func (s *LoginSuite) TestLoginThrottled() {
 func (s *LoginSuite) TestLogin2FARequired() {
 	hash, _ := password.Hash("pw")
 	s.ss.IsLockedMock.Expect(s.ctx, "ivan").Return(false, nil)
-	s.us.GetByIdentifierMock.Expect(s.ctx, "ivan").Return(domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash, TOTPEnabled: true}, nil)
+	s.us.GetByIdentifierMock.Expect(s.ctx, "ivan").Return(domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash}, nil)
 	s.ss.ClearFailsMock.Expect(s.ctx, "ivan").Return(nil)
+	s.tf.IsEnabledMock.Expect(s.ctx, "u1").Return(true, nil)
 	s.ss.PutPendingMock.Expect(s.ctx, "u1").Return("chal1", nil)
 
 	token, challenge, err := s.svc.Login(s.ctx, "ivan", "pw")

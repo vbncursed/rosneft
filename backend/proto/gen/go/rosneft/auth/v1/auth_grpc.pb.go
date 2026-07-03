@@ -25,9 +25,6 @@ const (
 	AuthService_ValidateToken_FullMethodName      = "/rosneft.auth.v1.AuthService/ValidateToken"
 	AuthService_GetMe_FullMethodName              = "/rosneft.auth.v1.AuthService/GetMe"
 	AuthService_ChangePassword_FullMethodName     = "/rosneft.auth.v1.AuthService/ChangePassword"
-	AuthService_Setup2FA_FullMethodName           = "/rosneft.auth.v1.AuthService/Setup2FA"
-	AuthService_Enable2FA_FullMethodName          = "/rosneft.auth.v1.AuthService/Enable2FA"
-	AuthService_Disable2FA_FullMethodName         = "/rosneft.auth.v1.AuthService/Disable2FA"
 	AuthService_CreateUser_FullMethodName         = "/rosneft.auth.v1.AuthService/CreateUser"
 	AuthService_ListUsers_FullMethodName          = "/rosneft.auth.v1.AuthService/ListUsers"
 	AuthService_GetUser_FullMethodName            = "/rosneft.auth.v1.AuthService/GetUser"
@@ -61,9 +58,6 @@ type AuthServiceClient interface {
 	// --- self ---
 	GetMe(ctx context.Context, in *GetMeRequest, opts ...grpc.CallOption) (*User, error)
 	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error)
-	Setup2FA(ctx context.Context, in *Setup2FARequest, opts ...grpc.CallOption) (*Setup2FAResponse, error)
-	Enable2FA(ctx context.Context, in *Enable2FARequest, opts ...grpc.CallOption) (*Enable2FAResponse, error)
-	Disable2FA(ctx context.Context, in *Disable2FARequest, opts ...grpc.CallOption) (*Disable2FAResponse, error)
 	// --- user admin ---
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*User, error)
 	ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersResponse, error)
@@ -145,36 +139,6 @@ func (c *authServiceClient) ChangePassword(ctx context.Context, in *ChangePasswo
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ChangePasswordResponse)
 	err := c.cc.Invoke(ctx, AuthService_ChangePassword_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *authServiceClient) Setup2FA(ctx context.Context, in *Setup2FARequest, opts ...grpc.CallOption) (*Setup2FAResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Setup2FAResponse)
-	err := c.cc.Invoke(ctx, AuthService_Setup2FA_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *authServiceClient) Enable2FA(ctx context.Context, in *Enable2FARequest, opts ...grpc.CallOption) (*Enable2FAResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Enable2FAResponse)
-	err := c.cc.Invoke(ctx, AuthService_Enable2FA_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *authServiceClient) Disable2FA(ctx context.Context, in *Disable2FARequest, opts ...grpc.CallOption) (*Disable2FAResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Disable2FAResponse)
-	err := c.cc.Invoke(ctx, AuthService_Disable2FA_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -347,9 +311,6 @@ type AuthServiceServer interface {
 	// --- self ---
 	GetMe(context.Context, *GetMeRequest) (*User, error)
 	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
-	Setup2FA(context.Context, *Setup2FARequest) (*Setup2FAResponse, error)
-	Enable2FA(context.Context, *Enable2FARequest) (*Enable2FAResponse, error)
-	Disable2FA(context.Context, *Disable2FARequest) (*Disable2FAResponse, error)
 	// --- user admin ---
 	CreateUser(context.Context, *CreateUserRequest) (*User, error)
 	ListUsers(context.Context, *ListUsersRequest) (*ListUsersResponse, error)
@@ -394,15 +355,6 @@ func (UnimplementedAuthServiceServer) GetMe(context.Context, *GetMeRequest) (*Us
 }
 func (UnimplementedAuthServiceServer) ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ChangePassword not implemented")
-}
-func (UnimplementedAuthServiceServer) Setup2FA(context.Context, *Setup2FARequest) (*Setup2FAResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Setup2FA not implemented")
-}
-func (UnimplementedAuthServiceServer) Enable2FA(context.Context, *Enable2FARequest) (*Enable2FAResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Enable2FA not implemented")
-}
-func (UnimplementedAuthServiceServer) Disable2FA(context.Context, *Disable2FARequest) (*Disable2FAResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Disable2FA not implemented")
 }
 func (UnimplementedAuthServiceServer) CreateUser(context.Context, *CreateUserRequest) (*User, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateUser not implemented")
@@ -574,60 +526,6 @@ func _AuthService_ChangePassword_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthServiceServer).ChangePassword(ctx, req.(*ChangePasswordRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AuthService_Setup2FA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Setup2FARequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).Setup2FA(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_Setup2FA_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).Setup2FA(ctx, req.(*Setup2FARequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AuthService_Enable2FA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Enable2FARequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).Enable2FA(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_Enable2FA_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).Enable2FA(ctx, req.(*Enable2FARequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AuthService_Disable2FA_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Disable2FARequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthServiceServer).Disable2FA(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthService_Disable2FA_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).Disable2FA(ctx, req.(*Disable2FARequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -932,18 +830,6 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ChangePassword",
 			Handler:    _AuthService_ChangePassword_Handler,
-		},
-		{
-			MethodName: "Setup2FA",
-			Handler:    _AuthService_Setup2FA_Handler,
-		},
-		{
-			MethodName: "Enable2FA",
-			Handler:    _AuthService_Enable2FA_Handler,
-		},
-		{
-			MethodName: "Disable2FA",
-			Handler:    _AuthService_Disable2FA_Handler,
 		},
 		{
 			MethodName: "CreateUser",

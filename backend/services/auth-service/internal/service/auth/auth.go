@@ -9,7 +9,7 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
-//go:generate minimock -i UserStore,SessionStore,RecoveryStore,Decryptor -o ./mocks -s _mock.go
+//go:generate minimock -i UserStore,SessionStore,TwoFAVerifier -o ./mocks -s _mock.go
 
 // UserStore is the subset of the users store this service needs.
 type UserStore interface {
@@ -30,34 +30,27 @@ type SessionStore interface {
 	ClearFails(ctx context.Context, identifier string) error
 }
 
-// RecoveryStore lets 2FA accept one-time recovery codes.
-type RecoveryStore interface {
-	List(ctx context.Context, userID string) (ids, hashes []string, err error)
-	MarkUsed(ctx context.Context, id string) error
-}
-
-// Decryptor decrypts the stored TOTP secret (satisfied by *secret.Cipher).
-type Decryptor interface {
-	Decrypt(ct []byte) ([]byte, error)
+// TwoFAVerifier delegates 2FA checks to twofa-service.
+type TwoFAVerifier interface {
+	IsEnabled(ctx context.Context, userID string) (bool, error)
+	Verify(ctx context.Context, userID, code string) (bool, error)
 }
 
 // Service is the auth/login service.
 type Service struct {
 	users       UserStore
 	sessions    SessionStore
-	recovery    RecoveryStore
-	cipher      Decryptor
+	twofa       TwoFAVerifier
 	absoluteTTL time.Duration
 	authz       *authzCache
 }
 
 // New constructs the auth Service.
-func New(users UserStore, sessions SessionStore, recovery RecoveryStore, cipher Decryptor, absoluteTTL time.Duration) *Service {
+func New(users UserStore, sessions SessionStore, twofa TwoFAVerifier, absoluteTTL time.Duration) *Service {
 	return &Service{
 		users:       users,
 		sessions:    sessions,
-		recovery:    recovery,
-		cipher:      cipher,
+		twofa:       twofa,
 		absoluteTTL: absoluteTTL,
 		authz:       newAuthzCache(authzCacheTTL),
 	}

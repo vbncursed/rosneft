@@ -46,7 +46,11 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 	}
 	_ = s.sessions.ClearFails(ctx, identifier)
 
-	if u.TOTPEnabled {
+	enabled, err := s.twofa.IsEnabled(ctx, u.ID)
+	if err != nil {
+		return "", "", err
+	}
+	if enabled {
 		challenge, err := s.sessions.PutPending(ctx, u.ID)
 		if err != nil {
 			return "", "", err
