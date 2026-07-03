@@ -42,10 +42,11 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	defer func() { _ = rdb.Close() }()
 
-	handler, userStore, err := InitService(pool, rdb, cfg)
+	handler, userStore, twofaClient, err := InitService(pool, rdb, cfg)
 	if err != nil {
 		return err
 	}
+	defer func() { _ = twofaClient.Close() }()
 	if err := EnsureBootstrapAdmin(rootCtx, userStore, cfg); err != nil {
 		return fmt.Errorf("bootstrap admin: %w", err)
 	}

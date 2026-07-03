@@ -1342,6 +1342,24 @@ paths:
         '204': { description: 2FA disabled }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
+  /api/auth/2fa/recovery/regenerate:
+    post:
+      tags: [auth]
+      summary: Regenerate recovery codes (requires a current TOTP code)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Enable2FARequest' }
+      responses:
+        '200':
+          description: A fresh set of one-time recovery codes (shown once)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Enable2FAResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
   /api/auth/users:
     get:
       tags: [auth]

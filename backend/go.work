@@ -8,5 +8,6 @@ use (
 	./services/catalog-service
 	./services/gateway-service
 	./services/mesh-service
+	./services/twofa-service
 	./services/upload-service
 )

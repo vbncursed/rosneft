@@ -35,7 +35,7 @@ func newRootCmd() *cobra.Command {
 	flags.String("db-dsn", "", "PostgreSQL DSN (or set AUTH_DB_DSN)")
 	flags.String("redis-addr", "redis:6379", "Redis address")
 	flags.Int("redis-db", 1, "Redis logical DB")
-	flags.String("secret-key", "", "32-byte key (hex or base64) for TOTP secret encryption")
+	flags.String("twofa-grpc-addr", "twofa:9006", "twofa-service gRPC address (login 2FA checks)")
 	flags.Duration("session-idle-ttl", 24*time.Hour, "session idle timeout")
 	flags.Duration("session-absolute-ttl", 720*time.Hour, "session absolute max lifetime")
 	flags.Duration("pending-2fa-ttl", 5*time.Minute, "2FA challenge lifetime")

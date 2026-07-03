@@ -9,11 +9,12 @@ import (
 
 func userToProto(u domain.User) *authv1.User {
 	return &authv1.User{
-		Id:          u.ID,
-		Email:       u.Email,
-		Username:    u.Username,
-		Status:      u.Status,
-		TotpEnabled: u.TOTPEnabled,
+		Id:       u.ID,
+		Email:    u.Email,
+		Username: u.Username,
+		Status:   u.Status,
+		// totp_enabled is owned by twofa-service; the gateway overlays the real
+		// value via twofa.IsEnabled when composing the user DTO.
 		RoleSlugs:   u.RoleSlugs,
 		Permissions: u.Permissions,
 		CreatedAt:   timestamppb.New(u.CreatedAt),

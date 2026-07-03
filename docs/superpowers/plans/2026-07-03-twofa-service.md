@@ -814,6 +814,7 @@ package ratelimit
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -835,7 +836,7 @@ func key(userID string) string { return "2fa_fails:" + userID }
 // IsLocked reports whether the user has reached the fail threshold.
 func (s *Store) IsLocked(ctx context.Context, userID string) (bool, error) {
 	n, err := s.rdb.Get(ctx, key(userID)).Int()
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		return false, nil
 	}
 	if err != nil {

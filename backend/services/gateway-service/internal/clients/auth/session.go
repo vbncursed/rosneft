@@ -43,24 +43,3 @@ func (c *Client) ChangePassword(ctx context.Context, token, oldPw, newPw string)
 	_, err := c.cc.ChangePassword(ctx, &authv1.ChangePasswordRequest{Token: token, OldPassword: oldPw, NewPassword: newPw})
 	return err
 }
-
-func (c *Client) Setup2FA(ctx context.Context, token string) (secret, url string, err error) {
-	resp, err := c.cc.Setup2FA(ctx, &authv1.Setup2FARequest{Token: token})
-	if err != nil {
-		return "", "", err
-	}
-	return resp.GetSecret(), resp.GetOtpauthUrl(), nil
-}
-
-func (c *Client) Enable2FA(ctx context.Context, token, code string) ([]string, error) {
-	resp, err := c.cc.Enable2FA(ctx, &authv1.Enable2FARequest{Token: token, Code: code})
-	if err != nil {
-		return nil, err
-	}
-	return resp.GetRecoveryCodes(), nil
-}
-
-func (c *Client) Disable2FA(ctx context.Context, token, code string) error {
-	_, err := c.cc.Disable2FA(ctx, &authv1.Disable2FARequest{Token: token, Code: code})
-	return err
-}

@@ -37,3 +37,8 @@ export async function enable2FA(code: string): Promise<string[]> {
 export function disable2FA(code: string): Promise<void> {
   return httpPost<void>("/api/auth/2fa/disable", { code });
 }
+
+export async function regenerateRecoveryCodes(code: string): Promise<string[]> {
+  const r = await httpPost<{ recoveryCodes?: string[] }>("/api/auth/2fa/recovery/regenerate", { code });
+  return r.recoveryCodes ?? [];
+}

@@ -11,16 +11,14 @@ const (
 	StatusDeleted = "deleted"
 )
 
-// User is an account. PasswordHash and TOTPSecret never leave the service
-// boundary (transport omits them).
+// User is an account. PasswordHash never leaves the service boundary
+// (transport omits it). 2FA state lives in twofa-service.
 type User struct {
 	ID           string
 	Email        string
 	Username     string
 	PasswordHash string
 	Status       string
-	TOTPEnabled  bool
-	TOTPSecret   []byte // AES-GCM ciphertext at rest; nil when 2FA off
 	RoleSlugs    []string
 	Permissions  []string
 	CreatedAt    time.Time
