@@ -62,7 +62,7 @@ export default function OtpInput({
   };
 
   return (
-    <div className="flex gap-2" role="group" aria-label="Verification code">
+    <div className="flex justify-center gap-2" role="group" aria-label="Verification code">
       {cells.map((c, i) => (
         <input
           key={i}
