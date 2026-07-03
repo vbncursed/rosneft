@@ -1,6 +1,7 @@
 "use client";
 
 import type { PlacementAssetOption } from "@/placement/domain/asset-option";
+import QuantityStepper from "@/placement/presentation/components/quantity-stepper";
 
 interface ModelPickerCardProps {
   asset: PlacementAssetOption;
@@ -19,9 +20,6 @@ function CubeIcon() {
     </svg>
   );
 }
-
-const STEP_BTN =
-  "flex size-6 shrink-0 cursor-pointer items-center justify-center rounded border border-white/20 bg-black/60 text-neutral-100 transition-colors hover:border-white/50 disabled:cursor-not-allowed disabled:opacity-40";
 
 // Card height is constant (square preview + one title line) regardless of
 // selection: the quantity stepper and the checkmark are absolute overlays on
@@ -63,17 +61,8 @@ export default function ModelPickerCard({ asset, usable, count, onToggle, onCoun
         ) : null}
 
         {selected ? (
-          <div className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1.5 bg-black/70 px-2 py-1.5 backdrop-blur-sm">
-            <button type="button" className={STEP_BTN} disabled={count <= 1} onClick={() => onCount(count - 1)} aria-label="Decrease quantity">−</button>
-            <input
-              type="number"
-              min={1}
-              max={50}
-              value={count}
-              onChange={(e) => onCount(Math.floor(Number(e.target.value)) || 1)}
-              className="w-10 rounded border border-white/20 bg-black/60 px-1 py-0.5 text-center text-xs tabular-nums text-neutral-100 outline-none focus:border-cyan-400/60"
-            />
-            <button type="button" className={STEP_BTN} disabled={count >= 50} onClick={() => onCount(count + 1)} aria-label="Increase quantity">+</button>
+          <div className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center bg-black/70 px-2 py-1.5 backdrop-blur-sm">
+            <QuantityStepper value={count} onChange={onCount} label={asset.title} />
           </div>
         ) : null}
       </div>
