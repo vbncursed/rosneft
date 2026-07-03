@@ -19,7 +19,7 @@ type PlacementVisibilitySuite struct {
 	repo  *mocks.RepositoryMock
 	svc   *service.Catalog
 	ctx   context.Context
-	panos []domain.Panorama
+	panoIDs []int64
 }
 
 func TestPlacementVisibilitySuite(t *testing.T) {
@@ -31,7 +31,7 @@ func (s *PlacementVisibilitySuite) SetupTest() {
 	s.svc = service.New(s.repo)
 	s.ctx = s.T().Context()
 	// Territory t1 has two panoramas; tests reference 10 and 11 as the valid set.
-	s.panos = []domain.Panorama{{ID: 10, TerritorySlug: "t1"}, {ID: 11, TerritorySlug: "t1"}}
+	s.panoIDs = []int64{10, 11}
 }
 
 func (s *PlacementVisibilitySuite) TestRejectsEmptyTerritorySlug() {
@@ -45,19 +45,19 @@ func (s *PlacementVisibilitySuite) TestRejectsZeroPlacementID() {
 }
 
 func (s *PlacementVisibilitySuite) TestRejectsPanoramaNotOnTerritory() {
-	s.repo.ListPanoramasMock.Expect(s.ctx, "t1").Return(s.panos, nil)
+	s.repo.ListPanoramaIDsMock.Expect(s.ctx, "t1").Return(s.panoIDs, nil)
 	_, err := s.svc.SetPlacementVisibility(s.ctx, "t1", 1, []int64{999})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *PlacementVisibilitySuite) TestUnknownTerritoryPropagates() {
-	s.repo.ListPanoramasMock.Expect(s.ctx, "ghost").Return(nil, domain.ErrTerritoryNotFound)
+	s.repo.ListPanoramaIDsMock.Expect(s.ctx, "ghost").Return(nil, domain.ErrTerritoryNotFound)
 	_, err := s.svc.SetPlacementVisibility(s.ctx, "ghost", 1, []int64{10})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrTerritoryNotFound))
 }
 
 func (s *PlacementVisibilitySuite) TestUnknownPlacementNotFound() {
-	s.repo.ListPanoramasMock.Expect(s.ctx, "t1").Return(s.panos, nil)
+	s.repo.ListPanoramaIDsMock.Expect(s.ctx, "t1").Return(s.panoIDs, nil)
 	s.repo.SetPlacementVisibilityMock.Expect(s.ctx, "t1", int64(999), []int64{10}).
 		Return(domain.Placement{}, domain.ErrPlacementNotFound)
 	_, err := s.svc.SetPlacementVisibility(s.ctx, "t1", 999, []int64{10})
@@ -65,7 +65,7 @@ func (s *PlacementVisibilitySuite) TestUnknownPlacementNotFound() {
 }
 
 func (s *PlacementVisibilitySuite) TestReplacesAllowlist() {
-	s.repo.ListPanoramasMock.Expect(s.ctx, "t1").Return(s.panos, nil)
+	s.repo.ListPanoramaIDsMock.Expect(s.ctx, "t1").Return(s.panoIDs, nil)
 	s.repo.SetPlacementVisibilityMock.Expect(s.ctx, "t1", int64(1), []int64{10, 11}).
 		Return(domain.Placement{ID: 1, TerritorySlug: "t1", VisiblePanoramaIDs: []int64{10, 11}}, nil)
 	out, err := s.svc.SetPlacementVisibility(s.ctx, "t1", 1, []int64{10, 11})
@@ -74,7 +74,7 @@ func (s *PlacementVisibilitySuite) TestReplacesAllowlist() {
 }
 
 func (s *PlacementVisibilitySuite) TestEmptyAllowlistClears() {
-	s.repo.ListPanoramasMock.Expect(s.ctx, "t1").Return(s.panos, nil)
+	s.repo.ListPanoramaIDsMock.Expect(s.ctx, "t1").Return(s.panoIDs, nil)
 	s.repo.SetPlacementVisibilityMock.Expect(s.ctx, "t1", int64(1), []int64{}).
 		Return(domain.Placement{ID: 1, TerritorySlug: "t1"}, nil)
 	out, err := s.svc.SetPlacementVisibility(s.ctx, "t1", 1, []int64{})

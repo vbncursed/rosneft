@@ -10,8 +10,6 @@ var (
 	ErrModelNotFound     = errors.New("model not found")
 	ErrArtifactNotFound  = errors.New("artifact not found")
 	ErrPlacementNotFound = errors.New("placement not found")
-	ErrPanoramaNotFound  = errors.New("panorama not found")
-	ErrDocumentNotFound  = errors.New("document not found")
 	ErrInvalidInput      = errors.New("invalid input")
 	// ErrSlugConflict means the proposed slug is already taken. The service
 	// retries with the next numbered candidate; it never reaches transport.
