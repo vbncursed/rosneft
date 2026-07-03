@@ -60,7 +60,7 @@ export default function ModelThumbnailEditor({
         <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/40 text-[10px] uppercase tracking-[0.18em] text-neutral-600">
           {url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={url} alt="Model thumbnail" className="size-full object-cover" />
+            <img src={url} alt="Model thumbnail" className="size-full object-contain p-1" />
           ) : (
             "none"
           )}
