@@ -13,6 +13,7 @@ interface BatchUploadFormProps {
   create: (body: {
     title: string;
     sourceBlobHash: string;
+    thumbnailBlobHash?: string;
   }) => Promise<{ slug: string; job: Job }>;
   redirectBase: string;
 }
@@ -55,6 +56,11 @@ export default function BatchUploadForm({
     (id: string) => setRows((prev) => prev.filter((r) => r.id !== id)),
     [],
   );
+  const onThumbnail = useCallback(
+    (id: string, thumbnail: File | null) =>
+      updateRow(id, { thumbnail: thumbnail ?? undefined }),
+    [updateRow],
+  );
 
   const onSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
@@ -75,9 +81,17 @@ export default function BatchUploadForm({
             onProgress: (p) => updateRow(row.id, { progress: p }),
           });
           updateRow(row.id, { status: "creating", progress: 1 });
+          // Optional thumbnail (models only): upload as its own image blob so
+          // the create body can reference it. Kept inside the try so a failed
+          // thumbnail surfaces as a row error rather than a silent skip.
+          let thumbnailBlobHash: string | undefined;
+          if (row.thumbnail) {
+            thumbnailBlobHash = (await runChunkedUpload(row.thumbnail)).hash;
+          }
           const created = await create({
             title: row.title.trim(),
             sourceBlobHash: blob.hash,
+            thumbnailBlobHash,
           });
           updateRow(row.id, { status: "done" });
           lastSlug = created.slug;
@@ -143,7 +157,9 @@ export default function BatchUploadForm({
               key={row.id}
               row={row}
               disabled={submitting}
+              showThumbnail={kind === "Model"}
               onTitle={onTitle}
+              onThumbnail={onThumbnail}
               onRemove={onRemove}
             />
           ))}

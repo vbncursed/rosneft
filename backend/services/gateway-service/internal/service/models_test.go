@@ -60,6 +60,25 @@ func (s *ModelsSuite) TestCreateUpsertsAndSubmitsJob() {
 	assert.Equal(s.T(), job.ID, "job-1")
 }
 
+func (s *ModelsSuite) TestUpdateRejectsEmptySlug() {
+	_, err := s.svc.UpdateModel(s.ctx, "", domain.ModelUpdate{})
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *ModelsSuite) TestUpdateSetsThumbnailViaReadModifyWrite() {
+	current := domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: "h"}
+	s.cat.GetModelMock.Expect(s.ctx, "m1").Return(current, nil)
+	// Upsert receives the merged model with the new thumbnail applied.
+	merged := current
+	merged.ThumbnailBlobHash = "thumb-hash"
+	s.cat.UpsertModelMock.Expect(s.ctx, merged).Return(merged, nil)
+
+	hash := "thumb-hash"
+	saved, err := s.svc.UpdateModel(s.ctx, "m1", domain.ModelUpdate{ThumbnailBlobHash: &hash})
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), saved.ThumbnailBlobHash, "thumb-hash")
+}
+
 func (s *ModelsSuite) TestDeleteRejectsEmptySlug() {
 	err := s.svc.DeleteModel(s.ctx, "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))

@@ -34,6 +34,9 @@ func modelToAPI(m domain.Model) Model {
 	if m.Description != "" {
 		out.Description = &m.Description
 	}
+	if m.ThumbnailBlobHash != "" {
+		out.ThumbnailBlobHash = &m.ThumbnailBlobHash
+	}
 	if !m.CreatedAt.IsZero() {
 		out.CreatedAt = &m.CreatedAt
 	}
@@ -171,6 +174,9 @@ func sceneBundleToAPI(b domain.SceneBundle) SceneBundle {
 			Slug:      m.Slug,
 			Title:     m.Title,
 			Artifacts: lodChainToAPI(m.LODs),
+		}
+		if m.ThumbnailBlobHash != "" {
+			opt.ThumbnailBlobHash = &m.ThumbnailBlobHash
 		}
 		if m.BBoxMin != nil {
 			bb := vec3ToAPI(*m.BBoxMin)

@@ -85,6 +85,8 @@ message Model {
   string source_blob_hash = 4;
   google.protobuf.Timestamp created_at = 5;
   google.protobuf.Timestamp updated_at = 6;
+  // Optional thumbnail image blob hash ('' = none), served via /api/assets.
+  string thumbnail_blob_hash = 7;
 }
 
 // TerritoryArtifact is a converted GLB output for one territory + LOD.

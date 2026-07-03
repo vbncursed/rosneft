@@ -6,6 +6,9 @@ export interface Model {
   title: string;
   description?: string;
   sourceBlobHash: string;
+  // Optional thumbnail image blob hash ('' / undefined = none); served via
+  // /api/assets/{hash}.
+  thumbnailBlobHash?: string;
   createdAt?: string;
   updatedAt?: string;
 }

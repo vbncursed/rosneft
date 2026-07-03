@@ -31,6 +31,7 @@ type Service interface {
 	ListModels(ctx context.Context) ([]domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)
 	CreateModel(ctx context.Context, m domain.Model) (domain.Model, domain.Job, error)
+	UpdateModel(ctx context.Context, slug string, update domain.ModelUpdate) (domain.Model, error)
 	DeleteModel(ctx context.Context, slug string) error
 	ListModelArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
 	GetModelArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)

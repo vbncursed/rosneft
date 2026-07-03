@@ -326,7 +326,8 @@ export interface paths {
         delete: operations["deleteModel"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Update mutable model fields (no re-conversion) */
+        patch: operations["updateModel"];
         trace?: never;
     };
     "/api/models/{slug}/artifacts": {
@@ -1504,6 +1505,11 @@ export interface components {
             title: string;
             description?: string;
             sourceBlobHash: string;
+            /**
+             * @description Optional thumbnail image blob hash. Empty/absent = no thumbnail.
+             *     Fetch the image from /api/assets/{thumbnailBlobHash}.
+             */
+            thumbnailBlobHash?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -1691,6 +1697,20 @@ export interface components {
             description?: string;
             externalPanoramaUrl?: string;
             sourceBlobHash: string;
+            /**
+             * @description Optional model thumbnail image blob hash (models only; ignored for
+             *     territories). Upload the image via /api/uploads first.
+             */
+            thumbnailBlobHash?: string;
+        };
+        /**
+         * @description Body for PATCH /api/models/{slug}. Updates mutable fields only; the
+         *     source archive and conversion are untouched. Omitted fields are left
+         *     unchanged.
+         */
+        ModelUpdate: {
+            /** @description New thumbnail blob hash; empty string clears it. */
+            thumbnailBlobHash?: string;
         };
         /**
          * @description Body for PATCH /api/territories/{slug}. Updates mutable fields only;
@@ -1723,6 +1743,11 @@ export interface components {
         AssetOption: {
             slug: string;
             title: string;
+            /**
+             * @description Optional thumbnail image blob hash for the picker. Empty/absent =
+             *     no thumbnail. Fetch from /api/assets/{thumbnailBlobHash}.
+             */
+            thumbnailBlobHash?: string;
             /**
              * @description Original (pre-normalize) bounding-box minimum of the source
              *     mesh. Carried so the frontend can compute a real-size scale
@@ -2606,6 +2631,35 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    updateModel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Model"];
+                };
             };
             400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];

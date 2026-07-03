@@ -56,6 +56,11 @@ components:
         title: { type: string }
         description: { type: string }
         sourceBlobHash: { type: string }
+        thumbnailBlobHash:
+          type: string
+          description: |
+            Optional thumbnail image blob hash. Empty/absent = no thumbnail.
+            Fetch the image from /api/assets/{thumbnailBlobHash}.
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -268,6 +273,22 @@ components:
         description: { type: string }
         externalPanoramaUrl: { type: string }
         sourceBlobHash: { type: string }
+        thumbnailBlobHash:
+          type: string
+          description: |
+            Optional model thumbnail image blob hash (models only; ignored for
+            territories). Upload the image via /api/uploads first.
+
+    ModelUpdate:
+      type: object
+      description: |
+        Body for PATCH /api/models/{slug}. Updates mutable fields only; the
+        source archive and conversion are untouched. Omitted fields are left
+        unchanged.
+      properties:
+        thumbnailBlobHash:
+          type: string
+          description: New thumbnail blob hash; empty string clears it.
 
     TerritoryUpdate:
       type: object
@@ -317,6 +338,11 @@ components:
       properties:
         slug: { type: string }
         title: { type: string }
+        thumbnailBlobHash:
+          type: string
+          description: |
+            Optional thumbnail image blob hash for the picker. Empty/absent =
+            no thumbnail. Fetch from /api/assets/{thumbnailBlobHash}.
         bboxMin:
           $ref: '#/components/schemas/Vec3'
           description: |
@@ -1024,6 +1050,24 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Model' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+    patch:
+      operationId: updateModel
+      summary: Update mutable model fields (no re-conversion)
+      tags: [models]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ModelUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Model' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
     delete:

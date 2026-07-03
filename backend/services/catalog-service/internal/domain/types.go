@@ -18,12 +18,13 @@ type Territory struct {
 
 // Model is a placeable 3D asset overlaid on a territory.
 type Model struct {
-	Slug           string    `yaml:"slug"`
-	Title          string    `yaml:"title"`
-	Description    string    `yaml:"description"`
-	SourceBlobHash string    `yaml:"source_blob_hash"`
-	CreatedAt      time.Time `yaml:"-"`
-	UpdatedAt      time.Time `yaml:"-"`
+	Slug              string    `yaml:"slug"`
+	Title             string    `yaml:"title"`
+	Description       string    `yaml:"description"`
+	SourceBlobHash    string    `yaml:"source_blob_hash"`
+	ThumbnailBlobHash string    `yaml:"thumbnail_blob_hash"`
+	CreatedAt         time.Time `yaml:"-"`
+	UpdatedAt         time.Time `yaml:"-"`
 }
 
 // Vec3 is a 3D point used for bounding-box corners and placement transforms.
