@@ -105,7 +105,7 @@ export default function TwoFactorSection({ initiallyEnabled }: { initiallyEnable
       ) : null}
 
       {mode === "regen" ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col items-center gap-3 text-center">
           <p className="text-sm text-neutral-300">Enter a current code to replace your recovery codes. Existing codes stop working.</p>
           <OtpInput value={code} onChange={setCode} autoFocus />
           <div className="flex gap-2">
@@ -116,16 +116,16 @@ export default function TwoFactorSection({ initiallyEnabled }: { initiallyEnable
       ) : null}
 
       {mode === "setup" ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col items-center gap-3 text-center">
           <p className="text-sm text-neutral-300">Scan with your authenticator, then enter the 6-digit code.</p>
-          <div className="self-start rounded-xl bg-[#0c0d10] p-3"><QRCodeSVG value={otpauth} size={160} bgColor="#0c0d10" fgColor="#e5e7eb" /></div>
+          <div className="rounded-xl bg-[#0c0d10] p-3"><QRCodeSVG value={otpauth} size={160} bgColor="#0c0d10" fgColor="#e5e7eb" /></div>
           {showKey ? (
             <div className="flex flex-wrap items-center gap-2">
               <code className="break-all font-[family-name:var(--font-geist-mono)] text-[11px] text-neutral-300">{secret}</code>
               <button type="button" onClick={() => { navigator.clipboard?.writeText(secret); notify.success("Key copied"); }} className="cursor-pointer rounded-full border border-white/20 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white hover:bg-white/[0.08]">Copy</button>
             </div>
           ) : (
-            <button type="button" onClick={() => setShowKey(true)} className="cursor-pointer self-start text-[11px] uppercase tracking-[0.18em] text-cyan-300/80 hover:text-cyan-200">Can&apos;t scan? Show manual key</button>
+            <button type="button" onClick={() => setShowKey(true)} className="cursor-pointer text-[11px] uppercase tracking-[0.18em] text-cyan-300/80 hover:text-cyan-200">Can&apos;t scan? Show manual key</button>
           )}
           <OtpInput value={code} onChange={setCode} autoFocus />
           <div className="flex gap-2">
@@ -136,7 +136,7 @@ export default function TwoFactorSection({ initiallyEnabled }: { initiallyEnable
       ) : null}
 
       {mode === "disable" ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col items-center gap-3 text-center">
           <p className="text-sm text-neutral-300">Enter a current code to disable 2FA.</p>
           <OtpInput value={code} onChange={setCode} autoFocus />
           <div className="flex gap-2">
