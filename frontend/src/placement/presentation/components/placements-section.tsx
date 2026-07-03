@@ -55,10 +55,11 @@ export default function PlacementsSection({
   );
 
   const handleCreate = useCallback(
-    (modelSlug: string) =>
+    (modelSlug: string, count: number) =>
       editor.create(
         modelSlug,
         activePanoramaId != null ? [activePanoramaId] : undefined,
+        count,
       ),
     [editor, activePanoramaId],
   );

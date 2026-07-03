@@ -14,6 +14,7 @@ import type { Placement } from "@/placement/domain/placement";
 import type { PlacementAssetOption } from "@/placement/domain/asset-option";
 import type { Panorama } from "@/panorama/domain/panorama";
 import { mapDocument } from "@/document/infrastructure/document-gateway";
+import { assetUrl } from "@/shared/infrastructure/asset-url";
 
 type TerritoryDto = components["schemas"]["Territory"];
 type ArtifactDto = components["schemas"]["Artifact"];
@@ -77,6 +78,7 @@ function mapAssetOption(d: AssetOptionDto): PlacementAssetOption {
   return {
     slug: d.slug,
     title: d.title,
+    thumbnailUrl: d.thumbnailBlobHash ? assetUrl(d.thumbnailBlobHash) : undefined,
     bboxMin: d.bboxMin,
     bboxMax: d.bboxMax,
     lods: d.artifacts.map(mapLod),

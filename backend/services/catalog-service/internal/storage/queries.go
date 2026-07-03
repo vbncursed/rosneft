@@ -18,10 +18,11 @@ func isUniqueViolation(err error) bool {
 	return ok && pgErr.Code == pgUniqueViolation
 }
 
-// entityColumns is the SELECT/RETURNING list for models. Territories used
-// to share it, but they now carry an extra external_panorama_url column —
-// see territoryColumns. Models keep the original shape.
-const entityColumns = `slug, title, description, source_blob_hash, created_at, updated_at`
+// entityColumns is the SELECT/RETURNING list for models. Territories carry
+// their own extra external_panorama_url column (see territoryColumns);
+// models carry thumbnail_blob_hash, slotted right after source_blob_hash to
+// match scanModel's Scan order.
+const entityColumns = `slug, title, description, source_blob_hash, thumbnail_blob_hash, created_at, updated_at`
 
 // territoryColumns is the territory-only SELECT/RETURNING list. Same as
 // entityColumns plus external_panorama_url, slotted right after
@@ -55,7 +56,7 @@ func scanTerritory(r rowScanner) (domain.Territory, error) {
 
 func scanModel(r rowScanner) (domain.Model, error) {
 	var m domain.Model
-	err := r.Scan(&m.Slug, &m.Title, &m.Description, &m.SourceBlobHash, &m.CreatedAt, &m.UpdatedAt)
+	err := r.Scan(&m.Slug, &m.Title, &m.Description, &m.SourceBlobHash, &m.ThumbnailBlobHash, &m.CreatedAt, &m.UpdatedAt)
 	return m, err
 }
 
