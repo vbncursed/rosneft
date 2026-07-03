@@ -1,17 +1,24 @@
 # catalog-service
 
-Owns territories, models, their artifacts, placements, and panoramas.
-Postgres-backed, exposes a gRPC surface (`CatalogService`) consumed by
-`gateway` and `mesh-worker`. On boot it can run an auto-migration. No startup
-seeding — the catalog is API-driven; entities arrive via gRPC upserts.
+Owns the 3D core: territories, models, their artifacts, placements, and
+territory admins. Postgres-backed, exposes a gRPC surface (`CatalogService`)
+consumed by `gateway` and `mesh-worker`. On boot it can run an auto-migration.
+No startup seeding — the catalog is API-driven; entities arrive via gRPC
+upserts.
+
+> **Documents and panoramas** (non-geometry media anchored to a territory) were
+> split out into [`content-service`](../content-service/README.md). Their tables
+> still live in the shared `andrey` DB, so the `territories` FK cascade keeps
+> cleaning them up on territory delete; catalog keeps a read-only
+> `ListPanoramaIDs` to validate placement-visibility allowlists.
 
 ## Responsibilities
 
 - CRUD over `territories`, `models`, their `*_artifacts`, `placements`, and
-  `panoramas` in Postgres.
+  territory admin assignments in Postgres.
 - Schema migrations (goose-style, auto-applied at startup when enabled).
 - Rescale bookkeeping for source-replacement re-conversions and per-placement
-  panorama visibility.
+  panorama visibility (validated against content's panorama IDs).
 
 ## Layout
 
@@ -38,10 +45,12 @@ of the files contain a single method each.
 
 ## gRPC API — `rosneft.catalog.v1.CatalogService`
 
-26 RPCs. Proto lives at `backend/proto/rosneft/catalog/v1/catalog.proto`;
-generated Go in `backend/proto/gen/go/rosneft/catalog/v1`. Each RPC has a
-matching method on the `Service` interface in `transport/grpcapi/server.go` and
-its own handler file (`one RPC per file`).
+Territory, territory-artifact, model, model-artifact, placement, and
+territory-admin RPCs (documents + panoramas moved to `content-service`). Proto
+lives at `backend/proto/rosneft/catalog/v1/catalog.proto`; generated Go in
+`backend/proto/gen/go/rosneft/catalog/v1`. Each RPC has a matching method on the
+`Service` interface in `transport/grpcapi/server.go` and its own handler file
+(`one RPC per file`).
 
 ### Territories
 
@@ -50,7 +59,7 @@ its own handler file (`one RPC per file`).
 | `ListTerritories` | List every territory. |
 | `GetTerritory` | Fetch one territory by slug. |
 | `UpsertTerritory` | Create or update a territory (keyed by slug). |
-| `DeleteTerritory` | Delete a territory by slug (cascades to its artifacts, placements, panoramas). |
+| `DeleteTerritory` | Delete a territory by slug (cascades to its artifacts and placements; its content documents/panoramas also cascade at the DB level). |
 
 ### Territory artifacts
 
@@ -87,21 +96,14 @@ its own handler file (`one RPC per file`).
 | `ListPlacements` | List every placement in a territory. |
 | `CreatePlacement` | Create a placement (model overlaid on a territory at a transform); optional initial panorama allowlist. |
 | `UpdatePlacement` | Replace a placement's transform (position/rotation/scale) and label in full. |
-| `SetPlacementVisibility` | Replace a placement's panorama allowlist in full (panorama ids must belong to the placement's territory). |
+| `SetPlacementVisibility` | Replace a placement's panorama allowlist in full (panorama ids must belong to the placement's territory; validated via `ListPanoramaIDs` against the shared panoramas table). |
 | `DeletePlacement` | Delete a placement by id. |
 
-### Panoramas
-
-| RPC | Description |
-| --- | --- |
-| `ListPanoramas` | List every panorama in a territory. |
-| `CreatePanorama` | Create an equirectangular panorama anchored to a point in a territory. |
-| `UpdatePanorama` | Update a panorama's title, position, and yaw offset. |
-| `DeletePanorama` | Delete a panorama by id. |
+Panorama and document RPCs now live in [`content-service`](../content-service/README.md).
 
 Errors map to gRPC codes in `server.go`: `ErrInvalidInput` →
 `InvalidArgument`; the `*NotFound` sentinels (territory, model, artifact,
-placement, panorama) → `NotFound`; everything else → `Internal`.
+placement) → `NotFound`; everything else → `Internal`.
 
 ## Schema
 
@@ -127,10 +129,11 @@ Migrations are numbered `*.sql` under `internal/migrate/migrations` (goose
   > 0). Self-placement is structurally impossible (FKs point at two different
   tables); the legacy `placements_no_self` CHECK from the pre-split single-table
   model is gone. Indexes on `territory_id` and `model_id`.
-- **`panoramas`** (`00004`) — `territory_id` FK (`CASCADE`), `slug`, `title`,
-  `source_blob_hash` (equirect JPG/PNG in BlobStore), per-axis `position`,
-  `yaw_offset`, timestamps. `UNIQUE(territory_id, slug)`. Indexes on
-  `territory_id` and `source_blob_hash`.
+- **`panoramas`** (`00004`) and **`territory_documents`** (`00010`) — created by
+  catalog migrations but now **owned by [`content-service`](../content-service/README.md)**;
+  they remain in the shared `andrey` DB with a `territory_id` FK (`CASCADE`) so
+  catalog's territory delete still cleans them up. catalog only reads panorama
+  ids (`ListPanoramaIDs`) for placement-visibility validation.
 
 History note: `00001`/`00002` created a single `projects` table with
 host-filesystem source paths and a `parent_id <> asset_id` self-placement

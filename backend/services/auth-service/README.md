@@ -1,36 +1,43 @@
 # auth-service
 
-Owns users, roles, permissions (RBAC), sessions, and 2FA. Postgres-backed for
-durable state, Redis-backed for sessions. Exposes an internal gRPC surface
-consumed exclusively by `gateway`; it has no public HTTP listener.
+Owns users, roles, permissions (RBAC), and sessions. Postgres-backed for durable
+state, Redis-backed for sessions. Exposes an internal gRPC surface consumed
+exclusively by `gateway`; it has no public HTTP listener.
+
+> **Two-factor auth (TOTP)** was split out into
+> [`twofa-service`](../twofa-service/README.md). auth keeps only the two-step
+> login *challenge* (`LoginVerify2FA`) and calls twofa's `IsEnabled` / `Verify`
+> during login; enrollment (setup/enable/disable/recovery) and secret storage
+> live in twofa. Migration `00010_drop_totp` removed the `totp_*` columns and
+> the `recovery_codes` table from auth.
 
 ## Responsibilities
 
 - CRUD over `users` with lifecycle states (`active` / `frozen` / `deleted`),
-  freeze/unfreeze and soft-delete/restore.
+  freeze/unfreeze and soft-delete/restore, and owner assignment.
 - RBAC: roles, the permission catalog, and the role↔permission and user↔role
-  joins. Four system roles and a 20-permission catalog are seeded on migrate.
+  joins. System roles and a permission catalog are seeded on migrate.
 - Sessions: mints opaque bearer tokens stored in Redis, validates them, and
   revokes them on logout, freeze, soft-delete, or role change.
-- Two-factor auth (TOTP): per-user secret setup, enable/disable, one-time
-  recovery codes, and the two-step login challenge.
-- Password hashing/verification and TOTP-secret encryption at rest.
+- Login flow: password verification and, when a user has 2FA on, a short-lived
+  challenge token exchanged via `LoginVerify2FA` (code verified by twofa).
+- Password hashing/verification (argon2id).
 
 ## Layout
 
 ```
 internal/
   bootstrap/   # config → postgres + redis → service → gRPC server; bootstrap-admin
+  clients/twofa/  # gRPC client for twofa-service (IsEnabled / Verify at login)
   config/      # Viper layered config, AUTH_* env vars
   domain/      # entities + sentinel errors (errors.go)
   migrate/     # embedded goose migrations + up/down/status runners
   password/    # argon2id PHC hashing + constant-time verify
-  secret/      # AES-GCM cipher for TOTP secrets + crypto/rand token mint
-  totp/        # pquerna/otp wrapper + recovery-code helpers
+  secret/      # crypto/rand opaque session-token mint (token.go)
   session/     # Redis session store, 2FA challenge store, login throttle
-  storage/     # one package per aggregate (users/roles/permissions/recovery);
+  storage/     # one package per aggregate (users/roles/permissions);
                # one file = one DB method
-  service/     # business layer (auth/users/twofa/roles); service.go owns the
+  service/     # business layer (auth/users/roles); service.go owns the
                # storage interface + constructor, one method per file
   transport/grpcapi/  # gRPC handlers; server.go has dependency interfaces,
                       # the Server, registration, and the central error mapper
@@ -44,7 +51,7 @@ each, under the 200-line cap.
 
 Internal gRPC only — the server binds to the Compose network and is addressed
 as `auth:9004`. The `gateway` service is the sole caller; nothing is exposed on
-the host. All 23 RPCs of `AuthService` (`proto/rosneft/auth/v1/auth.proto`) are
+the host. All 21 RPCs of `AuthService` (`proto/rosneft/auth/v1/auth.proto`) are
 implemented in `internal/transport/grpcapi/`.
 
 Domain sentinel errors are mapped to gRPC codes centrally in `server.go`
@@ -52,7 +59,7 @@ Domain sentinel errors are mapped to gRPC codes centrally in `server.go`
 `NotFound`, bad credentials / invalid session / bad 2FA code →
 `Unauthenticated`, frozen/deleted/throttled/2FA-required → `PermissionDenied`,
 taken email/username/role-slug → `AlreadyExists`, last-admin / self-target /
-system-role / 2FA-not-enabled → `FailedPrecondition`.
+system-role → `FailedPrecondition`.
 
 ### Session / login
 
@@ -69,9 +76,9 @@ system-role / 2FA-not-enabled → `FailedPrecondition`.
 | --- | --- | --- |
 | `GetMe` | `GetMeRequest` → `User` | The caller's own profile, resolved from the session token. |
 | `ChangePassword` | `ChangePasswordRequest` → `ChangePasswordResponse` | Verify old password, set a new one. |
-| `Setup2FA` | `Setup2FARequest` → `Setup2FAResponse` | Generate a TOTP secret + `otpauth://` URL (pending until enabled). |
-| `Enable2FA` | `Enable2FARequest` → `Enable2FAResponse` | Confirm a code, turn 2FA on, return one-time recovery codes. |
-| `Disable2FA` | `Disable2FARequest` → `Disable2FAResponse` | Confirm a code, turn 2FA off, clear recovery codes. |
+
+2FA enrollment (Setup/Enable/Disable/Regenerate) is served by
+[`twofa-service`](../twofa-service/README.md), which the gateway calls directly.
 
 ### User admin
 
@@ -85,6 +92,7 @@ system-role / 2FA-not-enabled → `FailedPrecondition`.
 | `UnfreezeUser` | `UnfreezeUserRequest` → `User` | Return a frozen account to `active`. |
 | `SoftDeleteUser` | `SoftDeleteUserRequest` → `SoftDeleteUserResponse` | Set status `deleted` + `deleted_at`, evict sessions. Actor resolved server-side. |
 | `RestoreUser` | `RestoreUserRequest` → `User` | Return a soft-deleted account to `active`. |
+| `SetUserOwner` | `SetUserOwnerRequest` → `User` | Assign the organizational owner (people-manager scope) of a user. |
 
 Freeze and soft-delete guard against acting on yourself and against removing the
 last admin.
@@ -106,12 +114,11 @@ Postgres schema (`internal/migrate/migrations/00001_init.sql`):
 
 | Table | Purpose |
 | --- | --- |
-| `users` | id, `CITEXT` email + username (case-insensitive unique), `password_hash`, `status` (`active`/`frozen`/`deleted`), `totp_enabled`, encrypted `totp_secret BYTEA`, `deleted_at`. |
+| `users` | id, `CITEXT` email + username (case-insensitive unique), `password_hash`, `status` (`active`/`frozen`/`deleted`), `owner_user_id` (people-manager scope), `deleted_at`. The `totp_*` columns were dropped in `00010` — 2FA state lives in twofa-service. |
 | `roles` | slug, title, `is_system` flag. |
 | `permissions` | slug + description (the catalog). |
 | `role_permissions` | role↔permission join (CASCADE both ways). |
 | `user_roles` | user↔role join (CASCADE on user, RESTRICT on role). |
-| `recovery_codes` | per-user hashed one-time 2FA recovery codes, `used_at` marker. |
 
 Seeded system roles (`00002_seed_roles_permissions.sql`):
 
@@ -153,12 +160,10 @@ used for mass revocation), `2fa_pending:<challenge>`, `login_fail:<identifier>`.
   threads, 16-byte random salt, encoded as a self-describing PHC string so
   parameters travel with the hash. Verification is constant-time
   (`crypto/subtle`).
-- **TOTP secrets at rest**: AES-256-GCM (`internal/secret`) with a random
-  per-record nonce; the 32-byte key comes from `AUTH_SECRET_KEY` (64-char hex
-  or base64).
-- **Tokens**: session tokens and 2FA challenges are minted from `crypto/rand`.
-- **TOTP**: `pquerna/otp` with ±1-step skew tolerance; recovery codes are stored
-  hashed and single-use.
+- **Tokens**: session tokens and 2FA challenge tokens are minted from
+  `crypto/rand` (`internal/secret/token.go`).
+- **2FA**: TOTP secrets, recovery codes, and code verification live in
+  [`twofa-service`](../twofa-service/README.md); auth never sees the secret.
 
 ## Configuration
 
@@ -170,10 +175,9 @@ All env vars are prefixed `AUTH_` (layered flag > env > default).
 | `AUTH_DB_DSN` | *(required)* | Postgres DSN (shared `andrey` DB). |
 | `AUTH_REDIS_ADDR` | `redis:6379` | Redis address for sessions. |
 | `AUTH_REDIS_DB` | `1` | Redis logical DB index. |
-| `AUTH_SECRET_KEY` | *(required)* | 32-byte key (hex/base64) for TOTP-secret AES-GCM. |
+| `AUTH_TWOFA_GRPC_ADDR` | `twofa:9006` | twofa-service address for login-time 2FA checks. |
 | `AUTH_SESSION_IDLE_TTL` | `24h` | Sliding idle session timeout. |
 | `AUTH_SESSION_ABSOLUTE_TTL` | `720h` | Absolute max session lifetime. |
-| `AUTH_PENDING_2FA_TTL` | `5m` | 2FA login-challenge lifetime. |
 | `AUTH_LOGIN_MAX_FAILS` | `5` | Failed logins before lockout. |
 | `AUTH_LOGIN_LOCK_TTL` | `15m` | Lockout duration. |
 | `AUTH_BOOTSTRAP_EMAIL` | *(empty)* | First-admin email (created if no admin exists). |
@@ -197,7 +201,7 @@ The binary is a cobra command. `serve` (the default `RunE`) starts the gRPC
 server; migrations have dedicated subcommands:
 
 ```bash
-./bin/auth serve           --db-dsn "$DSN" --secret-key "$KEY" --redis-addr localhost:6379
+./bin/auth serve           --db-dsn "$DSN" --redis-addr localhost:6379
 ./bin/auth migrate-up      --db-dsn "$DSN"   # apply pending migrations
 ./bin/auth migrate-down    --db-dsn "$DSN"   # roll back the most recent migration
 ./bin/auth migrate-status  --db-dsn "$DSN"   # print migration status
@@ -221,5 +225,5 @@ make test
 ```
 
 Service-layer tests run against in-memory fakes (`internal/service/*/mocks/`);
-the password, secret/AES-GCM, and totp primitives have their own unit tests. No
+the password hashing and token-mint primitives have their own unit tests. No
 external Postgres or Redis is required for the unit suite.
