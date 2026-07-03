@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/content-service/internal/domain"
 )
 
 // DeletePanorama removes a panorama by ID. An unknown ID returns

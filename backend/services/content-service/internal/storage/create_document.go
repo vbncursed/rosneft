@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/content-service/internal/domain"
 )
 
 // CreateDocument inserts a new document. A missing territory slug yields

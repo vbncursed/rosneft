@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/content-service/internal/domain"
 )
 
 // DeleteDocument removes a document by ID. An unknown ID returns
