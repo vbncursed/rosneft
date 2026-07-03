@@ -17,7 +17,7 @@ type Config struct {
 	DBDSN              string        `mapstructure:"db-dsn"`
 	RedisAddr          string        `mapstructure:"redis-addr"`
 	RedisDB            int           `mapstructure:"redis-db"`
-	SecretKey          string        `mapstructure:"secret-key"` // 32-byte hex/base64 for AES-GCM of totp secrets
+	TwoFAGRPCAddr      string        `mapstructure:"twofa-grpc-addr"` // twofa-service address for login 2FA checks
 	SessionIdleTTL     time.Duration `mapstructure:"session-idle-ttl"`
 	SessionAbsoluteTTL time.Duration `mapstructure:"session-absolute-ttl"`
 	Pending2FATTL      time.Duration `mapstructure:"pending-2fa-ttl"`
@@ -44,6 +44,7 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.SetDefault("grpc-addr", ":9004")
 	v.SetDefault("redis-addr", "redis:6379")
 	v.SetDefault("redis-db", 1)
+	v.SetDefault("twofa-grpc-addr", "twofa:9006")
 	v.SetDefault("session-idle-ttl", 24*time.Hour)
 	v.SetDefault("session-absolute-ttl", 720*time.Hour)
 	v.SetDefault("pending-2fa-ttl", 5*time.Minute)
@@ -72,9 +73,6 @@ func Load(cmd *cobra.Command) (Config, error) {
 func (c Config) Validate() error {
 	if c.DBDSN == "" {
 		return fmt.Errorf("config: db-dsn is required (set --db-dsn or %s_DB_DSN)", envPrefix)
-	}
-	if c.SecretKey == "" {
-		return fmt.Errorf("config: secret-key is required (set --secret-key or %s_SECRET_KEY)", envPrefix)
 	}
 	return nil
 }

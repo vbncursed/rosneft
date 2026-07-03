@@ -19,9 +19,6 @@ service AuthService {
   // --- self ---
   rpc GetMe(GetMeRequest) returns (User);
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
-  rpc Setup2FA(Setup2FARequest) returns (Setup2FAResponse);
-  rpc Enable2FA(Enable2FARequest) returns (Enable2FAResponse);
-  rpc Disable2FA(Disable2FARequest) returns (Disable2FAResponse);
 
   // --- user admin ---
   rpc CreateUser(CreateUserRequest) returns (User);
@@ -108,26 +105,6 @@ message ChangePasswordRequest {
   string new_password = 3;
 }
 message ChangePasswordResponse {}
-
-message Setup2FARequest {
-  string token = 1;
-}
-message Setup2FAResponse {
-  string secret = 1;
-  string otpauth_url = 2;
-}
-message Enable2FARequest {
-  string token = 1;
-  string code = 2;
-}
-message Enable2FAResponse {
-  repeated string recovery_codes = 1;
-}
-message Disable2FARequest {
-  string token = 1;
-  string code = 2;
-}
-message Disable2FAResponse {}
 
 message CreateUserRequest {
   string token = 1; // actor session token; created_by is set from it
