@@ -72,12 +72,12 @@ export default function ModelPickerModal({ assets, onClose, onPlace }: ModelPick
       role="dialog"
       aria-modal="true"
       aria-label="Add object to territory"
-      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-[110] flex bg-black/70 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="flex h-full max-h-[900px] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#0c0d10]/95 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+      <div className="flex h-full w-full flex-col overflow-hidden bg-[#0c0d10]/95">
         <div className="flex flex-col gap-3 border-b border-white/10 p-5">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-semibold tracking-tight text-white">Add an object</h2>
@@ -114,7 +114,7 @@ export default function ModelPickerModal({ assets, onClose, onPlace }: ModelPick
               No objects match “{query}”.
             </p>
           ) : (
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
               {filtered.map((asset) => {
                 const ok = usable(asset);
                 const selected = asset.slug === picked;
