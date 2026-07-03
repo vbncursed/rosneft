@@ -15,6 +15,7 @@ import (
 type Config struct {
 	HTTPAddr        string        `mapstructure:"http-addr"`
 	CatalogGRPCAddr string        `mapstructure:"catalog-grpc-addr"`
+	ContentGRPCAddr string        `mapstructure:"content-grpc-addr"`
 	MeshGRPCAddr    string        `mapstructure:"mesh-grpc-addr"`
 	UploadGRPCAddr  string        `mapstructure:"upload-grpc-addr"`
 	AuthGRPCAddr    string        `mapstructure:"auth-grpc-addr"`
@@ -40,6 +41,7 @@ func Load(cmd *cobra.Command) (Config, error) {
 
 	v.SetDefault("http-addr", ":8080")
 	v.SetDefault("catalog-grpc-addr", "catalog:9001")
+	v.SetDefault("content-grpc-addr", "content:9007")
 	v.SetDefault("mesh-grpc-addr", "mesh-api:9002")
 	v.SetDefault("upload-grpc-addr", "upload:9003")
 	v.SetDefault("auth-grpc-addr", "auth:9004")
@@ -71,6 +73,9 @@ func Load(cmd *cobra.Command) (Config, error) {
 func (c Config) Validate() error {
 	if c.CatalogGRPCAddr == "" {
 		return fmt.Errorf("config: catalog-grpc-addr is required")
+	}
+	if c.ContentGRPCAddr == "" {
+		return fmt.Errorf("config: content-grpc-addr is required")
 	}
 	if c.MeshGRPCAddr == "" {
 		return fmt.Errorf("config: mesh-grpc-addr is required")

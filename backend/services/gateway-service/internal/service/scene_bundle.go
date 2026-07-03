@@ -65,7 +65,7 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 		return nil
 	})
 	gr.Go(func() error {
-		p, err := g.catalog.ListPanoramas(gctx, slug)
+		p, err := g.content.ListPanoramas(gctx, slug)
 		if err != nil && !errors.Is(err, domain.ErrTerritoryNotFound) {
 			return err
 		}
@@ -73,7 +73,7 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 		return nil
 	})
 	gr.Go(func() error {
-		d, err := g.catalog.ListDocuments(gctx, slug)
+		d, err := g.content.ListDocuments(gctx, slug)
 		if err != nil && !errors.Is(err, domain.ErrTerritoryNotFound) {
 			return err
 		}

@@ -12,7 +12,7 @@ func (g *Gateway) ListDocuments(ctx context.Context, territorySlug string) ([]do
 	if territorySlug == "" {
 		return nil, fmt.Errorf("%w: empty territory slug", domain.ErrInvalidInput)
 	}
-	return g.catalog.ListDocuments(ctx, territorySlug)
+	return g.content.ListDocuments(ctx, territorySlug)
 }
 
 // CreateDocument validates input and persists the document.
@@ -26,7 +26,7 @@ func (g *Gateway) CreateDocument(ctx context.Context, d domain.Document) (domain
 	if d.SourceBlobHash == "" {
 		return domain.Document{}, fmt.Errorf("%w: source_blob_hash is required", domain.ErrInvalidInput)
 	}
-	return g.catalog.CreateDocument(ctx, d)
+	return g.content.CreateDocument(ctx, d)
 }
 
 // DeleteDocument removes a document by ID.
@@ -34,5 +34,5 @@ func (g *Gateway) DeleteDocument(ctx context.Context, id int64) error {
 	if id <= 0 {
 		return fmt.Errorf("%w: id is required", domain.ErrInvalidInput)
 	}
-	return g.catalog.DeleteDocument(ctx, id)
+	return g.content.DeleteDocument(ctx, id)
 }

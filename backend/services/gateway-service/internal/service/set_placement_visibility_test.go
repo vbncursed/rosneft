@@ -28,7 +28,7 @@ func TestPlacementVisibilitySuite(t *testing.T) {
 func (s *PlacementVisibilitySuite) SetupTest() {
 	mc := minimock.NewController(s.T())
 	s.cat = mocks.NewCatalogMock(mc)
-	s.svc = service.New(s.cat, mocks.NewMeshMock(mc), mocks.NewUploadMock(mc))
+	s.svc = service.New(s.cat, mocks.NewContentMock(mc), mocks.NewMeshMock(mc), mocks.NewUploadMock(mc))
 	s.ctx = s.T().Context()
 }
 
