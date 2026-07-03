@@ -9,17 +9,20 @@ import (
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/auth"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/twofa"
 )
 
-// Handlers serves the /api/auth/* surface over the auth gRPC client.
+// Handlers serves the /api/auth/* surface. Login/session go to auth-service;
+// 2FA management goes to twofa-service.
 type Handlers struct {
 	client *auth.Client
+	twofa  *twofa.Client
 	logger *slog.Logger
 }
 
 // New builds the auth HTTP handlers.
-func New(client *auth.Client, logger *slog.Logger) *Handlers {
-	return &Handlers{client: client, logger: logger}
+func New(client *auth.Client, twofa *twofa.Client, logger *slog.Logger) *Handlers {
+	return &Handlers{client: client, twofa: twofa, logger: logger}
 }
 
 // Mount registers the auth routes on r. Only login + login/2fa are public.
@@ -41,6 +44,7 @@ func (h *Handlers) Mount(r chi.Router) {
 			pr.Post("/2fa/setup", h.setup2FA)
 			pr.Post("/2fa/enable", h.enable2FA)
 			pr.Post("/2fa/disable", h.disable2FA)
+			pr.Post("/2fa/recovery/regenerate", h.regenerate2FA)
 
 			// Admin — authenticated + per-route permission.
 			pr.With(h.require("users:read")).Get("/users", h.listUsers)
@@ -112,7 +116,12 @@ func (h *Handlers) me(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, userToJSON(u))
+	// auth no longer owns 2FA state; overlay the real flag from twofa-service.
+	out := userToJSON(u)
+	if on, err := h.twofa.IsEnabled(r.Context(), u.GetId()); err == nil {
+		out.TOTPEnabled = on
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 func (h *Handlers) changePassword(w http.ResponseWriter, r *http.Request) {
@@ -128,7 +137,7 @@ func (h *Handlers) changePassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) setup2FA(w http.ResponseWriter, r *http.Request) {
-	secret, url, err := h.client.Setup2FA(r.Context(), bearer(r))
+	secret, url, err := h.twofa.Setup(r.Context(), bearer(r))
 	if err != nil {
 		fail(w, err)
 		return
@@ -141,7 +150,7 @@ func (h *Handlers) enable2FA(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	codes, err := h.client.Enable2FA(r.Context(), bearer(r), req.Code)
+	codes, err := h.twofa.Enable(r.Context(), bearer(r), req.Code)
 	if err != nil {
 		fail(w, err)
 		return
@@ -154,9 +163,22 @@ func (h *Handlers) disable2FA(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	if err := h.client.Disable2FA(r.Context(), bearer(r), req.Code); err != nil {
+	if err := h.twofa.Disable(r.Context(), bearer(r), req.Code); err != nil {
 		fail(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handlers) regenerate2FA(w http.ResponseWriter, r *http.Request) {
+	var req struct{ Code string }
+	if !decode(w, r, &req) {
+		return
+	}
+	codes, err := h.twofa.Regenerate(r.Context(), bearer(r), req.Code)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"recoveryCodes": codes})
 }

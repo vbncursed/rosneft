@@ -52,8 +52,14 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	defer authClient.Close()
 
+	twofaClient, err := InitTwoFA(cfg)
+	if err != nil {
+		return fmt.Errorf("init twofa: %w", err)
+	}
+	defer twofaClient.Close()
+
 	svc := InitService(cat, m, up)
-	authH := authhttp.New(authClient, logger)
+	authH := authhttp.New(authClient, twofaClient, logger)
 
 	assetProxy, err := InitAssetProxy(cfg)
 	if err != nil {
