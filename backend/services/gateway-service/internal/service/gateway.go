@@ -10,7 +10,7 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-//go:generate minimock -i Catalog,Mesh,Upload -o ./mocks -s _mock.go
+//go:generate minimock -i Catalog,Content,Mesh,Upload -o ./mocks -s _mock.go
 
 // Catalog is the catalog client surface this service calls.
 type Catalog interface {
@@ -37,7 +37,10 @@ type Catalog interface {
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, id int64) error
+}
 
+// Content is the content-service client surface this service calls.
+type Content interface {
 	ListPanoramas(ctx context.Context, territorySlug string) ([]domain.Panorama, error)
 	CreatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
 	UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
@@ -66,11 +69,12 @@ type Upload interface {
 // Gateway is the gateway service.
 type Gateway struct {
 	catalog Catalog
+	content Content
 	mesh    Mesh
 	upload  Upload
 }
 
 // New constructs a Gateway.
-func New(catalog Catalog, mesh Mesh, upload Upload) *Gateway {
-	return &Gateway{catalog: catalog, mesh: mesh, upload: upload}
+func New(catalog Catalog, content Content, mesh Mesh, upload Upload) *Gateway {
+	return &Gateway{catalog: catalog, content: content, mesh: mesh, upload: upload}
 }

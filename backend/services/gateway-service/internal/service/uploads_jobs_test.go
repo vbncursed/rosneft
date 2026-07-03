@@ -31,7 +31,7 @@ func (s *UploadsJobsSuite) SetupTest() {
 	mc := minimock.NewController(s.T())
 	s.upload = mocks.NewUploadMock(mc)
 	s.mesh = mocks.NewMeshMock(mc)
-	s.svc = service.New(mocks.NewCatalogMock(mc), s.mesh, s.upload)
+	s.svc = service.New(mocks.NewCatalogMock(mc), mocks.NewContentMock(mc), s.mesh, s.upload)
 	s.ctx = s.T().Context()
 }
 

@@ -20,6 +20,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	logger.Info("gateway: starting",
 		"http_addr", cfg.HTTPAddr,
 		"catalog_addr", cfg.CatalogGRPCAddr,
+		"content_addr", cfg.ContentGRPCAddr,
 		"mesh_addr", cfg.MeshGRPCAddr,
 		"upload_addr", cfg.UploadGRPCAddr,
 		"asset_addr", cfg.AssetHTTPAddr,
@@ -33,6 +34,12 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("init catalog: %w", err)
 	}
 	defer cat.Close()
+
+	con, err := InitContent(cfg)
+	if err != nil {
+		return fmt.Errorf("init content: %w", err)
+	}
+	defer con.Close()
 
 	m, err := InitMesh(cfg)
 	if err != nil {
@@ -58,7 +65,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	defer twofaClient.Close()
 
-	svc := InitService(cat, m, up)
+	svc := InitService(cat, con, m, up)
 	authH := authhttp.New(authClient, twofaClient, logger)
 
 	assetProxy, err := InitAssetProxy(cfg)

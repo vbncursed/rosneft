@@ -21,6 +21,7 @@ import (
 type SceneBundleSuite struct {
 	suite.Suite
 	cat *mocks.CatalogMock
+	con *mocks.ContentMock
 	svc *service.Gateway
 	ctx context.Context
 }
@@ -32,7 +33,8 @@ func TestSceneBundleSuite(t *testing.T) {
 func (s *SceneBundleSuite) SetupTest() {
 	mc := minimock.NewController(s.T())
 	s.cat = mocks.NewCatalogMock(mc)
-	s.svc = service.New(s.cat, mocks.NewMeshMock(mc), mocks.NewUploadMock(mc))
+	s.con = mocks.NewContentMock(mc)
+	s.svc = service.New(s.cat, s.con, mocks.NewMeshMock(mc), mocks.NewUploadMock(mc))
 	s.ctx = s.T().Context()
 }
 
@@ -51,8 +53,8 @@ func (s *SceneBundleSuite) expectFanOut(terrArts []domain.Artifact, models []dom
 	s.cat.GetTerritoryMock.Return(domain.Territory{Slug: "t1", Title: "Site"}, nil)
 	s.cat.ListTerritoryArtifactsMock.Return(terrArts, nil)
 	s.cat.ListPlacementsMock.Return(placements, nil)
-	s.cat.ListPanoramasMock.Return(nil, nil)
-	s.cat.ListDocumentsMock.Return(nil, nil)
+	s.con.ListPanoramasMock.Return(nil, nil)
+	s.con.ListDocumentsMock.Return(nil, nil)
 	s.cat.ListModelsMock.Return(models, nil)
 }
 
@@ -73,8 +75,8 @@ func (s *SceneBundleSuite) TestPropagatesTerritoryNotFound() {
 	s.cat.GetTerritoryMock.Return(domain.Territory{}, domain.ErrTerritoryNotFound)
 	s.cat.ListTerritoryArtifactsMock.Return(nil, nil)
 	s.cat.ListPlacementsMock.Return(nil, nil)
-	s.cat.ListPanoramasMock.Return(nil, nil)
-	s.cat.ListDocumentsMock.Return(nil, nil)
+	s.con.ListPanoramasMock.Return(nil, nil)
+	s.con.ListDocumentsMock.Return(nil, nil)
 	s.cat.ListModelsMock.Return(nil, nil)
 	_, err := s.svc.GetSceneBundle(s.ctx, "missing", "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrTerritoryNotFound))

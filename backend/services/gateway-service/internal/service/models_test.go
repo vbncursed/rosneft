@@ -30,7 +30,7 @@ func (s *ModelsSuite) SetupTest() {
 	mc := minimock.NewController(s.T())
 	s.cat = mocks.NewCatalogMock(mc)
 	s.mesh = mocks.NewMeshMock(mc)
-	s.svc = service.New(s.cat, s.mesh, mocks.NewUploadMock(mc))
+	s.svc = service.New(s.cat, mocks.NewContentMock(mc), s.mesh, mocks.NewUploadMock(mc))
 	s.ctx = s.T().Context()
 }
 

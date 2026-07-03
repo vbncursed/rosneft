@@ -12,7 +12,7 @@ func (g *Gateway) ListPanoramas(ctx context.Context, territorySlug string) ([]do
 	if territorySlug == "" {
 		return nil, fmt.Errorf("%w: empty territory slug", domain.ErrInvalidInput)
 	}
-	return g.catalog.ListPanoramas(ctx, territorySlug)
+	return g.content.ListPanoramas(ctx, territorySlug)
 }
 
 // CreatePanorama validates input and persists the panorama.
@@ -26,7 +26,7 @@ func (g *Gateway) CreatePanorama(ctx context.Context, p domain.Panorama) (domain
 	if p.SourceBlobHash == "" {
 		return domain.Panorama{}, fmt.Errorf("%w: source_blob_hash is required", domain.ErrInvalidInput)
 	}
-	return g.catalog.CreatePanorama(ctx, p)
+	return g.content.CreatePanorama(ctx, p)
 }
 
 // UpdatePanorama replaces title, position, and yaw offset.
@@ -37,7 +37,7 @@ func (g *Gateway) UpdatePanorama(ctx context.Context, p domain.Panorama) (domain
 	if p.Title == "" {
 		return domain.Panorama{}, fmt.Errorf("%w: title is required", domain.ErrInvalidInput)
 	}
-	return g.catalog.UpdatePanorama(ctx, p)
+	return g.content.UpdatePanorama(ctx, p)
 }
 
 // DeletePanorama removes a panorama by ID.
@@ -45,5 +45,5 @@ func (g *Gateway) DeletePanorama(ctx context.Context, id int64) error {
 	if id <= 0 {
 		return fmt.Errorf("%w: id is required", domain.ErrInvalidInput)
 	}
-	return g.catalog.DeletePanorama(ctx, id)
+	return g.content.DeletePanorama(ctx, id)
 }
