@@ -3,6 +3,7 @@ module github.com/vbncursed/rosneft/backend/services/twofa-service
 go 1.26.4
 
 require (
+	github.com/gojuno/minimock/v3 v3.4.7
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.27.2
