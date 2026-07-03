@@ -25,6 +25,18 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Hide the native number-input spin buttons — a custom QuantityStepper drives
+   the value instead, so the browser arrows are just visual noise. */
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spinner {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 @keyframes dropdown-enter {
   from {
     opacity: 0;
