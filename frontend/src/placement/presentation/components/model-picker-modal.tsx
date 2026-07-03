@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import type { PlacementAssetOption } from "@/placement/domain/asset-option";
 
 interface ModelPickerModalProps {
@@ -67,7 +68,10 @@ export default function ModelPickerModal({ assets, onClose, onPlace }: ModelPick
     onClose();
   };
 
-  return (
+  // Portal to <body>: the overlays panel that renders this picker sits under a
+  // backdrop-blur/transform ancestor, which would otherwise trap a
+  // position:fixed child inside the panel instead of the viewport.
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -185,6 +189,7 @@ export default function ModelPickerModal({ assets, onClose, onPlace }: ModelPick
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
