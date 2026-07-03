@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/content-service/internal/domain"
 )
 
 // CreateDocument validates the input and persists the document. source_blob_hash
 // is immutable; there is no slug and no update path.
-func (c *Catalog) CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error) {
+func (c *Content) CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error) {
 	if d.TerritorySlug == "" {
 		return domain.Document{}, fmt.Errorf("service.CreateDocument: %w: territory_slug is required", domain.ErrInvalidInput)
 	}

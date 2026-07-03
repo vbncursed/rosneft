@@ -9,15 +9,15 @@ import (
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 
-	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
-	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/service"
-	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/service/mocks"
+	"github.com/vbncursed/rosneft/backend/services/content-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/content-service/internal/service"
+	"github.com/vbncursed/rosneft/backend/services/content-service/internal/service/mocks"
 )
 
 type DocumentsSuite struct {
 	suite.Suite
 	repo *mocks.RepositoryMock
-	svc  *service.Catalog
+	svc  *service.Content
 	ctx  context.Context
 }
 
