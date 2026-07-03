@@ -38,13 +38,6 @@ type UsersSvc interface {
 	ChangePassword(ctx context.Context, userID, oldPlain, newPlain string) error
 }
 
-// TwoFASvc is the 2FA surface.
-type TwoFASvc interface {
-	Setup(ctx context.Context, userID string) (string, string, error)
-	Enable(ctx context.Context, userID, code string) ([]string, error)
-	Disable(ctx context.Context, userID, code string) error
-}
-
 // RolesSvc is the roles/permissions surface.
 type RolesSvc interface {
 	List(ctx context.Context, scopeAdminID string, allAccess bool) ([]domain.Role, error)
@@ -60,13 +53,12 @@ type Server struct {
 	authv1.UnimplementedAuthServiceServer
 	auth  AuthFlow
 	users UsersSvc
-	twofa TwoFASvc
 	roles RolesSvc
 }
 
 // New builds the gRPC handler.
-func New(auth AuthFlow, users UsersSvc, twofa TwoFASvc, roles RolesSvc) *Server {
-	return &Server{auth: auth, users: users, twofa: twofa, roles: roles}
+func New(auth AuthFlow, users UsersSvc, roles RolesSvc) *Server {
+	return &Server{auth: auth, users: users, roles: roles}
 }
 
 // Register attaches the handler to a grpc.Server.
@@ -112,19 +104,16 @@ var statusByCode = map[codes.Code][]error{
 		domain.ErrAdminOwnerOnly,
 		domain.ErrPrivilegeEscalation,
 		domain.ErrOwnerOnly,
-		domain.Err2FARequired,
 	},
 	codes.AlreadyExists: {
 		domain.ErrEmailTaken,
 		domain.ErrUsernameTaken,
 		domain.ErrRoleSlugTaken,
-		domain.Err2FAAlreadyEnabled,
 	},
 	codes.FailedPrecondition: {
 		domain.ErrLastAdmin,
 		domain.ErrSelfTarget,
 		domain.ErrSystemRole,
-		domain.Err2FANotEnabled,
 	},
 }
 
