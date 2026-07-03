@@ -1,19 +1,20 @@
 # gateway-service
 
 Public HTTP edge of the Andrey backend. Translates `/api/*` REST calls into
-gRPC requests against `catalog`, `mesh-api`, `upload`, and `auth`, proxies
-binary asset traffic to `asset`, terminates the chunked-upload protocol,
-streams conversion progress over SSE, and serves the OpenAPI spec + Scalar UI
-for human/agent discovery.
+gRPC requests against `catalog`, `content`, `mesh-api`, `upload`, `auth`, and
+`twofa`, proxies binary asset traffic to `asset`, terminates the chunked-upload
+protocol, streams conversion progress over SSE, and serves the OpenAPI spec +
+Scalar UI for human/agent discovery.
 
 This is the only backend service exposed on the host network; everything else
 binds to the internal Compose network only.
 
 ## Responsibilities
 
-- REST → gRPC mapping for catalog (territories, models, artifacts, placements,
-  panoramas), mesh (conversion jobs queued on create / source-replace), upload
-  (chunked sessions), and auth (sessions, users, roles, permissions).
+- REST → gRPC mapping for catalog (territories, models, artifacts, placements),
+  content (documents, panoramas), mesh (conversion jobs queued on create /
+  source-replace), upload (chunked sessions), and auth (sessions, users, roles,
+  permissions; 2FA management proxied through auth to twofa).
 - **Scene bundle** aggregator: `GET /api/territories/{slug}/scene` returns
   territory + LOD0 artifact (with full LOD chain attached) + placements +
   model options (each with its own LOD chain) + panoramas in one round trip
@@ -48,13 +49,15 @@ internal/
   domain/      # shared types and errors (Territory, Model, Artifact,
                # Placement, Panorama, SceneBundle, AssetOption, Job)
   service/     # one file = one method
-               # gateway.go: Catalog/Mesh/Upload interfaces + Gateway + ctor
+               # gateway.go: Catalog/Content/Mesh/Upload interfaces + Gateway + ctor
                # get_scene_bundle.go, build_asset_options.go, …
   clients/
     catalog/   # gRPC client for catalog-service (one method per file)
+    content/   # gRPC client for content-service (documents + panoramas)
     mesh/      # gRPC client for mesh-api (one method per file)
     upload/    # gRPC client for upload-service
     auth/      # gRPC client for auth-service
+    twofa/     # gRPC client for twofa-service
   transport/
     httpapi/   # oapi-codegen strict handlers (one file per route) + middleware
                # etag_middleware.go, compress_middleware.go
