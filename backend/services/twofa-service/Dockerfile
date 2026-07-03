@@ -14,21 +14,21 @@ COPY services/upload-service/go.mod services/upload-service/go.su[m] ./services/
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    cd services/mesh-service && go mod download
+    cd services/twofa-service && go mod download
 
 COPY proto/ ./proto/
 COPY pkg/ ./pkg/
-COPY services/mesh-service/ ./services/mesh-service/
+COPY services/twofa-service/ ./services/twofa-service/
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    cd services/mesh-service && \
+    cd services/twofa-service && \
     CGO_ENABLED=0 GOOS=linux go build \
         -trimpath -ldflags="-s -w" \
-        -o /out/mesh-api ./cmd/mesh-api
+        -o /out/twofa ./cmd/twofa
 
 FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=build /out/mesh-api /mesh-api
+COPY --from=build /out/twofa /twofa
 USER nonroot:nonroot
-EXPOSE 9002
-ENTRYPOINT ["/mesh-api"]
+EXPOSE 9006
+ENTRYPOINT ["/twofa"]
