@@ -55,12 +55,14 @@ export default function PlacementsSection({
   );
 
   const handleCreate = useCallback(
-    (modelSlug: string, count: number) =>
-      editor.create(
-        modelSlug,
-        activePanoramaId != null ? [activePanoramaId] : undefined,
-        count,
-      ),
+    async (selections: { modelSlug: string; count: number }[]) => {
+      const panoramaIds = activePanoramaId != null ? [activePanoramaId] : undefined;
+      // Sequential so each model's create round-trip (which itself loops over
+      // the per-model count) settles before the next starts.
+      for (const { modelSlug, count } of selections) {
+        await editor.create(modelSlug, panoramaIds, count);
+      }
+    },
     [editor, activePanoramaId],
   );
 

@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import type { PlacementAssetOption } from "@/placement/domain/asset-option";
-import ModelPickerModal from "@/placement/presentation/components/model-picker-modal";
+import ModelPickerModal, {
+  type PickerSelection,
+} from "@/placement/presentation/components/model-picker-modal";
 
 interface CreatePlacementRowProps {
   assets: PlacementAssetOption[];
   disabled: boolean;
-  onCreate: (modelSlug: string, count: number) => void;
+  onCreate: (selections: PickerSelection[]) => void;
 }
 
 // The create row is now just a trigger: it opens the model picker modal where
