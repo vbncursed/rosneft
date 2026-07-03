@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package rosneft.content.v1;
+
+option go_package = "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/content/v1;contentv1";
+
+import "google/protobuf/timestamp.proto";
+
+// ContentService owns non-geometry media attached to a territory: documents
+// (PDFs) and panoramas (equirectangular images). Neither touches the mesh
+// OBJ→GLB pipeline; both are a blob hash + metadata anchored to a territory.
+service ContentService {
+  rpc ListPanoramas(ListPanoramasRequest) returns (ListPanoramasResponse);
+  rpc CreatePanorama(CreatePanoramaRequest) returns (CreatePanoramaResponse);
+  rpc UpdatePanorama(UpdatePanoramaRequest) returns (UpdatePanoramaResponse);
+  rpc DeletePanorama(DeletePanoramaRequest) returns (DeletePanoramaResponse);
+
+  rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse);
+  rpc CreateDocument(CreateDocumentRequest) returns (CreateDocumentResponse);
+  rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse);
+}
+
+message Vec3 {
+  double x = 1;
+  double y = 2;
+  double z = 3;
+}
+
+message Panorama {
+  int64 id = 1;
+  string territory_slug = 2;
+  string slug = 3;
+  string title = 4;
+  string source_blob_hash = 5;
+  Vec3 position = 6;
+  double yaw_offset = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message ListPanoramasRequest {
+  string territory_slug = 1;
+}
+message ListPanoramasResponse {
+  repeated Panorama panoramas = 1;
+}
+
+message CreatePanoramaRequest {
+  string territory_slug = 1;
+  string slug = 2;
+  string title = 3;
+  string source_blob_hash = 4;
+  Vec3 position = 5;
+  double yaw_offset = 6;
+}
+message CreatePanoramaResponse {
+  Panorama panorama = 1;
+}
+
+message UpdatePanoramaRequest {
+  int64 id = 1;
+  string title = 2;
+  Vec3 position = 3;
+  double yaw_offset = 4;
+}
+message UpdatePanoramaResponse {
+  Panorama panorama = 1;
+}
+
+message DeletePanoramaRequest {
+  int64 id = 1;
+}
+message DeletePanoramaResponse {}
+
+// Document is a PDF attached to a territory. No scene position, no slug —
+// identified by id; bytes served from BlobStore via asset at /api/assets/{hash}.
+message Document {
+  int64 id = 1;
+  string territory_slug = 2;
+  string title = 3;
+  string source_blob_hash = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message ListDocumentsRequest {
+  string territory_slug = 1;
+}
+message ListDocumentsResponse {
+  repeated Document documents = 1;
+}
+
+message CreateDocumentRequest {
+  string territory_slug = 1;
+  string title = 2;
+  string source_blob_hash = 3;
+}
+message CreateDocumentResponse {
+  Document document = 1;
+}
+
+message DeleteDocumentRequest {
+  int64 id = 1;
+}
+message DeleteDocumentResponse {}
