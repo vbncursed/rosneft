@@ -2,15 +2,30 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
+
+	"github.com/jackc/pgx/v5"
+
+	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
 // ListPanoramaIDs returns the IDs of panoramas anchored to a territory.
 // Panoramas are owned by content-service, but they live in the same shared DB;
 // catalog reads their IDs read-only to validate placement visibility
-// allowlists. Returns an empty slice when the territory has none (or is
-// unknown), which makes any non-empty allowlist fail validation upstream.
+// allowlists. An unknown territory yields ErrTerritoryNotFound (matching the
+// former ListPanoramas semantics) so callers distinguish "no panoramas yet"
+// from "no such territory".
 func (r *PG) ListPanoramaIDs(ctx context.Context, territorySlug string) ([]int64, error) {
+	const existsQ = `SELECT 1 FROM territories WHERE slug = $1`
+	var one int
+	if err := r.pool.QueryRow(ctx, existsQ, territorySlug).Scan(&one); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrTerritoryNotFound
+		}
+		return nil, fmt.Errorf("storage.ListPanoramaIDs: territory check: %w", err)
+	}
+
 	const q = `SELECT pa.id
 		FROM panoramas pa
 		JOIN territories t ON t.id = pa.territory_id
