@@ -21,17 +21,28 @@ of 100+ MB ASCII files.
 
 | Service           | Purpose                                                          | Internal       | External           | RPCs / routes |
 | ----------------- | ---------------------------------------------------------------- | -------------- | ------------------ | ------------- |
-| `gateway-service` | REST/OpenAPI + scene bundle + SSE + auth middleware + ETag/Brotli | —             | `:8080`            | 35 HTTP paths |
-| `catalog-service` | Territory + model + artifact + placement + panorama registry     | gRPC `:9001`   | —                  | 26 gRPC       |
-| `auth-service`    | Users, multi-role RBAC, TOTP 2FA, sessions, freeze/soft-delete   | gRPC `:9004`   | —                  | 23 gRPC       |
+| `gateway-service` | REST/OpenAPI + scene bundle + SSE + auth middleware + ETag/Brotli | —             | `:8080`            | HTTP paths    |
+| `catalog-service` | Territory + model + artifact + placement registry (+ territory admins) | gRPC `:9001` | —                | 48 gRPC       |
+| `content-service` | Documents + panoramas anchored to a territory (non-geometry media) | gRPC `:9007` | —                  | 7 gRPC        |
+| `auth-service`    | Users, multi-role RBAC, sessions, freeze/soft-delete (2FA → twofa) | gRPC `:9004`   | —                  | gRPC          |
+| `twofa-service`   | TOTP 2FA: secrets, recovery codes, verify + lockout              | gRPC `:9006`   | —                  | 6 gRPC        |
 | `mesh-service`    | OBJ → GLB + Draco + KTX2 + LOD (`mesh-api` + `mesh-worker`)      | gRPC `:9002`   | —                  | 2 gRPC        |
 | `upload-service`  | Resumable chunked uploads (gRPC streaming)                       | gRPC `:9003`   | —                  | 5 gRPC        |
 | `asset-service`   | Binary artifact server (Range / ETag / immutable cache)          | HTTP `:8081`   | (via gw proxy)     | 2 HTTP + health |
 
-`gateway` is the only service published on the host. `catalog`, `auth`,
-`mesh-api`, `upload`, and `asset` bind to the internal Compose network only —
-their ports are reachable from sibling services by service name
-(`catalog:9001`, `auth:9004`, …) but not from the host.
+Per-service READMEs: [gateway](services/gateway-service/README.md) ·
+[catalog](services/catalog-service/README.md) ·
+[content](services/content-service/README.md) ·
+[auth](services/auth-service/README.md) ·
+[twofa](services/twofa-service/README.md) ·
+[mesh](services/mesh-service/README.md) ·
+[upload](services/upload-service/README.md) ·
+[asset](services/asset-service/README.md).
+
+`gateway` is the only service published on the host. `catalog`, `content`,
+`auth`, `twofa`, `mesh-api`, `upload`, and `asset` bind to the internal Compose
+network only — their ports are reachable from sibling services by service name
+(`catalog:9001`, `content:9007`, `auth:9004`, …) but not from the host.
 
 Each service owns a README with its full endpoint and env-var tables. The
 gateway's public HTTP surface (incl. `/api/auth/*`) is browsable as Swagger at
@@ -64,8 +75,10 @@ backend/
 ├── pkg/                  # shared libs (own go.mod)
 └── services/             # one go.mod per service
     ├── gateway-service/  # REST edge + auth middleware (cmd/gateway)
-    ├── catalog-service/  # Postgres registry (cmd/catalog)
-    ├── auth-service/     # users/RBAC/2FA/sessions (cmd/auth)
+    ├── catalog-service/  # Postgres registry: territories/models/artifacts/placements (cmd/catalog)
+    ├── content-service/  # documents + panoramas (cmd/content)
+    ├── auth-service/     # users/RBAC/sessions (cmd/auth)
+    ├── twofa-service/    # TOTP 2FA (cmd/twofa)
     ├── mesh-service/     # cmd/mesh-api + cmd/mesh-worker
     ├── upload-service/   # chunked uploads (cmd/upload)
     └── asset-service/    # blob server (cmd/asset)
