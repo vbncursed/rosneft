@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/content-service/internal/domain"
 )
 
 // ListDocuments returns every document attached to a territory, ordered by
@@ -12,7 +12,7 @@ import (
 // an empty list so callers distinguish "no documents yet" from "no such
 // territory".
 func (r *PG) ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error) {
-	if _, err := r.GetTerritory(ctx, territorySlug, ""); err != nil { // existence check; scoped at gateway
+	if err := r.requireTerritory(ctx, territorySlug); err != nil { // existence check; scoped at gateway
 		return nil, err
 	}
 

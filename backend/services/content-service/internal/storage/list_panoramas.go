@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/content-service/internal/domain"
 )
 
 // ListPanoramas returns every panorama attached to a territory, ordered
@@ -12,7 +12,7 @@ import (
 // rather than an empty list so callers distinguish "no panoramas yet"
 // from "no such territory".
 func (r *PG) ListPanoramas(ctx context.Context, territorySlug string) ([]domain.Panorama, error) {
-	if _, err := r.GetTerritory(ctx, territorySlug, ""); err != nil { // existence check; scoped at gateway
+	if err := r.requireTerritory(ctx, territorySlug); err != nil { // existence check; scoped at gateway
 		return nil, err
 	}
 
