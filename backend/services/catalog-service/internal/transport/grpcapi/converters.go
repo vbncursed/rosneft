@@ -31,21 +31,23 @@ func territoryFromProto(t *catalogv1.Territory) domain.Territory {
 
 func modelToProto(m domain.Model) *catalogv1.Model {
 	return &catalogv1.Model{
-		Slug:           m.Slug,
-		Title:          m.Title,
-		Description:    m.Description,
-		SourceBlobHash: m.SourceBlobHash,
-		CreatedAt:      timestamppb.New(m.CreatedAt),
-		UpdatedAt:      timestamppb.New(m.UpdatedAt),
+		Slug:              m.Slug,
+		Title:             m.Title,
+		Description:       m.Description,
+		SourceBlobHash:    m.SourceBlobHash,
+		ThumbnailBlobHash: m.ThumbnailBlobHash,
+		CreatedAt:         timestamppb.New(m.CreatedAt),
+		UpdatedAt:         timestamppb.New(m.UpdatedAt),
 	}
 }
 
 func modelFromProto(m *catalogv1.Model) domain.Model {
 	return domain.Model{
-		Slug:           m.GetSlug(),
-		Title:          m.GetTitle(),
-		Description:    m.GetDescription(),
-		SourceBlobHash: m.GetSourceBlobHash(),
+		Slug:              m.GetSlug(),
+		Title:             m.GetTitle(),
+		Description:       m.GetDescription(),
+		SourceBlobHash:    m.GetSourceBlobHash(),
+		ThumbnailBlobHash: m.GetThumbnailBlobHash(),
 	}
 }
 

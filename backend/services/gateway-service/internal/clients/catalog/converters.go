@@ -35,21 +35,23 @@ func modelFromProto(m *catalogv1.Model) domain.Model {
 		return domain.Model{}
 	}
 	return domain.Model{
-		Slug:           m.GetSlug(),
-		Title:          m.GetTitle(),
-		Description:    m.GetDescription(),
-		SourceBlobHash: m.GetSourceBlobHash(),
-		CreatedAt:      m.GetCreatedAt().AsTime(),
-		UpdatedAt:      m.GetUpdatedAt().AsTime(),
+		Slug:              m.GetSlug(),
+		Title:             m.GetTitle(),
+		Description:       m.GetDescription(),
+		SourceBlobHash:    m.GetSourceBlobHash(),
+		ThumbnailBlobHash: m.GetThumbnailBlobHash(),
+		CreatedAt:         m.GetCreatedAt().AsTime(),
+		UpdatedAt:         m.GetUpdatedAt().AsTime(),
 	}
 }
 
 func modelToProto(m domain.Model) *catalogv1.Model {
 	return &catalogv1.Model{
-		Slug:           m.Slug,
-		Title:          m.Title,
-		Description:    m.Description,
-		SourceBlobHash: m.SourceBlobHash,
+		Slug:              m.Slug,
+		Title:             m.Title,
+		Description:       m.Description,
+		SourceBlobHash:    m.SourceBlobHash,
+		ThumbnailBlobHash: m.ThumbnailBlobHash,
 	}
 }
 

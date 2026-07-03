@@ -44,6 +44,24 @@ func (s *Server) CreateModel(ctx context.Context, req CreateModelRequestObject) 
 	return CreateModel202JSONResponse{Model: modelToAPI(m), Job: jobToAPI(job)}, nil
 }
 
+func (s *Server) UpdateModel(ctx context.Context, req UpdateModelRequestObject) (UpdateModelResponseObject, error) {
+	if req.Body == nil {
+		return UpdateModel400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
+	}
+	m, err := s.svc.UpdateModel(ctx, req.Slug, domain.ModelUpdate{
+		ThumbnailBlobHash: req.Body.ThumbnailBlobHash,
+	})
+	switch {
+	case isNotFound(err):
+		return UpdateModel404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
+	case isInvalid(err):
+		return UpdateModel400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
+	case err != nil:
+		return UpdateModel500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+	}
+	return UpdateModel200JSONResponse(modelToAPI(m)), nil
+}
+
 func (s *Server) DeleteModel(ctx context.Context, req DeleteModelRequestObject) (DeleteModelResponseObject, error) {
 	err := s.svc.DeleteModel(ctx, req.Slug)
 	switch {
@@ -88,11 +106,16 @@ func entityToModel(body EntityCreate) domain.Model {
 	if body.Description != nil {
 		desc = *body.Description
 	}
+	thumbnail := ""
+	if body.ThumbnailBlobHash != nil {
+		thumbnail = *body.ThumbnailBlobHash
+	}
 	return domain.Model{
 		// Slug intentionally left empty — the catalog derives it from the
 		// title and resolves it to a unique value on create.
-		Title:          body.Title,
-		Description:    desc,
-		SourceBlobHash: body.SourceBlobHash,
+		Title:             body.Title,
+		Description:       desc,
+		SourceBlobHash:    body.SourceBlobHash,
+		ThumbnailBlobHash: thumbnail,
 	}
 }

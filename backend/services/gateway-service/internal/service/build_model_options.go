@@ -26,9 +26,10 @@ func (g *Gateway) buildModelOptions(ctx context.Context, models []domain.Model) 
 		wg.Go(func() {
 			arts, _ := g.catalog.ListModelArtifacts(ctx, m.Slug)
 			opt := domain.AssetOption{
-				Slug:  m.Slug,
-				Title: m.Title,
-				LODs:  lodChain(arts),
+				Slug:              m.Slug,
+				Title:             m.Title,
+				ThumbnailBlobHash: m.ThumbnailBlobHash,
+				LODs:              lodChain(arts),
 			}
 			// LOD0 carries the source mesh's original bbox — every
 			// LOD shares the same world bounds, but ListModelArtifacts

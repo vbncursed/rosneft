@@ -4,6 +4,7 @@ import { getModel, listModelArtifacts } from "@/model/infrastructure/model-gatew
 import ConversionPending from "@/conversion/presentation/conversion-pending";
 import { notFoundOnHttp404 } from "@/shared/infrastructure/http/not-found-on-404";
 import DeleteModelButton from "@/app/_components/delete-model-button";
+import ModelThumbnailEditor from "@/app/_components/model-thumbnail-editor";
 import { getCurrentUser } from "@/auth/application/current-user";
 import { can } from "@/auth/domain/principal";
 
@@ -30,7 +31,9 @@ export default async function ModelPage({ params, searchParams }: ModelPageProps
     return <ConversionPending title={model.title} slug={slug} jobId={jobId ?? null} />;
   }
 
-  const canDelete = can(await getCurrentUser(), "model:delete");
+  const me = await getCurrentUser();
+  const canDelete = can(me, "model:delete");
+  const canWrite = can(me, "model:write");
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#2a1f10_0%,#0b0d10_38%,#060708_100%)] px-6 py-16 text-white sm:px-10">
@@ -49,6 +52,11 @@ export default async function ModelPage({ params, searchParams }: ModelPageProps
         {model.description ? (
           <p className="text-sm leading-6 text-neutral-300">{model.description}</p>
         ) : null}
+        <ModelThumbnailEditor
+          slug={slug}
+          thumbnailBlobHash={model.thumbnailBlobHash}
+          canWrite={canWrite}
+        />
         <dl className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <dt className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">Slug</dt>

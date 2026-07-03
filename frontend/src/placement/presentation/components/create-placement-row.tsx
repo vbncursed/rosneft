@@ -1,76 +1,44 @@
-import { useMemo, useState } from "react";
-import Link from "next/link";
+"use client";
+
+import { useState } from "react";
 import type { PlacementAssetOption } from "@/placement/domain/asset-option";
-import Dropdown from "@/shared/presentation/components/dropdown/dropdown";
-import type { DropdownOption } from "@/shared/presentation/components/dropdown/dropdown-option";
+import ModelPickerModal from "@/placement/presentation/components/model-picker-modal";
 
 interface CreatePlacementRowProps {
   assets: PlacementAssetOption[];
   disabled: boolean;
-  onCreate: (modelSlug: string) => Promise<void> | void;
+  onCreate: (modelSlug: string, count: number) => void;
 }
 
-// Pre-compute which models the user can actually drop into the scene.
-// A model with an empty LOD chain has no successful conversion yet
-// (or the conversion failed) — placing it would create an invisible
-// placement, so the picker disables those entries explicitly.
-function usable(asset: PlacementAssetOption): boolean {
-  return asset.lods.length > 0;
-}
-
-const NO_MODELS_VALUE = "";
-
+// The create row is now just a trigger: it opens the model picker modal where
+// the user sees each model's thumbnail + name and chooses how many to drop.
 export default function CreatePlacementRow({
   assets,
   disabled,
   onCreate,
 }: CreatePlacementRowProps) {
-  const options = useMemo<DropdownOption[]>(
-    () =>
-      assets.length === 0
-        ? [{ value: NO_MODELS_VALUE, label: "no models", disabled: true }]
-        : assets.map((asset) => ({
-            value: asset.slug,
-            label: asset.title,
-            disabled: !usable(asset),
-            hint: usable(asset) ? undefined : "not converted",
-          })),
-    [assets],
-  );
-
-  const firstUsable = useMemo(() => assets.find(usable)?.slug ?? "", [assets]);
-  const [pickedSlug, setPickedSlug] = useState(firstUsable);
-  const noUsable = assets.length === 0 || !assets.some(usable);
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
       <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">
-        Add model
+        Add object
       </span>
-      <div className="flex gap-2">
-        <Dropdown
-          ariaLabel="Pick a model"
-          value={pickedSlug}
-          options={options}
-          onChange={setPickedSlug}
-          disabled={disabled || noUsable}
-          placeholder="Pick a model"
-          className="min-w-0 flex-1"
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen(true)}
+        className="cursor-pointer rounded-md border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        + Add object
+      </button>
+
+      {open ? (
+        <ModelPickerModal
+          assets={assets}
+          onClose={() => setOpen(false)}
+          onPlace={onCreate}
         />
-        <button
-          type="button"
-          disabled={disabled || !pickedSlug || noUsable}
-          onClick={() => pickedSlug && onCreate(pickedSlug)}
-          className="shrink-0 cursor-pointer rounded-md border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Place
-        </button>
-      </div>
-      {noUsable && assets.length > 0 ? (
-        <p className="text-[10px] text-neutral-500">
-          All models are still converting or have failed. Open{" "}
-          <Link href="/models" className="text-cyan-300 underline">/models</Link>.
-        </p>
       ) : null}
     </div>
   );

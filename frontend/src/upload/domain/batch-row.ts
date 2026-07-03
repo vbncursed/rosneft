@@ -15,6 +15,9 @@ export interface BatchRow {
   status: BatchRowStatus;
   progress: number; // 0..1, only meaningful while uploading
   error?: string;
+  // Optional thumbnail image (models only). Uploaded as its own blob before
+  // the model is created; the resulting hash rides along in the create body.
+  thumbnail?: File;
 }
 
 // deriveTitle keeps the original casing and word breaks so a filename

@@ -4,7 +4,10 @@ import type { BatchRow } from "@/upload/domain/batch-row";
 interface BatchRowProps {
   row: BatchRow;
   disabled: boolean;
+  // Models can attach an optional thumbnail image; territories cannot.
+  showThumbnail?: boolean;
   onTitle: (id: string, value: string) => void;
+  onThumbnail?: (id: string, file: File | null) => void;
   onRemove: (id: string) => void;
 }
 
@@ -26,9 +29,10 @@ const statusTone: Record<BatchRow["status"], string> = {
   failed: "text-red-300",
 };
 
-function BatchRowImpl({ row, disabled, onTitle, onRemove }: BatchRowProps) {
+function BatchRowImpl({ row, disabled, showThumbnail, onTitle, onThumbnail, onRemove }: BatchRowProps) {
   const sizeMb = (row.file.size / 1024 / 1024).toFixed(1);
   const busy = row.status === "uploading" || row.status === "finalizing" || row.status === "creating";
+  const locked = disabled || busy || row.status === "done";
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-black/30 p-3">
       <div className="flex items-center justify-between gap-3">
@@ -59,6 +63,19 @@ function BatchRowImpl({ row, disabled, onTitle, onRemove }: BatchRowProps) {
           ×
         </button>
       </div>
+
+      {showThumbnail && onThumbnail ? (
+        <label className="flex items-center gap-2 text-[11px] text-neutral-400">
+          <span className="uppercase tracking-[0.18em]">Thumbnail (optional)</span>
+          <input
+            type="file"
+            accept="image/*"
+            disabled={locked}
+            onChange={(e) => onThumbnail(row.id, e.target.files?.[0] ?? null)}
+            className="min-w-0 flex-1 cursor-pointer text-[11px] text-neutral-300 file:mr-2 file:cursor-pointer file:rounded file:border-0 file:bg-white/[0.08] file:px-2 file:py-1 file:text-[10px] file:uppercase file:tracking-[0.16em] file:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          />
+        </label>
+      ) : null}
 
       {row.status === "uploading" ? (
         <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">

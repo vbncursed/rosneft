@@ -81,7 +81,7 @@ export function usePlacementsEditor(
   }, [territorySlug, resolve]);
 
   const create = useCallback(
-    async (modelSlug: string, visiblePanoramaIds?: number[]) => {
+    async (modelSlug: string, visiblePanoramaIds?: number[], count = 1) => {
       setMutation(creating);
       try {
         // Both territory and model GLBs are normalised to max-axis=2,
@@ -91,13 +91,24 @@ export function usePlacementsEditor(
         // territoryMax. Fall back to 0.1 when either side lacks bbox
         // metadata (older artifacts, conversion still pending, etc.).
         const ratio = realWorldRatio(modelOptions, modelSlug, territoryMaxDim);
-        const placement = await createPlacement(territorySlug, {
-          modelSlug,
-          scale: { x: ratio, y: ratio, z: ratio },
-          visiblePanoramaIds,
-        });
-        const resolved = resolve(placement);
-        startTransition(() => setPlacements((prev) => [...prev, resolved]));
+        // Lay N copies in a row along X so they don't stack invisibly on top
+        // of one another. Each occupies ~2*ratio scene units (GLB max-axis=2
+        // scaled by ratio); 1.1 leaves a small gap. count=1 lands at origin,
+        // identical to the previous single-placement behaviour.
+        const step = 2 * ratio * 1.1;
+        const n = Math.max(1, Math.floor(count));
+        const created: ResolvedPlacement[] = [];
+        for (let i = 0; i < n; i++) {
+          // ponytail: N sequential POSTs; add a batch endpoint if N grows large.
+          const placement = await createPlacement(territorySlug, {
+            modelSlug,
+            position: { x: i * step, y: 0, z: 0 },
+            scale: { x: ratio, y: ratio, z: ratio },
+            visiblePanoramaIds,
+          });
+          created.push(resolve(placement));
+        }
+        startTransition(() => setPlacements((prev) => [...prev, ...created]));
       } catch (err) {
         notify.error(formatError(err));
       } finally {

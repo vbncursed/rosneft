@@ -36,6 +36,28 @@ func (g *Gateway) CreateModel(ctx context.Context, m domain.Model) (domain.Model
 	return saved, job, nil
 }
 
+// UpdateModel patches a model's mutable fields by slug without touching the
+// source archive or re-queuing a conversion. Read-modify-write over the
+// existing catalog RPCs (fetch, apply non-nil patch fields, upsert) —
+// mirrors UpdateTerritory.
+func (g *Gateway) UpdateModel(ctx context.Context, slug string, update domain.ModelUpdate) (domain.Model, error) {
+	if slug == "" {
+		return domain.Model{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
+	}
+	current, err := g.catalog.GetModel(ctx, slug)
+	if err != nil {
+		return domain.Model{}, err
+	}
+	if update.ThumbnailBlobHash != nil {
+		current.ThumbnailBlobHash = *update.ThumbnailBlobHash
+	}
+	saved, err := g.catalog.UpsertModel(ctx, current)
+	if err != nil {
+		return domain.Model{}, fmt.Errorf("update model: %w", err)
+	}
+	return saved, nil
+}
+
 // DeleteModel removes a model by slug. Refuses if the model is still
 // referenced by placements (catalog returns InvalidArgument upstream).
 func (g *Gateway) DeleteModel(ctx context.Context, slug string) error {
