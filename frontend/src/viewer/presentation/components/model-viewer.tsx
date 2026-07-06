@@ -20,7 +20,7 @@ import { usePanoramaCalibration } from "@/panorama/application/use-panorama-cali
 import { usePanoramas } from "@/panorama/application/use-panoramas";
 import type { Vec3 } from "@/shared/domain/vec3";
 import { notify } from "@/shared/presentation/toast/use-toast";
-import { useKeyboardShortcuts } from "@/viewer/application/use-keyboard-shortcuts";
+import { useViewerModeShortcuts } from "@/viewer/application/use-viewer-mode-shortcuts";
 import type { ModelMetadata } from "@/viewer/domain/model-metadata";
 import SceneCanvas from "@/viewer/presentation/three/scene-canvas";
 import UIOverlay from "@/viewer/presentation/components/ui-overlay";
@@ -81,6 +81,12 @@ export default function ModelViewer({
   // Read once here, outside the R3F Canvas — React context doesn't cross the
   // Canvas reconciler boundary, so the gizmo gate must arrive as a prop.
   const canEditPlacements = useCan()("placement:write");
+  // Panorama "Move" mode commit = the same optimistic PUT the edit panel
+  // uses; only position changes (title/yaw preserved by patch semantics).
+  const onCommitPanorama = useCallback(
+    (id: number, position: Vec3) => updatePanoramaState(id, { position }),
+    [updatePanoramaState],
+  );
   const [resetVersion, setResetVersion] = useState(0);
   // Surface magnetism: when true, the translate gizmo glues the placement
   // to the territory Y under it. When false, the same raycast acts as a
@@ -109,33 +115,22 @@ export default function ModelViewer({
     return total;
   }, [measure.chains]);
 
-  // Entering measure mode drops the gizmo target so a stray drag can't
-  // move a placement while the user is just picking a point.
-  const handleToggleMeasure = useCallback(() => {
-    if (!measure.measureMode) editor.setSelectedId(null);
-    measure.toggle();
-  }, [editor, measure]);
-
-  // Esc behaves layered: an open chain breaks first, the next press
-  // exits measure mode (and deselects any placement).
-  const handleEscape = useCallback(() => {
-    if (measure.measureMode && measure.activeChainId != null) {
-      measure.cancelChain();
-      return;
-    }
-    editor.setSelectedId(null);
-    measure.exit();
-  }, [editor, measure]);
-
-  useKeyboardShortcuts({
-    Escape: handleEscape,
-    m: handleToggleMeasure,
-    t: () => editor.setMode("translate"),
-    r: () => editor.setMode("rotate"),
-    s: () => editor.setMode("scale"),
-    g: toggleSnap,
-    p: panorama.cycle,
-  });
+  // Scene interaction modes (gizmo / measure / panorama Move), their mutual
+  // exclusion, and keyboard bindings live in one hook so this component stays
+  // compositional. panoramaDrag drives the in-scene marker drag.
+  const { handleToggleMeasure, handleToggleMove, panoramaDrag } =
+    useViewerModeShortcuts({
+      setSelectedId: editor.setSelectedId,
+      setMode: editor.setMode,
+      measureMode: measure.measureMode,
+      activeChainId: measure.activeChainId,
+      toggleMeasure: measure.toggle,
+      exitMeasure: measure.exit,
+      cancelChain: measure.cancelChain,
+      toggleSnap,
+      cyclePanorama: panorama.cycle,
+      onCommitPanorama,
+    });
 
   return (
     // A document opens in a floating PiP window (scene stays live so objects
@@ -154,6 +149,7 @@ export default function ModelViewer({
         activePanorama={calibration.effective ?? panorama.activePanorama}
         panoramas={panoramas}
         onActivatePanorama={panorama.activate}
+        panoramaMove={panoramaDrag}
         showMarkers={showMarkers}
         calibrating={calibration.calibrating}
         panoramaOpacity={calibration.opacity}
@@ -217,6 +213,8 @@ export default function ModelViewer({
               calibration={calibration}
               markersVisible={showMarkers}
               onToggleMarkers={toggleMarkers}
+              moveMode={panoramaDrag.moveMode}
+              onToggleMove={handleToggleMove}
               onSavePanorama={updatePanoramaState}
               onDeletePanorama={removePanorama}
             />

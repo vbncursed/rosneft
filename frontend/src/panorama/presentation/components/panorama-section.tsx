@@ -29,6 +29,10 @@ interface PanoramaSectionProps {
   // Whether the in-scene panorama markers (clickable points in 3D) are shown.
   markersVisible: boolean;
   onToggleMarkers: () => void;
+  // Panorama "Move" mode: drag markers on the mesh. Toggled here; gated on
+  // panorama:write (same as the other edit affordances in this section).
+  moveMode: boolean;
+  onToggleMove: () => void;
   onSavePanorama: (
     id: number,
     patch: { position?: Vec3; yawOffset?: number },
@@ -55,6 +59,8 @@ export default function PanoramaSection({
   calibration,
   markersVisible,
   onToggleMarkers,
+  moveMode,
+  onToggleMove,
   onSavePanorama,
   onDeletePanorama,
 }: PanoramaSectionProps) {
@@ -94,6 +100,38 @@ export default function PanoramaSection({
           className="cursor-pointer rounded-md border border-white/15 px-3 py-1.5 text-[11px] text-neutral-200 transition-colors hover:border-cyan-400/60 hover:text-cyan-200"
         >
           {markersVisible ? "Hide panorama points" : "Show panorama points"}
+        </button>
+      ) : null}
+
+      {canWrite && panoramas.length > 0 ? (
+        <button
+          type="button"
+          onClick={onToggleMove}
+          aria-pressed={moveMode}
+          title="Drag panorama points on the model (V)"
+          className={`flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-[11px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
+            moveMode
+              ? "border-cyan-300/60 bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/20"
+              : "border-white/15 text-neutral-200 hover:border-cyan-400/60 hover:text-cyan-200"
+          }`}
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 3v18M3 12h18M12 3l-2.5 2.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5" />
+          </svg>
+          <span>{moveMode ? "Moving points" : "Move points"}</span>
+          <kbd className="rounded border border-current/40 px-1 text-[10px] opacity-70">
+            V
+          </kbd>
         </button>
       ) : null}
 
