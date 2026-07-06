@@ -1,10 +1,16 @@
 import { useState } from "react";
 import { Html } from "@react-three/drei";
 import type { Panorama } from "@/panorama/domain/panorama";
+import type { Vec3 } from "@/shared/domain/vec3";
 
 interface PanoramaMarkerProps {
   panorama: Panorama;
   onActivate: (id: number) => void;
+  // Move-mode drag (all optional; default = today's click-to-enter behavior).
+  moveMode?: boolean;
+  dragging?: boolean;
+  livePos?: Vec3 | null;
+  onGrab?: (id: number) => void;
 }
 
 // PanoramaMarker is a glass "beacon" at a panorama's anchor: a glowing cyan
@@ -17,9 +23,16 @@ interface PanoramaMarkerProps {
 export default function PanoramaMarker({
   panorama,
   onActivate,
+  moveMode = false,
+  dragging = false,
+  livePos = null,
+  onGrab,
 }: PanoramaMarkerProps) {
   const [hovered, setHovered] = useState(false);
-  const { x, y, z } = panorama.position;
+  // While this marker is being dragged, render it at the live surface point
+  // so it tracks the cursor; otherwise at its saved anchor.
+  const pos = dragging && livePos ? livePos : panorama.position;
+  const { x, y, z } = pos;
 
   return (
     <Html position={[x, y, z]} center zIndexRange={[20, 10]}>
@@ -34,14 +47,36 @@ export default function PanoramaMarker({
 
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onActivate(panorama.id);
-          }}
+          onPointerDown={
+            moveMode
+              ? (e) => {
+                  e.stopPropagation();
+                  onGrab?.(panorama.id);
+                }
+              : undefined
+          }
+          onClick={
+            moveMode
+              ? undefined
+              : (e) => {
+                  e.stopPropagation();
+                  onActivate(panorama.id);
+                }
+          }
           onPointerEnter={() => setHovered(true)}
           onPointerLeave={() => setHovered(false)}
-          aria-label={`Open panorama ${panorama.title}`}
-          className="group relative grid h-6 w-6 cursor-pointer place-items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+          aria-label={
+            moveMode
+              ? `Move panorama ${panorama.title}`
+              : `Open panorama ${panorama.title}`
+          }
+          className={`group relative grid h-6 w-6 place-items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
+            moveMode
+              ? dragging
+                ? "cursor-grabbing"
+                : "cursor-grab"
+              : "cursor-pointer"
+          } ${dragging ? "pointer-events-none" : ""}`}
         >
           <span
             aria-hidden="true"
