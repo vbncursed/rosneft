@@ -18,10 +18,8 @@ import type {
 } from "@/placement/domain/placement";
 import PlacementsLayer from "@/placement/presentation/three/placements-layer";
 import type { Panorama } from "@/panorama/domain/panorama";
-import PanoramaSphere from "@/panorama/presentation/three/panorama-sphere";
-import PanoramaErrorBoundary from "@/panorama/presentation/components/panorama-error-boundary";
-import PanoramaMarkersLayer from "@/panorama/presentation/three/panorama-markers-layer";
-import PanoramaRig from "@/panorama/presentation/three/panorama-rig";
+import type { PanoramaDragApi } from "@/panorama/application/use-panorama-drag";
+import PanoramaSceneLayer from "@/panorama/presentation/three/panorama-scene-layer";
 import CameraPositionTracker from "@/panorama/presentation/three/camera-position-tracker";
 import type { Vec3 } from "@/shared/domain/vec3";
 import type { RefObject } from "react";
@@ -66,6 +64,9 @@ interface SceneCanvasProps {
   // Full panorama list + activator for the in-scene markers shown in 3D view.
   panoramas: Panorama[];
   onActivatePanorama: (id: number) => void;
+  // Panorama "Move" mode as one cohesive object. Optional so the scene
+  // behaves exactly as before until ModelViewer opts in.
+  panoramaMove?: PanoramaDragApi;
   // Toggles the in-scene panorama markers (the clickable points in 3D).
   showMarkers: boolean;
   // Overlay-calibration: show the model under a ghosted, semi-transparent
@@ -103,6 +104,7 @@ export default function SceneCanvas({
   activePanorama,
   panoramas,
   onActivatePanorama,
+  panoramaMove,
   showMarkers,
   calibrating,
   panoramaOpacity,
@@ -171,6 +173,20 @@ export default function SceneCanvas({
     [measureMode, onMeasureClick],
   );
 
+  // While dragging a panorama marker, project the cursor onto the territory
+  // surface (first hit) and report it. Same point source as the measure
+  // tool. Early-returns when not dragging so normal hovering pays nothing.
+  const handlePointerMove = useCallback(
+    (event: ThreeEvent<PointerEvent>) => {
+      if (!panoramaMove?.moveMode || panoramaMove.draggingId == null) return;
+      const hit = event.intersections[0]?.point;
+      if (!hit) return;
+      event.stopPropagation();
+      panoramaMove.move({ x: hit.x, y: hit.y, z: hit.z });
+    },
+    [panoramaMove],
+  );
+
   return (
     <Canvas
       camera={CAMERA}
@@ -198,7 +214,7 @@ export default function SceneCanvas({
       {/* Always wire the click handler — handleSceneClick early-returns when
           measureMode is off. Toggling between defined/undefined would force
           the group to re-attach DOM listeners on every mode change. */}
-      <group onClick={handleSceneClick}>
+      <group onClick={handleSceneClick} onPointerMove={handlePointerMove}>
         {/* `observe` would re-fit the camera every time <Detailed> swaps
             an LOD child (its bbox change is what observe watches). That
             fights OrbitControls during a wheel zoom and reads as a freeze
@@ -211,33 +227,22 @@ export default function SceneCanvas({
             valid across panorama toggles. */}
         <Bounds fit clip margin={1.2}>
           <group visible={!activePanorama || calibrating}>
-            <GltfModel lods={parentLods} raycastable={measureMode} groupRef={territoryRef} />
+            <GltfModel lods={parentLods} raycastable={measureMode || !!panoramaMove?.moveMode} groupRef={territoryRef} />
           </group>
         </Bounds>
 
-        {activePanorama && (
-          <Suspense fallback={null}>
-            <PanoramaErrorBoundary
-              key={activePanorama.id}
-              panoramaId={activePanorama.id}
-              onError={onPanoramaError}
-            >
-              <PanoramaSphere
-                panorama={activePanorama}
-                meshRef={panoramaRef}
-                opacity={calibrating ? panoramaOpacity : 1}
-              />
-            </PanoramaErrorBoundary>
-            <PanoramaRig panorama={activePanorama} />
-          </Suspense>
-        )}
-
-        {!activePanorama && !measureMode && showMarkers && (
-          <PanoramaMarkersLayer
-            panoramas={panoramas}
-            onActivate={onActivatePanorama}
-          />
-        )}
+        <PanoramaSceneLayer
+          activePanorama={activePanorama}
+          panoramaRef={panoramaRef}
+          calibrating={calibrating}
+          panoramaOpacity={panoramaOpacity}
+          onPanoramaError={onPanoramaError}
+          panoramas={panoramas}
+          onActivatePanorama={onActivatePanorama}
+          showMarkers={showMarkers}
+          measureMode={measureMode}
+          move={panoramaMove}
+        />
 
         <Suspense fallback={null}>
           <PlacementsLayer

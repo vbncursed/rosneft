@@ -62,3 +62,7 @@ export function usePanoramaDrag(
     end: endDrag,
   };
 }
+
+// The hook's public surface, threaded through the R3F scene as one cohesive
+// "panorama move" prop instead of six loose primitives.
+export type PanoramaDragApi = ReturnType<typeof usePanoramaDrag>;
