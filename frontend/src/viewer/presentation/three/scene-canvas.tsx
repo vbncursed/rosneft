@@ -227,7 +227,7 @@ export default function SceneCanvas({
             valid across panorama toggles. */}
         <Bounds fit clip margin={1.2}>
           <group visible={!activePanorama || calibrating}>
-            <GltfModel lods={parentLods} raycastable={measureMode || !!panoramaMove?.moveMode} groupRef={territoryRef} />
+            <GltfModel lods={parentLods} raycastable={measureMode || panoramaMove?.draggingId != null} groupRef={territoryRef} />
           </group>
         </Bounds>
 
