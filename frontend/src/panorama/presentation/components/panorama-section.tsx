@@ -172,7 +172,10 @@ export default function PanoramaSection({
         />
       ) : editingPanorama ? (
         <PanoramaEditPanel
-          key={editingPanorama.id}
+          // Re-key on position too, not just id: a "Move points" drag commits
+          // a new position onto this same panorama. Without it the panel keeps
+          // its stale seeded position, so Save anchor would revert the drag.
+          key={`${editingPanorama.id}:${editingPanorama.position.x},${editingPanorama.position.y},${editingPanorama.position.z}`}
           panorama={editingPanorama}
           cameraPositionRef={cameraPositionRef}
           inPanoramaMode={inPanoramaMode}
