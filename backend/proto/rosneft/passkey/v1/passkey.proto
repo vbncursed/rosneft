@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package rosneft.passkey.v1;
+
+option go_package = "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/passkey/v1;passkeyv1";
+
+// PasskeyService owns WebAuthn credentials + ceremonies. It NEVER mints a
+// session. The gateway calls the management RPCs (token-authenticated, resolved
+// via auth.GetMe). auth-service calls the login RPCs during passwordless login;
+// FinishLogin returns a VERIFIED user id, and auth mints the session.
+service PasskeyService {
+  // Management surface (gateway-called, token-authenticated).
+  rpc BeginRegistration(BeginRegistrationRequest) returns (BeginRegistrationResponse);
+  rpc FinishRegistration(FinishRegistrationRequest) returns (FinishRegistrationResponse);
+  rpc ListCredentials(ListCredentialsRequest) returns (ListCredentialsResponse);
+  rpc DeleteCredential(DeleteCredentialRequest) returns (DeleteCredentialResponse);
+
+  // Internal surface (auth-service-called during login; no token).
+  rpc BeginLogin(BeginLoginRequest) returns (BeginLoginResponse);
+  rpc FinishLogin(FinishLoginRequest) returns (FinishLoginResponse);
+}
+
+// options_json is the raw PublicKeyCredentialCreationOptions/RequestOptions
+// JSON the browser feeds to navigator.credentials. flow_id keys the stashed
+// ceremony state (challenge) in Redis.
+message BeginRegistrationRequest { string token = 1; }
+message BeginRegistrationResponse {
+  string options_json = 1;
+  string flow_id = 2;
+}
+message FinishRegistrationRequest {
+  string token = 1;
+  string flow_id = 2;
+  string credential_json = 3; // navigator.credentials.create() result, JSON
+  string name = 4;            // user-supplied label, e.g. "MacBook Touch ID"
+}
+message FinishRegistrationResponse { Credential credential = 1; }
+
+message ListCredentialsRequest { string token = 1; }
+message ListCredentialsResponse { repeated Credential credentials = 1; }
+
+message DeleteCredentialRequest {
+  string token = 1;
+  string credential_id = 2; // base64url credential id
+}
+message DeleteCredentialResponse {}
+
+message BeginLoginRequest {}
+message BeginLoginResponse {
+  string options_json = 1;
+  string flow_id = 2;
+}
+message FinishLoginRequest {
+  string flow_id = 1;
+  string assertion_json = 2; // navigator.credentials.get() result, JSON
+}
+message FinishLoginResponse { string user_id = 1; } // verified; NOT a session
+
+message Credential {
+  string id = 1;           // base64url credential id
+  string name = 2;
+  string created_at = 3;   // RFC3339
+  string last_used_at = 4; // RFC3339, empty if never used
+}

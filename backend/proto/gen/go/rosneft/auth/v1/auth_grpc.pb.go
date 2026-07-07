@@ -21,6 +21,8 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	AuthService_Login_FullMethodName              = "/rosneft.auth.v1.AuthService/Login"
 	AuthService_LoginVerify2FA_FullMethodName     = "/rosneft.auth.v1.AuthService/LoginVerify2FA"
+	AuthService_PasskeyLoginBegin_FullMethodName  = "/rosneft.auth.v1.AuthService/PasskeyLoginBegin"
+	AuthService_PasskeyLoginFinish_FullMethodName = "/rosneft.auth.v1.AuthService/PasskeyLoginFinish"
 	AuthService_Logout_FullMethodName             = "/rosneft.auth.v1.AuthService/Logout"
 	AuthService_ValidateToken_FullMethodName      = "/rosneft.auth.v1.AuthService/ValidateToken"
 	AuthService_GetMe_FullMethodName              = "/rosneft.auth.v1.AuthService/GetMe"
@@ -53,6 +55,8 @@ type AuthServiceClient interface {
 	// --- session / login ---
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	LoginVerify2FA(ctx context.Context, in *LoginVerify2FARequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	PasskeyLoginBegin(ctx context.Context, in *PasskeyLoginBeginRequest, opts ...grpc.CallOption) (*PasskeyLoginBeginResponse, error)
+	PasskeyLoginFinish(ctx context.Context, in *PasskeyLoginFinishRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	ValidateToken(ctx context.Context, in *ValidateTokenRequest, opts ...grpc.CallOption) (*ValidateTokenResponse, error)
 	// --- self ---
@@ -99,6 +103,26 @@ func (c *authServiceClient) LoginVerify2FA(ctx context.Context, in *LoginVerify2
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(LoginResponse)
 	err := c.cc.Invoke(ctx, AuthService_LoginVerify2FA_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) PasskeyLoginBegin(ctx context.Context, in *PasskeyLoginBeginRequest, opts ...grpc.CallOption) (*PasskeyLoginBeginResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PasskeyLoginBeginResponse)
+	err := c.cc.Invoke(ctx, AuthService_PasskeyLoginBegin_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) PasskeyLoginFinish(ctx context.Context, in *PasskeyLoginFinishRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LoginResponse)
+	err := c.cc.Invoke(ctx, AuthService_PasskeyLoginFinish_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -306,6 +330,8 @@ type AuthServiceServer interface {
 	// --- session / login ---
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	LoginVerify2FA(context.Context, *LoginVerify2FARequest) (*LoginResponse, error)
+	PasskeyLoginBegin(context.Context, *PasskeyLoginBeginRequest) (*PasskeyLoginBeginResponse, error)
+	PasskeyLoginFinish(context.Context, *PasskeyLoginFinishRequest) (*LoginResponse, error)
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	ValidateToken(context.Context, *ValidateTokenRequest) (*ValidateTokenResponse, error)
 	// --- self ---
@@ -343,6 +369,12 @@ func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*Lo
 }
 func (UnimplementedAuthServiceServer) LoginVerify2FA(context.Context, *LoginVerify2FARequest) (*LoginResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method LoginVerify2FA not implemented")
+}
+func (UnimplementedAuthServiceServer) PasskeyLoginBegin(context.Context, *PasskeyLoginBeginRequest) (*PasskeyLoginBeginResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PasskeyLoginBegin not implemented")
+}
+func (UnimplementedAuthServiceServer) PasskeyLoginFinish(context.Context, *PasskeyLoginFinishRequest) (*LoginResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PasskeyLoginFinish not implemented")
 }
 func (UnimplementedAuthServiceServer) Logout(context.Context, *LogoutRequest) (*LogoutResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Logout not implemented")
@@ -454,6 +486,42 @@ func _AuthService_LoginVerify2FA_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthServiceServer).LoginVerify2FA(ctx, req.(*LoginVerify2FARequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_PasskeyLoginBegin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PasskeyLoginBeginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).PasskeyLoginBegin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_PasskeyLoginBegin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).PasskeyLoginBegin(ctx, req.(*PasskeyLoginBeginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_PasskeyLoginFinish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PasskeyLoginFinishRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).PasskeyLoginFinish(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_PasskeyLoginFinish_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).PasskeyLoginFinish(ctx, req.(*PasskeyLoginFinishRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -814,6 +882,14 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "LoginVerify2FA",
 			Handler:    _AuthService_LoginVerify2FA_Handler,
+		},
+		{
+			MethodName: "PasskeyLoginBegin",
+			Handler:    _AuthService_PasskeyLoginBegin_Handler,
+		},
+		{
+			MethodName: "PasskeyLoginFinish",
+			Handler:    _AuthService_PasskeyLoginFinish_Handler,
 		},
 		{
 			MethodName: "Logout",
