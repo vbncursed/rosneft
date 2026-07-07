@@ -39,6 +39,7 @@ services:
       content: { condition: service_started }
       auth: { condition: service_started }
       twofa: { condition: service_started }
+      passkey: { condition: service_started }
       mesh-api: { condition: service_started }
       upload: { condition: service_started }
       asset: { condition: service_started }
@@ -48,6 +49,7 @@ services:
       GATEWAY_CONTENT_GRPC_ADDR: "content:9007"
       GATEWAY_AUTH_GRPC_ADDR: "auth:9004"
       GATEWAY_TWOFA_GRPC_ADDR: "twofa:9006"
+      GATEWAY_PASSKEY_GRPC_ADDR: "passkey:9008"
       GATEWAY_MESH_GRPC_ADDR: "mesh-api:9002"
       GATEWAY_UPLOAD_GRPC_ADDR: "upload:9003"
       GATEWAY_ASSET_HTTP_ADDR: "http://asset:8081"
@@ -89,6 +91,7 @@ services:
       AUTH_REDIS_ADDR: "redis:6379"
       AUTH_REDIS_DB: "1"
       AUTH_TWOFA_GRPC_ADDR: "twofa:9006"
+      AUTH_PASSKEY_GRPC_ADDR: "passkey:9008"
       # CHANGE IN PROD: inject a strong bootstrap password via the deploy
       # environment; this is local-only.
       AUTH_BOOTSTRAP_EMAIL: "admin@rosneft.local"
@@ -117,6 +120,29 @@ services:
       # deploy environment; this local-only value encrypts TOTP secrets at rest.
       TWOFA_SECRET_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
       TWOFA_LOG_LEVEL: "info"
+
+  passkey:
+    build:
+      context: ./backend
+      dockerfile: services/passkey-service/Dockerfile
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    expose:
+      - "9008"
+    environment:
+      PASSKEY_GRPC_ADDR: ":9008"
+      # Shares the andrey DB with catalog/auth/twofa; isolated by passkey_goose_db_version.
+      PASSKEY_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
+      PASSKEY_REDIS_ADDR: "redis:6379"
+      PASSKEY_REDIS_DB: "3"
+      PASSKEY_AUTH_GRPC_ADDR: "auth:9004"
+      # CHANGE IN PROD: RP_ID must equal the domain in the browser address bar,
+      # RP_ORIGINS the full scheme+host. Prod: andrey.vbncursed.fun / https://andrey.vbncursed.fun
+      PASSKEY_RP_ID: "localhost"
+      PASSKEY_RP_ORIGINS: "http://localhost:3000"
+      PASSKEY_RP_NAME: "Andrey"
+      PASSKEY_LOG_LEVEL: "info"
 
   content:
     build:
