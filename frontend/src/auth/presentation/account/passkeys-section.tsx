@@ -7,6 +7,15 @@ import { notify } from "@/shared/presentation/toast/use-toast";
 
 const cardCls = "flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur";
 
+// fmtDate renders an RFC3339 timestamp as dd.mm.yyyy, or "" if unparseable.
+function fmtDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}.${mm}.${d.getFullYear()}`;
+}
+
 export default function PasskeysSection() {
   const [keys, setKeys] = useState<Passkey[]>([]);
   const [busy, setBusy] = useState(false);
@@ -34,6 +43,7 @@ export default function PasskeysSection() {
   }
 
   async function remove(id: string) {
+    if (!window.confirm("Remove this passkey? You won't be able to sign in with it anymore.")) return;
     try {
       await deletePasskey(id);
       setKeys((k) => k.filter((x) => x.id !== id));
@@ -59,7 +69,7 @@ export default function PasskeysSection() {
                 <li key={k.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 px-4 py-3">
                   <div>
                     <p className="text-sm text-white">{k.name}</p>
-                    <p className="text-[11px] text-neutral-500">Added {k.createdAt.slice(0, 10)}{k.lastUsedAt ? ` · last used ${k.lastUsedAt.slice(0, 10)}` : ""}</p>
+                    <p className="text-[11px] text-neutral-500">Added {fmtDate(k.createdAt)}{k.lastUsedAt ? ` · last used ${fmtDate(k.lastUsedAt)}` : ""}</p>
                   </div>
                   <button type="button" onClick={() => remove(k.id)} className="cursor-pointer rounded-full border border-red-300/40 bg-red-500/10 px-4 py-1.5 text-[10px] uppercase tracking-[0.18em] text-red-200 hover:bg-red-500/20">Remove</button>
                 </li>

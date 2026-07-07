@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/vbncursed/rosneft/backend/services/passkey-service/internal/ceremony"
 	"github.com/vbncursed/rosneft/backend/services/passkey-service/internal/domain"
@@ -66,6 +67,9 @@ func (s *Service) FinishRegistration(ctx context.Context, userID, flowID, creden
 		BackupEligible: cred.Flags.BackupEligible,
 		BackupState:    cred.Flags.BackupState,
 		Name:           name,
+		// The DB stamps created_at via DEFAULT now(); mirror it here so the
+		// response shows the real date before the client re-fetches the list.
+		CreatedAt: time.Now().UTC(),
 	}
 	if err := s.store.Create(ctx, dc); err != nil {
 		return domain.Credential{}, err
