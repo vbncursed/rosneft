@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Panorama } from "@/panorama/domain/panorama";
 import type { CalibrationDraft } from "@/panorama/domain/calibration";
+import QuantityStepper from "@/placement/presentation/components/quantity-stepper";
 
 interface PanoramaCalibrationPanelProps {
   panorama: Panorama;
@@ -125,14 +126,12 @@ export default function PanoramaCalibrationPanel({
           <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">
             Yaw
           </span>
-          <input
-            type="number"
-            aria-label="Yaw offset in degrees"
+          <QuantityStepper
+            ariaLabel="Yaw offset in degrees"
+            min={0}
+            max={360}
             value={deg}
-            onChange={(e) =>
-              onSetYaw((Number.parseFloat(e.target.value) || 0) / RAD_TO_DEG)
-            }
-            className="w-16 rounded border border-white/10 bg-white/[0.04] px-1 py-0.5 text-right text-[11px] text-neutral-200"
+            onChange={(d) => onSetYaw(d / RAD_TO_DEG)}
           />
         </div>
         <input
