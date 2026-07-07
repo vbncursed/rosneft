@@ -26,8 +26,10 @@ export async function listPasskeys(): Promise<Passkey[]> {
   return r.credentials ?? [];
 }
 
-export function deletePasskey(id: string): Promise<void> {
-  return httpDelete(`/api/auth/passkey/credentials/${encodeURIComponent(id)}`);
+// deletePasskey requires step-up re-auth: pass { code } when the user has 2FA,
+// otherwise { password }. The gateway verifies before removing the credential.
+export function deletePasskey(id: string, credential: { password?: string; code?: string }): Promise<void> {
+  return httpDelete(`/api/auth/passkey/credentials/${encodeURIComponent(id)}`, credential);
 }
 
 // Public login — dedicated BFF routes that set the session cookie on finish.

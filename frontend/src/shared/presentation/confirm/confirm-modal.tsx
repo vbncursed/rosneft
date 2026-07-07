@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ConfirmRequest } from "@/shared/presentation/confirm/confirm";
 import {
   getServerSnapshot,
@@ -19,24 +19,28 @@ export default function ConfirmModal() {
 
 function Dialog({ request }: { request: ConfirmRequest }) {
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [value, setValue] = useState("");
+  const field = request.field;
+  const canConfirm = !field || value.trim().length > 0;
 
-  // Esc → cancel, Enter → confirm. Keeps the dialog keyboard-driven
-  // without a focus trap library. Body scroll is frozen while the
-  // modal is up to avoid scroll-jacking under the overlay.
+  // Esc → cancel always. Enter → confirm only for a plain confirm; when the
+  // dialog has a field the input's own onKeyDown submits with the typed value
+  // (the global listener's closure can't see the latest input state).
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    cancelRef.current?.focus();
+    (field ? inputRef.current : cancelRef.current)?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") resolveActive(false);
-      else if (e.key === "Enter") resolveActive(true);
+      else if (e.key === "Enter" && !field) resolveActive(true);
     };
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, []);
+  }, [field]);
 
   const confirmTone = request.danger
     ? "border-red-300/40 bg-red-500/15 text-red-100 hover:bg-red-500/25"
@@ -62,6 +66,21 @@ function Dialog({ request }: { request: ConfirmRequest }) {
           </h2>
         ) : null}
         <p className="text-sm leading-6 text-neutral-300">{request.message}</p>
+        {field ? (
+          <input
+            ref={inputRef}
+            type={field.type === "password" ? "password" : "text"}
+            inputMode={field.type === "code" ? "numeric" : undefined}
+            autoComplete={field.type === "password" ? "current-password" : field.type === "code" ? "one-time-code" : "off"}
+            placeholder={field.placeholder}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && canConfirm) resolveActive(true, value);
+            }}
+            className="rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none transition-colors focus:border-cyan-300/60"
+          />
+        ) : null}
         <div className="mt-2 flex justify-end gap-2">
           <button
             ref={cancelRef}
@@ -73,8 +92,9 @@ function Dialog({ request }: { request: ConfirmRequest }) {
           </button>
           <button
             type="button"
-            onClick={() => resolveActive(true)}
-            className={`cursor-pointer rounded-md border px-4 py-1.5 text-sm font-medium transition-colors ${confirmTone}`}
+            disabled={!canConfirm}
+            onClick={() => resolveActive(true, value)}
+            className={`cursor-pointer rounded-md border px-4 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${confirmTone}`}
           >
             {request.confirmLabel ?? "Confirm"}
           </button>

@@ -28,3 +28,11 @@ func (s *Server) ChangePassword(ctx context.Context, req *authv1.ChangePasswordR
 	}
 	return &authv1.ChangePasswordResponse{}, nil
 }
+
+func (s *Server) VerifyPassword(ctx context.Context, req *authv1.VerifyPasswordRequest) (*authv1.VerifyPasswordResponse, error) {
+	ok, err := s.auth.VerifyPassword(ctx, req.GetToken(), req.GetPassword())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &authv1.VerifyPasswordResponse{Valid: ok}, nil
+}

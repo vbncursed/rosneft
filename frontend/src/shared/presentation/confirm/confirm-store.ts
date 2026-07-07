@@ -7,7 +7,7 @@ import type {
 // user's choice back to the caller. Kept private to the store.
 interface Pending {
   request: ConfirmRequest;
-  resolve: (decision: boolean) => void;
+  resolve: (decision: boolean, value: string) => void;
 }
 
 // Module-level singleton — same rationale as the toast store. One
@@ -26,23 +26,33 @@ function shift() {
   emit();
 }
 
+function enqueue(pending: Pending) {
+  if (active) queue.push(pending);
+  else {
+    active = pending;
+    emit();
+  }
+}
+
 export function ask(input: ConfirmInput): Promise<boolean> {
   return new Promise((resolve) => {
-    const pending: Pending = {
-      request: { ...input, id: nextId++ },
-      resolve,
-    };
-    if (active) queue.push(pending);
-    else {
-      active = pending;
-      emit();
-    }
+    enqueue({ request: { ...input, id: nextId++ }, resolve: (decision) => resolve(decision) });
   });
 }
 
-export function resolveActive(decision: boolean): void {
+// askInput resolves to the entered value on confirm, or null on cancel.
+export function askInput(input: ConfirmInput): Promise<string | null> {
+  return new Promise((resolve) => {
+    enqueue({
+      request: { ...input, id: nextId++ },
+      resolve: (decision, value) => resolve(decision ? value : null),
+    });
+  });
+}
+
+export function resolveActive(decision: boolean, value = ""): void {
   if (!active) return;
-  active.resolve(decision);
+  active.resolve(decision, value);
   shift();
 }
 

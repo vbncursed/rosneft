@@ -42,3 +42,13 @@ func (c *Client) IsEnabled(ctx context.Context, userID string) (bool, error) {
 	}
 	return resp.GetEnabled(), nil
 }
+
+// Verify checks a TOTP/recovery code for a user (step-up factor). Wraps the
+// internal Verify RPC; twofa-service rate-limits failed attempts.
+func (c *Client) Verify(ctx context.Context, userID, code string) (bool, error) {
+	resp, err := c.cc.Verify(ctx, &twofav1.VerifyRequest{UserId: userID, Code: code})
+	if err != nil {
+		return false, err
+	}
+	return resp.GetValid(), nil
+}

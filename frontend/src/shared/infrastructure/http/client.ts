@@ -106,6 +106,15 @@ export function httpPatch<T>(path: string, body: unknown): Promise<T> {
   );
 }
 
-export function httpDelete(path: string): Promise<void> {
-  return send<void>(path, { method: "DELETE" }, false);
+export function httpDelete(path: string, body?: unknown): Promise<void> {
+  const hasBody = body !== undefined;
+  return send<void>(
+    path,
+    {
+      method: "DELETE",
+      headers: hasBody ? { "Content-Type": "application/json" } : undefined,
+      body: hasBody ? JSON.stringify(body) : undefined,
+    },
+    false,
+  );
 }

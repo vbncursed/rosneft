@@ -370,6 +370,15 @@ type PasskeyCredential struct {
 	Name       *string `json:"name,omitempty"`
 }
 
+// PasskeyDeleteRequest defines model for PasskeyDeleteRequest.
+type PasskeyDeleteRequest struct {
+	// Code TOTP or recovery code
+	Code *string `json:"code,omitempty"`
+
+	// Password sent when 2FA is off
+	Password *string `json:"password,omitempty"`
+}
+
 // PasskeyListResponse defines model for PasskeyListResponse.
 type PasskeyListResponse struct {
 	Credentials *[]PasskeyCredential `json:"credentials,omitempty"`
