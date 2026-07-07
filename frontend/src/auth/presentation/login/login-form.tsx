@@ -35,6 +35,20 @@ export default function LoginForm() {
     finally { setBusy(false); }
   }
 
+  async function signInWithPasskey() {
+    setBusy(true); setError("");
+    try {
+      const { loginBegin, loginFinish } = await import("@/auth/infrastructure/passkey-gateway");
+      const { getAssertion } = await import("@/auth/infrastructure/webauthn");
+      const { optionsJson, flowId } = await loginBegin();
+      const assertionJson = await getAssertion(optionsJson);
+      await loginFinish(flowId, assertionJson);
+      window.location.assign(next);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Passkey sign-in failed");
+    } finally { setBusy(false); }
+  }
+
   async function submit2FA(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setError("");
@@ -76,6 +90,10 @@ export default function LoginForm() {
           <button type="submit" disabled={busy || !identifier || !password}
             className="mt-2 cursor-pointer rounded-full bg-white px-6 py-3 text-xs uppercase tracking-[0.2em] text-black transition-colors duration-200 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-white/30 disabled:text-white/50">
             {busy ? "Signing in…" : "Sign in"}
+          </button>
+          <button type="button" onClick={signInWithPasskey} disabled={busy}
+            className="cursor-pointer rounded-full border border-white/20 px-6 py-3 text-xs uppercase tracking-[0.2em] text-white transition-colors duration-200 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50">
+            {busy ? "…" : "Sign in with passkey"}
           </button>
         </form>
       ) : (
