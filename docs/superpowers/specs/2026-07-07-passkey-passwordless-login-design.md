@@ -57,10 +57,17 @@ caller from the forwarded bearer token.
 - **Redis ceremony state:** go-webauthn returns `SessionData` (the challenge) at
   begin that must persist until finish. Stored in Redis under a short TTL (~5
   min), keyed by an opaque flow-id. Required for usernameless begin (no user yet
-  → server-side state).
-- **RP config via env:** `PASSKEY_RP_ID` (domain), `PASSKEY_RP_ORIGINS`
-  (allowed origins), `PASSKEY_RP_NAME` (display name, brand "Andrey"). Dev =
-  `localhost`. This is a calibration knob for the production domain.
+  → server-side state). Reuses the **shared `redis:6379` container** on a new
+  logical DB: `PASSKEY_REDIS_DB=3` (auth=1, twofa=2 already taken). No new Redis
+  container — same pattern as twofa.
+- **RP config via env:**
+  - `PASSKEY_RP_ID` = `andrey.vbncursed.fun` (prod) / `localhost` (dev)
+  - `PASSKEY_RP_ORIGINS` = `https://andrey.vbncursed.fun` (prod) +
+    `http://localhost:3000` (dev)
+  - `PASSKEY_RP_NAME` = `Andrey`
+
+  The site is served at `https://andrey.vbncursed.fun` over HTTPS, so WebAuthn's
+  HTTPS+real-domain requirement is satisfied.
 - **gRPC surface** (`backend/proto/rosneft/passkey/v1/passkey.proto`):
   - `BeginRegistration(userToken)` → options + flowId. Validates token → user_id
     via auth; builds the WebAuthn user entity (username as display name).
