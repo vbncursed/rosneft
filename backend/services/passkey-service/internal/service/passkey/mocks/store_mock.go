@@ -40,12 +40,12 @@ type StoreMock struct {
 	beforeListByUserCounter uint64
 	ListByUserMock          mStoreMockListByUser
 
-	funcUpdateSignCount          func(ctx context.Context, credID []byte, count uint32) (err error)
-	funcUpdateSignCountOrigin    string
-	inspectFuncUpdateSignCount   func(ctx context.Context, credID []byte, count uint32)
-	afterUpdateSignCountCounter  uint64
-	beforeUpdateSignCountCounter uint64
-	UpdateSignCountMock          mStoreMockUpdateSignCount
+	funcUpdateAfterLogin          func(ctx context.Context, credID []byte, count uint32, backupState bool) (err error)
+	funcUpdateAfterLoginOrigin    string
+	inspectFuncUpdateAfterLogin   func(ctx context.Context, credID []byte, count uint32, backupState bool)
+	afterUpdateAfterLoginCounter  uint64
+	beforeUpdateAfterLoginCounter uint64
+	UpdateAfterLoginMock          mStoreMockUpdateAfterLogin
 }
 
 // NewStoreMock returns a mock for mm_passkey.Store
@@ -65,8 +65,8 @@ func NewStoreMock(t minimock.Tester) *StoreMock {
 	m.ListByUserMock = mStoreMockListByUser{mock: m}
 	m.ListByUserMock.callArgs = []*StoreMockListByUserParams{}
 
-	m.UpdateSignCountMock = mStoreMockUpdateSignCount{mock: m}
-	m.UpdateSignCountMock.callArgs = []*StoreMockUpdateSignCountParams{}
+	m.UpdateAfterLoginMock = mStoreMockUpdateAfterLogin{mock: m}
+	m.UpdateAfterLoginMock.callArgs = []*StoreMockUpdateAfterLoginParams{}
 
 	t.Cleanup(m.MinimockFinish)
 
@@ -1131,55 +1131,58 @@ func (m *StoreMock) MinimockListByUserInspect() {
 	}
 }
 
-type mStoreMockUpdateSignCount struct {
+type mStoreMockUpdateAfterLogin struct {
 	optional           bool
 	mock               *StoreMock
-	defaultExpectation *StoreMockUpdateSignCountExpectation
-	expectations       []*StoreMockUpdateSignCountExpectation
+	defaultExpectation *StoreMockUpdateAfterLoginExpectation
+	expectations       []*StoreMockUpdateAfterLoginExpectation
 
-	callArgs []*StoreMockUpdateSignCountParams
+	callArgs []*StoreMockUpdateAfterLoginParams
 	mutex    sync.RWMutex
 
 	expectedInvocations       uint64
 	expectedInvocationsOrigin string
 }
 
-// StoreMockUpdateSignCountExpectation specifies expectation struct of the Store.UpdateSignCount
-type StoreMockUpdateSignCountExpectation struct {
+// StoreMockUpdateAfterLoginExpectation specifies expectation struct of the Store.UpdateAfterLogin
+type StoreMockUpdateAfterLoginExpectation struct {
 	mock               *StoreMock
-	params             *StoreMockUpdateSignCountParams
-	paramPtrs          *StoreMockUpdateSignCountParamPtrs
-	expectationOrigins StoreMockUpdateSignCountExpectationOrigins
-	results            *StoreMockUpdateSignCountResults
+	params             *StoreMockUpdateAfterLoginParams
+	paramPtrs          *StoreMockUpdateAfterLoginParamPtrs
+	expectationOrigins StoreMockUpdateAfterLoginExpectationOrigins
+	results            *StoreMockUpdateAfterLoginResults
 	returnOrigin       string
 	Counter            uint64
 }
 
-// StoreMockUpdateSignCountParams contains parameters of the Store.UpdateSignCount
-type StoreMockUpdateSignCountParams struct {
-	ctx    context.Context
-	credID []byte
-	count  uint32
+// StoreMockUpdateAfterLoginParams contains parameters of the Store.UpdateAfterLogin
+type StoreMockUpdateAfterLoginParams struct {
+	ctx         context.Context
+	credID      []byte
+	count       uint32
+	backupState bool
 }
 
-// StoreMockUpdateSignCountParamPtrs contains pointers to parameters of the Store.UpdateSignCount
-type StoreMockUpdateSignCountParamPtrs struct {
-	ctx    *context.Context
-	credID *[]byte
-	count  *uint32
+// StoreMockUpdateAfterLoginParamPtrs contains pointers to parameters of the Store.UpdateAfterLogin
+type StoreMockUpdateAfterLoginParamPtrs struct {
+	ctx         *context.Context
+	credID      *[]byte
+	count       *uint32
+	backupState *bool
 }
 
-// StoreMockUpdateSignCountResults contains results of the Store.UpdateSignCount
-type StoreMockUpdateSignCountResults struct {
+// StoreMockUpdateAfterLoginResults contains results of the Store.UpdateAfterLogin
+type StoreMockUpdateAfterLoginResults struct {
 	err error
 }
 
-// StoreMockUpdateSignCountOrigins contains origins of expectations of the Store.UpdateSignCount
-type StoreMockUpdateSignCountExpectationOrigins struct {
-	origin       string
-	originCtx    string
-	originCredID string
-	originCount  string
+// StoreMockUpdateAfterLoginOrigins contains origins of expectations of the Store.UpdateAfterLogin
+type StoreMockUpdateAfterLoginExpectationOrigins struct {
+	origin            string
+	originCtx         string
+	originCredID      string
+	originCount       string
+	originBackupState string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -1187,320 +1190,348 @@ type StoreMockUpdateSignCountExpectationOrigins struct {
 // Optional() makes method check to work in '0 or more' mode.
 // It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
 // catch the problems when the expected method call is totally skipped during test run.
-func (mmUpdateSignCount *mStoreMockUpdateSignCount) Optional() *mStoreMockUpdateSignCount {
-	mmUpdateSignCount.optional = true
-	return mmUpdateSignCount
+func (mmUpdateAfterLogin *mStoreMockUpdateAfterLogin) Optional() *mStoreMockUpdateAfterLogin {
+	mmUpdateAfterLogin.optional = true
+	return mmUpdateAfterLogin
 }
 
-// Expect sets up expected params for Store.UpdateSignCount
-func (mmUpdateSignCount *mStoreMockUpdateSignCount) Expect(ctx context.Context, credID []byte, count uint32) *mStoreMockUpdateSignCount {
-	if mmUpdateSignCount.mock.funcUpdateSignCount != nil {
-		mmUpdateSignCount.mock.t.Fatalf("StoreMock.UpdateSignCount mock is already set by Set")
+// Expect sets up expected params for Store.UpdateAfterLogin
+func (mmUpdateAfterLogin *mStoreMockUpdateAfterLogin) Expect(ctx context.Context, credID []byte, count uint32, backupState bool) *mStoreMockUpdateAfterLogin {
+	if mmUpdateAfterLogin.mock.funcUpdateAfterLogin != nil {
+		mmUpdateAfterLogin.mock.t.Fatalf("StoreMock.UpdateAfterLogin mock is already set by Set")
 	}
 
-	if mmUpdateSignCount.defaultExpectation == nil {
-		mmUpdateSignCount.defaultExpectation = &StoreMockUpdateSignCountExpectation{}
+	if mmUpdateAfterLogin.defaultExpectation == nil {
+		mmUpdateAfterLogin.defaultExpectation = &StoreMockUpdateAfterLoginExpectation{}
 	}
 
-	if mmUpdateSignCount.defaultExpectation.paramPtrs != nil {
-		mmUpdateSignCount.mock.t.Fatalf("StoreMock.UpdateSignCount mock is already set by ExpectParams functions")
+	if mmUpdateAfterLogin.defaultExpectation.paramPtrs != nil {
+		mmUpdateAfterLogin.mock.t.Fatalf("StoreMock.UpdateAfterLogin mock is already set by ExpectParams functions")
 	}
 
-	mmUpdateSignCount.defaultExpectation.params = &StoreMockUpdateSignCountParams{ctx, credID, count}
-	mmUpdateSignCount.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
-	for _, e := range mmUpdateSignCount.expectations {
-		if minimock.Equal(e.params, mmUpdateSignCount.defaultExpectation.params) {
-			mmUpdateSignCount.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdateSignCount.defaultExpectation.params)
+	mmUpdateAfterLogin.defaultExpectation.params = &StoreMockUpdateAfterLoginParams{ctx, credID, count, backupState}
+	mmUpdateAfterLogin.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmUpdateAfterLogin.expectations {
+		if minimock.Equal(e.params, mmUpdateAfterLogin.defaultExpectation.params) {
+			mmUpdateAfterLogin.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdateAfterLogin.defaultExpectation.params)
 		}
 	}
 
-	return mmUpdateSignCount
+	return mmUpdateAfterLogin
 }
 
-// ExpectCtxParam1 sets up expected param ctx for Store.UpdateSignCount
-func (mmUpdateSignCount *mStoreMockUpdateSignCount) ExpectCtxParam1(ctx context.Context) *mStoreMockUpdateSignCount {
-	if mmUpdateSignCount.mock.funcUpdateSignCount != nil {
-		mmUpdateSignCount.mock.t.Fatalf("StoreMock.UpdateSignCount mock is already set by Set")
+// ExpectCtxParam1 sets up expected param ctx for Store.UpdateAfterLogin
+func (mmUpdateAfterLogin *mStoreMockUpdateAfterLogin) ExpectCtxParam1(ctx context.Context) *mStoreMockUpdateAfterLogin {
+	if mmUpdateAfterLogin.mock.funcUpdateAfterLogin != nil {
+		mmUpdateAfterLogin.mock.t.Fatalf("StoreMock.UpdateAfterLogin mock is already set by Set")
 	}
 
-	if mmUpdateSignCount.defaultExpectation == nil {
-		mmUpdateSignCount.defaultExpectation = &StoreMockUpdateSignCountExpectation{}
+	if mmUpdateAfterLogin.defaultExpectation == nil {
+		mmUpdateAfterLogin.defaultExpectation = &StoreMockUpdateAfterLoginExpectation{}
 	}
 
-	if mmUpdateSignCount.defaultExpectation.params != nil {
-		mmUpdateSignCount.mock.t.Fatalf("StoreMock.UpdateSignCount mock is already set by Expect")
+	if mmUpdateAfterLogin.defaultExpectation.params != nil {
+		mmUpdateAfterLogin.mock.t.Fatalf("StoreMock.UpdateAfterLogin mock is already set by Expect")
 	}
 
-	if mmUpdateSignCount.defaultExpectation.paramPtrs == nil {
-		mmUpdateSignCount.defaultExpectation.paramPtrs = &StoreMockUpdateSignCountParamPtrs{}
+	if mmUpdateAfterLogin.defaultExpectation.paramPtrs == nil {
+		mmUpdateAfterLogin.defaultExpectation.paramPtrs = &StoreMockUpdateAfterLoginParamPtrs{}
 	}
-	mmUpdateSignCount.defaultExpectation.paramPtrs.ctx = &ctx
-	mmUpdateSignCount.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+	mmUpdateAfterLogin.defaultExpectation.paramPtrs.ctx = &ctx
+	mmUpdateAfterLogin.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
 
-	return mmUpdateSignCount
+	return mmUpdateAfterLogin
 }
 
-// ExpectCredIDParam2 sets up expected param credID for Store.UpdateSignCount
-func (mmUpdateSignCount *mStoreMockUpdateSignCount) ExpectCredIDParam2(credID []byte) *mStoreMockUpdateSignCount {
-	if mmUpdateSignCount.mock.funcUpdateSignCount != nil {
-		mmUpdateSignCount.mock.t.Fatalf("StoreMock.UpdateSignCount mock is already set by Set")
+// ExpectCredIDParam2 sets up expected param credID for Store.UpdateAfterLogin
+func (mmUpdateAfterLogin *mStoreMockUpdateAfterLogin) ExpectCredIDParam2(credID []byte) *mStoreMockUpdateAfterLogin {
+	if mmUpdateAfterLogin.mock.funcUpdateAfterLogin != nil {
+		mmUpdateAfterLogin.mock.t.Fatalf("StoreMock.UpdateAfterLogin mock is already set by Set")
 	}
 
-	if mmUpdateSignCount.defaultExpectation == nil {
-		mmUpdateSignCount.defaultExpectation = &StoreMockUpdateSignCountExpectation{}
+	if mmUpdateAfterLogin.defaultExpectation == nil {
+		mmUpdateAfterLogin.defaultExpectation = &StoreMockUpdateAfterLoginExpectation{}
 	}
 
-	if mmUpdateSignCount.defaultExpectation.params != nil {
-		mmUpdateSignCount.mock.t.Fatalf("StoreMock.UpdateSignCount mock is already set by Expect")
+	if mmUpdateAfterLogin.defaultExpectation.params != nil {
+		mmUpdateAfterLogin.mock.t.Fatalf("StoreMock.UpdateAfterLogin mock is already set by Expect")
 	}
 
-	if mmUpdateSignCount.defaultExpectation.paramPtrs == nil {
-		mmUpdateSignCount.defaultExpectation.paramPtrs = &StoreMockUpdateSignCountParamPtrs{}
+	if mmUpdateAfterLogin.defaultExpectation.paramPtrs == nil {
+		mmUpdateAfterLogin.defaultExpectation.paramPtrs = &StoreMockUpdateAfterLoginParamPtrs{}
 	}
-	mmUpdateSignCount.defaultExpectation.paramPtrs.credID = &credID
-	mmUpdateSignCount.defaultExpectation.expectationOrigins.originCredID = minimock.CallerInfo(1)
+	mmUpdateAfterLogin.defaultExpectation.paramPtrs.credID = &credID
+	mmUpdateAfterLogin.defaultExpectation.expectationOrigins.originCredID = minimock.CallerInfo(1)
 
-	return mmUpdateSignCount
+	return mmUpdateAfterLogin
 }
 
-// ExpectCountParam3 sets up expected param count for Store.UpdateSignCount
-func (mmUpdateSignCount *mStoreMockUpdateSignCount) ExpectCountParam3(count uint32) *mStoreMockUpdateSignCount {
-	if mmUpdateSignCount.mock.funcUpdateSignCount != nil {
-		mmUpdateSignCount.mock.t.Fatalf("StoreMock.UpdateSignCount mock is already set by Set")
+// ExpectCountParam3 sets up expected param count for Store.UpdateAfterLogin
+func (mmUpdateAfterLogin *mStoreMockUpdateAfterLogin) ExpectCountParam3(count uint32) *mStoreMockUpdateAfterLogin {
+	if mmUpdateAfterLogin.mock.funcUpdateAfterLogin != nil {
+		mmUpdateAfterLogin.mock.t.Fatalf("StoreMock.UpdateAfterLogin mock is already set by Set")
 	}
 
-	if mmUpdateSignCount.defaultExpectation == nil {
-		mmUpdateSignCount.defaultExpectation = &StoreMockUpdateSignCountExpectation{}
+	if mmUpdateAfterLogin.defaultExpectation == nil {
+		mmUpdateAfterLogin.defaultExpectation = &StoreMockUpdateAfterLoginExpectation{}
 	}
 
-	if mmUpdateSignCount.defaultExpectation.params != nil {
-		mmUpdateSignCount.mock.t.Fatalf("StoreMock.UpdateSignCount mock is already set by Expect")
+	if mmUpdateAfterLogin.defaultExpectation.params != nil {
+		mmUpdateAfterLogin.mock.t.Fatalf("StoreMock.UpdateAfterLogin mock is already set by Expect")
 	}
 
-	if mmUpdateSignCount.defaultExpectation.paramPtrs == nil {
-		mmUpdateSignCount.defaultExpectation.paramPtrs = &StoreMockUpdateSignCountParamPtrs{}
+	if mmUpdateAfterLogin.defaultExpectation.paramPtrs == nil {
+		mmUpdateAfterLogin.defaultExpectation.paramPtrs = &StoreMockUpdateAfterLoginParamPtrs{}
 	}
-	mmUpdateSignCount.defaultExpectation.paramPtrs.count = &count
-	mmUpdateSignCount.defaultExpectation.expectationOrigins.originCount = minimock.CallerInfo(1)
+	mmUpdateAfterLogin.defaultExpectation.paramPtrs.count = &count
+	mmUpdateAfterLogin.defaultExpectation.expectationOrigins.originCount = minimock.CallerInfo(1)
 
-	return mmUpdateSignCount
+	return mmUpdateAfterLogin
 }
 
-// Inspect accepts an inspector function that has same arguments as the Store.UpdateSignCount
-func (mmUpdateSignCount *mStoreMockUpdateSignCount) Inspect(f func(ctx context.Context, credID []byte, count uint32)) *mStoreMockUpdateSignCount {
-	if mmUpdateSignCount.mock.inspectFuncUpdateSignCount != nil {
-		mmUpdateSignCount.mock.t.Fatalf("Inspect function is already set for StoreMock.UpdateSignCount")
+// ExpectBackupStateParam4 sets up expected param backupState for Store.UpdateAfterLogin
+func (mmUpdateAfterLogin *mStoreMockUpdateAfterLogin) ExpectBackupStateParam4(backupState bool) *mStoreMockUpdateAfterLogin {
+	if mmUpdateAfterLogin.mock.funcUpdateAfterLogin != nil {
+		mmUpdateAfterLogin.mock.t.Fatalf("StoreMock.UpdateAfterLogin mock is already set by Set")
 	}
 
-	mmUpdateSignCount.mock.inspectFuncUpdateSignCount = f
+	if mmUpdateAfterLogin.defaultExpectation == nil {
+		mmUpdateAfterLogin.defaultExpectation = &StoreMockUpdateAfterLoginExpectation{}
+	}
 
-	return mmUpdateSignCount
+	if mmUpdateAfterLogin.defaultExpectation.params != nil {
+		mmUpdateAfterLogin.mock.t.Fatalf("StoreMock.UpdateAfterLogin mock is already set by Expect")
+	}
+
+	if mmUpdateAfterLogin.defaultExpectation.paramPtrs == nil {
+		mmUpdateAfterLogin.defaultExpectation.paramPtrs = &StoreMockUpdateAfterLoginParamPtrs{}
+	}
+	mmUpdateAfterLogin.defaultExpectation.paramPtrs.backupState = &backupState
+	mmUpdateAfterLogin.defaultExpectation.expectationOrigins.originBackupState = minimock.CallerInfo(1)
+
+	return mmUpdateAfterLogin
 }
 
-// Return sets up results that will be returned by Store.UpdateSignCount
-func (mmUpdateSignCount *mStoreMockUpdateSignCount) Return(err error) *StoreMock {
-	if mmUpdateSignCount.mock.funcUpdateSignCount != nil {
-		mmUpdateSignCount.mock.t.Fatalf("StoreMock.UpdateSignCount mock is already set by Set")
+// Inspect accepts an inspector function that has same arguments as the Store.UpdateAfterLogin
+func (mmUpdateAfterLogin *mStoreMockUpdateAfterLogin) Inspect(f func(ctx context.Context, credID []byte, count uint32, backupState bool)) *mStoreMockUpdateAfterLogin {
+	if mmUpdateAfterLogin.mock.inspectFuncUpdateAfterLogin != nil {
+		mmUpdateAfterLogin.mock.t.Fatalf("Inspect function is already set for StoreMock.UpdateAfterLogin")
 	}
 
-	if mmUpdateSignCount.defaultExpectation == nil {
-		mmUpdateSignCount.defaultExpectation = &StoreMockUpdateSignCountExpectation{mock: mmUpdateSignCount.mock}
-	}
-	mmUpdateSignCount.defaultExpectation.results = &StoreMockUpdateSignCountResults{err}
-	mmUpdateSignCount.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmUpdateSignCount.mock
+	mmUpdateAfterLogin.mock.inspectFuncUpdateAfterLogin = f
+
+	return mmUpdateAfterLogin
 }
 
-// Set uses given function f to mock the Store.UpdateSignCount method
-func (mmUpdateSignCount *mStoreMockUpdateSignCount) Set(f func(ctx context.Context, credID []byte, count uint32) (err error)) *StoreMock {
-	if mmUpdateSignCount.defaultExpectation != nil {
-		mmUpdateSignCount.mock.t.Fatalf("Default expectation is already set for the Store.UpdateSignCount method")
+// Return sets up results that will be returned by Store.UpdateAfterLogin
+func (mmUpdateAfterLogin *mStoreMockUpdateAfterLogin) Return(err error) *StoreMock {
+	if mmUpdateAfterLogin.mock.funcUpdateAfterLogin != nil {
+		mmUpdateAfterLogin.mock.t.Fatalf("StoreMock.UpdateAfterLogin mock is already set by Set")
 	}
 
-	if len(mmUpdateSignCount.expectations) > 0 {
-		mmUpdateSignCount.mock.t.Fatalf("Some expectations are already set for the Store.UpdateSignCount method")
+	if mmUpdateAfterLogin.defaultExpectation == nil {
+		mmUpdateAfterLogin.defaultExpectation = &StoreMockUpdateAfterLoginExpectation{mock: mmUpdateAfterLogin.mock}
 	}
-
-	mmUpdateSignCount.mock.funcUpdateSignCount = f
-	mmUpdateSignCount.mock.funcUpdateSignCountOrigin = minimock.CallerInfo(1)
-	return mmUpdateSignCount.mock
+	mmUpdateAfterLogin.defaultExpectation.results = &StoreMockUpdateAfterLoginResults{err}
+	mmUpdateAfterLogin.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmUpdateAfterLogin.mock
 }
 
-// When sets expectation for the Store.UpdateSignCount which will trigger the result defined by the following
+// Set uses given function f to mock the Store.UpdateAfterLogin method
+func (mmUpdateAfterLogin *mStoreMockUpdateAfterLogin) Set(f func(ctx context.Context, credID []byte, count uint32, backupState bool) (err error)) *StoreMock {
+	if mmUpdateAfterLogin.defaultExpectation != nil {
+		mmUpdateAfterLogin.mock.t.Fatalf("Default expectation is already set for the Store.UpdateAfterLogin method")
+	}
+
+	if len(mmUpdateAfterLogin.expectations) > 0 {
+		mmUpdateAfterLogin.mock.t.Fatalf("Some expectations are already set for the Store.UpdateAfterLogin method")
+	}
+
+	mmUpdateAfterLogin.mock.funcUpdateAfterLogin = f
+	mmUpdateAfterLogin.mock.funcUpdateAfterLoginOrigin = minimock.CallerInfo(1)
+	return mmUpdateAfterLogin.mock
+}
+
+// When sets expectation for the Store.UpdateAfterLogin which will trigger the result defined by the following
 // Then helper
-func (mmUpdateSignCount *mStoreMockUpdateSignCount) When(ctx context.Context, credID []byte, count uint32) *StoreMockUpdateSignCountExpectation {
-	if mmUpdateSignCount.mock.funcUpdateSignCount != nil {
-		mmUpdateSignCount.mock.t.Fatalf("StoreMock.UpdateSignCount mock is already set by Set")
+func (mmUpdateAfterLogin *mStoreMockUpdateAfterLogin) When(ctx context.Context, credID []byte, count uint32, backupState bool) *StoreMockUpdateAfterLoginExpectation {
+	if mmUpdateAfterLogin.mock.funcUpdateAfterLogin != nil {
+		mmUpdateAfterLogin.mock.t.Fatalf("StoreMock.UpdateAfterLogin mock is already set by Set")
 	}
 
-	expectation := &StoreMockUpdateSignCountExpectation{
-		mock:               mmUpdateSignCount.mock,
-		params:             &StoreMockUpdateSignCountParams{ctx, credID, count},
-		expectationOrigins: StoreMockUpdateSignCountExpectationOrigins{origin: minimock.CallerInfo(1)},
+	expectation := &StoreMockUpdateAfterLoginExpectation{
+		mock:               mmUpdateAfterLogin.mock,
+		params:             &StoreMockUpdateAfterLoginParams{ctx, credID, count, backupState},
+		expectationOrigins: StoreMockUpdateAfterLoginExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
-	mmUpdateSignCount.expectations = append(mmUpdateSignCount.expectations, expectation)
+	mmUpdateAfterLogin.expectations = append(mmUpdateAfterLogin.expectations, expectation)
 	return expectation
 }
 
-// Then sets up Store.UpdateSignCount return parameters for the expectation previously defined by the When method
-func (e *StoreMockUpdateSignCountExpectation) Then(err error) *StoreMock {
-	e.results = &StoreMockUpdateSignCountResults{err}
+// Then sets up Store.UpdateAfterLogin return parameters for the expectation previously defined by the When method
+func (e *StoreMockUpdateAfterLoginExpectation) Then(err error) *StoreMock {
+	e.results = &StoreMockUpdateAfterLoginResults{err}
 	return e.mock
 }
 
-// Times sets number of times Store.UpdateSignCount should be invoked
-func (mmUpdateSignCount *mStoreMockUpdateSignCount) Times(n uint64) *mStoreMockUpdateSignCount {
+// Times sets number of times Store.UpdateAfterLogin should be invoked
+func (mmUpdateAfterLogin *mStoreMockUpdateAfterLogin) Times(n uint64) *mStoreMockUpdateAfterLogin {
 	if n == 0 {
-		mmUpdateSignCount.mock.t.Fatalf("Times of StoreMock.UpdateSignCount mock can not be zero")
+		mmUpdateAfterLogin.mock.t.Fatalf("Times of StoreMock.UpdateAfterLogin mock can not be zero")
 	}
-	mm_atomic.StoreUint64(&mmUpdateSignCount.expectedInvocations, n)
-	mmUpdateSignCount.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmUpdateSignCount
+	mm_atomic.StoreUint64(&mmUpdateAfterLogin.expectedInvocations, n)
+	mmUpdateAfterLogin.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmUpdateAfterLogin
 }
 
-func (mmUpdateSignCount *mStoreMockUpdateSignCount) invocationsDone() bool {
-	if len(mmUpdateSignCount.expectations) == 0 && mmUpdateSignCount.defaultExpectation == nil && mmUpdateSignCount.mock.funcUpdateSignCount == nil {
+func (mmUpdateAfterLogin *mStoreMockUpdateAfterLogin) invocationsDone() bool {
+	if len(mmUpdateAfterLogin.expectations) == 0 && mmUpdateAfterLogin.defaultExpectation == nil && mmUpdateAfterLogin.mock.funcUpdateAfterLogin == nil {
 		return true
 	}
 
-	totalInvocations := mm_atomic.LoadUint64(&mmUpdateSignCount.mock.afterUpdateSignCountCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmUpdateSignCount.expectedInvocations)
+	totalInvocations := mm_atomic.LoadUint64(&mmUpdateAfterLogin.mock.afterUpdateAfterLoginCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmUpdateAfterLogin.expectedInvocations)
 
 	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
 }
 
-// UpdateSignCount implements mm_passkey.Store
-func (mmUpdateSignCount *StoreMock) UpdateSignCount(ctx context.Context, credID []byte, count uint32) (err error) {
-	mm_atomic.AddUint64(&mmUpdateSignCount.beforeUpdateSignCountCounter, 1)
-	defer mm_atomic.AddUint64(&mmUpdateSignCount.afterUpdateSignCountCounter, 1)
+// UpdateAfterLogin implements mm_passkey.Store
+func (mmUpdateAfterLogin *StoreMock) UpdateAfterLogin(ctx context.Context, credID []byte, count uint32, backupState bool) (err error) {
+	mm_atomic.AddUint64(&mmUpdateAfterLogin.beforeUpdateAfterLoginCounter, 1)
+	defer mm_atomic.AddUint64(&mmUpdateAfterLogin.afterUpdateAfterLoginCounter, 1)
 
-	mmUpdateSignCount.t.Helper()
+	mmUpdateAfterLogin.t.Helper()
 
-	if mmUpdateSignCount.inspectFuncUpdateSignCount != nil {
-		mmUpdateSignCount.inspectFuncUpdateSignCount(ctx, credID, count)
+	if mmUpdateAfterLogin.inspectFuncUpdateAfterLogin != nil {
+		mmUpdateAfterLogin.inspectFuncUpdateAfterLogin(ctx, credID, count, backupState)
 	}
 
-	mm_params := StoreMockUpdateSignCountParams{ctx, credID, count}
+	mm_params := StoreMockUpdateAfterLoginParams{ctx, credID, count, backupState}
 
 	// Record call args
-	mmUpdateSignCount.UpdateSignCountMock.mutex.Lock()
-	mmUpdateSignCount.UpdateSignCountMock.callArgs = append(mmUpdateSignCount.UpdateSignCountMock.callArgs, &mm_params)
-	mmUpdateSignCount.UpdateSignCountMock.mutex.Unlock()
+	mmUpdateAfterLogin.UpdateAfterLoginMock.mutex.Lock()
+	mmUpdateAfterLogin.UpdateAfterLoginMock.callArgs = append(mmUpdateAfterLogin.UpdateAfterLoginMock.callArgs, &mm_params)
+	mmUpdateAfterLogin.UpdateAfterLoginMock.mutex.Unlock()
 
-	for _, e := range mmUpdateSignCount.UpdateSignCountMock.expectations {
+	for _, e := range mmUpdateAfterLogin.UpdateAfterLoginMock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.err
 		}
 	}
 
-	if mmUpdateSignCount.UpdateSignCountMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmUpdateSignCount.UpdateSignCountMock.defaultExpectation.Counter, 1)
-		mm_want := mmUpdateSignCount.UpdateSignCountMock.defaultExpectation.params
-		mm_want_ptrs := mmUpdateSignCount.UpdateSignCountMock.defaultExpectation.paramPtrs
+	if mmUpdateAfterLogin.UpdateAfterLoginMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmUpdateAfterLogin.UpdateAfterLoginMock.defaultExpectation.Counter, 1)
+		mm_want := mmUpdateAfterLogin.UpdateAfterLoginMock.defaultExpectation.params
+		mm_want_ptrs := mmUpdateAfterLogin.UpdateAfterLoginMock.defaultExpectation.paramPtrs
 
-		mm_got := StoreMockUpdateSignCountParams{ctx, credID, count}
+		mm_got := StoreMockUpdateAfterLoginParams{ctx, credID, count, backupState}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
-				mmUpdateSignCount.t.Errorf("StoreMock.UpdateSignCount got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmUpdateSignCount.UpdateSignCountMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+				mmUpdateAfterLogin.t.Errorf("StoreMock.UpdateAfterLogin got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateAfterLogin.UpdateAfterLoginMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
 			}
 
 			if mm_want_ptrs.credID != nil && !minimock.Equal(*mm_want_ptrs.credID, mm_got.credID) {
-				mmUpdateSignCount.t.Errorf("StoreMock.UpdateSignCount got unexpected parameter credID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmUpdateSignCount.UpdateSignCountMock.defaultExpectation.expectationOrigins.originCredID, *mm_want_ptrs.credID, mm_got.credID, minimock.Diff(*mm_want_ptrs.credID, mm_got.credID))
+				mmUpdateAfterLogin.t.Errorf("StoreMock.UpdateAfterLogin got unexpected parameter credID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateAfterLogin.UpdateAfterLoginMock.defaultExpectation.expectationOrigins.originCredID, *mm_want_ptrs.credID, mm_got.credID, minimock.Diff(*mm_want_ptrs.credID, mm_got.credID))
 			}
 
 			if mm_want_ptrs.count != nil && !minimock.Equal(*mm_want_ptrs.count, mm_got.count) {
-				mmUpdateSignCount.t.Errorf("StoreMock.UpdateSignCount got unexpected parameter count, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmUpdateSignCount.UpdateSignCountMock.defaultExpectation.expectationOrigins.originCount, *mm_want_ptrs.count, mm_got.count, minimock.Diff(*mm_want_ptrs.count, mm_got.count))
+				mmUpdateAfterLogin.t.Errorf("StoreMock.UpdateAfterLogin got unexpected parameter count, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateAfterLogin.UpdateAfterLoginMock.defaultExpectation.expectationOrigins.originCount, *mm_want_ptrs.count, mm_got.count, minimock.Diff(*mm_want_ptrs.count, mm_got.count))
+			}
+
+			if mm_want_ptrs.backupState != nil && !minimock.Equal(*mm_want_ptrs.backupState, mm_got.backupState) {
+				mmUpdateAfterLogin.t.Errorf("StoreMock.UpdateAfterLogin got unexpected parameter backupState, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateAfterLogin.UpdateAfterLoginMock.defaultExpectation.expectationOrigins.originBackupState, *mm_want_ptrs.backupState, mm_got.backupState, minimock.Diff(*mm_want_ptrs.backupState, mm_got.backupState))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmUpdateSignCount.t.Errorf("StoreMock.UpdateSignCount got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-				mmUpdateSignCount.UpdateSignCountMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+			mmUpdateAfterLogin.t.Errorf("StoreMock.UpdateAfterLogin got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmUpdateAfterLogin.UpdateAfterLoginMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		mm_results := mmUpdateSignCount.UpdateSignCountMock.defaultExpectation.results
+		mm_results := mmUpdateAfterLogin.UpdateAfterLoginMock.defaultExpectation.results
 		if mm_results == nil {
-			mmUpdateSignCount.t.Fatal("No results are set for the StoreMock.UpdateSignCount")
+			mmUpdateAfterLogin.t.Fatal("No results are set for the StoreMock.UpdateAfterLogin")
 		}
 		return (*mm_results).err
 	}
-	if mmUpdateSignCount.funcUpdateSignCount != nil {
-		return mmUpdateSignCount.funcUpdateSignCount(ctx, credID, count)
+	if mmUpdateAfterLogin.funcUpdateAfterLogin != nil {
+		return mmUpdateAfterLogin.funcUpdateAfterLogin(ctx, credID, count, backupState)
 	}
-	mmUpdateSignCount.t.Fatalf("Unexpected call to StoreMock.UpdateSignCount. %v %v %v", ctx, credID, count)
+	mmUpdateAfterLogin.t.Fatalf("Unexpected call to StoreMock.UpdateAfterLogin. %v %v %v %v", ctx, credID, count, backupState)
 	return
 }
 
-// UpdateSignCountAfterCounter returns a count of finished StoreMock.UpdateSignCount invocations
-func (mmUpdateSignCount *StoreMock) UpdateSignCountAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmUpdateSignCount.afterUpdateSignCountCounter)
+// UpdateAfterLoginAfterCounter returns a count of finished StoreMock.UpdateAfterLogin invocations
+func (mmUpdateAfterLogin *StoreMock) UpdateAfterLoginAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateAfterLogin.afterUpdateAfterLoginCounter)
 }
 
-// UpdateSignCountBeforeCounter returns a count of StoreMock.UpdateSignCount invocations
-func (mmUpdateSignCount *StoreMock) UpdateSignCountBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmUpdateSignCount.beforeUpdateSignCountCounter)
+// UpdateAfterLoginBeforeCounter returns a count of StoreMock.UpdateAfterLogin invocations
+func (mmUpdateAfterLogin *StoreMock) UpdateAfterLoginBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateAfterLogin.beforeUpdateAfterLoginCounter)
 }
 
-// Calls returns a list of arguments used in each call to StoreMock.UpdateSignCount.
+// Calls returns a list of arguments used in each call to StoreMock.UpdateAfterLogin.
 // The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmUpdateSignCount *mStoreMockUpdateSignCount) Calls() []*StoreMockUpdateSignCountParams {
-	mmUpdateSignCount.mutex.RLock()
+func (mmUpdateAfterLogin *mStoreMockUpdateAfterLogin) Calls() []*StoreMockUpdateAfterLoginParams {
+	mmUpdateAfterLogin.mutex.RLock()
 
-	argCopy := make([]*StoreMockUpdateSignCountParams, len(mmUpdateSignCount.callArgs))
-	copy(argCopy, mmUpdateSignCount.callArgs)
+	argCopy := make([]*StoreMockUpdateAfterLoginParams, len(mmUpdateAfterLogin.callArgs))
+	copy(argCopy, mmUpdateAfterLogin.callArgs)
 
-	mmUpdateSignCount.mutex.RUnlock()
+	mmUpdateAfterLogin.mutex.RUnlock()
 
 	return argCopy
 }
 
-// MinimockUpdateSignCountDone returns true if the count of the UpdateSignCount invocations corresponds
+// MinimockUpdateAfterLoginDone returns true if the count of the UpdateAfterLogin invocations corresponds
 // the number of defined expectations
-func (m *StoreMock) MinimockUpdateSignCountDone() bool {
-	if m.UpdateSignCountMock.optional {
+func (m *StoreMock) MinimockUpdateAfterLoginDone() bool {
+	if m.UpdateAfterLoginMock.optional {
 		// Optional methods provide '0 or more' call count restriction.
 		return true
 	}
 
-	for _, e := range m.UpdateSignCountMock.expectations {
+	for _, e := range m.UpdateAfterLoginMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
-	return m.UpdateSignCountMock.invocationsDone()
+	return m.UpdateAfterLoginMock.invocationsDone()
 }
 
-// MinimockUpdateSignCountInspect logs each unmet expectation
-func (m *StoreMock) MinimockUpdateSignCountInspect() {
-	for _, e := range m.UpdateSignCountMock.expectations {
+// MinimockUpdateAfterLoginInspect logs each unmet expectation
+func (m *StoreMock) MinimockUpdateAfterLoginInspect() {
+	for _, e := range m.UpdateAfterLoginMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to StoreMock.UpdateSignCount at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+			m.t.Errorf("Expected call to StoreMock.UpdateAfterLogin at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
 		}
 	}
 
-	afterUpdateSignCountCounter := mm_atomic.LoadUint64(&m.afterUpdateSignCountCounter)
+	afterUpdateAfterLoginCounter := mm_atomic.LoadUint64(&m.afterUpdateAfterLoginCounter)
 	// if default expectation was set then invocations count should be greater than zero
-	if m.UpdateSignCountMock.defaultExpectation != nil && afterUpdateSignCountCounter < 1 {
-		if m.UpdateSignCountMock.defaultExpectation.params == nil {
-			m.t.Errorf("Expected call to StoreMock.UpdateSignCount at\n%s", m.UpdateSignCountMock.defaultExpectation.returnOrigin)
+	if m.UpdateAfterLoginMock.defaultExpectation != nil && afterUpdateAfterLoginCounter < 1 {
+		if m.UpdateAfterLoginMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.UpdateAfterLogin at\n%s", m.UpdateAfterLoginMock.defaultExpectation.returnOrigin)
 		} else {
-			m.t.Errorf("Expected call to StoreMock.UpdateSignCount at\n%s with params: %#v", m.UpdateSignCountMock.defaultExpectation.expectationOrigins.origin, *m.UpdateSignCountMock.defaultExpectation.params)
+			m.t.Errorf("Expected call to StoreMock.UpdateAfterLogin at\n%s with params: %#v", m.UpdateAfterLoginMock.defaultExpectation.expectationOrigins.origin, *m.UpdateAfterLoginMock.defaultExpectation.params)
 		}
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcUpdateSignCount != nil && afterUpdateSignCountCounter < 1 {
-		m.t.Errorf("Expected call to StoreMock.UpdateSignCount at\n%s", m.funcUpdateSignCountOrigin)
+	if m.funcUpdateAfterLogin != nil && afterUpdateAfterLoginCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.UpdateAfterLogin at\n%s", m.funcUpdateAfterLoginOrigin)
 	}
 
-	if !m.UpdateSignCountMock.invocationsDone() && afterUpdateSignCountCounter > 0 {
-		m.t.Errorf("Expected %d calls to StoreMock.UpdateSignCount at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.UpdateSignCountMock.expectedInvocations), m.UpdateSignCountMock.expectedInvocationsOrigin, afterUpdateSignCountCounter)
+	if !m.UpdateAfterLoginMock.invocationsDone() && afterUpdateAfterLoginCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.UpdateAfterLogin at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.UpdateAfterLoginMock.expectedInvocations), m.UpdateAfterLoginMock.expectedInvocationsOrigin, afterUpdateAfterLoginCounter)
 	}
 }
 
@@ -1514,7 +1545,7 @@ func (m *StoreMock) MinimockFinish() {
 
 			m.MinimockListByUserInspect()
 
-			m.MinimockUpdateSignCountInspect()
+			m.MinimockUpdateAfterLoginInspect()
 		}
 	})
 }
@@ -1541,5 +1572,5 @@ func (m *StoreMock) minimockDone() bool {
 		m.MinimockCreateDone() &&
 		m.MinimockDeleteByCredentialIDDone() &&
 		m.MinimockListByUserDone() &&
-		m.MinimockUpdateSignCountDone()
+		m.MinimockUpdateAfterLoginDone()
 }

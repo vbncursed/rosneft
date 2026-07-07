@@ -52,7 +52,7 @@ func (s *LoginSuite) resolveVia(userHandle string, cred *lib.Credential) {
 func (s *LoginSuite) TestFinishLoginValid() {
 	s.cer.TakeMock.Return(ceremony.State{}, nil)
 	s.store.ListByUserMock.Return([]domain.Credential{{CredentialID: []byte("c")}}, nil)
-	s.store.UpdateSignCountMock.Return(nil)
+	s.store.UpdateAfterLoginMock.Return(nil)
 	s.resolveVia("user-9", &lib.Credential{ID: []byte("c"), Authenticator: lib.Authenticator{SignCount: 5}})
 
 	uid, err := s.svc.FinishLogin(s.ctx, "flow", "{}")

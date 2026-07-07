@@ -18,15 +18,16 @@ type Store struct{ pool *pgxpool.Pool }
 // New wraps a pgxpool.Pool.
 func New(pool *pgxpool.Pool) *Store { return &Store{pool: pool} }
 
-const columns = `id, user_id, credential_id, public_key, sign_count, transports, aaguid, name, created_at, last_used_at`
+const columns = `id, user_id, credential_id, public_key, sign_count, transports, aaguid, backup_eligible, backup_state, name, created_at, last_used_at`
 
 // Create inserts a new credential.
 func (s *Store) Create(ctx context.Context, c domain.Credential) error {
 	const q = `INSERT INTO passkey_credentials
-		(user_id, credential_id, public_key, sign_count, transports, aaguid, name)
-		VALUES ($1,$2,$3,$4,$5,$6,$7)`
+		(user_id, credential_id, public_key, sign_count, transports, aaguid, backup_eligible, backup_state, name)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`
 	_, err := s.pool.Exec(ctx, q, c.UserID, c.CredentialID, c.PublicKey,
-		int64(c.SignCount), strings.Join(c.Transports, ","), c.AAGUID, c.Name)
+		int64(c.SignCount), strings.Join(c.Transports, ","), c.AAGUID,
+		c.BackupEligible, c.BackupState, c.Name)
 	if err != nil {
 		return fmt.Errorf("credentials.Create: %w", err)
 	}
@@ -66,11 +67,13 @@ func (s *Store) DeleteByCredentialID(ctx context.Context, userID string, credID 
 	return nil
 }
 
-// UpdateSignCount persists the post-assertion counter and stamps last_used_at.
-func (s *Store) UpdateSignCount(ctx context.Context, credID []byte, count uint32) error {
-	const q = `UPDATE passkey_credentials SET sign_count = $2, last_used_at = now() WHERE credential_id = $1`
-	if _, err := s.pool.Exec(ctx, q, credID, int64(count)); err != nil {
-		return fmt.Errorf("credentials.UpdateSignCount: %w", err)
+// UpdateAfterLogin persists the post-assertion counter + backup state and stamps
+// last_used_at. BackupState can flip over a credential's life, so it is written
+// back on every login (BackupEligible never changes and is left untouched).
+func (s *Store) UpdateAfterLogin(ctx context.Context, credID []byte, count uint32, backupState bool) error {
+	const q = `UPDATE passkey_credentials SET sign_count = $2, backup_state = $3, last_used_at = now() WHERE credential_id = $1`
+	if _, err := s.pool.Exec(ctx, q, credID, int64(count), backupState); err != nil {
+		return fmt.Errorf("credentials.UpdateAfterLogin: %w", err)
 	}
 	return nil
 }
@@ -85,7 +88,7 @@ func scan(r scanner) (domain.Credential, error) {
 		lastUsed   *time.Time
 	)
 	if err := r.Scan(&c.ID, &c.UserID, &c.CredentialID, &c.PublicKey, &signCount,
-		&transports, &c.AAGUID, &c.Name, &c.CreatedAt, &lastUsed); err != nil {
+		&transports, &c.AAGUID, &c.BackupEligible, &c.BackupState, &c.Name, &c.CreatedAt, &lastUsed); err != nil {
 		return domain.Credential{}, err
 	}
 	c.SignCount = uint32(signCount)
