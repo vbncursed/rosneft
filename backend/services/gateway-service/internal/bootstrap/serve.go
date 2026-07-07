@@ -65,8 +65,14 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	defer twofaClient.Close()
 
+	passkeyClient, err := InitPasskey(cfg)
+	if err != nil {
+		return fmt.Errorf("init passkey: %w", err)
+	}
+	defer passkeyClient.Close()
+
 	svc := InitService(cat, con, m, up)
-	authH := authhttp.New(authClient, twofaClient, logger)
+	authH := authhttp.New(authClient, twofaClient, passkeyClient, logger)
 
 	assetProxy, err := InitAssetProxy(cfg)
 	if err != nil {

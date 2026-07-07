@@ -490,6 +490,35 @@ components:
       required: [code]
       properties:
         code: { type: string }
+    PasskeyBeginResponse:
+      type: object
+      properties:
+        optionsJson: { type: string, description: PublicKey options JSON for navigator.credentials }
+        flowId: { type: string }
+    PasskeyRegisterFinishRequest:
+      type: object
+      required: [flowId, credentialJson]
+      properties:
+        flowId: { type: string }
+        credentialJson: { type: string, description: navigator.credentials.create() result JSON }
+        name: { type: string }
+    PasskeyCredential:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        createdAt: { type: string }
+        lastUsedAt: { type: string }
+    PasskeyListResponse:
+      type: object
+      properties:
+        credentials: { type: array, items: { $ref: '#/components/schemas/PasskeyCredential' } }
+    PasskeyLoginFinishRequest:
+      type: object
+      required: [flowId, assertionJson]
+      properties:
+        flowId: { type: string }
+        assertionJson: { type: string, description: navigator.credentials.get() result JSON }
     CreateUserRequest:
       type: object
       required: [email, username, password]
@@ -1359,6 +1388,93 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Enable2FAResponse' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/passkey/login/begin:
+    post:
+      tags: [auth]
+      summary: Begin usernameless passkey login (discoverable credentials)
+      responses:
+        '200':
+          description: WebAuthn request options + a flow id
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasskeyBeginResponse' }
+
+  /api/auth/passkey/login/finish:
+    post:
+      tags: [auth]
+      summary: Finish passkey login; returns a session token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PasskeyLoginFinishRequest' }
+      responses:
+        '200':
+          description: Session token
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/passkey/register/begin:
+    post:
+      tags: [auth]
+      summary: Begin passkey enrollment for the authenticated user
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: WebAuthn creation options + a flow id
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasskeyBeginResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/passkey/register/finish:
+    post:
+      tags: [auth]
+      summary: Finish passkey enrollment; stores the credential
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PasskeyRegisterFinishRequest' }
+      responses:
+        '200':
+          description: The stored passkey
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasskeyCredential' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/passkey/credentials:
+    get:
+      tags: [auth]
+      summary: List the authenticated user's passkeys
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: The user's passkeys
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PasskeyListResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/passkey/credentials/{id}:
+    delete:
+      tags: [auth]
+      summary: Delete one of the authenticated user's passkeys
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Passkey deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /api/auth/users:
     get:

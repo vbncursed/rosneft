@@ -9,20 +9,23 @@ import (
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/auth"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/passkey"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/twofa"
 )
 
 // Handlers serves the /api/auth/* surface. Login/session go to auth-service;
-// 2FA management goes to twofa-service.
+// 2FA management goes to twofa-service; passkey management goes to
+// passkey-service (passkey login is orchestrated by auth-service).
 type Handlers struct {
-	client *auth.Client
-	twofa  *twofa.Client
-	logger *slog.Logger
+	client  *auth.Client
+	twofa   *twofa.Client
+	passkey *passkey.Client
+	logger  *slog.Logger
 }
 
 // New builds the auth HTTP handlers.
-func New(client *auth.Client, twofa *twofa.Client, logger *slog.Logger) *Handlers {
-	return &Handlers{client: client, twofa: twofa, logger: logger}
+func New(client *auth.Client, twofa *twofa.Client, passkey *passkey.Client, logger *slog.Logger) *Handlers {
+	return &Handlers{client: client, twofa: twofa, passkey: passkey, logger: logger}
 }
 
 // Mount registers the auth routes on r. Only login + login/2fa are public.
@@ -34,6 +37,8 @@ func (h *Handlers) Mount(r chi.Router) {
 		// Public.
 		ar.Post("/login", h.login)
 		ar.Post("/login/2fa", h.login2FA)
+		ar.Post("/passkey/login/begin", h.passkeyLoginBegin)
+		ar.Post("/passkey/login/finish", h.passkeyLoginFinish)
 
 		// Authenticated — any valid session.
 		ar.Group(func(pr chi.Router) {
@@ -45,6 +50,10 @@ func (h *Handlers) Mount(r chi.Router) {
 			pr.Post("/2fa/enable", h.enable2FA)
 			pr.Post("/2fa/disable", h.disable2FA)
 			pr.Post("/2fa/recovery/regenerate", h.regenerate2FA)
+			pr.Post("/passkey/register/begin", h.passkeyRegisterBegin)
+			pr.Post("/passkey/register/finish", h.passkeyRegisterFinish)
+			pr.Get("/passkey/credentials", h.passkeyList)
+			pr.Delete("/passkey/credentials/{id}", h.passkeyDelete)
 
 			// Admin — authenticated + per-route permission.
 			pr.With(h.require("users:read")).Get("/users", h.listUsers)

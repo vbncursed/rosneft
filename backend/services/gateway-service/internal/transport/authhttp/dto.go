@@ -2,7 +2,17 @@ package authhttp
 
 import (
 	authv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/auth/v1"
+	passkeyv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/passkey/v1"
 )
+
+func credToJSON(c *passkeyv1.Credential) map[string]any {
+	return map[string]any{
+		"id":         c.GetId(),
+		"name":       c.GetName(),
+		"createdAt":  c.GetCreatedAt(),
+		"lastUsedAt": c.GetLastUsedAt(),
+	}
+}
 
 type userJSON struct {
 	ID          string   `json:"id"`

@@ -354,6 +354,42 @@ type PanoramaUpdate struct {
 	YawOffset *float64 `json:"yawOffset,omitempty"`
 }
 
+// PasskeyBeginResponse defines model for PasskeyBeginResponse.
+type PasskeyBeginResponse struct {
+	FlowId *string `json:"flowId,omitempty"`
+
+	// OptionsJson PublicKey options JSON for navigator.credentials
+	OptionsJson *string `json:"optionsJson,omitempty"`
+}
+
+// PasskeyCredential defines model for PasskeyCredential.
+type PasskeyCredential struct {
+	CreatedAt  *string `json:"createdAt,omitempty"`
+	Id         *string `json:"id,omitempty"`
+	LastUsedAt *string `json:"lastUsedAt,omitempty"`
+	Name       *string `json:"name,omitempty"`
+}
+
+// PasskeyListResponse defines model for PasskeyListResponse.
+type PasskeyListResponse struct {
+	Credentials *[]PasskeyCredential `json:"credentials,omitempty"`
+}
+
+// PasskeyLoginFinishRequest defines model for PasskeyLoginFinishRequest.
+type PasskeyLoginFinishRequest struct {
+	// AssertionJson navigator.credentials.get() result JSON
+	AssertionJson string `json:"assertionJson"`
+	FlowId        string `json:"flowId"`
+}
+
+// PasskeyRegisterFinishRequest defines model for PasskeyRegisterFinishRequest.
+type PasskeyRegisterFinishRequest struct {
+	// CredentialJson navigator.credentials.create() result JSON
+	CredentialJson string  `json:"credentialJson"`
+	FlowId         string  `json:"flowId"`
+	Name           *string `json:"name,omitempty"`
+}
+
 // Placement defines model for Placement.
 type Placement struct {
 	CreatedAt     *time.Time `json:"createdAt,omitempty"`
