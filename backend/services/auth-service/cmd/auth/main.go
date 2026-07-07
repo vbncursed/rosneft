@@ -36,6 +36,7 @@ func newRootCmd() *cobra.Command {
 	flags.String("redis-addr", "redis:6379", "Redis address")
 	flags.Int("redis-db", 1, "Redis logical DB")
 	flags.String("twofa-grpc-addr", "twofa:9006", "twofa-service gRPC address (login 2FA checks)")
+	flags.String("passkey-grpc-addr", "passkey:9008", "passkey-service gRPC address (passwordless login)")
 	flags.Duration("session-idle-ttl", 24*time.Hour, "session idle timeout")
 	flags.Duration("session-absolute-ttl", 720*time.Hour, "session absolute max lifetime")
 	flags.Duration("pending-2fa-ttl", 5*time.Minute, "2FA challenge lifetime")

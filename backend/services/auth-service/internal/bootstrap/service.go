@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
+	passkeyclient "github.com/vbncursed/rosneft/backend/services/auth-service/internal/clients/passkey"
 	twofaclient "github.com/vbncursed/rosneft/backend/services/auth-service/internal/clients/twofa"
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/config"
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
@@ -24,21 +25,25 @@ import (
 
 // InitService wires storage → session → services → gRPC handler. Returns the
 // user store (for the bootstrap-admin step) and the twofa client (to Close).
-func InitService(pool *pgxpool.Pool, rdb *redis.Client, cfg config.Config) (*grpcapi.Server, *userstore.Store, *twofaclient.Client, error) {
+func InitService(pool *pgxpool.Pool, rdb *redis.Client, cfg config.Config) (*grpcapi.Server, *userstore.Store, *twofaclient.Client, *passkeyclient.Client, error) {
 	twofaC, err := twofaclient.Dial(cfg.TwoFAGRPCAddr)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("bootstrap.InitService: dial twofa: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("bootstrap.InitService: dial twofa: %w", err)
+	}
+	passkeyC, err := passkeyclient.Dial(cfg.PasskeyGRPCAddr)
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("bootstrap.InitService: dial passkey: %w", err)
 	}
 	us := userstore.New(pool)
 	rs := rolestore.New(pool)
 	ps := permstore.New(pool)
 	sess := session.New(rdb, cfg.SessionIdleTTL, cfg.SessionAbsoluteTTL, cfg.Pending2FATTL, cfg.LoginMaxFails, cfg.LoginLockTTL)
 
-	authS := authsvc.New(us, sess, twofaC, cfg.SessionAbsoluteTTL)
+	authS := authsvc.New(us, sess, twofaC, passkeyC, cfg.SessionAbsoluteTTL)
 	userS := usersvc.New(us, sess)
 	roleS := rolesvc.New(rs, ps, us)
 
-	return grpcapi.New(authS, userS, roleS), us, twofaC, nil
+	return grpcapi.New(authS, userS, roleS), us, twofaC, passkeyC, nil
 }
 
 // EnsureBootstrapAdmin creates the first admin from config if no admin exists.
