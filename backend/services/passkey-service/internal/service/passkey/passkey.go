@@ -14,11 +14,12 @@ import (
 	pkwa "github.com/vbncursed/rosneft/backend/services/passkey-service/internal/webauthn"
 )
 
+//go:generate minimock -i Store,Ceremonies,Engine -o ./mocks -s _mock.go
+
 // Store is the credential persistence contract.
 type Store interface {
 	Create(ctx context.Context, c domain.Credential) error
 	ListByUser(ctx context.Context, userID string) ([]domain.Credential, error)
-	GetByCredentialID(ctx context.Context, credID []byte) (domain.Credential, error)
 	DeleteByCredentialID(ctx context.Context, userID string, credID []byte) error
 	UpdateSignCount(ctx context.Context, credID []byte, count uint32) error
 }
