@@ -17,7 +17,8 @@ type Config struct {
 	DBDSN              string        `mapstructure:"db-dsn"`
 	RedisAddr          string        `mapstructure:"redis-addr"`
 	RedisDB            int           `mapstructure:"redis-db"`
-	TwoFAGRPCAddr      string        `mapstructure:"twofa-grpc-addr"` // twofa-service address for login 2FA checks
+	TwoFAGRPCAddr      string        `mapstructure:"twofa-grpc-addr"`   // twofa-service address for login 2FA checks
+	PasskeyGRPCAddr    string        `mapstructure:"passkey-grpc-addr"` // passkey-service address for passwordless login
 	SessionIdleTTL     time.Duration `mapstructure:"session-idle-ttl"`
 	SessionAbsoluteTTL time.Duration `mapstructure:"session-absolute-ttl"`
 	Pending2FATTL      time.Duration `mapstructure:"pending-2fa-ttl"`
@@ -45,6 +46,7 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.SetDefault("redis-addr", "redis:6379")
 	v.SetDefault("redis-db", 1)
 	v.SetDefault("twofa-grpc-addr", "twofa:9006")
+	v.SetDefault("passkey-grpc-addr", "passkey:9008")
 	v.SetDefault("session-idle-ttl", 24*time.Hour)
 	v.SetDefault("session-absolute-ttl", 720*time.Hour)
 	v.SetDefault("pending-2fa-ttl", 5*time.Minute)

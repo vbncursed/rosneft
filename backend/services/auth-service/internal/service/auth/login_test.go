@@ -21,6 +21,7 @@ type LoginSuite struct {
 	us  *mocks.UserStoreMock
 	ss  *mocks.SessionStoreMock
 	tf  *mocks.TwoFAVerifierMock
+	pk  *mocks.PasskeyVerifierMock
 	ctx context.Context
 }
 
@@ -33,7 +34,8 @@ func (s *LoginSuite) SetupTest() {
 	s.us = mocks.NewUserStoreMock(mc)
 	s.ss = mocks.NewSessionStoreMock(mc)
 	s.tf = mocks.NewTwoFAVerifierMock(mc)
-	s.svc = auth.New(s.us, s.ss, s.tf, 720*time.Hour)
+	s.pk = mocks.NewPasskeyVerifierMock(mc)
+	s.svc = auth.New(s.us, s.ss, s.tf, s.pk, 720*time.Hour)
 	s.ctx = s.T().Context()
 }
 

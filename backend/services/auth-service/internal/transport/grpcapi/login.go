@@ -26,6 +26,22 @@ func (s *Server) LoginVerify2FA(ctx context.Context, req *authv1.LoginVerify2FAR
 	return &authv1.LoginResponse{Token: token}, nil
 }
 
+func (s *Server) PasskeyLoginBegin(ctx context.Context, _ *authv1.PasskeyLoginBeginRequest) (*authv1.PasskeyLoginBeginResponse, error) {
+	opts, flowID, err := s.auth.PasskeyLoginBegin(ctx)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &authv1.PasskeyLoginBeginResponse{OptionsJson: opts, FlowId: flowID}, nil
+}
+
+func (s *Server) PasskeyLoginFinish(ctx context.Context, req *authv1.PasskeyLoginFinishRequest) (*authv1.LoginResponse, error) {
+	token, err := s.auth.PasskeyLoginFinish(ctx, req.GetFlowId(), req.GetAssertionJson())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return &authv1.LoginResponse{Token: token}, nil
+}
+
 func (s *Server) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
 	if err := s.auth.Logout(ctx, req.GetToken()); err != nil {
 		return nil, mapError(err)

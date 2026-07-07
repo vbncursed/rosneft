@@ -9,7 +9,7 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
-//go:generate minimock -i UserStore,SessionStore,TwoFAVerifier -o ./mocks -s _mock.go
+//go:generate minimock -i UserStore,SessionStore,TwoFAVerifier,PasskeyVerifier -o ./mocks -s _mock.go
 
 // UserStore is the subset of the users store this service needs.
 type UserStore interface {
@@ -36,21 +36,30 @@ type TwoFAVerifier interface {
 	Verify(ctx context.Context, userID, code string) (bool, error)
 }
 
+// PasskeyVerifier delegates passwordless WebAuthn assertion checks to
+// passkey-service. FinishLogin returns a verified user id, not a session.
+type PasskeyVerifier interface {
+	BeginLogin(ctx context.Context) (optionsJSON, flowID string, err error)
+	FinishLogin(ctx context.Context, flowID, assertionJSON string) (userID string, err error)
+}
+
 // Service is the auth/login service.
 type Service struct {
 	users       UserStore
 	sessions    SessionStore
 	twofa       TwoFAVerifier
+	passkey     PasskeyVerifier
 	absoluteTTL time.Duration
 	authz       *authzCache
 }
 
 // New constructs the auth Service.
-func New(users UserStore, sessions SessionStore, twofa TwoFAVerifier, absoluteTTL time.Duration) *Service {
+func New(users UserStore, sessions SessionStore, twofa TwoFAVerifier, passkey PasskeyVerifier, absoluteTTL time.Duration) *Service {
 	return &Service{
 		users:       users,
 		sessions:    sessions,
 		twofa:       twofa,
+		passkey:     passkey,
 		absoluteTTL: absoluteTTL,
 		authz:       newAuthzCache(authzCacheTTL),
 	}
