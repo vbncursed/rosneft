@@ -27,12 +27,13 @@ func NewEngine(rpID, rpName string, origins []string) (*Engine, error) {
 }
 
 // BeginRegistration returns creation options + the session data to stash. It
-// forces resident (discoverable) keys and prefers user verification so
-// usernameless login works.
+// forces resident (discoverable) keys and REQUIRES user verification: passkey
+// login skips the TOTP step, so the passkey must itself be a real second factor
+// (device + biometric/PIN), not possession alone.
 func (e *Engine) BeginRegistration(u *User) (*protocol.CredentialCreation, *lib.SessionData, error) {
 	sel := protocol.AuthenticatorSelection{
 		ResidentKey:      protocol.ResidentKeyRequirementRequired,
-		UserVerification: protocol.VerificationPreferred,
+		UserVerification: protocol.VerificationRequired,
 	}
 	return e.w.BeginRegistration(u, lib.WithAuthenticatorSelection(sel))
 }
@@ -52,8 +53,10 @@ func (e *Engine) FinishRegistration(u *User, sess lib.SessionData, body io.Reade
 }
 
 // BeginLogin returns discoverable (usernameless) assertion options + session.
+// It REQUIRES user verification so the assertion proves device + biometric/PIN
+// (a genuine second factor) — passkey login mints a session without a TOTP step.
 func (e *Engine) BeginLogin() (*protocol.CredentialAssertion, *lib.SessionData, error) {
-	return e.w.BeginDiscoverableLogin()
+	return e.w.BeginDiscoverableLogin(lib.WithUserVerification(protocol.VerificationRequired))
 }
 
 // FinishLogin verifies the assertion. handler maps (rawID,userHandle)→User by

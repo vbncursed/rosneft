@@ -62,9 +62,9 @@ func Load(cmd *cobra.Command) (Config, error) {
 	// PASSKEY_RP_ORIGINS is a comma-separated env string; viper leaves it as a
 	// single element when it doesn't parse a list, so split defensively.
 	if len(cfg.RPOrigins) == 1 && strings.Contains(cfg.RPOrigins[0], ",") {
-		parts := strings.Split(cfg.RPOrigins[0], ",")
+		raw := cfg.RPOrigins[0]
 		cfg.RPOrigins = cfg.RPOrigins[:0]
-		for _, p := range parts {
+		for p := range strings.SplitSeq(raw, ",") {
 			if t := strings.TrimSpace(p); t != "" {
 				cfg.RPOrigins = append(cfg.RPOrigins, t)
 			}

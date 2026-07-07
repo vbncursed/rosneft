@@ -3,12 +3,10 @@ package credentials
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/vbncursed/rosneft/backend/services/passkey-service/internal/domain"
@@ -52,19 +50,6 @@ func (s *Store) ListByUser(ctx context.Context, userID string) ([]domain.Credent
 		out = append(out, c)
 	}
 	return out, rows.Err()
-}
-
-// GetByCredentialID looks a credential up by its raw WebAuthn credential id.
-func (s *Store) GetByCredentialID(ctx context.Context, credID []byte) (domain.Credential, error) {
-	const q = `SELECT ` + columns + ` FROM passkey_credentials WHERE credential_id = $1`
-	c, err := scan(s.pool.QueryRow(ctx, q, credID))
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.Credential{}, domain.ErrNotFound
-		}
-		return domain.Credential{}, fmt.Errorf("credentials.GetByCredentialID: %w", err)
-	}
-	return c, nil
 }
 
 // DeleteByCredentialID removes a credential scoped to its owner (defence in
