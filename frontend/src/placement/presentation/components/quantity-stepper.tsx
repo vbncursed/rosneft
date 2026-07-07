@@ -7,6 +7,9 @@ interface QuantityStepperProps {
   max?: number;
   // Optional accessible name for the group (e.g. the object title).
   label?: string;
+  // Overrides the group aria-label when the control isn't a quantity
+  // (e.g. a yaw-in-degrees stepper).
+  ariaLabel?: string;
 }
 
 const BTN =
@@ -21,12 +24,13 @@ export default function QuantityStepper({
   min = 1,
   max = 50,
   label,
+  ariaLabel,
 }: QuantityStepperProps) {
   const clamp = (n: number) =>
     Number.isFinite(n) ? Math.min(max, Math.max(min, Math.floor(n))) : min;
 
   return (
-    <div className="flex items-center gap-1.5" role="group" aria-label={label ? `Quantity for ${label}` : "Quantity"}>
+    <div className="flex items-center gap-1.5" role="group" aria-label={ariaLabel ?? (label ? `Quantity for ${label}` : "Quantity")}>
       <button
         type="button"
         className={BTN}

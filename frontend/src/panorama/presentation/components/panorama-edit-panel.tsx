@@ -2,6 +2,7 @@ import { type RefObject, useState } from "react";
 import type { Panorama } from "@/panorama/domain/panorama";
 import type { Vec3 } from "@/shared/domain/vec3";
 import Vec3Field from "@/placement/presentation/components/vec3-field";
+import QuantityStepper from "@/placement/presentation/components/quantity-stepper";
 import DeleteButton from "@/shared/presentation/components/delete-button";
 
 interface PanoramaEditPanelProps {
@@ -143,16 +144,12 @@ export default function PanoramaEditPanel({
                 <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">
                   Yaw offset
                 </span>
-                <input
-                  type="number"
-                  aria-label="Yaw offset in degrees"
+                <QuantityStepper
+                  ariaLabel="Yaw offset in degrees"
+                  min={0}
+                  max={360}
                   value={Math.round(yawOffset * RAD_TO_DEG)}
-                  onChange={(e) =>
-                    setYawOffset(
-                      (Number.parseFloat(e.target.value) || 0) / RAD_TO_DEG,
-                    )
-                  }
-                  className="w-16 rounded border border-white/10 bg-white/[0.04] px-1 py-0.5 text-right text-[11px] text-neutral-200"
+                  onChange={(deg) => setYawOffset(deg / RAD_TO_DEG)}
                 />
               </div>
               <input
