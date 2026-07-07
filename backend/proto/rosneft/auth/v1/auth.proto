@@ -13,6 +13,8 @@ service AuthService {
   // --- session / login ---
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc LoginVerify2FA(LoginVerify2FARequest) returns (LoginResponse);
+  rpc PasskeyLoginBegin(PasskeyLoginBeginRequest) returns (PasskeyLoginBeginResponse);
+  rpc PasskeyLoginFinish(PasskeyLoginFinishRequest) returns (LoginResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
 
@@ -79,6 +81,19 @@ message LoginResponse {
 message LoginVerify2FARequest {
   string challenge_token = 1;
   string code = 2;
+}
+
+// Passkey passwordless login. Begin returns discoverable-login options + a
+// flow id; Finish exchanges a signed assertion for a session token. Verification
+// is delegated to passkey-service; auth mints the session (LoginResponse.token).
+message PasskeyLoginBeginRequest {}
+message PasskeyLoginBeginResponse {
+  string options_json = 1;
+  string flow_id = 2;
+}
+message PasskeyLoginFinishRequest {
+  string flow_id = 1;
+  string assertion_json = 2;
 }
 
 message LogoutRequest {
