@@ -9,6 +9,7 @@ COPY services/catalog-service/go.mod services/catalog-service/go.su[m] ./service
 COPY services/content-service/go.mod services/content-service/go.su[m] ./services/content-service/
 COPY services/auth-service/go.mod services/auth-service/go.su[m] ./services/auth-service/
 COPY services/twofa-service/go.mod services/twofa-service/go.su[m] ./services/twofa-service/
+COPY services/passkey-service/go.mod services/passkey-service/go.su[m] ./services/passkey-service/
 COPY services/mesh-service/go.mod services/mesh-service/go.su[m] ./services/mesh-service/
 COPY services/asset-service/go.mod services/asset-service/go.su[m] ./services/asset-service/
 COPY services/upload-service/go.mod services/upload-service/go.su[m] ./services/upload-service/
