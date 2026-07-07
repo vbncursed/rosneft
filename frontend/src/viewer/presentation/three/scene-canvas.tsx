@@ -21,6 +21,7 @@ import type { Panorama } from "@/panorama/domain/panorama";
 import type { PanoramaDragApi } from "@/panorama/application/use-panorama-drag";
 import PanoramaSceneLayer from "@/panorama/presentation/three/panorama-scene-layer";
 import CameraPositionTracker from "@/panorama/presentation/three/camera-position-tracker";
+import { isDescendant } from "@/viewer/presentation/three/is-descendant";
 import type { Vec3 } from "@/shared/domain/vec3";
 import type { RefObject } from "react";
 
@@ -179,7 +180,16 @@ export default function SceneCanvas({
   const handlePointerMove = useCallback(
     (event: ThreeEvent<PointerEvent>) => {
       if (!panoramaMove?.moveMode || panoramaMove.draggingId == null) return;
-      const hit = event.intersections[0]?.point;
+      // Constrain the drop to the territory surface. Taking the first hit of
+      // *any* object let a marker leap onto a placement under the cursor — and
+      // while the GLB is still loading the only hits are placements, which is
+      // what sent markers flying to unreachable spots. No territory hit (not
+      // yet loaded, or ray off the mesh) → marker stays put. Y is still
+      // editable by hand in the panel; the drag only sets where on the ground.
+      const surface = territoryRef.current;
+      const hit = surface
+        ? event.intersections.find((i) => isDescendant(i.object, surface))?.point
+        : undefined;
       if (!hit) return;
       event.stopPropagation();
       panoramaMove.move({ x: hit.x, y: hit.y, z: hit.z });
