@@ -58,9 +58,11 @@ export default function PasskeysSection() {
     const value = await confirmWithInput({
       title: "Remove passkey",
       message: totp
-        ? "Enter your authenticator or recovery code to confirm removal."
+        ? "Enter your authenticator code to confirm removal."
         : "Enter your account password to confirm removal.",
-      field: { type: totp ? "code" : "password" },
+      field: totp
+        ? { type: "code", altLabel: "Use a recovery code instead", altPlaceholder: "xxxxx-xxxxx" }
+        : { type: "password" },
       danger: true,
       confirmLabel: "Remove",
     });

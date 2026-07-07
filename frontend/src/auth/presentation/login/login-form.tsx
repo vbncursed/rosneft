@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import PasswordField from "@/shared/presentation/components/password-field";
-import OtpInput from "@/auth/presentation/account/otp-input";
+import OtpInput from "@/shared/presentation/components/otp-input";
 
 export default function LoginForm() {
   const rawNext = useSearchParams().get("next") || "/";

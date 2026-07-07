@@ -8,6 +8,7 @@ import {
   resolveActive,
   subscribe,
 } from "@/shared/presentation/confirm/confirm-store";
+import OtpInput from "@/shared/presentation/components/otp-input";
 
 // ConfirmModal renders the single active dialog. Mounted once near
 // the root layout. While no request is active, returns null so the
@@ -21,16 +22,23 @@ function Dialog({ request }: { request: ConfirmRequest }) {
   const cancelRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
+  const [alt, setAlt] = useState(false);
   const field = request.field;
-  const canConfirm = !field || value.trim().length > 0;
+  // A `code` field is a 6-digit segmented input unless the user toggled to the
+  // alternate (free-text) mode. Segmented needs all 6 digits; everything else
+  // just needs a non-blank value.
+  const segmented = field?.type === "code" && !alt;
+  const canConfirm = !field || (segmented ? value.length === 6 : value.trim().length > 0);
 
   // Esc → cancel always. Enter → confirm only for a plain confirm; when the
-  // dialog has a field the input's own onKeyDown submits with the typed value
-  // (the global listener's closure can't see the latest input state).
+  // dialog has a field the input's own onKeyDown (or the segmented input's
+  // auto-submit) delivers the typed value.
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    (field ? inputRef.current : cancelRef.current)?.focus();
+    // Segmented input owns its own focus (OtpInput autoFocus); focusing here
+    // would steal it from the first cell.
+    if (!segmented) (field ? inputRef.current : cancelRef.current)?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") resolveActive(false);
       else if (e.key === "Enter" && !field) resolveActive(true);
@@ -40,7 +48,7 @@ function Dialog({ request }: { request: ConfirmRequest }) {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [field]);
+  }, [field, segmented]);
 
   const confirmTone = request.danger
     ? "border-red-300/40 bg-red-500/15 text-red-100 hover:bg-red-500/25"
@@ -66,13 +74,14 @@ function Dialog({ request }: { request: ConfirmRequest }) {
           </h2>
         ) : null}
         <p className="text-sm leading-6 text-neutral-300">{request.message}</p>
-        {field ? (
+        {segmented ? (
+          <OtpInput value={value} onChange={setValue} onComplete={(v) => resolveActive(true, v)} autoFocus />
+        ) : field ? (
           <input
             ref={inputRef}
             type={field.type === "password" ? "password" : "text"}
-            inputMode={field.type === "code" ? "numeric" : undefined}
-            autoComplete={field.type === "password" ? "current-password" : field.type === "code" ? "one-time-code" : "off"}
-            placeholder={field.placeholder}
+            autoComplete={field.type === "password" ? "current-password" : "off"}
+            placeholder={alt ? field.altPlaceholder : field.placeholder}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={(e) => {
@@ -80,6 +89,15 @@ function Dialog({ request }: { request: ConfirmRequest }) {
             }}
             className="rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none transition-colors focus:border-cyan-300/60"
           />
+        ) : null}
+        {field?.type === "code" && field.altLabel ? (
+          <button
+            type="button"
+            onClick={() => { setAlt((a) => !a); setValue(""); }}
+            className="cursor-pointer self-start text-xs uppercase tracking-[0.2em] text-neutral-400 transition-colors hover:text-cyan-200"
+          >
+            {alt ? "Use an authenticator code instead" : field.altLabel}
+          </button>
         ) : null}
         <div className="mt-2 flex justify-end gap-2">
           <button

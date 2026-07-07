@@ -5,7 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { setup2FA, enable2FA, disable2FA, regenerateRecoveryCodes } from "@/auth/infrastructure/auth-gateway";
 import { notify } from "@/shared/presentation/toast/use-toast";
 import RecoveryCodes from "@/auth/presentation/account/recovery-codes";
-import OtpInput from "@/auth/presentation/account/otp-input";
+import OtpInput from "@/shared/presentation/components/otp-input";
 
 type Mode = "idle" | "setup" | "codes" | "disable" | "regen";
 
