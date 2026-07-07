@@ -27,6 +27,7 @@ const (
 	AuthService_ValidateToken_FullMethodName      = "/rosneft.auth.v1.AuthService/ValidateToken"
 	AuthService_GetMe_FullMethodName              = "/rosneft.auth.v1.AuthService/GetMe"
 	AuthService_ChangePassword_FullMethodName     = "/rosneft.auth.v1.AuthService/ChangePassword"
+	AuthService_VerifyPassword_FullMethodName     = "/rosneft.auth.v1.AuthService/VerifyPassword"
 	AuthService_CreateUser_FullMethodName         = "/rosneft.auth.v1.AuthService/CreateUser"
 	AuthService_ListUsers_FullMethodName          = "/rosneft.auth.v1.AuthService/ListUsers"
 	AuthService_GetUser_FullMethodName            = "/rosneft.auth.v1.AuthService/GetUser"
@@ -62,6 +63,9 @@ type AuthServiceClient interface {
 	// --- self ---
 	GetMe(ctx context.Context, in *GetMeRequest, opts ...grpc.CallOption) (*User, error)
 	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error)
+	// VerifyPassword checks the caller's password without changing it — the
+	// password step-up factor for sensitive self-service actions.
+	VerifyPassword(ctx context.Context, in *VerifyPasswordRequest, opts ...grpc.CallOption) (*VerifyPasswordResponse, error)
 	// --- user admin ---
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*User, error)
 	ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersResponse, error)
@@ -163,6 +167,16 @@ func (c *authServiceClient) ChangePassword(ctx context.Context, in *ChangePasswo
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ChangePasswordResponse)
 	err := c.cc.Invoke(ctx, AuthService_ChangePassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) VerifyPassword(ctx context.Context, in *VerifyPasswordRequest, opts ...grpc.CallOption) (*VerifyPasswordResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(VerifyPasswordResponse)
+	err := c.cc.Invoke(ctx, AuthService_VerifyPassword_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -337,6 +351,9 @@ type AuthServiceServer interface {
 	// --- self ---
 	GetMe(context.Context, *GetMeRequest) (*User, error)
 	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
+	// VerifyPassword checks the caller's password without changing it — the
+	// password step-up factor for sensitive self-service actions.
+	VerifyPassword(context.Context, *VerifyPasswordRequest) (*VerifyPasswordResponse, error)
 	// --- user admin ---
 	CreateUser(context.Context, *CreateUserRequest) (*User, error)
 	ListUsers(context.Context, *ListUsersRequest) (*ListUsersResponse, error)
@@ -387,6 +404,9 @@ func (UnimplementedAuthServiceServer) GetMe(context.Context, *GetMeRequest) (*Us
 }
 func (UnimplementedAuthServiceServer) ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ChangePassword not implemented")
+}
+func (UnimplementedAuthServiceServer) VerifyPassword(context.Context, *VerifyPasswordRequest) (*VerifyPasswordResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method VerifyPassword not implemented")
 }
 func (UnimplementedAuthServiceServer) CreateUser(context.Context, *CreateUserRequest) (*User, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateUser not implemented")
@@ -594,6 +614,24 @@ func _AuthService_ChangePassword_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthServiceServer).ChangePassword(ctx, req.(*ChangePasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_VerifyPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerifyPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).VerifyPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_VerifyPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).VerifyPassword(ctx, req.(*VerifyPasswordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -906,6 +944,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ChangePassword",
 			Handler:    _AuthService_ChangePassword_Handler,
+		},
+		{
+			MethodName: "VerifyPassword",
+			Handler:    _AuthService_VerifyPassword_Handler,
 		},
 		{
 			MethodName: "CreateUser",

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { listPasskeys, beginRegistration, finishRegistration, deletePasskey, type Passkey } from "@/auth/infrastructure/passkey-gateway";
 import { createCredential, isPasskeySupported } from "@/auth/infrastructure/webauthn";
+import { useCurrentUser } from "@/auth/presentation/current-user-context";
+import { confirmWithInput } from "@/shared/presentation/confirm/use-confirm";
 import { notify } from "@/shared/presentation/toast/use-toast";
 
 const cardCls = "flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur";
@@ -17,6 +19,7 @@ function fmtDate(iso: string): string {
 }
 
 export default function PasskeysSection() {
+  const me = useCurrentUser();
   const [keys, setKeys] = useState<Passkey[]>([]);
   const [busy, setBusy] = useState(false);
   const [supported, setSupported] = useState(true);
@@ -27,11 +30,19 @@ export default function PasskeysSection() {
   }, []);
 
   async function add() {
+    // Name first, then run the ceremony — avoids leaving an unregistered
+    // credential on the authenticator if the user backs out of naming.
+    const name = await confirmWithInput({
+      title: "Add a passkey",
+      message: "Name this passkey so you can recognise it later.",
+      field: { type: "text", placeholder: "My device" },
+      confirmLabel: "Continue",
+    });
+    if (name === null) return;
     setBusy(true);
     try {
       const { optionsJson, flowId } = await beginRegistration();
       const credentialJson = await createCredential(optionsJson);
-      const name = window.prompt("Name this passkey", "My device") || "Passkey";
       const created = await finishRegistration(flowId, credentialJson, name);
       setKeys((k) => [created, ...k]);
       notify.success("Passkey added");
@@ -43,9 +54,19 @@ export default function PasskeysSection() {
   }
 
   async function remove(id: string) {
-    if (!window.confirm("Remove this passkey? You won't be able to sign in with it anymore.")) return;
+    const totp = me?.totpEnabled ?? false;
+    const value = await confirmWithInput({
+      title: "Remove passkey",
+      message: totp
+        ? "Enter your authenticator or recovery code to confirm removal."
+        : "Enter your account password to confirm removal.",
+      field: { type: totp ? "code" : "password" },
+      danger: true,
+      confirmLabel: "Remove",
+    });
+    if (value === null) return;
     try {
-      await deletePasskey(id);
+      await deletePasskey(id, totp ? { code: value } : { password: value });
       setKeys((k) => k.filter((x) => x.id !== id));
       notify.success("Passkey removed");
     } catch (e) {

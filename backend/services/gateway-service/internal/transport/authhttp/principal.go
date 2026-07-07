@@ -23,6 +23,13 @@ func principalPerms(ctx context.Context) []string {
 	return p
 }
 
+// principalUserID returns the authenticated caller's user id (set by
+// Authenticate). Empty when unauthenticated.
+func principalUserID(ctx context.Context) string {
+	id, _ := ctx.Value(keyUserID).(string)
+	return id
+}
+
 // principalIsOwner reports whether the caller is an owner (root of trust), who
 // bypasses every route permission gate.
 func principalIsOwner(ctx context.Context) bool {

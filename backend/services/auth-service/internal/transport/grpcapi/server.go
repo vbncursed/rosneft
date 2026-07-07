@@ -21,6 +21,7 @@ type AuthFlow interface {
 	LoginVerify2FA(ctx context.Context, challenge, code string) (string, error)
 	PasskeyLoginBegin(ctx context.Context) (string, string, error)
 	PasskeyLoginFinish(ctx context.Context, flowID, assertionJSON string) (string, error)
+	VerifyPassword(ctx context.Context, token, password string) (bool, error)
 	Logout(ctx context.Context, token string) error
 	ValidateToken(ctx context.Context, token string) (string, []string, bool, string, error)
 }

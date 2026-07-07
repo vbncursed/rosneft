@@ -21,6 +21,9 @@ service AuthService {
   // --- self ---
   rpc GetMe(GetMeRequest) returns (User);
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  // VerifyPassword checks the caller's password without changing it — the
+  // password step-up factor for sensitive self-service actions.
+  rpc VerifyPassword(VerifyPasswordRequest) returns (VerifyPasswordResponse);
 
   // --- user admin ---
   rpc CreateUser(CreateUserRequest) returns (User);
@@ -120,6 +123,13 @@ message ChangePasswordRequest {
   string new_password = 3;
 }
 message ChangePasswordResponse {}
+message VerifyPasswordRequest {
+  string token = 1;
+  string password = 2;
+}
+message VerifyPasswordResponse {
+  bool valid = 1;
+}
 
 message CreateUserRequest {
   string token = 1; // actor session token; created_by is set from it

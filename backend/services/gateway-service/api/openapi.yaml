@@ -519,6 +519,11 @@ components:
       properties:
         flowId: { type: string }
         assertionJson: { type: string, description: navigator.credentials.get() result JSON }
+    PasskeyDeleteRequest:
+      type: object
+      properties:
+        password: { type: string, format: password, description: sent when 2FA is off }
+        code: { type: string, description: TOTP or recovery code, sent when 2FA is on }
     CreateUserRequest:
       type: object
       required: [email, username, password]
@@ -1464,16 +1469,25 @@ paths:
   /api/auth/passkey/credentials/{id}:
     delete:
       tags: [auth]
-      summary: Delete one of the authenticated user's passkeys
+      summary: Delete one of the authenticated user's passkeys (requires step-up re-auth)
+      description: >
+        Requires re-authentication: a TOTP code when 2FA is enabled, otherwise
+        the account password. The server picks the factor from the 2FA state.
       security: [{ bearerAuth: [] }]
       parameters:
         - name: id
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PasskeyDeleteRequest' }
       responses:
         '204': { description: Passkey deleted }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
 
   /api/auth/users:
