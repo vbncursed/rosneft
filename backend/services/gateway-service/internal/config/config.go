@@ -20,6 +20,7 @@ type Config struct {
 	UploadGRPCAddr  string        `mapstructure:"upload-grpc-addr"`
 	AuthGRPCAddr    string        `mapstructure:"auth-grpc-addr"`
 	TwoFAGRPCAddr   string        `mapstructure:"twofa-grpc-addr"`
+	PasskeyGRPCAddr string        `mapstructure:"passkey-grpc-addr"`
 	AssetHTTPAddr   string        `mapstructure:"asset-http-addr"`
 	AllowedOrigins  []string      `mapstructure:"allowed-origins"`
 	LogLevel        string        `mapstructure:"log-level"`
@@ -46,6 +47,7 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.SetDefault("upload-grpc-addr", "upload:9003")
 	v.SetDefault("auth-grpc-addr", "auth:9004")
 	v.SetDefault("twofa-grpc-addr", "twofa:9006")
+	v.SetDefault("passkey-grpc-addr", "passkey:9008")
 	v.SetDefault("asset-http-addr", "http://asset:8081")
 	v.SetDefault("allowed-origins", []string{"*"})
 	v.SetDefault("log-level", "info")
