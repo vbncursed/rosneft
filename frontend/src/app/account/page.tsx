@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/auth/application/current-user";
 import { redirect } from "next/navigation";
 import ChangePasswordForm from "@/auth/presentation/account/change-password-form";
 import TwoFactorSection from "@/auth/presentation/account/two-factor-section";
+import PasskeysSection from "@/auth/presentation/account/passkeys-section";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export default async function AccountPage() {
         </header>
         <ChangePasswordForm />
         <TwoFactorSection initiallyEnabled={p.totpEnabled} />
+        <PasskeysSection />
       </section>
     </main>
   );
