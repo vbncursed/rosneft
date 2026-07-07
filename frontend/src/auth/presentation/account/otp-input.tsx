@@ -8,12 +8,14 @@ import { useRef, type ClipboardEvent, type KeyboardEvent } from "react";
 export default function OtpInput({
   value,
   onChange,
+  onComplete,
   length = 6,
   disabled = false,
   autoFocus = false,
 }: {
   value: string;
   onChange: (v: string) => void;
+  onComplete?: (v: string) => void;
   length?: number;
   disabled?: boolean;
   autoFocus?: boolean;
@@ -26,7 +28,9 @@ export default function OtpInput({
   const setChar = (i: number, char: string) => {
     const next = cells.slice();
     next[i] = char;
-    onChange(next.join("").slice(0, length));
+    const v = next.join("").slice(0, length);
+    onChange(v);
+    if (char && v.length === length) onComplete?.(v);
   };
 
   const handleChange = (i: number, raw: string) => {
@@ -58,6 +62,7 @@ export default function OtpInput({
     const digits = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, length);
     if (!digits) return;
     onChange(digits);
+    if (digits.length === length) onComplete?.(digits);
     focus(digits.length);
   };
 

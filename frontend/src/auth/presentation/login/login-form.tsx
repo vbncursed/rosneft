@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import PasswordField from "@/shared/presentation/components/password-field";
+import OtpInput from "@/auth/presentation/account/otp-input";
 
 export default function LoginForm() {
   const rawNext = useSearchParams().get("next") || "/";
@@ -14,6 +15,7 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [challenge, setChallenge] = useState("");
   const [code, setCode] = useState("");
+  const [recovery, setRecovery] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -49,13 +51,13 @@ export default function LoginForm() {
     } finally { setBusy(false); }
   }
 
-  async function submit2FA(e: React.FormEvent) {
-    e.preventDefault();
+  async function verify(codeVal: string) {
+    if (busy || !codeVal) return;
     setBusy(true); setError("");
     try {
       const res = await fetch("/api/auth/login/2fa", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ challengeToken: challenge, code }),
+        body: JSON.stringify({ challengeToken: challenge, code: codeVal }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message ?? "Invalid code");
@@ -97,17 +99,28 @@ export default function LoginForm() {
           </button>
         </form>
       ) : (
-        <form className="mt-6 flex flex-col gap-4" onSubmit={submit2FA}>
-          <div>
-            <label className={label} htmlFor="code">Authenticator or recovery code</label>
-            <input id="code" autoFocus value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric"
-              className="mt-2 block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-center font-[family-name:var(--font-geist-mono)] text-lg tracking-[0.3em] tabular-nums text-white outline-none focus:border-cyan-300/60" />
-          </div>
-          <button type="submit" disabled={busy || !code}
+        <form className="mt-6 flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); verify(code); }}>
+          {recovery ? (
+            <div>
+              <label className={label} htmlFor="code">Recovery code</label>
+              <input id="code" autoFocus value={code} onChange={(e) => setCode(e.target.value)} placeholder="xxxxx-xxxxx"
+                className="mt-2 block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-center font-[family-name:var(--font-geist-mono)] text-lg tracking-[0.2em] text-white outline-none focus:border-cyan-300/60" />
+            </div>
+          ) : (
+            <div>
+              <p className={label}>Authenticator code</p>
+              <div className="mt-2"><OtpInput value={code} onChange={setCode} onComplete={verify} autoFocus /></div>
+            </div>
+          )}
+          <button type="submit" disabled={busy || (recovery ? !code : code.length !== 6)}
             className="cursor-pointer rounded-full bg-white px-6 py-3 text-xs uppercase tracking-[0.2em] text-black transition-colors hover:bg-cyan-200 disabled:bg-white/30 disabled:text-white/50">
             {busy ? "Verifying…" : "Verify"}
           </button>
-          <button type="button" onClick={() => { setStep("creds"); setCode(""); setError(""); }}
+          <button type="button" onClick={() => { setRecovery(!recovery); setCode(""); setError(""); }}
+            className="cursor-pointer text-xs uppercase tracking-[0.2em] text-neutral-400 transition-colors hover:text-cyan-200">
+            {recovery ? "Use authenticator code instead" : "Use a recovery code instead"}
+          </button>
+          <button type="button" onClick={() => { setStep("creds"); setCode(""); setError(""); setRecovery(false); }}
             className="cursor-pointer text-xs uppercase tracking-[0.2em] text-neutral-400 transition-colors hover:text-cyan-200">← Back</button>
         </form>
       )}

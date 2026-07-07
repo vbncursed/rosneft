@@ -37,10 +37,11 @@ export default function TwoFactorSection({ initiallyEnabled }: { initiallyEnable
       setBusy(false);
     }
   }
-  async function confirm() {
+  async function confirm(codeVal = code) {
+    if (busy || codeVal.length !== 6) return;
     setBusy(true);
     try {
-      setCodes(await enable2FA(code));
+      setCodes(await enable2FA(codeVal));
       setEnabled(true);
       setCode("");
       setMode("codes");
@@ -50,10 +51,11 @@ export default function TwoFactorSection({ initiallyEnabled }: { initiallyEnable
       setBusy(false);
     }
   }
-  async function turnOff() {
+  async function turnOff(codeVal = code) {
+    if (busy || codeVal.length !== 6) return;
     setBusy(true);
     try {
-      await disable2FA(code);
+      await disable2FA(codeVal);
       setEnabled(false);
       setCode("");
       setMode("idle");
@@ -64,10 +66,11 @@ export default function TwoFactorSection({ initiallyEnabled }: { initiallyEnable
       setBusy(false);
     }
   }
-  async function regenerate() {
+  async function regenerate(codeVal = code) {
+    if (busy || codeVal.length !== 6) return;
     setBusy(true);
     try {
-      setCodes(await regenerateRecoveryCodes(code));
+      setCodes(await regenerateRecoveryCodes(codeVal));
       setCode("");
       setMode("codes");
     } catch (e) {
@@ -107,9 +110,9 @@ export default function TwoFactorSection({ initiallyEnabled }: { initiallyEnable
       {mode === "regen" ? (
         <div className="flex flex-col items-center gap-3 text-center">
           <p className="text-sm text-neutral-300">Enter a current code to replace your recovery codes. Existing codes stop working.</p>
-          <OtpInput value={code} onChange={setCode} autoFocus />
+          <OtpInput value={code} onChange={setCode} onComplete={regenerate} autoFocus />
           <div className="flex gap-2">
-            <button type="button" disabled={busy || !ready} onClick={regenerate} className="cursor-pointer rounded-full bg-white px-6 py-2 text-xs uppercase tracking-[0.2em] text-black hover:bg-cyan-200 disabled:bg-white/30">{busy ? "…" : "Regenerate"}</button>
+            <button type="button" disabled={busy || !ready} onClick={() => regenerate()} className="cursor-pointer rounded-full bg-white px-6 py-2 text-xs uppercase tracking-[0.2em] text-black hover:bg-cyan-200 disabled:bg-white/30">{busy ? "…" : "Regenerate"}</button>
             <button type="button" onClick={() => { setMode("idle"); setCode(""); }} className="cursor-pointer rounded-full border border-white/20 px-6 py-2 text-xs uppercase tracking-[0.2em] text-white hover:bg-white/[0.08]">Cancel</button>
           </div>
         </div>
@@ -127,9 +130,9 @@ export default function TwoFactorSection({ initiallyEnabled }: { initiallyEnable
           ) : (
             <button type="button" onClick={() => setShowKey(true)} className="cursor-pointer text-[11px] uppercase tracking-[0.18em] text-cyan-300/80 hover:text-cyan-200">Can&apos;t scan? Show manual key</button>
           )}
-          <OtpInput value={code} onChange={setCode} autoFocus />
+          <OtpInput value={code} onChange={setCode} onComplete={confirm} autoFocus />
           <div className="flex gap-2">
-            <button type="button" disabled={busy || !ready} onClick={confirm} className="cursor-pointer rounded-full bg-white px-6 py-2 text-xs uppercase tracking-[0.2em] text-black hover:bg-cyan-200 disabled:bg-white/30">{busy ? "…" : "Confirm"}</button>
+            <button type="button" disabled={busy || !ready} onClick={() => confirm()} className="cursor-pointer rounded-full bg-white px-6 py-2 text-xs uppercase tracking-[0.2em] text-black hover:bg-cyan-200 disabled:bg-white/30">{busy ? "…" : "Confirm"}</button>
             <button type="button" onClick={() => setMode("idle")} className="cursor-pointer rounded-full border border-white/20 px-6 py-2 text-xs uppercase tracking-[0.2em] text-white hover:bg-white/[0.08]">Cancel</button>
           </div>
         </div>
@@ -138,9 +141,9 @@ export default function TwoFactorSection({ initiallyEnabled }: { initiallyEnable
       {mode === "disable" ? (
         <div className="flex flex-col items-center gap-3 text-center">
           <p className="text-sm text-neutral-300">Enter a current code to disable 2FA.</p>
-          <OtpInput value={code} onChange={setCode} autoFocus />
+          <OtpInput value={code} onChange={setCode} onComplete={turnOff} autoFocus />
           <div className="flex gap-2">
-            <button type="button" disabled={busy || !ready} onClick={turnOff} className="cursor-pointer rounded-full border border-red-300/40 bg-red-500/10 px-6 py-2 text-xs uppercase tracking-[0.2em] text-red-200 hover:bg-red-500/20 disabled:opacity-50">{busy ? "…" : "Disable"}</button>
+            <button type="button" disabled={busy || !ready} onClick={() => turnOff()} className="cursor-pointer rounded-full border border-red-300/40 bg-red-500/10 px-6 py-2 text-xs uppercase tracking-[0.2em] text-red-200 hover:bg-red-500/20 disabled:opacity-50">{busy ? "…" : "Disable"}</button>
             <button type="button" onClick={() => setMode("idle")} className="cursor-pointer rounded-full border border-white/20 px-6 py-2 text-xs uppercase tracking-[0.2em] text-white hover:bg-white/[0.08]">Cancel</button>
           </div>
         </div>
