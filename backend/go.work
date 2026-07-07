@@ -9,6 +9,7 @@ use (
 	./services/content-service
 	./services/gateway-service
 	./services/mesh-service
+	./services/passkey-service
 	./services/twofa-service
 	./services/upload-service
 )
