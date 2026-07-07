@@ -57,13 +57,15 @@ func (s *Service) FinishRegistration(ctx context.Context, userID, flowID, creden
 		transports = append(transports, string(t))
 	}
 	dc := domain.Credential{
-		UserID:       userID,
-		CredentialID: cred.ID,
-		PublicKey:    cred.PublicKey,
-		SignCount:    cred.Authenticator.SignCount,
-		AAGUID:       cred.Authenticator.AAGUID,
-		Transports:   transports,
-		Name:         name,
+		UserID:         userID,
+		CredentialID:   cred.ID,
+		PublicKey:      cred.PublicKey,
+		SignCount:      cred.Authenticator.SignCount,
+		AAGUID:         cred.Authenticator.AAGUID,
+		Transports:     transports,
+		BackupEligible: cred.Flags.BackupEligible,
+		BackupState:    cred.Flags.BackupState,
+		Name:           name,
 	}
 	if err := s.store.Create(ctx, dc); err != nil {
 		return domain.Credential{}, err

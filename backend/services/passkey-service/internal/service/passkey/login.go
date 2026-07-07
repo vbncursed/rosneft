@@ -60,7 +60,7 @@ func (s *Service) FinishLogin(ctx context.Context, flowID, assertionJSON string)
 	if cred.Authenticator.CloneWarning {
 		return "", domain.ErrAssertionInvalid
 	}
-	if err := s.store.UpdateSignCount(ctx, cred.ID, cred.Authenticator.SignCount); err != nil {
+	if err := s.store.UpdateAfterLogin(ctx, cred.ID, cred.Authenticator.SignCount, cred.Flags.BackupState); err != nil {
 		return "", err
 	}
 	return resolvedUserID, nil

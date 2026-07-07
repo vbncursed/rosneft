@@ -12,7 +12,12 @@ type Credential struct {
 	SignCount    uint32
 	Transports   []string
 	AAGUID       []byte
-	Name         string
+	// BackupEligible (BE) is fixed for a credential's lifetime; WebAuthn login
+	// rejects an assertion whose BE differs from the stored value, so it MUST be
+	// persisted at registration. BackupState (BS) can change and is written back.
+	BackupEligible bool
+	BackupState    bool
+	Name           string
 	CreatedAt    time.Time
 	LastUsedAt   *time.Time
 }

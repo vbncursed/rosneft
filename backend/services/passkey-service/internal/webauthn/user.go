@@ -41,6 +41,10 @@ func toLib(c domain.Credential) lib.Credential {
 		ID:        c.CredentialID,
 		PublicKey: c.PublicKey,
 		Transport: transports,
+		Flags: lib.CredentialFlags{
+			BackupEligible: c.BackupEligible,
+			BackupState:    c.BackupState,
+		},
 		Authenticator: lib.Authenticator{
 			AAGUID:    c.AAGUID,
 			SignCount: c.SignCount,

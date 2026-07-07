@@ -21,7 +21,7 @@ type Store interface {
 	Create(ctx context.Context, c domain.Credential) error
 	ListByUser(ctx context.Context, userID string) ([]domain.Credential, error)
 	DeleteByCredentialID(ctx context.Context, userID string, credID []byte) error
-	UpdateSignCount(ctx context.Context, credID []byte, count uint32) error
+	UpdateAfterLogin(ctx context.Context, credID []byte, count uint32, backupState bool) error
 }
 
 // Ceremonies stashes in-flight ceremony state.
