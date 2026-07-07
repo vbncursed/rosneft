@@ -143,9 +143,17 @@ export default function PanoramaEditPanel({
                 <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">
                   Yaw offset
                 </span>
-                <span className="text-[10px] text-neutral-500">
-                  {(yawOffset * RAD_TO_DEG).toFixed(1)}°
-                </span>
+                <input
+                  type="number"
+                  aria-label="Yaw offset in degrees"
+                  value={Math.round(yawOffset * RAD_TO_DEG)}
+                  onChange={(e) =>
+                    setYawOffset(
+                      (Number.parseFloat(e.target.value) || 0) / RAD_TO_DEG,
+                    )
+                  }
+                  className="w-16 rounded border border-white/10 bg-white/[0.04] px-1 py-0.5 text-right text-[11px] text-neutral-200"
+                />
               </div>
               <input
                 type="range"

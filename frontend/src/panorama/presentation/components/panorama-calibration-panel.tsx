@@ -127,6 +127,7 @@ export default function PanoramaCalibrationPanel({
           </span>
           <input
             type="number"
+            aria-label="Yaw offset in degrees"
             value={deg}
             onChange={(e) =>
               onSetYaw((Number.parseFloat(e.target.value) || 0) / RAD_TO_DEG)
