@@ -85,7 +85,7 @@ export default function OtpInput({
           autoComplete={i === 0 ? "one-time-code" : "off"}
           maxLength={1}
           aria-label={`Digit ${i + 1}`}
-          className="h-14 w-11 rounded-xl border border-white/10 bg-black/40 text-center font-[family-name:var(--font-geist-mono)] text-xl tabular-nums text-white outline-none transition-colors focus:border-cyan-300/60 disabled:opacity-40"
+          className="h-14 w-11 rounded-xl border border-white/10 bg-black/40 text-center font-mono text-xl tabular-nums text-white outline-none transition-colors focus:border-cyan-300/60 disabled:opacity-40"
         />
       ))}
     </div>
