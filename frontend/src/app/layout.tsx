@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import Toaster from "@/shared/presentation/toast/toaster";
 import ConfirmModal from "@/shared/presentation/confirm/confirm-modal";
 import { getCurrentUser } from "@/auth/application/current-user";
@@ -7,14 +7,17 @@ import { CurrentUserProvider } from "@/auth/presentation/current-user-context";
 import UserMenu from "@/auth/presentation/user-menu";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+// IBM Plex Sans ships a variable axis — load without an explicit weight list.
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-plex-sans",
+  subsets: ["latin", "cyrillic"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+// IBM Plex Mono has no variable axis — the used weights are declared explicitly.
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
+  subsets: ["latin", "cyrillic"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -31,7 +34,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${plexSans.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <CurrentUserProvider value={principal}>
