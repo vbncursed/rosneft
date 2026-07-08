@@ -124,7 +124,7 @@ export default function TwoFactorSection({ initiallyEnabled }: { initiallyEnable
           <div className="rounded-xl bg-[#0c0d10] p-3"><QRCodeSVG value={otpauth} size={160} bgColor="#0c0d10" fgColor="#e5e7eb" /></div>
           {showKey ? (
             <div className="flex flex-wrap items-center gap-2">
-              <code className="break-all font-[family-name:var(--font-geist-mono)] text-[11px] text-neutral-300">{secret}</code>
+              <code className="break-all font-mono text-[11px] text-neutral-300">{secret}</code>
               <button type="button" onClick={() => { navigator.clipboard?.writeText(secret); notify.success("Key copied"); }} className="cursor-pointer rounded-full border border-white/20 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white hover:bg-white/[0.08]">Copy</button>
             </div>
           ) : (

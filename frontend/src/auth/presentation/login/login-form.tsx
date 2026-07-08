@@ -104,7 +104,7 @@ export default function LoginForm() {
             <div>
               <label className={label} htmlFor="code">Recovery code</label>
               <input id="code" autoFocus value={code} onChange={(e) => setCode(e.target.value)} placeholder="xxxxx-xxxxx"
-                className="mt-2 block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-center font-[family-name:var(--font-geist-mono)] text-lg tracking-[0.2em] text-white outline-none focus:border-cyan-300/60" />
+                className="mt-2 block w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-center font-mono text-lg tracking-[0.2em] text-white outline-none focus:border-cyan-300/60" />
             </div>
           ) : (
             <div>
