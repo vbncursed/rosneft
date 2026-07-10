@@ -131,14 +131,15 @@ type AuthRole struct {
 
 // AuthUser defines model for AuthUser.
 type AuthUser struct {
-	Email       *string         `json:"email,omitempty"`
-	Id          *string         `json:"id,omitempty"`
-	IsOwner     *bool           `json:"isOwner,omitempty"`
-	Permissions *[]string       `json:"permissions,omitempty"`
-	RoleSlugs   *[]string       `json:"roleSlugs,omitempty"`
-	Status      *AuthUserStatus `json:"status,omitempty"`
-	TotpEnabled *bool           `json:"totpEnabled,omitempty"`
-	Username    *string         `json:"username,omitempty"`
+	Email               *string         `json:"email,omitempty"`
+	Id                  *string         `json:"id,omitempty"`
+	IsOwner             *bool           `json:"isOwner,omitempty"`
+	OnboardingToursSeen *[]string       `json:"onboardingToursSeen,omitempty"`
+	Permissions         *[]string       `json:"permissions,omitempty"`
+	RoleSlugs           *[]string       `json:"roleSlugs,omitempty"`
+	Status              *AuthUserStatus `json:"status,omitempty"`
+	TotpEnabled         *bool           `json:"totpEnabled,omitempty"`
+	Username            *string         `json:"username,omitempty"`
 }
 
 // AuthUserStatus defines model for AuthUser.Status.
