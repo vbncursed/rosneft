@@ -77,6 +77,7 @@ export default function ExternalPanoramaControl({
         <button
           type="button"
           onClick={openEditor}
+          data-tour="external-link"
           className="inline-flex cursor-pointer items-center gap-1 rounded-xl border border-white/20 bg-black/50 px-3 py-2 text-xs font-medium text-neutral-200 shadow-xl backdrop-blur transition-colors hover:bg-black/65 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
         >
           {url ? "Edit link" : "+ Panorama link"}

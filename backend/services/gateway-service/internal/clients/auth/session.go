@@ -43,3 +43,8 @@ func (c *Client) ChangePassword(ctx context.Context, token, oldPw, newPw string)
 	_, err := c.cc.ChangePassword(ctx, &authv1.ChangePasswordRequest{Token: token, OldPassword: oldPw, NewPassword: newPw})
 	return err
 }
+
+func (c *Client) MarkTourSeen(ctx context.Context, token, tour string) error {
+	_, err := c.cc.MarkTourSeen(ctx, &authv1.MarkTourSeenRequest{Token: token, Tour: tour})
+	return err
+}

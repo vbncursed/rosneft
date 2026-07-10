@@ -29,6 +29,17 @@ func (s *Server) ChangePassword(ctx context.Context, req *authv1.ChangePasswordR
 	return &authv1.ChangePasswordResponse{}, nil
 }
 
+func (s *Server) MarkTourSeen(ctx context.Context, req *authv1.MarkTourSeenRequest) (*authv1.MarkTourSeenResponse, error) {
+	uid, err := s.userIDFromToken(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	if err := s.users.MarkTourSeen(ctx, uid, req.GetTour()); err != nil {
+		return nil, mapError(err)
+	}
+	return &authv1.MarkTourSeenResponse{}, nil
+}
+
 func (s *Server) VerifyPassword(ctx context.Context, req *authv1.VerifyPasswordRequest) (*authv1.VerifyPasswordResponse, error) {
 	ok, err := s.auth.VerifyPassword(ctx, req.GetToken(), req.GetPassword())
 	if err != nil {

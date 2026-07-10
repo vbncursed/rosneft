@@ -12,6 +12,7 @@ function MeasureButtonImpl({ active, onClick }: MeasureButtonProps) {
       onClick={onClick}
       aria-pressed={active}
       title="Measure (M)"
+      data-tour="measure"
       className={`flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
         active
           ? "border-cyan-300/60 bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/20"

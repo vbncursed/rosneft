@@ -39,6 +39,7 @@ type UsersSvc interface {
 	Restore(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
 	SetOwner(ctx context.Context, actorID, id string, isOwner bool) (domain.User, error)
 	ChangePassword(ctx context.Context, userID, oldPlain, newPlain string) error
+	MarkTourSeen(ctx context.Context, userID, tour string) error
 }
 
 // RolesSvc is the roles/permissions surface.

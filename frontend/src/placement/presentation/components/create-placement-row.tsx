@@ -30,6 +30,7 @@ export default function CreatePlacementRow({
         type="button"
         disabled={disabled}
         onClick={() => setOpen(true)}
+        data-tour="add-object"
         className="cursor-pointer rounded-md border border-white/30 bg-white/10 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
       >
         + Add object

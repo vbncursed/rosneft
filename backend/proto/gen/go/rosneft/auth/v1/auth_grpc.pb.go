@@ -28,6 +28,7 @@ const (
 	AuthService_GetMe_FullMethodName              = "/rosneft.auth.v1.AuthService/GetMe"
 	AuthService_ChangePassword_FullMethodName     = "/rosneft.auth.v1.AuthService/ChangePassword"
 	AuthService_VerifyPassword_FullMethodName     = "/rosneft.auth.v1.AuthService/VerifyPassword"
+	AuthService_MarkTourSeen_FullMethodName       = "/rosneft.auth.v1.AuthService/MarkTourSeen"
 	AuthService_CreateUser_FullMethodName         = "/rosneft.auth.v1.AuthService/CreateUser"
 	AuthService_ListUsers_FullMethodName          = "/rosneft.auth.v1.AuthService/ListUsers"
 	AuthService_GetUser_FullMethodName            = "/rosneft.auth.v1.AuthService/GetUser"
@@ -66,6 +67,8 @@ type AuthServiceClient interface {
 	// VerifyPassword checks the caller's password without changing it — the
 	// password step-up factor for sensitive self-service actions.
 	VerifyPassword(ctx context.Context, in *VerifyPasswordRequest, opts ...grpc.CallOption) (*VerifyPasswordResponse, error)
+	// MarkTourSeen records that one first-run tour was finished or skipped.
+	MarkTourSeen(ctx context.Context, in *MarkTourSeenRequest, opts ...grpc.CallOption) (*MarkTourSeenResponse, error)
 	// --- user admin ---
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*User, error)
 	ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersResponse, error)
@@ -177,6 +180,16 @@ func (c *authServiceClient) VerifyPassword(ctx context.Context, in *VerifyPasswo
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(VerifyPasswordResponse)
 	err := c.cc.Invoke(ctx, AuthService_VerifyPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) MarkTourSeen(ctx context.Context, in *MarkTourSeenRequest, opts ...grpc.CallOption) (*MarkTourSeenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MarkTourSeenResponse)
+	err := c.cc.Invoke(ctx, AuthService_MarkTourSeen_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -354,6 +367,8 @@ type AuthServiceServer interface {
 	// VerifyPassword checks the caller's password without changing it — the
 	// password step-up factor for sensitive self-service actions.
 	VerifyPassword(context.Context, *VerifyPasswordRequest) (*VerifyPasswordResponse, error)
+	// MarkTourSeen records that one first-run tour was finished or skipped.
+	MarkTourSeen(context.Context, *MarkTourSeenRequest) (*MarkTourSeenResponse, error)
 	// --- user admin ---
 	CreateUser(context.Context, *CreateUserRequest) (*User, error)
 	ListUsers(context.Context, *ListUsersRequest) (*ListUsersResponse, error)
@@ -407,6 +422,9 @@ func (UnimplementedAuthServiceServer) ChangePassword(context.Context, *ChangePas
 }
 func (UnimplementedAuthServiceServer) VerifyPassword(context.Context, *VerifyPasswordRequest) (*VerifyPasswordResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method VerifyPassword not implemented")
+}
+func (UnimplementedAuthServiceServer) MarkTourSeen(context.Context, *MarkTourSeenRequest) (*MarkTourSeenResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MarkTourSeen not implemented")
 }
 func (UnimplementedAuthServiceServer) CreateUser(context.Context, *CreateUserRequest) (*User, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateUser not implemented")
@@ -632,6 +650,24 @@ func _AuthService_VerifyPassword_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthServiceServer).VerifyPassword(ctx, req.(*VerifyPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_MarkTourSeen_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MarkTourSeenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).MarkTourSeen(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_MarkTourSeen_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).MarkTourSeen(ctx, req.(*MarkTourSeenRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -948,6 +984,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VerifyPassword",
 			Handler:    _AuthService_VerifyPassword_Handler,
+		},
+		{
+			MethodName: "MarkTourSeen",
+			Handler:    _AuthService_MarkTourSeen_Handler,
 		},
 		{
 			MethodName: "CreateUser",
