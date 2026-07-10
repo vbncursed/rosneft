@@ -24,6 +24,8 @@ service AuthService {
   // VerifyPassword checks the caller's password without changing it — the
   // password step-up factor for sensitive self-service actions.
   rpc VerifyPassword(VerifyPasswordRequest) returns (VerifyPasswordResponse);
+  // MarkTourSeen records that one first-run tour was finished or skipped.
+  rpc MarkTourSeen(MarkTourSeenRequest) returns (MarkTourSeenResponse);
 
   // --- user admin ---
   rpc CreateUser(CreateUserRequest) returns (User);
@@ -56,6 +58,7 @@ message User {
   google.protobuf.Timestamp created_at = 8;
   google.protobuf.Timestamp updated_at = 9;
   bool is_owner = 10; // root of trust: manages admins, grants owner, bypasses grant limits
+  repeated string onboarding_tours_seen = 11; // ids of the first-run tours already finished or skipped
 }
 
 message Role {
@@ -123,6 +126,11 @@ message ChangePasswordRequest {
   string new_password = 3;
 }
 message ChangePasswordResponse {}
+message MarkTourSeenRequest {
+  string token = 1;
+  string tour = 2;
+}
+message MarkTourSeenResponse {}
 message VerifyPasswordRequest {
   string token = 1;
   string password = 2;

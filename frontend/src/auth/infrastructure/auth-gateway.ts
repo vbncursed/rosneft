@@ -14,6 +14,7 @@ export function mapPrincipal(d: AuthUserDto): Principal {
     roleSlugs: d.roleSlugs ?? [],
     permissions: d.permissions ?? [],
     isOwner: d.isOwner ?? false,
+    onboardingToursSeen: d.onboardingToursSeen ?? [],
   };
 }
 
@@ -23,6 +24,10 @@ export async function getMe(): Promise<Principal> {
 
 export function changePassword(oldPassword: string, newPassword: string): Promise<void> {
   return httpPost<void>("/api/auth/me/password", { oldPassword, newPassword });
+}
+
+export function markTourSeen(tour: string): Promise<void> {
+  return httpPost<void>(`/api/auth/me/onboarding/${encodeURIComponent(tour)}`);
 }
 
 export function setup2FA(): Promise<{ secret: string; otpauthUrl: string }> {

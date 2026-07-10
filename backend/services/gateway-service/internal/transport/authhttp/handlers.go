@@ -46,6 +46,7 @@ func (h *Handlers) Mount(r chi.Router) {
 			pr.Post("/logout", h.logout)
 			pr.Get("/me", h.me)
 			pr.Post("/me/password", h.changePassword)
+			pr.Post("/me/onboarding/{tour}", h.markTourSeen)
 			pr.Post("/2fa/setup", h.setup2FA)
 			pr.Post("/2fa/enable", h.enable2FA)
 			pr.Post("/2fa/disable", h.disable2FA)
@@ -139,6 +140,16 @@ func (h *Handlers) changePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.client.ChangePassword(r.Context(), bearer(r), req.OldPassword, req.NewPassword); err != nil {
+		fail(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// markTourSeen takes no body: the caller is the subject, the tour is in the
+// path, and the service is idempotent.
+func (h *Handlers) markTourSeen(w http.ResponseWriter, r *http.Request) {
+	if err := h.client.MarkTourSeen(r.Context(), bearer(r), chi.URLParam(r, "tour")); err != nil {
 		fail(w, err)
 		return
 	}

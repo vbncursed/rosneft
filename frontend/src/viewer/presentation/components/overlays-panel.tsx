@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-
-type OverlaysTab = "view" | "placements";
+import { type ReactNode } from "react";
+import type { OverlaysTab } from "@/viewer/domain/overlays-tab";
 
 interface OverlaysPanelProps {
   placementsCount: number;
-  // When a placement gets selected (in the list or the 3D scene) its gizmo
-  // and form live in the Placements tab, so we auto-switch there — otherwise
-  // a scene click while on the View tab would appear to do nothing.
-  selectedPlacementId: number | null;
+  // Tab and collapse are controlled by the viewer: the onboarding tour has to
+  // reveal a control before it can spotlight one. See use-overlays-panel.ts.
+  tab: OverlaysTab;
+  onTabChange: (tab: OverlaysTab) => void;
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
   view: ReactNode;
   placements: ReactNode;
 }
@@ -26,27 +27,19 @@ const TABS: { id: OverlaysTab; label: string }[] = [
 // from the panorama/placement domains.
 export default function OverlaysPanel({
   placementsCount,
-  selectedPlacementId,
+  tab,
+  onTabChange,
+  collapsed,
+  onCollapsedChange,
   view,
   placements,
 }: OverlaysPanelProps) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [tab, setTab] = useState<OverlaysTab>("view");
-
-  // Adjust the active tab during render (React's recommended alternative to
-  // an effect) when the selection transitions to a real placement.
-  const [prevSelected, setPrevSelected] = useState(selectedPlacementId);
-  if (selectedPlacementId !== prevSelected) {
-    setPrevSelected(selectedPlacementId);
-    if (selectedPlacementId !== null) setTab("placements");
-  }
-
   if (collapsed) {
     return (
       <div className="pointer-events-auto self-end">
         <button
           type="button"
-          onClick={() => setCollapsed(false)}
+          onClick={() => onCollapsedChange(false)}
           aria-label="Expand overlays panel"
           className="flex h-10 cursor-pointer items-center gap-2 rounded-l-xl border border-r-0 border-white/20 bg-black/55 px-3 text-xs uppercase tracking-wider text-neutral-200 backdrop-blur transition-colors hover:bg-black/70"
         >
@@ -65,7 +58,7 @@ export default function OverlaysPanel({
         </p>
         <button
           type="button"
-          onClick={() => setCollapsed(true)}
+          onClick={() => onCollapsedChange(true)}
           aria-label="Collapse overlays panel"
           className="cursor-pointer rounded-md border border-white/15 px-2 py-1 text-xs text-neutral-300 transition-colors hover:bg-white/10"
         >
@@ -73,7 +66,10 @@ export default function OverlaysPanel({
         </button>
       </header>
 
-      <div className="flex gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+      <div
+        data-tour="overlays-tabs"
+        className="flex gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-1"
+      >
         {TABS.map((t) => {
           const active = t.id === tab;
           const label =
@@ -82,7 +78,7 @@ export default function OverlaysPanel({
             <button
               key={t.id}
               type="button"
-              onClick={() => setTab(t.id)}
+              onClick={() => onTabChange(t.id)}
               aria-pressed={active}
               className={`flex-1 cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                 active

@@ -59,17 +59,23 @@ export default function PanoramaPicker({
         : SCENE;
 
   return (
-    <Dropdown
-      label="View"
-      ariaLabel="Active view"
-      value={value}
-      options={options}
-      onChange={(v) => {
-        if (v.startsWith(DOC)) onActivateDocument(Number(v.slice(DOC.length)));
-        else if (v.startsWith(PANO)) onActivatePanorama(Number(v.slice(PANO.length)));
-        else onActivatePanorama(null);
-      }}
-      className="min-w-[180px]"
-    />
+    // The wrapper carries the tour anchor so it disappears with the picker
+    // itself — a step whose target is gone is skipped. `flex flex-col` keeps
+    // the inline-block Dropdown stretched to the panel width, which it got for
+    // free when it was the panel's own flex item.
+    <div data-tour="panorama-picker" className="flex flex-col">
+      <Dropdown
+        label="View"
+        ariaLabel="Active view"
+        value={value}
+        options={options}
+        onChange={(v) => {
+          if (v.startsWith(DOC)) onActivateDocument(Number(v.slice(DOC.length)));
+          else if (v.startsWith(PANO)) onActivatePanorama(Number(v.slice(PANO.length)));
+          else onActivatePanorama(null);
+        }}
+        className="min-w-[180px]"
+      />
+    </div>
   );
 }

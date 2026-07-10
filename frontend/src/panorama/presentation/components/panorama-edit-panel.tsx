@@ -102,6 +102,7 @@ export default function PanoramaEditPanel({
             type="button"
             onClick={onToggleView}
             aria-pressed={inPanoramaMode}
+            data-tour="panorama-view-toggle"
             className={`mb-3 w-full cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
               inPanoramaMode
                 ? "border-cyan-300/60 bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/20"
@@ -115,6 +116,7 @@ export default function PanoramaEditPanel({
             <button
               type="button"
               onClick={onCalibrate}
+              data-tour="panorama-calibrate"
               className="mb-3 w-full cursor-pointer rounded-lg border border-cyan-300/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-100 transition-colors hover:bg-cyan-500/20"
             >
               Calibrate (overlay)
@@ -129,6 +131,7 @@ export default function PanoramaEditPanel({
               type="button"
               onClick={useCameraPos}
               disabled={inPanoramaMode}
+              data-tour="panorama-set-from-camera"
               title={
                 inPanoramaMode
                   ? "Switch to 3D view first — camera is locked at the anchor inside the panorama"
@@ -139,7 +142,7 @@ export default function PanoramaEditPanel({
               Set from camera
             </button>
 
-            <div>
+            <div data-tour="panorama-yaw">
               <div className="mb-1 flex items-center justify-between">
                 <span className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">
                   Yaw offset
@@ -167,6 +170,7 @@ export default function PanoramaEditPanel({
               type="button"
               onClick={() => onSave({ position, yawOffset })}
               disabled={!dirty}
+              data-tour="panorama-save-anchor"
               className="w-full cursor-pointer rounded-md bg-cyan-300 px-2 py-1.5 text-xs font-semibold text-neutral-900 transition-colors hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Save anchor
@@ -177,6 +181,10 @@ export default function PanoramaEditPanel({
       )}
 
       {canDelete ? (
+        // Wrapper, not the button: DeleteButton owns its own element and takes
+        // no pass-through props. It vanishes with canDelete, so the step still
+        // auto-skips.
+        <div data-tour="panorama-delete">
         <DeleteButton
           label={panorama.title}
           onDelete={onDelete}
@@ -184,6 +192,7 @@ export default function PanoramaEditPanel({
         >
           Delete panorama
         </DeleteButton>
+        </div>
       ) : null}
     </div>
   );

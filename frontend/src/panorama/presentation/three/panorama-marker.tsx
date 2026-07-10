@@ -47,6 +47,7 @@ export default function PanoramaMarker({
 
         <button
           type="button"
+          data-tour="panorama-marker"
           onPointerDown={
             moveMode
               ? (e) => {

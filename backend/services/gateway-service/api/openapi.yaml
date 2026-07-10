@@ -431,6 +431,7 @@ components:
         roleSlugs: { type: array, items: { type: string } }
         permissions: { type: array, items: { type: string } }
         isOwner: { type: boolean }
+        onboardingToursSeen: { type: array, items: { type: string } }
     AuthRole:
       type: object
       properties:
@@ -1327,6 +1328,22 @@ paths:
             schema: { $ref: '#/components/schemas/ChangePasswordRequest' }
       responses:
         '204': { description: Password changed }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/me/onboarding/{tour}:
+    post:
+      tags: [auth]
+      summary: Mark one first-run tour as finished or skipped
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: tour
+          in: path
+          required: true
+          description: Tour id, e.g. `viewer` or `panorama`
+          schema: { type: string }
+      responses:
+        '204': { description: Marked }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
 

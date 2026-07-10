@@ -22,7 +22,7 @@ export default function UserMenu() {
 
   return (
     <div className="fixed right-4 top-4 z-50">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open}
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} data-tour="user-menu"
         className="flex size-9 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/50 text-xs font-semibold text-white backdrop-blur transition-colors hover:bg-black/70">
         {initials}
       </button>

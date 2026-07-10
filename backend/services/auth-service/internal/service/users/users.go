@@ -22,6 +22,7 @@ type Store interface {
 	PermissionsForRoles(ctx context.Context, roleSlugs []string) ([]string, error)
 	ChangePassword(ctx context.Context, id, hash string) error
 	CountAdmins(ctx context.Context, excludeUserID string) (int, error)
+	MarkTourSeen(ctx context.Context, id, tour string) error
 }
 
 // Sessions lets status changes evict live sessions.

@@ -26,4 +26,7 @@ type User struct {
 	DeletedAt    *time.Time
 	CreatedBy    *string // who created this account; nil for bootstrap admin
 	IsOwner      bool    // root of trust: manages admin accounts, grants owner, bypasses grant limits
+	// OnboardingToursSeen lists the first-run tours this user has finished or
+	// skipped, by id. Empty until they complete their first one.
+	OnboardingToursSeen []string
 }

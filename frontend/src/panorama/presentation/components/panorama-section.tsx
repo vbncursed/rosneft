@@ -97,6 +97,7 @@ export default function PanoramaSection({
           type="button"
           onClick={onToggleMarkers}
           aria-pressed={!markersVisible}
+          data-tour="toggle-markers"
           className="cursor-pointer rounded-md border border-white/15 px-3 py-1.5 text-[11px] text-neutral-200 transition-colors hover:border-cyan-400/60 hover:text-cyan-200"
         >
           {markersVisible ? "Hide panorama points" : "Show panorama points"}
@@ -109,6 +110,7 @@ export default function PanoramaSection({
           onClick={onToggleMove}
           aria-pressed={moveMode}
           title="Drag panorama points on the model (V)"
+          data-tour="move-points"
           className={`flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-[11px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
             moveMode
               ? "border-cyan-300/60 bg-cyan-500/15 text-cyan-100 hover:bg-cyan-500/20"
@@ -144,6 +146,7 @@ export default function PanoramaSection({
       {canWrite ? (
         <a
           href={`/territories/${encodeURIComponent(territorySlug)}/panoramas/new`}
+          data-tour="add-panorama"
           className="cursor-pointer text-[10px] uppercase tracking-wider text-cyan-300/80 transition-colors hover:text-cyan-200"
         >
           + Panorama
@@ -153,6 +156,7 @@ export default function PanoramaSection({
       {canWriteDoc ? (
         <a
           href={`/territories/${encodeURIComponent(territorySlug)}/documents/new`}
+          data-tour="add-document"
           className="cursor-pointer text-[10px] uppercase tracking-wider text-cyan-300/80 transition-colors hover:text-cyan-200"
         >
           + Document

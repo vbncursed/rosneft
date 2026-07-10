@@ -2,4 +2,5 @@ package users
 
 // userColumns is the column list selected by the scan helpers.
 const userColumns = `u.id, u.email, u.username, u.password_hash, u.status,
-	u.created_at, u.updated_at, u.deleted_at, u.created_by, u.is_owner`
+	u.created_at, u.updated_at, u.deleted_at, u.created_by, u.is_owner,
+	u.onboarding_tours_seen`

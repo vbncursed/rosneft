@@ -7,6 +7,8 @@ export interface Principal {
   roleSlugs: string[];
   permissions: string[];
   isOwner: boolean;
+  // Ids of the first-run tours this user has finished or skipped.
+  onboardingToursSeen: string[];
 }
 
 export function can(p: Principal | null, permission: string): boolean {

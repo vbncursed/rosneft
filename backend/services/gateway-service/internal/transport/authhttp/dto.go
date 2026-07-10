@@ -23,18 +23,21 @@ type userJSON struct {
 	RoleSlugs   []string `json:"roleSlugs"`
 	Permissions []string `json:"permissions"`
 	IsOwner     bool     `json:"isOwner"`
+	// Ids of the first-run tours this user has finished or skipped.
+	OnboardingToursSeen []string `json:"onboardingToursSeen,omitzero"`
 }
 
 func userToJSON(u *authv1.User) userJSON {
 	return userJSON{
-		ID:          u.GetId(),
-		Email:       u.GetEmail(),
-		Username:    u.GetUsername(),
-		Status:      u.GetStatus(),
-		TOTPEnabled: u.GetTotpEnabled(),
-		RoleSlugs:   u.GetRoleSlugs(),
-		Permissions: u.GetPermissions(),
-		IsOwner:     u.GetIsOwner(),
+		ID:                  u.GetId(),
+		Email:               u.GetEmail(),
+		Username:            u.GetUsername(),
+		Status:              u.GetStatus(),
+		TOTPEnabled:         u.GetTotpEnabled(),
+		RoleSlugs:           u.GetRoleSlugs(),
+		Permissions:         u.GetPermissions(),
+		IsOwner:             u.GetIsOwner(),
+		OnboardingToursSeen: u.GetOnboardingToursSeen(),
 	}
 }
 

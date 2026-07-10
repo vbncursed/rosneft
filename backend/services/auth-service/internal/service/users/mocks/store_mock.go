@@ -55,6 +55,13 @@ type StoreMock struct {
 	beforeListCounter uint64
 	ListMock          mStoreMockList
 
+	funcMarkTourSeen          func(ctx context.Context, id string, tour string) (err error)
+	funcMarkTourSeenOrigin    string
+	inspectFuncMarkTourSeen   func(ctx context.Context, id string, tour string)
+	afterMarkTourSeenCounter  uint64
+	beforeMarkTourSeenCounter uint64
+	MarkTourSeenMock          mStoreMockMarkTourSeen
+
 	funcPermissionsForRoles          func(ctx context.Context, roleSlugs []string) (sa1 []string, err error)
 	funcPermissionsForRolesOrigin    string
 	inspectFuncPermissionsForRoles   func(ctx context.Context, roleSlugs []string)
@@ -106,6 +113,9 @@ func NewStoreMock(t minimock.Tester) *StoreMock {
 
 	m.ListMock = mStoreMockList{mock: m}
 	m.ListMock.callArgs = []*StoreMockListParams{}
+
+	m.MarkTourSeenMock = mStoreMockMarkTourSeen{mock: m}
+	m.MarkTourSeenMock.callArgs = []*StoreMockMarkTourSeenParams{}
 
 	m.PermissionsForRolesMock = mStoreMockPermissionsForRoles{mock: m}
 	m.PermissionsForRolesMock.callArgs = []*StoreMockPermissionsForRolesParams{}
@@ -1931,6 +1941,379 @@ func (m *StoreMock) MinimockListInspect() {
 	}
 }
 
+type mStoreMockMarkTourSeen struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockMarkTourSeenExpectation
+	expectations       []*StoreMockMarkTourSeenExpectation
+
+	callArgs []*StoreMockMarkTourSeenParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockMarkTourSeenExpectation specifies expectation struct of the Store.MarkTourSeen
+type StoreMockMarkTourSeenExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockMarkTourSeenParams
+	paramPtrs          *StoreMockMarkTourSeenParamPtrs
+	expectationOrigins StoreMockMarkTourSeenExpectationOrigins
+	results            *StoreMockMarkTourSeenResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockMarkTourSeenParams contains parameters of the Store.MarkTourSeen
+type StoreMockMarkTourSeenParams struct {
+	ctx  context.Context
+	id   string
+	tour string
+}
+
+// StoreMockMarkTourSeenParamPtrs contains pointers to parameters of the Store.MarkTourSeen
+type StoreMockMarkTourSeenParamPtrs struct {
+	ctx  *context.Context
+	id   *string
+	tour *string
+}
+
+// StoreMockMarkTourSeenResults contains results of the Store.MarkTourSeen
+type StoreMockMarkTourSeenResults struct {
+	err error
+}
+
+// StoreMockMarkTourSeenOrigins contains origins of expectations of the Store.MarkTourSeen
+type StoreMockMarkTourSeenExpectationOrigins struct {
+	origin     string
+	originCtx  string
+	originId   string
+	originTour string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmMarkTourSeen *mStoreMockMarkTourSeen) Optional() *mStoreMockMarkTourSeen {
+	mmMarkTourSeen.optional = true
+	return mmMarkTourSeen
+}
+
+// Expect sets up expected params for Store.MarkTourSeen
+func (mmMarkTourSeen *mStoreMockMarkTourSeen) Expect(ctx context.Context, id string, tour string) *mStoreMockMarkTourSeen {
+	if mmMarkTourSeen.mock.funcMarkTourSeen != nil {
+		mmMarkTourSeen.mock.t.Fatalf("StoreMock.MarkTourSeen mock is already set by Set")
+	}
+
+	if mmMarkTourSeen.defaultExpectation == nil {
+		mmMarkTourSeen.defaultExpectation = &StoreMockMarkTourSeenExpectation{}
+	}
+
+	if mmMarkTourSeen.defaultExpectation.paramPtrs != nil {
+		mmMarkTourSeen.mock.t.Fatalf("StoreMock.MarkTourSeen mock is already set by ExpectParams functions")
+	}
+
+	mmMarkTourSeen.defaultExpectation.params = &StoreMockMarkTourSeenParams{ctx, id, tour}
+	mmMarkTourSeen.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmMarkTourSeen.expectations {
+		if minimock.Equal(e.params, mmMarkTourSeen.defaultExpectation.params) {
+			mmMarkTourSeen.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmMarkTourSeen.defaultExpectation.params)
+		}
+	}
+
+	return mmMarkTourSeen
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.MarkTourSeen
+func (mmMarkTourSeen *mStoreMockMarkTourSeen) ExpectCtxParam1(ctx context.Context) *mStoreMockMarkTourSeen {
+	if mmMarkTourSeen.mock.funcMarkTourSeen != nil {
+		mmMarkTourSeen.mock.t.Fatalf("StoreMock.MarkTourSeen mock is already set by Set")
+	}
+
+	if mmMarkTourSeen.defaultExpectation == nil {
+		mmMarkTourSeen.defaultExpectation = &StoreMockMarkTourSeenExpectation{}
+	}
+
+	if mmMarkTourSeen.defaultExpectation.params != nil {
+		mmMarkTourSeen.mock.t.Fatalf("StoreMock.MarkTourSeen mock is already set by Expect")
+	}
+
+	if mmMarkTourSeen.defaultExpectation.paramPtrs == nil {
+		mmMarkTourSeen.defaultExpectation.paramPtrs = &StoreMockMarkTourSeenParamPtrs{}
+	}
+	mmMarkTourSeen.defaultExpectation.paramPtrs.ctx = &ctx
+	mmMarkTourSeen.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmMarkTourSeen
+}
+
+// ExpectIdParam2 sets up expected param id for Store.MarkTourSeen
+func (mmMarkTourSeen *mStoreMockMarkTourSeen) ExpectIdParam2(id string) *mStoreMockMarkTourSeen {
+	if mmMarkTourSeen.mock.funcMarkTourSeen != nil {
+		mmMarkTourSeen.mock.t.Fatalf("StoreMock.MarkTourSeen mock is already set by Set")
+	}
+
+	if mmMarkTourSeen.defaultExpectation == nil {
+		mmMarkTourSeen.defaultExpectation = &StoreMockMarkTourSeenExpectation{}
+	}
+
+	if mmMarkTourSeen.defaultExpectation.params != nil {
+		mmMarkTourSeen.mock.t.Fatalf("StoreMock.MarkTourSeen mock is already set by Expect")
+	}
+
+	if mmMarkTourSeen.defaultExpectation.paramPtrs == nil {
+		mmMarkTourSeen.defaultExpectation.paramPtrs = &StoreMockMarkTourSeenParamPtrs{}
+	}
+	mmMarkTourSeen.defaultExpectation.paramPtrs.id = &id
+	mmMarkTourSeen.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmMarkTourSeen
+}
+
+// ExpectTourParam3 sets up expected param tour for Store.MarkTourSeen
+func (mmMarkTourSeen *mStoreMockMarkTourSeen) ExpectTourParam3(tour string) *mStoreMockMarkTourSeen {
+	if mmMarkTourSeen.mock.funcMarkTourSeen != nil {
+		mmMarkTourSeen.mock.t.Fatalf("StoreMock.MarkTourSeen mock is already set by Set")
+	}
+
+	if mmMarkTourSeen.defaultExpectation == nil {
+		mmMarkTourSeen.defaultExpectation = &StoreMockMarkTourSeenExpectation{}
+	}
+
+	if mmMarkTourSeen.defaultExpectation.params != nil {
+		mmMarkTourSeen.mock.t.Fatalf("StoreMock.MarkTourSeen mock is already set by Expect")
+	}
+
+	if mmMarkTourSeen.defaultExpectation.paramPtrs == nil {
+		mmMarkTourSeen.defaultExpectation.paramPtrs = &StoreMockMarkTourSeenParamPtrs{}
+	}
+	mmMarkTourSeen.defaultExpectation.paramPtrs.tour = &tour
+	mmMarkTourSeen.defaultExpectation.expectationOrigins.originTour = minimock.CallerInfo(1)
+
+	return mmMarkTourSeen
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.MarkTourSeen
+func (mmMarkTourSeen *mStoreMockMarkTourSeen) Inspect(f func(ctx context.Context, id string, tour string)) *mStoreMockMarkTourSeen {
+	if mmMarkTourSeen.mock.inspectFuncMarkTourSeen != nil {
+		mmMarkTourSeen.mock.t.Fatalf("Inspect function is already set for StoreMock.MarkTourSeen")
+	}
+
+	mmMarkTourSeen.mock.inspectFuncMarkTourSeen = f
+
+	return mmMarkTourSeen
+}
+
+// Return sets up results that will be returned by Store.MarkTourSeen
+func (mmMarkTourSeen *mStoreMockMarkTourSeen) Return(err error) *StoreMock {
+	if mmMarkTourSeen.mock.funcMarkTourSeen != nil {
+		mmMarkTourSeen.mock.t.Fatalf("StoreMock.MarkTourSeen mock is already set by Set")
+	}
+
+	if mmMarkTourSeen.defaultExpectation == nil {
+		mmMarkTourSeen.defaultExpectation = &StoreMockMarkTourSeenExpectation{mock: mmMarkTourSeen.mock}
+	}
+	mmMarkTourSeen.defaultExpectation.results = &StoreMockMarkTourSeenResults{err}
+	mmMarkTourSeen.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmMarkTourSeen.mock
+}
+
+// Set uses given function f to mock the Store.MarkTourSeen method
+func (mmMarkTourSeen *mStoreMockMarkTourSeen) Set(f func(ctx context.Context, id string, tour string) (err error)) *StoreMock {
+	if mmMarkTourSeen.defaultExpectation != nil {
+		mmMarkTourSeen.mock.t.Fatalf("Default expectation is already set for the Store.MarkTourSeen method")
+	}
+
+	if len(mmMarkTourSeen.expectations) > 0 {
+		mmMarkTourSeen.mock.t.Fatalf("Some expectations are already set for the Store.MarkTourSeen method")
+	}
+
+	mmMarkTourSeen.mock.funcMarkTourSeen = f
+	mmMarkTourSeen.mock.funcMarkTourSeenOrigin = minimock.CallerInfo(1)
+	return mmMarkTourSeen.mock
+}
+
+// When sets expectation for the Store.MarkTourSeen which will trigger the result defined by the following
+// Then helper
+func (mmMarkTourSeen *mStoreMockMarkTourSeen) When(ctx context.Context, id string, tour string) *StoreMockMarkTourSeenExpectation {
+	if mmMarkTourSeen.mock.funcMarkTourSeen != nil {
+		mmMarkTourSeen.mock.t.Fatalf("StoreMock.MarkTourSeen mock is already set by Set")
+	}
+
+	expectation := &StoreMockMarkTourSeenExpectation{
+		mock:               mmMarkTourSeen.mock,
+		params:             &StoreMockMarkTourSeenParams{ctx, id, tour},
+		expectationOrigins: StoreMockMarkTourSeenExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmMarkTourSeen.expectations = append(mmMarkTourSeen.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.MarkTourSeen return parameters for the expectation previously defined by the When method
+func (e *StoreMockMarkTourSeenExpectation) Then(err error) *StoreMock {
+	e.results = &StoreMockMarkTourSeenResults{err}
+	return e.mock
+}
+
+// Times sets number of times Store.MarkTourSeen should be invoked
+func (mmMarkTourSeen *mStoreMockMarkTourSeen) Times(n uint64) *mStoreMockMarkTourSeen {
+	if n == 0 {
+		mmMarkTourSeen.mock.t.Fatalf("Times of StoreMock.MarkTourSeen mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmMarkTourSeen.expectedInvocations, n)
+	mmMarkTourSeen.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmMarkTourSeen
+}
+
+func (mmMarkTourSeen *mStoreMockMarkTourSeen) invocationsDone() bool {
+	if len(mmMarkTourSeen.expectations) == 0 && mmMarkTourSeen.defaultExpectation == nil && mmMarkTourSeen.mock.funcMarkTourSeen == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmMarkTourSeen.mock.afterMarkTourSeenCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmMarkTourSeen.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// MarkTourSeen implements mm_users.Store
+func (mmMarkTourSeen *StoreMock) MarkTourSeen(ctx context.Context, id string, tour string) (err error) {
+	mm_atomic.AddUint64(&mmMarkTourSeen.beforeMarkTourSeenCounter, 1)
+	defer mm_atomic.AddUint64(&mmMarkTourSeen.afterMarkTourSeenCounter, 1)
+
+	mmMarkTourSeen.t.Helper()
+
+	if mmMarkTourSeen.inspectFuncMarkTourSeen != nil {
+		mmMarkTourSeen.inspectFuncMarkTourSeen(ctx, id, tour)
+	}
+
+	mm_params := StoreMockMarkTourSeenParams{ctx, id, tour}
+
+	// Record call args
+	mmMarkTourSeen.MarkTourSeenMock.mutex.Lock()
+	mmMarkTourSeen.MarkTourSeenMock.callArgs = append(mmMarkTourSeen.MarkTourSeenMock.callArgs, &mm_params)
+	mmMarkTourSeen.MarkTourSeenMock.mutex.Unlock()
+
+	for _, e := range mmMarkTourSeen.MarkTourSeenMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmMarkTourSeen.MarkTourSeenMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmMarkTourSeen.MarkTourSeenMock.defaultExpectation.Counter, 1)
+		mm_want := mmMarkTourSeen.MarkTourSeenMock.defaultExpectation.params
+		mm_want_ptrs := mmMarkTourSeen.MarkTourSeenMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockMarkTourSeenParams{ctx, id, tour}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmMarkTourSeen.t.Errorf("StoreMock.MarkTourSeen got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmMarkTourSeen.MarkTourSeenMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmMarkTourSeen.t.Errorf("StoreMock.MarkTourSeen got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmMarkTourSeen.MarkTourSeenMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+			if mm_want_ptrs.tour != nil && !minimock.Equal(*mm_want_ptrs.tour, mm_got.tour) {
+				mmMarkTourSeen.t.Errorf("StoreMock.MarkTourSeen got unexpected parameter tour, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmMarkTourSeen.MarkTourSeenMock.defaultExpectation.expectationOrigins.originTour, *mm_want_ptrs.tour, mm_got.tour, minimock.Diff(*mm_want_ptrs.tour, mm_got.tour))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmMarkTourSeen.t.Errorf("StoreMock.MarkTourSeen got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmMarkTourSeen.MarkTourSeenMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmMarkTourSeen.MarkTourSeenMock.defaultExpectation.results
+		if mm_results == nil {
+			mmMarkTourSeen.t.Fatal("No results are set for the StoreMock.MarkTourSeen")
+		}
+		return (*mm_results).err
+	}
+	if mmMarkTourSeen.funcMarkTourSeen != nil {
+		return mmMarkTourSeen.funcMarkTourSeen(ctx, id, tour)
+	}
+	mmMarkTourSeen.t.Fatalf("Unexpected call to StoreMock.MarkTourSeen. %v %v %v", ctx, id, tour)
+	return
+}
+
+// MarkTourSeenAfterCounter returns a count of finished StoreMock.MarkTourSeen invocations
+func (mmMarkTourSeen *StoreMock) MarkTourSeenAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmMarkTourSeen.afterMarkTourSeenCounter)
+}
+
+// MarkTourSeenBeforeCounter returns a count of StoreMock.MarkTourSeen invocations
+func (mmMarkTourSeen *StoreMock) MarkTourSeenBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmMarkTourSeen.beforeMarkTourSeenCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.MarkTourSeen.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmMarkTourSeen *mStoreMockMarkTourSeen) Calls() []*StoreMockMarkTourSeenParams {
+	mmMarkTourSeen.mutex.RLock()
+
+	argCopy := make([]*StoreMockMarkTourSeenParams, len(mmMarkTourSeen.callArgs))
+	copy(argCopy, mmMarkTourSeen.callArgs)
+
+	mmMarkTourSeen.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockMarkTourSeenDone returns true if the count of the MarkTourSeen invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockMarkTourSeenDone() bool {
+	if m.MarkTourSeenMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.MarkTourSeenMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.MarkTourSeenMock.invocationsDone()
+}
+
+// MinimockMarkTourSeenInspect logs each unmet expectation
+func (m *StoreMock) MinimockMarkTourSeenInspect() {
+	for _, e := range m.MarkTourSeenMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.MarkTourSeen at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterMarkTourSeenCounter := mm_atomic.LoadUint64(&m.afterMarkTourSeenCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.MarkTourSeenMock.defaultExpectation != nil && afterMarkTourSeenCounter < 1 {
+		if m.MarkTourSeenMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.MarkTourSeen at\n%s", m.MarkTourSeenMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.MarkTourSeen at\n%s with params: %#v", m.MarkTourSeenMock.defaultExpectation.expectationOrigins.origin, *m.MarkTourSeenMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcMarkTourSeen != nil && afterMarkTourSeenCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.MarkTourSeen at\n%s", m.funcMarkTourSeenOrigin)
+	}
+
+	if !m.MarkTourSeenMock.invocationsDone() && afterMarkTourSeenCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.MarkTourSeen at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.MarkTourSeenMock.expectedInvocations), m.MarkTourSeenMock.expectedInvocationsOrigin, afterMarkTourSeenCounter)
+	}
+}
+
 type mStoreMockPermissionsForRoles struct {
 	optional           bool
 	mock               *StoreMock
@@ -3441,6 +3824,8 @@ func (m *StoreMock) MinimockFinish() {
 
 			m.MinimockListInspect()
 
+			m.MinimockMarkTourSeenInspect()
+
 			m.MinimockPermissionsForRolesInspect()
 
 			m.MinimockSetOwnerInspect()
@@ -3476,6 +3861,7 @@ func (m *StoreMock) minimockDone() bool {
 		m.MinimockCreateDone() &&
 		m.MinimockGetByIDDone() &&
 		m.MinimockListDone() &&
+		m.MinimockMarkTourSeenDone() &&
 		m.MinimockPermissionsForRolesDone() &&
 		m.MinimockSetOwnerDone() &&
 		m.MinimockSetRolesDone() &&

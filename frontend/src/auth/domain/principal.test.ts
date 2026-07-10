@@ -14,6 +14,7 @@ function principal(over: Partial<Principal>): Principal {
     roleSlugs: [],
     permissions: [],
     isOwner: false,
+    onboardingToursSeen: [],
     ...over,
   };
 }

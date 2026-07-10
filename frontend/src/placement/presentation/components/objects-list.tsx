@@ -178,7 +178,7 @@ export default function ObjectsList({
   }
 
   return (
-    <ul className="flex flex-col gap-1.5">
+    <ul data-tour="objects-list" className="flex flex-col gap-1.5">
       {placements.map((p) => (
         <ObjectRow
           key={`${p.id}:${p.label}`}

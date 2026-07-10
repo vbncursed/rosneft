@@ -17,7 +17,24 @@ const (
 	passwordMin = 8
 	passwordMax = 256
 	emailMax    = 254 // RFC 5321 address length ceiling
+	tourIDMax   = 32
 )
+
+// TourID accepts a lower-case slug. The set of tours lives in the frontend, so
+// this validates the shape rather than the membership — but it is still a trust
+// boundary: the value is appended to an array the client can grow.
+func TourID(s string) error {
+	if len(s) == 0 || len(s) > tourIDMax {
+		return fmt.Errorf("validate: %w: tour id must be 1–%d characters", domain.ErrInvalidInput, tourIDMax)
+	}
+	for i, r := range s {
+		alnum := (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9')
+		if !alnum && !(r == '-' && i > 0) {
+			return fmt.Errorf("validate: %w: tour id must be lower-case letters, digits, and dashes", domain.ErrInvalidInput)
+		}
+	}
+	return nil
+}
 
 // Username requires 3–50 characters.
 func Username(s string) error {

@@ -17,6 +17,7 @@ interface UIOverlayProps {
   onReset: () => void;
   onToggleMeasure: () => void;
   onClearMeasurements: () => void;
+  onRestartTour: () => void;
 }
 
 // UIOverlay owns the left rail: ModelInfoPanel on top, the viewer toolbar
@@ -34,6 +35,7 @@ function UIOverlayImpl({
   onReset,
   onToggleMeasure,
   onClearMeasurements,
+  onRestartTour,
 }: UIOverlayProps) {
   useEffect(() => {
     if (error) notify.error(`Failed to load model: ${error}`);
@@ -51,6 +53,17 @@ function UIOverlayImpl({
         <div className="flex flex-wrap items-center gap-2">
           <ResetCameraButton onReset={onReset} />
           <MeasureButton active={measureMode} onClick={onToggleMeasure} />
+          {/* The seen flag lives on the user, so a skipped tour is otherwise
+              unreachable for good. */}
+          <button
+            type="button"
+            onClick={onRestartTour}
+            aria-label="Replay the guided tour"
+            title="Replay the guided tour"
+            className="size-9 cursor-pointer rounded-lg border border-white/25 bg-white/10 text-sm font-medium text-white transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+          >
+            ?
+          </button>
           {measurementCount > 0 ? (
             <button
               type="button"
