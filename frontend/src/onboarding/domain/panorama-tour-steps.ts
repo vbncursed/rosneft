@@ -43,6 +43,12 @@ export const PANORAMA_TOUR_STEPS: TourStep[] = [
     body: "Yaw rotates the photo around you until what you see lines up with the model beneath it.",
   },
   {
+    id: "panorama-default-view",
+    tab: "view",
+    title: "Set the opening view",
+    body: "Turn to face what matters, then capture it here — everyone who opens this panorama starts looking this way. Save anchor keeps it.",
+  },
+  {
     id: "panorama-save-anchor",
     tab: "view",
     title: "Keep the changes",
