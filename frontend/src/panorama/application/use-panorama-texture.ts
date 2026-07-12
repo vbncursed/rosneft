@@ -54,12 +54,17 @@ export function usePanoramaTexture(hash: string | null): PanoramaTextureState {
         const blob = await readWithProgress(res, (p) => {
           if (!cancelled) setState((s) => ({ ...s, progress: p }));
         });
-        const bitmap = await createImageBitmap(blob);
+        // WebGL cannot apply flipY to an ImageBitmap, so a plain
+        // `new Texture(bitmap)` renders the equirect upside down (unlike
+        // TextureLoader's <img>, which honours the default flipY=true). Pre-flip
+        // the bitmap here and set flipY=false so orientation matches.
+        const bitmap = await createImageBitmap(blob, { imageOrientation: "flipY" });
         if (cancelled) {
           bitmap.close();
           return;
         }
         const texture = new Texture(bitmap);
+        texture.flipY = false;
         applyEquirectFormat(texture);
         textureRef.current = texture;
         setState({ texture, progress: 100, status: "ready" });
