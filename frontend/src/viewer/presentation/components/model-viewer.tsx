@@ -140,6 +140,7 @@ export default function ModelViewer({
         calibrating={pano.calibration.calibrating}
         panoramaOpacity={pano.calibration.opacity}
         cameraPositionRef={pano.cameraPositionRef}
+        cameraYawRef={pano.cameraYawRef}
         onPanoramaError={pano.onError}
         chains={measure.chains}
         activeChainId={measure.activeChainId}
@@ -200,6 +201,7 @@ export default function ModelViewer({
               }}
               onActivateDocument={docSel.select}
               cameraPositionRef={pano.cameraPositionRef}
+              cameraYawRef={pano.cameraYawRef}
               externalPanoramaUrl={externalPanoramaUrl}
               failedPanoramaIds={pano.failedIds}
               calibration={pano.calibration}

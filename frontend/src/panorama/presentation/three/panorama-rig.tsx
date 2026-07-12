@@ -4,6 +4,7 @@ import type { Camera } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import type { Vec3 } from "@/shared/domain/vec3";
 import type { Panorama } from "@/panorama/domain/panorama";
+import { yawToTarget } from "@/panorama/domain/look-yaw";
 
 // Distance from the eye to the orbit target. The look direction is encoded
 // as target = anchor + dir * LOOK_RADIUS; the value is otherwise arbitrary
@@ -42,6 +43,7 @@ function enterPanorama(
   controls: OrbitControlsImpl,
   camera: Camera,
   getAnchor: () => Vec3,
+  defaultYaw: number,
   invalidate: () => void,
 ): () => void {
   const prev = {
@@ -53,8 +55,9 @@ function enterPanorama(
     maxDist: controls.maxDistance,
   };
   const a = getAnchor();
+  const t = yawToTarget(a, defaultYaw, LOOK_RADIUS);
   camera.position.set(a.x, a.y, a.z);
-  controls.target.set(a.x, a.y, a.z + LOOK_RADIUS);
+  controls.target.set(t.x, t.y, t.z);
   controls.enableZoom = false;
   controls.enablePan = false;
   controls.minDistance = LOOK_RADIUS / 2;
@@ -111,7 +114,7 @@ export default function PanoramaRig({ panorama }: PanoramaRigProps) {
       st.cleanup?.();
       st.pos = { x: px, y: py, z: pz };
       st.id = id;
-      st.cleanup = enterPanorama(controls, camera, () => ref.current.pos, invalidate);
+      st.cleanup = enterPanorama(controls, camera, () => ref.current.pos, panorama.defaultYaw, invalidate);
       return;
     }
     if (px !== st.pos.x || py !== st.pos.y || pz !== st.pos.z) {
@@ -119,7 +122,7 @@ export default function PanoramaRig({ panorama }: PanoramaRigProps) {
       recenter(controls, camera, st.pos);
       invalidate();
     }
-  }, [camera, controls, invalidate, id, px, py, pz]);
+  }, [camera, controls, invalidate, id, px, py, pz, panorama.defaultYaw]);
 
   useEffect(() => {
     const st = ref.current;

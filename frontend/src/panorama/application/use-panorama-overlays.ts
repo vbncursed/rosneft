@@ -31,6 +31,9 @@ export function usePanoramaOverlays(territorySlug: string, initial: Panorama[]) 
   // Mirror of the live R3F camera position — written each "change" by
   // CameraPositionTracker, read by the panorama edit panel.
   const cameraPositionRef = useRef<Vec3 | null>(null);
+  // Mirror of the live camera's horizontal yaw — written each "change" by
+  // CameraPositionTracker, read by the edit panel's "Set default view".
+  const cameraYawRef = useRef<number | null>(null);
 
   // Show/hide the in-scene panorama markers (the clickable points in 3D).
   const [showMarkers, setShowMarkers] = useState(true);
@@ -52,6 +55,7 @@ export function usePanoramaOverlays(territorySlug: string, initial: Panorama[]) 
     failedIds,
     onError,
     cameraPositionRef,
+    cameraYawRef,
     showMarkers,
     toggleMarkers,
     onCommit,

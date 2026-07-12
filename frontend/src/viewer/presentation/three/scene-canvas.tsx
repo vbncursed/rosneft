@@ -78,6 +78,7 @@ interface SceneCanvasProps {
   // current camera position on demand (e.g. "Set panorama anchor from
   // camera"). Lives in ModelViewer; SceneCanvas just wires it through.
   cameraPositionRef: RefObject<Vec3 | null>;
+  cameraYawRef: RefObject<number | null>;
   // Called when the active panorama's equirect texture fails to load
   // (e.g. a non-image blob). The boundary swallows the error so the scene
   // survives; this lets the parent flag the broken capture.
@@ -109,7 +110,7 @@ export default function SceneCanvas({
   showMarkers,
   calibrating,
   panoramaOpacity,
-  cameraPositionRef,
+  cameraPositionRef, cameraYawRef,
   onPanoramaError,
   chains,
   activeChainId,
@@ -279,7 +280,7 @@ export default function SceneCanvas({
       />
 
       <CameraRig resetVersion={resetVersion} />
-      <CameraPositionTracker positionRef={cameraPositionRef} />
+      <CameraPositionTracker positionRef={cameraPositionRef} yawRef={cameraYawRef} />
       <gridHelper args={GRID_ARGS} position={GRID_POSITION} />
       {/* Drop DPR while the user is interacting (camera drag, gizmo drag)
           and restore it on idle — keeps frame rate up on weaker GPUs. */}
