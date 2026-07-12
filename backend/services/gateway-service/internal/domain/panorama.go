@@ -18,6 +18,7 @@ type Panorama struct {
 	SourceBlobHash string
 	Position       Vec3
 	YawOffset      float64
+	DefaultYaw     float64
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }

@@ -323,9 +323,13 @@ type ModelUpdate struct {
 // either mode is visible from the other.
 type Panorama struct {
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
-	Id        int64      `json:"id"`
-	Position  Vec3       `json:"position"`
-	Slug      string     `json:"slug"`
+
+	// DefaultYaw Default horizontal camera yaw (radians, world-space atan2(dirX, dirZ);
+	// 0 = +Z) the viewer faces when the panorama opens.
+	DefaultYaw float64 `json:"defaultYaw"`
+	Id         int64   `json:"id"`
+	Position   Vec3    `json:"position"`
+	Slug       string  `json:"slug"`
 
 	// SourceBlobHash BlobStore hash for the equirect JPG/PNG; served via /api/assets/{hash}.
 	SourceBlobHash string     `json:"sourceBlobHash"`
@@ -350,9 +354,10 @@ type PanoramaCreate struct {
 
 // PanoramaUpdate defines model for PanoramaUpdate.
 type PanoramaUpdate struct {
-	Position  *Vec3    `json:"position,omitempty"`
-	Title     *string  `json:"title,omitempty"`
-	YawOffset *float64 `json:"yawOffset,omitempty"`
+	DefaultYaw *float64 `json:"defaultYaw,omitempty"`
+	Position   *Vec3    `json:"position,omitempty"`
+	Title      *string  `json:"title,omitempty"`
+	YawOffset  *float64 `json:"yawOffset,omitempty"`
 }
 
 // PasskeyBeginResponse defines model for PasskeyBeginResponse.
