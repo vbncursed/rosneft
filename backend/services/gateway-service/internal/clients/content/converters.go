@@ -28,6 +28,7 @@ func panoramaFromProto(p *contentv1.Panorama) domain.Panorama {
 		SourceBlobHash: p.GetSourceBlobHash(),
 		Position:       vec3FromProto(p.GetPosition()),
 		YawOffset:      p.GetYawOffset(),
+		DefaultYaw:     p.GetDefaultYaw(),
 		CreatedAt:      p.GetCreatedAt().AsTime(),
 		UpdatedAt:      p.GetUpdatedAt().AsTime(),
 	}
