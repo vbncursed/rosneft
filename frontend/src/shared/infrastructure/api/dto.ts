@@ -1960,6 +1960,12 @@ export interface components {
              *     panorama's implicit "north" with the territory's axes.
              */
             yawOffset: number;
+            /**
+             * Format: double
+             * @description Default horizontal camera yaw (radians, world-space atan2(dirX, dirZ);
+             *     0 = +Z) the viewer faces when the panorama opens.
+             */
+            defaultYaw: number;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -1982,6 +1988,8 @@ export interface components {
             position?: components["schemas"]["Vec3"];
             /** Format: double */
             yawOffset?: number;
+            /** Format: double */
+            defaultYaw?: number;
         };
         /**
          * @description A PDF attached to a territory. Served as-is from BlobStore via

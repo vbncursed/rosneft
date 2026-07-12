@@ -17,6 +17,8 @@ export interface Panorama {
   // Rotation (radians) around the sphere's Y axis to align the panorama's
   // implicit "north" with the territory's axes.
   yawOffset: number;
+  // Default horizontal camera yaw (radians) faced when the panorama opens.
+  defaultYaw: number;
   updatedAt: string;
 }
 
@@ -32,4 +34,5 @@ export interface PanoramaUpdate {
   title: string;
   position: Vec3;
   yawOffset: number;
+  defaultYaw: number;
 }
