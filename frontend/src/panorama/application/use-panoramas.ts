@@ -27,7 +27,7 @@ export function usePanoramas(territorySlug: string, initial: Panorama[]) {
   }, [panoramas]);
 
   const update = useCallback(
-    async (id: number, patch: { title?: string; position?: Vec3; yawOffset?: number }) => {
+    async (id: number, patch: { title?: string; position?: Vec3; yawOffset?: number; defaultYaw?: number }) => {
       const current = panoramasRef.current.find((p) => p.id === id);
       if (!current) return;
       const optimistic: Panorama = {
@@ -35,6 +35,7 @@ export function usePanoramas(territorySlug: string, initial: Panorama[]) {
         title: patch.title ?? current.title,
         position: patch.position ?? current.position,
         yawOffset: patch.yawOffset ?? current.yawOffset,
+        defaultYaw: patch.defaultYaw ?? current.defaultYaw,
       };
       startTransition(() => {
         setPanoramas((prev) => prev.map((p) => (p.id === id ? optimistic : p)));
@@ -44,6 +45,7 @@ export function usePanoramas(territorySlug: string, initial: Panorama[]) {
           title: optimistic.title,
           position: optimistic.position,
           yawOffset: optimistic.yawOffset,
+          defaultYaw: optimistic.defaultYaw,
         });
         startTransition(() => {
           setPanoramas((prev) => prev.map((p) => (p.id === id ? saved : p)));

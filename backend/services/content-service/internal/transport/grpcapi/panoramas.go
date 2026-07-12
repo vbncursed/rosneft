@@ -36,10 +36,11 @@ func (s *Server) CreatePanorama(ctx context.Context, req *contentv1.CreatePanora
 
 func (s *Server) UpdatePanorama(ctx context.Context, req *contentv1.UpdatePanoramaRequest) (*contentv1.UpdatePanoramaResponse, error) {
 	out, err := s.svc.UpdatePanorama(ctx, domain.Panorama{
-		ID:        req.GetId(),
-		Title:     req.GetTitle(),
-		Position:  vec3FromProto(req.GetPosition()),
-		YawOffset: req.GetYawOffset(),
+		ID:         req.GetId(),
+		Title:      req.GetTitle(),
+		Position:   vec3FromProto(req.GetPosition()),
+		YawOffset:  req.GetYawOffset(),
+		DefaultYaw: req.GetDefaultYaw(),
 	})
 	if err != nil {
 		return nil, mapError(err)

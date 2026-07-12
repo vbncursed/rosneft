@@ -190,7 +190,7 @@ components:
 
     Panorama:
       type: object
-      required: [id, territorySlug, slug, title, sourceBlobHash, position, yawOffset]
+      required: [id, territorySlug, slug, title, sourceBlobHash, position, yawOffset, defaultYaw]
       description: |
         Equirectangular panorama (Insta360 Pro source) anchored to a point
         in a territory's scene-units space. The viewer "panorama mode"
@@ -212,6 +212,12 @@ components:
           description: |
             Rotation around the sphere's Y axis (radians) to align the
             panorama's implicit "north" with the territory's axes.
+        defaultYaw:
+          type: number
+          format: double
+          description: |
+            Default horizontal camera yaw (radians, world-space atan2(dirX, dirZ);
+            0 = +Z) the viewer faces when the panorama opens.
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -234,6 +240,7 @@ components:
         title: { type: string }
         position: { $ref: '#/components/schemas/Vec3' }
         yawOffset: { type: number, format: double }
+        defaultYaw: { type: number, format: double }
 
     Document:
       type: object

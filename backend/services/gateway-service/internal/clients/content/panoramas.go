@@ -41,10 +41,11 @@ func (c *Client) CreatePanorama(ctx context.Context, p domain.Panorama) (domain.
 // UpdatePanorama replaces title, position, and yaw offset.
 func (c *Client) UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error) {
 	resp, err := c.cc.UpdatePanorama(ctx, &contentv1.UpdatePanoramaRequest{
-		Id:        p.ID,
-		Title:     p.Title,
-		Position:  vec3ToProto(p.Position),
-		YawOffset: p.YawOffset,
+		Id:         p.ID,
+		Title:      p.Title,
+		Position:   vec3ToProto(p.Position),
+		YawOffset:  p.YawOffset,
+		DefaultYaw: p.DefaultYaw,
 	})
 	if err != nil {
 		return domain.Panorama{}, fmt.Errorf("content.UpdatePanorama: %w", grpcerr.MapStatus(err, domain.ErrPanoramaNotFound))

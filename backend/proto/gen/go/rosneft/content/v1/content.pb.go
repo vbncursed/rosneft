@@ -93,6 +93,7 @@ type Panorama struct {
 	YawOffset      float64                `protobuf:"fixed64,7,opt,name=yaw_offset,json=yawOffset,proto3" json:"yaw_offset,omitempty"`
 	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt      *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	DefaultYaw     float64                `protobuf:"fixed64,10,opt,name=default_yaw,json=defaultYaw,proto3" json:"default_yaw,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -188,6 +189,13 @@ func (x *Panorama) GetUpdatedAt() *timestamppb.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *Panorama) GetDefaultYaw() float64 {
+	if x != nil {
+		return x.DefaultYaw
+	}
+	return 0
 }
 
 type ListPanoramasRequest struct {
@@ -412,6 +420,7 @@ type UpdatePanoramaRequest struct {
 	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	Position      *Vec3                  `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"`
 	YawOffset     float64                `protobuf:"fixed64,4,opt,name=yaw_offset,json=yawOffset,proto3" json:"yaw_offset,omitempty"`
+	DefaultYaw    float64                `protobuf:"fixed64,5,opt,name=default_yaw,json=defaultYaw,proto3" json:"default_yaw,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -470,6 +479,13 @@ func (x *UpdatePanoramaRequest) GetPosition() *Vec3 {
 func (x *UpdatePanoramaRequest) GetYawOffset() float64 {
 	if x != nil {
 		return x.YawOffset
+	}
+	return 0
+}
+
+func (x *UpdatePanoramaRequest) GetDefaultYaw() float64 {
+	if x != nil {
+		return x.DefaultYaw
 	}
 	return 0
 }
@@ -956,7 +972,7 @@ const file_rosneft_content_v1_content_proto_rawDesc = "" +
 	"\x04Vec3\x12\f\n" +
 	"\x01x\x18\x01 \x01(\x01R\x01x\x12\f\n" +
 	"\x01y\x18\x02 \x01(\x01R\x01y\x12\f\n" +
-	"\x01z\x18\x03 \x01(\x01R\x01z\"\xe0\x02\n" +
+	"\x01z\x18\x03 \x01(\x01R\x01z\"\x81\x03\n" +
 	"\bPanorama\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12%\n" +
 	"\x0eterritory_slug\x18\x02 \x01(\tR\rterritorySlug\x12\x12\n" +
@@ -969,7 +985,10 @@ const file_rosneft_content_v1_content_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"=\n" +
+	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x1f\n" +
+	"\vdefault_yaw\x18\n" +
+	" \x01(\x01R\n" +
+	"defaultYaw\"=\n" +
 	"\x14ListPanoramasRequest\x12%\n" +
 	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\"S\n" +
 	"\x15ListPanoramasResponse\x12:\n" +
@@ -983,13 +1002,15 @@ const file_rosneft_content_v1_content_proto_rawDesc = "" +
 	"\n" +
 	"yaw_offset\x18\x06 \x01(\x01R\tyawOffset\"R\n" +
 	"\x16CreatePanoramaResponse\x128\n" +
-	"\bpanorama\x18\x01 \x01(\v2\x1c.rosneft.content.v1.PanoramaR\bpanorama\"\x92\x01\n" +
+	"\bpanorama\x18\x01 \x01(\v2\x1c.rosneft.content.v1.PanoramaR\bpanorama\"\xb3\x01\n" +
 	"\x15UpdatePanoramaRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x124\n" +
 	"\bposition\x18\x03 \x01(\v2\x18.rosneft.content.v1.Vec3R\bposition\x12\x1d\n" +
 	"\n" +
-	"yaw_offset\x18\x04 \x01(\x01R\tyawOffset\"R\n" +
+	"yaw_offset\x18\x04 \x01(\x01R\tyawOffset\x12\x1f\n" +
+	"\vdefault_yaw\x18\x05 \x01(\x01R\n" +
+	"defaultYaw\"R\n" +
 	"\x16UpdatePanoramaResponse\x128\n" +
 	"\bpanorama\x18\x01 \x01(\v2\x1c.rosneft.content.v1.PanoramaR\bpanorama\"'\n" +
 	"\x15DeletePanoramaRequest\x12\x0e\n" +
