@@ -28,11 +28,11 @@ func (r *PG) CreatePanorama(ctx context.Context, p domain.Panorama) (domain.Pano
 			WHERE t.slug = $1
 			RETURNING id, territory_id, slug, title, source_blob_hash,
 				position_x, position_y, position_z,
-				yaw_offset, created_at, updated_at
+				yaw_offset, default_yaw, created_at, updated_at
 		)
 		SELECT i.id, t.slug, i.slug, i.title, i.source_blob_hash,
 			i.position_x, i.position_y, i.position_z,
-			i.yaw_offset, i.created_at, i.updated_at
+			i.yaw_offset, i.default_yaw, i.created_at, i.updated_at
 		FROM inserted i
 		JOIN territories t ON t.id = i.territory_id`
 
