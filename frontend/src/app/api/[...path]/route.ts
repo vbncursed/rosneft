@@ -43,8 +43,16 @@ async function proxy(req: NextRequest, path: string[]): Promise<Response> {
   });
 
   const out = new Headers(res.headers);
-  out.delete("content-encoding"); // fetch already decoded; avoid double-decode in the browser
-  out.delete("content-length");
+  // If the gateway compressed the body, undici (this server-side fetch) already
+  // decoded it — so the upstream content-encoding + content-length no longer
+  // describe what we forward. Drop both: keeping content-encoding double-decodes
+  // in the browser; keeping the compressed content-length truncates the body.
+  // Uncompressed responses (binary assets bypass gateway compression) keep an
+  // accurate content-length, so leave it — clients need it for download progress.
+  if (res.headers.get("content-encoding")) {
+    out.delete("content-encoding");
+    out.delete("content-length");
+  }
   if (res.status === 401) {
     out.append("set-cookie", `${SESSION}=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax`);
   }
