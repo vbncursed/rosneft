@@ -178,7 +178,7 @@ export default function PanoramaEditPanel({
               />
             </div>
 
-            <div className="space-y-1">
+            <div data-tour="panorama-default-view" className="space-y-1">
               <button
                 type="button"
                 onClick={useCameraYaw}
