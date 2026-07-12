@@ -36,6 +36,7 @@ message Panorama {
   double yaw_offset = 7;
   google.protobuf.Timestamp created_at = 8;
   google.protobuf.Timestamp updated_at = 9;
+  double default_yaw = 10;
 }
 
 message ListPanoramasRequest {
@@ -62,6 +63,7 @@ message UpdatePanoramaRequest {
   string title = 2;
   Vec3 position = 3;
   double yaw_offset = 4;
+  double default_yaw = 5;
 }
 message UpdatePanoramaResponse {
   Panorama panorama = 1;
