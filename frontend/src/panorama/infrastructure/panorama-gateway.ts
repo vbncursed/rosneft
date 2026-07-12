@@ -22,6 +22,7 @@ function mapPanorama(d: PanoramaDto): Panorama {
     sourceBlobHash: d.sourceBlobHash,
     position: d.position,
     yawOffset: d.yawOffset,
+    defaultYaw: d.defaultYaw,
     updatedAt: d.updatedAt ?? "",
   };
 }

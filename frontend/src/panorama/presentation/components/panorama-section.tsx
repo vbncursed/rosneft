@@ -21,6 +21,7 @@ interface PanoramaSectionProps {
   onActivatePanorama: (id: number | null) => void;
   onActivateDocument: (id: number) => void;
   cameraPositionRef: RefObject<Vec3 | null>;
+  cameraYawRef: RefObject<number | null>;
   externalPanoramaUrl?: string;
   // Ids whose equirect texture failed to load — the edit panel flags them
   // so the operator knows to delete and re-upload.
@@ -35,7 +36,7 @@ interface PanoramaSectionProps {
   onToggleMove: () => void;
   onSavePanorama: (
     id: number,
-    patch: { position?: Vec3; yawOffset?: number },
+    patch: { position?: Vec3; yawOffset?: number; defaultYaw?: number },
   ) => void;
   onDeletePanorama: (id: number) => Promise<void>;
 }
@@ -54,6 +55,7 @@ export default function PanoramaSection({
   onActivatePanorama,
   onActivateDocument,
   cameraPositionRef,
+  cameraYawRef,
   externalPanoramaUrl,
   failedPanoramaIds,
   calibration,
@@ -182,6 +184,7 @@ export default function PanoramaSection({
           key={`${editingPanorama.id}:${editingPanorama.position.x},${editingPanorama.position.y},${editingPanorama.position.z}`}
           panorama={editingPanorama}
           cameraPositionRef={cameraPositionRef}
+          cameraYawRef={cameraYawRef}
           inPanoramaMode={inPanoramaMode}
           failed={failedPanoramaIds.has(editingPanorama.id)}
           canWrite={canWrite}

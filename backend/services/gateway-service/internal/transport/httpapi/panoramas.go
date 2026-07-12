@@ -65,11 +65,16 @@ func (s *Server) UpdatePanorama(ctx context.Context, req UpdatePanoramaRequestOb
 	if body.YawOffset != nil {
 		yawOffset = *body.YawOffset
 	}
+	var defaultYaw float64
+	if body.DefaultYaw != nil {
+		defaultYaw = *body.DefaultYaw
+	}
 	p, err := s.svc.UpdatePanorama(ctx, domain.Panorama{
-		ID:        req.Id,
-		Title:     title,
-		Position:  vec3PtrFromAPI(body.Position),
-		YawOffset: yawOffset,
+		ID:         req.Id,
+		Title:      title,
+		Position:   vec3PtrFromAPI(body.Position),
+		YawOffset:  yawOffset,
+		DefaultYaw: defaultYaw,
 	})
 	switch {
 	case isInvalid(err):

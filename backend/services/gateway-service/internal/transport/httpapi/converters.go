@@ -137,6 +137,7 @@ func panoramaToAPI(p domain.Panorama) Panorama {
 		SourceBlobHash: p.SourceBlobHash,
 		Position:       vec3ToAPI(p.Position),
 		YawOffset:      p.YawOffset,
+		DefaultYaw:     p.DefaultYaw,
 	}
 	if !p.CreatedAt.IsZero() {
 		out.CreatedAt = &p.CreatedAt

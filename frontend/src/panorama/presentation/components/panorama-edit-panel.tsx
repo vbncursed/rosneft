@@ -10,6 +10,9 @@ interface PanoramaEditPanelProps {
   // Live camera position from the Canvas. Read on demand when the user
   // clicks "Set from camera".
   cameraPositionRef: RefObject<Vec3 | null>;
+  // Live camera yaw, read on demand when the user clicks "Set default view"
+  // (only meaningful inside panorama mode).
+  cameraYawRef: RefObject<number | null>;
   // True when the camera is currently locked inside this panorama —
   // "Set from camera" can't help there, so it's disabled.
   inPanoramaMode: boolean;
@@ -21,7 +24,7 @@ interface PanoramaEditPanelProps {
   // delete gates the delete action. Viewing a panorama stays open to everyone.
   canWrite: boolean;
   canDelete: boolean;
-  onSave: (patch: { position?: Vec3; yawOffset?: number }) => void;
+  onSave: (patch: { position?: Vec3; yawOffset?: number; defaultYaw?: number }) => void;
   onToggleView: () => void;
   onClose: () => void;
   onDelete: () => Promise<void>;
@@ -45,6 +48,7 @@ const RAD_TO_DEG = 180 / Math.PI;
 export default function PanoramaEditPanel({
   panorama,
   cameraPositionRef,
+  cameraYawRef,
   inPanoramaMode,
   failed,
   canWrite,
@@ -61,17 +65,25 @@ export default function PanoramaEditPanel({
   // per mount, and a new key force-mounts the component.
   const [position, setPosition] = useState<Vec3>(panorama.position);
   const [yawOffset, setYawOffset] = useState(panorama.yawOffset);
+  const [defaultYaw, setDefaultYaw] = useState(panorama.defaultYaw);
 
   const dirty =
     position.x !== panorama.position.x ||
     position.y !== panorama.position.y ||
     position.z !== panorama.position.z ||
-    yawOffset !== panorama.yawOffset;
+    yawOffset !== panorama.yawOffset ||
+    defaultYaw !== panorama.defaultYaw;
 
   const useCameraPos = () => {
     const pos = cameraPositionRef.current;
     if (!pos) return;
     setPosition(pos);
+  };
+
+  const useCameraYaw = () => {
+    const yaw = cameraYawRef.current;
+    if (yaw == null) return;
+    setDefaultYaw(yaw);
   };
 
   return (
@@ -166,9 +178,28 @@ export default function PanoramaEditPanel({
               />
             </div>
 
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={useCameraYaw}
+                disabled={!inPanoramaMode}
+                title={
+                  inPanoramaMode
+                    ? "Capture the current look direction as the panorama's default view"
+                    : "Enter panorama view first — the default view is captured from inside the panorama"
+                }
+                className="w-full cursor-pointer rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-xs text-neutral-200 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Set default view
+              </button>
+              <p className="text-[10px] text-neutral-400">
+                Default look: {Math.round(((((defaultYaw % TAU) + TAU) % TAU) * RAD_TO_DEG))}°
+              </p>
+            </div>
+
             <button
               type="button"
-              onClick={() => onSave({ position, yawOffset })}
+              onClick={() => onSave({ position, yawOffset, defaultYaw })}
               disabled={!dirty}
               data-tour="panorama-save-anchor"
               className="w-full cursor-pointer rounded-md bg-cyan-300 px-2 py-1.5 text-xs font-semibold text-neutral-900 transition-colors hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-40"
