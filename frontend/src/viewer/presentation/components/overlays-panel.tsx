@@ -3,8 +3,8 @@
 import { type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { OverlaysTab } from "@/viewer/domain/overlays-tab";
-import { fade, slideRight } from "@/shared/presentation/motion/variants";
-import { quick, smooth } from "@/shared/presentation/motion/transitions";
+import { slideLeft, slideRight } from "@/shared/presentation/motion/variants";
+import { quick } from "@/shared/presentation/motion/transitions";
 import { useResolvedVariants } from "@/shared/presentation/motion/reduced-motion";
 
 interface OverlaysPanelProps {
@@ -38,36 +38,43 @@ export default function OverlaysPanel({
   view,
   placements,
 }: OverlaysPanelProps) {
-  const anim = useResolvedVariants(slideRight);
-  const tabAnim = useResolvedVariants(fade);
-  if (collapsed) {
-    return (
-      <motion.div
-        variants={anim}
-        initial="hidden"
-        animate="visible"
-        transition={smooth}
-        className="pointer-events-auto self-end"
-      >
-        <button
-          type="button"
-          onClick={() => onCollapsedChange(false)}
-          aria-label="Expand overlays panel"
-          className="flex h-10 cursor-pointer items-center gap-2 rounded-l-xl border border-r-0 border-white/20 bg-black/55 px-3 text-xs uppercase tracking-wider text-neutral-200 backdrop-blur transition-colors hover:bg-black/70"
-        >
-          <span aria-hidden="true">{"‹"}</span>
-          <span>Overlays</span>
-        </button>
-      </motion.div>
-    );
-  }
+  // The panel and its collapsed pill both ride in/out from the right edge; one
+  // AnimatePresence across the toggle is what gives collapse its exit slide.
+  const panelAnim = useResolvedVariants(slideRight);
+  // Tab content slides directionally: View from the left, Placements from the
+  // right, so switching reads as the content riding across.
+  const tabAnim = useResolvedVariants(tab === "placements" ? slideRight : slideLeft);
 
   return (
+    <AnimatePresence mode="wait" initial={false}>
+      {collapsed ? (
+        <motion.div
+          key="collapsed"
+          variants={panelAnim}
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
+          transition={quick}
+          className="pointer-events-auto self-end"
+        >
+          <button
+            type="button"
+            onClick={() => onCollapsedChange(false)}
+            aria-label="Expand overlays panel"
+            className="flex h-10 cursor-pointer items-center gap-2 rounded-l-xl border border-r-0 border-white/20 bg-black/55 px-3 text-xs uppercase tracking-wider text-neutral-200 backdrop-blur transition-colors hover:bg-black/70"
+          >
+            <span aria-hidden="true">{"‹"}</span>
+            <span>Overlays</span>
+          </button>
+        </motion.div>
+      ) : (
     <motion.aside
-      variants={anim}
+      key="expanded"
+      variants={panelAnim}
       initial="hidden"
       animate="visible"
-      transition={smooth}
+      exit="hidden"
+      transition={quick}
       className="pointer-events-auto flex min-h-0 w-[340px] flex-1 flex-col gap-3 rounded-2xl border border-white/15 bg-black/55 p-4 text-neutral-100 shadow-2xl backdrop-blur-md">
       <header className="flex items-center justify-between gap-2">
         <p className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">
@@ -109,7 +116,7 @@ export default function OverlaysPanel({
         })}
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden pr-1">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={tab}
@@ -125,5 +132,7 @@ export default function OverlaysPanel({
         </AnimatePresence>
       </div>
     </motion.aside>
+      )}
+    </AnimatePresence>
   );
 }
