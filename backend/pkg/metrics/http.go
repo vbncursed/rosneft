@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -41,6 +42,16 @@ func (r *statusRecorder) Flush() {
 	if f, ok := r.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}
+}
+
+// ReadFrom preserves the net/http sendfile fast path. Without it, wrapping the
+// writer hides the underlying io.ReaderFrom and asset-service loses zero-copy
+// when streaming large GLB blobs.
+func (r *statusRecorder) ReadFrom(src io.Reader) (int64, error) {
+	if rf, ok := r.ResponseWriter.(io.ReaderFrom); ok {
+		return rf.ReadFrom(src)
+	}
+	return io.Copy(r.ResponseWriter, src)
 }
 
 // Middleware records RED metrics for every HTTP request. Labels are method +
