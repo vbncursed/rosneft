@@ -1,10 +1,10 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { OverlaysTab } from "@/viewer/domain/overlays-tab";
-import { slideRight } from "@/shared/presentation/motion/variants";
-import { quick } from "@/shared/presentation/motion/transitions";
+import { fade, slideRight } from "@/shared/presentation/motion/variants";
+import { quick, spring } from "@/shared/presentation/motion/transitions";
 import { useResolvedVariants } from "@/shared/presentation/motion/reduced-motion";
 
 interface OverlaysPanelProps {
@@ -41,14 +41,11 @@ export default function OverlaysPanel({
   // The panel and its collapsed pill both ride in/out from the right edge; one
   // AnimatePresence across the toggle is what gives collapse its exit slide.
   const panelAnim = useResolvedVariants(slideRight);
-  // Tab content rides across: View enters from the left, Placements from the
-  // right. Travel is a share of the panel width (not px) so the slide is clearly
-  // visible; overflow-x-hidden on the track keeps it from spilling.
-  const tabAnim = useResolvedVariants(
-    tab === "placements"
-      ? { hidden: { opacity: 0, x: "55%" }, visible: { opacity: 1, x: 0 } }
-      : { hidden: { opacity: 0, x: "-55%" }, visible: { opacity: 1, x: 0 } },
-  );
+  // Tab content just cross-fades; the visible motion lives on the tab bar, where
+  // the active pill slides between the two buttons (see the layoutId below).
+  const tabAnim = useResolvedVariants(fade);
+  const reduced = useReducedMotion();
+  const indicatorTransition = reduced ? { duration: 0 } : spring;
 
   return (
     <AnimatePresence mode="wait" initial={false}>
@@ -109,13 +106,18 @@ export default function OverlaysPanel({
               type="button"
               onClick={() => onTabChange(t.id)}
               aria-pressed={active}
-              className={`flex-1 cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                active
-                  ? "bg-white/10 text-white"
-                  : "text-neutral-400 hover:text-neutral-200"
+              className={`relative flex-1 cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                active ? "text-white" : "text-neutral-400 hover:text-neutral-200"
               }`}
             >
-              {label}
+              {active ? (
+                <motion.span
+                  layoutId="overlays-tab-indicator"
+                  transition={indicatorTransition}
+                  className="absolute inset-0 rounded-md bg-white/10"
+                />
+              ) : null}
+              <span className="relative z-10">{label}</span>
             </button>
           );
         })}

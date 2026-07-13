@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion, useAnimationControls, useReducedMotion } from "motion/react";
 import { scaleFade } from "@/shared/presentation/motion/variants";
 import { quick } from "@/shared/presentation/motion/transitions";
@@ -31,13 +31,17 @@ export default function PasswordField({
   const [show, setShow] = useState(false);
   const iconAnim = useResolvedVariants(scaleFade);
   const reduced = useReducedMotion();
-  // Pulse the value blurry→crisp in place on each toggle (no remount, so the
-  // field never blinks out). Reduced motion skips the pulse entirely.
+  // Soft opacity dip in place on each toggle — the field stays mounted and
+  // never jumps (no blur, no remount). Skips the first render and reduced motion.
   const reveal = useAnimationControls();
+  const firstRender = useRef(true);
   useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
     if (reduced) return;
-    reveal.set({ filter: "blur(5px)" });
-    reveal.start({ filter: "blur(0px)", transition: { duration: 0.2, ease: "easeOut" } });
+    reveal.start({ opacity: [1, 0.5, 1], transition: { duration: 0.28, ease: "easeInOut" } });
   }, [show, reduced, reveal]);
   const id = useId();
   const border = error
