@@ -40,7 +40,10 @@ func (u *Upload) Finalize(ctx context.Context, id string) (domain.FinalizedBlob,
 		return err
 	})
 	if err != nil {
+		metricUploads.WithLabelValues("failed").Inc()
 		return domain.FinalizedBlob{}, err
 	}
+	metricUploads.WithLabelValues("succeeded").Inc()
+	metricUploadBytes.Add(float64(size))
 	return domain.FinalizedBlob{Hash: hash, Size: size}, nil
 }

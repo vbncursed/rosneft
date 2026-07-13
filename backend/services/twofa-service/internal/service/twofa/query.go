@@ -44,6 +44,7 @@ func (s *Service) Verify(ctx context.Context, userID, code string) (bool, error)
 	}
 	if totp.Validate(string(secretPlain), code) {
 		_ = s.limiter.Clear(ctx, userID)
+		metricTwofaVerifications.WithLabelValues("succeeded").Inc()
 		return true, nil
 	}
 	ids, hashes, err := s.recovery.List(ctx, userID)
@@ -55,8 +56,10 @@ func (s *Service) Verify(ctx context.Context, userID, code string) (bool, error)
 			return false, err
 		}
 		_ = s.limiter.Clear(ctx, userID)
+		metricTwofaVerifications.WithLabelValues("succeeded").Inc()
 		return true, nil
 	}
 	_ = s.limiter.RegisterFail(ctx, userID)
+	metricTwofaVerifications.WithLabelValues("failed").Inc()
 	return false, nil
 }
