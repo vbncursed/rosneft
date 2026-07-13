@@ -15,13 +15,6 @@ export const slideRight: Variants = {
   visible: { opacity: 1, x: 0 },
 };
 
-// Mirror of slideRight — enters from / exits to the left. Paired with
-// slideRight for directional tab/carousel transitions.
-export const slideLeft: Variants = {
-  hidden: { opacity: 0, x: -24 },
-  visible: { opacity: 1, x: 0 },
-};
-
 export const slideUp: Variants = {
   hidden: { opacity: 0, y: 12 },
   visible: { opacity: 1, y: 0 },

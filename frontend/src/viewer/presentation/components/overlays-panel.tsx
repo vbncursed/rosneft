@@ -3,7 +3,7 @@
 import { type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { OverlaysTab } from "@/viewer/domain/overlays-tab";
-import { slideLeft, slideRight } from "@/shared/presentation/motion/variants";
+import { slideRight } from "@/shared/presentation/motion/variants";
 import { quick } from "@/shared/presentation/motion/transitions";
 import { useResolvedVariants } from "@/shared/presentation/motion/reduced-motion";
 
@@ -41,9 +41,14 @@ export default function OverlaysPanel({
   // The panel and its collapsed pill both ride in/out from the right edge; one
   // AnimatePresence across the toggle is what gives collapse its exit slide.
   const panelAnim = useResolvedVariants(slideRight);
-  // Tab content slides directionally: View from the left, Placements from the
-  // right, so switching reads as the content riding across.
-  const tabAnim = useResolvedVariants(tab === "placements" ? slideRight : slideLeft);
+  // Tab content rides across: View enters from the left, Placements from the
+  // right. Travel is a share of the panel width (not px) so the slide is clearly
+  // visible; overflow-x-hidden on the track keeps it from spilling.
+  const tabAnim = useResolvedVariants(
+    tab === "placements"
+      ? { hidden: { opacity: 0, x: "55%" }, visible: { opacity: 1, x: 0 } }
+      : { hidden: { opacity: 0, x: "-55%" }, visible: { opacity: 1, x: 0 } },
+  );
 
   return (
     <AnimatePresence mode="wait" initial={false}>

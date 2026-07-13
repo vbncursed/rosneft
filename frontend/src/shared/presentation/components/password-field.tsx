@@ -1,7 +1,7 @@
 "use client";
 
-import { useId, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useId, useState } from "react";
+import { AnimatePresence, motion, useAnimationControls, useReducedMotion } from "motion/react";
 import { scaleFade } from "@/shared/presentation/motion/variants";
 import { quick } from "@/shared/presentation/motion/transitions";
 import { useResolvedVariants } from "@/shared/presentation/motion/reduced-motion";
@@ -30,12 +30,15 @@ export default function PasswordField({
 }: PasswordFieldProps) {
   const [show, setShow] = useState(false);
   const iconAnim = useResolvedVariants(scaleFade);
-  // Each toggle blurs the value out and back to a crisp read — the key change
-  // replays it. Reduced motion collapses this to a plain fade.
-  const revealAnim = useResolvedVariants({
-    hidden: { opacity: 0.4, filter: "blur(4px)" },
-    visible: { opacity: 1, filter: "blur(0px)" },
-  });
+  const reduced = useReducedMotion();
+  // Pulse the value blurry→crisp in place on each toggle (no remount, so the
+  // field never blinks out). Reduced motion skips the pulse entirely.
+  const reveal = useAnimationControls();
+  useEffect(() => {
+    if (reduced) return;
+    reveal.set({ filter: "blur(5px)" });
+    reveal.start({ filter: "blur(0px)", transition: { duration: 0.2, ease: "easeOut" } });
+  }, [show, reduced, reveal]);
   const id = useId();
   const border = error
     ? "border-red-400/60 focus:border-red-400"
@@ -61,13 +64,7 @@ export default function PasswordField({
         ) : null}
       </div>
       <div className="relative mt-2">
-        <motion.div
-          key={show ? "shown" : "hidden"}
-          variants={revealAnim}
-          initial="hidden"
-          animate="visible"
-          transition={quick}
-        >
+        <motion.div animate={reveal}>
           <input
             id={id}
             type={show ? "text" : "password"}
