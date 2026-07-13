@@ -26,6 +26,7 @@ func (w *Worker) Run(ctx context.Context) {
 			time.Sleep(time.Second)
 			continue
 		}
+		metricQueueDepth.Set(float64(len(jobs)))
 		for _, j := range jobs {
 			// Acquire a slot before spawning. If ctx cancels while waiting,
 			// drop the batch and let the message stay un-acked for reclaim.
