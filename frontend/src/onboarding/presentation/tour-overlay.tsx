@@ -1,11 +1,15 @@
 "use client";
 
 import { type CSSProperties, useEffect, useLayoutEffect, useRef } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import type { Tour } from "@/onboarding/application/use-tour";
 import {
   useAnchoredPosition,
   type AnchorRect,
 } from "@/shared/presentation/components/dropdown/use-anchored-position";
+import { scaleFade } from "@/shared/presentation/motion/variants";
+import { smooth } from "@/shared/presentation/motion/transitions";
+import { useResolvedVariants } from "@/shared/presentation/motion/reduced-motion";
 
 interface TourOverlayProps {
   tour: Tour;
@@ -75,6 +79,8 @@ export default function TourOverlay({ tour }: TourOverlayProps) {
     if (step && ready) nextRef.current?.focus();
   }, [step, ready]);
 
+  const cardAnim = useResolvedVariants(scaleFade);
+
   if (!step) return null;
 
   return (
@@ -93,11 +99,18 @@ export default function TourOverlay({ tour }: TourOverlayProps) {
             <div className="pointer-events-none fixed inset-0 z-[1201] bg-black/65" />
           )}
 
-          <div
+          <AnimatePresence mode="wait">
+          <motion.div
+            key={step.id}
             role="dialog"
             aria-modal="true"
             aria-labelledby={`tour-title-${step.id}`}
             style={cardStyle(rect)}
+            variants={cardAnim}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            transition={smooth}
             className="pointer-events-auto z-[1210] rounded-2xl border border-white/15 bg-black/85 p-4 text-neutral-100 shadow-[0_20px_60px_rgba(0,0,0,0.6)] backdrop-blur-md"
           >
             <h2 id={`tour-title-${step.id}`} className="text-sm font-medium text-white">
@@ -134,7 +147,8 @@ export default function TourOverlay({ tour }: TourOverlayProps) {
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
+          </AnimatePresence>
         </>
       )}
     </>
