@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  - job_name: services
+    static_configs:
+      - targets:
+          - gateway:9101
+          - catalog:9101
+          - auth:9101
+          - twofa:9101
+          - passkey:9101
+          - content:9101
+          - mesh-api:9101
+          - mesh-worker:9101
+          - asset:9101
+          - upload:9101
+        labels: { stack: andrey }
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '([^:]+):.*'
+        target_label: service
+        replacement: '$1'
