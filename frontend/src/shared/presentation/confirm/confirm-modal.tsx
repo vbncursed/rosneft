@@ -9,16 +9,25 @@ import {
   subscribe,
 } from "@/shared/presentation/confirm/confirm-store";
 import OtpInput from "@/shared/presentation/components/otp-input";
+import MotionModal from "@/shared/presentation/motion/motion-modal";
 
-// ConfirmModal renders the single active dialog. Mounted once near
-// the root layout. While no request is active, returns null so the
-// modal layer adds nothing to the DOM.
+// ConfirmModal renders the single active dialog. Mounted once near the root
+// layout. The panel scales in/out via MotionModal — AnimatePresence retains the
+// exiting subtree, so the panel keeps its content while animating away.
 export default function ConfirmModal() {
   const req = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  return req ? <Dialog request={req} /> : null;
+  return (
+    <MotionModal
+      open={!!req}
+      onClose={() => resolveActive(false)}
+      className="mx-4 flex w-full max-w-md flex-col gap-4 rounded-2xl border border-white/15 bg-[#0c0d10]/95 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]"
+    >
+      {req ? <DialogBody request={req} /> : null}
+    </MotionModal>
+  );
 }
 
-function Dialog({ request }: { request: ConfirmRequest }) {
+function DialogBody({ request }: { request: ConfirmRequest }) {
   const cancelRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
@@ -59,64 +68,59 @@ function Dialog({ request }: { request: ConfirmRequest }) {
       role="dialog"
       aria-modal="true"
       aria-labelledby={request.title ? `confirm-title-${request.id}` : undefined}
-      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) resolveActive(false);
-      }}
+      className="flex flex-col gap-4"
     >
-      <div className="mx-4 flex w-full max-w-md flex-col gap-4 rounded-2xl border border-white/15 bg-[#0c0d10]/95 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
-        {request.title ? (
-          <h2
-            id={`confirm-title-${request.id}`}
-            className="text-base font-semibold tracking-tight text-white"
-          >
-            {request.title}
-          </h2>
-        ) : null}
-        <p className="text-sm leading-6 text-neutral-300">{request.message}</p>
-        {segmented ? (
-          <OtpInput value={value} onChange={setValue} onComplete={(v) => resolveActive(true, v)} autoFocus />
-        ) : field ? (
-          <input
-            ref={inputRef}
-            type={field.type === "password" ? "password" : "text"}
-            autoComplete={field.type === "password" ? "current-password" : "off"}
-            placeholder={alt ? field.altPlaceholder : field.placeholder}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && canConfirm) resolveActive(true, value);
-            }}
-            className="rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none transition-colors focus:border-cyan-300/60"
-          />
-        ) : null}
-        {field?.type === "code" && field.altLabel ? (
-          <button
-            type="button"
-            onClick={() => { setAlt((a) => !a); setValue(""); }}
-            className="cursor-pointer self-start text-xs uppercase tracking-[0.2em] text-neutral-400 transition-colors hover:text-cyan-200"
-          >
-            {alt ? "Use an authenticator code instead" : field.altLabel}
-          </button>
-        ) : null}
-        <div className="mt-2 flex justify-end gap-2">
-          <button
-            ref={cancelRef}
-            type="button"
-            onClick={() => resolveActive(false)}
-            className="cursor-pointer rounded-md border border-white/20 bg-transparent px-4 py-1.5 text-sm text-neutral-200 transition-colors hover:bg-white/[0.06]"
-          >
-            {request.cancelLabel ?? "Cancel"}
-          </button>
-          <button
-            type="button"
-            disabled={!canConfirm}
-            onClick={() => resolveActive(true, value)}
-            className={`cursor-pointer rounded-md border px-4 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${confirmTone}`}
-          >
-            {request.confirmLabel ?? "Confirm"}
-          </button>
-        </div>
+      {request.title ? (
+        <h2
+          id={`confirm-title-${request.id}`}
+          className="text-base font-semibold tracking-tight text-white"
+        >
+          {request.title}
+        </h2>
+      ) : null}
+      <p className="text-sm leading-6 text-neutral-300">{request.message}</p>
+      {segmented ? (
+        <OtpInput value={value} onChange={setValue} onComplete={(v) => resolveActive(true, v)} autoFocus />
+      ) : field ? (
+        <input
+          ref={inputRef}
+          type={field.type === "password" ? "password" : "text"}
+          autoComplete={field.type === "password" ? "current-password" : "off"}
+          placeholder={alt ? field.altPlaceholder : field.placeholder}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && canConfirm) resolveActive(true, value);
+          }}
+          className="rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none transition-colors focus:border-cyan-300/60"
+        />
+      ) : null}
+      {field?.type === "code" && field.altLabel ? (
+        <button
+          type="button"
+          onClick={() => { setAlt((a) => !a); setValue(""); }}
+          className="cursor-pointer self-start text-xs uppercase tracking-[0.2em] text-neutral-400 transition-colors hover:text-cyan-200"
+        >
+          {alt ? "Use an authenticator code instead" : field.altLabel}
+        </button>
+      ) : null}
+      <div className="mt-2 flex justify-end gap-2">
+        <button
+          ref={cancelRef}
+          type="button"
+          onClick={() => resolveActive(false)}
+          className="cursor-pointer rounded-md border border-white/20 bg-transparent px-4 py-1.5 text-sm text-neutral-200 transition-colors hover:bg-white/[0.06]"
+        >
+          {request.cancelLabel ?? "Cancel"}
+        </button>
+        <button
+          type="button"
+          disabled={!canConfirm}
+          onClick={() => resolveActive(true, value)}
+          className={`cursor-pointer rounded-md border px-4 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${confirmTone}`}
+        >
+          {request.confirmLabel ?? "Confirm"}
+        </button>
       </div>
     </div>
   );
