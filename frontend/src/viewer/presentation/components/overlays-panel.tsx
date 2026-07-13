@@ -1,7 +1,11 @@
 "use client";
 
 import { type ReactNode } from "react";
+import { motion } from "motion/react";
 import type { OverlaysTab } from "@/viewer/domain/overlays-tab";
+import { slideRight } from "@/shared/presentation/motion/variants";
+import { smooth } from "@/shared/presentation/motion/transitions";
+import { useResolvedVariants } from "@/shared/presentation/motion/reduced-motion";
 
 interface OverlaysPanelProps {
   placementsCount: number;
@@ -34,9 +38,16 @@ export default function OverlaysPanel({
   view,
   placements,
 }: OverlaysPanelProps) {
+  const anim = useResolvedVariants(slideRight);
   if (collapsed) {
     return (
-      <div className="pointer-events-auto self-end">
+      <motion.div
+        variants={anim}
+        initial="hidden"
+        animate="visible"
+        transition={smooth}
+        className="pointer-events-auto self-end"
+      >
         <button
           type="button"
           onClick={() => onCollapsedChange(false)}
@@ -46,12 +57,17 @@ export default function OverlaysPanel({
           <span aria-hidden="true">{"‹"}</span>
           <span>Overlays</span>
         </button>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <aside className="pointer-events-auto flex min-h-0 w-[340px] flex-1 flex-col gap-3 rounded-2xl border border-white/15 bg-black/55 p-4 text-neutral-100 shadow-2xl backdrop-blur-md">
+    <motion.aside
+      variants={anim}
+      initial="hidden"
+      animate="visible"
+      transition={smooth}
+      className="pointer-events-auto flex min-h-0 w-[340px] flex-1 flex-col gap-3 rounded-2xl border border-white/15 bg-black/55 p-4 text-neutral-100 shadow-2xl backdrop-blur-md">
       <header className="flex items-center justify-between gap-2">
         <p className="text-[10px] uppercase tracking-[0.18em] text-neutral-400">
           overlays
@@ -95,6 +111,6 @@ export default function OverlaysPanel({
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
         {tab === "view" ? view : placements}
       </div>
-    </aside>
+    </motion.aside>
   );
 }

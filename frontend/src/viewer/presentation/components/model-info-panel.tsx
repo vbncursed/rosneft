@@ -1,6 +1,12 @@
+"use client";
+
 import { memo } from "react";
 import Link from "next/link";
+import { motion } from "motion/react";
 import type { ModelMetadata } from "@/viewer/domain/model-metadata";
+import { fade } from "@/shared/presentation/motion/variants";
+import { smooth } from "@/shared/presentation/motion/transitions";
+import { useResolvedVariants } from "@/shared/presentation/motion/reduced-motion";
 
 interface ModelInfoPanelProps {
   metadata: ModelMetadata | null;
@@ -17,12 +23,19 @@ const formatNumber = (value: number): string => NUMBER_FORMAT.format(value);
 // the placements editor. Keeping these two affordances in one card avoids
 // two different "this is the current project" surfaces fighting for space.
 function ModelInfoPanelImpl({ metadata }: ModelInfoPanelProps) {
+  const anim = useResolvedVariants(fade);
   if (!metadata) {
     return null;
   }
 
   return (
-    <div className="w-full max-w-xs rounded-xl border border-white/20 bg-black/50 p-4 shadow-xl backdrop-blur">
+    <motion.div
+      variants={anim}
+      initial="hidden"
+      animate="visible"
+      transition={smooth}
+      className="w-full max-w-xs rounded-xl border border-white/20 bg-black/50 p-4 shadow-xl backdrop-blur"
+    >
       <Link
         href="/"
         data-tour="catalog-link"
@@ -43,7 +56,7 @@ function ModelInfoPanelImpl({ metadata }: ModelInfoPanelProps) {
           {metadata.dimensions.z}
         </p>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

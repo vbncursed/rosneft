@@ -1,9 +1,15 @@
+"use client";
+
 import { type RefObject, useState } from "react";
+import { motion } from "motion/react";
 import type { Panorama } from "@/panorama/domain/panorama";
 import type { Vec3 } from "@/shared/domain/vec3";
 import Vec3Field from "@/placement/presentation/components/vec3-field";
 import QuantityStepper from "@/placement/presentation/components/quantity-stepper";
 import DeleteButton from "@/shared/presentation/components/delete-button";
+import { slideUp } from "@/shared/presentation/motion/variants";
+import { smooth } from "@/shared/presentation/motion/transitions";
+import { useResolvedVariants } from "@/shared/presentation/motion/reduced-motion";
 
 interface PanoramaEditPanelProps {
   panorama: Panorama;
@@ -86,8 +92,16 @@ export default function PanoramaEditPanel({
     setDefaultYaw(yaw);
   };
 
+  const anim = useResolvedVariants(slideUp);
+
   return (
-    <div className="pointer-events-auto w-full rounded-xl border border-white/20 bg-black/50 p-3 shadow-xl backdrop-blur">
+    <motion.div
+      variants={anim}
+      initial="hidden"
+      animate="visible"
+      transition={smooth}
+      className="pointer-events-auto w-full rounded-xl border border-white/20 bg-black/50 p-3 shadow-xl backdrop-blur"
+    >
       <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="truncate text-xs font-semibold uppercase tracking-wider text-cyan-300/80">
           {panorama.title}
@@ -225,6 +239,6 @@ export default function PanoramaEditPanel({
         </DeleteButton>
         </div>
       ) : null}
-    </div>
+    </motion.div>
   );
 }
