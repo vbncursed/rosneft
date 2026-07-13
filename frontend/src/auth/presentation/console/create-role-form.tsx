@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { Permission } from "@/auth/domain/permission";
 import PermissionMatrix from "@/auth/presentation/console/permission-matrix";
 import { useCurrentUser } from "@/auth/presentation/current-user-context";
+import MotionModal from "@/shared/presentation/motion/motion-modal";
 
 export default function CreateRoleForm({ permissions, onCreate }: {
   permissions: Permission[];
@@ -30,8 +31,7 @@ export default function CreateRoleForm({ permissions, onCreate }: {
   }
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
-      <div className="mx-4 flex max-h-[85vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-2xl border border-white/15 bg-[#0c0d10]/95 p-6">
+    <MotionModal open onClose={close} className="mx-4 flex max-h-[85vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-2xl border border-white/15 bg-[#0c0d10]/95 p-6">
         <p className="text-xs uppercase tracking-[0.36em] text-cyan-300/80">New role</p>
         <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.2em] text-neutral-400">
           Role name
@@ -47,7 +47,6 @@ export default function CreateRoleForm({ permissions, onCreate }: {
           <button type="button" disabled={!title.trim()} onClick={() => { onCreate(title.trim(), perms); close(); }}
             className="cursor-pointer rounded-md border border-white/30 bg-white/10 px-4 py-1.5 text-sm font-medium text-white hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50">Create role</button>
         </div>
-      </div>
-    </div>
+    </MotionModal>
   );
 }
