@@ -1,6 +1,10 @@
 "use client";
 
 import { useId, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { scaleFade } from "@/shared/presentation/motion/variants";
+import { quick } from "@/shared/presentation/motion/transitions";
+import { useResolvedVariants } from "@/shared/presentation/motion/reduced-motion";
 
 const inputCls =
   "block w-full rounded-xl border bg-black/40 px-4 py-3 pr-12 text-sm text-white outline-none transition-colors duration-200";
@@ -25,6 +29,7 @@ export default function PasswordField({
   onGenerate,
 }: PasswordFieldProps) {
   const [show, setShow] = useState(false);
+  const iconAnim = useResolvedVariants(scaleFade);
   const id = useId();
   const border = error
     ? "border-red-400/60 focus:border-red-400"
@@ -66,7 +71,19 @@ export default function PasswordField({
           aria-pressed={show}
           className="absolute inset-y-0 right-0 flex cursor-pointer items-center px-3 text-neutral-400 transition-colors hover:text-neutral-200"
         >
-          {show ? <EyeOffIcon /> : <EyeIcon />}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={show ? "off" : "on"}
+              variants={iconAnim}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              transition={quick}
+              className="flex"
+            >
+              {show ? <EyeOffIcon /> : <EyeIcon />}
+            </motion.span>
+          </AnimatePresence>
         </button>
       </div>
       {error ? <p className="mt-1 text-xs text-red-300">{error}</p> : null}

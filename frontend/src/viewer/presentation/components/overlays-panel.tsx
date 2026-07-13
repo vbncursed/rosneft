@@ -1,10 +1,10 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import type { OverlaysTab } from "@/viewer/domain/overlays-tab";
-import { slideRight } from "@/shared/presentation/motion/variants";
-import { smooth } from "@/shared/presentation/motion/transitions";
+import { fade, slideRight } from "@/shared/presentation/motion/variants";
+import { quick, smooth } from "@/shared/presentation/motion/transitions";
 import { useResolvedVariants } from "@/shared/presentation/motion/reduced-motion";
 
 interface OverlaysPanelProps {
@@ -39,6 +39,7 @@ export default function OverlaysPanel({
   placements,
 }: OverlaysPanelProps) {
   const anim = useResolvedVariants(slideRight);
+  const tabAnim = useResolvedVariants(fade);
   if (collapsed) {
     return (
       <motion.div
@@ -109,7 +110,19 @@ export default function OverlaysPanel({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
-        {tab === "view" ? view : placements}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={tab}
+            variants={tabAnim}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            transition={quick}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            {tab === "view" ? view : placements}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </motion.aside>
   );
