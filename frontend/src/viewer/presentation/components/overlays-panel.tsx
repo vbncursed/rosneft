@@ -3,7 +3,7 @@
 import { type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { OverlaysTab } from "@/viewer/domain/overlays-tab";
-import { fade, slideRight } from "@/shared/presentation/motion/variants";
+import { slideRight } from "@/shared/presentation/motion/variants";
 import { quick, spring } from "@/shared/presentation/motion/transitions";
 import { useResolvedVariants } from "@/shared/presentation/motion/reduced-motion";
 
@@ -41,9 +41,14 @@ export default function OverlaysPanel({
   // The panel and its collapsed pill both ride in/out from the right edge; one
   // AnimatePresence across the toggle is what gives collapse its exit slide.
   const panelAnim = useResolvedVariants(slideRight);
-  // Tab content just cross-fades; the visible motion lives on the tab bar, where
-  // the active pill slides between the two buttons (see the layoutId below).
-  const tabAnim = useResolvedVariants(fade);
+  // Tab content rides across: View enters from the left, Placements from the
+  // right (share of panel width, so it's clearly visible; overflow-x-hidden on
+  // the track keeps it from spilling). The active pill also slides — see below.
+  const tabAnim = useResolvedVariants(
+    tab === "placements"
+      ? { hidden: { opacity: 0, x: "55%" }, visible: { opacity: 1, x: 0 } }
+      : { hidden: { opacity: 0, x: "-55%" }, visible: { opacity: 1, x: 0 } },
+  );
   const reduced = useReducedMotion();
   const indicatorTransition = reduced ? { duration: 0 } : spring;
 
