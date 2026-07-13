@@ -8,12 +8,21 @@ const ITEMS = [
   { href: "/admin/roles", label: "Roles & Permissions" },
 ];
 
-export default function ConsoleSidebar({ showContent, showAccess }: { showContent: boolean; showAccess: boolean }) {
+export default function ConsoleSidebar({
+  showContent,
+  showAccess,
+  showMetrics,
+}: {
+  showContent: boolean;
+  showAccess: boolean;
+  showMetrics: boolean;
+}) {
   const path = usePathname();
   const items = [
     ...ITEMS,
     ...(showContent ? [{ href: "/admin/content", label: "Content" }] : []),
     ...(showAccess ? [{ href: "/admin/territories", label: "Territory access" }] : []),
+    ...(showMetrics ? [{ href: "/admin/metrics", label: "Metrics" }] : []),
   ];
   return (
     <nav className="flex flex-col gap-1">
