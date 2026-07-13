@@ -18,6 +18,7 @@ at `/admin/metrics` — visible **only to Root** (`principal.isOwner`).
 | Prometheus/Grafana placement | Compose services, **not** exposed publicly (`expose`, no `ports`) |
 | Access gating | Next.js BFF proxy (session cookie → `isOwner`) → Grafana `auth.proxy` |
 | `/metrics` auth | Compose-network only, no bearer token |
+| Alerting | Grafana Unified Alerting (embedded), in-app only, extended rule set |
 
 ### Why the BFF gates, not the Go gateway
 
@@ -64,9 +65,31 @@ transitive `client_model` is vendored).
 - `prometheus`: scrapes each service's `/metrics` via static config keyed on
   compose hostnames; `expose` only, TSDB retention ~15d, named volume.
 - `grafana`: provisioned Prometheus datasource + provisioned dashboard JSON
-  (Services RED / Go runtime / Domain). Settings: `auth.proxy=true`,
-  anonymous **off**, `allow_embedding=true`, Grafana Live disabled. `expose`
-  only, named volume for state.
+  (Services RED / Go runtime / Domain + an Alerts dashboard with an **Alert
+  list** panel). Settings: `auth.proxy=true`, anonymous **off**,
+  `allow_embedding=true`, Grafana Live disabled, **unified alerting on**.
+  `expose` only, named volume for state.
+
+### 3a. Alerting (Grafana Unified Alerting, embedded)
+
+No separate Alertmanager container — Grafana's built-in Alertmanager. Rules,
+notification policy, and contact point are all provisioned as YAML alongside
+datasource/dashboards.
+
+- **Delivery:** in-app only. Contact point is the **null / no-op receiver**;
+  firing alerts are viewed on `/admin/metrics` via a Grafana **Alert list**
+  panel (embedded like the other dashboards). No external channel (no SMTP /
+  Telegram / extra container). A push channel can be added later by swapping
+  the contact point — rules stay unchanged.
+- **Extended rule set (~8–10, provisioned):**
+  1. Target down (any service `up == 0`).
+  2. High HTTP 5xx / gRPC non-OK error rate.
+  3. High p99 latency (gRPC/HTTP).
+  4. Conversion failures spike (mesh-worker `conversions_total{status="failed"}`).
+  5. Memory / goroutine growth (leak signal).
+  6. Redis queue depth sustained high.
+  7. Upload error rate.
+  8. Failed-login / 2FA-verification spike (possible brute force).
 
 ### 4. Frontend
 
@@ -83,7 +106,8 @@ transitive `client_model` is vendored).
 ## Explicitly out of scope (YAGNI)
 
 - postgres-exporter / redis-exporter (+2 containers; add later as one scrape job).
-- Alertmanager / alerting rules (visualization only for now).
+- External alert channels (SMTP / Telegram); standalone Alertmanager container.
+  In-app viewing only for now; add a contact point later without touching rules.
 - Grafana Live / WebSocket streaming (dashboards poll instead).
 - Long-term storage / Thanos (local Prometheus TSDB, ~15d retention).
 
@@ -94,6 +118,8 @@ transitive `client_model` is vendored).
 - Manual E2E: bring up compose, hit a few endpoints, confirm `/metrics` exposes
   counters, Prometheus targets are `up`, Grafana renders, `/admin/metrics`
   returns the dashboard for Root and **403** for a non-owner via the BFF.
+- Alerting: stop one service (or force a conversion failure) and confirm the
+  matching rule fires and appears in the Alert list panel on `/admin/metrics`.
 
 ## Deployment
 
