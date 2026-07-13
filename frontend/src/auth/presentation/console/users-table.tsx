@@ -8,6 +8,7 @@ import UserRow from "@/auth/presentation/console/user-row";
 import CreateUserDrawer from "@/auth/presentation/console/create-user-drawer";
 import EditRolesDrawer from "@/auth/presentation/console/edit-roles-drawer";
 import Dropdown from "@/shared/presentation/components/dropdown/dropdown";
+import Checkbox from "@/shared/presentation/components/checkbox";
 import type { Role } from "@/auth/domain/role";
 import type { AdminUser } from "@/auth/domain/user";
 
@@ -35,9 +36,7 @@ export default function UsersTable({ roles }: { roles: Role[] }) {
       <div className="mt-4 flex items-center gap-3">
         <Dropdown label="STATUS" value={status} onChange={setStatus} placeholder="Any"
           options={[{ value: "", label: "Any" }, { value: "active", label: "Active" }, { value: "frozen", label: "Frozen" }, { value: "deleted", label: "Deleted" }]} />
-        <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-300">
-          <input type="checkbox" checked={includeDeleted} onChange={(e) => setIncludeDeleted(e.target.checked)} className="accent-cyan-400" /> include deleted
-        </label>
+        <Checkbox checked={includeDeleted} onChange={setIncludeDeleted} label="include deleted" />
       </div>
 
       <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">

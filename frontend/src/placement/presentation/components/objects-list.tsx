@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { ResolvedPlacement } from "@/placement/domain/placement";
+import Checkbox from "@/shared/presentation/components/checkbox";
 
 interface ObjectsListProps {
   placements: ResolvedPlacement[];
@@ -87,15 +88,14 @@ function ObjectRow({
       }`}
     >
       {activePanoramaId != null && canWrite ? (
-        <input
-          type="checkbox"
-          checked={placement.visiblePanoramaIds.includes(activePanoramaId)}
-          disabled={pending}
-          onChange={(e) => onToggleVisible(placement.id, e.target.checked)}
-          className="size-3.5 shrink-0 cursor-pointer accent-cyan-400 disabled:cursor-not-allowed"
-          title="Show in this panorama"
-          aria-label="Show in this panorama"
-        />
+        <span className="shrink-0" title="Show in this panorama">
+          <Checkbox
+            checked={placement.visiblePanoramaIds.includes(activePanoramaId)}
+            disabled={pending}
+            onChange={(next) => onToggleVisible(placement.id, next)}
+            ariaLabel="Show in this panorama"
+          />
+        </span>
       ) : null}
 
       {editing ? (
