@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import type { Toast } from "@/shared/presentation/toast/toast";
 import {
   dismiss,
@@ -8,6 +9,9 @@ import {
   getSnapshot,
   subscribe,
 } from "@/shared/presentation/toast/toast-store";
+import { slideRight } from "@/shared/presentation/motion/variants";
+import { smooth } from "@/shared/presentation/motion/transitions";
+import { useResolvedVariants } from "@/shared/presentation/motion/reduced-motion";
 
 // Per-kind palette — keeps the visual contract obvious. The accents
 // hold accessibility-grade contrast against the dark glass background.
@@ -43,17 +47,26 @@ export default function Toaster() {
   const toasts = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   return (
     <div className="pointer-events-none fixed right-4 top-4 z-[100] flex w-[min(92vw,22rem)] flex-col gap-2">
-      {toasts.map((t) => (
-        <ToastCard key={t.id} toast={t} />
-      ))}
+      <AnimatePresence initial={false}>
+        {toasts.map((t) => (
+          <ToastCard key={t.id} toast={t} />
+        ))}
+      </AnimatePresence>
     </div>
   );
 }
 
 function ToastCard({ toast }: { toast: Toast }) {
   const palette = tone[toast.kind];
+  const anim = useResolvedVariants(slideRight);
   return (
-    <div
+    <motion.div
+      layout
+      variants={anim}
+      initial="hidden"
+      animate="visible"
+      exit="hidden"
+      transition={smooth}
       role={toast.kind === "error" ? "alert" : "status"}
       className={`pointer-events-auto flex items-start gap-3 rounded-xl border ${palette.ring} px-4 py-3 text-sm text-white shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur-md`}
     >
@@ -69,6 +82,6 @@ function ToastCard({ toast }: { toast: Toast }) {
       >
         ×
       </button>
-    </div>
+    </motion.div>
   );
 }
