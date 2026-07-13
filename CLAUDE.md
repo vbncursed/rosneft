@@ -37,6 +37,10 @@ yarn lint         # ESLint (flat config, eslint.config.mjs)
 - **RSC routes (`src/app/**`) may import gateways from `infrastructure/` directly.** Server Components run on the server, where the layer boundary that protects the browser bundle does not apply. The rule "routes import only from `<context>/presentation/`" still holds for any client component a route renders, but the `page.tsx` itself is allowed to call `getSceneBundle`, `listTerritories`, etc. directly from `territory/infrastructure/`. The presentation layer in this codebase is client-only by design.
 - **`territory/` aggregates `placement/` domain types in the SceneBundle response.** `territory-gateway.ts` imports `Placement` and `PlacementAssetOption` from `@/placement/domain` because `SceneBundle` is the server-side aggregate that joins territory + artifact + placements + model options in one call. This is the only sanctioned cross-context domain import; do not extend it to other contexts.
 
+## UI animations
+
+UI animations use the `motion` library (import from `motion/react` — never `framer-motion`). Shared variant/transition presets, a reduced-motion helper, and reusable wrappers (`MotionOverlay`, `MotionModal`, `MotionDrawer`, `MotionList`/`MotionItem`) live in `@/shared/presentation/motion/`; import them from there rather than inlining variants or hand-rolling `AnimatePresence` per component. `motion` is **presentation-only** — never import it in `domain/`, `application/`, or `infrastructure/`. Every animated surface must respect `prefers-reduced-motion` via `useResolvedVariants` (its pure core `resolveVariants` is unit-tested). Keep animated files under the 200-line cap by leaning on the wrappers; extract a sub-section rather than inlining motion mechanics.
+
 ## Project layout
 
 ```
