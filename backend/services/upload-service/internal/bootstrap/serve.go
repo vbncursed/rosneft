@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"os/signal"
 	"syscall"
 
@@ -13,6 +14,7 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
 	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
+	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 	uploadv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/upload/v1"
 	"github.com/vbncursed/rosneft/backend/services/upload-service/internal/config"
 	grpctransport "github.com/vbncursed/rosneft/backend/services/upload-service/internal/transport/grpcapi"
@@ -50,6 +52,12 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 
 	serveErr := make(chan error, 1)
+	go func() {
+		if err := metrics.Serve(cfg.MetricsAddr); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("metrics: listener failed", "err", err)
+		}
+	}()
+	logger.Info("metrics: serving", "addr", cfg.MetricsAddr)
 	go func() { serveErr <- grpcSrv.Serve(lis) }()
 	logger.Info("upload: serving gRPC", "addr", lis.Addr().String())
 

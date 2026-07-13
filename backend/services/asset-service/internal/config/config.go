@@ -14,6 +14,7 @@ import (
 // Config aggregates all runtime knobs.
 type Config struct {
 	HTTPAddr        string        `mapstructure:"http-addr"`
+	MetricsAddr     string        `mapstructure:"metrics-addr"`
 	BlobDir         string        `mapstructure:"blob-dir"`
 	LogLevel        string        `mapstructure:"log-level"`
 	LogFormat       string        `mapstructure:"log-format"`
@@ -33,6 +34,7 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.AutomaticEnv()
 
 	v.SetDefault("http-addr", ":8081")
+	v.SetDefault("metrics-addr", ":9101")
 	v.SetDefault("log-level", "info")
 	v.SetDefault("log-format", "json")
 	v.SetDefault("read-timeout", 5*time.Second)

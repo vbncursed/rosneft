@@ -18,6 +18,6 @@ type Credential struct {
 	BackupEligible bool
 	BackupState    bool
 	Name           string
-	CreatedAt    time.Time
-	LastUsedAt   *time.Time
+	CreatedAt      time.Time
+	LastUsedAt     *time.Time
 }

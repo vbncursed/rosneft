@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/config"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
@@ -91,6 +92,12 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 
 	serveErr := make(chan error, 1)
+	go func() {
+		if err := metrics.Serve(cfg.MetricsAddr); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("metrics: listener failed", "err", err)
+		}
+	}()
+	logger.Info("metrics: serving", "addr", cfg.MetricsAddr)
 	go func() { serveErr <- srv.ListenAndServe() }()
 	logger.Info("gateway: serving HTTP", "addr", cfg.HTTPAddr)
 

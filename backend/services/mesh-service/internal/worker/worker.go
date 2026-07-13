@@ -40,11 +40,11 @@ type Worker struct {
 
 // Config wires the Worker.
 type Config struct {
-	Queue         Queue
-	Mesh          Mesh
-	Logger        *slog.Logger
-	Name          string
-	BlockTimeout  time.Duration
+	Queue        Queue
+	Mesh         Mesh
+	Logger       *slog.Logger
+	Name         string
+	BlockTimeout time.Duration
 	// MaxConcurrent caps parallel conversions. <=0 defaults to GOMAXPROCS.
 	MaxConcurrent int
 }

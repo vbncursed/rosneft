@@ -2,11 +2,14 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/config"
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/service"
 )
@@ -72,6 +75,12 @@ func RunWorker(ctx context.Context, cfg config.Config) error {
 	// backoff because catalog might still be coming up.
 	go runReconciler(rootCtx, svc)
 
+	go func() {
+		if err := metrics.Serve(cfg.MetricsAddr); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("metrics: listener failed", "err", err)
+		}
+	}()
+	logger.Info("metrics: serving", "addr", cfg.MetricsAddr)
 	logger.Info("mesh-worker: entering consume loop")
 	w.Run(rootCtx)
 	logger.Info("mesh-worker: stopped")

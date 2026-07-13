@@ -15,17 +15,18 @@ import (
 
 // Config aggregates all runtime knobs.
 type Config struct {
-	GRPCAddr         string        `mapstructure:"grpc-addr"`
-	RedisAddr        string        `mapstructure:"redis-addr"`
-	RedisDB          int           `mapstructure:"redis-db"`
-	CatalogGRPCAddr  string        `mapstructure:"catalog-grpc-addr"`
-	BlobDir          string        `mapstructure:"blob-dir"`
-	WorkerName       string        `mapstructure:"worker-name"`
-	BlockTimeout     time.Duration `mapstructure:"block-timeout"`
-	MaxConcurrentJobs int          `mapstructure:"max-concurrent-jobs"`
-	LogLevel         string        `mapstructure:"log-level"`
-	LogFormat        string        `mapstructure:"log-format"`
-	ShutdownTimeout  time.Duration `mapstructure:"shutdown-timeout"`
+	GRPCAddr          string        `mapstructure:"grpc-addr"`
+	MetricsAddr       string        `mapstructure:"metrics-addr"`
+	RedisAddr         string        `mapstructure:"redis-addr"`
+	RedisDB           int           `mapstructure:"redis-db"`
+	CatalogGRPCAddr   string        `mapstructure:"catalog-grpc-addr"`
+	BlobDir           string        `mapstructure:"blob-dir"`
+	WorkerName        string        `mapstructure:"worker-name"`
+	BlockTimeout      time.Duration `mapstructure:"block-timeout"`
+	MaxConcurrentJobs int           `mapstructure:"max-concurrent-jobs"`
+	LogLevel          string        `mapstructure:"log-level"`
+	LogFormat         string        `mapstructure:"log-format"`
+	ShutdownTimeout   time.Duration `mapstructure:"shutdown-timeout"`
 	// DracoEnabled toggles KHR_draco_mesh_compression on freshly converted
 	// GLBs. The frontend's DRACOLoader must be configured when this is on.
 	DracoEnabled bool `mapstructure:"draco-enabled"`
@@ -85,6 +86,7 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.AutomaticEnv()
 
 	v.SetDefault("grpc-addr", ":9002")
+	v.SetDefault("metrics-addr", ":9101")
 	v.SetDefault("redis-addr", "redis:6379")
 	v.SetDefault("redis-db", 0)
 	v.SetDefault("catalog-grpc-addr", "catalog:9001")
