@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MotionList, MotionItem } from "@/shared/presentation/motion";
 import { listModels } from "@/model/infrastructure/model-gateway";
 import DeleteModelButton from "@/app/_components/delete-model-button";
 import { getCurrentUser } from "@/auth/application/current-user";
@@ -44,12 +45,9 @@ export default async function ModelsPage() {
             No models yet. Upload your first one.
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <MotionList className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {models.map((m) => (
-              <article
-                key={m.slug}
-                className="relative rounded-3xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur"
-              >
+              <MotionItem key={m.slug} className="relative rounded-3xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur">
                 {canDelete ? (
                   <div className="absolute right-3 top-3 z-10">
                     <DeleteModelButton slug={m.slug} label={m.title} />
@@ -69,9 +67,9 @@ export default async function ModelsPage() {
                   ) : null}
                   <p className="mt-6 text-xs text-neutral-500">{m.slug}</p>
                 </Link>
-              </article>
+              </MotionItem>
             ))}
-          </div>
+          </MotionList>
         )}
       </section>
     </main>

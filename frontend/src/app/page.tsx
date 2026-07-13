@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MotionList, MotionItem } from "@/shared/presentation/motion";
 import { listTerritories } from "@/territory/infrastructure/territory-gateway";
 import { listModels } from "@/model/infrastructure/model-gateway";
 import DeleteTerritoryButton from "@/app/_components/delete-territory-button";
@@ -114,7 +115,7 @@ function Section({
           {empty}
         </div>
       ) : (
-        <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <MotionList className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => {
             const href = itemHref(item);
             const Card = (
@@ -138,7 +139,7 @@ function Section({
               </article>
             );
             return (
-              <div key={item.slug} className="relative">
+              <MotionItem key={item.slug} className="relative">
                 {href ? (
                   <Link href={href} className="cursor-pointer">
                     {Card}
@@ -151,10 +152,10 @@ function Section({
                     {renderDelete(item)}
                   </div>
                 ) : null}
-              </div>
+              </MotionItem>
             );
           })}
-        </div>
+        </MotionList>
       )}
     </section>
   );
