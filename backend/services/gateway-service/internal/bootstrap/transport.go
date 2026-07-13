@@ -12,6 +12,7 @@ import (
 	slogchi "github.com/samber/slog-chi"
 
 	"github.com/vbncursed/rosneft/backend/pkg/healthz"
+	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/config"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/service"
@@ -47,6 +48,11 @@ func InitRouter(
 	cfg config.Config,
 ) (chi.Router, *healthz.Handler) {
 	r := chi.NewRouter()
+
+	// Record HTTP RED for every request (method + status). Outermost so it
+	// times the full chain. The /metrics endpoint itself is served only on the
+	// internal :9101 listener, never on this public router.
+	r.Use(metrics.Middleware)
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   resolveOrigins(cfg.AllowedOrigins),

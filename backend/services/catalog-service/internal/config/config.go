@@ -15,6 +15,7 @@ import (
 // Config aggregates all runtime knobs.
 type Config struct {
 	GRPCAddr        string        `mapstructure:"grpc-addr"`
+	MetricsAddr     string        `mapstructure:"metrics-addr"`
 	DBDSN           string        `mapstructure:"db-dsn"`
 	LogLevel        string        `mapstructure:"log-level"`
 	LogFormat       string        `mapstructure:"log-format"`
@@ -33,6 +34,7 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.AutomaticEnv()
 
 	v.SetDefault("grpc-addr", ":9001")
+	v.SetDefault("metrics-addr", ":9101")
 	v.SetDefault("log-level", "info")
 	v.SetDefault("log-format", "json")
 	v.SetDefault("auto-migrate", true)

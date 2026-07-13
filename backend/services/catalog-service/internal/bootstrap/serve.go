@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"os/signal"
 	"syscall"
 
 	"google.golang.org/grpc"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
+	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/config"
 )
@@ -47,6 +49,12 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 
 	serveErr := make(chan error, 1)
+	go func() {
+		if err := metrics.Serve(cfg.MetricsAddr); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("metrics: listener failed", "err", err)
+		}
+	}()
+	logger.Info("metrics: serving", "addr", cfg.MetricsAddr)
 	go func() { serveErr <- grpcSrv.Serve(lis) }()
 	logger.Info("catalog: serving gRPC", "addr", lis.Addr().String())
 

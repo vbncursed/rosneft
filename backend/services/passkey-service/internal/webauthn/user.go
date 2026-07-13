@@ -27,9 +27,9 @@ func NewUser(id, name string, stored []domain.Credential) *User {
 	return u
 }
 
-func (u *User) WebAuthnID() []byte                   { return []byte(u.id) }
-func (u *User) WebAuthnName() string                 { return u.name }
-func (u *User) WebAuthnDisplayName() string          { return u.name }
+func (u *User) WebAuthnID() []byte                    { return []byte(u.id) }
+func (u *User) WebAuthnName() string                  { return u.name }
+func (u *User) WebAuthnDisplayName() string           { return u.name }
 func (u *User) WebAuthnCredentials() []lib.Credential { return u.creds }
 
 func toLib(c domain.Credential) lib.Credential {

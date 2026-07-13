@@ -14,6 +14,7 @@ import (
 // Config aggregates all runtime knobs.
 type Config struct {
 	HTTPAddr        string        `mapstructure:"http-addr"`
+	MetricsAddr     string        `mapstructure:"metrics-addr"`
 	CatalogGRPCAddr string        `mapstructure:"catalog-grpc-addr"`
 	ContentGRPCAddr string        `mapstructure:"content-grpc-addr"`
 	MeshGRPCAddr    string        `mapstructure:"mesh-grpc-addr"`
@@ -41,6 +42,7 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.AutomaticEnv()
 
 	v.SetDefault("http-addr", ":8080")
+	v.SetDefault("metrics-addr", ":9101")
 	v.SetDefault("catalog-grpc-addr", "catalog:9001")
 	v.SetDefault("content-grpc-addr", "content:9007")
 	v.SetDefault("mesh-grpc-addr", "mesh-api:9002")

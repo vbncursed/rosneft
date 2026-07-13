@@ -14,6 +14,7 @@ import (
 // Config aggregates all runtime knobs.
 type Config struct {
 	GRPCAddr        string        `mapstructure:"grpc-addr"`
+	MetricsAddr     string        `mapstructure:"metrics-addr"`
 	DBDSN           string        `mapstructure:"db-dsn"`
 	RedisAddr       string        `mapstructure:"redis-addr"`
 	RedisDB         int           `mapstructure:"redis-db"`
@@ -38,6 +39,7 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.AutomaticEnv()
 
 	v.SetDefault("grpc-addr", ":9006")
+	v.SetDefault("metrics-addr", ":9101")
 	v.SetDefault("redis-addr", "redis:6379")
 	v.SetDefault("redis-db", 2)
 	v.SetDefault("issuer", "Andrey")

@@ -15,6 +15,7 @@ import (
 // Config aggregates all runtime knobs.
 type Config struct {
 	GRPCAddr        string        `mapstructure:"grpc-addr"`
+	MetricsAddr     string        `mapstructure:"metrics-addr"`
 	BlobDir         string        `mapstructure:"blob-dir"`
 	IncomingDir     string        `mapstructure:"incoming-dir"`
 	MaxUploadBytes  int64         `mapstructure:"max-upload-bytes"`
@@ -34,6 +35,7 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.AutomaticEnv()
 
 	v.SetDefault("grpc-addr", ":9003")
+	v.SetDefault("metrics-addr", ":9101")
 	v.SetDefault("blob-dir", "/var/blob")
 	v.SetDefault("incoming-dir", "/var/upload/incoming")
 	v.SetDefault("max-upload-bytes", int64(2<<30)) // 2 GiB safety cap

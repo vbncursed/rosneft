@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 	"github.com/vbncursed/rosneft/backend/services/asset-service/internal/config"
 )
 
@@ -28,8 +29,10 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	mux, hz := InitMux(svc, logger)
 
 	srv := &http.Server{
-		Addr:              cfg.HTTPAddr,
-		Handler:           mux,
+		Addr: cfg.HTTPAddr,
+		// Record HTTP RED for every request. /metrics is served only on the
+		// internal :9101 listener, never on this asset-serving handler.
+		Handler:           metrics.Middleware(mux),
 		ReadHeaderTimeout: cfg.ReadTimeout,
 		ReadTimeout:       cfg.ReadTimeout,
 		WriteTimeout:      cfg.WriteTimeout,
@@ -37,6 +40,12 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 
 	serveErr := make(chan error, 1)
+	go func() {
+		if err := metrics.Serve(cfg.MetricsAddr); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("metrics: listener failed", "err", err)
+		}
+	}()
+	logger.Info("metrics: serving", "addr", cfg.MetricsAddr)
 	go func() { serveErr <- srv.ListenAndServe() }()
 	logger.Info("asset: serving HTTP", "addr", cfg.HTTPAddr)
 

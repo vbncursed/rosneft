@@ -16,9 +16,9 @@ import (
 
 type PlacementVisibilitySuite struct {
 	suite.Suite
-	repo  *mocks.RepositoryMock
-	svc   *service.Catalog
-	ctx   context.Context
+	repo    *mocks.RepositoryMock
+	svc     *service.Catalog
+	ctx     context.Context
 	panoIDs []int64
 }
 
