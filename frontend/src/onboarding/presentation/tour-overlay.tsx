@@ -68,7 +68,12 @@ export default function TourOverlay({ tour }: TourOverlayProps) {
   // commit's passive effects before the hook's own layout effect has re-run —
   // which would skip a step whose control is perfectly present.
   useLayoutEffect(() => {
-    if (anchored && !document.querySelector(selector)) onNext();
+    const el = anchored ? document.querySelector(selector) : null;
+    if (anchored && !el) onNext();
+    // Scroll a below-the-fold target into its scroll container so the halo
+    // isn't clipped at the viewport edge. useAnchoredPosition re-measures off
+    // the resulting scroll event, so the halo follows on its own.
+    else el?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [selector, anchored, onNext]);
 
   // Anchored but unmeasured: hold the dim backdrop for this commit rather than
