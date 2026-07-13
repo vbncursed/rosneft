@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { AnimatePresence } from "motion/react";
 import {
   type DropdownOption,
   isSelectable,
@@ -164,18 +165,20 @@ export default function Dropdown({
         </span>
       </button>
 
-      {open ? (
-        <DropdownMenu
-          id={listId}
-          listRef={listRef}
-          rect={rect}
-          value={value}
-          options={options}
-          highlightIndex={highlightIndex}
-          onHighlight={setHighlightIndex}
-          onCommit={handleCommit}
-        />
-      ) : null}
+      <AnimatePresence>
+        {open ? (
+          <DropdownMenu
+            id={listId}
+            listRef={listRef}
+            rect={rect}
+            value={value}
+            options={options}
+            highlightIndex={highlightIndex}
+            onHighlight={setHighlightIndex}
+            onCommit={handleCommit}
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

@@ -37,21 +37,6 @@ body {
   appearance: textfield;
 }
 
-@keyframes dropdown-enter {
-  from {
-    opacity: 0;
-    transform: translateY(-2px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.dropdown-menu-enter {
-  animation: dropdown-enter 120ms ease-out;
-}
-
 @keyframes drift {
   0% { transform: translateY(0) scale(1); }
   50% { transform: translateY(-14px) scale(1.02); }

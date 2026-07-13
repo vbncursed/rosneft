@@ -2,8 +2,12 @@
 
 import { type CSSProperties, type Ref } from "react";
 import { createPortal } from "react-dom";
+import { motion } from "motion/react";
 import type { DropdownOption } from "@/shared/presentation/components/dropdown/dropdown-option";
 import type { AnchorRect } from "@/shared/presentation/components/dropdown/use-anchored-position";
+import { scaleFade } from "@/shared/presentation/motion/variants";
+import { quick } from "@/shared/presentation/motion/transitions";
+import { useResolvedVariants } from "@/shared/presentation/motion/reduced-motion";
 
 interface DropdownMenuProps {
   id: string;
@@ -44,6 +48,7 @@ export default function DropdownMenu({
   onHighlight,
   onCommit,
 }: DropdownMenuProps) {
+  const anim = useResolvedVariants(scaleFade);
   // The wider viewer (ModelViewer) is loaded via next/dynamic with
   // ssr:false, so this component never renders on the server. Guard
   // anyway in case another caller mounts it during SSR — createPortal
@@ -51,13 +56,18 @@ export default function DropdownMenu({
   if (typeof document === "undefined" || !rect) return null;
 
   return createPortal(
-    <ul
+    <motion.ul
       ref={listRef}
       role="listbox"
       id={id}
       tabIndex={-1}
       style={menuStyle(rect)}
-      className="dropdown-menu-enter z-[1000] max-h-64 origin-top overflow-y-auto rounded-md border border-white/10 bg-neutral-900/95 py-1 text-xs shadow-[0_12px_30px_rgba(0,0,0,0.45)] backdrop-blur-md"
+      variants={anim}
+      initial="hidden"
+      animate="visible"
+      exit="hidden"
+      transition={quick}
+      className="z-[1000] max-h-64 origin-top overflow-y-auto rounded-md border border-white/10 bg-neutral-900/95 py-1 text-xs shadow-[0_12px_30px_rgba(0,0,0,0.45)] backdrop-blur-md"
     >
       {options.map((option, i) => {
         if (option.header) {
@@ -112,7 +122,7 @@ export default function DropdownMenu({
           </li>
         );
       })}
-    </ul>,
+    </motion.ul>,
     document.body,
   );
 }
