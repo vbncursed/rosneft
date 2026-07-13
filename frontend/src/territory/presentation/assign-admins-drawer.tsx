@@ -6,6 +6,7 @@ import type { Role } from "@/auth/domain/role";
 import { listUsers, listRoles } from "@/auth/infrastructure/auth-admin-gateway";
 import { getTerritoryAdmins, setTerritoryAdmins } from "@/territory/infrastructure/territory-admins-gateway";
 import { notify } from "@/shared/presentation/toast/use-toast";
+import MotionModal from "@/shared/presentation/motion/motion-modal";
 
 // Roles that can be granted territory access: a Company Owner shares the
 // territory with their whole team; a Guest sees only what they're assigned.
@@ -51,13 +52,7 @@ export default function AssignAdminsDrawer({ slug, title, onClose }: { slug: str
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="mx-4 flex w-full max-w-md flex-col gap-4 rounded-2xl border border-white/15 bg-[#0c0d10]/95 p-6">
+    <MotionModal open onClose={onClose} className="mx-4 flex w-full max-w-md flex-col gap-4 rounded-2xl border border-white/15 bg-[#0c0d10]/95 p-6">
         <p className="text-xs uppercase tracking-[0.36em] text-cyan-300/80">Grant access · {title}</p>
         {loading ? (
           <p className="text-sm text-neutral-400">Loading…</p>
@@ -102,7 +97,6 @@ export default function AssignAdminsDrawer({ slug, title, onClose }: { slug: str
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </MotionModal>
   );
 }

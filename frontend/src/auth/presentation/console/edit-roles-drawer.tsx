@@ -7,6 +7,7 @@ import { canGrant } from "@/auth/domain/principal";
 import { useCurrentUser } from "@/auth/presentation/current-user-context";
 import { updateUserRoles, setUserOwner } from "@/auth/infrastructure/auth-admin-gateway";
 import { notify } from "@/shared/presentation/toast/use-toast";
+import MotionModal from "@/shared/presentation/motion/motion-modal";
 
 export default function EditRolesDrawer({ user, roles, onClose, onSaved }: { user: AdminUser; roles: Role[]; onClose: () => void; onSaved: () => void }) {
   const me = useCurrentUser();
@@ -37,8 +38,7 @@ export default function EditRolesDrawer({ user, roles, onClose, onSaved }: { use
   }
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="mx-4 flex w-full max-w-md flex-col gap-4 rounded-2xl border border-white/15 bg-[#0c0d10]/95 p-6">
+    <MotionModal open onClose={onClose} className="mx-4 flex w-full max-w-md flex-col gap-4 rounded-2xl border border-white/15 bg-[#0c0d10]/95 p-6">
         <p className="text-xs uppercase tracking-[0.36em] text-cyan-300/80">Roles · {user.username}</p>
         {me?.isOwner ? (
           <div className="flex flex-col gap-2">
@@ -70,7 +70,6 @@ export default function EditRolesDrawer({ user, roles, onClose, onSaved }: { use
           <button type="button" onClick={onClose} className="cursor-pointer rounded-md border border-white/20 px-4 py-1.5 text-sm text-neutral-200 hover:bg-white/[0.06]">Cancel</button>
           <button type="button" onClick={save} disabled={busy || blocked} className="cursor-pointer rounded-md border border-white/30 bg-white/10 px-4 py-1.5 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-50">{busy ? "Saving…" : "Save"}</button>
         </div>
-      </div>
-    </div>
+    </MotionModal>
   );
 }
