@@ -14,6 +14,8 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+
+	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 )
 
 // MaxMessageSize is 16 MiB — large enough for the gateway's SceneBundle with
@@ -47,11 +49,13 @@ func NewServer(logger *slog.Logger, extra ...grpc.ServerOption) *grpc.Server {
 		grpc.MaxSendMsgSize(MaxMessageSize),
 		grpc.ChainUnaryInterceptor(
 			RecoveryUnaryInterceptor(logger),
+			metrics.UnaryServerInterceptor(),
 			RequestIDUnaryInterceptor(),
 			SlogUnaryInterceptor(logger),
 		),
 		grpc.ChainStreamInterceptor(
 			RecoveryStreamInterceptor(logger),
+			metrics.StreamServerInterceptor(),
 			RequestIDStreamInterceptor(),
 			SlogStreamInterceptor(logger),
 		),
