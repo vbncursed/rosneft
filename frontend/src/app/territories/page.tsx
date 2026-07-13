@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MotionList, MotionItem } from "@/shared/presentation/motion";
 import { listTerritories } from "@/territory/infrastructure/territory-gateway";
 import DeleteTerritoryButton from "@/app/_components/delete-territory-button";
 import ReplaceSourceButton from "@/app/_components/replace-source-button";
@@ -45,12 +46,9 @@ export default async function TerritoriesPage() {
             The catalog is empty. Upload your first territory.
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <MotionList className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {territories.map((t) => (
-              <article
-                key={t.slug}
-                className="relative rounded-3xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur"
-              >
+              <MotionItem key={t.slug} className="relative rounded-3xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur">
                 {canWrite || canDelete ? (
                   <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
                     {canWrite ? <ReplaceSourceButton slug={t.slug} /> : null}
@@ -68,9 +66,9 @@ export default async function TerritoriesPage() {
                   ) : null}
                   <p className="mt-6 text-xs text-neutral-500">{t.slug}</p>
                 </Link>
-              </article>
+              </MotionItem>
             ))}
-          </div>
+          </MotionList>
         )}
       </section>
     </main>
