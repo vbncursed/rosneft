@@ -348,7 +348,7 @@
             "severity": "warning"
           },
           "annotations": {
-            "summary": "Mesh job queue backlog above 50"
+            "summary": "Mesh worker pulling full batches for 10m (stream backlog)"
           },
           "data": [
             {
@@ -362,7 +362,7 @@
                 "refId": "A",
                 "instant": true,
                 "editorMode": "code",
-                "expr": "mesh_queue_depth > 50",
+                "expr": "mesh_queue_depth >= 16",
                 "intervalMs": 1000,
                 "maxDataPoints": 43200
               }

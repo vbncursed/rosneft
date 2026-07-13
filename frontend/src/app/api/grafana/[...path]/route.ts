@@ -3,6 +3,11 @@ import { getCurrentUser } from "@/auth/application/current-user";
 
 const GRAFANA = process.env.GRAFANA_URL ?? "http://grafana:3000";
 
+// Request headers worth forwarding upstream. Everything else (cookies, host,
+// hop-by-hop headers) is dropped — Grafana authenticates via X-WEBAUTH-USER,
+// which we set ourselves. Mirrors the allowlist in api/[...path]/route.ts.
+const FORWARD = ["content-type", "accept", "accept-encoding", "range", "if-none-match", "content-length"];
+
 // Response headers we must not copy verbatim (they describe the upstream hop).
 const STRIP = new Set(["content-encoding", "content-length", "transfer-encoding"]);
 
@@ -15,10 +20,12 @@ async function proxy(req: NextRequest, path: string[]): Promise<Response> {
   if (!p?.isOwner) return new Response("forbidden", { status: 403 });
 
   const url = `${GRAFANA}/api/grafana/${path.map(encodeURIComponent).join("/")}${req.nextUrl.search}`;
-  const headers = new Headers(req.headers);
-  headers.delete("cookie"); // Grafana authenticates via the header, not cookies.
-  headers.set("x-webauth-user", p.username);
-  headers.set("host", "grafana:3000");
+  const headers = new Headers();
+  for (const h of FORWARD) {
+    const v = req.headers.get(h);
+    if (v) headers.set(h, v);
+  }
+  headers.set("x-webauth-user", p.username); // Grafana auth.proxy identity.
 
   const hasBody = req.method !== "GET" && req.method !== "HEAD";
   const res = await fetch(url, {

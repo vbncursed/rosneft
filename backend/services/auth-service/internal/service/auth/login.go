@@ -40,7 +40,6 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 		metricLogins.WithLabelValues("failed").Inc()
 		return "", "", domain.ErrInvalidCredential
 	}
-	metricLogins.WithLabelValues("succeeded").Inc()
 	switch u.Status {
 	case domain.StatusFrozen:
 		return "", "", domain.ErrAccountFrozen
@@ -48,6 +47,7 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 		return "", "", domain.ErrAccountDeleted
 	}
 	_ = s.sessions.ClearFails(ctx, identifier)
+	metricLogins.WithLabelValues("succeeded").Inc()
 
 	enabled, err := s.twofa.IsEnabled(ctx, u.ID)
 	if err != nil {
