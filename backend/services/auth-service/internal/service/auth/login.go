@@ -28,6 +28,7 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 	if err != nil {
 		// Unknown user is an auth failure, not a 404 — don't leak existence.
 		_ = s.sessions.RegisterFail(ctx, identifier)
+		metricLogins.WithLabelValues("failed").Inc()
 		return "", "", domain.ErrInvalidCredential
 	}
 	ok, err := password.Verify(plain, u.PasswordHash)
@@ -36,8 +37,10 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 	}
 	if !ok {
 		_ = s.sessions.RegisterFail(ctx, identifier)
+		metricLogins.WithLabelValues("failed").Inc()
 		return "", "", domain.ErrInvalidCredential
 	}
+	metricLogins.WithLabelValues("succeeded").Inc()
 	switch u.Status {
 	case domain.StatusFrozen:
 		return "", "", domain.ErrAccountFrozen
