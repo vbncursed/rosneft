@@ -22,8 +22,8 @@ export default function MetricsDashboard({
     <div className="flex flex-col gap-8">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Метрики</h1>
-          <p className="mt-1 text-xs text-neutral-400">Обновляется каждые 30 секунд</p>
+          <h1 className="text-2xl font-semibold text-white">Metrics</h1>
+          <p className="mt-1 text-xs text-neutral-400">Refreshes every 30 seconds</p>
         </div>
         <RangePicker value={range} onChange={setRange} />
       </header>
