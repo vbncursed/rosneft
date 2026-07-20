@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Andrey 3D Viewer",
     short_name: "Andrey",
-    description: "Интерактивный просмотр территорий и моделей",
+    description: "Interactive viewer for territories and models",
     start_url: "/",
     display: "standalone",
     background_color: "#0a0a0a",

@@ -1369,6 +1369,7 @@ git add -A && git commit -m "fix(metrics): live-stack verification fixes"
 - Modify: `frontend/src/metrics/presentation/charts/time-series-chart.tsx` (локаль `ru-RU` → `en-GB`)
 - Modify: `frontend/src/metrics/domain/panel.test.ts` (сообщения ассертов)
 - Modify: `frontend/src/app/offline/page.tsx`
+- Modify: `frontend/src/app/manifest.ts` (`description` — виден в промпте установки PWA)
 
 **Interfaces:**
 - Consumes: ничего нового.
@@ -1441,6 +1442,12 @@ git add -A && git commit -m "fix(metrics): live-stack verification fixes"
 - `Приложению нужно подключение: территории и модели загружаются с сервера. Проверьте сеть и попробуйте снова.`
   → `This app needs a connection — territories and models load from the server. Check your network and try again.`
 - кнопка `Повторить` → `Retry`
+
+`app/manifest.ts` — `description` показывается в промпте установки PWA:
+`Интерактивный просмотр территорий и моделей` → `Interactive viewer for territories and models`.
+Браузеры кешируют манифест агрессивно, поэтому у уже установленных копий описание
+обновится не сразу. Тест `manifest.test.ts` на `description` не завязан, но проверяет
+отсутствие запрещённого бренд-слова — новая строка это условие держит.
 
 - [x] **Step 6: Убедиться, что русского в интерфейсе не осталось**
 
