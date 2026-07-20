@@ -1,24 +1,16 @@
-import { ImageResponse } from "next/og";
-import { markDataUri } from "@/shared/presentation/app-mark";
+import { MARK_SVG } from "@/shared/presentation/app-mark";
 
-export const size = { width: 512, height: 512 };
-export const contentType = "image/png";
+export const contentType = "image/svg+xml";
 
+// Вкладка рисует favicon в 16 px на обычном экране. Растр 512→16 схлопывает
+// тонкие рёбра каркаса в мутное кольцо, поэтому здесь отдаётся вектор: контуры
+// остаются резкими на любом размере, а один и тот же знак идёт и во вкладку,
+// и в манифест.
 export default function Icon() {
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          display: "flex",
-          width: "100%",
-          height: "100%",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <img src={markDataUri()} alt="" width={512} height={512} />
-      </div>
-    ),
-    size,
-  );
+  return new Response(MARK_SVG, {
+    headers: {
+      "Content-Type": "image/svg+xml",
+      "Cache-Control": "public, max-age=0, must-revalidate",
+    },
+  });
 }

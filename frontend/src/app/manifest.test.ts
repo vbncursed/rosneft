@@ -12,9 +12,16 @@ test("объявляет приложение устанавливаемым", (
 
 test("несёт обе иконки, нужные для установки", () => {
   const icons = manifest().icons ?? [];
-  const sizes = icons.map((i) => i.sizes);
-  assert.ok(sizes.includes("512x512"), "512 нужен Android и десктопу");
-  assert.ok(sizes.includes("180x180"), "180 нужен iPadOS");
+  // Вектор: масштабируется без потерь и во вкладку 16 px, и в плитку Android.
+  assert.ok(
+    icons.some((i) => i.type === "image/svg+xml" && i.sizes === "any"),
+    "нужен масштабируемый вектор",
+  );
+  // iPadOS вектор в иконках не поддерживает — ему обязателен растр.
+  assert.ok(
+    icons.some((i) => i.sizes === "180x180" && i.type === "image/png"),
+    "180x180 PNG нужен iPadOS",
+  );
 });
 
 test("не упоминает запрещённое бренд-слово", () => {
