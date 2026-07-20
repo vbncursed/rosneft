@@ -1375,7 +1375,7 @@ git add -A && git commit -m "fix(metrics): live-stack verification fixes"
 - Produces: ничего нового. Меняются только строковые литералы — id панелей, типы и сигнатуры
   остаются прежними, поэтому ни один вызывающий код не затрагивается.
 
-- [ ] **Step 1: Перевести заголовки панелей и секций**
+- [x] **Step 1: Перевести заголовки панелей и секций**
 
 Тон — по конвенции проекта: sentence case, без извинений в ошибках, вещи названы тем,
 что видит человек. `panels.ts`, поле `title` у каждой панели:
@@ -1406,7 +1406,7 @@ git add -A && git commit -m "fix(metrics): live-stack verification fixes"
 В `SECTIONS`: `"Сервисы (RED)"` → `"Services (RED)"`, `"Домен"` → `"Domain"`,
 `"Go runtime"` без изменений.
 
-- [ ] **Step 2: Перевести строки компонентов**
+- [x] **Step 2: Перевести строки компонентов**
 
 `metrics-dashboard.tsx`: `Метрики` → `Metrics`, `Обновляется каждые 30 секунд` →
 `Refreshes every 30 seconds`.
@@ -1421,18 +1421,18 @@ git add -A && git commit -m "fix(metrics): live-stack verification fixes"
 
 `panel-card.tsx`: `Метрика недоступна` → `Metric unavailable`, `Нет данных` → `No data`.
 
-- [ ] **Step 3: Убрать русскую локаль из подписей времени**
+- [x] **Step 3: Убрать русскую локаль из подписей времени**
 
 `time-series-chart.tsx`, функция `clockOf` — `toLocaleTimeString("ru-RU", …)` даёт русскую
 локаль в английском интерфейсе. Заменить на `"en-GB"`: тот же 24-часовой `HH:MM`, без AM/PM.
 
-- [ ] **Step 4: Перевести сообщения ассертов**
+- [x] **Step 4: Перевести сообщения ассертов**
 
 `panel.test.ts`: `` `${r} стал мельче скрейпа` `` → `` `${r} finer than the scrape interval` ``,
 `` `${r} не кратен 15` `` → `` `${r} is not a multiple of 15` ``,
 `` `${r} даёт ${points} точек` `` → `` `${r} yields ${points} points` ``.
 
-- [ ] **Step 5: Перевести офлайн-страницу**
+- [x] **Step 5: Перевести офлайн-страницу**
 
 `app/offline/page.tsx` — единственная страница вне `metrics/` с русским текстом
 (её показывает service worker при отсутствии сети):
@@ -1442,7 +1442,7 @@ git add -A && git commit -m "fix(metrics): live-stack verification fixes"
   → `This app needs a connection — territories and models load from the server. Check your network and try again.`
 - кнопка `Повторить` → `Retry`
 
-- [ ] **Step 6: Убедиться, что русского в интерфейсе не осталось**
+- [x] **Step 6: Убедиться, что русского в интерфейсе не осталось**
 
 Run:
 ```bash
@@ -1455,7 +1455,7 @@ Expected: попадания только в комментариях. Ни од
 (`proxy.ts`, `app/layout.tsx`, `shared/presentation/app-mark.ts`) они тоже русские,
 и перевод только своих рассинхронил бы файл с окружением.
 
-- [ ] **Step 7: Прогнать проверки и закоммитить**
+- [x] **Step 7: Прогнать проверки и закоммитить**
 
 Run: `cd frontend && yarn test && npx tsc --noEmit && yarn lint`
 Expected: 60/60 тестов, типы и линт чисто.
@@ -1479,7 +1479,7 @@ git commit -m "fix(metrics): render the metrics UI in English like the rest of t
 - Consumes: `spring` из `@/shared/presentation/motion`; `motion`, `useReducedMotion` из `motion/react`.
 - Produces: пропсы `RangePicker` не меняются — `{ value: Range; onChange: (r: Range) => void }`.
 
-- [ ] **Step 1: Переписать переключатель на общий layoutId**
+- [x] **Step 1: Переписать переключатель на общий layoutId**
 
 Паттерн копируется из `viewer/presentation/components/overlays-panel.tsx:104-129` — это
 единственный `layoutId` в проекте и уже принятый в нём способ анимировать сегментный
@@ -1547,7 +1547,7 @@ export default function RangePicker({
 }
 ```
 
-- [ ] **Step 2: Прогнать проверки**
+- [x] **Step 2: Прогнать проверки**
 
 Run: `cd frontend && npx tsc --noEmit && yarn lint && yarn test`
 Expected: чисто, 60/60. Файл остаётся сильно ниже лимита в 200 строк.
@@ -1560,7 +1560,7 @@ Run: `docker compose -p andrey up -d --build frontend`
 сегменты, а не исчезает и появляется; подпись активного сегмента читается поверх подложки;
 при включённом «уменьшить движение» в системе переключение мгновенное, без рывка.
 
-- [ ] **Step 4: Коммит**
+- [x] **Step 4: Коммит**
 
 ```bash
 git add frontend/src/metrics/presentation/components/range-picker.tsx
