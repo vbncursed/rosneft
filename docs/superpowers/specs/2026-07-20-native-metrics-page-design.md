@@ -106,7 +106,7 @@ frontend/src/metrics/
   infrastructure/
     prometheus-gateway.ts   # Prometheus DTO → Series, расчёт step
   application/
-    use-metrics-panels.ts   # фетч панелей, поллинг 30с, состояние диапазона
+    use-panel-series.ts     # фетч одной панели, поллинг 30с, пауза в скрытой вкладке
   presentation/
     components/
       metrics-dashboard.tsx  # композиция секций
