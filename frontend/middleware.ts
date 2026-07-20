@@ -9,6 +9,10 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Everything except /login, /api/*, Next internals, and files with an extension.
-  matcher: ["/((?!login|api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  // Everything except /login, /offline, /api/*, Next internals, and files with an extension.
+  //
+  // /offline обязан быть здесь: его отдаёт service worker, когда сети нет.
+  // Попади он под matcher — редирект на /login, который без сети не грузится,
+  // и вместо offline-экрана пользователь увидит белый.
+  matcher: ["/((?!login|offline|api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };
