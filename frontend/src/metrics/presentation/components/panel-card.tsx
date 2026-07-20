@@ -22,12 +22,12 @@ export default function PanelCard({ panel, range }: { panel: PanelView; range: R
       </h3>
       {error ? (
         <p className="rounded-lg border border-red-300/40 bg-red-500/15 px-3 py-6 text-center text-sm text-red-200">
-          Метрика недоступна
+          Metric unavailable
         </p>
       ) : loading ? (
         <div className="h-56 animate-pulse rounded-lg bg-white/5" />
       ) : series.length === 0 ? (
-        <p className="flex h-56 items-center justify-center text-sm text-neutral-500">Нет данных</p>
+        <p className="flex h-56 items-center justify-center text-sm text-neutral-500">No data</p>
       ) : (
         <TimeSeriesChart series={series} unit={panel.unit} />
       )}

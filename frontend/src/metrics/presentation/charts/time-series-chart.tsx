@@ -11,7 +11,7 @@ const COLORS = ["#67e8f9", "#a78bfa", "#fbbf24", "#34d399", "#fb7185", "#60a5fa"
 const AXIS = { stroke: "transparent", tick: { fill: "#a3a3a3", fontSize: 11 } } as const;
 
 function clockOf(t: number): string {
-  return new Date(t * 1000).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  return new Date(t * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
 export default function TimeSeriesChart({ series, unit }: { series: Series[]; unit: Unit }) {
