@@ -1,0 +1,67 @@
+groups:
+  - name: andrey-core
+    interval: 1m
+    rules:
+      - alert: TargetDown
+        expr: up{job="services"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "A service target is down"
+
+      - alert: HighGrpcErrorRate
+        expr: sum by (service)(rate(grpc_server_handled_total{grpc_code!="OK"}[5m])) / clamp_min(sum by (service)(rate(grpc_server_handled_total[5m])),0.001) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "gRPC error rate above 5%"
+
+      - alert: HighHttp5xxRate
+        expr: sum(rate(http_requests_total{code=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_total[5m])),0.001) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP 5xx rate above 5%"
+
+      - alert: HighLatencyP99
+        expr: histogram_quantile(0.99, sum by (le,grpc_service)(rate(grpc_server_handling_seconds_bucket[5m]))) > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "gRPC p99 latency above 2s"
+
+      - alert: ConversionFailures
+        expr: rate(mesh_conversions_total{status="failed"}[10m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mesh conversions are failing"
+
+      - alert: MemoryGrowth
+        expr: process_resident_memory_bytes > 1.5e9
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "A service is using over 1.5GB RSS"
+
+      - alert: QueueBacklog
+        expr: mesh_queue_depth >= 16
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mesh worker pulling full batches for 10m (stream backlog)"
+
+      - alert: LoginFailureSpike
+        expr: rate(auth_logins_total{status="failed"}[5m]) * 60 > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Login failures above 30/min (possible brute force)"
