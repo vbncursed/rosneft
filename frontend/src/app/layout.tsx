@@ -5,6 +5,7 @@ import ConfirmModal from "@/shared/presentation/confirm/confirm-modal";
 import { getCurrentUser } from "@/auth/application/current-user";
 import { CurrentUserProvider } from "@/auth/presentation/current-user-context";
 import UserMenu from "@/auth/presentation/user-menu";
+import SwRegister from "./sw-register";
 import "./globals.css";
 
 // IBM Plex Sans ships a variable axis — load without an explicit weight list.
@@ -53,6 +54,7 @@ export default async function RootLayout({
         </CurrentUserProvider>
         <Toaster />
         <ConfirmModal />
+        <SwRegister />
       </body>
     </html>
   );
