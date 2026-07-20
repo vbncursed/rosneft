@@ -1,7 +1,11 @@
 export type Point = { t: number; v: number };
 
-/** Одна временная серия: подпись (обычно имя сервиса или статус) и точки. */
-export type Series = { label: string; points: Point[] };
+/**
+ * Одна временная серия: подпись (обычно имя сервиса или статус) и точки.
+ * `labels` — исходный набор меток из Prometheus. Графикам он не нужен, но
+ * карточке алертов без него не отличить `pending` от `firing`.
+ */
+export type Series = { label: string; points: Point[]; labels?: Record<string, string> };
 
 /** Строка для чарта: общая ось времени, по колонке на серию. */
 export type Row = { t: number } & Record<string, number>;

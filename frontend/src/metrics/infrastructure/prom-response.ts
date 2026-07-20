@@ -14,7 +14,10 @@ type PromBody = {
 };
 
 // Лейбл серии: первый попавшийся осмысленный, иначе просто «value».
-const LABEL_KEYS = ["service", "grpc_service", "status", "alertname", "code", "method"];
+// `alertname` идёт первым: у серии ALERTS есть и он, и `service`, и назвать её
+// именем сервиса — значит потерять, о каком вообще алерте речь. Больше ни у
+// одной метрики метки `alertname` нет, так что на графики порядок не влияет.
+const LABEL_KEYS = ["alertname", "service", "grpc_service", "status", "code", "method"];
 
 function labelOf(metric: PromMetric): string {
   for (const k of LABEL_KEYS) if (metric[k]) return metric[k];
@@ -34,7 +37,7 @@ export function toSeries(body: unknown): Series[] {
       // NaN/±Inf штатно приходят из histogram_quantile без трафика — это не точки.
       if (Number.isFinite(v)) points.push({ t, v });
     }
-    if (points.length) out.push({ label: labelOf(r.metric), points });
+    if (points.length) out.push({ label: labelOf(r.metric), points, labels: r.metric });
   }
   return out;
 }
