@@ -6,7 +6,7 @@ import { fetchPanel } from "@/metrics/infrastructure/prometheus-gateway";
 
 export async function GET(req: NextRequest) {
   // Gate: метрики видит только владелец. Матчер в src/proxy.ts исключает /api,
-  // поэтому эта проверка — единственная, ровно как было у прокси Grafana.
+  // поэтому эта проверка — единственная, других слоёв авторизации тут нет.
   const p = await getCurrentUser();
   if (!p?.isOwner) return new Response("forbidden", { status: 403 });
 
