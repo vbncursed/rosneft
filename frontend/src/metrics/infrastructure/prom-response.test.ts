@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { toSeries } from "./prometheus-gateway.ts";
+import { toSeries } from "./prom-response.ts";
 
 test("toSeries: maps a matrix response, one series per label set", () => {
   const body = {
