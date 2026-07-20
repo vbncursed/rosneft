@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import Toaster from "@/shared/presentation/toast/toaster";
 import ConfirmModal from "@/shared/presentation/confirm/confirm-modal";
@@ -23,6 +23,16 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Andrey 3D Viewer",
   description: "Interactive viewer for OBJ models",
+};
+
+export const viewport: Viewport = {
+  // Совпадает с --background в globals.css, чтобы статус-бар не спорил с фоном.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
+  // Планшеты с вырезом: контент под вырез, отступы берутся из safe-area.
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({
