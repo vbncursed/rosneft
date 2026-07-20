@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   if (req.cookies.has("session")) return NextResponse.next();
   const url = req.nextUrl.clone();
   url.pathname = "/login";
