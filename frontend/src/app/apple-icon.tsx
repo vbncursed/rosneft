@@ -19,7 +19,6 @@ export default function AppleIcon() {
           background: MARK_BACKDROP,
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={markDataUri()} alt="" width={132} height={132} />
       </div>
     ),
