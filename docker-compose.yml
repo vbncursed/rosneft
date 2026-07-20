@@ -233,44 +233,12 @@ services:
       - --storage.tsdb.retention.time=15d
     volumes:
       - ./ops/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./ops/prometheus/rules.yml:/etc/prometheus/rules.yml:ro
       - prometheus-data:/prometheus
     expose:
       - "9090"
     depends_on:
       gateway: { condition: service_started }
-
-  grafana:
-    image: grafana/grafana:latest
-    depends_on:
-      prometheus: { condition: service_started }
-    environment:
-      # Served behind the Next BFF at /api/grafana/ — Grafana must know its
-      # public sub-path so generated URLs resolve. Prod overrides the domain.
-      GF_SERVER_ROOT_URL: "http://localhost:3000/api/grafana/"
-      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
-      # Embedding: the site renders dashboards in an <iframe>.
-      GF_SECURITY_ALLOW_EMBEDDING: "true"
-      GF_SECURITY_COOKIE_SAMESITE: "lax"
-      # auth.proxy: the BFF asserts the user via X-WEBAUTH-USER (only for Root).
-      GF_AUTH_PROXY_ENABLED: "true"
-      GF_AUTH_PROXY_HEADER_NAME: "X-WEBAUTH-USER"
-      GF_AUTH_PROXY_HEADER_PROPERTY: "username"
-      GF_AUTH_PROXY_AUTO_SIGN_UP: "true"
-      GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN: "false"
-      GF_AUTH_ANONYMOUS_ENABLED: "false"
-      GF_AUTH_DISABLE_LOGIN_FORM: "true"
-      GF_AUTH_BASIC_ENABLED: "false"
-      # Unified alerting. Live/streaming off — dashboards poll.
-      GF_UNIFIED_ALERTING_ENABLED: "true"
-      GF_LIVE_MAX_CONNECTIONS: "0"
-      GF_ANALYTICS_REPORTING_ENABLED: "false"
-      GF_USERS_DEFAULT_THEME: "dark"
-    volumes:
-      - ./ops/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./ops/grafana/dashboards:/etc/grafana/dashboards:ro
-      - grafana-data:/var/lib/grafana
-    expose:
-      - "3000"
 
   frontend:
     # Build context is the frontend/ directory at the repo root.
@@ -292,10 +260,13 @@ services:
         GATEWAY_URL: "http://gateway:8080"
     depends_on:
       gateway: { condition: service_started }
+      prometheus: { condition: service_started }
     environment:
       GATEWAY_URL: "http://gateway:8080"
       NEXT_PUBLIC_API_URL: "http://localhost:8080"
-      GRAFANA_URL: "http://grafana:3000"
+      # Метрики читает сам Next через /api/metrics/query — Prometheus наружу
+      # не публикуется и доступен только по compose-сети.
+      PROMETHEUS_URL: "http://prometheus:9090"
     ports:
       - "3000:3000"
 
@@ -305,4 +276,3 @@ volumes:
   blob-data:
   upload-incoming:
   prometheus-data:
-  grafana-data:
