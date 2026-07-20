@@ -37,6 +37,21 @@ body {
   appearance: textfield;
 }
 
+/* Проявление страницы при переходе между роутами (см. app/template.tsx).
+   Намеренно на CSS, а не на motion: у motion начальным состоянием был
+   opacity: 0, который снимался только после гидратации — без JS (офлайн,
+   упавший чанк) страница оставалась прозрачной, то есть пустой. Здесь
+   базовое состояние непрозрачное, а анимация лишь проявляет из нуля. */
+@keyframes page-fade-in {
+  from { opacity: 0; }
+}
+.page-fade {
+  animation: page-fade-in 150ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-fade { animation: none; }
+}
+
 @keyframes drift {
   0% { transform: translateY(0) scale(1); }
   50% { transform: translateY(-14px) scale(1.02); }
