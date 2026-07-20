@@ -4,10 +4,13 @@ export const PANELS: readonly PanelDef[] = [
   // — Плитки: мгновенный снимок.
   { id: "stat-up", title: "Сервисов живо", unit: "count", kind: "stat", instant: true,
     expr: 'sum(up{job="services"})' },
+  // `or vector(0)`: sum() по нулю серий даёт пустой вектор, а не ноль. Без этого
+  // плитка вечно показывает «…» вместо правдивого нуля, когда 5xx (или трафика)
+  // просто не было.
   { id: "stat-rps", title: "Запросов в секунду", unit: "rps", kind: "stat", instant: true,
-    expr: "sum(rate(http_requests_total[5m]))" },
+    expr: "sum(rate(http_requests_total[5m])) or vector(0)" },
   { id: "stat-errors", title: "Доля ошибок", unit: "percent", kind: "stat", instant: true,
-    expr: 'sum(rate(http_requests_total{code=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_total[5m])),0.001)' },
+    expr: '(sum(rate(http_requests_total{code=~"5.."}[5m])) or vector(0)) / clamp_min(sum(rate(http_requests_total[5m])),0.001)' },
   { id: "stat-p99", title: "Задержка p99", unit: "seconds", kind: "stat", instant: true,
     expr: "histogram_quantile(0.99, sum by (le)(rate(grpc_server_handling_seconds_bucket[5m])))" },
   { id: "stat-queue", title: "Очередь конвертаций", unit: "count", kind: "stat", instant: true,
@@ -42,8 +45,10 @@ export const PANELS: readonly PanelDef[] = [
     expr: "process_resident_memory_bytes" },
   { id: "runtime-goroutines", title: "Горутины", unit: "count", kind: "line",
     expr: "go_goroutines" },
+  // quantile у go_gc_duration_seconds экспортируется как "1.0", не "1" —
+  // со старым селектором панель не совпадала ни с чем и всегда была пустой.
   { id: "runtime-gc", title: "Пауза GC (max)", unit: "seconds", kind: "line",
-    expr: 'max by (service)(go_gc_duration_seconds{quantile="1"})' },
+    expr: 'max by (service)(go_gc_duration_seconds{quantile="1.0"})' },
   { id: "runtime-fds", title: "Открытые дескрипторы", unit: "count", kind: "line",
     expr: "process_open_fds" },
 
