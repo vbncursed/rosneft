@@ -2,6 +2,7 @@ name: andrey
 
 services:
   postgres:
+    restart: unless-stopped
     image: postgres:latest
     environment:
       POSTGRES_DB: andrey
@@ -18,6 +19,7 @@ services:
       retries: 10
 
   redis:
+    restart: unless-stopped
     image: redis:latest
     ports:
       - "6379:6379"
@@ -31,6 +33,7 @@ services:
       retries: 10
 
   gateway:
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: services/gateway-service/Dockerfile
@@ -62,6 +65,7 @@ services:
       - "8080:8080"
 
   catalog:
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: services/catalog-service/Dockerfile
@@ -76,6 +80,7 @@ services:
       CATALOG_LOG_LEVEL: "info"
 
   auth:
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: services/auth-service/Dockerfile
@@ -100,6 +105,7 @@ services:
       AUTH_LOG_LEVEL: "info"
 
   twofa:
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: services/twofa-service/Dockerfile
@@ -122,6 +128,7 @@ services:
       TWOFA_LOG_LEVEL: "info"
 
   passkey:
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: services/passkey-service/Dockerfile
@@ -145,6 +152,7 @@ services:
       PASSKEY_LOG_LEVEL: "info"
 
   content:
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: services/content-service/Dockerfile
@@ -160,6 +168,7 @@ services:
       CONTENT_LOG_LEVEL: "info"
 
   mesh-api:
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: services/mesh-service/Dockerfile.api
@@ -175,6 +184,7 @@ services:
       MESH_LOG_LEVEL: "info"
 
   mesh-worker:
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: services/mesh-service/Dockerfile.worker
@@ -198,6 +208,7 @@ services:
       - blob-data:/var/blob
 
   asset:
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: services/asset-service/Dockerfile
@@ -209,6 +220,7 @@ services:
       - blob-data:/var/blob:ro
 
   upload:
+    restart: unless-stopped
     build:
       context: ./backend
       dockerfile: services/upload-service/Dockerfile
@@ -227,6 +239,7 @@ services:
       - upload-incoming:/var/upload/incoming
 
   prometheus:
+    restart: unless-stopped
     image: prom/prometheus:latest
     command:
       - --config.file=/etc/prometheus/prometheus.yml
@@ -241,6 +254,7 @@ services:
       gateway: { condition: service_started }
 
   frontend:
+    restart: unless-stopped
     # Build context is the frontend/ directory at the repo root.
     # NEXT_PUBLIC_API_URL is baked into the client bundle and must be
     # reachable from the BROWSER — useJobStream opens EventSource
