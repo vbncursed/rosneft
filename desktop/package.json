@@ -1,0 +1,27 @@
+{
+  "name": "andrey-desktop",
+  "version": "1.0.0",
+  "description": "Andrey desktop client",
+  "main": "main.js",
+  "author": "Andrey",
+  "scripts": {
+    "start": "electron .",
+    "check": "node check.mjs",
+    "dist": "node build.mjs"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.andrey.desktop",
+    "productName": "Andrey",
+    "files": ["main.js"],
+    "extraResources": [
+      { "from": "../frontend/.next/standalone", "to": "standalone" }
+    ],
+    "win": { "target": "nsis" },
+    "mac": { "target": "dmg" },
+    "linux": { "target": "AppImage" }
+  }
+}
