@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Job, JobStatus } from "@/shared/domain/job";
 import { useJobStream } from "@/conversion/application/use-job-stream";
 
@@ -14,14 +14,17 @@ export interface UseConversionWatcher {
 
 const POLL_INTERVAL_MS = 4000;
 
-// useConversionWatcher drives the pending-conversion screen.
-//   - With a jobId (we just created the territory), subscribe to SSE for
-//     live progress + status; trigger router.refresh() on succeeded.
-//   - Without a jobId (revisiting an entity whose conversion was queued
-//     by the background reconciler), fall back to polling — when the
-//     artifact lands the page re-renders into the viewer.
-export function useConversionWatcher(jobId: string | null): UseConversionWatcher {
-  const router = useRouter();
+// Drives the pending-conversion screen.
+//   - With a jobId: SSE for live progress; on succeeded, invalidate the scene
+//     query so the route re-renders into the viewer.
+//   - Without a jobId: poll by invalidating the scene query every 4s until the
+//     artifact lands (background reconciler queued the conversion).
+// The invalidation target ["scene", slug] mirrors sceneBundleQuery's key.
+export function useConversionWatcher(
+  jobId: string | null,
+  slug: string,
+): UseConversionWatcher {
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<UseConversionWatcher["status"]>(
     jobId ? "pending" : "polling",
   );
@@ -29,26 +32,31 @@ export function useConversionWatcher(jobId: string | null): UseConversionWatcher
   const [stage, setStage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const refresh = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ["scene", slug] }),
+    [queryClient, slug],
+  );
+
   const onUpdate = useCallback(
     (job: Job) => {
       setStatus(job.status);
       if (typeof job.progress === "number") setProgress(job.progress);
       if (job.stage) setStage(job.stage);
       if (job.errorMessage) setError(job.errorMessage);
-      if (job.status === "succeeded") router.refresh();
+      if (job.status === "succeeded") void refresh();
     },
-    [router],
+    [refresh],
   );
   useJobStream(jobId, onUpdate);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
     if (jobId) return;
-    intervalRef.current = setInterval(() => router.refresh(), POLL_INTERVAL_MS);
+    intervalRef.current = setInterval(() => void refresh(), POLL_INTERVAL_MS);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [jobId, router]);
+  }, [jobId, refresh]);
 
   return { status, progress, stage, error };
 }
