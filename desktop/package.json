@@ -24,6 +24,9 @@
     ],
     "win": { "target": "nsis" },
     "mac": { "target": "dmg" },
-    "linux": { "target": "AppImage" }
+    "linux": { "target": "AppImage" },
+    "nsis": { "artifactName": "${productName}-${version}-win-${arch}-setup.${ext}" },
+    "dmg": { "artifactName": "${productName}-${version}-mac-${arch}.${ext}" },
+    "appImage": { "artifactName": "${productName}-${version}-linux-${arch}.${ext}" }
   }
 }
