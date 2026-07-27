@@ -43,6 +43,7 @@ var (
 func InitRouter(
 	svc *service.Gateway,
 	assetProxy http.Handler,
+	metricsHandler http.Handler,
 	authH *authhttp.Handlers,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -88,6 +89,11 @@ func InitRouter(
 	r.Get("/api/assets/{hash}", assetProxy.ServeHTTP)
 	r.Head("/api/assets/{hash}", assetProxy.ServeHTTP)
 	r.Get("/api/jobs/{id}/events", apiServer.WatchJobEvents)
+
+	// Owner-only Prometheus proxy. Authenticated (for the owner check) but
+	// outside the openapi strict handlers — it resolves a panel ID to
+	// server-side PromQL and proxies Prometheus, like the asset proxy for GLBs.
+	r.With(authH.Authenticate).Get("/api/metrics/query", metricsHandler.ServeHTTP)
 
 	// /api/auth/* on the root router: login/2fa are public; self/admin
 	// handlers validate the Bearer token themselves via the auth client.

@@ -1,15 +1,12 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import { lazy, Suspense } from "react";
 import { usePanelSeries } from "@/metrics/application/use-panel-series";
 import type { PanelDef, Range } from "@/metrics/domain/panel";
 
-// Recharts весит около 450 КБ — грузим его только на этой owner-only странице,
-// а не в общий бандл сайта.
-const TimeSeriesChart = dynamic(() => import("../charts/time-series-chart"), {
-  ssr: false,
-  loading: () => <div className="h-56 animate-pulse rounded-lg bg-white/5" />,
-});
+// Recharts весит около 450 КБ — грузим его только на этой owner-only странице
+// (React.lazy + Suspense), а не в общий бандл сайта.
+const TimeSeriesChart = lazy(() => import("../charts/time-series-chart"));
 
 export type PanelView = Pick<PanelDef, "id" | "title" | "unit">;
 
@@ -29,7 +26,9 @@ export default function PanelCard({ panel, range }: { panel: PanelView; range: R
       ) : series.length === 0 ? (
         <p className="flex h-56 items-center justify-center text-sm text-neutral-500">No data</p>
       ) : (
-        <TimeSeriesChart series={series} unit={panel.unit} />
+        <Suspense fallback={<div className="h-56 animate-pulse rounded-lg bg-white/5" />}>
+          <TimeSeriesChart series={series} unit={panel.unit} />
+        </Suspense>
       )}
     </section>
   );
