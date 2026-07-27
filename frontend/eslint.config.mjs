@@ -1,33 +1,27 @@
-import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+import js from "@eslint/js";
+import globals from "globals";
+import tseslint from "typescript-eslint";
+import reactHooks from "eslint-plugin-react-hooks";
+import { globalIgnores } from "eslint/config";
 
-const eslintConfig = defineConfig([
-  ...nextVitals,
-  ...nextTs,
-  globalIgnores([
-    ".next/**",
-    "out/**",
-    "build/**",
-    "dist/**",
-    "public/**",
-    "next-env.d.ts",
-  ]),
+export default tseslint.config(
+  globalIgnores([".next/**", "dist/**", "build/**", "public/**"]),
+  js.configs.recommended,
+  tseslint.configs.recommended,
+  reactHooks.configs["recommended-latest"],
   {
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
+    },
     rules: {
       "max-lines": [
         "error",
         { max: 200, skipBlankLines: true, skipComments: true },
       ],
-      // Migrating off Next: <a href> to not-yet-migrated SPA routes is deliberate
-      // (TanStack <Link> needs the route to exist). This Next-only rule fights it.
-      "@next/next/no-html-link-for-pages": "off",
     },
   },
   {
     files: ["src/shared/infrastructure/api/dto.ts"],
     rules: { "max-lines": "off" },
   },
-]);
-
-export default eslintConfig;
+);
