@@ -1,7 +1,8 @@
-// assetUrl returns the public URL clients should hit to download a
-// converted binary artifact. Relative so the request goes through the
-// gateway (and its proxy to asset-service) rather than hitting
-// asset-service directly.
+// assetUrl returns the public URL for a converted binary artifact. Absolute
+// (VITE_API_URL) because the SPA has no same-origin BFF — the request must hit
+// the gateway directly. /api/assets/* is unauthenticated (Ф0) and under the
+// gateway's root CORS, so no token and cross-origin GET both work (three.js
+// GLTFLoader + <img> thumbnails).
 export function assetUrl(hash: string): string {
-  return `/api/assets/${encodeURIComponent(hash)}`;
+  return `${import.meta.env.VITE_API_URL}/api/assets/${encodeURIComponent(hash)}`;
 }
