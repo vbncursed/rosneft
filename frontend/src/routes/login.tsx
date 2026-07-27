@@ -1,4 +1,4 @@
-import { createRoute, redirect } from "@tanstack/react-router";
+import { createRoute } from "@tanstack/react-router";
 import { rootRoute } from "@/routes/root";
 import LoginPage from "@/login/login-page";
 
@@ -14,13 +14,4 @@ export const loginRoute = createRoute({
   path: "/login",
   validateSearch: (s: Record<string, unknown>): { next: string } => ({ next: safeNext(s.next) }),
   component: LoginPage,
-});
-
-// Ф1: every other path redirects to /login. Real routes arrive in Ф2/Ф3.
-export const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/",
-  beforeLoad: () => {
-    throw redirect({ to: "/login", search: { next: "/" } });
-  },
 });
