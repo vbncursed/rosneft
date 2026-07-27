@@ -75,10 +75,9 @@ function Home() {
             <MotionList className={grid}>
               {models.map((m) => (
                 <MotionItem key={m.slug} className="relative">
-                  {/* model detail route not migrated yet → plain <a> */}
-                  <a href={`/models/${m.slug}`} className="cursor-pointer">
+                  <Link to="/models/$slug" params={{ slug: m.slug }} className="cursor-pointer">
                     <CatalogCard title={m.title} description={m.description} slug={m.slug} />
-                  </a>
+                  </Link>
                   {mDelete ? (
                     <div className="absolute right-3 top-3 z-10">
                       <DeleteModelButton slug={m.slug} label={m.title} />
