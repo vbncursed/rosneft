@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import PasswordField from "@/shared/presentation/components/password-field";
 import OtpInput from "@/shared/presentation/components/otp-input";
@@ -18,6 +18,12 @@ export default function LoginForm() {
   const [recovery, setRecovery] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Passkey/WebAuthn is origin-bound to the web domain; in the desktop app the
+  // origin is 127.0.0.1 (not a valid RP), so the flow 500s. Hide it there.
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    setIsDesktop(navigator.userAgent.includes("Electron"));
+  }, []);
 
   async function submitCreds(e: React.FormEvent) {
     e.preventDefault();
@@ -93,10 +99,12 @@ export default function LoginForm() {
             className="mt-2 cursor-pointer rounded-full bg-white px-6 py-3 text-xs uppercase tracking-[0.2em] text-black transition-colors duration-200 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-white/30 disabled:text-white/50">
             {busy ? "Signing in…" : "Sign in"}
           </button>
-          <button type="button" onClick={signInWithPasskey} disabled={busy}
-            className="cursor-pointer rounded-full border border-white/20 px-6 py-3 text-xs uppercase tracking-[0.2em] text-white transition-colors duration-200 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50">
-            {busy ? "…" : "Sign in with passkey"}
-          </button>
+          {!isDesktop ? (
+            <button type="button" onClick={signInWithPasskey} disabled={busy}
+              className="cursor-pointer rounded-full border border-white/20 px-6 py-3 text-xs uppercase tracking-[0.2em] text-white transition-colors duration-200 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50">
+              {busy ? "…" : "Sign in with passkey"}
+            </button>
+          ) : null}
         </form>
       ) : (
         <form className="mt-6 flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); verify(code); }}>
