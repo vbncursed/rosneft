@@ -1,6 +1,17 @@
 import { httpPost } from "@/shared/infrastructure/http/client";
+import { getToken } from "@/auth/infrastructure/token-store";
 import type { components } from "@/shared/infrastructure/api/dto";
 import type { UploadSession, FinalizedBlob } from "@/upload/domain/session";
+
+const API_BASE = import.meta.env.VITE_API_URL;
+
+// The SPA has no same-origin BFF, so the raw upload fetches (PATCH/HEAD/DELETE)
+// must target the gateway directly and carry the Bearer token themselves —
+// unlike initiate/finalize which go through the authed httpPost client.
+function uploadHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const token = getToken();
+  return { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...extra };
+}
 
 type UploadSessionDto = components["schemas"]["UploadSession"];
 type UploadFinalizedDto = components["schemas"]["UploadFinalized"];
@@ -29,12 +40,12 @@ export async function appendChunk(
   chunk: Blob,
   signal?: AbortSignal,
 ): Promise<number> {
-  const res = await fetch(`/api/uploads/${encodeURIComponent(id)}`, {
+  const res = await fetch(`${API_BASE}/api/uploads/${encodeURIComponent(id)}`, {
     method: "PATCH",
-    headers: {
+    headers: uploadHeaders({
       "Content-Type": "application/octet-stream",
       "Upload-Offset": String(offset),
-    },
+    }),
     body: chunk,
     signal,
   });
@@ -58,7 +69,10 @@ export async function finalizeUpload(id: string): Promise<FinalizedBlob> {
 export async function getUploadStatus(
   id: string,
 ): Promise<{ offset: number; size: number } | null> {
-  const res = await fetch(`/api/uploads/${encodeURIComponent(id)}`, { method: "HEAD" });
+  const res = await fetch(`${API_BASE}/api/uploads/${encodeURIComponent(id)}`, {
+    method: "HEAD",
+    headers: uploadHeaders(),
+  });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`status: ${res.status}`);
   return {
@@ -69,6 +83,9 @@ export async function getUploadStatus(
 
 // abortUpload discards an in-progress session. Idempotent.
 export async function abortUpload(id: string): Promise<void> {
-  await fetch(`/api/uploads/${encodeURIComponent(id)}`, { method: "DELETE" });
+  await fetch(`${API_BASE}/api/uploads/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: uploadHeaders(),
+  });
 }
 
