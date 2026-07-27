@@ -13,3 +13,12 @@ createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </StrictMode>,
 );
+
+// Register the PWA service worker (public/sw.js) after load. Silent on failure
+// (no HTTPS / private mode / old browser) — the app runs fine as a plain site,
+// only install + offline fallback are unavailable.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
