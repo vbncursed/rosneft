@@ -72,6 +72,14 @@ jobs:
         with:
           path: artifacts
 
+      # Wipe the existing release (keeps the tag) so stale/renamed assets from a
+      # previous run don't linger alongside the fresh ones. No-op on first publish.
+      - name: Remove existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes || true
+
       - uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**/*
