@@ -19,5 +19,7 @@ cpSync(path.join(frontend, 'public'), path.join(standalone, 'public'), { recursi
 
 // 3. Package. With no args, builds the current OS/arch. CI passes target flags,
 //    e.g. `node build.mjs --win --x64` or `node build.mjs --linux --arm64`.
+// npx --no-install resolves the local electron-builder without relying on PATH,
+// so this works whether launched via `npm run dist` or `node build.mjs` directly.
 const targets = process.argv.slice(2).join(' ');
-execSync(`electron-builder ${targets}`, { cwd: __dirname, stdio: 'inherit' });
+execSync(`npx --no-install electron-builder ${targets}`, { cwd: __dirname, stdio: 'inherit' });
