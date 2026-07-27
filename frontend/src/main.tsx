@@ -1,8 +1,11 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { RouterProvider } from "@tanstack/react-router";
+import { router } from "@/routes/router";
+import "@/app/globals.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <div style={{ color: "white", padding: 24 }}>SPA scaffold OK</div>
+    <RouterProvider router={router} />
   </StrictMode>,
 );
