@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useChunkedUpload } from "@/upload/application/use-chunked-upload";
 import type { Job } from "@/shared/domain/job";
 import Field from "@/upload/presentation/components/field";
@@ -33,7 +32,6 @@ export default function UploadForm({
   redirectAfter = "detail",
   showPanoramaUrl = false,
 }: UploadFormProps) {
-  const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [externalPanoramaUrl, setExternalPanoramaUrl] = useState("");
@@ -63,14 +61,15 @@ export default function UploadForm({
           redirectAfter === "detail"
             ? `${redirectBase}/${created.slug}?jobId=${encodeURIComponent(created.job.id)}`
             : "/";
-        router.push(target);
+        // hard nav: the viewer loads fresh and subscribes to SSE via ?jobId
+        window.location.assign(target);
       } catch (err) {
         notify.error(err instanceof Error ? err.message : "Upload failed");
       } finally {
         setSubmitting(false);
       }
     },
-    [create, description, externalPanoramaUrl, file, redirectAfter, redirectBase, router, showPanoramaUrl, submitting, title, upload],
+    [create, description, externalPanoramaUrl, file, redirectAfter, redirectBase, showPanoramaUrl, submitting, title, upload],
   );
 
   return (
