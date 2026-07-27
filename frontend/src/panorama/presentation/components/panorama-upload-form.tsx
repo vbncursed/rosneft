@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link } from "@tanstack/react-router";
 import { useChunkedUpload } from "@/upload/application/use-chunked-upload";
 import Field from "@/upload/presentation/components/field";
 import ProgressBar from "@/upload/presentation/components/progress-bar";
@@ -26,7 +25,6 @@ export default function PanoramaUploadForm({
   territoryTitle,
   sourceBbox,
 }: PanoramaUploadFormProps) {
-  const router = useRouter();
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -41,8 +39,8 @@ export default function PanoramaUploadForm({
       cancel();
       return;
     }
-    router.push(territoryHref);
-  }, [cancel, router, submitting, territoryHref]);
+    window.location.assign(territoryHref);
+  }, [cancel, submitting, territoryHref]);
 
   // Sniff the file's leading bytes on selection so a non-image (a ZIP
   // archive picked by mistake is the classic case) is rejected before it
@@ -92,14 +90,14 @@ export default function PanoramaUploadForm({
               ? "Photo location doesn't match this territory — set position manually"
               : "Panorama uploaded — set its position manually",
         );
-        router.push(territoryHref);
+        window.location.assign(territoryHref);
       } catch (err) {
         notify.error(err instanceof Error ? err.message : "Upload failed");
       } finally {
         setSubmitting(false);
       }
     },
-    [file, router, sourceBbox, submitting, territoryHref, territorySlug, title, upload],
+    [file, sourceBbox, submitting, territoryHref, territorySlug, title, upload],
   );
 
   return (
@@ -108,7 +106,8 @@ export default function PanoramaUploadForm({
       className="mx-auto flex w-full max-w-xl flex-col gap-6 rounded-3xl border border-white/10 bg-white/[0.03] p-8 backdrop-blur"
     >
       <Link
-        href={territoryHref}
+        to="/territories/$slug"
+        params={{ slug: territorySlug }}
         className="-mb-2 inline-flex w-fit items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-neutral-400 transition-colors hover:text-cyan-200"
       >
         <span aria-hidden="true">←</span>
