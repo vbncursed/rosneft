@@ -1,19 +1,32 @@
-import { createRouter } from "@tanstack/react-router";
+import { createRouter, Link } from "@tanstack/react-router";
 import type { QueryClient } from "@tanstack/react-query";
 import { rootRoute } from "@/routes/root";
 import { loginRoute } from "@/routes/login";
 import { authedLayoutRoute } from "@/routes/layout";
 import { homeRoute } from "@/routes/home";
+import { territoryViewerRoute } from "@/routes/territory-viewer";
 import { queryClient } from "@/shared/infrastructure/query/query-client";
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  authedLayoutRoute.addChildren([homeRoute]),
+  authedLayoutRoute.addChildren([homeRoute, territoryViewerRoute]),
 ]);
+
+function NotFound() {
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[radial-gradient(circle_at_top,#1c252f_0%,#0b0d10_38%,#060708_100%)] p-10 text-white">
+      <h1 className="text-2xl font-semibold tracking-tight">Not found</h1>
+      <Link to="/" className="rounded-full border border-white/15 bg-white/[0.04] px-4 py-2 text-xs uppercase tracking-[0.2em] transition-colors hover:bg-white/[0.1]">
+        ← Catalog
+      </Link>
+    </main>
+  );
+}
 
 export const router = createRouter({
   routeTree,
   context: { queryClient },
+  defaultNotFoundComponent: NotFound,
 });
 
 declare module "@tanstack/react-router" {
