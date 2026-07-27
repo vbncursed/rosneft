@@ -39,12 +39,10 @@ export default function ConsoleSidebar({
           Territory access
         </Link>
       ) : null}
-      {/* Metrics needs a Go gateway endpoint (panel→PromQL, Prometheus proxy)
-          that doesn't exist yet; <a href> until that backend task lands. */}
       {showMetrics ? (
-        <a href="/admin/metrics" className={itemClass(isActive("/admin/metrics"))}>
+        <Link to="/admin/metrics" className={itemClass(isActive("/admin/metrics"))}>
           Metrics
-        </a>
+        </Link>
       ) : null}
     </nav>
   );

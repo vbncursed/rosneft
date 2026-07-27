@@ -23,6 +23,7 @@ type Config struct {
 	TwoFAGRPCAddr   string        `mapstructure:"twofa-grpc-addr"`
 	PasskeyGRPCAddr string        `mapstructure:"passkey-grpc-addr"`
 	AssetHTTPAddr   string        `mapstructure:"asset-http-addr"`
+	PrometheusURL   string        `mapstructure:"prometheus-url"`
 	AllowedOrigins  []string      `mapstructure:"allowed-origins"`
 	LogLevel        string        `mapstructure:"log-level"`
 	LogFormat       string        `mapstructure:"log-format"`
@@ -51,6 +52,7 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.SetDefault("twofa-grpc-addr", "twofa:9006")
 	v.SetDefault("passkey-grpc-addr", "passkey:9008")
 	v.SetDefault("asset-http-addr", "http://asset:8081")
+	v.SetDefault("prometheus-url", "http://prometheus:9090")
 	v.SetDefault("allowed-origins", []string{"*"})
 	v.SetDefault("log-level", "info")
 	v.SetDefault("log-format", "json")
