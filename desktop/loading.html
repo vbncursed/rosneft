@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <title>Andrey</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
+        background: radial-gradient(circle at top, #1c252f 0%, #0b0d10 38%, #060708 100%);
+        color: #e5e7eb;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      .brand {
+        font-size: 1.5rem;
+        font-weight: 600;
+        letter-spacing: 0.35em;
+        text-transform: uppercase;
+      }
+      .spinner {
+        width: 34px;
+        height: 34px;
+        border: 3px solid rgba(229, 231, 235, 0.2);
+        border-top-color: #e5e7eb;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      .hint {
+        font-size: 0.85rem;
+        color: #9ca3af;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .spinner {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="brand">Andrey</div>
+    <div class="spinner"></div>
+    <div class="hint">Загрузка…</div>
+  </body>
+</html>

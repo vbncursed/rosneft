@@ -16,7 +16,7 @@
   "build": {
     "appId": "com.andrey.desktop",
     "productName": "Andrey",
-    "files": ["main.js"],
+    "files": ["main.js", "loading.html"],
     "extraResources": [
       { "from": "../frontend/.next/standalone", "to": "standalone" }
     ],

@@ -46,9 +46,17 @@ function waitForServer(retries = 100) {
 }
 
 async function createWindow() {
+  // Dark backgroundColor kills the default white flash before any page paints;
+  // loading.html shows a branded spinner while the server boots + first render.
+  const win = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    title: 'Andrey',
+    backgroundColor: '#0b0d10',
+  });
+  win.loadFile(path.join(__dirname, 'loading.html'));
   startServer();
   await waitForServer();
-  const win = new BrowserWindow({ width: 1280, height: 800, title: 'Andrey' });
   await win.loadURL(`http://127.0.0.1:${PORT}`);
 }
 
