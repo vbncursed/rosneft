@@ -4,6 +4,8 @@
   "description": "Andrey desktop client",
   "main": "main.js",
   "author": "Andrey",
+  "license": "UNLICENSED",
+  "private": true,
   "scripts": {
     "start": "electron .",
     "check": "node check.mjs",
