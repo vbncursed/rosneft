@@ -12,5 +12,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    // vitest (mode "test") does not load .env.development, so give the client a
+    // defined base URL for tests. Real dev/prod read it from .env.* / the build.
+    env: { VITE_API_URL: "http://localhost:8080" },
   },
 });
