@@ -17,13 +17,6 @@ export default function ConsoleSidebar({
 }) {
   const path = useLocation({ select: (l) => l.pathname });
   const isActive = (to: string) => path === to || path.startsWith(to + "/");
-  // Sections whose SPA routes land in admin-3; <a href> until then (TanStack
-  // <Link> needs the route registered). Swap to <Link> when they exist.
-  const pending = [
-    ...(showContent ? [{ to: "/admin/content", label: "Content" }] : []),
-    ...(showAccess ? [{ to: "/admin/territories", label: "Territory access" }] : []),
-    ...(showMetrics ? [{ to: "/admin/metrics", label: "Metrics" }] : []),
-  ];
   return (
     <nav className="flex flex-col gap-1">
       <Link to="/" className="mb-3 text-[10px] uppercase tracking-[0.28em] text-neutral-400 transition-colors hover:text-white">
@@ -36,11 +29,23 @@ export default function ConsoleSidebar({
       <Link to="/admin/roles" className={itemClass(isActive("/admin/roles"))}>
         Roles & Permissions
       </Link>
-      {pending.map((it) => (
-        <a key={it.to} href={it.to} className={itemClass(isActive(it.to))}>
-          {it.label}
+      {showContent ? (
+        <Link to="/admin/content" className={itemClass(isActive("/admin/content"))}>
+          Content
+        </Link>
+      ) : null}
+      {showAccess ? (
+        <Link to="/admin/territories" className={itemClass(isActive("/admin/territories"))}>
+          Territory access
+        </Link>
+      ) : null}
+      {/* Metrics needs a Go gateway endpoint (panel→PromQL, Prometheus proxy)
+          that doesn't exist yet; <a href> until that backend task lands. */}
+      {showMetrics ? (
+        <a href="/admin/metrics" className={itemClass(isActive("/admin/metrics"))}>
+          Metrics
         </a>
-      ))}
+      ) : null}
     </nav>
   );
 }

@@ -17,6 +17,8 @@ import { accountRoute } from "@/routes/account";
 import { adminLayoutRoute, adminIndexRoute } from "@/routes/admin";
 import { adminUsersRoute } from "@/routes/admin-users";
 import { adminRolesRoute } from "@/routes/admin-roles";
+import { adminContentRoute } from "@/routes/admin-content";
+import { adminTerritoriesRoute } from "@/routes/admin-territories";
 import { queryClient } from "@/shared/infrastructure/query/query-client";
 
 const routeTree = rootRoute.addChildren([
@@ -33,7 +35,13 @@ const routeTree = rootRoute.addChildren([
     panoramaNewRoute,
     modelDetailRoute,
     accountRoute,
-    adminLayoutRoute.addChildren([adminIndexRoute, adminUsersRoute, adminRolesRoute]),
+    adminLayoutRoute.addChildren([
+      adminIndexRoute,
+      adminUsersRoute,
+      adminRolesRoute,
+      adminContentRoute,
+      adminTerritoriesRoute,
+    ]),
   ]),
 ]);
 
