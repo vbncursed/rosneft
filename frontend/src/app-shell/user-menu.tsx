@@ -38,8 +38,8 @@ export default function UserMenu() {
             </div>
             <div className="my-1 h-px bg-white/10" />
             {showConsole ? (
-              <a href="/admin/users" onClick={() => setOpen(false)} role="menuitem"
-                className="block rounded-md px-3 py-2 text-sm text-neutral-200 transition-colors hover:bg-white/10">Console</a>
+              <Link to="/admin/users" onClick={() => setOpen(false)} role="menuitem"
+                className="block rounded-md px-3 py-2 text-sm text-neutral-200 transition-colors hover:bg-white/10">Console</Link>
             ) : null}
             <Link to="/account" onClick={() => setOpen(false)} role="menuitem"
               className="block rounded-md px-3 py-2 text-sm text-neutral-200 transition-colors hover:bg-white/10">Account</Link>
