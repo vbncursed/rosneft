@@ -235,3 +235,18 @@ grep -rniE "job.*id|NewJob|uuid|ulid" backend/services --include="*.go" | grep -
 ## Примечание о характере фазы
 
 Это инфраструктурно-конфигурационная фаза: проверки — `curl`/`dig`/`docker compose exec`, а не unit-тесты, потому что deliverable — сетевая доступность и CORS-поведение, которые нельзя осмысленно покрыть тестом внутри репозитория. Содержательные TDD-планы с кодом начинаются с **Ф1** (Vite-скаффолд + token-store + api-client).
+
+---
+
+## Результаты выполнения (2026-07-27) — Ф0 ✅ DONE
+
+Прод: system nginx 1.24 (host, не докер) + certbot. gateway слушает `127.0.0.1:8080`, ufw пускает только 22/80/443.
+
+- **Task 1 ✅** origins зафиксированы: WEB=`https://andrey.vbncursed.fun`, API=`https://api.andrey.vbncursed.fun`.
+- **Task 2 ✅** DNS `api.andrey.vbncursed.fun`→`85.192.26.113`; новый nginx-vhost `/etc/nginx/sites-available/andrey-api` (симлинк в sites-enabled) проксирует `/` → `127.0.0.1:8080`, SSE-блок с `proxy_buffering off`; TLS выдан certbot (`--nginx`, истекает 2026-10-25, автопродление). Внешне: `/readyz`→200 (tls_verify=0), HTTP→HTTPS 301, `/api/territories`→401. **Существующий сайт-vhost `rosneft` не тронут.**
+- **Task 3 ✅** прод `docker-compose.override.yml`: в сервис `gateway` добавлен `environment.GATEWAY_ALLOWED_ORIGINS="https://andrey.vbncursed.fun,tauri://localhost"` (обычный merge, не `!override`; остальные `GATEWAY_*` сохранены; сделан `.bak`). gateway перезапущен (ready 2с). Preflight с web-origin отражает его + `Allow-Headers: Authorization`; чужой origin не отражается.
+- **Task 4 ✅** SSE cross-origin с web-origin отдаёт `text/event-stream` + ACAO, стрим открывается без токена (как и было).
+- **Task 5 ✅** `:8080` снаружи — connection timeout (ufw + localhost-bind).
+- **Task 6 ⚠ FOLLOW-UP** job ID = **Redis Stream ID** (`<ms>-<seq>`), не UUID → частично предсказуем по времени. SSE неаутентифицирован (pre-existing, не регрессия). Утечка при угадывании: `kind`+`slug`+статус активной конвертации (не сам контент, не auth). Низкая критичность, но **завести issue на scoped-токен/аутентификацию SSE** до широкого паблик-использования SPA. Вне Ф0.
+
+**Локаль (`docker-compose.yml:59`) оставлена `*`** — правится только прод через override; коммитить в репозиторий по этой фазе нечего, кроме этого плана.
