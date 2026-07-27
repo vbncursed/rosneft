@@ -3,7 +3,7 @@
 import { usePanelSeries } from "@/metrics/application/use-panel-series";
 import type { Range } from "@/metrics/domain/panel";
 import { formatValue } from "@/metrics/domain/series";
-import type { PanelView } from "./panel-card";
+import type { PanelView } from "@/metrics/domain/panel";
 
 export default function StatTile({ panel, range }: { panel: PanelView; range: Range }) {
   const { series, error, loading } = usePanelSeries(panel.id, range);

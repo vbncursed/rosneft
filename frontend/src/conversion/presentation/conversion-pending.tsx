@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { useConversionWatcher } from "@/conversion/application/use-conversion-watcher";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 
 interface ConversionPendingProps {
   title: string;

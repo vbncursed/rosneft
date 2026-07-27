@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useChunkedUpload } from "@/upload/application/use-chunked-upload";
 import ProgressBar from "@/upload/presentation/components/progress-bar";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 import { replaceTerritorySource } from "@/territory/infrastructure/territory-gateway";
 
 interface ReplaceSourceFormProps {

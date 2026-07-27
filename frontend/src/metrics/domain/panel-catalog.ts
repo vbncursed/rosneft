@@ -1,5 +1,5 @@
 import type { Unit } from "./series.ts";
-import type { PanelView } from "@/metrics/presentation/components/panel-card";
+import type { PanelView } from "./panel.ts";
 
 // Client-safe panel catalogue: id → title + unit + page layout. The PromQL
 // (`expr`) lives ONLY in the Go registry (gateway internal/metrics) so it never

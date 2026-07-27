@@ -5,7 +5,7 @@ import { listPasskeys, beginRegistration, finishRegistration, deletePasskey, typ
 import { createCredential, isPasskeySupported } from "@/auth/infrastructure/webauthn";
 import { useCurrentUser } from "@/auth/presentation/current-user-context";
 import { confirmWithInput } from "@/shared/presentation/confirm/use-confirm";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 
 const cardCls = "flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur";
 

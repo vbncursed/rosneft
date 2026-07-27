@@ -5,7 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { useChunkedUpload } from "@/upload/application/use-chunked-upload";
 import Field from "@/upload/presentation/components/field";
 import ProgressBar from "@/upload/presentation/components/progress-bar";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 import { isPdfSignature } from "@/document/domain/pdf-signature";
 import { createDocument } from "@/document/infrastructure/document-gateway";
 

@@ -1,5 +1,5 @@
-import { push } from "@/shared/presentation/toast/toast-store";
-import type { ToastKind } from "@/shared/presentation/toast/toast";
+import { push } from "@/shared/application/toast/toast-store";
+import type { ToastKind } from "@/shared/application/toast/toast";
 
 // notify is a tiny stable facade. Callers don't need a React context —
 // the store is a module-level singleton, so this is safe from any

@@ -21,7 +21,7 @@ import {
   type MutationState,
 } from "@/placement/domain/mutation-state";
 import { formatError } from "@/shared/infrastructure/http/format-error";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 
 const DEFAULT_SCALE = 0.1;
 

@@ -5,7 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { useChunkedUpload } from "@/upload/application/use-chunked-upload";
 import Field from "@/upload/presentation/components/field";
 import ProgressBar from "@/upload/presentation/components/progress-bar";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 import { isEquirectImageSignature } from "@/panorama/domain/image-signature";
 import { exifScenePosition } from "@/panorama/application/exif-scene-position";
 import type { SourceBbox } from "@/panorama/domain/geo-anchor";
