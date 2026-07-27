@@ -51,7 +51,6 @@ export default function OfflinePage() {
         {/* Именно <a>, а не <Link>: нужен полноценный запрос документа, чтобы
             service worker заново сходил в сеть. Клиентский переход роутером
             этого не сделает, да и роутера здесь нет — JS не загрузился. */}
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a className="offline-retry" href="/">
           Retry
         </a>

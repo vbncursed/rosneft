@@ -9,6 +9,7 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    "dist/**",
     "public/**",
     "next-env.d.ts",
   ]),
@@ -18,6 +19,9 @@ const eslintConfig = defineConfig([
         "error",
         { max: 200, skipBlankLines: true, skipComments: true },
       ],
+      // Migrating off Next: <a href> to not-yet-migrated SPA routes is deliberate
+      // (TanStack <Link> needs the route to exist). This Next-only rule fights it.
+      "@next/next/no-html-link-for-pages": "off",
     },
   },
   {
