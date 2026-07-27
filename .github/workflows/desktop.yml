@@ -1,0 +1,56 @@
+name: Build desktop app
+
+# Manual trigger; add `push: { tags: ['v*'] }` if you want tag-driven releases.
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macos-arm64
+            os: macos-latest
+            args: --mac --arm64
+          - name: windows-x64
+            os: windows-latest
+            args: --win --x64
+          - name: windows-arm64
+            os: windows-11-arm
+            args: --win --arm64
+          - name: linux-x64
+            os: ubuntu-latest
+            args: --linux --x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Installing on the target OS/arch pulls the matching native sharp binary.
+      - name: Install frontend deps
+        working-directory: frontend
+        run: yarn install --frozen-lockfile
+
+      - name: Install desktop deps
+        working-directory: desktop
+        run: npm ci
+
+      # build.mjs: next build -> fold static/public into standalone -> electron-builder.
+      - name: Build & package
+        working-directory: desktop
+        run: node build.mjs ${{ matrix.args }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: andrey-${{ matrix.name }}
+          path: |
+            desktop/dist/*.dmg
+            desktop/dist/*.exe
+            desktop/dist/*.AppImage
+          if-no-files-found: error

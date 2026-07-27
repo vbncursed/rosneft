@@ -17,5 +17,7 @@ cpSync(path.join(frontend, '.next', 'static'), path.join(standalone, '.next', 's
 });
 cpSync(path.join(frontend, 'public'), path.join(standalone, 'public'), { recursive: true });
 
-// 3. Package for the current OS (add --win/--mac/--linux to cross-build where supported).
-execSync('electron-builder', { cwd: __dirname, stdio: 'inherit' });
+// 3. Package. With no args, builds the current OS/arch. CI passes target flags,
+//    e.g. `node build.mjs --win --x64` or `node build.mjs --linux --arm64`.
+const targets = process.argv.slice(2).join(' ');
+execSync(`electron-builder ${targets}`, { cwd: __dirname, stdio: 'inherit' });
