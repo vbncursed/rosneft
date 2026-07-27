@@ -31,62 +31,44 @@
 
 ---
 
-## Task 1: Зафиксировать публичные origins (единственный вход-блокер)
+## Task 1: Зафиксировать публичные origins (единственный вход-блокер) ✅ DONE
 
-Ф0 нельзя исполнить, не зная домена. Эта задача — собрать и записать два точных значения, которые протянутся во все следующие шаги.
+Значения зафиксированы (2026-07-27):
 
-**Files:**
-- Modify: `docs/superpowers/plans/2026-07-27-phase0-public-gateway.md` (вписать реальные значения вместо `<WEB_ORIGIN>` / `<API_ORIGIN>` ниже)
+- `WEB_ORIGIN` = `https://andrey.vbncursed.fun` — origin браузерного веба.
+- `API_ORIGIN` = `https://api.andrey.vbncursed.fun` — публичный origin gateway.
+- `API_HOST` = `api.andrey.vbncursed.fun` — host из API_ORIGIN.
 
-**Interfaces:**
-- Produces:
-  - `<WEB_ORIGIN>` — origin, с которого браузер веба будет ходить в gateway (напр. `https://andrey.example.com`). Именно **origin** (scheme+host, без пути, без слэша).
-  - `<API_ORIGIN>` — публичный origin самого gateway (напр. `https://api.andrey.example.com`).
-  - `<API_HOST>` — host из `<API_ORIGIN>` (напр. `api.andrey.example.com`).
-
-- [ ] **Step 1: Получить у владельца прода два факта**
-
-Ответить на:
-1. Какой публичный домен у сайта сейчас (что отвечает на :443/:80 прода)? → это база для `<WEB_ORIGIN>`.
-2. Под каким host выставляем gateway? Рекомендация — поддомен `api.<тот же домен>` → `<API_ORIGIN>`.
-
-- [ ] **Step 2: Вписать значения в этот план**
-
-Заменить во всём файле `<WEB_ORIGIN>`, `<API_ORIGIN>`, `<API_HOST>` на реальные строки. Проверить: `<WEB_ORIGIN>` без завершающего `/`, без пути.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add docs/superpowers/plans/2026-07-27-phase0-public-gateway.md
-git commit -m "docs(spa/phase0): record concrete public origins for gateway"
-```
+- [x] **Step 1:** домен получен от владельца прода.
+- [x] **Step 2:** значения вписаны во все шаги ниже.
+- [x] **Step 3:** закоммичено.
 
 ---
 
-## Task 2: DNS + reverse-proxy vhost для `<API_HOST>` с TLS
+## Task 2: DNS + reverse-proxy vhost для `api.andrey.vbncursed.fun` с TLS
 
 Публикуем gateway наружу через уже работающий на проде reverse-proxy. Точная конфигурация зависит от того, какой прокси стоит (nginx/caddy/traefik) — шаги даны как runbook с проверкой результата, не как правка конкретного файла репозитория.
 
 **Files:**
-- Prod (вне репо): конфиг reverse-proxy на проде (vhost/route для `<API_HOST>`), прод `docker-compose.override.yml` при необходимости.
+- Prod (вне репо): конфиг reverse-proxy на проде (vhost/route для `api.andrey.vbncursed.fun`), прод `docker-compose.override.yml` при необходимости.
 
 **Interfaces:**
-- Consumes: `<API_HOST>`, `<API_ORIGIN>` из Task 1.
-- Produces: `<API_ORIGIN>/readyz` отвечает 200 из интернета под валидным TLS.
+- Consumes: `api.andrey.vbncursed.fun`, `https://api.andrey.vbncursed.fun` из Task 1.
+- Produces: `https://api.andrey.vbncursed.fun/readyz` отвечает 200 из интернета под валидным TLS.
 
 - [ ] **Step 1: DNS**
 
-Завести A/AAAA-запись `<API_HOST>` → внешний IP прода (тот же, что у сайта). Дождаться распространения.
+Завести A/AAAA-запись `api.andrey.vbncursed.fun` → внешний IP прода (тот же, что у сайта). Дождаться распространения.
 
 Проверка:
 ```bash
-dig +short <API_HOST>
+dig +short api.andrey.vbncursed.fun
 ```
 Ожидается: внешний IP прода.
 
 - [ ] **Step 2: Vhost в reverse-proxy**
 
-На проде добавить в reverse-proxy маршрут: `<API_HOST>` (:443, TLS) → `http://gateway:8080` (внутренняя docker-сеть проекта `andrey`).
+На проде добавить в reverse-proxy маршрут: `api.andrey.vbncursed.fun` (:443, TLS) → `http://gateway:8080` (внутренняя docker-сеть проекта `andrey`).
 
 Требования к vhost (важно для SSE — иначе стрим буферизуется):
 - `proxy_buffering off;` (nginx) / эквивалент — чтобы SSE-кадры уходили сразу. Gateway уже шлёт `X-Accel-Buffering: no`, но vhost должен это уважать.
@@ -98,7 +80,7 @@ dig +short <API_HOST>
 - [ ] **Step 3: Проверить публичный доступ + TLS**
 
 ```bash
-curl -sS -o /dev/null -w "%{http_code} %{ssl_verify_result}\n" <API_ORIGIN>/readyz
+curl -sS -o /dev/null -w "%{http_code} %{ssl_verify_result}\n" https://api.andrey.vbncursed.fun/readyz
 ```
 Ожидается: `200 0` (200 OK, TLS verify = 0/ок).
 
@@ -106,7 +88,7 @@ curl -sS -o /dev/null -w "%{http_code} %{ssl_verify_result}\n" <API_ORIGIN>/read
 
 Если vhost/override лежат в репозитории — закоммитить. Если это прод-only untracked — зафиксировать факт в разделе deploy-доков:
 ```bash
-git add -A && git commit -m "chore(spa/phase0): expose gateway at <API_HOST> via reverse proxy" || echo "no tracked changes"
+git add -A && git commit -m "chore(spa/phase0): expose gateway at api.andrey.vbncursed.fun via reverse proxy" || echo "no tracked changes"
 ```
 
 ---
@@ -120,15 +102,15 @@ git add -A && git commit -m "chore(spa/phase0): expose gateway at <API_HOST> via
 - Prod (вне репо): `docker-compose.override.yml` env `GATEWAY_ALLOWED_ORIGINS`
 
 **Interfaces:**
-- Consumes: `<WEB_ORIGIN>` из Task 1.
-- Produces: preflight на gateway отражает `<WEB_ORIGIN>`, а не `*`.
+- Consumes: `https://andrey.vbncursed.fun` из Task 1.
+- Produces: preflight на gateway отражает `https://andrey.vbncursed.fun`, а не `*`.
 
 - [ ] **Step 1: Прод-значение**
 
 В прод `docker-compose.override.yml` для сервиса `gateway` задать:
 ```yaml
     environment:
-      GATEWAY_ALLOWED_ORIGINS: "<WEB_ORIGIN>,tauri://localhost"
+      GATEWAY_ALLOWED_ORIGINS: "https://andrey.vbncursed.fun,tauri://localhost"
 ```
 (`tauri://localhost` — задел под планшет; web-origin — основной. Electron уточним в Ф5.)
 
@@ -145,20 +127,20 @@ cd /opt/rosneft && docker compose -p andrey up -d gateway
 - [ ] **Step 4: Проверить preflight отражает конкретный origin**
 
 ```bash
-curl -sS -D - -o /dev/null -X OPTIONS <API_ORIGIN>/api/territories \
-  -H "Origin: <WEB_ORIGIN>" \
+curl -sS -D - -o /dev/null -X OPTIONS https://api.andrey.vbncursed.fun/api/territories \
+  -H "Origin: https://andrey.vbncursed.fun" \
   -H "Access-Control-Request-Method: GET" \
   -H "Access-Control-Request-Headers: authorization"
 ```
 Ожидается в ответе:
-- `Access-Control-Allow-Origin: <WEB_ORIGIN>` (именно он, не `*`)
+- `Access-Control-Allow-Origin: https://andrey.vbncursed.fun` (именно он, не `*`)
 - `Access-Control-Allow-Headers` содержит `Authorization`
 - `Access-Control-Allow-Methods` содержит `GET`
 
 - [ ] **Step 5: Проверить, что чужой origin отклоняется**
 
 ```bash
-curl -sS -D - -o /dev/null -X OPTIONS <API_ORIGIN>/api/territories \
+curl -sS -D - -o /dev/null -X OPTIONS https://api.andrey.vbncursed.fun/api/territories \
   -H "Origin: https://evil.example.com" \
   -H "Access-Control-Request-Method: GET"
 ```
@@ -180,18 +162,18 @@ git commit -m "chore(spa/phase0): document explicit CORS origins (prod via overr
 **Files:** нет (проверка).
 
 **Interfaces:**
-- Consumes: `<API_ORIGIN>`, `<WEB_ORIGIN>`.
+- Consumes: `https://api.andrey.vbncursed.fun`, `https://andrey.vbncursed.fun`.
 - Produces: подтверждение, что SSE отдаёт `text/event-stream` + ACAO cross-origin.
 
 - [ ] **Step 1: Запрос SSE cross-origin с фейковым job id**
 
 ```bash
-curl -sS -N -D - --max-time 3 <API_ORIGIN>/api/jobs/00000000-0000-0000-0000-000000000000/events \
-  -H "Origin: <WEB_ORIGIN>"
+curl -sS -N -D - --max-time 3 https://api.andrey.vbncursed.fun/api/jobs/00000000-0000-0000-0000-000000000000/events \
+  -H "Origin: https://andrey.vbncursed.fun"
 ```
 Ожидается:
 - `Content-Type: text/event-stream`
-- `Access-Control-Allow-Origin: <WEB_ORIGIN>`
+- `Access-Control-Allow-Origin: https://andrey.vbncursed.fun`
 - В теле — `event: error` с `job not found` (job фейковый) ИЛИ таймаут после keepalive. Оба означают, что стрим открылся и CORS отдан.
 
 - [ ] **Step 2: Зафиксировать наблюдение**
@@ -202,7 +184,7 @@ curl -sS -N -D - --max-time 3 <API_ORIGIN>/api/jobs/00000000-0000-0000-0000-0000
 
 ## Task 5: Подтвердить, что :8080 закрыт наружу
 
-Публичен только `<API_ORIGIN>` (443 через proxy); сырой `8080` не должен торчать в интернет.
+Публичен только `https://api.andrey.vbncursed.fun` (443 через proxy); сырой `8080` не должен торчать в интернет.
 
 **Files:** нет (проверка).
 
@@ -210,7 +192,7 @@ curl -sS -N -D - --max-time 3 <API_ORIGIN>/api/jobs/00000000-0000-0000-0000-0000
 
 С машины ВНЕ прод-сети:
 ```bash
-curl -sS -o /dev/null -w "%{http_code}\n" --max-time 8 http://<API_HOST>:8080/readyz || echo "unreachable (ожидаемо)"
+curl -sS -o /dev/null -w "%{http_code}\n" --max-time 8 http://api.andrey.vbncursed.fun:8080/readyz || echo "unreachable (ожидаемо)"
 ```
 Ожидается: таймаут / `unreachable` / connection refused. Если вернулось `200` — firewall открыт, **закрыть :8080** на хост-firewall/облачной security-group (оставить снаружи только 443).
 
@@ -246,7 +228,7 @@ grep -rniE "job.*id|NewJob|uuid|ulid" backend/services --include="*.go" | grep -
 ## Self-Review
 
 - **Покрытие спека (секция 2 «Auth и gateway» / Ф0):** публичный `api.<домен>` + TLS (Task 2), CORS-origins явные (Task 3), SSE cross-origin (Task 4), :8080 закрыт (Task 5). SSE-токен-из-query из спека **снят** — обосновано находкой, что эндпоинт уже неаутентифицирован; добавлена вместо него санити-проверка job id (Task 6). ✓
-- **Плейсхолдеры:** `<WEB_ORIGIN>`/`<API_ORIGIN>`/`<API_HOST>` — намеренные входные значения, закрываются Task 1 первым шагом; не оставлены в требованиях как TBD. ✓
+- **Плейсхолдеры:** `https://andrey.vbncursed.fun`/`https://api.andrey.vbncursed.fun`/`api.andrey.vbncursed.fun` — намеренные входные значения, закрываются Task 1 первым шагом; не оставлены в требованиях как TBD. ✓
 - **Тип-консистентность:** имена env (`GATEWAY_ALLOWED_ORIGINS`), пути (`transport.go:57/90`, `docker-compose.yml:59`), команды (`-p andrey`) сверены с реальными файлами. ✓
 - **Код в gateway:** ноль правок `.go` — соответствует Global Constraints. ✓
 
