@@ -84,3 +84,17 @@ jobs:
         with:
           files: artifacts/**/*
           generate_release_notes: true
+          body: |
+            ## Установка
+
+            **macOS** — сборка без подписи Apple. После переноса в «Программы» выполни один раз в Терминале:
+            ```
+            xattr -dr com.apple.quarantine /Applications/Andrey.app
+            ```
+            Иначе macOS покажет «"Andrey.app" is damaged and can't be opened».
+
+            **Windows** — `*-setup.exe` (установщик NSIS). SmartScreen может предупредить о неподписанном приложении → «Подробнее» → «Выполнить в любом случае».
+
+            **Linux** — `*.AppImage`: `chmod +x Andrey-*.AppImage`, затем запуск.
+
+            ---
