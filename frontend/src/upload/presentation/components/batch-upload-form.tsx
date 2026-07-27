@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import type { Job } from "@/shared/domain/job";
 import { runChunkedUpload } from "@/upload/application/run-chunked-upload";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 import { deriveTitle, type BatchRow } from "@/upload/domain/batch-row";
 import BatchRowView from "@/upload/presentation/components/batch-row";
 

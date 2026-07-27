@@ -6,7 +6,7 @@ import {
 import type { Panorama } from "@/panorama/domain/panorama";
 import type { Vec3 } from "@/shared/domain/vec3";
 import { formatError } from "@/shared/infrastructure/http/format-error";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 
 // usePanoramas wraps the panorama list with optimistic local updates
 // against the PUT endpoint. The initial array comes from the server-side

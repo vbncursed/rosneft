@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 import { confirmAction } from "@/shared/presentation/confirm/use-confirm";
 
 interface DeleteButtonProps {

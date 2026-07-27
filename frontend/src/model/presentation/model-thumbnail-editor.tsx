@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { runChunkedUpload } from "@/upload/application/run-chunked-upload";
 import { updateModelThumbnail } from "@/model/infrastructure/model-gateway";
 import { assetUrl } from "@/shared/infrastructure/asset-url";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 
 interface ModelThumbnailEditorProps {
   slug: string;
@@ -57,7 +57,6 @@ export default function ModelThumbnailEditor({
       <div className="flex items-center gap-4">
         <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/40 text-[10px] uppercase tracking-[0.18em] text-neutral-600">
           {url ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={url} alt="Model thumbnail" className="size-full object-contain p-1" />
           ) : (
             "none"

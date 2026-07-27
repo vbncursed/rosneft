@@ -39,3 +39,7 @@ export type PanelDef = {
   expr: string;
   instant?: boolean;
 };
+
+// PanelView is the client-safe projection the dashboard renders: id + title +
+// unit, without the server-only `expr`. panel-catalog.view() builds it.
+export type PanelView = Pick<PanelDef, "id" | "title" | "unit">;

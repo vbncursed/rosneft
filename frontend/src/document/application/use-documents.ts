@@ -5,7 +5,7 @@ import {
 } from "@/document/infrastructure/document-gateway";
 import type { Document } from "@/document/domain/document";
 import { formatError } from "@/shared/infrastructure/http/format-error";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 
 // useDocuments wraps the document list with optimistic add/remove. The initial
 // array comes from the server-side scene bundle.

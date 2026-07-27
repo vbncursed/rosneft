@@ -2,13 +2,13 @@
 
 import { useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import type { Toast } from "@/shared/presentation/toast/toast";
+import type { Toast } from "@/shared/application/toast/toast";
 import {
   dismiss,
   getServerSnapshot,
   getSnapshot,
   subscribe,
-} from "@/shared/presentation/toast/toast-store";
+} from "@/shared/application/toast/toast-store";
 import { slideRight } from "@/shared/presentation/motion/variants";
 import { smooth } from "@/shared/presentation/motion/transitions";
 import { useResolvedVariants } from "@/shared/presentation/motion/reduced-motion";

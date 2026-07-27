@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { listRoles, listPermissions, setRolePermissions, createRole, renameRole, deleteRole } from "@/auth/infrastructure/auth-admin-gateway";
 import type { Role } from "@/auth/domain/role";
 import type { Permission } from "@/auth/domain/permission";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 
 export function useRolesAdmin() {
   const [roles, setRoles] = useState<Role[]>([]);

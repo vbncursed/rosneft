@@ -1,4 +1,4 @@
-import type { Toast, ToastKind } from "@/shared/presentation/toast/toast";
+import type { Toast, ToastKind } from "@/shared/application/toast/toast";
 
 // AUTO_DISMISS_MS is the time after which a toast removes itself. Five
 // seconds matches the prompt — long enough to read a short error

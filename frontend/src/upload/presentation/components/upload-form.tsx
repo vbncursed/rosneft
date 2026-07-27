@@ -5,7 +5,7 @@ import { useChunkedUpload } from "@/upload/application/use-chunked-upload";
 import type { Job } from "@/shared/domain/job";
 import Field from "@/upload/presentation/components/field";
 import ProgressBar from "@/upload/presentation/components/progress-bar";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 
 interface UploadFormProps {
   kind: "Territory" | "Model";
