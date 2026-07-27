@@ -7,11 +7,20 @@ import { homeRoute } from "@/routes/home";
 import { territoryViewerRoute } from "@/routes/territory-viewer";
 import { territoriesRoute } from "@/routes/territories";
 import { modelsRoute } from "@/routes/models";
+import { territoryNewRoute } from "@/routes/territory-new";
+import { modelNewRoute } from "@/routes/model-new";
 import { queryClient } from "@/shared/infrastructure/query/query-client";
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
-  authedLayoutRoute.addChildren([homeRoute, territoryViewerRoute, territoriesRoute, modelsRoute]),
+  authedLayoutRoute.addChildren([
+    homeRoute,
+    territoryViewerRoute,
+    territoriesRoute,
+    modelsRoute,
+    territoryNewRoute,
+    modelNewRoute,
+  ]),
 ]);
 
 function NotFound() {
