@@ -32,9 +32,9 @@ function Models() {
             {models.map((m) => (
               <MotionItem key={m.slug} className="relative">
                 {canDelete ? <div className="absolute right-3 top-3 z-10"><DeleteModelButton slug={m.slug} label={m.title} /></div> : null}
-                <a href={`/models/${m.slug}`} className="block cursor-pointer">
+                <Link to="/models/$slug" params={{ slug: m.slug }} className="block cursor-pointer">
                   <CatalogCard title={m.title} description={m.description} slug={m.slug} showOpen={false} />
-                </a>
+                </Link>
               </MotionItem>
             ))}
           </MotionList>

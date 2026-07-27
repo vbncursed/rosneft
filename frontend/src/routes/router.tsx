@@ -12,6 +12,7 @@ import { modelNewRoute } from "@/routes/model-new";
 import { territoryReplaceRoute } from "@/routes/territory-replace";
 import { documentNewRoute } from "@/routes/document-new";
 import { panoramaNewRoute } from "@/routes/panorama-new";
+import { modelDetailRoute } from "@/routes/model-detail";
 import { queryClient } from "@/shared/infrastructure/query/query-client";
 
 const routeTree = rootRoute.addChildren([
@@ -26,6 +27,7 @@ const routeTree = rootRoute.addChildren([
     territoryReplaceRoute,
     documentNewRoute,
     panoramaNewRoute,
+    modelDetailRoute,
   ]),
 ]);
 
