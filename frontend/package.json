@@ -8,12 +8,17 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --test 'src/**/*.test.ts'",
+    "dev:spa": "vite",
+    "build:spa": "vite build",
+    "preview:spa": "vite preview",
+    "test:spa": "vitest run",
     "openapi:generate": "openapi-typescript ../backend/services/gateway-service/api/openapi.yaml -o src/shared/infrastructure/api/dto.ts"
   },
   "dependencies": {
     "@github/webauthn-json": "^2.1.1",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
+    "@tanstack/react-router": "^1",
     "motion": "^12.42.2",
     "next": "16.2.10",
     "qrcode.react": "^4.2.0",
@@ -29,10 +34,14 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "0.185.1",
+    "@vitejs/plugin-react": "^4",
     "eslint": "9.39.5",
     "eslint-config-next": "16.2.10",
+    "jsdom": "^25",
     "openapi-typescript": "^7.13.0",
     "tailwindcss": "4.3.2",
-    "typescript": "^6"
+    "typescript": "^6",
+    "vite": "^7",
+    "vitest": "^3"
   }
 }
