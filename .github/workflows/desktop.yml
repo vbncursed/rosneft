@@ -1,8 +1,11 @@
 name: Build desktop app
 
-# Manual trigger; add `push: { tags: ['v*'] }` if you want tag-driven releases.
+# Manual runs build artifacts; pushing a v* tag also publishes a GitHub Release.
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   build:
@@ -15,6 +18,9 @@ jobs:
           - name: macos-arm64
             os: macos-latest
             args: --mac --arm64
+          - name: macos-x64
+            os: macos-13
+            args: --mac --x64
           - name: windows-x64
             os: windows-latest
             args: --win --x64
@@ -24,6 +30,9 @@ jobs:
           - name: linux-x64
             os: ubuntu-latest
             args: --linux --x64
+          - name: linux-arm64
+            os: ubuntu-24.04-arm
+            args: --linux --arm64
 
     steps:
       - uses: actions/checkout@v4
@@ -54,3 +63,19 @@ jobs:
             desktop/dist/*.exe
             desktop/dist/*.AppImage
           if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
