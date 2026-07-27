@@ -13,6 +13,7 @@ import { territoryReplaceRoute } from "@/routes/territory-replace";
 import { documentNewRoute } from "@/routes/document-new";
 import { panoramaNewRoute } from "@/routes/panorama-new";
 import { modelDetailRoute } from "@/routes/model-detail";
+import { accountRoute } from "@/routes/account";
 import { queryClient } from "@/shared/infrastructure/query/query-client";
 
 const routeTree = rootRoute.addChildren([
@@ -28,6 +29,7 @@ const routeTree = rootRoute.addChildren([
     documentNewRoute,
     panoramaNewRoute,
     modelDetailRoute,
+    accountRoute,
   ]),
 ]);
 

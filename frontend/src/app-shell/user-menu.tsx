@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { useCurrentUser } from "@/auth/presentation/current-user-context";
 import { can } from "@/auth/domain/principal";
 import { logout as doLogout } from "@/auth/infrastructure/auth-login";
@@ -40,8 +41,8 @@ export default function UserMenu() {
               <a href="/admin/users" onClick={() => setOpen(false)} role="menuitem"
                 className="block rounded-md px-3 py-2 text-sm text-neutral-200 transition-colors hover:bg-white/10">Console</a>
             ) : null}
-            <a href="/account" onClick={() => setOpen(false)} role="menuitem"
-              className="block rounded-md px-3 py-2 text-sm text-neutral-200 transition-colors hover:bg-white/10">Account</a>
+            <Link to="/account" onClick={() => setOpen(false)} role="menuitem"
+              className="block rounded-md px-3 py-2 text-sm text-neutral-200 transition-colors hover:bg-white/10">Account</Link>
             <button type="button" onClick={logout} role="menuitem"
               className="block w-full cursor-pointer rounded-md px-3 py-2 text-left text-sm text-red-200 transition-colors hover:bg-red-500/15">Log out</button>
           </div>
