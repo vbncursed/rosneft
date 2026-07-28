@@ -1,6 +1,6 @@
 import { createRoute, redirect } from "@tanstack/react-router";
 import { adminLayoutRoute } from "@/routes/admin";
-import { requireAuth } from "@/routes/guard";
+import { requireAuth, consoleLanding } from "@/routes/guard";
 import { meQuery } from "@/auth/application/me-query";
 import { STAT_IDS, SECTIONS, view } from "@/metrics/domain/panel-catalog";
 import MetricsDashboard from "@/metrics/presentation/components/metrics-dashboard";
@@ -20,9 +20,9 @@ export const adminMetricsRoute = createRoute({
   getParentRoute: () => adminLayoutRoute,
   path: "metrics",
   beforeLoad: async ({ context, location }) => {
-    requireAuth(location.pathname);
+    requireAuth(location);
     const me = await context.queryClient.ensureQueryData(meQuery);
-    if (!me.isOwner) throw redirect({ to: "/admin/users" });
+    if (!me.isOwner) throw redirect({ to: consoleLanding(me) });
   },
   component: AdminMetrics,
 });

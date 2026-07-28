@@ -1,6 +1,6 @@
 import { createRoute, redirect, Outlet } from "@tanstack/react-router";
 import { authedLayoutRoute } from "@/routes/layout";
-import { requireAuth } from "@/routes/guard";
+import { requireAuth, consoleLanding } from "@/routes/guard";
 import { meQuery } from "@/auth/application/me-query";
 import { can } from "@/auth/domain/principal";
 import { useCurrentUser } from "@/auth/presentation/current-user-context";
@@ -28,7 +28,7 @@ export const adminLayoutRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/admin",
   beforeLoad: async ({ context, location }) => {
-    requireAuth(location.pathname);
+    requireAuth(location);
     const me = await context.queryClient.ensureQueryData(meQuery);
     if (!(can(me, "users:read") || can(me, "roles:read"))) throw redirect({ to: "/" });
   },
@@ -38,7 +38,8 @@ export const adminLayoutRoute = createRoute({
 export const adminIndexRoute = createRoute({
   getParentRoute: () => adminLayoutRoute,
   path: "/",
-  beforeLoad: () => {
-    throw redirect({ to: "/admin/users" });
+  beforeLoad: async ({ context }) => {
+    const me = await context.queryClient.ensureQueryData(meQuery);
+    throw redirect({ to: consoleLanding(me) });
   },
 });

@@ -21,7 +21,7 @@ export const documentNewRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/territories/$slug/documents/new",
   beforeLoad: ({ context, location }) =>
-    requirePermission(context.queryClient, location.pathname, "document:write"),
+    requirePermission(context.queryClient, location, "document:write"),
   loader: async ({ context, params }) => {
     try {
       await context.queryClient.ensureQueryData(sceneBundleQuery(params.slug));

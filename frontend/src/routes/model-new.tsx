@@ -23,6 +23,6 @@ export const modelNewRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/models/new",
   beforeLoad: ({ context, location }) =>
-    requirePermission(context.queryClient, location.pathname, "model:write"),
+    requirePermission(context.queryClient, location, "model:write"),
   component: NewModel,
 });

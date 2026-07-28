@@ -23,7 +23,7 @@ function Models() {
             <p className="mt-3 text-xs uppercase tracking-[0.36em] text-amber-200/80">Model catalog</p>
             <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white sm:text-5xl">Models for placement</h1>
           </div>
-          {canWrite ? <a href="/models/new" className="cursor-pointer rounded-full bg-white px-5 py-2.5 text-xs uppercase tracking-[0.2em] text-black transition-colors hover:bg-amber-200">+ Upload</a> : null}
+          {canWrite ? <Link to="/models/new" className="cursor-pointer rounded-full bg-white px-5 py-2.5 text-xs uppercase tracking-[0.2em] text-black transition-colors hover:bg-amber-200">+ Upload</Link> : null}
         </header>
         {models.length === 0 ? (
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-neutral-300">No models yet. Upload your first one.</div>

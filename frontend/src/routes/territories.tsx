@@ -24,7 +24,7 @@ function Territories() {
             <p className="mt-3 text-xs uppercase tracking-[0.36em] text-cyan-300/80">Territory catalog</p>
             <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white sm:text-5xl">Scenes to walk through</h1>
           </div>
-          {canWrite ? <a href="/territories/new" className="cursor-pointer rounded-full bg-white px-5 py-2.5 text-xs uppercase tracking-[0.2em] text-black transition-colors hover:bg-cyan-200">+ Upload</a> : null}
+          {canWrite ? <Link to="/territories/new" className="cursor-pointer rounded-full bg-white px-5 py-2.5 text-xs uppercase tracking-[0.2em] text-black transition-colors hover:bg-cyan-200">+ Upload</Link> : null}
         </header>
         {territories.length === 0 ? (
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-neutral-300">The catalog is empty. Upload your first territory.</div>

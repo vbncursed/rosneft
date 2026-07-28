@@ -23,7 +23,7 @@ export const panoramaNewRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/territories/$slug/panoramas/new",
   beforeLoad: ({ context, location }) =>
-    requirePermission(context.queryClient, location.pathname, "panorama:write"),
+    requirePermission(context.queryClient, location, "panorama:write"),
   loader: async ({ context, params }) => {
     try {
       await context.queryClient.ensureQueryData(sceneBundleQuery(params.slug));

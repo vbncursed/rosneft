@@ -19,13 +19,13 @@ describe("requirePermission", () => {
 
   it("passes when the principal has the permission", async () => {
     const qc = clientReturning({ isOwner: false, permissions: ["territory:write"] });
-    await expect(requirePermission(qc, "/territories/new", "territory:write")).resolves.toBeUndefined();
+    await expect(requirePermission(qc, { href: "/territories/new" }, "territory:write")).resolves.toBeUndefined();
   });
 
   it("redirects home when the permission is missing", async () => {
     const qc = clientReturning({ isOwner: false, permissions: [] });
     try {
-      await requirePermission(qc, "/territories/new", "territory:write");
+      await requirePermission(qc, { href: "/territories/new" }, "territory:write");
       expect.unreachable("should redirect");
     } catch (e) {
       expect(isRedirect(e)).toBe(true);
@@ -37,7 +37,7 @@ describe("requirePermission", () => {
     localStorage.clear();
     const qc = clientReturning({ permissions: [] });
     try {
-      await requirePermission(qc, "/territories/new", "territory:write");
+      await requirePermission(qc, { href: "/territories/new" }, "territory:write");
       expect.unreachable("should redirect");
     } catch (e) {
       expect((e as { options: { to?: string } }).options.to).toBe("/login");

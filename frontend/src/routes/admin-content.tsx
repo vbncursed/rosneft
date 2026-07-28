@@ -1,7 +1,7 @@
 import { createRoute, redirect, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { adminLayoutRoute } from "@/routes/admin";
-import { requireAuth } from "@/routes/guard";
+import { requireAuth, consoleLanding } from "@/routes/guard";
 import { meQuery } from "@/auth/application/me-query";
 import { can } from "@/auth/domain/principal";
 import { territoriesQuery } from "@/territory/application/territories-query";
@@ -41,9 +41,9 @@ export const adminContentRoute = createRoute({
   getParentRoute: () => adminLayoutRoute,
   path: "content",
   beforeLoad: async ({ context, location }) => {
-    requireAuth(location.pathname);
+    requireAuth(location);
     const me = await context.queryClient.ensureQueryData(meQuery);
-    if (!(can(me, "territory:write") || can(me, "model:write"))) throw redirect({ to: "/admin/users" });
+    if (!(can(me, "territory:write") || can(me, "model:write"))) throw redirect({ to: consoleLanding(me) });
   },
   loader: ({ context }) =>
     Promise.all([
