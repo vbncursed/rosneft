@@ -1,4 +1,6 @@
 import type { AuditFilters } from "@/audit/domain/audit-entry";
+import { todayISO } from "@/shared/domain/calendar";
+import DatePicker from "@/shared/presentation/components/date-picker/date-picker";
 
 const FIELD_CLASS =
   "w-full rounded-md border border-white/10 bg-black/30 px-2.5 py-1.5 text-sm text-white placeholder:text-neutral-600 focus:border-cyan-400/60 focus:outline-none";
@@ -66,21 +68,29 @@ export default function AuditFiltersBar({
           onChange={(e) => set("actor")(e.target.value)}
         />
       </Field>
-      {/* Native date inputs: no picker library for two fields. */}
+      {/* Собственный пикер вместо <input type="date">: браузерный выглядит
+          по-разному в каждом движке и не вписывается в тёмную вёрстку. Формат
+          значения тот же — "YYYY-MM-DD", поэтому toBound() в гейтвее и весь
+          остальной код фильтров не меняются.
+
+          Взаимные границы выражены через уже имеющееся состояние фильтров:
+          невозможно собрать запрос, который всегда пуст, и невозможно
+          запросить будущее — в журнале его нет. */}
       <Field label="From">
-        <input
-          type="date"
-          className={FIELD_CLASS}
+        <DatePicker
+          ariaLabel="From"
           value={value.from}
-          onChange={(e) => set("from")(e.target.value)}
+          onChange={set("from")}
+          max={value.to || todayISO()}
         />
       </Field>
       <Field label="To">
-        <input
-          type="date"
-          className={FIELD_CLASS}
+        <DatePicker
+          ariaLabel="To"
           value={value.to}
-          onChange={(e) => set("to")(e.target.value)}
+          onChange={set("to")}
+          min={value.from}
+          max={todayISO()}
         />
       </Field>
     </div>
