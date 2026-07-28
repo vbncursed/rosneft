@@ -55,3 +55,41 @@ export function monthGrid(ym: string): string[] {
 export function inRange(iso: string, min?: string, max?: string): boolean {
   return (!min || iso >= min) && (!max || iso <= max);
 }
+
+const HUMAN = /^(\d{1,2})[./](\d{1,2})[./](\d{4})$/;
+const ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+// parseDateInput читает то, что человек набирает руками: 29/07/2026, 29.07.2026
+// или ISO — последний потому, что дату часто копируют из журнала или тикета.
+// Возвращает "" на всё, что прочитать не удалось, включая пустую строку: для
+// поля в процессе набора «ещё не дата» и «ошибка» — одно и то же состояние, и
+// исключение здесь только мешало бы.
+export function parseDateInput(text: string): string {
+  const t = text.trim();
+  const human = HUMAN.exec(t);
+  const iso = human ? `${human[3]}-${pad(+human[2])}-${pad(+human[1])}` : t;
+  if (!ISO.test(iso)) return "";
+  // Обратная сверка отсекает несуществующие дни: new Date(2026, 1, 31) молча
+  // становится 3 марта, и фильтр уехал бы на дату, которую никто не набирал.
+  return toISO(toDate(iso)) === iso ? iso : "";
+}
+
+// formatDateInput — обратная сторона parseDateInput: показанное в поле должно
+// набираться обратно, иначе правка поверх текста ломается.
+export function formatDateInput(iso: string): string {
+  if (!ISO.test(iso)) return "";
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+// formatTimestamp — момент события в журнале, в локальной зоне читателя.
+// Формат фиксированный, а не локальный: toLocaleString() давал бы то
+// 7/28/2026 10:13:20 PM, то 28.07.2026, 22:13:20 в зависимости от браузера, и
+// dd/mm против mm/dd в журнале аудита — это не косметика, а разные даты.
+// 24 часа по той же причине: AM/PM здесь нечего добавить.
+export function formatTimestamp(at: string): string {
+  const d = new Date(at);
+  if (Number.isNaN(d.getTime())) return at;
+  const date = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  return `${date} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
