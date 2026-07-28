@@ -8,6 +8,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	auditv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/audit/v1"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/grpcerr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
@@ -34,7 +35,14 @@ func (c *Client) ListEntries(ctx context.Context, q domain.AuditQuery) ([]domain
 		Limit:        q.Limit,
 	})
 	if err != nil {
-		return nil, 0, fmt.Errorf("audit.ListEntries: %w", err)
+		// Без MapStatus сюда доезжает голый gRPC status, а isInvalid в
+		// транспорте сверяется с сентинелом gateway'я — и отказ по невалидному
+		// фильтру уходил бы наружу 500-й вместо 400-й.
+		//
+		// Сентинел NotFound — nil: у журнала нет такого случая, фильтр без
+		// совпадений даёт пустую страницу, а не отсутствующий ресурс. Работает
+		// только ветка InvalidArgument.
+		return nil, 0, fmt.Errorf("audit.ListEntries: %w", grpcerr.MapStatus(err, nil))
 	}
 	out := make([]domain.AuditEntry, 0, len(resp.GetEntries()))
 	for _, e := range resp.GetEntries() {
@@ -56,6 +64,11 @@ func (c *Client) ListEntries(ctx context.Context, q domain.AuditQuery) ([]domain
 }
 
 // Record appends one non-row event.
+//
+// Namesake asymmetry with ListEntries: no MapStatus here on purpose. Nothing
+// branches on this error — the caller logs it and moves on, because the user's
+// action has already happened — and its inputs come from the session and a
+// hardcoded action map, never from the request.
 func (c *Client) Record(ctx context.Context, e domain.AuditEvent) error {
 	_, err := c.cc.Record(ctx, &auditv1.RecordRequest{
 		ActorId:   e.ActorID,

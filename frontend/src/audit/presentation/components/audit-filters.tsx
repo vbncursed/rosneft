@@ -1,22 +1,20 @@
 import type { AuditFilters } from "@/audit/domain/audit-entry";
+import { actionsFor } from "@/audit/domain/vocabulary";
+import {
+  actionOptions,
+  actorOptions,
+  entityOptions,
+} from "@/audit/presentation/components/filter-options";
 import { todayISO } from "@/shared/domain/calendar";
+import Dropdown from "@/shared/presentation/components/dropdown/dropdown";
 import DatePicker from "@/shared/presentation/components/date-picker/date-picker";
 
+// Один облик на все пять контролов строки. Три из них Dropdown, два DatePicker,
+// и оба компонента принимают его через triggerClassName; иначе дропдаун принёс
+// бы собственные bg-white/[0.03] и text-xs, и строка выглядела бы собранной из
+// двух разных форм.
 const FIELD_CLASS =
-  "w-full rounded-md border border-white/10 bg-black/30 px-2.5 py-1.5 text-sm text-white placeholder:text-neutral-600 focus:border-cyan-400/60 focus:outline-none";
-
-// Entities the journal can carry, so the common case is a pick rather than a
-// guess at the exact string the trigger writes.
-const ENTITIES = [
-  "territory",
-  "model",
-  "placement",
-  "panorama",
-  "document",
-  "user",
-  "role",
-  "session",
-];
+  "rounded-md border border-white/10 bg-black/30 px-2.5 py-1.5 text-sm text-white transition-colors hover:border-white/25 focus:border-cyan-400/60 focus:outline-none";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -30,58 +28,71 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 export default function AuditFiltersBar({
   value,
   onChange,
+  actors,
 }: {
   value: AuditFilters;
   onChange: (next: AuditFilters) => void;
+  actors: Map<string, string>;
 }) {
   const set = (key: keyof AuditFilters) => (v: string) => onChange({ ...value, [key]: v });
 
+  // Смена сущности роняет действие, которого в новой сущности нет: пара
+  // entity=territory + action=model.update даёт запрос, который всегда пуст, и
+  // читается это как «журнал сломался», а не как «фильтры не сходятся».
+  const setEntity = (entity: string) => {
+    const keep = actionsFor(entity).includes(value.action);
+    onChange({ ...value, entity, action: keep ? value.action : "" });
+  };
+
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-      <Field label="Action">
-        <input
-          className={FIELD_CLASS}
-          placeholder="territory.update"
-          value={value.action}
-          onChange={(e) => set("action")(e.target.value)}
-        />
-      </Field>
       <Field label="Entity">
-        <select
-          className={FIELD_CLASS}
+        <Dropdown
+          ariaLabel="Entity"
           value={value.entity}
-          onChange={(e) => set("entity")(e.target.value)}
-        >
-          <option value="">any</option>
-          {ENTITIES.map((e) => (
-            <option key={e} value={e}>
-              {e}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Actor id">
-        <input
-          className={FIELD_CLASS}
-          placeholder="uuid"
-          value={value.actor}
-          onChange={(e) => set("actor")(e.target.value)}
+          options={entityOptions()}
+          onChange={setEntity}
+          placeholder="any"
+          triggerClassName={FIELD_CLASS}
         />
       </Field>
-      {/* Собственный пикер вместо <input type="date">: браузерный выглядит
-          по-разному в каждом движке и не вписывается в тёмную вёрстку. Формат
-          значения тот же — "YYYY-MM-DD", поэтому toBound() в гейтвее и весь
-          остальной код фильтров не меняются.
+      {/* Действия зависят от сущности: без неё их сорок, из которых осмысленны
+          три. Список — не украшение: триггер пишет ".insert", и набранное по
+          аналогии ".create" молча возвращало пустой журнал. */}
+      <Field label="Action">
+        <Dropdown
+          ariaLabel="Action"
+          value={value.action}
+          options={actionOptions(value.entity)}
+          onChange={set("action")}
+          placeholder="any"
+          triggerClassName={FIELD_CLASS}
+        />
+      </Field>
+      {/* Актор — выбор из каталога, а не ввод UUID: набранный руками мусор
+          доезжал до SQL и возвращал 500-ю.
 
-          Взаимные границы выражены через уже имеющееся состояние фильтров:
-          невозможно собрать запрос, который всегда пуст, и невозможно
-          запросить будущее — в журнале его нет. */}
+          Поле не блокируется на пустом каталоге, хотя соблазн есть: карта пуста
+          и первые миллисекунды загрузки тоже, так что disabled мигал бы у всех
+          ради состояния, которое случается только у кастомной роли без
+          users:read. Дропдаун с одним "any" в этом случае безвреден. */}
+      <Field label="Actor">
+        <Dropdown
+          ariaLabel="Actor"
+          value={value.actor}
+          options={actorOptions(actors)}
+          onChange={set("actor")}
+          placeholder="any"
+          triggerClassName={FIELD_CLASS}
+        />
+      </Field>
       <Field label="From">
         <DatePicker
           ariaLabel="From"
           value={value.from}
           onChange={set("from")}
           max={value.to || todayISO()}
+          triggerClassName={FIELD_CLASS}
         />
       </Field>
       <Field label="To">
@@ -91,6 +102,7 @@ export default function AuditFiltersBar({
           onChange={set("to")}
           min={value.from}
           max={todayISO()}
+          triggerClassName={FIELD_CLASS}
         />
       </Field>
     </div>
