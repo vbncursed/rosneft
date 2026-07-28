@@ -166,6 +166,13 @@ type RepositoryMock struct {
 	beforeRescaleTerritoryPlacementsCounter uint64
 	RescaleTerritoryPlacementsMock          mRepositoryMockRescaleTerritoryPlacements
 
+	funcResolveTerritorySlugs          func(ctx context.Context, ids []int64) (m1 map[int64]string, err error)
+	funcResolveTerritorySlugsOrigin    string
+	inspectFuncResolveTerritorySlugs   func(ctx context.Context, ids []int64)
+	afterResolveTerritorySlugsCounter  uint64
+	beforeResolveTerritorySlugsCounter uint64
+	ResolveTerritorySlugsMock          mRepositoryMockResolveTerritorySlugs
+
 	funcSetPlacementVisibility          func(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (p1 domain.Placement, err error)
 	funcSetPlacementVisibilityOrigin    string
 	inspectFuncSetPlacementVisibility   func(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64)
@@ -279,6 +286,9 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 
 	m.RescaleTerritoryPlacementsMock = mRepositoryMockRescaleTerritoryPlacements{mock: m}
 	m.RescaleTerritoryPlacementsMock.callArgs = []*RepositoryMockRescaleTerritoryPlacementsParams{}
+
+	m.ResolveTerritorySlugsMock = mRepositoryMockResolveTerritorySlugs{mock: m}
+	m.ResolveTerritorySlugsMock.callArgs = []*RepositoryMockResolveTerritorySlugsParams{}
 
 	m.SetPlacementVisibilityMock = mRepositoryMockSetPlacementVisibility{mock: m}
 	m.SetPlacementVisibilityMock.callArgs = []*RepositoryMockSetPlacementVisibilityParams{}
@@ -7595,6 +7605,349 @@ func (m *RepositoryMock) MinimockRescaleTerritoryPlacementsInspect() {
 	}
 }
 
+type mRepositoryMockResolveTerritorySlugs struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockResolveTerritorySlugsExpectation
+	expectations       []*RepositoryMockResolveTerritorySlugsExpectation
+
+	callArgs []*RepositoryMockResolveTerritorySlugsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockResolveTerritorySlugsExpectation specifies expectation struct of the Repository.ResolveTerritorySlugs
+type RepositoryMockResolveTerritorySlugsExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockResolveTerritorySlugsParams
+	paramPtrs          *RepositoryMockResolveTerritorySlugsParamPtrs
+	expectationOrigins RepositoryMockResolveTerritorySlugsExpectationOrigins
+	results            *RepositoryMockResolveTerritorySlugsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockResolveTerritorySlugsParams contains parameters of the Repository.ResolveTerritorySlugs
+type RepositoryMockResolveTerritorySlugsParams struct {
+	ctx context.Context
+	ids []int64
+}
+
+// RepositoryMockResolveTerritorySlugsParamPtrs contains pointers to parameters of the Repository.ResolveTerritorySlugs
+type RepositoryMockResolveTerritorySlugsParamPtrs struct {
+	ctx *context.Context
+	ids *[]int64
+}
+
+// RepositoryMockResolveTerritorySlugsResults contains results of the Repository.ResolveTerritorySlugs
+type RepositoryMockResolveTerritorySlugsResults struct {
+	m1  map[int64]string
+	err error
+}
+
+// RepositoryMockResolveTerritorySlugsOrigins contains origins of expectations of the Repository.ResolveTerritorySlugs
+type RepositoryMockResolveTerritorySlugsExpectationOrigins struct {
+	origin    string
+	originCtx string
+	originIds string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmResolveTerritorySlugs *mRepositoryMockResolveTerritorySlugs) Optional() *mRepositoryMockResolveTerritorySlugs {
+	mmResolveTerritorySlugs.optional = true
+	return mmResolveTerritorySlugs
+}
+
+// Expect sets up expected params for Repository.ResolveTerritorySlugs
+func (mmResolveTerritorySlugs *mRepositoryMockResolveTerritorySlugs) Expect(ctx context.Context, ids []int64) *mRepositoryMockResolveTerritorySlugs {
+	if mmResolveTerritorySlugs.mock.funcResolveTerritorySlugs != nil {
+		mmResolveTerritorySlugs.mock.t.Fatalf("RepositoryMock.ResolveTerritorySlugs mock is already set by Set")
+	}
+
+	if mmResolveTerritorySlugs.defaultExpectation == nil {
+		mmResolveTerritorySlugs.defaultExpectation = &RepositoryMockResolveTerritorySlugsExpectation{}
+	}
+
+	if mmResolveTerritorySlugs.defaultExpectation.paramPtrs != nil {
+		mmResolveTerritorySlugs.mock.t.Fatalf("RepositoryMock.ResolveTerritorySlugs mock is already set by ExpectParams functions")
+	}
+
+	mmResolveTerritorySlugs.defaultExpectation.params = &RepositoryMockResolveTerritorySlugsParams{ctx, ids}
+	mmResolveTerritorySlugs.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmResolveTerritorySlugs.expectations {
+		if minimock.Equal(e.params, mmResolveTerritorySlugs.defaultExpectation.params) {
+			mmResolveTerritorySlugs.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmResolveTerritorySlugs.defaultExpectation.params)
+		}
+	}
+
+	return mmResolveTerritorySlugs
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.ResolveTerritorySlugs
+func (mmResolveTerritorySlugs *mRepositoryMockResolveTerritorySlugs) ExpectCtxParam1(ctx context.Context) *mRepositoryMockResolveTerritorySlugs {
+	if mmResolveTerritorySlugs.mock.funcResolveTerritorySlugs != nil {
+		mmResolveTerritorySlugs.mock.t.Fatalf("RepositoryMock.ResolveTerritorySlugs mock is already set by Set")
+	}
+
+	if mmResolveTerritorySlugs.defaultExpectation == nil {
+		mmResolveTerritorySlugs.defaultExpectation = &RepositoryMockResolveTerritorySlugsExpectation{}
+	}
+
+	if mmResolveTerritorySlugs.defaultExpectation.params != nil {
+		mmResolveTerritorySlugs.mock.t.Fatalf("RepositoryMock.ResolveTerritorySlugs mock is already set by Expect")
+	}
+
+	if mmResolveTerritorySlugs.defaultExpectation.paramPtrs == nil {
+		mmResolveTerritorySlugs.defaultExpectation.paramPtrs = &RepositoryMockResolveTerritorySlugsParamPtrs{}
+	}
+	mmResolveTerritorySlugs.defaultExpectation.paramPtrs.ctx = &ctx
+	mmResolveTerritorySlugs.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmResolveTerritorySlugs
+}
+
+// ExpectIdsParam2 sets up expected param ids for Repository.ResolveTerritorySlugs
+func (mmResolveTerritorySlugs *mRepositoryMockResolveTerritorySlugs) ExpectIdsParam2(ids []int64) *mRepositoryMockResolveTerritorySlugs {
+	if mmResolveTerritorySlugs.mock.funcResolveTerritorySlugs != nil {
+		mmResolveTerritorySlugs.mock.t.Fatalf("RepositoryMock.ResolveTerritorySlugs mock is already set by Set")
+	}
+
+	if mmResolveTerritorySlugs.defaultExpectation == nil {
+		mmResolveTerritorySlugs.defaultExpectation = &RepositoryMockResolveTerritorySlugsExpectation{}
+	}
+
+	if mmResolveTerritorySlugs.defaultExpectation.params != nil {
+		mmResolveTerritorySlugs.mock.t.Fatalf("RepositoryMock.ResolveTerritorySlugs mock is already set by Expect")
+	}
+
+	if mmResolveTerritorySlugs.defaultExpectation.paramPtrs == nil {
+		mmResolveTerritorySlugs.defaultExpectation.paramPtrs = &RepositoryMockResolveTerritorySlugsParamPtrs{}
+	}
+	mmResolveTerritorySlugs.defaultExpectation.paramPtrs.ids = &ids
+	mmResolveTerritorySlugs.defaultExpectation.expectationOrigins.originIds = minimock.CallerInfo(1)
+
+	return mmResolveTerritorySlugs
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.ResolveTerritorySlugs
+func (mmResolveTerritorySlugs *mRepositoryMockResolveTerritorySlugs) Inspect(f func(ctx context.Context, ids []int64)) *mRepositoryMockResolveTerritorySlugs {
+	if mmResolveTerritorySlugs.mock.inspectFuncResolveTerritorySlugs != nil {
+		mmResolveTerritorySlugs.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ResolveTerritorySlugs")
+	}
+
+	mmResolveTerritorySlugs.mock.inspectFuncResolveTerritorySlugs = f
+
+	return mmResolveTerritorySlugs
+}
+
+// Return sets up results that will be returned by Repository.ResolveTerritorySlugs
+func (mmResolveTerritorySlugs *mRepositoryMockResolveTerritorySlugs) Return(m1 map[int64]string, err error) *RepositoryMock {
+	if mmResolveTerritorySlugs.mock.funcResolveTerritorySlugs != nil {
+		mmResolveTerritorySlugs.mock.t.Fatalf("RepositoryMock.ResolveTerritorySlugs mock is already set by Set")
+	}
+
+	if mmResolveTerritorySlugs.defaultExpectation == nil {
+		mmResolveTerritorySlugs.defaultExpectation = &RepositoryMockResolveTerritorySlugsExpectation{mock: mmResolveTerritorySlugs.mock}
+	}
+	mmResolveTerritorySlugs.defaultExpectation.results = &RepositoryMockResolveTerritorySlugsResults{m1, err}
+	mmResolveTerritorySlugs.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmResolveTerritorySlugs.mock
+}
+
+// Set uses given function f to mock the Repository.ResolveTerritorySlugs method
+func (mmResolveTerritorySlugs *mRepositoryMockResolveTerritorySlugs) Set(f func(ctx context.Context, ids []int64) (m1 map[int64]string, err error)) *RepositoryMock {
+	if mmResolveTerritorySlugs.defaultExpectation != nil {
+		mmResolveTerritorySlugs.mock.t.Fatalf("Default expectation is already set for the Repository.ResolveTerritorySlugs method")
+	}
+
+	if len(mmResolveTerritorySlugs.expectations) > 0 {
+		mmResolveTerritorySlugs.mock.t.Fatalf("Some expectations are already set for the Repository.ResolveTerritorySlugs method")
+	}
+
+	mmResolveTerritorySlugs.mock.funcResolveTerritorySlugs = f
+	mmResolveTerritorySlugs.mock.funcResolveTerritorySlugsOrigin = minimock.CallerInfo(1)
+	return mmResolveTerritorySlugs.mock
+}
+
+// When sets expectation for the Repository.ResolveTerritorySlugs which will trigger the result defined by the following
+// Then helper
+func (mmResolveTerritorySlugs *mRepositoryMockResolveTerritorySlugs) When(ctx context.Context, ids []int64) *RepositoryMockResolveTerritorySlugsExpectation {
+	if mmResolveTerritorySlugs.mock.funcResolveTerritorySlugs != nil {
+		mmResolveTerritorySlugs.mock.t.Fatalf("RepositoryMock.ResolveTerritorySlugs mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockResolveTerritorySlugsExpectation{
+		mock:               mmResolveTerritorySlugs.mock,
+		params:             &RepositoryMockResolveTerritorySlugsParams{ctx, ids},
+		expectationOrigins: RepositoryMockResolveTerritorySlugsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmResolveTerritorySlugs.expectations = append(mmResolveTerritorySlugs.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.ResolveTerritorySlugs return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockResolveTerritorySlugsExpectation) Then(m1 map[int64]string, err error) *RepositoryMock {
+	e.results = &RepositoryMockResolveTerritorySlugsResults{m1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.ResolveTerritorySlugs should be invoked
+func (mmResolveTerritorySlugs *mRepositoryMockResolveTerritorySlugs) Times(n uint64) *mRepositoryMockResolveTerritorySlugs {
+	if n == 0 {
+		mmResolveTerritorySlugs.mock.t.Fatalf("Times of RepositoryMock.ResolveTerritorySlugs mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmResolveTerritorySlugs.expectedInvocations, n)
+	mmResolveTerritorySlugs.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmResolveTerritorySlugs
+}
+
+func (mmResolveTerritorySlugs *mRepositoryMockResolveTerritorySlugs) invocationsDone() bool {
+	if len(mmResolveTerritorySlugs.expectations) == 0 && mmResolveTerritorySlugs.defaultExpectation == nil && mmResolveTerritorySlugs.mock.funcResolveTerritorySlugs == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmResolveTerritorySlugs.mock.afterResolveTerritorySlugsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmResolveTerritorySlugs.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ResolveTerritorySlugs implements mm_service.Repository
+func (mmResolveTerritorySlugs *RepositoryMock) ResolveTerritorySlugs(ctx context.Context, ids []int64) (m1 map[int64]string, err error) {
+	mm_atomic.AddUint64(&mmResolveTerritorySlugs.beforeResolveTerritorySlugsCounter, 1)
+	defer mm_atomic.AddUint64(&mmResolveTerritorySlugs.afterResolveTerritorySlugsCounter, 1)
+
+	mmResolveTerritorySlugs.t.Helper()
+
+	if mmResolveTerritorySlugs.inspectFuncResolveTerritorySlugs != nil {
+		mmResolveTerritorySlugs.inspectFuncResolveTerritorySlugs(ctx, ids)
+	}
+
+	mm_params := RepositoryMockResolveTerritorySlugsParams{ctx, ids}
+
+	// Record call args
+	mmResolveTerritorySlugs.ResolveTerritorySlugsMock.mutex.Lock()
+	mmResolveTerritorySlugs.ResolveTerritorySlugsMock.callArgs = append(mmResolveTerritorySlugs.ResolveTerritorySlugsMock.callArgs, &mm_params)
+	mmResolveTerritorySlugs.ResolveTerritorySlugsMock.mutex.Unlock()
+
+	for _, e := range mmResolveTerritorySlugs.ResolveTerritorySlugsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.m1, e.results.err
+		}
+	}
+
+	if mmResolveTerritorySlugs.ResolveTerritorySlugsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmResolveTerritorySlugs.ResolveTerritorySlugsMock.defaultExpectation.Counter, 1)
+		mm_want := mmResolveTerritorySlugs.ResolveTerritorySlugsMock.defaultExpectation.params
+		mm_want_ptrs := mmResolveTerritorySlugs.ResolveTerritorySlugsMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockResolveTerritorySlugsParams{ctx, ids}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmResolveTerritorySlugs.t.Errorf("RepositoryMock.ResolveTerritorySlugs got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveTerritorySlugs.ResolveTerritorySlugsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.ids != nil && !minimock.Equal(*mm_want_ptrs.ids, mm_got.ids) {
+				mmResolveTerritorySlugs.t.Errorf("RepositoryMock.ResolveTerritorySlugs got unexpected parameter ids, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveTerritorySlugs.ResolveTerritorySlugsMock.defaultExpectation.expectationOrigins.originIds, *mm_want_ptrs.ids, mm_got.ids, minimock.Diff(*mm_want_ptrs.ids, mm_got.ids))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmResolveTerritorySlugs.t.Errorf("RepositoryMock.ResolveTerritorySlugs got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmResolveTerritorySlugs.ResolveTerritorySlugsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmResolveTerritorySlugs.ResolveTerritorySlugsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmResolveTerritorySlugs.t.Fatal("No results are set for the RepositoryMock.ResolveTerritorySlugs")
+		}
+		return (*mm_results).m1, (*mm_results).err
+	}
+	if mmResolveTerritorySlugs.funcResolveTerritorySlugs != nil {
+		return mmResolveTerritorySlugs.funcResolveTerritorySlugs(ctx, ids)
+	}
+	mmResolveTerritorySlugs.t.Fatalf("Unexpected call to RepositoryMock.ResolveTerritorySlugs. %v %v", ctx, ids)
+	return
+}
+
+// ResolveTerritorySlugsAfterCounter returns a count of finished RepositoryMock.ResolveTerritorySlugs invocations
+func (mmResolveTerritorySlugs *RepositoryMock) ResolveTerritorySlugsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmResolveTerritorySlugs.afterResolveTerritorySlugsCounter)
+}
+
+// ResolveTerritorySlugsBeforeCounter returns a count of RepositoryMock.ResolveTerritorySlugs invocations
+func (mmResolveTerritorySlugs *RepositoryMock) ResolveTerritorySlugsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmResolveTerritorySlugs.beforeResolveTerritorySlugsCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.ResolveTerritorySlugs.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmResolveTerritorySlugs *mRepositoryMockResolveTerritorySlugs) Calls() []*RepositoryMockResolveTerritorySlugsParams {
+	mmResolveTerritorySlugs.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockResolveTerritorySlugsParams, len(mmResolveTerritorySlugs.callArgs))
+	copy(argCopy, mmResolveTerritorySlugs.callArgs)
+
+	mmResolveTerritorySlugs.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockResolveTerritorySlugsDone returns true if the count of the ResolveTerritorySlugs invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockResolveTerritorySlugsDone() bool {
+	if m.ResolveTerritorySlugsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ResolveTerritorySlugsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ResolveTerritorySlugsMock.invocationsDone()
+}
+
+// MinimockResolveTerritorySlugsInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockResolveTerritorySlugsInspect() {
+	for _, e := range m.ResolveTerritorySlugsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.ResolveTerritorySlugs at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterResolveTerritorySlugsCounter := mm_atomic.LoadUint64(&m.afterResolveTerritorySlugsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ResolveTerritorySlugsMock.defaultExpectation != nil && afterResolveTerritorySlugsCounter < 1 {
+		if m.ResolveTerritorySlugsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.ResolveTerritorySlugs at\n%s", m.ResolveTerritorySlugsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.ResolveTerritorySlugs at\n%s with params: %#v", m.ResolveTerritorySlugsMock.defaultExpectation.expectationOrigins.origin, *m.ResolveTerritorySlugsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcResolveTerritorySlugs != nil && afterResolveTerritorySlugsCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.ResolveTerritorySlugs at\n%s", m.funcResolveTerritorySlugsOrigin)
+	}
+
+	if !m.ResolveTerritorySlugsMock.invocationsDone() && afterResolveTerritorySlugsCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.ResolveTerritorySlugs at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ResolveTerritorySlugsMock.expectedInvocations), m.ResolveTerritorySlugsMock.expectedInvocationsOrigin, afterResolveTerritorySlugsCounter)
+	}
+}
+
 type mRepositoryMockSetPlacementVisibility struct {
 	optional           bool
 	mock               *RepositoryMock
@@ -9821,6 +10174,8 @@ func (m *RepositoryMock) MinimockFinish() {
 
 			m.MinimockRescaleTerritoryPlacementsInspect()
 
+			m.MinimockResolveTerritorySlugsInspect()
+
 			m.MinimockSetPlacementVisibilityInspect()
 
 			m.MinimockSetTerritoryAdminsInspect()
@@ -9876,6 +10231,7 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockRegisterModelArtifactDone() &&
 		m.MinimockRegisterTerritoryArtifactDone() &&
 		m.MinimockRescaleTerritoryPlacementsDone() &&
+		m.MinimockResolveTerritorySlugsDone() &&
 		m.MinimockSetPlacementVisibilityDone() &&
 		m.MinimockSetTerritoryAdminsDone() &&
 		m.MinimockSetTerritoryRescaleBaselineDone() &&
