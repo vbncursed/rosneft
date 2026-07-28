@@ -10,10 +10,12 @@ export default function ConsoleSidebar({
   showContent,
   showAccess,
   showMetrics,
+  showAudit,
 }: {
   showContent: boolean;
   showAccess: boolean;
   showMetrics: boolean;
+  showAudit: boolean;
 }) {
   const path = useLocation({ select: (l) => l.pathname });
   const isActive = (to: string) => path === to || path.startsWith(to + "/");
@@ -37,6 +39,11 @@ export default function ConsoleSidebar({
       {showAccess ? (
         <Link to="/admin/territories" className={itemClass(isActive("/admin/territories"))}>
           Territory access
+        </Link>
+      ) : null}
+      {showAudit ? (
+        <Link to="/admin/audit" className={itemClass(isActive("/admin/audit"))}>
+          Audit journal
         </Link>
       ) : null}
       {showMetrics ? (
