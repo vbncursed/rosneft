@@ -77,3 +77,19 @@ Because filenames are SHA-256 digests, **content for a given URL never
 changes** — that is what justifies `immutable`. If you ever need to mutate
 existing artefacts, mint a new hash and update the catalog reference; do not
 reuse a hash with different bytes.
+
+## Toolchain & dependencies
+
+Go **1.26.5** — `go 1.26.5` in `go.mod`, build stage `golang:1.26.5-alpine`.
+Versions are pinned identically across every module in the workspace; see
+[`backend/README.md#toolchain--dependencies`](../../README.md#toolchain--dependencies)
+for the repo-wide matrix and the upgrade procedure.
+
+| Module | Version | Role |
+| --- | --- | --- |
+| `github.com/gojuno/minimock/v3` | v3.4.7 | Generated interface mocks (test) |
+| `github.com/spf13/cobra` | v1.10.2 | CLI root command / flag definitions |
+| `github.com/spf13/viper` | v1.21.0 | Layered config (flag > env > default) |
+| `github.com/stretchr/testify` | v1.11.1 | `suite` grouping only (test) |
+| `github.com/vbncursed/rosneft/backend/pkg` | v0.0.0 | Workspace module — shared libs (`replace` → `../../pkg`) |
+| `gotest.tools/v3` | v3.5.2 | `assert` — the actual assertions (test) |

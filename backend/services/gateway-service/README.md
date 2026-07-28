@@ -132,12 +132,13 @@ permission noted in the **Perm** column.
 | DELETE | `/api/uploads/{id}` | — | Abort an in-progress session |
 | POST | `/api/uploads/{id}/finalize` | `upload:create` | Publish bytes to BlobStore → `{hash, size}` |
 
-### Jobs, assets, docs
+### Jobs, assets, metrics, ops
 
 | Method | Path | Perm | Description |
 | --- | --- | --- | --- |
 | GET | `/api/jobs/{id}/events` | — | **SSE stream of job state changes** (root router, bypasses JSON chain) |
 | GET, HEAD | `/api/assets/{hash}` | — | Binary GLB / panorama image (reverse-proxied to asset-service) |
+| GET | `/api/metrics/query` | **owner only** | Prometheus panel query — `?panel=<id>&range=1h\|6h\|24h\|7d` → `[MetricSeries]`. The panel id resolves to server-side PromQL, so no caller expression reaches Prometheus. |
 | GET | `/docs` | public | Scalar API reference UI |
 | GET | `/openapi.json` | public | Machine-readable spec (full, incl. auth) |
 | GET | `/healthz`, `/readyz` | public | Liveness / readiness |
@@ -177,10 +178,11 @@ add a per-route permission.
 ## Middleware chain
 
 ```
-client → CORS → RequestID → RealIP → Recoverer → slog-chi      ← root router
+client → CORS → RequestID → Recoverer → slog-chi               ← root router
   ├── /healthz, /readyz, /docs, /openapi.json
   ├── /api/assets/{hash}    → asset proxy (binary)   ← bypass JSON middleware
   ├── /api/jobs/{id}/events → SSE handler            ← bypass JSON middleware
+  ├── /api/metrics/query    → Authenticate → owner check → Prometheus proxy
   ├── /api/auth/*           → authhttp (login public; self/admin gated)
   └── /api/* group → Authenticate → RequirePermissionForRoute
                    → ETag → Compress(br/gzip/deflate) → openapi strict handlers
@@ -218,14 +220,22 @@ The OpenAPI spec (`api/openapi.yaml`) is the source of truth, regenerated via
 passes**:
 
 1. **`oapi-codegen.yaml`** — emits the chi/strict server stubs + models, but
-   **excludes the `auth` tag** (`exclude-tags: [auth]`). Auth endpoints can't
-   sit under the `/api` group's uniform auth middleware because `login` must be
-   public, so they're hand-served by the plain-chi `authhttp` package instead.
+   **excludes every tag that has a hand-written handler**
+   (`exclude-tags: [auth, assets, jobs, metrics, ops]`). Those routes can't sit
+   under the `/api` group's uniform middleware: `login` must be public, the
+   asset proxy streams binary, SSE must not be buffered, the metrics proxy needs
+   an owner check, and the probes must answer before the stack is up.
 2. **`oapi-codegen-spec.yaml`** — emits an `embedded-spec` blob containing the
-   **full** spec (every tag, including `auth`) into the binary. `GetSwagger()`
-   serves it at `/openapi.json`, so the Scalar UI at `/docs` documents the
-   complete surface — auth routes included — even though they're served outside
-   the generated server.
+   **full** spec (every tag) into the binary. `GetSpec()` serves it at
+   `/openapi.json`, so the Scalar UI at `/docs` documents the complete surface —
+   hand-served routes included — even though they bypass the generated server.
+
+Adding a route to `openapi.yaml` is only half the job: the served spec is the
+**embedded** copy, so without `make openapi-gen` the change is invisible at
+`/openapi.json` while routing keeps working — a silent drift.
+`internal/bootstrap/spec_coverage_test.go` walks the real chi router and fails
+if any registered route is missing from the embedded spec, which catches both
+"forgot the yaml" and "forgot to regenerate".
 
 Browse `http://localhost:8080/docs` for the Scalar explorer.
 
@@ -287,3 +297,28 @@ make lint    # golangci-lint
 
 Tests use `testify/suite` for grouping and `gotest.tools/v3/assert` for
 assertions (the project-wide convention).
+
+## Toolchain & dependencies
+
+Go **1.26.5** — `go 1.26.5` in `go.mod`, build stage `golang:1.26.5-alpine`.
+Versions are pinned identically across every module in the workspace; see
+[`backend/README.md#toolchain--dependencies`](../../README.md#toolchain--dependencies)
+for the repo-wide matrix and the upgrade procedure.
+
+| Module | Version | Role |
+| --- | --- | --- |
+| `github.com/andybalholm/brotli` | v1.2.2 | Brotli response compression |
+| `github.com/getkin/kin-openapi` | v0.145.0 | OpenAPI 3 spec load + request validation |
+| `github.com/go-chi/chi/v5` | v5.3.1 | HTTP router |
+| `github.com/go-chi/cors` | v1.2.2 | CORS middleware |
+| `github.com/gojuno/minimock/v3` | v3.4.7 | Generated interface mocks (test) |
+| `github.com/oapi-codegen/runtime` | v1.6.0 | Runtime for the generated server stubs |
+| `github.com/samber/slog-chi` | v1.19.1 | slog request-logging middleware |
+| `github.com/spf13/cobra` | v1.10.2 | CLI root command / flag definitions |
+| `github.com/spf13/viper` | v1.21.0 | Layered config (flag > env > default) |
+| `github.com/stretchr/testify` | v1.11.1 | `suite` grouping only (test) |
+| `github.com/vbncursed/rosneft/backend/pkg` | v0.0.0 | Workspace module — shared libs (`replace` → `../../pkg`) |
+| `github.com/vbncursed/rosneft/backend/proto` | v0.0.0 | Workspace module — generated gRPC stubs (`replace` → `../../proto`) |
+| `golang.org/x/sync` | v0.22.0 | `errgroup` — parallel scene-bundle fan-out |
+| `google.golang.org/grpc` | v1.82.1 | gRPC transport |
+| `gotest.tools/v3` | v3.5.2 | `assert` — the actual assertions (test) |

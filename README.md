@@ -9,11 +9,13 @@ the browser fetches compact binary artifacts instead of 100+ MB ASCII files.
 
 ```
 andrey/
-├── backend/        # Go 1.26 microservices (gateway, catalog, content, auth, twofa, mesh, upload, asset)
-├── frontend/       # Vite + React 19 SPA viewer (TanStack Router + react-three-fiber)
-├── documentation/  # external reference material checked in for offline use
-├── CLAUDE.md       # repo-wide guidance for Claude Code
-└── AGENTS.md       # agent collaboration rules
+├── backend/            # Go 1.26.5 microservices (gateway, catalog, content, auth,
+│                       #   twofa, passkey, mesh, upload, asset)
+├── frontend/           # Vite + React 19 SPA viewer (TanStack Router + react-three-fiber)
+├── ops/                # deployment + observability config (Prometheus, …)
+├── docs/               # design specs and implementation plans
+├── docker-compose.yml  # postgres, redis, every backend service, prometheus
+└── CLAUDE.md           # repo-wide guidance for Claude Code
 ```
 
 Each top-level package owns its own toolchain, build, and README.
@@ -35,7 +37,7 @@ See [`frontend/README.md`](frontend/README.md).
 
 ### Backend (`backend/`)
 
-Go 1.26 multi-module workspace (`go.work`). Services:
+Go **1.26.5** multi-module workspace (`go.work`, 11 modules). Services:
 
 | Service           | Purpose                                                       | Network            |
 | ----------------- | ------------------------------------------------------------- | ------------------ |
@@ -44,6 +46,7 @@ Go 1.26 multi-module workspace (`go.work`). Services:
 | [`content-service`](backend/services/content-service/README.md) | Documents + panoramas anchored to a territory                 | gRPC `:9007` (internal)   |
 | [`auth-service`](backend/services/auth-service/README.md)       | Users, multi-role RBAC, sessions                              | gRPC `:9004` (internal)   |
 | [`twofa-service`](backend/services/twofa-service/README.md)     | TOTP 2FA: secrets, recovery codes, verify                     | gRPC `:9006` (internal)   |
+| [`passkey-service`](backend/services/passkey-service/README.md) | WebAuthn passkeys: credentials, ceremonies, assertion verify  | gRPC `:9008` (internal)   |
 | [`mesh-service`](backend/services/mesh-service/README.md)       | OBJ → GLB + Draco + KTX2 + LOD (`mesh-api` + `mesh-worker`)   | gRPC `:9002` (internal)   |
 | [`upload-service`](backend/services/upload-service/README.md)   | Resumable chunked uploads (gRPC streaming)                    | gRPC `:9003` (internal)   |
 | [`asset-service`](backend/services/asset-service/README.md)     | Binary artifact server (Range / ETag / immutable cache)       | `:8081` (via gw)          |
@@ -60,7 +63,7 @@ Implemented across both sides; some are opt-in until both halves are wired:
 
 | Feature | Backend | Frontend requirement |
 | --- | --- | --- |
-| Single-shot scene bundle | `GET /api/projects/{slug}/scene` | Use it instead of 4 parallel calls |
+| Single-shot scene bundle | `GET /api/territories/{slug}/scene` | Use it instead of 4 parallel calls |
 | SSE conversion stream | `GET /api/jobs/{id}/events` | Replace polling with `EventSource` |
 | Project pagination | `?limit=&cursor=` + `X-Next-Cursor` | Send params when listing |
 | ETag + 304 on JSON | always-on middleware | nothing — browsers handle automatically |
@@ -70,17 +73,37 @@ Implemented across both sides; some are opt-in until both halves are wired:
 | KTX2 / Basis textures | `MESH_KTX2_ENABLED=true` (default) | Register `KTX2Loader` explicitly (drei does NOT auto-register) |
 | LOD generation | `MESH_LOD_RATIOS=0.5,0.25` (default) | Use `getArtifact(slug, lod)` per level (LOD0 always = full quality) |
 
+## Toolchain
+
+| Half | Runtime | Pinned where |
+| --- | --- | --- |
+| Backend | **Go 1.26.5** | `backend/go.work` + all 11 `go.mod` files; `golang:1.26.5-alpine` in every service Dockerfile |
+| Frontend | **Node + Yarn**, Vite 8, React 19, TypeScript strict | `frontend/package.json` |
+| Datastores | PostgreSQL 17, Redis 8 | `docker-compose.yml` |
+
+The backend's full pinned-dependency matrix, per-module breakdown, and the
+upgrade procedure live in
+[`backend/README.md#toolchain--dependencies`](backend/README.md#toolchain--dependencies).
+
 ## Development
 
 Frontend and backend run independently.
 
 ```bash
 # Backend (from backend/)
-make compose-up      # docker compose: postgres, redis, all services
+make compose-up      # docker compose: postgres, redis, prometheus, all services
+make build           # binaries to backend/bin/
+make test            # go test -race -shuffle=on across all 11 modules
+make lint            # golangci-lint across all 11 modules
 
 # Frontend (from frontend/)
-yarn dev             # http://localhost:5173 — set VITE_API_URL to the gateway
+yarn dev --port 3000 # set VITE_API_URL to the gateway
 ```
+
+> The frontend is **not** a compose service — run it locally. Use port **3000**,
+> not Vite's default 5173: `PASSKEY_RP_ORIGINS` is pinned to
+> `http://localhost:3000`, and a mismatched origin fails every WebAuthn ceremony
+> with an opaque client-side `SecurityError` and no server log.
 
 Browse `http://localhost:8080/docs` for the Scalar API explorer.
 

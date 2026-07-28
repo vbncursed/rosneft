@@ -119,3 +119,26 @@ With `TWOFA_AUTO_MIGRATE=true` (default), `serve` migrates on startup. Or via
 Compose: `make compose-up`. Service-layer tests run against minimock fakes plus
 dedicated `secret` (AES-GCM) and `totp` unit tests — no external Postgres or
 Redis required for the unit suite.
+
+## Toolchain & dependencies
+
+Go **1.26.5** — `go 1.26.5` in `go.mod`, build stage `golang:1.26.5-alpine`.
+Versions are pinned identically across every module in the workspace; see
+[`backend/README.md#toolchain--dependencies`](../../README.md#toolchain--dependencies)
+for the repo-wide matrix and the upgrade procedure.
+
+| Module | Version | Role |
+| --- | --- | --- |
+| `github.com/gojuno/minimock/v3` | v3.4.7 | Generated interface mocks (test) |
+| `github.com/jackc/pgx/v5` | v5.10.0 | Postgres driver + connection pool |
+| `github.com/pquerna/otp` | v1.5.0 | TOTP secret generation + code verification |
+| `github.com/pressly/goose/v3` | v3.27.3 | Embedded SQL migrations |
+| `github.com/prometheus/client_golang` | v1.24.1 | Prometheus `/metrics` exposition |
+| `github.com/redis/go-redis/v9` | v9.21.0 | 2FA attempt rate-limit / lockout state (logical DB 2) |
+| `github.com/spf13/cobra` | v1.10.2 | CLI root command / flag definitions |
+| `github.com/spf13/viper` | v1.21.0 | Layered config (flag > env > default) |
+| `github.com/stretchr/testify` | v1.11.1 | `suite` grouping only (test) |
+| `github.com/vbncursed/rosneft/backend/pkg` | v0.0.0 | Workspace module — shared libs (`replace` → `../../pkg`) |
+| `github.com/vbncursed/rosneft/backend/proto` | v0.0.0 | Workspace module — generated gRPC stubs (`replace` → `../../proto`) |
+| `google.golang.org/grpc` | v1.82.1 | gRPC transport |
+| `gotest.tools/v3` | v3.5.2 | `assert` — the actual assertions (test) |

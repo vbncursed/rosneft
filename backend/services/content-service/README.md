@@ -7,9 +7,9 @@ Exposes an internal gRPC surface consumed exclusively by `gateway`; it has no
 public HTTP listener.
 
 Extracted from `catalog-service` so the catalog stays focused on the 3D core
-(territories / models / artifacts / placements). See
-[`docs/superpowers/specs/2026-07-03-content-service-extraction-design.md`](../../../docs/superpowers/specs/2026-07-03-content-service-extraction-design.md)
-for the rationale.
+(territories / models / artifacts / placements). It shares the `andrey` database
+with catalog, isolated by its own `content_goose_db_version` table; the
+`territories` FK cascade still cleans up its rows when a territory is deleted.
 
 ## Responsibilities
 
@@ -120,3 +120,24 @@ stack).
 Service-layer tests run against minimock-generated fakes
 (`internal/service/mocks/`); no external Postgres is required for the unit
 suite.
+
+## Toolchain & dependencies
+
+Go **1.26.5** — `go 1.26.5` in `go.mod`, build stage `golang:1.26.5-alpine`.
+Versions are pinned identically across every module in the workspace; see
+[`backend/README.md#toolchain--dependencies`](../../README.md#toolchain--dependencies)
+for the repo-wide matrix and the upgrade procedure.
+
+| Module | Version | Role |
+| --- | --- | --- |
+| `github.com/gojuno/minimock/v3` | v3.4.7 | Generated interface mocks (test) |
+| `github.com/jackc/pgx/v5` | v5.10.0 | Postgres driver + connection pool |
+| `github.com/pressly/goose/v3` | v3.27.3 | Embedded SQL migrations |
+| `github.com/spf13/cobra` | v1.10.2 | CLI root command / flag definitions |
+| `github.com/spf13/viper` | v1.21.0 | Layered config (flag > env > default) |
+| `github.com/stretchr/testify` | v1.11.1 | `suite` grouping only (test) |
+| `github.com/vbncursed/rosneft/backend/pkg` | v0.0.0 | Workspace module — shared libs (`replace` → `../../pkg`) |
+| `github.com/vbncursed/rosneft/backend/proto` | v0.0.0 | Workspace module — generated gRPC stubs (`replace` → `../../proto`) |
+| `google.golang.org/grpc` | v1.82.1 | gRPC transport |
+| `google.golang.org/protobuf` | v1.36.11 | Generated protobuf message runtime |
+| `gotest.tools/v3` | v3.5.2 | `assert` — the actual assertions (test) |
