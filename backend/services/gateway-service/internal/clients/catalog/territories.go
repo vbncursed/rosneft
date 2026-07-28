@@ -13,7 +13,7 @@ import (
 func (c *Client) ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error) {
 	resp, err := c.cc.ListTerritories(ctx, &catalogv1.ListTerritoriesRequest{ScopeAdminId: scopeAdminID})
 	if err != nil {
-		return nil, fmt.Errorf("catalog.ListTerritories: %w", err)
+		return nil, fmt.Errorf("catalog.ListTerritories: %w", grpcerr.MapStatus(err, nil))
 	}
 	out := make([]domain.Territory, len(resp.GetTerritories()))
 	for i, t := range resp.GetTerritories() {
@@ -36,7 +36,7 @@ func (c *Client) GetTerritory(ctx context.Context, slug, scopeAdminID string) (d
 func (c *Client) UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error) {
 	resp, err := c.cc.UpsertTerritory(ctx, &catalogv1.UpsertTerritoryRequest{Territory: territoryToProto(t)})
 	if err != nil {
-		return domain.Territory{}, fmt.Errorf("catalog.UpsertTerritory: %w", err)
+		return domain.Territory{}, fmt.Errorf("catalog.UpsertTerritory: %w", grpcerr.MapStatus(err, nil))
 	}
 	return territoryFromProto(resp.GetTerritory()), nil
 }
