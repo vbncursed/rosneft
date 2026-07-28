@@ -45,6 +45,10 @@ func (h *Handlers) Mount(r chi.Router) {
 		// Authenticated — any valid session.
 		ar.Group(func(pr chi.Router) {
 			pr.Use(h.Authenticate)
+			// Records the security events listed in authAuditActions. Must run
+			// after Authenticate so the principal is on ctx; the login routes
+			// above are public and record themselves.
+			pr.Use(h.AuditAuthEvents)
 			pr.Post("/logout", h.logout)
 			pr.Get("/me", h.me)
 			pr.Post("/me/password", h.changePassword)
@@ -95,8 +99,14 @@ func (h *Handlers) login(w http.ResponseWriter, r *http.Request) {
 	}
 	token, challenge, twoFA, err := h.client.Login(r.Context(), req.Identifier, req.Password)
 	if err != nil {
+		h.recordLogin(r, "auth.login", "")
 		fail(w, err)
 		return
+	}
+	// A 2FA challenge is not a completed login: the session is issued only after
+	// login/2fa succeeds, which records auth.login_2fa itself.
+	if token != "" {
+		h.recordLogin(r, "auth.login", token)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"token": token, "twoFactorRequired": twoFA, "challengeToken": challenge})
 }
@@ -108,9 +118,11 @@ func (h *Handlers) login2FA(w http.ResponseWriter, r *http.Request) {
 	}
 	token, err := h.client.LoginVerify2FA(r.Context(), req.ChallengeToken, req.Code)
 	if err != nil {
+		h.recordLogin(r, "auth.login_2fa", "")
 		fail(w, err)
 		return
 	}
+	h.recordLogin(r, "auth.login_2fa", token)
 	writeJSON(w, http.StatusOK, map[string]any{"token": token})
 }
 
