@@ -10,6 +10,7 @@ const (
 	keyIsOwner
 	keyOwningAdmin
 	keyAuditCompany
+	keyToken
 )
 
 func withPrincipal(ctx context.Context, userID string, perms []string, isOwner bool, owningAdmin, auditCompany string) context.Context {
@@ -67,4 +68,21 @@ func IsOwner(ctx context.Context) bool {
 func AuditCompany(ctx context.Context) string {
 	c, _ := ctx.Value(keyAuditCompany).(string)
 	return c
+}
+
+// withToken carries the caller's bearer for handlers that must forward it to a
+// service. The authhttp handlers read it off the request directly; the
+// oapi-codegen ones in httpapi only ever see a context, and the audit journal
+// needs the token to ask auth for the logins behind the actor ids it returns.
+//
+// Request-scoped and never logged: it is the same secret the request already
+// arrived with, not a new one, and it dies with the context.
+func withToken(ctx context.Context, token string) context.Context {
+	return context.WithValue(ctx, keyToken, token)
+}
+
+// Token returns the caller's bearer, empty when unauthenticated.
+func Token(ctx context.Context) string {
+	t, _ := ctx.Value(keyToken).(string)
+	return t
 }

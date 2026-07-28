@@ -16,9 +16,13 @@ import (
 // than that many rows.
 const csvPageSize int32 = 200
 
+// The label columns sit next to their ids rather than replacing them: the id is
+// what is unambiguous, the login is what reads, and an audit export wants both.
+// New columns are appended within the existing order rather than reordering it,
+// so a spreadsheet or script built against the old export keeps working.
 var auditCSVHeader = []string{
-	"at", "actor_id", "company_id", "action", "entity", "entity_id",
-	"entity_label", "result",
+	"at", "actor_id", "actor_login", "company_id", "company_login",
+	"action", "entity", "entity_id", "entity_label", "territory", "result",
 }
 
 // ServeAuditCSV streams the filtered journal as CSV.
@@ -36,11 +40,14 @@ func (s *Server) ServeAuditCSV(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	isOwner, company := authhttp.IsOwner(ctx), authhttp.AuditCompany(ctx)
+	// Forwarded to auth so the exported rows carry logins next to the ids.
+	// Authenticate runs on this route by hand, so the token is on the context.
+	token := authhttp.Token(ctx)
 
 	// Resolve the scope before writing a byte: once the header is sent the
 	// status code is fixed, and a 200 with a truncated body would read as a
 	// complete export.
-	first, next, err := s.svc.ListAudit(ctx, q, isOwner, company)
+	first, next, err := s.svc.ListAudit(ctx, q, isOwner, company, token)
 	if err != nil {
 		writeAuditCSVError(w, err)
 		return
@@ -66,7 +73,7 @@ func (s *Server) ServeAuditCSV(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		q.Cursor = next
-		page, next, err = s.svc.ListAudit(ctx, q, isOwner, company)
+		page, next, err = s.svc.ListAudit(ctx, q, isOwner, company, token)
 		if err != nil {
 			// The header is already out; log-free bail is the only option left.
 			return
@@ -77,7 +84,8 @@ func (s *Server) ServeAuditCSV(w http.ResponseWriter, r *http.Request) {
 func auditCSVRow(e domain.AuditEntry) []string {
 	return []string{
 		e.At.Format(time.RFC3339),
-		e.ActorID, e.CompanyID, e.Action, e.Entity, e.EntityID, e.EntityLabel, e.Result,
+		e.ActorID, e.ActorLogin, e.CompanyID, e.CompanyLogin,
+		e.Action, e.Entity, e.EntityID, e.EntityLabel, e.TerritorySlug, e.Result,
 	}
 }
 

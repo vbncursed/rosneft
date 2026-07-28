@@ -19,6 +19,13 @@ type AuditMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
+	funcListActors          func(ctx context.Context, q domain.AuditQuery) (sa1 []string, err error)
+	funcListActorsOrigin    string
+	inspectFuncListActors   func(ctx context.Context, q domain.AuditQuery)
+	afterListActorsCounter  uint64
+	beforeListActorsCounter uint64
+	ListActorsMock          mAuditMockListActors
+
 	funcListEntries          func(ctx context.Context, q domain.AuditQuery) (aa1 []domain.AuditEntry, i1 int64, err error)
 	funcListEntriesOrigin    string
 	inspectFuncListEntries   func(ctx context.Context, q domain.AuditQuery)
@@ -42,6 +49,9 @@ func NewAuditMock(t minimock.Tester) *AuditMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.ListActorsMock = mAuditMockListActors{mock: m}
+	m.ListActorsMock.callArgs = []*AuditMockListActorsParams{}
+
 	m.ListEntriesMock = mAuditMockListEntries{mock: m}
 	m.ListEntriesMock.callArgs = []*AuditMockListEntriesParams{}
 
@@ -51,6 +61,349 @@ func NewAuditMock(t minimock.Tester) *AuditMock {
 	t.Cleanup(m.MinimockFinish)
 
 	return m
+}
+
+type mAuditMockListActors struct {
+	optional           bool
+	mock               *AuditMock
+	defaultExpectation *AuditMockListActorsExpectation
+	expectations       []*AuditMockListActorsExpectation
+
+	callArgs []*AuditMockListActorsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// AuditMockListActorsExpectation specifies expectation struct of the Audit.ListActors
+type AuditMockListActorsExpectation struct {
+	mock               *AuditMock
+	params             *AuditMockListActorsParams
+	paramPtrs          *AuditMockListActorsParamPtrs
+	expectationOrigins AuditMockListActorsExpectationOrigins
+	results            *AuditMockListActorsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// AuditMockListActorsParams contains parameters of the Audit.ListActors
+type AuditMockListActorsParams struct {
+	ctx context.Context
+	q   domain.AuditQuery
+}
+
+// AuditMockListActorsParamPtrs contains pointers to parameters of the Audit.ListActors
+type AuditMockListActorsParamPtrs struct {
+	ctx *context.Context
+	q   *domain.AuditQuery
+}
+
+// AuditMockListActorsResults contains results of the Audit.ListActors
+type AuditMockListActorsResults struct {
+	sa1 []string
+	err error
+}
+
+// AuditMockListActorsOrigins contains origins of expectations of the Audit.ListActors
+type AuditMockListActorsExpectationOrigins struct {
+	origin    string
+	originCtx string
+	originQ   string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmListActors *mAuditMockListActors) Optional() *mAuditMockListActors {
+	mmListActors.optional = true
+	return mmListActors
+}
+
+// Expect sets up expected params for Audit.ListActors
+func (mmListActors *mAuditMockListActors) Expect(ctx context.Context, q domain.AuditQuery) *mAuditMockListActors {
+	if mmListActors.mock.funcListActors != nil {
+		mmListActors.mock.t.Fatalf("AuditMock.ListActors mock is already set by Set")
+	}
+
+	if mmListActors.defaultExpectation == nil {
+		mmListActors.defaultExpectation = &AuditMockListActorsExpectation{}
+	}
+
+	if mmListActors.defaultExpectation.paramPtrs != nil {
+		mmListActors.mock.t.Fatalf("AuditMock.ListActors mock is already set by ExpectParams functions")
+	}
+
+	mmListActors.defaultExpectation.params = &AuditMockListActorsParams{ctx, q}
+	mmListActors.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmListActors.expectations {
+		if minimock.Equal(e.params, mmListActors.defaultExpectation.params) {
+			mmListActors.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListActors.defaultExpectation.params)
+		}
+	}
+
+	return mmListActors
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Audit.ListActors
+func (mmListActors *mAuditMockListActors) ExpectCtxParam1(ctx context.Context) *mAuditMockListActors {
+	if mmListActors.mock.funcListActors != nil {
+		mmListActors.mock.t.Fatalf("AuditMock.ListActors mock is already set by Set")
+	}
+
+	if mmListActors.defaultExpectation == nil {
+		mmListActors.defaultExpectation = &AuditMockListActorsExpectation{}
+	}
+
+	if mmListActors.defaultExpectation.params != nil {
+		mmListActors.mock.t.Fatalf("AuditMock.ListActors mock is already set by Expect")
+	}
+
+	if mmListActors.defaultExpectation.paramPtrs == nil {
+		mmListActors.defaultExpectation.paramPtrs = &AuditMockListActorsParamPtrs{}
+	}
+	mmListActors.defaultExpectation.paramPtrs.ctx = &ctx
+	mmListActors.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmListActors
+}
+
+// ExpectQParam2 sets up expected param q for Audit.ListActors
+func (mmListActors *mAuditMockListActors) ExpectQParam2(q domain.AuditQuery) *mAuditMockListActors {
+	if mmListActors.mock.funcListActors != nil {
+		mmListActors.mock.t.Fatalf("AuditMock.ListActors mock is already set by Set")
+	}
+
+	if mmListActors.defaultExpectation == nil {
+		mmListActors.defaultExpectation = &AuditMockListActorsExpectation{}
+	}
+
+	if mmListActors.defaultExpectation.params != nil {
+		mmListActors.mock.t.Fatalf("AuditMock.ListActors mock is already set by Expect")
+	}
+
+	if mmListActors.defaultExpectation.paramPtrs == nil {
+		mmListActors.defaultExpectation.paramPtrs = &AuditMockListActorsParamPtrs{}
+	}
+	mmListActors.defaultExpectation.paramPtrs.q = &q
+	mmListActors.defaultExpectation.expectationOrigins.originQ = minimock.CallerInfo(1)
+
+	return mmListActors
+}
+
+// Inspect accepts an inspector function that has same arguments as the Audit.ListActors
+func (mmListActors *mAuditMockListActors) Inspect(f func(ctx context.Context, q domain.AuditQuery)) *mAuditMockListActors {
+	if mmListActors.mock.inspectFuncListActors != nil {
+		mmListActors.mock.t.Fatalf("Inspect function is already set for AuditMock.ListActors")
+	}
+
+	mmListActors.mock.inspectFuncListActors = f
+
+	return mmListActors
+}
+
+// Return sets up results that will be returned by Audit.ListActors
+func (mmListActors *mAuditMockListActors) Return(sa1 []string, err error) *AuditMock {
+	if mmListActors.mock.funcListActors != nil {
+		mmListActors.mock.t.Fatalf("AuditMock.ListActors mock is already set by Set")
+	}
+
+	if mmListActors.defaultExpectation == nil {
+		mmListActors.defaultExpectation = &AuditMockListActorsExpectation{mock: mmListActors.mock}
+	}
+	mmListActors.defaultExpectation.results = &AuditMockListActorsResults{sa1, err}
+	mmListActors.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmListActors.mock
+}
+
+// Set uses given function f to mock the Audit.ListActors method
+func (mmListActors *mAuditMockListActors) Set(f func(ctx context.Context, q domain.AuditQuery) (sa1 []string, err error)) *AuditMock {
+	if mmListActors.defaultExpectation != nil {
+		mmListActors.mock.t.Fatalf("Default expectation is already set for the Audit.ListActors method")
+	}
+
+	if len(mmListActors.expectations) > 0 {
+		mmListActors.mock.t.Fatalf("Some expectations are already set for the Audit.ListActors method")
+	}
+
+	mmListActors.mock.funcListActors = f
+	mmListActors.mock.funcListActorsOrigin = minimock.CallerInfo(1)
+	return mmListActors.mock
+}
+
+// When sets expectation for the Audit.ListActors which will trigger the result defined by the following
+// Then helper
+func (mmListActors *mAuditMockListActors) When(ctx context.Context, q domain.AuditQuery) *AuditMockListActorsExpectation {
+	if mmListActors.mock.funcListActors != nil {
+		mmListActors.mock.t.Fatalf("AuditMock.ListActors mock is already set by Set")
+	}
+
+	expectation := &AuditMockListActorsExpectation{
+		mock:               mmListActors.mock,
+		params:             &AuditMockListActorsParams{ctx, q},
+		expectationOrigins: AuditMockListActorsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmListActors.expectations = append(mmListActors.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Audit.ListActors return parameters for the expectation previously defined by the When method
+func (e *AuditMockListActorsExpectation) Then(sa1 []string, err error) *AuditMock {
+	e.results = &AuditMockListActorsResults{sa1, err}
+	return e.mock
+}
+
+// Times sets number of times Audit.ListActors should be invoked
+func (mmListActors *mAuditMockListActors) Times(n uint64) *mAuditMockListActors {
+	if n == 0 {
+		mmListActors.mock.t.Fatalf("Times of AuditMock.ListActors mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmListActors.expectedInvocations, n)
+	mmListActors.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmListActors
+}
+
+func (mmListActors *mAuditMockListActors) invocationsDone() bool {
+	if len(mmListActors.expectations) == 0 && mmListActors.defaultExpectation == nil && mmListActors.mock.funcListActors == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmListActors.mock.afterListActorsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmListActors.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ListActors implements mm_service.Audit
+func (mmListActors *AuditMock) ListActors(ctx context.Context, q domain.AuditQuery) (sa1 []string, err error) {
+	mm_atomic.AddUint64(&mmListActors.beforeListActorsCounter, 1)
+	defer mm_atomic.AddUint64(&mmListActors.afterListActorsCounter, 1)
+
+	mmListActors.t.Helper()
+
+	if mmListActors.inspectFuncListActors != nil {
+		mmListActors.inspectFuncListActors(ctx, q)
+	}
+
+	mm_params := AuditMockListActorsParams{ctx, q}
+
+	// Record call args
+	mmListActors.ListActorsMock.mutex.Lock()
+	mmListActors.ListActorsMock.callArgs = append(mmListActors.ListActorsMock.callArgs, &mm_params)
+	mmListActors.ListActorsMock.mutex.Unlock()
+
+	for _, e := range mmListActors.ListActorsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.sa1, e.results.err
+		}
+	}
+
+	if mmListActors.ListActorsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmListActors.ListActorsMock.defaultExpectation.Counter, 1)
+		mm_want := mmListActors.ListActorsMock.defaultExpectation.params
+		mm_want_ptrs := mmListActors.ListActorsMock.defaultExpectation.paramPtrs
+
+		mm_got := AuditMockListActorsParams{ctx, q}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmListActors.t.Errorf("AuditMock.ListActors got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListActors.ListActorsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.q != nil && !minimock.Equal(*mm_want_ptrs.q, mm_got.q) {
+				mmListActors.t.Errorf("AuditMock.ListActors got unexpected parameter q, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListActors.ListActorsMock.defaultExpectation.expectationOrigins.originQ, *mm_want_ptrs.q, mm_got.q, minimock.Diff(*mm_want_ptrs.q, mm_got.q))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmListActors.t.Errorf("AuditMock.ListActors got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmListActors.ListActorsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmListActors.ListActorsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmListActors.t.Fatal("No results are set for the AuditMock.ListActors")
+		}
+		return (*mm_results).sa1, (*mm_results).err
+	}
+	if mmListActors.funcListActors != nil {
+		return mmListActors.funcListActors(ctx, q)
+	}
+	mmListActors.t.Fatalf("Unexpected call to AuditMock.ListActors. %v %v", ctx, q)
+	return
+}
+
+// ListActorsAfterCounter returns a count of finished AuditMock.ListActors invocations
+func (mmListActors *AuditMock) ListActorsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListActors.afterListActorsCounter)
+}
+
+// ListActorsBeforeCounter returns a count of AuditMock.ListActors invocations
+func (mmListActors *AuditMock) ListActorsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListActors.beforeListActorsCounter)
+}
+
+// Calls returns a list of arguments used in each call to AuditMock.ListActors.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmListActors *mAuditMockListActors) Calls() []*AuditMockListActorsParams {
+	mmListActors.mutex.RLock()
+
+	argCopy := make([]*AuditMockListActorsParams, len(mmListActors.callArgs))
+	copy(argCopy, mmListActors.callArgs)
+
+	mmListActors.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockListActorsDone returns true if the count of the ListActors invocations corresponds
+// the number of defined expectations
+func (m *AuditMock) MinimockListActorsDone() bool {
+	if m.ListActorsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ListActorsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ListActorsMock.invocationsDone()
+}
+
+// MinimockListActorsInspect logs each unmet expectation
+func (m *AuditMock) MinimockListActorsInspect() {
+	for _, e := range m.ListActorsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to AuditMock.ListActors at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterListActorsCounter := mm_atomic.LoadUint64(&m.afterListActorsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ListActorsMock.defaultExpectation != nil && afterListActorsCounter < 1 {
+		if m.ListActorsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to AuditMock.ListActors at\n%s", m.ListActorsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to AuditMock.ListActors at\n%s with params: %#v", m.ListActorsMock.defaultExpectation.expectationOrigins.origin, *m.ListActorsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcListActors != nil && afterListActorsCounter < 1 {
+		m.t.Errorf("Expected call to AuditMock.ListActors at\n%s", m.funcListActorsOrigin)
+	}
+
+	if !m.ListActorsMock.invocationsDone() && afterListActorsCounter > 0 {
+		m.t.Errorf("Expected %d calls to AuditMock.ListActors at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListActorsMock.expectedInvocations), m.ListActorsMock.expectedInvocationsOrigin, afterListActorsCounter)
+	}
 }
 
 type mAuditMockListEntries struct {
@@ -743,6 +1096,8 @@ func (m *AuditMock) MinimockRecordInspect() {
 func (m *AuditMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
 		if !m.minimockDone() {
+			m.MinimockListActorsInspect()
+
 			m.MinimockListEntriesInspect()
 
 			m.MinimockRecordInspect()
@@ -769,6 +1124,7 @@ func (m *AuditMock) MinimockWait(timeout mm_time.Duration) {
 func (m *AuditMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockListActorsDone() &&
 		m.MinimockListEntriesDone() &&
 		m.MinimockRecordDone()
 }

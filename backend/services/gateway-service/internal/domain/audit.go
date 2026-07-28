@@ -17,6 +17,14 @@ type AuditEntry struct {
 	OldRow      string
 	NewRow      string
 	Result      string
+
+	// Подписи, которые журнал не хранит: они разрешаются на чтении у
+	// сервисов-владельцев данных. Пустая подпись — рабочее состояние, а не
+	// ошибка: сущность могли удалить, а сервис подписей мог быть недоступен.
+	// Читатель в таком случае видит id, то есть ровно то, что видел раньше.
+	ActorLogin    string
+	CompanyLogin  string
+	TerritorySlug string
 }
 
 // AuditQuery narrows a journal read. AllCompanies and CompanyID are filled in
@@ -42,4 +50,10 @@ type AuditEvent struct {
 	Action    string
 	Entity    string
 	Result    string
+}
+
+// AuditActor is one selectable option in the journal's actor filter.
+type AuditActor struct {
+	ID    string
+	Login string
 }

@@ -11,13 +11,7 @@ function hasDetail(entry: AuditEntry): boolean {
   return entry.oldRow !== null || entry.newRow !== null;
 }
 
-export default function AuditRow({
-  entry,
-  actors,
-}: {
-  entry: AuditEntry;
-  actors?: Map<string, string>;
-}) {
+export default function AuditRow({ entry }: { entry: AuditEntry }) {
   const [open, setOpen] = useState(false);
   const detail = hasDetail(entry);
   const system = isSystemChange(entry);
@@ -33,20 +27,29 @@ export default function AuditRow({
           <span className="font-mono text-cyan-200">{entry.action}</span>
           <span className="mx-2 text-neutral-600">·</span>
           <EntityLink entry={entry} />
+          {/* Территория дописывается в ту же ячейку, а не отдельной колонкой:
+              сетка строки и так схлопывается в одну колонку ниже sm, а без
+              родителя запись вида "placement.update · 71" не сообщает ничего —
+              у 39 из 41 размещения нет метки, и остаётся голый id. */}
+          {entry.territorySlug ? (
+            <>
+              <span className="mx-2 text-neutral-600">·</span>
+              <span className="text-neutral-400">{entry.territorySlug}</span>
+            </>
+          ) : null}
         </span>
 
         <span className="truncate text-xs" title={system ? "" : entry.actorId}>
           {system ? (
             <span className="text-neutral-500 italic">system</span>
           ) : (
-            // Логин, если он известен; иначе укороченный UUID, как раньше.
-            // Полный id остаётся в title — он нужен, когда запись обсуждают.
+            // Логин, если сервер его разрешил; иначе укороченный UUID. Пустая
+            // подпись означает «пользователь удалён или auth был недоступен»,
+            // а не «у тебя нет прав» — прав на это теперь не требуется.
             <span
-              className={
-                actors?.has(entry.actorId) ? "text-neutral-300" : "font-mono text-neutral-400"
-              }
+              className={entry.actorLogin ? "text-neutral-300" : "font-mono text-neutral-400"}
             >
-              {actors?.get(entry.actorId) ?? entry.actorId.slice(0, 8)}
+              {entry.actorLogin || entry.actorId.slice(0, 8)}
             </span>
           )}
         </span>

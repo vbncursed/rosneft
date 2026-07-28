@@ -13,6 +13,7 @@ import (
 // Store is the persistence contract.
 type Store interface {
 	List(ctx context.Context, f domain.Filter) ([]domain.Entry, error)
+	DistinctActors(ctx context.Context, f domain.Filter) ([]string, error)
 	Record(ctx context.Context, e domain.Entry) (int64, error)
 }
 

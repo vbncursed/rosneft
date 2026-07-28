@@ -24,6 +24,10 @@ func (h *Handlers) Authenticate(next http.Handler) http.Handler {
 			return
 		}
 		ctx := withPrincipal(r.Context(), uid, perms, isOwner, owningAdmin, auditCompany)
+		// The bearer travels on too: handlers in httpapi only ever see a
+		// context, and the audit journal has to forward it to auth to turn the
+		// actor ids it returns into logins.
+		ctx = withToken(ctx, token)
 		// Also publish the actor for outbound gRPC: the client interceptor in
 		// grpcutil forwards it to catalog/content/auth, where it reaches the
 		// audit trigger through the mutation's transaction.

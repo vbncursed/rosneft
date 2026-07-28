@@ -30,6 +30,12 @@ service AuthService {
   // --- user admin ---
   rpc CreateUser(CreateUserRequest) returns (User);
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+  // ResolveUserLogins labels ids the caller already sees. It applies no
+  // created_by scope, unlike ListUsers and GetUser: that scope does not line up
+  // with the audit journal's own, and the mismatch is what made a user's own
+  // actions appear under a raw uuid. A valid token is still required, so the
+  // call needs a real session rather than only network reach.
+  rpc ResolveUserLogins(ResolveUserLoginsRequest) returns (ResolveUserLoginsResponse);
   rpc GetUser(GetUserRequest) returns (User);
   rpc UpdateUser(UpdateUserRequest) returns (User);
   rpc FreezeUser(FreezeUserRequest) returns (User);
@@ -156,6 +162,15 @@ message ListUsersRequest {
 }
 message ListUsersResponse {
   repeated User users = 1;
+}
+message ResolveUserLoginsRequest {
+  string token = 1; // validated, but its created_by scope is deliberately not applied
+  repeated string ids = 2; // at most 500; a malformed id is refused, not ignored
+}
+message ResolveUserLoginsResponse {
+  // Ids that match nothing are absent rather than empty: the journal remembers
+  // deleted users, so the caller falls back to showing the uuid.
+  map<string, string> logins = 1;
 }
 message GetUserRequest {
   string token = 1;

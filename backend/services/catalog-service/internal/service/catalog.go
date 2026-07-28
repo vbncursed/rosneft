@@ -19,6 +19,10 @@ type Repository interface {
 	CreateTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
 	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
 	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
+	// Числовой id наружу не выставлен нигде, кроме этой выборки: сцене и
+	// каталогу он не нужен, а журналу аудита нужен, потому что снимок строки
+	// знает родителя размещения только числом.
+	ResolveTerritorySlugs(ctx context.Context, ids []int64) (map[int64]string, error)
 	DeleteTerritory(ctx context.Context, slug string) error
 	SetTerritoryAdmins(ctx context.Context, slug string, adminIDs []string) error
 	GetTerritoryAdmins(ctx context.Context, slug string) ([]string, error)

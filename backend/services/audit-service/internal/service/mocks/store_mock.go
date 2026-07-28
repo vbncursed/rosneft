@@ -19,6 +19,13 @@ type StoreMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
+	funcDistinctActors          func(ctx context.Context, f domain.Filter) (sa1 []string, err error)
+	funcDistinctActorsOrigin    string
+	inspectFuncDistinctActors   func(ctx context.Context, f domain.Filter)
+	afterDistinctActorsCounter  uint64
+	beforeDistinctActorsCounter uint64
+	DistinctActorsMock          mStoreMockDistinctActors
+
 	funcList          func(ctx context.Context, f domain.Filter) (ea1 []domain.Entry, err error)
 	funcListOrigin    string
 	inspectFuncList   func(ctx context.Context, f domain.Filter)
@@ -42,6 +49,9 @@ func NewStoreMock(t minimock.Tester) *StoreMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.DistinctActorsMock = mStoreMockDistinctActors{mock: m}
+	m.DistinctActorsMock.callArgs = []*StoreMockDistinctActorsParams{}
+
 	m.ListMock = mStoreMockList{mock: m}
 	m.ListMock.callArgs = []*StoreMockListParams{}
 
@@ -51,6 +61,349 @@ func NewStoreMock(t minimock.Tester) *StoreMock {
 	t.Cleanup(m.MinimockFinish)
 
 	return m
+}
+
+type mStoreMockDistinctActors struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockDistinctActorsExpectation
+	expectations       []*StoreMockDistinctActorsExpectation
+
+	callArgs []*StoreMockDistinctActorsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockDistinctActorsExpectation specifies expectation struct of the Store.DistinctActors
+type StoreMockDistinctActorsExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockDistinctActorsParams
+	paramPtrs          *StoreMockDistinctActorsParamPtrs
+	expectationOrigins StoreMockDistinctActorsExpectationOrigins
+	results            *StoreMockDistinctActorsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockDistinctActorsParams contains parameters of the Store.DistinctActors
+type StoreMockDistinctActorsParams struct {
+	ctx context.Context
+	f   domain.Filter
+}
+
+// StoreMockDistinctActorsParamPtrs contains pointers to parameters of the Store.DistinctActors
+type StoreMockDistinctActorsParamPtrs struct {
+	ctx *context.Context
+	f   *domain.Filter
+}
+
+// StoreMockDistinctActorsResults contains results of the Store.DistinctActors
+type StoreMockDistinctActorsResults struct {
+	sa1 []string
+	err error
+}
+
+// StoreMockDistinctActorsOrigins contains origins of expectations of the Store.DistinctActors
+type StoreMockDistinctActorsExpectationOrigins struct {
+	origin    string
+	originCtx string
+	originF   string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmDistinctActors *mStoreMockDistinctActors) Optional() *mStoreMockDistinctActors {
+	mmDistinctActors.optional = true
+	return mmDistinctActors
+}
+
+// Expect sets up expected params for Store.DistinctActors
+func (mmDistinctActors *mStoreMockDistinctActors) Expect(ctx context.Context, f domain.Filter) *mStoreMockDistinctActors {
+	if mmDistinctActors.mock.funcDistinctActors != nil {
+		mmDistinctActors.mock.t.Fatalf("StoreMock.DistinctActors mock is already set by Set")
+	}
+
+	if mmDistinctActors.defaultExpectation == nil {
+		mmDistinctActors.defaultExpectation = &StoreMockDistinctActorsExpectation{}
+	}
+
+	if mmDistinctActors.defaultExpectation.paramPtrs != nil {
+		mmDistinctActors.mock.t.Fatalf("StoreMock.DistinctActors mock is already set by ExpectParams functions")
+	}
+
+	mmDistinctActors.defaultExpectation.params = &StoreMockDistinctActorsParams{ctx, f}
+	mmDistinctActors.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmDistinctActors.expectations {
+		if minimock.Equal(e.params, mmDistinctActors.defaultExpectation.params) {
+			mmDistinctActors.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmDistinctActors.defaultExpectation.params)
+		}
+	}
+
+	return mmDistinctActors
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.DistinctActors
+func (mmDistinctActors *mStoreMockDistinctActors) ExpectCtxParam1(ctx context.Context) *mStoreMockDistinctActors {
+	if mmDistinctActors.mock.funcDistinctActors != nil {
+		mmDistinctActors.mock.t.Fatalf("StoreMock.DistinctActors mock is already set by Set")
+	}
+
+	if mmDistinctActors.defaultExpectation == nil {
+		mmDistinctActors.defaultExpectation = &StoreMockDistinctActorsExpectation{}
+	}
+
+	if mmDistinctActors.defaultExpectation.params != nil {
+		mmDistinctActors.mock.t.Fatalf("StoreMock.DistinctActors mock is already set by Expect")
+	}
+
+	if mmDistinctActors.defaultExpectation.paramPtrs == nil {
+		mmDistinctActors.defaultExpectation.paramPtrs = &StoreMockDistinctActorsParamPtrs{}
+	}
+	mmDistinctActors.defaultExpectation.paramPtrs.ctx = &ctx
+	mmDistinctActors.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmDistinctActors
+}
+
+// ExpectFParam2 sets up expected param f for Store.DistinctActors
+func (mmDistinctActors *mStoreMockDistinctActors) ExpectFParam2(f domain.Filter) *mStoreMockDistinctActors {
+	if mmDistinctActors.mock.funcDistinctActors != nil {
+		mmDistinctActors.mock.t.Fatalf("StoreMock.DistinctActors mock is already set by Set")
+	}
+
+	if mmDistinctActors.defaultExpectation == nil {
+		mmDistinctActors.defaultExpectation = &StoreMockDistinctActorsExpectation{}
+	}
+
+	if mmDistinctActors.defaultExpectation.params != nil {
+		mmDistinctActors.mock.t.Fatalf("StoreMock.DistinctActors mock is already set by Expect")
+	}
+
+	if mmDistinctActors.defaultExpectation.paramPtrs == nil {
+		mmDistinctActors.defaultExpectation.paramPtrs = &StoreMockDistinctActorsParamPtrs{}
+	}
+	mmDistinctActors.defaultExpectation.paramPtrs.f = &f
+	mmDistinctActors.defaultExpectation.expectationOrigins.originF = minimock.CallerInfo(1)
+
+	return mmDistinctActors
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.DistinctActors
+func (mmDistinctActors *mStoreMockDistinctActors) Inspect(f func(ctx context.Context, f domain.Filter)) *mStoreMockDistinctActors {
+	if mmDistinctActors.mock.inspectFuncDistinctActors != nil {
+		mmDistinctActors.mock.t.Fatalf("Inspect function is already set for StoreMock.DistinctActors")
+	}
+
+	mmDistinctActors.mock.inspectFuncDistinctActors = f
+
+	return mmDistinctActors
+}
+
+// Return sets up results that will be returned by Store.DistinctActors
+func (mmDistinctActors *mStoreMockDistinctActors) Return(sa1 []string, err error) *StoreMock {
+	if mmDistinctActors.mock.funcDistinctActors != nil {
+		mmDistinctActors.mock.t.Fatalf("StoreMock.DistinctActors mock is already set by Set")
+	}
+
+	if mmDistinctActors.defaultExpectation == nil {
+		mmDistinctActors.defaultExpectation = &StoreMockDistinctActorsExpectation{mock: mmDistinctActors.mock}
+	}
+	mmDistinctActors.defaultExpectation.results = &StoreMockDistinctActorsResults{sa1, err}
+	mmDistinctActors.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmDistinctActors.mock
+}
+
+// Set uses given function f to mock the Store.DistinctActors method
+func (mmDistinctActors *mStoreMockDistinctActors) Set(f func(ctx context.Context, f domain.Filter) (sa1 []string, err error)) *StoreMock {
+	if mmDistinctActors.defaultExpectation != nil {
+		mmDistinctActors.mock.t.Fatalf("Default expectation is already set for the Store.DistinctActors method")
+	}
+
+	if len(mmDistinctActors.expectations) > 0 {
+		mmDistinctActors.mock.t.Fatalf("Some expectations are already set for the Store.DistinctActors method")
+	}
+
+	mmDistinctActors.mock.funcDistinctActors = f
+	mmDistinctActors.mock.funcDistinctActorsOrigin = minimock.CallerInfo(1)
+	return mmDistinctActors.mock
+}
+
+// When sets expectation for the Store.DistinctActors which will trigger the result defined by the following
+// Then helper
+func (mmDistinctActors *mStoreMockDistinctActors) When(ctx context.Context, f domain.Filter) *StoreMockDistinctActorsExpectation {
+	if mmDistinctActors.mock.funcDistinctActors != nil {
+		mmDistinctActors.mock.t.Fatalf("StoreMock.DistinctActors mock is already set by Set")
+	}
+
+	expectation := &StoreMockDistinctActorsExpectation{
+		mock:               mmDistinctActors.mock,
+		params:             &StoreMockDistinctActorsParams{ctx, f},
+		expectationOrigins: StoreMockDistinctActorsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmDistinctActors.expectations = append(mmDistinctActors.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.DistinctActors return parameters for the expectation previously defined by the When method
+func (e *StoreMockDistinctActorsExpectation) Then(sa1 []string, err error) *StoreMock {
+	e.results = &StoreMockDistinctActorsResults{sa1, err}
+	return e.mock
+}
+
+// Times sets number of times Store.DistinctActors should be invoked
+func (mmDistinctActors *mStoreMockDistinctActors) Times(n uint64) *mStoreMockDistinctActors {
+	if n == 0 {
+		mmDistinctActors.mock.t.Fatalf("Times of StoreMock.DistinctActors mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmDistinctActors.expectedInvocations, n)
+	mmDistinctActors.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmDistinctActors
+}
+
+func (mmDistinctActors *mStoreMockDistinctActors) invocationsDone() bool {
+	if len(mmDistinctActors.expectations) == 0 && mmDistinctActors.defaultExpectation == nil && mmDistinctActors.mock.funcDistinctActors == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmDistinctActors.mock.afterDistinctActorsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmDistinctActors.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// DistinctActors implements mm_service.Store
+func (mmDistinctActors *StoreMock) DistinctActors(ctx context.Context, f domain.Filter) (sa1 []string, err error) {
+	mm_atomic.AddUint64(&mmDistinctActors.beforeDistinctActorsCounter, 1)
+	defer mm_atomic.AddUint64(&mmDistinctActors.afterDistinctActorsCounter, 1)
+
+	mmDistinctActors.t.Helper()
+
+	if mmDistinctActors.inspectFuncDistinctActors != nil {
+		mmDistinctActors.inspectFuncDistinctActors(ctx, f)
+	}
+
+	mm_params := StoreMockDistinctActorsParams{ctx, f}
+
+	// Record call args
+	mmDistinctActors.DistinctActorsMock.mutex.Lock()
+	mmDistinctActors.DistinctActorsMock.callArgs = append(mmDistinctActors.DistinctActorsMock.callArgs, &mm_params)
+	mmDistinctActors.DistinctActorsMock.mutex.Unlock()
+
+	for _, e := range mmDistinctActors.DistinctActorsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.sa1, e.results.err
+		}
+	}
+
+	if mmDistinctActors.DistinctActorsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmDistinctActors.DistinctActorsMock.defaultExpectation.Counter, 1)
+		mm_want := mmDistinctActors.DistinctActorsMock.defaultExpectation.params
+		mm_want_ptrs := mmDistinctActors.DistinctActorsMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockDistinctActorsParams{ctx, f}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmDistinctActors.t.Errorf("StoreMock.DistinctActors got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDistinctActors.DistinctActorsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.f != nil && !minimock.Equal(*mm_want_ptrs.f, mm_got.f) {
+				mmDistinctActors.t.Errorf("StoreMock.DistinctActors got unexpected parameter f, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDistinctActors.DistinctActorsMock.defaultExpectation.expectationOrigins.originF, *mm_want_ptrs.f, mm_got.f, minimock.Diff(*mm_want_ptrs.f, mm_got.f))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmDistinctActors.t.Errorf("StoreMock.DistinctActors got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmDistinctActors.DistinctActorsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmDistinctActors.DistinctActorsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmDistinctActors.t.Fatal("No results are set for the StoreMock.DistinctActors")
+		}
+		return (*mm_results).sa1, (*mm_results).err
+	}
+	if mmDistinctActors.funcDistinctActors != nil {
+		return mmDistinctActors.funcDistinctActors(ctx, f)
+	}
+	mmDistinctActors.t.Fatalf("Unexpected call to StoreMock.DistinctActors. %v %v", ctx, f)
+	return
+}
+
+// DistinctActorsAfterCounter returns a count of finished StoreMock.DistinctActors invocations
+func (mmDistinctActors *StoreMock) DistinctActorsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDistinctActors.afterDistinctActorsCounter)
+}
+
+// DistinctActorsBeforeCounter returns a count of StoreMock.DistinctActors invocations
+func (mmDistinctActors *StoreMock) DistinctActorsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDistinctActors.beforeDistinctActorsCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.DistinctActors.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmDistinctActors *mStoreMockDistinctActors) Calls() []*StoreMockDistinctActorsParams {
+	mmDistinctActors.mutex.RLock()
+
+	argCopy := make([]*StoreMockDistinctActorsParams, len(mmDistinctActors.callArgs))
+	copy(argCopy, mmDistinctActors.callArgs)
+
+	mmDistinctActors.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockDistinctActorsDone returns true if the count of the DistinctActors invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockDistinctActorsDone() bool {
+	if m.DistinctActorsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.DistinctActorsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.DistinctActorsMock.invocationsDone()
+}
+
+// MinimockDistinctActorsInspect logs each unmet expectation
+func (m *StoreMock) MinimockDistinctActorsInspect() {
+	for _, e := range m.DistinctActorsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.DistinctActors at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterDistinctActorsCounter := mm_atomic.LoadUint64(&m.afterDistinctActorsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.DistinctActorsMock.defaultExpectation != nil && afterDistinctActorsCounter < 1 {
+		if m.DistinctActorsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.DistinctActors at\n%s", m.DistinctActorsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.DistinctActors at\n%s with params: %#v", m.DistinctActorsMock.defaultExpectation.expectationOrigins.origin, *m.DistinctActorsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcDistinctActors != nil && afterDistinctActorsCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.DistinctActors at\n%s", m.funcDistinctActorsOrigin)
+	}
+
+	if !m.DistinctActorsMock.invocationsDone() && afterDistinctActorsCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.DistinctActors at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.DistinctActorsMock.expectedInvocations), m.DistinctActorsMock.expectedInvocationsOrigin, afterDistinctActorsCounter)
+	}
 }
 
 type mStoreMockList struct {
@@ -743,6 +1096,8 @@ func (m *StoreMock) MinimockRecordInspect() {
 func (m *StoreMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
 		if !m.minimockDone() {
+			m.MinimockDistinctActorsInspect()
+
 			m.MinimockListInspect()
 
 			m.MinimockRecordInspect()
@@ -769,6 +1124,7 @@ func (m *StoreMock) MinimockWait(timeout mm_time.Duration) {
 func (m *StoreMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockDistinctActorsDone() &&
 		m.MinimockListDone() &&
 		m.MinimockRecordDone()
 }

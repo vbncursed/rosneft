@@ -613,9 +613,21 @@ components:
         actorId:
           type: string
           description: Empty for a system change (mesh-worker, migrations).
+        actorLogin:
+          type: string
+          description: >
+            Login behind actorId, resolved on read. Empty for a system change,
+            for a user since deleted, or if auth could not be reached — the
+            journal answers with ids rather than failing.
         companyId:
           type: string
           description: Empty for a Root or system change.
+        companyLogin:
+          type: string
+          description: >
+            Login behind companyId. The company key is the owning user's id, so
+            this is that user's login. Empty under the same conditions as
+            actorLogin.
         action: { type: string, description: "e.g. territory.update, auth.login" }
         entity: { type: string }
         entityId: { type: string }
@@ -628,7 +640,24 @@ components:
         newRow:
           type: string
           description: Raw JSON snapshot after the change; empty on delete.
+        territorySlug:
+          type: string
+          description: >
+            Slug of the parent territory, for the entities whose row carries one
+            (placement, panorama, document, territory_assignment). Read out of
+            the row snapshot and resolved on read. Empty for everything else,
+            including a territory entry — that one already carries its own slug
+            in entityLabel.
         result: { type: string, enum: [ok, failed] }
+
+    AuditActor:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string, description: Actor's user id; the value to filter by. }
+        login:
+          type: string
+          description: Empty if the user has since been deleted.
 
     AuditPage:
       type: object
@@ -721,6 +750,28 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/AuditPage' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/audit/actors:
+    get:
+      operationId: listAuditActors
+      summary: List the actors present in the caller's slice of the journal
+      description: >
+        Backs the journal's actor filter. Returns everyone whose entries the
+        caller can see, not merely those on the page currently loaded, so an
+        actor further down the journal is still selectable. Scope comes from the
+        session, exactly as for GET /api/audit. Requires audit:read.
+      tags: [audit]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AuditActor' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '500': { $ref: '#/components/responses/Internal' }
