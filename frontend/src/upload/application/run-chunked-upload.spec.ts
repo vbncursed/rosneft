@@ -31,11 +31,11 @@ beforeEach(() => {
   initiateUpload.mockReset().mockResolvedValue({ id: "u1", offset: 0 });
   // The gateway answers with the new offset after each accepted chunk.
   appendChunk.mockReset().mockImplementation((_id, offset, slice) => (slice as { end: number }).end ?? offset);
-  finalizeUpload.mockReset().mockResolvedValue({ blobHash: "abc", size: 1 });
+  finalizeUpload.mockReset().mockResolvedValue({ hash: "abc", size: 1 });
 });
 
 test("returns the finalized blob from the gateway", async () => {
-  assert.deepEqual(await runChunkedUpload(file(10)), { blobHash: "abc", size: 1 });
+  assert.deepEqual(await runChunkedUpload(file(10)), { hash: "abc", size: 1 });
   assert.deepEqual(finalizeUpload.mock.calls, [["u1"]]);
 });
 
