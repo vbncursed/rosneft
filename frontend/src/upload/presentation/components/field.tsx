@@ -1,5 +1,3 @@
-"use client";
-
 interface FieldProps {
   label: string;
   hint?: string;

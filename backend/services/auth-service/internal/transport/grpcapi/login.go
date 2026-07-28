@@ -50,14 +50,15 @@ func (s *Server) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1
 }
 
 func (s *Server) ValidateToken(ctx context.Context, req *authv1.ValidateTokenRequest) (*authv1.ValidateTokenResponse, error) {
-	uid, perms, isOwner, owningAdmin, err := s.auth.ValidateToken(ctx, req.GetToken())
+	uid, perms, isOwner, owningAdmin, auditCompany, err := s.auth.ValidateToken(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapError(err)
 	}
 	return &authv1.ValidateTokenResponse{
-		UserId:        uid,
-		Permissions:   perms,
-		IsOwner:       isOwner,
-		OwningAdminId: owningAdmin,
+		UserId:         uid,
+		Permissions:    perms,
+		IsOwner:        isOwner,
+		OwningAdminId:  owningAdmin,
+		AuditCompanyId: auditCompany,
 	}, nil
 }

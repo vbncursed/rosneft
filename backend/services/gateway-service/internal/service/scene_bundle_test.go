@@ -34,7 +34,7 @@ func (s *SceneBundleSuite) SetupTest() {
 	mc := minimock.NewController(s.T())
 	s.cat = mocks.NewCatalogMock(mc)
 	s.con = mocks.NewContentMock(mc)
-	s.svc = service.New(s.cat, s.con, mocks.NewMeshMock(mc), mocks.NewUploadMock(mc))
+	s.svc = service.New(s.cat, s.con, mocks.NewMeshMock(mc), mocks.NewUploadMock(mc), mocks.NewAuditMock(mc))
 	s.ctx = s.T().Context()
 }
 

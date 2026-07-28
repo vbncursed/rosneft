@@ -1,5 +1,3 @@
-"use client";
-
 import { type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { OverlaysTab } from "@/viewer/domain/overlays-tab";

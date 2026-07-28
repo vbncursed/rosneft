@@ -1,5 +1,3 @@
-"use client";
-
 import { useTransition } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { notify } from "@/shared/application/toast/notify";

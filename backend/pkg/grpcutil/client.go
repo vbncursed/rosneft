@@ -28,6 +28,9 @@ func Dial(target string, extra ...grpc.DialOption) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(ClientKeepalive),
+		// Forwards the ctx actor as metadata so the next hop can attribute the
+		// change it makes. A call with no actor on ctx is unaffected.
+		grpc.WithChainUnaryInterceptor(ActorClientInterceptor()),
 		grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(MaxMessageSize),
 			grpc.MaxCallSendMsgSize(MaxMessageSize),

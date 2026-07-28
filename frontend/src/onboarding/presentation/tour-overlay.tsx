@@ -1,5 +1,3 @@
-"use client";
-
 import { type CSSProperties, useEffect, useLayoutEffect, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Tour } from "@/onboarding/application/use-tour";

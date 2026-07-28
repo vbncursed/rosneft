@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/vbncursed/rosneft/backend/pkg/audittx"
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
@@ -23,31 +24,33 @@ func (s *Store) SetPermissions(ctx context.Context, slug string, permSlugs []str
 	return s.Get(ctx, slug)
 }
 
+// replacePermissions rewrites role_permissions for one role.
+//
+// audittx.Run supplies the transaction this already needed and publishes the
+// actor with it, so every grant removed and added is attributed. Privilege
+// changes are the entries an audit is most often opened for, so an
+// unattributed one would defeat the point.
 func (s *Store) replacePermissions(ctx context.Context, slug string, permSlugs []string) error {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("roles.replacePermissions: begin: %w", err)
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
-	var roleID string
-	if err := tx.QueryRow(ctx, `SELECT id FROM roles WHERE slug = $1`, slug).Scan(&roleID); err != nil {
-		return fmt.Errorf("roles.replacePermissions: role id: %w", err)
-	}
-	if _, err := tx.Exec(ctx, `DELETE FROM role_permissions WHERE role_id = $1`, roleID); err != nil {
-		return fmt.Errorf("roles.replacePermissions: clear: %w", err)
-	}
-	for _, ps := range permSlugs {
-		var permID string
-		if err := tx.QueryRow(ctx, `SELECT id FROM permissions WHERE slug = $1`, ps).Scan(&permID); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return domain.ErrPermissionUnknown
+	return audittx.Run(ctx, s.pool, func(tx pgx.Tx) error {
+		var roleID string
+		if err := tx.QueryRow(ctx, `SELECT id FROM roles WHERE slug = $1`, slug).Scan(&roleID); err != nil {
+			return fmt.Errorf("roles.replacePermissions: role id: %w", err)
+		}
+		if _, err := tx.Exec(ctx, `DELETE FROM role_permissions WHERE role_id = $1`, roleID); err != nil {
+			return fmt.Errorf("roles.replacePermissions: clear: %w", err)
+		}
+		for _, ps := range permSlugs {
+			var permID string
+			if err := tx.QueryRow(ctx, `SELECT id FROM permissions WHERE slug = $1`, ps).Scan(&permID); err != nil {
+				if errors.Is(err, pgx.ErrNoRows) {
+					return domain.ErrPermissionUnknown
+				}
+				return fmt.Errorf("roles.replacePermissions: perm %q: %w", ps, err)
 			}
-			return fmt.Errorf("roles.replacePermissions: perm %q: %w", ps, err)
+			if _, err := tx.Exec(ctx, `INSERT INTO role_permissions (role_id, permission_id) VALUES ($1,$2)`, roleID, permID); err != nil {
+				return fmt.Errorf("roles.replacePermissions: insert: %w", err)
+			}
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO role_permissions (role_id, permission_id) VALUES ($1,$2)`, roleID, permID); err != nil {
-			return fmt.Errorf("roles.replacePermissions: insert: %w", err)
-		}
-	}
-	return tx.Commit(ctx)
+		return nil
+	})
 }

@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useTerritoryLink } from "@/territory/application/use-territory-link";
 import ExternalPanoramaLink from "@/panorama/presentation/components/external-panorama-link";

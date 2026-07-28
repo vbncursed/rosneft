@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo, useState } from "react";
 import Field from "@/upload/presentation/components/field";
 import PasswordField from "@/shared/presentation/components/password-field";

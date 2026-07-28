@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useState } from "react";
 import { listUsers } from "@/auth/infrastructure/auth-admin-gateway";
 import type { AdminUser } from "@/auth/domain/user";

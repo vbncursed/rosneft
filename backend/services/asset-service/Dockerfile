@@ -13,6 +13,7 @@ COPY services/passkey-service/go.mod services/passkey-service/go.su[m] ./service
 COPY services/mesh-service/go.mod services/mesh-service/go.su[m] ./services/mesh-service/
 COPY services/asset-service/go.mod services/asset-service/go.su[m] ./services/asset-service/
 COPY services/upload-service/go.mod services/upload-service/go.su[m] ./services/upload-service/
+COPY services/audit-service/go.mod services/audit-service/go.su[m] ./services/audit-service/
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \

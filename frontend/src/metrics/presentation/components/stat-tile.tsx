@@ -1,5 +1,3 @@
-"use client";
-
 import { usePanelSeries } from "@/metrics/application/use-panel-series";
 import type { Range } from "@/metrics/domain/panel";
 import { formatValue } from "@/metrics/domain/series";
