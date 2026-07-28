@@ -1,11 +1,12 @@
 openapi: 3.0.3
 info:
   title: Andrey Backend Gateway API
-  version: 0.2.0
+  version: 0.3.0
   description: |
-    Public REST surface for the Andrey 3D viewer frontend. Internal
-    services (catalog, mesh, upload) are reached via gRPC; this gateway
-    is the only externally exposed component.
+    Public REST surface for the Andrey 3D viewer frontend. This gateway is
+    the only externally exposed component; it reaches catalog, content,
+    auth, twofa, passkey, mesh-api, and upload over internal gRPC, and
+    reverse-proxies asset-service for binary blobs.
 
     The catalog is split into two domains:
       • Territories — parent scenes the viewer renders as a canvas.
@@ -17,11 +18,16 @@ info:
     archive from BlobStore, runs the converter, and registers the GLB
     artifacts back in the catalog.
 
-    Note: binary artifact streaming (`GET /api/assets/{hash}`) is
-    implemented as a transparent reverse proxy to asset-service and is
-    intentionally not described here as a typed endpoint — clients should
-    treat it as raw binary content (`model/gltf-binary`) with Range, ETag,
-    and immutable cache headers.
+    Two endpoints are not typed JSON and are described with their real
+    media types rather than a schema:
+      • `GET /api/assets/{hash}` — transparent reverse proxy to
+        asset-service returning raw `model/gltf-binary`, Range-aware, with
+        a strong ETag and immutable caching.
+      • `GET /api/jobs/{id}/events` — a `text/event-stream` of Job frames.
+
+    Authentication is an opaque bearer token from `POST /api/auth/login`.
+    Every mutating `/api/*` route is additionally gated on a per-route
+    permission; `403` means the session is valid but lacks it.
 servers:
   - url: http://localhost:8080
     description: Local docker-compose
@@ -563,6 +569,40 @@ components:
       required: [permissionSlugs]
       properties:
         permissionSlugs: { type: array, items: { type: string } }
+
+    MetricPoint:
+      type: object
+      required: [t, v]
+      properties:
+        t: { type: number, format: double, description: Unix timestamp in seconds }
+        v: { type: number, format: double, description: Sample value }
+
+    MetricSeries:
+      type: object
+      required: [label, points]
+      properties:
+        label: { type: string, description: Series label derived from the Prometheus metric labels }
+        points:
+          type: array
+          items: { $ref: '#/components/schemas/MetricPoint' }
+        labels:
+          type: object
+          additionalProperties: { type: string }
+          description: >
+            Raw Prometheus labels. Only the alerts panel needs them (to tell
+            firing from pending); chart panels ignore them. Omitted when empty.
+
+    Health:
+      type: object
+      required: [status, service]
+      properties:
+        status: { type: string, enum: [ok, not_ready, degraded] }
+        service: { type: string }
+        version: { type: string }
+        checks:
+          type: object
+          additionalProperties: { type: string }
+          description: Per-probe result; present on /readyz when probes are registered.
 
   securitySchemes:
     bearerAuth:
@@ -1820,3 +1860,115 @@ paths:
             text/event-stream:
               schema: { $ref: '#/components/schemas/Job' }
         '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/metrics/query:
+    get:
+      tags: [metrics]
+      summary: Owner-only Prometheus panel query
+      description: >
+        Resolves a dashboard panel ID to server-side PromQL and runs it against
+        Prometheus. The PromQL never leaves the server and no caller-supplied
+        expression reaches Prometheus — `panel` and `range` are both validated
+        against server-side allow-lists, so the endpoint is not an SSRF or query
+        injection surface. Requires a valid session AND the owner flag; a
+        non-owner with a valid token gets 403. Responses are `Cache-Control:
+        no-store`.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: panel
+          required: true
+          description: >
+            Panel ID from the server-side registry, mirrored by the client's
+            panel-catalog. Instant (single-value) panels return one point per
+            series; the rest are range queries of roughly 200 points.
+          schema:
+            type: string
+            enum:
+              [stat-up, stat-rps, stat-errors, stat-p99, stat-queue,
+               red-rate, red-errors, red-latency, red-http,
+               domain-conversions, domain-conversion-p95, domain-queue,
+               domain-upload, domain-auth, domain-twofa,
+               runtime-memory, runtime-goroutines, runtime-gc, runtime-fds,
+               alerts]
+        - in: query
+          name: range
+          required: true
+          description: Query window. Step is derived server-side (~200 points, rounded to whole 15s scrapes).
+          schema: { type: string, enum: [1h, 6h, 24h, 7d] }
+      responses:
+        '200':
+          description: One entry per time series
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/MetricSeries' }
+        '400':
+          description: Unknown panel ID or unsupported range
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '502':
+          description: Prometheus unreachable or returned an error (details are logged, not returned)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /healthz:
+    get:
+      tags: [ops]
+      summary: Liveness probe
+      description: Always 200 while the process is running. Not authenticated; excluded from request logs.
+      responses:
+        '200':
+          description: Process is alive
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+
+  /readyz:
+    get:
+      tags: [ops]
+      summary: Readiness probe
+      description: >
+        503 until the server has finished booting, then runs every registered
+        probe concurrently. `status` is `ok` when all pass, `degraded` when any
+        fails, `not_ready` before boot completes. Not authenticated; excluded
+        from request logs.
+      responses:
+        '200':
+          description: Ready — all probes passed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+        '503':
+          description: Not ready yet, or at least one probe failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+
+  /openapi.json:
+    get:
+      tags: [ops]
+      summary: This document, as JSON
+      description: Served from the spec embedded in the binary at build time, not from disk.
+      responses:
+        '200':
+          description: The OpenAPI document
+          content:
+            application/json:
+              schema: { type: object }
+
+  /docs:
+    get:
+      tags: [ops]
+      summary: Scalar API explorer
+      responses:
+        '200':
+          description: HTML page rendering /openapi.json
+          content:
+            text/html:
+              schema: { type: string }

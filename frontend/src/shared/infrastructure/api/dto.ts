@@ -1795,6 +1795,232 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/metrics/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Owner-only Prometheus panel query
+         * @description Resolves a dashboard panel ID to server-side PromQL and runs it against Prometheus. The PromQL never leaves the server and no caller-supplied expression reaches Prometheus — `panel` and `range` are both validated against server-side allow-lists, so the endpoint is not an SSRF or query injection surface. Requires a valid session AND the owner flag; a non-owner with a valid token gets 403. Responses are `Cache-Control: no-store`.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description Panel ID from the server-side registry, mirrored by the client's panel-catalog. Instant (single-value) panels return one point per series; the rest are range queries of roughly 200 points. */
+                    panel: "stat-up" | "stat-rps" | "stat-errors" | "stat-p99" | "stat-queue" | "red-rate" | "red-errors" | "red-latency" | "red-http" | "domain-conversions" | "domain-conversion-p95" | "domain-queue" | "domain-upload" | "domain-auth" | "domain-twofa" | "runtime-memory" | "runtime-goroutines" | "runtime-gc" | "runtime-fds" | "alerts";
+                    /** @description Query window. Step is derived server-side (~200 points, rounded to whole 15s scrapes). */
+                    range: "1h" | "6h" | "24h" | "7d";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description One entry per time series */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MetricSeries"][];
+                    };
+                };
+                /** @description Unknown panel ID or unsupported range */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                /** @description Prometheus unreachable or returned an error (details are logged, not returned) */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/healthz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Liveness probe
+         * @description Always 200 while the process is running. Not authenticated; excluded from request logs.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Process is alive */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Health"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/readyz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Readiness probe
+         * @description 503 until the server has finished booting, then runs every registered probe concurrently. `status` is `ok` when all pass, `degraded` when any fails, `not_ready` before boot completes. Not authenticated; excluded from request logs.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Ready — all probes passed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Health"];
+                    };
+                };
+                /** @description Not ready yet, or at least one probe failed */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Health"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/openapi.json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * This document, as JSON
+         * @description Served from the spec embedded in the binary at build time, not from disk.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The OpenAPI document */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": Record<string, never>;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/docs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scalar API explorer */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description HTML page rendering /openapi.json */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/html": string;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2251,6 +2477,37 @@ export interface components {
         };
         SetRolePermissionsRequest: {
             permissionSlugs: string[];
+        };
+        MetricPoint: {
+            /**
+             * Format: double
+             * @description Unix timestamp in seconds
+             */
+            t: number;
+            /**
+             * Format: double
+             * @description Sample value
+             */
+            v: number;
+        };
+        MetricSeries: {
+            /** @description Series label derived from the Prometheus metric labels */
+            label: string;
+            points: components["schemas"]["MetricPoint"][];
+            /** @description Raw Prometheus labels. Only the alerts panel needs them (to tell firing from pending); chart panels ignore them. Omitted when empty. */
+            labels?: {
+                [key: string]: string;
+            };
+        };
+        Health: {
+            /** @enum {string} */
+            status: "ok" | "not_ready" | "degraded";
+            service: string;
+            version?: string;
+            /** @description Per-probe result; present on /readyz when probes are registered. */
+            checks?: {
+                [key: string]: string;
+            };
         };
     };
     responses: {
