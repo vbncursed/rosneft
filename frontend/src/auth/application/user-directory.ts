@@ -19,12 +19,22 @@ import { listUsers } from "@/auth/infrastructure/auth-admin-gateway";
 // роль может иметь первое без второго — тогда прилетит 403. Журнал при этом
 // обязан остаться читаемым: пустая карта означает «показывай UUID», а не
 // «покажи ошибку вместо страницы».
-export function useUserDirectory(): Map<string, string> {
+// `self` — подписавшийся пользователь, если он известен. Принимается параметром,
+// а не читается из контекста: контекст живёт в presentation, а application в его
+// сторону не смотрит.
+export function useUserDirectory(
+  self?: { id: string; username: string } | null,
+): Map<string, string> {
   const { data } = useQuery({
     queryKey: ["user-directory"],
     queryFn: () => listUsers("", true),
     retry: false,
     staleTime: 5 * 60 * 1000,
   });
-  return new Map((data ?? []).map((u) => [u.id, u.username]));
+  const directory = new Map((data ?? []).map((u) => [u.id, u.username]));
+  // Себя в ответе нет и быть не может: список фильтруется по created_by, а
+  // created_by = self не бывает ни у кого. Без этой строки собственные действия
+  // в журнале подписаны сырым UUID — и первым это увидел первый же не-Root.
+  if (self) directory.set(self.id, self.username);
+  return directory;
 }
