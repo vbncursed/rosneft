@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useRolesAdmin } from "@/auth/application/use-roles-admin";
 import CreateRoleForm from "@/auth/presentation/console/create-role-form";

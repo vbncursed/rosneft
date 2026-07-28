@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { setup2FA, enable2FA, disable2FA, regenerateRecoveryCodes } from "@/auth/infrastructure/auth-gateway";

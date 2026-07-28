@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import type { Range } from "@/metrics/domain/panel";
 import type { Series } from "@/metrics/domain/series";

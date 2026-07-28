@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo, useState } from "react";
 import type { Role } from "@/auth/domain/role";
 import type { Permission } from "@/auth/domain/permission";

@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import PasswordField from "@/shared/presentation/components/password-field";
 import { changePassword } from "@/auth/infrastructure/auth-gateway";

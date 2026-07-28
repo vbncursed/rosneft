@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useState } from "react";
 import type { Job } from "@/shared/domain/job";
 import { runChunkedUpload } from "@/upload/application/run-chunked-upload";

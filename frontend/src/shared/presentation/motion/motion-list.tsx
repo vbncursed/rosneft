@@ -1,5 +1,3 @@
-"use client";
-
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
 import { listStagger, listItem } from "@/shared/presentation/motion/variants";

@@ -72,8 +72,14 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	defer func() { _ = passkeyClient.Close() }()
 
-	svc := InitService(cat, con, m, up)
-	authH := authhttp.New(authClient, twofaClient, passkeyClient, logger)
+	auditClient, err := InitAudit(cfg)
+	if err != nil {
+		return fmt.Errorf("init audit: %w", err)
+	}
+	defer func() { _ = auditClient.Close() }()
+
+	svc := InitService(cat, con, m, up, auditClient)
+	authH := authhttp.New(authClient, twofaClient, passkeyClient, auditClient, logger)
 
 	assetProxy, err := InitAssetProxy(cfg)
 	if err != nil {

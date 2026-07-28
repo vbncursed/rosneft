@@ -3,6 +3,10 @@ package storage
 import (
 	"context"
 	"fmt"
+
+	"github.com/jackc/pgx/v5"
+
+	"github.com/vbncursed/rosneft/backend/pkg/audittx"
 )
 
 // RescaleTerritoryPlacements applies a pending rescale baseline in one atomic
@@ -18,6 +22,10 @@ import (
 // baseline via the always-executed `cleared` CTE. A non-positive newMax is a
 // defensive no-op that leaves the baseline intact for a later valid conversion.
 // Returns the number of placements changed.
+//
+// Wrapped in audittx.Run because it writes placements and territories, both
+// audited. mesh-worker calls it with no actor on ctx, so the resulting entries
+// are attributed to the system — correct, since no human moved anything.
 func (r *PG) RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64) (int, error) {
 	if newMax <= 0 {
 		return 0, nil
@@ -53,7 +61,10 @@ func (r *PG) RescaleTerritoryPlacements(ctx context.Context, slug string, newMax
 		SELECT count(*) FROM upd`
 
 	var updated int
-	if err := r.pool.QueryRow(ctx, q, slug, newMax).Scan(&updated); err != nil {
+	err := audittx.Run(ctx, r.pool, func(tx pgx.Tx) error {
+		return tx.QueryRow(ctx, q, slug, newMax).Scan(&updated)
+	})
+	if err != nil {
 		return 0, fmt.Errorf("storage.RescaleTerritoryPlacements: %w", err)
 	}
 	return updated, nil

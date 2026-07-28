@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useState } from "react";
 import { listRoles, listPermissions, setRolePermissions, createRole, renameRole, deleteRole } from "@/auth/infrastructure/auth-admin-gateway";
 import type { Role } from "@/auth/domain/role";

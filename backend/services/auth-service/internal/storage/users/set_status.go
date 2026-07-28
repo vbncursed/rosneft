@@ -8,15 +8,21 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/vbncursed/rosneft/backend/pkg/audittx"
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
 // SetStatus updates status and deleted_at, returning the refreshed user.
+// Wrapped in audittx.Run so freezing or soft-deleting an account is attributed.
 func (s *Store) SetStatus(ctx context.Context, id, status string, deletedAt *time.Time) (domain.User, error) {
 	const q = `UPDATE users SET status = $2, deleted_at = $3, updated_at = now()
 		WHERE id = $1 RETURNING id`
-	var got string
-	if err := s.pool.QueryRow(ctx, q, id, status, deletedAt).Scan(&got); err != nil {
+
+	err := audittx.Run(ctx, s.pool, func(tx pgx.Tx) error {
+		var got string
+		return tx.QueryRow(ctx, q, id, status, deletedAt).Scan(&got)
+	})
+	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.User{}, domain.ErrUserNotFound
 		}

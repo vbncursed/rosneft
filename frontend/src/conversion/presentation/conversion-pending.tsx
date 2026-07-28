@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { useConversionWatcher } from "@/conversion/application/use-conversion-watcher";
