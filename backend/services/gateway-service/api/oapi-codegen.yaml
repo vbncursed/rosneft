@@ -3,9 +3,11 @@
 #
 # Two-pass generation: this config emits the chi/strict SERVER. Tags handled by
 # custom root-router handlers are excluded from stub generation:
-#   - auth   → plain-chi authhttp package (login must be public)
-#   - assets → asset-service reverse proxy
-#   - jobs   → SSE stream handler (WatchJobEvents)
+#   - auth    → plain-chi authhttp package (login must be public)
+#   - assets  → asset-service reverse proxy
+#   - jobs    → SSE stream handler (WatchJobEvents)
+#   - metrics → owner-gated Prometheus proxy (InitMetricsHandler)
+#   - ops     → healthz/readyz probes + /docs + /openapi.json
 # The FULL embedded spec (all tags, for Swagger) is generated separately by
 # oapi-codegen-spec.yaml so the served docs stay complete.
 package: httpapi
@@ -23,3 +25,5 @@ output-options:
     - auth
     - assets
     - jobs
+    - metrics
+    - ops

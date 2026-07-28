@@ -37,6 +37,27 @@ func (e AuthUserStatus) Valid() bool {
 	}
 }
 
+// Defines values for HealthStatus.
+const (
+	Degraded HealthStatus = "degraded"
+	NotReady HealthStatus = "not_ready"
+	Ok       HealthStatus = "ok"
+)
+
+// Valid indicates whether the value is a known member of the HealthStatus enum.
+func (e HealthStatus) Valid() bool {
+	switch e {
+	case Degraded:
+		return true
+	case NotReady:
+		return true
+	case Ok:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JobKind.
 const (
 	JobKindModel     JobKind = "model"
@@ -224,6 +245,18 @@ type Error struct {
 	Message string `json:"message"`
 }
 
+// Health defines model for Health.
+type Health struct {
+	// Checks Per-probe result; present on /readyz when probes are registered.
+	Checks  *map[string]string `json:"checks,omitempty"`
+	Service string             `json:"service"`
+	Status  HealthStatus       `json:"status"`
+	Version *string            `json:"version,omitempty"`
+}
+
+// HealthStatus defines model for Health.Status.
+type HealthStatus string
+
 // Job defines model for Job.
 type Job struct {
 	ArtifactHash *string    `json:"artifactHash,omitempty"`
@@ -286,6 +319,25 @@ type LoginResponse struct {
 	// Token empty when twoFactorRequired
 	Token             *string `json:"token,omitempty"`
 	TwoFactorRequired *bool   `json:"twoFactorRequired,omitempty"`
+}
+
+// MetricPoint defines model for MetricPoint.
+type MetricPoint struct {
+	// T Unix timestamp in seconds
+	T float64 `json:"t"`
+
+	// V Sample value
+	V float64 `json:"v"`
+}
+
+// MetricSeries defines model for MetricSeries.
+type MetricSeries struct {
+	// Label Series label derived from the Prometheus metric labels
+	Label string `json:"label"`
+
+	// Labels Raw Prometheus labels. Only the alerts panel needs them (to tell firing from pending); chart panels ignore them. Omitted when empty.
+	Labels *map[string]string `json:"labels,omitempty"`
+	Points []MetricPoint      `json:"points"`
 }
 
 // Model defines model for Model.
