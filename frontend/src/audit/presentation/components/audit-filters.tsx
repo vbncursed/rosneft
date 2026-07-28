@@ -13,8 +13,11 @@ import DatePicker from "@/shared/presentation/components/date-picker/date-picker
 // и оба компонента принимают его через triggerClassName; иначе дропдаун принёс
 // бы собственные bg-white/[0.03] и text-xs, и строка выглядела бы собранной из
 // двух разных форм.
+//
+// focus и focus-within оба нужны: у дропдауна фокус получает сама кнопка, а у
+// пикера — текстовое поле внутри обёртки, и одного focus: там не хватило бы.
 const FIELD_CLASS =
-  "rounded-md border border-white/10 bg-black/30 px-2.5 py-1.5 text-sm text-white transition-colors hover:border-white/25 focus:border-cyan-400/60 focus:outline-none";
+  "rounded-md border border-white/10 bg-black/30 px-2.5 py-1.5 text-sm text-white transition-colors hover:border-white/25 focus:border-cyan-400/60 focus-within:border-cyan-400/60 focus:outline-none";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

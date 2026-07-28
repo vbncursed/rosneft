@@ -14,11 +14,12 @@ export function actionOptions(entity: string): DropdownOption[] {
   return [ANY, ...actionsFor(entity).map((a) => ({ value: a, label: a }))];
 }
 
-// Акторы подписаны email'ом, id уходит в подсказку: два похожих адреса всё ещё
-// различимы, а UUID не занимает основную строку.
+// Акторы подписаны только email'ом. UUID здесь не показываем — он ничего не
+// говорит человеку, а email уже уникален. Значением опции id остаётся: он и
+// уходит в запрос.
 export function actorOptions(actors: Map<string, string>): DropdownOption[] {
   const rows = [...actors]
-    .map(([id, email]) => ({ value: id, label: email, hint: id.slice(0, 8) }))
+    .map(([id, email]) => ({ value: id, label: email }))
     .sort((a, b) => a.label.localeCompare(b.label));
   return [ANY, ...rows];
 }

@@ -1,8 +1,16 @@
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence } from "motion/react";
-import { addDays, inRange, monthOf, shiftMonth, toDate, todayISO } from "@/shared/domain/calendar";
+import {
+  formatDateInput,
+  inRange,
+  monthOf,
+  parseDateInput,
+  shiftMonth,
+  todayISO,
+} from "@/shared/domain/calendar";
 import { useAnchoredPosition } from "@/shared/presentation/components/dropdown/use-anchored-position";
 import CalendarPanel from "@/shared/presentation/components/date-picker/calendar-panel";
+import { useCalendarKeyboard } from "@/shared/presentation/components/date-picker/use-calendar-keyboard";
 
 export interface DatePickerProps {
   // "" означает «дата не выбрана» — тот же контракт, что у нативного
@@ -15,51 +23,66 @@ export interface DatePickerProps {
   ariaLabel?: string;
   placeholder?: string;
   className?: string;
-  // Подменяет оформление триггера, не раскладку. См. одноимённый проп Dropdown.
+  // Подменяет оформление поля, не раскладку. См. одноимённый проп Dropdown.
   triggerClassName?: string;
 }
 
-const TRIGGER_LAYOUT = "flex w-full cursor-pointer items-center justify-between gap-2";
-const TRIGGER_LOOK =
-  "rounded-md border border-white/10 bg-black/30 px-2.5 py-1.5 text-sm text-white transition-colors hover:border-white/25 focus:border-cyan-400/60 focus:outline-none";
-
-// Шаг курсора по стрелкам: горизонталь — день, вертикаль — неделя.
-const STEP: Record<string, number> = {
-  ArrowLeft: -1,
-  ArrowRight: 1,
-  ArrowUp: -7,
-  ArrowDown: 7,
-};
+const FIELD_LAYOUT = "flex w-full items-center gap-1";
+const FIELD_LOOK =
+  "rounded-md border border-white/10 bg-black/30 px-2.5 py-1.5 text-sm text-white transition-colors focus-within:border-cyan-400/60";
 
 // DatePicker — собственная замена нативному <input type="date">: браузерный
 // пикер выглядит по-разному в каждом движке и не вписывается в тёмную
 // «стеклянную» вёрстку.
 //
-// Механика повторяет Dropdown: фокус остаётся на кнопке-триггере, панель
-// портуется в <body>, позиция берётся из useAnchoredPosition. Фокус внутрь
-// панели не уходит — поэтому её элементы гасят mousedown и держат tabIndex=-1,
-// а озвучку курсора берёт на себя live-регион панели.
+// Дата вводится двумя способами и оба равноправны: руками в поле (29/07/2026,
+// 29.07.2026 или ISO — см. parseDateInput) и мышью/клавиатурой в календаре.
+// Пока календарь открыт, фокус находится внутри него: в текстовом поле стрелки
+// обязаны двигать каретку, а не дни, поэтому разделение по фокусу — это не
+// украшение, а единственный способ не отобрать у поля клавиатуру.
 export default function DatePicker({
   value,
   onChange,
   min,
   max,
   ariaLabel,
-  placeholder = "any",
+  placeholder = "dd/mm/yyyy",
   className = "",
   triggerClassName,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState(() => monthOf(value || todayISO()));
   const [cursor, setCursor] = useState(() => value || todayISO());
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [text, setText] = useState(() => formatDateInput(value));
+  const inputRef = useRef<HTMLInputElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
-  const rect = useAnchoredPosition(triggerRef, open);
+  const rect = useAnchoredPosition(wrapRef, open);
 
-  // Каждое открытие начинается с текущего выбора пользователя, а не с того,
-  // где курсор остался в прошлый раз — тот же контракт, что у openMenu()
-  // в Dropdown.
+  // Значение может смениться снаружи — выбором в календаре, кнопкой Clear или
+  // сбросом фильтров родителем. Текст поля следует за ним; набор это не сбивает,
+  // потому что value меняется только в момент коммита.
+  useEffect(() => {
+    setText(formatDateInput(value));
+  }, [value]);
+
+  const closePanel = useCallback(() => {
+    setOpen(false);
+    inputRef.current?.focus();
+  }, []);
+
+  const commit = useCallback(
+    (iso: string) => {
+      onChange(iso);
+      setOpen(false);
+      inputRef.current?.focus();
+    },
+    [onChange],
+  );
+
+  // Открытие всегда начинается с текущего выбора пользователя, а не с того, где
+  // курсор остался в прошлый раз.
   const openPanel = useCallback(() => {
     const start = value || todayISO();
     setCursor(start);
@@ -67,27 +90,27 @@ export default function DatePicker({
     setOpen(true);
   }, [value]);
 
-  const closePanel = useCallback(() => {
-    setOpen(false);
-    triggerRef.current?.focus();
+  const moveCursor = useCallback((next: string) => {
+    setCursor(next);
+    setMonth(monthOf(next));
   }, []);
 
-  const commit = useCallback(
-    (iso: string) => {
-      onChange(iso);
-      setOpen(false);
-      triggerRef.current?.focus();
+  // Шаг месяца двигает и курсор: иначе ячейка курсора размонтируется, фокус
+  // упадёт на body и клавиатура потеряет цель.
+  const shiftMonthBy = useCallback(
+    (delta: number) => {
+      const next = `${shiftMonth(month, delta)}-01`;
+      if (inRange(next, min, max)) moveCursor(next);
     },
-    [onChange],
+    [month, min, max, moveCursor],
   );
 
-  // Закрытие по клику вне и по Esc откуда угодно. Слушаем mousedown, а не
-  // click, чтобы панель исчезла до того, как отреагирует любая другая цель.
+  // Закрытие по клику вне и по Esc откуда угодно.
   useEffect(() => {
     if (!open) return;
     const onDown = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (triggerRef.current?.contains(target)) return;
+      if (wrapRef.current?.contains(target)) return;
       if (panelRef.current?.contains(target)) return;
       setOpen(false);
     };
@@ -102,88 +125,85 @@ export default function DatePicker({
     };
   }, [open]);
 
-  // Курсор не зажимается к границе, а просто не двигается: клавиша, которая
-  // молча уводит куда-то ещё, предсказуема хуже, чем клавиша, которая ничего
-  // не делает. Видимый месяц следует за курсором через края сетки.
-  const moveCursor = useCallback(
-    (next: string) => {
-      if (!inRange(next, min, max)) return;
-      setCursor(next);
-      setMonth(monthOf(next));
+  // Разбор набранного. Пустое поле — это снятие фильтра, а не ошибка. Дата вне
+  // границ и нечитаемая строка обрабатываются одинаково: текст возвращается к
+  // действующему значению, чтобы поле не осталось врать.
+  const commitText = useCallback(() => {
+    if (!text.trim()) {
+      onChange("");
+      return;
+    }
+    const parsed = parseDateInput(text);
+    if (parsed && inRange(parsed, min, max)) onChange(parsed);
+    else setText(formatDateInput(value));
+  }, [text, value, min, max, onChange]);
+
+  const onInputKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        commitText();
+      } else if (event.key === "ArrowDown" && !open) {
+        event.preventDefault();
+        openPanel();
+      }
     },
-    [min, max],
+    [commitText, open, openPanel],
   );
 
-  const onKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLButtonElement>) => {
-      const key = event.key;
-      if (!open) {
-        if (key === "Enter" || key === " " || key === "ArrowDown" || key === "ArrowUp") {
-          event.preventDefault();
-          openPanel();
-        }
-        return;
-      }
-      if (key === "Escape" || key === "Tab") {
-        if (key === "Escape") event.preventDefault();
-        closePanel();
-        return;
-      }
-      if (key in STEP) {
-        event.preventDefault();
-        moveCursor(addDays(cursor, STEP[key]));
-        return;
-      }
-      if (key === "PageUp" || key === "PageDown") {
-        event.preventDefault();
-        // ponytail: страница месяца ставит курсор на 1-е число, день не
-        // сохраняем — иначе на каждом переходе нужен клэмп 31 → 30/29.
-        moveCursor(`${shiftMonth(month, key === "PageUp" ? -1 : 1)}-01`);
-        return;
-      }
-      if (key === "Home") {
-        event.preventDefault();
-        moveCursor(`${month}-01`);
-        return;
-      }
-      if (key === "End") {
-        event.preventDefault();
-        moveCursor(addDays(`${shiftMonth(month, 1)}-01`, -1));
-        return;
-      }
-      if (key === "Enter" || key === " ") {
-        event.preventDefault();
-        if (inRange(cursor, min, max)) commit(cursor);
-      }
-    },
-    [open, cursor, month, min, max, openPanel, closePanel, commit, moveCursor],
-  );
+  const onPanelKeyDown = useCalendarKeyboard({
+    cursor,
+    month,
+    min,
+    max,
+    onMove: moveCursor,
+    onCommit: commit,
+    onClose: closePanel,
+  });
+
+  // Подсветка неприемлемого ввода. Без неё «ничего не произошло» невозможно
+  // отличить от «набрано неверно». Дата за границей диапазона считается тем же
+  // самым: она разбирается успешно, но принята не будет, и краснеть поле должно
+  // до отката, а не после.
+  const parsedText = parseDateInput(text);
+  const invalid = text.trim() !== "" && (!parsedText || !inRange(parsedText, min, max));
 
   return (
     <div className={`relative ${className}`}>
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => (open ? setOpen(false) : openPanel())}
-        onKeyDown={onKeyDown}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        aria-controls={open ? panelId : undefined}
-        aria-label={ariaLabel ?? "Choose a date"}
-        className={`${TRIGGER_LAYOUT} ${triggerClassName ?? TRIGGER_LOOK}`}
+      <div
+        ref={wrapRef}
+        className={`${FIELD_LAYOUT} ${triggerClassName ?? FIELD_LOOK} ${
+          invalid ? "border-rose-400/60" : ""
+        }`}
       >
-        <span className="min-w-0 flex-1 truncate text-left">
-          {value ? toDate(value).toLocaleDateString() : placeholder}
-        </span>
-        <span
-          aria-hidden="true"
-          className={`shrink-0 text-neutral-400 transition-transform duration-150 ${
-            open ? "rotate-180 text-cyan-300/80" : ""
-          }`}
+        <input
+          ref={inputRef}
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          value={text}
+          placeholder={placeholder}
+          aria-label={ariaLabel ?? "Date"}
+          aria-invalid={invalid || undefined}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={onInputKeyDown}
+          onBlur={commitText}
+          className="min-w-0 flex-1 bg-transparent placeholder:text-neutral-600 focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={() => (open ? setOpen(false) : openPanel())}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          aria-controls={open ? panelId : undefined}
+          aria-label={`${ariaLabel ?? "Date"}: open the calendar`}
+          className="shrink-0 cursor-pointer rounded px-1 text-neutral-400 transition-colors hover:text-cyan-300"
         >
+          {/* Типографский символ, а не эмодзи: эмодзи рисуется шрифтом
+              платформы и выбивается из остальной иконографии. */}
           ▾
-        </span>
-      </button>
+        </button>
+      </div>
 
       <AnimatePresence>
         {open ? (
@@ -196,10 +216,10 @@ export default function DatePicker({
             cursor={cursor}
             min={min}
             max={max}
-            onMonthChange={setMonth}
-            onHover={setCursor}
+            onShiftMonth={shiftMonthBy}
             onPick={commit}
             onClear={() => commit("")}
+            onKeyDown={onPanelKeyDown}
           />
         ) : null}
       </AnimatePresence>
