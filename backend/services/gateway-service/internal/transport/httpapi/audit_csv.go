@@ -16,9 +16,13 @@ import (
 // than that many rows.
 const csvPageSize int32 = 200
 
+// The label columns sit next to their ids rather than replacing them: the id is
+// what is unambiguous, the login is what reads, and an audit export wants both.
+// New columns are appended within the existing order rather than reordering it,
+// so a spreadsheet or script built against the old export keeps working.
 var auditCSVHeader = []string{
-	"at", "actor_id", "company_id", "action", "entity", "entity_id",
-	"entity_label", "result",
+	"at", "actor_id", "actor_login", "company_id", "company_login",
+	"action", "entity", "entity_id", "entity_label", "territory", "result",
 }
 
 // ServeAuditCSV streams the filtered journal as CSV.
@@ -80,7 +84,8 @@ func (s *Server) ServeAuditCSV(w http.ResponseWriter, r *http.Request) {
 func auditCSVRow(e domain.AuditEntry) []string {
 	return []string{
 		e.At.Format(time.RFC3339),
-		e.ActorID, e.CompanyID, e.Action, e.Entity, e.EntityID, e.EntityLabel, e.Result,
+		e.ActorID, e.ActorLogin, e.CompanyID, e.CompanyLogin,
+		e.Action, e.Entity, e.EntityID, e.EntityLabel, e.TerritorySlug, e.Result,
 	}
 }
 

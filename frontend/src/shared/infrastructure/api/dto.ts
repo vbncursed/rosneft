@@ -2556,8 +2556,12 @@ export interface components {
             at: string;
             /** @description Empty for a system change (mesh-worker, migrations). */
             actorId?: string;
+            /** @description Login behind actorId, resolved on read. Empty for a system change, for a user since deleted, or if auth could not be reached — the journal answers with ids rather than failing. */
+            actorLogin?: string;
             /** @description Empty for a Root or system change. */
             companyId?: string;
+            /** @description Login behind companyId. The company key is the owning user's id, so this is that user's login. Empty under the same conditions as actorLogin. */
+            companyLogin?: string;
             /** @description e.g. territory.update, auth.login */
             action: string;
             entity: string;
@@ -2568,6 +2572,8 @@ export interface components {
             oldRow?: string;
             /** @description Raw JSON snapshot after the change; empty on delete. */
             newRow?: string;
+            /** @description Slug of the parent territory, for the entities whose row carries one (placement, panorama, document, territory_assignment). Read out of the row snapshot and resolved on read. Empty for everything else, including a territory entry — that one already carries its own slug in entityLabel. */
+            territorySlug?: string;
             /** @enum {string} */
             result: "ok" | "failed";
         };

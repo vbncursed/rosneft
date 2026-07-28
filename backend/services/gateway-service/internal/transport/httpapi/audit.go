@@ -41,17 +41,20 @@ func auditQueryFromParams(p ListAuditParams) domain.AuditQuery {
 
 func auditEntryToAPI(e domain.AuditEntry) AuditEntry {
 	return AuditEntry{
-		Id:          e.ID,
-		At:          e.At,
-		ActorId:     &e.ActorID,
-		CompanyId:   &e.CompanyID,
-		Action:      e.Action,
-		Entity:      e.Entity,
-		EntityId:    &e.EntityID,
-		EntityLabel: &e.EntityLabel,
-		OldRow:      &e.OldRow,
-		NewRow:      &e.NewRow,
-		Result:      AuditEntryResult(e.Result),
+		Id:            e.ID,
+		At:            e.At,
+		ActorId:       &e.ActorID,
+		ActorLogin:    &e.ActorLogin,
+		CompanyId:     &e.CompanyID,
+		CompanyLogin:  &e.CompanyLogin,
+		Action:        e.Action,
+		Entity:        e.Entity,
+		EntityId:      &e.EntityID,
+		EntityLabel:   &e.EntityLabel,
+		OldRow:        &e.OldRow,
+		NewRow:        &e.NewRow,
+		TerritorySlug: &e.TerritorySlug,
+		Result:        AuditEntryResult(e.Result),
 	}
 }
 

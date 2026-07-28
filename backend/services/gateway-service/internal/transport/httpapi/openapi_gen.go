@@ -161,13 +161,19 @@ type AuditEntry struct {
 	Action string `json:"action"`
 
 	// ActorId Empty for a system change (mesh-worker, migrations).
-	ActorId *string   `json:"actorId,omitempty"`
-	At      time.Time `json:"at"`
+	ActorId *string `json:"actorId,omitempty"`
+
+	// ActorLogin Login behind actorId, resolved on read. Empty for a system change, for a user since deleted, or if auth could not be reached — the journal answers with ids rather than failing.
+	ActorLogin *string   `json:"actorLogin,omitempty"`
+	At         time.Time `json:"at"`
 
 	// CompanyId Empty for a Root or system change.
 	CompanyId *string `json:"companyId,omitempty"`
-	Entity    string  `json:"entity"`
-	EntityId  *string `json:"entityId,omitempty"`
+
+	// CompanyLogin Login behind companyId. The company key is the owning user's id, so this is that user's login. Empty under the same conditions as actorLogin.
+	CompanyLogin *string `json:"companyLogin,omitempty"`
+	Entity       string  `json:"entity"`
+	EntityId     *string `json:"entityId,omitempty"`
 
 	// EntityLabel Slug or email as of the event; survives the row's deletion.
 	EntityLabel *string `json:"entityLabel,omitempty"`
@@ -179,6 +185,9 @@ type AuditEntry struct {
 	// OldRow Raw JSON snapshot before the change; empty on insert. The client derives the diff.
 	OldRow *string          `json:"oldRow,omitempty"`
 	Result AuditEntryResult `json:"result"`
+
+	// TerritorySlug Slug of the parent territory, for the entities whose row carries one (placement, panorama, document, territory_assignment). Read out of the row snapshot and resolved on read. Empty for everything else, including a territory entry — that one already carries its own slug in entityLabel.
+	TerritorySlug *string `json:"territorySlug,omitempty"`
 }
 
 // AuditEntryResult defines model for AuditEntry.Result.
