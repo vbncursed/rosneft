@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { listPasskeys, beginRegistration, finishRegistration, deletePasskey, type Passkey } from "@/auth/infrastructure/passkey-gateway";
-import { createCredential, isPasskeySupported } from "@/auth/infrastructure/webauthn";
+import { createCredential, isPasskeySupported, isPasskeyCancelled } from "@/auth/infrastructure/webauthn";
 import { useCurrentUser } from "@/auth/presentation/current-user-context";
 import { confirmWithInput } from "@/shared/presentation/confirm/use-confirm";
 import { notify } from "@/shared/application/toast/notify";
@@ -47,7 +47,11 @@ export default function PasskeysSection() {
       setKeys((k) => [created, ...k]);
       notify.success("Passkey added");
     } catch (e) {
-      notify.error(e instanceof Error ? e.message : "Could not add passkey");
+      // Dismissing the OS prompt is not a failure — nothing was created, and a
+      // toast quoting the spec text would only puzzle whoever backed out.
+      if (!isPasskeyCancelled(e)) {
+        notify.error(e instanceof Error ? e.message : "Could not add passkey");
+      }
     } finally {
       setBusy(false);
     }

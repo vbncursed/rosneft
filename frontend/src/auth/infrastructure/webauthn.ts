@@ -5,6 +5,22 @@ export function isPasskeySupported(): boolean {
   return typeof window !== "undefined" && supported();
 }
 
+// isPasskeyCancelled reports whether a ceremony ended because the user walked
+// away from it rather than because anything failed.
+//
+// The browser raises NotAllowedError both when the prompt is dismissed and when
+// it times out, with one message for both ("The operation either timed out or
+// was not allowed…") — the spec keeps them indistinguishable on purpose, so a
+// site cannot probe which authenticators a user holds. Neither case is worth
+// reporting: the user either chose to stop or never engaged. AbortError shows
+// up when a competing ceremony supersedes ours, which is equally not a failure.
+export function isPasskeyCancelled(err: unknown): boolean {
+  return (
+    err instanceof DOMException &&
+    (err.name === "NotAllowedError" || err.name === "AbortError")
+  );
+}
+
 // createCredential runs the registration ceremony against the server's options
 // JSON (a { publicKey: … } object from go-webauthn) and returns the attestation
 // serialized as JSON for the server to verify.
