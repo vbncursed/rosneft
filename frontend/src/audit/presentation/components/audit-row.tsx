@@ -2,6 +2,7 @@ import { useState } from "react";
 import { isSystemChange, type AuditEntry } from "@/audit/domain/audit-entry";
 import DiffView from "@/audit/presentation/components/diff-view";
 import EntityLink from "@/audit/presentation/components/entity-link";
+import { MotionCollapse } from "@/shared/presentation/motion";
 
 function formatAt(iso: string): string {
   const d = new Date(iso);
@@ -14,7 +15,13 @@ function hasDetail(entry: AuditEntry): boolean {
   return entry.oldRow !== null || entry.newRow !== null;
 }
 
-export default function AuditRow({ entry }: { entry: AuditEntry }) {
+export default function AuditRow({
+  entry,
+  actors,
+}: {
+  entry: AuditEntry;
+  actors?: Map<string, string>;
+}) {
   const [open, setOpen] = useState(false);
   const detail = hasDetail(entry);
   const system = isSystemChange(entry);
@@ -34,7 +41,15 @@ export default function AuditRow({ entry }: { entry: AuditEntry }) {
           {system ? (
             <span className="text-neutral-500 italic">system</span>
           ) : (
-            <span className="font-mono text-neutral-400">{entry.actorId.slice(0, 8)}</span>
+            // Email, если он известен; иначе укороченный UUID, как раньше.
+            // Полный id остаётся в title — он нужен, когда запись обсуждают.
+            <span
+              className={
+                actors?.has(entry.actorId) ? "text-neutral-300" : "font-mono text-neutral-400"
+              }
+            >
+              {actors?.get(entry.actorId) ?? entry.actorId.slice(0, 8)}
+            </span>
           )}
         </span>
 
@@ -57,11 +72,13 @@ export default function AuditRow({ entry }: { entry: AuditEntry }) {
         </span>
       </div>
 
-      {open && detail ? (
-        <div className="border-t border-white/5 bg-black/20 px-4 py-3">
+      <MotionCollapse open={open && detail} className="border-t border-white/5 bg-black/20">
+        {/* Отступы на внутреннем элементе: padding на анимируемом остался бы
+            виден при height:0 и оставил бы полосу под закрытой строкой. */}
+        <div className="px-4 py-3">
           <DiffView oldRow={entry.oldRow} newRow={entry.newRow} />
         </div>
-      ) : null}
+      </MotionCollapse>
     </li>
   );
 }
