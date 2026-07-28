@@ -37,7 +37,7 @@ See [`frontend/README.md`](frontend/README.md).
 
 ### Backend (`backend/`)
 
-Go **1.26.5** multi-module workspace (`go.work`, 11 modules). Services:
+Go **1.26.5** multi-module workspace (`go.work`, 12 modules). Services:
 
 | Service           | Purpose                                                       | Network            |
 | ----------------- | ------------------------------------------------------------- | ------------------ |
@@ -50,6 +50,7 @@ Go **1.26.5** multi-module workspace (`go.work`, 11 modules). Services:
 | [`mesh-service`](backend/services/mesh-service/README.md)       | OBJ → GLB + Draco + KTX2 + LOD (`mesh-api` + `mesh-worker`)   | gRPC `:9002` (internal)   |
 | [`upload-service`](backend/services/upload-service/README.md)   | Resumable chunked uploads (gRPC streaming)                    | gRPC `:9003` (internal)   |
 | [`asset-service`](backend/services/asset-service/README.md)     | Binary artifact server (Range / ETag / immutable cache)       | `:8081` (via gw)          |
+| [`audit-service`](backend/services/audit-service/README.md)     | Append-only change journal + its Postgres capture triggers    | gRPC `:9009` (internal)   |
 
 Persistence: PostgreSQL 17 + Redis 8 Streams + local FS blob store
 (S3-ready behind `BlobStore`). The mesh-worker container ships `gltfpack`
