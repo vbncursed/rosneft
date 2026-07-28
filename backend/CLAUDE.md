@@ -4,20 +4,21 @@ Guidance for Claude Code when working in `backend/`.
 
 ## Stack
 
-- **Go 1.26**, `go.work` workspace with one module per service (`services/*`) plus `pkg/` and `proto/`.
+- **Go 1.26.5**, `go.work` workspace with one module per service (`services/*`) plus `pkg/` and `proto/` — 11 modules, all pinning `go 1.26.5`; every build stage is `golang:1.26.5-alpine`. Dependency matrix and bump procedure: [`README.md#toolchain--dependencies`](README.md#toolchain--dependencies).
 - **Postgres 17** (catalog), **Redis 8 Streams** (mesh job queue), filesystem `BlobStore` (asset).
 - **gRPC** for service-to-service, **HTTP/JSON** for the gateway, OpenAPI spec served by gateway with Scalar UI.
-- **Docker Compose** orchestrates the containers: `postgres`, `redis`, `gateway`, `catalog`, `content`, `auth`, `twofa`, `mesh-api`, `mesh-worker`, `asset`, `upload`, `frontend`. The compose file lives at the repo root (`docker-compose.yml`) so the frontend can be a sibling build context; `make compose-up` from `backend/` still works via `-f ../docker-compose.yml`.
+- **Docker Compose** orchestrates the containers: `postgres`, `redis`, `gateway`, `catalog`, `auth`, `twofa`, `passkey`, `content`, `mesh-api`, `mesh-worker`, `asset`, `upload`, `prometheus`. The compose file lives at the repo root (`docker-compose.yml`); `make compose-up` from `backend/` works via `-f ../docker-compose.yml`. The frontend is **not** a compose service — it runs locally (`yarn dev --port 3000`; port 3000, not Vite's 5173, because `PASSKEY_RP_ORIGINS` is pinned to it).
 
 ## Services
 
 | Service | Module | Cmds | Role |
 | --- | --- | --- | --- |
-| gateway | `services/gateway-service` | `gateway` | Public REST + Scalar UI on `:8080`; proxies `/api/assets/*` to asset; speaks gRPC to catalog, content, auth, twofa, mesh-api, and upload. Runs ETag + Brotli/gzip middleware on JSON, exposes a single-shot scene bundle and SSE job stream. Terminates the chunked-upload protocol on `/api/uploads`. |
+| gateway | `services/gateway-service` | `gateway` | Public REST + Scalar UI on `:8080`; proxies `/api/assets/*` to asset; speaks gRPC to catalog, content, auth, twofa, passkey, mesh-api, and upload. Runs ETag + Brotli/gzip middleware on JSON, exposes a single-shot scene bundle and SSE job stream. Terminates the chunked-upload protocol on `/api/uploads`. |
 | catalog | `services/catalog-service` | `catalog` | Owns territories + models + their artifacts + placements + territory admins. Postgres-backed. API-driven (no startup seeding). Keeps a read-only `ListPanoramaIDs` to validate placement visibility against content's panoramas table (shared DB). |
 | content | `services/content-service` | `content` | gRPC `:9007`. Owns **documents** (PDFs) + **panoramas** (equirect images) anchored to a territory — non-geometry media, no mesh pipeline. Shares the `andrey` DB isolated by `content_goose_db_version`; the `territories` FK cascade still cleans up its rows on territory delete. Extracted from catalog. |
 | auth | `services/auth-service` | `auth` | gRPC `:9004`. Owns users, roles, permissions, sessions. Postgres + Redis (auth cache, logical DB 1). Delegates 2FA login verification to twofa. |
 | twofa | `services/twofa-service` | `twofa` | gRPC `:9006`. Owns TOTP secrets, recovery codes, 2FA verify. Postgres + Redis (logical DB 2). AES-GCM-encrypts secrets at rest. |
+| passkey | `services/passkey-service` | `passkey` | gRPC `:9008`. Owns WebAuthn credentials + ceremonies. Postgres (`passkey_credentials`) + Redis (ceremony challenges, logical DB 3). Gateway calls the management RPCs; auth calls `BeginLogin`/`FinishLogin` — `FinishLogin` returns a **verified user id, never a session**. `PASSKEY_RP_ID`/`PASSKEY_RP_ORIGINS` must match the browser address bar exactly. |
 | mesh-api | `services/mesh-service` | `mesh-api` | gRPC façade for `SubmitConversion(kind, slug)` / `GetJob`. Writes Redis Streams. |
 | mesh-worker | `services/mesh-service` | `mesh-worker` | Consumes the stream, fetches the source ZIP from BlobStore by hash, extracts to a tmp dir, runs the OBJ→GLB converter, applies optional Draco / KTX2 / LOD via `gltfpack`, writes each LOD GLB to BlobStore, registers each artifact in catalog (territory_artifacts vs model_artifacts based on Kind). Runs the reconciler that auto-queues entities whose LOD0 GLB is missing. |
 | asset | `services/asset-service` | `asset` | Internal HTTP serving content-addressed GLB blobs with immutable cache headers + ETag. |
@@ -39,7 +40,7 @@ Guidance for Claude Code when working in `backend/`.
 All commands run from `backend/` (Makefile-driven):
 
 ```bash
-make build         # ./bin/{gateway,catalog,mesh-api,mesh-worker,asset}
+make build         # ./bin/{gateway,catalog,content,auth,twofa,passkey,mesh-api,mesh-worker,asset,upload}
 make test          # go test -race -shuffle=on across every module
 make lint          # golangci-lint per module
 make fmt           # gofmt -s -w .
@@ -50,6 +51,32 @@ make compose-logs
 make proto-gen     # buf generate (needs buf)
 make openapi-gen   # oapi-codegen for gateway
 ```
+
+`SERVICES` in the `Makefile` drives `build`/`test`/`lint`/`tidy` — a new service
+must be added there or it is silently never built, tested, or linted.
+
+### Dependency upgrades
+
+Upgrade **per module**, with the workspace disabled:
+
+```bash
+for m in pkg proto services/*; do (cd $m && GOWORK=off go get -u ./... && go mod tidy); done
+```
+
+With `go.work` active, `go get -u` resolves the sibling `backend/pkg` and
+`backend/proto` modules through the module proxy and rewrites their `require`
+lines to real pseudo-versions (`v0.0.0-2026…-<sha>`). Reset them to the
+placeholder `v0.0.0` afterwards — the `replace … => ../../pkg` directives are
+what actually resolve those imports, and a proxy pseudo-version means a stale
+published commit can silently shadow local changes:
+
+```bash
+sed -i '' -E 's|(backend/(pkg\|proto)) v0\.0\.0-[0-9a-z-]+|\1 v0.0.0|' services/*/go.mod
+```
+
+Then `make build && make test && make lint`. Compare lint issue counts against
+the pre-upgrade baseline (`git stash` + re-run) — several modules carry
+pre-existing findings, so "lint is not clean" is only meaningful as a *delta*.
 
 ## Domain model
 
