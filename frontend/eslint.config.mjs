@@ -8,7 +8,7 @@ export default tseslint.config(
   globalIgnores([".next/**", "dist/**", "build/**", "public/**"]),
   js.configs.recommended,
   tseslint.configs.recommended,
-  reactHooks.configs["recommended-latest"],
+  reactHooks.configs.flat["recommended-latest"],
   {
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
@@ -18,6 +18,12 @@ export default tseslint.config(
         "error",
         { max: 200, skipBlankLines: true, skipComments: true },
       ],
+      // react-hooks 7 adds React-Compiler-oriented rules. We keep the plugin
+      // but opt out of the two that flag intentional patterns here: setState
+      // inside data-fetch/async effects, and imperative mutation of three.js
+      // objects (OrbitControls) — not React state — inside effects.
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/immutability": "off",
     },
   },
   {
