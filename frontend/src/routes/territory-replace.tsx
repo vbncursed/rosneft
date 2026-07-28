@@ -21,7 +21,7 @@ export const territoryReplaceRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/territories/$slug/replace",
   beforeLoad: ({ context, location }) =>
-    requirePermission(context.queryClient, location.pathname, "territory:write"),
+    requirePermission(context.queryClient, location, "territory:write"),
   loader: async ({ context, params }) => {
     try {
       await context.queryClient.ensureQueryData(sceneBundleQuery(params.slug));

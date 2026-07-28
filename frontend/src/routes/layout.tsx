@@ -8,6 +8,6 @@ import AppLayout from "@/app-shell/app-layout";
 export const authedLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "authed",
-  beforeLoad: ({ location }) => requireAuth(location.pathname),
+  beforeLoad: ({ location }) => requireAuth(location),
   component: AppLayout,
 });

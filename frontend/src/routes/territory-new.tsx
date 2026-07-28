@@ -25,6 +25,6 @@ export const territoryNewRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/territories/new",
   beforeLoad: ({ context, location }) =>
-    requirePermission(context.queryClient, location.pathname, "territory:write"),
+    requirePermission(context.queryClient, location, "territory:write"),
   component: NewTerritory,
 });

@@ -25,6 +25,10 @@ const (
 	scrapeSeconds = 15  // Prometheus scrape interval — no finer points exist.
 	targetPoints  = 200 // ~200 points per range for query_range.
 	queryTimeout  = 10 * time.Second
+	// A ~200-point range over a handful of series is tens of KB; 8 MB leaves
+	// generous headroom while keeping a misconfigured or hostile PROMETHEUS_URL
+	// from ballooning gateway memory through an unbounded read.
+	maxResponseBytes = 8 << 20
 )
 
 // stepSeconds keeps ~targetPoints points per range, rounded to whole scrapes.
@@ -43,7 +47,9 @@ type Client struct {
 func NewClient(base string) *Client {
 	return &Client{
 		base: strings.TrimRight(base, "/"),
-		http: &http.Client{},
+		// The per-query context already bounds each call; the client timeout is
+		// the backstop for a base URL that connects but never answers.
+		http: &http.Client{Timeout: queryTimeout},
 	}
 }
 
@@ -79,9 +85,14 @@ func (c *Client) Query(ctx context.Context, panelID, rng string) ([]Series, erro
 	}
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
+	// Read one byte past the cap so a truncated response fails loudly instead
+	// of reaching the JSON parser as a valid-looking prefix.
+	body, err := io.ReadAll(io.LimitReader(res.Body, maxResponseBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("read prometheus response: %w", err)
+	}
+	if len(body) > maxResponseBytes {
+		return nil, fmt.Errorf("prometheus response exceeds %d bytes", maxResponseBytes)
 	}
 	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("prometheus status %d", res.StatusCode)

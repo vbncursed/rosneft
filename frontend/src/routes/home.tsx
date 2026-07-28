@@ -41,7 +41,7 @@ function Home() {
         <section>
           <div className="flex items-end justify-between gap-4">
             <h2 className="text-2xl font-semibold tracking-tight text-white">Territories</h2>
-            {tWrite ? <a href="/territories/new" className={newLink}>+ Upload territory</a> : null}
+            {tWrite ? <Link to="/territories/new" className={newLink}>+ Upload territory</Link> : null}
           </div>
           {territories.length === 0 ? (
             <div className={emptyBox}>The catalog is empty.</div>
@@ -67,7 +67,7 @@ function Home() {
         <section>
           <div className="flex items-end justify-between gap-4">
             <h2 className="text-2xl font-semibold tracking-tight text-white">Models</h2>
-            {mWrite ? <a href="/models/new" className={newLink}>+ Upload model</a> : null}
+            {mWrite ? <Link to="/models/new" className={newLink}>+ Upload model</Link> : null}
           </div>
           {models.length === 0 ? (
             <div className={emptyBox}>No models yet.</div>
