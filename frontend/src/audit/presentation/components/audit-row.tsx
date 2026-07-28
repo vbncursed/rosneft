@@ -3,11 +3,7 @@ import { isSystemChange, type AuditEntry } from "@/audit/domain/audit-entry";
 import DiffView from "@/audit/presentation/components/diff-view";
 import EntityLink from "@/audit/presentation/components/entity-link";
 import { MotionCollapse } from "@/shared/presentation/motion";
-
-function formatAt(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
-}
+import { formatTimestamp } from "@/shared/domain/calendar";
 
 // Session events (login, logout, password change) carry no row snapshots, so
 // there is nothing to expand — the action itself is the whole record.
@@ -29,7 +25,9 @@ export default function AuditRow({
   return (
     <li className="border-b border-white/5 last:border-b-0">
       <div className="grid grid-cols-1 items-baseline gap-1 px-4 py-3 sm:grid-cols-[11rem_1fr_10rem_5rem] sm:gap-3">
-        <span className="font-mono text-xs text-neutral-500">{formatAt(entry.at)}</span>
+        <span className="font-mono text-xs text-neutral-500">
+          {formatTimestamp(entry.at)}
+        </span>
 
         <span className="min-w-0 text-sm">
           <span className="font-mono text-cyan-200">{entry.action}</span>
