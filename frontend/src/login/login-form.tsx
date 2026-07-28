@@ -2,6 +2,14 @@ import { useState } from "react";
 import PasswordField from "@/shared/presentation/components/password-field";
 import OtpInput from "@/shared/presentation/components/otp-input";
 import { login, verifyTwoFactor } from "@/auth/infrastructure/auth-login";
+import { loginBegin, loginFinish } from "@/auth/infrastructure/passkey-gateway";
+import { getAssertion } from "@/auth/infrastructure/webauthn";
+
+// Passkey/WebAuthn is origin-bound to the web domain; in the desktop app the
+// origin is 127.0.0.1 (not a valid RP), so the flow 500s — hide it there.
+// ponytail: probed once at module scope, neither value changes at runtime.
+const canPasskey =
+  !navigator.userAgent.includes("Electron") && typeof window.PublicKeyCredential === "function";
 
 export default function LoginForm({ next }: { next: string }) {
   const [step, setStep] = useState<"creds" | "2fa">("creds");
@@ -21,6 +29,16 @@ export default function LoginForm({ next }: { next: string }) {
       if (r.twoFactorRequired) { setChallenge(r.challengeToken); setStep("2fa"); }
       else window.location.assign(next); // hard nav → fresh SPA state with token
     } catch (e) { setError(e instanceof Error ? e.message : "Sign in failed"); }
+    finally { setBusy(false); }
+  }
+
+  async function signInWithPasskey() {
+    setBusy(true); setError("");
+    try {
+      const { optionsJson, flowId } = await loginBegin();
+      await loginFinish(flowId, await getAssertion(optionsJson));
+      window.location.assign(next);
+    } catch (e) { setError(e instanceof Error ? e.message : "Passkey sign-in failed"); }
     finally { setBusy(false); }
   }
 
@@ -61,6 +79,17 @@ export default function LoginForm({ next }: { next: string }) {
             className="mt-2 cursor-pointer rounded-full bg-white px-6 py-3 text-xs uppercase tracking-[0.2em] text-black transition-colors duration-200 hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-white/30 disabled:text-white/50">
             {busy ? "Signing in…" : "Sign in"}
           </button>
+          {canPasskey ? (
+            <>
+              <div className="flex items-center gap-4 text-[0.65rem] uppercase tracking-[0.2em] text-neutral-500">
+                <span className="h-px flex-1 bg-white/10" />or<span className="h-px flex-1 bg-white/10" />
+              </div>
+              <button type="button" onClick={signInWithPasskey} disabled={busy}
+                className="cursor-pointer rounded-full border border-white/20 px-6 py-3 text-xs uppercase tracking-[0.2em] text-white transition-colors duration-200 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50">
+                {busy ? "…" : "Sign in with passkey"}
+              </button>
+            </>
+          ) : null}
         </form>
       ) : (
         <form className="mt-6 flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); verify(code); }}>
