@@ -13,6 +13,10 @@ import "google/protobuf/timestamp.proto";
 service AuditService {
   rpc ListEntries(ListEntriesRequest) returns (ListEntriesResponse);
   rpc Record(RecordRequest) returns (RecordResponse);
+  // ListActors returns every actor present in the caller's slice of the journal,
+  // so the actor filter can offer the whole scope rather than whoever happens to
+  // be on the page already loaded.
+  rpc ListActors(ListActorsRequest) returns (ListActorsResponse);
 }
 
 message Entry {
@@ -62,4 +66,14 @@ message RecordRequest {
 }
 message RecordResponse {
   int64 id = 1;
+}
+
+message ListActorsRequest {
+  // Same tenant contract as ListEntriesRequest: a scoped read must carry a
+  // company id, and the service refuses rather than matching NULL-company rows.
+  bool all_companies = 1;
+  string company_id = 2;
+}
+message ListActorsResponse {
+  repeated string actor_ids = 1; // most recent activity first
 }

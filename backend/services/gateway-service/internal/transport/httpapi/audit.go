@@ -41,24 +41,27 @@ func auditQueryFromParams(p ListAuditParams) domain.AuditQuery {
 
 func auditEntryToAPI(e domain.AuditEntry) AuditEntry {
 	return AuditEntry{
-		Id:          e.ID,
-		At:          e.At,
-		ActorId:     &e.ActorID,
-		CompanyId:   &e.CompanyID,
-		Action:      e.Action,
-		Entity:      e.Entity,
-		EntityId:    &e.EntityID,
-		EntityLabel: &e.EntityLabel,
-		OldRow:      &e.OldRow,
-		NewRow:      &e.NewRow,
-		Result:      AuditEntryResult(e.Result),
+		Id:            e.ID,
+		At:            e.At,
+		ActorId:       &e.ActorID,
+		ActorLogin:    &e.ActorLogin,
+		CompanyId:     &e.CompanyID,
+		CompanyLogin:  &e.CompanyLogin,
+		Action:        e.Action,
+		Entity:        e.Entity,
+		EntityId:      &e.EntityID,
+		EntityLabel:   &e.EntityLabel,
+		OldRow:        &e.OldRow,
+		NewRow:        &e.NewRow,
+		TerritorySlug: &e.TerritorySlug,
+		Result:        AuditEntryResult(e.Result),
 	}
 }
 
 // ListAudit returns one page of the journal, scoped to the caller.
 func (s *Server) ListAudit(ctx context.Context, req ListAuditRequestObject) (ListAuditResponseObject, error) {
 	entries, next, err := s.svc.ListAudit(ctx,
-		auditQueryFromParams(req.Params), authhttp.IsOwner(ctx), authhttp.AuditCompany(ctx))
+		auditQueryFromParams(req.Params), authhttp.IsOwner(ctx), authhttp.AuditCompany(ctx), authhttp.Token(ctx))
 	switch {
 	case isForbidden(err):
 		return ListAudit403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse{
@@ -78,4 +81,23 @@ func (s *Server) ListAudit(ctx context.Context, req ListAuditRequestObject) (Lis
 		page.NextCursor = &next
 	}
 	return ListAudit200JSONResponse(page), nil
+}
+
+// ListAuditActors returns the actors the caller can filter by.
+func (s *Server) ListAuditActors(ctx context.Context, _ ListAuditActorsRequestObject) (ListAuditActorsResponseObject, error) {
+	actors, err := s.svc.ListAuditActors(ctx,
+		authhttp.IsOwner(ctx), authhttp.AuditCompany(ctx), authhttp.Token(ctx))
+	switch {
+	case isForbidden(err):
+		return ListAuditActors403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse{
+			Code: apperr.SlugForbidden, Message: "no audit scope for this principal",
+		}}, nil
+	case err != nil:
+		return ListAuditActors500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+	}
+	out := make([]AuditActor, len(actors))
+	for i, a := range actors {
+		out[i] = AuditActor{Id: a.ID, Login: &a.Login}
+	}
+	return ListAuditActors200JSONResponse(out), nil
 }

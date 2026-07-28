@@ -10,11 +10,12 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-//go:generate minimock -i Catalog,Content,Mesh,Upload,Audit -o ./mocks -s _mock.go
+//go:generate minimock -i Catalog,Content,Mesh,Upload,Audit,Auth -o ./mocks -s _mock.go
 
 // Catalog is the catalog client surface this service calls.
 type Catalog interface {
 	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
+	ResolveTerritorySlugs(ctx context.Context, ids []int64) (map[int64]string, error)
 	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
 	UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
 	DeleteTerritory(ctx context.Context, slug string) error
@@ -69,7 +70,15 @@ type Upload interface {
 // Audit is the audit-service client surface this service calls.
 type Audit interface {
 	ListEntries(ctx context.Context, q domain.AuditQuery) ([]domain.AuditEntry, int64, error)
+	ListActors(ctx context.Context, q domain.AuditQuery) ([]string, error)
 	Record(ctx context.Context, e domain.AuditEvent) error
+}
+
+// Auth is the auth client surface this service calls. Deliberately one method:
+// the gateway's user administration goes through authhttp, and the only thing
+// the service layer needs from auth is turning ids into logins for the journal.
+type Auth interface {
+	ResolveUserLogins(ctx context.Context, token string, ids []string) (map[string]string, error)
 }
 
 // Gateway is the gateway service.
@@ -79,9 +88,13 @@ type Gateway struct {
 	mesh    Mesh
 	upload  Upload
 	audit   Audit
+	auth    Auth
 }
 
 // New constructs a Gateway.
-func New(catalog Catalog, content Content, mesh Mesh, upload Upload, audit Audit) *Gateway {
-	return &Gateway{catalog: catalog, content: content, mesh: mesh, upload: upload, audit: audit}
+func New(catalog Catalog, content Content, mesh Mesh, upload Upload, audit Audit, auth Auth) *Gateway {
+	return &Gateway{
+		catalog: catalog, content: content, mesh: mesh,
+		upload: upload, audit: audit, auth: auth,
+	}
 }

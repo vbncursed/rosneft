@@ -33,6 +33,8 @@ type UsersSvc interface {
 	Create(ctx context.Context, actorID, email, username, password string, roleSlugs []string) (domain.User, error)
 	List(ctx context.Context, actorID string, scopeAll bool, status string, includeDeleted bool) ([]domain.User, error)
 	Get(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
+	// No actorID or scope: this one labels ids the caller already sees.
+	ResolveLogins(ctx context.Context, ids []string) (map[string]string, error)
 	Update(ctx context.Context, actorID string, scopeAll bool, id string, roleSlugs []string, email, username string) (domain.User, error)
 	Freeze(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
 	Unfreeze(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)

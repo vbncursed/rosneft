@@ -10,6 +10,10 @@ type AuditPageDto = components["schemas"]["AuditPage"];
 
 export type AuditPage = { entries: AuditEntry[]; nextCursor: number | null };
 
+// AuditActor is one option in the actor filter. Разрешается сервером: список
+// пользователей, доступный клиенту, не совпадает с областью журнала.
+export type AuditActor = { id: string; login: string };
+
 // The server sends the snapshots as raw JSON text so it never has to agree with
 // the client on any row's shape. A malformed one degrades to null rather than
 // taking the page down — who/when/what stays readable even then.
@@ -27,13 +31,16 @@ function toEntry(dto: AuditEntryDto): AuditEntry {
     id: dto.id,
     at: dto.at,
     actorId: dto.actorId ?? "",
+    actorLogin: dto.actorLogin ?? "",
     companyId: dto.companyId ?? "",
+    companyLogin: dto.companyLogin ?? "",
     action: dto.action,
     entity: dto.entity,
     entityId: dto.entityId ?? "",
     entityLabel: dto.entityLabel ?? "",
     oldRow: parseRow(dto.oldRow),
     newRow: parseRow(dto.newRow),
+    territorySlug: dto.territorySlug ?? "",
     result: dto.result,
   };
 }
@@ -82,4 +89,11 @@ export async function fetchAuditCsv(filters: AuditFilters): Promise<Blob> {
   });
   if (!res.ok) throw new Error(`Export failed (${res.status})`);
   return res.blob();
+}
+
+// fetchAuditActors returns everyone the reader can filter by — not merely the
+// actors on the page already loaded, which is all the per-entry labels cover.
+export async function fetchAuditActors(): Promise<AuditActor[]> {
+  const dto = await httpGet<components["schemas"]["AuditActor"][]>("/api/audit/actors");
+  return dto.map((a) => ({ id: a.id, login: a.login ?? "" }));
 }
