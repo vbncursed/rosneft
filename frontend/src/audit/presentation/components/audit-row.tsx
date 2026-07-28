@@ -39,7 +39,7 @@ export default function AuditRow({
           {system ? (
             <span className="text-neutral-500 italic">system</span>
           ) : (
-            // Email, если он известен; иначе укороченный UUID, как раньше.
+            // Логин, если он известен; иначе укороченный UUID, как раньше.
             // Полный id остаётся в title — он нужен, когда запись обсуждают.
             <span
               className={
