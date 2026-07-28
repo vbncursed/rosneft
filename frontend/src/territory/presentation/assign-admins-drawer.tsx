@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import type { AdminUser } from "@/auth/domain/user";
 import type { Role } from "@/auth/domain/role";

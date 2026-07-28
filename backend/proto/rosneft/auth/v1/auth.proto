@@ -115,6 +115,9 @@ message ValidateTokenResponse {
   repeated string permissions = 2;
   bool is_owner = 3; // root of trust; gateway grants it a blanket route bypass
   string owning_admin_id = 4; // tenant admin for territory scoping; "" for Root
+  // Unmangled ResolveOwningAdmin result — the audit log's company key. Differs
+  // from owning_admin_id for guests, whose territory scope is keyed to self.
+  string audit_company_id = 5;
 }
 
 message GetMeRequest {

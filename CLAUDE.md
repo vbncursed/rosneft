@@ -10,6 +10,11 @@ The frontend is a client-only single-page app: Vite 8 + React 19, routed with
 Entry point is `src/main.tsx`. Check the installed versions in
 `frontend/node_modules/@tanstack/*` when an API looks unfamiliar.
 
+**Never write `"use client"`.** It marks a server/client boundary that does not
+exist here; every module is already client-side and the bundler ignores it. 62
+files carried it as migration residue and were cleaned out — don't reintroduce
+it by copying a neighbouring file.
+
 ## Commands
 
 All commands run from `frontend/`:
@@ -111,6 +116,11 @@ frontend/
     document/                           # PDF overlays anchored to a territory
     auth/                               # login, token store, RBAC, passkeys, 2FA, admin console
     metrics/                            # owner-only Prometheus dashboard
+    audit/                              # bounded context: the change journal
+      domain/{audit-entry.ts, diff.ts}  # diff.ts is pure — node --test
+      infrastructure/audit-gateway.ts
+      application/use-audit-log.ts      # useInfiniteQuery, cursor paging
+      presentation/components/          # panel, table, row, filters, diff, export
     onboarding/                         # guided tour
     app-shell/  login/                  # top-level layout + login screen
 ```
@@ -163,6 +173,8 @@ The gateway exposes a small REST surface defined in `backend/services/gateway-se
 - `POST /api/territories` — create a territory from `{slug, title, description, sourceBlobHash}`. Response is `{territory, job}`; redirect to `/territories/{slug}?jobId={job.id}` so the conversion-pending screen can subscribe to SSE.
 - `GET /api/models` / `POST /api/models` / `GET /api/models/{slug}/artifacts` — same shape as territory, model side.
 - `POST /api/uploads` → `PATCH /api/uploads/{id}` (raw bytes + `Upload-Offset` header) → `POST /api/uploads/{id}/finalize` — chunked upload protocol. `useChunkedUpload` slices files into 8 MB chunks and drives the loop; the resulting `blobHash` feeds into create-territory / create-model. Resumable: `HEAD /api/uploads/{id}` reports the current offset so a re-attempted client can pick up where it left off.
+- `GET /api/audit` — the change journal, cursor-paged over descending `id` (`nextCursor` in the body, `X-Next-Cursor` on the response). Filters: `actor`, `action`, `entity`, `from`, `to`, `limit` (default 50, capped at 200). Requires `audit:read`; Root passes via the owner bypass. **The company scope comes from the session and is not a parameter** — there is no way to ask for another company's history.
+- `GET /api/audit.csv` — the same query streamed as CSV. Lives on the root router, outside the ETag/compression chain, because ETag hashes the whole body and would buffer the export. Needs an `Authorization` header, so the client fetches and blobs it rather than using a plain `<a download>`.
 - `GET /api/jobs/{id}/events` — Server-Sent Events for one conversion job. Emits `event: job` whenever the job state changes; closes on `succeeded`/`failed`. Job payload carries `kind` and `slug` so the client knows which entity is being converted.
 - All JSON GETs carry strong ETags and answer `If-None-Match` with 304. Browsers cache automatically — no client-side work required.
 - All JSON responses are Brotli/gzip-compressed when the client advertises `Accept-Encoding: br, gzip`.

@@ -1,5 +1,3 @@
-"use client";
-
 import { type RefObject, useState } from "react";
 import { motion } from "motion/react";
 import type { Panorama } from "@/panorama/domain/panorama";

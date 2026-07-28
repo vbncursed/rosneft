@@ -1,5 +1,3 @@
-"use client";
-
 import type { PlacementAssetOption } from "@/placement/domain/asset-option";
 import QuantityStepper from "@/placement/presentation/components/quantity-stepper";
 

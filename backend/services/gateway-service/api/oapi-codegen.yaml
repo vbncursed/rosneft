@@ -6,6 +6,8 @@
 #   - auth    → plain-chi authhttp package (login must be public)
 #   - assets  → asset-service reverse proxy
 #   - jobs    → SSE stream handler (WatchJobEvents)
+#   - audit-export → streaming CSV handler (ServeAuditCSV); the JSON
+#     GET /api/audit keeps its generated stub under the plain `audit` tag
 #   - metrics → owner-gated Prometheus proxy (InitMetricsHandler)
 #   - ops     → healthz/readyz probes + /docs + /openapi.json
 # The FULL embedded spec (all tags, for Swagger) is generated separately by
@@ -25,5 +27,6 @@ output-options:
     - auth
     - assets
     - jobs
+    - audit-export
     - metrics
     - ops

@@ -29,9 +29,11 @@ func (h *Handlers) passkeyLoginFinish(w http.ResponseWriter, r *http.Request) {
 	}
 	token, err := h.client.PasskeyLoginFinish(r.Context(), req.FlowID, req.AssertionJSON)
 	if err != nil {
+		h.recordLogin(r, "auth.login_passkey", "")
 		fail(w, err)
 		return
 	}
+	h.recordLogin(r, "auth.login_passkey", token)
 	writeJSON(w, http.StatusOK, map[string]any{"token": token})
 }
 

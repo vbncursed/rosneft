@@ -1,5 +1,3 @@
-"use client";
-
 import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
 import { fade } from "@/shared/presentation/motion/variants";

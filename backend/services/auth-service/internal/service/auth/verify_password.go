@@ -16,7 +16,7 @@ func (s *Service) VerifyPassword(ctx context.Context, token, plain string) (bool
 	if token == "" || plain == "" {
 		return false, fmt.Errorf("auth.VerifyPassword: %w: token and password required", domain.ErrInvalidInput)
 	}
-	uid, _, _, _, err := s.ValidateToken(ctx, token)
+	uid, _, _, _, _, err := s.ValidateToken(ctx, token)
 	if err != nil {
 		return false, err
 	}

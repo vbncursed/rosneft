@@ -105,6 +105,13 @@ func InitRouter(
 	// server-side PromQL and proxies Prometheus, like the asset proxy for GLBs.
 	r.With(authH.Authenticate).Get("/api/metrics/query", metricsHandler.ServeHTTP)
 
+	// Audit CSV export. On the root router because ETagMiddleware hashes the
+	// whole response body — i.e. buffers it — which defeats a streaming export.
+	// Its gate is applied by hand: RequirePermissionForRoute only covers the
+	// /api JSON sub-router below.
+	r.With(authH.Authenticate, authH.Require("audit:read")).
+		Get("/api/audit.csv", apiServer.ServeAuditCSV)
+
 	// /api/auth/* on the root router: login/2fa are public; self/admin
 	// handlers validate the Bearer token themselves via the auth client.
 	authH.Mount(r)

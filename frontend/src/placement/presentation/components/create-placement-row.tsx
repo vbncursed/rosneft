@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import type { PlacementAssetOption } from "@/placement/domain/asset-option";
 import ModelPickerModal, {

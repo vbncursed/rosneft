@@ -1,5 +1,3 @@
-"use client";
-
 import { memo } from "react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";

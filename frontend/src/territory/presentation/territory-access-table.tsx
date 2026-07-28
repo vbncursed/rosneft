@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import AssignAdminsDrawer from "@/territory/presentation/assign-admins-drawer";
 
@@ -18,8 +16,11 @@ export default function TerritoryAccessTable({ territories }: { territories: Ter
         Grant access per territory. Company owners share it with their whole team; guests see only what you assign them.
       </p>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-        <table className="w-full text-left">
+      {/* Scrolls sideways on a phone rather than clipping: a long slug plus the
+          action button overflow a narrow viewport, and overflow-hidden made the
+          button unreachable. */}
+      <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.03]">
+        <table className="w-full min-w-[32rem] text-left">
           <thead className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
             <tr>
               <th className="px-3 py-2">Territory</th>

@@ -11,10 +11,15 @@ import (
 const authzCacheTTL = 5 * time.Second
 
 // authz is the per-user authorization snapshot ValidateToken returns.
+//
+// owningAdmin and auditCompany are deliberately separate: the former is the
+// territory-visibility key (self for a guest), the latter the real created_by
+// tenant the audit log attributes changes to.
 type authz struct {
-	perms       []string
-	isOwner     bool
-	owningAdmin string
+	perms        []string
+	isOwner      bool
+	owningAdmin  string
+	auditCompany string
 }
 
 // authzCache memoizes the DB hydration done by ValidateToken, keyed by user id,

@@ -1,5 +1,3 @@
-"use client";
-
 import { useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Toast } from "@/shared/application/toast/toast";

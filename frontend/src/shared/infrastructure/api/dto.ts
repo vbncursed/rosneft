@@ -4,6 +4,46 @@
  */
 
 export interface paths {
+    "/api/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the audit journal
+         * @description Root sees every entry; anyone else sees only their own company's, keyed to the created_by chain. The tenant filter comes from the session, never from a parameter. Requires the audit:read permission (Root bypasses it). Paging is by cursor over descending id, so pages stay stable while new entries land above them.
+         */
+        get: operations["listAudit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export the audit journal as CSV
+         * @description Same filters and same scoping as GET /api/audit, streamed as CSV until the journal is exhausted rather than one page at a time. Served outside the JSON middleware chain: the ETag middleware hashes the whole response body, which would mean buffering the entire export.
+         */
+        get: operations["exportAuditCSV"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/territories": {
         parameters: {
             query?: never;
@@ -2509,6 +2549,36 @@ export interface components {
                 [key: string]: string;
             };
         };
+        AuditEntry: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            at: string;
+            /** @description Empty for a system change (mesh-worker, migrations). */
+            actorId?: string;
+            /** @description Empty for a Root or system change. */
+            companyId?: string;
+            /** @description e.g. territory.update, auth.login */
+            action: string;
+            entity: string;
+            entityId?: string;
+            /** @description Slug or email as of the event; survives the row's deletion. */
+            entityLabel?: string;
+            /** @description Raw JSON snapshot before the change; empty on insert. The client derives the diff. */
+            oldRow?: string;
+            /** @description Raw JSON snapshot after the change; empty on delete. */
+            newRow?: string;
+            /** @enum {string} */
+            result: "ok" | "failed";
+        };
+        AuditPage: {
+            entries: components["schemas"]["AuditEntry"][];
+            /**
+             * Format: int64
+             * @description Pass back as `cursor` for the next page. Absent or 0 means this was the last page.
+             */
+            nextCursor?: number;
+        };
     };
     responses: {
         /** @description Resource not found */
@@ -2564,6 +2634,75 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listAudit: {
+        parameters: {
+            query?: {
+                /** @description Filter by acting user id. */
+                actor?: string;
+                /** @description Exact action, e.g. territory.update. */
+                action?: string;
+                /** @description Exact entity kind, e.g. territory. */
+                entity?: string;
+                from?: string;
+                to?: string;
+                /** @description nextCursor from the previous page; omit for the newest page. */
+                cursor?: number;
+                /** @description Page size, default 50, clamped to 200. */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    exportAuditCSV: {
+        parameters: {
+            query?: {
+                actor?: string;
+                action?: string;
+                entity?: string;
+                from?: string;
+                to?: string;
+                /** @description Start the export below this id; omit to export from the newest entry. */
+                cursor?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV stream */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["Internal"];
+        };
+    };
     listTerritories: {
         parameters: {
             query?: never;

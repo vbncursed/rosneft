@@ -5,7 +5,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import { globalIgnores } from "eslint/config";
 
 export default tseslint.config(
-  globalIgnores([".next/**", "dist/**", "build/**", "public/**"]),
+  globalIgnores(["dist/**", "build/**", "public/**"]),
   js.configs.recommended,
   tseslint.configs.recommended,
   reactHooks.configs.flat["recommended-latest"],

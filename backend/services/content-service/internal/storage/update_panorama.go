@@ -7,12 +7,15 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/vbncursed/rosneft/backend/pkg/audittx"
 	"github.com/vbncursed/rosneft/backend/services/content-service/internal/domain"
 )
 
 // UpdatePanorama replaces title, position, and yaw_offset; the source
 // blob and slug are immutable after creation (a new equirect = a new
 // panorama). Returns ErrPanoramaNotFound for unknown IDs.
+//
+// Wrapped in audittx.Run so the audit trigger can attribute the change.
 func (r *PG) UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error) {
 	const q = `
 		WITH updated AS (
@@ -33,12 +36,17 @@ func (r *PG) UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Pano
 		FROM updated u
 		JOIN territories t ON t.id = u.territory_id`
 
-	row := r.pool.QueryRow(ctx, q,
-		p.ID, p.Title,
-		p.Position.X, p.Position.Y, p.Position.Z,
-		p.YawOffset, p.DefaultYaw,
-	)
-	out, err := scanPanorama(row)
+	var out domain.Panorama
+	err := audittx.Run(ctx, r.pool, func(tx pgx.Tx) error {
+		row := tx.QueryRow(ctx, q,
+			p.ID, p.Title,
+			p.Position.X, p.Position.Y, p.Position.Z,
+			p.YawOffset, p.DefaultYaw,
+		)
+		var scanErr error
+		out, scanErr = scanPanorama(row)
+		return scanErr
+	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Panorama{}, domain.ErrPanoramaNotFound

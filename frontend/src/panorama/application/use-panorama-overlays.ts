@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useRef, useState } from "react";
 import type { Panorama } from "@/panorama/domain/panorama";
 import { usePanoramaCalibration } from "@/panorama/application/use-panorama-calibration";
