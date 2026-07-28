@@ -64,11 +64,12 @@ func (s *SchemaSuite) SetupTest() {
 	_, err := s.pool.Exec(ctx, `
 		DROP TABLE IF EXISTS subjects;
 		CREATE TABLE subjects (
-			id            BIGSERIAL PRIMARY KEY,
-			slug          TEXT NOT NULL,
-			title         TEXT NOT NULL DEFAULT '',
-			password_hash TEXT NOT NULL DEFAULT 'hunter2',
-			updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+			id                    BIGSERIAL PRIMARY KEY,
+			slug                  TEXT NOT NULL,
+			title                 TEXT NOT NULL DEFAULT '',
+			password_hash         TEXT NOT NULL DEFAULT 'hunter2',
+			onboarding_tours_seen TEXT[] NOT NULL DEFAULT '{}',
+			updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 		);
 		CREATE TRIGGER audit_subjects AFTER INSERT OR UPDATE OR DELETE ON subjects
 			FOR EACH ROW EXECUTE FUNCTION audit_capture('subject', 'id', 'slug');`)
@@ -133,6 +134,41 @@ func (s *SchemaSuite) TestUpdateTouchingOnlyUpdatedAtIsSkipped() {
 	var n int
 	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT count(*) FROM audit_log`).Scan(&n))
 	assert.Equal(s.T(), n, 0)
+}
+
+// Bookkeeping columns carry no editorial meaning. A user dismissing a first-run
+// tooltip must not surface as "changed the user account".
+func (s *SchemaSuite) TestUpdateTouchingOnlyBookkeepingColumnsIsSkipped() {
+	ctx := s.T().Context()
+	_, err := s.pool.Exec(ctx, `INSERT INTO subjects (slug, title) VALUES ('alpha', 'Alpha')`)
+	assert.NilError(s.T(), err)
+	s.truncateLog()
+
+	_, err = s.pool.Exec(ctx,
+		`UPDATE subjects SET onboarding_tours_seen = ARRAY['viewer'] WHERE slug = 'alpha'`)
+	assert.NilError(s.T(), err)
+
+	var n int
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT count(*) FROM audit_log`).Scan(&n))
+	assert.Equal(s.T(), n, 0)
+}
+
+// The guard drops a write only when it touches nothing else. A real edit that
+// happens to also bump a bookkeeping column is still captured in full.
+func (s *SchemaSuite) TestRealEditAlongsideBookkeepingIsCaptured() {
+	ctx := s.T().Context()
+	_, err := s.pool.Exec(ctx, `INSERT INTO subjects (slug, title) VALUES ('alpha', 'Alpha')`)
+	assert.NilError(s.T(), err)
+	s.truncateLog()
+
+	_, err = s.pool.Exec(ctx,
+		`UPDATE subjects SET title = 'Beta', onboarding_tours_seen = ARRAY['viewer'] WHERE slug = 'alpha'`)
+	assert.NilError(s.T(), err)
+
+	var newRow string
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT new_row::text FROM audit_log`).Scan(&newRow))
+	assert.Assert(s.T(), strings.Contains(newRow, "Beta"))
+	assert.Assert(s.T(), strings.Contains(newRow, "viewer"))
 }
 
 func (s *SchemaSuite) TestRealUpdateIsCaptured() {
