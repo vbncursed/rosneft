@@ -7,22 +7,12 @@ export function isRange(v: string): v is Range {
   return (RANGES as readonly string[]).includes(v);
 }
 
-export type PanelKind = "line" | "stat" | "alerts";
-
-/**
- * Определение панели. `expr` живёт только на сервере: клиент присылает id,
- * роут резолвит его сюда. Так в браузерный бандл не попадает PromQL и не
- * появляется возможность выполнить произвольный запрос к Prometheus.
- */
-export type PanelDef = {
+// PanelView is everything the dashboard renders for one panel. The PromQL and
+// the panel kind live in the Go registry (gateway internal/metrics): the
+// client sends an id, the server resolves it. So no PromQL reaches the browser
+// bundle and no arbitrary Prometheus query can be issued from it.
+export type PanelView = {
   id: string;
   title: string;
   unit: Unit;
-  kind: PanelKind;
-  expr: string;
-  instant?: boolean;
 };
-
-// PanelView is the client-safe projection the dashboard renders: id + title +
-// unit, without the server-only `expr`. panel-catalog.view() builds it.
-export type PanelView = Pick<PanelDef, "id" | "title" | "unit">;
