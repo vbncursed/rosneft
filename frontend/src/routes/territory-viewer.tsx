@@ -16,7 +16,7 @@ function TerritoryViewer() {
 
   const scene = toSceneViewModel(bundle);
   if (!scene) {
-    return <ConversionPending title={bundle.territory.title} slug={slug} jobId={jobId ?? null} />;
+    return <ConversionPending title={bundle.territory.title} slug={slug} jobId={jobId ?? null} kind="territory" />;
   }
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-black">
