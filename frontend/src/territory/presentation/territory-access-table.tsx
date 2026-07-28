@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import AssignAdminsDrawer from "@/territory/presentation/assign-admins-drawer";
 

@@ -1,5 +1,3 @@
-"use client";
-
 import type { AuditEntry } from "@/audit/domain/audit-entry";
 import AuditRow from "@/audit/presentation/components/audit-row";
 

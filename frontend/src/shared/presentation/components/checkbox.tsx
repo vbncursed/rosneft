@@ -1,5 +1,3 @@
-"use client";
-
 import { useId } from "react";
 import { motion, useReducedMotion, type Transition } from "motion/react";
 

@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useMemo, useState } from "react";
 import type { LodArtifact } from "@/shared/domain/lod-artifact";
 import { useCan, useCurrentUser } from "@/auth/presentation/current-user-context";

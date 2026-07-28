@@ -1,5 +1,3 @@
-"use client";
-
 import type { AuditFilters } from "@/audit/domain/audit-entry";
 
 const FIELD_CLASS =

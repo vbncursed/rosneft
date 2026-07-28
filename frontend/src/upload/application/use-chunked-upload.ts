@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useRef, useState } from "react";
 import { runChunkedUpload } from "@/upload/application/run-chunked-upload";
 import type { FinalizedBlob } from "@/upload/domain/session";

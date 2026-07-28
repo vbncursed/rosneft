@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { isSystemChange, type AuditEntry } from "@/audit/domain/audit-entry";
 import DiffView from "@/audit/presentation/components/diff-view";

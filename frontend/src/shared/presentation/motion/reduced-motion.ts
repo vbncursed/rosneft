@@ -1,5 +1,3 @@
-"use client";
-
 import { useReducedMotion, type Variants } from "motion/react";
 
 // resolveVariants keeps the state change (mount/unmount still cross-fades) but

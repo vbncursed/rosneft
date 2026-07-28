@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useChunkedUpload } from "@/upload/application/use-chunked-upload";

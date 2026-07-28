@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { auditCsvPath } from "@/audit/infrastructure/audit-gateway";
 import { getToken } from "@/auth/infrastructure/token-store";

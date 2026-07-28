@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useCurrentUser } from "@/auth/presentation/current-user-context";
 import { useAuditLog } from "@/audit/application/use-audit-log";

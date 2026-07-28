@@ -1,5 +1,3 @@
-"use client";
-
 import { motion, useReducedMotion } from "motion/react";
 import { spring } from "@/shared/presentation/motion";
 import { RANGES, type Range } from "@/metrics/domain/panel";
