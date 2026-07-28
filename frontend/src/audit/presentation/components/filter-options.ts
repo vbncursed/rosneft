@@ -14,9 +14,9 @@ export function actionOptions(entity: string): DropdownOption[] {
   return [ANY, ...actionsFor(entity).map((a) => ({ value: a, label: a }))];
 }
 
-// Акторы подписаны только email'ом. UUID здесь не показываем — он ничего не
-// говорит человеку, а email уже уникален. Значением опции id остаётся: он и
-// уходит в запрос.
+// Акторы подписаны логином. UUID здесь не показываем — он ничего не говорит
+// человеку, а логин уникален не хуже. Значением опции id остаётся: он и уходит
+// в запрос.
 export function actorOptions(actors: Map<string, string>): DropdownOption[] {
   const rows = [...actors]
     .map(([id, email]) => ({ value: id, label: email }))
