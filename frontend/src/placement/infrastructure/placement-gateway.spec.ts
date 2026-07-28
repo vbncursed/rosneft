@@ -23,7 +23,7 @@ const DTO = {
   scale: { x: 1, y: 1, z: 1 },
   label: "Tank A", updatedAt: "t1", visiblePanoramaIds: [4, 5],
 };
-const BODY = { modelSlug: "tank", position: DTO.position, rotation: DTO.rotation, scale: DTO.scale };
+const BODY = { modelSlug: "tank", label: "Tank A", position: DTO.position, rotation: DTO.rotation, scale: DTO.scale };
 
 beforeEach(() => {
   httpGet.mockReset().mockResolvedValue([DTO]);

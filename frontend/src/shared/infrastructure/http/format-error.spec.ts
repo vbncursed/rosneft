@@ -7,12 +7,12 @@ import { HttpError } from "./http-error";
 import { notFoundOnHttp404 } from "./not-found-on-404";
 
 test("prefers the gateway's structured message", () => {
-  assert.equal(formatError(new HttpError(409, { message: "slug taken" }, "conflict")), "slug taken");
+  assert.equal(formatError(new HttpError(409, { code: "conflict", message: "slug taken" }, "conflict")), "slug taken");
 });
 
 test("falls back to the status line when the body carries no message", () => {
   assert.equal(formatError(new HttpError(502, null, "bad gateway")), "HTTP 502");
-  assert.equal(formatError(new HttpError(500, {} as { message: string }, "boom")), "HTTP 500");
+  assert.equal(formatError(new HttpError(500, { code: "internal" } as unknown as { code: string; message: string }, "boom")), "HTTP 500");
 });
 
 test("renders a plain Error by its message", () => {
@@ -26,7 +26,7 @@ test("renders a non-Error throw without leaking [object Object] into the UI", ()
 });
 
 test("HttpError keeps its status and body for callers that branch on them", () => {
-  const err = new HttpError(404, { message: "gone" }, "not found");
+  const err = new HttpError(404, { code: "not_found", message: "gone" }, "not found");
   assert.equal(err.status, 404);
   assert.equal(err.body?.message, "gone");
   assert.equal(err.name, "HttpError");

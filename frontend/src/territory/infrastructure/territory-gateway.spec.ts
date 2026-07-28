@@ -50,7 +50,8 @@ test("the mapper drops DTO-only fields instead of leaking them into the domain",
 
 test("createTerritory returns the territory alongside the queued job", async () => {
   httpPost.mockResolvedValue({ territory: TERRITORY, job: JOB });
-  const out = await gw.createTerritory({ slug: "north", title: "North", sourceBlobHash: "src" });
+  // No slug in the body — the gateway derives it from the title.
+  const out = await gw.createTerritory({ title: "North", sourceBlobHash: "src" });
   assert.equal(out.territory.slug, "north");
   assert.equal(out.job.id, "j1");
   assert.equal(httpPost.mock.calls[0][0], "/api/territories");
@@ -64,8 +65,15 @@ test("replaceTerritorySource posts to the source endpoint and returns the new jo
 });
 
 test("updateTerritory PATCHes and maps the response", async () => {
-  httpPatch.mockResolvedValue({ ...TERRITORY, title: "Renamed" });
-  assert.equal((await gw.updateTerritory("north", { title: "Renamed" })).title, "Renamed");
+  // TerritoryUpdate carries only externalPanoramaUrl — title and description
+  // are set at creation and not editable through this route.
+  httpPatch.mockResolvedValue({ ...TERRITORY, externalPanoramaUrl: "https://tour.example" });
+  const out = await gw.updateTerritory("north", { externalPanoramaUrl: "https://tour.example" });
+  assert.deepEqual(httpPatch.mock.calls[0], [
+    "/api/territories/north",
+    { externalPanoramaUrl: "https://tour.example" },
+  ]);
+  assert.equal(out.externalPanoramaUrl, "https://tour.example");
 });
 
 test("deleteTerritory hits the DELETE route", async () => {

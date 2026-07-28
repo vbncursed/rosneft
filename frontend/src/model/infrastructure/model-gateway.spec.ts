@@ -49,7 +49,7 @@ test("getModel encodes the slug into the path", async () => {
 });
 
 test("createModel returns the model alongside its queued conversion job", async () => {
-  const out = await gw.createModel({ slug: "tank", title: "Tank", sourceBlobHash: "src" });
+  const out = await gw.createModel({ title: "Tank", sourceBlobHash: "src" });
   assert.equal(httpPost.mock.calls[0][0], "/api/models");
   assert.equal(out.model.slug, "tank");
   assert.equal(out.job.status, "pending");

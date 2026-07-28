@@ -8,7 +8,7 @@ import {
   measurementReducer as reduce,
   initialMeasurementState,
   type MeasurementState,
-} from "./measurement-reducer.ts";
+} from "./measurement-reducer";
 import { CLOSE_TOLERANCE } from "@/measurement/domain/chain";
 
 const p = (x: number, y = 0, z = 0) => ({ x, y, z });
