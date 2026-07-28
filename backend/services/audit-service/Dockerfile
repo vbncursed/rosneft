@@ -17,21 +17,21 @@ COPY services/audit-service/go.mod services/audit-service/go.su[m] ./services/au
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    cd services/auth-service && go mod download
+    cd services/audit-service && go mod download
 
 COPY proto/ ./proto/
 COPY pkg/ ./pkg/
-COPY services/auth-service/ ./services/auth-service/
+COPY services/audit-service/ ./services/audit-service/
 
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    cd services/auth-service && \
+    cd services/audit-service && \
     CGO_ENABLED=0 GOOS=linux go build \
         -trimpath -ldflags="-s -w" \
-        -o /out/auth ./cmd/auth
+        -o /out/audit ./cmd/audit
 
 FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=build /out/auth /auth
+COPY --from=build /out/audit /audit
 USER nonroot:nonroot
-EXPOSE 9004
-ENTRYPOINT ["/auth"]
+EXPOSE 9009
+ENTRYPOINT ["/audit"]
