@@ -1,21 +1,12 @@
+import type { components } from "@/shared/infrastructure/api/dto";
 import { httpGet } from "@/shared/infrastructure/http/client";
+import { getToken } from "@/auth/infrastructure/token-store";
 import type { AuditEntry, AuditFilters } from "@/audit/domain/audit-entry";
 
-type AuditEntryDto = {
-  id: number;
-  at: string;
-  actorId?: string;
-  companyId?: string;
-  action: string;
-  entity: string;
-  entityId?: string;
-  entityLabel?: string;
-  oldRow?: string;
-  newRow?: string;
-  result: string;
-};
+const API_BASE = import.meta.env.VITE_API_URL;
 
-type AuditPageDto = { entries: AuditEntryDto[]; nextCursor?: number };
+type AuditEntryDto = components["schemas"]["AuditEntry"];
+type AuditPageDto = components["schemas"]["AuditPage"];
 
 export type AuditPage = { entries: AuditEntry[]; nextCursor: number | null };
 
@@ -43,7 +34,7 @@ function toEntry(dto: AuditEntryDto): AuditEntry {
     entityLabel: dto.entityLabel ?? "",
     oldRow: parseRow(dto.oldRow),
     newRow: parseRow(dto.newRow),
-    result: dto.result === "failed" ? "failed" : "ok",
+    result: dto.result,
   };
 }
 
@@ -79,10 +70,16 @@ export async function fetchAuditPage(
   };
 }
 
-// A plain link, not a fetch: the browser handles the download, and the CSV route
-// is streamed rather than buffered. The bearer token is not in the URL, so this
-// relies on the same-session cookie-less flow the rest of the console uses —
-// see export-button, which fetches with the header and blobs the result.
-export function auditCsvPath(filters: AuditFilters): string {
-  return `/api/audit.csv${toQuery(filters, null)}`;
+// The export needs an Authorization header, which a plain <a download> cannot
+// send, so the bytes are fetched and handed back as a blob for the caller to
+// save. Kept here rather than in the component for the same reason
+// upload-gateway owns its raw fetch: the shared http client only parses JSON,
+// and reaching for a token is infrastructure's job, not presentation's.
+export async function fetchAuditCsv(filters: AuditFilters): Promise<Blob> {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}/api/audit.csv${toQuery(filters, null)}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error(`Export failed (${res.status})`);
+  return res.blob();
 }
