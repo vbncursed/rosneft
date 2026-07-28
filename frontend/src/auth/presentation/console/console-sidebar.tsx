@@ -1,12 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, useLocation } from "@tanstack/react-router";
 
-const ITEMS = [
-  { href: "/admin/users", label: "Users" },
-  { href: "/admin/roles", label: "Roles & Permissions" },
-];
+function itemClass(active: boolean) {
+  return `rounded-md px-3 py-2 text-sm transition-colors ${active ? "bg-white/10 text-white" : "text-neutral-300 hover:bg-white/5 hover:text-white"}`;
+}
 
 export default function ConsoleSidebar({
   showContent,
@@ -17,28 +15,35 @@ export default function ConsoleSidebar({
   showAccess: boolean;
   showMetrics: boolean;
 }) {
-  const path = usePathname();
-  const items = [
-    ...ITEMS,
-    ...(showContent ? [{ href: "/admin/content", label: "Content" }] : []),
-    ...(showAccess ? [{ href: "/admin/territories", label: "Territory access" }] : []),
-    ...(showMetrics ? [{ href: "/admin/metrics", label: "Metrics" }] : []),
-  ];
+  const path = useLocation({ select: (l) => l.pathname });
+  const isActive = (to: string) => path === to || path.startsWith(to + "/");
   return (
     <nav className="flex flex-col gap-1">
-      <Link href="/" className="mb-3 text-[10px] uppercase tracking-[0.28em] text-neutral-400 transition-colors hover:text-white">
+      <Link to="/" className="mb-3 text-[10px] uppercase tracking-[0.28em] text-neutral-400 transition-colors hover:text-white">
         ← Back to site
       </Link>
       <p className="mb-2 text-xs uppercase tracking-[0.36em] text-cyan-300/80">Console</p>
-      {items.map((it) => {
-        const active = path === it.href || path.startsWith(it.href + "/");
-        return (
-          <Link key={it.href} href={it.href}
-            className={`rounded-md px-3 py-2 text-sm transition-colors ${active ? "bg-white/10 text-white" : "text-neutral-300 hover:bg-white/5 hover:text-white"}`}>
-            {it.label}
-          </Link>
-        );
-      })}
+      <Link to="/admin/users" className={itemClass(isActive("/admin/users"))}>
+        Users
+      </Link>
+      <Link to="/admin/roles" className={itemClass(isActive("/admin/roles"))}>
+        Roles & Permissions
+      </Link>
+      {showContent ? (
+        <Link to="/admin/content" className={itemClass(isActive("/admin/content"))}>
+          Content
+        </Link>
+      ) : null}
+      {showAccess ? (
+        <Link to="/admin/territories" className={itemClass(isActive("/admin/territories"))}>
+          Territory access
+        </Link>
+      ) : null}
+      {showMetrics ? (
+        <Link to="/admin/metrics" className={itemClass(isActive("/admin/metrics"))}>
+          Metrics
+        </Link>
+      ) : null}
     </nav>
   );
 }

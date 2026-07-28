@@ -6,7 +6,7 @@ import type { Role } from "@/auth/domain/role";
 import { canGrant } from "@/auth/domain/principal";
 import { useCurrentUser } from "@/auth/presentation/current-user-context";
 import { updateUserRoles, setUserOwner } from "@/auth/infrastructure/auth-admin-gateway";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 import MotionModal from "@/shared/presentation/motion/motion-modal";
 
 export default function EditRolesDrawer({ user, roles, onClose, onSaved }: { user: AdminUser; roles: Role[]; onClose: () => void; onSaved: () => void }) {

@@ -10,7 +10,7 @@ the browser fetches compact binary artifacts instead of 100+ MB ASCII files.
 ```
 andrey/
 ├── backend/        # Go 1.26 microservices (gateway, catalog, content, auth, twofa, mesh, upload, asset)
-├── frontend/       # Next.js 16 + React 19 viewer (RSC + react-three-fiber)
+├── frontend/       # Vite + React 19 SPA viewer (TanStack Router + react-three-fiber)
 ├── documentation/  # external reference material checked in for offline use
 ├── CLAUDE.md       # repo-wide guidance for Claude Code
 └── AGENTS.md       # agent collaboration rules
@@ -22,10 +22,11 @@ Each top-level package owns its own toolchain, build, and README.
 
 ### Frontend (`frontend/`)
 
-Next.js 16 App Router under `src/app/`, React 19, Tailwind v4. Clean
-Architecture + DDD layout under `src/<context>/{domain,application,
-infrastructure,presentation}/` with bounded contexts `catalog`,
-`placement`, `viewer`, plus `shared`. Renders converted GLBs through
+Vite + React 19 SPA (TanStack Router in `src/routes/`, TanStack Query),
+Tailwind v4. Clean Architecture + DDD layout under
+`src/<context>/{domain,application,infrastructure,presentation}/` with
+bounded contexts `territory`, `model`, `placement`, `viewer`, `auth`,
+plus `shared`. Renders converted GLBs through
 `@react-three/fiber`/`@react-three/drei`, exposes an in-scene gizmo
 (translate/rotate/scale), placement editor and measurement tool.
 Self-hosts the DRACOLoader decoder under `public/draco/`.
@@ -78,7 +79,7 @@ Frontend and backend run independently.
 make compose-up      # docker compose: postgres, redis, all services
 
 # Frontend (from frontend/)
-yarn dev             # http://localhost:3000 — proxies /api/* to gateway
+yarn dev             # http://localhost:5173 — set VITE_API_URL to the gateway
 ```
 
 Browse `http://localhost:8080/docs` for the Scalar API explorer.
@@ -93,7 +94,7 @@ Browse `http://localhost:8080/docs` for the Scalar API explorer.
 - **No speculative abstractions, no dead code.** Add only what the current
   task requires.
 - **Tests**: `testify/suite` + `gotest.tools/v3/assert` on the backend;
-  Vitest on the frontend.
+  Vitest (`*.spec`) + Node's built-in runner (`*.test`, domain) on the frontend.
 - **Cross-service contracts**: protobuf for internal gRPC, OpenAPI 3.1 for
   the gateway; both schemas generate code on each side (`oapi-codegen` for
   Go, `openapi-typescript` for the frontend).

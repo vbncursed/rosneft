@@ -1,11 +1,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link } from "@tanstack/react-router";
 import { useChunkedUpload } from "@/upload/application/use-chunked-upload";
 import ProgressBar from "@/upload/presentation/components/progress-bar";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 import { replaceTerritorySource } from "@/territory/infrastructure/territory-gateway";
 
 interface ReplaceSourceFormProps {
@@ -18,7 +17,6 @@ interface ReplaceSourceFormProps {
 // placed object stays anchored. On success it redirects to the viewer's
 // conversion screen (?jobId) just like the create flow.
 export default function ReplaceSourceForm({ slug, title }: ReplaceSourceFormProps) {
-  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { status, progress, upload, cancel } = useChunkedUpload();
@@ -29,8 +27,8 @@ export default function ReplaceSourceForm({ slug, title }: ReplaceSourceFormProp
       cancel();
       return;
     }
-    router.push(territoryHref);
-  }, [cancel, router, submitting, territoryHref]);
+    window.location.assign(territoryHref);
+  }, [cancel, submitting, territoryHref]);
 
   const onSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
@@ -43,14 +41,14 @@ export default function ReplaceSourceForm({ slug, title }: ReplaceSourceFormProp
         const { job } = await replaceTerritorySource(slug, {
           sourceBlobHash: blob.hash,
         });
-        router.push(`${territoryHref}?jobId=${encodeURIComponent(job.id)}`);
+        window.location.assign(`${territoryHref}?jobId=${encodeURIComponent(job.id)}`);
       } catch (err) {
         notify.error(err instanceof Error ? err.message : "Replace failed");
       } finally {
         setSubmitting(false);
       }
     },
-    [file, router, slug, submitting, territoryHref, upload],
+    [file, slug, submitting, territoryHref, upload],
   );
 
   return (
@@ -59,7 +57,8 @@ export default function ReplaceSourceForm({ slug, title }: ReplaceSourceFormProp
       className="mx-auto flex w-full max-w-xl flex-col gap-6 rounded-3xl border border-white/10 bg-white/[0.03] p-8 backdrop-blur"
     >
       <Link
-        href={territoryHref}
+        to="/territories/$slug"
+        params={{ slug }}
         className="-mb-2 inline-flex w-fit items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-neutral-400 transition-colors hover:text-cyan-200"
       >
         <span aria-hidden="true">←</span>

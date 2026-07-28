@@ -80,7 +80,9 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("init asset proxy: %w", err)
 	}
 
-	router, hz := InitRouter(svc, assetProxy, authH, logger, cfg)
+	metricsHandler := InitMetricsHandler(cfg, logger)
+
+	router, hz := InitRouter(svc, assetProxy, metricsHandler, authH, logger, cfg)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,

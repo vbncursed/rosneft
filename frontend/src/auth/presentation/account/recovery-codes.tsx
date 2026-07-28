@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 
 const actionBtn = "cursor-pointer rounded-full border border-white/20 px-4 py-1.5 text-xs uppercase tracking-[0.18em] text-white hover:bg-white/[0.08]";
 

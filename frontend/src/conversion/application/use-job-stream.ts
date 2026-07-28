@@ -27,14 +27,10 @@ export function useJobStream(
 ): void {
   useEffect(() => {
     if (!jobId) return;
-    // Open SSE directly against the gateway. Going through the Next.js
-    // /api/* rewrite buffers the stream — Node's HTTP server holds
-    // frames in its 16 KB write buffer and only flushes on connection
-    // close, which makes the bar look "stuck" until the job finishes.
-    // NEXT_PUBLIC_API_URL is baked at build time; falls back to the
-    // same origin for prod deployments where the gateway sits behind a
-    // reverse proxy that streams SSE natively.
-    const base = process.env.NEXT_PUBLIC_API_URL ?? "";
+    // Open SSE directly against the gateway (absolute — no same-origin BFF in
+    // the SPA). /api/jobs/*/events is unauthenticated (Ф0), so no token; the
+    // reverse proxy streams it with proxy_buffering off.
+    const base = import.meta.env.VITE_API_URL;
     const url = `${base}/api/jobs/${encodeURIComponent(jobId)}/events`;
     const source = new EventSource(url);
 

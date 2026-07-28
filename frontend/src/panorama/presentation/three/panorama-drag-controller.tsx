@@ -24,8 +24,6 @@ export default function PanoramaDragController({
     if (!dragging) return;
     // Imperative toggle of CameraRig's OrbitControls (a three.js object, not
     // React state) — same technique as use-gizmo-events, which mutates it
-    // inside an event callback that the immutability rule doesn't flag.
-    // eslint-disable-next-line react-hooks/immutability
     if (controls) controls.enabled = false;
     const up = () => onEnd();
     window.addEventListener("pointerup", up);

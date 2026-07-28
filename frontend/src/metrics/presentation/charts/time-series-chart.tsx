@@ -28,6 +28,11 @@ export default function TimeSeriesChart({ series, unit }: { series: Series[]; un
           {...AXIS}
         />
         <Tooltip
+          // Both the tooltip and legend wrappers default to z-index:auto, and
+          // the legend paints after the tooltip in the DOM — so with many series
+          // a tall tooltip that overlaps the legend gets the legend text drawn
+          // on top of it. Lift the tooltip above the legend.
+          wrapperStyle={{ zIndex: 30 }}
           contentStyle={{
             background: "#0c0d10",
             border: "1px solid rgba(255,255,255,0.15)",

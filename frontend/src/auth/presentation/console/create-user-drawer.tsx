@@ -8,7 +8,7 @@ import { canGrant } from "@/auth/domain/principal";
 import { useCurrentUser } from "@/auth/presentation/current-user-context";
 import { createUser } from "@/auth/infrastructure/auth-admin-gateway";
 import { validateUsername, validateEmail, validatePassword, generatePassword } from "@/auth/domain/credential-rules";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 import MotionModal from "@/shared/presentation/motion/motion-modal";
 
 export default function CreateUserDrawer({ roles, onClose, onCreated }: { roles: Role[]; onClose: () => void; onCreated: () => void }) {

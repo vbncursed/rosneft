@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import type { ModelMetadata } from "@/viewer/domain/model-metadata";
 import { fade } from "@/shared/presentation/motion/variants";
@@ -37,7 +37,7 @@ function ModelInfoPanelImpl({ metadata }: ModelInfoPanelProps) {
       className="w-full max-w-xs rounded-xl border border-white/20 bg-black/50 p-4 shadow-xl backdrop-blur"
     >
       <Link
-        href="/"
+        to="/"
         data-tour="catalog-link"
         className="group inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.24em] text-neutral-400 transition-colors hover:text-cyan-200"
         aria-label="Back to catalog"

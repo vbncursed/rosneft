@@ -4,7 +4,7 @@ import ModelInfoPanel from "@/viewer/presentation/components/model-info-panel";
 import ResetCameraButton from "@/viewer/presentation/components/reset-camera-button";
 import MeasureButton from "@/measurement/presentation/components/measure-button";
 import type { ModelMetadata } from "@/viewer/domain/model-metadata";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 
 interface UIOverlayProps {
   progress: number;

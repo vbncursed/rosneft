@@ -38,7 +38,6 @@ export default function ModelPickerCard({ asset, usable, count, onToggle, onCoun
           {asset.thumbnailUrl ? (
             // object-contain: objects can be tall or wide — show the whole
             // thumbnail (letterboxed) rather than cropping it to the square.
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={asset.thumbnailUrl} alt={asset.title} loading="lazy" className="size-full object-contain p-1" />
           ) : (
             <CubeIcon />

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { Range } from "@/metrics/domain/panel";
 import AlertsCard from "./alerts-card";
-import PanelCard, { type PanelView } from "./panel-card";
+import PanelCard from "./panel-card";
+import type { PanelView } from "@/metrics/domain/panel";
 import RangePicker from "./range-picker";
 import StatTile from "./stat-tile";
 

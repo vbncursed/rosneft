@@ -5,7 +5,7 @@ import type { AdminUser } from "@/auth/domain/user";
 import type { Role } from "@/auth/domain/role";
 import { listUsers, listRoles } from "@/auth/infrastructure/auth-admin-gateway";
 import { getTerritoryAdmins, setTerritoryAdmins } from "@/territory/infrastructure/territory-admins-gateway";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 import MotionModal from "@/shared/presentation/motion/motion-modal";
 
 // Roles that can be granted territory access: a Company Owner shares the

@@ -6,7 +6,7 @@ import { usePanoramaCalibration } from "@/panorama/application/use-panorama-cali
 import { usePanoramaOrchestration } from "@/panorama/application/use-panorama-orchestration";
 import { usePanoramas } from "@/panorama/application/use-panoramas";
 import type { Vec3 } from "@/shared/domain/vec3";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 
 // usePanoramaOverlays gathers every piece of panorama state the viewer needs:
 // the CRUD list, the active/editing orchestration, calibration, the live camera

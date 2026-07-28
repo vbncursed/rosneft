@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { useConversionWatcher } from "@/conversion/application/use-conversion-watcher";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import type { JobKind } from "@/shared/domain/job";
+import { notify } from "@/shared/application/toast/notify";
 
 interface ConversionPendingProps {
   title: string;
@@ -13,6 +14,8 @@ interface ConversionPendingProps {
   // (e.g. revisiting a territory whose conversion was queued by the
   // background reconciler), the watcher falls back to polling.
   jobId?: string | null;
+  // Which entity is converting — decides which queries the watcher refreshes.
+  kind: JobKind;
 }
 
 const STAGE_COPY: Record<string, string> = {
@@ -46,8 +49,9 @@ export default function ConversionPending({
   title,
   slug,
   jobId = null,
+  kind,
 }: ConversionPendingProps) {
-  const { status, progress, stage, error } = useConversionWatcher(jobId);
+  const { status, progress, stage, error } = useConversionWatcher(jobId, slug, kind);
   const failed = status === "failed" || status === "unavailable";
   const stageMsg = stageLabel(stage);
   const headline = stageMsg ?? STATUS_COPY[status] ?? STATUS_COPY.running;
@@ -62,7 +66,7 @@ export default function ConversionPending({
   return (
     <main className="relative flex h-screen w-screen items-center justify-center bg-black px-6 text-center text-neutral-300">
       <Link
-        href="/"
+        to="/"
         className="absolute left-4 top-4 cursor-pointer rounded-full border border-white/15 bg-white/[0.04] px-4 py-2 text-xs uppercase tracking-[0.2em] text-white transition-colors duration-200 hover:bg-white/[0.1]"
       >
         ← Catalog

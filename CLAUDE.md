@@ -2,39 +2,44 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# This is NOT the Next.js you know
+# Frontend is a Vite + React SPA (no Next.js)
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `frontend/node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+The frontend is a client-only single-page app: Vite 8 + React 19, routed with
+`@tanstack/react-router` (route tree in `src/routes/`) and served data through
+`@tanstack/react-query`. There is no server runtime, no RSC, no App Router.
+Entry point is `src/main.tsx`. Check the installed versions in
+`frontend/node_modules/@tanstack/*` when an API looks unfamiliar.
 
 ## Commands
 
 All commands run from `frontend/`:
 
 ```bash
-yarn dev          # Start dev server
-yarn build        # Production build
-yarn start        # Start production server
+yarn dev          # Vite dev server (http://localhost:5173)
+yarn build        # Production build → dist/
+yarn preview      # Serve the production build locally
 yarn lint         # ESLint (flat config, eslint.config.mjs)
+yarn test         # Domain unit tests (node --test, src/**/*.test.ts)
+yarn test:spa     # Component/integration tests (vitest, src/**/*.spec.ts[x])
 ```
 
 ## Stack
 
-- **Next.js 16.2.2** (App Router, `src/app/`) with **React 19**
+- **Vite 8 + React 19** SPA. Routing: `@tanstack/react-router` (`src/routes/`). Data: `@tanstack/react-query`. Entry: `src/main.tsx`.
 - **TypeScript** strict mode, bundler module resolution. Single path alias `@/*` → `frontend/src/*`.
 - **Tailwind CSS 4** via `@tailwindcss/postcss` — uses `@import "tailwindcss"` and `@theme inline` syntax, not v3 `@tailwind` directives
-- **ESLint 9** flat config with `eslint-config-next` (core-web-vitals + typescript) + `max-lines: 200` rule
+- **ESLint 9** flat config: `@eslint/js` + `typescript-eslint` + `eslint-plugin-react-hooks` + `globals`, plus `max-lines: 200` rule
 
 ## Architecture rules (hard)
 
 - **Clean Architecture + DDD**. Every file lives in one of four layers under a bounded context: `domain/`, `application/`, `infrastructure/`, `presentation/`.
 - **Hard cap: 200 lines per file** (skipBlankLines, skipComments). Enforced by ESLint. Generated files are exempted explicitly.
 - **No speculative abstractions, no dead code, no helpers "just in case"** — only what the current task requires.
-- Presentation never imports `infrastructure/` or DTO types — it talks to `application/` use cases or `infrastructure/` gateways that already return domain entities.
+- Dependencies point strictly inward: `domain ← application ← presentation`. Domain imports nothing outward; application never imports presentation. Presentation talks to `application/` use cases or an `infrastructure/` gateway that already returns domain entities — never DTO types.
 - DTO→domain mapping happens inside gateways; openapi-typescript output is treated as an internal implementation detail.
 
 ### Allowed exceptions to layering
 
-- **RSC routes (`src/app/**`) may import gateways from `infrastructure/` directly.** Server Components run on the server, where the layer boundary that protects the browser bundle does not apply. The rule "routes import only from `<context>/presentation/`" still holds for any client component a route renders, but the `page.tsx` itself is allowed to call `getSceneBundle`, `listTerritories`, etc. directly from `territory/infrastructure/`. The presentation layer in this codebase is client-only by design.
 - **`territory/` aggregates `placement/` domain types in the SceneBundle response.** `territory-gateway.ts` imports `Placement` and `PlacementAssetOption` from `@/placement/domain` because `SceneBundle` is the server-side aggregate that joins territory + artifact + placements + model options in one call. This is the only sanctioned cross-context domain import; do not extend it to other contexts.
 
 ## UI animations
@@ -46,20 +51,23 @@ UI animations use the `motion` library (import from `motion/react` — never `fr
 ```
 frontend/
   src/
-    app/                                # Next.js routing (layout, page, loading)
-      layout.tsx
-      page.tsx                          # territories + models grid
-      territories/[slug]/{page.tsx, loading.tsx}   # viewer
-      territories/new/page.tsx          # upload territory
-      models/page.tsx                   # models grid
-      models/new/page.tsx               # upload model
+    main.tsx                            # entry: QueryClientProvider + RouterProvider
+    globals.css                         # Tailwind entry + self-hosted fonts
+    routes/                             # TanStack Router route tree (client-only)
+      router.tsx, root.tsx, layout.tsx  # tree + authed layout guard
+      login.tsx, home.tsx, territory-viewer.tsx, territories.tsx, models.tsx,
+      model-detail.tsx, *-new.tsx, account.tsx                 # each exports a route
+      admin.tsx, admin-users.tsx, admin-roles.tsx, admin-metrics.tsx, ...
+      guard.ts                          # redirect-to-login / permission guards
     shared/
       domain/{vec3.ts, lod-artifact.ts, artifact.ts, job.ts}
       infrastructure/
         api/dto.ts                      # openapi-typescript output (autogen, lint-exempt)
-        http/{client.ts, http-error.ts, not-found-on-404.ts}
+        http/{client.ts, http-error.ts, ...}
+        query/query-client.ts
         asset-url.ts
-      application/lod-url.ts
+      application/{lod-url.ts, toast/{notify.ts, toast-store.ts, toast.ts}}
+      presentation/toast/toaster.tsx    # React Toaster; the store lives in application
     territory/                          # bounded context: parent scenes
       domain/{territory.ts, scene-bundle.ts}
       infrastructure/territory-gateway.ts
@@ -99,24 +107,34 @@ frontend/
     conversion/                         # bounded context: pending conversion screen
       application/{use-conversion-watcher.ts, use-job-stream.ts}
       presentation/conversion-pending.tsx
+    panorama/                           # equirect panorama tours + scene markers
+    document/                           # PDF overlays anchored to a territory
+    auth/                               # login, token store, RBAC, passkeys, 2FA, admin console
+    metrics/                            # owner-only Prometheus dashboard
+    onboarding/                         # guided tour
+    app-shell/  login/                  # top-level layout + login screen
 ```
 
-`@/*` resolves to `frontend/src/*`. Routes import only from `<context>/presentation/` of the contexts they need.
+`@/*` resolves to `frontend/src/*`. Route modules in `src/routes/` are client components: they read params/search, call TanStack Query (or a gateway), and render each context's `presentation/`.
 
-## Key Differences from Common Next.js Patterns
+## Key conventions
 
-- Next.js 16 may have API changes vs 14/15 — always check `frontend/node_modules/next/dist/docs/` for current API docs
-- App Router lives at `src/app/`, not the legacy `app/` at the root
 - Tailwind v4 syntax: `@theme inline` block for design tokens, `@import "tailwindcss"` instead of `@tailwind base/components/utilities`
-- ESLint uses flat config (`defineConfig` from `"eslint/config"`) not legacy `.eslintrc`
+- ESLint flat config (`eslint.config.mjs`), not legacy `.eslintrc`
+- Two test runners: pure domain logic → `node --test` (`*.test.ts`); jsdom/React → vitest (`*.spec.ts[x]`). Globs don't overlap.
+- Client env is `VITE_API_URL` (gateway base URL, `import.meta.env`). Dev-only `VITE_DEV_PROXY` routes `/api` through Vite to a remote gateway (see `vite.config.ts`).
 
-## Territory page composition
+## Territory route composition
 
-`/territories/[slug]` is an RSC. It does **one** call — `getSceneBundle(slug)` — and the gateway aggregates territory + LOD0 artifact + placements + model options server-side via errgroup. No second round of `resolveX` helpers on the client; placements and model options arrive already joined in the bundle.
+`/territories/$slug` is a TanStack Router route. Its loader primes the query
+cache with **one** call — `sceneBundleQuery(slug)` — and the component reads it via
+`useQuery`; the gateway aggregates territory + LOD0 artifact + placements + model
+options + panoramas + documents server-side via errgroup. `toSceneViewModel(bundle)`
+maps it into the viewer's props. No client-side fan-out.
 
 Each placement's `glbUrl` is computed by joining `placement.modelSlug` against the `modelOptions[].slug → glbUrl` map (modelOptions already carries the artifact hash). `usePlacementsEditor` receives `modelOptions` and reuses the same lookup for CRUD round-trips, so no per-mutation `getArtifact` is needed.
 
-When the artifact is missing, the page renders `ConversionPending`. If the page received a `?jobId=…` query param (set by the upload form's redirect), it subscribes to `/api/jobs/{id}/events` for live SSE updates. Without a jobId, it falls back to a 4-second `router.refresh` poll — the worker reconciler will eventually queue the conversion, and the page re-renders into the viewer once the artifact lands.
+When the artifact is missing, the route renders `ConversionPending`. If a `?jobId=…` search param is present (set by the upload form's redirect), it subscribes to `/api/jobs/{id}/events` for live SSE updates and refetches on `succeeded`. Without a jobId, it falls back to a short poll — the worker reconciler eventually queues the conversion, and the route re-renders into the viewer once the artifact lands.
 
 `<SceneCanvas>` keeps `<Bounds fit clip observe>` wrapping only the territory GLB so auto-fit ignores placement instances. Each `<PlacementInstance>` clones its GLB scene via `SkeletonUtils.clone` (Three.js disallows the same Object3D under two parents — without the clone, only one of N instances of the same model would render). useGLTF caches by URL so duplicate-model placements share a single network fetch.
 

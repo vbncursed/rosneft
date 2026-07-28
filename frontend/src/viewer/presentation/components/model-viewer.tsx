@@ -116,6 +116,7 @@ export default function ModelViewer({
       toggleSnap,
       cyclePanorama: pano.orchestration.cycle,
       onCommitPanorama: pano.onCommit,
+      canMovePanorama: useCan()("panorama:write"),
     });
 
   return (

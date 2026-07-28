@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { listUsers } from "@/auth/infrastructure/auth-admin-gateway";
 import type { AdminUser } from "@/auth/domain/user";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 
 export function useUsersAdmin() {
   const [users, setUsers] = useState<AdminUser[]>([]);
