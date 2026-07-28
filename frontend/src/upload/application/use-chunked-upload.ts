@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { runChunkedUpload } from "@/upload/application/run-chunked-upload";
 import type { FinalizedBlob } from "@/upload/domain/session";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 
 export type UploadStatus =
   | "idle"

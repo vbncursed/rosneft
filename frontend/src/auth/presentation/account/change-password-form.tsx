@@ -4,7 +4,7 @@ import { useState } from "react";
 import PasswordField from "@/shared/presentation/components/password-field";
 import { changePassword } from "@/auth/infrastructure/auth-gateway";
 import { validatePassword, generatePassword } from "@/auth/domain/credential-rules";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 
 export default function ChangePasswordForm() {
   const [oldPw, setOldPw] = useState("");

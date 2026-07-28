@@ -1,29 +1,36 @@
 # Andrey Frontend
 
-Next.js 16 + React 19 viewer for the Andrey 3D platform. Talks to
-`gateway-service` over REST (rewritten same-origin in dev via
-`next.config.ts`) and renders converted GLBs with `@react-three/fiber`.
+Vite + React 19 single-page app for the Andrey 3D platform. Talks to
+`gateway-service` over REST (base URL from `VITE_API_URL`, token attached as
+`Authorization: Bearer`) and renders converted GLBs with `@react-three/fiber`.
 
 ## Commands
 
 ```bash
-yarn dev               # dev server (http://localhost:3000)
-yarn build             # production build
-yarn start             # serve the production build
+yarn dev               # Vite dev server (http://localhost:5173)
+yarn build             # production build → dist/
+yarn preview           # serve the production build locally
 yarn lint              # ESLint flat config
+yarn test              # domain unit tests (node --test, src/**/*.test.ts)
+yarn test:spa          # component/integration tests (vitest, src/**/*.spec.ts[x])
 yarn openapi:generate  # regenerate src/shared/infrastructure/api/dto.ts from
                        # ../backend/services/gateway-service/api/openapi.yaml
 ```
 
-> Re-run `yarn openapi:generate` whenever the gateway's `openapi.yaml` changes
-> (it now also covers `/api/auth/*`, the asset proxy, and the job SSE stream).
+> Two test runners by design: pure domain logic runs framework-free under
+> Node's built-in runner (`*.test.ts`); anything needing jsdom/React runs under
+> vitest (`*.spec.ts[x]`). The globs don't overlap.
+>
+> Re-run `yarn openapi:generate` whenever the gateway's `openapi.yaml` changes.
 
 ## Stack
 
-- Next.js 16.2.2 (App Router, `src/app/`), React 19, TypeScript strict mode
+- Vite 8 + React 19, TypeScript strict mode. Entry: `src/main.tsx`.
+- Routing: `@tanstack/react-router` (route tree in `src/routes/`).
+- Data: `@tanstack/react-query` (query client in `src/shared/infrastructure/query/`).
 - Tailwind CSS 4 via `@tailwindcss/postcss` (CSS-first config, `@theme inline`)
 - `@react-three/fiber` + `@react-three/drei` (Bounds, OrbitControls, TransformControls, useGLTF, Line, Html), `three`, `three-mesh-bvh`
-- ESLint 9 flat config, `eslint-config-next` (core-web-vitals + typescript) + `max-lines: 200`
+- ESLint 9 flat config: `@eslint/js` + `typescript-eslint` + `eslint-plugin-react-hooks` + `globals`, plus `max-lines: 200`
 
 ## Architecture
 
@@ -31,69 +38,43 @@ Clean Architecture + DDD inside `src/`. Each bounded context owns
 `domain/` · `application/` · `infrastructure/` · `presentation/` layers.
 
 Contexts: `territory` (parent scenes) · `model` (placeable assets) ·
-`placement` (scene overlays) · `panorama` (equirect tours) · `upload`
-(chunked uploads) · `measurement` (measure tool) · `viewer` (3D scene
-composition) · `conversion` (pending-conversion screen) · `shared`
-(cross-context primitives).
+`placement` (scene overlays) · `panorama` (equirect tours) · `document`
+(PDF overlays) · `upload` (chunked uploads) · `measurement` (measure tool) ·
+`viewer` (3D scene composition) · `conversion` (pending-conversion screen) ·
+`auth` (login, token, RBAC, passkeys, 2FA, admin console) · `metrics`
+(owner-only Prometheus dashboard) · `onboarding` (guided tour) · `shared`
+(cross-context primitives). `app-shell` and `login` hold the top-level layout
+and login screen.
 
 ```
 src/
-  app/                                # routes only — RSC pages call into contexts
-    layout.tsx, page.tsx              # territories + models grid
-    territories/[slug]/{page.tsx, loading.tsx}   # viewer
-    territories/new/page.tsx          # upload territory
-    models/{page.tsx, new/page.tsx, [slug]/page.tsx}
+  main.tsx                             # app entry: QueryClientProvider + RouterProvider
+  globals.css                          # Tailwind entry + self-hosted fonts
+  routes/                              # TanStack Router route tree (client-only)
+    router.tsx, root.tsx, layout.tsx   # tree + authed layout guard
+    login.tsx, home.tsx, territory-viewer.tsx, territories.tsx, models.tsx, ...
+    admin.tsx, admin-users.tsx, admin-roles.tsx, admin-metrics.tsx, ...
+    guard.ts                           # redirect-to-login / permission guards
   shared/
     domain/{vec3.ts, lod-artifact.ts, artifact.ts, job.ts}
     infrastructure/
-      api/dto.ts                      # openapi-typescript output (autogen, lint-exempt)
-      http/{client.ts, http-error.ts, not-found-on-404.ts}
+      api/dto.ts                       # openapi-typescript output (autogen, lint-exempt)
+      http/{client.ts, http-error.ts, ...}
+      query/query-client.ts
       asset-url.ts
-    application/lod-url.ts
-  territory/
-    domain/{territory.ts, scene-bundle.ts}
-    infrastructure/territory-gateway.ts
-  model/
-    domain/model.ts
-    infrastructure/model-gateway.ts
-  upload/
-    domain/session.ts
-    infrastructure/upload-gateway.ts
-    application/use-chunked-upload.ts
-    presentation/components/{upload-form, field, progress-bar}.tsx
-  placement/
-    domain/{placement, transform, mutation-state, gizmo-mode, asset-option}.ts
-    application/use-placements-editor.ts
-    infrastructure/placement-gateway.ts
-    presentation/
-      components/{placements-panel, placement-row, placement-form,
-                  create-placement-row, mode-toggle, vec3-field, empty-state}.tsx
-      three/{placement-instance, placements-layer}.tsx
-  panorama/                           # equirect panorama tours + scene markers
-  measurement/
-    domain/{measurement, distance, unit-ratio}.ts
-    application/use-measurement-tool.ts
-    presentation/components/measure-button.tsx
-    presentation/three/{measurement-layer, measurement-segment, point-marker}.tsx
-  viewer/
-    domain/model-metadata.ts
-    application/use-keyboard-shortcuts.ts
-    presentation/
-      components/{model-viewer, viewer-entry, viewer-skeleton, ui-overlay,
-                  model-info-panel, loading-progress, reset-camera-button}.tsx
-      three/{scene-canvas, gltf-model, camera-rig, lighting}.tsx
-      three/gltf-loader-setup.ts      # Draco + KTX2 wiring
-  conversion/
-    application/{use-conversion-watcher, use-job-stream}.ts
-    presentation/conversion-pending.tsx
+    application/{lod-url.ts, toast/{notify.ts, toast-store.ts, toast.ts}}
+    presentation/toast/toaster.tsx     # the React Toaster; store lives in application
+  territory/  model/  placement/  panorama/  document/  upload/
+  measurement/  viewer/  conversion/  auth/  metrics/  onboarding/
 ```
 
 ### Layer rules
 
 - **domain** — entities and value objects only; no I/O, no React.
-- **application** — use cases that orchestrate domain + infrastructure.
-- **infrastructure** — adapters: HTTP transport, openapi DTO→domain mapping, URL builders. Returns domain entities, never DTOs.
-- **presentation** — React (client) components and hooks. Imports from `application/` (or `infrastructure/` when no orchestration is needed). Never reaches into DTOs or other contexts' infrastructure. RSC `page.tsx` routes may call gateways from `infrastructure/` directly (server-side).
+- **application** — use cases / query definitions that orchestrate domain + infrastructure. Also cross-cutting client ports like `toast/notify`.
+- **infrastructure** — adapters: HTTP transport, openapi DTO→domain mapping, URL builders, token store. Returns domain entities, never DTOs.
+- **presentation** — React components and hooks. Imports from `application/` (or an `infrastructure/` gateway that already returns domain entities). Never reaches into DTOs. Dependencies point strictly inward: domain ← application ← presentation.
+- **routes** (`src/routes/`) are client components: they read params/search, call TanStack Query, and render presentation. There is no server runtime.
 
 ### Hard rules
 
@@ -102,20 +83,23 @@ src/
 - Single path alias `@/*` → `frontend/src/*`. No relative `../../..` imports.
 
 See [`CLAUDE.md`](CLAUDE.md) for the full architecture rules and the
-Next.js-16-specific notes.
+Three.js / loader-setup notes.
 
-## Territory page composition
+## Territory route composition
 
-`/territories/[slug]` is an RSC. It does **one** call — `getSceneBundle(slug)` —
-and the gateway aggregates territory + LOD0 artifact + placements + model
-options server-side. Each placement's `glbUrl` is joined client-side against
-`modelOptions[].slug → glbUrl`, so CRUD round-trips reuse the same map and
-never need a per-mutation `getArtifact`.
+`/territories/$slug` is a TanStack Router route. Its loader primes the query
+cache with **one** call — `sceneBundleQuery(slug)` — and the component reads it
+via `useQuery`. The gateway aggregates territory + LOD0 artifact + placements +
+model options + panoramas + documents server-side, so there's no client-side
+fan-out. `toSceneViewModel(bundle)` maps the bundle into the viewer's props;
+each placement's `glbUrl` is joined client-side against `modelOptions[].slug →
+glbUrl`, so CRUD round-trips reuse the same map and never need a per-mutation
+`getArtifact`.
 
-When the artifact is missing, the page renders `ConversionPending`, which
+When the artifact is missing, the route renders `ConversionPending`, which
 subscribes to `EventSource` on `/api/jobs/{id}/events` (when a `?jobId=` is
-present) and triggers `router.refresh()` once the SSE stream reports
-`succeeded` — otherwise it falls back to a 4-second `router.refresh` poll.
+present) and refetches once the SSE stream reports `succeeded` — otherwise it
+falls back to a short poll.
 
 `<SceneCanvas>` keeps `<Bounds fit clip observe>` wrapping only the territory
 GLB so auto-fit ignores placement instances. Each `<PlacementInstance>`
@@ -141,27 +125,26 @@ Distance converts scene units to source units through
 `unitRatio = max(metadata.dimensions) / 2`; missing bbox metadata falls back to
 raw scene units suffixed `u`.
 
-## Authentication (integration pending)
+## Authentication
 
-The backend `auth-service` is live and the gateway now **authenticates every
-`/api/*` route**: requests without a valid `Authorization: Bearer <token>` get
-`401`, and mutating routes additionally require a per-route permission (`403`
-otherwise). The frontend does **not** yet send a token, so against the current
-gateway its `/api/*` calls will be rejected until auth is wired in.
+Fully wired. The gateway authenticates every `/api/*` route: requests without a
+valid `Authorization: Bearer <token>` get `401`, and mutating routes
+additionally require a per-route permission (`403` otherwise).
 
-Planned integration (not in this codebase yet): a login screen posting to
-`POST /api/auth/login` (→ `{ token }`, or a 2FA challenge → `POST
-/api/auth/login/2fa`), storing the opaque session token, and attaching it as
-`Authorization: Bearer` on every gateway request (see `client.ts`). The full
-auth surface is documented in the gateway OpenAPI spec (Swagger at
+The login route (`POST /api/auth/login`, with a `POST /api/auth/login/2fa`
+challenge and WebAuthn passkey flow) stores the opaque token via
+`auth/infrastructure/token-store`. `client.ts` attaches it as `Authorization:
+Bearer` on every gateway request; a `401` clears the token and bounces to
+`/login?next=…`. RBAC gates routes through `routes/guard.ts` and the admin
+console (users / roles / content / territories / metrics). The full auth
+surface is documented in the gateway OpenAPI spec (Swagger at
 `http://localhost:8080/docs`).
 
 ## Environment
 
-- `GATEWAY_URL` (server-side) — absolute URL of `gateway-service`. Defaults to
-  `http://localhost:8080`. Used by `apiBase()` in
-  `src/shared/infrastructure/http/client.ts`.
-- `NEXT_PUBLIC_API_URL` — browser-side URL baked into the client bundle
-  (EventSource for SSE connects to it directly).
-- On the client, same-origin requests are proxied to the gateway (see
-  `next.config.ts`).
+- `VITE_API_URL` — gateway base URL baked into the client bundle at build time.
+  Read by `client.ts` (`import.meta.env.VITE_API_URL`) and by the SSE
+  `EventSource`. Set it empty for same-origin `/api` requests.
+- `VITE_DEV_PROXY` (dev only) — when set, Vite proxies `/api` to that gateway
+  URL (e.g. prod) so the SPA runs against real data without touching its CORS.
+  Pair with an empty `VITE_API_URL`. See `vite.config.ts`.

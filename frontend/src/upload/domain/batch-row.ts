@@ -23,5 +23,5 @@ export interface BatchRow {
 // deriveTitle keeps the original casing and word breaks so a filename
 // like `MyBuilding-v2.zip` becomes a readable `MyBuilding-v2`.
 export function deriveTitle(filename: string): string {
-  return filename.replace(/\.zip$/i, "").trim();
+  return filename.replace(/\s*\.zip\s*$/i, "").trim();
 }

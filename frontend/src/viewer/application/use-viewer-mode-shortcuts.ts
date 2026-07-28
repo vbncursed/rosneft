@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { useCan } from "@/auth/presentation/current-user-context";
 import { usePanoramaDrag } from "@/panorama/application/use-panorama-drag";
 import { useKeyboardShortcuts } from "@/viewer/application/use-keyboard-shortcuts";
 import type { GizmoMode } from "@/placement/domain/gizmo-mode";
@@ -16,6 +15,9 @@ interface ViewerModeParams {
   toggleSnap: () => void;
   cyclePanorama: () => void;
   onCommitPanorama: (id: number, position: Vec3) => void;
+  // Injected by the presentation caller (ModelViewer reads useCan). Keeping the
+  // permission check out of this application hook preserves the layer boundary.
+  canMovePanorama: boolean;
 }
 
 // useViewerModeShortcuts owns the mutually-exclusive scene interaction modes
@@ -34,9 +36,9 @@ export function useViewerModeShortcuts(params: ViewerModeParams) {
     toggleSnap,
     cyclePanorama,
     onCommitPanorama,
+    canMovePanorama,
   } = params;
 
-  const canMovePanorama = useCan()("panorama:write");
   const panoramaDrag = usePanoramaDrag(onCommitPanorama);
 
   // Entering measure drops the gizmo target (so a stray drag can't move a

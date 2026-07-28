@@ -253,36 +253,10 @@ services:
     depends_on:
       gateway: { condition: service_started }
 
-  frontend:
-    restart: unless-stopped
-    # Build context is the frontend/ directory at the repo root.
-    # NEXT_PUBLIC_API_URL is baked into the client bundle and must be
-    # reachable from the BROWSER — useJobStream opens EventSource
-    # against this URL directly to bypass Next.js's Node HTTP buffer
-    # (proxy rewrites delay SSE frames until connection close).
-    # GATEWAY_URL is the compose-internal hostname used by the
-    # Next.js server for SSR fetches and the /api/* rewrite.
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        # Browser-side URL (baked into client bundle).
-        NEXT_PUBLIC_API_URL: "http://localhost:8080"
-        # Server-side URL (baked into Next.js routes manifest at build).
-        # Must be the compose-internal hostname so the standalone server
-        # can reach the gateway from inside the container.
-        GATEWAY_URL: "http://gateway:8080"
-    depends_on:
-      gateway: { condition: service_started }
-      prometheus: { condition: service_started }
-    environment:
-      GATEWAY_URL: "http://gateway:8080"
-      NEXT_PUBLIC_API_URL: "http://localhost:8080"
-      # Метрики читает сам Next через /api/metrics/query — Prometheus наружу
-      # не публикуется и доступен только по compose-сети.
-      PROMETHEUS_URL: "http://prometheus:9090"
-    ports:
-      - "3000:3000"
+# The frontend is a client-only Vite SPA — no server runtime, so it is not a
+# compose service. Run it with `yarn dev` (see frontend/README.md); Prometheus
+# stays compose-internal and the SPA reads it through the gateway's
+# owner-gated /api/metrics/query.
 
 volumes:
   postgres-data:

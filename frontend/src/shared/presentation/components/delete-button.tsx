@@ -1,8 +1,8 @@
 "use client";
 
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { notify } from "@/shared/application/toast/notify";
 import { confirmAction } from "@/shared/presentation/confirm/use-confirm";
 
 interface DeleteButtonProps {
@@ -10,8 +10,8 @@ interface DeleteButtonProps {
   label: string;
   // Async deleter — usually the gateway call.
   onDelete: () => Promise<void>;
-  // Where to navigate after successful delete. When omitted, just
-  // router.refresh() the current page.
+  // Where to navigate after successful delete. When omitted, the active
+  // queries are invalidated so the current page's data refetches in place.
   redirectTo?: string;
   // Tailwind class override for the trigger.
   className?: string;
@@ -30,7 +30,7 @@ export default function DeleteButton({
   className,
   children,
 }: DeleteButtonProps) {
-  const router = useRouter();
+  const queryClient = useQueryClient();
   const [pending, startTransition] = useTransition();
 
   const handle = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -47,8 +47,10 @@ export default function DeleteButton({
     startTransition(async () => {
       try {
         await onDelete();
-        if (redirectTo) router.push(redirectTo);
-        else router.refresh();
+        // redirectTo → leave the page (hard nav, fresh state); otherwise
+        // refetch the current data (scene/list queries) so the deleted item drops.
+        if (redirectTo) window.location.assign(redirectTo);
+        else await queryClient.invalidateQueries();
       } catch (err) {
         notify.error(err instanceof Error ? err.message : "Delete failed");
       }

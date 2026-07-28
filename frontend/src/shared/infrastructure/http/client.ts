@@ -1,47 +1,24 @@
 import { HttpError, type ApiError } from "@/shared/infrastructure/http/http-error";
+import { getToken, clearToken } from "@/auth/infrastructure/token-store";
 
-const SERVER_API_BASE =
-  process.env.GATEWAY_URL ??
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://localhost:8080";
+const API_BASE = import.meta.env.VITE_API_URL;
 
-// On the client we hit same-origin so the Next.js BFF proxy injects the Bearer.
-// On the server there is no host context, so an absolute URL is required.
-function apiBase(): string {
-  return typeof window === "undefined" ? SERVER_API_BASE : "";
-}
-
-// On the server there is no same-origin proxy, so attach the session cookie's
-// token directly. On the client the browser sends the httpOnly cookie to the
-// same-origin /api proxy, which injects the header — so nothing to add here.
-async function authHeaders(): Promise<Record<string, string>> {
-  if (typeof window !== "undefined") return {};
-  const { cookies } = await import("next/headers");
-  const token = (await cookies()).get("session")?.value;
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-async function send<T>(
-  path: string,
-  init: RequestInit,
-  parseJson: boolean,
-): Promise<T> {
-  const res = await fetch(`${apiBase()}${path}`, {
+async function send<T>(path: string, init: RequestInit, parseJson: boolean): Promise<T> {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}${path}`, {
     ...init,
-    headers: { Accept: "application/json", ...(await authHeaders()), ...(init.headers ?? {}) },
+    headers: {
+      Accept: "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init.headers ?? {}),
+    },
   });
   if (!res.ok) {
-    // Server-side 401 with a session cookie present = the token expired or
-    // was revoked. Middleware only checks cookie presence, so the request
-    // reached here; bounce to /login instead of crashing the RSC with a 500.
-    // No cookie = anonymous context (e.g. /login itself) — fall through and
-    // let getCurrentUser swallow it to null.
-    if (res.status === 401 && typeof window === "undefined") {
-      const { cookies } = await import("next/headers");
-      if ((await cookies()).has("session")) {
-        const { redirect } = await import("next/navigation");
-        redirect("/login");
-      }
+    // 401 = token expired/revoked. Drop it and bounce to /login — unless we're
+    // already on /login (a bad-credentials login also 401s; let it surface).
+    if (res.status === 401 && !location.pathname.startsWith("/login")) {
+      clearToken();
+      location.assign(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
     }
     let body: ApiError | null = null;
     try {
@@ -49,8 +26,6 @@ async function send<T>(
     } catch {
       // body not JSON
     }
-    // Gateway uses {code,message}; the auth subsystem uses {error}. Read both,
-    // then fall back to a human 403 line instead of surfacing a bare status code.
     const detail = body?.message ?? (body as { error?: string } | null)?.error;
     const fallback =
       res.status === 403
@@ -58,15 +33,12 @@ async function send<T>(
         : res.statusText || `Request failed (${res.status})`;
     throw new HttpError(res.status, body, detail || fallback);
   }
-  // 204 No Content has an empty body — parsing it as JSON throws
-  // "Unexpected end of JSON input". Callers of no-content endpoints ignore
-  // the return, so hand back undefined.
   if (!parseJson || res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
 export function httpGet<T>(path: string): Promise<T> {
-  return send<T>(path, { cache: "no-store" }, true);
+  return send<T>(path, {}, true);
 }
 
 export function httpPost<T>(path: string, body?: unknown): Promise<T> {
@@ -85,11 +57,7 @@ export function httpPost<T>(path: string, body?: unknown): Promise<T> {
 export function httpPut<T>(path: string, body: unknown): Promise<T> {
   return send<T>(
     path,
-    {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    },
+    { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
     true,
   );
 }
@@ -97,11 +65,7 @@ export function httpPut<T>(path: string, body: unknown): Promise<T> {
 export function httpPatch<T>(path: string, body: unknown): Promise<T> {
   return send<T>(
     path,
-    {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    },
+    { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
     true,
   );
 }

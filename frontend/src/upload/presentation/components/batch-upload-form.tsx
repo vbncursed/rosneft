@@ -1,10 +1,9 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { Job } from "@/shared/domain/job";
 import { runChunkedUpload } from "@/upload/application/run-chunked-upload";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 import { deriveTitle, type BatchRow } from "@/upload/domain/batch-row";
 import BatchRowView from "@/upload/presentation/components/batch-row";
 
@@ -33,7 +32,6 @@ export default function BatchUploadForm({
   create,
   redirectBase,
 }: BatchUploadFormProps) {
-  const router = useRouter();
   const [rows, setRows] = useState<BatchRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -106,13 +104,14 @@ export default function BatchUploadForm({
       // Single-file batch: jump straight to the converted entity so the
       // user can watch the SSE conversion screen. Multi-file: drop them
       // back to the list view to see everything queue up.
+      // hard nav after create: single → viewer w/ SSE; multi → back to list
       if (queue.length === 1 && lastSlug && lastJob) {
-        router.push(`${redirectBase}/${lastSlug}?jobId=${encodeURIComponent(lastJob.id)}`);
+        window.location.assign(`${redirectBase}/${lastSlug}?jobId=${encodeURIComponent(lastJob.id)}`);
       } else if (lastSlug) {
-        router.push(redirectBase);
+        window.location.assign(redirectBase);
       }
     },
-    [submitting, rows, updateRow, create, redirectBase, router],
+    [submitting, rows, updateRow, create, redirectBase],
   );
 
   const allValid =

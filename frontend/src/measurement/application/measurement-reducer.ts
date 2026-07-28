@@ -124,7 +124,6 @@ export function measurementReducer(
       if (!target) return state;
       const newIds: [number, number] = [state.nextId, state.nextId + 1];
       const replacements = removeSegmentOp(target, action.segmentIndex, newIds);
-      const usedIds = replacements.length;
       const chains = state.chains.flatMap((c) =>
         c.id === action.chainId ? replacements : [c],
       );
@@ -133,7 +132,10 @@ export function measurementReducer(
         chains,
         activeChainId:
           state.activeChainId === action.chainId ? null : state.activeChainId,
-        nextId: state.nextId + usedIds,
+        // Both ids are retired even when removeSegment returns one chain: a
+        // split that drops its left side still labels the survivor newIds[1],
+        // so counting the returned chains would reissue an id still on screen.
+        nextId: state.nextId + newIds.length,
       };
     }
 

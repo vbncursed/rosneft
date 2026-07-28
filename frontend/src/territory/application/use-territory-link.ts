@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { updateTerritory } from "@/territory/infrastructure/territory-gateway";
-import { notify } from "@/shared/presentation/toast/use-toast";
+import { notify } from "@/shared/application/toast/notify";
 
 // useTerritoryLink owns the editable external-panorama URL for one territory.
 // It keeps the last server-acknowledged value locally so the viewer updates
