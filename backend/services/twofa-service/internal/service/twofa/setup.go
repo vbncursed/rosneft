@@ -17,7 +17,7 @@ func (s *Service) Setup(ctx context.Context, userID, accountLabel string) (strin
 		return "", "", err
 	}
 	if c.Enabled {
-		return "", "", domain.Err2FAAlreadyEnabled
+		return "", "", domain.ErrTwoFAAlreadyEnabled
 	}
 	secretPlain, url, err := totp.Generate(s.issuer, accountLabel)
 	if err != nil {

@@ -83,7 +83,7 @@ func (c *Client) Query(ctx context.Context, panelID, rng string) ([]Series, erro
 	if err != nil {
 		return nil, fmt.Errorf("query prometheus: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	// Read one byte past the cap so a truncated response fails loudly instead
 	// of reaching the JSON parser as a valid-looking prefix.

@@ -16,7 +16,7 @@ var (
 	ErrAccountDeleted    = errors.New("account is deleted")
 	ErrLoginThrottled    = errors.New("too many failed attempts")
 	ErrSessionInvalid    = errors.New("session invalid or expired")
-	Err2FAInvalidCode    = errors.New("invalid 2fa code")
+	ErrTwoFAInvalidCode  = errors.New("invalid 2fa code")
 	ErrSystemRole        = errors.New("system role cannot be modified this way")
 	ErrLastAdmin         = errors.New("cannot remove the last admin")
 	ErrSelfTarget        = errors.New("cannot perform this action on yourself")

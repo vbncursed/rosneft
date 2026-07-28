@@ -34,43 +34,43 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	if err != nil {
 		return fmt.Errorf("init catalog: %w", err)
 	}
-	defer cat.Close()
+	defer func() { _ = cat.Close() }()
 
 	con, err := InitContent(cfg)
 	if err != nil {
 		return fmt.Errorf("init content: %w", err)
 	}
-	defer con.Close()
+	defer func() { _ = con.Close() }()
 
 	m, err := InitMesh(cfg)
 	if err != nil {
 		return fmt.Errorf("init mesh: %w", err)
 	}
-	defer m.Close()
+	defer func() { _ = m.Close() }()
 
 	up, err := InitUpload(cfg)
 	if err != nil {
 		return fmt.Errorf("init upload: %w", err)
 	}
-	defer up.Close()
+	defer func() { _ = up.Close() }()
 
 	authClient, err := InitAuth(cfg)
 	if err != nil {
 		return fmt.Errorf("init auth: %w", err)
 	}
-	defer authClient.Close()
+	defer func() { _ = authClient.Close() }()
 
 	twofaClient, err := InitTwoFA(cfg)
 	if err != nil {
 		return fmt.Errorf("init twofa: %w", err)
 	}
-	defer twofaClient.Close()
+	defer func() { _ = twofaClient.Close() }()
 
 	passkeyClient, err := InitPasskey(cfg)
 	if err != nil {
 		return fmt.Errorf("init passkey: %w", err)
 	}
-	defer passkeyClient.Close()
+	defer func() { _ = passkeyClient.Close() }()
 
 	svc := InitService(cat, con, m, up)
 	authH := authhttp.New(authClient, twofaClient, passkeyClient, logger)

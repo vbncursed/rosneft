@@ -27,7 +27,7 @@ func (s *Store) PutPending(ctx context.Context, userID string) (string, error) {
 func (s *Store) TakePending(ctx context.Context, challenge string) (string, error) {
 	userID, err := s.rdb.GetDel(ctx, pendingKey(challenge)).Result()
 	if errors.Is(err, redis.Nil) {
-		return "", domain.Err2FAInvalidCode
+		return "", domain.ErrTwoFAInvalidCode
 	}
 	if err != nil {
 		return "", fmt.Errorf("session.TakePending: %w", err)

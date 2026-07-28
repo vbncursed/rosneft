@@ -22,7 +22,7 @@ func (s *Service) LoginVerify2FA(ctx context.Context, challenge, code string) (s
 		return "", err
 	}
 	if !ok {
-		return "", domain.Err2FAInvalidCode
+		return "", domain.ErrTwoFAInvalidCode
 	}
 	u, err := s.users.GetByID(ctx, userID)
 	if err != nil {

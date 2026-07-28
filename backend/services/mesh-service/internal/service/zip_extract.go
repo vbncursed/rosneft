@@ -21,7 +21,7 @@ func (m *Mesh) fetchAndExtract(ctx context.Context, hash, dir string) error {
 	if err != nil {
 		return fmt.Errorf("blob get: %w", err)
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	body, err := io.ReadAll(r)
 	if err != nil {
@@ -108,16 +108,17 @@ func writeZipEntry(f *zip.File, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 
 	w, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if err != nil {
 		return err
 	}
-	defer w.Close()
-
 	if _, err := io.Copy(w, rc); err != nil {
+		_ = w.Close()
 		return err
 	}
-	return nil
+	// Close reports the final flush: a truncated texture or OBJ written here would
+	// otherwise only surface much later as a corrupt conversion.
+	return w.Close()
 }

@@ -16,17 +16,17 @@ func (s *Service) Enable(ctx context.Context, userID, code string) ([]string, er
 		return nil, err
 	}
 	if c.Enabled {
-		return nil, domain.Err2FAAlreadyEnabled
+		return nil, domain.ErrTwoFAAlreadyEnabled
 	}
 	if len(c.Secret) == 0 {
-		return nil, fmt.Errorf("twofa.Enable: %w: run setup first", domain.Err2FANotEnabled)
+		return nil, fmt.Errorf("twofa.Enable: %w: run setup first", domain.ErrTwoFANotEnabled)
 	}
 	secretPlain, err := s.cipher.Decrypt(c.Secret)
 	if err != nil {
 		return nil, fmt.Errorf("twofa.Enable: decrypt: %w", err)
 	}
 	if !totp.Validate(string(secretPlain), code) {
-		return nil, domain.Err2FAInvalidCode
+		return nil, domain.ErrTwoFAInvalidCode
 	}
 	if err := s.store.Set(ctx, userID, true, c.Secret); err != nil {
 		return nil, err

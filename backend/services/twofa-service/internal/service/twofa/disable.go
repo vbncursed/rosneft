@@ -15,14 +15,14 @@ func (s *Service) Disable(ctx context.Context, userID, code string) error {
 		return err
 	}
 	if !c.Enabled {
-		return domain.Err2FANotEnabled
+		return domain.ErrTwoFANotEnabled
 	}
 	secretPlain, err := s.cipher.Decrypt(c.Secret)
 	if err != nil {
 		return fmt.Errorf("twofa.Disable: decrypt: %w", err)
 	}
 	if !totp.Validate(string(secretPlain), code) {
-		return domain.Err2FAInvalidCode
+		return domain.ErrTwoFAInvalidCode
 	}
 	if err := s.store.Set(ctx, userID, false, nil); err != nil {
 		return err

@@ -11,6 +11,7 @@ func RunMigrateUp(ctx context.Context, cfg config.Config) error { return migrate
 func RunMigrateDown(ctx context.Context, cfg config.Config) error {
 	return migrate.Down(ctx, cfg.DBDSN)
 }
+
 func RunMigrateStatus(ctx context.Context, cfg config.Config) error {
 	return migrate.Status(ctx, cfg.DBDSN)
 }

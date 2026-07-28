@@ -20,11 +20,14 @@ func (h *Handlers) passkeyLoginBegin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) passkeyLoginFinish(w http.ResponseWriter, r *http.Request) {
-	var req struct{ FlowId, AssertionJson string }
+	var req struct {
+		FlowID        string `json:"flowId"`
+		AssertionJSON string `json:"assertionJson"`
+	}
 	if !decode(w, r, &req) {
 		return
 	}
-	token, err := h.client.PasskeyLoginFinish(r.Context(), req.FlowId, req.AssertionJson)
+	token, err := h.client.PasskeyLoginFinish(r.Context(), req.FlowID, req.AssertionJSON)
 	if err != nil {
 		fail(w, err)
 		return
@@ -44,11 +47,15 @@ func (h *Handlers) passkeyRegisterBegin(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *Handlers) passkeyRegisterFinish(w http.ResponseWriter, r *http.Request) {
-	var req struct{ FlowId, CredentialJson, Name string }
+	var req struct {
+		FlowID         string `json:"flowId"`
+		CredentialJSON string `json:"credentialJson"`
+		Name           string `json:"name"`
+	}
 	if !decode(w, r, &req) {
 		return
 	}
-	c, err := h.passkey.FinishRegistration(r.Context(), bearer(r), req.FlowId, req.CredentialJson, req.Name)
+	c, err := h.passkey.FinishRegistration(r.Context(), bearer(r), req.FlowID, req.CredentialJSON, req.Name)
 	if err != nil {
 		fail(w, err)
 		return

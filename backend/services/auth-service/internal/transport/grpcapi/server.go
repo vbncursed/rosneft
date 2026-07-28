@@ -100,7 +100,7 @@ func (s *Server) actor(ctx context.Context, token string) (string, bool, error) 
 var statusByCode = map[codes.Code][]error{
 	codes.InvalidArgument: {domain.ErrInvalidInput, domain.ErrPermissionUnknown},
 	codes.NotFound:        {domain.ErrUserNotFound, domain.ErrRoleNotFound},
-	codes.Unauthenticated: {domain.ErrInvalidCredential, domain.ErrSessionInvalid, domain.Err2FAInvalidCode},
+	codes.Unauthenticated: {domain.ErrInvalidCredential, domain.ErrSessionInvalid, domain.ErrTwoFAInvalidCode},
 	codes.PermissionDenied: {
 		domain.ErrAccountFrozen,
 		domain.ErrAccountDeleted,

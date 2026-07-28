@@ -29,14 +29,14 @@ func (s *Service) Verify(ctx context.Context, userID, code string) (bool, error)
 		return false, err
 	}
 	if locked {
-		return false, domain.Err2FALocked
+		return false, domain.ErrTwoFALocked
 	}
 	c, err := s.store.Get(ctx, userID)
 	if err != nil {
 		return false, err
 	}
 	if !c.Enabled {
-		return false, domain.Err2FANotEnabled
+		return false, domain.ErrTwoFANotEnabled
 	}
 	secretPlain, err := s.cipher.Decrypt(c.Secret)
 	if err != nil {
