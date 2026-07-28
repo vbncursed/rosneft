@@ -10,8 +10,9 @@ import ExportButton from "@/audit/presentation/components/export-button";
 export default function AuditPanel() {
   const me = useCurrentUser();
   // Один запрос на весь экран: и фильтр актора, и каждая строка таблицы
-  // подписывают UUID из этой же карты.
-  const actors = useUserDirectory();
+  // подписывают UUID из этой же карты. `me` передаётся потому, что список
+  // пользователей фильтруется по created_by и себя не содержит никогда.
+  const actors = useUserDirectory(me);
   const [filters, setFilters] = useState<AuditFilters>(EMPTY_FILTERS);
   const { entries, isLoading, error, hasMore, loadMore, isLoadingMore } = useAuditLog(filters);
 
