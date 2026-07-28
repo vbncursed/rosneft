@@ -1,7 +1,7 @@
-import { type CSSProperties, type Ref } from "react";
+import { type CSSProperties, type KeyboardEvent, type Ref, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "motion/react";
-import { inRange, monthGrid, monthOf, shiftMonth, toDate } from "@/shared/domain/calendar";
+import { inRange, monthGrid, monthOf, toDate } from "@/shared/domain/calendar";
 import type { AnchorRect } from "@/shared/presentation/components/dropdown/use-anchored-position";
 import { scaleFade } from "@/shared/presentation/motion/variants";
 import { quick } from "@/shared/presentation/motion/transitions";
@@ -16,10 +16,12 @@ interface CalendarPanelProps {
   cursor: string;
   min?: string;
   max?: string;
-  onMonthChange: (ym: string) => void;
-  onHover: (iso: string) => void;
+  // Один шаг месяца, а не установка месяца: он двигает и курсор, поэтому мышь и
+  // клавиатура делают буквально одно и то же.
+  onShiftMonth: (delta: number) => void;
   onPick: (iso: string) => void;
   onClear: () => void;
+  onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
 }
 
 // 7 колонок по 44px (минимальный тач-таргет) плюс зазоры и паддинги. Число
@@ -36,7 +38,8 @@ const DAY_FMT = new Intl.DateTimeFormat(undefined, { day: "numeric" });
 const FULL_FMT = new Intl.DateTimeFormat(undefined, { dateStyle: "long" });
 
 // id ячейки строится от id панели, чтобы два пикера на одном экране не выдали
-// одинаковых id.
+// одинаковых id. По нему же панель находит ячейку курсора, чтобы отдать ей
+// фокус — панель портована в <body>, так что getElementById её видит.
 function dayId(scope: string, iso: string): string {
   return `${scope}-${iso}`;
 }
@@ -74,6 +77,10 @@ function dayClass(state: {
 // родительского stacking context — backdrop-blur соседних панелей иначе
 // затянул бы календарь под себя. Позиция фиксированная, привязана к
 // измеренному rect триггера.
+//
+// Фокус живёт внутри панели, пока она открыта: триггер — текстовое поле, и
+// стрелки там обязаны двигать каретку. Сетка использует roving tabindex —
+// в табуляции участвует только ячейка курсора, остальные держат -1.
 export default function CalendarPanel({
   id,
   panelRef,
@@ -83,12 +90,24 @@ export default function CalendarPanel({
   cursor,
   min,
   max,
-  onMonthChange,
-  onHover,
+  onShiftMonth,
   onPick,
   onClear,
+  onKeyDown,
 }: CalendarPanelProps) {
   const anim = useResolvedVariants(scaleFade);
+  const ready = rect !== null;
+
+  // Фокус едет за курсором. Он же озвучивает дату: у ячейки полный aria-label,
+  // поэтому отдельный live-регион, нужный когда фокус оставался на триггере,
+  // здесь только дублировал бы её.
+  //
+  // `ready` в зависимостях не для красоты: на первом рендере rect ещё null,
+  // сетки в DOM нет, и без него фокус не встал бы никогда.
+  useEffect(() => {
+    if (ready) document.getElementById(dayId(id, cursor))?.focus();
+  }, [id, cursor, ready]);
+
   if (typeof document === "undefined" || !rect) return null;
 
   const days = monthGrid(month);
@@ -102,6 +121,7 @@ export default function CalendarPanel({
       role="dialog"
       id={id}
       aria-label="Calendar"
+      onKeyDown={onKeyDown}
       style={panelStyle(rect)}
       variants={anim}
       initial="hidden"
@@ -110,21 +130,16 @@ export default function CalendarPanel({
       transition={quick}
       className="z-[1000] origin-top rounded-md border border-white/10 bg-neutral-900/95 p-2 text-xs shadow-[0_12px_30px_rgba(0,0,0,0.45)] backdrop-blur-md"
     >
-      {/* Фокус остаётся на триггере, поэтому стрелки сами по себе ничего не
-          озвучивают. Живой регион проговаривает каждый ход курсора — без него
-          замена нативного инпута была бы регрессией доступности. */}
-      <span aria-live="polite" className="sr-only">
-        {FULL_FMT.format(toDate(cursor))}
-      </span>
-
       <div className="flex items-center justify-between pb-1">
+        {/* tabIndex -1 и гашение mousedown: фокус обязан остаться на ячейке
+            курсора, иначе после клика по стрелке клавиатура потеряет цель. */}
         <button
           type="button"
           tabIndex={-1}
           aria-label="Previous month"
           onMouseDown={(e) => {
             e.preventDefault();
-            onMonthChange(shiftMonth(month, -1));
+            onShiftMonth(-1);
           }}
           className={NAV_CLASS}
         >
@@ -139,7 +154,7 @@ export default function CalendarPanel({
           aria-label="Next month"
           onMouseDown={(e) => {
             e.preventDefault();
-            onMonthChange(shiftMonth(month, 1));
+            onShiftMonth(1);
           }}
           className={NAV_CLASS}
         >
@@ -167,24 +182,20 @@ export default function CalendarPanel({
               id={dayId(id, iso)}
               data-iso={iso}
               type="button"
-              tabIndex={-1}
+              tabIndex={iso === cursor ? 0 : -1}
               aria-label={FULL_FMT.format(toDate(iso))}
               aria-pressed={iso === value}
               aria-current={iso === cursor ? "date" : undefined}
               aria-disabled={enabled ? undefined : true}
-              onMouseEnter={() => enabled && onHover(iso)}
-              onMouseDown={(e) => {
-                // mousedown, а не click: иначе триггер потеряет фокус до
-                // коммита (тот же порядок событий, что в dropdown-menu).
-                e.preventDefault();
-                if (enabled) onPick(iso);
-              }}
-              className={`h-11 rounded text-center transition-colors ${dayClass({
-                enabled,
-                selected: iso === value,
-                highlighted: iso === cursor,
-                outside: monthOf(iso) !== month,
-              })}`}
+              onClick={() => enabled && onPick(iso)}
+              className={`h-11 rounded text-center transition-colors focus:outline-none focus:ring-1 focus:ring-cyan-300/60 ${dayClass(
+                {
+                  enabled,
+                  selected: iso === value,
+                  highlighted: iso === cursor,
+                  outside: monthOf(iso) !== month,
+                },
+              )}`}
             >
               {DAY_FMT.format(toDate(iso))}
             </button>
