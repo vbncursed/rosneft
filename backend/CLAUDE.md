@@ -22,6 +22,7 @@ Guidance for Claude Code when working in `backend/`.
 | mesh-api | `services/mesh-service` | `mesh-api` | gRPC façade for `SubmitConversion(kind, slug)` / `GetJob`. Writes Redis Streams. |
 | mesh-worker | `services/mesh-service` | `mesh-worker` | Consumes the stream, fetches the source ZIP from BlobStore by hash, extracts to a tmp dir, runs the OBJ→GLB converter, applies optional Draco / KTX2 / LOD via `gltfpack`, writes each LOD GLB to BlobStore, registers each artifact in catalog (territory_artifacts vs model_artifacts based on Kind). Runs the reconciler that auto-queues entities whose LOD0 GLB is missing. |
 | asset | `services/asset-service` | `asset` | Internal HTTP serving content-addressed GLB blobs with immutable cache headers + ETag. |
+| audit | `services/audit-service` | `audit` | gRPC `:9009`. Owns the append-only `audit_log` plus the generic `audit_capture()` trigger attached to every audited table. Shares the `andrey` DB, isolated by `audit_goose_db_version`. Re-attaches its triggers idempotently on every boot via `ensure_audit_triggers()`, so it needs no ordering against the other services' migrations. |
 | upload | `services/upload-service` | `upload` | Internal gRPC accepting resumable chunked uploads (`Initiate` / `WriteChunk(stream)` / `GetStatus` / `Finalize` / `Abort`). On Finalize the bytes are SHA-256 hashed and moved into BlobStore; the gateway forwards the resulting hash into `createTerritory` / `createModel`. |
 
 ## Architecture conventions
@@ -144,6 +145,54 @@ Validation:
 - 400 `invalid_input` for empty IDs/slugs or non-positive scale
 - 404 `not_found` when the territory or model slug is missing
 - 404 `not_found` for unknown placement IDs
+
+## Audit journal
+
+Every data mutation is captured by a Postgres trigger, not by application code.
+That is what makes coverage provable, and it is why cascades show up for free:
+deleting a territory drops its placements, panoramas and documents, and the
+trigger fires once per removed row without anyone remembering to log them.
+
+The actor rides gRPC metadata (`x-actor-id` / `x-actor-company`, see
+`pkg/grpcutil/actor.go` — no `.proto` carries identity) and is published into
+the mutation's own transaction by `pkg/audittx.Run`. **A mutation that skips
+`audittx.Run` is still logged, but attributed to nobody** — when adding a
+storage method that writes to an audited table, wrap it. The per-service greps
+in the audit plan (`grep -Ln audittx.Run …`) are the cheap way to check.
+
+Deliberately unwrapped, each with a comment saying why: the artifact registrars
+in catalog (their tables carry no trigger) and `users.MarkTourSeen` (it writes
+only ignored columns).
+
+`audit_capture()` redacts `password_hash` / `totp_secret` / `code_hash` from
+both snapshots, and drops any UPDATE that touched nothing but `updated_at`,
+`onboarding_tours_seen` or `rescale_baseline_max` — otherwise an idempotent
+upsert or a dismissed tooltip would file an entry with an empty diff.
+
+Visibility: Root (`users.is_owner`) reads everything; everyone else is pinned to
+their own company, resolved by `ResolveOwningAdmin` over the `created_by` chain
+and surfaced as `ValidateTokenResponse.audit_company_id`. That field exists
+separately from `owning_admin_id` because `scopeOwningAdmin` pins a guest's
+territory scope to its own id, which would file a guest's changes under a
+company of one. The scope is resolved in
+`gateway-service/internal/service/audit_scope.go` from the principal and never
+from a request parameter, and it **fails closed**: a principal that is neither
+Root nor attached to a company is refused, not handed an empty filter.
+
+`audit_log` is append-only via a `BEFORE UPDATE/DELETE/TRUNCATE` trigger.
+`REVOKE` alone would not hold — `POSTGRES_USER` owns every table here and could
+grant the right back — but the trigger fires against the owner too.
+
+Session events (login, logout, password change, 2FA, passkey) have no row to
+capture, so the gateway records them through `Record()`; see `authAuditActions`
+in `gateway-service/internal/transport/authhttp/audit.go`. Only events that
+change no table belong in that map: user and role mutations are already caught
+by the triggers, and listing them would double-write.
+
+The trigger logic is SQL, so it is covered by the repo's only integration tests:
+`services/audit-service/internal/migrate/*_integration_test.go`, behind the
+`integration` build tag. Run with `go test -tags=integration ./...` from
+`services/audit-service`; needs Docker. `make test` stays Docker-free.
 
 ## Performance notes
 

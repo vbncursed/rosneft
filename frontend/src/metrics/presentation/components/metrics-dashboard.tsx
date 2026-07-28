@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import type { Range } from "@/metrics/domain/panel";
 import AlertsCard from "./alerts-card";

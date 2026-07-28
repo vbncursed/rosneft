@@ -23,7 +23,8 @@ type AuthFlow interface {
 	PasskeyLoginFinish(ctx context.Context, flowID, assertionJSON string) (string, error)
 	VerifyPassword(ctx context.Context, token, password string) (bool, error)
 	Logout(ctx context.Context, token string) error
-	ValidateToken(ctx context.Context, token string) (string, []string, bool, string, error)
+	// Returns: user id, permissions, is-owner, territory scope, audit company.
+	ValidateToken(ctx context.Context, token string) (string, []string, bool, string, string, error)
 }
 
 // UsersSvc is the user surface (self + admin). The admin methods take the
@@ -70,7 +71,7 @@ func (s *Server) Register(srv *grpc.Server) { authv1.RegisterAuthServiceServer(s
 
 // userIDFromToken resolves a session token to a user id (self endpoints).
 func (s *Server) userIDFromToken(ctx context.Context, token string) (string, error) {
-	uid, _, _, _, err := s.auth.ValidateToken(ctx, token)
+	uid, _, _, _, _, err := s.auth.ValidateToken(ctx, token)
 	return uid, err
 }
 
@@ -78,7 +79,7 @@ func (s *Server) userIDFromToken(ctx context.Context, token string) (string, err
 // (the group key roles are scoped to), and whether it is Root (sees/manages
 // every group). owningAdmin is "" for Root, making Root-created roles global.
 func (s *Server) roleActor(ctx context.Context, token string) (actorID, owningAdmin string, allAccess bool, err error) {
-	uid, _, isOwner, oa, e := s.auth.ValidateToken(ctx, token)
+	uid, _, isOwner, oa, _, e := s.auth.ValidateToken(ctx, token)
 	if e != nil {
 		return "", "", false, e
 	}
@@ -89,7 +90,7 @@ func (s *Server) roleActor(ctx context.Context, token string) (actorID, owningAd
 // the caller holds users:read_all or is an owner — i.e. may see/manage every
 // user. Owners get scopeAll even after the admin role loses users:read_all.
 func (s *Server) actor(ctx context.Context, token string) (string, bool, error) {
-	uid, perms, isOwner, _, err := s.auth.ValidateToken(ctx, token)
+	uid, perms, isOwner, _, _, err := s.auth.ValidateToken(ctx, token)
 	if err != nil {
 		return "", false, err
 	}

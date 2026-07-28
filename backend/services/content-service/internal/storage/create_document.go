@@ -7,11 +7,15 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/vbncursed/rosneft/backend/pkg/audittx"
 	"github.com/vbncursed/rosneft/backend/services/content-service/internal/domain"
 )
 
 // CreateDocument inserts a new document. A missing territory slug yields
 // ErrTerritoryNotFound.
+//
+// Wrapped in audittx.Run so the audit trigger on territory_documents records
+// who added it.
 func (r *PG) CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error) {
 	const q = `
 		WITH inserted AS (
@@ -25,8 +29,13 @@ func (r *PG) CreateDocument(ctx context.Context, d domain.Document) (domain.Docu
 		FROM inserted i
 		JOIN territories t ON t.id = i.territory_id`
 
-	row := r.pool.QueryRow(ctx, q, d.TerritorySlug, d.Title, d.SourceBlobHash)
-	out, err := scanDocument(row)
+	var out domain.Document
+	err := audittx.Run(ctx, r.pool, func(tx pgx.Tx) error {
+		row := tx.QueryRow(ctx, q, d.TerritorySlug, d.Title, d.SourceBlobHash)
+		var scanErr error
+		out, scanErr = scanDocument(row)
+		return scanErr
+	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Document{}, domain.ErrTerritoryNotFound

@@ -1,5 +1,3 @@
-"use client";
-
 import { useRef, type ClipboardEvent, type KeyboardEvent } from "react";
 
 // OtpInput is a segmented numeric code field: one cell per digit, with

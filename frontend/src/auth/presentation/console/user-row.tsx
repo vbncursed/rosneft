@@ -1,5 +1,3 @@
-"use client";
-
 import type { AdminUser } from "@/auth/domain/user";
 import type { Principal } from "@/auth/domain/principal";
 import { can } from "@/auth/domain/principal";

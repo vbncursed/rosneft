@@ -1,5 +1,3 @@
-"use client";
-
 import type { UploadStatus } from "@/upload/application/use-chunked-upload";
 
 interface ProgressBarProps {

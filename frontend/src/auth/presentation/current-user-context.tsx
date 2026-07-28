@@ -1,5 +1,3 @@
-"use client";
-
 import { createContext, useContext } from "react";
 import { can, type Principal } from "@/auth/domain/principal";
 

@@ -705,8 +705,11 @@ type ValidateTokenResponse struct {
 	Permissions   []string               `protobuf:"bytes,2,rep,name=permissions,proto3" json:"permissions,omitempty"`
 	IsOwner       bool                   `protobuf:"varint,3,opt,name=is_owner,json=isOwner,proto3" json:"is_owner,omitempty"`                    // root of trust; gateway grants it a blanket route bypass
 	OwningAdminId string                 `protobuf:"bytes,4,opt,name=owning_admin_id,json=owningAdminId,proto3" json:"owning_admin_id,omitempty"` // tenant admin for territory scoping; "" for Root
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Unmangled ResolveOwningAdmin result — the audit log's company key. Differs
+	// from owning_admin_id for guests, whose territory scope is keyed to self.
+	AuditCompanyId string `protobuf:"bytes,5,opt,name=audit_company_id,json=auditCompanyId,proto3" json:"audit_company_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ValidateTokenResponse) Reset() {
@@ -763,6 +766,13 @@ func (x *ValidateTokenResponse) GetIsOwner() bool {
 func (x *ValidateTokenResponse) GetOwningAdminId() string {
 	if x != nil {
 		return x.OwningAdminId
+	}
+	return ""
+}
+
+func (x *ValidateTokenResponse) GetAuditCompanyId() string {
+	if x != nil {
+		return x.AuditCompanyId
 	}
 	return ""
 }
@@ -2202,12 +2212,13 @@ const file_rosneft_auth_v1_auth_proto_rawDesc = "" +
 	"\x05token\x18\x01 \x01(\tR\x05token\"\x10\n" +
 	"\x0eLogoutResponse\",\n" +
 	"\x14ValidateTokenRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"\x95\x01\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"\xbf\x01\n" +
 	"\x15ValidateTokenResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12 \n" +
 	"\vpermissions\x18\x02 \x03(\tR\vpermissions\x12\x19\n" +
 	"\bis_owner\x18\x03 \x01(\bR\aisOwner\x12&\n" +
-	"\x0fowning_admin_id\x18\x04 \x01(\tR\rowningAdminId\"$\n" +
+	"\x0fowning_admin_id\x18\x04 \x01(\tR\rowningAdminId\x12(\n" +
+	"\x10audit_company_id\x18\x05 \x01(\tR\x0eauditCompanyId\"$\n" +
 	"\fGetMeRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\"s\n" +
 	"\x15ChangePasswordRequest\x12\x14\n" +

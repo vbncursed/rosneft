@@ -1,5 +1,3 @@
-"use client";
-
 interface QuantityStepperProps {
   value: number;
   onChange: (n: number) => void;

@@ -51,12 +51,14 @@ func NewServer(logger *slog.Logger, extra ...grpc.ServerOption) *grpc.Server {
 			RecoveryUnaryInterceptor(logger),
 			metrics.UnaryServerInterceptor(),
 			RequestIDUnaryInterceptor(),
+			ActorUnaryInterceptor(),
 			SlogUnaryInterceptor(logger),
 		),
 		grpc.ChainStreamInterceptor(
 			RecoveryStreamInterceptor(logger),
 			metrics.StreamServerInterceptor(),
 			RequestIDStreamInterceptor(),
+			ActorStreamInterceptor(),
 			SlogStreamInterceptor(logger),
 		),
 	}

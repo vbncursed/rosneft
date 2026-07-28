@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/vbncursed/rosneft/backend/pkg/audittx"
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
@@ -15,6 +16,8 @@ import (
 // id from another territory yields ErrPlacementNotFound rather than a
 // cross-territory write. Visibility is independent of the transform, so this
 // never touches position/rotation/scale.
+//
+// Wrapped in audittx.Run so the audit trigger can attribute the change.
 func (r *PG) SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error) {
 	const q = `
 		WITH updated AS (
@@ -38,8 +41,13 @@ func (r *PG) SetPlacementVisibility(ctx context.Context, territorySlug string, p
 		JOIN territories t ON t.id = u.territory_id
 		JOIN models m      ON m.id = u.model_id`
 
-	row := r.pool.QueryRow(ctx, q, territorySlug, placementID, panoramaIDs)
-	out, err := scanPlacement(row)
+	var out domain.Placement
+	err := audittx.Run(ctx, r.pool, func(tx pgx.Tx) error {
+		row := tx.QueryRow(ctx, q, territorySlug, placementID, panoramaIDs)
+		var scanErr error
+		out, scanErr = scanPlacement(row)
+		return scanErr
+	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Placement{}, domain.ErrPlacementNotFound

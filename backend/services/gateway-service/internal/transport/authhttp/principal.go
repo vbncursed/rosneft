@@ -9,12 +9,14 @@ const (
 	keyPerms
 	keyIsOwner
 	keyOwningAdmin
+	keyAuditCompany
 )
 
-func withPrincipal(ctx context.Context, userID string, perms []string, isOwner bool, owningAdmin string) context.Context {
+func withPrincipal(ctx context.Context, userID string, perms []string, isOwner bool, owningAdmin, auditCompany string) context.Context {
 	ctx = context.WithValue(ctx, keyUserID, userID)
 	ctx = context.WithValue(ctx, keyIsOwner, isOwner)
 	ctx = context.WithValue(ctx, keyOwningAdmin, owningAdmin)
+	ctx = context.WithValue(ctx, keyAuditCompany, auditCompany)
 	return context.WithValue(ctx, keyPerms, perms)
 }
 
@@ -56,4 +58,13 @@ func Scope(ctx context.Context) (adminID string, allAccess bool) {
 // in the httpapi package.
 func IsOwner(ctx context.Context) bool {
 	return principalIsOwner(ctx)
+}
+
+// AuditCompany returns the caller's real tenant id — the audit journal's
+// company key. Empty for a Root, whose actions belong to no company. This is
+// NOT the same as the territory scope: Scope() mangles a guest's key to its own
+// id, which would file that guest's changes under a company of one.
+func AuditCompany(ctx context.Context) string {
+	c, _ := ctx.Value(keyAuditCompany).(string)
+	return c
 }

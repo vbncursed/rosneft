@@ -1,5 +1,3 @@
-"use client";
-
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
 import MotionOverlay from "@/shared/presentation/motion/motion-overlay";

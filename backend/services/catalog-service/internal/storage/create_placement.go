@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
+	"github.com/vbncursed/rosneft/backend/pkg/audittx"
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
@@ -15,6 +16,8 @@ import (
 // (including the assigned ID and timestamps). A missing territory or model
 // slug yields a domain not-found error; the scale CHECK constraint becomes
 // ErrInvalidInput.
+//
+// Wrapped in audittx.Run so the audit trigger can attribute the insert.
 func (r *PG) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
 	const q = `
 		WITH inserted AS (
@@ -47,14 +50,19 @@ func (r *PG) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Pl
 		JOIN territories t ON t.id = i.territory_id
 		JOIN models m      ON m.id = i.model_id`
 
-	row := r.pool.QueryRow(ctx, q,
-		p.TerritorySlug, p.ModelSlug,
-		p.Position.X, p.Position.Y, p.Position.Z,
-		p.Rotation.X, p.Rotation.Y, p.Rotation.Z,
-		p.Scale.X, p.Scale.Y, p.Scale.Z,
-		p.Label, p.VisiblePanoramaIDs,
-	)
-	out, err := scanPlacement(row)
+	var out domain.Placement
+	err := audittx.Run(ctx, r.pool, func(tx pgx.Tx) error {
+		row := tx.QueryRow(ctx, q,
+			p.TerritorySlug, p.ModelSlug,
+			p.Position.X, p.Position.Y, p.Position.Z,
+			p.Rotation.X, p.Rotation.Y, p.Rotation.Z,
+			p.Scale.X, p.Scale.Y, p.Scale.Z,
+			p.Label, p.VisiblePanoramaIDs,
+		)
+		var scanErr error
+		out, scanErr = scanPlacement(row)
+		return scanErr
+	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			// One side of the WHERE didn't match — caller has to figure out
