@@ -15,10 +15,13 @@ export interface DatePickerProps {
   ariaLabel?: string;
   placeholder?: string;
   className?: string;
+  // Подменяет оформление триггера, не раскладку. См. одноимённый проп Dropdown.
+  triggerClassName?: string;
 }
 
-const TRIGGER_CLASS =
-  "flex w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-white/10 bg-black/30 px-2.5 py-1.5 text-sm text-white transition-colors hover:border-white/25 focus:border-cyan-400/60 focus:outline-none";
+const TRIGGER_LAYOUT = "flex w-full cursor-pointer items-center justify-between gap-2";
+const TRIGGER_LOOK =
+  "rounded-md border border-white/10 bg-black/30 px-2.5 py-1.5 text-sm text-white transition-colors hover:border-white/25 focus:border-cyan-400/60 focus:outline-none";
 
 // Шаг курсора по стрелкам: горизонталь — день, вертикаль — неделя.
 const STEP: Record<string, number> = {
@@ -44,6 +47,7 @@ export default function DatePicker({
   ariaLabel,
   placeholder = "any",
   className = "",
+  triggerClassName,
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState(() => monthOf(value || todayISO()));
@@ -166,7 +170,7 @@ export default function DatePicker({
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         aria-label={ariaLabel ?? "Choose a date"}
-        className={TRIGGER_CLASS}
+        className={`${TRIGGER_LAYOUT} ${triggerClassName ?? TRIGGER_LOOK}`}
       >
         <span className="min-w-0 flex-1 truncate text-left">
           {value ? toDate(value).toLocaleDateString() : placeholder}

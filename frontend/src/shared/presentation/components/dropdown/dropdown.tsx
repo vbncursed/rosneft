@@ -24,7 +24,16 @@ export interface DropdownProps {
   // Optional explicit width on the trigger. Defaults to fit-content
   // sized by the selected label; pass "w-full" to fill the parent.
   className?: string;
+  // Подменяет оформление триггера (рамка/фон/типографика), но не его раскладку.
+  // Нужно там, где дропдаун стоит в одной строке с другими контролами и обязан
+  // выглядеть как они — например в фильтрах журнала аудита.
+  triggerClassName?: string;
 }
+
+// Раскладка триггера не настраивается: без неё подпись и стрелка разъезжаются.
+const TRIGGER_LAYOUT = "group flex w-full cursor-pointer items-center justify-between gap-2";
+const TRIGGER_LOOK =
+  "rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs text-neutral-100 transition-colors hover:bg-white/10 focus:border-cyan-300/40 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50";
 
 // Dropdown is the custom replacement for native <select>. Visual style
 // matches the rest of the viewer — neutral-900/95 glass with white/10
@@ -44,6 +53,7 @@ export default function Dropdown({
   disabled = false,
   placeholder = "Select…",
   className = "",
+  triggerClassName,
 }: DropdownProps) {
   const [open, setOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(() =>
@@ -145,7 +155,7 @@ export default function Dropdown({
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
         aria-label={ariaLabel ?? label ?? "Select option"}
-        className="group flex w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs text-neutral-100 transition-colors hover:bg-white/10 focus:border-cyan-300/40 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        className={`${TRIGGER_LAYOUT} ${triggerClassName ?? TRIGGER_LOOK}`}
       >
         {label ? (
           <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-neutral-400">
