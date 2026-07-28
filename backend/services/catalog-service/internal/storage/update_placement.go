@@ -8,11 +8,15 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
+	"github.com/vbncursed/rosneft/backend/pkg/audittx"
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
 // UpdatePlacement replaces the placement's transform and label and bumps
 // updated_at. Returns ErrPlacementNotFound for unknown IDs.
+//
+// Wrapped in audittx.Run so the audit trigger can attribute the change — this
+// is the write behind every gizmo drag, so it is the busiest audited path.
 func (r *PG) UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
 	const q = `
 		WITH updated AS (
@@ -38,14 +42,19 @@ func (r *PG) UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Pl
 		JOIN territories t ON t.id = u.territory_id
 		JOIN models m      ON m.id = u.model_id`
 
-	row := r.pool.QueryRow(ctx, q,
-		p.ID,
-		p.Position.X, p.Position.Y, p.Position.Z,
-		p.Rotation.X, p.Rotation.Y, p.Rotation.Z,
-		p.Scale.X, p.Scale.Y, p.Scale.Z,
-		p.Label,
-	)
-	out, err := scanPlacement(row)
+	var out domain.Placement
+	err := audittx.Run(ctx, r.pool, func(tx pgx.Tx) error {
+		row := tx.QueryRow(ctx, q,
+			p.ID,
+			p.Position.X, p.Position.Y, p.Position.Z,
+			p.Rotation.X, p.Rotation.Y, p.Rotation.Z,
+			p.Scale.X, p.Scale.Y, p.Scale.Z,
+			p.Label,
+		)
+		var scanErr error
+		out, scanErr = scanPlacement(row)
+		return scanErr
+	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Placement{}, domain.ErrPlacementNotFound
