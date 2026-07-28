@@ -19,7 +19,7 @@ function ModelDetail() {
 
   const lod0 = artifacts.find((a) => a.lod === 0);
   if (!lod0) {
-    return <ConversionPending title={model.title} slug={slug} jobId={jobId ?? null} />;
+    return <ConversionPending title={model.title} slug={slug} jobId={jobId ?? null} kind="model" />;
   }
 
   return (

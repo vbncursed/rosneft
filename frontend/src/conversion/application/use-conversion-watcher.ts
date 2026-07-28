@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { Job, JobStatus } from "@/shared/domain/job";
+import type { Job, JobKind, JobStatus } from "@/shared/domain/job";
 import { useJobStream } from "@/conversion/application/use-job-stream";
 
 export interface UseConversionWatcher {
@@ -14,15 +14,24 @@ export interface UseConversionWatcher {
 
 const POLL_INTERVAL_MS = 4000;
 
+// The queries each entity's screen is built from. Both routes render the same
+// pending screen, so the watcher has to invalidate whichever keys back the
+// caller — invalidating ["scene"] on a model matches nothing, leaving the user
+// on "Done, refreshing the page…" until a manual reload.
+const REFRESH_KEYS: Record<JobKind, string[]> = {
+  territory: ["scene"],
+  model: ["model", "model-artifacts"],
+};
+
 // Drives the pending-conversion screen.
-//   - With a jobId: SSE for live progress; on succeeded, invalidate the scene
-//     query so the route re-renders into the viewer.
-//   - Without a jobId: poll by invalidating the scene query every 4s until the
-//     artifact lands (background reconciler queued the conversion).
-// The invalidation target ["scene", slug] mirrors sceneBundleQuery's key.
+//   - With a jobId: SSE for live progress; on succeeded, invalidate the
+//     entity's queries so the route re-renders into the viewer.
+//   - Without a jobId: poll the same invalidation every 4s until the artifact
+//     lands (background reconciler queued the conversion).
 export function useConversionWatcher(
   jobId: string | null,
   slug: string,
+  kind: JobKind,
 ): UseConversionWatcher {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<UseConversionWatcher["status"]>(
@@ -33,8 +42,13 @@ export function useConversionWatcher(
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(
-    () => queryClient.invalidateQueries({ queryKey: ["scene", slug] }),
-    [queryClient, slug],
+    () =>
+      Promise.all(
+        REFRESH_KEYS[kind].map((key) =>
+          queryClient.invalidateQueries({ queryKey: [key, slug] }),
+        ),
+      ),
+    [queryClient, slug, kind],
   );
 
   const onUpdate = useCallback(
