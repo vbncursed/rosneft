@@ -22,6 +22,7 @@ type Config struct {
 	AuthGRPCAddr    string        `mapstructure:"auth-grpc-addr"`
 	TwoFAGRPCAddr   string        `mapstructure:"twofa-grpc-addr"`
 	PasskeyGRPCAddr string        `mapstructure:"passkey-grpc-addr"`
+	AuditGRPCAddr   string        `mapstructure:"audit-grpc-addr"`
 	AssetHTTPAddr   string        `mapstructure:"asset-http-addr"`
 	PrometheusURL   string        `mapstructure:"prometheus-url"`
 	AllowedOrigins  []string      `mapstructure:"allowed-origins"`
@@ -51,6 +52,7 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.SetDefault("auth-grpc-addr", "auth:9004")
 	v.SetDefault("twofa-grpc-addr", "twofa:9006")
 	v.SetDefault("passkey-grpc-addr", "passkey:9008")
+	v.SetDefault("audit-grpc-addr", "audit:9009")
 	v.SetDefault("asset-http-addr", "http://asset:8081")
 	v.SetDefault("prometheus-url", "http://prometheus:9090")
 	v.SetDefault("allowed-origins", []string{"*"})
@@ -79,6 +81,9 @@ func Load(cmd *cobra.Command) (Config, error) {
 func (c Config) Validate() error {
 	if c.CatalogGRPCAddr == "" {
 		return fmt.Errorf("config: catalog-grpc-addr is required")
+	}
+	if c.AuditGRPCAddr == "" {
+		return fmt.Errorf("config: audit-grpc-addr is required")
 	}
 	if c.ContentGRPCAddr == "" {
 		return fmt.Errorf("config: content-grpc-addr is required")

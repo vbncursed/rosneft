@@ -32,10 +32,14 @@ func (h *Handlers) Authenticate(next http.Handler) http.Handler {
 	})
 }
 
-// require gates a route on a single permission. It MUST run after Authenticate,
+// Require gates a route on a single permission. It MUST run after Authenticate,
 // which populates the principal's permission snapshot. 403 if the permission is
 // absent.
-func (h *Handlers) require(perm string) func(http.Handler) http.Handler {
+//
+// Exported because routes outside the /api JSON sub-router — where
+// RequirePermissionForRoute reads the chi route pattern — have to apply their
+// gate by hand. The audit CSV export is one such route.
+func (h *Handlers) Require(perm string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if !principalIsOwner(r.Context()) && !slices.Contains(principalPerms(r.Context()), perm) {

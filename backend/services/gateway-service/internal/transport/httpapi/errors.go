@@ -11,6 +11,11 @@ func isInvalid(err error) bool {
 	return errors.Is(err, domain.ErrInvalidInput)
 }
 
+// isForbidden reports whether the error should map to 403.
+func isForbidden(err error) bool {
+	return errors.Is(err, domain.ErrForbidden)
+}
+
 // isNotFound reports whether the error should map to 404.
 func isNotFound(err error) bool {
 	return errors.Is(err, domain.ErrTerritoryNotFound) ||

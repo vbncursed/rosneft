@@ -14,4 +14,8 @@ var (
 	ErrDocumentNotFound  = errors.New("document not found")
 	ErrUploadNotFound    = errors.New("upload session not found")
 	ErrInvalidInput      = errors.New("invalid input")
+	// ErrForbidden marks a caller who is authenticated but not entitled to the
+	// resource — distinct from a missing permission, which the route middleware
+	// rejects before the service is reached.
+	ErrForbidden = errors.New("forbidden")
 )

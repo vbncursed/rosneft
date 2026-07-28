@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/audit"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/auth"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/passkey"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/twofa"
@@ -20,12 +21,13 @@ type Handlers struct {
 	client  *auth.Client
 	twofa   *twofa.Client
 	passkey *passkey.Client
+	audit   *audit.Client
 	logger  *slog.Logger
 }
 
 // New builds the auth HTTP handlers.
-func New(client *auth.Client, twofa *twofa.Client, passkey *passkey.Client, logger *slog.Logger) *Handlers {
-	return &Handlers{client: client, twofa: twofa, passkey: passkey, logger: logger}
+func New(client *auth.Client, twofa *twofa.Client, passkey *passkey.Client, audit *audit.Client, logger *slog.Logger) *Handlers {
+	return &Handlers{client: client, twofa: twofa, passkey: passkey, audit: audit, logger: logger}
 }
 
 // Mount registers the auth routes on r. Only login + login/2fa are public.
@@ -57,23 +59,23 @@ func (h *Handlers) Mount(r chi.Router) {
 			pr.Delete("/passkey/credentials/{id}", h.passkeyDelete)
 
 			// Admin — authenticated + per-route permission.
-			pr.With(h.require("users:read")).Get("/users", h.listUsers)
-			pr.With(h.require("users:write")).Post("/users", h.createUser)
-			pr.With(h.require("users:read")).Get("/users/{id}", h.getUser)
-			pr.With(h.require("users:write")).Patch("/users/{id}", h.updateUser)
-			pr.With(h.require("users:freeze")).Post("/users/{id}/freeze", h.freezeUser)
-			pr.With(h.require("users:freeze")).Post("/users/{id}/unfreeze", h.unfreezeUser)
-			pr.With(h.require("users:delete")).Delete("/users/{id}", h.softDeleteUser)
-			pr.With(h.require("users:delete")).Post("/users/{id}/restore", h.restoreUser)
+			pr.With(h.Require("users:read")).Get("/users", h.listUsers)
+			pr.With(h.Require("users:write")).Post("/users", h.createUser)
+			pr.With(h.Require("users:read")).Get("/users/{id}", h.getUser)
+			pr.With(h.Require("users:write")).Patch("/users/{id}", h.updateUser)
+			pr.With(h.Require("users:freeze")).Post("/users/{id}/freeze", h.freezeUser)
+			pr.With(h.Require("users:freeze")).Post("/users/{id}/unfreeze", h.unfreezeUser)
+			pr.With(h.Require("users:delete")).Delete("/users/{id}", h.softDeleteUser)
+			pr.With(h.Require("users:delete")).Post("/users/{id}/restore", h.restoreUser)
 			// The owner flag is granted owner-to-owner; this route gate is coarse,
 			// the real "actor must be an owner" check lives in the auth service.
-			pr.With(h.require("users:write")).Post("/users/{id}/owner", h.setUserOwner)
-			pr.With(h.require("roles:read")).Get("/roles", h.listRoles)
-			pr.With(h.require("roles:manage")).Post("/roles", h.createRole)
-			pr.With(h.require("roles:manage")).Patch("/roles/{slug}", h.updateRole)
-			pr.With(h.require("roles:manage")).Delete("/roles/{slug}", h.deleteRole)
-			pr.With(h.require("roles:manage")).Put("/roles/{slug}/permissions", h.setRolePermissions)
-			pr.With(h.require("permissions:read")).Get("/permissions", h.listPermissions)
+			pr.With(h.Require("users:write")).Post("/users/{id}/owner", h.setUserOwner)
+			pr.With(h.Require("roles:read")).Get("/roles", h.listRoles)
+			pr.With(h.Require("roles:manage")).Post("/roles", h.createRole)
+			pr.With(h.Require("roles:manage")).Patch("/roles/{slug}", h.updateRole)
+			pr.With(h.Require("roles:manage")).Delete("/roles/{slug}", h.deleteRole)
+			pr.With(h.Require("roles:manage")).Put("/roles/{slug}/permissions", h.setRolePermissions)
+			pr.With(h.Require("permissions:read")).Get("/permissions", h.listPermissions)
 		})
 	})
 }

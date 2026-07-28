@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +16,24 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/oapi-codegen/runtime"
 )
+
+// Defines values for AuditEntryResult.
+const (
+	AuditEntryResultFailed AuditEntryResult = "failed"
+	AuditEntryResultOk     AuditEntryResult = "ok"
+)
+
+// Valid indicates whether the value is a known member of the AuditEntryResult enum.
+func (e AuditEntryResult) Valid() bool {
+	switch e {
+	case AuditEntryResultFailed:
+		return true
+	case AuditEntryResultOk:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for AuthUserStatus.
 const (
@@ -39,19 +58,19 @@ func (e AuthUserStatus) Valid() bool {
 
 // Defines values for HealthStatus.
 const (
-	Degraded HealthStatus = "degraded"
-	NotReady HealthStatus = "not_ready"
-	Ok       HealthStatus = "ok"
+	HealthStatusDegraded HealthStatus = "degraded"
+	HealthStatusNotReady HealthStatus = "not_ready"
+	HealthStatusOk       HealthStatus = "ok"
 )
 
 // Valid indicates whether the value is a known member of the HealthStatus enum.
 func (e HealthStatus) Valid() bool {
 	switch e {
-	case Degraded:
+	case HealthStatusDegraded:
 		return true
-	case NotReady:
+	case HealthStatusNotReady:
 		return true
-	case Ok:
+	case HealthStatusOk:
 		return true
 	default:
 		return false
@@ -134,6 +153,43 @@ type AssetOption struct {
 	// no thumbnail. Fetch from /api/assets/{thumbnailBlobHash}.
 	ThumbnailBlobHash *string `json:"thumbnailBlobHash,omitempty"`
 	Title             string  `json:"title"`
+}
+
+// AuditEntry defines model for AuditEntry.
+type AuditEntry struct {
+	// Action e.g. territory.update, auth.login
+	Action string `json:"action"`
+
+	// ActorId Empty for a system change (mesh-worker, migrations).
+	ActorId *string   `json:"actorId,omitempty"`
+	At      time.Time `json:"at"`
+
+	// CompanyId Empty for a Root or system change.
+	CompanyId *string `json:"companyId,omitempty"`
+	Entity    string  `json:"entity"`
+	EntityId  *string `json:"entityId,omitempty"`
+
+	// EntityLabel Slug or email as of the event; survives the row's deletion.
+	EntityLabel *string `json:"entityLabel,omitempty"`
+	Id          int64   `json:"id"`
+
+	// NewRow Raw JSON snapshot after the change; empty on delete.
+	NewRow *string `json:"newRow,omitempty"`
+
+	// OldRow Raw JSON snapshot before the change; empty on insert. The client derives the diff.
+	OldRow *string          `json:"oldRow,omitempty"`
+	Result AuditEntryResult `json:"result"`
+}
+
+// AuditEntryResult defines model for AuditEntry.Result.
+type AuditEntryResult string
+
+// AuditPage defines model for AuditPage.
+type AuditPage struct {
+	Entries []AuditEntry `json:"entries"`
+
+	// NextCursor Pass back as `cursor` for the next page. Absent or 0 means this was the last page.
+	NextCursor *int64 `json:"nextCursor,omitempty"`
 }
 
 // AuthPermission defines model for AuthPermission.
@@ -630,6 +686,26 @@ type Unauthorized = Error
 // bearerAuthContextKey is the context key for bearerAuth security scheme
 type bearerAuthContextKey string
 
+// ListAuditParams defines parameters for ListAudit.
+type ListAuditParams struct {
+	// Actor Filter by acting user id.
+	Actor *string `form:"actor,omitempty" json:"actor,omitempty"`
+
+	// Action Exact action, e.g. territory.update.
+	Action *string `form:"action,omitempty" json:"action,omitempty"`
+
+	// Entity Exact entity kind, e.g. territory.
+	Entity *string    `form:"entity,omitempty" json:"entity,omitempty"`
+	From   *time.Time `form:"from,omitempty" json:"from,omitempty"`
+	To     *time.Time `form:"to,omitempty" json:"to,omitempty"`
+
+	// Cursor nextCursor from the previous page; omit for the newest page.
+	Cursor *int64 `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Page size, default 50, clamped to 200.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // AppendUploadChunkParams defines parameters for AppendUploadChunk.
 type AppendUploadChunkParams struct {
 	UploadOffset int64 `json:"Upload-Offset"`
@@ -676,6 +752,9 @@ type InitiateUploadJSONRequestBody = UploadInitiate
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Read the audit journal
+	// (GET /api/audit)
+	ListAudit(w http.ResponseWriter, r *http.Request, params ListAuditParams)
 	// List models
 	// (GET /api/models)
 	ListModels(w http.ResponseWriter, r *http.Request)
@@ -786,6 +865,12 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// Read the audit journal
+// (GET /api/audit)
+func (_ Unimplemented) ListAudit(w http.ResponseWriter, r *http.Request, params ListAuditParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // List models
 // (GET /api/models)
@@ -1005,6 +1090,117 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ListAudit operation middleware
+func (siw *ServerInterfaceWrapper) ListAudit(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAuditParams
+
+	// ------------- Optional query parameter "actor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "actor", r.URL.Query(), &params.Actor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "actor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "actor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "action" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "action", r.URL.Query(), &params.Action, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "action"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "action", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "entity" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "entity", r.URL.Query(), &params.Entity, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "entity"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "entity", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAudit(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // ListModels operation middleware
 func (siw *ServerInterfaceWrapper) ListModels(w http.ResponseWriter, r *http.Request) {
@@ -2070,6 +2266,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/audit", wrapper.ListAudit)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/models", wrapper.ListModels)
 	})
 	r.Group(func(r chi.Router) {
@@ -2187,6 +2386,84 @@ type InternalJSONResponse Error
 type NotFoundJSONResponse Error
 
 type UnauthorizedJSONResponse Error
+
+type ListAuditRequestObject struct {
+	Params ListAuditParams
+}
+
+type ListAuditResponseObject interface {
+	VisitListAuditResponse(w http.ResponseWriter) error
+}
+
+type ListAudit200JSONResponse AuditPage
+
+func (response ListAudit200JSONResponse) VisitListAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAudit400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListAudit400JSONResponse) VisitListAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAudit401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListAudit401JSONResponse) VisitListAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAudit403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListAudit403JSONResponse) VisitListAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAudit500JSONResponse struct{ InternalJSONResponse }
+
+func (response ListAudit500JSONResponse) VisitListAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type ListModelsRequestObject struct {
 }
@@ -4120,6 +4397,9 @@ func (response FinalizeUpload500JSONResponse) VisitFinalizeUploadResponse(w http
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Read the audit journal
+	// (GET /api/audit)
+	ListAudit(ctx context.Context, request ListAuditRequestObject) (ListAuditResponseObject, error)
 	// List models
 	// (GET /api/models)
 	ListModels(ctx context.Context, request ListModelsRequestObject) (ListModelsResponseObject, error)
@@ -4254,6 +4534,32 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// ListAudit operation middleware
+func (sh *strictHandler) ListAudit(w http.ResponseWriter, r *http.Request, params ListAuditParams) {
+	var request ListAuditRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAudit(ctx, request.(ListAuditRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAudit")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListAuditResponseObject); ok {
+		if err := validResponse.VisitListAuditResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // ListModels operation middleware
