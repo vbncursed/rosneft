@@ -19,6 +19,7 @@ scrape_configs:
           - mesh-worker:9101
           - asset:9101
           - upload:9101
+          - audit:9101
         labels: { stack: andrey }
     relabel_configs:
       - source_labels: [__address__]

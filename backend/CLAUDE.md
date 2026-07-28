@@ -56,6 +56,14 @@ make openapi-gen   # oapi-codegen for gateway
 `SERVICES` in the `Makefile` drives `build`/`test`/`lint`/`tidy` — a new service
 must be added there or it is silently never built, tested, or linted.
 
+A new service also needs a line in `ops/prometheus/prometheus.yml`, or it is
+silently never scraped. Every service already serves `/metrics` on `:9101` by
+default, so the target works the moment it is listed — and nothing anywhere
+notices that it isn't. That is how audit-service went unmonitored: the
+"Services up" tile reads `sum(up{job="services"})`, so it counted 10 and looked
+like a healthy number rather than a missing one. The alert rules need no edit,
+they aggregate by `job` and by the `service` label.
+
 ### Dependency upgrades
 
 Upgrade **per module**, with the workspace disabled:
