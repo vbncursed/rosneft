@@ -1,7 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { listUsers } from "@/auth/infrastructure/auth-admin-gateway";
 
-// Каталог «id пользователя → email» для мест, где иначе виден сырой UUID.
+// Каталог «id пользователя → логин» для мест, где иначе виден сырой UUID.
+//
+// Логин, а не email: он короче, это то имя, под которым человека знают в
+// системе, и уникален он ровно так же (users_username_key UNIQUE), так что
+// различимость от подстановки не страдает.
 //
 // Живёт в auth/, а не у потребителя: пользователи — предметная область этого
 // контекста, и через границу уезжает Map примитивов, а не AdminUser. Доменные
@@ -22,5 +26,5 @@ export function useUserDirectory(): Map<string, string> {
     retry: false,
     staleTime: 5 * 60 * 1000,
   });
-  return new Map((data ?? []).map((u) => [u.id, u.email]));
+  return new Map((data ?? []).map((u) => [u.id, u.username]));
 }
