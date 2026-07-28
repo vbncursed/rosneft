@@ -155,6 +155,15 @@ type AssetOption struct {
 	Title             string  `json:"title"`
 }
 
+// AuditActor defines model for AuditActor.
+type AuditActor struct {
+	// Id Actor's user id; the value to filter by.
+	Id string `json:"id"`
+
+	// Login Empty if the user has since been deleted.
+	Login *string `json:"login,omitempty"`
+}
+
 // AuditEntry defines model for AuditEntry.
 type AuditEntry struct {
 	// Action e.g. territory.update, auth.login
@@ -764,6 +773,9 @@ type ServerInterface interface {
 	// Read the audit journal
 	// (GET /api/audit)
 	ListAudit(w http.ResponseWriter, r *http.Request, params ListAuditParams)
+	// List the actors present in the caller's slice of the journal
+	// (GET /api/audit/actors)
+	ListAuditActors(w http.ResponseWriter, r *http.Request)
 	// List models
 	// (GET /api/models)
 	ListModels(w http.ResponseWriter, r *http.Request)
@@ -878,6 +890,12 @@ type Unimplemented struct{}
 // Read the audit journal
 // (GET /api/audit)
 func (_ Unimplemented) ListAudit(w http.ResponseWriter, r *http.Request, params ListAuditParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List the actors present in the caller's slice of the journal
+// (GET /api/audit/actors)
+func (_ Unimplemented) ListAuditActors(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1202,6 +1220,20 @@ func (siw *ServerInterfaceWrapper) ListAudit(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListAudit(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListAuditActors operation middleware
+func (siw *ServerInterfaceWrapper) ListAuditActors(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAuditActors(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2278,6 +2310,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/audit", wrapper.ListAudit)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/audit/actors", wrapper.ListAuditActors)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/models", wrapper.ListModels)
 	})
 	r.Group(func(r chi.Router) {
@@ -2463,6 +2498,69 @@ func (response ListAudit403JSONResponse) VisitListAuditResponse(w http.ResponseW
 type ListAudit500JSONResponse struct{ InternalJSONResponse }
 
 func (response ListAudit500JSONResponse) VisitListAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAuditActorsRequestObject struct {
+}
+
+type ListAuditActorsResponseObject interface {
+	VisitListAuditActorsResponse(w http.ResponseWriter) error
+}
+
+type ListAuditActors200JSONResponse []AuditActor
+
+func (response ListAuditActors200JSONResponse) VisitListAuditActorsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAuditActors401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListAuditActors401JSONResponse) VisitListAuditActorsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAuditActors403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListAuditActors403JSONResponse) VisitListAuditActorsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListAuditActors500JSONResponse struct{ InternalJSONResponse }
+
+func (response ListAuditActors500JSONResponse) VisitListAuditActorsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -4409,6 +4507,9 @@ type StrictServerInterface interface {
 	// Read the audit journal
 	// (GET /api/audit)
 	ListAudit(ctx context.Context, request ListAuditRequestObject) (ListAuditResponseObject, error)
+	// List the actors present in the caller's slice of the journal
+	// (GET /api/audit/actors)
+	ListAuditActors(ctx context.Context, request ListAuditActorsRequestObject) (ListAuditActorsResponseObject, error)
 	// List models
 	// (GET /api/models)
 	ListModels(ctx context.Context, request ListModelsRequestObject) (ListModelsResponseObject, error)
@@ -4564,6 +4665,30 @@ func (sh *strictHandler) ListAudit(w http.ResponseWriter, r *http.Request, param
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListAuditResponseObject); ok {
 		if err := validResponse.VisitListAuditResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListAuditActors operation middleware
+func (sh *strictHandler) ListAuditActors(w http.ResponseWriter, r *http.Request) {
+	var request ListAuditActorsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListAuditActors(ctx, request.(ListAuditActorsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListAuditActors")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListAuditActorsResponseObject); ok {
+		if err := validResponse.VisitListAuditActorsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

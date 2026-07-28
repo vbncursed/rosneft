@@ -82,3 +82,22 @@ func (s *Server) ListAudit(ctx context.Context, req ListAuditRequestObject) (Lis
 	}
 	return ListAudit200JSONResponse(page), nil
 }
+
+// ListAuditActors returns the actors the caller can filter by.
+func (s *Server) ListAuditActors(ctx context.Context, _ ListAuditActorsRequestObject) (ListAuditActorsResponseObject, error) {
+	actors, err := s.svc.ListAuditActors(ctx,
+		authhttp.IsOwner(ctx), authhttp.AuditCompany(ctx), authhttp.Token(ctx))
+	switch {
+	case isForbidden(err):
+		return ListAuditActors403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse{
+			Code: apperr.SlugForbidden, Message: "no audit scope for this principal",
+		}}, nil
+	case err != nil:
+		return ListAuditActors500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+	}
+	out := make([]AuditActor, len(actors))
+	for i, a := range actors {
+		out[i] = AuditActor{Id: a.ID, Login: &a.Login}
+	}
+	return ListAuditActors200JSONResponse(out), nil
+}

@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	AuditService_ListEntries_FullMethodName = "/rosneft.audit.v1.AuditService/ListEntries"
 	AuditService_Record_FullMethodName      = "/rosneft.audit.v1.AuditService/Record"
+	AuditService_ListActors_FullMethodName  = "/rosneft.audit.v1.AuditService/ListActors"
 )
 
 // AuditServiceClient is the client API for AuditService service.
@@ -34,6 +35,10 @@ const (
 type AuditServiceClient interface {
 	ListEntries(ctx context.Context, in *ListEntriesRequest, opts ...grpc.CallOption) (*ListEntriesResponse, error)
 	Record(ctx context.Context, in *RecordRequest, opts ...grpc.CallOption) (*RecordResponse, error)
+	// ListActors returns every actor present in the caller's slice of the journal,
+	// so the actor filter can offer the whole scope rather than whoever happens to
+	// be on the page already loaded.
+	ListActors(ctx context.Context, in *ListActorsRequest, opts ...grpc.CallOption) (*ListActorsResponse, error)
 }
 
 type auditServiceClient struct {
@@ -64,6 +69,16 @@ func (c *auditServiceClient) Record(ctx context.Context, in *RecordRequest, opts
 	return out, nil
 }
 
+func (c *auditServiceClient) ListActors(ctx context.Context, in *ListActorsRequest, opts ...grpc.CallOption) (*ListActorsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListActorsResponse)
+	err := c.cc.Invoke(ctx, AuditService_ListActors_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuditServiceServer is the server API for AuditService service.
 // All implementations must embed UnimplementedAuditServiceServer
 // for forward compatibility.
@@ -75,6 +90,10 @@ func (c *auditServiceClient) Record(ctx context.Context, in *RecordRequest, opts
 type AuditServiceServer interface {
 	ListEntries(context.Context, *ListEntriesRequest) (*ListEntriesResponse, error)
 	Record(context.Context, *RecordRequest) (*RecordResponse, error)
+	// ListActors returns every actor present in the caller's slice of the journal,
+	// so the actor filter can offer the whole scope rather than whoever happens to
+	// be on the page already loaded.
+	ListActors(context.Context, *ListActorsRequest) (*ListActorsResponse, error)
 	mustEmbedUnimplementedAuditServiceServer()
 }
 
@@ -90,6 +109,9 @@ func (UnimplementedAuditServiceServer) ListEntries(context.Context, *ListEntries
 }
 func (UnimplementedAuditServiceServer) Record(context.Context, *RecordRequest) (*RecordResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Record not implemented")
+}
+func (UnimplementedAuditServiceServer) ListActors(context.Context, *ListActorsRequest) (*ListActorsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListActors not implemented")
 }
 func (UnimplementedAuditServiceServer) mustEmbedUnimplementedAuditServiceServer() {}
 func (UnimplementedAuditServiceServer) testEmbeddedByValue()                      {}
@@ -148,6 +170,24 @@ func _AuditService_Record_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuditService_ListActors_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListActorsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuditServiceServer).ListActors(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuditService_ListActors_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuditServiceServer).ListActors(ctx, req.(*ListActorsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuditService_ServiceDesc is the grpc.ServiceDesc for AuditService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -162,6 +202,10 @@ var AuditService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Record",
 			Handler:    _AuditService_Record_Handler,
+		},
+		{
+			MethodName: "ListActors",
+			Handler:    _AuditService_ListActors_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
