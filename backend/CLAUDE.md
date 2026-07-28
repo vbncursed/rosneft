@@ -164,6 +164,18 @@ Deliberately unwrapped, each with a comment saying why: the artifact registrars
 in catalog (their tables carry no trigger) and `users.MarkTourSeen` (it writes
 only ignored columns).
 
+**Adding an audited table? Update `frontend/src/audit/domain/vocabulary.ts`
+too.** The journal's filter bar keeps its own copy of the entity list, and
+nothing links the two — no compiler, and no test either: `vocabulary.test.ts`
+pins the list to what it already contains, so a table added here keeps passing
+it. The symptom is silent and one-sided: entries for the new entity show up in
+the journal, because `entity` comes from the server, but the Entity dropdown
+cannot select it. That already happened once — the list sat at eight entities
+while the triggers wrote ten. Note the entity name is the spec array's *second*
+column (`territory_assignments` → `territory`), and a new one arrives in a new
+migration that `CREATE OR REPLACE`s `ensure_audit_triggers()`, not by editing
+`00002`.
+
 `audit_capture()` redacts `password_hash` / `totp_secret` / `code_hash` from
 both snapshots, and drops any UPDATE that touched nothing but `updated_at`,
 `onboarding_tours_seen` or `rescale_baseline_max` — otherwise an idempotent
