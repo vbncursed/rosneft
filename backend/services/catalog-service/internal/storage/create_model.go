@@ -4,20 +4,30 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
+
+	"github.com/vbncursed/rosneft/backend/pkg/audittx"
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
 // CreateModel inserts a new model under the exact slug given. Unlike
 // UpsertModel it never updates an existing row: a slug collision yields
 // ErrSlugConflict so the service can retry with the next candidate.
+//
+// Wrapped in audittx.Run so the audit trigger can attribute the insert.
 func (r *PG) CreateModel(ctx context.Context, m domain.Model) (domain.Model, error) {
 	const q = `
 		INSERT INTO models (slug, title, description, source_blob_hash, thumbnail_blob_hash)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING ` + entityColumns
 
-	row := r.pool.QueryRow(ctx, q, m.Slug, m.Title, m.Description, m.SourceBlobHash, m.ThumbnailBlobHash)
-	out, err := scanModel(row)
+	var out domain.Model
+	err := audittx.Run(ctx, r.pool, func(tx pgx.Tx) error {
+		row := tx.QueryRow(ctx, q, m.Slug, m.Title, m.Description, m.SourceBlobHash, m.ThumbnailBlobHash)
+		var scanErr error
+		out, scanErr = scanModel(row)
+		return scanErr
+	})
 	if err != nil {
 		if isUniqueViolation(err) {
 			return domain.Model{}, domain.ErrSlugConflict
