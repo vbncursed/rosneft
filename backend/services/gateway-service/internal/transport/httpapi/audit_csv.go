@@ -36,11 +36,14 @@ func (s *Server) ServeAuditCSV(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	isOwner, company := authhttp.IsOwner(ctx), authhttp.AuditCompany(ctx)
+	// Forwarded to auth so the exported rows carry logins next to the ids.
+	// Authenticate runs on this route by hand, so the token is on the context.
+	token := authhttp.Token(ctx)
 
 	// Resolve the scope before writing a byte: once the header is sent the
 	// status code is fixed, and a 200 with a truncated body would read as a
 	// complete export.
-	first, next, err := s.svc.ListAudit(ctx, q, isOwner, company)
+	first, next, err := s.svc.ListAudit(ctx, q, isOwner, company, token)
 	if err != nil {
 		writeAuditCSVError(w, err)
 		return
@@ -66,7 +69,7 @@ func (s *Server) ServeAuditCSV(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		q.Cursor = next
-		page, next, err = s.svc.ListAudit(ctx, q, isOwner, company)
+		page, next, err = s.svc.ListAudit(ctx, q, isOwner, company, token)
 		if err != nil {
 			// The header is already out; log-free bail is the only option left.
 			return

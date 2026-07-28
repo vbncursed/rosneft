@@ -53,7 +53,7 @@ type Service interface {
 
 	// ListAudit takes the principal's owner flag and company explicitly: the
 	// tenant scope is resolved in the service layer, never from a parameter.
-	ListAudit(ctx context.Context, q domain.AuditQuery, isOwner bool, companyID string) ([]domain.AuditEntry, int64, error)
+	ListAudit(ctx context.Context, q domain.AuditQuery, isOwner bool, companyID, token string) ([]domain.AuditEntry, int64, error)
 
 	GetJob(ctx context.Context, id string) (domain.Job, error)
 
