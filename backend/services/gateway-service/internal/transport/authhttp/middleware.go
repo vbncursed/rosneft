@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
+	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 )
 
 // Authenticate validates the Bearer token via the auth-service and injects the
@@ -17,12 +18,17 @@ func (h *Handlers) Authenticate(next http.Handler) http.Handler {
 			apperr.Write(w, http.StatusUnauthorized, apperr.SlugUnauthenticated, "missing bearer token")
 			return
 		}
-		uid, perms, isOwner, owningAdmin, err := h.client.ValidateToken(r.Context(), token)
+		uid, perms, isOwner, owningAdmin, auditCompany, err := h.client.ValidateToken(r.Context(), token)
 		if err != nil {
 			fail(w, err) // maps Unauthenticated → 401
 			return
 		}
-		next.ServeHTTP(w, r.WithContext(withPrincipal(r.Context(), uid, perms, isOwner, owningAdmin)))
+		ctx := withPrincipal(r.Context(), uid, perms, isOwner, owningAdmin, auditCompany)
+		// Also publish the actor for outbound gRPC: the client interceptor in
+		// grpcutil forwards it to catalog/content/auth, where it reaches the
+		// audit trigger through the mutation's transaction.
+		ctx = grpcutil.WithActor(ctx, grpcutil.Actor{ID: uid, Company: auditCompany})
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
