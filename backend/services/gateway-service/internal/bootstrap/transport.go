@@ -55,11 +55,16 @@ func InitRouter(
 	// internal :9101 listener, never on this public router.
 	r.Use(metrics.Middleware)
 
+	// The SPA is cross-origin (no same-origin BFF since the Next.js proxy went
+	// away), so the chunked-upload protocol rides on CORS: PATCH sends the
+	// required Upload-Offset request header, HEAD carries a Bearer token — which
+	// makes it preflighted, not a simple request — and both answer with
+	// Upload-Offset / Upload-Length that the browser hides unless exposed.
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   resolveOrigins(cfg.AllowedOrigins),
-		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},
-		AllowedHeaders:   []string{"Content-Type", "If-None-Match", "Authorization"},
-		ExposedHeaders:   []string{"ETag", "Content-Length", "Content-Range", "X-Next-Cursor"},
+		AllowedMethods:   []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},
+		AllowedHeaders:   []string{"Content-Type", "If-None-Match", "Authorization", "Upload-Offset"},
+		ExposedHeaders:   []string{"ETag", "Content-Length", "Content-Range", "X-Next-Cursor", "Upload-Offset", "Upload-Length"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
