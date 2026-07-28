@@ -12,8 +12,11 @@ export default function AppLayout() {
   return (
     <CurrentUserProvider value={me ?? null}>
       {me ? <UserMenu /> : null}
-      {/* keyed by pathname so the page-fade CSS animation replays per navigation */}
-      <div key={pathname} className="page-fade">
+      {/* Keyed by pathname so route-local state (snap toggle, reset counter…)
+          doesn't survive into the next page. The fade lives on #root instead:
+          replaying it here meant every navigation faded the whole page in from
+          transparent, which read as the browser reloading. */}
+      <div key={pathname}>
         <Outlet />
       </div>
       <Toaster />
