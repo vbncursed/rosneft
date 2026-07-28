@@ -1,15 +1,7 @@
 import type { AuditEntry } from "@/audit/domain/audit-entry";
 import AuditRow from "@/audit/presentation/components/audit-row";
 
-export default function AuditTable({
-  entries,
-  actors,
-}: {
-  entries: AuditEntry[];
-  // Опционально: пустой каталог — рабочий режим (у роли нет users:read), тогда
-  // строка показывает укороченный UUID, как и раньше.
-  actors?: Map<string, string>;
-}) {
+export default function AuditTable({ entries }: { entries: AuditEntry[] }) {
   if (entries.length === 0) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-10 text-center">
@@ -31,7 +23,7 @@ export default function AuditTable({
       </div>
       <ul>
         {entries.map((e) => (
-          <AuditRow key={e.id} entry={e} actors={actors} />
+          <AuditRow key={e.id} entry={e} />
         ))}
       </ul>
     </div>

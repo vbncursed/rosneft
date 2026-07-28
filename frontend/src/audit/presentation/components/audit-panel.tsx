@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useCurrentUser } from "@/auth/presentation/current-user-context";
-import { useUserDirectory } from "@/auth/application/user-directory";
+import { useAuditActors } from "@/audit/application/use-audit-actors";
 import { useAuditLog } from "@/audit/application/use-audit-log";
 import { EMPTY_FILTERS, type AuditFilters } from "@/audit/domain/audit-entry";
 import AuditFiltersBar from "@/audit/presentation/components/audit-filters";
@@ -9,10 +9,9 @@ import ExportButton from "@/audit/presentation/components/export-button";
 
 export default function AuditPanel() {
   const me = useCurrentUser();
-  // Один запрос на весь экран: и фильтр актора, и каждая строка таблицы
-  // подписывают UUID из этой же карты. `me` передаётся потому, что список
-  // пользователей фильтруется по created_by и себя не содержит никогда.
-  const actors = useUserDirectory(me);
+  // Только для дропдауна фильтра: подписи в строках приходят внутри самих
+  // записей, разрешённые сервером.
+  const actors = useAuditActors();
   const [filters, setFilters] = useState<AuditFilters>(EMPTY_FILTERS);
   const { entries, isLoading, error, hasMore, loadMore, isLoadingMore } = useAuditLog(filters);
 
@@ -44,7 +43,7 @@ export default function AuditPanel() {
         ) : isLoading ? (
           <p className="text-sm text-neutral-500">Loading…</p>
         ) : (
-          <AuditTable entries={entries} actors={actors} />
+          <AuditTable entries={entries} />
         )}
       </div>
 

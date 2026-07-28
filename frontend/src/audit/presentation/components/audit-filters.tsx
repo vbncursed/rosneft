@@ -1,4 +1,5 @@
 import type { AuditFilters } from "@/audit/domain/audit-entry";
+import type { AuditActor } from "@/audit/infrastructure/audit-gateway";
 import { actionsFor } from "@/audit/domain/vocabulary";
 import {
   actionOptions,
@@ -35,7 +36,7 @@ export default function AuditFiltersBar({
 }: {
   value: AuditFilters;
   onChange: (next: AuditFilters) => void;
-  actors: Map<string, string>;
+  actors: AuditActor[];
 }) {
   const set = (key: keyof AuditFilters) => (v: string) => onChange({ ...value, [key]: v });
 
