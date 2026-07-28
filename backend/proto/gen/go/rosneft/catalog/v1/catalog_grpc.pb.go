@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	CatalogService_ListTerritories_FullMethodName             = "/rosneft.catalog.v1.CatalogService/ListTerritories"
+	CatalogService_ResolveTerritorySlugs_FullMethodName       = "/rosneft.catalog.v1.CatalogService/ResolveTerritorySlugs"
 	CatalogService_GetTerritory_FullMethodName                = "/rosneft.catalog.v1.CatalogService/GetTerritory"
 	CatalogService_UpsertTerritory_FullMethodName             = "/rosneft.catalog.v1.CatalogService/UpsertTerritory"
 	CatalogService_DeleteTerritory_FullMethodName             = "/rosneft.catalog.v1.CatalogService/DeleteTerritory"
@@ -62,6 +63,11 @@ const (
 // the catalog only keeps the hash.
 type CatalogServiceClient interface {
 	ListTerritories(ctx context.Context, in *ListTerritoriesRequest, opts ...grpc.CallOption) (*ListTerritoriesResponse, error)
+	// ResolveTerritorySlugs labels territory ids for the audit journal, which
+	// knows a placement's parent only as the number in its row snapshot. The
+	// public Territory message carries a slug and no id on purpose; adding one
+	// would change a shape the whole scene reads for an internal lookup.
+	ResolveTerritorySlugs(ctx context.Context, in *ResolveTerritorySlugsRequest, opts ...grpc.CallOption) (*ResolveTerritorySlugsResponse, error)
 	GetTerritory(ctx context.Context, in *GetTerritoryRequest, opts ...grpc.CallOption) (*GetTerritoryResponse, error)
 	UpsertTerritory(ctx context.Context, in *UpsertTerritoryRequest, opts ...grpc.CallOption) (*UpsertTerritoryResponse, error)
 	DeleteTerritory(ctx context.Context, in *DeleteTerritoryRequest, opts ...grpc.CallOption) (*DeleteTerritoryResponse, error)
@@ -99,6 +105,16 @@ func (c *catalogServiceClient) ListTerritories(ctx context.Context, in *ListTerr
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListTerritoriesResponse)
 	err := c.cc.Invoke(ctx, CatalogService_ListTerritories_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) ResolveTerritorySlugs(ctx context.Context, in *ResolveTerritorySlugsRequest, opts ...grpc.CallOption) (*ResolveTerritorySlugsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResolveTerritorySlugsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ResolveTerritorySlugs_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -352,6 +368,11 @@ func (c *catalogServiceClient) DeletePlacement(ctx context.Context, in *DeletePl
 // the catalog only keeps the hash.
 type CatalogServiceServer interface {
 	ListTerritories(context.Context, *ListTerritoriesRequest) (*ListTerritoriesResponse, error)
+	// ResolveTerritorySlugs labels territory ids for the audit journal, which
+	// knows a placement's parent only as the number in its row snapshot. The
+	// public Territory message carries a slug and no id on purpose; adding one
+	// would change a shape the whole scene reads for an internal lookup.
+	ResolveTerritorySlugs(context.Context, *ResolveTerritorySlugsRequest) (*ResolveTerritorySlugsResponse, error)
 	GetTerritory(context.Context, *GetTerritoryRequest) (*GetTerritoryResponse, error)
 	UpsertTerritory(context.Context, *UpsertTerritoryRequest) (*UpsertTerritoryResponse, error)
 	DeleteTerritory(context.Context, *DeleteTerritoryRequest) (*DeleteTerritoryResponse, error)
@@ -387,6 +408,9 @@ type UnimplementedCatalogServiceServer struct{}
 
 func (UnimplementedCatalogServiceServer) ListTerritories(context.Context, *ListTerritoriesRequest) (*ListTerritoriesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListTerritories not implemented")
+}
+func (UnimplementedCatalogServiceServer) ResolveTerritorySlugs(context.Context, *ResolveTerritorySlugsRequest) (*ResolveTerritorySlugsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveTerritorySlugs not implemented")
 }
 func (UnimplementedCatalogServiceServer) GetTerritory(context.Context, *GetTerritoryRequest) (*GetTerritoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetTerritory not implemented")
@@ -492,6 +516,24 @@ func _CatalogService_ListTerritories_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CatalogServiceServer).ListTerritories(ctx, req.(*ListTerritoriesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_ResolveTerritorySlugs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveTerritorySlugsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ResolveTerritorySlugs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ResolveTerritorySlugs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ResolveTerritorySlugs(ctx, req.(*ResolveTerritorySlugsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -920,6 +962,10 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListTerritories",
 			Handler:    _CatalogService_ListTerritories_Handler,
+		},
+		{
+			MethodName: "ResolveTerritorySlugs",
+			Handler:    _CatalogService_ResolveTerritorySlugs_Handler,
 		},
 		{
 			MethodName: "GetTerritory",
