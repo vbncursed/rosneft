@@ -37,8 +37,12 @@ export default function UsersTable({ roles }: { roles: Role[] }) {
         <Checkbox checked={includeDeleted} onChange={setIncludeDeleted} label="include deleted" />
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-        <table className="w-full text-left">
+      {/* overflow-x-auto, not overflow-hidden: six columns plus an unbreakable
+          email do not fit a phone, and hiding the overflow left the right-hand
+          columns unreachable. min-w keeps the table readable instead of letting
+          the browser crush every column to its longest word before scrolling. */}
+      <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.03]">
+        <table className="w-full min-w-[46rem] text-left">
           <thead className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
             <tr><th className="px-3 py-2">User</th><th className="px-3 py-2">Email</th><th className="px-3 py-2">Roles</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">2FA</th><th /></tr>
           </thead>
