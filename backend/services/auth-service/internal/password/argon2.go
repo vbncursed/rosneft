@@ -13,11 +13,11 @@ import (
 )
 
 const (
-	saltLen = 16
-	keyLen  = 32
-	time_   = 1
-	memory  = 64 * 1024
-	threads = 4
+	saltLen  = 16
+	keyLen   = 32
+	timeCost = 1
+	memory   = 64 * 1024
+	threads  = 4
 )
 
 // Hash returns a PHC-encoded argon2id hash of plain.
@@ -26,9 +26,9 @@ func Hash(plain string) (string, error) {
 	if _, err := rand.Read(salt); err != nil {
 		return "", fmt.Errorf("password.Hash: read salt: %w", err)
 	}
-	key := argon2.IDKey([]byte(plain), salt, time_, memory, threads, keyLen)
+	key := argon2.IDKey([]byte(plain), salt, timeCost, memory, threads, keyLen)
 	return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
-		argon2.Version, memory, time_, threads,
+		argon2.Version, memory, timeCost, threads,
 		base64.RawStdEncoding.EncodeToString(salt),
 		base64.RawStdEncoding.EncodeToString(key)), nil
 }

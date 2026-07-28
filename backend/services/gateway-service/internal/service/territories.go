@@ -163,8 +163,3 @@ func validateEntity(title, hash string) error {
 	}
 	return nil
 }
-
-// errArtifactMissing helps SceneBundle distinguish "no artifact yet" from
-// other errors. Re-exported through the domain package would be overkill —
-// this is internal to gateway service code.
-var errArtifactMissing = errors.New("no artifact yet")

@@ -18,13 +18,13 @@ func (f *FS) Finalize(ctx context.Context, id string, putBlob func(ctx context.C
 	if err != nil {
 		return "", 0, err
 	}
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	src, err := os.Open(dataPath)
 	if err != nil {
 		return "", 0, fmt.Errorf("storage.Finalize: open: %w", err)
 	}
-	defer src.Close()
+	defer func() { _ = src.Close() }()
 
 	stat, err := src.Stat()
 	if err != nil {
@@ -41,7 +41,7 @@ func (f *FS) Finalize(ctx context.Context, id string, putBlob func(ctx context.C
 	if err != nil {
 		return "", 0, fmt.Errorf("storage.Finalize: reopen: %w", err)
 	}
-	defer body.Close()
+	defer func() { _ = body.Close() }()
 
 	if err := putBlob(ctx, hash, body); err != nil {
 		return "", 0, fmt.Errorf("storage.Finalize: put blob: %w", err)
@@ -63,7 +63,7 @@ func hashFile(path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("storage.hashFile: open: %w", err)
 	}
-	defer src.Close()
+	defer func() { _ = src.Close() }()
 	h := sha256.New()
 	if _, err := io.Copy(h, src); err != nil {
 		return "", fmt.Errorf("storage.hashFile: copy: %w", err)

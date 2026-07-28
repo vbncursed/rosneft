@@ -15,14 +15,14 @@ func (s *Service) Regenerate(ctx context.Context, userID, code string) ([]string
 		return nil, err
 	}
 	if !c.Enabled {
-		return nil, domain.Err2FANotEnabled
+		return nil, domain.ErrTwoFANotEnabled
 	}
 	secretPlain, err := s.cipher.Decrypt(c.Secret)
 	if err != nil {
 		return nil, fmt.Errorf("twofa.Regenerate: decrypt: %w", err)
 	}
 	if !totp.Validate(string(secretPlain), code) {
-		return nil, domain.Err2FAInvalidCode
+		return nil, domain.ErrTwoFAInvalidCode
 	}
 	return s.issueRecovery(ctx, userID)
 }

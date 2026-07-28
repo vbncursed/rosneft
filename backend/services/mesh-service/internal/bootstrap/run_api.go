@@ -30,7 +30,7 @@ func RunAPI(ctx context.Context, cfg config.Config) error {
 	if err != nil {
 		return err
 	}
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 
 	store, err := InitStorage(rootCtx, rdb)
 	if err != nil {

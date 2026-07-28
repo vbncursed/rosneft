@@ -53,7 +53,7 @@ func (h *Handler) serveAsset(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 
 	// For local FS, the underlying *os.File is io.ReadSeeker, so http.ServeContent
 	// handles Range natively. If a future Store (e.g. S3) returns a non-seekable

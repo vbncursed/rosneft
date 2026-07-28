@@ -66,7 +66,7 @@ func (s *TwoFASuite) TestVerifyLockedShortCircuits() {
 	s.lim.IsLockedMock.Expect(s.ctx, "u1").Return(true, nil)
 
 	ok, err := s.svc.Verify(s.ctx, "u1", "123456")
-	assert.ErrorIs(s.T(), err, domain.Err2FALocked)
+	assert.ErrorIs(s.T(), err, domain.ErrTwoFALocked)
 	assert.Assert(s.T(), !ok)
 }
 
@@ -106,12 +106,12 @@ func (s *TwoFASuite) TestRegenerateRequiresValidCode() {
 	s.ciph.DecryptMock.Expect([]byte("ct")).Return([]byte(secret), nil)
 
 	_, err := s.svc.Regenerate(s.ctx, "u1", "000000")
-	assert.ErrorIs(s.T(), err, domain.Err2FAInvalidCode)
+	assert.ErrorIs(s.T(), err, domain.ErrTwoFAInvalidCode)
 }
 
 func (s *TwoFASuite) TestSetupRejectsWhenAlreadyOn() {
 	s.st.GetMock.Expect(s.ctx, "u1").Return(domain.Credential{UserID: "u1", Enabled: true}, nil)
 
 	_, _, err := s.svc.Setup(s.ctx, "u1", "ivan")
-	assert.ErrorIs(s.T(), err, domain.Err2FAAlreadyEnabled)
+	assert.ErrorIs(s.T(), err, domain.ErrTwoFAAlreadyEnabled)
 }

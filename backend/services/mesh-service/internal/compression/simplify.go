@@ -28,7 +28,7 @@ func (o *Optimizer) Simplify(ctx context.Context, glb []byte, ratio float64) ([]
 	if err != nil {
 		return nil, fmt.Errorf("compression: mktemp: %w", err)
 	}
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	in := filepath.Join(dir, "in.glb")
 	out := filepath.Join(dir, "out.glb")

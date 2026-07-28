@@ -50,11 +50,11 @@ func mapErr(err error) error {
 	switch {
 	case err == nil:
 		return nil
-	case errors.Is(err, domain.Err2FAInvalidCode):
+	case errors.Is(err, domain.ErrTwoFAInvalidCode):
 		return status.Error(codes.InvalidArgument, err.Error())
-	case errors.Is(err, domain.Err2FALocked):
+	case errors.Is(err, domain.ErrTwoFALocked):
 		return status.Error(codes.ResourceExhausted, err.Error())
-	case errors.Is(err, domain.Err2FAAlreadyEnabled), errors.Is(err, domain.Err2FANotEnabled):
+	case errors.Is(err, domain.ErrTwoFAAlreadyEnabled), errors.Is(err, domain.ErrTwoFANotEnabled):
 		return status.Error(codes.FailedPrecondition, err.Error())
 	case errors.Is(err, domain.ErrNotFound):
 		return status.Error(codes.NotFound, err.Error())

@@ -32,7 +32,7 @@ func (c *Converter) Convert(ctx context.Context, sourcePath string) (domain.Conv
 	if err != nil {
 		return domain.ConversionResult{}, fmt.Errorf("converter: open %q: %w", sourcePath, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	report(ctx, "parsing", 0.30)
 	src, err := parseOBJ(f)

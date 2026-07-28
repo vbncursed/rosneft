@@ -79,7 +79,7 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) error {
 	if err != nil {
 		return fmt.Errorf("tmp dir: %w", err)
 	}
-	defer os.RemoveAll(workDir)
+	defer func() { _ = os.RemoveAll(workDir) }()
 
 	if err := m.fetchAndExtract(ctx, target.SourceBlobHash, workDir); err != nil {
 		return fmt.Errorf("fetch/extract source: %w", err)

@@ -39,7 +39,7 @@ func RunWorker(ctx context.Context, cfg config.Config) error {
 	if err != nil {
 		return err
 	}
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 
 	store, err := InitStorage(rootCtx, rdb)
 	if err != nil {
@@ -50,7 +50,7 @@ func RunWorker(ctx context.Context, cfg config.Config) error {
 	if err != nil {
 		return fmt.Errorf("init catalog: %w", err)
 	}
-	defer cat.Close()
+	defer func() { _ = cat.Close() }()
 
 	blobs, err := InitBlobStore(cfg)
 	if err != nil {

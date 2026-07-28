@@ -29,7 +29,7 @@ var (
 
 // InitRouter builds the chi.Router stack:
 //
-//	[CORS, RequestID, RealIP, Recoverer, slog-chi]      ← root
+//	[CORS, RequestID, Recoverer, slog-chi]             ← root
 //	  /healthz, /readyz, /docs, /openapi.json
 //	  /api/assets/{hash}                                ← binary proxy
 //	  /api/jobs/{id}/events                             ← SSE
@@ -69,7 +69,12 @@ func InitRouter(
 		MaxAge:           300,
 	}))
 	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
+	// No RealIP: it rewrites RemoteAddr from client-controlled headers
+	// (X-Forwarded-For / True-Client-IP / X-Real-IP) whether or not the
+	// infrastructure sets them, so the logged IP was forgeable — see
+	// GHSA-3fxj-6jh8-hvhx. RemoteAddr is now the real TCP peer (the reverse
+	// proxy in prod). Anything that needs the originating client IP must
+	// resolve X-Forwarded-For against a trusted-proxy set, not trust it blindly.
 	r.Use(middleware.Recoverer)
 	r.Use(slogchi.NewWithConfig(logger, slogchi.Config{
 		DefaultLevel:     slog.LevelInfo,
