@@ -28,6 +28,7 @@ func newRootCmd() *cobra.Command {
 		Long:          "gRPC service that owns the append-only audit journal and its capture triggers.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		RunE:          runServe,
 	}
 	flags := cmd.PersistentFlags()
 	flags.String("grpc-addr", ":9009", "gRPC listen address")
@@ -38,6 +39,7 @@ func newRootCmd() *cobra.Command {
 	flags.Duration("shutdown-timeout", 15*time.Second, "graceful shutdown timeout")
 
 	cmd.AddCommand(
+		&cobra.Command{Use: "serve", Short: "Start the gRPC server (default)", RunE: runServe},
 		subCmd("migrate-up", "Apply pending migrations", bootstrap.RunMigrateUp),
 		subCmd("migrate-down", "Roll back the most recent migration", bootstrap.RunMigrateDown),
 		subCmd("migrate-status", "Print migration status", bootstrap.RunMigrateStatus),
@@ -53,6 +55,14 @@ func subCmd(use, short string, fn func(context.Context, config.Config) error) *c
 		}
 		return fn(cmd.Context(), cfg)
 	}}
+}
+
+func runServe(cmd *cobra.Command, _ []string) error {
+	cfg, err := loadCfg(cmd)
+	if err != nil {
+		return err
+	}
+	return bootstrap.RunServe(cmd.Context(), cfg)
 }
 
 func loadCfg(cmd *cobra.Command) (config.Config, error) {

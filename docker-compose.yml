@@ -46,6 +46,7 @@ services:
       mesh-api: { condition: service_started }
       upload: { condition: service_started }
       asset: { condition: service_started }
+      audit: { condition: service_started }
     environment:
       GATEWAY_HTTP_ADDR: ":8080"
       GATEWAY_CATALOG_GRPC_ADDR: "catalog:9001"
@@ -56,6 +57,7 @@ services:
       GATEWAY_MESH_GRPC_ADDR: "mesh-api:9002"
       GATEWAY_UPLOAD_GRPC_ADDR: "upload:9003"
       GATEWAY_ASSET_HTTP_ADDR: "http://asset:8081"
+      GATEWAY_AUDIT_GRPC_ADDR: "audit:9009"
       GATEWAY_ALLOWED_ORIGINS: "*"
       GATEWAY_LOG_LEVEL: "info"
       # Upload chunks can be hundreds of MB; raise WriteTimeout to give
@@ -166,6 +168,25 @@ services:
       CONTENT_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
       CONTENT_AUTO_MIGRATE: "true"
       CONTENT_LOG_LEVEL: "info"
+
+  audit:
+    restart: unless-stopped
+    build:
+      context: ./backend
+      dockerfile: services/audit-service/Dockerfile
+    depends_on:
+      postgres: { condition: service_healthy }
+    expose:
+      - "9009"
+    environment:
+      AUDIT_GRPC_ADDR: ":9009"
+      # Shares the andrey DB with every other service; isolated by audit_goose_db_version.
+      AUDIT_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
+      AUDIT_AUTO_MIGRATE: "true"
+      AUDIT_LOG_LEVEL: "info"
+      # No depends_on beyond postgres on purpose: ensure_audit_triggers() skips
+      # tables the other services have not migrated yet and re-attaches on the
+      # next boot, so this service needs no ordering against them.
 
   mesh-api:
     restart: unless-stopped
