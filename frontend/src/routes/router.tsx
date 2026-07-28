@@ -19,6 +19,7 @@ import { adminRolesRoute } from "@/routes/admin-roles";
 import { adminContentRoute } from "@/routes/admin-content";
 import { adminTerritoriesRoute } from "@/routes/admin-territories";
 import { adminMetricsRoute } from "@/routes/admin-metrics";
+import { adminAuditRoute } from "@/routes/admin-audit";
 import { queryClient } from "@/shared/infrastructure/query/query-client";
 
 const routeTree = rootRoute.addChildren([
@@ -42,6 +43,7 @@ const routeTree = rootRoute.addChildren([
       adminContentRoute,
       adminTerritoriesRoute,
       adminMetricsRoute,
+      adminAuditRoute,
     ]),
   ]),
 ]);
