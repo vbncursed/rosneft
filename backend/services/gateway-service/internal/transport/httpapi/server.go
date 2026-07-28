@@ -51,6 +51,10 @@ type Service interface {
 	CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error)
 	DeleteDocument(ctx context.Context, id int64) error
 
+	// ListAudit takes the principal's owner flag and company explicitly: the
+	// tenant scope is resolved in the service layer, never from a parameter.
+	ListAudit(ctx context.Context, q domain.AuditQuery, isOwner bool, companyID string) ([]domain.AuditEntry, int64, error)
+
 	GetJob(ctx context.Context, id string) (domain.Job, error)
 
 	InitiateUpload(ctx context.Context, size int64, contentType string) (domain.UploadSession, error)

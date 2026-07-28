@@ -604,6 +604,44 @@ components:
           additionalProperties: { type: string }
           description: Per-probe result; present on /readyz when probes are registered.
 
+    AuditEntry:
+      type: object
+      required: [id, at, action, entity, result]
+      properties:
+        id: { type: integer, format: int64 }
+        at: { type: string, format: date-time }
+        actorId:
+          type: string
+          description: Empty for a system change (mesh-worker, migrations).
+        companyId:
+          type: string
+          description: Empty for a Root or system change.
+        action: { type: string, description: "e.g. territory.update, auth.login" }
+        entity: { type: string }
+        entityId: { type: string }
+        entityLabel:
+          type: string
+          description: Slug or email as of the event; survives the row's deletion.
+        oldRow:
+          type: string
+          description: Raw JSON snapshot before the change; empty on insert. The client derives the diff.
+        newRow:
+          type: string
+          description: Raw JSON snapshot after the change; empty on delete.
+        result: { type: string, enum: [ok, failed] }
+
+    AuditPage:
+      type: object
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          items: { $ref: '#/components/schemas/AuditEntry' }
+        nextCursor:
+          type: integer
+          format: int64
+          description: Pass back as `cursor` for the next page. Absent or 0 means this was the last page.
+
   securitySchemes:
     bearerAuth:
       type: http
@@ -638,6 +676,96 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
 
 paths:
+  /api/audit:
+    get:
+      operationId: listAudit
+      summary: Read the audit journal
+      description: >
+        Root sees every entry; anyone else sees only their own company's, keyed
+        to the created_by chain. The tenant filter comes from the session, never
+        from a parameter. Requires the audit:read permission (Root bypasses it).
+        Paging is by cursor over descending id, so pages stay stable while new
+        entries land above them.
+      tags: [audit]
+      parameters:
+        - name: actor
+          in: query
+          schema: { type: string }
+          description: Filter by acting user id.
+        - name: action
+          in: query
+          schema: { type: string }
+          description: Exact action, e.g. territory.update.
+        - name: entity
+          in: query
+          schema: { type: string }
+          description: Exact entity kind, e.g. territory.
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: cursor
+          in: query
+          schema: { type: integer, format: int64 }
+          description: nextCursor from the previous page; omit for the newest page.
+        - name: limit
+          in: query
+          schema: { type: integer, format: int32, minimum: 1, maximum: 200 }
+          description: Page size, default 50, clamped to 200.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/audit.csv:
+    get:
+      operationId: exportAuditCSV
+      summary: Export the audit journal as CSV
+      description: >
+        Same filters and same scoping as GET /api/audit, streamed as CSV until
+        the journal is exhausted rather than one page at a time. Served outside
+        the JSON middleware chain: the ETag middleware hashes the whole response
+        body, which would mean buffering the entire export.
+      tags: [audit, audit-export]
+      parameters:
+        - name: actor
+          in: query
+          schema: { type: string }
+        - name: action
+          in: query
+          schema: { type: string }
+        - name: entity
+          in: query
+          schema: { type: string }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: cursor
+          in: query
+          schema: { type: integer, format: int64 }
+          description: Start the export below this id; omit to export from the newest entry.
+      responses:
+        '200':
+          description: CSV stream
+          content:
+            text/csv:
+              schema: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/Internal' }
+
   /api/territories:
     get:
       operationId: listTerritories

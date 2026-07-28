@@ -11,6 +11,9 @@ import (
 // routePerms maps "METHOD <chi route pattern>" to the permission it requires.
 // Only mutations are listed; reads need any authenticated principal.
 var routePerms = map[string]string{
+	// The one gated read: the journal is not open to every authenticated
+	// principal the way the content endpoints are.
+	"GET /api/audit":                                 "audit:read",
 	"POST /api/territories":                          "territory:create",
 	"PATCH /api/territories/{slug}":                  "territory:write",
 	"DELETE /api/territories/{slug}":                 "territory:delete",
