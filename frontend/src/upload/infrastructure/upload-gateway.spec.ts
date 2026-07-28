@@ -4,8 +4,10 @@ import { setToken } from "@/auth/infrastructure/token-store";
 
 const API = "http://localhost:8080";
 
+// The parameters are declared so mock.calls is typed as (url, init) rather
+// than the empty tuple an argless vi.fn infers.
 function mockFetch(status: number, headers: Record<string, string> = {}) {
-  return vi.fn(async () => new Response(null, { status, headers }));
+  return vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status, headers }));
 }
 
 describe("upload-gateway raw fetches", () => {

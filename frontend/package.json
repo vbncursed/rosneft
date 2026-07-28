@@ -6,7 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint",
+    "lint": "tsc --noEmit && eslint",
+    "typecheck": "tsc --noEmit",
     "test": "node --test 'src/**/*.test.ts'",
     "test:spa": "vitest run",
     "openapi:generate": "openapi-typescript ../backend/services/gateway-service/api/openapi.yaml -o src/shared/infrastructure/api/dto.ts"

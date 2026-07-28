@@ -1,5 +1,4 @@
 import { createRouter, Link } from "@tanstack/react-router";
-import type { QueryClient } from "@tanstack/react-query";
 import { rootRoute } from "@/routes/root";
 import { loginRoute } from "@/routes/login";
 import { authedLayoutRoute } from "@/routes/layout";
@@ -67,8 +66,5 @@ export const router = createRouter({
 declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;
-  }
-  interface RouterContext {
-    queryClient: QueryClient;
   }
 }
