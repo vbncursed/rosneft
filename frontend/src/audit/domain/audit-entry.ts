@@ -5,13 +5,21 @@ export type AuditEntry = {
   id: number;
   at: string;
   actorId: string;
+  // Подписи приходят с сервера: только он знает область журнала. Пустая подпись
+  // означает «пользователь удалён или сервис подписей был недоступен», и тогда
+  // показывается id — ровно то, что показывалось до появления подписей.
+  actorLogin: string;
   companyId: string;
+  companyLogin: string;
   action: string;
   entity: string;
   entityId: string;
   entityLabel: string;
   oldRow: Record<string, unknown> | null;
   newRow: Record<string, unknown> | null;
+  // Слаг родительской территории — только у сущностей, чья строка её несёт
+  // (placement, panorama, document, territory_assignment). У остальных пусто.
+  territorySlug: string;
   result: "ok" | "failed";
 };
 

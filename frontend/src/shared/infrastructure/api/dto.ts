@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/audit/actors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the actors present in the caller's slice of the journal
+         * @description Backs the journal's actor filter. Returns everyone whose entries the caller can see, not merely those on the page currently loaded, so an actor further down the journal is still selectable. Scope comes from the session, exactly as for GET /api/audit. Requires audit:read.
+         */
+        get: operations["listAuditActors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/audit.csv": {
         parameters: {
             query?: never;
@@ -2577,6 +2597,12 @@ export interface components {
             /** @enum {string} */
             result: "ok" | "failed";
         };
+        AuditActor: {
+            /** @description Actor's user id; the value to filter by. */
+            id: string;
+            /** @description Empty if the user has since been deleted. */
+            login?: string;
+        };
         AuditPage: {
             entries: components["schemas"]["AuditEntry"][];
             /**
@@ -2672,6 +2698,29 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    listAuditActors: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditActor"][];
+                };
+            };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             500: components["responses"]["Internal"];
