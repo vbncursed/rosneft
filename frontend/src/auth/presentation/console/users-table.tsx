@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useUsersAdmin } from "@/auth/application/use-users-admin";
 import { useCurrentUser } from "@/auth/presentation/current-user-context";

@@ -1,5 +1,3 @@
-"use client";
-
 import { type CSSProperties, type Ref } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "motion/react";

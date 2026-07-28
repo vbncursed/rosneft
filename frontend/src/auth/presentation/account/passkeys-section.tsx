@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { listPasskeys, beginRegistration, finishRegistration, deletePasskey, type Passkey } from "@/auth/infrastructure/passkey-gateway";
 import { createCredential, isPasskeySupported, isPasskeyCancelled } from "@/auth/infrastructure/webauthn";

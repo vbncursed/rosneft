@@ -1,5 +1,3 @@
-"use client";
-
 import { diffRows, type DiffField } from "@/audit/domain/diff";
 
 // Snapshots hold raw column values; anything non-scalar is rendered as JSON so

@@ -1,5 +1,3 @@
-"use client";
-
 import { lazy, Suspense } from "react";
 import { usePanelSeries } from "@/metrics/application/use-panel-series";
 import type { PanelView, Range } from "@/metrics/domain/panel";
