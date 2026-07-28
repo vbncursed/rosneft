@@ -1,13 +1,12 @@
 import { useEffect } from "react";
 import type { RefObject } from "react";
-import { Html } from "@react-three/drei";
 import type { Mesh } from "three";
 import type { Panorama } from "@/panorama/domain/panorama";
 import type { PanoramaDragApi } from "@/panorama/application/use-panorama-drag";
 import { usePanoramaTexture } from "@/panorama/application/use-panorama-texture";
 import PanoramaSphere from "@/panorama/presentation/three/panorama-sphere";
 import PanoramaRig from "@/panorama/presentation/three/panorama-rig";
-import PanoramaLoadingBar from "@/panorama/presentation/components/panorama-loading-bar";
+import PanoramaLoadingOverlay from "@/panorama/presentation/three/panorama-loading-overlay";
 import PanoramaMarkersLayer from "@/panorama/presentation/three/panorama-markers-layer";
 import PanoramaDragController from "@/panorama/presentation/three/panorama-drag-controller";
 
@@ -54,11 +53,7 @@ export default function PanoramaSceneLayer({
   return (
     <>
       {activePanorama && status === "loading" && (
-        <Html fullscreen>
-          <div className="flex h-full w-full items-center justify-center bg-black">
-            <PanoramaLoadingBar progress={progress} />
-          </div>
-        </Html>
+        <PanoramaLoadingOverlay progress={progress} />
       )}
 
       {activePanorama && status === "ready" && texture && (

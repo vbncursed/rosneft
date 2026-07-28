@@ -30,5 +30,13 @@ export function renderHook<T>(useHook: () => T): HookHandle<T> {
   return { result, rerender: render, unmount: () => act(() => root.unmount()) };
 }
 
+// renderComponent mounts an element for suites asserting on what a component
+// renders or on the props it hands a mocked child.
+export function renderComponent(element: React.ReactNode): { unmount: () => void } {
+  const root = createRoot(document.createElement("div"));
+  act(() => root.render(element));
+  return { unmount: () => act(() => root.unmount()) };
+}
+
 // act re-exported so suites can flush state updates they trigger themselves.
 export { act };
