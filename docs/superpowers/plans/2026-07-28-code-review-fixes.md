@@ -1,6 +1,6 @@
 # Code review fixes — 2026-07-28
 
-Branch `spa`, 18 commits today (`a0bda4e`..`e30f95e`), nothing pushed. All gates green:
+Branch `spa`, 19 commits today (`a0bda4e`..`e30f95e`), nothing pushed. All gates green:
 frontend `yarn lint` (now typechecks) / `build` / `test` 152 / `test:spa` 218,
 backend `go test -race -shuffle=on ./services/gateway-service/...`.
 
