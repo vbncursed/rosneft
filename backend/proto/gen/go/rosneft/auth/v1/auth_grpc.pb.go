@@ -31,6 +31,7 @@ const (
 	AuthService_MarkTourSeen_FullMethodName       = "/rosneft.auth.v1.AuthService/MarkTourSeen"
 	AuthService_CreateUser_FullMethodName         = "/rosneft.auth.v1.AuthService/CreateUser"
 	AuthService_ListUsers_FullMethodName          = "/rosneft.auth.v1.AuthService/ListUsers"
+	AuthService_ResolveUserLogins_FullMethodName  = "/rosneft.auth.v1.AuthService/ResolveUserLogins"
 	AuthService_GetUser_FullMethodName            = "/rosneft.auth.v1.AuthService/GetUser"
 	AuthService_UpdateUser_FullMethodName         = "/rosneft.auth.v1.AuthService/UpdateUser"
 	AuthService_FreezeUser_FullMethodName         = "/rosneft.auth.v1.AuthService/FreezeUser"
@@ -72,6 +73,12 @@ type AuthServiceClient interface {
 	// --- user admin ---
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*User, error)
 	ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersResponse, error)
+	// ResolveUserLogins labels ids the caller already sees. It applies no
+	// created_by scope, unlike ListUsers and GetUser: that scope does not line up
+	// with the audit journal's own, and the mismatch is what made a user's own
+	// actions appear under a raw uuid. A valid token is still required, so the
+	// call needs a real session rather than only network reach.
+	ResolveUserLogins(ctx context.Context, in *ResolveUserLoginsRequest, opts ...grpc.CallOption) (*ResolveUserLoginsResponse, error)
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*User, error)
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*User, error)
 	FreezeUser(ctx context.Context, in *FreezeUserRequest, opts ...grpc.CallOption) (*User, error)
@@ -210,6 +217,16 @@ func (c *authServiceClient) ListUsers(ctx context.Context, in *ListUsersRequest,
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListUsersResponse)
 	err := c.cc.Invoke(ctx, AuthService_ListUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) ResolveUserLogins(ctx context.Context, in *ResolveUserLoginsRequest, opts ...grpc.CallOption) (*ResolveUserLoginsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResolveUserLoginsResponse)
+	err := c.cc.Invoke(ctx, AuthService_ResolveUserLogins_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -372,6 +389,12 @@ type AuthServiceServer interface {
 	// --- user admin ---
 	CreateUser(context.Context, *CreateUserRequest) (*User, error)
 	ListUsers(context.Context, *ListUsersRequest) (*ListUsersResponse, error)
+	// ResolveUserLogins labels ids the caller already sees. It applies no
+	// created_by scope, unlike ListUsers and GetUser: that scope does not line up
+	// with the audit journal's own, and the mismatch is what made a user's own
+	// actions appear under a raw uuid. A valid token is still required, so the
+	// call needs a real session rather than only network reach.
+	ResolveUserLogins(context.Context, *ResolveUserLoginsRequest) (*ResolveUserLoginsResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*User, error)
 	UpdateUser(context.Context, *UpdateUserRequest) (*User, error)
 	FreezeUser(context.Context, *FreezeUserRequest) (*User, error)
@@ -431,6 +454,9 @@ func (UnimplementedAuthServiceServer) CreateUser(context.Context, *CreateUserReq
 }
 func (UnimplementedAuthServiceServer) ListUsers(context.Context, *ListUsersRequest) (*ListUsersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListUsers not implemented")
+}
+func (UnimplementedAuthServiceServer) ResolveUserLogins(context.Context, *ResolveUserLoginsRequest) (*ResolveUserLoginsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveUserLogins not implemented")
 }
 func (UnimplementedAuthServiceServer) GetUser(context.Context, *GetUserRequest) (*User, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUser not implemented")
@@ -704,6 +730,24 @@ func _AuthService_ListUsers_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthServiceServer).ListUsers(ctx, req.(*ListUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_ResolveUserLogins_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveUserLoginsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ResolveUserLogins(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ResolveUserLogins_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ResolveUserLogins(ctx, req.(*ResolveUserLoginsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -996,6 +1040,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListUsers",
 			Handler:    _AuthService_ListUsers_Handler,
+		},
+		{
+			MethodName: "ResolveUserLogins",
+			Handler:    _AuthService_ResolveUserLogins_Handler,
 		},
 		{
 			MethodName: "GetUser",
