@@ -24,6 +24,13 @@ export default tseslint.config(
       // objects (OrbitControls) — not React state — inside effects.
       "react-hooks/set-state-in-effect": "off",
       "react-hooks/immutability": "off",
+      // A leading underscore marks a parameter that exists only to give a
+      // signature its shape — a mock whose call tuple must be typed, a callback
+      // that ignores its first argument.
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
     },
   },
   {

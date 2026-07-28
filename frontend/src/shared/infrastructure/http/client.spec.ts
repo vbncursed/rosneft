@@ -5,8 +5,10 @@ import { HttpError } from "@/shared/infrastructure/http/http-error";
 
 const API = "http://localhost:8080";
 
+// The parameters are declared so mock.calls is typed as (url, init) rather
+// than the empty tuple an argless vi.fn infers.
 function mockFetch(status: number, body: unknown, headers: Record<string, string> = {}) {
-  return vi.fn(async () =>
+  return vi.fn(async (_url: string, _init?: RequestInit) =>
     new Response(body === undefined ? null : JSON.stringify(body), {
       status,
       headers: { "content-type": "application/json", ...headers },
