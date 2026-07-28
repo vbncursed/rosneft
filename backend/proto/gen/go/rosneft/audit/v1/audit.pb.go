@@ -461,6 +461,104 @@ func (x *RecordResponse) GetId() int64 {
 	return 0
 }
 
+type ListActorsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Same tenant contract as ListEntriesRequest: a scoped read must carry a
+	// company id, and the service refuses rather than matching NULL-company rows.
+	AllCompanies  bool   `protobuf:"varint,1,opt,name=all_companies,json=allCompanies,proto3" json:"all_companies,omitempty"`
+	CompanyId     string `protobuf:"bytes,2,opt,name=company_id,json=companyId,proto3" json:"company_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListActorsRequest) Reset() {
+	*x = ListActorsRequest{}
+	mi := &file_rosneft_audit_v1_audit_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListActorsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListActorsRequest) ProtoMessage() {}
+
+func (x *ListActorsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_audit_v1_audit_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListActorsRequest.ProtoReflect.Descriptor instead.
+func (*ListActorsRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_audit_v1_audit_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ListActorsRequest) GetAllCompanies() bool {
+	if x != nil {
+		return x.AllCompanies
+	}
+	return false
+}
+
+func (x *ListActorsRequest) GetCompanyId() string {
+	if x != nil {
+		return x.CompanyId
+	}
+	return ""
+}
+
+type ListActorsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ActorIds      []string               `protobuf:"bytes,1,rep,name=actor_ids,json=actorIds,proto3" json:"actor_ids,omitempty"` // most recent activity first
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListActorsResponse) Reset() {
+	*x = ListActorsResponse{}
+	mi := &file_rosneft_audit_v1_audit_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListActorsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListActorsResponse) ProtoMessage() {}
+
+func (x *ListActorsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_audit_v1_audit_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListActorsResponse.ProtoReflect.Descriptor instead.
+func (*ListActorsResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_audit_v1_audit_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListActorsResponse) GetActorIds() []string {
+	if x != nil {
+		return x.ActorIds
+	}
+	return nil
+}
+
 var File_rosneft_audit_v1_audit_proto protoreflect.FileDescriptor
 
 const file_rosneft_audit_v1_audit_proto_rawDesc = "" +
@@ -509,10 +607,18 @@ const file_rosneft_audit_v1_audit_proto_rawDesc = "" +
 	"request_id\x18\a \x01(\tR\trequestId\x12\x16\n" +
 	"\x06result\x18\b \x01(\tR\x06result\" \n" +
 	"\x0eRecordResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id2\xb7\x01\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"W\n" +
+	"\x11ListActorsRequest\x12#\n" +
+	"\rall_companies\x18\x01 \x01(\bR\fallCompanies\x12\x1d\n" +
+	"\n" +
+	"company_id\x18\x02 \x01(\tR\tcompanyId\"1\n" +
+	"\x12ListActorsResponse\x12\x1b\n" +
+	"\tactor_ids\x18\x01 \x03(\tR\bactorIds2\x90\x02\n" +
 	"\fAuditService\x12Z\n" +
 	"\vListEntries\x12$.rosneft.audit.v1.ListEntriesRequest\x1a%.rosneft.audit.v1.ListEntriesResponse\x12K\n" +
-	"\x06Record\x12\x1f.rosneft.audit.v1.RecordRequest\x1a .rosneft.audit.v1.RecordResponseBLZJgithub.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/audit/v1;auditv1b\x06proto3"
+	"\x06Record\x12\x1f.rosneft.audit.v1.RecordRequest\x1a .rosneft.audit.v1.RecordResponse\x12W\n" +
+	"\n" +
+	"ListActors\x12#.rosneft.audit.v1.ListActorsRequest\x1a$.rosneft.audit.v1.ListActorsResponseBLZJgithub.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/audit/v1;auditv1b\x06proto3"
 
 var (
 	file_rosneft_audit_v1_audit_proto_rawDescOnce sync.Once
@@ -526,26 +632,30 @@ func file_rosneft_audit_v1_audit_proto_rawDescGZIP() []byte {
 	return file_rosneft_audit_v1_audit_proto_rawDescData
 }
 
-var file_rosneft_audit_v1_audit_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_rosneft_audit_v1_audit_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_rosneft_audit_v1_audit_proto_goTypes = []any{
 	(*Entry)(nil),                 // 0: rosneft.audit.v1.Entry
 	(*ListEntriesRequest)(nil),    // 1: rosneft.audit.v1.ListEntriesRequest
 	(*ListEntriesResponse)(nil),   // 2: rosneft.audit.v1.ListEntriesResponse
 	(*RecordRequest)(nil),         // 3: rosneft.audit.v1.RecordRequest
 	(*RecordResponse)(nil),        // 4: rosneft.audit.v1.RecordResponse
-	(*timestamppb.Timestamp)(nil), // 5: google.protobuf.Timestamp
+	(*ListActorsRequest)(nil),     // 5: rosneft.audit.v1.ListActorsRequest
+	(*ListActorsResponse)(nil),    // 6: rosneft.audit.v1.ListActorsResponse
+	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
 }
 var file_rosneft_audit_v1_audit_proto_depIdxs = []int32{
-	5, // 0: rosneft.audit.v1.Entry.at:type_name -> google.protobuf.Timestamp
-	5, // 1: rosneft.audit.v1.ListEntriesRequest.from:type_name -> google.protobuf.Timestamp
-	5, // 2: rosneft.audit.v1.ListEntriesRequest.to:type_name -> google.protobuf.Timestamp
+	7, // 0: rosneft.audit.v1.Entry.at:type_name -> google.protobuf.Timestamp
+	7, // 1: rosneft.audit.v1.ListEntriesRequest.from:type_name -> google.protobuf.Timestamp
+	7, // 2: rosneft.audit.v1.ListEntriesRequest.to:type_name -> google.protobuf.Timestamp
 	0, // 3: rosneft.audit.v1.ListEntriesResponse.entries:type_name -> rosneft.audit.v1.Entry
 	1, // 4: rosneft.audit.v1.AuditService.ListEntries:input_type -> rosneft.audit.v1.ListEntriesRequest
 	3, // 5: rosneft.audit.v1.AuditService.Record:input_type -> rosneft.audit.v1.RecordRequest
-	2, // 6: rosneft.audit.v1.AuditService.ListEntries:output_type -> rosneft.audit.v1.ListEntriesResponse
-	4, // 7: rosneft.audit.v1.AuditService.Record:output_type -> rosneft.audit.v1.RecordResponse
-	6, // [6:8] is the sub-list for method output_type
-	4, // [4:6] is the sub-list for method input_type
+	5, // 6: rosneft.audit.v1.AuditService.ListActors:input_type -> rosneft.audit.v1.ListActorsRequest
+	2, // 7: rosneft.audit.v1.AuditService.ListEntries:output_type -> rosneft.audit.v1.ListEntriesResponse
+	4, // 8: rosneft.audit.v1.AuditService.Record:output_type -> rosneft.audit.v1.RecordResponse
+	6, // 9: rosneft.audit.v1.AuditService.ListActors:output_type -> rosneft.audit.v1.ListActorsResponse
+	7, // [7:10] is the sub-list for method output_type
+	4, // [4:7] is the sub-list for method input_type
 	4, // [4:4] is the sub-list for extension type_name
 	4, // [4:4] is the sub-list for extension extendee
 	0, // [0:4] is the sub-list for field type_name
@@ -562,7 +672,7 @@ func file_rosneft_audit_v1_audit_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rosneft_audit_v1_audit_proto_rawDesc), len(file_rosneft_audit_v1_audit_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

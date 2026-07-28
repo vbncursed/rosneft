@@ -70,6 +70,7 @@ type Upload interface {
 // Audit is the audit-service client surface this service calls.
 type Audit interface {
 	ListEntries(ctx context.Context, q domain.AuditQuery) ([]domain.AuditEntry, int64, error)
+	ListActors(ctx context.Context, q domain.AuditQuery) ([]string, error)
 	Record(ctx context.Context, e domain.AuditEvent) error
 }
 

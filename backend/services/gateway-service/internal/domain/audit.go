@@ -51,3 +51,9 @@ type AuditEvent struct {
 	Entity    string
 	Result    string
 }
+
+// AuditActor is one selectable option in the journal's actor filter.
+type AuditActor struct {
+	ID    string
+	Login string
+}
