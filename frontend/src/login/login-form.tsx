@@ -3,7 +3,7 @@ import PasswordField from "@/shared/presentation/components/password-field";
 import OtpInput from "@/shared/presentation/components/otp-input";
 import { login, verifyTwoFactor } from "@/auth/infrastructure/auth-login";
 import { loginBegin, loginFinish } from "@/auth/infrastructure/passkey-gateway";
-import { getAssertion } from "@/auth/infrastructure/webauthn";
+import { getAssertion, isPasskeyCancelled } from "@/auth/infrastructure/webauthn";
 
 // Passkey/WebAuthn is origin-bound to the web domain; in the desktop app the
 // origin is 127.0.0.1 (not a valid RP), so the flow 500s — hide it there.
@@ -38,8 +38,13 @@ export default function LoginForm({ next }: { next: string }) {
       const { optionsJson, flowId } = await loginBegin();
       await loginFinish(flowId, await getAssertion(optionsJson));
       window.location.assign(next);
-    } catch (e) { setError(e instanceof Error ? e.message : "Passkey sign-in failed"); }
-    finally { setBusy(false); }
+    } catch (e) {
+      // Dismissing the prompt leaves the form exactly as it was — surfacing the
+      // browser's NotAllowedError text would read as a failure the user caused.
+      if (!isPasskeyCancelled(e)) {
+        setError(e instanceof Error ? e.message : "Passkey sign-in failed");
+      }
+    } finally { setBusy(false); }
   }
 
   async function verify(codeVal: string) {
