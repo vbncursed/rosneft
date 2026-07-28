@@ -23,6 +23,7 @@ type Store interface {
 	ChangePassword(ctx context.Context, id, hash string) error
 	CountAdmins(ctx context.Context, excludeUserID string) (int, error)
 	MarkTourSeen(ctx context.Context, id, tour string) error
+	ResolveLogins(ctx context.Context, ids []string) (map[string]string, error)
 }
 
 // Sessions lets status changes evict live sessions.

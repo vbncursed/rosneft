@@ -69,6 +69,13 @@ type StoreMock struct {
 	beforePermissionsForRolesCounter uint64
 	PermissionsForRolesMock          mStoreMockPermissionsForRoles
 
+	funcResolveLogins          func(ctx context.Context, ids []string) (m1 map[string]string, err error)
+	funcResolveLoginsOrigin    string
+	inspectFuncResolveLogins   func(ctx context.Context, ids []string)
+	afterResolveLoginsCounter  uint64
+	beforeResolveLoginsCounter uint64
+	ResolveLoginsMock          mStoreMockResolveLogins
+
 	funcSetOwner          func(ctx context.Context, id string, isOwner bool) (u1 domain.User, err error)
 	funcSetOwnerOrigin    string
 	inspectFuncSetOwner   func(ctx context.Context, id string, isOwner bool)
@@ -119,6 +126,9 @@ func NewStoreMock(t minimock.Tester) *StoreMock {
 
 	m.PermissionsForRolesMock = mStoreMockPermissionsForRoles{mock: m}
 	m.PermissionsForRolesMock.callArgs = []*StoreMockPermissionsForRolesParams{}
+
+	m.ResolveLoginsMock = mStoreMockResolveLogins{mock: m}
+	m.ResolveLoginsMock.callArgs = []*StoreMockResolveLoginsParams{}
 
 	m.SetOwnerMock = mStoreMockSetOwner{mock: m}
 	m.SetOwnerMock.callArgs = []*StoreMockSetOwnerParams{}
@@ -2657,6 +2667,349 @@ func (m *StoreMock) MinimockPermissionsForRolesInspect() {
 	}
 }
 
+type mStoreMockResolveLogins struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockResolveLoginsExpectation
+	expectations       []*StoreMockResolveLoginsExpectation
+
+	callArgs []*StoreMockResolveLoginsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockResolveLoginsExpectation specifies expectation struct of the Store.ResolveLogins
+type StoreMockResolveLoginsExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockResolveLoginsParams
+	paramPtrs          *StoreMockResolveLoginsParamPtrs
+	expectationOrigins StoreMockResolveLoginsExpectationOrigins
+	results            *StoreMockResolveLoginsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockResolveLoginsParams contains parameters of the Store.ResolveLogins
+type StoreMockResolveLoginsParams struct {
+	ctx context.Context
+	ids []string
+}
+
+// StoreMockResolveLoginsParamPtrs contains pointers to parameters of the Store.ResolveLogins
+type StoreMockResolveLoginsParamPtrs struct {
+	ctx *context.Context
+	ids *[]string
+}
+
+// StoreMockResolveLoginsResults contains results of the Store.ResolveLogins
+type StoreMockResolveLoginsResults struct {
+	m1  map[string]string
+	err error
+}
+
+// StoreMockResolveLoginsOrigins contains origins of expectations of the Store.ResolveLogins
+type StoreMockResolveLoginsExpectationOrigins struct {
+	origin    string
+	originCtx string
+	originIds string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmResolveLogins *mStoreMockResolveLogins) Optional() *mStoreMockResolveLogins {
+	mmResolveLogins.optional = true
+	return mmResolveLogins
+}
+
+// Expect sets up expected params for Store.ResolveLogins
+func (mmResolveLogins *mStoreMockResolveLogins) Expect(ctx context.Context, ids []string) *mStoreMockResolveLogins {
+	if mmResolveLogins.mock.funcResolveLogins != nil {
+		mmResolveLogins.mock.t.Fatalf("StoreMock.ResolveLogins mock is already set by Set")
+	}
+
+	if mmResolveLogins.defaultExpectation == nil {
+		mmResolveLogins.defaultExpectation = &StoreMockResolveLoginsExpectation{}
+	}
+
+	if mmResolveLogins.defaultExpectation.paramPtrs != nil {
+		mmResolveLogins.mock.t.Fatalf("StoreMock.ResolveLogins mock is already set by ExpectParams functions")
+	}
+
+	mmResolveLogins.defaultExpectation.params = &StoreMockResolveLoginsParams{ctx, ids}
+	mmResolveLogins.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmResolveLogins.expectations {
+		if minimock.Equal(e.params, mmResolveLogins.defaultExpectation.params) {
+			mmResolveLogins.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmResolveLogins.defaultExpectation.params)
+		}
+	}
+
+	return mmResolveLogins
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.ResolveLogins
+func (mmResolveLogins *mStoreMockResolveLogins) ExpectCtxParam1(ctx context.Context) *mStoreMockResolveLogins {
+	if mmResolveLogins.mock.funcResolveLogins != nil {
+		mmResolveLogins.mock.t.Fatalf("StoreMock.ResolveLogins mock is already set by Set")
+	}
+
+	if mmResolveLogins.defaultExpectation == nil {
+		mmResolveLogins.defaultExpectation = &StoreMockResolveLoginsExpectation{}
+	}
+
+	if mmResolveLogins.defaultExpectation.params != nil {
+		mmResolveLogins.mock.t.Fatalf("StoreMock.ResolveLogins mock is already set by Expect")
+	}
+
+	if mmResolveLogins.defaultExpectation.paramPtrs == nil {
+		mmResolveLogins.defaultExpectation.paramPtrs = &StoreMockResolveLoginsParamPtrs{}
+	}
+	mmResolveLogins.defaultExpectation.paramPtrs.ctx = &ctx
+	mmResolveLogins.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmResolveLogins
+}
+
+// ExpectIdsParam2 sets up expected param ids for Store.ResolveLogins
+func (mmResolveLogins *mStoreMockResolveLogins) ExpectIdsParam2(ids []string) *mStoreMockResolveLogins {
+	if mmResolveLogins.mock.funcResolveLogins != nil {
+		mmResolveLogins.mock.t.Fatalf("StoreMock.ResolveLogins mock is already set by Set")
+	}
+
+	if mmResolveLogins.defaultExpectation == nil {
+		mmResolveLogins.defaultExpectation = &StoreMockResolveLoginsExpectation{}
+	}
+
+	if mmResolveLogins.defaultExpectation.params != nil {
+		mmResolveLogins.mock.t.Fatalf("StoreMock.ResolveLogins mock is already set by Expect")
+	}
+
+	if mmResolveLogins.defaultExpectation.paramPtrs == nil {
+		mmResolveLogins.defaultExpectation.paramPtrs = &StoreMockResolveLoginsParamPtrs{}
+	}
+	mmResolveLogins.defaultExpectation.paramPtrs.ids = &ids
+	mmResolveLogins.defaultExpectation.expectationOrigins.originIds = minimock.CallerInfo(1)
+
+	return mmResolveLogins
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.ResolveLogins
+func (mmResolveLogins *mStoreMockResolveLogins) Inspect(f func(ctx context.Context, ids []string)) *mStoreMockResolveLogins {
+	if mmResolveLogins.mock.inspectFuncResolveLogins != nil {
+		mmResolveLogins.mock.t.Fatalf("Inspect function is already set for StoreMock.ResolveLogins")
+	}
+
+	mmResolveLogins.mock.inspectFuncResolveLogins = f
+
+	return mmResolveLogins
+}
+
+// Return sets up results that will be returned by Store.ResolveLogins
+func (mmResolveLogins *mStoreMockResolveLogins) Return(m1 map[string]string, err error) *StoreMock {
+	if mmResolveLogins.mock.funcResolveLogins != nil {
+		mmResolveLogins.mock.t.Fatalf("StoreMock.ResolveLogins mock is already set by Set")
+	}
+
+	if mmResolveLogins.defaultExpectation == nil {
+		mmResolveLogins.defaultExpectation = &StoreMockResolveLoginsExpectation{mock: mmResolveLogins.mock}
+	}
+	mmResolveLogins.defaultExpectation.results = &StoreMockResolveLoginsResults{m1, err}
+	mmResolveLogins.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmResolveLogins.mock
+}
+
+// Set uses given function f to mock the Store.ResolveLogins method
+func (mmResolveLogins *mStoreMockResolveLogins) Set(f func(ctx context.Context, ids []string) (m1 map[string]string, err error)) *StoreMock {
+	if mmResolveLogins.defaultExpectation != nil {
+		mmResolveLogins.mock.t.Fatalf("Default expectation is already set for the Store.ResolveLogins method")
+	}
+
+	if len(mmResolveLogins.expectations) > 0 {
+		mmResolveLogins.mock.t.Fatalf("Some expectations are already set for the Store.ResolveLogins method")
+	}
+
+	mmResolveLogins.mock.funcResolveLogins = f
+	mmResolveLogins.mock.funcResolveLoginsOrigin = minimock.CallerInfo(1)
+	return mmResolveLogins.mock
+}
+
+// When sets expectation for the Store.ResolveLogins which will trigger the result defined by the following
+// Then helper
+func (mmResolveLogins *mStoreMockResolveLogins) When(ctx context.Context, ids []string) *StoreMockResolveLoginsExpectation {
+	if mmResolveLogins.mock.funcResolveLogins != nil {
+		mmResolveLogins.mock.t.Fatalf("StoreMock.ResolveLogins mock is already set by Set")
+	}
+
+	expectation := &StoreMockResolveLoginsExpectation{
+		mock:               mmResolveLogins.mock,
+		params:             &StoreMockResolveLoginsParams{ctx, ids},
+		expectationOrigins: StoreMockResolveLoginsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmResolveLogins.expectations = append(mmResolveLogins.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.ResolveLogins return parameters for the expectation previously defined by the When method
+func (e *StoreMockResolveLoginsExpectation) Then(m1 map[string]string, err error) *StoreMock {
+	e.results = &StoreMockResolveLoginsResults{m1, err}
+	return e.mock
+}
+
+// Times sets number of times Store.ResolveLogins should be invoked
+func (mmResolveLogins *mStoreMockResolveLogins) Times(n uint64) *mStoreMockResolveLogins {
+	if n == 0 {
+		mmResolveLogins.mock.t.Fatalf("Times of StoreMock.ResolveLogins mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmResolveLogins.expectedInvocations, n)
+	mmResolveLogins.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmResolveLogins
+}
+
+func (mmResolveLogins *mStoreMockResolveLogins) invocationsDone() bool {
+	if len(mmResolveLogins.expectations) == 0 && mmResolveLogins.defaultExpectation == nil && mmResolveLogins.mock.funcResolveLogins == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmResolveLogins.mock.afterResolveLoginsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmResolveLogins.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ResolveLogins implements mm_users.Store
+func (mmResolveLogins *StoreMock) ResolveLogins(ctx context.Context, ids []string) (m1 map[string]string, err error) {
+	mm_atomic.AddUint64(&mmResolveLogins.beforeResolveLoginsCounter, 1)
+	defer mm_atomic.AddUint64(&mmResolveLogins.afterResolveLoginsCounter, 1)
+
+	mmResolveLogins.t.Helper()
+
+	if mmResolveLogins.inspectFuncResolveLogins != nil {
+		mmResolveLogins.inspectFuncResolveLogins(ctx, ids)
+	}
+
+	mm_params := StoreMockResolveLoginsParams{ctx, ids}
+
+	// Record call args
+	mmResolveLogins.ResolveLoginsMock.mutex.Lock()
+	mmResolveLogins.ResolveLoginsMock.callArgs = append(mmResolveLogins.ResolveLoginsMock.callArgs, &mm_params)
+	mmResolveLogins.ResolveLoginsMock.mutex.Unlock()
+
+	for _, e := range mmResolveLogins.ResolveLoginsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.m1, e.results.err
+		}
+	}
+
+	if mmResolveLogins.ResolveLoginsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmResolveLogins.ResolveLoginsMock.defaultExpectation.Counter, 1)
+		mm_want := mmResolveLogins.ResolveLoginsMock.defaultExpectation.params
+		mm_want_ptrs := mmResolveLogins.ResolveLoginsMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockResolveLoginsParams{ctx, ids}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmResolveLogins.t.Errorf("StoreMock.ResolveLogins got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveLogins.ResolveLoginsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.ids != nil && !minimock.Equal(*mm_want_ptrs.ids, mm_got.ids) {
+				mmResolveLogins.t.Errorf("StoreMock.ResolveLogins got unexpected parameter ids, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveLogins.ResolveLoginsMock.defaultExpectation.expectationOrigins.originIds, *mm_want_ptrs.ids, mm_got.ids, minimock.Diff(*mm_want_ptrs.ids, mm_got.ids))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmResolveLogins.t.Errorf("StoreMock.ResolveLogins got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmResolveLogins.ResolveLoginsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmResolveLogins.ResolveLoginsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmResolveLogins.t.Fatal("No results are set for the StoreMock.ResolveLogins")
+		}
+		return (*mm_results).m1, (*mm_results).err
+	}
+	if mmResolveLogins.funcResolveLogins != nil {
+		return mmResolveLogins.funcResolveLogins(ctx, ids)
+	}
+	mmResolveLogins.t.Fatalf("Unexpected call to StoreMock.ResolveLogins. %v %v", ctx, ids)
+	return
+}
+
+// ResolveLoginsAfterCounter returns a count of finished StoreMock.ResolveLogins invocations
+func (mmResolveLogins *StoreMock) ResolveLoginsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmResolveLogins.afterResolveLoginsCounter)
+}
+
+// ResolveLoginsBeforeCounter returns a count of StoreMock.ResolveLogins invocations
+func (mmResolveLogins *StoreMock) ResolveLoginsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmResolveLogins.beforeResolveLoginsCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.ResolveLogins.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmResolveLogins *mStoreMockResolveLogins) Calls() []*StoreMockResolveLoginsParams {
+	mmResolveLogins.mutex.RLock()
+
+	argCopy := make([]*StoreMockResolveLoginsParams, len(mmResolveLogins.callArgs))
+	copy(argCopy, mmResolveLogins.callArgs)
+
+	mmResolveLogins.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockResolveLoginsDone returns true if the count of the ResolveLogins invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockResolveLoginsDone() bool {
+	if m.ResolveLoginsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ResolveLoginsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ResolveLoginsMock.invocationsDone()
+}
+
+// MinimockResolveLoginsInspect logs each unmet expectation
+func (m *StoreMock) MinimockResolveLoginsInspect() {
+	for _, e := range m.ResolveLoginsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.ResolveLogins at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterResolveLoginsCounter := mm_atomic.LoadUint64(&m.afterResolveLoginsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ResolveLoginsMock.defaultExpectation != nil && afterResolveLoginsCounter < 1 {
+		if m.ResolveLoginsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.ResolveLogins at\n%s", m.ResolveLoginsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.ResolveLogins at\n%s with params: %#v", m.ResolveLoginsMock.defaultExpectation.expectationOrigins.origin, *m.ResolveLoginsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcResolveLogins != nil && afterResolveLoginsCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.ResolveLogins at\n%s", m.funcResolveLoginsOrigin)
+	}
+
+	if !m.ResolveLoginsMock.invocationsDone() && afterResolveLoginsCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.ResolveLogins at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ResolveLoginsMock.expectedInvocations), m.ResolveLoginsMock.expectedInvocationsOrigin, afterResolveLoginsCounter)
+	}
+}
+
 type mStoreMockSetOwner struct {
 	optional           bool
 	mock               *StoreMock
@@ -3828,6 +4181,8 @@ func (m *StoreMock) MinimockFinish() {
 
 			m.MinimockPermissionsForRolesInspect()
 
+			m.MinimockResolveLoginsInspect()
+
 			m.MinimockSetOwnerInspect()
 
 			m.MinimockSetRolesInspect()
@@ -3863,6 +4218,7 @@ func (m *StoreMock) minimockDone() bool {
 		m.MinimockListDone() &&
 		m.MinimockMarkTourSeenDone() &&
 		m.MinimockPermissionsForRolesDone() &&
+		m.MinimockResolveLoginsDone() &&
 		m.MinimockSetOwnerDone() &&
 		m.MinimockSetRolesDone() &&
 		m.MinimockSetStatusDone()
