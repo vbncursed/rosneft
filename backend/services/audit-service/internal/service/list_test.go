@@ -37,6 +37,43 @@ func (s *ListSuite) TestScopedListRequiresCompany() {
 	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
 }
 
+// A hand-typed actor reached SQL and died there on the cast to UUID (SQLSTATE
+// 22P02), surfacing as a 500 with the raw Postgres text in it. Filters are user
+// input, so they are checked here — once, before the store, because both HTTP
+// endpoints (/api/audit and /api/audit.csv) enter through this method.
+func (s *ListSuite) TestGarbageActorIsRejectedBeforeTheStore() {
+	// A mock with no expectations set: minimock fails the test if List is called.
+	svc := service.New(mocks.NewStoreMock(s.mc))
+
+	_, _, err := svc.List(s.T().Context(), domain.Filter{AllCompanies: true, ActorID: "123"})
+
+	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+}
+
+// An empty actor means "no filter", not malformed input.
+func (s *ListSuite) TestEmptyActorIsNotAFilter() {
+	store := mocks.NewStoreMock(s.mc).ListMock.Return([]domain.Entry{{ID: 1}}, nil)
+	svc := service.New(store)
+
+	entries, _, err := svc.List(s.T().Context(), domain.Filter{AllCompanies: true, ActorID: ""})
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(entries), 1)
+}
+
+func (s *ListSuite) TestValidActorReachesTheStore() {
+	store := mocks.NewStoreMock(s.mc).ListMock.Return([]domain.Entry{{ID: 7}}, nil)
+	svc := service.New(store)
+
+	entries, _, err := svc.List(s.T().Context(), domain.Filter{
+		AllCompanies: true,
+		ActorID:      "288094d3-0d12-47f8-8833-cc940a080b62",
+	})
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(entries), 1)
+}
+
 // The store is asked for one row more than the caller wants; that extra row is
 // the "there is another page" signal and must not be returned.
 func (s *ListSuite) TestExtraRowBecomesCursorNotResult() {

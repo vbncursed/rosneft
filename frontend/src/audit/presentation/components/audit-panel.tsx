@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useCurrentUser } from "@/auth/presentation/current-user-context";
+import { useUserDirectory } from "@/auth/application/user-directory";
 import { useAuditLog } from "@/audit/application/use-audit-log";
 import { EMPTY_FILTERS, type AuditFilters } from "@/audit/domain/audit-entry";
 import AuditFiltersBar from "@/audit/presentation/components/audit-filters";
@@ -8,6 +9,9 @@ import ExportButton from "@/audit/presentation/components/export-button";
 
 export default function AuditPanel() {
   const me = useCurrentUser();
+  // Один запрос на весь экран: и фильтр актора, и каждая строка таблицы
+  // подписывают UUID из этой же карты.
+  const actors = useUserDirectory();
   const [filters, setFilters] = useState<AuditFilters>(EMPTY_FILTERS);
   const { entries, isLoading, error, hasMore, loadMore, isLoadingMore } = useAuditLog(filters);
 
@@ -28,7 +32,7 @@ export default function AuditPanel() {
       </div>
 
       <div className="mt-6">
-        <AuditFiltersBar value={filters} onChange={setFilters} />
+        <AuditFiltersBar value={filters} onChange={setFilters} actors={actors} />
       </div>
 
       <div className="mt-6">
@@ -39,7 +43,7 @@ export default function AuditPanel() {
         ) : isLoading ? (
           <p className="text-sm text-neutral-500">Loading…</p>
         ) : (
-          <AuditTable entries={entries} />
+          <AuditTable entries={entries} actors={actors} />
         )}
       </div>
 

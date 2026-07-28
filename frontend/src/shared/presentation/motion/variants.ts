@@ -30,3 +30,12 @@ export const listItem: Variants = {
   hidden: { opacity: 0, y: 12 },
   visible: { opacity: 1, y: 0 },
 };
+
+// Раскрытие по высоте: содержимое ниже отъезжает плавно, а не прыгает. Требует
+// overflow:hidden на анимируемом элементе, иначе при height:0 содержимое
+// вылезает наружу. При reduced motion resolveVariants сводит это к чистому
+// crossfade — height из вариантов исчезает, и раскрытие становится мгновенным.
+export const collapse: Variants = {
+  hidden: { height: 0, opacity: 0 },
+  visible: { height: "auto", opacity: 1 },
+};
