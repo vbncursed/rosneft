@@ -54,5 +54,29 @@ END $$;
 
 -- +goose Down
 -- +goose StatementBegin
+-- Detach before dropping. Postgres refuses to drop audit_capture() while any
+-- trigger depends on it, so without this the 00001 rollback fails and the only
+-- way out is manual SQL — unacceptable for a change that touches writes on
+-- every audited table.
+--
+-- Triggers are discovered from the catalogue rather than replayed from the list
+-- above, so a table added to that list later is still detached here.
+DO $$
+DECLARE
+    t RECORD;
+BEGIN
+    IF to_regprocedure('audit_capture()') IS NULL THEN
+        RETURN;
+    END IF;
+    FOR t IN
+        SELECT tgname, tgrelid::regclass AS tbl
+        FROM pg_trigger
+        WHERE NOT tgisinternal
+          AND tgfoid = to_regprocedure('audit_capture()')
+    LOOP
+        EXECUTE format('DROP TRIGGER %I ON %s', t.tgname, t.tbl);
+    END LOOP;
+END $$;
+
 DROP FUNCTION IF EXISTS ensure_audit_triggers();
 -- +goose StatementEnd
