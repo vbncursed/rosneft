@@ -1,4 +1,5 @@
 import { createRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { authedLayoutRoute } from "@/routes/layout";
 import { territoriesQuery } from "@/territory/application/territories-query";
@@ -7,6 +8,7 @@ import { useCurrentUser } from "@/auth/presentation/current-user-context";
 import { can } from "@/auth/domain/principal";
 import { MotionList, MotionItem } from "@/shared/presentation/motion";
 import CatalogCard from "@/shared/presentation/catalog/catalog-card";
+import { preloadModelViewer } from "@/viewer/presentation/components/viewer-entry";
 import DeleteTerritoryButton from "@/territory/presentation/delete-territory-button";
 import ReplaceSourceButton from "@/territory/presentation/replace-source-button";
 import DeleteModelButton from "@/model/presentation/delete-model-button";
@@ -17,6 +19,11 @@ const emptyBox = "mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-8 te
 const grid = "mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3";
 
 function Home() {
+  // Warm the viewer chunk while the catalog is being read: without it the first
+  // territory opened swaps this page for the viewer's Suspense fallback until
+  // ~1.2 MB of three/R3F arrives.
+  useEffect(preloadModelViewer, []);
+
   const me = useCurrentUser();
   const { data: territories = [] } = useQuery(territoriesQuery);
   const { data: models = [] } = useQuery(modelsQuery);
