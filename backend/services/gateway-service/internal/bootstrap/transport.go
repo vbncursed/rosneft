@@ -123,6 +123,10 @@ func InitRouter(
 		// After the permission gate on purpose: that one costs no network, so a
 		// caller already heading for a 403 does not first buy a catalog lookup.
 		api.Use(apiServer.RequireTerritoryAccess)
+		// After the gates and before the handlers: a request that is going to be
+		// refused for lack of permission or tenant should not first be told its
+		// CSRF token is stale.
+		api.Use(authH.RequireCSRF)
 		api.Use(httpapi.ETagMiddleware)
 		api.Use(newCompressor().Handler)
 		httpapi.HandlerFromMux(

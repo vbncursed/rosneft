@@ -23,22 +23,33 @@ func fail(w http.ResponseWriter, err error) {
 	apperr.WriteStatus(w, err)
 }
 
-// sessionToken returns the caller's session token: the cookie first, the
-// Authorization header second.
+// sessionTokenFrom returns the caller's session token and whether it arrived in
+// the cookie.
 //
 // The cookie wins because a browser that has one is the normal case and the
 // header would only be there by accident. The header stays supported because
 // curl, the tests and any non-browser client have no cookie jar — httpOnly
 // protects a token at rest in the browser, which is what gets stolen, not the
 // header on a request somebody deliberately made.
-func sessionToken(r *http.Request) string {
+//
+// The source matters to RequireCSRF and to nothing else: a Bearer caller is
+// immune to CSRF by construction, since a browser will not attach an
+// Authorization header to a cross-site request.
+func sessionTokenFrom(r *http.Request) (string, bool) {
 	if c, err := r.Cookie(sessionCookieName); err == nil && c.Value != "" {
-		return c.Value
+		return c.Value, true
 	}
 	const p = "Bearer "
 	h := r.Header.Get("Authorization")
 	if len(h) > len(p) && h[:len(p)] == p {
-		return h[len(p):]
+		return h[len(p):], false
 	}
-	return ""
+	return "", false
+}
+
+// sessionToken returns the caller's session token regardless of where it came
+// from. A thin wrapper so the call sites that do not care stay unchanged.
+func sessionToken(r *http.Request) string {
+	tok, _ := sessionTokenFrom(r)
+	return tok
 }

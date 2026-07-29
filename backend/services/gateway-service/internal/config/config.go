@@ -37,6 +37,11 @@ type Config struct {
 	CookieSecure bool `mapstructure:"cookie-secure"`
 	// SessionCookieTTL should not exceed auth's absolute session TTL.
 	SessionCookieTTL time.Duration `mapstructure:"session-cookie-ttl"`
+	// CSRFSecret keys the HMAC behind the anti-CSRF token. No default on
+	// purpose: a hardcoded one would be public, and a random per-boot one would
+	// invalidate every outstanding token on every restart, so the service
+	// refuses to start without one instead.
+	CSRFSecret string `mapstructure:"csrf-secret"`
 }
 
 const envPrefix = "GATEWAY"
@@ -108,6 +113,9 @@ func (c Config) Validate() error {
 	}
 	if c.AssetHTTPAddr == "" {
 		return fmt.Errorf("config: asset-http-addr is required")
+	}
+	if c.CSRFSecret == "" {
+		return fmt.Errorf("config: csrf-secret is required")
 	}
 	return nil
 }

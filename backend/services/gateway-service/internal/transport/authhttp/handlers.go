@@ -24,6 +24,9 @@ type Handlers struct {
 	audit   *audit.Client
 	logger  *slog.Logger
 	cookie  CookieOptions
+	// csrfSecret keys the HMAC behind the anti-CSRF token. Not a stored token:
+	// see csrf.go for why the scheme needs no state at all.
+	csrfSecret []byte
 }
 
 // New builds the auth HTTP handlers.
@@ -34,8 +37,12 @@ func New(
 	audit *audit.Client,
 	logger *slog.Logger,
 	cookie CookieOptions,
+	csrfSecret []byte,
 ) *Handlers {
-	return &Handlers{client: client, twofa: twofa, passkey: passkey, audit: audit, logger: logger, cookie: cookie}
+	return &Handlers{
+		client: client, twofa: twofa, passkey: passkey, audit: audit,
+		logger: logger, cookie: cookie, csrfSecret: csrfSecret,
+	}
 }
 
 // Mount registers the auth routes on r. Only login + login/2fa are public.
@@ -57,6 +64,10 @@ func (h *Handlers) Mount(r chi.Router) {
 			// after Authenticate so the principal is on ctx; the login routes
 			// above are public and record themselves.
 			pr.Use(h.AuditAuthEvents)
+			// The public login routes above are deliberately outside this: they
+			// have no session yet to derive a token from, and forging a login is
+			// not a CSRF anyone benefits from.
+			pr.Use(h.RequireCSRF)
 			pr.Post("/logout", h.logout)
 			pr.Get("/me", h.me)
 			pr.Post("/me/password", h.changePassword)
@@ -117,7 +128,11 @@ func (h *Handlers) login(w http.ResponseWriter, r *http.Request) {
 		h.recordLogin(r, "auth.login", token)
 		h.setSession(w, token)
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"token": token, "twoFactorRequired": twoFA, "challengeToken": challenge})
+	writeJSON(w, http.StatusOK, map[string]any{
+		"token": token, "twoFactorRequired": twoFA, "challengeToken": challenge,
+		// Empty on the 2FA path: there is no session yet to derive one from.
+		"csrfToken": h.CSRFToken(token),
+	})
 }
 
 func (h *Handlers) login2FA(w http.ResponseWriter, r *http.Request) {
@@ -133,7 +148,7 @@ func (h *Handlers) login2FA(w http.ResponseWriter, r *http.Request) {
 	}
 	h.recordLogin(r, "auth.login_2fa", token)
 	h.setSession(w, token)
-	writeJSON(w, http.StatusOK, map[string]any{"token": token})
+	writeJSON(w, http.StatusOK, map[string]any{"token": token, "csrfToken": h.CSRFToken(token)})
 }
 
 func (h *Handlers) logout(w http.ResponseWriter, r *http.Request) {
@@ -176,6 +191,8 @@ func (h *Handlers) me(w http.ResponseWriter, r *http.Request) {
 	if on, err := h.twofa.IsEnabled(r.Context(), u.GetId()); err == nil {
 		out.TOTPEnabled = on
 	}
+	// The SPA's only way back to a token after a page reload.
+	out.CSRFToken = h.CSRFToken(sessionToken(r))
 	writeJSON(w, http.StatusOK, out)
 }
 

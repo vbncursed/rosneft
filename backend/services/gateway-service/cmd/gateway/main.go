@@ -49,6 +49,7 @@ func newRootCmd() *cobra.Command {
 	flags.Duration("shutdown-timeout", 15*time.Second, "graceful shutdown timeout")
 	flags.Bool("cookie-secure", true, "mark the session cookie Secure; disable only for plain-http local dev")
 	flags.Duration("session-cookie-ttl", 720*time.Hour, "session cookie Max-Age; should not exceed auth's absolute session TTL")
+	flags.String("csrf-secret", "", "HMAC key for the anti-CSRF token (required)")
 	return cmd
 }
 
