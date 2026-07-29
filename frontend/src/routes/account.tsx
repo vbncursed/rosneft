@@ -4,13 +4,16 @@ import { useCurrentUser } from "@/auth/presentation/current-user-context";
 import ChangePasswordForm from "@/auth/presentation/account/change-password-form";
 import TwoFactorSection from "@/auth/presentation/account/two-factor-section";
 import PasskeysSection from "@/auth/presentation/account/passkeys-section";
+import MyActivitySection from "@/audit/presentation/components/my-activity-section";
 
 function Account() {
   const p = useCurrentUser();
   if (!p) return null;
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#1c252f_0%,#0b0d10_38%,#060708_100%)] text-white">
-      <section className="mx-auto flex w-full max-w-xl flex-col gap-6 px-6 py-16 sm:px-10">
+      {/* max-w-3xl, not max-w-xl: the journal table below needs the width, and
+          at xl it spent every row in horizontal scroll. */}
+      <section className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-16 sm:px-10">
         <header>
           <Link to="/" className="mb-3 inline-block text-[10px] uppercase tracking-[0.28em] text-neutral-400 transition-colors hover:text-white">
             ← Back to site
@@ -22,6 +25,7 @@ function Account() {
         <ChangePasswordForm />
         <TwoFactorSection initiallyEnabled={p.totpEnabled} />
         <PasskeysSection />
+        <MyActivitySection />
       </section>
     </main>
   );
