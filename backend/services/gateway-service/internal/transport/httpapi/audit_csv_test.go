@@ -59,3 +59,19 @@ func (s *AuditCSVSuite) TestRowValuesLandUnderTheirOwnHeadings() {
 	assert.Equal(s.T(), got["territory"], "dji-wp-46-cut")
 	assert.Equal(s.T(), got["result"], "ok")
 }
+
+// Порядок первых восьми колонок — обещание, данное всем, кто уже читает этот
+// экспорт позиционно: awk по номеру поля, макрос в таблице, импорт по фиксированным
+// индексам. Вставка колонки в середину сдвигает всё после неё без ошибки и без
+// предупреждения, поэтому проверяется буквальный префикс, а не только имена.
+// Новые колонки дописываются после auditCSVLegacyWidth.
+func (s *AuditCSVSuite) TestLegacyPrefixNeverMoves() {
+	shipped := []string{
+		"at", "actor_id", "company_id", "action", "entity", "entity_id",
+		"entity_label", "result",
+	}
+
+	assert.Equal(s.T(), auditCSVLegacyWidth, len(shipped))
+	assert.Assert(s.T(), len(auditCSVHeader) >= auditCSVLegacyWidth)
+	assert.DeepEqual(s.T(), auditCSVHeader[:auditCSVLegacyWidth], shipped)
+}
