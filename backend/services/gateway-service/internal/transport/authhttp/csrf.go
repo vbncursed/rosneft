@@ -29,6 +29,17 @@ func (h *Handlers) CSRFToken(sessionToken string) string {
 	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 
+// csrfExemptPaths are state-changing routes that must work without a token.
+//
+// Only logout, and the reasoning is a trade of severities. A forged cross-site
+// logout is an annoyance: no data moves, and the victim logs back in. Being
+// unable to log out is worse — the session stays alive and the user has no way
+// to end it, which is exactly the failure the unconditional clearSession in
+// logout() exists to prevent. Guarding logout would reintroduce it one layer up.
+//
+// Nothing else belongs here. A route added to this map stops being protected.
+var csrfExemptPaths = map[string]bool{"/api/auth/logout": true}
+
 // RequireCSRF rejects a state-changing request whose cookie session is not
 // accompanied by a matching token.
 //
@@ -46,6 +57,10 @@ func (h *Handlers) RequireCSRF(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet, http.MethodHead, http.MethodOptions:
+			next.ServeHTTP(w, r)
+			return
+		}
+		if csrfExemptPaths[r.URL.Path] {
 			next.ServeHTTP(w, r)
 			return
 		}
