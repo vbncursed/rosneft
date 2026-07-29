@@ -84,6 +84,30 @@ func (s *CSRFSuite) TestEveryMutatingVerbIsChecked() {
 	}
 }
 
+// Logout must work without a token, and this is not a hole left by accident.
+// A forged cross-site logout is an annoyance; being unable to log out leaves a
+// live session the user cannot end — the same failure the unconditional
+// clearSession in logout() exists to prevent, reintroduced one layer up.
+func (s *CSRFSuite) TestLogoutIsExemptSoASessionCanAlwaysBeEnded() {
+	h := s.handlers()
+	r := httptest.NewRequest(http.MethodPost, "/api/auth/logout", nil)
+	r.AddCookie(&http.Cookie{Name: sessionCookieName, Value: "sess-1"})
+	rec := httptest.NewRecorder()
+
+	h.RequireCSRF(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})).ServeHTTP(rec, r)
+
+	assert.Equal(s.T(), rec.Code, http.StatusOK)
+}
+
+// The exemption must stay a list of one. Anything else added to it silently
+// stops being protected, so the count is the assertion.
+func (s *CSRFSuite) TestNothingElseIsExempt() {
+	assert.Equal(s.T(), len(csrfExemptPaths), 1, "%v", csrfExemptPaths)
+	assert.Assert(s.T(), csrfExemptPaths["/api/auth/logout"])
+}
+
 func (s *CSRFSuite) TestSessionTokenFromReportsItsSource() {
 	c := httptest.NewRequest(http.MethodGet, "/", nil)
 	c.AddCookie(&http.Cookie{Name: sessionCookieName, Value: "from-cookie"})
