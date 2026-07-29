@@ -16,18 +16,27 @@ import (
 // can be turned into logins. It carries no authority of its own here: the tenant
 // scope above is what limits the rows, and the token only proves to auth that a
 // real session is asking.
-func (g *Gateway) ListAudit(ctx context.Context, q domain.AuditQuery, isOwner bool, companyID, token string) ([]domain.AuditEntry, int64, error) {
+// wantRefs asks for the dictionary naming the ids inside the row snapshots. The
+// CSV export passes false: it prints no snapshots, and it pages the whole result
+// 200 rows at a time, so it would buy a dictionary per page and throw each away.
+func (g *Gateway) ListAudit(
+	ctx context.Context, q domain.AuditQuery, isOwner bool, companyID, token string, wantRefs bool,
+) ([]domain.AuditEntry, int64, map[string]string, error) {
 	all, company, err := AuditScope(isOwner, companyID)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, nil, err
 	}
 	q.AllCompanies = all
 	q.CompanyID = company
 	entries, next, err := g.audit.ListEntries(ctx, q)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, nil, err
 	}
-	return g.labelAuditEntries(ctx, token, entries), next, nil
+	entries = g.labelAuditEntries(ctx, token, entries)
+	if !wantRefs {
+		return entries, next, nil, nil
+	}
+	return entries, next, g.resolveRowRefs(ctx, token, entries), nil
 }
 
 // RecordAuditEvent appends an event no trigger can see (login, logout, password
