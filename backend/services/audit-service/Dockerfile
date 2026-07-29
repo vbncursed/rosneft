@@ -30,8 +30,16 @@ RUN --mount=type=cache,target=/go/pkg/mod \
         -trimpath -ldflags="-s -w" \
         -o /out/audit ./cmd/audit
 
+# The runtime image is distroless: no shell, so the witness directory cannot be
+# created there. Staging it here lets COPY --chown place it with the right owner.
+RUN mkdir -p /out/varaudit
+
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/audit /audit
+# Named volumes initialise from the image, so /var/audit must already exist and
+# belong to nonroot — otherwise the volume mounts root-owned and the service
+# cannot write its witness. Same trap the mesh-worker hit with blob-data.
+COPY --from=build --chown=nonroot:nonroot /out/varaudit /var/audit
 USER nonroot:nonroot
 EXPOSE 9009
 ENTRYPOINT ["/audit"]
