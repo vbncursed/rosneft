@@ -121,6 +121,9 @@ func InitRouter(
 	r.Group(func(api chi.Router) {
 		api.Use(authH.Authenticate)
 		api.Use(authhttp.RequirePermissionForRoute)
+		// After the permission gate on purpose: that one costs no network, so a
+		// caller already heading for a 403 does not first buy a catalog lookup.
+		api.Use(apiServer.RequireTerritoryAccess)
 		api.Use(httpapi.ETagMiddleware)
 		api.Use(newCompressor().Handler)
 		httpapi.HandlerFromMux(

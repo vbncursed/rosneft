@@ -68,7 +68,7 @@
 - Consumes: `authhttp.Scope(ctx) (adminID string, allAccess bool)`; `Service.GetTerritory(ctx, slug, scopeAdminID)` — обе уже существуют.
 - Produces: `(*Server).RequireTerritoryAccess(next http.Handler) http.Handler` — монтируется в `/api`-подроутере после `RequirePermissionForRoute`.
 
-- [ ] **Step 1: Написать падающий тест**
+- [x] **Step 1: Написать падающий тест**
 
 Create `backend/services/gateway-service/internal/transport/httpapi/territory_gate_test.go`:
 
@@ -210,7 +210,7 @@ func (s *TerritoryGateSuite) TestRoutesWithoutASlugArePassedThrough() {
 }
 ```
 
-- [ ] **Step 2: Написать вспомогательные заглушки теста**
+- [x] **Step 2: Написать вспомогательные заглушки теста**
 
 В том же файле, в конце:
 
@@ -259,7 +259,7 @@ func NewTestContext(ctx context.Context, isOwner bool, owningAdmin string) conte
 }
 ```
 
-- [ ] **Step 3: Добавить тест покрытия по спецификации**
+- [x] **Step 3: Добавить тест покрытия по спецификации**
 
 Добавить в `territory_gate_test.go`. Проверка соседняя с `spec_coverage_test.go`,
 но защищает другое: тот стережёт, чтобы маршрут не выпал из документации, этот —
@@ -296,12 +296,12 @@ func (s *TerritoryGateSuite) TestEveryTerritoryPathIsAddressedBySlug() {
 }
 ```
 
-- [ ] **Step 4: Запустить тесты, убедиться что падают**
+- [x] **Step 4: Запустить тесты, убедиться что падают**
 
 Run: `cd backend/services/gateway-service && go test ./internal/transport/httpapi/ -run TestTerritoryGateSuite`
 Expected: FAIL — `srv.RequireTerritoryAccess undefined`.
 
-- [ ] **Step 5: Реализовать middleware**
+- [x] **Step 5: Реализовать middleware**
 
 Create `backend/services/gateway-service/internal/transport/httpapi/territory_gate.go`:
 
@@ -375,12 +375,12 @@ func writeTerritoryMissing(w http.ResponseWriter) {
 `apperr.SlugNotFound` — существующая константа со значением `"not_found"`
 (`backend/pkg/apperr/apperr.go:22`), та же, которой отвечают обработчики.
 
-- [ ] **Step 6: Запустить тест, убедиться что проходит**
+- [x] **Step 6: Запустить тест, убедиться что проходит**
 
 Run: `cd backend/services/gateway-service && go test ./internal/transport/httpapi/ -run TestTerritoryGateSuite -v`
 Expected: PASS, 5 тестов.
 
-- [ ] **Step 7: Смонтировать в роутере**
+- [x] **Step 7: Смонтировать в роутере**
 
 Modify `backend/services/gateway-service/internal/bootstrap/transport.go` — в блоке `r.Group`:
 
@@ -395,12 +395,12 @@ Modify `backend/services/gateway-service/internal/bootstrap/transport.go` — в
 		api.Use(newCompressor().Handler)
 ```
 
-- [ ] **Step 8: Прогнать тесты шлюза**
+- [x] **Step 8: Прогнать тесты шлюза**
 
 Run: `cd backend/services/gateway-service && go build ./... && go test ./...`
 Expected: PASS.
 
-- [ ] **Step 9: Проверить вживую на двух тенантах**
+- [x] **Step 9: Проверить вживую на двух тенантах**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft
@@ -413,7 +413,7 @@ docker compose up -d --build gateway
 
 Expected: `404` у чужого тенанта на плейсментах, панорамах, документах и артефактах; `200` у своего; Root видит всё.
 
-- [ ] **Step 10: Коммит**
+- [x] **Step 10: Коммит**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft
