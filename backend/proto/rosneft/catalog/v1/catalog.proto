@@ -29,6 +29,11 @@ service CatalogService {
   // sibling of ResolveTerritorySlugs, which stays because the entry-level
   // enrichment already calls it.
   rpc ResolveLabels(ResolveLabelsRequest) returns (ResolveLabelsResponse);
+  // ResolveBlobAccess answers whether a caller scoped to scope_admin_id may read
+  // the bytes behind a content-addressed hash. A blob is reachable when it
+  // belongs to a model (models are a shared library) or to a territory assigned
+  // to that caller. An empty scope_admin_id means Root and disables the filter.
+  rpc ResolveBlobAccess(ResolveBlobAccessRequest) returns (ResolveBlobAccessResponse);
   rpc GetTerritory(GetTerritoryRequest) returns (GetTerritoryResponse);
   rpc UpsertTerritory(UpsertTerritoryRequest) returns (UpsertTerritoryResponse);
   rpc DeleteTerritory(DeleteTerritoryRequest) returns (DeleteTerritoryResponse);
@@ -162,6 +167,16 @@ message LabelRef {
   string kind = 1;
   int64 id = 2;
 }
+message ResolveBlobAccessRequest {
+  string hash = 1;
+  // Empty means Root: no filter. The gateway must never send an empty scope for
+  // a non-Root caller — that would open every blob in the system.
+  string scope_admin_id = 2;
+}
+message ResolveBlobAccessResponse {
+  bool allowed = 1;
+}
+
 message ResolveLabelsRequest {
   // At most 500. A kind this service does not know is dropped rather than
   // refused: during a rolling deploy a newer gateway may ask for one, and a
