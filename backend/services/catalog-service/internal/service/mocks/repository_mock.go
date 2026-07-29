@@ -166,6 +166,13 @@ type RepositoryMock struct {
 	beforeRescaleTerritoryPlacementsCounter uint64
 	RescaleTerritoryPlacementsMock          mRepositoryMockRescaleTerritoryPlacements
 
+	funcResolveLabels          func(ctx context.Context, byKind map[string][]int64) (m1 map[string]string, err error)
+	funcResolveLabelsOrigin    string
+	inspectFuncResolveLabels   func(ctx context.Context, byKind map[string][]int64)
+	afterResolveLabelsCounter  uint64
+	beforeResolveLabelsCounter uint64
+	ResolveLabelsMock          mRepositoryMockResolveLabels
+
 	funcResolveTerritorySlugs          func(ctx context.Context, ids []int64) (m1 map[int64]string, err error)
 	funcResolveTerritorySlugsOrigin    string
 	inspectFuncResolveTerritorySlugs   func(ctx context.Context, ids []int64)
@@ -286,6 +293,9 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 
 	m.RescaleTerritoryPlacementsMock = mRepositoryMockRescaleTerritoryPlacements{mock: m}
 	m.RescaleTerritoryPlacementsMock.callArgs = []*RepositoryMockRescaleTerritoryPlacementsParams{}
+
+	m.ResolveLabelsMock = mRepositoryMockResolveLabels{mock: m}
+	m.ResolveLabelsMock.callArgs = []*RepositoryMockResolveLabelsParams{}
 
 	m.ResolveTerritorySlugsMock = mRepositoryMockResolveTerritorySlugs{mock: m}
 	m.ResolveTerritorySlugsMock.callArgs = []*RepositoryMockResolveTerritorySlugsParams{}
@@ -7605,6 +7615,349 @@ func (m *RepositoryMock) MinimockRescaleTerritoryPlacementsInspect() {
 	}
 }
 
+type mRepositoryMockResolveLabels struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockResolveLabelsExpectation
+	expectations       []*RepositoryMockResolveLabelsExpectation
+
+	callArgs []*RepositoryMockResolveLabelsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockResolveLabelsExpectation specifies expectation struct of the Repository.ResolveLabels
+type RepositoryMockResolveLabelsExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockResolveLabelsParams
+	paramPtrs          *RepositoryMockResolveLabelsParamPtrs
+	expectationOrigins RepositoryMockResolveLabelsExpectationOrigins
+	results            *RepositoryMockResolveLabelsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockResolveLabelsParams contains parameters of the Repository.ResolveLabels
+type RepositoryMockResolveLabelsParams struct {
+	ctx    context.Context
+	byKind map[string][]int64
+}
+
+// RepositoryMockResolveLabelsParamPtrs contains pointers to parameters of the Repository.ResolveLabels
+type RepositoryMockResolveLabelsParamPtrs struct {
+	ctx    *context.Context
+	byKind *map[string][]int64
+}
+
+// RepositoryMockResolveLabelsResults contains results of the Repository.ResolveLabels
+type RepositoryMockResolveLabelsResults struct {
+	m1  map[string]string
+	err error
+}
+
+// RepositoryMockResolveLabelsOrigins contains origins of expectations of the Repository.ResolveLabels
+type RepositoryMockResolveLabelsExpectationOrigins struct {
+	origin       string
+	originCtx    string
+	originByKind string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmResolveLabels *mRepositoryMockResolveLabels) Optional() *mRepositoryMockResolveLabels {
+	mmResolveLabels.optional = true
+	return mmResolveLabels
+}
+
+// Expect sets up expected params for Repository.ResolveLabels
+func (mmResolveLabels *mRepositoryMockResolveLabels) Expect(ctx context.Context, byKind map[string][]int64) *mRepositoryMockResolveLabels {
+	if mmResolveLabels.mock.funcResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("RepositoryMock.ResolveLabels mock is already set by Set")
+	}
+
+	if mmResolveLabels.defaultExpectation == nil {
+		mmResolveLabels.defaultExpectation = &RepositoryMockResolveLabelsExpectation{}
+	}
+
+	if mmResolveLabels.defaultExpectation.paramPtrs != nil {
+		mmResolveLabels.mock.t.Fatalf("RepositoryMock.ResolveLabels mock is already set by ExpectParams functions")
+	}
+
+	mmResolveLabels.defaultExpectation.params = &RepositoryMockResolveLabelsParams{ctx, byKind}
+	mmResolveLabels.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmResolveLabels.expectations {
+		if minimock.Equal(e.params, mmResolveLabels.defaultExpectation.params) {
+			mmResolveLabels.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmResolveLabels.defaultExpectation.params)
+		}
+	}
+
+	return mmResolveLabels
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.ResolveLabels
+func (mmResolveLabels *mRepositoryMockResolveLabels) ExpectCtxParam1(ctx context.Context) *mRepositoryMockResolveLabels {
+	if mmResolveLabels.mock.funcResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("RepositoryMock.ResolveLabels mock is already set by Set")
+	}
+
+	if mmResolveLabels.defaultExpectation == nil {
+		mmResolveLabels.defaultExpectation = &RepositoryMockResolveLabelsExpectation{}
+	}
+
+	if mmResolveLabels.defaultExpectation.params != nil {
+		mmResolveLabels.mock.t.Fatalf("RepositoryMock.ResolveLabels mock is already set by Expect")
+	}
+
+	if mmResolveLabels.defaultExpectation.paramPtrs == nil {
+		mmResolveLabels.defaultExpectation.paramPtrs = &RepositoryMockResolveLabelsParamPtrs{}
+	}
+	mmResolveLabels.defaultExpectation.paramPtrs.ctx = &ctx
+	mmResolveLabels.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmResolveLabels
+}
+
+// ExpectByKindParam2 sets up expected param byKind for Repository.ResolveLabels
+func (mmResolveLabels *mRepositoryMockResolveLabels) ExpectByKindParam2(byKind map[string][]int64) *mRepositoryMockResolveLabels {
+	if mmResolveLabels.mock.funcResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("RepositoryMock.ResolveLabels mock is already set by Set")
+	}
+
+	if mmResolveLabels.defaultExpectation == nil {
+		mmResolveLabels.defaultExpectation = &RepositoryMockResolveLabelsExpectation{}
+	}
+
+	if mmResolveLabels.defaultExpectation.params != nil {
+		mmResolveLabels.mock.t.Fatalf("RepositoryMock.ResolveLabels mock is already set by Expect")
+	}
+
+	if mmResolveLabels.defaultExpectation.paramPtrs == nil {
+		mmResolveLabels.defaultExpectation.paramPtrs = &RepositoryMockResolveLabelsParamPtrs{}
+	}
+	mmResolveLabels.defaultExpectation.paramPtrs.byKind = &byKind
+	mmResolveLabels.defaultExpectation.expectationOrigins.originByKind = minimock.CallerInfo(1)
+
+	return mmResolveLabels
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.ResolveLabels
+func (mmResolveLabels *mRepositoryMockResolveLabels) Inspect(f func(ctx context.Context, byKind map[string][]int64)) *mRepositoryMockResolveLabels {
+	if mmResolveLabels.mock.inspectFuncResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ResolveLabels")
+	}
+
+	mmResolveLabels.mock.inspectFuncResolveLabels = f
+
+	return mmResolveLabels
+}
+
+// Return sets up results that will be returned by Repository.ResolveLabels
+func (mmResolveLabels *mRepositoryMockResolveLabels) Return(m1 map[string]string, err error) *RepositoryMock {
+	if mmResolveLabels.mock.funcResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("RepositoryMock.ResolveLabels mock is already set by Set")
+	}
+
+	if mmResolveLabels.defaultExpectation == nil {
+		mmResolveLabels.defaultExpectation = &RepositoryMockResolveLabelsExpectation{mock: mmResolveLabels.mock}
+	}
+	mmResolveLabels.defaultExpectation.results = &RepositoryMockResolveLabelsResults{m1, err}
+	mmResolveLabels.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmResolveLabels.mock
+}
+
+// Set uses given function f to mock the Repository.ResolveLabels method
+func (mmResolveLabels *mRepositoryMockResolveLabels) Set(f func(ctx context.Context, byKind map[string][]int64) (m1 map[string]string, err error)) *RepositoryMock {
+	if mmResolveLabels.defaultExpectation != nil {
+		mmResolveLabels.mock.t.Fatalf("Default expectation is already set for the Repository.ResolveLabels method")
+	}
+
+	if len(mmResolveLabels.expectations) > 0 {
+		mmResolveLabels.mock.t.Fatalf("Some expectations are already set for the Repository.ResolveLabels method")
+	}
+
+	mmResolveLabels.mock.funcResolveLabels = f
+	mmResolveLabels.mock.funcResolveLabelsOrigin = minimock.CallerInfo(1)
+	return mmResolveLabels.mock
+}
+
+// When sets expectation for the Repository.ResolveLabels which will trigger the result defined by the following
+// Then helper
+func (mmResolveLabels *mRepositoryMockResolveLabels) When(ctx context.Context, byKind map[string][]int64) *RepositoryMockResolveLabelsExpectation {
+	if mmResolveLabels.mock.funcResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("RepositoryMock.ResolveLabels mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockResolveLabelsExpectation{
+		mock:               mmResolveLabels.mock,
+		params:             &RepositoryMockResolveLabelsParams{ctx, byKind},
+		expectationOrigins: RepositoryMockResolveLabelsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmResolveLabels.expectations = append(mmResolveLabels.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.ResolveLabels return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockResolveLabelsExpectation) Then(m1 map[string]string, err error) *RepositoryMock {
+	e.results = &RepositoryMockResolveLabelsResults{m1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.ResolveLabels should be invoked
+func (mmResolveLabels *mRepositoryMockResolveLabels) Times(n uint64) *mRepositoryMockResolveLabels {
+	if n == 0 {
+		mmResolveLabels.mock.t.Fatalf("Times of RepositoryMock.ResolveLabels mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmResolveLabels.expectedInvocations, n)
+	mmResolveLabels.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmResolveLabels
+}
+
+func (mmResolveLabels *mRepositoryMockResolveLabels) invocationsDone() bool {
+	if len(mmResolveLabels.expectations) == 0 && mmResolveLabels.defaultExpectation == nil && mmResolveLabels.mock.funcResolveLabels == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmResolveLabels.mock.afterResolveLabelsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmResolveLabels.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ResolveLabels implements mm_service.Repository
+func (mmResolveLabels *RepositoryMock) ResolveLabels(ctx context.Context, byKind map[string][]int64) (m1 map[string]string, err error) {
+	mm_atomic.AddUint64(&mmResolveLabels.beforeResolveLabelsCounter, 1)
+	defer mm_atomic.AddUint64(&mmResolveLabels.afterResolveLabelsCounter, 1)
+
+	mmResolveLabels.t.Helper()
+
+	if mmResolveLabels.inspectFuncResolveLabels != nil {
+		mmResolveLabels.inspectFuncResolveLabels(ctx, byKind)
+	}
+
+	mm_params := RepositoryMockResolveLabelsParams{ctx, byKind}
+
+	// Record call args
+	mmResolveLabels.ResolveLabelsMock.mutex.Lock()
+	mmResolveLabels.ResolveLabelsMock.callArgs = append(mmResolveLabels.ResolveLabelsMock.callArgs, &mm_params)
+	mmResolveLabels.ResolveLabelsMock.mutex.Unlock()
+
+	for _, e := range mmResolveLabels.ResolveLabelsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.m1, e.results.err
+		}
+	}
+
+	if mmResolveLabels.ResolveLabelsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmResolveLabels.ResolveLabelsMock.defaultExpectation.Counter, 1)
+		mm_want := mmResolveLabels.ResolveLabelsMock.defaultExpectation.params
+		mm_want_ptrs := mmResolveLabels.ResolveLabelsMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockResolveLabelsParams{ctx, byKind}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmResolveLabels.t.Errorf("RepositoryMock.ResolveLabels got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveLabels.ResolveLabelsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.byKind != nil && !minimock.Equal(*mm_want_ptrs.byKind, mm_got.byKind) {
+				mmResolveLabels.t.Errorf("RepositoryMock.ResolveLabels got unexpected parameter byKind, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveLabels.ResolveLabelsMock.defaultExpectation.expectationOrigins.originByKind, *mm_want_ptrs.byKind, mm_got.byKind, minimock.Diff(*mm_want_ptrs.byKind, mm_got.byKind))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmResolveLabels.t.Errorf("RepositoryMock.ResolveLabels got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmResolveLabels.ResolveLabelsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmResolveLabels.ResolveLabelsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmResolveLabels.t.Fatal("No results are set for the RepositoryMock.ResolveLabels")
+		}
+		return (*mm_results).m1, (*mm_results).err
+	}
+	if mmResolveLabels.funcResolveLabels != nil {
+		return mmResolveLabels.funcResolveLabels(ctx, byKind)
+	}
+	mmResolveLabels.t.Fatalf("Unexpected call to RepositoryMock.ResolveLabels. %v %v", ctx, byKind)
+	return
+}
+
+// ResolveLabelsAfterCounter returns a count of finished RepositoryMock.ResolveLabels invocations
+func (mmResolveLabels *RepositoryMock) ResolveLabelsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmResolveLabels.afterResolveLabelsCounter)
+}
+
+// ResolveLabelsBeforeCounter returns a count of RepositoryMock.ResolveLabels invocations
+func (mmResolveLabels *RepositoryMock) ResolveLabelsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmResolveLabels.beforeResolveLabelsCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.ResolveLabels.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmResolveLabels *mRepositoryMockResolveLabels) Calls() []*RepositoryMockResolveLabelsParams {
+	mmResolveLabels.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockResolveLabelsParams, len(mmResolveLabels.callArgs))
+	copy(argCopy, mmResolveLabels.callArgs)
+
+	mmResolveLabels.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockResolveLabelsDone returns true if the count of the ResolveLabels invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockResolveLabelsDone() bool {
+	if m.ResolveLabelsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ResolveLabelsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ResolveLabelsMock.invocationsDone()
+}
+
+// MinimockResolveLabelsInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockResolveLabelsInspect() {
+	for _, e := range m.ResolveLabelsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.ResolveLabels at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterResolveLabelsCounter := mm_atomic.LoadUint64(&m.afterResolveLabelsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ResolveLabelsMock.defaultExpectation != nil && afterResolveLabelsCounter < 1 {
+		if m.ResolveLabelsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.ResolveLabels at\n%s", m.ResolveLabelsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.ResolveLabels at\n%s with params: %#v", m.ResolveLabelsMock.defaultExpectation.expectationOrigins.origin, *m.ResolveLabelsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcResolveLabels != nil && afterResolveLabelsCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.ResolveLabels at\n%s", m.funcResolveLabelsOrigin)
+	}
+
+	if !m.ResolveLabelsMock.invocationsDone() && afterResolveLabelsCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.ResolveLabels at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ResolveLabelsMock.expectedInvocations), m.ResolveLabelsMock.expectedInvocationsOrigin, afterResolveLabelsCounter)
+	}
+}
+
 type mRepositoryMockResolveTerritorySlugs struct {
 	optional           bool
 	mock               *RepositoryMock
@@ -10174,6 +10527,8 @@ func (m *RepositoryMock) MinimockFinish() {
 
 			m.MinimockRescaleTerritoryPlacementsInspect()
 
+			m.MinimockResolveLabelsInspect()
+
 			m.MinimockResolveTerritorySlugsInspect()
 
 			m.MinimockSetPlacementVisibilityInspect()
@@ -10231,6 +10586,7 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockRegisterModelArtifactDone() &&
 		m.MinimockRegisterTerritoryArtifactDone() &&
 		m.MinimockRescaleTerritoryPlacementsDone() &&
+		m.MinimockResolveLabelsDone() &&
 		m.MinimockResolveTerritorySlugsDone() &&
 		m.MinimockSetPlacementVisibilityDone() &&
 		m.MinimockSetTerritoryAdminsDone() &&

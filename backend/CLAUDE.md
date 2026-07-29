@@ -267,6 +267,7 @@ The trigger logic is SQL, so it is covered by the repo's only integration tests:
   - `upload-incoming:/var/upload/incoming` — partial-upload session state (per-session subdir, deleted on Finalize/Abort).
   - `postgres-data`, `redis-data` — datastore persistence.
 - All services log structured JSON via `log/slog`.
+- Every container gets `TZ=Europe/Moscow` from the `x-tz` anchor at the top of the compose file, so the `time` field of each log record reads `+03:00` instead of `Z`. Both distroless bases already ship `/usr/share/zoneinfo`, so no `time/tzdata` import is needed. Two things this does *not* do: `docker logs -t` prefixes stay UTC (the daemon stamps them before the container is involved), and a running container will not pick the zone up — `TZ` is read at creation, so it takes `up -d --force-recreate`, not `restart`.
 - `gateway` is the only service exposed on the host (`:8080`). Internal services (catalog, mesh-api, upload, asset) bind to the internal Compose network only.
 
 ## Tests / CI

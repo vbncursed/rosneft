@@ -80,4 +80,62 @@ describe("AuditTable", () => {
 
     expect(screen.getByText("failed")).toBeTruthy();
   });
+
+  const ROLE_UUID = "9b75ebfc-141b-448e-ad63-97fe7ca6fa47";
+
+  it("names an id inside the diff and keeps a shortened id beside it", async () => {
+    render(
+      <AuditTable
+        entries={[
+          entry({
+            entity: "user_role",
+            action: "user_role.create",
+            oldRow: null,
+            newRow: { user_id: "u-1", role_id: ROLE_UUID },
+          }),
+        ]}
+        refs={{ [`role_id:${ROLE_UUID}`]: "Редактор" }}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /diff/i }));
+
+    expect(screen.getByText("Редактор ·9b75ebfc")).toBeTruthy();
+    // Полный uuid больше не занимает строку целиком.
+    expect(screen.queryByText(ROLE_UUID)).toBeNull();
+  });
+
+  // Подписи может не быть: роль удалили, либо сервис подписей был недоступен.
+  // Тогда показывается сам id — ровно то, что показывалось до словаря.
+  it("falls back to the raw id when nothing named it", async () => {
+    render(
+      <AuditTable
+        entries={[entry({ entity: "user_role", oldRow: null, newRow: { role_id: "r-unknown" } })]}
+        refs={{}}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /diff/i }));
+
+    expect(screen.getByText("r-unknown")).toBeTruthy();
+  });
+
+  it("names every element of an id array", async () => {
+    render(
+      <AuditTable
+        entries={[
+          entry({
+            entity: "placement",
+            oldRow: null,
+            newRow: { visible_panorama_ids: [2, 5] },
+          }),
+        ]}
+        refs={{ "visible_panorama_ids:2": "vhod", "visible_panorama_ids:5": "cex-2" }}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /diff/i }));
+
+    expect(screen.getByText("[vhod ·2, cex-2 ·5]")).toBeTruthy();
+  });
 });
