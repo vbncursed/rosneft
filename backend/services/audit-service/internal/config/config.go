@@ -29,6 +29,10 @@ type Config struct {
 	// it — the chain then lives only in Postgres, where it protects against
 	// nobody who can edit Postgres.
 	DigestFile string `mapstructure:"digest-file"`
+
+	// `audit export` only.
+	ExportBefore string `mapstructure:"before"`
+	ExportOut    string `mapstructure:"out"`
 }
 
 const envPrefix = "AUDIT"
@@ -48,6 +52,8 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.SetDefault("shutdown-timeout", 15*time.Second)
 	v.SetDefault("checkpoint-interval", 5*time.Minute)
 	v.SetDefault("digest-file", "")
+	v.SetDefault("before", "")
+	v.SetDefault("out", "")
 
 	if err := v.BindPFlags(cmd.Root().PersistentFlags()); err != nil {
 		return Config{}, fmt.Errorf("config: bind persistent flags: %w", err)

@@ -39,6 +39,8 @@ func newRootCmd() *cobra.Command {
 	flags.Duration("shutdown-timeout", 15*time.Second, "graceful shutdown timeout")
 	flags.Duration("checkpoint-interval", 5*time.Minute, "how often to seal a journal checkpoint; 0 disables")
 	flags.String("digest-file", "", "append-only JSONL witness for checkpoint digests (or set AUDIT_DIGEST_FILE)")
+	flags.String("before", "", "export: cutoff, RFC3339 or YYYY-MM-DD")
+	flags.String("out", "", "export: destination JSONL file (must not exist)")
 
 	cmd.AddCommand(
 		&cobra.Command{Use: "serve", Short: "Start the gRPC server (default)", RunE: runServe},
@@ -46,6 +48,7 @@ func newRootCmd() *cobra.Command {
 		subCmd("migrate-down", "Roll back the most recent migration", bootstrap.RunMigrateDown),
 		subCmd("migrate-status", "Print migration status", bootstrap.RunMigrateStatus),
 		subCmd("verify", "Recompute the checkpoint chain and compare it to the witness", bootstrap.RunVerify),
+		subCmd("export", "Write entries older than --before to --out as JSONL", bootstrap.RunExport),
 	)
 	return cmd
 }
