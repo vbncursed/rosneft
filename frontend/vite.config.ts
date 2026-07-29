@@ -9,14 +9,25 @@ export default defineConfig({
     alias: { "@": path.resolve(__dirname, "src") },
   },
   server: {
-    port: 5173,
-    // Dev-only: set VITE_DEV_PROXY=<gateway-url> to route /api through Vite to a
-    // remote gateway (e.g. prod) so the SPA runs against real data WITHOUT
-    // touching that gateway's CORS. Pair with VITE_API_URL= (empty) so the app
-    // makes same-origin /api requests. Off by default.
-    proxy: process.env.VITE_DEV_PROXY
-      ? { "/api": { target: process.env.VITE_DEV_PROXY, changeOrigin: true, secure: true } }
-      : undefined,
+    // Port 3000, not Vite's 5173: PASSKEY_RP_ORIGINS is pinned to
+    // http://localhost:3000, and a mismatched origin fails every WebAuthn
+    // ceremony with an opaque client-side SecurityError and no server log.
+    port: 3000,
+    // /api is proxied by DEFAULT so dev matches production's topology, where
+    // nginx serves the SPA and proxies /api to the gateway. Same origin is what
+    // lets the session cookie ride on <img>, <iframe> (pdf.js) and EventSource
+    // without withCredentials anywhere — and it removes the class of bug this
+    // repo already hit once, where dev and prod differed and prod silently
+    // built against undefined/api/…
+    //
+    // VITE_DEV_PROXY overrides the target, e.g. to run the SPA against prod.
+    proxy: {
+      "/api": {
+        target: process.env.VITE_DEV_PROXY ?? "http://localhost:8080",
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
   test: {
     environment: "jsdom",

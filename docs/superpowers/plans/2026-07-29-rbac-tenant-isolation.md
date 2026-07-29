@@ -434,7 +434,7 @@ git commit -m "fix(gateway): refuse cross-tenant access to a territory's child r
 - Consumes: ничего.
 - Produces: дев-сервер на `:3000`, проксирующий `/api` на шлюз; `VITE_API_URL` пустой, как в проде. Задача 4 полагается на это — кука без одного origin не поедет в `<img>` и `<iframe>`.
 
-- [ ] **Step 1: Включить прокси по умолчанию**
+- [x] **Step 1: Включить прокси по умолчанию**
 
 Modify `frontend/vite.config.ts`:
 
@@ -462,7 +462,7 @@ Modify `frontend/vite.config.ts`:
   },
 ```
 
-- [ ] **Step 2: Обнулить базовый URL в деве**
+- [x] **Step 2: Обнулить базовый URL в деве**
 
 Modify `frontend/.env.development`:
 
@@ -474,7 +474,7 @@ Modify `frontend/.env.development`:
 VITE_API_URL=
 ```
 
-- [ ] **Step 3: Проверить вживую**
+- [x] **Step 3: Проверить вживую**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft && docker compose up -d
@@ -489,12 +489,12 @@ Expected: `200` — запрос ушёл на Vite и был проксиров
 документы грузятся. В DevTools → Network все запросы к `/api/...` относительные,
 без хоста `localhost:8080`.
 
-- [ ] **Step 4: Прогнать фронтовые проверки**
+- [x] **Step 4: Прогнать фронтовые проверки**
 
 Run: `cd frontend && yarn lint && yarn test && yarn test:spa`
 Expected: PASS. `vite.config.ts` задаёт `VITE_API_URL` для vitest отдельно, поэтому тесты не зависят от `.env.development`.
 
-- [ ] **Step 5: Коммит**
+- [x] **Step 5: Коммит**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft
