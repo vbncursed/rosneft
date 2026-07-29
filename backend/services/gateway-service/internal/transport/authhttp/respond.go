@@ -18,6 +18,16 @@ func writeJSON(w http.ResponseWriter, code int, body any) {
 	}
 }
 
+// decode reads a JSON request body, answering 400 and reporting false when it
+// is not JSON. The counterpart to writeJSON above.
+func decode(w http.ResponseWriter, r *http.Request, dst any) bool {
+	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
+		apperr.Write(w, http.StatusBadRequest, apperr.SlugInvalidInput, "bad json")
+		return false
+	}
+	return true
+}
+
 // fail renders a gRPC status error as the project-wide {code,message} body.
 func fail(w http.ResponseWriter, err error) {
 	apperr.WriteStatus(w, err)
