@@ -124,6 +124,13 @@ type CatalogMock struct {
 	beforeListTerritoryArtifactsCounter uint64
 	ListTerritoryArtifactsMock          mCatalogMockListTerritoryArtifacts
 
+	funcResolveLabels          func(ctx context.Context, refs []domain.LabelRef) (m1 map[string]string, err error)
+	funcResolveLabelsOrigin    string
+	inspectFuncResolveLabels   func(ctx context.Context, refs []domain.LabelRef)
+	afterResolveLabelsCounter  uint64
+	beforeResolveLabelsCounter uint64
+	ResolveLabelsMock          mCatalogMockResolveLabels
+
 	funcResolveTerritorySlugs          func(ctx context.Context, ids []int64) (m1 map[int64]string, err error)
 	funcResolveTerritorySlugsOrigin    string
 	inspectFuncResolveTerritorySlugs   func(ctx context.Context, ids []int64)
@@ -226,6 +233,9 @@ func NewCatalogMock(t minimock.Tester) *CatalogMock {
 
 	m.ListTerritoryArtifactsMock = mCatalogMockListTerritoryArtifacts{mock: m}
 	m.ListTerritoryArtifactsMock.callArgs = []*CatalogMockListTerritoryArtifactsParams{}
+
+	m.ResolveLabelsMock = mCatalogMockResolveLabels{mock: m}
+	m.ResolveLabelsMock.callArgs = []*CatalogMockResolveLabelsParams{}
 
 	m.ResolveTerritorySlugsMock = mCatalogMockResolveTerritorySlugs{mock: m}
 	m.ResolveTerritorySlugsMock.callArgs = []*CatalogMockResolveTerritorySlugsParams{}
@@ -5456,6 +5466,349 @@ func (m *CatalogMock) MinimockListTerritoryArtifactsInspect() {
 	}
 }
 
+type mCatalogMockResolveLabels struct {
+	optional           bool
+	mock               *CatalogMock
+	defaultExpectation *CatalogMockResolveLabelsExpectation
+	expectations       []*CatalogMockResolveLabelsExpectation
+
+	callArgs []*CatalogMockResolveLabelsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// CatalogMockResolveLabelsExpectation specifies expectation struct of the Catalog.ResolveLabels
+type CatalogMockResolveLabelsExpectation struct {
+	mock               *CatalogMock
+	params             *CatalogMockResolveLabelsParams
+	paramPtrs          *CatalogMockResolveLabelsParamPtrs
+	expectationOrigins CatalogMockResolveLabelsExpectationOrigins
+	results            *CatalogMockResolveLabelsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// CatalogMockResolveLabelsParams contains parameters of the Catalog.ResolveLabels
+type CatalogMockResolveLabelsParams struct {
+	ctx  context.Context
+	refs []domain.LabelRef
+}
+
+// CatalogMockResolveLabelsParamPtrs contains pointers to parameters of the Catalog.ResolveLabels
+type CatalogMockResolveLabelsParamPtrs struct {
+	ctx  *context.Context
+	refs *[]domain.LabelRef
+}
+
+// CatalogMockResolveLabelsResults contains results of the Catalog.ResolveLabels
+type CatalogMockResolveLabelsResults struct {
+	m1  map[string]string
+	err error
+}
+
+// CatalogMockResolveLabelsOrigins contains origins of expectations of the Catalog.ResolveLabels
+type CatalogMockResolveLabelsExpectationOrigins struct {
+	origin     string
+	originCtx  string
+	originRefs string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmResolveLabels *mCatalogMockResolveLabels) Optional() *mCatalogMockResolveLabels {
+	mmResolveLabels.optional = true
+	return mmResolveLabels
+}
+
+// Expect sets up expected params for Catalog.ResolveLabels
+func (mmResolveLabels *mCatalogMockResolveLabels) Expect(ctx context.Context, refs []domain.LabelRef) *mCatalogMockResolveLabels {
+	if mmResolveLabels.mock.funcResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("CatalogMock.ResolveLabels mock is already set by Set")
+	}
+
+	if mmResolveLabels.defaultExpectation == nil {
+		mmResolveLabels.defaultExpectation = &CatalogMockResolveLabelsExpectation{}
+	}
+
+	if mmResolveLabels.defaultExpectation.paramPtrs != nil {
+		mmResolveLabels.mock.t.Fatalf("CatalogMock.ResolveLabels mock is already set by ExpectParams functions")
+	}
+
+	mmResolveLabels.defaultExpectation.params = &CatalogMockResolveLabelsParams{ctx, refs}
+	mmResolveLabels.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmResolveLabels.expectations {
+		if minimock.Equal(e.params, mmResolveLabels.defaultExpectation.params) {
+			mmResolveLabels.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmResolveLabels.defaultExpectation.params)
+		}
+	}
+
+	return mmResolveLabels
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Catalog.ResolveLabels
+func (mmResolveLabels *mCatalogMockResolveLabels) ExpectCtxParam1(ctx context.Context) *mCatalogMockResolveLabels {
+	if mmResolveLabels.mock.funcResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("CatalogMock.ResolveLabels mock is already set by Set")
+	}
+
+	if mmResolveLabels.defaultExpectation == nil {
+		mmResolveLabels.defaultExpectation = &CatalogMockResolveLabelsExpectation{}
+	}
+
+	if mmResolveLabels.defaultExpectation.params != nil {
+		mmResolveLabels.mock.t.Fatalf("CatalogMock.ResolveLabels mock is already set by Expect")
+	}
+
+	if mmResolveLabels.defaultExpectation.paramPtrs == nil {
+		mmResolveLabels.defaultExpectation.paramPtrs = &CatalogMockResolveLabelsParamPtrs{}
+	}
+	mmResolveLabels.defaultExpectation.paramPtrs.ctx = &ctx
+	mmResolveLabels.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmResolveLabels
+}
+
+// ExpectRefsParam2 sets up expected param refs for Catalog.ResolveLabels
+func (mmResolveLabels *mCatalogMockResolveLabels) ExpectRefsParam2(refs []domain.LabelRef) *mCatalogMockResolveLabels {
+	if mmResolveLabels.mock.funcResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("CatalogMock.ResolveLabels mock is already set by Set")
+	}
+
+	if mmResolveLabels.defaultExpectation == nil {
+		mmResolveLabels.defaultExpectation = &CatalogMockResolveLabelsExpectation{}
+	}
+
+	if mmResolveLabels.defaultExpectation.params != nil {
+		mmResolveLabels.mock.t.Fatalf("CatalogMock.ResolveLabels mock is already set by Expect")
+	}
+
+	if mmResolveLabels.defaultExpectation.paramPtrs == nil {
+		mmResolveLabels.defaultExpectation.paramPtrs = &CatalogMockResolveLabelsParamPtrs{}
+	}
+	mmResolveLabels.defaultExpectation.paramPtrs.refs = &refs
+	mmResolveLabels.defaultExpectation.expectationOrigins.originRefs = minimock.CallerInfo(1)
+
+	return mmResolveLabels
+}
+
+// Inspect accepts an inspector function that has same arguments as the Catalog.ResolveLabels
+func (mmResolveLabels *mCatalogMockResolveLabels) Inspect(f func(ctx context.Context, refs []domain.LabelRef)) *mCatalogMockResolveLabels {
+	if mmResolveLabels.mock.inspectFuncResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("Inspect function is already set for CatalogMock.ResolveLabels")
+	}
+
+	mmResolveLabels.mock.inspectFuncResolveLabels = f
+
+	return mmResolveLabels
+}
+
+// Return sets up results that will be returned by Catalog.ResolveLabels
+func (mmResolveLabels *mCatalogMockResolveLabels) Return(m1 map[string]string, err error) *CatalogMock {
+	if mmResolveLabels.mock.funcResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("CatalogMock.ResolveLabels mock is already set by Set")
+	}
+
+	if mmResolveLabels.defaultExpectation == nil {
+		mmResolveLabels.defaultExpectation = &CatalogMockResolveLabelsExpectation{mock: mmResolveLabels.mock}
+	}
+	mmResolveLabels.defaultExpectation.results = &CatalogMockResolveLabelsResults{m1, err}
+	mmResolveLabels.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmResolveLabels.mock
+}
+
+// Set uses given function f to mock the Catalog.ResolveLabels method
+func (mmResolveLabels *mCatalogMockResolveLabels) Set(f func(ctx context.Context, refs []domain.LabelRef) (m1 map[string]string, err error)) *CatalogMock {
+	if mmResolveLabels.defaultExpectation != nil {
+		mmResolveLabels.mock.t.Fatalf("Default expectation is already set for the Catalog.ResolveLabels method")
+	}
+
+	if len(mmResolveLabels.expectations) > 0 {
+		mmResolveLabels.mock.t.Fatalf("Some expectations are already set for the Catalog.ResolveLabels method")
+	}
+
+	mmResolveLabels.mock.funcResolveLabels = f
+	mmResolveLabels.mock.funcResolveLabelsOrigin = minimock.CallerInfo(1)
+	return mmResolveLabels.mock
+}
+
+// When sets expectation for the Catalog.ResolveLabels which will trigger the result defined by the following
+// Then helper
+func (mmResolveLabels *mCatalogMockResolveLabels) When(ctx context.Context, refs []domain.LabelRef) *CatalogMockResolveLabelsExpectation {
+	if mmResolveLabels.mock.funcResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("CatalogMock.ResolveLabels mock is already set by Set")
+	}
+
+	expectation := &CatalogMockResolveLabelsExpectation{
+		mock:               mmResolveLabels.mock,
+		params:             &CatalogMockResolveLabelsParams{ctx, refs},
+		expectationOrigins: CatalogMockResolveLabelsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmResolveLabels.expectations = append(mmResolveLabels.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Catalog.ResolveLabels return parameters for the expectation previously defined by the When method
+func (e *CatalogMockResolveLabelsExpectation) Then(m1 map[string]string, err error) *CatalogMock {
+	e.results = &CatalogMockResolveLabelsResults{m1, err}
+	return e.mock
+}
+
+// Times sets number of times Catalog.ResolveLabels should be invoked
+func (mmResolveLabels *mCatalogMockResolveLabels) Times(n uint64) *mCatalogMockResolveLabels {
+	if n == 0 {
+		mmResolveLabels.mock.t.Fatalf("Times of CatalogMock.ResolveLabels mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmResolveLabels.expectedInvocations, n)
+	mmResolveLabels.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmResolveLabels
+}
+
+func (mmResolveLabels *mCatalogMockResolveLabels) invocationsDone() bool {
+	if len(mmResolveLabels.expectations) == 0 && mmResolveLabels.defaultExpectation == nil && mmResolveLabels.mock.funcResolveLabels == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmResolveLabels.mock.afterResolveLabelsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmResolveLabels.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ResolveLabels implements mm_service.Catalog
+func (mmResolveLabels *CatalogMock) ResolveLabels(ctx context.Context, refs []domain.LabelRef) (m1 map[string]string, err error) {
+	mm_atomic.AddUint64(&mmResolveLabels.beforeResolveLabelsCounter, 1)
+	defer mm_atomic.AddUint64(&mmResolveLabels.afterResolveLabelsCounter, 1)
+
+	mmResolveLabels.t.Helper()
+
+	if mmResolveLabels.inspectFuncResolveLabels != nil {
+		mmResolveLabels.inspectFuncResolveLabels(ctx, refs)
+	}
+
+	mm_params := CatalogMockResolveLabelsParams{ctx, refs}
+
+	// Record call args
+	mmResolveLabels.ResolveLabelsMock.mutex.Lock()
+	mmResolveLabels.ResolveLabelsMock.callArgs = append(mmResolveLabels.ResolveLabelsMock.callArgs, &mm_params)
+	mmResolveLabels.ResolveLabelsMock.mutex.Unlock()
+
+	for _, e := range mmResolveLabels.ResolveLabelsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.m1, e.results.err
+		}
+	}
+
+	if mmResolveLabels.ResolveLabelsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmResolveLabels.ResolveLabelsMock.defaultExpectation.Counter, 1)
+		mm_want := mmResolveLabels.ResolveLabelsMock.defaultExpectation.params
+		mm_want_ptrs := mmResolveLabels.ResolveLabelsMock.defaultExpectation.paramPtrs
+
+		mm_got := CatalogMockResolveLabelsParams{ctx, refs}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmResolveLabels.t.Errorf("CatalogMock.ResolveLabels got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveLabels.ResolveLabelsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.refs != nil && !minimock.Equal(*mm_want_ptrs.refs, mm_got.refs) {
+				mmResolveLabels.t.Errorf("CatalogMock.ResolveLabels got unexpected parameter refs, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveLabels.ResolveLabelsMock.defaultExpectation.expectationOrigins.originRefs, *mm_want_ptrs.refs, mm_got.refs, minimock.Diff(*mm_want_ptrs.refs, mm_got.refs))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmResolveLabels.t.Errorf("CatalogMock.ResolveLabels got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmResolveLabels.ResolveLabelsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmResolveLabels.ResolveLabelsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmResolveLabels.t.Fatal("No results are set for the CatalogMock.ResolveLabels")
+		}
+		return (*mm_results).m1, (*mm_results).err
+	}
+	if mmResolveLabels.funcResolveLabels != nil {
+		return mmResolveLabels.funcResolveLabels(ctx, refs)
+	}
+	mmResolveLabels.t.Fatalf("Unexpected call to CatalogMock.ResolveLabels. %v %v", ctx, refs)
+	return
+}
+
+// ResolveLabelsAfterCounter returns a count of finished CatalogMock.ResolveLabels invocations
+func (mmResolveLabels *CatalogMock) ResolveLabelsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmResolveLabels.afterResolveLabelsCounter)
+}
+
+// ResolveLabelsBeforeCounter returns a count of CatalogMock.ResolveLabels invocations
+func (mmResolveLabels *CatalogMock) ResolveLabelsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmResolveLabels.beforeResolveLabelsCounter)
+}
+
+// Calls returns a list of arguments used in each call to CatalogMock.ResolveLabels.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmResolveLabels *mCatalogMockResolveLabels) Calls() []*CatalogMockResolveLabelsParams {
+	mmResolveLabels.mutex.RLock()
+
+	argCopy := make([]*CatalogMockResolveLabelsParams, len(mmResolveLabels.callArgs))
+	copy(argCopy, mmResolveLabels.callArgs)
+
+	mmResolveLabels.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockResolveLabelsDone returns true if the count of the ResolveLabels invocations corresponds
+// the number of defined expectations
+func (m *CatalogMock) MinimockResolveLabelsDone() bool {
+	if m.ResolveLabelsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ResolveLabelsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ResolveLabelsMock.invocationsDone()
+}
+
+// MinimockResolveLabelsInspect logs each unmet expectation
+func (m *CatalogMock) MinimockResolveLabelsInspect() {
+	for _, e := range m.ResolveLabelsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to CatalogMock.ResolveLabels at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterResolveLabelsCounter := mm_atomic.LoadUint64(&m.afterResolveLabelsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ResolveLabelsMock.defaultExpectation != nil && afterResolveLabelsCounter < 1 {
+		if m.ResolveLabelsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to CatalogMock.ResolveLabels at\n%s", m.ResolveLabelsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to CatalogMock.ResolveLabels at\n%s with params: %#v", m.ResolveLabelsMock.defaultExpectation.expectationOrigins.origin, *m.ResolveLabelsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcResolveLabels != nil && afterResolveLabelsCounter < 1 {
+		m.t.Errorf("Expected call to CatalogMock.ResolveLabels at\n%s", m.funcResolveLabelsOrigin)
+	}
+
+	if !m.ResolveLabelsMock.invocationsDone() && afterResolveLabelsCounter > 0 {
+		m.t.Errorf("Expected %d calls to CatalogMock.ResolveLabels at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ResolveLabelsMock.expectedInvocations), m.ResolveLabelsMock.expectedInvocationsOrigin, afterResolveLabelsCounter)
+	}
+}
+
 type mCatalogMockResolveTerritorySlugs struct {
 	optional           bool
 	mock               *CatalogMock
@@ -8013,6 +8366,8 @@ func (m *CatalogMock) MinimockFinish() {
 
 			m.MinimockListTerritoryArtifactsInspect()
 
+			m.MinimockResolveLabelsInspect()
+
 			m.MinimockResolveTerritorySlugsInspect()
 
 			m.MinimockSetPlacementVisibilityInspect()
@@ -8064,6 +8419,7 @@ func (m *CatalogMock) minimockDone() bool {
 		m.MinimockListPlacementsDone() &&
 		m.MinimockListTerritoriesDone() &&
 		m.MinimockListTerritoryArtifactsDone() &&
+		m.MinimockResolveLabelsDone() &&
 		m.MinimockResolveTerritorySlugsDone() &&
 		m.MinimockSetPlacementVisibilityDone() &&
 		m.MinimockSetTerritoryAdminsDone() &&

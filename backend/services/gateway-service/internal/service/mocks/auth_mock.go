@@ -11,12 +11,20 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
 // AuthMock implements mm_service.Auth
 type AuthMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
+
+	funcResolveLabels          func(ctx context.Context, token string, refs []domain.LabelRef) (m1 map[string]string, err error)
+	funcResolveLabelsOrigin    string
+	inspectFuncResolveLabels   func(ctx context.Context, token string, refs []domain.LabelRef)
+	afterResolveLabelsCounter  uint64
+	beforeResolveLabelsCounter uint64
+	ResolveLabelsMock          mAuthMockResolveLabels
 
 	funcResolveUserLogins          func(ctx context.Context, token string, ids []string) (m1 map[string]string, err error)
 	funcResolveUserLoginsOrigin    string
@@ -34,12 +42,389 @@ func NewAuthMock(t minimock.Tester) *AuthMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.ResolveLabelsMock = mAuthMockResolveLabels{mock: m}
+	m.ResolveLabelsMock.callArgs = []*AuthMockResolveLabelsParams{}
+
 	m.ResolveUserLoginsMock = mAuthMockResolveUserLogins{mock: m}
 	m.ResolveUserLoginsMock.callArgs = []*AuthMockResolveUserLoginsParams{}
 
 	t.Cleanup(m.MinimockFinish)
 
 	return m
+}
+
+type mAuthMockResolveLabels struct {
+	optional           bool
+	mock               *AuthMock
+	defaultExpectation *AuthMockResolveLabelsExpectation
+	expectations       []*AuthMockResolveLabelsExpectation
+
+	callArgs []*AuthMockResolveLabelsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// AuthMockResolveLabelsExpectation specifies expectation struct of the Auth.ResolveLabels
+type AuthMockResolveLabelsExpectation struct {
+	mock               *AuthMock
+	params             *AuthMockResolveLabelsParams
+	paramPtrs          *AuthMockResolveLabelsParamPtrs
+	expectationOrigins AuthMockResolveLabelsExpectationOrigins
+	results            *AuthMockResolveLabelsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// AuthMockResolveLabelsParams contains parameters of the Auth.ResolveLabels
+type AuthMockResolveLabelsParams struct {
+	ctx   context.Context
+	token string
+	refs  []domain.LabelRef
+}
+
+// AuthMockResolveLabelsParamPtrs contains pointers to parameters of the Auth.ResolveLabels
+type AuthMockResolveLabelsParamPtrs struct {
+	ctx   *context.Context
+	token *string
+	refs  *[]domain.LabelRef
+}
+
+// AuthMockResolveLabelsResults contains results of the Auth.ResolveLabels
+type AuthMockResolveLabelsResults struct {
+	m1  map[string]string
+	err error
+}
+
+// AuthMockResolveLabelsOrigins contains origins of expectations of the Auth.ResolveLabels
+type AuthMockResolveLabelsExpectationOrigins struct {
+	origin      string
+	originCtx   string
+	originToken string
+	originRefs  string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmResolveLabels *mAuthMockResolveLabels) Optional() *mAuthMockResolveLabels {
+	mmResolveLabels.optional = true
+	return mmResolveLabels
+}
+
+// Expect sets up expected params for Auth.ResolveLabels
+func (mmResolveLabels *mAuthMockResolveLabels) Expect(ctx context.Context, token string, refs []domain.LabelRef) *mAuthMockResolveLabels {
+	if mmResolveLabels.mock.funcResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("AuthMock.ResolveLabels mock is already set by Set")
+	}
+
+	if mmResolveLabels.defaultExpectation == nil {
+		mmResolveLabels.defaultExpectation = &AuthMockResolveLabelsExpectation{}
+	}
+
+	if mmResolveLabels.defaultExpectation.paramPtrs != nil {
+		mmResolveLabels.mock.t.Fatalf("AuthMock.ResolveLabels mock is already set by ExpectParams functions")
+	}
+
+	mmResolveLabels.defaultExpectation.params = &AuthMockResolveLabelsParams{ctx, token, refs}
+	mmResolveLabels.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmResolveLabels.expectations {
+		if minimock.Equal(e.params, mmResolveLabels.defaultExpectation.params) {
+			mmResolveLabels.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmResolveLabels.defaultExpectation.params)
+		}
+	}
+
+	return mmResolveLabels
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Auth.ResolveLabels
+func (mmResolveLabels *mAuthMockResolveLabels) ExpectCtxParam1(ctx context.Context) *mAuthMockResolveLabels {
+	if mmResolveLabels.mock.funcResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("AuthMock.ResolveLabels mock is already set by Set")
+	}
+
+	if mmResolveLabels.defaultExpectation == nil {
+		mmResolveLabels.defaultExpectation = &AuthMockResolveLabelsExpectation{}
+	}
+
+	if mmResolveLabels.defaultExpectation.params != nil {
+		mmResolveLabels.mock.t.Fatalf("AuthMock.ResolveLabels mock is already set by Expect")
+	}
+
+	if mmResolveLabels.defaultExpectation.paramPtrs == nil {
+		mmResolveLabels.defaultExpectation.paramPtrs = &AuthMockResolveLabelsParamPtrs{}
+	}
+	mmResolveLabels.defaultExpectation.paramPtrs.ctx = &ctx
+	mmResolveLabels.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmResolveLabels
+}
+
+// ExpectTokenParam2 sets up expected param token for Auth.ResolveLabels
+func (mmResolveLabels *mAuthMockResolveLabels) ExpectTokenParam2(token string) *mAuthMockResolveLabels {
+	if mmResolveLabels.mock.funcResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("AuthMock.ResolveLabels mock is already set by Set")
+	}
+
+	if mmResolveLabels.defaultExpectation == nil {
+		mmResolveLabels.defaultExpectation = &AuthMockResolveLabelsExpectation{}
+	}
+
+	if mmResolveLabels.defaultExpectation.params != nil {
+		mmResolveLabels.mock.t.Fatalf("AuthMock.ResolveLabels mock is already set by Expect")
+	}
+
+	if mmResolveLabels.defaultExpectation.paramPtrs == nil {
+		mmResolveLabels.defaultExpectation.paramPtrs = &AuthMockResolveLabelsParamPtrs{}
+	}
+	mmResolveLabels.defaultExpectation.paramPtrs.token = &token
+	mmResolveLabels.defaultExpectation.expectationOrigins.originToken = minimock.CallerInfo(1)
+
+	return mmResolveLabels
+}
+
+// ExpectRefsParam3 sets up expected param refs for Auth.ResolveLabels
+func (mmResolveLabels *mAuthMockResolveLabels) ExpectRefsParam3(refs []domain.LabelRef) *mAuthMockResolveLabels {
+	if mmResolveLabels.mock.funcResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("AuthMock.ResolveLabels mock is already set by Set")
+	}
+
+	if mmResolveLabels.defaultExpectation == nil {
+		mmResolveLabels.defaultExpectation = &AuthMockResolveLabelsExpectation{}
+	}
+
+	if mmResolveLabels.defaultExpectation.params != nil {
+		mmResolveLabels.mock.t.Fatalf("AuthMock.ResolveLabels mock is already set by Expect")
+	}
+
+	if mmResolveLabels.defaultExpectation.paramPtrs == nil {
+		mmResolveLabels.defaultExpectation.paramPtrs = &AuthMockResolveLabelsParamPtrs{}
+	}
+	mmResolveLabels.defaultExpectation.paramPtrs.refs = &refs
+	mmResolveLabels.defaultExpectation.expectationOrigins.originRefs = minimock.CallerInfo(1)
+
+	return mmResolveLabels
+}
+
+// Inspect accepts an inspector function that has same arguments as the Auth.ResolveLabels
+func (mmResolveLabels *mAuthMockResolveLabels) Inspect(f func(ctx context.Context, token string, refs []domain.LabelRef)) *mAuthMockResolveLabels {
+	if mmResolveLabels.mock.inspectFuncResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("Inspect function is already set for AuthMock.ResolveLabels")
+	}
+
+	mmResolveLabels.mock.inspectFuncResolveLabels = f
+
+	return mmResolveLabels
+}
+
+// Return sets up results that will be returned by Auth.ResolveLabels
+func (mmResolveLabels *mAuthMockResolveLabels) Return(m1 map[string]string, err error) *AuthMock {
+	if mmResolveLabels.mock.funcResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("AuthMock.ResolveLabels mock is already set by Set")
+	}
+
+	if mmResolveLabels.defaultExpectation == nil {
+		mmResolveLabels.defaultExpectation = &AuthMockResolveLabelsExpectation{mock: mmResolveLabels.mock}
+	}
+	mmResolveLabels.defaultExpectation.results = &AuthMockResolveLabelsResults{m1, err}
+	mmResolveLabels.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmResolveLabels.mock
+}
+
+// Set uses given function f to mock the Auth.ResolveLabels method
+func (mmResolveLabels *mAuthMockResolveLabels) Set(f func(ctx context.Context, token string, refs []domain.LabelRef) (m1 map[string]string, err error)) *AuthMock {
+	if mmResolveLabels.defaultExpectation != nil {
+		mmResolveLabels.mock.t.Fatalf("Default expectation is already set for the Auth.ResolveLabels method")
+	}
+
+	if len(mmResolveLabels.expectations) > 0 {
+		mmResolveLabels.mock.t.Fatalf("Some expectations are already set for the Auth.ResolveLabels method")
+	}
+
+	mmResolveLabels.mock.funcResolveLabels = f
+	mmResolveLabels.mock.funcResolveLabelsOrigin = minimock.CallerInfo(1)
+	return mmResolveLabels.mock
+}
+
+// When sets expectation for the Auth.ResolveLabels which will trigger the result defined by the following
+// Then helper
+func (mmResolveLabels *mAuthMockResolveLabels) When(ctx context.Context, token string, refs []domain.LabelRef) *AuthMockResolveLabelsExpectation {
+	if mmResolveLabels.mock.funcResolveLabels != nil {
+		mmResolveLabels.mock.t.Fatalf("AuthMock.ResolveLabels mock is already set by Set")
+	}
+
+	expectation := &AuthMockResolveLabelsExpectation{
+		mock:               mmResolveLabels.mock,
+		params:             &AuthMockResolveLabelsParams{ctx, token, refs},
+		expectationOrigins: AuthMockResolveLabelsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmResolveLabels.expectations = append(mmResolveLabels.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Auth.ResolveLabels return parameters for the expectation previously defined by the When method
+func (e *AuthMockResolveLabelsExpectation) Then(m1 map[string]string, err error) *AuthMock {
+	e.results = &AuthMockResolveLabelsResults{m1, err}
+	return e.mock
+}
+
+// Times sets number of times Auth.ResolveLabels should be invoked
+func (mmResolveLabels *mAuthMockResolveLabels) Times(n uint64) *mAuthMockResolveLabels {
+	if n == 0 {
+		mmResolveLabels.mock.t.Fatalf("Times of AuthMock.ResolveLabels mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmResolveLabels.expectedInvocations, n)
+	mmResolveLabels.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmResolveLabels
+}
+
+func (mmResolveLabels *mAuthMockResolveLabels) invocationsDone() bool {
+	if len(mmResolveLabels.expectations) == 0 && mmResolveLabels.defaultExpectation == nil && mmResolveLabels.mock.funcResolveLabels == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmResolveLabels.mock.afterResolveLabelsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmResolveLabels.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ResolveLabels implements mm_service.Auth
+func (mmResolveLabels *AuthMock) ResolveLabels(ctx context.Context, token string, refs []domain.LabelRef) (m1 map[string]string, err error) {
+	mm_atomic.AddUint64(&mmResolveLabels.beforeResolveLabelsCounter, 1)
+	defer mm_atomic.AddUint64(&mmResolveLabels.afterResolveLabelsCounter, 1)
+
+	mmResolveLabels.t.Helper()
+
+	if mmResolveLabels.inspectFuncResolveLabels != nil {
+		mmResolveLabels.inspectFuncResolveLabels(ctx, token, refs)
+	}
+
+	mm_params := AuthMockResolveLabelsParams{ctx, token, refs}
+
+	// Record call args
+	mmResolveLabels.ResolveLabelsMock.mutex.Lock()
+	mmResolveLabels.ResolveLabelsMock.callArgs = append(mmResolveLabels.ResolveLabelsMock.callArgs, &mm_params)
+	mmResolveLabels.ResolveLabelsMock.mutex.Unlock()
+
+	for _, e := range mmResolveLabels.ResolveLabelsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.m1, e.results.err
+		}
+	}
+
+	if mmResolveLabels.ResolveLabelsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmResolveLabels.ResolveLabelsMock.defaultExpectation.Counter, 1)
+		mm_want := mmResolveLabels.ResolveLabelsMock.defaultExpectation.params
+		mm_want_ptrs := mmResolveLabels.ResolveLabelsMock.defaultExpectation.paramPtrs
+
+		mm_got := AuthMockResolveLabelsParams{ctx, token, refs}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmResolveLabels.t.Errorf("AuthMock.ResolveLabels got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveLabels.ResolveLabelsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.token != nil && !minimock.Equal(*mm_want_ptrs.token, mm_got.token) {
+				mmResolveLabels.t.Errorf("AuthMock.ResolveLabels got unexpected parameter token, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveLabels.ResolveLabelsMock.defaultExpectation.expectationOrigins.originToken, *mm_want_ptrs.token, mm_got.token, minimock.Diff(*mm_want_ptrs.token, mm_got.token))
+			}
+
+			if mm_want_ptrs.refs != nil && !minimock.Equal(*mm_want_ptrs.refs, mm_got.refs) {
+				mmResolveLabels.t.Errorf("AuthMock.ResolveLabels got unexpected parameter refs, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveLabels.ResolveLabelsMock.defaultExpectation.expectationOrigins.originRefs, *mm_want_ptrs.refs, mm_got.refs, minimock.Diff(*mm_want_ptrs.refs, mm_got.refs))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmResolveLabels.t.Errorf("AuthMock.ResolveLabels got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmResolveLabels.ResolveLabelsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmResolveLabels.ResolveLabelsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmResolveLabels.t.Fatal("No results are set for the AuthMock.ResolveLabels")
+		}
+		return (*mm_results).m1, (*mm_results).err
+	}
+	if mmResolveLabels.funcResolveLabels != nil {
+		return mmResolveLabels.funcResolveLabels(ctx, token, refs)
+	}
+	mmResolveLabels.t.Fatalf("Unexpected call to AuthMock.ResolveLabels. %v %v %v", ctx, token, refs)
+	return
+}
+
+// ResolveLabelsAfterCounter returns a count of finished AuthMock.ResolveLabels invocations
+func (mmResolveLabels *AuthMock) ResolveLabelsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmResolveLabels.afterResolveLabelsCounter)
+}
+
+// ResolveLabelsBeforeCounter returns a count of AuthMock.ResolveLabels invocations
+func (mmResolveLabels *AuthMock) ResolveLabelsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmResolveLabels.beforeResolveLabelsCounter)
+}
+
+// Calls returns a list of arguments used in each call to AuthMock.ResolveLabels.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmResolveLabels *mAuthMockResolveLabels) Calls() []*AuthMockResolveLabelsParams {
+	mmResolveLabels.mutex.RLock()
+
+	argCopy := make([]*AuthMockResolveLabelsParams, len(mmResolveLabels.callArgs))
+	copy(argCopy, mmResolveLabels.callArgs)
+
+	mmResolveLabels.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockResolveLabelsDone returns true if the count of the ResolveLabels invocations corresponds
+// the number of defined expectations
+func (m *AuthMock) MinimockResolveLabelsDone() bool {
+	if m.ResolveLabelsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ResolveLabelsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ResolveLabelsMock.invocationsDone()
+}
+
+// MinimockResolveLabelsInspect logs each unmet expectation
+func (m *AuthMock) MinimockResolveLabelsInspect() {
+	for _, e := range m.ResolveLabelsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to AuthMock.ResolveLabels at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterResolveLabelsCounter := mm_atomic.LoadUint64(&m.afterResolveLabelsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ResolveLabelsMock.defaultExpectation != nil && afterResolveLabelsCounter < 1 {
+		if m.ResolveLabelsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to AuthMock.ResolveLabels at\n%s", m.ResolveLabelsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to AuthMock.ResolveLabels at\n%s with params: %#v", m.ResolveLabelsMock.defaultExpectation.expectationOrigins.origin, *m.ResolveLabelsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcResolveLabels != nil && afterResolveLabelsCounter < 1 {
+		m.t.Errorf("Expected call to AuthMock.ResolveLabels at\n%s", m.funcResolveLabelsOrigin)
+	}
+
+	if !m.ResolveLabelsMock.invocationsDone() && afterResolveLabelsCounter > 0 {
+		m.t.Errorf("Expected %d calls to AuthMock.ResolveLabels at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ResolveLabelsMock.expectedInvocations), m.ResolveLabelsMock.expectedInvocationsOrigin, afterResolveLabelsCounter)
+	}
 }
 
 type mAuthMockResolveUserLogins struct {
@@ -420,6 +805,8 @@ func (m *AuthMock) MinimockResolveUserLoginsInspect() {
 func (m *AuthMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
 		if !m.minimockDone() {
+			m.MinimockResolveLabelsInspect()
+
 			m.MinimockResolveUserLoginsInspect()
 		}
 	})
@@ -444,5 +831,6 @@ func (m *AuthMock) MinimockWait(timeout mm_time.Duration) {
 func (m *AuthMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockResolveLabelsDone() &&
 		m.MinimockResolveUserLoginsDone()
 }

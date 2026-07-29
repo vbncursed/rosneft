@@ -16,6 +16,7 @@ import (
 type Catalog interface {
 	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
 	ResolveTerritorySlugs(ctx context.Context, ids []int64) (map[int64]string, error)
+	ResolveLabels(ctx context.Context, refs []domain.LabelRef) (map[string]string, error)
 	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
 	UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
 	DeleteTerritory(ctx context.Context, slug string) error
@@ -74,11 +75,13 @@ type Audit interface {
 	Record(ctx context.Context, e domain.AuditEvent) error
 }
 
-// Auth is the auth client surface this service calls. Deliberately one method:
-// the gateway's user administration goes through authhttp, and the only thing
-// the service layer needs from auth is turning ids into logins for the journal.
+// Auth is the auth client surface this service calls. The gateway's user
+// administration goes through authhttp; what the service layer needs from auth
+// is turning the ids in a journal entry into names — the actor's login, and the
+// roles and permissions sitting inside a row snapshot.
 type Auth interface {
 	ResolveUserLogins(ctx context.Context, token string, ids []string) (map[string]string, error)
+	ResolveLabels(ctx context.Context, token string, refs []domain.LabelRef) (map[string]string, error)
 }
 
 // Gateway is the gateway service.
