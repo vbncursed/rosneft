@@ -1379,6 +1379,159 @@ func (x *ResolveUserLoginsResponse) GetLogins() map[string]string {
 	return nil
 }
 
+// LabelRef is one id to name. kind is "role" or "permission".
+type LabelRef struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Kind          string                 `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LabelRef) Reset() {
+	*x = LabelRef{}
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LabelRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LabelRef) ProtoMessage() {}
+
+func (x *LabelRef) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LabelRef.ProtoReflect.Descriptor instead.
+func (*LabelRef) Descriptor() ([]byte, []int) {
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *LabelRef) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *LabelRef) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type ResolveLabelsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Token string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"` // validated; its company scope is deliberately not applied
+	// At most 500. A kind this service does not know is dropped rather than
+	// refused, so a rolling deploy cannot blank a whole page of labels.
+	Refs          []*LabelRef `protobuf:"bytes,2,rep,name=refs,proto3" json:"refs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolveLabelsRequest) Reset() {
+	*x = ResolveLabelsRequest{}
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolveLabelsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolveLabelsRequest) ProtoMessage() {}
+
+func (x *ResolveLabelsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolveLabelsRequest.ProtoReflect.Descriptor instead.
+func (*ResolveLabelsRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *ResolveLabelsRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *ResolveLabelsRequest) GetRefs() []*LabelRef {
+	if x != nil {
+		return x.Refs
+	}
+	return nil
+}
+
+type ResolveLabelsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Keyed "<kind>:<id>". Refs that match nothing are absent — the journal
+	// remembers roles that have since been deleted.
+	Labels        map[string]string `protobuf:"bytes,1,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResolveLabelsResponse) Reset() {
+	*x = ResolveLabelsResponse{}
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolveLabelsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolveLabelsResponse) ProtoMessage() {}
+
+func (x *ResolveLabelsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResolveLabelsResponse.ProtoReflect.Descriptor instead.
+func (*ResolveLabelsResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *ResolveLabelsResponse) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
 type GetUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
@@ -1389,7 +1542,7 @@ type GetUserRequest struct {
 
 func (x *GetUserRequest) Reset() {
 	*x = GetUserRequest{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[25]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1401,7 +1554,7 @@ func (x *GetUserRequest) String() string {
 func (*GetUserRequest) ProtoMessage() {}
 
 func (x *GetUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[25]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1414,7 +1567,7 @@ func (x *GetUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserRequest.ProtoReflect.Descriptor instead.
 func (*GetUserRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{25}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *GetUserRequest) GetToken() string {
@@ -1444,7 +1597,7 @@ type UpdateUserRequest struct {
 
 func (x *UpdateUserRequest) Reset() {
 	*x = UpdateUserRequest{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[26]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1456,7 +1609,7 @@ func (x *UpdateUserRequest) String() string {
 func (*UpdateUserRequest) ProtoMessage() {}
 
 func (x *UpdateUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[26]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1469,7 +1622,7 @@ func (x *UpdateUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateUserRequest.ProtoReflect.Descriptor instead.
 func (*UpdateUserRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{26}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *UpdateUserRequest) GetToken() string {
@@ -1517,7 +1670,7 @@ type FreezeUserRequest struct {
 
 func (x *FreezeUserRequest) Reset() {
 	*x = FreezeUserRequest{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[27]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1529,7 +1682,7 @@ func (x *FreezeUserRequest) String() string {
 func (*FreezeUserRequest) ProtoMessage() {}
 
 func (x *FreezeUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[27]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1542,7 +1695,7 @@ func (x *FreezeUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FreezeUserRequest.ProtoReflect.Descriptor instead.
 func (*FreezeUserRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{27}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *FreezeUserRequest) GetToken() string {
@@ -1569,7 +1722,7 @@ type UnfreezeUserRequest struct {
 
 func (x *UnfreezeUserRequest) Reset() {
 	*x = UnfreezeUserRequest{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[28]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1581,7 +1734,7 @@ func (x *UnfreezeUserRequest) String() string {
 func (*UnfreezeUserRequest) ProtoMessage() {}
 
 func (x *UnfreezeUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[28]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1594,7 +1747,7 @@ func (x *UnfreezeUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnfreezeUserRequest.ProtoReflect.Descriptor instead.
 func (*UnfreezeUserRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{28}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *UnfreezeUserRequest) GetToken() string {
@@ -1621,7 +1774,7 @@ type SoftDeleteUserRequest struct {
 
 func (x *SoftDeleteUserRequest) Reset() {
 	*x = SoftDeleteUserRequest{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[29]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1633,7 +1786,7 @@ func (x *SoftDeleteUserRequest) String() string {
 func (*SoftDeleteUserRequest) ProtoMessage() {}
 
 func (x *SoftDeleteUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[29]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1646,7 +1799,7 @@ func (x *SoftDeleteUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SoftDeleteUserRequest.ProtoReflect.Descriptor instead.
 func (*SoftDeleteUserRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{29}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *SoftDeleteUserRequest) GetToken() string {
@@ -1671,7 +1824,7 @@ type SoftDeleteUserResponse struct {
 
 func (x *SoftDeleteUserResponse) Reset() {
 	*x = SoftDeleteUserResponse{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[30]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1683,7 +1836,7 @@ func (x *SoftDeleteUserResponse) String() string {
 func (*SoftDeleteUserResponse) ProtoMessage() {}
 
 func (x *SoftDeleteUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[30]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1696,7 +1849,7 @@ func (x *SoftDeleteUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SoftDeleteUserResponse.ProtoReflect.Descriptor instead.
 func (*SoftDeleteUserResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{30}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{33}
 }
 
 type RestoreUserRequest struct {
@@ -1709,7 +1862,7 @@ type RestoreUserRequest struct {
 
 func (x *RestoreUserRequest) Reset() {
 	*x = RestoreUserRequest{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[31]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1721,7 +1874,7 @@ func (x *RestoreUserRequest) String() string {
 func (*RestoreUserRequest) ProtoMessage() {}
 
 func (x *RestoreUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[31]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1734,7 +1887,7 @@ func (x *RestoreUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestoreUserRequest.ProtoReflect.Descriptor instead.
 func (*RestoreUserRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{31}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *RestoreUserRequest) GetToken() string {
@@ -1764,7 +1917,7 @@ type SetUserOwnerRequest struct {
 
 func (x *SetUserOwnerRequest) Reset() {
 	*x = SetUserOwnerRequest{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[32]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1776,7 +1929,7 @@ func (x *SetUserOwnerRequest) String() string {
 func (*SetUserOwnerRequest) ProtoMessage() {}
 
 func (x *SetUserOwnerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[32]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1789,7 +1942,7 @@ func (x *SetUserOwnerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetUserOwnerRequest.ProtoReflect.Descriptor instead.
 func (*SetUserOwnerRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{32}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *SetUserOwnerRequest) GetToken() string {
@@ -1822,7 +1975,7 @@ type ListRolesRequest struct {
 
 func (x *ListRolesRequest) Reset() {
 	*x = ListRolesRequest{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[33]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1834,7 +1987,7 @@ func (x *ListRolesRequest) String() string {
 func (*ListRolesRequest) ProtoMessage() {}
 
 func (x *ListRolesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[33]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1847,7 +2000,7 @@ func (x *ListRolesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRolesRequest.ProtoReflect.Descriptor instead.
 func (*ListRolesRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{33}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *ListRolesRequest) GetToken() string {
@@ -1866,7 +2019,7 @@ type ListRolesResponse struct {
 
 func (x *ListRolesResponse) Reset() {
 	*x = ListRolesResponse{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[34]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1878,7 +2031,7 @@ func (x *ListRolesResponse) String() string {
 func (*ListRolesResponse) ProtoMessage() {}
 
 func (x *ListRolesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[34]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1891,7 +2044,7 @@ func (x *ListRolesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRolesResponse.ProtoReflect.Descriptor instead.
 func (*ListRolesResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{34}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ListRolesResponse) GetRoles() []*Role {
@@ -1913,7 +2066,7 @@ type CreateRoleRequest struct {
 
 func (x *CreateRoleRequest) Reset() {
 	*x = CreateRoleRequest{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[35]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1925,7 +2078,7 @@ func (x *CreateRoleRequest) String() string {
 func (*CreateRoleRequest) ProtoMessage() {}
 
 func (x *CreateRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[35]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1938,7 +2091,7 @@ func (x *CreateRoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRoleRequest.ProtoReflect.Descriptor instead.
 func (*CreateRoleRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{35}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *CreateRoleRequest) GetSlug() string {
@@ -1980,7 +2133,7 @@ type UpdateRoleRequest struct {
 
 func (x *UpdateRoleRequest) Reset() {
 	*x = UpdateRoleRequest{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[36]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1992,7 +2145,7 @@ func (x *UpdateRoleRequest) String() string {
 func (*UpdateRoleRequest) ProtoMessage() {}
 
 func (x *UpdateRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[36]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2005,7 +2158,7 @@ func (x *UpdateRoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRoleRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRoleRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{36}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *UpdateRoleRequest) GetSlug() string {
@@ -2039,7 +2192,7 @@ type DeleteRoleRequest struct {
 
 func (x *DeleteRoleRequest) Reset() {
 	*x = DeleteRoleRequest{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[37]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2051,7 +2204,7 @@ func (x *DeleteRoleRequest) String() string {
 func (*DeleteRoleRequest) ProtoMessage() {}
 
 func (x *DeleteRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[37]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2064,7 +2217,7 @@ func (x *DeleteRoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRoleRequest.ProtoReflect.Descriptor instead.
 func (*DeleteRoleRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{37}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *DeleteRoleRequest) GetSlug() string {
@@ -2089,7 +2242,7 @@ type DeleteRoleResponse struct {
 
 func (x *DeleteRoleResponse) Reset() {
 	*x = DeleteRoleResponse{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[38]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2101,7 +2254,7 @@ func (x *DeleteRoleResponse) String() string {
 func (*DeleteRoleResponse) ProtoMessage() {}
 
 func (x *DeleteRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[38]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2114,7 +2267,7 @@ func (x *DeleteRoleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRoleResponse.ProtoReflect.Descriptor instead.
 func (*DeleteRoleResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{38}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{41}
 }
 
 type SetRolePermissionsRequest struct {
@@ -2128,7 +2281,7 @@ type SetRolePermissionsRequest struct {
 
 func (x *SetRolePermissionsRequest) Reset() {
 	*x = SetRolePermissionsRequest{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[39]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2140,7 +2293,7 @@ func (x *SetRolePermissionsRequest) String() string {
 func (*SetRolePermissionsRequest) ProtoMessage() {}
 
 func (x *SetRolePermissionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[39]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2153,7 +2306,7 @@ func (x *SetRolePermissionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetRolePermissionsRequest.ProtoReflect.Descriptor instead.
 func (*SetRolePermissionsRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{39}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *SetRolePermissionsRequest) GetSlug() string {
@@ -2185,7 +2338,7 @@ type ListPermissionsRequest struct {
 
 func (x *ListPermissionsRequest) Reset() {
 	*x = ListPermissionsRequest{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[40]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2197,7 +2350,7 @@ func (x *ListPermissionsRequest) String() string {
 func (*ListPermissionsRequest) ProtoMessage() {}
 
 func (x *ListPermissionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[40]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2210,7 +2363,7 @@ func (x *ListPermissionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPermissionsRequest.ProtoReflect.Descriptor instead.
 func (*ListPermissionsRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{40}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{43}
 }
 
 type ListPermissionsResponse struct {
@@ -2222,7 +2375,7 @@ type ListPermissionsResponse struct {
 
 func (x *ListPermissionsResponse) Reset() {
 	*x = ListPermissionsResponse{}
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[41]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2234,7 +2387,7 @@ func (x *ListPermissionsResponse) String() string {
 func (*ListPermissionsResponse) ProtoMessage() {}
 
 func (x *ListPermissionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[41]
+	mi := &file_rosneft_auth_v1_auth_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2247,7 +2400,7 @@ func (x *ListPermissionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPermissionsResponse.ProtoReflect.Descriptor instead.
 func (*ListPermissionsResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{41}
+	return file_rosneft_auth_v1_auth_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *ListPermissionsResponse) GetPermissions() []*Permission {
@@ -2353,6 +2506,17 @@ const file_rosneft_auth_v1_auth_proto_rawDesc = "" +
 	"\x06logins\x18\x01 \x03(\v26.rosneft.auth.v1.ResolveUserLoginsResponse.LoginsEntryR\x06logins\x1a9\n" +
 	"\vLoginsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\".\n" +
+	"\bLabelRef\x12\x12\n" +
+	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\"[\n" +
+	"\x14ResolveLabelsRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12-\n" +
+	"\x04refs\x18\x02 \x03(\v2\x19.rosneft.auth.v1.LabelRefR\x04refs\"\x9e\x01\n" +
+	"\x15ResolveLabelsResponse\x12J\n" +
+	"\x06labels\x18\x01 \x03(\v22.rosneft.auth.v1.ResolveLabelsResponse.LabelsEntryR\x06labels\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"6\n" +
 	"\x0eGetUserRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x0e\n" +
@@ -2404,7 +2568,7 @@ const file_rosneft_auth_v1_auth_proto_rawDesc = "" +
 	"\x05token\x18\x03 \x01(\tR\x05token\"\x18\n" +
 	"\x16ListPermissionsRequest\"X\n" +
 	"\x17ListPermissionsResponse\x12=\n" +
-	"\vpermissions\x18\x01 \x03(\v2\x1b.rosneft.auth.v1.PermissionR\vpermissions2\xac\x11\n" +
+	"\vpermissions\x18\x01 \x03(\v2\x1b.rosneft.auth.v1.PermissionR\vpermissions2\x8c\x12\n" +
 	"\vAuthService\x12F\n" +
 	"\x05Login\x12\x1d.rosneft.auth.v1.LoginRequest\x1a\x1e.rosneft.auth.v1.LoginResponse\x12X\n" +
 	"\x0eLoginVerify2FA\x12&.rosneft.auth.v1.LoginVerify2FARequest\x1a\x1e.rosneft.auth.v1.LoginResponse\x12j\n" +
@@ -2437,7 +2601,8 @@ const file_rosneft_auth_v1_auth_proto_rawDesc = "" +
 	"\n" +
 	"DeleteRole\x12\".rosneft.auth.v1.DeleteRoleRequest\x1a#.rosneft.auth.v1.DeleteRoleResponse\x12W\n" +
 	"\x12SetRolePermissions\x12*.rosneft.auth.v1.SetRolePermissionsRequest\x1a\x15.rosneft.auth.v1.Role\x12d\n" +
-	"\x0fListPermissions\x12'.rosneft.auth.v1.ListPermissionsRequest\x1a(.rosneft.auth.v1.ListPermissionsResponseBJZHgithub.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/auth/v1;authv1b\x06proto3"
+	"\x0fListPermissions\x12'.rosneft.auth.v1.ListPermissionsRequest\x1a(.rosneft.auth.v1.ListPermissionsResponse\x12^\n" +
+	"\rResolveLabels\x12%.rosneft.auth.v1.ResolveLabelsRequest\x1a&.rosneft.auth.v1.ResolveLabelsResponseBJZHgithub.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/auth/v1;authv1b\x06proto3"
 
 var (
 	file_rosneft_auth_v1_auth_proto_rawDescOnce sync.Once
@@ -2451,7 +2616,7 @@ func file_rosneft_auth_v1_auth_proto_rawDescGZIP() []byte {
 	return file_rosneft_auth_v1_auth_proto_rawDescData
 }
 
-var file_rosneft_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 43)
+var file_rosneft_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 47)
 var file_rosneft_auth_v1_auth_proto_goTypes = []any{
 	(*User)(nil),                      // 0: rosneft.auth.v1.User
 	(*Role)(nil),                      // 1: rosneft.auth.v1.Role
@@ -2478,90 +2643,98 @@ var file_rosneft_auth_v1_auth_proto_goTypes = []any{
 	(*ListUsersResponse)(nil),         // 22: rosneft.auth.v1.ListUsersResponse
 	(*ResolveUserLoginsRequest)(nil),  // 23: rosneft.auth.v1.ResolveUserLoginsRequest
 	(*ResolveUserLoginsResponse)(nil), // 24: rosneft.auth.v1.ResolveUserLoginsResponse
-	(*GetUserRequest)(nil),            // 25: rosneft.auth.v1.GetUserRequest
-	(*UpdateUserRequest)(nil),         // 26: rosneft.auth.v1.UpdateUserRequest
-	(*FreezeUserRequest)(nil),         // 27: rosneft.auth.v1.FreezeUserRequest
-	(*UnfreezeUserRequest)(nil),       // 28: rosneft.auth.v1.UnfreezeUserRequest
-	(*SoftDeleteUserRequest)(nil),     // 29: rosneft.auth.v1.SoftDeleteUserRequest
-	(*SoftDeleteUserResponse)(nil),    // 30: rosneft.auth.v1.SoftDeleteUserResponse
-	(*RestoreUserRequest)(nil),        // 31: rosneft.auth.v1.RestoreUserRequest
-	(*SetUserOwnerRequest)(nil),       // 32: rosneft.auth.v1.SetUserOwnerRequest
-	(*ListRolesRequest)(nil),          // 33: rosneft.auth.v1.ListRolesRequest
-	(*ListRolesResponse)(nil),         // 34: rosneft.auth.v1.ListRolesResponse
-	(*CreateRoleRequest)(nil),         // 35: rosneft.auth.v1.CreateRoleRequest
-	(*UpdateRoleRequest)(nil),         // 36: rosneft.auth.v1.UpdateRoleRequest
-	(*DeleteRoleRequest)(nil),         // 37: rosneft.auth.v1.DeleteRoleRequest
-	(*DeleteRoleResponse)(nil),        // 38: rosneft.auth.v1.DeleteRoleResponse
-	(*SetRolePermissionsRequest)(nil), // 39: rosneft.auth.v1.SetRolePermissionsRequest
-	(*ListPermissionsRequest)(nil),    // 40: rosneft.auth.v1.ListPermissionsRequest
-	(*ListPermissionsResponse)(nil),   // 41: rosneft.auth.v1.ListPermissionsResponse
-	nil,                               // 42: rosneft.auth.v1.ResolveUserLoginsResponse.LoginsEntry
-	(*timestamppb.Timestamp)(nil),     // 43: google.protobuf.Timestamp
+	(*LabelRef)(nil),                  // 25: rosneft.auth.v1.LabelRef
+	(*ResolveLabelsRequest)(nil),      // 26: rosneft.auth.v1.ResolveLabelsRequest
+	(*ResolveLabelsResponse)(nil),     // 27: rosneft.auth.v1.ResolveLabelsResponse
+	(*GetUserRequest)(nil),            // 28: rosneft.auth.v1.GetUserRequest
+	(*UpdateUserRequest)(nil),         // 29: rosneft.auth.v1.UpdateUserRequest
+	(*FreezeUserRequest)(nil),         // 30: rosneft.auth.v1.FreezeUserRequest
+	(*UnfreezeUserRequest)(nil),       // 31: rosneft.auth.v1.UnfreezeUserRequest
+	(*SoftDeleteUserRequest)(nil),     // 32: rosneft.auth.v1.SoftDeleteUserRequest
+	(*SoftDeleteUserResponse)(nil),    // 33: rosneft.auth.v1.SoftDeleteUserResponse
+	(*RestoreUserRequest)(nil),        // 34: rosneft.auth.v1.RestoreUserRequest
+	(*SetUserOwnerRequest)(nil),       // 35: rosneft.auth.v1.SetUserOwnerRequest
+	(*ListRolesRequest)(nil),          // 36: rosneft.auth.v1.ListRolesRequest
+	(*ListRolesResponse)(nil),         // 37: rosneft.auth.v1.ListRolesResponse
+	(*CreateRoleRequest)(nil),         // 38: rosneft.auth.v1.CreateRoleRequest
+	(*UpdateRoleRequest)(nil),         // 39: rosneft.auth.v1.UpdateRoleRequest
+	(*DeleteRoleRequest)(nil),         // 40: rosneft.auth.v1.DeleteRoleRequest
+	(*DeleteRoleResponse)(nil),        // 41: rosneft.auth.v1.DeleteRoleResponse
+	(*SetRolePermissionsRequest)(nil), // 42: rosneft.auth.v1.SetRolePermissionsRequest
+	(*ListPermissionsRequest)(nil),    // 43: rosneft.auth.v1.ListPermissionsRequest
+	(*ListPermissionsResponse)(nil),   // 44: rosneft.auth.v1.ListPermissionsResponse
+	nil,                               // 45: rosneft.auth.v1.ResolveUserLoginsResponse.LoginsEntry
+	nil,                               // 46: rosneft.auth.v1.ResolveLabelsResponse.LabelsEntry
+	(*timestamppb.Timestamp)(nil),     // 47: google.protobuf.Timestamp
 }
 var file_rosneft_auth_v1_auth_proto_depIdxs = []int32{
-	43, // 0: rosneft.auth.v1.User.created_at:type_name -> google.protobuf.Timestamp
-	43, // 1: rosneft.auth.v1.User.updated_at:type_name -> google.protobuf.Timestamp
+	47, // 0: rosneft.auth.v1.User.created_at:type_name -> google.protobuf.Timestamp
+	47, // 1: rosneft.auth.v1.User.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 2: rosneft.auth.v1.ListUsersResponse.users:type_name -> rosneft.auth.v1.User
-	42, // 3: rosneft.auth.v1.ResolveUserLoginsResponse.logins:type_name -> rosneft.auth.v1.ResolveUserLoginsResponse.LoginsEntry
-	1,  // 4: rosneft.auth.v1.ListRolesResponse.roles:type_name -> rosneft.auth.v1.Role
-	2,  // 5: rosneft.auth.v1.ListPermissionsResponse.permissions:type_name -> rosneft.auth.v1.Permission
-	3,  // 6: rosneft.auth.v1.AuthService.Login:input_type -> rosneft.auth.v1.LoginRequest
-	5,  // 7: rosneft.auth.v1.AuthService.LoginVerify2FA:input_type -> rosneft.auth.v1.LoginVerify2FARequest
-	6,  // 8: rosneft.auth.v1.AuthService.PasskeyLoginBegin:input_type -> rosneft.auth.v1.PasskeyLoginBeginRequest
-	8,  // 9: rosneft.auth.v1.AuthService.PasskeyLoginFinish:input_type -> rosneft.auth.v1.PasskeyLoginFinishRequest
-	9,  // 10: rosneft.auth.v1.AuthService.Logout:input_type -> rosneft.auth.v1.LogoutRequest
-	11, // 11: rosneft.auth.v1.AuthService.ValidateToken:input_type -> rosneft.auth.v1.ValidateTokenRequest
-	13, // 12: rosneft.auth.v1.AuthService.GetMe:input_type -> rosneft.auth.v1.GetMeRequest
-	14, // 13: rosneft.auth.v1.AuthService.ChangePassword:input_type -> rosneft.auth.v1.ChangePasswordRequest
-	18, // 14: rosneft.auth.v1.AuthService.VerifyPassword:input_type -> rosneft.auth.v1.VerifyPasswordRequest
-	16, // 15: rosneft.auth.v1.AuthService.MarkTourSeen:input_type -> rosneft.auth.v1.MarkTourSeenRequest
-	20, // 16: rosneft.auth.v1.AuthService.CreateUser:input_type -> rosneft.auth.v1.CreateUserRequest
-	21, // 17: rosneft.auth.v1.AuthService.ListUsers:input_type -> rosneft.auth.v1.ListUsersRequest
-	23, // 18: rosneft.auth.v1.AuthService.ResolveUserLogins:input_type -> rosneft.auth.v1.ResolveUserLoginsRequest
-	25, // 19: rosneft.auth.v1.AuthService.GetUser:input_type -> rosneft.auth.v1.GetUserRequest
-	26, // 20: rosneft.auth.v1.AuthService.UpdateUser:input_type -> rosneft.auth.v1.UpdateUserRequest
-	27, // 21: rosneft.auth.v1.AuthService.FreezeUser:input_type -> rosneft.auth.v1.FreezeUserRequest
-	28, // 22: rosneft.auth.v1.AuthService.UnfreezeUser:input_type -> rosneft.auth.v1.UnfreezeUserRequest
-	29, // 23: rosneft.auth.v1.AuthService.SoftDeleteUser:input_type -> rosneft.auth.v1.SoftDeleteUserRequest
-	31, // 24: rosneft.auth.v1.AuthService.RestoreUser:input_type -> rosneft.auth.v1.RestoreUserRequest
-	32, // 25: rosneft.auth.v1.AuthService.SetUserOwner:input_type -> rosneft.auth.v1.SetUserOwnerRequest
-	33, // 26: rosneft.auth.v1.AuthService.ListRoles:input_type -> rosneft.auth.v1.ListRolesRequest
-	35, // 27: rosneft.auth.v1.AuthService.CreateRole:input_type -> rosneft.auth.v1.CreateRoleRequest
-	36, // 28: rosneft.auth.v1.AuthService.UpdateRole:input_type -> rosneft.auth.v1.UpdateRoleRequest
-	37, // 29: rosneft.auth.v1.AuthService.DeleteRole:input_type -> rosneft.auth.v1.DeleteRoleRequest
-	39, // 30: rosneft.auth.v1.AuthService.SetRolePermissions:input_type -> rosneft.auth.v1.SetRolePermissionsRequest
-	40, // 31: rosneft.auth.v1.AuthService.ListPermissions:input_type -> rosneft.auth.v1.ListPermissionsRequest
-	4,  // 32: rosneft.auth.v1.AuthService.Login:output_type -> rosneft.auth.v1.LoginResponse
-	4,  // 33: rosneft.auth.v1.AuthService.LoginVerify2FA:output_type -> rosneft.auth.v1.LoginResponse
-	7,  // 34: rosneft.auth.v1.AuthService.PasskeyLoginBegin:output_type -> rosneft.auth.v1.PasskeyLoginBeginResponse
-	4,  // 35: rosneft.auth.v1.AuthService.PasskeyLoginFinish:output_type -> rosneft.auth.v1.LoginResponse
-	10, // 36: rosneft.auth.v1.AuthService.Logout:output_type -> rosneft.auth.v1.LogoutResponse
-	12, // 37: rosneft.auth.v1.AuthService.ValidateToken:output_type -> rosneft.auth.v1.ValidateTokenResponse
-	0,  // 38: rosneft.auth.v1.AuthService.GetMe:output_type -> rosneft.auth.v1.User
-	15, // 39: rosneft.auth.v1.AuthService.ChangePassword:output_type -> rosneft.auth.v1.ChangePasswordResponse
-	19, // 40: rosneft.auth.v1.AuthService.VerifyPassword:output_type -> rosneft.auth.v1.VerifyPasswordResponse
-	17, // 41: rosneft.auth.v1.AuthService.MarkTourSeen:output_type -> rosneft.auth.v1.MarkTourSeenResponse
-	0,  // 42: rosneft.auth.v1.AuthService.CreateUser:output_type -> rosneft.auth.v1.User
-	22, // 43: rosneft.auth.v1.AuthService.ListUsers:output_type -> rosneft.auth.v1.ListUsersResponse
-	24, // 44: rosneft.auth.v1.AuthService.ResolveUserLogins:output_type -> rosneft.auth.v1.ResolveUserLoginsResponse
-	0,  // 45: rosneft.auth.v1.AuthService.GetUser:output_type -> rosneft.auth.v1.User
-	0,  // 46: rosneft.auth.v1.AuthService.UpdateUser:output_type -> rosneft.auth.v1.User
-	0,  // 47: rosneft.auth.v1.AuthService.FreezeUser:output_type -> rosneft.auth.v1.User
-	0,  // 48: rosneft.auth.v1.AuthService.UnfreezeUser:output_type -> rosneft.auth.v1.User
-	30, // 49: rosneft.auth.v1.AuthService.SoftDeleteUser:output_type -> rosneft.auth.v1.SoftDeleteUserResponse
-	0,  // 50: rosneft.auth.v1.AuthService.RestoreUser:output_type -> rosneft.auth.v1.User
-	0,  // 51: rosneft.auth.v1.AuthService.SetUserOwner:output_type -> rosneft.auth.v1.User
-	34, // 52: rosneft.auth.v1.AuthService.ListRoles:output_type -> rosneft.auth.v1.ListRolesResponse
-	1,  // 53: rosneft.auth.v1.AuthService.CreateRole:output_type -> rosneft.auth.v1.Role
-	1,  // 54: rosneft.auth.v1.AuthService.UpdateRole:output_type -> rosneft.auth.v1.Role
-	38, // 55: rosneft.auth.v1.AuthService.DeleteRole:output_type -> rosneft.auth.v1.DeleteRoleResponse
-	1,  // 56: rosneft.auth.v1.AuthService.SetRolePermissions:output_type -> rosneft.auth.v1.Role
-	41, // 57: rosneft.auth.v1.AuthService.ListPermissions:output_type -> rosneft.auth.v1.ListPermissionsResponse
-	32, // [32:58] is the sub-list for method output_type
-	6,  // [6:32] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	45, // 3: rosneft.auth.v1.ResolveUserLoginsResponse.logins:type_name -> rosneft.auth.v1.ResolveUserLoginsResponse.LoginsEntry
+	25, // 4: rosneft.auth.v1.ResolveLabelsRequest.refs:type_name -> rosneft.auth.v1.LabelRef
+	46, // 5: rosneft.auth.v1.ResolveLabelsResponse.labels:type_name -> rosneft.auth.v1.ResolveLabelsResponse.LabelsEntry
+	1,  // 6: rosneft.auth.v1.ListRolesResponse.roles:type_name -> rosneft.auth.v1.Role
+	2,  // 7: rosneft.auth.v1.ListPermissionsResponse.permissions:type_name -> rosneft.auth.v1.Permission
+	3,  // 8: rosneft.auth.v1.AuthService.Login:input_type -> rosneft.auth.v1.LoginRequest
+	5,  // 9: rosneft.auth.v1.AuthService.LoginVerify2FA:input_type -> rosneft.auth.v1.LoginVerify2FARequest
+	6,  // 10: rosneft.auth.v1.AuthService.PasskeyLoginBegin:input_type -> rosneft.auth.v1.PasskeyLoginBeginRequest
+	8,  // 11: rosneft.auth.v1.AuthService.PasskeyLoginFinish:input_type -> rosneft.auth.v1.PasskeyLoginFinishRequest
+	9,  // 12: rosneft.auth.v1.AuthService.Logout:input_type -> rosneft.auth.v1.LogoutRequest
+	11, // 13: rosneft.auth.v1.AuthService.ValidateToken:input_type -> rosneft.auth.v1.ValidateTokenRequest
+	13, // 14: rosneft.auth.v1.AuthService.GetMe:input_type -> rosneft.auth.v1.GetMeRequest
+	14, // 15: rosneft.auth.v1.AuthService.ChangePassword:input_type -> rosneft.auth.v1.ChangePasswordRequest
+	18, // 16: rosneft.auth.v1.AuthService.VerifyPassword:input_type -> rosneft.auth.v1.VerifyPasswordRequest
+	16, // 17: rosneft.auth.v1.AuthService.MarkTourSeen:input_type -> rosneft.auth.v1.MarkTourSeenRequest
+	20, // 18: rosneft.auth.v1.AuthService.CreateUser:input_type -> rosneft.auth.v1.CreateUserRequest
+	21, // 19: rosneft.auth.v1.AuthService.ListUsers:input_type -> rosneft.auth.v1.ListUsersRequest
+	23, // 20: rosneft.auth.v1.AuthService.ResolveUserLogins:input_type -> rosneft.auth.v1.ResolveUserLoginsRequest
+	28, // 21: rosneft.auth.v1.AuthService.GetUser:input_type -> rosneft.auth.v1.GetUserRequest
+	29, // 22: rosneft.auth.v1.AuthService.UpdateUser:input_type -> rosneft.auth.v1.UpdateUserRequest
+	30, // 23: rosneft.auth.v1.AuthService.FreezeUser:input_type -> rosneft.auth.v1.FreezeUserRequest
+	31, // 24: rosneft.auth.v1.AuthService.UnfreezeUser:input_type -> rosneft.auth.v1.UnfreezeUserRequest
+	32, // 25: rosneft.auth.v1.AuthService.SoftDeleteUser:input_type -> rosneft.auth.v1.SoftDeleteUserRequest
+	34, // 26: rosneft.auth.v1.AuthService.RestoreUser:input_type -> rosneft.auth.v1.RestoreUserRequest
+	35, // 27: rosneft.auth.v1.AuthService.SetUserOwner:input_type -> rosneft.auth.v1.SetUserOwnerRequest
+	36, // 28: rosneft.auth.v1.AuthService.ListRoles:input_type -> rosneft.auth.v1.ListRolesRequest
+	38, // 29: rosneft.auth.v1.AuthService.CreateRole:input_type -> rosneft.auth.v1.CreateRoleRequest
+	39, // 30: rosneft.auth.v1.AuthService.UpdateRole:input_type -> rosneft.auth.v1.UpdateRoleRequest
+	40, // 31: rosneft.auth.v1.AuthService.DeleteRole:input_type -> rosneft.auth.v1.DeleteRoleRequest
+	42, // 32: rosneft.auth.v1.AuthService.SetRolePermissions:input_type -> rosneft.auth.v1.SetRolePermissionsRequest
+	43, // 33: rosneft.auth.v1.AuthService.ListPermissions:input_type -> rosneft.auth.v1.ListPermissionsRequest
+	26, // 34: rosneft.auth.v1.AuthService.ResolveLabels:input_type -> rosneft.auth.v1.ResolveLabelsRequest
+	4,  // 35: rosneft.auth.v1.AuthService.Login:output_type -> rosneft.auth.v1.LoginResponse
+	4,  // 36: rosneft.auth.v1.AuthService.LoginVerify2FA:output_type -> rosneft.auth.v1.LoginResponse
+	7,  // 37: rosneft.auth.v1.AuthService.PasskeyLoginBegin:output_type -> rosneft.auth.v1.PasskeyLoginBeginResponse
+	4,  // 38: rosneft.auth.v1.AuthService.PasskeyLoginFinish:output_type -> rosneft.auth.v1.LoginResponse
+	10, // 39: rosneft.auth.v1.AuthService.Logout:output_type -> rosneft.auth.v1.LogoutResponse
+	12, // 40: rosneft.auth.v1.AuthService.ValidateToken:output_type -> rosneft.auth.v1.ValidateTokenResponse
+	0,  // 41: rosneft.auth.v1.AuthService.GetMe:output_type -> rosneft.auth.v1.User
+	15, // 42: rosneft.auth.v1.AuthService.ChangePassword:output_type -> rosneft.auth.v1.ChangePasswordResponse
+	19, // 43: rosneft.auth.v1.AuthService.VerifyPassword:output_type -> rosneft.auth.v1.VerifyPasswordResponse
+	17, // 44: rosneft.auth.v1.AuthService.MarkTourSeen:output_type -> rosneft.auth.v1.MarkTourSeenResponse
+	0,  // 45: rosneft.auth.v1.AuthService.CreateUser:output_type -> rosneft.auth.v1.User
+	22, // 46: rosneft.auth.v1.AuthService.ListUsers:output_type -> rosneft.auth.v1.ListUsersResponse
+	24, // 47: rosneft.auth.v1.AuthService.ResolveUserLogins:output_type -> rosneft.auth.v1.ResolveUserLoginsResponse
+	0,  // 48: rosneft.auth.v1.AuthService.GetUser:output_type -> rosneft.auth.v1.User
+	0,  // 49: rosneft.auth.v1.AuthService.UpdateUser:output_type -> rosneft.auth.v1.User
+	0,  // 50: rosneft.auth.v1.AuthService.FreezeUser:output_type -> rosneft.auth.v1.User
+	0,  // 51: rosneft.auth.v1.AuthService.UnfreezeUser:output_type -> rosneft.auth.v1.User
+	33, // 52: rosneft.auth.v1.AuthService.SoftDeleteUser:output_type -> rosneft.auth.v1.SoftDeleteUserResponse
+	0,  // 53: rosneft.auth.v1.AuthService.RestoreUser:output_type -> rosneft.auth.v1.User
+	0,  // 54: rosneft.auth.v1.AuthService.SetUserOwner:output_type -> rosneft.auth.v1.User
+	37, // 55: rosneft.auth.v1.AuthService.ListRoles:output_type -> rosneft.auth.v1.ListRolesResponse
+	1,  // 56: rosneft.auth.v1.AuthService.CreateRole:output_type -> rosneft.auth.v1.Role
+	1,  // 57: rosneft.auth.v1.AuthService.UpdateRole:output_type -> rosneft.auth.v1.Role
+	41, // 58: rosneft.auth.v1.AuthService.DeleteRole:output_type -> rosneft.auth.v1.DeleteRoleResponse
+	1,  // 59: rosneft.auth.v1.AuthService.SetRolePermissions:output_type -> rosneft.auth.v1.Role
+	44, // 60: rosneft.auth.v1.AuthService.ListPermissions:output_type -> rosneft.auth.v1.ListPermissionsResponse
+	27, // 61: rosneft.auth.v1.AuthService.ResolveLabels:output_type -> rosneft.auth.v1.ResolveLabelsResponse
+	35, // [35:62] is the sub-list for method output_type
+	8,  // [8:35] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_rosneft_auth_v1_auth_proto_init() }
@@ -2575,7 +2748,7 @@ func file_rosneft_auth_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rosneft_auth_v1_auth_proto_rawDesc), len(file_rosneft_auth_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   43,
+			NumMessages:   47,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
