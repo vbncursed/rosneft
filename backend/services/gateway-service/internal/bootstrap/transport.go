@@ -29,17 +29,25 @@ var (
 
 // InitRouter builds the chi.Router stack:
 //
-//	[CORS, RequestID, Recoverer, slog-chi]             ← root
+//	[metrics, (CORS), RequestID, Recoverer, slog-chi]        ← root
 //	  /healthz, /readyz, /docs, /openapi.json
-//	  /api/assets/{hash}                                ← binary proxy
-//	  /api/jobs/{id}/events                             ← SSE
+//	  /api/assets/{hash}   → Authenticate → RequireBlobAccess → binary proxy
+//	  /api/jobs/{id}/events→ Authenticate → SSE
+//	  /api/metrics/query   → Authenticate → owner check → Prometheus proxy
+//	  /api/audit.csv       → Authenticate → Require("audit:read") → CSV stream
+//	  /api/auth/*          → authhttp (login public; self/admin gated)
 //	  /api/* sub-router
-//	    [ETag, Compress(br/gzip/deflate)]
+//	    Authenticate → RequirePermissionForRoute → RequireTerritoryAccess
+//	    → RequireCSRF → ETag → Compress(br/gzip/deflate)
 //	    openapi strict handlers
+//
+// CORS is parenthesised because it is mounted only when an origin list is
+// configured, which by default it is not — see newRouterWithCORS.
 //
 // Asset proxy and SSE sit on the root router so they bypass the JSON
 // middleware chain — GLB binaries already carry asset-service ETag and
-// would only waste CPU if compressed; SSE must not be buffered.
+// would only waste CPU if compressed; SSE must not be buffered. Bypassing that
+// chain is not bypassing authentication, and for assets not the tenant either.
 func InitRouter(
 	svc *service.Gateway,
 	assetProxy http.Handler,
