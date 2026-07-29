@@ -95,10 +95,20 @@ func InitRouter(
 	r.Get("/docs", apiServer.ServeDocs)
 	r.Get("/openapi.json", apiServer.ServeSpec)
 
-	// Binary asset proxy + SSE — outside the JSON middleware chain.
-	r.Get("/api/assets/{hash}", assetProxy.ServeHTTP)
-	r.Head("/api/assets/{hash}", assetProxy.ServeHTTP)
-	r.Get("/api/jobs/{id}/events", apiServer.WatchJobEvents)
+	// Binary asset proxy + SSE — outside the JSON middleware chain, but no
+	// longer outside authentication. Both were reachable anonymously: the hash
+	// and the job id are unguessable, so this was a capability URL rather than
+	// an open door, but a capability URL has no revocation. Behind the session
+	// it inherits one — logout, freeze and a role change all kill it at once.
+	//
+	// Not territory-scoped, and that is not an omission: a blob hash addresses
+	// content and is deduplicated across territories and models, so there is no
+	// single territory to check it against. Any authenticated caller who knows a
+	// hash can fetch it; after RequireTerritoryAccess, hashes are only handed to
+	// callers already inside the tenant.
+	r.With(authH.Authenticate).Get("/api/assets/{hash}", assetProxy.ServeHTTP)
+	r.With(authH.Authenticate).Head("/api/assets/{hash}", assetProxy.ServeHTTP)
+	r.With(authH.Authenticate).Get("/api/jobs/{id}/events", apiServer.WatchJobEvents)
 
 	// Owner-only Prometheus proxy. Authenticated (for the owner check) but
 	// outside the openapi strict handlers — it resolves a panel ID to
