@@ -7,19 +7,24 @@ import "time"
 // Entry is one journal row. OldRow/NewRow carry raw JSON snapshots; the diff is
 // derived by the client and never stored, since it is fully determined by the
 // two snapshots already here.
+//
+// The JSON tags name the audit_log columns rather than the Go fields. Nothing
+// in the gRPC path marshals this type — transport converts field by field — but
+// `audit export` writes it straight to JSONL, and an archive whose keys match
+// the table is one an operator can load back without a translation step.
 type Entry struct {
-	ID          int64
-	At          time.Time
-	ActorID     string
-	CompanyID   string
-	Action      string
-	Entity      string
-	EntityID    string
-	EntityLabel string
-	OldRow      string
-	NewRow      string
-	RequestID   string
-	Result      string
+	ID          int64     `json:"id"`
+	At          time.Time `json:"at"`
+	ActorID     string    `json:"actor_id"`
+	CompanyID   string    `json:"company_id"`
+	Action      string    `json:"action"`
+	Entity      string    `json:"entity"`
+	EntityID    string    `json:"entity_id"`
+	EntityLabel string    `json:"entity_label"`
+	OldRow      string    `json:"old_row"`
+	NewRow      string    `json:"new_row"`
+	RequestID   string    `json:"request_id"`
+	Result      string    `json:"result"`
 }
 
 // Filter narrows a journal read.
