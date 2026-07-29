@@ -122,6 +122,20 @@ func (s *CheckpointSchemaSuite) TestTruncateIsRefused() {
 	assert.ErrorContains(s.T(), err, "append-only")
 }
 
+// digest() comes from pgcrypto, which the auth migrations also create — but
+// service migrations run in no fixed order, and this suite runs audit's alone.
+// Without the extension claimed by 00004 the whole digest pipeline fails at
+// runtime rather than at migration time, which is the worst place to find out.
+func (s *CheckpointSchemaSuite) TestPgcryptoIsAvailable() {
+	var got string
+	err := s.pool.QueryRow(s.T().Context(),
+		`SELECT encode(digest('', 'sha256'), 'hex')`).Scan(&got)
+
+	assert.NilError(s.T(), err)
+	// SHA-256 of the empty string — the same value the seed checkpoint carries.
+	assert.Equal(s.T(), got, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+}
+
 // row_count must not be named `rows`: ROWS is a PostgreSQL keyword and a bare
 // reference to it inside a window or FETCH clause would not parse.
 func (s *CheckpointSchemaSuite) TestRowCountColumnExists() {
@@ -146,6 +160,14 @@ Create `backend/services/audit-service/internal/migrate/migrations/00004_checkpo
 ```sql
 -- +goose Up
 -- +goose StatementBegin
+-- digest() lives in pgcrypto. The auth migrations create the extension too, but
+-- service migrations run independently and in no fixed order: on a fresh
+-- database audit may go first, and in the testcontainers suites it goes alone.
+-- Claiming the dependency here is what makes ComputeDigest work regardless.
+-- IF NOT EXISTS because auth may well have created it already; the Down
+-- migration deliberately does not drop it, since auth needs gen_random_uuid().
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Sealed ranges of the journal. Each row digests audit_log over (from_id, to_id]
 -- and chains to its predecessor, so rewriting one checkpoint forces rewriting
 -- every later one.
@@ -191,7 +213,7 @@ DROP TABLE IF EXISTS audit_checkpoint;
 - [ ] **Step 4: Запустить тест, убедиться что проходит**
 
 Run: `cd backend/services/audit-service && go test -tags=integration ./internal/migrate/ -run TestCheckpointSchemaSuite -v`
-Expected: PASS, 4 теста.
+Expected: PASS, 5 тестов.
 
 - [ ] **Step 5: Проверить откат миграции**
 
@@ -852,7 +874,7 @@ func (w *Writer) Close() error {
 - [ ] **Step 4: Запустить тест, убедиться что проходит**
 
 Run: `cd backend/services/audit-service && go test ./internal/digest/ -v`
-Expected: PASS, 4 теста.
+Expected: PASS, 5 тестов.
 
 - [ ] **Step 5: Коммит**
 
@@ -3099,7 +3121,7 @@ export default function MyActivitySection() {
 - [ ] **Step 4: Запустить тест, убедиться что проходит**
 
 Run: `cd frontend && yarn test:spa src/audit/presentation/components/my-activity-section.spec.tsx`
-Expected: PASS, 4 теста.
+Expected: PASS, 5 тестов.
 
 - [ ] **Step 5: Подключить к странице аккаунта**
 
