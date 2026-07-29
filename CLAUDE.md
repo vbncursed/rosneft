@@ -28,7 +28,7 @@ it by copying a neighbouring file.
 All commands run from `frontend/`:
 
 ```bash
-yarn dev          # Vite dev server (http://localhost:5173)
+yarn dev          # Vite dev server (http://localhost:3000, /api proxied to the gateway)
 yarn build        # Production build → dist/
 yarn preview      # Serve the production build locally
 yarn lint         # ESLint (flat config, eslint.config.mjs)
@@ -122,7 +122,7 @@ frontend/
       presentation/conversion-pending.tsx
     panorama/                           # equirect panorama tours + scene markers
     document/                           # PDF overlays anchored to a territory
-    auth/                               # login, token store, RBAC, passkeys, 2FA, admin console
+    auth/                               # login, session marker, RBAC, passkeys, 2FA, admin console
     metrics/                            # owner-only Prometheus dashboard
     audit/                              # bounded context: the change journal
       domain/{audit-entry.ts, diff.ts}  # diff.ts is pure — node --test
@@ -140,7 +140,7 @@ frontend/
 - Tailwind v4 syntax: `@theme inline` block for design tokens, `@import "tailwindcss"` instead of `@tailwind base/components/utilities`
 - ESLint flat config (`eslint.config.mjs`), not legacy `.eslintrc`
 - Two test runners: pure domain logic → `node --test` (`*.test.ts`); jsdom/React → vitest (`*.spec.ts[x]`). Globs don't overlap.
-- Client env is `VITE_API_URL` (gateway base URL, `import.meta.env`). Dev-only `VITE_DEV_PROXY` routes `/api` through Vite to a remote gateway (see `vite.config.ts`).
+- Client env is `VITE_API_URL` — **empty in both dev and prod**. nginx serves the SPA and proxies `/api` in production; Vite's dev server proxies `/api` by default in development. Single origin is not a convenience: it is what lets the httpOnly session cookie ride on `<img>`, the pdf.js `<iframe>` and three.js loader requests, none of which can carry an Authorization header. `VITE_DEV_PROXY` overrides the dev target. Dev runs on port **3000** — `PASSKEY_RP_ORIGINS` is pinned to it.
 
 ## Territory route composition
 
@@ -184,6 +184,8 @@ The gateway exposes a small REST surface defined in `backend/services/gateway-se
 - `GET /api/audit` — the change journal, cursor-paged over descending `id` (`nextCursor` in the body, `X-Next-Cursor` on the response). Filters: `actor`, `action`, `entity`, `from`, `to`, `limit` (default 50, capped at 200). Two grants reach it: `audit:read` sees the whole company, `audit:read_own` sees only the caller's own actions — and in that mode the gateway **overwrites** the `actor` parameter rather than merging it, so the pin cannot be widened by hand. Root passes via the owner bypass. **The company scope comes from the session and is not a parameter** — there is no way to ask for another company's history.
 - `GET /api/audit.csv` — the same query streamed as CSV. Stays behind `audit:read` alone: it is the whole company's history in one file, which is not what `audit:read_own` opens. Lives on the root router, outside the ETag/compression chain, because ETag hashes the whole body and would buffer the export. Needs an `Authorization` header, so the client fetches and blobs it rather than using a plain `<a download>`.
 - `GET /api/jobs/{id}/events` — Server-Sent Events for one conversion job. Emits `event: job` whenever the job state changes; closes on `succeeded`/`failed`. Job payload carries `kind` and `slug` so the client knows which entity is being converted.
+- **Every route under `/api/territories/{slug}` is gated by `RequireTerritoryAccess`**, a middleware keyed on the route-pattern prefix. A new child resource inherits the gate the moment it is registered — do not add a per-handler scope check instead, that is the shape that failed. It answers 404, never 403: a 403 confirms the territory exists, and to another tenant it must not.
+- `GET /api/assets/{hash}` and `GET /api/jobs/{id}/events` **require a session**. Both used to be anonymous; the hash and job id are unguessable, so it was a capability URL rather than an open door, but a capability URL has no revocation.
 - All JSON GETs carry strong ETags and answer `If-None-Match` with 304. Browsers cache automatically — no client-side work required.
 - All JSON responses are Brotli/gzip-compressed when the client advertises `Accept-Encoding: br, gzip`.
 

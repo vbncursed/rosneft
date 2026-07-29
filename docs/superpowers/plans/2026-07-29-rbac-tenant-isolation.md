@@ -1126,7 +1126,7 @@ git commit -m "fix(gateway): require a session for binary assets and the job str
 **Interfaces:**
 - Consumes: всё построенное в задачах 1–5. Кода не меняет.
 
-- [ ] **Step 1: Корневой CLAUDE.md**
+- [x] **Step 1: Корневой CLAUDE.md**
 
 Добавить в раздел про эндпоинты шлюза:
 
@@ -1141,7 +1141,7 @@ git commit -m "fix(gateway): require a session for binary assets and the job str
 Client env is `VITE_API_URL` — **empty in both dev and prod**. nginx serves the SPA and proxies `/api` in production; Vite's dev server proxies `/api` by default in development. Single origin is not a convenience: it is what lets the httpOnly session cookie ride on `<img>`, the pdf.js `<iframe>` and three.js loader requests, none of which can carry an Authorization header. `VITE_DEV_PROXY` overrides the dev target. Dev runs on port **3000** — `PASSKEY_RP_ORIGINS` is pinned to it.
 ```
 
-- [ ] **Step 2: backend/CLAUDE.md**
+- [x] **Step 2: backend/CLAUDE.md**
 
 Добавить после раздела про журнал аудита:
 
@@ -1180,7 +1180,7 @@ moment of login, but not one lying at rest, and the one lying at rest is what
 gets stolen.
 ```
 
-- [ ] **Step 3: frontend/README.md и gateway README**
+- [x] **Step 3: frontend/README.md и gateway README**
 
 В `frontend/README.md` — раздел про запуск: порт 3000 теперь дефолт, `/api`
 проксируется, `VITE_API_URL` пустой.
@@ -1190,7 +1190,7 @@ gets stolen.
 добавить, что ассеты и SSE требуют сессии, а всё под `/api/territories/{slug}`
 проходит гейт территории.
 
-- [ ] **Step 4: Коммит**
+- [x] **Step 4: Коммит**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft
@@ -1202,7 +1202,7 @@ git commit -m "docs(rbac): territory gate, session cookie, single-origin dev"
 
 ## Финальная проверка
 
-- [ ] **Полный прогон**
+- [x] **Полный прогон**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft

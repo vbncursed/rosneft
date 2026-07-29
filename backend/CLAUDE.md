@@ -273,6 +273,51 @@ The trigger logic is SQL, so it is covered by the repo's only integration tests:
 `integration` build tag. Run with `go test -tags=integration ./...` from
 `services/audit-service`; needs Docker. `make test` stays Docker-free.
 
+## Tenant isolation
+
+Scope is enforced by `httpapi.RequireTerritoryAccess`, mounted in the `/api`
+group after `RequirePermissionForRoute` (the permission check costs no network,
+so a caller heading for a 403 should not first buy a catalog lookup). It matches
+on the route-pattern prefix `/api/territories/{slug}`, so all thirteen child
+routes — and any added later — are covered without anyone remembering.
+
+That shape is deliberate. The hole it closed was not a missing check but a check
+that had to be threaded through thirteen handlers and reached three of them.
+
+`GetTerritory` and `GetSceneBundle` keep their own scope argument even though the
+middleware now covers them. Removing it would make handler correctness depend on
+the middleware being mounted, and this codebase already has a route that escapes
+the group and wires its gates by hand (`/api/audit.csv`).
+
+The scope itself resolves through `territory_assignments` only — see
+`catalog-service/internal/storage/get_territory.go`, where an **empty**
+`scopeAdminID` disables the filter entirely. That is why the middleware refuses a
+non-Root principal with an empty scope instead of passing it through: the empty
+value does not mean "no access", it means "every territory".
+
+`/api/assets/{hash}` and `/api/jobs/{id}/events` now sit behind `Authenticate`
+but deliberately carry **no** territory gate: a blob hash addresses content and
+is deduplicated across territories and models, so there is no single territory to
+check it against. Any authenticated caller who knows a hash can fetch it; the
+territory gate is what keeps hashes from reaching outsiders in the first place.
+
+## Session cookie
+
+The session travels as `andrey_session`: httpOnly, `SameSite=Lax`, `Path=/`,
+`Secure` from `GATEWAY_COOKIE_SECURE` (default **true**; local compose sets it
+false because dev is plain http). `sessionToken(r)` reads the cookie first and
+the `Authorization` header second — Bearer stays supported for curl, tests and
+non-browser clients.
+
+`SameSite=Lax` is what stands in for a CSRF token: a cross-site POST does not
+carry the cookie, and this API changes state only through POST/PUT/PATCH/DELETE.
+Adding a state-changing GET would quietly break that, so do not.
+
+The login response still returns the token in its body — otherwise a non-browser
+client has no way to obtain a Bearer. XSS can therefore read a token at the
+moment of login, but not one lying at rest, and the one lying at rest is what
+gets stolen.
+
 ## Performance notes
 
 - OBJ parser: 5 allocs/op flat, ~260–330 MB/s on Apple M3 (benchmarks in `mesh-service/internal/converter/parse_obj_bench_test.go`). Hot-path uses `unsafe.String` to skip `[]byte→string` copies for `strconv` calls.
