@@ -32,6 +32,16 @@ type Config struct {
 	WriteTimeout    time.Duration `mapstructure:"write-timeout"`
 	IdleTimeout     time.Duration `mapstructure:"idle-timeout"`
 	ShutdownTimeout time.Duration `mapstructure:"shutdown-timeout"`
+	// CookieSecure defaults to true: a misconfigured production is worse than a
+	// broken local dev, and local compose turns it off explicitly.
+	CookieSecure bool `mapstructure:"cookie-secure"`
+	// SessionCookieTTL should not exceed auth's absolute session TTL.
+	SessionCookieTTL time.Duration `mapstructure:"session-cookie-ttl"`
+	// CSRFSecret keys the HMAC behind the anti-CSRF token. No default on
+	// purpose: a hardcoded one would be public, and a random per-boot one would
+	// invalidate every outstanding token on every restart, so the service
+	// refuses to start without one instead.
+	CSRFSecret string `mapstructure:"csrf-secret"`
 }
 
 const envPrefix = "GATEWAY"
@@ -55,13 +65,17 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.SetDefault("audit-grpc-addr", "audit:9009")
 	v.SetDefault("asset-http-addr", "http://asset:8081")
 	v.SetDefault("prometheus-url", "http://prometheus:9090")
-	v.SetDefault("allowed-origins", []string{"*"})
+	// Empty by default: the SPA is same-origin, so CORS is not mounted
+	// at all. Set this only for a third-party consumer of the API.
+	v.SetDefault("allowed-origins", []string{})
 	v.SetDefault("log-level", "info")
 	v.SetDefault("log-format", "json")
 	v.SetDefault("read-timeout", 10*time.Second)
 	v.SetDefault("write-timeout", 5*time.Minute)
 	v.SetDefault("idle-timeout", 2*time.Minute)
 	v.SetDefault("shutdown-timeout", 15*time.Second)
+	v.SetDefault("cookie-secure", true)
+	v.SetDefault("session-cookie-ttl", 720*time.Hour)
 
 	if err := v.BindPFlags(cmd.Root().PersistentFlags()); err != nil {
 		return Config{}, fmt.Errorf("config: bind persistent flags: %w", err)
@@ -99,6 +113,9 @@ func (c Config) Validate() error {
 	}
 	if c.AssetHTTPAddr == "" {
 		return fmt.Errorf("config: asset-http-addr is required")
+	}
+	if c.CSRFSecret == "" {
+		return fmt.Errorf("config: csrf-secret is required")
 	}
 	return nil
 }

@@ -8,14 +8,19 @@ import (
 	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 )
 
-// Authenticate validates the Bearer token via the auth-service and injects the
-// principal (user id + permission snapshot) into the request context. Requests
-// without a valid token get 401.
+// Authenticate validates the caller's session token via the auth-service and
+// injects the principal (user id + permission snapshot) into the request
+// context. Requests without a valid token get 401.
+//
+// The token comes from sessionToken(r): the andrey_session cookie first, the
+// Authorization header second. Do not narrow this back to the header — <img>,
+// the pdf.js <iframe>, EventSource and the three.js loaders all authenticate
+// through the cookie and can set no headers at all.
 func (h *Handlers) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := bearer(r)
+		token := sessionToken(r)
 		if token == "" {
-			apperr.Write(w, http.StatusUnauthorized, apperr.SlugUnauthenticated, "missing bearer token")
+			apperr.Write(w, http.StatusUnauthorized, apperr.SlugUnauthenticated, "missing session")
 			return
 		}
 		uid, perms, isOwner, owningAdmin, auditCompany, err := h.client.ValidateToken(r.Context(), token)

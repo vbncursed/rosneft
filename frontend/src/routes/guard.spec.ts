@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { isRedirect } from "@tanstack/react-router";
 import { requireAuth } from "@/routes/guard";
-import { setToken } from "@/auth/infrastructure/token-store";
+import { markAuthed } from "@/auth/infrastructure/session-marker";
 
 function redirectOf(href: string) {
   try {
@@ -30,7 +30,7 @@ describe("requireAuth", () => {
   });
 
   it("does nothing when a token is present", () => {
-    setToken("tok");
+    markAuthed();
     expect(() => requireAuth({ href: "/territories" })).not.toThrow();
   });
 });

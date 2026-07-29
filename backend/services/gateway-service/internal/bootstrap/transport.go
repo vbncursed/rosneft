@@ -29,17 +29,25 @@ var (
 
 // InitRouter builds the chi.Router stack:
 //
-//	[CORS, RequestID, Recoverer, slog-chi]             ← root
+//	[metrics, (CORS), RequestID, Recoverer, slog-chi]        ← root
 //	  /healthz, /readyz, /docs, /openapi.json
-//	  /api/assets/{hash}                                ← binary proxy
-//	  /api/jobs/{id}/events                             ← SSE
+//	  /api/assets/{hash}   → Authenticate → RequireBlobAccess → binary proxy
+//	  /api/jobs/{id}/events→ Authenticate → SSE
+//	  /api/metrics/query   → Authenticate → owner check → Prometheus proxy
+//	  /api/audit.csv       → Authenticate → Require("audit:read") → CSV stream
+//	  /api/auth/*          → authhttp (login public; self/admin gated)
 //	  /api/* sub-router
-//	    [ETag, Compress(br/gzip/deflate)]
+//	    Authenticate → RequirePermissionForRoute → RequireTerritoryAccess
+//	    → RequireCSRF → ETag → Compress(br/gzip/deflate)
 //	    openapi strict handlers
+//
+// CORS is parenthesised because it is mounted only when an origin list is
+// configured, which by default it is not — see newRouterWithCORS.
 //
 // Asset proxy and SSE sit on the root router so they bypass the JSON
 // middleware chain — GLB binaries already carry asset-service ETag and
-// would only waste CPU if compressed; SSE must not be buffered.
+// would only waste CPU if compressed; SSE must not be buffered. Bypassing that
+// chain is not bypassing authentication, and for assets not the tenant either.
 func InitRouter(
 	svc *service.Gateway,
 	assetProxy http.Handler,
@@ -48,26 +56,13 @@ func InitRouter(
 	logger *slog.Logger,
 	cfg config.Config,
 ) (chi.Router, *healthz.Handler) {
-	r := chi.NewRouter()
+	r := newRouterWithCORS(cfg.AllowedOrigins)
 
 	// Record HTTP RED for every request (method + status). Outermost so it
 	// times the full chain. The /metrics endpoint itself is served only on the
 	// internal :9101 listener, never on this public router.
 	r.Use(metrics.Middleware)
 
-	// The SPA is cross-origin (no same-origin BFF since the Next.js proxy went
-	// away), so the chunked-upload protocol rides on CORS: PATCH sends the
-	// required Upload-Offset request header, HEAD carries a Bearer token — which
-	// makes it preflighted, not a simple request — and both answer with
-	// Upload-Offset / Upload-Length that the browser hides unless exposed.
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   resolveOrigins(cfg.AllowedOrigins),
-		AllowedMethods:   []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},
-		AllowedHeaders:   []string{"Content-Type", "If-None-Match", "Authorization", "Upload-Offset"},
-		ExposedHeaders:   []string{"ETag", "Content-Length", "Content-Range", "X-Next-Cursor", "Upload-Offset", "Upload-Length"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	}))
 	r.Use(middleware.RequestID)
 	// No RealIP: it rewrites RemoteAddr from client-controlled headers
 	// (X-Forwarded-For / True-Client-IP / X-Real-IP) whether or not the
@@ -95,10 +90,22 @@ func InitRouter(
 	r.Get("/docs", apiServer.ServeDocs)
 	r.Get("/openapi.json", apiServer.ServeSpec)
 
-	// Binary asset proxy + SSE — outside the JSON middleware chain.
-	r.Get("/api/assets/{hash}", assetProxy.ServeHTTP)
-	r.Head("/api/assets/{hash}", assetProxy.ServeHTTP)
-	r.Get("/api/jobs/{id}/events", apiServer.WatchJobEvents)
+	// Binary asset proxy + SSE — outside the JSON middleware chain, but neither
+	// outside authentication nor, for assets, outside the tenant.
+	//
+	// The asset route cannot use RequireTerritoryAccess: a blob hash addresses
+	// content and is deduplicated across territories and models, so it has no
+	// single territory to check against. RequireBlobAccess asks the catalog the
+	// answerable version of the question instead — is there any row holding this
+	// hash that this caller can see — which also lets a model's bytes through to
+	// everyone, the library being shared by decision.
+	r.With(authH.Authenticate, apiServer.RequireBlobAccess).Get("/api/assets/{hash}", assetProxy.ServeHTTP)
+	r.With(authH.Authenticate, apiServer.RequireBlobAccess).Head("/api/assets/{hash}", assetProxy.ServeHTTP)
+	// SSE stays authenticated but unscoped: a job id is 128 random bits and the
+	// payload names a kind and a slug, not a blob. Scoping the stream is a
+	// different question — about a job, not about content — and is deliberately
+	// left out here.
+	r.With(authH.Authenticate).Get("/api/jobs/{id}/events", apiServer.WatchJobEvents)
 
 	// Owner-only Prometheus proxy. Authenticated (for the owner check) but
 	// outside the openapi strict handlers — it resolves a panel ID to
@@ -121,6 +128,13 @@ func InitRouter(
 	r.Group(func(api chi.Router) {
 		api.Use(authH.Authenticate)
 		api.Use(authhttp.RequirePermissionForRoute)
+		// After the permission gate on purpose: that one costs no network, so a
+		// caller already heading for a 403 does not first buy a catalog lookup.
+		api.Use(apiServer.RequireTerritoryAccess)
+		// After the gates and before the handlers: a request that is going to be
+		// refused for lack of permission or tenant should not first be told its
+		// CSRF token is stale.
+		api.Use(authH.RequireCSRF)
 		api.Use(httpapi.ETagMiddleware)
 		api.Use(newCompressor().Handler)
 		httpapi.HandlerFromMux(
@@ -132,13 +146,34 @@ func InitRouter(
 	return r, hz
 }
 
-// resolveOrigins maps the configured origin list onto go-chi/cors syntax.
-// An empty slice or {"*"} becomes []{"*"} (any origin allowed).
-func resolveOrigins(origins []string) []string {
+// newRouterWithCORS builds the root router, carrying the CORS handler only when
+// there is something to allow.
+//
+// An empty list must mean "no cross-origin access". go-chi/cors disagrees: an
+// empty AllowedOrigins with no AllowOriginFunc sets allowedOriginsAll and echoes
+// every origin (cors.go:131). Blanking the config is therefore a way to turn
+// CORS fully ON, and not mounting the handler is the only way to say none.
+//
+// The SPA is same-origin with this API in dev and prod alike — nginx serves it
+// and proxies /api, Vite does the same — so it is preflighted nowhere and needs
+// none of this. The knob stays for a third-party consumer of the API, should one
+// appear; ExposedHeaders is what such a client would need, since the
+// chunked-upload protocol answers with Upload-Offset / Upload-Length and a
+// browser hides those from script unless they are exposed.
+func newRouterWithCORS(origins []string) chi.Router {
+	r := chi.NewRouter()
 	if len(origins) == 0 {
-		return []string{"*"}
+		return r
 	}
-	return origins
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   origins,
+		AllowedMethods:   []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},
+		AllowedHeaders:   []string{"Content-Type", "If-None-Match", "Authorization", "Upload-Offset", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"ETag", "Content-Length", "Content-Range", "X-Next-Cursor", "Upload-Offset", "Upload-Length"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
+	return r
 }
 
 // newCompressor configures chi's Compressor with brotli registered alongside

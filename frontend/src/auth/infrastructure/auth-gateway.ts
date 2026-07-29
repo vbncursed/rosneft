@@ -1,4 +1,5 @@
 import { httpGet, httpPost } from "@/shared/infrastructure/http/client";
+import { setCsrfToken } from "@/auth/infrastructure/csrf-token";
 import type { components } from "@/shared/infrastructure/api/dto";
 import type { Principal } from "@/auth/domain/principal";
 
@@ -19,7 +20,15 @@ export function mapPrincipal(d: AuthUserDto): Principal {
 }
 
 export async function getMe(): Promise<Principal> {
-  return mapPrincipal(await httpGet<AuthUserDto>("/api/auth/me"));
+  const d = await httpGet<AuthUserDto>("/api/auth/me");
+  // Seeds the in-memory CSRF token on the normal path, since this response
+  // already carries it. It is not what guarantees a token is there: nothing
+  // awaits meQuery — the route guard is synchronous and the layout renders its
+  // children while this is still in flight — so a mutation can beat it. That
+  // case is handled by ensureCsrfToken, which fetches one when a mutation finds
+  // none. This just saves the extra round trip when the ordering works out.
+  if (d.csrfToken) setCsrfToken(d.csrfToken);
+  return mapPrincipal(d);
 }
 
 export function changePassword(oldPassword: string, newPassword: string): Promise<void> {

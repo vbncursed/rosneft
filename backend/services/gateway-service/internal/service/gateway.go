@@ -16,6 +16,7 @@ import (
 type Catalog interface {
 	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
 	ResolveTerritorySlugs(ctx context.Context, ids []int64) (map[int64]string, error)
+	ResolveBlobAccess(ctx context.Context, hash, scopeAdminID string) (bool, error)
 	ResolveLabels(ctx context.Context, refs []domain.LabelRef) (map[string]string, error)
 	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
 	UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)

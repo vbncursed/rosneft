@@ -1,6 +1,6 @@
 import { redirect } from "@tanstack/react-router";
 import type { QueryClient } from "@tanstack/react-query";
-import { getToken } from "@/auth/infrastructure/token-store";
+import { isAuthed } from "@/auth/infrastructure/session-marker";
 import { meQuery } from "@/auth/application/me-query";
 import { can, type Principal } from "@/auth/domain/principal";
 
@@ -15,7 +15,7 @@ type Target = { href: string };
 // NOT checked here — the first meQuery fetch 401s and client.ts hard-navigates
 // to /login, so a stale token self-heals without a network call in beforeLoad.
 export function requireAuth(location: Target): void {
-  if (!getToken()) {
+  if (!isAuthed()) {
     throw redirect({ to: "/login", search: { next: location.href } });
   }
 }

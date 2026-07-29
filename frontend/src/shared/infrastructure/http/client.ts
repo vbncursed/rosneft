@@ -1,23 +1,39 @@
 import { HttpError, type ApiError } from "@/shared/infrastructure/http/http-error";
-import { getToken, clearToken } from "@/auth/infrastructure/token-store";
+import { clearAuthed } from "@/auth/infrastructure/session-marker";
+import { ensureCsrfToken } from "@/auth/infrastructure/csrf-token";
 
 const API_BASE = import.meta.env.VITE_API_URL;
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 async function send<T>(path: string, init: RequestInit, parseJson: boolean): Promise<T> {
-  const token = getToken();
+  // No Authorization header: the session is an httpOnly cookie, and the SPA is
+  // single-origin with the API in both dev and prod, so the browser attaches it
+  // to every request here without being asked.
+  //
+  // That cookie is exactly why the CSRF token is needed — it rides along on a
+  // cross-site POST too, and only this header proves the request came from our
+  // own page. Sent on mutations only, matching what the gateway checks.
+  //
+  // ensureCsrfToken rather than a plain read: on a cold page load nothing has
+  // put a token in memory yet, and nothing makes a mutation wait for the app's
+  // meQuery. Awaited only when one is actually missing, so the normal path pays
+  // nothing.
+  const mutating = !SAFE_METHODS.has((init.method ?? "GET").toUpperCase());
+  const csrf = mutating ? await ensureCsrfToken() : null;
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
       Accept: "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(csrf ? { "X-CSRF-Token": csrf } : {}),
       ...(init.headers ?? {}),
     },
   });
   if (!res.ok) {
-    // 401 = token expired/revoked. Drop it and bounce to /login — unless we're
-    // already on /login (a bad-credentials login also 401s; let it surface).
+    // 401 = session expired or revoked. Drop the marker and bounce to /login —
+    // unless we're already on /login (a bad-credentials login also 401s; let it
+    // surface).
     if (res.status === 401 && !location.pathname.startsWith("/login")) {
-      clearToken();
+      clearAuthed();
       location.assign(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
     }
     let body: ApiError | null = null;

@@ -7,7 +7,7 @@ import (
 )
 
 func (h *Handlers) listRoles(w http.ResponseWriter, r *http.Request) {
-	list, err := h.client.ListRoles(r.Context(), bearer(r))
+	list, err := h.client.ListRoles(r.Context(), sessionToken(r))
 	if err != nil {
 		fail(w, err)
 		return
@@ -23,7 +23,7 @@ func (h *Handlers) createRole(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	role, err := h.client.CreateRole(r.Context(), bearer(r), req.Slug, req.Title, req.PermissionSlugs)
+	role, err := h.client.CreateRole(r.Context(), sessionToken(r), req.Slug, req.Title, req.PermissionSlugs)
 	if err != nil {
 		fail(w, err)
 		return
@@ -36,7 +36,7 @@ func (h *Handlers) updateRole(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	role, err := h.client.UpdateRole(r.Context(), bearer(r), chi.URLParam(r, "slug"), req.Title)
+	role, err := h.client.UpdateRole(r.Context(), sessionToken(r), chi.URLParam(r, "slug"), req.Title)
 	if err != nil {
 		fail(w, err)
 		return
@@ -45,7 +45,7 @@ func (h *Handlers) updateRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) deleteRole(w http.ResponseWriter, r *http.Request) {
-	if err := h.client.DeleteRole(r.Context(), bearer(r), chi.URLParam(r, "slug")); err != nil {
+	if err := h.client.DeleteRole(r.Context(), sessionToken(r), chi.URLParam(r, "slug")); err != nil {
 		fail(w, err)
 		return
 	}
@@ -59,7 +59,7 @@ func (h *Handlers) setRolePermissions(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	role, err := h.client.SetRolePermissions(r.Context(), bearer(r), chi.URLParam(r, "slug"), req.PermissionSlugs)
+	role, err := h.client.SetRolePermissions(r.Context(), sessionToken(r), chi.URLParam(r, "slug"), req.PermissionSlugs)
 	if err != nil {
 		fail(w, err)
 		return

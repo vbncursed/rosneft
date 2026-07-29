@@ -66,7 +66,16 @@ services:
       GATEWAY_UPLOAD_GRPC_ADDR: "upload:9003"
       GATEWAY_ASSET_HTTP_ADDR: "http://asset:8081"
       GATEWAY_AUDIT_GRPC_ADDR: "audit:9009"
-      GATEWAY_ALLOWED_ORIGINS: "*"
+      # Deliberately unset: the SPA reaches /api through the Vite proxy in dev
+      # and nginx in prod, so it is same-origin and CORS is not mounted at all.
+      # Setting this to "*" would put the wildcard back — and note that setting
+      # it to "" would too, since go-chi/cors reads an empty list as "all".
+      # Local dev is plain http, where a Secure cookie is never sent. The code
+      # defaults to true so a misconfigured production fails safe.
+      GATEWAY_COOKIE_SECURE: "false"
+      # Local dev only. Production must set its own — the gateway refuses to
+      # boot without one rather than fall back to something guessable.
+      GATEWAY_CSRF_SECRET: "local-dev-csrf-secret"
       GATEWAY_LOG_LEVEL: "info"
       # Upload chunks can be hundreds of MB; raise WriteTimeout to give
       # the gateway → upload-service stream time to drain.

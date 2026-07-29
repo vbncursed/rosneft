@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import { isRedirect } from "@tanstack/react-router";
 import { requirePermission } from "@/routes/guard";
-import { setToken } from "@/auth/infrastructure/token-store";
+import { markAuthed } from "@/auth/infrastructure/session-marker";
 import type { Principal } from "@/auth/domain/principal";
 
 function clientReturning(me: Partial<Principal>) {
@@ -14,7 +14,7 @@ function clientReturning(me: Partial<Principal>) {
 describe("requirePermission", () => {
   beforeEach(() => {
     localStorage.clear();
-    setToken("tok");
+    markAuthed();
   });
 
   it("passes when the principal has the permission", async () => {
