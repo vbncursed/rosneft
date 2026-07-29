@@ -1,4 +1,5 @@
 import { httpGet, httpPost } from "@/shared/infrastructure/http/client";
+import { setCsrfToken } from "@/auth/infrastructure/csrf-token";
 import type { components } from "@/shared/infrastructure/api/dto";
 import type { Principal } from "@/auth/domain/principal";
 
@@ -19,7 +20,12 @@ export function mapPrincipal(d: AuthUserDto): Principal {
 }
 
 export async function getMe(): Promise<Principal> {
-  return mapPrincipal(await httpGet<AuthUserDto>("/api/auth/me"));
+  const d = await httpGet<AuthUserDto>("/api/auth/me");
+  // The CSRF token lives in memory only, so a page reload starts without one and
+  // the first mutation would 403. This is where it comes back: meQuery already
+  // runs before anything can be rendered, let alone mutated.
+  if (d.csrfToken) setCsrfToken(d.csrfToken);
+  return mapPrincipal(d);
 }
 
 export function changePassword(oldPassword: string, newPassword: string): Promise<void> {
