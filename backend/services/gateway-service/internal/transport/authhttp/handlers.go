@@ -137,13 +137,31 @@ func (h *Handlers) login2FA(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) logout(w http.ResponseWriter, r *http.Request) {
+	// Cleared BEFORE the revocation call, and unconditionally.
+	//
+	// On success the server-side session is already gone and a stale cookie
+	// would send one doomed request per page load until it expired. On failure
+	// the session may still be live — and the browser holds the only copy of it
+	// that matters, since JavaScript cannot delete an httpOnly cookie and the
+	// SPA's logout() swallows the error and redirects to /login regardless.
+	// Returning early would leave a user who believes they are signed out still
+	// carrying a working session for the cookie's full Max-Age.
+	//
+	// That failure window is narrow, and worth stating precisely so nobody
+	// widens the claim: this handler sits behind Authenticate, so a
+	// wholly-unavailable auth-service or Redis is rejected upstream and never
+	// arrives here. What reaches this line is the case where ValidateToken
+	// succeeded and the delete then did not — a transient error or deadline
+	// landing between the two calls. Rare, but the guard is one line and the
+	// alternative failure is silent and lasts a month.
+	//
+	// Set-Cookie survives the error response: fail() writes a status and body,
+	// not a fresh header map. handlers_test.go pins both halves.
+	h.clearSession(w)
 	if err := h.client.Logout(r.Context(), sessionToken(r)); err != nil {
 		fail(w, err)
 		return
 	}
-	// Cleared even though the server-side session is already gone: a stale
-	// cookie would send one doomed request per page load until it expired.
-	h.clearSession(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 
