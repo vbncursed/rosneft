@@ -1490,7 +1490,7 @@ git commit -m "feat(frontend): send the anti-CSRF token on mutations"
 - Consumes: `GetSpec()` — существует.
 - Produces: ничего.
 
-- [ ] **Step 1: Написать тест**
+- [x] **Step 1: Написать тест**
 
 Create `backend/services/gateway-service/internal/transport/httpapi/safe_get_test.go`:
 
@@ -1555,12 +1555,12 @@ func (s *SafeGetSuite) TestOnlyTheExpectedVerbsAppearInTheSpec() {
 }
 ```
 
-- [ ] **Step 2: Запустить тест**
+- [x] **Step 2: Запустить тест**
 
 Run: `cd backend/services/gateway-service && go test ./internal/transport/httpapi/ -run TestSafeGetSuite -v`
 Expected: PASS. Если падает — значит меняющий состояние GET уже есть, и это находка: разобраться до продолжения.
 
-- [ ] **Step 3: Коммит**
+- [x] **Step 3: Коммит**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft
