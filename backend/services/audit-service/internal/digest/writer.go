@@ -37,6 +37,12 @@ type Writer struct {
 // timestamps of audit_log rows DO enter the hash there; moving that one would
 // make every existing digest irreproducible.
 type line struct {
+	// ID is the checkpoint's own primary key and the only sound join key back
+	// to the database. to_id is NOT unique: a quiet interval seals an empty
+	// range, so from_id == to_id repeats across consecutive checkpoints while
+	// each digest still advances. Keying the witness by to_id collapsed those
+	// into one entry and made verify report a disagreement on an intact journal.
+	ID         int64     `json:"id"`
 	At         time.Time `json:"at"`
 	FromID     int64     `json:"from_id"`
 	ToID       int64     `json:"to_id"`
@@ -71,6 +77,7 @@ func (w *Writer) Write(c domain.Checkpoint) error {
 		return nil
 	}
 	b, err := json.Marshal(line{
+		ID:         c.ID,
 		At:         c.At.Local(),
 		FromID:     c.FromID,
 		ToID:       c.ToID,

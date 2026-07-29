@@ -45,6 +45,7 @@ func newRootCmd() *cobra.Command {
 		subCmd("migrate-up", "Apply pending migrations", bootstrap.RunMigrateUp),
 		subCmd("migrate-down", "Roll back the most recent migration", bootstrap.RunMigrateDown),
 		subCmd("migrate-status", "Print migration status", bootstrap.RunMigrateStatus),
+		subCmd("verify", "Recompute the checkpoint chain and compare it to the witness", bootstrap.RunVerify),
 	)
 	return cmd
 }
