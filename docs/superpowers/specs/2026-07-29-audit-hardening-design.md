@@ -169,12 +169,12 @@ logger.Info("audit: checkpoint", "from_id", …, "to_id", …, "row_count", …,
 
 ### 5. Проверка
 
-Подкоманда `audit verify [--digests=PATH]`:
+Подкоманда `audit verify` (сверка с файлом — по уже существующему `--digest-file` / `AUDIT_DIGEST_FILE`):
 
 1. Идёт по `audit_checkpoint` по возрастанию `id`.
 2. Пересчитывает дайджест каждого чекпоинта по его же диапазону и `prev_digest`.
 3. Сверяет сцепку: `prev_digest` каждого равен `digest` предыдущего.
-4. При переданном `--digests` сверяет каждый чекпоинт со строкой файла по `to_id`;
+4. При заданном `--digest-file` сверяет каждый чекпоинт со строкой файла по `to_id`;
    отсутствие строки — предупреждение, расхождение дайджеста — ошибка.
 5. Печатает первое расхождение с диапазоном и завершается с кодом ≠ 0.
 
@@ -211,10 +211,15 @@ Root                → {All: true}
 здесь, хотя пиннинг по актору строго уже — две проверки дешевле одного
 рассуждения о том, почему хватает одной.
 
-Гейт маршрута: обе записи `/api/audit` уходят из `routePerms`, проверка целиком
-переезжает в `AuditScope`, где уже живёт логика видимости — одно место истины
-вместо двух. Уход из карты означает, что до обработчика дойдёт любой
-аутентифицированный вызов, поэтому отказ обязан быть покрыт тестом.
+Гейт маршрута: значение `routePerms` становится **списком** прав, проверка —
+«есть любое из». Обе записи `/api/audit` получают
+`{"audit:read", "audit:read_own"}`, сужение до своих действий делает `AuditScope`.
+
+Убирать записи из карты нельзя: `RequirePermissionForRoute` **fails open** —
+маршрут, отсутствующий в карте, проходит с любой сессией
+(`route_permissions_test.go:16` предупреждает об этом прямым текстом и стережёт
+именно эти два маршрута). Список прав сохраняет предохранитель, а существующему
+тесту меняет только ожидание.
 
 `/api/audit.csv` остаётся на `audit:read`: экспорт всей истории компании не для
 рядового пользователя.
@@ -247,7 +252,7 @@ Root                → {All: true}
 - `verify` ловит подмену строки (`DROP TRIGGER` → `UPDATE` → пересоздать);
 - `verify` ловит удаление строки;
 - `verify` ловит подмену чекпоинта через разрыв `prev_digest`;
-- `verify --digests` ловит расхождение базы с файлом;
+- `verify --digest-file` ловит расхождение базы с файлом;
 - транзакция, открытая до тика и закоммиченная после, не даёт ложной тревоги
   (проверка механики watermark);
 - триггеры неизменяемости на `audit_checkpoint` отбивают `UPDATE`, `DELETE`, `TRUNCATE`.
@@ -295,7 +300,7 @@ Root                → {All: true}
 | `audit-service/Dockerfile` | предсоздание `/var/audit` как `nonroot` |
 | `auth-service/internal/migrate/migrations/00013_audit_read_own.sql` | право + гранты |
 | `gateway-service/internal/service/audit_scope.go` | третий режим |
-| `gateway-service/internal/transport/authhttp/route_permissions.go` | убрать две записи `/api/audit` |
+| `gateway-service/internal/transport/authhttp/route_permissions.go` | значение карты → список прав, «есть любое из» |
 | `gateway-service/internal/transport/httpapi/audit.go` | прокидывание актора |
 | `frontend/src/routes/account.tsx` + `audit/presentation/` | секция «Мои действия» |
 | `docker-compose.yml` | том `audit-digest`, переменные окружения |
