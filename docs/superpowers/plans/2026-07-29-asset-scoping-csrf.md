@@ -564,7 +564,7 @@ git commit -m "feat(catalog): expose ResolveBlobAccess over gRPC"
 - Consumes: `Service.ResolveBlobAccess(ctx, hash, scopeAdminID) (bool, error)` из Задачи 2; `authhttp.Scope(ctx) (adminID string, allAccess bool)` и `authhttp.NewTestContext` — существуют.
 - Produces: `(*Server).RequireBlobAccess(next http.Handler) http.Handler`.
 
-- [ ] **Step 1: Написать падающий тест**
+- [x] **Step 1: Написать падающий тест**
 
 Create `backend/services/gateway-service/internal/transport/httpapi/blob_gate_test.go`:
 
@@ -703,12 +703,12 @@ func (b blobServiceStub) ResolveBlobAccess(ctx context.Context, hash, scope stri
 }
 ```
 
-- [ ] **Step 2: Запустить тест, убедиться что падает**
+- [x] **Step 2: Запустить тест, убедиться что падает**
 
 Run: `cd backend/services/gateway-service && go test ./internal/transport/httpapi/ -run TestBlobGateSuite`
 Expected: FAIL — `srv.RequireBlobAccess undefined`.
 
-- [ ] **Step 3: Реализовать middleware**
+- [x] **Step 3: Реализовать middleware**
 
 Create `backend/services/gateway-service/internal/transport/httpapi/blob_gate.go`:
 
@@ -772,12 +772,12 @@ func writeBlobMissing(w http.ResponseWriter) {
 }
 ```
 
-- [ ] **Step 4: Запустить тест, убедиться что проходит**
+- [x] **Step 4: Запустить тест, убедиться что проходит**
 
 Run: `cd backend/services/gateway-service && go test ./internal/transport/httpapi/ -run TestBlobGateSuite -v`
 Expected: PASS, 5 тестов.
 
-- [ ] **Step 5: Смонтировать на маршруты ассета**
+- [x] **Step 5: Смонтировать на маршруты ассета**
 
 Modify `backend/services/gateway-service/internal/bootstrap/transport.go` — заменить три строки ассетов и SSE:
 
@@ -794,12 +794,12 @@ Modify `backend/services/gateway-service/internal/bootstrap/transport.go` — з
 	r.With(authH.Authenticate).Get("/api/jobs/{id}/events", apiServer.WatchJobEvents)
 ```
 
-- [ ] **Step 6: Прогнать тесты шлюза**
+- [x] **Step 6: Прогнать тесты шлюза**
 
 Run: `cd backend/services/gateway-service && go build ./... && go test ./...`
 Expected: PASS.
 
-- [ ] **Step 7: Проверить вживую на двух тенантах**
+- [x] **Step 7: Проверить вживую на двух тенантах**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft
@@ -814,7 +814,7 @@ docker image inspect andrey-catalog --format '{{.Created}}'
 Expected: свой тенант `200`, чужой `404`, Root `200`; хеш модели `200` у обоих;
 сцена `dji-wp-46-cut` под Root грузится целиком — GLB, панорама, документ.
 
-- [ ] **Step 8: Коммит**
+- [x] **Step 8: Коммит**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft

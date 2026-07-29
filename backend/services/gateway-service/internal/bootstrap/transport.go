@@ -105,19 +105,21 @@ func InitRouter(
 	r.Get("/docs", apiServer.ServeDocs)
 	r.Get("/openapi.json", apiServer.ServeSpec)
 
-	// Binary asset proxy + SSE — outside the JSON middleware chain, but no
-	// longer outside authentication. Both were reachable anonymously: the hash
-	// and the job id are unguessable, so this was a capability URL rather than
-	// an open door, but a capability URL has no revocation. Behind the session
-	// it inherits one — logout, freeze and a role change all kill it at once.
+	// Binary asset proxy + SSE — outside the JSON middleware chain, but neither
+	// outside authentication nor, for assets, outside the tenant.
 	//
-	// Not territory-scoped, and that is not an omission: a blob hash addresses
-	// content and is deduplicated across territories and models, so there is no
-	// single territory to check it against. Any authenticated caller who knows a
-	// hash can fetch it; after RequireTerritoryAccess, hashes are only handed to
-	// callers already inside the tenant.
-	r.With(authH.Authenticate).Get("/api/assets/{hash}", assetProxy.ServeHTTP)
-	r.With(authH.Authenticate).Head("/api/assets/{hash}", assetProxy.ServeHTTP)
+	// The asset route cannot use RequireTerritoryAccess: a blob hash addresses
+	// content and is deduplicated across territories and models, so it has no
+	// single territory to check against. RequireBlobAccess asks the catalog the
+	// answerable version of the question instead — is there any row holding this
+	// hash that this caller can see — which also lets a model's bytes through to
+	// everyone, the library being shared by decision.
+	r.With(authH.Authenticate, apiServer.RequireBlobAccess).Get("/api/assets/{hash}", assetProxy.ServeHTTP)
+	r.With(authH.Authenticate, apiServer.RequireBlobAccess).Head("/api/assets/{hash}", assetProxy.ServeHTTP)
+	// SSE stays authenticated but unscoped: a job id is 128 random bits and the
+	// payload names a kind and a slug, not a blob. Scoping the stream is a
+	// different question — about a job, not about content — and is deliberately
+	// left out here.
 	r.With(authH.Authenticate).Get("/api/jobs/{id}/events", apiServer.WatchJobEvents)
 
 	// Owner-only Prometheus proxy. Authenticated (for the owner check) but
