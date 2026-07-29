@@ -59,7 +59,7 @@ minimock. Этого недостаточно: **вся логика — в SQL*
 - Consumes: ничего.
 - Produces: `(*PG).ResolveBlobAccess(ctx context.Context, hash, scopeAdminID string) (bool, error)` — Задача 2 поднимает её через сервисный слой в gRPC.
 
-- [ ] **Step 1: Написать миграцию с недостающими индексами**
+- [x] **Step 1: Написать миграцию с недостающими индексами**
 
 Create `backend/services/catalog-service/internal/migrate/migrations/00014_blob_hash_indexes.sql`:
 
@@ -85,7 +85,7 @@ DROP INDEX IF EXISTS idx_territory_documents_blob;
 -- +goose StatementEnd
 ```
 
-- [ ] **Step 2: Добавить testcontainers в модуль каталога**
+- [x] **Step 2: Добавить testcontainers в модуль каталога**
 
 Run:
 ```bash
@@ -103,7 +103,7 @@ cd /Users/vbncursed/programming/rosneft/backend
 sed -i '' -E 's|(backend/(pkg\|proto)) v0\.0\.0-[0-9a-z-]+|\1 v0.0.0|' services/catalog-service/go.mod
 ```
 
-- [ ] **Step 3: Написать падающий интеграционный тест**
+- [x] **Step 3: Написать падающий интеграционный тест**
 
 Create `backend/services/catalog-service/internal/storage/resolve_blob_access_integration_test.go`:
 
@@ -287,12 +287,12 @@ func (s *BlobAccessSuite) TestASharedHashIsAllowedIfAnyReachableRowHasIt() {
 }
 ```
 
-- [ ] **Step 4: Запустить тест, убедиться что падает**
+- [x] **Step 4: Запустить тест, убедиться что падает**
 
 Run: `cd backend/services/catalog-service && go test -tags=integration ./internal/storage/ -run TestBlobAccessSuite`
 Expected: FAIL — `s.pg.ResolveBlobAccess undefined`.
 
-- [ ] **Step 5: Реализовать резолвер**
+- [x] **Step 5: Реализовать резолвер**
 
 Create `backend/services/catalog-service/internal/storage/resolve_blob_access.go`:
 
@@ -359,19 +359,19 @@ SELECT EXISTS (
 }
 ```
 
-- [ ] **Step 6: Запустить тест, убедиться что проходит**
+- [x] **Step 6: Запустить тест, убедиться что проходит**
 
 Run: `cd backend/services/catalog-service && go test -tags=integration ./internal/storage/ -run TestBlobAccessSuite -v`
 Expected: PASS, 5 тестов. Нужен запущенный Docker.
 
-- [ ] **Step 7: Проверить, что тест ловит снятый фильтр**
+- [x] **Step 7: Проверить, что тест ловит снятый фильтр**
 
 Временно убрать `AND ($2 = '' OR EXISTS (...))` из ветки `territory_documents`, прогнать тест снова.
 Expected: FAIL на `TestEachTerritoryBranchIsScoped` со словами `another tenant must NOT reach hash-doc-a`. Вернуть фильтр.
 
 Без этого шага неизвестно, проверяет ли тест то, ради чего написан — в прошлом заходе тест свидетельства проходил по совпадению чисел.
 
-- [ ] **Step 8: Коммит**
+- [x] **Step 8: Коммит**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft
