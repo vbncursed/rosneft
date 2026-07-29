@@ -2,6 +2,7 @@
   "enabledPlugins": {
     "cc-skills-golang@samber": true,
     "ponytail@ponytail": true,
-    "modern-go-guidelines@goland-claude-marketplace": true
+    "modern-go-guidelines@goland-claude-marketplace": true,
+    "gopls-lsp@claude-plugins-official": true
   }
 }
