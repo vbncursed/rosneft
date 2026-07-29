@@ -55,11 +55,21 @@ func InitRouter(
 	// internal :9101 listener, never on this public router.
 	r.Use(metrics.Middleware)
 
-	// The SPA is cross-origin (no same-origin BFF since the Next.js proxy went
-	// away), so the chunked-upload protocol rides on CORS: PATCH sends the
-	// required Upload-Offset request header, HEAD carries a Bearer token — which
-	// makes it preflighted, not a simple request — and both answer with
-	// Upload-Offset / Upload-Length that the browser hides unless exposed.
+	// The SPA is same-origin with this API in both dev and prod — nginx serves it
+	// and proxies /api, Vite does the same in development — so nothing the SPA
+	// does is preflighted any more, and the session cookie needs no CORS help.
+	//
+	// The configuration stays anyway, deliberately: it costs nothing on
+	// same-origin traffic and it is what keeps a non-browser or differently
+	// hosted client working. ExposedHeaders in particular is not dead weight —
+	// the chunked-upload protocol answers with Upload-Offset / Upload-Length,
+	// which a browser hides from script unless they are exposed.
+	//
+	// AllowCredentials with a wildcard origin looks alarming and is not: the
+	// session cookie is SameSite=Lax, so a browser withholds it from cross-site
+	// subresource requests whatever this handler replies. Tightening
+	// GATEWAY_ALLOWED_ORIGINS is still worth doing — just do it knowing the SPA
+	// no longer depends on it.
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   resolveOrigins(cfg.AllowedOrigins),
 		AllowedMethods:   []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},

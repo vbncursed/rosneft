@@ -27,9 +27,11 @@ export function useJobStream(
 ): void {
   useEffect(() => {
     if (!jobId) return;
-    // Open SSE directly against the gateway (absolute — no same-origin BFF in
-    // the SPA). /api/jobs/*/events is unauthenticated (Ф0), so no token; the
-    // reverse proxy streams it with proxy_buffering off.
+    // /api/jobs/*/events requires a session. EventSource can carry no headers
+    // at all, so this works only because the URL is same-origin — VITE_API_URL
+    // is empty in dev and prod alike — and the browser attaches the httpOnly
+    // session cookie on its own. The reverse proxy streams it with
+    // proxy_buffering off.
     const base = import.meta.env.VITE_API_URL;
     const url = `${base}/api/jobs/${encodeURIComponent(jobId)}/events`;
     const source = new EventSource(url);
