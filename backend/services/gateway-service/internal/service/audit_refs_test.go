@@ -3,6 +3,8 @@ package service_test
 import (
 	"context"
 	"errors"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
@@ -114,6 +116,43 @@ func (s *AuditRefsSuite) TestOneResolverFailingKeepsTheOther() {
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), refs["model_id:7"], "pump-01")
+}
+
+func (s *AuditRefsSuite) TestRefsBeyondTheResolverCapAreStillResolved() {
+	// Регрессия. Резолверы отказывают выше 500 ссылок целиком, а не усекают, и
+	// collect() эту ошибку глотает — то есть без разбивки одна большая страница
+	// теряла бы не лишнее, а вообще все подписи этого резолвера, молча.
+	// Страница ограничена 200 записями, но visible_panorama_ids — массив без
+	// потолка, так что «страница не переполнит cap» здесь неверно.
+	ids := make([]string, 600)
+	for i := range ids {
+		ids[i] = strconv.Itoa(i + 1)
+	}
+	s.audit.ListEntriesMock.Return([]domain.AuditEntry{{
+		Entity: "placement",
+		NewRow: `{"visible_panorama_ids":[` + strings.Join(ids, ",") + `]}`,
+	}}, 0, nil)
+
+	var calls, seen int
+	s.catalog.ResolveLabelsMock.Set(
+		func(_ context.Context, refs []domain.LabelRef) (map[string]string, error) {
+			calls++
+			seen += len(refs)
+			out := make(map[string]string, len(refs))
+			for _, r := range refs {
+				out["panorama:"+r.ID] = "pano-" + r.ID
+			}
+			return out, nil
+		})
+
+	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, true, "", "tok", true)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), calls, 2) // 600 ссылок = 500 + 100
+	assert.Equal(s.T(), seen, 600)
+	// Подписи и из первой, и из последней порции — ничего не потерялось.
+	assert.Equal(s.T(), refs["visible_panorama_ids:1"], "pano-1")
+	assert.Equal(s.T(), refs["visible_panorama_ids:600"], "pano-600")
 }
 
 func (s *AuditRefsSuite) TestWantRefsFalseSkipsBothResolvers() {
