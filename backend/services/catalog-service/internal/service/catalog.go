@@ -23,6 +23,10 @@ type Repository interface {
 	// каталогу он не нужен, а журналу аудита нужен, потому что снимок строки
 	// знает родителя размещения только числом.
 	ResolveTerritorySlugs(ctx context.Context, ids []int64) (map[int64]string, error)
+	// Ключ результата — "<kind>:<id>". Плоская карта вместо карты карт: её
+	// потребитель — словарь подписей страницы журнала, у которого ключ ровно
+	// такой же формы.
+	ResolveLabels(ctx context.Context, byKind map[string][]int64) (map[string]string, error)
 	DeleteTerritory(ctx context.Context, slug string) error
 	SetTerritoryAdmins(ctx context.Context, slug string, adminIDs []string) error
 	GetTerritoryAdmins(ctx context.Context, slug string) ([]string, error)
