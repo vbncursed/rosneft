@@ -527,7 +527,7 @@ git commit -m "build(frontend): make dev single-origin like production"
   - `(*Handlers).setSession(w, token)` / `(*Handlers).clearSession(w)`
   - `Authenticate` кладёт в контекст **использованный** токен
 
-- [ ] **Step 1: Написать падающий тест**
+- [x] **Step 1: Написать падающий тест**
 
 Create `backend/services/gateway-service/internal/transport/authhttp/cookie_test.go`:
 
@@ -613,12 +613,12 @@ func (s *CookieSuite) TestSessionTokenIsEmptyWithNeither() {
 }
 ```
 
-- [ ] **Step 2: Запустить тест, убедиться что падает**
+- [x] **Step 2: Запустить тест, убедиться что падает**
 
 Run: `cd backend/services/gateway-service && go test ./internal/transport/authhttp/ -run TestCookieSuite`
 Expected: FAIL — `Handlers.cookie undefined`, `sessionToken undefined`.
 
-- [ ] **Step 3: Реализовать куку**
+- [x] **Step 3: Реализовать куку**
 
 Create `backend/services/gateway-service/internal/transport/authhttp/cookie.go`:
 
@@ -679,7 +679,7 @@ func (h *Handlers) clearSession(w http.ResponseWriter) {
 }
 ```
 
-- [ ] **Step 4: Заменить `bearer` на `sessionToken`**
+- [x] **Step 4: Заменить `bearer` на `sessionToken`**
 
 Modify `backend/services/gateway-service/internal/transport/authhttp/respond.go` — заменить `bearer` целиком:
 
@@ -718,7 +718,7 @@ Expected: 28 замен в `handlers.go`, `middleware.go`, `passkey.go`, `users.
 		}
 ```
 
-- [ ] **Step 5: Ставить и снимать куку в потоках входа**
+- [x] **Step 5: Ставить и снимать куку в потоках входа**
 
 Modify `handlers.go` — в `login`, после `if token != "" { h.recordLogin(...) }`:
 
@@ -757,7 +757,7 @@ Modify `passkey.go` — в `passkeyLoginFinish`, перед `writeJSON`:
 `passkeyRegisterFinish` куку **не** ставит: регистрация ключа выполняется уже
 вошедшим пользователем и новой сессии не выдаёт.
 
-- [ ] **Step 6: Пробросить конфиг**
+- [x] **Step 6: Пробросить конфиг**
 
 Modify `internal/config/config.go` — в структуру:
 
@@ -805,12 +805,12 @@ Modify `docker-compose.yml` — в сервис `gateway`, в `environment`:
       GATEWAY_COOKIE_SECURE: "false"
 ```
 
-- [ ] **Step 7: Запустить тесты**
+- [x] **Step 7: Запустить тесты**
 
 Run: `cd backend/services/gateway-service && go build ./... && go test ./... -v -run "Cookie|Auth"`
 Expected: PASS.
 
-- [ ] **Step 8: Проверить вживую**
+- [x] **Step 8: Проверить вживую**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft && docker compose up -d --build gateway && sleep 12
@@ -824,7 +824,7 @@ curl -s -b /tmp/jar -o /dev/null -w 'по куке: %{http_code}\n' http://local
 
 Expected: `Set-Cookie: andrey_session=…; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax` (без `Secure`, потому что compose его выключил); `по куке: 200`.
 
-- [ ] **Step 9: Коммит**
+- [x] **Step 9: Коммит**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft

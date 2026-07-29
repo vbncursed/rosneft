@@ -23,8 +23,18 @@ func fail(w http.ResponseWriter, err error) {
 	apperr.WriteStatus(w, err)
 }
 
-// bearer extracts the token from the Authorization header.
-func bearer(r *http.Request) string {
+// sessionToken returns the caller's session token: the cookie first, the
+// Authorization header second.
+//
+// The cookie wins because a browser that has one is the normal case and the
+// header would only be there by accident. The header stays supported because
+// curl, the tests and any non-browser client have no cookie jar — httpOnly
+// protects a token at rest in the browser, which is what gets stolen, not the
+// header on a request somebody deliberately made.
+func sessionToken(r *http.Request) string {
+	if c, err := r.Cookie(sessionCookieName); err == nil && c.Value != "" {
+		return c.Value
+	}
 	const p = "Bearer "
 	h := r.Header.Get("Authorization")
 	if len(h) > len(p) && h[:len(p)] == p {

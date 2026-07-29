@@ -13,9 +13,9 @@ import (
 // without a valid token get 401.
 func (h *Handlers) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token := bearer(r)
+		token := sessionToken(r)
 		if token == "" {
-			apperr.Write(w, http.StatusUnauthorized, apperr.SlugUnauthenticated, "missing bearer token")
+			apperr.Write(w, http.StatusUnauthorized, apperr.SlugUnauthenticated, "missing session")
 			return
 		}
 		uid, perms, isOwner, owningAdmin, auditCompany, err := h.client.ValidateToken(r.Context(), token)

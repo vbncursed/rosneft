@@ -67,6 +67,9 @@ services:
       GATEWAY_ASSET_HTTP_ADDR: "http://asset:8081"
       GATEWAY_AUDIT_GRPC_ADDR: "audit:9009"
       GATEWAY_ALLOWED_ORIGINS: "*"
+      # Local dev is plain http, where a Secure cookie is never sent. The code
+      # defaults to true so a misconfigured production fails safe.
+      GATEWAY_COOKIE_SECURE: "false"
       GATEWAY_LOG_LEVEL: "info"
       # Upload chunks can be hundreds of MB; raise WriteTimeout to give
       # the gateway → upload-service stream time to drain.

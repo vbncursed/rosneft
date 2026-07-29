@@ -32,6 +32,11 @@ type Config struct {
 	WriteTimeout    time.Duration `mapstructure:"write-timeout"`
 	IdleTimeout     time.Duration `mapstructure:"idle-timeout"`
 	ShutdownTimeout time.Duration `mapstructure:"shutdown-timeout"`
+	// CookieSecure defaults to true: a misconfigured production is worse than a
+	// broken local dev, and local compose turns it off explicitly.
+	CookieSecure bool `mapstructure:"cookie-secure"`
+	// SessionCookieTTL should not exceed auth's absolute session TTL.
+	SessionCookieTTL time.Duration `mapstructure:"session-cookie-ttl"`
 }
 
 const envPrefix = "GATEWAY"
@@ -62,6 +67,8 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.SetDefault("write-timeout", 5*time.Minute)
 	v.SetDefault("idle-timeout", 2*time.Minute)
 	v.SetDefault("shutdown-timeout", 15*time.Second)
+	v.SetDefault("cookie-secure", true)
+	v.SetDefault("session-cookie-ttl", 720*time.Hour)
 
 	if err := v.BindPFlags(cmd.Root().PersistentFlags()); err != nil {
 		return Config{}, fmt.Errorf("config: bind persistent flags: %w", err)
