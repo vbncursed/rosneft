@@ -68,8 +68,8 @@ func (s *UsersSuite) TestResolveLoginsRefusesAnOversizedRequest() {
 }
 
 func (s *UsersSuite) TestResolveLoginsRefusesANonUuid() {
-	// Строка не-UUID в uuid[] даёт SQLSTATE 22P02 и 500-ю — тот же баг, что
-	// чинили для фильтра актора в журнале. Отбиваем до SQL.
+	// Мусор отбивается явной ошибкой, а не тихим «ничего не нашлось»: второе
+	// читатель journal'а истолкует как «пользователь удалён».
 	_, err := s.svc.ResolveLogins(s.ctx, []string{"123"})
 
 	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)

@@ -772,6 +772,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/AuditActor' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '500': { $ref: '#/components/responses/Internal' }

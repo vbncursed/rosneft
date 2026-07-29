@@ -16,7 +16,7 @@ func (c *Client) SubmitConversion(ctx context.Context, kind domain.Kind, slug st
 		Slug: slug,
 	})
 	if err != nil {
-		return domain.Job{}, fmt.Errorf("mesh.SubmitConversion: %w", err)
+		return domain.Job{}, fmt.Errorf("mesh.SubmitConversion: %w", grpcerr.MapStatus(err, nil))
 	}
 	return jobFromProto(resp.GetJob()), nil
 }

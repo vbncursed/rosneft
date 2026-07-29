@@ -92,6 +92,8 @@ func (s *Server) ListAuditActors(ctx context.Context, _ ListAuditActorsRequestOb
 		return ListAuditActors403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse{
 			Code: apperr.SlugForbidden, Message: "no audit scope for this principal",
 		}}, nil
+	case isInvalid(err):
+		return ListAuditActors400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
 	case err != nil:
 		return ListAuditActors500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
 	}

@@ -15,7 +15,7 @@ import (
 func (c *Client) Initiate(ctx context.Context, size int64, contentType string) (domain.UploadSession, error) {
 	resp, err := c.cc.Initiate(ctx, &uploadv1.InitiateRequest{Size: size, ContentType: contentType})
 	if err != nil {
-		return domain.UploadSession{}, fmt.Errorf("upload.Initiate: %w", err)
+		return domain.UploadSession{}, fmt.Errorf("upload.Initiate: %w", grpcerr.MapStatus(err, nil))
 	}
 	return domain.UploadSession{ID: resp.GetUploadId(), Size: size, ContentType: contentType}, nil
 }
@@ -29,7 +29,7 @@ const chunkChunkSize = 64 * 1024
 func (c *Client) WriteChunk(ctx context.Context, id string, offset int64, body io.Reader) (int64, error) {
 	stream, err := c.cc.WriteChunk(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("upload.WriteChunk: open stream: %w", err)
+		return 0, fmt.Errorf("upload.WriteChunk: open stream: %w", grpcerr.MapStatus(err, nil))
 	}
 
 	cur := offset
@@ -84,7 +84,7 @@ func (c *Client) Finalize(ctx context.Context, id string) (domain.FinalizedBlob,
 func (c *Client) Abort(ctx context.Context, id string) error {
 	_, err := c.cc.Abort(ctx, &uploadv1.AbortRequest{UploadId: id})
 	if err != nil {
-		return fmt.Errorf("upload.Abort: %w", err)
+		return fmt.Errorf("upload.Abort: %w", grpcerr.MapStatus(err, domain.ErrUploadNotFound))
 	}
 	return nil
 }

@@ -2530,6 +2530,20 @@ func (response ListAuditActors200JSONResponse) VisitListAuditActorsResponse(w ht
 	return err
 }
 
+type ListAuditActors400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListAuditActors400JSONResponse) VisitListAuditActorsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListAuditActors401JSONResponse struct{ UnauthorizedJSONResponse }
 
 func (response ListAuditActors401JSONResponse) VisitListAuditActorsResponse(w http.ResponseWriter) error {

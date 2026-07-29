@@ -30,7 +30,9 @@ func (g *Gateway) ListAuditActors(ctx context.Context, isOwner bool, companyID, 
 	if len(ids) == 0 {
 		return []domain.AuditActor{}, nil
 	}
-	logins, err := g.auth.ResolveUserLogins(ctx, token, ids)
+	// Batched: this list has no ceiling — it is every person who has ever
+	// touched the company's data, and it only grows.
+	logins, err := g.resolveLoginsBatched(ctx, token, ids)
 	if err != nil {
 		return nil, err
 	}
