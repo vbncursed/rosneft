@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { isSystemChange, type AuditEntry } from "@/audit/domain/audit-entry";
 import DiffView from "@/audit/presentation/components/diff-view";
+import type { Refs } from "@/audit/domain/ref-label";
 import EntityLink from "@/audit/presentation/components/entity-link";
 import { MotionCollapse } from "@/shared/presentation/motion";
 import { formatTimestamp } from "@/shared/domain/calendar";
@@ -11,7 +12,7 @@ function hasDetail(entry: AuditEntry): boolean {
   return entry.oldRow !== null || entry.newRow !== null;
 }
 
-export default function AuditRow({ entry }: { entry: AuditEntry }) {
+export default function AuditRow({ entry, refs = {} }: { entry: AuditEntry; refs?: Refs }) {
   const [open, setOpen] = useState(false);
   const detail = hasDetail(entry);
   const system = isSystemChange(entry);
@@ -78,7 +79,7 @@ export default function AuditRow({ entry }: { entry: AuditEntry }) {
         {/* Отступы на внутреннем элементе: padding на анимируемом остался бы
             виден при height:0 и оставил бы полосу под закрытой строкой. */}
         <div className="px-4 py-3">
-          <DiffView oldRow={entry.oldRow} newRow={entry.newRow} />
+          <DiffView oldRow={entry.oldRow} newRow={entry.newRow} refs={refs} />
         </div>
       </MotionCollapse>
     </li>
