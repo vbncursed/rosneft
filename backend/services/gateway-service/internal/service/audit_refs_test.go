@@ -55,7 +55,7 @@ func (s *AuditRefsSuite) TestLabelsAreKeyedByFieldAndValue() {
 	s.audit.ListEntriesMock.Return([]domain.AuditEntry{s.entry()}, 0, nil)
 	s.auth.ResolveLabelsMock.Return(map[string]string{"role:r-1": "Редактор"}, nil)
 
-	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, true, "", "tok", true)
+	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditPrincipal{IsOwner: true}, "tok", true)
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), refs["role_id:r-1"], "Редактор")
@@ -68,7 +68,7 @@ func (s *AuditRefsSuite) TestUserIdIsNamedByTheLoginResolver() {
 	s.auth.ResolveUserLoginsMock.Return(map[string]string{"u-1": "ivan.petrov"}, nil)
 	s.auth.ResolveLabelsMock.Return(map[string]string{}, nil)
 
-	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, true, "", "tok", true)
+	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditPrincipal{IsOwner: true}, "tok", true)
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), refs["user_id:u-1"], "ivan.petrov")
@@ -80,7 +80,7 @@ func (s *AuditRefsSuite) TestUnresolvedIdIsAbsentRatherThanBlank() {
 	s.audit.ListEntriesMock.Return([]domain.AuditEntry{s.entry()}, 0, nil)
 	s.auth.ResolveLabelsMock.Return(map[string]string{}, nil)
 
-	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, true, "", "tok", true)
+	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditPrincipal{IsOwner: true}, "tok", true)
 
 	assert.NilError(s.T(), err)
 	_, ok := refs["role_id:r-1"]
@@ -92,7 +92,7 @@ func (s *AuditRefsSuite) TestResolverFailureDoesNotFailThePage() {
 	s.audit.ListEntriesMock.Return([]domain.AuditEntry{s.entry()}, 0, nil)
 	s.auth.ResolveLabelsMock.Return(nil, errors.New("auth is restarting"))
 
-	entries, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, true, "", "tok", true)
+	entries, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditPrincipal{IsOwner: true}, "tok", true)
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(entries), 1)
@@ -112,7 +112,7 @@ func (s *AuditRefsSuite) TestOneResolverFailingKeepsTheOther() {
 	s.auth.ResolveLabelsMock.Return(nil, errors.New("auth is restarting"))
 	s.catalog.ResolveLabelsMock.Return(map[string]string{"model:7": "pump-01"}, nil)
 
-	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, true, "", "tok", true)
+	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditPrincipal{IsOwner: true}, "tok", true)
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), refs["model_id:7"], "pump-01")
@@ -145,7 +145,7 @@ func (s *AuditRefsSuite) TestRefsBeyondTheResolverCapAreStillResolved() {
 			return out, nil
 		})
 
-	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, true, "", "tok", true)
+	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditPrincipal{IsOwner: true}, "tok", true)
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), calls, 2) // 600 ссылок = 500 + 100
@@ -160,7 +160,7 @@ func (s *AuditRefsSuite) TestWantRefsFalseSkipsBothResolvers() {
 	// резолверы всё же позовут.
 	s.audit.ListEntriesMock.Return([]domain.AuditEntry{s.entry()}, 0, nil)
 
-	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, true, "", "tok", false)
+	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditPrincipal{IsOwner: true}, "tok", false)
 
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), refs == nil)

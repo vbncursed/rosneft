@@ -19,15 +19,21 @@ import (
 // wantRefs asks for the dictionary naming the ids inside the row snapshots. The
 // CSV export passes false: it prints no snapshots, and it pages the whole result
 // 200 rows at a time, so it would buy a dictionary per page and throw each away.
+// A read_own caller has their actor filter OVERWRITTEN rather than merged: the
+// pin is the boundary, and honouring ?actor= alongside it would let them ask
+// about somebody else.
 func (g *Gateway) ListAudit(
-	ctx context.Context, q domain.AuditQuery, isOwner bool, companyID, token string, wantRefs bool,
+	ctx context.Context, q domain.AuditQuery, p domain.AuditPrincipal, token string, wantRefs bool,
 ) ([]domain.AuditEntry, int64, map[string]string, error) {
-	all, company, err := AuditScope(isOwner, companyID)
+	sc, err := AuditScope(p)
 	if err != nil {
 		return nil, 0, nil, err
 	}
-	q.AllCompanies = all
-	q.CompanyID = company
+	q.AllCompanies = sc.All
+	q.CompanyID = sc.Company
+	if sc.Actor != "" {
+		q.ActorID = sc.Actor
+	}
 	entries, next, err := g.audit.ListEntries(ctx, q)
 	if err != nil {
 		return nil, 0, nil, err

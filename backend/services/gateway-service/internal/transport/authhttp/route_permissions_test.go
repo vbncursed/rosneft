@@ -23,6 +23,15 @@ func (s *RoutePermsSuite) TestEveryJournalRouteIsGated() {
 	} {
 		need, gated := routePerms[route]
 		assert.Assert(s.T(), gated, "%s is not gated: RequirePermissionForRoute lets it through", route)
-		assert.Equal(s.T(), need, "audit:read", route)
+		assert.DeepEqual(s.T(), need, []string{"audit:read", "audit:read_own"})
+	}
+}
+
+// An empty list would satisfy the "is it in the map" check above while opening
+// the route to everyone — holdsAny over nothing is false, but so is the gate on
+// an owner-less principal reaching a route nobody meant to expose. Pin it.
+func (s *RoutePermsSuite) TestNoRouteHasAnEmptyPermissionList() {
+	for route, need := range routePerms {
+		assert.Assert(s.T(), len(need) > 0, "%s names no permissions", route)
 	}
 }

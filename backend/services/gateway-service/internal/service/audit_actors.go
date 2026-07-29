@@ -18,14 +18,21 @@ import (
 // Unlike the entry labels, a resolution failure here is returned rather than
 // swallowed: an unlabelled dropdown is a list of uuids to pick from blindly,
 // which is worse than an honest error.
-func (g *Gateway) ListAuditActors(ctx context.Context, isOwner bool, companyID, token string) ([]domain.AuditActor, error) {
-	all, company, err := AuditScope(isOwner, companyID)
+func (g *Gateway) ListAuditActors(ctx context.Context, p domain.AuditPrincipal, token string) ([]domain.AuditActor, error) {
+	sc, err := AuditScope(p)
 	if err != nil {
 		return nil, err
 	}
-	ids, err := g.audit.ListActors(ctx, domain.AuditQuery{AllCompanies: all, CompanyID: company})
-	if err != nil {
-		return nil, err
+
+	// A read_own caller filters by exactly one actor — themselves. Asking the
+	// journal for the company's roster and hiding it client-side would leak who
+	// else works there, which is precisely what the narrower grant withholds.
+	ids := []string{sc.Actor}
+	if sc.Actor == "" {
+		ids, err = g.audit.ListActors(ctx, domain.AuditQuery{AllCompanies: sc.All, CompanyID: sc.Company})
+		if err != nil {
+			return nil, err
+		}
 	}
 	if len(ids) == 0 {
 		return []domain.AuditActor{}, nil

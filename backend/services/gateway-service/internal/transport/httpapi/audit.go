@@ -39,6 +39,18 @@ func auditQueryFromParams(p ListAuditParams) domain.AuditQuery {
 	return q
 }
 
+// auditPrincipal assembles who is asking from the session, never from the
+// request. Every audit entry point goes through it so there is one place where
+// that rule can be checked.
+func auditPrincipal(ctx context.Context) domain.AuditPrincipal {
+	return domain.AuditPrincipal{
+		IsOwner: authhttp.IsOwner(ctx),
+		UserID:  authhttp.UserID(ctx),
+		Company: authhttp.AuditCompany(ctx),
+		Perms:   authhttp.Perms(ctx),
+	}
+}
+
 func auditEntryToAPI(e domain.AuditEntry) AuditEntry {
 	return AuditEntry{
 		Id:            e.ID,
@@ -61,7 +73,7 @@ func auditEntryToAPI(e domain.AuditEntry) AuditEntry {
 // ListAudit returns one page of the journal, scoped to the caller.
 func (s *Server) ListAudit(ctx context.Context, req ListAuditRequestObject) (ListAuditResponseObject, error) {
 	entries, next, refs, err := s.svc.ListAudit(ctx,
-		auditQueryFromParams(req.Params), authhttp.IsOwner(ctx), authhttp.AuditCompany(ctx), authhttp.Token(ctx), true)
+		auditQueryFromParams(req.Params), auditPrincipal(ctx), authhttp.Token(ctx), true)
 	switch {
 	case isForbidden(err):
 		return ListAudit403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse{
@@ -91,8 +103,7 @@ func (s *Server) ListAudit(ctx context.Context, req ListAuditRequestObject) (Lis
 
 // ListAuditActors returns the actors the caller can filter by.
 func (s *Server) ListAuditActors(ctx context.Context, _ ListAuditActorsRequestObject) (ListAuditActorsResponseObject, error) {
-	actors, err := s.svc.ListAuditActors(ctx,
-		authhttp.IsOwner(ctx), authhttp.AuditCompany(ctx), authhttp.Token(ctx))
+	actors, err := s.svc.ListAuditActors(ctx, auditPrincipal(ctx), authhttp.Token(ctx))
 	switch {
 	case isForbidden(err):
 		return ListAuditActors403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse{

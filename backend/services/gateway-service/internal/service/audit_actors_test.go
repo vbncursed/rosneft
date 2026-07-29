@@ -16,7 +16,7 @@ func (s *AuditLabelsSuite) TestActorsAreLabelledAndSortedByLogin() {
 		actorID: "vbncursed", companyID: "andrch71",
 	}, nil)
 
-	out, err := s.svc.ListAuditActors(s.ctx, true, "", "tok")
+	out, err := s.svc.ListAuditActors(s.ctx, domain.AuditPrincipal{IsOwner: true}, "tok")
 
 	assert.NilError(s.T(), err)
 	// Алфавит, а не свежесть активности: список выбирают глазами.
@@ -27,7 +27,7 @@ func (s *AuditLabelsSuite) TestActorsAreLabelledAndSortedByLogin() {
 func (s *AuditLabelsSuite) TestActorsAsksNobodyWhenTheJournalIsEmpty() {
 	s.aud.ListActorsMock.Return(nil, nil)
 
-	out, err := s.svc.ListAuditActors(s.ctx, true, "", "tok")
+	out, err := s.svc.ListAuditActors(s.ctx, domain.AuditPrincipal{IsOwner: true}, "tok")
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(out), 0)
@@ -41,7 +41,7 @@ func (s *AuditLabelsSuite) TestActorsSurfaceAResolverFailure() {
 	s.aud.ListActorsMock.Return([]string{actorID}, nil)
 	s.aut.ResolveUserLoginsMock.Return(nil, errors.New("auth is down"))
 
-	_, err := s.svc.ListAuditActors(s.ctx, true, "", "tok")
+	_, err := s.svc.ListAuditActors(s.ctx, domain.AuditPrincipal{IsOwner: true}, "tok")
 
 	assert.Error(s.T(), err, "auth is down")
 }
@@ -49,7 +49,7 @@ func (s *AuditLabelsSuite) TestActorsSurfaceAResolverFailure() {
 // Тот же fail-closed инвариант, что у чтения журнала: принципал без компании и
 // без owner-флага получает отказ, а не пустой фильтр.
 func (s *AuditLabelsSuite) TestActorsRefuseAPrincipalWithoutAScope() {
-	_, err := s.svc.ListAuditActors(s.ctx, false, "", "tok")
+	_, err := s.svc.ListAuditActors(s.ctx, domain.AuditPrincipal{}, "tok")
 
 	assert.Assert(s.T(), errors.Is(err, domain.ErrForbidden))
 }
@@ -79,7 +79,7 @@ func (s *AuditLabelsSuite) TestActorsBeyondTheAuthCapAreStillResolved() {
 			return got, nil
 		})
 
-	out, err := s.svc.ListAuditActors(s.ctx, true, "", "tok")
+	out, err := s.svc.ListAuditActors(s.ctx, domain.AuditPrincipal{IsOwner: true}, "tok")
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(out), n)
