@@ -47,7 +47,8 @@ func (s *SpecCoverageSuite) SetupTest() {
 	// The gRPC clients are nil and the handlers are never invoked: Mount only
 	// registers them. grpc.NewClient is lazy anyway, so even a real client here
 	// would not need a live backend.
-	authH := authhttp.New(nil, nil, nil, nil, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	authH := authhttp.New(nil, nil, nil, nil, slog.New(slog.NewTextHandler(io.Discard, nil)),
+		authhttp.CookieOptions{})
 	r, _ := InitRouter(svc, http.NotFoundHandler(), http.NotFoundHandler(), authH,
 		slog.New(slog.NewTextHandler(io.Discard, nil)), config.Config{})
 	s.router = r

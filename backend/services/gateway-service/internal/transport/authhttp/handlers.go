@@ -23,11 +23,19 @@ type Handlers struct {
 	passkey *passkey.Client
 	audit   *audit.Client
 	logger  *slog.Logger
+	cookie  CookieOptions
 }
 
 // New builds the auth HTTP handlers.
-func New(client *auth.Client, twofa *twofa.Client, passkey *passkey.Client, audit *audit.Client, logger *slog.Logger) *Handlers {
-	return &Handlers{client: client, twofa: twofa, passkey: passkey, audit: audit, logger: logger}
+func New(
+	client *auth.Client,
+	twofa *twofa.Client,
+	passkey *passkey.Client,
+	audit *audit.Client,
+	logger *slog.Logger,
+	cookie CookieOptions,
+) *Handlers {
+	return &Handlers{client: client, twofa: twofa, passkey: passkey, audit: audit, logger: logger, cookie: cookie}
 }
 
 // Mount registers the auth routes on r. Only login + login/2fa are public.
@@ -103,10 +111,11 @@ func (h *Handlers) login(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	// A 2FA challenge is not a completed login: the session is issued only after
-	// login/2fa succeeds, which records auth.login_2fa itself.
+	// A 2FA challenge is not a completed login: the cookie is issued only once a
+	// session token exists, which for the 2FA path happens in login2FA.
 	if token != "" {
 		h.recordLogin(r, "auth.login", token)
+		h.setSession(w, token)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"token": token, "twoFactorRequired": twoFA, "challengeToken": challenge})
 }
@@ -123,19 +132,23 @@ func (h *Handlers) login2FA(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.recordLogin(r, "auth.login_2fa", token)
+	h.setSession(w, token)
 	writeJSON(w, http.StatusOK, map[string]any{"token": token})
 }
 
 func (h *Handlers) logout(w http.ResponseWriter, r *http.Request) {
-	if err := h.client.Logout(r.Context(), bearer(r)); err != nil {
+	if err := h.client.Logout(r.Context(), sessionToken(r)); err != nil {
 		fail(w, err)
 		return
 	}
+	// Cleared even though the server-side session is already gone: a stale
+	// cookie would send one doomed request per page load until it expired.
+	h.clearSession(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handlers) me(w http.ResponseWriter, r *http.Request) {
-	u, err := h.client.GetMe(r.Context(), bearer(r))
+	u, err := h.client.GetMe(r.Context(), sessionToken(r))
 	if err != nil {
 		fail(w, err)
 		return
@@ -153,7 +166,7 @@ func (h *Handlers) changePassword(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	if err := h.client.ChangePassword(r.Context(), bearer(r), req.OldPassword, req.NewPassword); err != nil {
+	if err := h.client.ChangePassword(r.Context(), sessionToken(r), req.OldPassword, req.NewPassword); err != nil {
 		fail(w, err)
 		return
 	}
@@ -163,7 +176,7 @@ func (h *Handlers) changePassword(w http.ResponseWriter, r *http.Request) {
 // markTourSeen takes no body: the caller is the subject, the tour is in the
 // path, and the service is idempotent.
 func (h *Handlers) markTourSeen(w http.ResponseWriter, r *http.Request) {
-	if err := h.client.MarkTourSeen(r.Context(), bearer(r), chi.URLParam(r, "tour")); err != nil {
+	if err := h.client.MarkTourSeen(r.Context(), sessionToken(r), chi.URLParam(r, "tour")); err != nil {
 		fail(w, err)
 		return
 	}
@@ -171,7 +184,7 @@ func (h *Handlers) markTourSeen(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) setup2FA(w http.ResponseWriter, r *http.Request) {
-	secret, url, err := h.twofa.Setup(r.Context(), bearer(r))
+	secret, url, err := h.twofa.Setup(r.Context(), sessionToken(r))
 	if err != nil {
 		fail(w, err)
 		return
@@ -184,7 +197,7 @@ func (h *Handlers) enable2FA(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	codes, err := h.twofa.Enable(r.Context(), bearer(r), req.Code)
+	codes, err := h.twofa.Enable(r.Context(), sessionToken(r), req.Code)
 	if err != nil {
 		fail(w, err)
 		return
@@ -197,7 +210,7 @@ func (h *Handlers) disable2FA(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	if err := h.twofa.Disable(r.Context(), bearer(r), req.Code); err != nil {
+	if err := h.twofa.Disable(r.Context(), sessionToken(r), req.Code); err != nil {
 		fail(w, err)
 		return
 	}
@@ -209,7 +222,7 @@ func (h *Handlers) regenerate2FA(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	codes, err := h.twofa.Regenerate(r.Context(), bearer(r), req.Code)
+	codes, err := h.twofa.Regenerate(r.Context(), sessionToken(r), req.Code)
 	if err != nil {
 		fail(w, err)
 		return
