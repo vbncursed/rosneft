@@ -47,7 +47,16 @@ func RunCheckpointer(
 				"row_count", c.RowCount, "digest", c.Digest)
 			if err := w.Write(c); err != nil {
 				metricDigestWriteFailures.Inc()
-				logger.Error("audit: digest witness write failed", "err", err, "to_id", c.ToID)
+				logger.Error("audit: digest witness write failed", "err", err, "checkpoint_id", c.ID)
+			}
+
+			// Same tick, same pool: the size gauges cost one extra query every
+			// few minutes and need no schedule of their own.
+			if rows, bytes, statErr := svc.TableStats(ctx); statErr != nil {
+				logger.Warn("audit: table stats unavailable", "err", statErr)
+			} else {
+				metricJournalRows.Set(float64(rows))
+				metricJournalBytes.Set(float64(bytes))
 			}
 		}
 	}

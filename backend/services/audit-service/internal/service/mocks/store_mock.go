@@ -74,6 +74,13 @@ type StoreMock struct {
 	afterSequenceWatermarkCounter  uint64
 	beforeSequenceWatermarkCounter uint64
 	SequenceWatermarkMock          mStoreMockSequenceWatermark
+
+	funcTableStats          func(ctx context.Context) (rows int64, bytes int64, err error)
+	funcTableStatsOrigin    string
+	inspectFuncTableStats   func(ctx context.Context)
+	afterTableStatsCounter  uint64
+	beforeTableStatsCounter uint64
+	TableStatsMock          mStoreMockTableStats
 }
 
 // NewStoreMock returns a mock for mm_service.Store
@@ -107,6 +114,9 @@ func NewStoreMock(t minimock.Tester) *StoreMock {
 
 	m.SequenceWatermarkMock = mStoreMockSequenceWatermark{mock: m}
 	m.SequenceWatermarkMock.callArgs = []*StoreMockSequenceWatermarkParams{}
+
+	m.TableStatsMock = mStoreMockTableStats{mock: m}
+	m.TableStatsMock.callArgs = []*StoreMockTableStatsParams{}
 
 	t.Cleanup(m.MinimockFinish)
 
@@ -2829,6 +2839,319 @@ func (m *StoreMock) MinimockSequenceWatermarkInspect() {
 	}
 }
 
+type mStoreMockTableStats struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockTableStatsExpectation
+	expectations       []*StoreMockTableStatsExpectation
+
+	callArgs []*StoreMockTableStatsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockTableStatsExpectation specifies expectation struct of the Store.TableStats
+type StoreMockTableStatsExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockTableStatsParams
+	paramPtrs          *StoreMockTableStatsParamPtrs
+	expectationOrigins StoreMockTableStatsExpectationOrigins
+	results            *StoreMockTableStatsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockTableStatsParams contains parameters of the Store.TableStats
+type StoreMockTableStatsParams struct {
+	ctx context.Context
+}
+
+// StoreMockTableStatsParamPtrs contains pointers to parameters of the Store.TableStats
+type StoreMockTableStatsParamPtrs struct {
+	ctx *context.Context
+}
+
+// StoreMockTableStatsResults contains results of the Store.TableStats
+type StoreMockTableStatsResults struct {
+	rows  int64
+	bytes int64
+	err   error
+}
+
+// StoreMockTableStatsOrigins contains origins of expectations of the Store.TableStats
+type StoreMockTableStatsExpectationOrigins struct {
+	origin    string
+	originCtx string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmTableStats *mStoreMockTableStats) Optional() *mStoreMockTableStats {
+	mmTableStats.optional = true
+	return mmTableStats
+}
+
+// Expect sets up expected params for Store.TableStats
+func (mmTableStats *mStoreMockTableStats) Expect(ctx context.Context) *mStoreMockTableStats {
+	if mmTableStats.mock.funcTableStats != nil {
+		mmTableStats.mock.t.Fatalf("StoreMock.TableStats mock is already set by Set")
+	}
+
+	if mmTableStats.defaultExpectation == nil {
+		mmTableStats.defaultExpectation = &StoreMockTableStatsExpectation{}
+	}
+
+	if mmTableStats.defaultExpectation.paramPtrs != nil {
+		mmTableStats.mock.t.Fatalf("StoreMock.TableStats mock is already set by ExpectParams functions")
+	}
+
+	mmTableStats.defaultExpectation.params = &StoreMockTableStatsParams{ctx}
+	mmTableStats.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmTableStats.expectations {
+		if minimock.Equal(e.params, mmTableStats.defaultExpectation.params) {
+			mmTableStats.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmTableStats.defaultExpectation.params)
+		}
+	}
+
+	return mmTableStats
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.TableStats
+func (mmTableStats *mStoreMockTableStats) ExpectCtxParam1(ctx context.Context) *mStoreMockTableStats {
+	if mmTableStats.mock.funcTableStats != nil {
+		mmTableStats.mock.t.Fatalf("StoreMock.TableStats mock is already set by Set")
+	}
+
+	if mmTableStats.defaultExpectation == nil {
+		mmTableStats.defaultExpectation = &StoreMockTableStatsExpectation{}
+	}
+
+	if mmTableStats.defaultExpectation.params != nil {
+		mmTableStats.mock.t.Fatalf("StoreMock.TableStats mock is already set by Expect")
+	}
+
+	if mmTableStats.defaultExpectation.paramPtrs == nil {
+		mmTableStats.defaultExpectation.paramPtrs = &StoreMockTableStatsParamPtrs{}
+	}
+	mmTableStats.defaultExpectation.paramPtrs.ctx = &ctx
+	mmTableStats.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmTableStats
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.TableStats
+func (mmTableStats *mStoreMockTableStats) Inspect(f func(ctx context.Context)) *mStoreMockTableStats {
+	if mmTableStats.mock.inspectFuncTableStats != nil {
+		mmTableStats.mock.t.Fatalf("Inspect function is already set for StoreMock.TableStats")
+	}
+
+	mmTableStats.mock.inspectFuncTableStats = f
+
+	return mmTableStats
+}
+
+// Return sets up results that will be returned by Store.TableStats
+func (mmTableStats *mStoreMockTableStats) Return(rows int64, bytes int64, err error) *StoreMock {
+	if mmTableStats.mock.funcTableStats != nil {
+		mmTableStats.mock.t.Fatalf("StoreMock.TableStats mock is already set by Set")
+	}
+
+	if mmTableStats.defaultExpectation == nil {
+		mmTableStats.defaultExpectation = &StoreMockTableStatsExpectation{mock: mmTableStats.mock}
+	}
+	mmTableStats.defaultExpectation.results = &StoreMockTableStatsResults{rows, bytes, err}
+	mmTableStats.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmTableStats.mock
+}
+
+// Set uses given function f to mock the Store.TableStats method
+func (mmTableStats *mStoreMockTableStats) Set(f func(ctx context.Context) (rows int64, bytes int64, err error)) *StoreMock {
+	if mmTableStats.defaultExpectation != nil {
+		mmTableStats.mock.t.Fatalf("Default expectation is already set for the Store.TableStats method")
+	}
+
+	if len(mmTableStats.expectations) > 0 {
+		mmTableStats.mock.t.Fatalf("Some expectations are already set for the Store.TableStats method")
+	}
+
+	mmTableStats.mock.funcTableStats = f
+	mmTableStats.mock.funcTableStatsOrigin = minimock.CallerInfo(1)
+	return mmTableStats.mock
+}
+
+// When sets expectation for the Store.TableStats which will trigger the result defined by the following
+// Then helper
+func (mmTableStats *mStoreMockTableStats) When(ctx context.Context) *StoreMockTableStatsExpectation {
+	if mmTableStats.mock.funcTableStats != nil {
+		mmTableStats.mock.t.Fatalf("StoreMock.TableStats mock is already set by Set")
+	}
+
+	expectation := &StoreMockTableStatsExpectation{
+		mock:               mmTableStats.mock,
+		params:             &StoreMockTableStatsParams{ctx},
+		expectationOrigins: StoreMockTableStatsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmTableStats.expectations = append(mmTableStats.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.TableStats return parameters for the expectation previously defined by the When method
+func (e *StoreMockTableStatsExpectation) Then(rows int64, bytes int64, err error) *StoreMock {
+	e.results = &StoreMockTableStatsResults{rows, bytes, err}
+	return e.mock
+}
+
+// Times sets number of times Store.TableStats should be invoked
+func (mmTableStats *mStoreMockTableStats) Times(n uint64) *mStoreMockTableStats {
+	if n == 0 {
+		mmTableStats.mock.t.Fatalf("Times of StoreMock.TableStats mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmTableStats.expectedInvocations, n)
+	mmTableStats.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmTableStats
+}
+
+func (mmTableStats *mStoreMockTableStats) invocationsDone() bool {
+	if len(mmTableStats.expectations) == 0 && mmTableStats.defaultExpectation == nil && mmTableStats.mock.funcTableStats == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmTableStats.mock.afterTableStatsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmTableStats.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// TableStats implements mm_service.Store
+func (mmTableStats *StoreMock) TableStats(ctx context.Context) (rows int64, bytes int64, err error) {
+	mm_atomic.AddUint64(&mmTableStats.beforeTableStatsCounter, 1)
+	defer mm_atomic.AddUint64(&mmTableStats.afterTableStatsCounter, 1)
+
+	mmTableStats.t.Helper()
+
+	if mmTableStats.inspectFuncTableStats != nil {
+		mmTableStats.inspectFuncTableStats(ctx)
+	}
+
+	mm_params := StoreMockTableStatsParams{ctx}
+
+	// Record call args
+	mmTableStats.TableStatsMock.mutex.Lock()
+	mmTableStats.TableStatsMock.callArgs = append(mmTableStats.TableStatsMock.callArgs, &mm_params)
+	mmTableStats.TableStatsMock.mutex.Unlock()
+
+	for _, e := range mmTableStats.TableStatsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.rows, e.results.bytes, e.results.err
+		}
+	}
+
+	if mmTableStats.TableStatsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmTableStats.TableStatsMock.defaultExpectation.Counter, 1)
+		mm_want := mmTableStats.TableStatsMock.defaultExpectation.params
+		mm_want_ptrs := mmTableStats.TableStatsMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockTableStatsParams{ctx}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmTableStats.t.Errorf("StoreMock.TableStats got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmTableStats.TableStatsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmTableStats.t.Errorf("StoreMock.TableStats got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmTableStats.TableStatsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmTableStats.TableStatsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmTableStats.t.Fatal("No results are set for the StoreMock.TableStats")
+		}
+		return (*mm_results).rows, (*mm_results).bytes, (*mm_results).err
+	}
+	if mmTableStats.funcTableStats != nil {
+		return mmTableStats.funcTableStats(ctx)
+	}
+	mmTableStats.t.Fatalf("Unexpected call to StoreMock.TableStats. %v", ctx)
+	return
+}
+
+// TableStatsAfterCounter returns a count of finished StoreMock.TableStats invocations
+func (mmTableStats *StoreMock) TableStatsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmTableStats.afterTableStatsCounter)
+}
+
+// TableStatsBeforeCounter returns a count of StoreMock.TableStats invocations
+func (mmTableStats *StoreMock) TableStatsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmTableStats.beforeTableStatsCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.TableStats.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmTableStats *mStoreMockTableStats) Calls() []*StoreMockTableStatsParams {
+	mmTableStats.mutex.RLock()
+
+	argCopy := make([]*StoreMockTableStatsParams, len(mmTableStats.callArgs))
+	copy(argCopy, mmTableStats.callArgs)
+
+	mmTableStats.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockTableStatsDone returns true if the count of the TableStats invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockTableStatsDone() bool {
+	if m.TableStatsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.TableStatsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.TableStatsMock.invocationsDone()
+}
+
+// MinimockTableStatsInspect logs each unmet expectation
+func (m *StoreMock) MinimockTableStatsInspect() {
+	for _, e := range m.TableStatsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.TableStats at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterTableStatsCounter := mm_atomic.LoadUint64(&m.afterTableStatsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.TableStatsMock.defaultExpectation != nil && afterTableStatsCounter < 1 {
+		if m.TableStatsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.TableStats at\n%s", m.TableStatsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.TableStats at\n%s with params: %#v", m.TableStatsMock.defaultExpectation.expectationOrigins.origin, *m.TableStatsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcTableStats != nil && afterTableStatsCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.TableStats at\n%s", m.funcTableStatsOrigin)
+	}
+
+	if !m.TableStatsMock.invocationsDone() && afterTableStatsCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.TableStats at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.TableStatsMock.expectedInvocations), m.TableStatsMock.expectedInvocationsOrigin, afterTableStatsCounter)
+	}
+}
+
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *StoreMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
@@ -2848,6 +3171,8 @@ func (m *StoreMock) MinimockFinish() {
 			m.MinimockSaveCheckpointInspect()
 
 			m.MinimockSequenceWatermarkInspect()
+
+			m.MinimockTableStatsInspect()
 		}
 	})
 }
@@ -2878,5 +3203,6 @@ func (m *StoreMock) minimockDone() bool {
 		m.MinimockListCheckpointsDone() &&
 		m.MinimockRecordDone() &&
 		m.MinimockSaveCheckpointDone() &&
-		m.MinimockSequenceWatermarkDone()
+		m.MinimockSequenceWatermarkDone() &&
+		m.MinimockTableStatsDone()
 }
