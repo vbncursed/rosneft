@@ -132,8 +132,15 @@ Fully wired. The gateway authenticates every `/api/*` route: requests without a
 session get `401`, and mutating routes additionally require a per-route
 permission (`403` otherwise). Everything under `/api/territories/{slug}` is
 additionally gated on the caller's tenant and answers `404` for another
-company's territory. `/api/assets/{hash}` and `/api/jobs/{id}/events` need a
-session too.
+company's territory. `/api/assets/{hash}` needs a session **and** is scoped to
+the tenant; `/api/jobs/{id}/events` needs a session.
+
+**Mutations carry `X-CSRF-Token`.** The token is handed out at login and in
+`/api/auth/me`, and `auth/infrastructure/csrf-token` keeps it in memory only —
+never localStorage, never a cookie, both of which outlive the tab. A page reload
+therefore starts without one, and `getMe()` is what brings it back before
+anything can be mutated. `client.ts` attaches it on mutating methods;
+`upload-gateway` does it by hand, its PATCH/DELETE bypassing the shared client.
 
 **The session is an httpOnly cookie (`andrey_session`), not a stored token.**
 This code cannot read it and does not try to: the browser attaches it to every

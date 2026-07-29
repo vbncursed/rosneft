@@ -1582,7 +1582,7 @@ git commit -m "test(gateway): pin the no-state-changing-GET rule the CSRF defenc
 **Interfaces:**
 - Consumes: всё построенное в задачах 1–7. Кода не меняет.
 
-- [ ] **Step 1: Корневой CLAUDE.md**
+- [x] **Step 1: Корневой CLAUDE.md**
 
 В раздел про эндпоинты шлюза, заменить пункт про ассеты:
 
@@ -1592,7 +1592,7 @@ git commit -m "test(gateway): pin the no-state-changing-GET rule the CSRF defenc
 - **CORS выключен по умолчанию.** Пустой `GATEWAY_ALLOWED_ORIGINS` означает, что middleware не монтируется вовсе — передать пустой список в go-chi/cors нельзя, для него это «все origin».
 ```
 
-- [ ] **Step 2: backend/CLAUDE.md**
+- [x] **Step 2: backend/CLAUDE.md**
 
 Дополнить раздел «Tenant isolation»:
 
@@ -1612,7 +1612,7 @@ testcontainers (`-tags=integration`), а не моком — мок провер
 Добавить раздел про CSRF с обоснованием «токен выводится, не хранится» и
 «проверяется только для куки-сессий».
 
-- [ ] **Step 3: README шлюза и фронта**
+- [x] **Step 3: README шлюза и фронта**
 
 В `backend/services/gateway-service/README.md`: `GATEWAY_CSRF_SECRET` в таблицу
 переменных (обязательная, без дефолта), изменившийся дефолт
@@ -1622,7 +1622,7 @@ testcontainers (`-tags=integration`), а не моком — мок провер
 несут `X-CSRF-Token`, а токен живёт в памяти и восстанавливается из
 `/api/auth/me`.
 
-- [ ] **Step 4: Коммит**
+- [x] **Step 4: Коммит**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft
@@ -1634,7 +1634,7 @@ git commit -m "docs(assets): blob scoping, the CSRF token and CORS off by defaul
 
 ## Финальная проверка
 
-- [ ] **Полный прогон**
+- [x] **Полный прогон**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft

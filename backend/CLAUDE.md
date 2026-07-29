@@ -295,11 +295,51 @@ The scope itself resolves through `territory_assignments` only — see
 non-Root principal with an empty scope instead of passing it through: the empty
 value does not mean "no access", it means "every territory".
 
-`/api/assets/{hash}` and `/api/jobs/{id}/events` now sit behind `Authenticate`
-but deliberately carry **no** territory gate: a blob hash addresses content and
-is deduplicated across territories and models, so there is no single territory to
-check it against. Any authenticated caller who knows a hash can fetch it; the
-territory gate is what keeps hashes from reaching outsiders in the first place.
+`/api/assets/{hash}` carries `RequireBlobAccess` rather than the territory gate —
+see **Blob scoping** below for why the two cannot be the same check.
+`/api/jobs/{id}/events` is authenticated but deliberately unscoped: a job id is
+128 random bits and its payload names a kind and a slug, not a blob.
+
+### Blob scoping
+
+Blobs are scoped separately from territories and for a different reason: a hash
+addresses content and is deduplicated, so it has no single territory to check
+against. `ResolveBlobAccess` in the catalog answers the answerable version —
+"is there any row holding this hash that this caller can see" — as one `EXISTS`
+over six `UNION ALL` branches, which stops at the first match rather than
+scanning all six.
+
+The logic is entirely SQL, so it is covered by a testcontainers suite
+(`go test -tags=integration ./internal/storage/`) rather than a mock: a mock
+would assert only argument passing, while a scope filter dropped from one branch
+leaks exactly one class of asset, silently. That suite was checked by removing a
+filter and confirming it fails.
+
+**Added a table with a hash column? Add a branch and a test case.** Otherwise
+the new asset type is reachable by nobody or by everybody, and neither the
+compiler nor any other test notices.
+
+Models stay readable by every tenant — the library is shared by decision, and
+`ListModels` has no scope either. Narrowing that is a product question, not an
+omission here.
+
+## CSRF
+
+The token is `HMAC(GATEWAY_CSRF_SECRET, sessionToken)`: derived, not stored, so
+it needs no table, no Redis key and no second cookie, and bound to the session,
+so it cannot be transplanted and dies when the session does. Rotating the secret
+invalidates every outstanding token. There is no CSRF service and there should
+not be one — it owns no state, so a service would only put a network hop on the
+hot path of every mutation and add a way for writes to stop entirely.
+
+Checked **only when the session arrived by cookie**. A browser cannot attach an
+`Authorization` header to a cross-site request, so a Bearer caller cannot be
+CSRF'd; that exemption is what keeps curl, the tests and integrations working
+unchanged.
+
+`SameSite=Lax` stays the first line and this is the second. The second exists
+because the first rests on one assumption — that no GET changes state — and
+`safe_get_test.go` is what keeps that assumption true. Do not weaken either.
 
 ## Session cookie
 
