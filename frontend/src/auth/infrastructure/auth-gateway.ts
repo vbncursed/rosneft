@@ -21,9 +21,12 @@ export function mapPrincipal(d: AuthUserDto): Principal {
 
 export async function getMe(): Promise<Principal> {
   const d = await httpGet<AuthUserDto>("/api/auth/me");
-  // The CSRF token lives in memory only, so a page reload starts without one and
-  // the first mutation would 403. This is where it comes back: meQuery already
-  // runs before anything can be rendered, let alone mutated.
+  // Seeds the in-memory CSRF token on the normal path, since this response
+  // already carries it. It is not what guarantees a token is there: nothing
+  // awaits meQuery — the route guard is synchronous and the layout renders its
+  // children while this is still in flight — so a mutation can beat it. That
+  // case is handled by ensureCsrfToken, which fetches one when a mutation finds
+  // none. This just saves the extra round trip when the ordering works out.
   if (d.csrfToken) setCsrfToken(d.csrfToken);
   return mapPrincipal(d);
 }
