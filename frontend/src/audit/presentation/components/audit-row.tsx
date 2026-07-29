@@ -28,9 +28,10 @@ export default function AuditRow({ entry }: { entry: AuditEntry }) {
           <span className="mx-2 text-neutral-600">·</span>
           <EntityLink entry={entry} />
           {/* Территория дописывается в ту же ячейку, а не отдельной колонкой:
-              сетка строки и так схлопывается в одну колонку ниже sm, а без
-              родителя запись вида "placement.update · 71" не сообщает ничего —
-              у 39 из 41 размещения нет метки, и остаётся голый id. */}
+              сетка строки и так схлопывается в одну колонку ниже sm. Без
+              родителя запись вида "placement.update · 71" не сообщает ничего:
+              метка у размещения необязательна и чаще всего пуста, так что
+              EntityLink остаётся с голым id. */}
           {entry.territorySlug ? (
             <>
               <span className="mx-2 text-neutral-600">·</span>

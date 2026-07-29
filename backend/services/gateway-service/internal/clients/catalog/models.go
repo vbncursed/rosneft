@@ -13,7 +13,7 @@ import (
 func (c *Client) ListModels(ctx context.Context) ([]domain.Model, error) {
 	resp, err := c.cc.ListModels(ctx, &catalogv1.ListModelsRequest{})
 	if err != nil {
-		return nil, fmt.Errorf("catalog.ListModels: %w", err)
+		return nil, fmt.Errorf("catalog.ListModels: %w", grpcerr.MapStatus(err, nil))
 	}
 	out := make([]domain.Model, len(resp.GetModels()))
 	for i, m := range resp.GetModels() {
@@ -35,7 +35,7 @@ func (c *Client) GetModel(ctx context.Context, slug string) (domain.Model, error
 func (c *Client) UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error) {
 	resp, err := c.cc.UpsertModel(ctx, &catalogv1.UpsertModelRequest{Model: modelToProto(m)})
 	if err != nil {
-		return domain.Model{}, fmt.Errorf("catalog.UpsertModel: %w", err)
+		return domain.Model{}, fmt.Errorf("catalog.UpsertModel: %w", grpcerr.MapStatus(err, nil))
 	}
 	return modelFromProto(resp.GetModel()), nil
 }
