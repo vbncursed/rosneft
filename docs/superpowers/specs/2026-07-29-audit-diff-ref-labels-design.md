@@ -127,26 +127,53 @@ role_id    9b75ebfc-141b-448e-ad63-97fe7ca6fa47
 | Вид | Источник | Что подпись | Новое? |
 | --- | --- | --- | --- |
 | user | `ResolveUserLogins` | логин | есть |
-| role | `ListRoles` | `title`, при пустом — `slug` | есть |
-| permission | `ListPermissions` | `slug` (`audit:read`) | есть |
-| territory / model / panorama | `ResolveLabels(kind, ids)` | `slug` | **новый RPC catalog** |
+| role | `ResolveLabels(kind, ids)` в auth | `title`, при пустом — `slug` | **новый RPC auth** |
+| permission | там же | `slug` (`audit:read`) | там же |
+| territory / model / panorama | `ResolveLabels(kind, ids)` в catalog | `slug` | **новый RPC catalog** |
 
-`ListRoles` и `ListPermissions` на gRPC-уровне auth не загорожены — RBAC делает
-gateway, — поэтому auth-сторона обходится без правок proto. Обе таблицы
-крошечные и фиксированные, тянутся целиком и только если такой идентификатор на
-странице вообще встретился.
+**Переиспользовать `ListRoles` / `ListPermissions` нельзя.** Ни `message Role`,
+ни `message Permission`, ни доменные типы auth не несут id — роли и права
+адресуются слагом на всех уровнях, и uuid из снимка за пределы сервиса не
+выходит. Это та же ситуация, что зафиксирована в комментарии к
+`ResolveTerritorySlugs`: «публичное сообщение несёт slug и намеренно не несёт
+id; добавлять его туда ради внутреннего поиска — менять форму, которую читает
+вся сцена». Решение то же — отдельный резолвер.
 
-Новый RPC в catalog — один на все три вида:
+Панорамы резолвит catalog, а не content. Таблица `panoramas` заведена
+миграцией catalog `00004`, владеет ею content, и catalog уже читает её
+read-only по задокументированному исключению (`ListPanoramaIDs` — проверка
+allowlist видимости placement'а). Резолв подписи — такое же чтение, и оно
+избавляет от клиента content в пути журнала. Альтернатива — свой
+`ResolveLabels` в content — стоит третьего сервиса в цепочке ради одного вида.
+
+Новые RPC симметричны, по одному на сервис:
 
 ```proto
+// catalog.proto
 rpc ResolveLabels(ResolveLabelsRequest) returns (ResolveLabelsResponse);
-
 message LabelRef { string kind = 1; int64 id = 2; }  // territory | model | panorama
 message ResolveLabelsRequest  { repeated LabelRef refs = 1; }
 message ResolveLabelsResponse { map<string, string> labels = 1; }  // "model:7" → "pump-01"
+
+// auth.proto — id строковый, потому что uuid
+rpc ResolveLabels(ResolveLabelsRequest) returns (ResolveLabelsResponse);
+message LabelRef { string kind = 1; string id = 2; }  // role | permission
+message ResolveLabelsRequest  { string token = 1; repeated LabelRef refs = 2; }
+message ResolveLabelsResponse { map<string, string> labels = 1; }
 ```
 
-Внутри — switch по виду и три запроса `SELECT id, slug WHERE id = ANY($1)`.
+Внутри каждого — switch по виду и по запросу `SELECT id, … WHERE id = ANY($1)`
+на вид. Ограничение на 500 ссылок в запросе — как у `ResolveUserLogins` и
+`ResolveTerritorySlugs`: cap стоит вместо области видимости и удерживает вызов
+в роли подписчика, а не выгрузки.
+
+Область: обе стороны не применяют компанейский скоуп, дословно по прецеденту
+`ResolveUserLogins` — «ids, переданные сюда, читатель уже видит в записях,
+которые пропустила область журнала, поэтому подпись рядом с видимым id не
+открывает ничего нового». Идентификаторы приходят из снимка, а не из запроса
+пользователя, так что подобрать чужой uuid через этот путь нельзя. Токен auth
+всё же требует — вызов должен исходить от реальной сессии, а не просто из сети.
+
 Существующий `ResolveTerritorySlugs` остаётся: его зовёт работающий
 entry-level enrichment, и снос рабочего метода ради красоты потребовал бы
 двухшаговой выкатки.
@@ -156,7 +183,10 @@ entry-level enrichment, и снос рабочего метода ради кр�
 Новая функция `resolveRowRefs` рядом с `labelAuditEntries`, тот же контракт:
 
 - пакетно на страницу, никогда не на запись;
-- вызовы к auth и catalog параллельно через `errgroup` — как в scene bundle;
+- вызовы к auth и catalog параллельно, но **не** через `errgroup`, как в scene
+  bundle: errgroup отменяет соседа по первой ошибке, а здесь отказ одного
+  резолвера не должен стоить подписей другого. Обычный `sync.WaitGroup` с
+  `wg.Go` и глотанием ошибки внутри каждой ветки;
 - ошибка резолва логируется и глотается, словарь остаётся частичным;
 - нерезолвнутое значение не попадает в словарь и деградирует до голого id.
 
@@ -213,8 +243,9 @@ entry-level enrichment, и снос рабочего метода ради кр�
 
 ## Порядок работ
 
-1. proto: `ResolveLabels` + `make proto-gen`.
-2. catalog: хранилище и сервис `ResolveLabels`.
-3. gateway: клиент catalog, таблица полей, `resolveRowRefs`, флаг `wantRefs`.
-4. openapi: `refs` в `AuditPage` + `make openapi-gen`.
-5. frontend: `yarn openapi:generate`, гейтвей, хук, `labelFor`, `diff-view`.
+1. proto: `ResolveLabels` в catalog и auth + `make proto-gen`.
+2. catalog: хранилище, сервис, gRPC-обвязка `ResolveLabels`.
+3. auth: то же самое для ролей и прав.
+4. gateway: клиенты обоих, таблица полей, `resolveRowRefs`, флаг `wantRefs`.
+5. openapi: `refs` в `AuditPage` + `make openapi-gen`.
+6. frontend: `yarn openapi:generate`, гейтвей, хук, `labelFor`, `diff-view`.
