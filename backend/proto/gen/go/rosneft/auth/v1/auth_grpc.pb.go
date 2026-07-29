@@ -45,6 +45,7 @@ const (
 	AuthService_DeleteRole_FullMethodName         = "/rosneft.auth.v1.AuthService/DeleteRole"
 	AuthService_SetRolePermissions_FullMethodName = "/rosneft.auth.v1.AuthService/SetRolePermissions"
 	AuthService_ListPermissions_FullMethodName    = "/rosneft.auth.v1.AuthService/ListPermissions"
+	AuthService_ResolveLabels_FullMethodName      = "/rosneft.auth.v1.AuthService/ResolveLabels"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -93,6 +94,13 @@ type AuthServiceClient interface {
 	DeleteRole(ctx context.Context, in *DeleteRoleRequest, opts ...grpc.CallOption) (*DeleteRoleResponse, error)
 	SetRolePermissions(ctx context.Context, in *SetRolePermissionsRequest, opts ...grpc.CallOption) (*Role, error)
 	ListPermissions(ctx context.Context, in *ListPermissionsRequest, opts ...grpc.CallOption) (*ListPermissionsResponse, error)
+	// ResolveLabels names roles and permissions the caller already sees. Like
+	// ResolveUserLogins it applies no company scope: the ids arrive from journal
+	// snapshots the reader's own scope already released, so naming a visible id
+	// discloses nothing further. Unlike ListRoles, which addresses roles by slug,
+	// this one takes the uuid the snapshot actually carries — Role and Permission
+	// deliberately carry no id, so neither listing can serve this.
+	ResolveLabels(ctx context.Context, in *ResolveLabelsRequest, opts ...grpc.CallOption) (*ResolveLabelsResponse, error)
 }
 
 type authServiceClient struct {
@@ -363,6 +371,16 @@ func (c *authServiceClient) ListPermissions(ctx context.Context, in *ListPermiss
 	return out, nil
 }
 
+func (c *authServiceClient) ResolveLabels(ctx context.Context, in *ResolveLabelsRequest, opts ...grpc.CallOption) (*ResolveLabelsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResolveLabelsResponse)
+	err := c.cc.Invoke(ctx, AuthService_ResolveLabels_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -409,6 +427,13 @@ type AuthServiceServer interface {
 	DeleteRole(context.Context, *DeleteRoleRequest) (*DeleteRoleResponse, error)
 	SetRolePermissions(context.Context, *SetRolePermissionsRequest) (*Role, error)
 	ListPermissions(context.Context, *ListPermissionsRequest) (*ListPermissionsResponse, error)
+	// ResolveLabels names roles and permissions the caller already sees. Like
+	// ResolveUserLogins it applies no company scope: the ids arrive from journal
+	// snapshots the reader's own scope already released, so naming a visible id
+	// discloses nothing further. Unlike ListRoles, which addresses roles by slug,
+	// this one takes the uuid the snapshot actually carries — Role and Permission
+	// deliberately carry no id, so neither listing can serve this.
+	ResolveLabels(context.Context, *ResolveLabelsRequest) (*ResolveLabelsResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -496,6 +521,9 @@ func (UnimplementedAuthServiceServer) SetRolePermissions(context.Context, *SetRo
 }
 func (UnimplementedAuthServiceServer) ListPermissions(context.Context, *ListPermissionsRequest) (*ListPermissionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListPermissions not implemented")
+}
+func (UnimplementedAuthServiceServer) ResolveLabels(context.Context, *ResolveLabelsRequest) (*ResolveLabelsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveLabels not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -986,6 +1014,24 @@ func _AuthService_ListPermissions_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_ResolveLabels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveLabelsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ResolveLabels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ResolveLabels_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ResolveLabels(ctx, req.(*ResolveLabelsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1096,6 +1142,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListPermissions",
 			Handler:    _AuthService_ListPermissions_Handler,
+		},
+		{
+			MethodName: "ResolveLabels",
+			Handler:    _AuthService_ResolveLabels_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

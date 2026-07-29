@@ -21,6 +21,7 @@ type Service interface {
 	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
 	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
 	ResolveTerritorySlugs(ctx context.Context, ids []int64) (map[int64]string, error)
+	ResolveLabels(ctx context.Context, refs []domain.LabelRef) (map[string]string, error)
 	DeleteTerritory(ctx context.Context, slug string) error
 	SetTerritoryAdmins(ctx context.Context, slug string, adminIDs []string) error
 	GetTerritoryAdmins(ctx context.Context, slug string) ([]string, error)

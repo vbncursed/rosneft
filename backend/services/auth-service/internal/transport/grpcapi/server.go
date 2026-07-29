@@ -53,6 +53,8 @@ type RolesSvc interface {
 	Delete(ctx context.Context, slug, scopeAdminID string, allAccess bool) error
 	SetPermissions(ctx context.Context, actorID, slug string, permSlugs []string, scopeAdminID string, allAccess bool) (domain.Role, error)
 	ListPermissions(ctx context.Context) ([]domain.Permission, error)
+	// No actorID or scope: this one names ids the caller already sees.
+	ResolveLabels(ctx context.Context, refs []domain.LabelRef) (map[string]string, error)
 }
 
 // Server implements authv1.AuthServiceServer.

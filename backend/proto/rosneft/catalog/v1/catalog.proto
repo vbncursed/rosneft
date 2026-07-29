@@ -24,6 +24,11 @@ service CatalogService {
   // public Territory message carries a slug and no id on purpose; adding one
   // would change a shape the whole scene reads for an internal lookup.
   rpc ResolveTerritorySlugs(ResolveTerritorySlugsRequest) returns (ResolveTerritorySlugsResponse);
+  // ResolveLabels names catalog rows for the audit journal, whose snapshots
+  // carry a parent or a target only as a number. It is the plural, multi-kind
+  // sibling of ResolveTerritorySlugs, which stays because the entry-level
+  // enrichment already calls it.
+  rpc ResolveLabels(ResolveLabelsRequest) returns (ResolveLabelsResponse);
   rpc GetTerritory(GetTerritoryRequest) returns (GetTerritoryResponse);
   rpc UpsertTerritory(UpsertTerritoryRequest) returns (UpsertTerritoryResponse);
   rpc DeleteTerritory(DeleteTerritoryRequest) returns (DeleteTerritoryResponse);
@@ -150,6 +155,23 @@ message ResolveTerritorySlugsResponse {
   // Ids that match nothing are absent: the journal outlives the territories it
   // describes, and the caller falls back to leaving the column empty.
   map<int64, string> slugs = 1;
+}
+
+// LabelRef is one id to name. kind is "territory", "model" or "panorama".
+message LabelRef {
+  string kind = 1;
+  int64 id = 2;
+}
+message ResolveLabelsRequest {
+  // At most 500. A kind this service does not know is dropped rather than
+  // refused: during a rolling deploy a newer gateway may ask for one, and a
+  // single unknown kind must not cost the reader every other label on the page.
+  repeated LabelRef refs = 1;
+}
+message ResolveLabelsResponse {
+  // Keyed "<kind>:<id>". Refs that match nothing are absent — the journal
+  // outlives the rows it describes.
+  map<string, string> labels = 1;
 }
 
 message GetTerritoryRequest {

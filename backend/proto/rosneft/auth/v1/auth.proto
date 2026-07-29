@@ -51,6 +51,13 @@ service AuthService {
   rpc DeleteRole(DeleteRoleRequest) returns (DeleteRoleResponse);
   rpc SetRolePermissions(SetRolePermissionsRequest) returns (Role);
   rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse);
+  // ResolveLabels names roles and permissions the caller already sees. Like
+  // ResolveUserLogins it applies no company scope: the ids arrive from journal
+  // snapshots the reader's own scope already released, so naming a visible id
+  // discloses nothing further. Unlike ListRoles, which addresses roles by slug,
+  // this one takes the uuid the snapshot actually carries — Role and Permission
+  // deliberately carry no id, so neither listing can serve this.
+  rpc ResolveLabels(ResolveLabelsRequest) returns (ResolveLabelsResponse);
 }
 
 message User {
@@ -171,6 +178,23 @@ message ResolveUserLoginsResponse {
   // Ids that match nothing are absent rather than empty: the journal remembers
   // deleted users, so the caller falls back to showing the uuid.
   map<string, string> logins = 1;
+}
+
+// LabelRef is one id to name. kind is "role" or "permission".
+message LabelRef {
+  string kind = 1;
+  string id = 2;
+}
+message ResolveLabelsRequest {
+  string token = 1; // validated; its company scope is deliberately not applied
+  // At most 500. A kind this service does not know is dropped rather than
+  // refused, so a rolling deploy cannot blank a whole page of labels.
+  repeated LabelRef refs = 2;
+}
+message ResolveLabelsResponse {
+  // Keyed "<kind>:<id>". Refs that match nothing are absent — the journal
+  // remembers roles that have since been deleted.
+  map<string, string> labels = 1;
 }
 message GetUserRequest {
   string token = 1;

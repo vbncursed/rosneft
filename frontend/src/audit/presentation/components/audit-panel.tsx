@@ -13,7 +13,7 @@ export default function AuditPanel() {
   // записей, разрешённые сервером.
   const actors = useAuditActors();
   const [filters, setFilters] = useState<AuditFilters>(EMPTY_FILTERS);
-  const { entries, isLoading, error, hasMore, loadMore, isLoadingMore } = useAuditLog(filters);
+  const { entries, refs, isLoading, error, hasMore, loadMore, isLoadingMore } = useAuditLog(filters);
 
   return (
     <div>
@@ -43,7 +43,7 @@ export default function AuditPanel() {
         ) : isLoading ? (
           <p className="text-sm text-neutral-500">Loading…</p>
         ) : (
-          <AuditTable entries={entries} />
+          <AuditTable entries={entries} refs={refs} />
         )}
       </div>
 

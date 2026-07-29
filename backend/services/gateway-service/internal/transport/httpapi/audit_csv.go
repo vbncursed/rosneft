@@ -58,7 +58,7 @@ func (s *Server) ServeAuditCSV(w http.ResponseWriter, r *http.Request) {
 	// Resolve the scope before writing a byte: once the header is sent the
 	// status code is fixed, and a 200 with a truncated body would read as a
 	// complete export.
-	first, next, err := s.svc.ListAudit(ctx, q, isOwner, company, token)
+	first, next, _, err := s.svc.ListAudit(ctx, q, isOwner, company, token, false)
 	if err != nil {
 		writeAuditCSVError(w, err)
 		return
@@ -84,7 +84,7 @@ func (s *Server) ServeAuditCSV(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		q.Cursor = next
-		page, next, err = s.svc.ListAudit(ctx, q, isOwner, company, token)
+		page, next, _, err = s.svc.ListAudit(ctx, q, isOwner, company, token, false)
 		if err != nil {
 			// The header is already out; log-free bail is the only option left.
 			return

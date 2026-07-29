@@ -2610,6 +2610,10 @@ export interface components {
              * @description Pass back as `cursor` for the next page. Absent or 0 means this was the last page.
              */
             nextCursor?: number;
+            /** @description Human-readable names for the ids inside oldRow/newRow, keyed "<field>:<value>" — e.g. "role_id:9b75ebfc-…": "Редактор". Keyed by value because a changed field needs a name on both sides of the arrow; the field name alone carries the kind, so no client-side table of field kinds is needed. An id nobody could name is absent, and the client falls back to showing the id. Absent entirely on the CSV export, which prints no snapshots. */
+            refs?: {
+                [key: string]: string;
+            };
         };
     };
     responses: {

@@ -1,7 +1,14 @@
 import type { AuditEntry } from "@/audit/domain/audit-entry";
 import AuditRow from "@/audit/presentation/components/audit-row";
+import type { Refs } from "@/audit/domain/ref-label";
 
-export default function AuditTable({ entries }: { entries: AuditEntry[] }) {
+export default function AuditTable({
+  entries,
+  refs = {},
+}: {
+  entries: AuditEntry[];
+  refs?: Refs;
+}) {
   if (entries.length === 0) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-10 text-center">
@@ -23,7 +30,7 @@ export default function AuditTable({ entries }: { entries: AuditEntry[] }) {
       </div>
       <ul>
         {entries.map((e) => (
-          <AuditRow key={e.id} entry={e} />
+          <AuditRow key={e.id} entry={e} refs={refs} />
         ))}
       </ul>
     </div>
