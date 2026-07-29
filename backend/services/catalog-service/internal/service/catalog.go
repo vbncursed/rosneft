@@ -56,6 +56,12 @@ type Repository interface {
 	// themselves are owned by content-service; catalog only needs their IDs to
 	// validate placement visibility allowlists (read-only, shared DB).
 	ListPanoramaIDs(ctx context.Context, territorySlug string) ([]int64, error)
+
+	// ResolveBlobAccess reports whether a caller scoped to scopeAdminID may read
+	// the bytes behind a content hash. Spans models (shared) and everything
+	// reachable from a territory, including panoramas and documents owned by
+	// content-service — same shared DB, read-only, like ListPanoramaIDs.
+	ResolveBlobAccess(ctx context.Context, hash, scopeAdminID string) (bool, error)
 }
 
 // Catalog is the catalog service.

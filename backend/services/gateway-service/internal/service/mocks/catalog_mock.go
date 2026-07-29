@@ -124,6 +124,13 @@ type CatalogMock struct {
 	beforeListTerritoryArtifactsCounter uint64
 	ListTerritoryArtifactsMock          mCatalogMockListTerritoryArtifacts
 
+	funcResolveBlobAccess          func(ctx context.Context, hash string, scopeAdminID string) (b1 bool, err error)
+	funcResolveBlobAccessOrigin    string
+	inspectFuncResolveBlobAccess   func(ctx context.Context, hash string, scopeAdminID string)
+	afterResolveBlobAccessCounter  uint64
+	beforeResolveBlobAccessCounter uint64
+	ResolveBlobAccessMock          mCatalogMockResolveBlobAccess
+
 	funcResolveLabels          func(ctx context.Context, refs []domain.LabelRef) (m1 map[string]string, err error)
 	funcResolveLabelsOrigin    string
 	inspectFuncResolveLabels   func(ctx context.Context, refs []domain.LabelRef)
@@ -233,6 +240,9 @@ func NewCatalogMock(t minimock.Tester) *CatalogMock {
 
 	m.ListTerritoryArtifactsMock = mCatalogMockListTerritoryArtifacts{mock: m}
 	m.ListTerritoryArtifactsMock.callArgs = []*CatalogMockListTerritoryArtifactsParams{}
+
+	m.ResolveBlobAccessMock = mCatalogMockResolveBlobAccess{mock: m}
+	m.ResolveBlobAccessMock.callArgs = []*CatalogMockResolveBlobAccessParams{}
 
 	m.ResolveLabelsMock = mCatalogMockResolveLabels{mock: m}
 	m.ResolveLabelsMock.callArgs = []*CatalogMockResolveLabelsParams{}
@@ -5466,6 +5476,380 @@ func (m *CatalogMock) MinimockListTerritoryArtifactsInspect() {
 	}
 }
 
+type mCatalogMockResolveBlobAccess struct {
+	optional           bool
+	mock               *CatalogMock
+	defaultExpectation *CatalogMockResolveBlobAccessExpectation
+	expectations       []*CatalogMockResolveBlobAccessExpectation
+
+	callArgs []*CatalogMockResolveBlobAccessParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// CatalogMockResolveBlobAccessExpectation specifies expectation struct of the Catalog.ResolveBlobAccess
+type CatalogMockResolveBlobAccessExpectation struct {
+	mock               *CatalogMock
+	params             *CatalogMockResolveBlobAccessParams
+	paramPtrs          *CatalogMockResolveBlobAccessParamPtrs
+	expectationOrigins CatalogMockResolveBlobAccessExpectationOrigins
+	results            *CatalogMockResolveBlobAccessResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// CatalogMockResolveBlobAccessParams contains parameters of the Catalog.ResolveBlobAccess
+type CatalogMockResolveBlobAccessParams struct {
+	ctx          context.Context
+	hash         string
+	scopeAdminID string
+}
+
+// CatalogMockResolveBlobAccessParamPtrs contains pointers to parameters of the Catalog.ResolveBlobAccess
+type CatalogMockResolveBlobAccessParamPtrs struct {
+	ctx          *context.Context
+	hash         *string
+	scopeAdminID *string
+}
+
+// CatalogMockResolveBlobAccessResults contains results of the Catalog.ResolveBlobAccess
+type CatalogMockResolveBlobAccessResults struct {
+	b1  bool
+	err error
+}
+
+// CatalogMockResolveBlobAccessOrigins contains origins of expectations of the Catalog.ResolveBlobAccess
+type CatalogMockResolveBlobAccessExpectationOrigins struct {
+	origin             string
+	originCtx          string
+	originHash         string
+	originScopeAdminID string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmResolveBlobAccess *mCatalogMockResolveBlobAccess) Optional() *mCatalogMockResolveBlobAccess {
+	mmResolveBlobAccess.optional = true
+	return mmResolveBlobAccess
+}
+
+// Expect sets up expected params for Catalog.ResolveBlobAccess
+func (mmResolveBlobAccess *mCatalogMockResolveBlobAccess) Expect(ctx context.Context, hash string, scopeAdminID string) *mCatalogMockResolveBlobAccess {
+	if mmResolveBlobAccess.mock.funcResolveBlobAccess != nil {
+		mmResolveBlobAccess.mock.t.Fatalf("CatalogMock.ResolveBlobAccess mock is already set by Set")
+	}
+
+	if mmResolveBlobAccess.defaultExpectation == nil {
+		mmResolveBlobAccess.defaultExpectation = &CatalogMockResolveBlobAccessExpectation{}
+	}
+
+	if mmResolveBlobAccess.defaultExpectation.paramPtrs != nil {
+		mmResolveBlobAccess.mock.t.Fatalf("CatalogMock.ResolveBlobAccess mock is already set by ExpectParams functions")
+	}
+
+	mmResolveBlobAccess.defaultExpectation.params = &CatalogMockResolveBlobAccessParams{ctx, hash, scopeAdminID}
+	mmResolveBlobAccess.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmResolveBlobAccess.expectations {
+		if minimock.Equal(e.params, mmResolveBlobAccess.defaultExpectation.params) {
+			mmResolveBlobAccess.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmResolveBlobAccess.defaultExpectation.params)
+		}
+	}
+
+	return mmResolveBlobAccess
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Catalog.ResolveBlobAccess
+func (mmResolveBlobAccess *mCatalogMockResolveBlobAccess) ExpectCtxParam1(ctx context.Context) *mCatalogMockResolveBlobAccess {
+	if mmResolveBlobAccess.mock.funcResolveBlobAccess != nil {
+		mmResolveBlobAccess.mock.t.Fatalf("CatalogMock.ResolveBlobAccess mock is already set by Set")
+	}
+
+	if mmResolveBlobAccess.defaultExpectation == nil {
+		mmResolveBlobAccess.defaultExpectation = &CatalogMockResolveBlobAccessExpectation{}
+	}
+
+	if mmResolveBlobAccess.defaultExpectation.params != nil {
+		mmResolveBlobAccess.mock.t.Fatalf("CatalogMock.ResolveBlobAccess mock is already set by Expect")
+	}
+
+	if mmResolveBlobAccess.defaultExpectation.paramPtrs == nil {
+		mmResolveBlobAccess.defaultExpectation.paramPtrs = &CatalogMockResolveBlobAccessParamPtrs{}
+	}
+	mmResolveBlobAccess.defaultExpectation.paramPtrs.ctx = &ctx
+	mmResolveBlobAccess.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmResolveBlobAccess
+}
+
+// ExpectHashParam2 sets up expected param hash for Catalog.ResolveBlobAccess
+func (mmResolveBlobAccess *mCatalogMockResolveBlobAccess) ExpectHashParam2(hash string) *mCatalogMockResolveBlobAccess {
+	if mmResolveBlobAccess.mock.funcResolveBlobAccess != nil {
+		mmResolveBlobAccess.mock.t.Fatalf("CatalogMock.ResolveBlobAccess mock is already set by Set")
+	}
+
+	if mmResolveBlobAccess.defaultExpectation == nil {
+		mmResolveBlobAccess.defaultExpectation = &CatalogMockResolveBlobAccessExpectation{}
+	}
+
+	if mmResolveBlobAccess.defaultExpectation.params != nil {
+		mmResolveBlobAccess.mock.t.Fatalf("CatalogMock.ResolveBlobAccess mock is already set by Expect")
+	}
+
+	if mmResolveBlobAccess.defaultExpectation.paramPtrs == nil {
+		mmResolveBlobAccess.defaultExpectation.paramPtrs = &CatalogMockResolveBlobAccessParamPtrs{}
+	}
+	mmResolveBlobAccess.defaultExpectation.paramPtrs.hash = &hash
+	mmResolveBlobAccess.defaultExpectation.expectationOrigins.originHash = minimock.CallerInfo(1)
+
+	return mmResolveBlobAccess
+}
+
+// ExpectScopeAdminIDParam3 sets up expected param scopeAdminID for Catalog.ResolveBlobAccess
+func (mmResolveBlobAccess *mCatalogMockResolveBlobAccess) ExpectScopeAdminIDParam3(scopeAdminID string) *mCatalogMockResolveBlobAccess {
+	if mmResolveBlobAccess.mock.funcResolveBlobAccess != nil {
+		mmResolveBlobAccess.mock.t.Fatalf("CatalogMock.ResolveBlobAccess mock is already set by Set")
+	}
+
+	if mmResolveBlobAccess.defaultExpectation == nil {
+		mmResolveBlobAccess.defaultExpectation = &CatalogMockResolveBlobAccessExpectation{}
+	}
+
+	if mmResolveBlobAccess.defaultExpectation.params != nil {
+		mmResolveBlobAccess.mock.t.Fatalf("CatalogMock.ResolveBlobAccess mock is already set by Expect")
+	}
+
+	if mmResolveBlobAccess.defaultExpectation.paramPtrs == nil {
+		mmResolveBlobAccess.defaultExpectation.paramPtrs = &CatalogMockResolveBlobAccessParamPtrs{}
+	}
+	mmResolveBlobAccess.defaultExpectation.paramPtrs.scopeAdminID = &scopeAdminID
+	mmResolveBlobAccess.defaultExpectation.expectationOrigins.originScopeAdminID = minimock.CallerInfo(1)
+
+	return mmResolveBlobAccess
+}
+
+// Inspect accepts an inspector function that has same arguments as the Catalog.ResolveBlobAccess
+func (mmResolveBlobAccess *mCatalogMockResolveBlobAccess) Inspect(f func(ctx context.Context, hash string, scopeAdminID string)) *mCatalogMockResolveBlobAccess {
+	if mmResolveBlobAccess.mock.inspectFuncResolveBlobAccess != nil {
+		mmResolveBlobAccess.mock.t.Fatalf("Inspect function is already set for CatalogMock.ResolveBlobAccess")
+	}
+
+	mmResolveBlobAccess.mock.inspectFuncResolveBlobAccess = f
+
+	return mmResolveBlobAccess
+}
+
+// Return sets up results that will be returned by Catalog.ResolveBlobAccess
+func (mmResolveBlobAccess *mCatalogMockResolveBlobAccess) Return(b1 bool, err error) *CatalogMock {
+	if mmResolveBlobAccess.mock.funcResolveBlobAccess != nil {
+		mmResolveBlobAccess.mock.t.Fatalf("CatalogMock.ResolveBlobAccess mock is already set by Set")
+	}
+
+	if mmResolveBlobAccess.defaultExpectation == nil {
+		mmResolveBlobAccess.defaultExpectation = &CatalogMockResolveBlobAccessExpectation{mock: mmResolveBlobAccess.mock}
+	}
+	mmResolveBlobAccess.defaultExpectation.results = &CatalogMockResolveBlobAccessResults{b1, err}
+	mmResolveBlobAccess.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmResolveBlobAccess.mock
+}
+
+// Set uses given function f to mock the Catalog.ResolveBlobAccess method
+func (mmResolveBlobAccess *mCatalogMockResolveBlobAccess) Set(f func(ctx context.Context, hash string, scopeAdminID string) (b1 bool, err error)) *CatalogMock {
+	if mmResolveBlobAccess.defaultExpectation != nil {
+		mmResolveBlobAccess.mock.t.Fatalf("Default expectation is already set for the Catalog.ResolveBlobAccess method")
+	}
+
+	if len(mmResolveBlobAccess.expectations) > 0 {
+		mmResolveBlobAccess.mock.t.Fatalf("Some expectations are already set for the Catalog.ResolveBlobAccess method")
+	}
+
+	mmResolveBlobAccess.mock.funcResolveBlobAccess = f
+	mmResolveBlobAccess.mock.funcResolveBlobAccessOrigin = minimock.CallerInfo(1)
+	return mmResolveBlobAccess.mock
+}
+
+// When sets expectation for the Catalog.ResolveBlobAccess which will trigger the result defined by the following
+// Then helper
+func (mmResolveBlobAccess *mCatalogMockResolveBlobAccess) When(ctx context.Context, hash string, scopeAdminID string) *CatalogMockResolveBlobAccessExpectation {
+	if mmResolveBlobAccess.mock.funcResolveBlobAccess != nil {
+		mmResolveBlobAccess.mock.t.Fatalf("CatalogMock.ResolveBlobAccess mock is already set by Set")
+	}
+
+	expectation := &CatalogMockResolveBlobAccessExpectation{
+		mock:               mmResolveBlobAccess.mock,
+		params:             &CatalogMockResolveBlobAccessParams{ctx, hash, scopeAdminID},
+		expectationOrigins: CatalogMockResolveBlobAccessExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmResolveBlobAccess.expectations = append(mmResolveBlobAccess.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Catalog.ResolveBlobAccess return parameters for the expectation previously defined by the When method
+func (e *CatalogMockResolveBlobAccessExpectation) Then(b1 bool, err error) *CatalogMock {
+	e.results = &CatalogMockResolveBlobAccessResults{b1, err}
+	return e.mock
+}
+
+// Times sets number of times Catalog.ResolveBlobAccess should be invoked
+func (mmResolveBlobAccess *mCatalogMockResolveBlobAccess) Times(n uint64) *mCatalogMockResolveBlobAccess {
+	if n == 0 {
+		mmResolveBlobAccess.mock.t.Fatalf("Times of CatalogMock.ResolveBlobAccess mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmResolveBlobAccess.expectedInvocations, n)
+	mmResolveBlobAccess.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmResolveBlobAccess
+}
+
+func (mmResolveBlobAccess *mCatalogMockResolveBlobAccess) invocationsDone() bool {
+	if len(mmResolveBlobAccess.expectations) == 0 && mmResolveBlobAccess.defaultExpectation == nil && mmResolveBlobAccess.mock.funcResolveBlobAccess == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmResolveBlobAccess.mock.afterResolveBlobAccessCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmResolveBlobAccess.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ResolveBlobAccess implements mm_service.Catalog
+func (mmResolveBlobAccess *CatalogMock) ResolveBlobAccess(ctx context.Context, hash string, scopeAdminID string) (b1 bool, err error) {
+	mm_atomic.AddUint64(&mmResolveBlobAccess.beforeResolveBlobAccessCounter, 1)
+	defer mm_atomic.AddUint64(&mmResolveBlobAccess.afterResolveBlobAccessCounter, 1)
+
+	mmResolveBlobAccess.t.Helper()
+
+	if mmResolveBlobAccess.inspectFuncResolveBlobAccess != nil {
+		mmResolveBlobAccess.inspectFuncResolveBlobAccess(ctx, hash, scopeAdminID)
+	}
+
+	mm_params := CatalogMockResolveBlobAccessParams{ctx, hash, scopeAdminID}
+
+	// Record call args
+	mmResolveBlobAccess.ResolveBlobAccessMock.mutex.Lock()
+	mmResolveBlobAccess.ResolveBlobAccessMock.callArgs = append(mmResolveBlobAccess.ResolveBlobAccessMock.callArgs, &mm_params)
+	mmResolveBlobAccess.ResolveBlobAccessMock.mutex.Unlock()
+
+	for _, e := range mmResolveBlobAccess.ResolveBlobAccessMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.b1, e.results.err
+		}
+	}
+
+	if mmResolveBlobAccess.ResolveBlobAccessMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmResolveBlobAccess.ResolveBlobAccessMock.defaultExpectation.Counter, 1)
+		mm_want := mmResolveBlobAccess.ResolveBlobAccessMock.defaultExpectation.params
+		mm_want_ptrs := mmResolveBlobAccess.ResolveBlobAccessMock.defaultExpectation.paramPtrs
+
+		mm_got := CatalogMockResolveBlobAccessParams{ctx, hash, scopeAdminID}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmResolveBlobAccess.t.Errorf("CatalogMock.ResolveBlobAccess got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveBlobAccess.ResolveBlobAccessMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.hash != nil && !minimock.Equal(*mm_want_ptrs.hash, mm_got.hash) {
+				mmResolveBlobAccess.t.Errorf("CatalogMock.ResolveBlobAccess got unexpected parameter hash, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveBlobAccess.ResolveBlobAccessMock.defaultExpectation.expectationOrigins.originHash, *mm_want_ptrs.hash, mm_got.hash, minimock.Diff(*mm_want_ptrs.hash, mm_got.hash))
+			}
+
+			if mm_want_ptrs.scopeAdminID != nil && !minimock.Equal(*mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID) {
+				mmResolveBlobAccess.t.Errorf("CatalogMock.ResolveBlobAccess got unexpected parameter scopeAdminID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmResolveBlobAccess.ResolveBlobAccessMock.defaultExpectation.expectationOrigins.originScopeAdminID, *mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID, minimock.Diff(*mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmResolveBlobAccess.t.Errorf("CatalogMock.ResolveBlobAccess got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmResolveBlobAccess.ResolveBlobAccessMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmResolveBlobAccess.ResolveBlobAccessMock.defaultExpectation.results
+		if mm_results == nil {
+			mmResolveBlobAccess.t.Fatal("No results are set for the CatalogMock.ResolveBlobAccess")
+		}
+		return (*mm_results).b1, (*mm_results).err
+	}
+	if mmResolveBlobAccess.funcResolveBlobAccess != nil {
+		return mmResolveBlobAccess.funcResolveBlobAccess(ctx, hash, scopeAdminID)
+	}
+	mmResolveBlobAccess.t.Fatalf("Unexpected call to CatalogMock.ResolveBlobAccess. %v %v %v", ctx, hash, scopeAdminID)
+	return
+}
+
+// ResolveBlobAccessAfterCounter returns a count of finished CatalogMock.ResolveBlobAccess invocations
+func (mmResolveBlobAccess *CatalogMock) ResolveBlobAccessAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmResolveBlobAccess.afterResolveBlobAccessCounter)
+}
+
+// ResolveBlobAccessBeforeCounter returns a count of CatalogMock.ResolveBlobAccess invocations
+func (mmResolveBlobAccess *CatalogMock) ResolveBlobAccessBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmResolveBlobAccess.beforeResolveBlobAccessCounter)
+}
+
+// Calls returns a list of arguments used in each call to CatalogMock.ResolveBlobAccess.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmResolveBlobAccess *mCatalogMockResolveBlobAccess) Calls() []*CatalogMockResolveBlobAccessParams {
+	mmResolveBlobAccess.mutex.RLock()
+
+	argCopy := make([]*CatalogMockResolveBlobAccessParams, len(mmResolveBlobAccess.callArgs))
+	copy(argCopy, mmResolveBlobAccess.callArgs)
+
+	mmResolveBlobAccess.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockResolveBlobAccessDone returns true if the count of the ResolveBlobAccess invocations corresponds
+// the number of defined expectations
+func (m *CatalogMock) MinimockResolveBlobAccessDone() bool {
+	if m.ResolveBlobAccessMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ResolveBlobAccessMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ResolveBlobAccessMock.invocationsDone()
+}
+
+// MinimockResolveBlobAccessInspect logs each unmet expectation
+func (m *CatalogMock) MinimockResolveBlobAccessInspect() {
+	for _, e := range m.ResolveBlobAccessMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to CatalogMock.ResolveBlobAccess at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterResolveBlobAccessCounter := mm_atomic.LoadUint64(&m.afterResolveBlobAccessCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ResolveBlobAccessMock.defaultExpectation != nil && afterResolveBlobAccessCounter < 1 {
+		if m.ResolveBlobAccessMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to CatalogMock.ResolveBlobAccess at\n%s", m.ResolveBlobAccessMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to CatalogMock.ResolveBlobAccess at\n%s with params: %#v", m.ResolveBlobAccessMock.defaultExpectation.expectationOrigins.origin, *m.ResolveBlobAccessMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcResolveBlobAccess != nil && afterResolveBlobAccessCounter < 1 {
+		m.t.Errorf("Expected call to CatalogMock.ResolveBlobAccess at\n%s", m.funcResolveBlobAccessOrigin)
+	}
+
+	if !m.ResolveBlobAccessMock.invocationsDone() && afterResolveBlobAccessCounter > 0 {
+		m.t.Errorf("Expected %d calls to CatalogMock.ResolveBlobAccess at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ResolveBlobAccessMock.expectedInvocations), m.ResolveBlobAccessMock.expectedInvocationsOrigin, afterResolveBlobAccessCounter)
+	}
+}
+
 type mCatalogMockResolveLabels struct {
 	optional           bool
 	mock               *CatalogMock
@@ -8366,6 +8750,8 @@ func (m *CatalogMock) MinimockFinish() {
 
 			m.MinimockListTerritoryArtifactsInspect()
 
+			m.MinimockResolveBlobAccessInspect()
+
 			m.MinimockResolveLabelsInspect()
 
 			m.MinimockResolveTerritorySlugsInspect()
@@ -8419,6 +8805,7 @@ func (m *CatalogMock) minimockDone() bool {
 		m.MinimockListPlacementsDone() &&
 		m.MinimockListTerritoriesDone() &&
 		m.MinimockListTerritoryArtifactsDone() &&
+		m.MinimockResolveBlobAccessDone() &&
 		m.MinimockResolveLabelsDone() &&
 		m.MinimockResolveTerritorySlugsDone() &&
 		m.MinimockSetPlacementVisibilityDone() &&

@@ -22,6 +22,7 @@ const (
 	CatalogService_ListTerritories_FullMethodName             = "/rosneft.catalog.v1.CatalogService/ListTerritories"
 	CatalogService_ResolveTerritorySlugs_FullMethodName       = "/rosneft.catalog.v1.CatalogService/ResolveTerritorySlugs"
 	CatalogService_ResolveLabels_FullMethodName               = "/rosneft.catalog.v1.CatalogService/ResolveLabels"
+	CatalogService_ResolveBlobAccess_FullMethodName           = "/rosneft.catalog.v1.CatalogService/ResolveBlobAccess"
 	CatalogService_GetTerritory_FullMethodName                = "/rosneft.catalog.v1.CatalogService/GetTerritory"
 	CatalogService_UpsertTerritory_FullMethodName             = "/rosneft.catalog.v1.CatalogService/UpsertTerritory"
 	CatalogService_DeleteTerritory_FullMethodName             = "/rosneft.catalog.v1.CatalogService/DeleteTerritory"
@@ -74,6 +75,11 @@ type CatalogServiceClient interface {
 	// sibling of ResolveTerritorySlugs, which stays because the entry-level
 	// enrichment already calls it.
 	ResolveLabels(ctx context.Context, in *ResolveLabelsRequest, opts ...grpc.CallOption) (*ResolveLabelsResponse, error)
+	// ResolveBlobAccess answers whether a caller scoped to scope_admin_id may read
+	// the bytes behind a content-addressed hash. A blob is reachable when it
+	// belongs to a model (models are a shared library) or to a territory assigned
+	// to that caller. An empty scope_admin_id means Root and disables the filter.
+	ResolveBlobAccess(ctx context.Context, in *ResolveBlobAccessRequest, opts ...grpc.CallOption) (*ResolveBlobAccessResponse, error)
 	GetTerritory(ctx context.Context, in *GetTerritoryRequest, opts ...grpc.CallOption) (*GetTerritoryResponse, error)
 	UpsertTerritory(ctx context.Context, in *UpsertTerritoryRequest, opts ...grpc.CallOption) (*UpsertTerritoryResponse, error)
 	DeleteTerritory(ctx context.Context, in *DeleteTerritoryRequest, opts ...grpc.CallOption) (*DeleteTerritoryResponse, error)
@@ -131,6 +137,16 @@ func (c *catalogServiceClient) ResolveLabels(ctx context.Context, in *ResolveLab
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResolveLabelsResponse)
 	err := c.cc.Invoke(ctx, CatalogService_ResolveLabels_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) ResolveBlobAccess(ctx context.Context, in *ResolveBlobAccessRequest, opts ...grpc.CallOption) (*ResolveBlobAccessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResolveBlobAccessResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ResolveBlobAccess_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -394,6 +410,11 @@ type CatalogServiceServer interface {
 	// sibling of ResolveTerritorySlugs, which stays because the entry-level
 	// enrichment already calls it.
 	ResolveLabels(context.Context, *ResolveLabelsRequest) (*ResolveLabelsResponse, error)
+	// ResolveBlobAccess answers whether a caller scoped to scope_admin_id may read
+	// the bytes behind a content-addressed hash. A blob is reachable when it
+	// belongs to a model (models are a shared library) or to a territory assigned
+	// to that caller. An empty scope_admin_id means Root and disables the filter.
+	ResolveBlobAccess(context.Context, *ResolveBlobAccessRequest) (*ResolveBlobAccessResponse, error)
 	GetTerritory(context.Context, *GetTerritoryRequest) (*GetTerritoryResponse, error)
 	UpsertTerritory(context.Context, *UpsertTerritoryRequest) (*UpsertTerritoryResponse, error)
 	DeleteTerritory(context.Context, *DeleteTerritoryRequest) (*DeleteTerritoryResponse, error)
@@ -435,6 +456,9 @@ func (UnimplementedCatalogServiceServer) ResolveTerritorySlugs(context.Context, 
 }
 func (UnimplementedCatalogServiceServer) ResolveLabels(context.Context, *ResolveLabelsRequest) (*ResolveLabelsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResolveLabels not implemented")
+}
+func (UnimplementedCatalogServiceServer) ResolveBlobAccess(context.Context, *ResolveBlobAccessRequest) (*ResolveBlobAccessResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveBlobAccess not implemented")
 }
 func (UnimplementedCatalogServiceServer) GetTerritory(context.Context, *GetTerritoryRequest) (*GetTerritoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetTerritory not implemented")
@@ -576,6 +600,24 @@ func _CatalogService_ResolveLabels_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CatalogServiceServer).ResolveLabels(ctx, req.(*ResolveLabelsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_ResolveBlobAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveBlobAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ResolveBlobAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ResolveBlobAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ResolveBlobAccess(ctx, req.(*ResolveBlobAccessRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1012,6 +1054,10 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ResolveLabels",
 			Handler:    _CatalogService_ResolveLabels_Handler,
+		},
+		{
+			MethodName: "ResolveBlobAccess",
+			Handler:    _CatalogService_ResolveBlobAccess_Handler,
 		},
 		{
 			MethodName: "GetTerritory",

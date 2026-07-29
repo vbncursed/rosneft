@@ -396,7 +396,7 @@ git commit -m "feat(catalog): resolve whether a caller may read a blob by hash"
 - Consumes: `(*PG).ResolveBlobAccess(ctx, hash, scopeAdminID) (bool, error)` из Задачи 1.
 - Produces: `Service.ResolveBlobAccess(ctx context.Context, hash, scopeAdminID string) (bool, error)` на интерфейсе `httpapi.Service` — Задача 3 зовёт её из middleware.
 
-- [ ] **Step 1: Добавить RPC в контракт**
+- [x] **Step 1: Добавить RPC в контракт**
 
 Modify `backend/proto/rosneft/catalog/v1/catalog.proto` — в `service CatalogService`, рядом с прочими `Resolve*`:
 
@@ -421,12 +421,12 @@ message ResolveBlobAccessResponse {
 }
 ```
 
-- [ ] **Step 2: Сгенерировать код**
+- [x] **Step 2: Сгенерировать код**
 
 Run: `make -C backend proto-gen`
 Expected: изменения в `backend/proto/gen/go/rosneft/catalog/v1/`.
 
-- [ ] **Step 3: Расширить интерфейс сервиса каталога**
+- [x] **Step 3: Расширить интерфейс сервиса каталога**
 
 Modify `backend/services/catalog-service/internal/transport/grpcapi/server.go` — в интерфейс `Service`, рядом с `ResolveLabels`:
 
@@ -434,7 +434,7 @@ Modify `backend/services/catalog-service/internal/transport/grpcapi/server.go` �
 	ResolveBlobAccess(ctx context.Context, hash, scopeAdminID string) (bool, error)
 ```
 
-- [ ] **Step 4: Добавить обработчик gRPC**
+- [x] **Step 4: Добавить обработчик gRPC**
 
 Create `backend/services/catalog-service/internal/transport/grpcapi/resolve_blob_access.go`:
 
@@ -480,7 +480,7 @@ func (s *Catalog) ResolveBlobAccess(ctx context.Context, hash, scopeAdminID stri
 Имя приёмника и поля хранилища взять из соседнего файла сервисного слоя —
 в этом пакете они единообразны; добавить метод в интерфейс `Storage` там же.
 
-- [ ] **Step 5: Добавить метод клиента в шлюзе**
+- [x] **Step 5: Добавить метод клиента в шлюзе**
 
 Create `backend/services/gateway-service/internal/clients/catalog/resolve_blob_access.go`:
 
@@ -512,7 +512,7 @@ func (c *Client) ResolveBlobAccess(
 }
 ```
 
-- [ ] **Step 6: Пробросить через сервисный слой шлюза**
+- [x] **Step 6: Пробросить через сервисный слой шлюза**
 
 Добавить `ResolveBlobAccess(ctx context.Context, hash, scopeAdminID string) (bool, error)`
 в интерфейс `Catalog` (`internal/service/gateway.go`) и в интерфейс `Service`
@@ -533,7 +533,7 @@ func (g *Gateway) ResolveBlobAccess(ctx context.Context, hash, scopeAdminID stri
 }
 ```
 
-- [ ] **Step 7: Перегенерировать моки и собрать**
+- [x] **Step 7: Перегенерировать моки и собрать**
 
 Run:
 ```bash
@@ -542,7 +542,7 @@ cd ../catalog-service && go build ./... && go test ./...
 ```
 Expected: PASS. Моки `CatalogMock` получают `ResolveBlobAccessMock`.
 
-- [ ] **Step 8: Коммит**
+- [x] **Step 8: Коммит**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft

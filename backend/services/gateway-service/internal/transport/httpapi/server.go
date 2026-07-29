@@ -58,6 +58,11 @@ type Service interface {
 	ListAudit(ctx context.Context, q domain.AuditQuery, p domain.AuditPrincipal, token string, wantRefs bool) ([]domain.AuditEntry, int64, map[string]string, error)
 	ListAuditActors(ctx context.Context, p domain.AuditPrincipal, token string) ([]domain.AuditActor, error)
 
+	// ResolveBlobAccess backs RequireBlobAccess. A blob hash addresses content
+	// and is deduplicated across territories and models, so it has no single
+	// territory and the territory gate cannot cover it.
+	ResolveBlobAccess(ctx context.Context, hash, scopeAdminID string) (bool, error)
+
 	GetJob(ctx context.Context, id string) (domain.Job, error)
 
 	InitiateUpload(ctx context.Context, size int64, contentType string) (domain.UploadSession, error)
