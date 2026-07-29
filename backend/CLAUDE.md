@@ -22,7 +22,7 @@ Guidance for Claude Code when working in `backend/`.
 | mesh-api | `services/mesh-service` | `mesh-api` | gRPC façade for `SubmitConversion(kind, slug)` / `GetJob`. Writes Redis Streams. |
 | mesh-worker | `services/mesh-service` | `mesh-worker` | Consumes the stream, fetches the source ZIP from BlobStore by hash, extracts to a tmp dir, runs the OBJ→GLB converter, applies optional Draco / KTX2 / LOD via `gltfpack`, writes each LOD GLB to BlobStore, registers each artifact in catalog (territory_artifacts vs model_artifacts based on Kind). Runs the reconciler that auto-queues entities whose LOD0 GLB is missing. |
 | asset | `services/asset-service` | `asset` | Internal HTTP serving content-addressed GLB blobs with immutable cache headers + ETag. |
-| audit | `services/audit-service` | `audit` | gRPC `:9009`. Owns the append-only `audit_log` plus the generic `audit_capture()` trigger attached to every audited table. Shares the `andrey` DB, isolated by `audit_goose_db_version`. Re-attaches its triggers idempotently on every boot via `ensure_audit_triggers()`, so it needs no ordering against the other services' migrations. |
+| audit | `services/audit-service` | `audit` | gRPC `:9009`. Owns the append-only `audit_log` plus the generic `audit_capture()` trigger attached to every audited table. Shares the `andrey` DB, isolated by `audit_goose_db_version`. Re-attaches its triggers idempotently on every boot via `ensure_audit_triggers()`, so it needs no ordering against the other services' migrations. Also seals periodic checkpoint digests and witnesses them to a volume outside the database (`audit verify`, `audit export`). |
 | upload | `services/upload-service` | `upload` | Internal gRPC accepting resumable chunked uploads (`Initiate` / `WriteChunk(stream)` / `GetStatus` / `Finalize` / `Abort`). On Finalize the bytes are SHA-256 hashed and moved into BlobStore; the gateway forwards the resulting hash into `createTerritory` / `createModel`. |
 
 ## Architecture conventions
@@ -230,6 +230,37 @@ Root nor attached to a company is refused, not handed an empty filter.
 `audit_log` is append-only via a `BEFORE UPDATE/DELETE/TRUNCATE` trigger.
 `REVOKE` alone would not hold — `POSTGRES_USER` owns every table here and could
 grant the right back — but the trigger fires against the owner too.
+
+That trigger stops DML, not `ALTER TABLE … DISABLE TRIGGER`. For that, a tick
+every `AUDIT_CHECKPOINT_INTERVAL` (default 5m) folds the settled rows into one
+SHA-256, chains it in `audit_checkpoint`, and writes it to `AUDIT_DIGEST_FILE` on
+a volume separate from the database — **that separation is the whole point**,
+since a chain living only in Postgres is recomputable by anyone who can rewrite
+Postgres. Check with `audit verify --digest-file …`.
+
+Two invariants there are easy to break by accident:
+
+- **The digest boundary is `pg_sequence_last_value('audit_log_id_seq')` read one
+  tick earlier, never `max(id)`.** The sequence hands out ids before commit, so
+  `max(id)` skips a row held by an in-flight transaction and then flags it as
+  forged once it lands. The tick interval must therefore exceed the longest write
+  transaction.
+- **`ComputeDigest` pins its session to UTC.** jsonb renders `timestamptz` in the
+  session zone and these containers run `Europe/Moscow`; the same rows digest
+  differently under the two, so moving that pin makes every witnessed digest
+  irreproducible. The witness file's own `at` is local — it is display only.
+
+Retention is deliberately "keep forever": partitioning is the only way to delete
+without breaking append-only, and that migration rebuilds the table carrying the
+strongest guarantee in the system. See
+`services/audit-service/README.md#retention` before proposing a cleanup job.
+
+Journal visibility has two grants: `audit:read` (the company's history) and
+`audit:read_own` (your own actions, surfaced in `/account`). `AuditScope` prefers
+the wider one and **overwrites** the `actor` query parameter in read_own mode.
+Note that adding a permission to a role makes that role ungrantable by anyone who
+lacks it — `audit:read_own` had to go to `admin` and `owner` too, or a Company
+Owner could no longer create a viewer.
 
 Session events (login, logout, password change, 2FA, passkey) have no row to
 capture, so the gateway records them through `Record()`; see `authAuditActions`

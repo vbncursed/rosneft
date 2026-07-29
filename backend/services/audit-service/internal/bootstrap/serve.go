@@ -15,6 +15,7 @@ import (
 	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 	auditv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/audit/v1"
 	"github.com/vbncursed/rosneft/backend/services/audit-service/internal/config"
+	"github.com/vbncursed/rosneft/backend/services/audit-service/internal/digest"
 )
 
 // RunServe is the full lifecycle of `audit serve`: migrations → pool →
@@ -39,7 +40,13 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	defer pool.Close()
 
-	handler, store := InitService(pool)
+	handler, store, svc := InitService(pool)
+
+	witness, err := digest.Open(cfg.DigestFile)
+	if err != nil {
+		return fmt.Errorf("open digest witness: %w", err)
+	}
+	defer func() { _ = witness.Close() }()
 
 	// Attach capture triggers to whatever audited tables exist right now.
 	// Ordering-free by design: tables catalog/auth/content have not migrated
@@ -50,6 +57,8 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("ensure audit triggers: %w", err)
 	}
 	logger.Info("audit: capture triggers ensured", "attached", attached)
+
+	go RunCheckpointer(rootCtx, svc, witness, cfg.CheckpointInterval, logger)
 
 	grpcSrv, healthSrv := InitGRPCServer(handler, logger)
 

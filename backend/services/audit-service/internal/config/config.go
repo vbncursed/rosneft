@@ -20,6 +20,19 @@ type Config struct {
 	LogFormat       string        `mapstructure:"log-format"`
 	AutoMigrate     bool          `mapstructure:"auto-migrate"`
 	ShutdownTimeout time.Duration `mapstructure:"shutdown-timeout"`
+
+	// CheckpointInterval must exceed the longest write transaction: the digest
+	// boundary is a watermark one tick old, and a transaction outliving the tick
+	// lands a row inside an already-sealed range. 0 disables checkpointing.
+	CheckpointInterval time.Duration `mapstructure:"checkpoint-interval"`
+	// DigestFile witnesses each checkpoint outside the database. Empty disables
+	// it — the chain then lives only in Postgres, where it protects against
+	// nobody who can edit Postgres.
+	DigestFile string `mapstructure:"digest-file"`
+
+	// `audit export` only.
+	ExportBefore string `mapstructure:"before"`
+	ExportOut    string `mapstructure:"out"`
 }
 
 const envPrefix = "AUDIT"
@@ -37,6 +50,10 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.SetDefault("log-format", "json")
 	v.SetDefault("auto-migrate", true)
 	v.SetDefault("shutdown-timeout", 15*time.Second)
+	v.SetDefault("checkpoint-interval", 5*time.Minute)
+	v.SetDefault("digest-file", "")
+	v.SetDefault("before", "")
+	v.SetDefault("out", "")
 
 	if err := v.BindPFlags(cmd.Root().PersistentFlags()); err != nil {
 		return Config{}, fmt.Errorf("config: bind persistent flags: %w", err)

@@ -54,7 +54,7 @@ func (s *AuditLabelsSuite) list() ([]domain.AuditEntry, error) {
 	s.aud.ListEntriesMock.Return(s.page, 0, nil)
 	// wantRefs=false: подписи внутри снимков — предмет audit_refs_test.go, а
 	// здесь проверяются подписи уровня записи.
-	out, _, _, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, true, "", "tok", false)
+	out, _, _, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditPrincipal{IsOwner: true}, "tok", false)
 	return out, err
 }
 
