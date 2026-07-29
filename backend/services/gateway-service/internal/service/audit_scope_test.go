@@ -22,38 +22,74 @@ func TestAuditScopeSuite(t *testing.T) {
 }
 
 func (s *AuditScopeSuite) TestRootReadsEverything() {
-	all, company, err := service.AuditScope(true, "")
+	got, err := service.AuditScope(domain.AuditPrincipal{IsOwner: true})
 
 	assert.NilError(s.T(), err)
-	assert.Equal(s.T(), all, true)
-	assert.Equal(s.T(), company, "")
+	assert.Equal(s.T(), got.All, true)
+	assert.Equal(s.T(), got.Company, "")
+	assert.Equal(s.T(), got.Actor, "")
 }
 
 func (s *AuditScopeSuite) TestCompanyOwnerIsPinnedToOwnCompany() {
-	all, company, err := service.AuditScope(false, "company-1")
+	got, err := service.AuditScope(domain.AuditPrincipal{
+		Company: "company-1", Perms: []string{"audit:read"},
+	})
 
 	assert.NilError(s.T(), err)
-	assert.Equal(s.T(), all, false)
-	assert.Equal(s.T(), company, "company-1")
+	assert.Equal(s.T(), got.All, false)
+	assert.Equal(s.T(), got.Company, "company-1")
+	assert.Equal(s.T(), got.Actor, "")
+}
+
+// read_own narrows to the caller. The company is set as well even though the
+// actor pin is strictly tighter: two checks cost less than one argument about
+// why one is enough.
+func (s *AuditScopeSuite) TestReadOwnIsPinnedToTheCaller() {
+	got, err := service.AuditScope(domain.AuditPrincipal{
+		UserID: "user-7", Company: "company-1", Perms: []string{"audit:read_own"},
+	})
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), got.All, false)
+	assert.Equal(s.T(), got.Company, "company-1")
+	assert.Equal(s.T(), got.Actor, "user-7")
+}
+
+// Holding both, the wider one wins: a Company Owner who also carries read_own
+// must not be narrowed to themselves.
+func (s *AuditScopeSuite) TestReadBeatsReadOwn() {
+	got, err := service.AuditScope(domain.AuditPrincipal{
+		UserID: "user-7", Company: "company-1",
+		Perms: []string{"audit:read_own", "audit:read"},
+	})
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), got.Actor, "")
+}
+
+func (s *AuditScopeSuite) TestNoAuditPermissionIsRefused() {
+	_, err := service.AuditScope(domain.AuditPrincipal{
+		UserID: "user-7", Company: "company-1", Perms: []string{"territory:read"},
+	})
+
+	assert.ErrorIs(s.T(), err, domain.ErrForbidden)
 }
 
 // A principal that is neither Root nor attached to a company must be refused,
 // never widened: an empty company with all=false matches the NULL-company rows,
 // which are exactly Root's and the system's actions.
 func (s *AuditScopeSuite) TestUnattachedPrincipalIsRefused() {
-	all, company, err := service.AuditScope(false, "")
+	_, err := service.AuditScope(domain.AuditPrincipal{Perms: []string{"audit:read"}})
 
 	assert.ErrorIs(s.T(), err, domain.ErrForbidden)
-	assert.Equal(s.T(), all, false)
-	assert.Equal(s.T(), company, "")
 }
 
 // The owner flag is the authority: a stale company id on a Root principal must
 // not narrow what Root can see.
 func (s *AuditScopeSuite) TestRootIgnoresCompanyID() {
-	all, company, err := service.AuditScope(true, "company-1")
+	got, err := service.AuditScope(domain.AuditPrincipal{IsOwner: true, Company: "company-1"})
 
 	assert.NilError(s.T(), err)
-	assert.Equal(s.T(), all, true)
-	assert.Equal(s.T(), company, "")
+	assert.Equal(s.T(), got.All, true)
+	assert.Equal(s.T(), got.Company, "")
 }
