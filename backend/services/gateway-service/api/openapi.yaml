@@ -445,6 +445,7 @@ components:
         permissions: { type: array, items: { type: string } }
         isOwner: { type: boolean }
         onboardingToursSeen: { type: array, items: { type: string } }
+        csrfToken: { type: string, description: "echo back as X-CSRF-Token on POST/PUT/PATCH/DELETE; required only for cookie sessions" }
     AuthRole:
       type: object
       properties:
@@ -469,6 +470,7 @@ components:
         token: { type: string, description: empty when twoFactorRequired }
         twoFactorRequired: { type: boolean }
         challengeToken: { type: string, description: present when 2FA is required }
+        csrfToken: { type: string, description: "echo back as X-CSRF-Token on POST/PUT/PATCH/DELETE; required only for cookie sessions" }
     Login2FARequest:
       type: object
       required: [challengeToken, code]
@@ -479,6 +481,7 @@ components:
       type: object
       properties:
         token: { type: string }
+        csrfToken: { type: string, description: "echo back as X-CSRF-Token on POST/PUT/PATCH/DELETE; required only for cookie sessions" }
     ChangePasswordRequest:
       type: object
       required: [oldPassword, newPassword]

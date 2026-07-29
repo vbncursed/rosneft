@@ -34,13 +34,16 @@ func (h *Handlers) passkeyLoginFinish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.recordLogin(r, "auth.login_passkey", token)
-	writeJSON(w, http.StatusOK, map[string]any{"token": token})
+	// passkeyRegisterFinish deliberately does not do this: enrolling a key is
+	// done by an already-logged-in user and issues no new session.
+	h.setSession(w, token)
+	writeJSON(w, http.StatusOK, map[string]any{"token": token, "csrfToken": h.CSRFToken(token)})
 }
 
 // --- passkey enrollment + management (authenticated; passkey-service) ---
 
 func (h *Handlers) passkeyRegisterBegin(w http.ResponseWriter, r *http.Request) {
-	opts, flowID, err := h.passkey.BeginRegistration(r.Context(), bearer(r))
+	opts, flowID, err := h.passkey.BeginRegistration(r.Context(), sessionToken(r))
 	if err != nil {
 		fail(w, err)
 		return
@@ -57,7 +60,7 @@ func (h *Handlers) passkeyRegisterFinish(w http.ResponseWriter, r *http.Request)
 	if !decode(w, r, &req) {
 		return
 	}
-	c, err := h.passkey.FinishRegistration(r.Context(), bearer(r), req.FlowID, req.CredentialJSON, req.Name)
+	c, err := h.passkey.FinishRegistration(r.Context(), sessionToken(r), req.FlowID, req.CredentialJSON, req.Name)
 	if err != nil {
 		fail(w, err)
 		return
@@ -66,7 +69,7 @@ func (h *Handlers) passkeyRegisterFinish(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *Handlers) passkeyList(w http.ResponseWriter, r *http.Request) {
-	creds, err := h.passkey.ListCredentials(r.Context(), bearer(r))
+	creds, err := h.passkey.ListCredentials(r.Context(), sessionToken(r))
 	if err != nil {
 		fail(w, err)
 		return
@@ -96,7 +99,7 @@ func (h *Handlers) passkeyDelete(w http.ResponseWriter, r *http.Request) {
 	if enabled {
 		ok, err = h.twofa.Verify(r.Context(), uid, req.Code)
 	} else {
-		ok, err = h.client.VerifyPassword(r.Context(), bearer(r), req.Password)
+		ok, err = h.client.VerifyPassword(r.Context(), sessionToken(r), req.Password)
 	}
 	if err != nil {
 		fail(w, err)
@@ -106,7 +109,7 @@ func (h *Handlers) passkeyDelete(w http.ResponseWriter, r *http.Request) {
 		apperr.Write(w, http.StatusForbidden, apperr.SlugForbidden, "re-authentication failed")
 		return
 	}
-	if err := h.passkey.DeleteCredential(r.Context(), bearer(r), chi.URLParam(r, "id")); err != nil {
+	if err := h.passkey.DeleteCredential(r.Context(), sessionToken(r), chi.URLParam(r, "id")); err != nil {
 		fail(w, err)
 		return
 	}

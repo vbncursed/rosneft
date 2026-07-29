@@ -1,6 +1,5 @@
 import type { components } from "@/shared/infrastructure/api/dto";
 import { httpGet } from "@/shared/infrastructure/http/client";
-import { getToken } from "@/auth/infrastructure/token-store";
 import type { AuditEntry, AuditFilters } from "@/audit/domain/audit-entry";
 import type { Refs } from "@/audit/domain/ref-label";
 
@@ -82,16 +81,14 @@ export async function fetchAuditPage(
   };
 }
 
-// The export needs an Authorization header, which a plain <a download> cannot
-// send, so the bytes are fetched and handed back as a blob for the caller to
-// save. Kept here rather than in the component for the same reason
-// upload-gateway owns its raw fetch: the shared http client only parses JSON,
-// and reaching for a token is infrastructure's job, not presentation's.
+// The bytes are fetched and handed back as a blob rather than linked to with a
+// plain <a download>, because the caller wants a filename and an error it can
+// surface — an <a> gives neither. Kept here rather than in the component for the
+// same reason upload-gateway owns its raw fetch: the shared http client only
+// parses JSON, and a raw response is infrastructure's business.
 export async function fetchAuditCsv(filters: AuditFilters): Promise<Blob> {
-  const token = getToken();
-  const res = await fetch(`${API_BASE}/api/audit.csv${toQuery(filters, null)}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  // No Authorization header: the session cookie rides on this same-origin fetch.
+  const res = await fetch(`${API_BASE}/api/audit.csv${toQuery(filters, null)}`);
   if (!res.ok) throw new Error(`Export failed (${res.status})`);
   return res.blob();
 }

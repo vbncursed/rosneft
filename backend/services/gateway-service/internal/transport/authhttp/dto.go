@@ -25,6 +25,11 @@ type userJSON struct {
 	IsOwner     bool     `json:"isOwner"`
 	// Ids of the first-run tours this user has finished or skipped.
 	OnboardingToursSeen []string `json:"onboardingToursSeen,omitzero"`
+	// CSRFToken is filled only by /api/auth/me. The SPA keeps it in memory, so a
+	// page reload starts without one; this is where it comes back, and meQuery
+	// already runs before anything can be mutated. Only listUsers and the other
+	// admin handlers leave it empty, and they have no caller that wants it.
+	CSRFToken string `json:"csrfToken,omitzero"`
 }
 
 func userToJSON(u *authv1.User) userJSON {

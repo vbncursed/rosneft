@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Range } from "@/metrics/domain/panel";
 import type { Series } from "@/metrics/domain/series";
-import { getToken } from "@/auth/infrastructure/token-store";
 
 const POLL_MS = 30_000;
 
@@ -20,15 +19,12 @@ export function usePanelSeries(panelId: string, range: Range) {
 
     async function load() {
       try {
-        // Absolute gateway URL + Bearer: the SPA has no same-origin BFF, and the
-        // /api/metrics/query endpoint is owner-gated on the gateway.
-        const token = getToken();
+        // No Authorization header: the session cookie rides on this same-origin fetch.
         const res = await fetch(
           `${import.meta.env.VITE_API_URL}/api/metrics/query?panel=${encodeURIComponent(panelId)}&range=${range}`,
           {
             signal: ac.signal,
             cache: "no-store",
-            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
           },
         );
         if (!res.ok) throw new Error(String(res.status));

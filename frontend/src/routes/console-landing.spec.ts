@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { isRedirect } from "@tanstack/react-router";
 import { consoleLanding, requireConsolePermission } from "@/routes/guard";
-import { setToken } from "@/auth/infrastructure/token-store";
+import { markAuthed } from "@/auth/infrastructure/session-marker";
 import type { Principal } from "@/auth/domain/principal";
 
 const principal = (permissions: string[]): Principal => ({
@@ -37,14 +37,14 @@ describe("consoleLanding", () => {
 
 describe("requireConsolePermission", () => {
   it("passes when the principal holds the permission", async () => {
-    setToken("tok");
+    markAuthed();
     await expect(
       requireConsolePermission(clientReturning(principal(["users:read"])), { href: "/admin/users" }, "users:read"),
     ).resolves.toBeUndefined();
   });
 
   it("redirects a roles-only principal off the users page to a page it can open", async () => {
-    setToken("tok");
+    markAuthed();
     try {
       await requireConsolePermission(clientReturning(principal(["roles:read"])), { href: "/admin/users" }, "users:read");
       expect.unreachable("should redirect");

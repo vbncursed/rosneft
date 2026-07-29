@@ -99,3 +99,11 @@ func Token(ctx context.Context) string {
 	t, _ := ctx.Value(keyToken).(string)
 	return t
 }
+
+// NewTestContext builds a principal context outside a real request. It exists
+// because the territory gate lives in another package and cannot reach the
+// unexported context keys; keeping the construction here means the gate's tests
+// exercise the same encoding Authenticate writes, not a copy of it.
+func NewTestContext(ctx context.Context, isOwner bool, owningAdmin string) context.Context {
+	return withPrincipal(ctx, "test-user", nil, isOwner, owningAdmin, owningAdmin)
+}

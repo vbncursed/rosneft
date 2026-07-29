@@ -73,7 +73,8 @@ api/
 
 ## API summary
 
-All `/api/*` routes require a valid Bearer session (see **Auth**), except
+All `/api/*` routes require a valid session — the `andrey_session` cookie or a
+Bearer header (see **Auth**) — except
 `/api/auth/login`, `/api/auth/login/2fa`, `/healthz`, `/readyz`, `/docs`, and
 `/openapi.json`, which are public. Mutating routes additionally require the
 permission noted in the **Perm** column.
@@ -136,8 +137,8 @@ permission noted in the **Perm** column.
 
 | Method | Path | Perm | Description |
 | --- | --- | --- | --- |
-| GET | `/api/jobs/{id}/events` | — | **SSE stream of job state changes** (root router, bypasses JSON chain) |
-| GET, HEAD | `/api/assets/{hash}` | — | Binary GLB / panorama image (reverse-proxied to asset-service) |
+| GET | `/api/jobs/{id}/events` | session | **SSE stream of job state changes** (root router, bypasses the JSON chain but not `Authenticate`) |
+| GET, HEAD | `/api/assets/{hash}` | session + tenant | Binary GLB / panorama image (reverse-proxied to asset-service). Scoped by `RequireBlobAccess`, not by the territory gate: a blob hash addresses content and is deduplicated, so it has no single territory. Model blobs pass for everyone — shared library. 404 on refusal, 503 if the catalog is unreachable. |
 | GET | `/api/metrics/query` | **owner only** | Prometheus panel query — `?panel=<id>&range=1h\|6h\|24h\|7d` → `[MetricSeries]`. The panel id resolves to server-side PromQL, so no caller expression reaches Prometheus. |
 | GET | `/docs` | public | Scalar API reference UI |
 | GET | `/openapi.json` | public | Machine-readable spec (full, incl. auth) |
@@ -180,23 +181,35 @@ add a per-route permission.
 ```
 client → CORS → RequestID → Recoverer → slog-chi               ← root router
   ├── /healthz, /readyz, /docs, /openapi.json
-  ├── /api/assets/{hash}    → asset proxy (binary)   ← bypass JSON middleware
-  ├── /api/jobs/{id}/events → SSE handler            ← bypass JSON middleware
+  ├── /api/assets/{hash}    → Authenticate → RequireBlobAccess → asset proxy
+  ├── /api/jobs/{id}/events → Authenticate → SSE handler           ← bypass JSON mw
   ├── /api/metrics/query    → Authenticate → owner check → Prometheus proxy
   ├── /api/auth/*           → authhttp (login public; self/admin gated)
   └── /api/* group → Authenticate → RequirePermissionForRoute
+                   → RequireTerritoryAccess → RequireCSRF
                    → ETag → Compress(br/gzip/deflate) → openapi strict handlers
 ```
 
-- **`Authenticate`** (`authhttp/middleware.go`) validates the `Authorization:
-  Bearer …` token against auth-service via gRPC and injects the principal
-  (user id + permission snapshot) into the request context; a missing or
-  invalid token yields 401.
+- **`Authenticate`** (`authhttp/middleware.go`) validates the caller's session
+  token against auth-service via gRPC and injects the principal (user id +
+  permission snapshot) into the request context; a missing or invalid token
+  yields 401. The token comes from the `andrey_session` cookie first and the
+  `Authorization: Bearer …` header second (`sessionToken` in `authhttp/respond.go`)
+  — Bearer stays supported for curl, tests and non-browser clients.
 - **`RequirePermissionForRoute`** (`authhttp/route_permissions.go`) matches the
   resolved chi route pattern against a `"METHOD pattern" → permission` table
   (mutations only; reads need just a valid session) and returns 403 if the
   principal lacks the permission. A new mutating route added without a table
   entry is ungated — keep the table in sync.
+- **`RequireTerritoryAccess`** (`httpapi/territory_gate.go`) refuses a caller any
+  route whose chi pattern starts with `/api/territories/{slug}` unless the
+  territory is assigned to them. It answers **404, never 403** — a 403 confirms
+  the territory exists, and to another tenant it must not — with a body identical
+  to a genuinely missing slug. Mounted after the permission gate on purpose: that
+  check costs no network, so a caller already heading for a 403 should not first
+  buy a catalog lookup. Root bypasses it; a non-Root principal with an empty
+  scope is refused, because an empty scope disables the catalog's filter entirely
+  rather than meaning "no access".
 - The `/api/auth/*` group is mounted separately on the root router and runs its
   own `Authenticate` + per-route `require(perm)`, so login can stay public.
 - The **asset proxy** is excluded from compression so binary GLBs / panorama
@@ -251,7 +264,10 @@ All env vars are prefixed `GATEWAY_`. Defaults shown.
 | `GATEWAY_UPLOAD_GRPC_ADDR` | `upload:9003` | upload-service backend |
 | `GATEWAY_AUTH_GRPC_ADDR` | `auth:9004` | auth-service backend |
 | `GATEWAY_ASSET_HTTP_ADDR` | `http://asset:8081` | asset-service for blob proxy |
-| `GATEWAY_ALLOWED_ORIGINS` | `*` | CORS allow-list |
+| `GATEWAY_ALLOWED_ORIGINS` | *(empty)* | CORS allow-list. Empty means the CORS handler is **not mounted at all** — the SPA is same-origin and needs none. Do not try to disable CORS by passing an empty list to go-chi/cors: it reads that as *all* origins. |
+| `GATEWAY_CSRF_SECRET` | — | **Required**, no default. HMAC key behind the anti-CSRF token. A hardcoded default would be public and a per-boot random one would invalidate every outstanding token on restart, so the service refuses to boot without it. |
+| `GATEWAY_COOKIE_SECURE` | `true` | Mark `andrey_session` `Secure`. Default is the safe one so a misconfigured production fails closed; local compose sets `false` because dev is plain http, where a `Secure` cookie is simply never sent. |
+| `GATEWAY_SESSION_COOKIE_TTL` | `720h` | `Max-Age` of the session cookie. Should not exceed auth's absolute session TTL — exceeding it only costs the user a doomed round trip before the 401. |
 | `GATEWAY_LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error` |
 | `GATEWAY_LOG_FORMAT` | `json` | `json` / `text` |
 | `GATEWAY_READ_TIMEOUT` | `10s` | HTTP read timeout |

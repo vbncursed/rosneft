@@ -1,5 +1,6 @@
 import { httpGet, httpPost, httpDelete } from "@/shared/infrastructure/http/client";
-import { setToken } from "@/auth/infrastructure/token-store";
+import { markAuthed } from "@/auth/infrastructure/session-marker";
+import { setCsrfToken } from "@/auth/infrastructure/csrf-token";
 
 export interface Passkey {
   id: string;
@@ -38,13 +39,13 @@ export function loginBegin(): Promise<BeginResponse> {
   return httpPost<BeginResponse>("/api/auth/passkey/login/begin");
 }
 
-// Stores the session token exactly like the password path: the SPA has no BFF
-// to turn it into a cookie, so discarding it here logs the user straight back
-// out on the next guarded route.
+// Marks the session exactly like the password path. The session itself is the
+// httpOnly cookie the gateway sets on this response; skipping the marker here
+// would leave the guard seeing an anonymous visitor and bounce the user straight
+// back to /login on the next guarded route.
 export async function loginFinish(flowId: string, assertionJson: string): Promise<void> {
-  const r = await httpPost<{ token: string }>("/api/auth/passkey/login/finish", {
-    flowId,
-    assertionJson,
-  });
-  setToken(r.token);
+  const r = await httpPost<{ token: string; csrfToken: string }>(
+    "/api/auth/passkey/login/finish", { flowId, assertionJson });
+  markAuthed();
+  setCsrfToken(r.csrfToken);
 }
