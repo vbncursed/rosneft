@@ -66,12 +66,26 @@ func (s *VerifyIntegrationSuite) TearDownTest() {
 // Ticks with journal activity between them: the first seeds a watermark, and
 // only a later tick can seal rows written after it — the boundary is always one
 // watermark behind.
+//
+// Two rounds rather than one, on purpose. A single round leaves the last
+// checkpoint with id == to_id (three rows, three checkpoints), which would let
+// TestWitnessCatchesARecomputedChain pass whether the witness were keyed by id
+// or by to_id — and to_id keying is exactly the bug this suite exists to catch.
+// The second round separates them.
 func (s *VerifyIntegrationSuite) sealSomeHistory() {
+	s.round("auth.login", "auth.logout", "auth.password_change")
+	s.round("auth.login")
+}
+
+// round records some entries and ticks until they are sealed. Two ticks: the
+// first moves the boundary up to the watermark taken while the rows were being
+// written, the second digests them.
+func (s *VerifyIntegrationSuite) round(actions ...string) {
 	ctx := s.T().Context()
 	_, err := s.svc.Checkpoint(ctx)
 	assert.NilError(s.T(), err)
 
-	for _, a := range []string{"auth.login", "auth.logout", "auth.password_change"} {
+	for _, a := range actions {
 		_, recErr := s.svc.Record(ctx, domain.Entry{Action: a, Entity: "auth", Result: "ok"})
 		assert.NilError(s.T(), recErr)
 	}
@@ -145,7 +159,15 @@ func (s *VerifyIntegrationSuite) TestWitnessCatchesARecomputedChain() {
 	assert.NilError(s.T(), err)
 	sealed := all[len(all)-1]
 
-	res, err := s.svc.Verify(ctx, map[int64]string{sealed.ToID: "what-the-file-recorded"})
+	// The witness is keyed by the checkpoint's own id, never by to_id — quiet
+	// intervals repeat to_id while digests advance. Assert the two have actually
+	// diverged here, otherwise this test would pass under either keying and stop
+	// guarding the invariant the moment the fixture shifted.
+	assert.Assert(s.T(), sealed.ID != sealed.ToID,
+		"fixture no longer separates checkpoint id (%d) from to_id (%d); this test would pass under to_id keying too",
+		sealed.ID, sealed.ToID)
+
+	res, err := s.svc.Verify(ctx, map[int64]string{sealed.ID: "what-the-file-recorded"})
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), res.OK, false)

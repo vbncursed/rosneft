@@ -27,9 +27,11 @@ func (s *RoutePermsSuite) TestEveryJournalRouteIsGated() {
 	}
 }
 
-// An empty list would satisfy the "is it in the map" check above while opening
-// the route to everyone — holdsAny over nothing is false, but so is the gate on
-// an owner-less principal reaching a route nobody meant to expose. Pin it.
+// An empty list passes the "is it in the map" check above while naming nothing
+// that could satisfy it: holdsAny over an empty slice is always false, so the
+// gate collapses to !isOwner and every non-Root caller gets a 403. The route
+// becomes unreachable rather than open — an availability failure, not a bypass,
+// but a silent one that no other test would surface. Pin it.
 func (s *RoutePermsSuite) TestNoRouteHasAnEmptyPermissionList() {
 	for route, need := range routePerms {
 		assert.Assert(s.T(), len(need) > 0, "%s names no permissions", route)
