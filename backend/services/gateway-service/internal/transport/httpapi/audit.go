@@ -60,8 +60,8 @@ func auditEntryToAPI(e domain.AuditEntry) AuditEntry {
 
 // ListAudit returns one page of the journal, scoped to the caller.
 func (s *Server) ListAudit(ctx context.Context, req ListAuditRequestObject) (ListAuditResponseObject, error) {
-	entries, next, err := s.svc.ListAudit(ctx,
-		auditQueryFromParams(req.Params), authhttp.IsOwner(ctx), authhttp.AuditCompany(ctx), authhttp.Token(ctx))
+	entries, next, _, err := s.svc.ListAudit(ctx,
+		auditQueryFromParams(req.Params), authhttp.IsOwner(ctx), authhttp.AuditCompany(ctx), authhttp.Token(ctx), true)
 	switch {
 	case isForbidden(err):
 		return ListAudit403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse{
