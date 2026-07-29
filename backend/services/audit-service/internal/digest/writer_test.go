@@ -102,6 +102,36 @@ func (s *WriterSuite) TestReopenAppends() {
 	assert.Equal(s.T(), countLines(s.T(), b), 2)
 }
 
+// The witness renders `at` in the service's local zone so it lines up with the
+// log record for the same checkpoint — containers run TZ=Europe/Moscow, and an
+// operator reading both should not be shifting hours by hand.
+//
+// Asserted against time.Local rather than a literal "+03:00": the test runs on
+// a developer machine in whatever zone that machine has, and pinning the offset
+// would make it fail everywhere except production.
+func (s *WriterSuite) TestTimestampUsesTheLocalZone() {
+	path := filepath.Join(s.T().TempDir(), "digests.jsonl")
+
+	w, err := digest.Open(path)
+	assert.NilError(s.T(), err)
+	assert.NilError(s.T(), w.Write(checkpoint(1, "one")))
+	assert.NilError(s.T(), w.Close())
+
+	b, err := os.ReadFile(path)
+	assert.NilError(s.T(), err)
+
+	var got struct {
+		At time.Time `json:"at"`
+	}
+	assert.NilError(s.T(), json.Unmarshal(b, &got))
+
+	_, want := time.Date(2026, 7, 29, 10, 15, 0, 0, time.UTC).Local().Zone()
+	_, offset := got.At.Zone()
+	assert.Equal(s.T(), offset, want, "witness timestamp is not in the local zone")
+	// The instant itself must not move — only how it is rendered.
+	assert.Assert(s.T(), got.At.Equal(time.Date(2026, 7, 29, 10, 15, 0, 0, time.UTC)))
+}
+
 func (s *WriterSuite) TestMissingDirectoryIsAnError() {
 	_, err := digest.Open(filepath.Join(s.T().TempDir(), "nope", "digests.jsonl"))
 
