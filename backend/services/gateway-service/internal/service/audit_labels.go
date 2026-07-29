@@ -77,7 +77,9 @@ func (g *Gateway) labelAuditEntries(
 	}
 
 	// Both services dedupe and drop blanks, so the slices go out as collected.
-	logins, err := g.auth.ResolveUserLogins(ctx, token, userIDs)
+	// Batched even though a page cannot exceed auth's cap today: that bound is
+	// a page size constant two files away, not a property of this code.
+	logins, err := g.resolveLoginsBatched(ctx, token, userIDs)
 	if err != nil {
 		slog.WarnContext(ctx, "audit: could not resolve actor logins", "err", err)
 		logins = map[string]string{}

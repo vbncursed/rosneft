@@ -16,14 +16,25 @@ import (
 // than that many rows.
 const csvPageSize int32 = 200
 
-// The label columns sit next to their ids rather than replacing them: the id is
-// what is unambiguous, the login is what reads, and an audit export wants both.
-// New columns are appended within the existing order rather than reordering it,
-// so a spreadsheet or script built against the old export keeps working.
+// The label columns are additions, not replacements: the id is what is
+// unambiguous, the login is what reads, and an audit export wants both.
+//
+// They go at the END, even though sitting next to their ids would read better.
+// A CSV gets consumed positionally as often as by header — an awk field number,
+// a spreadsheet macro, a fixed-index import — and inserting a column mid-row
+// shifts every one after it with no error and no warning. Grouping a label with
+// its id is worth less than not silently corrupting whatever already reads this
+// file, so the first auditCSVLegacyWidth columns stay exactly where they were.
 var auditCSVHeader = []string{
-	"at", "actor_id", "actor_login", "company_id", "company_login",
-	"action", "entity", "entity_id", "entity_label", "territory", "result",
+	"at", "actor_id", "company_id", "action", "entity", "entity_id",
+	"entity_label", "result",
+	"actor_login", "company_login", "territory",
 }
+
+// auditCSVLegacyWidth is the width this export shipped with. Every column below
+// that index must keep its position and meaning; new ones append past it. A test
+// pins the prefix, so moving one fails the build instead of someone's import.
+const auditCSVLegacyWidth = 8
 
 // ServeAuditCSV streams the filtered journal as CSV.
 //
@@ -84,8 +95,8 @@ func (s *Server) ServeAuditCSV(w http.ResponseWriter, r *http.Request) {
 func auditCSVRow(e domain.AuditEntry) []string {
 	return []string{
 		e.At.Format(time.RFC3339),
-		e.ActorID, e.ActorLogin, e.CompanyID, e.CompanyLogin,
-		e.Action, e.Entity, e.EntityID, e.EntityLabel, e.TerritorySlug, e.Result,
+		e.ActorID, e.CompanyID, e.Action, e.Entity, e.EntityID, e.EntityLabel, e.Result,
+		e.ActorLogin, e.CompanyLogin, e.TerritorySlug,
 	}
 }
 

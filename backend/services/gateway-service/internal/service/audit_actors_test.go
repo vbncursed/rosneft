@@ -1,7 +1,9 @@
 package service_test
 
 import (
+	"context"
 	"errors"
+	"fmt"
 
 	"gotest.tools/v3/assert"
 
@@ -50,4 +52,37 @@ func (s *AuditLabelsSuite) TestActorsRefuseAPrincipalWithoutAScope() {
 	_, err := s.svc.ListAuditActors(s.ctx, false, "", "tok")
 
 	assert.Assert(s.T(), errors.Is(err, domain.ErrForbidden))
+}
+
+// Список акторов ничем не ограничен: это все, кто когда-либо касался данных
+// компании, и он только растёт — журнал append-only. Потолок 500 у auth
+// подбирался под другого потребителя, подписывание страницы, где ids не
+// превышают 400. Без нарезки фильтр начинал падать на 501-м акторе и уже не
+// восстанавливался никогда.
+func (s *AuditLabelsSuite) TestActorsBeyondTheAuthCapAreStillResolved() {
+	const n = 1201
+	ids := make([]string, n)
+	want := make(map[string]string, n)
+	for i := range ids {
+		ids[i] = fmt.Sprintf("00000000-0000-0000-0000-%012d", i)
+		want[ids[i]] = fmt.Sprintf("user%d", i)
+	}
+	s.aud.ListActorsMock.Return(ids, nil)
+	var batches []int
+	s.aut.ResolveUserLoginsMock.Set(
+		func(_ context.Context, _ string, chunk []string) (map[string]string, error) {
+			batches = append(batches, len(chunk))
+			got := make(map[string]string, len(chunk))
+			for _, id := range chunk {
+				got[id] = want[id]
+			}
+			return got, nil
+		})
+
+	out, err := s.svc.ListAuditActors(s.ctx, true, "", "tok")
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(out), n)
+	// 500 + 500 + 201: ни один батч не превышает потолок auth.
+	assert.DeepEqual(s.T(), batches, []int{500, 500, 201})
 }

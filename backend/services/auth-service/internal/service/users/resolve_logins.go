@@ -45,9 +45,12 @@ func (s *Service) ResolveLogins(ctx context.Context, ids []string) (map[string]s
 		if _, dup := seen[id]; dup {
 			continue
 		}
-		// users.id is a UUID column: a malformed string would die on the cast
-		// inside Postgres with SQLSTATE 22P02 and surface as a 500 — the same
-		// failure the journal's actor filter had.
+		// Rejected here rather than left to the query. The storage layer compares
+		// id::text precisely so a malformed value cannot reach a uuid cast, so
+		// this is not about avoiding SQLSTATE 22P02 — that hazard is engineered
+		// away one file over. It is about the answer: an unvalidated id would
+		// silently match nothing and read as "user deleted", which is a
+		// different fact from "you sent nonsense".
 		if uuid.Validate(id) != nil {
 			return nil, fmt.Errorf("users.ResolveLogins: %w: id must be a uuid",
 				domain.ErrInvalidInput)
