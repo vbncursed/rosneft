@@ -60,7 +60,9 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.SetDefault("audit-grpc-addr", "audit:9009")
 	v.SetDefault("asset-http-addr", "http://asset:8081")
 	v.SetDefault("prometheus-url", "http://prometheus:9090")
-	v.SetDefault("allowed-origins", []string{"*"})
+	// Empty by default: the SPA is same-origin, so CORS is not mounted
+	// at all. Set this only for a third-party consumer of the API.
+	v.SetDefault("allowed-origins", []string{})
 	v.SetDefault("log-level", "info")
 	v.SetDefault("log-format", "json")
 	v.SetDefault("read-timeout", 10*time.Second)

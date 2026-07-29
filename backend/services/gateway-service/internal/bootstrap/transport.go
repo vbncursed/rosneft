@@ -48,36 +48,13 @@ func InitRouter(
 	logger *slog.Logger,
 	cfg config.Config,
 ) (chi.Router, *healthz.Handler) {
-	r := chi.NewRouter()
+	r := newRouterWithCORS(cfg.AllowedOrigins)
 
 	// Record HTTP RED for every request (method + status). Outermost so it
 	// times the full chain. The /metrics endpoint itself is served only on the
 	// internal :9101 listener, never on this public router.
 	r.Use(metrics.Middleware)
 
-	// The SPA is same-origin with this API in both dev and prod — nginx serves it
-	// and proxies /api, Vite does the same in development — so nothing the SPA
-	// does is preflighted any more, and the session cookie needs no CORS help.
-	//
-	// The configuration stays anyway, deliberately: it costs nothing on
-	// same-origin traffic and it is what keeps a non-browser or differently
-	// hosted client working. ExposedHeaders in particular is not dead weight —
-	// the chunked-upload protocol answers with Upload-Offset / Upload-Length,
-	// which a browser hides from script unless they are exposed.
-	//
-	// AllowCredentials with a wildcard origin looks alarming and is not: the
-	// session cookie is SameSite=Lax, so a browser withholds it from cross-site
-	// subresource requests whatever this handler replies. Tightening
-	// GATEWAY_ALLOWED_ORIGINS is still worth doing — just do it knowing the SPA
-	// no longer depends on it.
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   resolveOrigins(cfg.AllowedOrigins),
-		AllowedMethods:   []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},
-		AllowedHeaders:   []string{"Content-Type", "If-None-Match", "Authorization", "Upload-Offset"},
-		ExposedHeaders:   []string{"ETag", "Content-Length", "Content-Range", "X-Next-Cursor", "Upload-Offset", "Upload-Length"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	}))
 	r.Use(middleware.RequestID)
 	// No RealIP: it rewrites RemoteAddr from client-controlled headers
 	// (X-Forwarded-For / True-Client-IP / X-Real-IP) whether or not the
@@ -157,13 +134,34 @@ func InitRouter(
 	return r, hz
 }
 
-// resolveOrigins maps the configured origin list onto go-chi/cors syntax.
-// An empty slice or {"*"} becomes []{"*"} (any origin allowed).
-func resolveOrigins(origins []string) []string {
+// newRouterWithCORS builds the root router, carrying the CORS handler only when
+// there is something to allow.
+//
+// An empty list must mean "no cross-origin access". go-chi/cors disagrees: an
+// empty AllowedOrigins with no AllowOriginFunc sets allowedOriginsAll and echoes
+// every origin (cors.go:131). Blanking the config is therefore a way to turn
+// CORS fully ON, and not mounting the handler is the only way to say none.
+//
+// The SPA is same-origin with this API in dev and prod alike — nginx serves it
+// and proxies /api, Vite does the same — so it is preflighted nowhere and needs
+// none of this. The knob stays for a third-party consumer of the API, should one
+// appear; ExposedHeaders is what such a client would need, since the
+// chunked-upload protocol answers with Upload-Offset / Upload-Length and a
+// browser hides those from script unless they are exposed.
+func newRouterWithCORS(origins []string) chi.Router {
+	r := chi.NewRouter()
 	if len(origins) == 0 {
-		return []string{"*"}
+		return r
 	}
-	return origins
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   origins,
+		AllowedMethods:   []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},
+		AllowedHeaders:   []string{"Content-Type", "If-None-Match", "Authorization", "Upload-Offset", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"ETag", "Content-Length", "Content-Range", "X-Next-Cursor", "Upload-Offset", "Upload-Length"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
+	return r
 }
 
 // newCompressor configures chi's Compressor with brotli registered alongside
