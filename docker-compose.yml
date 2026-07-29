@@ -1,10 +1,15 @@
 name: andrey
 
+# Container clocks: logs land in Moscow local time instead of UTC.
+x-tz: &tz
+  TZ: Europe/Moscow
+
 services:
   postgres:
     restart: unless-stopped
     image: postgres:latest
     environment:
+      <<: *tz
       POSTGRES_DB: andrey
       POSTGRES_USER: andrey
       POSTGRES_PASSWORD: andrey
@@ -21,6 +26,8 @@ services:
   redis:
     restart: unless-stopped
     image: redis:latest
+    environment:
+      <<: *tz
     ports:
       - "6379:6379"
     volumes:
@@ -48,6 +55,7 @@ services:
       asset: { condition: service_started }
       audit: { condition: service_started }
     environment:
+      <<: *tz
       GATEWAY_HTTP_ADDR: ":8080"
       GATEWAY_CATALOG_GRPC_ADDR: "catalog:9001"
       GATEWAY_CONTENT_GRPC_ADDR: "content:9007"
@@ -76,6 +84,7 @@ services:
     expose:
       - "9001"
     environment:
+      <<: *tz
       CATALOG_GRPC_ADDR: ":9001"
       CATALOG_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
       CATALOG_AUTO_MIGRATE: "true"
@@ -92,6 +101,7 @@ services:
     expose:
       - "9004"
     environment:
+      <<: *tz
       AUTH_GRPC_ADDR: ":9004"
       # Shares the andrey DB with catalog; isolated by the auth_goose_db_version table.
       AUTH_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
@@ -117,6 +127,7 @@ services:
     expose:
       - "9006"
     environment:
+      <<: *tz
       TWOFA_GRPC_ADDR: ":9006"
       # Shares the andrey DB with catalog/auth; isolated by twofa_goose_db_version.
       TWOFA_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
@@ -140,6 +151,7 @@ services:
     expose:
       - "9008"
     environment:
+      <<: *tz
       PASSKEY_GRPC_ADDR: ":9008"
       # Shares the andrey DB with catalog/auth/twofa; isolated by passkey_goose_db_version.
       PASSKEY_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
@@ -163,6 +175,7 @@ services:
     expose:
       - "9007"
     environment:
+      <<: *tz
       CONTENT_GRPC_ADDR: ":9007"
       # Shares the andrey DB with catalog/auth/twofa; isolated by content_goose_db_version.
       CONTENT_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
@@ -179,6 +192,7 @@ services:
     expose:
       - "9009"
     environment:
+      <<: *tz
       AUDIT_GRPC_ADDR: ":9009"
       # Shares the andrey DB with every other service; isolated by audit_goose_db_version.
       AUDIT_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
@@ -199,6 +213,7 @@ services:
     expose:
       - "9002"
     environment:
+      <<: *tz
       MESH_GRPC_ADDR: ":9002"
       MESH_REDIS_ADDR: "redis:6379"
       MESH_CATALOG_GRPC_ADDR: "catalog:9001"
@@ -213,6 +228,7 @@ services:
       redis: { condition: service_healthy }
       catalog: { condition: service_started }
     environment:
+      <<: *tz
       MESH_REDIS_ADDR: "redis:6379"
       MESH_CATALOG_GRPC_ADDR: "catalog:9001"
       MESH_BLOB_DIR: "/var/blob"
@@ -234,6 +250,7 @@ services:
       context: ./backend
       dockerfile: services/asset-service/Dockerfile
     environment:
+      <<: *tz
       ASSET_HTTP_ADDR: ":8081"
       ASSET_BLOB_DIR: "/var/blob"
       ASSET_LOG_LEVEL: "info"
@@ -248,6 +265,7 @@ services:
     expose:
       - "9003"
     environment:
+      <<: *tz
       UPLOAD_GRPC_ADDR: ":9003"
       UPLOAD_BLOB_DIR: "/var/blob"
       UPLOAD_INCOMING_DIR: "/var/upload/incoming"
@@ -262,6 +280,8 @@ services:
   prometheus:
     restart: unless-stopped
     image: prom/prometheus:latest
+    environment:
+      <<: *tz
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.retention.time=15d
