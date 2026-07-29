@@ -229,6 +229,8 @@ type AuthRole struct {
 
 // AuthUser defines model for AuthUser.
 type AuthUser struct {
+	// CsrfToken echo back as X-CSRF-Token on POST/PUT/PATCH/DELETE; required only for cookie sessions
+	CsrfToken           *string         `json:"csrfToken,omitempty"`
 	Email               *string         `json:"email,omitempty"`
 	Id                  *string         `json:"id,omitempty"`
 	IsOwner             *bool           `json:"isOwner,omitempty"`
@@ -392,6 +394,9 @@ type LoginRequest struct {
 type LoginResponse struct {
 	// ChallengeToken present when 2FA is required
 	ChallengeToken *string `json:"challengeToken,omitempty"`
+
+	// CsrfToken echo back as X-CSRF-Token on POST/PUT/PATCH/DELETE; required only for cookie sessions
+	CsrfToken *string `json:"csrfToken,omitempty"`
 
 	// Token empty when twoFactorRequired
 	Token             *string `json:"token,omitempty"`
@@ -645,7 +650,9 @@ type TerritoryUpdate struct {
 
 // TokenResponse defines model for TokenResponse.
 type TokenResponse struct {
-	Token *string `json:"token,omitempty"`
+	// CsrfToken echo back as X-CSRF-Token on POST/PUT/PATCH/DELETE; required only for cookie sessions
+	CsrfToken *string `json:"csrfToken,omitempty"`
+	Token     *string `json:"token,omitempty"`
 }
 
 // UpdateRoleRequest defines model for UpdateRoleRequest.

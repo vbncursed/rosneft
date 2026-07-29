@@ -37,7 +37,7 @@ func (h *Handlers) passkeyLoginFinish(w http.ResponseWriter, r *http.Request) {
 	// passkeyRegisterFinish deliberately does not do this: enrolling a key is
 	// done by an already-logged-in user and issues no new session.
 	h.setSession(w, token)
-	writeJSON(w, http.StatusOK, map[string]any{"token": token})
+	writeJSON(w, http.StatusOK, map[string]any{"token": token, "csrfToken": h.CSRFToken(token)})
 }
 
 // --- passkey enrollment + management (authenticated; passkey-service) ---

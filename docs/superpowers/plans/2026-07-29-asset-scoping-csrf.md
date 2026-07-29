@@ -987,7 +987,7 @@ git commit -m "fix(gateway): stop allowing every origin by default"
 - Consumes: `CookieOptions`, `sessionCookieName` — существуют.
 - Produces: `sessionTokenFrom(r *http.Request) (token string, fromCookie bool)`; `(*Handlers).CSRFToken(sessionToken string) string`; `(*Handlers).RequireCSRF(next http.Handler) http.Handler`.
 
-- [ ] **Step 1: Написать падающий тест**
+- [x] **Step 1: Написать падающий тест**
 
 Create `backend/services/gateway-service/internal/transport/authhttp/csrf_test.go`:
 
@@ -1087,12 +1087,12 @@ func (s *CSRFSuite) TestSessionTokenFromReportsItsSource() {
 }
 ```
 
-- [ ] **Step 2: Запустить тест, убедиться что падает**
+- [x] **Step 2: Запустить тест, убедиться что падает**
 
 Run: `cd backend/services/gateway-service && go test ./internal/transport/authhttp/ -run TestCSRFSuite`
 Expected: FAIL — `Handlers.csrfSecret undefined`, `csrfHeaderName undefined`, `sessionTokenFrom undefined`.
 
-- [ ] **Step 3: Реализовать токен и middleware**
+- [x] **Step 3: Реализовать токен и middleware**
 
 Create `backend/services/gateway-service/internal/transport/authhttp/csrf.go`:
 
@@ -1161,7 +1161,7 @@ func (h *Handlers) RequireCSRF(next http.Handler) http.Handler {
 }
 ```
 
-- [ ] **Step 4: Дать `sessionToken` источник**
+- [x] **Step 4: Дать `sessionToken` источник**
 
 Modify `backend/services/gateway-service/internal/transport/authhttp/respond.go` — заменить тело `sessionToken` на обёртку:
 
@@ -1190,12 +1190,12 @@ func sessionToken(r *http.Request) string {
 }
 ```
 
-- [ ] **Step 5: Запустить тест, убедиться что проходит**
+- [x] **Step 5: Запустить тест, убедиться что проходит**
 
 Run: `cd backend/services/gateway-service && go test ./internal/transport/authhttp/ -run TestCSRFSuite -v`
 Expected: PASS, 6 тестов.
 
-- [ ] **Step 6: Выдавать токен клиенту**
+- [x] **Step 6: Выдавать токен клиенту**
 
 Добавить поле `csrfSecret []byte` в `Handlers` и седьмой параметр в `New`.
 
@@ -1216,7 +1216,7 @@ Modify `api/openapi.yaml`: добавить `csrfToken: { type: string }` в с�
 `/api/auth/login`, `/api/auth/login/2fa`, `/api/auth/passkey/login/finish` и
 `/api/auth/me`. Затем `make -C backend openapi-gen`.
 
-- [ ] **Step 7: Пробросить конфиг и смонтировать**
+- [x] **Step 7: Пробросить конфиг и смонтировать**
 
 Modify `internal/config/config.go`:
 
@@ -1255,12 +1255,12 @@ Modify `internal/bootstrap/transport.go` — в `/api`-подроутере по
 		api.Use(authH.RequireCSRF)
 ```
 
-- [ ] **Step 8: Прогнать тесты**
+- [x] **Step 8: Прогнать тесты**
 
 Run: `cd backend/services/gateway-service && go build ./... && go test ./...`
 Expected: PASS.
 
-- [ ] **Step 9: Проверить вживую**
+- [x] **Step 9: Проверить вживую**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft && docker compose up -d --build gateway && sleep 12
@@ -1279,7 +1279,7 @@ curl -s -H "Authorization: Bearer $TOK" -o /dev/null -w 'bearer без токе�
 
 Expected: `кука без токена: 403`, `bearer без токена: 404`.
 
-- [ ] **Step 10: Коммит**
+- [x] **Step 10: Коммит**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft
