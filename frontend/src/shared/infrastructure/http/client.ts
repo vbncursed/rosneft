@@ -1,23 +1,25 @@
 import { HttpError, type ApiError } from "@/shared/infrastructure/http/http-error";
-import { getToken, clearToken } from "@/auth/infrastructure/token-store";
+import { clearAuthed } from "@/auth/infrastructure/session-marker";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
 async function send<T>(path: string, init: RequestInit, parseJson: boolean): Promise<T> {
-  const token = getToken();
+  // No Authorization header: the session is an httpOnly cookie, and the SPA is
+  // single-origin with the API in both dev and prod, so the browser attaches it
+  // to every request here without being asked.
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
       Accept: "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init.headers ?? {}),
     },
   });
   if (!res.ok) {
-    // 401 = token expired/revoked. Drop it and bounce to /login — unless we're
-    // already on /login (a bad-credentials login also 401s; let it surface).
+    // 401 = session expired or revoked. Drop the marker and bounce to /login —
+    // unless we're already on /login (a bad-credentials login also 401s; let it
+    // surface).
     if (res.status === 401 && !location.pathname.startsWith("/login")) {
-      clearToken();
+      clearAuthed();
       location.assign(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
     }
     let body: ApiError | null = null;

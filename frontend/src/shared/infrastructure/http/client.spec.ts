@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { httpGet, httpPost } from "@/shared/infrastructure/http/client";
-import { setToken } from "@/auth/infrastructure/token-store";
+import { markAuthed } from "@/auth/infrastructure/session-marker";
 import { HttpError } from "@/shared/infrastructure/http/http-error";
 
 const API = "http://localhost:8080";
@@ -28,16 +28,16 @@ describe("api-client", () => {
     expect(r).toEqual({ ok: true });
   });
 
-  it("attaches Bearer when a token is present", async () => {
-    setToken("tok123");
+  it("sends no Authorization header — the session is a cookie", async () => {
+    markAuthed();
     const f = mockFetch(200, {});
     vi.stubGlobal("fetch", f);
     await httpGet("/api/x");
     const init = f.mock.calls[0][1] as RequestInit;
-    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer tok123");
+    expect((init.headers as Record<string, string>).Authorization).toBeUndefined();
   });
 
-  it("omits Authorization when no token", async () => {
+  it("omits Authorization when there is no session either", async () => {
     const f = mockFetch(200, {});
     vi.stubGlobal("fetch", f);
     await httpGet("/api/x");

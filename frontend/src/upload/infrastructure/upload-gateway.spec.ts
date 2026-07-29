@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { appendChunk, getUploadStatus, abortUpload } from "@/upload/infrastructure/upload-gateway";
-import { setToken } from "@/auth/infrastructure/token-store";
+import { markAuthed } from "@/auth/infrastructure/session-marker";
 
 const API = "http://localhost:8080";
 
@@ -13,7 +13,7 @@ function mockFetch(status: number, headers: Record<string, string> = {}) {
 describe("upload-gateway raw fetches", () => {
   beforeEach(() => {
     localStorage.clear();
-    setToken("tok");
+    markAuthed();
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -24,7 +24,8 @@ describe("upload-gateway raw fetches", () => {
     expect(f.mock.calls[0][0]).toBe(`${API}/api/uploads/s1`);
     const init = f.mock.calls[0][1] as RequestInit;
     const h = init.headers as Record<string, string>;
-    expect(h.Authorization).toBe("Bearer tok");
+    // No Authorization: the session cookie rides on this same-origin fetch.
+    expect(h.Authorization).toBeUndefined();
     expect(h["Upload-Offset"]).toBe("0");
     expect(next).toBe(16);
   });
@@ -42,6 +43,8 @@ describe("upload-gateway raw fetches", () => {
     await abortUpload("s1");
     expect(f.mock.calls[0][0]).toBe(`${API}/api/uploads/s1`);
     expect((f.mock.calls[0][1] as RequestInit).method).toBe("DELETE");
-    expect(((f.mock.calls[0][1] as RequestInit).headers as Record<string, string>).Authorization).toBe("Bearer tok");
+    expect(
+      ((f.mock.calls[0][1] as RequestInit).headers as Record<string, string>).Authorization,
+    ).toBeUndefined();
   });
 });

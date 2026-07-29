@@ -1,16 +1,13 @@
 import { httpPost } from "@/shared/infrastructure/http/client";
-import { getToken } from "@/auth/infrastructure/token-store";
 import type { components } from "@/shared/infrastructure/api/dto";
 import type { UploadSession, FinalizedBlob } from "@/upload/domain/session";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
-// The SPA has no same-origin BFF, so the raw upload fetches (PATCH/HEAD/DELETE)
-// must target the gateway directly and carry the Bearer token themselves —
-// unlike initiate/finalize which go through the authed httpPost client.
+// The raw upload fetches (PATCH/HEAD/DELETE) bypass the shared JSON client, but
+// no longer carry a token: the session cookie rides on these same-origin fetches.
 function uploadHeaders(extra: Record<string, string> = {}): Record<string, string> {
-  const token = getToken();
-  return { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...extra };
+  return { ...extra };
 }
 
 type UploadSessionDto = components["schemas"]["UploadSession"];
