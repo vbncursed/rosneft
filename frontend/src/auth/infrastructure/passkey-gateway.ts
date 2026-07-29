@@ -1,5 +1,6 @@
 import { httpGet, httpPost, httpDelete } from "@/shared/infrastructure/http/client";
 import { markAuthed } from "@/auth/infrastructure/session-marker";
+import { setCsrfToken } from "@/auth/infrastructure/csrf-token";
 
 export interface Passkey {
   id: string;
@@ -43,9 +44,8 @@ export function loginBegin(): Promise<BeginResponse> {
 // would leave the guard seeing an anonymous visitor and bounce the user straight
 // back to /login on the next guarded route.
 export async function loginFinish(flowId: string, assertionJson: string): Promise<void> {
-  await httpPost<{ token: string }>("/api/auth/passkey/login/finish", {
-    flowId,
-    assertionJson,
-  });
+  const r = await httpPost<{ token: string; csrfToken: string }>(
+    "/api/auth/passkey/login/finish", { flowId, assertionJson });
   markAuthed();
+  setCsrfToken(r.csrfToken);
 }

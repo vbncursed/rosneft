@@ -1304,7 +1304,7 @@ git commit -m "feat(gateway): require an anti-CSRF token on cookie sessions"
 - Consumes: поле `csrfToken` в ответах входа и `/api/auth/me` (Задача 5).
 - Produces: `setCsrfToken(t: string): void`, `getCsrfToken(): string | null`, `clearCsrfToken(): void`.
 
-- [ ] **Step 1: Написать падающий тест**
+- [x] **Step 1: Написать падающий тест**
 
 Create `frontend/src/auth/infrastructure/csrf-token.spec.ts`:
 
@@ -1343,12 +1343,12 @@ describe("csrf token", () => {
 });
 ```
 
-- [ ] **Step 2: Запустить тест, убедиться что падает**
+- [x] **Step 2: Запустить тест, убедиться что падает**
 
 Run: `cd frontend && yarn test:spa src/auth/infrastructure/csrf-token.spec.ts`
 Expected: FAIL — модуль не найден.
 
-- [ ] **Step 3: Реализовать хранилище в памяти**
+- [x] **Step 3: Реализовать хранилище в памяти**
 
 Create `frontend/src/auth/infrastructure/csrf-token.ts`:
 
@@ -1372,7 +1372,7 @@ export function clearCsrfToken(): void {
 }
 ```
 
-- [ ] **Step 4: Слать заголовок на мутациях**
+- [x] **Step 4: Слать заголовок на мутациях**
 
 Modify `frontend/src/shared/infrastructure/http/client.ts`:
 
@@ -1402,7 +1402,7 @@ async function send<T>(path: string, init: RequestInit, parseJson: boolean): Pro
 
 Остальная часть файла без изменений.
 
-- [ ] **Step 5: Запоминать и забывать токен**
+- [x] **Step 5: Запоминать и забывать токен**
 
 `auth-login.ts` — в `login` (когда `!r.twoFactorRequired`) и в `verifyTwoFactor`
 вызвать `setCsrfToken(r.csrfToken)`; в `logout` — `clearCsrfToken()`. Типы
@@ -1436,7 +1436,7 @@ function uploadHeaders(extra: Record<string, string> = {}): Record<string, strin
 }
 ```
 
-- [ ] **Step 6: Добавить тест клиента**
+- [x] **Step 6: Добавить тест клиента**
 
 Добавить в `frontend/src/shared/infrastructure/http/client.spec.ts`:
 
@@ -1456,12 +1456,12 @@ it("sends the CSRF token on mutations and not on reads", async () => {
 });
 ```
 
-- [ ] **Step 7: Регенерировать DTO и прогнать проверки**
+- [x] **Step 7: Регенерировать DTO и прогнать проверки**
 
 Run: `cd frontend && yarn openapi:generate && yarn lint && yarn test && yarn test:spa`
 Expected: PASS.
 
-- [ ] **Step 8: Проверить вживую**
+- [x] **Step 8: Проверить вживую**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft && docker compose up -d && cd frontend && yarn dev
@@ -1471,7 +1471,7 @@ cd /Users/vbncursed/programming/rosneft && docker compose up -d && cd frontend &
 в Network у мутаций есть заголовок `X-CSRF-Token`, у чтений его нет. Перезагрузить
 страницу и повторить мутацию — токен должен восстановиться из `/api/auth/me`.
 
-- [ ] **Step 9: Коммит**
+- [x] **Step 9: Коммит**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft

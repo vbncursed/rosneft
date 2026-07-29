@@ -2428,6 +2428,8 @@ export interface components {
             permissions?: string[];
             isOwner?: boolean;
             onboardingToursSeen?: string[];
+            /** @description echo back as X-CSRF-Token on POST/PUT/PATCH/DELETE; required only for cookie sessions */
+            csrfToken?: string;
         };
         AuthRole: {
             slug?: string;
@@ -2451,6 +2453,8 @@ export interface components {
             twoFactorRequired?: boolean;
             /** @description present when 2FA is required */
             challengeToken?: string;
+            /** @description echo back as X-CSRF-Token on POST/PUT/PATCH/DELETE; required only for cookie sessions */
+            csrfToken?: string;
         };
         Login2FARequest: {
             challengeToken: string;
@@ -2459,6 +2463,8 @@ export interface components {
         };
         TokenResponse: {
             token?: string;
+            /** @description echo back as X-CSRF-Token on POST/PUT/PATCH/DELETE; required only for cookie sessions */
+            csrfToken?: string;
         };
         ChangePasswordRequest: {
             /** Format: password */

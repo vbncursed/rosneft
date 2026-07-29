@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { httpGet, httpPost } from "@/shared/infrastructure/http/client";
 import { markAuthed } from "@/auth/infrastructure/session-marker";
+import { setCsrfToken, clearCsrfToken } from "@/auth/infrastructure/csrf-token";
 import { HttpError } from "@/shared/infrastructure/http/http-error";
 
 const API = "http://localhost:8080";
@@ -26,6 +27,21 @@ describe("api-client", () => {
     const r = await httpGet<{ ok: boolean }>("/api/x");
     expect(f).toHaveBeenCalledWith(`${API}/api/x`, expect.anything());
     expect(r).toEqual({ ok: true });
+  });
+
+  it("sends the CSRF token on mutations and not on reads", async () => {
+    setCsrfToken("csrf-1");
+    const f = mockFetch(200, {});
+    vi.stubGlobal("fetch", f);
+
+    await httpPost("/api/x", {});
+    expect(((f.mock.calls[0][1] as RequestInit).headers as Record<string, string>)["X-CSRF-Token"])
+      .toBe("csrf-1");
+
+    await httpGet("/api/x");
+    expect(((f.mock.calls[1][1] as RequestInit).headers as Record<string, string>)["X-CSRF-Token"])
+      .toBeUndefined();
+    clearCsrfToken();
   });
 
   it("sends no Authorization header — the session is a cookie", async () => {

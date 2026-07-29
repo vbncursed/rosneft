@@ -1,13 +1,17 @@
 import { httpPost } from "@/shared/infrastructure/http/client";
+import { getCsrfToken } from "@/auth/infrastructure/csrf-token";
 import type { components } from "@/shared/infrastructure/api/dto";
 import type { UploadSession, FinalizedBlob } from "@/upload/domain/session";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
-// The raw upload fetches (PATCH/HEAD/DELETE) bypass the shared JSON client, but
-// no longer carry a token: the session cookie rides on these same-origin fetches.
+// The raw upload fetches (PATCH/HEAD/DELETE) bypass the shared JSON client, so
+// they carry the CSRF token themselves. The session cookie rides on these
+// same-origin fetches on its own; HEAD is safe and would not need the token, but
+// sending it costs nothing and keeps one code path.
 function uploadHeaders(extra: Record<string, string> = {}): Record<string, string> {
-  return { ...extra };
+  const csrf = getCsrfToken();
+  return { ...(csrf ? { "X-CSRF-Token": csrf } : {}), ...extra };
 }
 
 type UploadSessionDto = components["schemas"]["UploadSession"];

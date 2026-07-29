@@ -1,16 +1,25 @@
 import { HttpError, type ApiError } from "@/shared/infrastructure/http/http-error";
 import { clearAuthed } from "@/auth/infrastructure/session-marker";
+import { getCsrfToken } from "@/auth/infrastructure/csrf-token";
 
 const API_BASE = import.meta.env.VITE_API_URL;
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 async function send<T>(path: string, init: RequestInit, parseJson: boolean): Promise<T> {
   // No Authorization header: the session is an httpOnly cookie, and the SPA is
   // single-origin with the API in both dev and prod, so the browser attaches it
   // to every request here without being asked.
+  //
+  // That cookie is exactly why the CSRF token is needed — it rides along on a
+  // cross-site POST too, and only this header proves the request came from our
+  // own page. Sent on mutations only, matching what the gateway checks.
+  const csrf = getCsrfToken();
+  const mutating = !SAFE_METHODS.has((init.method ?? "GET").toUpperCase());
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
       Accept: "application/json",
+      ...(mutating && csrf ? { "X-CSRF-Token": csrf } : {}),
       ...(init.headers ?? {}),
     },
   });
