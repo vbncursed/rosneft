@@ -23,6 +23,17 @@ func (s *RoutePermsSuite) TestEveryJournalRouteIsGated() {
 	} {
 		need, gated := routePerms[route]
 		assert.Assert(s.T(), gated, "%s is not gated: RequirePermissionForRoute lets it through", route)
-		assert.Equal(s.T(), need, "audit:read", route)
+		assert.DeepEqual(s.T(), need, []string{"audit:read", "audit:read_own"})
+	}
+}
+
+// An empty list passes the "is it in the map" check above while naming nothing
+// that could satisfy it: holdsAny over an empty slice is always false, so the
+// gate collapses to !isOwner and every non-Root caller gets a 403. The route
+// becomes unreachable rather than open — an availability failure, not a bypass,
+// but a silent one that no other test would surface. Pin it.
+func (s *RoutePermsSuite) TestNoRouteHasAnEmptyPermissionList() {
+	for route, need := range routePerms {
+		assert.Assert(s.T(), len(need) > 0, "%s names no permissions", route)
 	}
 }

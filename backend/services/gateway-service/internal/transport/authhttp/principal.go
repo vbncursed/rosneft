@@ -70,6 +70,19 @@ func AuditCompany(ctx context.Context) string {
 	return c
 }
 
+// Perms returns the caller's permission snapshot. Exported for the audit
+// handlers, which need the grant itself and not just its effect: audit:read and
+// audit:read_own reach the same route but resolve to different scopes.
+func Perms(ctx context.Context) []string {
+	return principalPerms(ctx)
+}
+
+// UserID returns the authenticated caller's id, empty when unauthenticated.
+// The journal pins a read_own caller to it.
+func UserID(ctx context.Context) string {
+	return principalUserID(ctx)
+}
+
 // withToken carries the caller's bearer for handlers that must forward it to a
 // service. The authhttp handlers read it off the request directly; the
 // oapi-codegen ones in httpapi only ever see a context, and the audit journal

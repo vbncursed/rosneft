@@ -51,10 +51,12 @@ type Service interface {
 	CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error)
 	DeleteDocument(ctx context.Context, id int64) error
 
-	// ListAudit takes the principal's owner flag and company explicitly: the
-	// tenant scope is resolved in the service layer, never from a parameter.
-	ListAudit(ctx context.Context, q domain.AuditQuery, isOwner bool, companyID, token string, wantRefs bool) ([]domain.AuditEntry, int64, map[string]string, error)
-	ListAuditActors(ctx context.Context, isOwner bool, companyID, token string) ([]domain.AuditActor, error)
+	// Both take the whole principal: the journal's scope is resolved in the
+	// service layer from the session, never from a request parameter, and the
+	// permission itself decides how far it reaches — audit:read sees the
+	// company, audit:read_own only the caller.
+	ListAudit(ctx context.Context, q domain.AuditQuery, p domain.AuditPrincipal, token string, wantRefs bool) ([]domain.AuditEntry, int64, map[string]string, error)
+	ListAuditActors(ctx context.Context, p domain.AuditPrincipal, token string) ([]domain.AuditActor, error)
 
 	GetJob(ctx context.Context, id string) (domain.Job, error)
 

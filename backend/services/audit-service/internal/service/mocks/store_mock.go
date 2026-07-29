@@ -19,12 +19,26 @@ type StoreMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
+	funcComputeDigest          func(ctx context.Context, fromID int64, boundary int64, prev string) (i1 int32, i2 int64, s1 string, err error)
+	funcComputeDigestOrigin    string
+	inspectFuncComputeDigest   func(ctx context.Context, fromID int64, boundary int64, prev string)
+	afterComputeDigestCounter  uint64
+	beforeComputeDigestCounter uint64
+	ComputeDigestMock          mStoreMockComputeDigest
+
 	funcDistinctActors          func(ctx context.Context, f domain.Filter) (sa1 []string, err error)
 	funcDistinctActorsOrigin    string
 	inspectFuncDistinctActors   func(ctx context.Context, f domain.Filter)
 	afterDistinctActorsCounter  uint64
 	beforeDistinctActorsCounter uint64
 	DistinctActorsMock          mStoreMockDistinctActors
+
+	funcLastCheckpoint          func(ctx context.Context) (c2 domain.Checkpoint, b1 bool, err error)
+	funcLastCheckpointOrigin    string
+	inspectFuncLastCheckpoint   func(ctx context.Context)
+	afterLastCheckpointCounter  uint64
+	beforeLastCheckpointCounter uint64
+	LastCheckpointMock          mStoreMockLastCheckpoint
 
 	funcList          func(ctx context.Context, f domain.Filter) (ea1 []domain.Entry, err error)
 	funcListOrigin    string
@@ -33,12 +47,40 @@ type StoreMock struct {
 	beforeListCounter uint64
 	ListMock          mStoreMockList
 
+	funcListCheckpoints          func(ctx context.Context) (ca1 []domain.Checkpoint, err error)
+	funcListCheckpointsOrigin    string
+	inspectFuncListCheckpoints   func(ctx context.Context)
+	afterListCheckpointsCounter  uint64
+	beforeListCheckpointsCounter uint64
+	ListCheckpointsMock          mStoreMockListCheckpoints
+
 	funcRecord          func(ctx context.Context, e domain.Entry) (i1 int64, err error)
 	funcRecordOrigin    string
 	inspectFuncRecord   func(ctx context.Context, e domain.Entry)
 	afterRecordCounter  uint64
 	beforeRecordCounter uint64
 	RecordMock          mStoreMockRecord
+
+	funcSaveCheckpoint          func(ctx context.Context, c domain.Checkpoint) (c2 domain.Checkpoint, err error)
+	funcSaveCheckpointOrigin    string
+	inspectFuncSaveCheckpoint   func(ctx context.Context, c domain.Checkpoint)
+	afterSaveCheckpointCounter  uint64
+	beforeSaveCheckpointCounter uint64
+	SaveCheckpointMock          mStoreMockSaveCheckpoint
+
+	funcSequenceWatermark          func(ctx context.Context) (i1 int64, err error)
+	funcSequenceWatermarkOrigin    string
+	inspectFuncSequenceWatermark   func(ctx context.Context)
+	afterSequenceWatermarkCounter  uint64
+	beforeSequenceWatermarkCounter uint64
+	SequenceWatermarkMock          mStoreMockSequenceWatermark
+
+	funcTableStats          func(ctx context.Context) (rows int64, bytes int64, err error)
+	funcTableStatsOrigin    string
+	inspectFuncTableStats   func(ctx context.Context)
+	afterTableStatsCounter  uint64
+	beforeTableStatsCounter uint64
+	TableStatsMock          mStoreMockTableStats
 }
 
 // NewStoreMock returns a mock for mm_service.Store
@@ -49,18 +91,443 @@ func NewStoreMock(t minimock.Tester) *StoreMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.ComputeDigestMock = mStoreMockComputeDigest{mock: m}
+	m.ComputeDigestMock.callArgs = []*StoreMockComputeDigestParams{}
+
 	m.DistinctActorsMock = mStoreMockDistinctActors{mock: m}
 	m.DistinctActorsMock.callArgs = []*StoreMockDistinctActorsParams{}
+
+	m.LastCheckpointMock = mStoreMockLastCheckpoint{mock: m}
+	m.LastCheckpointMock.callArgs = []*StoreMockLastCheckpointParams{}
 
 	m.ListMock = mStoreMockList{mock: m}
 	m.ListMock.callArgs = []*StoreMockListParams{}
 
+	m.ListCheckpointsMock = mStoreMockListCheckpoints{mock: m}
+	m.ListCheckpointsMock.callArgs = []*StoreMockListCheckpointsParams{}
+
 	m.RecordMock = mStoreMockRecord{mock: m}
 	m.RecordMock.callArgs = []*StoreMockRecordParams{}
+
+	m.SaveCheckpointMock = mStoreMockSaveCheckpoint{mock: m}
+	m.SaveCheckpointMock.callArgs = []*StoreMockSaveCheckpointParams{}
+
+	m.SequenceWatermarkMock = mStoreMockSequenceWatermark{mock: m}
+	m.SequenceWatermarkMock.callArgs = []*StoreMockSequenceWatermarkParams{}
+
+	m.TableStatsMock = mStoreMockTableStats{mock: m}
+	m.TableStatsMock.callArgs = []*StoreMockTableStatsParams{}
 
 	t.Cleanup(m.MinimockFinish)
 
 	return m
+}
+
+type mStoreMockComputeDigest struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockComputeDigestExpectation
+	expectations       []*StoreMockComputeDigestExpectation
+
+	callArgs []*StoreMockComputeDigestParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockComputeDigestExpectation specifies expectation struct of the Store.ComputeDigest
+type StoreMockComputeDigestExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockComputeDigestParams
+	paramPtrs          *StoreMockComputeDigestParamPtrs
+	expectationOrigins StoreMockComputeDigestExpectationOrigins
+	results            *StoreMockComputeDigestResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockComputeDigestParams contains parameters of the Store.ComputeDigest
+type StoreMockComputeDigestParams struct {
+	ctx      context.Context
+	fromID   int64
+	boundary int64
+	prev     string
+}
+
+// StoreMockComputeDigestParamPtrs contains pointers to parameters of the Store.ComputeDigest
+type StoreMockComputeDigestParamPtrs struct {
+	ctx      *context.Context
+	fromID   *int64
+	boundary *int64
+	prev     *string
+}
+
+// StoreMockComputeDigestResults contains results of the Store.ComputeDigest
+type StoreMockComputeDigestResults struct {
+	i1  int32
+	i2  int64
+	s1  string
+	err error
+}
+
+// StoreMockComputeDigestOrigins contains origins of expectations of the Store.ComputeDigest
+type StoreMockComputeDigestExpectationOrigins struct {
+	origin         string
+	originCtx      string
+	originFromID   string
+	originBoundary string
+	originPrev     string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmComputeDigest *mStoreMockComputeDigest) Optional() *mStoreMockComputeDigest {
+	mmComputeDigest.optional = true
+	return mmComputeDigest
+}
+
+// Expect sets up expected params for Store.ComputeDigest
+func (mmComputeDigest *mStoreMockComputeDigest) Expect(ctx context.Context, fromID int64, boundary int64, prev string) *mStoreMockComputeDigest {
+	if mmComputeDigest.mock.funcComputeDigest != nil {
+		mmComputeDigest.mock.t.Fatalf("StoreMock.ComputeDigest mock is already set by Set")
+	}
+
+	if mmComputeDigest.defaultExpectation == nil {
+		mmComputeDigest.defaultExpectation = &StoreMockComputeDigestExpectation{}
+	}
+
+	if mmComputeDigest.defaultExpectation.paramPtrs != nil {
+		mmComputeDigest.mock.t.Fatalf("StoreMock.ComputeDigest mock is already set by ExpectParams functions")
+	}
+
+	mmComputeDigest.defaultExpectation.params = &StoreMockComputeDigestParams{ctx, fromID, boundary, prev}
+	mmComputeDigest.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmComputeDigest.expectations {
+		if minimock.Equal(e.params, mmComputeDigest.defaultExpectation.params) {
+			mmComputeDigest.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmComputeDigest.defaultExpectation.params)
+		}
+	}
+
+	return mmComputeDigest
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.ComputeDigest
+func (mmComputeDigest *mStoreMockComputeDigest) ExpectCtxParam1(ctx context.Context) *mStoreMockComputeDigest {
+	if mmComputeDigest.mock.funcComputeDigest != nil {
+		mmComputeDigest.mock.t.Fatalf("StoreMock.ComputeDigest mock is already set by Set")
+	}
+
+	if mmComputeDigest.defaultExpectation == nil {
+		mmComputeDigest.defaultExpectation = &StoreMockComputeDigestExpectation{}
+	}
+
+	if mmComputeDigest.defaultExpectation.params != nil {
+		mmComputeDigest.mock.t.Fatalf("StoreMock.ComputeDigest mock is already set by Expect")
+	}
+
+	if mmComputeDigest.defaultExpectation.paramPtrs == nil {
+		mmComputeDigest.defaultExpectation.paramPtrs = &StoreMockComputeDigestParamPtrs{}
+	}
+	mmComputeDigest.defaultExpectation.paramPtrs.ctx = &ctx
+	mmComputeDigest.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmComputeDigest
+}
+
+// ExpectFromIDParam2 sets up expected param fromID for Store.ComputeDigest
+func (mmComputeDigest *mStoreMockComputeDigest) ExpectFromIDParam2(fromID int64) *mStoreMockComputeDigest {
+	if mmComputeDigest.mock.funcComputeDigest != nil {
+		mmComputeDigest.mock.t.Fatalf("StoreMock.ComputeDigest mock is already set by Set")
+	}
+
+	if mmComputeDigest.defaultExpectation == nil {
+		mmComputeDigest.defaultExpectation = &StoreMockComputeDigestExpectation{}
+	}
+
+	if mmComputeDigest.defaultExpectation.params != nil {
+		mmComputeDigest.mock.t.Fatalf("StoreMock.ComputeDigest mock is already set by Expect")
+	}
+
+	if mmComputeDigest.defaultExpectation.paramPtrs == nil {
+		mmComputeDigest.defaultExpectation.paramPtrs = &StoreMockComputeDigestParamPtrs{}
+	}
+	mmComputeDigest.defaultExpectation.paramPtrs.fromID = &fromID
+	mmComputeDigest.defaultExpectation.expectationOrigins.originFromID = minimock.CallerInfo(1)
+
+	return mmComputeDigest
+}
+
+// ExpectBoundaryParam3 sets up expected param boundary for Store.ComputeDigest
+func (mmComputeDigest *mStoreMockComputeDigest) ExpectBoundaryParam3(boundary int64) *mStoreMockComputeDigest {
+	if mmComputeDigest.mock.funcComputeDigest != nil {
+		mmComputeDigest.mock.t.Fatalf("StoreMock.ComputeDigest mock is already set by Set")
+	}
+
+	if mmComputeDigest.defaultExpectation == nil {
+		mmComputeDigest.defaultExpectation = &StoreMockComputeDigestExpectation{}
+	}
+
+	if mmComputeDigest.defaultExpectation.params != nil {
+		mmComputeDigest.mock.t.Fatalf("StoreMock.ComputeDigest mock is already set by Expect")
+	}
+
+	if mmComputeDigest.defaultExpectation.paramPtrs == nil {
+		mmComputeDigest.defaultExpectation.paramPtrs = &StoreMockComputeDigestParamPtrs{}
+	}
+	mmComputeDigest.defaultExpectation.paramPtrs.boundary = &boundary
+	mmComputeDigest.defaultExpectation.expectationOrigins.originBoundary = minimock.CallerInfo(1)
+
+	return mmComputeDigest
+}
+
+// ExpectPrevParam4 sets up expected param prev for Store.ComputeDigest
+func (mmComputeDigest *mStoreMockComputeDigest) ExpectPrevParam4(prev string) *mStoreMockComputeDigest {
+	if mmComputeDigest.mock.funcComputeDigest != nil {
+		mmComputeDigest.mock.t.Fatalf("StoreMock.ComputeDigest mock is already set by Set")
+	}
+
+	if mmComputeDigest.defaultExpectation == nil {
+		mmComputeDigest.defaultExpectation = &StoreMockComputeDigestExpectation{}
+	}
+
+	if mmComputeDigest.defaultExpectation.params != nil {
+		mmComputeDigest.mock.t.Fatalf("StoreMock.ComputeDigest mock is already set by Expect")
+	}
+
+	if mmComputeDigest.defaultExpectation.paramPtrs == nil {
+		mmComputeDigest.defaultExpectation.paramPtrs = &StoreMockComputeDigestParamPtrs{}
+	}
+	mmComputeDigest.defaultExpectation.paramPtrs.prev = &prev
+	mmComputeDigest.defaultExpectation.expectationOrigins.originPrev = minimock.CallerInfo(1)
+
+	return mmComputeDigest
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.ComputeDigest
+func (mmComputeDigest *mStoreMockComputeDigest) Inspect(f func(ctx context.Context, fromID int64, boundary int64, prev string)) *mStoreMockComputeDigest {
+	if mmComputeDigest.mock.inspectFuncComputeDigest != nil {
+		mmComputeDigest.mock.t.Fatalf("Inspect function is already set for StoreMock.ComputeDigest")
+	}
+
+	mmComputeDigest.mock.inspectFuncComputeDigest = f
+
+	return mmComputeDigest
+}
+
+// Return sets up results that will be returned by Store.ComputeDigest
+func (mmComputeDigest *mStoreMockComputeDigest) Return(i1 int32, i2 int64, s1 string, err error) *StoreMock {
+	if mmComputeDigest.mock.funcComputeDigest != nil {
+		mmComputeDigest.mock.t.Fatalf("StoreMock.ComputeDigest mock is already set by Set")
+	}
+
+	if mmComputeDigest.defaultExpectation == nil {
+		mmComputeDigest.defaultExpectation = &StoreMockComputeDigestExpectation{mock: mmComputeDigest.mock}
+	}
+	mmComputeDigest.defaultExpectation.results = &StoreMockComputeDigestResults{i1, i2, s1, err}
+	mmComputeDigest.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmComputeDigest.mock
+}
+
+// Set uses given function f to mock the Store.ComputeDigest method
+func (mmComputeDigest *mStoreMockComputeDigest) Set(f func(ctx context.Context, fromID int64, boundary int64, prev string) (i1 int32, i2 int64, s1 string, err error)) *StoreMock {
+	if mmComputeDigest.defaultExpectation != nil {
+		mmComputeDigest.mock.t.Fatalf("Default expectation is already set for the Store.ComputeDigest method")
+	}
+
+	if len(mmComputeDigest.expectations) > 0 {
+		mmComputeDigest.mock.t.Fatalf("Some expectations are already set for the Store.ComputeDigest method")
+	}
+
+	mmComputeDigest.mock.funcComputeDigest = f
+	mmComputeDigest.mock.funcComputeDigestOrigin = minimock.CallerInfo(1)
+	return mmComputeDigest.mock
+}
+
+// When sets expectation for the Store.ComputeDigest which will trigger the result defined by the following
+// Then helper
+func (mmComputeDigest *mStoreMockComputeDigest) When(ctx context.Context, fromID int64, boundary int64, prev string) *StoreMockComputeDigestExpectation {
+	if mmComputeDigest.mock.funcComputeDigest != nil {
+		mmComputeDigest.mock.t.Fatalf("StoreMock.ComputeDigest mock is already set by Set")
+	}
+
+	expectation := &StoreMockComputeDigestExpectation{
+		mock:               mmComputeDigest.mock,
+		params:             &StoreMockComputeDigestParams{ctx, fromID, boundary, prev},
+		expectationOrigins: StoreMockComputeDigestExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmComputeDigest.expectations = append(mmComputeDigest.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.ComputeDigest return parameters for the expectation previously defined by the When method
+func (e *StoreMockComputeDigestExpectation) Then(i1 int32, i2 int64, s1 string, err error) *StoreMock {
+	e.results = &StoreMockComputeDigestResults{i1, i2, s1, err}
+	return e.mock
+}
+
+// Times sets number of times Store.ComputeDigest should be invoked
+func (mmComputeDigest *mStoreMockComputeDigest) Times(n uint64) *mStoreMockComputeDigest {
+	if n == 0 {
+		mmComputeDigest.mock.t.Fatalf("Times of StoreMock.ComputeDigest mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmComputeDigest.expectedInvocations, n)
+	mmComputeDigest.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmComputeDigest
+}
+
+func (mmComputeDigest *mStoreMockComputeDigest) invocationsDone() bool {
+	if len(mmComputeDigest.expectations) == 0 && mmComputeDigest.defaultExpectation == nil && mmComputeDigest.mock.funcComputeDigest == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmComputeDigest.mock.afterComputeDigestCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmComputeDigest.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ComputeDigest implements mm_service.Store
+func (mmComputeDigest *StoreMock) ComputeDigest(ctx context.Context, fromID int64, boundary int64, prev string) (i1 int32, i2 int64, s1 string, err error) {
+	mm_atomic.AddUint64(&mmComputeDigest.beforeComputeDigestCounter, 1)
+	defer mm_atomic.AddUint64(&mmComputeDigest.afterComputeDigestCounter, 1)
+
+	mmComputeDigest.t.Helper()
+
+	if mmComputeDigest.inspectFuncComputeDigest != nil {
+		mmComputeDigest.inspectFuncComputeDigest(ctx, fromID, boundary, prev)
+	}
+
+	mm_params := StoreMockComputeDigestParams{ctx, fromID, boundary, prev}
+
+	// Record call args
+	mmComputeDigest.ComputeDigestMock.mutex.Lock()
+	mmComputeDigest.ComputeDigestMock.callArgs = append(mmComputeDigest.ComputeDigestMock.callArgs, &mm_params)
+	mmComputeDigest.ComputeDigestMock.mutex.Unlock()
+
+	for _, e := range mmComputeDigest.ComputeDigestMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1, e.results.i2, e.results.s1, e.results.err
+		}
+	}
+
+	if mmComputeDigest.ComputeDigestMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmComputeDigest.ComputeDigestMock.defaultExpectation.Counter, 1)
+		mm_want := mmComputeDigest.ComputeDigestMock.defaultExpectation.params
+		mm_want_ptrs := mmComputeDigest.ComputeDigestMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockComputeDigestParams{ctx, fromID, boundary, prev}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmComputeDigest.t.Errorf("StoreMock.ComputeDigest got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmComputeDigest.ComputeDigestMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.fromID != nil && !minimock.Equal(*mm_want_ptrs.fromID, mm_got.fromID) {
+				mmComputeDigest.t.Errorf("StoreMock.ComputeDigest got unexpected parameter fromID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmComputeDigest.ComputeDigestMock.defaultExpectation.expectationOrigins.originFromID, *mm_want_ptrs.fromID, mm_got.fromID, minimock.Diff(*mm_want_ptrs.fromID, mm_got.fromID))
+			}
+
+			if mm_want_ptrs.boundary != nil && !minimock.Equal(*mm_want_ptrs.boundary, mm_got.boundary) {
+				mmComputeDigest.t.Errorf("StoreMock.ComputeDigest got unexpected parameter boundary, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmComputeDigest.ComputeDigestMock.defaultExpectation.expectationOrigins.originBoundary, *mm_want_ptrs.boundary, mm_got.boundary, minimock.Diff(*mm_want_ptrs.boundary, mm_got.boundary))
+			}
+
+			if mm_want_ptrs.prev != nil && !minimock.Equal(*mm_want_ptrs.prev, mm_got.prev) {
+				mmComputeDigest.t.Errorf("StoreMock.ComputeDigest got unexpected parameter prev, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmComputeDigest.ComputeDigestMock.defaultExpectation.expectationOrigins.originPrev, *mm_want_ptrs.prev, mm_got.prev, minimock.Diff(*mm_want_ptrs.prev, mm_got.prev))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmComputeDigest.t.Errorf("StoreMock.ComputeDigest got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmComputeDigest.ComputeDigestMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmComputeDigest.ComputeDigestMock.defaultExpectation.results
+		if mm_results == nil {
+			mmComputeDigest.t.Fatal("No results are set for the StoreMock.ComputeDigest")
+		}
+		return (*mm_results).i1, (*mm_results).i2, (*mm_results).s1, (*mm_results).err
+	}
+	if mmComputeDigest.funcComputeDigest != nil {
+		return mmComputeDigest.funcComputeDigest(ctx, fromID, boundary, prev)
+	}
+	mmComputeDigest.t.Fatalf("Unexpected call to StoreMock.ComputeDigest. %v %v %v %v", ctx, fromID, boundary, prev)
+	return
+}
+
+// ComputeDigestAfterCounter returns a count of finished StoreMock.ComputeDigest invocations
+func (mmComputeDigest *StoreMock) ComputeDigestAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmComputeDigest.afterComputeDigestCounter)
+}
+
+// ComputeDigestBeforeCounter returns a count of StoreMock.ComputeDigest invocations
+func (mmComputeDigest *StoreMock) ComputeDigestBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmComputeDigest.beforeComputeDigestCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.ComputeDigest.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmComputeDigest *mStoreMockComputeDigest) Calls() []*StoreMockComputeDigestParams {
+	mmComputeDigest.mutex.RLock()
+
+	argCopy := make([]*StoreMockComputeDigestParams, len(mmComputeDigest.callArgs))
+	copy(argCopy, mmComputeDigest.callArgs)
+
+	mmComputeDigest.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockComputeDigestDone returns true if the count of the ComputeDigest invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockComputeDigestDone() bool {
+	if m.ComputeDigestMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ComputeDigestMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ComputeDigestMock.invocationsDone()
+}
+
+// MinimockComputeDigestInspect logs each unmet expectation
+func (m *StoreMock) MinimockComputeDigestInspect() {
+	for _, e := range m.ComputeDigestMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.ComputeDigest at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterComputeDigestCounter := mm_atomic.LoadUint64(&m.afterComputeDigestCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ComputeDigestMock.defaultExpectation != nil && afterComputeDigestCounter < 1 {
+		if m.ComputeDigestMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.ComputeDigest at\n%s", m.ComputeDigestMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.ComputeDigest at\n%s with params: %#v", m.ComputeDigestMock.defaultExpectation.expectationOrigins.origin, *m.ComputeDigestMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcComputeDigest != nil && afterComputeDigestCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.ComputeDigest at\n%s", m.funcComputeDigestOrigin)
+	}
+
+	if !m.ComputeDigestMock.invocationsDone() && afterComputeDigestCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.ComputeDigest at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ComputeDigestMock.expectedInvocations), m.ComputeDigestMock.expectedInvocationsOrigin, afterComputeDigestCounter)
+	}
 }
 
 type mStoreMockDistinctActors struct {
@@ -403,6 +870,319 @@ func (m *StoreMock) MinimockDistinctActorsInspect() {
 	if !m.DistinctActorsMock.invocationsDone() && afterDistinctActorsCounter > 0 {
 		m.t.Errorf("Expected %d calls to StoreMock.DistinctActors at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.DistinctActorsMock.expectedInvocations), m.DistinctActorsMock.expectedInvocationsOrigin, afterDistinctActorsCounter)
+	}
+}
+
+type mStoreMockLastCheckpoint struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockLastCheckpointExpectation
+	expectations       []*StoreMockLastCheckpointExpectation
+
+	callArgs []*StoreMockLastCheckpointParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockLastCheckpointExpectation specifies expectation struct of the Store.LastCheckpoint
+type StoreMockLastCheckpointExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockLastCheckpointParams
+	paramPtrs          *StoreMockLastCheckpointParamPtrs
+	expectationOrigins StoreMockLastCheckpointExpectationOrigins
+	results            *StoreMockLastCheckpointResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockLastCheckpointParams contains parameters of the Store.LastCheckpoint
+type StoreMockLastCheckpointParams struct {
+	ctx context.Context
+}
+
+// StoreMockLastCheckpointParamPtrs contains pointers to parameters of the Store.LastCheckpoint
+type StoreMockLastCheckpointParamPtrs struct {
+	ctx *context.Context
+}
+
+// StoreMockLastCheckpointResults contains results of the Store.LastCheckpoint
+type StoreMockLastCheckpointResults struct {
+	c2  domain.Checkpoint
+	b1  bool
+	err error
+}
+
+// StoreMockLastCheckpointOrigins contains origins of expectations of the Store.LastCheckpoint
+type StoreMockLastCheckpointExpectationOrigins struct {
+	origin    string
+	originCtx string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmLastCheckpoint *mStoreMockLastCheckpoint) Optional() *mStoreMockLastCheckpoint {
+	mmLastCheckpoint.optional = true
+	return mmLastCheckpoint
+}
+
+// Expect sets up expected params for Store.LastCheckpoint
+func (mmLastCheckpoint *mStoreMockLastCheckpoint) Expect(ctx context.Context) *mStoreMockLastCheckpoint {
+	if mmLastCheckpoint.mock.funcLastCheckpoint != nil {
+		mmLastCheckpoint.mock.t.Fatalf("StoreMock.LastCheckpoint mock is already set by Set")
+	}
+
+	if mmLastCheckpoint.defaultExpectation == nil {
+		mmLastCheckpoint.defaultExpectation = &StoreMockLastCheckpointExpectation{}
+	}
+
+	if mmLastCheckpoint.defaultExpectation.paramPtrs != nil {
+		mmLastCheckpoint.mock.t.Fatalf("StoreMock.LastCheckpoint mock is already set by ExpectParams functions")
+	}
+
+	mmLastCheckpoint.defaultExpectation.params = &StoreMockLastCheckpointParams{ctx}
+	mmLastCheckpoint.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmLastCheckpoint.expectations {
+		if minimock.Equal(e.params, mmLastCheckpoint.defaultExpectation.params) {
+			mmLastCheckpoint.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmLastCheckpoint.defaultExpectation.params)
+		}
+	}
+
+	return mmLastCheckpoint
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.LastCheckpoint
+func (mmLastCheckpoint *mStoreMockLastCheckpoint) ExpectCtxParam1(ctx context.Context) *mStoreMockLastCheckpoint {
+	if mmLastCheckpoint.mock.funcLastCheckpoint != nil {
+		mmLastCheckpoint.mock.t.Fatalf("StoreMock.LastCheckpoint mock is already set by Set")
+	}
+
+	if mmLastCheckpoint.defaultExpectation == nil {
+		mmLastCheckpoint.defaultExpectation = &StoreMockLastCheckpointExpectation{}
+	}
+
+	if mmLastCheckpoint.defaultExpectation.params != nil {
+		mmLastCheckpoint.mock.t.Fatalf("StoreMock.LastCheckpoint mock is already set by Expect")
+	}
+
+	if mmLastCheckpoint.defaultExpectation.paramPtrs == nil {
+		mmLastCheckpoint.defaultExpectation.paramPtrs = &StoreMockLastCheckpointParamPtrs{}
+	}
+	mmLastCheckpoint.defaultExpectation.paramPtrs.ctx = &ctx
+	mmLastCheckpoint.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmLastCheckpoint
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.LastCheckpoint
+func (mmLastCheckpoint *mStoreMockLastCheckpoint) Inspect(f func(ctx context.Context)) *mStoreMockLastCheckpoint {
+	if mmLastCheckpoint.mock.inspectFuncLastCheckpoint != nil {
+		mmLastCheckpoint.mock.t.Fatalf("Inspect function is already set for StoreMock.LastCheckpoint")
+	}
+
+	mmLastCheckpoint.mock.inspectFuncLastCheckpoint = f
+
+	return mmLastCheckpoint
+}
+
+// Return sets up results that will be returned by Store.LastCheckpoint
+func (mmLastCheckpoint *mStoreMockLastCheckpoint) Return(c2 domain.Checkpoint, b1 bool, err error) *StoreMock {
+	if mmLastCheckpoint.mock.funcLastCheckpoint != nil {
+		mmLastCheckpoint.mock.t.Fatalf("StoreMock.LastCheckpoint mock is already set by Set")
+	}
+
+	if mmLastCheckpoint.defaultExpectation == nil {
+		mmLastCheckpoint.defaultExpectation = &StoreMockLastCheckpointExpectation{mock: mmLastCheckpoint.mock}
+	}
+	mmLastCheckpoint.defaultExpectation.results = &StoreMockLastCheckpointResults{c2, b1, err}
+	mmLastCheckpoint.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmLastCheckpoint.mock
+}
+
+// Set uses given function f to mock the Store.LastCheckpoint method
+func (mmLastCheckpoint *mStoreMockLastCheckpoint) Set(f func(ctx context.Context) (c2 domain.Checkpoint, b1 bool, err error)) *StoreMock {
+	if mmLastCheckpoint.defaultExpectation != nil {
+		mmLastCheckpoint.mock.t.Fatalf("Default expectation is already set for the Store.LastCheckpoint method")
+	}
+
+	if len(mmLastCheckpoint.expectations) > 0 {
+		mmLastCheckpoint.mock.t.Fatalf("Some expectations are already set for the Store.LastCheckpoint method")
+	}
+
+	mmLastCheckpoint.mock.funcLastCheckpoint = f
+	mmLastCheckpoint.mock.funcLastCheckpointOrigin = minimock.CallerInfo(1)
+	return mmLastCheckpoint.mock
+}
+
+// When sets expectation for the Store.LastCheckpoint which will trigger the result defined by the following
+// Then helper
+func (mmLastCheckpoint *mStoreMockLastCheckpoint) When(ctx context.Context) *StoreMockLastCheckpointExpectation {
+	if mmLastCheckpoint.mock.funcLastCheckpoint != nil {
+		mmLastCheckpoint.mock.t.Fatalf("StoreMock.LastCheckpoint mock is already set by Set")
+	}
+
+	expectation := &StoreMockLastCheckpointExpectation{
+		mock:               mmLastCheckpoint.mock,
+		params:             &StoreMockLastCheckpointParams{ctx},
+		expectationOrigins: StoreMockLastCheckpointExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmLastCheckpoint.expectations = append(mmLastCheckpoint.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.LastCheckpoint return parameters for the expectation previously defined by the When method
+func (e *StoreMockLastCheckpointExpectation) Then(c2 domain.Checkpoint, b1 bool, err error) *StoreMock {
+	e.results = &StoreMockLastCheckpointResults{c2, b1, err}
+	return e.mock
+}
+
+// Times sets number of times Store.LastCheckpoint should be invoked
+func (mmLastCheckpoint *mStoreMockLastCheckpoint) Times(n uint64) *mStoreMockLastCheckpoint {
+	if n == 0 {
+		mmLastCheckpoint.mock.t.Fatalf("Times of StoreMock.LastCheckpoint mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmLastCheckpoint.expectedInvocations, n)
+	mmLastCheckpoint.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmLastCheckpoint
+}
+
+func (mmLastCheckpoint *mStoreMockLastCheckpoint) invocationsDone() bool {
+	if len(mmLastCheckpoint.expectations) == 0 && mmLastCheckpoint.defaultExpectation == nil && mmLastCheckpoint.mock.funcLastCheckpoint == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmLastCheckpoint.mock.afterLastCheckpointCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmLastCheckpoint.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// LastCheckpoint implements mm_service.Store
+func (mmLastCheckpoint *StoreMock) LastCheckpoint(ctx context.Context) (c2 domain.Checkpoint, b1 bool, err error) {
+	mm_atomic.AddUint64(&mmLastCheckpoint.beforeLastCheckpointCounter, 1)
+	defer mm_atomic.AddUint64(&mmLastCheckpoint.afterLastCheckpointCounter, 1)
+
+	mmLastCheckpoint.t.Helper()
+
+	if mmLastCheckpoint.inspectFuncLastCheckpoint != nil {
+		mmLastCheckpoint.inspectFuncLastCheckpoint(ctx)
+	}
+
+	mm_params := StoreMockLastCheckpointParams{ctx}
+
+	// Record call args
+	mmLastCheckpoint.LastCheckpointMock.mutex.Lock()
+	mmLastCheckpoint.LastCheckpointMock.callArgs = append(mmLastCheckpoint.LastCheckpointMock.callArgs, &mm_params)
+	mmLastCheckpoint.LastCheckpointMock.mutex.Unlock()
+
+	for _, e := range mmLastCheckpoint.LastCheckpointMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.c2, e.results.b1, e.results.err
+		}
+	}
+
+	if mmLastCheckpoint.LastCheckpointMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmLastCheckpoint.LastCheckpointMock.defaultExpectation.Counter, 1)
+		mm_want := mmLastCheckpoint.LastCheckpointMock.defaultExpectation.params
+		mm_want_ptrs := mmLastCheckpoint.LastCheckpointMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockLastCheckpointParams{ctx}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmLastCheckpoint.t.Errorf("StoreMock.LastCheckpoint got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmLastCheckpoint.LastCheckpointMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmLastCheckpoint.t.Errorf("StoreMock.LastCheckpoint got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmLastCheckpoint.LastCheckpointMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmLastCheckpoint.LastCheckpointMock.defaultExpectation.results
+		if mm_results == nil {
+			mmLastCheckpoint.t.Fatal("No results are set for the StoreMock.LastCheckpoint")
+		}
+		return (*mm_results).c2, (*mm_results).b1, (*mm_results).err
+	}
+	if mmLastCheckpoint.funcLastCheckpoint != nil {
+		return mmLastCheckpoint.funcLastCheckpoint(ctx)
+	}
+	mmLastCheckpoint.t.Fatalf("Unexpected call to StoreMock.LastCheckpoint. %v", ctx)
+	return
+}
+
+// LastCheckpointAfterCounter returns a count of finished StoreMock.LastCheckpoint invocations
+func (mmLastCheckpoint *StoreMock) LastCheckpointAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmLastCheckpoint.afterLastCheckpointCounter)
+}
+
+// LastCheckpointBeforeCounter returns a count of StoreMock.LastCheckpoint invocations
+func (mmLastCheckpoint *StoreMock) LastCheckpointBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmLastCheckpoint.beforeLastCheckpointCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.LastCheckpoint.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmLastCheckpoint *mStoreMockLastCheckpoint) Calls() []*StoreMockLastCheckpointParams {
+	mmLastCheckpoint.mutex.RLock()
+
+	argCopy := make([]*StoreMockLastCheckpointParams, len(mmLastCheckpoint.callArgs))
+	copy(argCopy, mmLastCheckpoint.callArgs)
+
+	mmLastCheckpoint.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockLastCheckpointDone returns true if the count of the LastCheckpoint invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockLastCheckpointDone() bool {
+	if m.LastCheckpointMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.LastCheckpointMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.LastCheckpointMock.invocationsDone()
+}
+
+// MinimockLastCheckpointInspect logs each unmet expectation
+func (m *StoreMock) MinimockLastCheckpointInspect() {
+	for _, e := range m.LastCheckpointMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.LastCheckpoint at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterLastCheckpointCounter := mm_atomic.LoadUint64(&m.afterLastCheckpointCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.LastCheckpointMock.defaultExpectation != nil && afterLastCheckpointCounter < 1 {
+		if m.LastCheckpointMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.LastCheckpoint at\n%s", m.LastCheckpointMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.LastCheckpoint at\n%s with params: %#v", m.LastCheckpointMock.defaultExpectation.expectationOrigins.origin, *m.LastCheckpointMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcLastCheckpoint != nil && afterLastCheckpointCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.LastCheckpoint at\n%s", m.funcLastCheckpointOrigin)
+	}
+
+	if !m.LastCheckpointMock.invocationsDone() && afterLastCheckpointCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.LastCheckpoint at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.LastCheckpointMock.expectedInvocations), m.LastCheckpointMock.expectedInvocationsOrigin, afterLastCheckpointCounter)
 	}
 }
 
@@ -749,6 +1529,318 @@ func (m *StoreMock) MinimockListInspect() {
 	}
 }
 
+type mStoreMockListCheckpoints struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockListCheckpointsExpectation
+	expectations       []*StoreMockListCheckpointsExpectation
+
+	callArgs []*StoreMockListCheckpointsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockListCheckpointsExpectation specifies expectation struct of the Store.ListCheckpoints
+type StoreMockListCheckpointsExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockListCheckpointsParams
+	paramPtrs          *StoreMockListCheckpointsParamPtrs
+	expectationOrigins StoreMockListCheckpointsExpectationOrigins
+	results            *StoreMockListCheckpointsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockListCheckpointsParams contains parameters of the Store.ListCheckpoints
+type StoreMockListCheckpointsParams struct {
+	ctx context.Context
+}
+
+// StoreMockListCheckpointsParamPtrs contains pointers to parameters of the Store.ListCheckpoints
+type StoreMockListCheckpointsParamPtrs struct {
+	ctx *context.Context
+}
+
+// StoreMockListCheckpointsResults contains results of the Store.ListCheckpoints
+type StoreMockListCheckpointsResults struct {
+	ca1 []domain.Checkpoint
+	err error
+}
+
+// StoreMockListCheckpointsOrigins contains origins of expectations of the Store.ListCheckpoints
+type StoreMockListCheckpointsExpectationOrigins struct {
+	origin    string
+	originCtx string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmListCheckpoints *mStoreMockListCheckpoints) Optional() *mStoreMockListCheckpoints {
+	mmListCheckpoints.optional = true
+	return mmListCheckpoints
+}
+
+// Expect sets up expected params for Store.ListCheckpoints
+func (mmListCheckpoints *mStoreMockListCheckpoints) Expect(ctx context.Context) *mStoreMockListCheckpoints {
+	if mmListCheckpoints.mock.funcListCheckpoints != nil {
+		mmListCheckpoints.mock.t.Fatalf("StoreMock.ListCheckpoints mock is already set by Set")
+	}
+
+	if mmListCheckpoints.defaultExpectation == nil {
+		mmListCheckpoints.defaultExpectation = &StoreMockListCheckpointsExpectation{}
+	}
+
+	if mmListCheckpoints.defaultExpectation.paramPtrs != nil {
+		mmListCheckpoints.mock.t.Fatalf("StoreMock.ListCheckpoints mock is already set by ExpectParams functions")
+	}
+
+	mmListCheckpoints.defaultExpectation.params = &StoreMockListCheckpointsParams{ctx}
+	mmListCheckpoints.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmListCheckpoints.expectations {
+		if minimock.Equal(e.params, mmListCheckpoints.defaultExpectation.params) {
+			mmListCheckpoints.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListCheckpoints.defaultExpectation.params)
+		}
+	}
+
+	return mmListCheckpoints
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.ListCheckpoints
+func (mmListCheckpoints *mStoreMockListCheckpoints) ExpectCtxParam1(ctx context.Context) *mStoreMockListCheckpoints {
+	if mmListCheckpoints.mock.funcListCheckpoints != nil {
+		mmListCheckpoints.mock.t.Fatalf("StoreMock.ListCheckpoints mock is already set by Set")
+	}
+
+	if mmListCheckpoints.defaultExpectation == nil {
+		mmListCheckpoints.defaultExpectation = &StoreMockListCheckpointsExpectation{}
+	}
+
+	if mmListCheckpoints.defaultExpectation.params != nil {
+		mmListCheckpoints.mock.t.Fatalf("StoreMock.ListCheckpoints mock is already set by Expect")
+	}
+
+	if mmListCheckpoints.defaultExpectation.paramPtrs == nil {
+		mmListCheckpoints.defaultExpectation.paramPtrs = &StoreMockListCheckpointsParamPtrs{}
+	}
+	mmListCheckpoints.defaultExpectation.paramPtrs.ctx = &ctx
+	mmListCheckpoints.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmListCheckpoints
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.ListCheckpoints
+func (mmListCheckpoints *mStoreMockListCheckpoints) Inspect(f func(ctx context.Context)) *mStoreMockListCheckpoints {
+	if mmListCheckpoints.mock.inspectFuncListCheckpoints != nil {
+		mmListCheckpoints.mock.t.Fatalf("Inspect function is already set for StoreMock.ListCheckpoints")
+	}
+
+	mmListCheckpoints.mock.inspectFuncListCheckpoints = f
+
+	return mmListCheckpoints
+}
+
+// Return sets up results that will be returned by Store.ListCheckpoints
+func (mmListCheckpoints *mStoreMockListCheckpoints) Return(ca1 []domain.Checkpoint, err error) *StoreMock {
+	if mmListCheckpoints.mock.funcListCheckpoints != nil {
+		mmListCheckpoints.mock.t.Fatalf("StoreMock.ListCheckpoints mock is already set by Set")
+	}
+
+	if mmListCheckpoints.defaultExpectation == nil {
+		mmListCheckpoints.defaultExpectation = &StoreMockListCheckpointsExpectation{mock: mmListCheckpoints.mock}
+	}
+	mmListCheckpoints.defaultExpectation.results = &StoreMockListCheckpointsResults{ca1, err}
+	mmListCheckpoints.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmListCheckpoints.mock
+}
+
+// Set uses given function f to mock the Store.ListCheckpoints method
+func (mmListCheckpoints *mStoreMockListCheckpoints) Set(f func(ctx context.Context) (ca1 []domain.Checkpoint, err error)) *StoreMock {
+	if mmListCheckpoints.defaultExpectation != nil {
+		mmListCheckpoints.mock.t.Fatalf("Default expectation is already set for the Store.ListCheckpoints method")
+	}
+
+	if len(mmListCheckpoints.expectations) > 0 {
+		mmListCheckpoints.mock.t.Fatalf("Some expectations are already set for the Store.ListCheckpoints method")
+	}
+
+	mmListCheckpoints.mock.funcListCheckpoints = f
+	mmListCheckpoints.mock.funcListCheckpointsOrigin = minimock.CallerInfo(1)
+	return mmListCheckpoints.mock
+}
+
+// When sets expectation for the Store.ListCheckpoints which will trigger the result defined by the following
+// Then helper
+func (mmListCheckpoints *mStoreMockListCheckpoints) When(ctx context.Context) *StoreMockListCheckpointsExpectation {
+	if mmListCheckpoints.mock.funcListCheckpoints != nil {
+		mmListCheckpoints.mock.t.Fatalf("StoreMock.ListCheckpoints mock is already set by Set")
+	}
+
+	expectation := &StoreMockListCheckpointsExpectation{
+		mock:               mmListCheckpoints.mock,
+		params:             &StoreMockListCheckpointsParams{ctx},
+		expectationOrigins: StoreMockListCheckpointsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmListCheckpoints.expectations = append(mmListCheckpoints.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.ListCheckpoints return parameters for the expectation previously defined by the When method
+func (e *StoreMockListCheckpointsExpectation) Then(ca1 []domain.Checkpoint, err error) *StoreMock {
+	e.results = &StoreMockListCheckpointsResults{ca1, err}
+	return e.mock
+}
+
+// Times sets number of times Store.ListCheckpoints should be invoked
+func (mmListCheckpoints *mStoreMockListCheckpoints) Times(n uint64) *mStoreMockListCheckpoints {
+	if n == 0 {
+		mmListCheckpoints.mock.t.Fatalf("Times of StoreMock.ListCheckpoints mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmListCheckpoints.expectedInvocations, n)
+	mmListCheckpoints.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmListCheckpoints
+}
+
+func (mmListCheckpoints *mStoreMockListCheckpoints) invocationsDone() bool {
+	if len(mmListCheckpoints.expectations) == 0 && mmListCheckpoints.defaultExpectation == nil && mmListCheckpoints.mock.funcListCheckpoints == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmListCheckpoints.mock.afterListCheckpointsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmListCheckpoints.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ListCheckpoints implements mm_service.Store
+func (mmListCheckpoints *StoreMock) ListCheckpoints(ctx context.Context) (ca1 []domain.Checkpoint, err error) {
+	mm_atomic.AddUint64(&mmListCheckpoints.beforeListCheckpointsCounter, 1)
+	defer mm_atomic.AddUint64(&mmListCheckpoints.afterListCheckpointsCounter, 1)
+
+	mmListCheckpoints.t.Helper()
+
+	if mmListCheckpoints.inspectFuncListCheckpoints != nil {
+		mmListCheckpoints.inspectFuncListCheckpoints(ctx)
+	}
+
+	mm_params := StoreMockListCheckpointsParams{ctx}
+
+	// Record call args
+	mmListCheckpoints.ListCheckpointsMock.mutex.Lock()
+	mmListCheckpoints.ListCheckpointsMock.callArgs = append(mmListCheckpoints.ListCheckpointsMock.callArgs, &mm_params)
+	mmListCheckpoints.ListCheckpointsMock.mutex.Unlock()
+
+	for _, e := range mmListCheckpoints.ListCheckpointsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.ca1, e.results.err
+		}
+	}
+
+	if mmListCheckpoints.ListCheckpointsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmListCheckpoints.ListCheckpointsMock.defaultExpectation.Counter, 1)
+		mm_want := mmListCheckpoints.ListCheckpointsMock.defaultExpectation.params
+		mm_want_ptrs := mmListCheckpoints.ListCheckpointsMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockListCheckpointsParams{ctx}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmListCheckpoints.t.Errorf("StoreMock.ListCheckpoints got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListCheckpoints.ListCheckpointsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmListCheckpoints.t.Errorf("StoreMock.ListCheckpoints got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmListCheckpoints.ListCheckpointsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmListCheckpoints.ListCheckpointsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmListCheckpoints.t.Fatal("No results are set for the StoreMock.ListCheckpoints")
+		}
+		return (*mm_results).ca1, (*mm_results).err
+	}
+	if mmListCheckpoints.funcListCheckpoints != nil {
+		return mmListCheckpoints.funcListCheckpoints(ctx)
+	}
+	mmListCheckpoints.t.Fatalf("Unexpected call to StoreMock.ListCheckpoints. %v", ctx)
+	return
+}
+
+// ListCheckpointsAfterCounter returns a count of finished StoreMock.ListCheckpoints invocations
+func (mmListCheckpoints *StoreMock) ListCheckpointsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListCheckpoints.afterListCheckpointsCounter)
+}
+
+// ListCheckpointsBeforeCounter returns a count of StoreMock.ListCheckpoints invocations
+func (mmListCheckpoints *StoreMock) ListCheckpointsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListCheckpoints.beforeListCheckpointsCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.ListCheckpoints.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmListCheckpoints *mStoreMockListCheckpoints) Calls() []*StoreMockListCheckpointsParams {
+	mmListCheckpoints.mutex.RLock()
+
+	argCopy := make([]*StoreMockListCheckpointsParams, len(mmListCheckpoints.callArgs))
+	copy(argCopy, mmListCheckpoints.callArgs)
+
+	mmListCheckpoints.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockListCheckpointsDone returns true if the count of the ListCheckpoints invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockListCheckpointsDone() bool {
+	if m.ListCheckpointsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ListCheckpointsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ListCheckpointsMock.invocationsDone()
+}
+
+// MinimockListCheckpointsInspect logs each unmet expectation
+func (m *StoreMock) MinimockListCheckpointsInspect() {
+	for _, e := range m.ListCheckpointsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.ListCheckpoints at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterListCheckpointsCounter := mm_atomic.LoadUint64(&m.afterListCheckpointsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ListCheckpointsMock.defaultExpectation != nil && afterListCheckpointsCounter < 1 {
+		if m.ListCheckpointsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.ListCheckpoints at\n%s", m.ListCheckpointsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.ListCheckpoints at\n%s with params: %#v", m.ListCheckpointsMock.defaultExpectation.expectationOrigins.origin, *m.ListCheckpointsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcListCheckpoints != nil && afterListCheckpointsCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.ListCheckpoints at\n%s", m.funcListCheckpointsOrigin)
+	}
+
+	if !m.ListCheckpointsMock.invocationsDone() && afterListCheckpointsCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.ListCheckpoints at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListCheckpointsMock.expectedInvocations), m.ListCheckpointsMock.expectedInvocationsOrigin, afterListCheckpointsCounter)
+	}
+}
+
 type mStoreMockRecord struct {
 	optional           bool
 	mock               *StoreMock
@@ -1092,15 +2184,995 @@ func (m *StoreMock) MinimockRecordInspect() {
 	}
 }
 
+type mStoreMockSaveCheckpoint struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockSaveCheckpointExpectation
+	expectations       []*StoreMockSaveCheckpointExpectation
+
+	callArgs []*StoreMockSaveCheckpointParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockSaveCheckpointExpectation specifies expectation struct of the Store.SaveCheckpoint
+type StoreMockSaveCheckpointExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockSaveCheckpointParams
+	paramPtrs          *StoreMockSaveCheckpointParamPtrs
+	expectationOrigins StoreMockSaveCheckpointExpectationOrigins
+	results            *StoreMockSaveCheckpointResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockSaveCheckpointParams contains parameters of the Store.SaveCheckpoint
+type StoreMockSaveCheckpointParams struct {
+	ctx context.Context
+	c   domain.Checkpoint
+}
+
+// StoreMockSaveCheckpointParamPtrs contains pointers to parameters of the Store.SaveCheckpoint
+type StoreMockSaveCheckpointParamPtrs struct {
+	ctx *context.Context
+	c   *domain.Checkpoint
+}
+
+// StoreMockSaveCheckpointResults contains results of the Store.SaveCheckpoint
+type StoreMockSaveCheckpointResults struct {
+	c2  domain.Checkpoint
+	err error
+}
+
+// StoreMockSaveCheckpointOrigins contains origins of expectations of the Store.SaveCheckpoint
+type StoreMockSaveCheckpointExpectationOrigins struct {
+	origin    string
+	originCtx string
+	originC   string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmSaveCheckpoint *mStoreMockSaveCheckpoint) Optional() *mStoreMockSaveCheckpoint {
+	mmSaveCheckpoint.optional = true
+	return mmSaveCheckpoint
+}
+
+// Expect sets up expected params for Store.SaveCheckpoint
+func (mmSaveCheckpoint *mStoreMockSaveCheckpoint) Expect(ctx context.Context, c domain.Checkpoint) *mStoreMockSaveCheckpoint {
+	if mmSaveCheckpoint.mock.funcSaveCheckpoint != nil {
+		mmSaveCheckpoint.mock.t.Fatalf("StoreMock.SaveCheckpoint mock is already set by Set")
+	}
+
+	if mmSaveCheckpoint.defaultExpectation == nil {
+		mmSaveCheckpoint.defaultExpectation = &StoreMockSaveCheckpointExpectation{}
+	}
+
+	if mmSaveCheckpoint.defaultExpectation.paramPtrs != nil {
+		mmSaveCheckpoint.mock.t.Fatalf("StoreMock.SaveCheckpoint mock is already set by ExpectParams functions")
+	}
+
+	mmSaveCheckpoint.defaultExpectation.params = &StoreMockSaveCheckpointParams{ctx, c}
+	mmSaveCheckpoint.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmSaveCheckpoint.expectations {
+		if minimock.Equal(e.params, mmSaveCheckpoint.defaultExpectation.params) {
+			mmSaveCheckpoint.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSaveCheckpoint.defaultExpectation.params)
+		}
+	}
+
+	return mmSaveCheckpoint
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.SaveCheckpoint
+func (mmSaveCheckpoint *mStoreMockSaveCheckpoint) ExpectCtxParam1(ctx context.Context) *mStoreMockSaveCheckpoint {
+	if mmSaveCheckpoint.mock.funcSaveCheckpoint != nil {
+		mmSaveCheckpoint.mock.t.Fatalf("StoreMock.SaveCheckpoint mock is already set by Set")
+	}
+
+	if mmSaveCheckpoint.defaultExpectation == nil {
+		mmSaveCheckpoint.defaultExpectation = &StoreMockSaveCheckpointExpectation{}
+	}
+
+	if mmSaveCheckpoint.defaultExpectation.params != nil {
+		mmSaveCheckpoint.mock.t.Fatalf("StoreMock.SaveCheckpoint mock is already set by Expect")
+	}
+
+	if mmSaveCheckpoint.defaultExpectation.paramPtrs == nil {
+		mmSaveCheckpoint.defaultExpectation.paramPtrs = &StoreMockSaveCheckpointParamPtrs{}
+	}
+	mmSaveCheckpoint.defaultExpectation.paramPtrs.ctx = &ctx
+	mmSaveCheckpoint.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmSaveCheckpoint
+}
+
+// ExpectCParam2 sets up expected param c for Store.SaveCheckpoint
+func (mmSaveCheckpoint *mStoreMockSaveCheckpoint) ExpectCParam2(c domain.Checkpoint) *mStoreMockSaveCheckpoint {
+	if mmSaveCheckpoint.mock.funcSaveCheckpoint != nil {
+		mmSaveCheckpoint.mock.t.Fatalf("StoreMock.SaveCheckpoint mock is already set by Set")
+	}
+
+	if mmSaveCheckpoint.defaultExpectation == nil {
+		mmSaveCheckpoint.defaultExpectation = &StoreMockSaveCheckpointExpectation{}
+	}
+
+	if mmSaveCheckpoint.defaultExpectation.params != nil {
+		mmSaveCheckpoint.mock.t.Fatalf("StoreMock.SaveCheckpoint mock is already set by Expect")
+	}
+
+	if mmSaveCheckpoint.defaultExpectation.paramPtrs == nil {
+		mmSaveCheckpoint.defaultExpectation.paramPtrs = &StoreMockSaveCheckpointParamPtrs{}
+	}
+	mmSaveCheckpoint.defaultExpectation.paramPtrs.c = &c
+	mmSaveCheckpoint.defaultExpectation.expectationOrigins.originC = minimock.CallerInfo(1)
+
+	return mmSaveCheckpoint
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.SaveCheckpoint
+func (mmSaveCheckpoint *mStoreMockSaveCheckpoint) Inspect(f func(ctx context.Context, c domain.Checkpoint)) *mStoreMockSaveCheckpoint {
+	if mmSaveCheckpoint.mock.inspectFuncSaveCheckpoint != nil {
+		mmSaveCheckpoint.mock.t.Fatalf("Inspect function is already set for StoreMock.SaveCheckpoint")
+	}
+
+	mmSaveCheckpoint.mock.inspectFuncSaveCheckpoint = f
+
+	return mmSaveCheckpoint
+}
+
+// Return sets up results that will be returned by Store.SaveCheckpoint
+func (mmSaveCheckpoint *mStoreMockSaveCheckpoint) Return(c2 domain.Checkpoint, err error) *StoreMock {
+	if mmSaveCheckpoint.mock.funcSaveCheckpoint != nil {
+		mmSaveCheckpoint.mock.t.Fatalf("StoreMock.SaveCheckpoint mock is already set by Set")
+	}
+
+	if mmSaveCheckpoint.defaultExpectation == nil {
+		mmSaveCheckpoint.defaultExpectation = &StoreMockSaveCheckpointExpectation{mock: mmSaveCheckpoint.mock}
+	}
+	mmSaveCheckpoint.defaultExpectation.results = &StoreMockSaveCheckpointResults{c2, err}
+	mmSaveCheckpoint.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmSaveCheckpoint.mock
+}
+
+// Set uses given function f to mock the Store.SaveCheckpoint method
+func (mmSaveCheckpoint *mStoreMockSaveCheckpoint) Set(f func(ctx context.Context, c domain.Checkpoint) (c2 domain.Checkpoint, err error)) *StoreMock {
+	if mmSaveCheckpoint.defaultExpectation != nil {
+		mmSaveCheckpoint.mock.t.Fatalf("Default expectation is already set for the Store.SaveCheckpoint method")
+	}
+
+	if len(mmSaveCheckpoint.expectations) > 0 {
+		mmSaveCheckpoint.mock.t.Fatalf("Some expectations are already set for the Store.SaveCheckpoint method")
+	}
+
+	mmSaveCheckpoint.mock.funcSaveCheckpoint = f
+	mmSaveCheckpoint.mock.funcSaveCheckpointOrigin = minimock.CallerInfo(1)
+	return mmSaveCheckpoint.mock
+}
+
+// When sets expectation for the Store.SaveCheckpoint which will trigger the result defined by the following
+// Then helper
+func (mmSaveCheckpoint *mStoreMockSaveCheckpoint) When(ctx context.Context, c domain.Checkpoint) *StoreMockSaveCheckpointExpectation {
+	if mmSaveCheckpoint.mock.funcSaveCheckpoint != nil {
+		mmSaveCheckpoint.mock.t.Fatalf("StoreMock.SaveCheckpoint mock is already set by Set")
+	}
+
+	expectation := &StoreMockSaveCheckpointExpectation{
+		mock:               mmSaveCheckpoint.mock,
+		params:             &StoreMockSaveCheckpointParams{ctx, c},
+		expectationOrigins: StoreMockSaveCheckpointExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmSaveCheckpoint.expectations = append(mmSaveCheckpoint.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.SaveCheckpoint return parameters for the expectation previously defined by the When method
+func (e *StoreMockSaveCheckpointExpectation) Then(c2 domain.Checkpoint, err error) *StoreMock {
+	e.results = &StoreMockSaveCheckpointResults{c2, err}
+	return e.mock
+}
+
+// Times sets number of times Store.SaveCheckpoint should be invoked
+func (mmSaveCheckpoint *mStoreMockSaveCheckpoint) Times(n uint64) *mStoreMockSaveCheckpoint {
+	if n == 0 {
+		mmSaveCheckpoint.mock.t.Fatalf("Times of StoreMock.SaveCheckpoint mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmSaveCheckpoint.expectedInvocations, n)
+	mmSaveCheckpoint.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmSaveCheckpoint
+}
+
+func (mmSaveCheckpoint *mStoreMockSaveCheckpoint) invocationsDone() bool {
+	if len(mmSaveCheckpoint.expectations) == 0 && mmSaveCheckpoint.defaultExpectation == nil && mmSaveCheckpoint.mock.funcSaveCheckpoint == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmSaveCheckpoint.mock.afterSaveCheckpointCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmSaveCheckpoint.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// SaveCheckpoint implements mm_service.Store
+func (mmSaveCheckpoint *StoreMock) SaveCheckpoint(ctx context.Context, c domain.Checkpoint) (c2 domain.Checkpoint, err error) {
+	mm_atomic.AddUint64(&mmSaveCheckpoint.beforeSaveCheckpointCounter, 1)
+	defer mm_atomic.AddUint64(&mmSaveCheckpoint.afterSaveCheckpointCounter, 1)
+
+	mmSaveCheckpoint.t.Helper()
+
+	if mmSaveCheckpoint.inspectFuncSaveCheckpoint != nil {
+		mmSaveCheckpoint.inspectFuncSaveCheckpoint(ctx, c)
+	}
+
+	mm_params := StoreMockSaveCheckpointParams{ctx, c}
+
+	// Record call args
+	mmSaveCheckpoint.SaveCheckpointMock.mutex.Lock()
+	mmSaveCheckpoint.SaveCheckpointMock.callArgs = append(mmSaveCheckpoint.SaveCheckpointMock.callArgs, &mm_params)
+	mmSaveCheckpoint.SaveCheckpointMock.mutex.Unlock()
+
+	for _, e := range mmSaveCheckpoint.SaveCheckpointMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.c2, e.results.err
+		}
+	}
+
+	if mmSaveCheckpoint.SaveCheckpointMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSaveCheckpoint.SaveCheckpointMock.defaultExpectation.Counter, 1)
+		mm_want := mmSaveCheckpoint.SaveCheckpointMock.defaultExpectation.params
+		mm_want_ptrs := mmSaveCheckpoint.SaveCheckpointMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockSaveCheckpointParams{ctx, c}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmSaveCheckpoint.t.Errorf("StoreMock.SaveCheckpoint got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSaveCheckpoint.SaveCheckpointMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.c != nil && !minimock.Equal(*mm_want_ptrs.c, mm_got.c) {
+				mmSaveCheckpoint.t.Errorf("StoreMock.SaveCheckpoint got unexpected parameter c, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSaveCheckpoint.SaveCheckpointMock.defaultExpectation.expectationOrigins.originC, *mm_want_ptrs.c, mm_got.c, minimock.Diff(*mm_want_ptrs.c, mm_got.c))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSaveCheckpoint.t.Errorf("StoreMock.SaveCheckpoint got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmSaveCheckpoint.SaveCheckpointMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmSaveCheckpoint.SaveCheckpointMock.defaultExpectation.results
+		if mm_results == nil {
+			mmSaveCheckpoint.t.Fatal("No results are set for the StoreMock.SaveCheckpoint")
+		}
+		return (*mm_results).c2, (*mm_results).err
+	}
+	if mmSaveCheckpoint.funcSaveCheckpoint != nil {
+		return mmSaveCheckpoint.funcSaveCheckpoint(ctx, c)
+	}
+	mmSaveCheckpoint.t.Fatalf("Unexpected call to StoreMock.SaveCheckpoint. %v %v", ctx, c)
+	return
+}
+
+// SaveCheckpointAfterCounter returns a count of finished StoreMock.SaveCheckpoint invocations
+func (mmSaveCheckpoint *StoreMock) SaveCheckpointAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSaveCheckpoint.afterSaveCheckpointCounter)
+}
+
+// SaveCheckpointBeforeCounter returns a count of StoreMock.SaveCheckpoint invocations
+func (mmSaveCheckpoint *StoreMock) SaveCheckpointBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSaveCheckpoint.beforeSaveCheckpointCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.SaveCheckpoint.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSaveCheckpoint *mStoreMockSaveCheckpoint) Calls() []*StoreMockSaveCheckpointParams {
+	mmSaveCheckpoint.mutex.RLock()
+
+	argCopy := make([]*StoreMockSaveCheckpointParams, len(mmSaveCheckpoint.callArgs))
+	copy(argCopy, mmSaveCheckpoint.callArgs)
+
+	mmSaveCheckpoint.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSaveCheckpointDone returns true if the count of the SaveCheckpoint invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockSaveCheckpointDone() bool {
+	if m.SaveCheckpointMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.SaveCheckpointMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.SaveCheckpointMock.invocationsDone()
+}
+
+// MinimockSaveCheckpointInspect logs each unmet expectation
+func (m *StoreMock) MinimockSaveCheckpointInspect() {
+	for _, e := range m.SaveCheckpointMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.SaveCheckpoint at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterSaveCheckpointCounter := mm_atomic.LoadUint64(&m.afterSaveCheckpointCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SaveCheckpointMock.defaultExpectation != nil && afterSaveCheckpointCounter < 1 {
+		if m.SaveCheckpointMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.SaveCheckpoint at\n%s", m.SaveCheckpointMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.SaveCheckpoint at\n%s with params: %#v", m.SaveCheckpointMock.defaultExpectation.expectationOrigins.origin, *m.SaveCheckpointMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSaveCheckpoint != nil && afterSaveCheckpointCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.SaveCheckpoint at\n%s", m.funcSaveCheckpointOrigin)
+	}
+
+	if !m.SaveCheckpointMock.invocationsDone() && afterSaveCheckpointCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.SaveCheckpoint at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.SaveCheckpointMock.expectedInvocations), m.SaveCheckpointMock.expectedInvocationsOrigin, afterSaveCheckpointCounter)
+	}
+}
+
+type mStoreMockSequenceWatermark struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockSequenceWatermarkExpectation
+	expectations       []*StoreMockSequenceWatermarkExpectation
+
+	callArgs []*StoreMockSequenceWatermarkParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockSequenceWatermarkExpectation specifies expectation struct of the Store.SequenceWatermark
+type StoreMockSequenceWatermarkExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockSequenceWatermarkParams
+	paramPtrs          *StoreMockSequenceWatermarkParamPtrs
+	expectationOrigins StoreMockSequenceWatermarkExpectationOrigins
+	results            *StoreMockSequenceWatermarkResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockSequenceWatermarkParams contains parameters of the Store.SequenceWatermark
+type StoreMockSequenceWatermarkParams struct {
+	ctx context.Context
+}
+
+// StoreMockSequenceWatermarkParamPtrs contains pointers to parameters of the Store.SequenceWatermark
+type StoreMockSequenceWatermarkParamPtrs struct {
+	ctx *context.Context
+}
+
+// StoreMockSequenceWatermarkResults contains results of the Store.SequenceWatermark
+type StoreMockSequenceWatermarkResults struct {
+	i1  int64
+	err error
+}
+
+// StoreMockSequenceWatermarkOrigins contains origins of expectations of the Store.SequenceWatermark
+type StoreMockSequenceWatermarkExpectationOrigins struct {
+	origin    string
+	originCtx string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmSequenceWatermark *mStoreMockSequenceWatermark) Optional() *mStoreMockSequenceWatermark {
+	mmSequenceWatermark.optional = true
+	return mmSequenceWatermark
+}
+
+// Expect sets up expected params for Store.SequenceWatermark
+func (mmSequenceWatermark *mStoreMockSequenceWatermark) Expect(ctx context.Context) *mStoreMockSequenceWatermark {
+	if mmSequenceWatermark.mock.funcSequenceWatermark != nil {
+		mmSequenceWatermark.mock.t.Fatalf("StoreMock.SequenceWatermark mock is already set by Set")
+	}
+
+	if mmSequenceWatermark.defaultExpectation == nil {
+		mmSequenceWatermark.defaultExpectation = &StoreMockSequenceWatermarkExpectation{}
+	}
+
+	if mmSequenceWatermark.defaultExpectation.paramPtrs != nil {
+		mmSequenceWatermark.mock.t.Fatalf("StoreMock.SequenceWatermark mock is already set by ExpectParams functions")
+	}
+
+	mmSequenceWatermark.defaultExpectation.params = &StoreMockSequenceWatermarkParams{ctx}
+	mmSequenceWatermark.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmSequenceWatermark.expectations {
+		if minimock.Equal(e.params, mmSequenceWatermark.defaultExpectation.params) {
+			mmSequenceWatermark.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSequenceWatermark.defaultExpectation.params)
+		}
+	}
+
+	return mmSequenceWatermark
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.SequenceWatermark
+func (mmSequenceWatermark *mStoreMockSequenceWatermark) ExpectCtxParam1(ctx context.Context) *mStoreMockSequenceWatermark {
+	if mmSequenceWatermark.mock.funcSequenceWatermark != nil {
+		mmSequenceWatermark.mock.t.Fatalf("StoreMock.SequenceWatermark mock is already set by Set")
+	}
+
+	if mmSequenceWatermark.defaultExpectation == nil {
+		mmSequenceWatermark.defaultExpectation = &StoreMockSequenceWatermarkExpectation{}
+	}
+
+	if mmSequenceWatermark.defaultExpectation.params != nil {
+		mmSequenceWatermark.mock.t.Fatalf("StoreMock.SequenceWatermark mock is already set by Expect")
+	}
+
+	if mmSequenceWatermark.defaultExpectation.paramPtrs == nil {
+		mmSequenceWatermark.defaultExpectation.paramPtrs = &StoreMockSequenceWatermarkParamPtrs{}
+	}
+	mmSequenceWatermark.defaultExpectation.paramPtrs.ctx = &ctx
+	mmSequenceWatermark.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmSequenceWatermark
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.SequenceWatermark
+func (mmSequenceWatermark *mStoreMockSequenceWatermark) Inspect(f func(ctx context.Context)) *mStoreMockSequenceWatermark {
+	if mmSequenceWatermark.mock.inspectFuncSequenceWatermark != nil {
+		mmSequenceWatermark.mock.t.Fatalf("Inspect function is already set for StoreMock.SequenceWatermark")
+	}
+
+	mmSequenceWatermark.mock.inspectFuncSequenceWatermark = f
+
+	return mmSequenceWatermark
+}
+
+// Return sets up results that will be returned by Store.SequenceWatermark
+func (mmSequenceWatermark *mStoreMockSequenceWatermark) Return(i1 int64, err error) *StoreMock {
+	if mmSequenceWatermark.mock.funcSequenceWatermark != nil {
+		mmSequenceWatermark.mock.t.Fatalf("StoreMock.SequenceWatermark mock is already set by Set")
+	}
+
+	if mmSequenceWatermark.defaultExpectation == nil {
+		mmSequenceWatermark.defaultExpectation = &StoreMockSequenceWatermarkExpectation{mock: mmSequenceWatermark.mock}
+	}
+	mmSequenceWatermark.defaultExpectation.results = &StoreMockSequenceWatermarkResults{i1, err}
+	mmSequenceWatermark.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmSequenceWatermark.mock
+}
+
+// Set uses given function f to mock the Store.SequenceWatermark method
+func (mmSequenceWatermark *mStoreMockSequenceWatermark) Set(f func(ctx context.Context) (i1 int64, err error)) *StoreMock {
+	if mmSequenceWatermark.defaultExpectation != nil {
+		mmSequenceWatermark.mock.t.Fatalf("Default expectation is already set for the Store.SequenceWatermark method")
+	}
+
+	if len(mmSequenceWatermark.expectations) > 0 {
+		mmSequenceWatermark.mock.t.Fatalf("Some expectations are already set for the Store.SequenceWatermark method")
+	}
+
+	mmSequenceWatermark.mock.funcSequenceWatermark = f
+	mmSequenceWatermark.mock.funcSequenceWatermarkOrigin = minimock.CallerInfo(1)
+	return mmSequenceWatermark.mock
+}
+
+// When sets expectation for the Store.SequenceWatermark which will trigger the result defined by the following
+// Then helper
+func (mmSequenceWatermark *mStoreMockSequenceWatermark) When(ctx context.Context) *StoreMockSequenceWatermarkExpectation {
+	if mmSequenceWatermark.mock.funcSequenceWatermark != nil {
+		mmSequenceWatermark.mock.t.Fatalf("StoreMock.SequenceWatermark mock is already set by Set")
+	}
+
+	expectation := &StoreMockSequenceWatermarkExpectation{
+		mock:               mmSequenceWatermark.mock,
+		params:             &StoreMockSequenceWatermarkParams{ctx},
+		expectationOrigins: StoreMockSequenceWatermarkExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmSequenceWatermark.expectations = append(mmSequenceWatermark.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.SequenceWatermark return parameters for the expectation previously defined by the When method
+func (e *StoreMockSequenceWatermarkExpectation) Then(i1 int64, err error) *StoreMock {
+	e.results = &StoreMockSequenceWatermarkResults{i1, err}
+	return e.mock
+}
+
+// Times sets number of times Store.SequenceWatermark should be invoked
+func (mmSequenceWatermark *mStoreMockSequenceWatermark) Times(n uint64) *mStoreMockSequenceWatermark {
+	if n == 0 {
+		mmSequenceWatermark.mock.t.Fatalf("Times of StoreMock.SequenceWatermark mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmSequenceWatermark.expectedInvocations, n)
+	mmSequenceWatermark.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmSequenceWatermark
+}
+
+func (mmSequenceWatermark *mStoreMockSequenceWatermark) invocationsDone() bool {
+	if len(mmSequenceWatermark.expectations) == 0 && mmSequenceWatermark.defaultExpectation == nil && mmSequenceWatermark.mock.funcSequenceWatermark == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmSequenceWatermark.mock.afterSequenceWatermarkCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmSequenceWatermark.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// SequenceWatermark implements mm_service.Store
+func (mmSequenceWatermark *StoreMock) SequenceWatermark(ctx context.Context) (i1 int64, err error) {
+	mm_atomic.AddUint64(&mmSequenceWatermark.beforeSequenceWatermarkCounter, 1)
+	defer mm_atomic.AddUint64(&mmSequenceWatermark.afterSequenceWatermarkCounter, 1)
+
+	mmSequenceWatermark.t.Helper()
+
+	if mmSequenceWatermark.inspectFuncSequenceWatermark != nil {
+		mmSequenceWatermark.inspectFuncSequenceWatermark(ctx)
+	}
+
+	mm_params := StoreMockSequenceWatermarkParams{ctx}
+
+	// Record call args
+	mmSequenceWatermark.SequenceWatermarkMock.mutex.Lock()
+	mmSequenceWatermark.SequenceWatermarkMock.callArgs = append(mmSequenceWatermark.SequenceWatermarkMock.callArgs, &mm_params)
+	mmSequenceWatermark.SequenceWatermarkMock.mutex.Unlock()
+
+	for _, e := range mmSequenceWatermark.SequenceWatermarkMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1, e.results.err
+		}
+	}
+
+	if mmSequenceWatermark.SequenceWatermarkMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSequenceWatermark.SequenceWatermarkMock.defaultExpectation.Counter, 1)
+		mm_want := mmSequenceWatermark.SequenceWatermarkMock.defaultExpectation.params
+		mm_want_ptrs := mmSequenceWatermark.SequenceWatermarkMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockSequenceWatermarkParams{ctx}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmSequenceWatermark.t.Errorf("StoreMock.SequenceWatermark got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSequenceWatermark.SequenceWatermarkMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSequenceWatermark.t.Errorf("StoreMock.SequenceWatermark got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmSequenceWatermark.SequenceWatermarkMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmSequenceWatermark.SequenceWatermarkMock.defaultExpectation.results
+		if mm_results == nil {
+			mmSequenceWatermark.t.Fatal("No results are set for the StoreMock.SequenceWatermark")
+		}
+		return (*mm_results).i1, (*mm_results).err
+	}
+	if mmSequenceWatermark.funcSequenceWatermark != nil {
+		return mmSequenceWatermark.funcSequenceWatermark(ctx)
+	}
+	mmSequenceWatermark.t.Fatalf("Unexpected call to StoreMock.SequenceWatermark. %v", ctx)
+	return
+}
+
+// SequenceWatermarkAfterCounter returns a count of finished StoreMock.SequenceWatermark invocations
+func (mmSequenceWatermark *StoreMock) SequenceWatermarkAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSequenceWatermark.afterSequenceWatermarkCounter)
+}
+
+// SequenceWatermarkBeforeCounter returns a count of StoreMock.SequenceWatermark invocations
+func (mmSequenceWatermark *StoreMock) SequenceWatermarkBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSequenceWatermark.beforeSequenceWatermarkCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.SequenceWatermark.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSequenceWatermark *mStoreMockSequenceWatermark) Calls() []*StoreMockSequenceWatermarkParams {
+	mmSequenceWatermark.mutex.RLock()
+
+	argCopy := make([]*StoreMockSequenceWatermarkParams, len(mmSequenceWatermark.callArgs))
+	copy(argCopy, mmSequenceWatermark.callArgs)
+
+	mmSequenceWatermark.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSequenceWatermarkDone returns true if the count of the SequenceWatermark invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockSequenceWatermarkDone() bool {
+	if m.SequenceWatermarkMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.SequenceWatermarkMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.SequenceWatermarkMock.invocationsDone()
+}
+
+// MinimockSequenceWatermarkInspect logs each unmet expectation
+func (m *StoreMock) MinimockSequenceWatermarkInspect() {
+	for _, e := range m.SequenceWatermarkMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.SequenceWatermark at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterSequenceWatermarkCounter := mm_atomic.LoadUint64(&m.afterSequenceWatermarkCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SequenceWatermarkMock.defaultExpectation != nil && afterSequenceWatermarkCounter < 1 {
+		if m.SequenceWatermarkMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.SequenceWatermark at\n%s", m.SequenceWatermarkMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.SequenceWatermark at\n%s with params: %#v", m.SequenceWatermarkMock.defaultExpectation.expectationOrigins.origin, *m.SequenceWatermarkMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSequenceWatermark != nil && afterSequenceWatermarkCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.SequenceWatermark at\n%s", m.funcSequenceWatermarkOrigin)
+	}
+
+	if !m.SequenceWatermarkMock.invocationsDone() && afterSequenceWatermarkCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.SequenceWatermark at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.SequenceWatermarkMock.expectedInvocations), m.SequenceWatermarkMock.expectedInvocationsOrigin, afterSequenceWatermarkCounter)
+	}
+}
+
+type mStoreMockTableStats struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockTableStatsExpectation
+	expectations       []*StoreMockTableStatsExpectation
+
+	callArgs []*StoreMockTableStatsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockTableStatsExpectation specifies expectation struct of the Store.TableStats
+type StoreMockTableStatsExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockTableStatsParams
+	paramPtrs          *StoreMockTableStatsParamPtrs
+	expectationOrigins StoreMockTableStatsExpectationOrigins
+	results            *StoreMockTableStatsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockTableStatsParams contains parameters of the Store.TableStats
+type StoreMockTableStatsParams struct {
+	ctx context.Context
+}
+
+// StoreMockTableStatsParamPtrs contains pointers to parameters of the Store.TableStats
+type StoreMockTableStatsParamPtrs struct {
+	ctx *context.Context
+}
+
+// StoreMockTableStatsResults contains results of the Store.TableStats
+type StoreMockTableStatsResults struct {
+	rows  int64
+	bytes int64
+	err   error
+}
+
+// StoreMockTableStatsOrigins contains origins of expectations of the Store.TableStats
+type StoreMockTableStatsExpectationOrigins struct {
+	origin    string
+	originCtx string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmTableStats *mStoreMockTableStats) Optional() *mStoreMockTableStats {
+	mmTableStats.optional = true
+	return mmTableStats
+}
+
+// Expect sets up expected params for Store.TableStats
+func (mmTableStats *mStoreMockTableStats) Expect(ctx context.Context) *mStoreMockTableStats {
+	if mmTableStats.mock.funcTableStats != nil {
+		mmTableStats.mock.t.Fatalf("StoreMock.TableStats mock is already set by Set")
+	}
+
+	if mmTableStats.defaultExpectation == nil {
+		mmTableStats.defaultExpectation = &StoreMockTableStatsExpectation{}
+	}
+
+	if mmTableStats.defaultExpectation.paramPtrs != nil {
+		mmTableStats.mock.t.Fatalf("StoreMock.TableStats mock is already set by ExpectParams functions")
+	}
+
+	mmTableStats.defaultExpectation.params = &StoreMockTableStatsParams{ctx}
+	mmTableStats.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmTableStats.expectations {
+		if minimock.Equal(e.params, mmTableStats.defaultExpectation.params) {
+			mmTableStats.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmTableStats.defaultExpectation.params)
+		}
+	}
+
+	return mmTableStats
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.TableStats
+func (mmTableStats *mStoreMockTableStats) ExpectCtxParam1(ctx context.Context) *mStoreMockTableStats {
+	if mmTableStats.mock.funcTableStats != nil {
+		mmTableStats.mock.t.Fatalf("StoreMock.TableStats mock is already set by Set")
+	}
+
+	if mmTableStats.defaultExpectation == nil {
+		mmTableStats.defaultExpectation = &StoreMockTableStatsExpectation{}
+	}
+
+	if mmTableStats.defaultExpectation.params != nil {
+		mmTableStats.mock.t.Fatalf("StoreMock.TableStats mock is already set by Expect")
+	}
+
+	if mmTableStats.defaultExpectation.paramPtrs == nil {
+		mmTableStats.defaultExpectation.paramPtrs = &StoreMockTableStatsParamPtrs{}
+	}
+	mmTableStats.defaultExpectation.paramPtrs.ctx = &ctx
+	mmTableStats.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmTableStats
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.TableStats
+func (mmTableStats *mStoreMockTableStats) Inspect(f func(ctx context.Context)) *mStoreMockTableStats {
+	if mmTableStats.mock.inspectFuncTableStats != nil {
+		mmTableStats.mock.t.Fatalf("Inspect function is already set for StoreMock.TableStats")
+	}
+
+	mmTableStats.mock.inspectFuncTableStats = f
+
+	return mmTableStats
+}
+
+// Return sets up results that will be returned by Store.TableStats
+func (mmTableStats *mStoreMockTableStats) Return(rows int64, bytes int64, err error) *StoreMock {
+	if mmTableStats.mock.funcTableStats != nil {
+		mmTableStats.mock.t.Fatalf("StoreMock.TableStats mock is already set by Set")
+	}
+
+	if mmTableStats.defaultExpectation == nil {
+		mmTableStats.defaultExpectation = &StoreMockTableStatsExpectation{mock: mmTableStats.mock}
+	}
+	mmTableStats.defaultExpectation.results = &StoreMockTableStatsResults{rows, bytes, err}
+	mmTableStats.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmTableStats.mock
+}
+
+// Set uses given function f to mock the Store.TableStats method
+func (mmTableStats *mStoreMockTableStats) Set(f func(ctx context.Context) (rows int64, bytes int64, err error)) *StoreMock {
+	if mmTableStats.defaultExpectation != nil {
+		mmTableStats.mock.t.Fatalf("Default expectation is already set for the Store.TableStats method")
+	}
+
+	if len(mmTableStats.expectations) > 0 {
+		mmTableStats.mock.t.Fatalf("Some expectations are already set for the Store.TableStats method")
+	}
+
+	mmTableStats.mock.funcTableStats = f
+	mmTableStats.mock.funcTableStatsOrigin = minimock.CallerInfo(1)
+	return mmTableStats.mock
+}
+
+// When sets expectation for the Store.TableStats which will trigger the result defined by the following
+// Then helper
+func (mmTableStats *mStoreMockTableStats) When(ctx context.Context) *StoreMockTableStatsExpectation {
+	if mmTableStats.mock.funcTableStats != nil {
+		mmTableStats.mock.t.Fatalf("StoreMock.TableStats mock is already set by Set")
+	}
+
+	expectation := &StoreMockTableStatsExpectation{
+		mock:               mmTableStats.mock,
+		params:             &StoreMockTableStatsParams{ctx},
+		expectationOrigins: StoreMockTableStatsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmTableStats.expectations = append(mmTableStats.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.TableStats return parameters for the expectation previously defined by the When method
+func (e *StoreMockTableStatsExpectation) Then(rows int64, bytes int64, err error) *StoreMock {
+	e.results = &StoreMockTableStatsResults{rows, bytes, err}
+	return e.mock
+}
+
+// Times sets number of times Store.TableStats should be invoked
+func (mmTableStats *mStoreMockTableStats) Times(n uint64) *mStoreMockTableStats {
+	if n == 0 {
+		mmTableStats.mock.t.Fatalf("Times of StoreMock.TableStats mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmTableStats.expectedInvocations, n)
+	mmTableStats.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmTableStats
+}
+
+func (mmTableStats *mStoreMockTableStats) invocationsDone() bool {
+	if len(mmTableStats.expectations) == 0 && mmTableStats.defaultExpectation == nil && mmTableStats.mock.funcTableStats == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmTableStats.mock.afterTableStatsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmTableStats.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// TableStats implements mm_service.Store
+func (mmTableStats *StoreMock) TableStats(ctx context.Context) (rows int64, bytes int64, err error) {
+	mm_atomic.AddUint64(&mmTableStats.beforeTableStatsCounter, 1)
+	defer mm_atomic.AddUint64(&mmTableStats.afterTableStatsCounter, 1)
+
+	mmTableStats.t.Helper()
+
+	if mmTableStats.inspectFuncTableStats != nil {
+		mmTableStats.inspectFuncTableStats(ctx)
+	}
+
+	mm_params := StoreMockTableStatsParams{ctx}
+
+	// Record call args
+	mmTableStats.TableStatsMock.mutex.Lock()
+	mmTableStats.TableStatsMock.callArgs = append(mmTableStats.TableStatsMock.callArgs, &mm_params)
+	mmTableStats.TableStatsMock.mutex.Unlock()
+
+	for _, e := range mmTableStats.TableStatsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.rows, e.results.bytes, e.results.err
+		}
+	}
+
+	if mmTableStats.TableStatsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmTableStats.TableStatsMock.defaultExpectation.Counter, 1)
+		mm_want := mmTableStats.TableStatsMock.defaultExpectation.params
+		mm_want_ptrs := mmTableStats.TableStatsMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockTableStatsParams{ctx}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmTableStats.t.Errorf("StoreMock.TableStats got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmTableStats.TableStatsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmTableStats.t.Errorf("StoreMock.TableStats got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmTableStats.TableStatsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmTableStats.TableStatsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmTableStats.t.Fatal("No results are set for the StoreMock.TableStats")
+		}
+		return (*mm_results).rows, (*mm_results).bytes, (*mm_results).err
+	}
+	if mmTableStats.funcTableStats != nil {
+		return mmTableStats.funcTableStats(ctx)
+	}
+	mmTableStats.t.Fatalf("Unexpected call to StoreMock.TableStats. %v", ctx)
+	return
+}
+
+// TableStatsAfterCounter returns a count of finished StoreMock.TableStats invocations
+func (mmTableStats *StoreMock) TableStatsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmTableStats.afterTableStatsCounter)
+}
+
+// TableStatsBeforeCounter returns a count of StoreMock.TableStats invocations
+func (mmTableStats *StoreMock) TableStatsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmTableStats.beforeTableStatsCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.TableStats.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmTableStats *mStoreMockTableStats) Calls() []*StoreMockTableStatsParams {
+	mmTableStats.mutex.RLock()
+
+	argCopy := make([]*StoreMockTableStatsParams, len(mmTableStats.callArgs))
+	copy(argCopy, mmTableStats.callArgs)
+
+	mmTableStats.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockTableStatsDone returns true if the count of the TableStats invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockTableStatsDone() bool {
+	if m.TableStatsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.TableStatsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.TableStatsMock.invocationsDone()
+}
+
+// MinimockTableStatsInspect logs each unmet expectation
+func (m *StoreMock) MinimockTableStatsInspect() {
+	for _, e := range m.TableStatsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.TableStats at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterTableStatsCounter := mm_atomic.LoadUint64(&m.afterTableStatsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.TableStatsMock.defaultExpectation != nil && afterTableStatsCounter < 1 {
+		if m.TableStatsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.TableStats at\n%s", m.TableStatsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.TableStats at\n%s with params: %#v", m.TableStatsMock.defaultExpectation.expectationOrigins.origin, *m.TableStatsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcTableStats != nil && afterTableStatsCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.TableStats at\n%s", m.funcTableStatsOrigin)
+	}
+
+	if !m.TableStatsMock.invocationsDone() && afterTableStatsCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.TableStats at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.TableStatsMock.expectedInvocations), m.TableStatsMock.expectedInvocationsOrigin, afterTableStatsCounter)
+	}
+}
+
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *StoreMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
 		if !m.minimockDone() {
+			m.MinimockComputeDigestInspect()
+
 			m.MinimockDistinctActorsInspect()
+
+			m.MinimockLastCheckpointInspect()
 
 			m.MinimockListInspect()
 
+			m.MinimockListCheckpointsInspect()
+
 			m.MinimockRecordInspect()
+
+			m.MinimockSaveCheckpointInspect()
+
+			m.MinimockSequenceWatermarkInspect()
+
+			m.MinimockTableStatsInspect()
 		}
 	})
 }
@@ -1124,7 +3196,13 @@ func (m *StoreMock) MinimockWait(timeout mm_time.Duration) {
 func (m *StoreMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockComputeDigestDone() &&
 		m.MinimockDistinctActorsDone() &&
+		m.MinimockLastCheckpointDone() &&
 		m.MinimockListDone() &&
-		m.MinimockRecordDone()
+		m.MinimockListCheckpointsDone() &&
+		m.MinimockRecordDone() &&
+		m.MinimockSaveCheckpointDone() &&
+		m.MinimockSequenceWatermarkDone() &&
+		m.MinimockTableStatsDone()
 }

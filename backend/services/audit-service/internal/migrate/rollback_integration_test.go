@@ -4,6 +4,8 @@ package migrate_test
 
 import (
 	"context"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -59,9 +61,26 @@ func (s *RollbackSuite) TearDownTest() {
 	}
 }
 
-// down rolls back every applied migration, one step at a time, the way an
+// downAll rolls back every applied migration, one step at a time, the way an
 // operator backing a release out would.
-func (s *RollbackSuite) down(ctx context.Context, steps int) {
+//
+// The step count is read from the migrations directory rather than written as a
+// literal. A hardcoded number silently stops covering the newest migration the
+// moment one is added: the rollback still "passes" for the migrations it does
+// reach, and the assertions below then fail somewhere unrelated — which is
+// exactly how 00004 first surfaced here.
+func (s *RollbackSuite) downAll(ctx context.Context) {
+	entries, err := os.ReadDir("migrations")
+	assert.NilError(s.T(), err)
+
+	steps := 0
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".sql") {
+			steps++
+		}
+	}
+	assert.Assert(s.T(), steps > 0, "no migrations found to roll back")
+
 	for range steps {
 		assert.NilError(s.T(), migrate.Down(ctx, s.dsn))
 	}
@@ -87,7 +106,7 @@ func (s *RollbackSuite) TestRollsBackWithTriggersAttached() {
 	assert.Equal(s.T(), attached, 1)
 
 	// The whole point: this is what failed before the fix.
-	s.down(ctx, 3)
+	s.downAll(ctx)
 
 	var fns int
 	err = s.pool.QueryRow(ctx,
@@ -128,7 +147,7 @@ func (s *RollbackSuite) TestUpAgainAfterRollback() {
 	assert.NilError(s.T(), migrate.Up(ctx, s.dsn))
 	var attached int
 	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT ensure_audit_triggers()`).Scan(&attached))
-	s.down(ctx, 3)
+	s.downAll(ctx)
 
 	assert.NilError(s.T(), migrate.Up(ctx, s.dsn))
 	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT ensure_audit_triggers()`).Scan(&attached))

@@ -62,6 +62,24 @@ groups:
         annotations:
           summary: "Mesh worker pulling full batches for 10m (stream backlog)"
 
+      - alert: AuditJournalGrowth
+        expr: audit_log_bytes > 5e9
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Audit journal above 5GB — revisit the keep-forever retention policy"
+
+      # Critical rather than warning: when this fires the digest chain exists
+      # only inside the database it is supposed to prove untampered, which is
+      # the one state where the whole mechanism protects nobody.
+      - alert: AuditDigestWitnessFailing
+        expr: increase(audit_digest_write_failures_total[15m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "Checkpoint digests are not reaching the witness file"
+
       - alert: LoginFailureSpike
         expr: rate(auth_logins_total{status="failed"}[5m]) * 60 > 30
         for: 5m
