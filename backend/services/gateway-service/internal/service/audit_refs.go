@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"maps"
+	"slices"
 	"sync"
 
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
@@ -72,12 +73,16 @@ func (g *Gateway) resolveRowRefs(
 	}
 	if len(authRefs) > 0 {
 		collect("auth", func() (map[string]string, error) {
-			return g.auth.ResolveLabels(ctx, token, authRefs)
+			return chunkedLabels(authRefs, func(c []domain.LabelRef) (map[string]string, error) {
+				return g.auth.ResolveLabels(ctx, token, c)
+			})
 		})
 	}
 	if len(catalogRefs) > 0 {
 		collect("catalog", func() (map[string]string, error) {
-			return g.catalog.ResolveLabels(ctx, catalogRefs)
+			return chunkedLabels(catalogRefs, func(c []domain.LabelRef) (map[string]string, error) {
+				return g.catalog.ResolveLabels(ctx, c)
+			})
 		})
 	}
 	if len(userIDs) > 0 {
@@ -88,6 +93,34 @@ func (g *Gateway) resolveRowRefs(
 	wg.Wait()
 
 	return keyByField(refs, labels)
+}
+
+// labelBatch is the largest ref list handed to one resolver in a single call.
+// It must stay at or below the cap both ResolveLabels implementations enforce —
+// they refuse an oversized request outright rather than truncating it.
+//
+// Chunked for the same reason resolveLoginsBatched is, and the reason is worth
+// repeating because I got it wrong here once: that ceiling is a constant in
+// another service's package, not a property of this code. A page is capped at
+// 200 rows, but collectRefs reads both snapshots and placement's
+// visible_panorama_ids is an array column with no bound anywhere, so "a page
+// cannot overflow the cap" is not something this file may assume. Unchunked,
+// one oversized page did not degrade — it lost every label from that resolver,
+// silently, because collect() swallows the error.
+const labelBatch = 500
+
+func chunkedLabels(
+	refs []domain.LabelRef, call func([]domain.LabelRef) (map[string]string, error),
+) (map[string]string, error) {
+	out := make(map[string]string, len(refs))
+	for chunk := range slices.Chunk(refs, labelBatch) {
+		got, err := call(chunk)
+		if err != nil {
+			return nil, err
+		}
+		maps.Copy(out, got)
+	}
+	return out, nil
 }
 
 func hasKind(set map[string]struct{}, kind string) bool {
