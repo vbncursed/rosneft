@@ -37,6 +37,8 @@ func newRootCmd() *cobra.Command {
 	flags.String("log-format", "json", "log format: json|text")
 	flags.Bool("auto-migrate", true, "run goose migrations on startup")
 	flags.Duration("shutdown-timeout", 15*time.Second, "graceful shutdown timeout")
+	flags.Duration("checkpoint-interval", 5*time.Minute, "how often to seal a journal checkpoint; 0 disables")
+	flags.String("digest-file", "", "append-only JSONL witness for checkpoint digests (or set AUDIT_DIGEST_FILE)")
 
 	cmd.AddCommand(
 		&cobra.Command{Use: "serve", Short: "Start the gRPC server (default)", RunE: runServe},

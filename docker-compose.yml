@@ -198,9 +198,19 @@ services:
       AUDIT_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
       AUDIT_AUTO_MIGRATE: "true"
       AUDIT_LOG_LEVEL: "info"
+      # Seals a digest of the journal every interval and witnesses it to the
+      # volume below. The interval must exceed the longest write transaction —
+      # the digest boundary is a watermark one tick old.
+      AUDIT_CHECKPOINT_INTERVAL: "5m"
+      AUDIT_DIGEST_FILE: "/var/audit/digests.jsonl"
       # No depends_on beyond postgres on purpose: ensure_audit_triggers() skips
       # tables the other services have not migrated yet and re-attaches on the
       # next boot, so this service needs no ordering against them.
+    volumes:
+      # Deliberately a different volume from postgres-data. The witness is only
+      # worth having if a backup of the database is not also a backup of the
+      # digests that would expose that database being rewritten.
+      - audit-digest:/var/audit
 
   mesh-api:
     restart: unless-stopped
@@ -305,3 +315,4 @@ volumes:
   blob-data:
   upload-incoming:
   prometheus-data:
+  audit-digest:
