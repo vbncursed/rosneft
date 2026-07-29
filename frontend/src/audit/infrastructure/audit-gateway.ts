@@ -2,13 +2,17 @@ import type { components } from "@/shared/infrastructure/api/dto";
 import { httpGet } from "@/shared/infrastructure/http/client";
 import { getToken } from "@/auth/infrastructure/token-store";
 import type { AuditEntry, AuditFilters } from "@/audit/domain/audit-entry";
+import type { Refs } from "@/audit/domain/ref-label";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
 type AuditEntryDto = components["schemas"]["AuditEntry"];
 type AuditPageDto = components["schemas"]["AuditPage"];
 
-export type AuditPage = { entries: AuditEntry[]; nextCursor: number | null };
+// refs — подписи к идентификаторам внутри снимков. Сервер опускает пустой
+// словарь, поэтому здесь он нормализуется до {}: страница без ссылок ведёт себя
+// как страница, чьи подписи не разрешились, и это одно и то же для читателя.
+export type AuditPage = { entries: AuditEntry[]; nextCursor: number | null; refs: Refs };
 
 // AuditActor is one option in the actor filter. Разрешается сервером: список
 // пользователей, доступный клиенту, не совпадает с областью журнала.
@@ -74,6 +78,7 @@ export async function fetchAuditPage(
   return {
     entries: dto.entries.map(toEntry),
     nextCursor: dto.nextCursor && dto.nextCursor > 0 ? dto.nextCursor : null,
+    refs: dto.refs ?? {},
   };
 }
 
