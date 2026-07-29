@@ -1,13 +1,14 @@
 # Andrey Frontend
 
 Vite + React 19 single-page app for the Andrey 3D platform. Talks to
-`gateway-service` over REST (base URL from `VITE_API_URL`, token attached as
-`Authorization: Bearer`) and renders converted GLBs with `@react-three/fiber`.
+`gateway-service` over REST on relative `/api` paths — the session is an httpOnly
+cookie the browser attaches itself — and renders converted GLBs with
+`@react-three/fiber`.
 
 ## Commands
 
 ```bash
-yarn dev               # Vite dev server (http://localhost:5173)
+yarn dev               # Vite dev server (http://localhost:3000, /api proxied to the gateway)
 yarn build             # production build → dist/
 yarn preview           # serve the production build locally
 yarn lint              # ESLint flat config
@@ -41,7 +42,7 @@ Contexts: `territory` (parent scenes) · `model` (placeable assets) ·
 `placement` (scene overlays) · `panorama` (equirect tours) · `document`
 (PDF overlays) · `upload` (chunked uploads) · `measurement` (measure tool) ·
 `viewer` (3D scene composition) · `conversion` (pending-conversion screen) ·
-`auth` (login, token, RBAC, passkeys, 2FA, admin console) · `metrics`
+`auth` (login, session marker, RBAC, passkeys, 2FA, admin console) · `metrics`
 (owner-only Prometheus dashboard) · `onboarding` (guided tour) · `shared`
 (cross-context primitives). `app-shell` and `login` hold the top-level layout
 and login screen.
@@ -72,7 +73,7 @@ src/
 
 - **domain** — entities and value objects only; no I/O, no React.
 - **application** — use cases / query definitions that orchestrate domain + infrastructure. Also cross-cutting client ports like `toast/notify`.
-- **infrastructure** — adapters: HTTP transport, openapi DTO→domain mapping, URL builders, token store. Returns domain entities, never DTOs.
+- **infrastructure** — adapters: HTTP transport, openapi DTO→domain mapping, URL builders, the session marker. Returns domain entities, never DTOs.
 - **presentation** — React components and hooks. Imports from `application/` (or an `infrastructure/` gateway that already returns domain entities). Never reaches into DTOs. Dependencies point strictly inward: domain ← application ← presentation.
 - **routes** (`src/routes/`) are client components: they read params/search, call TanStack Query, and render presentation. There is no server runtime.
 
@@ -128,23 +129,39 @@ raw scene units suffixed `u`.
 ## Authentication
 
 Fully wired. The gateway authenticates every `/api/*` route: requests without a
-valid `Authorization: Bearer <token>` get `401`, and mutating routes
-additionally require a per-route permission (`403` otherwise).
+session get `401`, and mutating routes additionally require a per-route
+permission (`403` otherwise). Everything under `/api/territories/{slug}` is
+additionally gated on the caller's tenant and answers `404` for another
+company's territory. `/api/assets/{hash}` and `/api/jobs/{id}/events` need a
+session too.
+
+**The session is an httpOnly cookie (`andrey_session`), not a stored token.**
+This code cannot read it and does not try to: the browser attaches it to every
+same-origin request on its own, which is exactly what lets `<img>` thumbnails,
+the pdf.js `<iframe>` and three.js loader requests authenticate — none of them
+can carry an `Authorization` header.
 
 The login route (`POST /api/auth/login`, with a `POST /api/auth/login/2fa`
-challenge and WebAuthn passkey flow) stores the opaque token via
-`auth/infrastructure/token-store`. `client.ts` attaches it as `Authorization:
-Bearer` on every gateway request; a `401` clears the token and bounces to
-`/login?next=…`. RBAC gates routes through `routes/guard.ts` and the admin
-console (users / roles / content / territories / metrics). The full auth
+challenge and WebAuthn passkey flow) therefore stores no secret. All it keeps is
+`auth/infrastructure/session-marker` → `andrey.authed=1` in localStorage, a flag
+that lets `routes/guard.ts` bounce an anonymous visitor without an awaited round
+trip. It is untrusted and may be stale; a `401` from `client.ts` clears it and
+redirects to `/login?next=…`. RBAC gates routes through `routes/guard.ts` and the
+admin console (users / roles / content / territories / metrics). The full auth
 surface is documented in the gateway OpenAPI spec (Swagger at
 `http://localhost:8080/docs`).
 
 ## Environment
 
-- `VITE_API_URL` — gateway base URL baked into the client bundle at build time.
-  Read by `client.ts` (`import.meta.env.VITE_API_URL`) and by the SSE
-  `EventSource`. Set it empty for same-origin `/api` requests.
-- `VITE_DEV_PROXY` (dev only) — when set, Vite proxies `/api` to that gateway
-  URL (e.g. prod) so the SPA runs against real data without touching its CORS.
-  Pair with an empty `VITE_API_URL`. See `vite.config.ts`.
+- `VITE_API_URL` — **empty in both dev and prod**, so every request goes out on a
+  relative `/api` path. nginx serves the SPA and proxies `/api` in production;
+  the Vite dev server does the same. Single origin is what the session cookie
+  depends on — a non-empty value here reintroduces cross-origin requests and
+  breaks asset, panorama and PDF loading. Read by `client.ts`, `asset-url.ts` and
+  the SSE `EventSource`.
+- `VITE_DEV_PROXY` (dev only) — overrides the dev proxy target (default
+  `http://localhost:8080`), e.g. to run the SPA against prod without touching its
+  CORS. See `vite.config.ts`.
+- The dev server listens on **3000**, not Vite's 5173: `PASSKEY_RP_ORIGINS` is
+  pinned to `http://localhost:3000`, and a mismatched origin fails every WebAuthn
+  ceremony with an opaque client-side `SecurityError` and no server log.
