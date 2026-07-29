@@ -25,6 +25,17 @@ type Writer struct {
 
 // line is the on-disk shape. Field names match audit_checkpoint's columns so a
 // reader never has to translate between the two.
+//
+// At is rendered in the service's local zone (Europe/Moscow in this
+// deployment), matching the log line emitted for the same checkpoint — an
+// operator reading `docker logs` beside this file should not have to shift
+// hours in their head. The offset travels in the string, so the instant stays
+// unambiguous.
+//
+// This is display only and never reaches a digest. The fold in
+// storage.ComputeDigest pins its session to UTC precisely because the rendered
+// timestamps of audit_log rows DO enter the hash there; moving that one would
+// make every existing digest irreproducible.
 type line struct {
 	At         time.Time `json:"at"`
 	FromID     int64     `json:"from_id"`
@@ -60,7 +71,7 @@ func (w *Writer) Write(c domain.Checkpoint) error {
 		return nil
 	}
 	b, err := json.Marshal(line{
-		At:         c.At.UTC(),
+		At:         c.At.Local(),
 		FromID:     c.FromID,
 		ToID:       c.ToID,
 		RowCount:   c.RowCount,
