@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Before committing Go changes
+
+Run `make -C backend check` — gofmt, `go mod tidy` drift, `GOWORK=off go vet`,
+golangci-lint, `go test -race -shuffle=on`, govulncheck. ~80 s. `.githooks/pre-commit`
+runs it for you once `make -C backend hooks` has been run in the clone. Rationale for
+the two non-obvious steps (`vet` and `tidy-check` both run with the workspace off, and
+catch Docker-build failures that `make lint` cannot see): [`backend/CLAUDE.md`](backend/CLAUDE.md#the-commit-gate).
+
 # Frontend is a Vite + React SPA (no Next.js)
 
 The frontend is a client-only single-page app: Vite 8 + React 19, routed with

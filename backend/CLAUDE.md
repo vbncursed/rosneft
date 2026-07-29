@@ -41,11 +41,15 @@ Guidance for Claude Code when working in `backend/`.
 All commands run from `backend/` (Makefile-driven):
 
 ```bash
+make check         # THE COMMIT GATE — fmt-check + tidy-check + vet + lint + test + vuln (~80 s)
 make build         # ./bin/{gateway,catalog,content,auth,twofa,passkey,mesh-api,mesh-worker,asset,upload}
 make test          # go test -race -shuffle=on across every module
 make lint          # golangci-lint per module
+make vet           # GOWORK=off go vet per module
+make vuln          # govulncheck per module
 make fmt           # gofmt -s -w .
-make tidy          # go mod tidy per module
+make tidy          # GOWORK=off go mod tidy per module
+make hooks         # one-time: git config core.hooksPath .githooks
 make compose-up    # docker compose up --build -d
 make compose-down
 make compose-logs
@@ -53,8 +57,32 @@ make proto-gen     # buf generate (needs buf)
 make openapi-gen   # oapi-codegen for gateway
 ```
 
-`SERVICES` in the `Makefile` drives `build`/`test`/`lint`/`tidy` — a new service
-must be added there or it is silently never built, tested, or linted.
+`SERVICES` in the `Makefile` drives `build`/`test`/`lint`/`tidy`/`vet`/`vuln` — a
+new service must be added there or it is silently never built, tested, or linted.
+
+### The commit gate
+
+**`make check` must pass before every commit that touches Go.** `.githooks/pre-commit`
+runs it automatically (installed once with `make hooks`; the hook exits early when
+the staged set has no `backend/**.go|go.mod|go.sum`). Bypass a single commit with
+`git commit --no-verify` — and say so when you do.
+
+Two of the six steps exist because `make lint`/`make test` cannot see the failure
+they catch:
+
+- **`vet` runs with `GOWORK=off`.** Inside `go.work` the build list is the *union*
+  of all 12 modules' requires, so a package imported without a matching `require`
+  in its own `go.mod` still compiles locally — and then fails in Docker, which
+  builds one module at a time. That is exactly how `auth-service` shipped an
+  import of `github.com/google/uuid` that was in nobody's `require` but audit's.
+- **`tidy-check` diffs `go.mod`/`go.sum` around a `GOWORK=off go mod tidy`.**
+  Workspace-mode tidy parks checksums in `go.work.sum`, leaving per-module
+  `go.sum` files incomplete for the same one-module-at-a-time Docker build. The
+  target hashes the 24 files before and after, so it is honest about *drift* and
+  not merely about a dirty worktree.
+
+`golangci-lint` was clean through both of those bugs. A green `make lint` is not
+evidence that a module builds standalone.
 
 A new service also needs a line in `ops/prometheus/prometheus.yml`, or it is
 silently never scraped. Every service already serves `/metrics` on `:9101` by

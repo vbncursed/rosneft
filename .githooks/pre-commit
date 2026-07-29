@@ -1,0 +1,11 @@
+#!/bin/sh
+# Installed by `make -C backend hooks` (sets core.hooksPath=.githooks).
+# Runs the Go quality gate only when the commit touches Go code.
+# Bypass once with: git commit --no-verify
+
+set -e
+
+git diff --cached --name-only --diff-filter=ACMR \
+	| grep -qE '^backend/.*\.(go|mod|sum)$' || exit 0
+
+exec make -C "$(git rev-parse --show-toplevel)/backend" check
