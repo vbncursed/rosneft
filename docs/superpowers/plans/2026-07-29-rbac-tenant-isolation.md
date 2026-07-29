@@ -1044,7 +1044,7 @@ git commit -m "feat(frontend): rely on the session cookie instead of a stored to
 - Consumes: куку (Task 3, 4) и одно-origin (Task 2). **Раньше них не выполнять** — иначе просмотр сцен сломается.
 - Produces: `401` на `/api/assets/{hash}` и `/api/jobs/{id}/events` без сессии.
 
-- [ ] **Step 1: Закрыть маршруты**
+- [x] **Step 1: Закрыть маршруты**
 
 Modify `backend/services/gateway-service/internal/bootstrap/transport.go`:
 
@@ -1065,7 +1065,7 @@ Modify `backend/services/gateway-service/internal/bootstrap/transport.go`:
 	r.With(authH.Authenticate).Get("/api/jobs/{id}/events", apiServer.WatchJobEvents)
 ```
 
-- [ ] **Step 2: Обновить комментарий на фронте**
+- [x] **Step 2: Обновить комментарий на фронте**
 
 Modify `frontend/src/shared/infrastructure/asset-url.ts`:
 
@@ -1081,7 +1081,7 @@ export function assetUrl(hash: string): string {
 }
 ```
 
-- [ ] **Step 3: Проверить отказ без сессии**
+- [x] **Step 3: Проверить отказ без сессии**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft && docker compose up -d --build gateway && sleep 12
@@ -1094,7 +1094,7 @@ curl -s -b /tmp/jar -o /dev/null -w 'ассет по куке:    %{http_code}\n
 
 Expected: `401`, `401`, затем `404` — сессия принята, блоба с таким хешем просто нет.
 
-- [ ] **Step 4: Проверить, что просмотр не сломался**
+- [x] **Step 4: Проверить, что просмотр не сломался**
 
 ```bash
 cd frontend && yarn dev
@@ -1104,7 +1104,7 @@ cd frontend && yarn dev
 панорама и PDF грузятся; в Network у запросов к `/api/assets/*` статус 200 и
 уходит кука. Открыть ту же страницу в приватном окне без входа — `/login`.
 
-- [ ] **Step 5: Коммит**
+- [x] **Step 5: Коммит**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft
