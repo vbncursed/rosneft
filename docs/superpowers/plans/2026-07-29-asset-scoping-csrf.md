@@ -837,7 +837,7 @@ git commit -m "fix(gateway): refuse a blob the caller's tenant cannot reach"
 - Consumes: `config.Config.AllowedOrigins`.
 - Produces: ничего для других задач.
 
-- [ ] **Step 1: Написать падающий тест**
+- [x] **Step 1: Написать падающий тест**
 
 Create `backend/services/gateway-service/internal/bootstrap/cors_test.go`:
 
@@ -894,12 +894,12 @@ func (s *CORSSuite) TestAnUnlistedOriginIsNotEchoed() {
 }
 ```
 
-- [ ] **Step 2: Запустить тест, убедиться что падает**
+- [x] **Step 2: Запустить тест, убедиться что падает**
 
 Run: `cd backend/services/gateway-service && go test ./internal/bootstrap/ -run TestCORSSuite`
 Expected: FAIL — `newRouterWithCORS undefined`.
 
-- [ ] **Step 3: Вынести монтирование CORS в тестируемую функцию**
+- [x] **Step 3: Вынести монтирование CORS в тестируемую функцию**
 
 Modify `backend/services/gateway-service/internal/bootstrap/transport.go` — заменить безусловный `r.Use(cors.Handler(...))` на вызов, и добавить функцию:
 
@@ -935,7 +935,7 @@ func newRouterWithCORS(origins []string) chi.Router {
 сегодня превращает пустой список в `{"*"}`, поэтому её нельзя оставить в цепочке.
 Остальные маршруты регистрируются на возвращённом роутере как раньше.
 
-- [ ] **Step 4: Сменить дефолт на пустой список**
+- [x] **Step 4: Сменить дефолт на пустой список**
 
 Modify `internal/config/config.go`: `v.SetDefault("allowed-origins", []string{})`.
 Modify `cmd/gateway/main.go`: `flags.StringSlice("allowed-origins", nil, "CORS allowed origins; empty disables CORS entirely (a same-origin SPA needs none)")`.
@@ -943,12 +943,12 @@ Modify `cmd/gateway/main.go`: `flags.StringSlice("allowed-origins", nil, "CORS a
 `docker-compose.yml` **не** трогаем: переменная `GATEWAY_ALLOWED_ORIGINS` там не
 задана, и это теперь правильное состояние — дев одно-origin через прокси Vite.
 
-- [ ] **Step 5: Запустить тесты**
+- [x] **Step 5: Запустить тесты**
 
 Run: `cd backend/services/gateway-service && go build ./... && go test ./...`
 Expected: PASS.
 
-- [ ] **Step 6: Проверить вживую, что чанковая загрузка цела**
+- [x] **Step 6: Проверить вживую, что чанковая загрузка цела**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft && docker compose up -d --build gateway && sleep 12
@@ -960,7 +960,7 @@ cd frontend && yarn dev
 загрузка проходит, в Network у `PATCH /api/uploads/{id}` нет preflight-запроса
 `OPTIONS` — он одно-origin. Заголовков `Access-Control-*` в ответах нет вовсе.
 
-- [ ] **Step 7: Коммит**
+- [x] **Step 7: Коммит**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft
