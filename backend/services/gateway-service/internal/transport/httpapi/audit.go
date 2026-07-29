@@ -60,7 +60,7 @@ func auditEntryToAPI(e domain.AuditEntry) AuditEntry {
 
 // ListAudit returns one page of the journal, scoped to the caller.
 func (s *Server) ListAudit(ctx context.Context, req ListAuditRequestObject) (ListAuditResponseObject, error) {
-	entries, next, _, err := s.svc.ListAudit(ctx,
+	entries, next, refs, err := s.svc.ListAudit(ctx,
 		auditQueryFromParams(req.Params), authhttp.IsOwner(ctx), authhttp.AuditCompany(ctx), authhttp.Token(ctx), true)
 	switch {
 	case isForbidden(err):
@@ -79,6 +79,12 @@ func (s *Server) ListAudit(ctx context.Context, req ListAuditRequestObject) (Lis
 	}
 	if next > 0 {
 		page.NextCursor = &next
+	}
+	// Пустой словарь не отдаётся: страница без ссылок в снимках — обычное дело
+	// (сессионные события, правки заголовков), и пустой объект в каждом таком
+	// ответе только раздувал бы его.
+	if len(refs) > 0 {
+		page.Refs = &refs
 	}
 	return ListAudit200JSONResponse(page), nil
 }
