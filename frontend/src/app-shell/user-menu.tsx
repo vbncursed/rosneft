@@ -13,7 +13,7 @@ export default function UserMenu() {
   const showConsole = can(p, "users:read") || can(p, "roles:read");
 
   async function logout() {
-    await doLogout(); // POST /api/auth/logout + clearToken
+    await doLogout(); // POST /api/auth/logout + clearAuthed
     window.location.assign("/login"); // hard nav wipes the query cache too
   }
 

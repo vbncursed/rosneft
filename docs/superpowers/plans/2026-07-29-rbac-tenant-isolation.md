@@ -853,7 +853,7 @@ git commit -m "feat(gateway): carry the session in an httpOnly cookie"
 - Consumes: кука, которую ставит бэкенд (Task 3); одно-origin (Task 2).
 - Produces: `isAuthed(): boolean`, `markAuthed(): void`, `clearAuthed(): void`.
 
-- [ ] **Step 1: Написать падающий тест маркера**
+- [x] **Step 1: Написать падающий тест маркера**
 
 Create `frontend/src/auth/infrastructure/session-marker.spec.ts`:
 
@@ -889,12 +889,12 @@ describe("session marker", () => {
 });
 ```
 
-- [ ] **Step 2: Запустить тест, убедиться что падает**
+- [x] **Step 2: Запустить тест, убедиться что падает**
 
 Run: `cd frontend && yarn test:spa src/auth/infrastructure/session-marker.spec.ts`
 Expected: FAIL — модуль не найден.
 
-- [ ] **Step 3: Реализовать маркер и удалить хранилище токена**
+- [x] **Step 3: Реализовать маркер и удалить хранилище токена**
 
 Create `frontend/src/auth/infrastructure/session-marker.ts`:
 
@@ -925,7 +925,7 @@ export function clearAuthed(): void {
 
 Run: `cd frontend && rm src/auth/infrastructure/token-store.ts src/auth/infrastructure/token-store.spec.ts`
 
-- [ ] **Step 4: Убрать заголовок из HTTP-клиента**
+- [x] **Step 4: Убрать заголовок из HTTP-клиента**
 
 Modify `frontend/src/shared/infrastructure/http/client.ts`:
 
@@ -958,7 +958,7 @@ async function send<T>(path: string, init: RequestInit, parseJson: boolean): Pro
 
 Остальная часть файла без изменений.
 
-- [ ] **Step 5: Перевести остальные места**
+- [x] **Step 5: Перевести остальные места**
 
 `frontend/src/auth/infrastructure/auth-login.ts` — заменить импорт и три вызова:
 
@@ -989,7 +989,7 @@ export function requireAuth(location: Target): void {
 // No Authorization header: the session cookie rides on this same-origin fetch.
 ```
 
-- [ ] **Step 6: Починить спеки**
+- [x] **Step 6: Починить спеки**
 
 В `auth-login.spec.ts`, `passkey-gateway.spec.ts`, `client.spec.ts`,
 `guard.spec.ts`, `guard-permission.spec.ts`, `console-landing.spec.ts`,
@@ -1008,12 +1008,12 @@ it("sends no Authorization header — the session is a cookie", async () => {
 });
 ```
 
-- [ ] **Step 7: Прогнать фронтовые проверки**
+- [x] **Step 7: Прогнать фронтовые проверки**
 
 Run: `cd frontend && yarn lint && yarn test && yarn test:spa`
 Expected: PASS. `yarn lint` включает `tsc --noEmit`, поэтому пропущенная ссылка на удалённый `token-store` не проскочит.
 
-- [ ] **Step 8: Проверить вживую**
+- [x] **Step 8: Проверить вживую**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft && docker compose up -d && cd frontend && yarn dev
@@ -1024,7 +1024,7 @@ cd /Users/vbncursed/programming/rosneft && docker compose up -d && cd frontend &
 токена. Открыть территорию: сцена, панорамы и PDF грузятся. Выйти — кука снята,
 переход на `/login`.
 
-- [ ] **Step 9: Коммит**
+- [x] **Step 9: Коммит**
 
 ```bash
 cd /Users/vbncursed/programming/rosneft
