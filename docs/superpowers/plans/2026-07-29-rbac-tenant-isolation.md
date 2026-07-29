@@ -1216,7 +1216,7 @@ curl -s -o /dev/null -w 'ассет без сессии: %{http_code}\n' http://
 200, Root видит всё; вход ставит httpOnly-куку, в localStorage секрета нет, сцена
 с моделями, панорамами и PDF грузится.
 
-- [ ] **Открыть PR**
+- [x] **Открыть PR**
 
 ```bash
 git push -u origin dev
