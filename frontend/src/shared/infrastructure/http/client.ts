@@ -1,6 +1,6 @@
 import { HttpError, type ApiError } from "@/shared/infrastructure/http/http-error";
 import { clearAuthed } from "@/auth/infrastructure/session-marker";
-import { getCsrfToken } from "@/auth/infrastructure/csrf-token";
+import { ensureCsrfToken } from "@/auth/infrastructure/csrf-token";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
@@ -13,13 +13,18 @@ async function send<T>(path: string, init: RequestInit, parseJson: boolean): Pro
   // That cookie is exactly why the CSRF token is needed — it rides along on a
   // cross-site POST too, and only this header proves the request came from our
   // own page. Sent on mutations only, matching what the gateway checks.
-  const csrf = getCsrfToken();
+  //
+  // ensureCsrfToken rather than a plain read: on a cold page load nothing has
+  // put a token in memory yet, and nothing makes a mutation wait for the app's
+  // meQuery. Awaited only when one is actually missing, so the normal path pays
+  // nothing.
   const mutating = !SAFE_METHODS.has((init.method ?? "GET").toUpperCase());
+  const csrf = mutating ? await ensureCsrfToken() : null;
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
       Accept: "application/json",
-      ...(mutating && csrf ? { "X-CSRF-Token": csrf } : {}),
+      ...(csrf ? { "X-CSRF-Token": csrf } : {}),
       ...(init.headers ?? {}),
     },
   });

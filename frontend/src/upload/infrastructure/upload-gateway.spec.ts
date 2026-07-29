@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { appendChunk, getUploadStatus, abortUpload } from "@/upload/infrastructure/upload-gateway";
 import { markAuthed } from "@/auth/infrastructure/session-marker";
+import { setCsrfToken, clearCsrfToken } from "@/auth/infrastructure/csrf-token";
 
 const API = "http://localhost:8080";
 
@@ -14,10 +15,17 @@ describe("upload-gateway raw fetches", () => {
   beforeEach(() => {
     localStorage.clear();
     markAuthed();
+    // A logged-in tab already holds a token. Without this, uploadHeaders would
+    // first fetch /api/auth/me to get one — correct behaviour, but it would
+    // shift every fetch assertion below by one call.
+    setCsrfToken("csrf-1");
   });
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    clearCsrfToken();
+  });
 
-  it("appendChunk hits absolute gateway URL with Bearer + Upload-Offset", async () => {
+  it("appendChunk hits the gateway URL with the CSRF token + Upload-Offset", async () => {
     const f = mockFetch(204, { "Upload-Offset": "16" });
     vi.stubGlobal("fetch", f);
     const next = await appendChunk("s1", 0, new Blob(["x"]));
@@ -25,7 +33,9 @@ describe("upload-gateway raw fetches", () => {
     const init = f.mock.calls[0][1] as RequestInit;
     const h = init.headers as Record<string, string>;
     // No Authorization: the session cookie rides on this same-origin fetch.
+    // The CSRF token is what proves the request came from our own page.
     expect(h.Authorization).toBeUndefined();
+    expect(h["X-CSRF-Token"]).toBe("csrf-1");
     expect(h["Upload-Offset"]).toBe("0");
     expect(next).toBe(16);
   });
@@ -37,14 +47,14 @@ describe("upload-gateway raw fetches", () => {
     expect(await getUploadStatus("s1")).toBeNull();
   });
 
-  it("abortUpload DELETEs the absolute URL with Bearer", async () => {
+  it("abortUpload DELETEs the URL with the CSRF token", async () => {
     const f = mockFetch(204);
     vi.stubGlobal("fetch", f);
     await abortUpload("s1");
     expect(f.mock.calls[0][0]).toBe(`${API}/api/uploads/s1`);
     expect((f.mock.calls[0][1] as RequestInit).method).toBe("DELETE");
-    expect(
-      ((f.mock.calls[0][1] as RequestInit).headers as Record<string, string>).Authorization,
-    ).toBeUndefined();
+    const h = (f.mock.calls[0][1] as RequestInit).headers as Record<string, string>;
+    expect(h.Authorization).toBeUndefined();
+    expect(h["X-CSRF-Token"]).toBe("csrf-1");
   });
 });

@@ -1,5 +1,5 @@
 import { httpPost } from "@/shared/infrastructure/http/client";
-import { getCsrfToken } from "@/auth/infrastructure/csrf-token";
+import { ensureCsrfToken } from "@/auth/infrastructure/csrf-token";
 import type { components } from "@/shared/infrastructure/api/dto";
 import type { UploadSession, FinalizedBlob } from "@/upload/domain/session";
 
@@ -9,8 +9,11 @@ const API_BASE = import.meta.env.VITE_API_URL;
 // they carry the CSRF token themselves. The session cookie rides on these
 // same-origin fetches on its own; HEAD is safe and would not need the token, but
 // sending it costs nothing and keeps one code path.
-function uploadHeaders(extra: Record<string, string> = {}): Record<string, string> {
-  const csrf = getCsrfToken();
+//
+// ensureCsrfToken, not a plain read: an upload started right after a page load
+// would otherwise go out without one and be refused.
+async function uploadHeaders(extra: Record<string, string> = {}): Promise<Record<string, string>> {
+  const csrf = await ensureCsrfToken();
   return { ...(csrf ? { "X-CSRF-Token": csrf } : {}), ...extra };
 }
 
@@ -43,7 +46,7 @@ export async function appendChunk(
 ): Promise<number> {
   const res = await fetch(`${API_BASE}/api/uploads/${encodeURIComponent(id)}`, {
     method: "PATCH",
-    headers: uploadHeaders({
+    headers: await uploadHeaders({
       "Content-Type": "application/octet-stream",
       "Upload-Offset": String(offset),
     }),
@@ -72,7 +75,7 @@ export async function getUploadStatus(
 ): Promise<{ offset: number; size: number } | null> {
   const res = await fetch(`${API_BASE}/api/uploads/${encodeURIComponent(id)}`, {
     method: "HEAD",
-    headers: uploadHeaders(),
+    headers: await uploadHeaders(),
   });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`status: ${res.status}`);
@@ -86,7 +89,7 @@ export async function getUploadStatus(
 export async function abortUpload(id: string): Promise<void> {
   await fetch(`${API_BASE}/api/uploads/${encodeURIComponent(id)}`, {
     method: "DELETE",
-    headers: uploadHeaders(),
+    headers: await uploadHeaders(),
   });
 }
 
