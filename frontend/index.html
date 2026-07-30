@@ -7,7 +7,8 @@
     <meta name="theme-color" content="#0a0a0a" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-icon.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- use-credentials: без cookies Cloudflare (Bot Fight Mode) отдаёт на манифест 403 -->
+    <link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
     <title>Andrey 3D Viewer</title>
   </head>
   <body>
