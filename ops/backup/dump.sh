@@ -25,11 +25,16 @@ mkdir -p "$DEST"
 
 dump="$DEST/andrey-$STAMP.sql.gz"
 
-# PIPESTATUS, not `set -e`: a failed pg_dump still produces a valid 20-byte
-# gzip, and the pipeline's exit status comes from gzip, which succeeded.
-docker exec andrey-postgres-1 pg_dump -U andrey -d andrey | gzip > "$dump"
-if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-  echo "dump.sh: pg_dump failed" >&2
+# PIPESTATUS, not plain `set -e`: a failed pg_dump still produces a valid
+# 20-byte gzip, and under bare `set -e` the pipeline's exit status is the
+# only thing that terminates the script — it would do so right here, before
+# a later `if` ever got to inspect which command in the pipe actually failed.
+# Putting the pipeline itself in the `if !` condition is what makes it exempt
+# from `set -e` (same reason the blob-copy loop below uses `if ! docker run
+# ...; then`), so the failure is caught instead of the whole script dying
+# silently mid-statement with the corrupt file already on disk.
+if ! docker exec andrey-postgres-1 pg_dump -U andrey -d andrey | gzip > "$dump"; then
+  echo "dump.sh: pg_dump failed (exit ${PIPESTATUS[0]})" >&2
   rm -f "$dump"
   exit 1
 fi
@@ -70,13 +75,30 @@ docker exec andrey-postgres-1 psql -U andrey -d andrey -tAc \
 # have produced an empty blobs/ directory that looked like a working backup.
 # Both files are required: the store cannot serve a blob back without its
 # .json sidecar. A missing blob is now a loud, non-zero-exit failure.
+#
+# Copy is by size, not `cp -n`: `-n` never overwrites a file that already
+# exists, so a `.bin` truncated by a prior run getting killed mid-copy
+# (reboot, OOM) would sit there forever looking present. Blobs are
+# content-addressed — the hash in the filename already claims an exact byte
+# count — so comparing destination size to source size is a cheap, sufficient
+# staleness check; re-hashing 1.8 GB nightly to confirm what the name already
+# guarantees would buy nothing.
 mkdir -p "$DEST/blobs"
 missing=""
 while read -r h; do
   [[ -z "$h" ]] && continue
   sub=${h:0:2}
-  if ! docker run --rm -v andrey_blob-data:/b -v "$DEST/blobs":/out alpine \
-      sh -c "test -f /b/$sub/$h.bin && test -f /b/$sub/$h.json && cp -n /b/$sub/$h.bin /out/$h.bin && cp -n /b/$sub/$h.json /out/$h.json"; then
+  if ! docker run --rm -v andrey_blob-data:/b -v "$DEST/blobs":/out alpine sh -c "
+      set -e
+      for ext in bin json; do
+        src=/b/$sub/$h.\$ext
+        dst=/out/$h.\$ext
+        test -f \"\$src\" || exit 1
+        if [ ! -f \"\$dst\" ] || [ \"\$(stat -c%s \"\$dst\")\" != \"\$(stat -c%s \"\$src\")\" ]; then
+          cp -f \"\$src\" \"\$dst\"
+        fi
+      done
+    "; then
     echo "dump.sh: blob $h missing or failed to copy (expected /b/$sub/$h.bin and .json)" >&2
     missing="$missing $h"
   fi
