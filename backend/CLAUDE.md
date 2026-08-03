@@ -257,9 +257,23 @@ without breaking append-only, and that migration rebuilds the table carrying the
 strongest guarantee in the system. See
 `services/audit-service/README.md#retention` before proposing a cleanup job.
 
-Journal visibility has two grants: `audit:read` (the company's history) and
-`audit:read_own` (your own actions, surfaced in `/account`). `AuditScope` prefers
-the wider one and **overwrites** the `actor` query parameter in read_own mode.
+**The two journals are separate routes, and that is the boundary.**
+`GET /api/audit` is the company's history behind `audit:read`;
+`GET /api/audit/mine` is your own actions behind `audit:read_own` **or**
+`audit:read`. Neither grant reaches the other's route.
+
+`ListMyAudit` builds its scope with `AuditOwnScope`, which pins the actor to the
+session — and the route declares no `actor` parameter at all, so the generated
+`ListMyAuditParams` has no such field and there is nothing to merge or forget to
+overwrite. Root is pinned there too: the page means "what I did".
+
+That shape replaced one where both grants opened `/api/audit` and `AuditScope`
+preferred the wider one. A Company Owner holds both, so `/account` — which
+called that route with no filter and trusted the gateway to narrow it — listed
+the entire company under a "My activity" heading. Deciding *whose rows* by grant
+inside a function two callers share is the shape to avoid; deciding it by route
+is what fixed it.
+
 Note that adding a permission to a role makes that role ungrantable by anyone who
 lacks it — `audit:read_own` had to go to `admin` and `owner` too, or a Company
 Owner could no longer create a viewer.
