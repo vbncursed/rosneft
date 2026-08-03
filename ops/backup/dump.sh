@@ -87,18 +87,43 @@ mkdir -p "$DEST/blobs"
 missing=""
 while read -r h; do
   [[ -z "$h" ]] && continue
+
+  # source_blob_hash is never format-checked on any write path (gateway and
+  # catalog both only reject the empty string; the OpenAPI schema is a bare
+  # `type: string`). A caller who can create a territory can therefore put
+  # anything in this column, and this loop used to hand $h straight into a
+  # double-quoted `sh -c` body — a hash like `aa";rm -rf /b/*;#` ran as shell
+  # inside a container that held the live blob volume read-write. A malformed
+  # hash can never name a real blob, so rejecting it loses nothing. Treated as
+  # loud, same as a missing blob below: this row came out of the database,
+  # so it is itself a symptom of the write-side validation gap and belongs in
+  # the operator's face, not silently skipped — an incomplete backup is a
+  # smaller problem than a validation bug nobody heard about.
+  if [[ ! "$h" =~ ^[0-9a-fA-F]{64}$ ]]; then
+    echo "dump.sh: source_blob_hash '$h' is not 64 hex characters, skipping copy" >&2
+    missing="$missing $h"
+    continue
+  fi
+
   sub=${h:0:2}
-  if ! docker run --rm -v andrey_blob-data:/b -v "$DEST/blobs":/out alpine sh -c "
+  # $h and $sub are passed as positional arguments ("$1"/"$2" after `_`), not
+  # interpolated into the script body, so a value can never be parsed as
+  # shell no matter what it contains — the format guard above is defence in
+  # depth, not the only thing standing between a bad hash and a shell. The
+  # source mount is also :ro: this backup script has no business holding its
+  # own source writable.
+  if ! docker run --rm -v andrey_blob-data:/b:ro -v "$DEST/blobs":/out alpine sh -c '
       set -e
+      h="$1"; sub="$2"
       for ext in bin json; do
-        src=/b/$sub/$h.\$ext
-        dst=/out/$h.\$ext
-        test -f \"\$src\" || exit 1
-        if [ ! -f \"\$dst\" ] || [ \"\$(stat -c%s \"\$dst\")\" != \"\$(stat -c%s \"\$src\")\" ]; then
-          cp -f \"\$src\" \"\$dst\"
+        src="/b/$sub/$h.$ext"
+        dst="/out/$h.$ext"
+        test -f "$src" || exit 1
+        if [ ! -f "$dst" ] || [ "$(stat -c%s "$dst")" != "$(stat -c%s "$src")" ]; then
+          cp -f "$src" "$dst"
         fi
       done
-    "; then
+    ' _ "$h" "$sub"; then
     echo "dump.sh: blob $h missing or failed to copy (expected /b/$sub/$h.bin and .json)" >&2
     missing="$missing $h"
   fi
