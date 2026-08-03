@@ -33,7 +33,9 @@ func (w *Worker) Run(ctx context.Context) {
 		metricQueueDepth.Set(float64(len(jobs)))
 		for _, j := range jobs {
 			// Acquire a slot before spawning. If ctx cancels while waiting,
-			// drop the batch and let the message stay un-acked for reclaim.
+			// drop the batch; the message stays pending in the consumer
+			// group and nothing reclaims it — recovery is
+			// ReconcileMissingArtifacts re-queueing the target later.
 			select {
 			case <-ctx.Done():
 				wg.Wait()

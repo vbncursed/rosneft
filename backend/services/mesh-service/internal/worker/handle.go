@@ -7,8 +7,10 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/storage"
 )
 
-// handleOne runs a single delivered job and acks the message on success.
-// Failures stay un-acked so the message can be reclaimed.
+// handleOne runs a single delivered job and acks the message on success. A
+// failure leaves the message pending in the consumer group — nothing
+// reclaims it (see Run's doc comment) — and recovery comes from
+// ReconcileMissingArtifacts re-queueing the target as a new job later.
 func (w *Worker) handleOne(ctx context.Context, d storage.DeliveredJob) {
 	start := time.Now()
 	err := w.mesh.ProcessJob(ctx, d.JobID)
