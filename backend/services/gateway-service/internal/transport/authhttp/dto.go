@@ -21,8 +21,13 @@ type userJSON struct {
 	Status      string   `json:"status"`
 	TOTPEnabled bool     `json:"totpEnabled"`
 	RoleSlugs   []string `json:"roleSlugs"`
-	Permissions []string `json:"permissions"`
-	IsOwner     bool     `json:"isOwner"`
+	// RoleTitles names each slug in RoleSlugs. The slug is not an abbreviation
+	// of the title — slug "admin" is titled "Company Owner", while a different
+	// role is slugged "owner" — so a UI that prints the slug names the wrong
+	// role rather than the right one tersely.
+	RoleTitles  map[string]string `json:"roleTitles,omitzero"`
+	Permissions []string          `json:"permissions"`
+	IsOwner     bool              `json:"isOwner"`
 	// Ids of the first-run tours this user has finished or skipped.
 	OnboardingToursSeen []string `json:"onboardingToursSeen,omitzero"`
 	// CSRFToken is filled only by /api/auth/me. The SPA keeps it in memory, so a
@@ -40,6 +45,7 @@ func userToJSON(u *authv1.User) userJSON {
 		Status:              u.GetStatus(),
 		TOTPEnabled:         u.GetTotpEnabled(),
 		RoleSlugs:           u.GetRoleSlugs(),
+		RoleTitles:          u.GetRoleTitles(),
 		Permissions:         u.GetPermissions(),
 		IsOwner:             u.GetIsOwner(),
 		OnboardingToursSeen: u.GetOnboardingToursSeen(),

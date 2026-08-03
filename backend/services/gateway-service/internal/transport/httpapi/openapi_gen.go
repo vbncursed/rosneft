@@ -230,16 +230,19 @@ type AuthRole struct {
 // AuthUser defines model for AuthUser.
 type AuthUser struct {
 	// CsrfToken echo back as X-CSRF-Token on POST/PUT/PATCH/DELETE; required only for cookie sessions
-	CsrfToken           *string         `json:"csrfToken,omitempty"`
-	Email               *string         `json:"email,omitempty"`
-	Id                  *string         `json:"id,omitempty"`
-	IsOwner             *bool           `json:"isOwner,omitempty"`
-	OnboardingToursSeen *[]string       `json:"onboardingToursSeen,omitempty"`
-	Permissions         *[]string       `json:"permissions,omitempty"`
-	RoleSlugs           *[]string       `json:"roleSlugs,omitempty"`
-	Status              *AuthUserStatus `json:"status,omitempty"`
-	TotpEnabled         *bool           `json:"totpEnabled,omitempty"`
-	Username            *string         `json:"username,omitempty"`
+	CsrfToken           *string   `json:"csrfToken,omitempty"`
+	Email               *string   `json:"email,omitempty"`
+	Id                  *string   `json:"id,omitempty"`
+	IsOwner             *bool     `json:"isOwner,omitempty"`
+	OnboardingToursSeen *[]string `json:"onboardingToursSeen,omitempty"`
+	Permissions         *[]string `json:"permissions,omitempty"`
+	RoleSlugs           *[]string `json:"roleSlugs,omitempty"`
+
+	// RoleTitles Slug → display title for each entry in roleSlugs. The slug is not an abbreviation of the title: slug "admin" is titled "Company Owner" while a different role is slugged "owner", so a UI printing the slug names the wrong role. A slug absent from the map means the role was deleted between reads — fall back to showing the slug.
+	RoleTitles  *map[string]string `json:"roleTitles,omitempty"`
+	Status      *AuthUserStatus    `json:"status,omitempty"`
+	TotpEnabled *bool              `json:"totpEnabled,omitempty"`
+	Username    *string            `json:"username,omitempty"`
 }
 
 // AuthUserStatus defines model for AuthUser.Status.
