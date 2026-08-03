@@ -442,6 +442,15 @@ components:
         status: { type: string, enum: [active, frozen, deleted] }
         totpEnabled: { type: boolean }
         roleSlugs: { type: array, items: { type: string } }
+        roleTitles:
+          type: object
+          additionalProperties: { type: string }
+          description: >
+            Slug → display title for each entry in roleSlugs. The slug is not an
+            abbreviation of the title: slug "admin" is titled "Company Owner"
+            while a different role is slugged "owner", so a UI printing the slug
+            names the wrong role. A slug absent from the map means the role was
+            deleted between reads — fall back to showing the slug.
         permissions: { type: array, items: { type: string } }
         isOwner: { type: boolean }
         onboardingToursSeen: { type: array, items: { type: string } }
