@@ -32,7 +32,7 @@ never pushes**, so a compromised or burned host cannot erase the copies.
 
 ## The blob path defect this script fixes
 
-The plan `dump.sh` was drafted from copied a nonexistent path:
+The plan's draft `dump.sh` copied a nonexistent path:
 `/b/$sub/$h` (no extension), guarded by `... || true`. Against the real
 layout (`backend/pkg/blobstore/fs.go:58-63`, confirmed against the live
 `andrey_blob-data` volume on 85.192.26.113) that `test -f` always failed, the
