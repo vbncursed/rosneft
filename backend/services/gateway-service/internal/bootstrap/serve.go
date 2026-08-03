@@ -10,6 +10,7 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/config"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
@@ -104,6 +105,19 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 
 	router, hz := InitRouter(svc, assetProxy, metricsHandler, authH, logger, cfg, backends)
+
+	// gateway runs no gRPC server (Health stays nil) but is a Prometheus
+	// scrape target like every gRPC service, so it needs the same
+	// service_ready gauge or ServiceNotReady can never fire for it — see the
+	// gauge's own doc comment: a process whose backends have died still
+	// serves /metrics, so `up` stays 1 and TargetDown never notices. hz.CheckAll
+	// reuses the eight backend probes already registered in InitRouter rather
+	// than duplicating that list here.
+	go grpcutil.WatchReadiness(rootCtx, grpcutil.ReadinessConfig{
+		Service: "gateway",
+		Probe:   hz.CheckAll,
+		Logger:  logger,
+	})
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
