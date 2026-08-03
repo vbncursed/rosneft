@@ -387,6 +387,23 @@ services:
     depends_on:
       gateway: { condition: service_started }
 
+  alertmanager:
+    restart: unless-stopped
+    image: prom/alertmanager:latest
+    environment:
+      <<: *tz
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    volumes:
+      # Mounted as a directory, not a single file: git replaces a file on
+      # pull, the inode changes, and a per-file bind keeps serving the old
+      # one. This trap has already fired on ops/prometheus/*.yml.
+      - ./ops/alertmanager:/etc/alertmanager:ro
+      - alertmanager-data:/alertmanager
+    expose:
+      - "9093"
+
 # The frontend is a client-only Vite SPA — no server runtime, so it is not a
 # compose service. Run it with `yarn dev` (see frontend/README.md); Prometheus
 # stays compose-internal and the SPA reads it through the gateway's
@@ -399,3 +416,4 @@ volumes:
   upload-incoming:
   prometheus-data:
   audit-digest:
+  alertmanager-data:

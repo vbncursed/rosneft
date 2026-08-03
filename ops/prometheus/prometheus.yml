@@ -5,6 +5,14 @@ global:
 rule_files:
   - rules.yml
 
+# Where the eight-plus-one rules above actually go. alertmanager itself gets
+# no scrape target below — it isn't one of this stack's Go services and does
+# not answer /metrics in our format.
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
 scrape_configs:
   - job_name: services
     static_configs:
