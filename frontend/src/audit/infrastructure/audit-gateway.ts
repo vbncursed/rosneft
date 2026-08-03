@@ -81,6 +81,24 @@ export async function fetchAuditPage(
   };
 }
 
+// fetchMyAuditPage reads the own-journal. The actor is not a parameter there —
+// the route takes it from the session and declares no actor field at all — so
+// filters.actor is dropped rather than forwarded, and no query string can widen
+// the read.
+export async function fetchMyAuditPage(
+  filters: AuditFilters,
+  cursor: number | null,
+): Promise<AuditPage> {
+  const dto = await httpGet<AuditPageDto>(
+    `/api/audit/mine${toQuery({ ...filters, actor: "" }, cursor)}`,
+  );
+  return {
+    entries: dto.entries.map(toEntry),
+    nextCursor: dto.nextCursor && dto.nextCursor > 0 ? dto.nextCursor : null,
+    refs: dto.refs ?? {},
+  };
+}
+
 // The bytes are fetched and handed back as a blob rather than linked to with a
 // plain <a download>, because the caller wants a filename and an error it can
 // surface — an <a> gives neither. Kept here rather than in the component for the
