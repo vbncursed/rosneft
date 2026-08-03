@@ -24,13 +24,37 @@ scrape_configs:
           - passkey:9101
           - content:9101
           - mesh-api:9101
-          - mesh-worker:9101
           - asset:9101
           - upload:9101
           - audit:9101
         labels: { stack: andrey }
+    # mesh-worker alone runs multiple replicas (docker-compose.yml: replicas:
+    # 2). A single static `mesh-worker:9101` entry resolves through Compose's
+    # round-robin DNS to whichever replica IP the scraper happens to get —
+    # deterministically one target, nondeterministically which, so the other
+    # replica is invisible and TargetDown cannot see it die. DNS SD with type
+    # A instead discovers one target per IP behind the name, so both
+    # replicas get scraped as their own target.
+    dns_sd_configs:
+      - names: ["mesh-worker"]
+        type: A
+        port: 9101
     relabel_configs:
+      # dns_sd_configs has no per-target `labels:` (unlike static_configs), so
+      # `stack` is set here unconditionally instead — harmless for the static
+      # targets, which already carry the same value from their own config.
+      - target_label: stack
+        replacement: andrey
       - source_labels: [__address__]
         regex: '([^:]+):.*'
+        target_label: service
+        replacement: '$1'
+      # Overrides the rule above for DNS-discovered targets only:
+      # __address__ there is `<resolved-ip>:9101`, so stripping the port
+      # leaves an IP, not "mesh-worker". __meta_dns_name carries the queried
+      # name instead and is unset (empty) for the static targets, so this
+      # rule is a no-op for them — the regex only matches a non-empty value.
+      - source_labels: [__meta_dns_name]
+        regex: '(.+)'
         target_label: service
         replacement: '$1'
