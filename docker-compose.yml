@@ -45,9 +45,12 @@ services:
       context: ./backend
       dockerfile: services/gateway-service/Dockerfile
     depends_on:
-      catalog: { condition: service_started }
+      # Only these two: without them the gateway is useless. Everything else
+      # relies on the retry policy every gRPC client carries — that is what
+      # lets boot order stop being a question for the rest.
+      catalog: { condition: service_healthy }
+      auth: { condition: service_healthy }
       content: { condition: service_started }
-      auth: { condition: service_started }
       twofa: { condition: service_started }
       passkey: { condition: service_started }
       mesh-api: { condition: service_started }
@@ -81,7 +84,15 @@ services:
       # the gateway → upload-service stream time to drain.
       GATEWAY_WRITE_TIMEOUT: "30m"
     ports:
-      - "8080:8080"
+      # Localhost only: nginx terminates TLS and applies limit_req in front.
+      # Publishing on 0.0.0.0 let anything reach the gateway around both.
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "/gateway", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   catalog:
     restart: unless-stopped
@@ -98,6 +109,13 @@ services:
       CATALOG_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
       CATALOG_AUTO_MIGRATE: "true"
       CATALOG_LOG_LEVEL: "info"
+    healthcheck:
+      test: ["CMD", "/catalog", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      # Covers the migration window on boot.
+      start_period: 30s
 
   auth:
     restart: unless-stopped
@@ -124,6 +142,12 @@ services:
       AUTH_BOOTSTRAP_USERNAME: "admin"
       AUTH_BOOTSTRAP_PASSWORD: "change-me-now"
       AUTH_LOG_LEVEL: "info"
+    healthcheck:
+      test: ["CMD", "/auth", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   twofa:
     restart: unless-stopped
@@ -148,6 +172,12 @@ services:
       # deploy environment; this local-only value encrypts TOTP secrets at rest.
       TWOFA_SECRET_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
       TWOFA_LOG_LEVEL: "info"
+    healthcheck:
+      test: ["CMD", "/twofa", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   passkey:
     restart: unless-stopped
@@ -173,6 +203,12 @@ services:
       PASSKEY_RP_ORIGINS: "http://localhost:3000"
       PASSKEY_RP_NAME: "Andrey"
       PASSKEY_LOG_LEVEL: "info"
+    healthcheck:
+      test: ["CMD", "/passkey", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   content:
     restart: unless-stopped
@@ -190,6 +226,13 @@ services:
       CONTENT_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
       CONTENT_AUTO_MIGRATE: "true"
       CONTENT_LOG_LEVEL: "info"
+    healthcheck:
+      test: ["CMD", "/content", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      # Covers the migration window on boot.
+      start_period: 30s
 
   audit:
     restart: unless-stopped
@@ -215,6 +258,13 @@ services:
       # No depends_on beyond postgres on purpose: ensure_audit_triggers() skips
       # tables the other services have not migrated yet and re-attaches on the
       # next boot, so this service needs no ordering against them.
+    healthcheck:
+      test: ["CMD", "/audit", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      # Covers the migration window on boot.
+      start_period: 30s
     volumes:
       # Deliberately a different volume from postgres-data. The witness is only
       # worth having if a backup of the database is not also a backup of the
@@ -237,12 +287,25 @@ services:
       MESH_REDIS_ADDR: "redis:6379"
       MESH_CATALOG_GRPC_ADDR: "catalog:9001"
       MESH_LOG_LEVEL: "info"
+    healthcheck:
+      test: ["CMD", "/mesh-api", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   mesh-worker:
     restart: unless-stopped
     build:
       context: ./backend
       dockerfile: services/mesh-service/Dockerfile.worker
+    # Two replicas: safe because Task 6's in-flight latch stops them from
+    # converting the same territory concurrently, and Task 7 keys each
+    # replica's Redis consumer name off its hostname so they register
+    # distinctly. No healthcheck: this binary listens on nothing; its
+    # liveness is read from the service_ready{service="mesh-worker"} gauge.
+    deploy:
+      replicas: 2
     depends_on:
       redis: { condition: service_healthy }
       catalog: { condition: service_started }
@@ -272,6 +335,12 @@ services:
       ASSET_HTTP_ADDR: ":8081"
       ASSET_BLOB_DIR: "/var/blob"
       ASSET_LOG_LEVEL: "info"
+    healthcheck:
+      test: ["CMD", "/asset", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     volumes:
       - blob-data:/var/blob:ro
 
@@ -289,6 +358,12 @@ services:
       UPLOAD_INCOMING_DIR: "/var/upload/incoming"
       UPLOAD_MAX_UPLOAD_BYTES: "2147483648"
       UPLOAD_LOG_LEVEL: "info"
+    healthcheck:
+      test: ["CMD", "/upload", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     volumes:
       # Writes finalized blobs to the same content-addressed volume the
       # mesh-worker reads from.
