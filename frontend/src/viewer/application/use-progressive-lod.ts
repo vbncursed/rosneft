@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import {
   pickLod,
   selectProgressive,
@@ -29,12 +29,14 @@ export function useProgressiveLod(
   targetLod = 0,
 ): ProgressiveLod {
   const [readyHash, setReadyHash] = useState<string | null>(null);
-  const [broken, setBroken] = useState<string[]>([]);
+  const [broken, setBroken] = useState<readonly string[]>([]);
 
-  const available = useMemo(
-    () => chain.filter((a) => !broken.includes(a.hash)),
-    [chain, broken],
-  );
+  // No useMemo/useCallback here on purpose: the React Compiler is on in this
+  // project and refuses to optimise a component whose manual memoization it
+  // cannot preserve. It memoizes these itself, and the identity of
+  // onWarmReady/onFailed matters — LodWarmer's effect takes onReady as a
+  // dependency.
+  const available = chain.filter((a) => !broken.includes(a.hash));
   const target = pickLod(available, targetLod);
   const ready = target !== null && readyHash === target.hash;
   const { show, warm } = selectProgressive(available, targetLod, ready);
@@ -42,11 +44,11 @@ export function useProgressiveLod(
   const showHash = show?.hash ?? null;
   const targetHash = target?.hash ?? null;
 
-  const onWarmReady = useCallback(() => setReadyHash(targetHash), [targetHash]);
-  const onFailed = useCallback(() => {
+  const onWarmReady = () => setReadyHash(targetHash);
+  const onFailed = () => {
     if (showHash === null) return;
     setBroken((prev) => (prev.includes(showHash) ? prev : [...prev, showHash]));
-  }, [showHash]);
+  };
 
   return {
     url: show ? lodUrl(show) : null,
