@@ -81,8 +81,9 @@ func (c Config) ParsedLODRatios() ([]float64, error) {
 // container id and is therefore unique per replica.
 //
 // Redis Streams treats one consumer name as one consumer: two containers
-// sharing a name share a pending-entries list, and XAUTOCLAIM can no longer
-// tell which of them died. Falling back to a fixed string would reintroduce
+// sharing a name share a pending-entries list, so the two replicas' in-flight
+// work becomes indistinguishable — Redis has no way to tell which container
+// claimed which message. Falling back to a fixed string would reintroduce
 // exactly that, so an unavailable hostname is an error, not a default.
 func DefaultWorkerName() string {
 	host, err := os.Hostname()

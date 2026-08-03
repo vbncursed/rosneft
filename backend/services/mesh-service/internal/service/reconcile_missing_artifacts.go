@@ -8,9 +8,18 @@ import (
 )
 
 // ReconcileLockTTL bounds how long a claimed target stays claimed if the
-// worker dies between claiming it and finishing. Longer than the longest
-// realistic conversion, shorter than a working day.
-const ReconcileLockTTL = 30 * time.Minute
+// worker dies between claiming it and finishing — it is also, therefore, the
+// recovery time for a dead worker: nothing else reclaims an orphaned stream
+// message (no XAUTOCLAIM/XCLAIM anywhere in this service), so this TTL is the
+// sole path back to a queued retry.
+//
+// Measured against production Prometheus on 2026-08-03:
+// histogram_quantile(1.0, …) over mesh_conversion_duration_seconds_bucket for
+// the prior 15 days gave a p100 of 59.25s (the le=60 bucket held all 60
+// observations; le=30 held 36). 10 minutes is still ~10x that measured
+// maximum — comfortable headroom without leaving a dead worker's target
+// stuck for half an hour.
+const ReconcileLockTTL = 10 * time.Minute
 
 // ReconcileMissingArtifacts queues a conversion for every catalog target
 // (territory or model) that does not already have a LOD0 artifact.

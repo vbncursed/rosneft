@@ -25,8 +25,8 @@ func (s *ConfigSuite) TestWorkerNameDefaultsToHostname() {
 	got := config.DefaultWorkerName()
 
 	assert.Equal(s.T(), host, got)
-	// Two containers sharing one consumer name are one consumer to Redis, and
-	// XAUTOCLAIM can no longer tell which of them died.
+	// Two containers sharing one consumer name are one consumer to Redis —
+	// their in-flight work would be indistinguishable in XINFO CONSUMERS.
 	assert.Assert(s.T(), got != "mesh-worker-1")
 }
 
