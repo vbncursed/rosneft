@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 	"github.com/vbncursed/rosneft/backend/services/asset-service/internal/config"
 )
@@ -27,6 +28,16 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	svc := InitService(store)
 	mux, hz := InitMux(svc, logger, cfg.BlobDir)
+
+	// asset runs no gRPC server (Health stays nil) but is a Prometheus scrape
+	// target like every gRPC service, so it needs the same service_ready
+	// gauge or ServiceNotReady can never fire for it. hz.CheckAll reuses the
+	// blobdir probe already registered in InitMux rather than duplicating it.
+	go grpcutil.WatchReadiness(rootCtx, grpcutil.ReadinessConfig{
+		Service: "asset",
+		Probe:   hz.CheckAll,
+		Logger:  logger,
+	})
 
 	srv := &http.Server{
 		Addr: cfg.HTTPAddr,
