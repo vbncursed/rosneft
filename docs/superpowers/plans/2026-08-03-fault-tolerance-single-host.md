@@ -10,6 +10,34 @@
 
 **Spec:** [`docs/superpowers/specs/2026-08-03-fault-tolerance-single-host-design.md`](../specs/2026-08-03-fault-tolerance-single-host-design.md)
 
+## Навыки, которые обязан загрузить исполнитель каждой задачи
+
+Субагент стартует с чистым контекстом: он не видит ни этого разговора, ни
+спеки, ни навыков, загруженных тем, кто его запустил. Из репозитория к нему
+доедет только `CLAUDE.md` (и `backend/CLAUDE.md` при работе в `backend/`).
+Всё остальное — ниже, и вызывается инструментом Skill **до** первой правки.
+
+**В каждой задаче без исключений, включая ops-задачи 9–12:**
+
+- `ponytail:ponytail`
+- `modern-go-guidelines:use-modern-go`
+- `superpowers:verification-before-completion`
+
+**Дополнительно в Go-задачах (1–8):**
+
+- `cc-skills-golang:golang-how-to` — оркестратор, сам подтягивает нужное из
+  своего набора по контексту; перечислять все 46 не надо
+- `superpowers:test-driven-development`
+
+**Точечно по задачам:**
+
+| Задачи | Дополнительно |
+| --- | --- |
+| 1, 2, 3 — тикеры, горутины, пробы | `cc-skills-golang:golang-concurrency`, `cc-skills-golang:golang-observability`, `cc-skills-golang:golang-testing` |
+| 4 — retry на bufconn | `cc-skills-golang:golang-grpc`, `cc-skills-golang:golang-testing` |
+| 6 — защёлка, minimock | `cc-skills-golang:golang-testing`, `cc-skills-golang:golang-stretchr-testify` |
+| 7, 8 — Cobra | `cc-skills-golang:golang-spf13-cobra` |
+
 ## Global Constraints
 
 - **Файл — максимум 200 строк** (без пустых и комментариев). На бэкенде правило проверяется руками.
