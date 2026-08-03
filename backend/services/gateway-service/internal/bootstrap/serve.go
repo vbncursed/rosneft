@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"google.golang.org/grpc"
+
 	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/config"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
@@ -90,7 +92,18 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 
 	metricsHandler := InitMetricsHandler(cfg, logger)
 
-	router, hz := InitRouter(svc, assetProxy, metricsHandler, authH, logger, cfg)
+	backends := map[string]grpc.ClientConnInterface{
+		"catalog": cat.Conn(),
+		"content": con.Conn(),
+		"auth":    authClient.Conn(),
+		"twofa":   twofaClient.Conn(),
+		"passkey": passkeyClient.Conn(),
+		"mesh":    m.Conn(),
+		"upload":  up.Conn(),
+		"audit":   auditClient.Conn(),
+	}
+
+	router, hz := InitRouter(svc, assetProxy, metricsHandler, authH, logger, cfg, backends)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,

@@ -50,7 +50,7 @@ func (s *SpecCoverageSuite) SetupTest() {
 	authH := authhttp.New(nil, nil, nil, nil, slog.New(slog.NewTextHandler(io.Discard, nil)),
 		authhttp.CookieOptions{}, []byte("test"))
 	r, _ := InitRouter(svc, http.NotFoundHandler(), http.NotFoundHandler(), authH,
-		slog.New(slog.NewTextHandler(io.Discard, nil)), config.Config{})
+		slog.New(slog.NewTextHandler(io.Discard, nil)), config.Config{}, nil)
 	s.router = r
 }
 
