@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { useGLTF } from "@react-three/drei";
 import { extendGltfLoader } from "@/viewer/presentation/three/gltf-loader-setup";
 import LodErrorBoundary from "@/viewer/presentation/three/lod-error-boundary";
@@ -12,9 +12,19 @@ function Warm({ url, onReady }: LodWarmerProps) {
   // Suspends until the GLB is fetched and parsed. drei caches by URL, so the
   // component that swaps in afterwards gets a cache hit, not a second fetch.
   useGLTF(url, true, true, extendGltfLoader);
+
+  // onReady is a fresh closure on every render of the caller — nothing memoizes
+  // it, see the note in use-progressive-lod.ts. Held in a ref so the effect
+  // below keys on the url alone: "this level finished loading" is a fact about
+  // the url, and it should fire once per url rather than once per re-render of
+  // whatever is above us.
+  const latest = useRef(onReady);
   useEffect(() => {
-    onReady();
-  }, [url, onReady]);
+    latest.current = onReady;
+  });
+  useEffect(() => {
+    latest.current();
+  }, [url]);
   return null;
 }
 
