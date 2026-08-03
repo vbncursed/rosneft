@@ -26,7 +26,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("init blobstore: %w", err)
 	}
 	svc := InitService(store)
-	mux, hz := InitMux(svc, logger)
+	mux, hz := InitMux(svc, logger, cfg.BlobDir)
 
 	srv := &http.Server{
 		Addr: cfg.HTTPAddr,
