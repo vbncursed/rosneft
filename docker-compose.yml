@@ -251,7 +251,6 @@ services:
       MESH_REDIS_ADDR: "redis:6379"
       MESH_CATALOG_GRPC_ADDR: "catalog:9001"
       MESH_BLOB_DIR: "/var/blob"
-      MESH_WORKER_NAME: "mesh-worker-1"
       MESH_LOG_LEVEL: "info"
     volumes:
       # Named volume so Docker manages permissions: the volume is

@@ -5,6 +5,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -76,6 +77,21 @@ func (c Config) ParsedLODRatios() ([]float64, error) {
 	return out, nil
 }
 
+// DefaultWorkerName is the process hostname, which under Compose is the
+// container id and is therefore unique per replica.
+//
+// Redis Streams treats one consumer name as one consumer: two containers
+// sharing a name share a pending-entries list, and XAUTOCLAIM can no longer
+// tell which of them died. Falling back to a fixed string would reintroduce
+// exactly that, so an unavailable hostname is an error, not a default.
+func DefaultWorkerName() string {
+	host, err := os.Hostname()
+	if err != nil || host == "" {
+		return ""
+	}
+	return host
+}
+
 const envPrefix = "MESH"
 
 // Load resolves configuration from cobra flags + env.
@@ -90,7 +106,7 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.SetDefault("redis-addr", "redis:6379")
 	v.SetDefault("redis-db", 0)
 	v.SetDefault("catalog-grpc-addr", "catalog:9001")
-	v.SetDefault("worker-name", "mesh-worker-1")
+	v.SetDefault("worker-name", DefaultWorkerName())
 	v.SetDefault("block-timeout", 5*time.Second)
 	v.SetDefault("max-concurrent-jobs", 0) // 0 → runtime.GOMAXPROCS
 	v.SetDefault("log-level", "info")
@@ -133,6 +149,9 @@ func (c Config) ValidateWorker() error {
 	}
 	if c.BlobDir == "" {
 		return fmt.Errorf("config: blob-dir is required")
+	}
+	if c.WorkerName == "" {
+		return fmt.Errorf("config: worker-name is empty and the hostname is unavailable")
 	}
 	return nil
 }
