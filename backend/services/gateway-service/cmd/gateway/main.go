@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -50,16 +51,59 @@ func newRootCmd() *cobra.Command {
 	flags.Bool("cookie-secure", true, "mark the session cookie Secure; disable only for plain-http local dev")
 	flags.Duration("session-cookie-ttl", 720*time.Hour, "session cookie Max-Age; should not exceed auth's absolute session TTL")
 	flags.String("csrf-secret", "", "HMAC key for the anti-CSRF token (required)")
+
+	cmd.AddCommand(newHealthcheckCmd())
 	return cmd
 }
 
 func run(cmd *cobra.Command, _ []string) error {
-	cfg, err := config.Load(cmd)
+	cfg, err := loadCfg(cmd)
 	if err != nil {
 		return err
 	}
-	if err := cfg.Validate(); err != nil {
-		return err
-	}
 	return bootstrap.RunServe(cmd.Context(), cfg)
+}
+
+func loadCfg(cmd *cobra.Command) (config.Config, error) {
+	cfg, err := config.Load(cmd)
+	if err != nil {
+		return config.Config{}, err
+	}
+	if err := cfg.Validate(); err != nil {
+		return config.Config{}, err
+	}
+	return cfg, nil
+}
+
+// newHealthcheckCmd builds the `healthcheck` subcommand used as the
+// container healthcheck. gateway and asset are HTTP, not gRPC, so they get a
+// small local probe against their own /readyz rather than
+// grpcutil.HealthcheckCmd.
+func newHealthcheckCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:          "healthcheck",
+		Short:        "Probe this service's own /readyz and exit 0 or 1",
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cfg, err := loadCfg(cmd)
+			if err != nil {
+				return err
+			}
+			ctx, cancel := context.WithTimeout(cmd.Context(), 3*time.Second)
+			defer cancel()
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://localhost"+cfg.HTTPAddr+"/readyz", nil)
+			if err != nil {
+				return err
+			}
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return err
+			}
+			defer func() { _ = resp.Body.Close() }()
+			if resp.StatusCode != http.StatusOK {
+				return fmt.Errorf("readyz: %s", resp.Status)
+			}
+			return nil
+		},
+	}
 }

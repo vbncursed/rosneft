@@ -11,6 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 	"github.com/vbncursed/rosneft/backend/services/upload-service/internal/bootstrap"
 	"github.com/vbncursed/rosneft/backend/services/upload-service/internal/config"
 )
@@ -41,16 +42,33 @@ func newRootCmd() *cobra.Command {
 	flags.String("log-format", "json", "log format: json|text")
 	flags.Duration("shutdown-timeout", 15*time.Second, "graceful shutdown timeout")
 
+	cmd.AddCommand(
+		grpcutil.HealthcheckCmd(func(c *cobra.Command) (string, error) {
+			cfg, err := loadCfg(c)
+			if err != nil {
+				return "", err
+			}
+			return "localhost" + cfg.GRPCAddr, nil
+		}),
+	)
 	return cmd
 }
 
 func run(cmd *cobra.Command, _ []string) error {
-	cfg, err := config.Load(cmd)
+	cfg, err := loadCfg(cmd)
 	if err != nil {
 		return err
 	}
-	if err := cfg.Validate(); err != nil {
-		return err
-	}
 	return bootstrap.RunServe(cmd.Context(), cfg)
+}
+
+func loadCfg(cmd *cobra.Command) (config.Config, error) {
+	cfg, err := config.Load(cmd)
+	if err != nil {
+		return config.Config{}, err
+	}
+	if err := cfg.Validate(); err != nil {
+		return config.Config{}, err
+	}
+	return cfg, nil
 }
