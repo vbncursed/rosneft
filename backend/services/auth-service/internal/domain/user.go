@@ -29,4 +29,8 @@ type User struct {
 	// OnboardingToursSeen lists the first-run tours this user has finished or
 	// skipped, by id. Empty until they complete their first one.
 	OnboardingToursSeen []string
+	// RoleTitles maps each slug in RoleSlugs to the role's display title. It is
+	// filled by the same query that loads the slugs — the join onto roles is
+	// already there, so the title is one more column rather than a second read.
+	RoleTitles map[string]string
 }
