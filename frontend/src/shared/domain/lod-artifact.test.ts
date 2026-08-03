@@ -2,7 +2,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { orderByPreferred, pickLod, type LodArtifact } from "./lod-artifact.ts";
+import {
+  orderByPreferred,
+  pickLod,
+  pickCoarsest,
+  selectProgressive,
+  type LodArtifact,
+} from "./lod-artifact.ts";
 
 const lod = (n: number): LodArtifact => ({ lod: n, hash: `h${n}`, size: 100 - n });
 const CHAIN = [lod(0), lod(1), lod(2)];
@@ -37,4 +43,42 @@ test("pickLod returns the closest entry when the request is missing", () => {
 
 test("pickLod returns null for an empty chain — asset not converted yet", () => {
   assert.equal(pickLod([], 0), null);
+});
+
+test("pickCoarsest returns the highest lod number", () => {
+  assert.equal(pickCoarsest(CHAIN)?.lod, 2);
+});
+
+test("pickCoarsest on an empty chain is null", () => {
+  assert.equal(pickCoarsest([]), null);
+});
+
+test("before ready, show the coarsest and warm the target", () => {
+  const sel = selectProgressive(CHAIN, 0, false);
+  assert.equal(sel.show?.lod, 2);
+  assert.equal(sel.warm?.lod, 0);
+});
+
+test("once ready, show the target and warm nothing", () => {
+  const sel = selectProgressive(CHAIN, 0, true);
+  assert.equal(sel.show?.lod, 0);
+  assert.equal(sel.warm, null);
+});
+
+test("a single-entry chain never warms — there is nothing to upgrade to", () => {
+  const sel = selectProgressive([lod(0)], 0, false);
+  assert.equal(sel.show?.lod, 0);
+  assert.equal(sel.warm, null);
+});
+
+test("an empty chain selects nothing", () => {
+  const sel = selectProgressive([], 0, false);
+  assert.equal(sel.show, null);
+  assert.equal(sel.warm, null);
+});
+
+test("a target that is itself the coarsest never warms", () => {
+  const sel = selectProgressive(CHAIN, 2, false);
+  assert.equal(sel.show?.lod, 2);
+  assert.equal(sel.warm, null);
 });

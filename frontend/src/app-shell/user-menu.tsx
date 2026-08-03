@@ -30,9 +30,13 @@ export default function UserMenu() {
             <div className="px-3 py-2">
               <p className="truncate text-sm font-semibold text-white">{p.username}</p>
               <p className="truncate text-xs text-neutral-400">{p.email}</p>
+              {/* Заголовок, а не слаг. Слаг `admin` озаглавлен «Company Owner»,
+                  а слаг `owner` — это другая роль, «People & Roles Manager»:
+                  показ слага называл роль чужим именем, а не сокращал её
+                  собственное. Запас на случай удалённой роли — сам слаг. */}
               <p className="mt-1 flex flex-wrap gap-1">
                 {p.roleSlugs.map((r) => (
-                  <span key={r} className="rounded-full border border-white/15 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-neutral-300">{r}</span>
+                  <span key={r} className="rounded-full border border-white/15 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-neutral-300">{p.roleTitles[r] ?? r}</span>
                 ))}
               </p>
             </div>

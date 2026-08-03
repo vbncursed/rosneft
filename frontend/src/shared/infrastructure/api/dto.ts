@@ -12,10 +12,32 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Read the audit journal
+         * Read the company's audit journal
          * @description Root sees every entry; anyone else sees only their own company's, keyed to the created_by chain. The tenant filter comes from the session, never from a parameter. Requires the audit:read permission (Root bypasses it). Paging is by cursor over descending id, so pages stay stable while new entries land above them.
+         *     audit:read_own does not reach this route. It opens GET /api/audit/mine instead — the two journals are separate routes so that "whose rows" follows from which one was called, not from which grant the caller happens to hold.
          */
         get: operations["listAudit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audit/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read your own actions
+         * @description The caller's own entries, newest first. The actor comes from the session and this route accepts no actor parameter at all — so there is nothing to merge and nothing to forget to overwrite, and it cannot be talked into showing somebody else's rows whatever the caller holds. That is the whole reason it exists separately from GET /api/audit, whose scope is the company.
+         *     Requires audit:read_own or audit:read. Root is pinned to its own actions here too rather than given every row: the page means "what I did".
+         */
+        get: operations["listMyAudit"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2425,6 +2447,10 @@ export interface components {
             status?: "active" | "frozen" | "deleted";
             totpEnabled?: boolean;
             roleSlugs?: string[];
+            /** @description Slug → display title for each entry in roleSlugs. The slug is not an abbreviation of the title: slug "admin" is titled "Company Owner" while a different role is slugged "owner", so a UI printing the slug names the wrong role. A slug absent from the map means the role was deleted between reads — fall back to showing the slug. */
+            roleTitles?: {
+                [key: string]: string;
+            };
             permissions?: string[];
             isOwner?: boolean;
             onboardingToursSeen?: string[];
@@ -2681,6 +2707,41 @@ export interface operations {
             query?: {
                 /** @description Filter by acting user id. */
                 actor?: string;
+                /** @description Exact action, e.g. territory.update. */
+                action?: string;
+                /** @description Exact entity kind, e.g. territory. */
+                entity?: string;
+                from?: string;
+                to?: string;
+                /** @description nextCursor from the previous page; omit for the newest page. */
+                cursor?: number;
+                /** @description Page size, default 50, clamped to 200. */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    listMyAudit: {
+        parameters: {
+            query?: {
                 /** @description Exact action, e.g. territory.update. */
                 action?: string;
                 /** @description Exact entity kind, e.g. territory. */

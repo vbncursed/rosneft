@@ -6,17 +6,15 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
-  useState,
 } from "react";
-import type { LodArtifact } from "@/shared/domain/lod-artifact";
 import type { Group, Object3D } from "three";
 import type { ThreeEvent } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { SkeletonUtils } from "three-stdlib";
-import { lodUrl } from "@/shared/application/lod-url";
-import { orderByPreferred } from "@/shared/domain/lod-artifact";
 import type { ResolvedPlacement } from "@/placement/domain/placement";
 import { extendGltfLoader } from "@/viewer/presentation/three/gltf-loader-setup";
+import { useProgressiveLod } from "@/viewer/application/use-progressive-lod";
+import LodWarmer from "@/viewer/presentation/three/lod-warmer";
 import LodErrorBoundary from "@/viewer/presentation/three/lod-error-boundary";
 
 interface PlacementInstanceProps {
@@ -29,13 +27,6 @@ interface PlacementInstanceProps {
   ref?: Ref<Object3D>;
 }
 
-// Placements are typically small in screen space (overlay objects on a
-// parent scene), so we ask for the coarsest LOD available — LOD2 on the
-// default backend config. orderByPreferred returns the chain ranked by
-// closeness to the requested LOD; the boundary walks the rank list when
-// any entry fails to load.
-const PREFERRED_PLACEMENT_LOD = 2;
-
 // PlacementInstance owns the in-scene representation of a single placement.
 // The transform is applied imperatively (useLayoutEffect on the group's ref)
 // rather than via JSX props because TransformControls mutates the object
@@ -43,6 +34,12 @@ const PREFERRED_PLACEMENT_LOD = 2;
 // re-renders elsewhere stomp on the gizmo's in-flight mutations. The
 // forwarded ref lets the parent attach <TransformControls> when this
 // placement is the selected one.
+//
+// The LOD is progressive, same as the territory: the coarsest level mounts
+// first so a scene full of placements paints quickly, then each upgrades to
+// LOD0. Sitting on the coarsest level permanently used to be acceptable when
+// lower LODs kept full-resolution textures; they no longer do, so a placed
+// asset would stay visibly blurry up close.
 function PlacementInstanceImpl({
   placement,
   selected,
@@ -50,40 +47,23 @@ function PlacementInstanceImpl({
   onSelect,
   ref,
 }: PlacementInstanceProps) {
-  const fallbackChain = useMemo(
-    () => orderByPreferred(placement.lods, PREFERRED_PLACEMENT_LOD),
-    [placement.lods],
-  );
-  // Reset the fallback index synchronously when the chain itself changes
-  // (server returned different LOD hashes, or the placement was edited
-  // to point at a different asset). React's "derived state from prop
-  // change" pattern: setState during render is fine when it's gated by
-  // a strict-equality compare, since the next render finds the state
-  // already in sync.
-  const [chainRef, setChainRef] = useState<LodArtifact[]>(fallbackChain);
-  const [idx, setIdx] = useState(0);
-  if (chainRef !== fallbackChain) {
-    setChainRef(fallbackChain);
-    setIdx(0);
-  }
-
-  if (fallbackChain.length === 0 || idx >= fallbackChain.length) return null;
-  const url = lodUrl(fallbackChain[idx]);
+  const { url, warmUrl, onWarmReady, onFailed } = useProgressiveLod(placement.lods, 0);
+  if (!url) return null;
 
   return (
-    <LodErrorBoundary
-      resetKey={url}
-      onError={() => setIdx((i) => i + 1)}
-    >
-      <PlacementBody
-        ref={ref}
-        placement={placement}
-        url={url}
-        selected={selected}
-        measureMode={measureMode}
-        onSelect={onSelect}
-      />
-    </LodErrorBoundary>
+    <>
+      <LodErrorBoundary resetKey={url} onError={onFailed}>
+        <PlacementBody
+          ref={ref}
+          placement={placement}
+          url={url}
+          selected={selected}
+          measureMode={measureMode}
+          onSelect={onSelect}
+        />
+      </LodErrorBoundary>
+      {warmUrl && <LodWarmer url={warmUrl} onReady={onWarmReady} />}
+    </>
   );
 }
 

@@ -19,7 +19,11 @@ export default function AuditRow({ entry, refs = {} }: { entry: AuditEntry; refs
 
   return (
     <li className="border-b border-white/5 last:border-b-0">
-      <div className="grid grid-cols-1 items-baseline gap-1 px-4 py-3 sm:grid-cols-[11rem_1fr_10rem_5rem] sm:gap-3">
+      {/* Шаблон колонок обязан совпадать с шапкой в audit-table.tsx символ в
+          символ: это две независимые сетки, выглядящие одной таблицей ровно
+          пока совпадают, и разъехавшись они не сломают ни сборку, ни тест —
+          только заголовки перестанут стоять над своими колонками. */}
+      <div className="grid grid-cols-1 items-baseline gap-1 px-4 py-3 @xl:grid-cols-[9rem_1fr_7rem_4rem] @xl:gap-3 @3xl:grid-cols-[11rem_1fr_10rem_5rem]">
         <span className="font-mono text-xs text-neutral-500">
           {formatTimestamp(entry.at)}
         </span>
