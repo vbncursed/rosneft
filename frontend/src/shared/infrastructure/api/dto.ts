@@ -2447,6 +2447,10 @@ export interface components {
             status?: "active" | "frozen" | "deleted";
             totpEnabled?: boolean;
             roleSlugs?: string[];
+            /** @description Slug → display title for each entry in roleSlugs. The slug is not an abbreviation of the title: slug "admin" is titled "Company Owner" while a different role is slugged "owner", so a UI printing the slug names the wrong role. A slug absent from the map means the role was deleted between reads — fall back to showing the slug. */
+            roleTitles?: {
+                [key: string]: string;
+            };
             permissions?: string[];
             isOwner?: boolean;
             onboardingToursSeen?: string[];

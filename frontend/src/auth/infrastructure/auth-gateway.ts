@@ -13,6 +13,7 @@ export function mapPrincipal(d: AuthUserDto): Principal {
     status: (d.status as Principal["status"]) ?? "active",
     totpEnabled: d.totpEnabled ?? false,
     roleSlugs: d.roleSlugs ?? [],
+    roleTitles: d.roleTitles ?? {},
     permissions: d.permissions ?? [],
     isOwner: d.isOwner ?? false,
     onboardingToursSeen: d.onboardingToursSeen ?? [],
