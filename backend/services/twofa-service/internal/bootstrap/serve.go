@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
+	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 	twofav1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/twofa/v1"
 	"github.com/vbncursed/rosneft/backend/services/twofa-service/internal/config"
@@ -51,6 +52,16 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	defer func() { _ = authClient.Close() }()
 
 	grpcSrv, healthSrv := InitGRPCServer(handler, logger)
+
+	go grpcutil.WatchReadiness(rootCtx, grpcutil.ReadinessConfig{
+		Service: "twofa",
+		Health:  healthSrv,
+		Names:   []string{"", twofav1.TwoFAService_ServiceDesc.ServiceName},
+		Probe: func(ctx context.Context) error {
+			return errors.Join(pool.Ping(ctx), rdb.Ping(ctx).Err())
+		},
+		Logger: logger,
+	})
 
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {

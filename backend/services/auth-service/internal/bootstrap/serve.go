@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
+	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 	authv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/auth/v1"
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/config"
@@ -54,6 +55,16 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("bootstrap admin: %w", err)
 	}
 	grpcSrv, healthSrv := InitGRPCServer(handler, logger)
+
+	go grpcutil.WatchReadiness(rootCtx, grpcutil.ReadinessConfig{
+		Service: "auth",
+		Health:  healthSrv,
+		Names:   []string{"", authv1.AuthService_ServiceDesc.ServiceName},
+		Probe: func(ctx context.Context) error {
+			return errors.Join(pool.Ping(ctx), rdb.Ping(ctx).Err())
+		},
+		Logger: logger,
+	})
 
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {

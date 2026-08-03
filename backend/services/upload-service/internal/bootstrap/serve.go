@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 
@@ -45,6 +46,14 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	healthSrv := health.NewServer()
 	healthpb.RegisterHealthServer(grpcSrv, healthSrv)
 	healthSrv.SetServingStatus(uploadv1.UploadService_ServiceDesc.ServiceName, healthpb.HealthCheckResponse_SERVING)
+
+	go grpcutil.WatchReadiness(rootCtx, grpcutil.ReadinessConfig{
+		Service: "upload",
+		Health:  healthSrv,
+		Names:   []string{"", uploadv1.UploadService_ServiceDesc.ServiceName},
+		Probe:   func(context.Context) error { _, err := os.Stat(cfg.BlobDir); return err },
+		Logger:  logger,
+	})
 
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {
