@@ -55,7 +55,7 @@ type Service interface {
 	// service layer from the session, never from a request parameter, and the
 	// permission itself decides how far it reaches — audit:read sees the
 	// company, audit:read_own only the caller.
-	ListAudit(ctx context.Context, q domain.AuditQuery, p domain.AuditPrincipal, token string, wantRefs bool) ([]domain.AuditEntry, int64, map[string]string, error)
+	ListAudit(ctx context.Context, q domain.AuditQuery, sc domain.AuditScope, token string, wantRefs bool) ([]domain.AuditEntry, int64, map[string]string, error)
 	ListAuditActors(ctx context.Context, p domain.AuditPrincipal, token string) ([]domain.AuditActor, error)
 
 	// ResolveBlobAccess backs RequireBlobAccess. A blob hash addresses content

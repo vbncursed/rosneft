@@ -5,6 +5,7 @@ import (
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/service"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
 
@@ -70,10 +71,22 @@ func auditEntryToAPI(e domain.AuditEntry) AuditEntry {
 	}
 }
 
-// ListAudit returns one page of the journal, scoped to the caller.
+// ListAudit returns one page of the company journal, scoped to the caller.
 func (s *Server) ListAudit(ctx context.Context, req ListAuditRequestObject) (ListAuditResponseObject, error) {
+	sc, err := service.AuditScope(auditPrincipal(ctx))
+	switch {
+	case isForbidden(err):
+		return ListAudit403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse{
+			Code: apperr.SlugForbidden, Message: "no audit scope for this principal",
+		}}, nil
+	case err != nil:
+		// Refusal is the only thing AuditScope returns today, but collapsing
+		// every future error into 403 would tell a caller they lack a grant
+		// when the truth was something else.
+		return ListAudit500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+	}
 	entries, next, refs, err := s.svc.ListAudit(ctx,
-		auditQueryFromParams(req.Params), auditPrincipal(ctx), authhttp.Token(ctx), true)
+		auditQueryFromParams(req.Params), sc, authhttp.Token(ctx), true)
 	switch {
 	case isForbidden(err):
 		return ListAudit403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse{
