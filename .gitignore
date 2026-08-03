@@ -76,3 +76,7 @@ equirect_panoramas/
 
 # local screenshots
 /ui*.png
+
+# Subagent-driven-development scratch: ledgers, briefs, review packages.
+# Git history is the record; this is working state for one plan run.
+.superpowers/
