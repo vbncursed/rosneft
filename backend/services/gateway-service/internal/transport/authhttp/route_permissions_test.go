@@ -20,11 +20,25 @@ func (s *RoutePermsSuite) TestEveryJournalRouteIsGated() {
 	for _, route := range []string{
 		"GET /api/audit",
 		"GET /api/audit/actors",
+		"GET /api/audit/mine",
 	} {
 		need, gated := routePerms[route]
 		assert.Assert(s.T(), gated, "%s is not gated: RequirePermissionForRoute lets it through", route)
-		assert.DeepEqual(s.T(), need, []string{"audit:read", "audit:read_own"})
+		assert.Assert(s.T(), len(need) > 0, "%s names no permissions", route)
 	}
+}
+
+// The two journals are separate routes with separate grants, and that is the
+// boundary rather than a convention. If audit:read_own creeps back onto the
+// company journal, /account's old behaviour — the whole company under a "My
+// activity" heading — becomes reachable again through a client that omits a
+// filter.
+func (s *RoutePermsSuite) TestTheTwoJournalsDoNotShareGrants() {
+	assert.DeepEqual(s.T(), routePerms["GET /api/audit"], []string{"audit:read"})
+	assert.DeepEqual(s.T(), routePerms["GET /api/audit/actors"], []string{"audit:read"})
+	// Either grant opens the own-journal: a Company Owner carries only the wider
+	// one in some deployments and must not lose their own account page over it.
+	assert.DeepEqual(s.T(), routePerms["GET /api/audit/mine"], []string{"audit:read_own", "audit:read"})
 }
 
 // An empty list passes the "is it in the map" check above while naming nothing
