@@ -1,19 +1,28 @@
 import { useCurrentUser } from "@/auth/presentation/current-user-context";
 import { can } from "@/auth/domain/principal";
 import { useAuditLog } from "@/audit/application/use-audit-log";
+import { fetchMyAuditPage } from "@/audit/infrastructure/audit-gateway";
 import { EMPTY_FILTERS } from "@/audit/domain/audit-entry";
 import AuditTable from "@/audit/presentation/components/audit-table";
 
-// Секция «мои действия» на странице аккаунта. Фильтров нет намеренно: шлюз уже
-// сузил выборку до самого пользователя, и панель фильтра по актору предлагала
-// бы выбор из одного значения.
+// Секция «мои действия» на странице аккаунта. Ходит на /api/audit/mine —
+// отдельный маршрут, который берёт актора из сессии и не объявляет параметра
+// actor вовсе.
+//
+// Раньше здесь звался общий /api/audit в расчёте на то, что шлюз сузит выборку.
+// Для Company Owner, у которого есть и audit:read, он её не сужал — резолвер
+// скоупа предпочитает более широкий грант, — и раздел показывал историю всей
+// компании под заголовком «My activity».
+//
+// Фильтров нет намеренно: маршрут отдаёт одного актора, и фильтр по актору
+// предлагал бы выбор из одного значения.
 //
 // Экспорта тоже нет — CSV остаётся за audit:read, это выгрузка истории всей
 // компании.
 export default function MyActivitySection() {
   const me = useCurrentUser();
   const { entries, refs, isLoading, error, hasMore, loadMore, isLoadingMore } =
-    useAuditLog(EMPTY_FILTERS);
+    useAuditLog(EMPTY_FILTERS, fetchMyAuditPage, "mine");
 
   // Гейт — UX, а не граница безопасности: настоящую проверку делает AuditScope
   // на шлюзе. Здесь он только убирает секцию, которая всё равно вернула бы 403.
