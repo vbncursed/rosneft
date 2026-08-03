@@ -79,6 +79,40 @@ func (s *ReadinessSuite) TestNilHealthServerIsAllowed() {
 	}
 }
 
+// TestNilHealthServerSurvivesFailingProbeTransition covers the mesh-worker
+// shape: no gRPC health server, and a probe that fails from the start (so
+// the very first check() call is a not-ready transition, since last starts
+// true). cfg.Names is deliberately non-empty so that, if the
+// `cfg.Health == nil` guard were ever dropped or moved after the loop, this
+// test would panic on a nil *health.Server dereference instead of passing
+// vacuously. A second probe call proves the ticker survived that branch.
+func (s *ReadinessSuite) TestNilHealthServerSurvivesFailingProbeTransition() {
+	calls := make(chan struct{}, 2)
+	ctx, cancel := context.WithCancel(s.T().Context())
+	defer cancel()
+
+	go grpcutil.WatchReadiness(ctx, grpcutil.ReadinessConfig{
+		Service:  "worker",
+		Names:    []string{""},
+		Interval: 5 * time.Millisecond,
+		Probe: func(context.Context) error {
+			select {
+			case calls <- struct{}{}:
+			default:
+			}
+			return errors.New("dependency down")
+		},
+	})
+
+	for range 2 {
+		select {
+		case <-calls:
+		case <-time.After(time.Second):
+			s.T().Fatal("probe was not called twice; nil-Health branch may have panicked or hung")
+		}
+	}
+}
+
 // waitFor polls cond every millisecond for up to a second.
 func waitFor(cond func() bool) bool {
 	deadline := time.Now().Add(time.Second)
