@@ -8,6 +8,7 @@ import (
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/service"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
 
@@ -60,8 +61,15 @@ func (s *Server) ServeAuditCSV(w http.ResponseWriter, r *http.Request) {
 
 	// Resolve the scope before writing a byte: once the header is sent the
 	// status code is fixed, and a 200 with a truncated body would read as a
-	// complete export.
-	first, next, _, err := s.svc.ListAudit(ctx, q, p, token, false)
+	// complete export. Resolved once, above the paging loop — every page of one
+	// export is the same read, and re-deriving it per page would only add a way
+	// for the pages to disagree.
+	sc, err := service.AuditScope(p)
+	if err != nil {
+		writeAuditCSVError(w, err)
+		return
+	}
+	first, next, _, err := s.svc.ListAudit(ctx, q, sc, token, false)
 	if err != nil {
 		writeAuditCSVError(w, err)
 		return
@@ -87,7 +95,7 @@ func (s *Server) ServeAuditCSV(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		q.Cursor = next
-		page, next, _, err = s.svc.ListAudit(ctx, q, p, token, false)
+		page, next, _, err = s.svc.ListAudit(ctx, q, sc, token, false)
 		if err != nil {
 			// The header is already out; log-free bail is the only option left.
 			return
