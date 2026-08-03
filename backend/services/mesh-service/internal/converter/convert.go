@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -25,54 +24,32 @@ import (
 // and the primitive falls back to a flat-coloured default — so a single bad
 // asset cannot fail the whole job.
 func (c *Converter) Convert(ctx context.Context, sourcePath string) (domain.ConversionResult, error) {
-	if err := ctx.Err(); err != nil {
+	raw, err := c.convertRaw(ctx, sourcePath)
+	if err != nil {
 		return domain.ConversionResult{}, err
 	}
-	f, err := os.Open(sourcePath)
-	if err != nil {
-		return domain.ConversionResult{}, fmt.Errorf("converter: open %q: %w", sourcePath, err)
-	}
-	defer func() { _ = f.Close() }()
+	return c.finish(ctx, raw)
+}
 
-	report(ctx, "parsing", 0.30)
-	src, err := parseOBJ(f)
-	if err != nil {
-		return domain.ConversionResult{}, fmt.Errorf("converter: parse: %w", err)
-	}
-	if err := ctx.Err(); err != nil {
-		return domain.ConversionResult{}, err
-	}
-
-	report(ctx, "encoding", 0.45)
-	origMin, origMax := normalize(src.positions)
-
-	materials := buildGLMaterials(ctx, src, sourcePath)
-
-	body, err := writeGLB(src.positions, src.uvs, src.groups, materials)
-	if err != nil {
-		return domain.ConversionResult{}, fmt.Errorf("converter: write: %w", err)
-	}
-
+// finish applies the optional gltfpack pass to a raw GLB and packages the
+// bytes as a catalog-ready artifact. Split out of Convert so ConvertLODs can
+// produce LOD0 from the same raw bytes it then simplifies.
+func (c *Converter) finish(ctx context.Context, raw rawGLB) (domain.ConversionResult, error) {
 	report(ctx, "compressing", 0.55)
-	body, err = c.compress(ctx, body)
+	body, err := c.compress(ctx, raw.content)
 	if err != nil {
 		return domain.ConversionResult{}, err
 	}
-
 	sum := sha256.Sum256(body)
-	totalTris := uint64(0)
-	for _, g := range src.groups {
-		totalTris += uint64(len(g.triangles))
-	}
 	return domain.ConversionResult{
 		ArtifactHash: hex.EncodeToString(sum[:]),
 		Content:      body,
 		ContentType:  "model/gltf-binary",
 		Size:         int64(len(body)),
-		Vertices:     uint64(len(src.positions)),
-		Faces:        totalTris,
-		BBoxMin:      domain.Vec3{X: float64(origMin[0]), Y: float64(origMin[1]), Z: float64(origMin[2])},
-		BBoxMax:      domain.Vec3{X: float64(origMax[0]), Y: float64(origMax[1]), Z: float64(origMax[2])},
+		Vertices:     raw.vertices,
+		Faces:        raw.faces,
+		BBoxMin:      raw.bboxMin,
+		BBoxMax:      raw.bboxMax,
 	}, nil
 }
 
