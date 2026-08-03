@@ -723,19 +723,73 @@ paths:
   /api/audit:
     get:
       operationId: listAudit
-      summary: Read the audit journal
+      summary: Read the company's audit journal
       description: >
         Root sees every entry; anyone else sees only their own company's, keyed
         to the created_by chain. The tenant filter comes from the session, never
         from a parameter. Requires the audit:read permission (Root bypasses it).
         Paging is by cursor over descending id, so pages stay stable while new
         entries land above them.
+
+        audit:read_own does not reach this route. It opens GET /api/audit/mine
+        instead — the two journals are separate routes so that "whose rows"
+        follows from which one was called, not from which grant the caller
+        happens to hold.
       tags: [audit]
       parameters:
         - name: actor
           in: query
           schema: { type: string }
           description: Filter by acting user id.
+        - name: action
+          in: query
+          schema: { type: string }
+          description: Exact action, e.g. territory.update.
+        - name: entity
+          in: query
+          schema: { type: string }
+          description: Exact entity kind, e.g. territory.
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: cursor
+          in: query
+          schema: { type: integer, format: int64 }
+          description: nextCursor from the previous page; omit for the newest page.
+        - name: limit
+          in: query
+          schema: { type: integer, format: int32, minimum: 1, maximum: 200 }
+          description: Page size, default 50, clamped to 200.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/audit/mine:
+    get:
+      operationId: listMyAudit
+      summary: Read your own actions
+      description: >
+        The caller's own entries, newest first. The actor comes from the session
+        and this route accepts no actor parameter at all — so there is nothing
+        to merge and nothing to forget to overwrite, and it cannot be talked
+        into showing somebody else's rows whatever the caller holds. That is the
+        whole reason it exists separately from GET /api/audit, whose scope is
+        the company.
+
+        Requires audit:read_own or audit:read. Root is pinned to its own actions
+        here too rather than given every row: the page means "what I did".
+      tags: [audit]
+      parameters:
         - name: action
           in: query
           schema: { type: string }
