@@ -107,7 +107,7 @@ echo
 echo "=== 3. blob loop: valid hash copied, injection-shaped hash rejected ==="
 VALID_HASH=$(head -c 64 </dev/zero | tr '\0' 'a')  # 64 hex chars, a real-looking blob
 VALID_SUB=${VALID_HASH:0:2}
-INJECT_HASH='aa";touch /out/pwned;#'
+INJECT_HASH='aa";>/out/pwned;#'
 
 mkdir -p "$FIXTURES/blob-data/$VALID_SUB"
 printf 'content' > "$FIXTURES/blob-data/$VALID_SUB/$VALID_HASH.bin"
