@@ -71,8 +71,9 @@ func AuditCompany(ctx context.Context) string {
 }
 
 // Perms returns the caller's permission snapshot. Exported for the audit
-// handlers, which need the grant itself and not just its effect: audit:read and
-// audit:read_own reach the same route but resolve to different scopes.
+// handlers: RequirePermissionForRoute only answers "may this caller in at all",
+// and AuditScope/AuditOwnScope still need to see which grant they hold to build
+// the filter behind it.
 func Perms(ctx context.Context) []string {
 	return principalPerms(ctx)
 }
