@@ -13,9 +13,9 @@ import (
 
 // Stream and group names used by mesh-api (producer) and mesh-worker (consumer).
 const (
-	JobsStream    = "rosneft:mesh:jobs"
+	JobsStream    = "andrey:mesh:jobs"
 	ConsumerGroup = "mesh-workers"
-	jobKeyPrefix  = "rosneft:mesh:job:"
+	jobKeyPrefix  = "andrey:mesh:job:"
 )
 
 // Redis is the Redis-backed job store and queue.
