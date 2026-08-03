@@ -232,14 +232,27 @@ SET mesh:inflight:{kind}:{slug} <worker> NX EX 1800
 `UnlockTarget(ctx, kind, slug) error` — снимает его; воркер вызывает второй
 после публикации артефактов.
 
-### 3.2. Имя потребителя
+### 3.2. Ключи Redis переименовываются в `andrey:`
+
+`JobsStream` и `jobKeyPrefix` (`mesh-service/internal/storage/redis.go:16,18`) —
+единственные два места в рантайме, где осталось имя репозитория вместо имени
+продукта: `rosneft:mesh:jobs` и `rosneft:mesh:job:`. Всё прочее (кука
+`andrey_session`, база, том, контейнеры) называется `andrey`.
+
+Смена ключа бросает существующий стрим и consumer group. Здесь это безопасно —
+reconciler до-очередит любую сущность без LOD0 в пределах пяти минут, — но
+**старые ключи надо удалить руками при выкатке**, иначе `rosneft:mesh:jobs`
+останется висеть в Redis навсегда, занимая память и путая любого, кто позже
+заглянет в `XINFO`.
+
+### 3.3. Имя потребителя
 
 `MESH_WORKER_NAME` по умолчанию берёт hostname вместо зашитого
 `mesh-worker-1`. Два контейнера с одинаковым именем потребителя в consumer
 group — это один потребитель с точки зрения Redis, и `XAUTOCLAIM` осиротевших
 сообщений перестаёт различать, кто именно упал.
 
-### 3.3. Реплики
+### 3.4. Реплики
 
 `deploy.replicas: 2` для `mesh-worker` в compose. Consumer group к нескольким
 потребителям готова, порт воркер не публикует, конфликта нет.
@@ -384,7 +397,7 @@ limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
 2. **Готовность:** `docker pause andrey-postgres-1` → `service_ready{service="catalog"}`
    уходит в 0 в течение 30 секунд, `/readyz` шлюза отдаёт 503 с именем упавшей
    пробы в `checks`. `unpause` возвращает обратно.
-3. **Воркеры:** два контейнера видны в `XINFO CONSUMERS rosneft:mesh:jobs mesh-workers`
+3. **Воркеры:** два контейнера видны в `XINFO CONSUMERS andrey:mesh:jobs mesh-workers`
    под разными именами. Переконвертация территории при работающем reconciler'е
    создаёт **одну** задачу, не две.
 4. **Лимит:** 100 запросов подряд к `/api/auth/login` снаружи получают 429
