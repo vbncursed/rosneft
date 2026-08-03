@@ -38,12 +38,11 @@ export function useProgressiveLod(
   // the build, and here it is NOT (no babel-plugin-react-compiler, and
   // vite.config.ts calls react() with no options).
   //
-  // So nothing memoizes these for us: onWarmReady/onFailed are fresh closures
-  // each render, and LodWarmer's effect lists onReady as a dependency. The cost
-  // is bounded — the effect only re-runs setReadyHash with a value it already
-  // holds, which React discards, and LodWarmer unmounts the moment the swap
-  // lands. Left as is rather than routed through a ref: that trades a real
-  // indirection for a redundant no-op.
+  // So nothing memoizes these for us: onWarmReady and onFailed are fresh
+  // closures on every render. Consumers must therefore not key an effect on
+  // their identity — LodWarmer holds onReady in a ref for exactly this reason,
+  // so its "finished loading" effect fires once per url instead of once per
+  // re-render of whatever is above it.
   const available = chain.filter((a) => !broken.includes(a.hash));
   const target = pickLod(available, targetLod);
   const ready = target !== null && readyHash === target.hash;
