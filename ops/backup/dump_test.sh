@@ -1,39 +1,60 @@
 #!/usr/bin/env bash
 # Regression check for dump.sh's pg_dump failure guard (the bug: under
 # `set -euo pipefail`, a bare PIPESTATUS check after the pipeline never runs
-# — the pipeline itself already terminated the script). No production access
-# needed: stubs the `docker exec andrey-postgres-1 {pg_dump,psql}` calls only.
-# `docker run ... alpine ...` (the audit-digest tar and blob-copy steps)
-# passes through to the real local docker. If a local `andrey` dev stack is
-# running, its `andrey_audit-digest` / `andrey_blob-data` volumes already
-# exist and get mounted for real — this is safe because dump.sh's `docker
-# run` invocations only ever *read* from those mounts and write into `/out`
-# (this script's own throwaway $DEST), never back into `/d` or `/b`. In both
-# cases below the psql stub returns no hashes, so the blob-copy container
-# never actually runs; only the audit-digest tar step touches a real volume,
-# and only to read it. Confirmed after the fact: volume sizes and the local
-# stack's container health were unchanged by this script.
+# — the pipeline itself already terminated the script).
+#
+# Hermetic by construction: this script never names, creates, mounts, or
+# removes a real Docker volume. dump.sh hardcodes the production volume
+# names `andrey_audit-digest` / `andrey_blob-data` — names a developer's own
+# local `andrey` dev stack also uses, for real local data. The docker stub
+# below intercepts every `docker run` dump.sh makes and rewrites any `-v`
+# mount naming either of those two volumes into a bind mount of a throwaway
+# directory under $WORK instead, before handing the command to the real
+# local docker. The audit-digest tar step and the blob-copy step therefore
+# both run their real code, against fixtures this script alone owns — the
+# result cannot depend on whether a dev stack happens to be running, or be
+# running with volumes that happen to share a name with production's.
+# `docker exec andrey-postgres-1 {pg_dump,psql}` is intercepted directly,
+# since no such container exists off production.
+#
+# Nothing here ever holds a reference to a real volume, so cleanup is just
+# `rm -rf "$WORK"` — there is nothing else for this script to own or to
+# forget to release.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REAL_DOCKER=$(command -v docker)
 WORK=$(mktemp -d)
-cleanup() {
-  rm -rf "$WORK"
-  "$REAL_DOCKER" volume rm -f andrey_audit-digest andrey_blob-data >/dev/null 2>&1 || true
-}
-trap cleanup EXIT
+trap 'rm -rf "$WORK"' EXIT
+
+FIXTURES="$WORK/fixtures"
+mkdir -p "$FIXTURES/audit-digest" "$FIXTURES/blob-data"
 
 BIN="$WORK/bin"
 mkdir -p "$BIN"
 cat > "$BIN/docker" <<STUB
 #!/usr/bin/env bash
+set -euo pipefail
+
 if [[ "\$1" == "exec" && "\$2" == "andrey-postgres-1" ]]; then
   case "\$3" in
     pg_dump) exec bash -c "\$PG_DUMP_STUB" ;;
     psql)    exit 0 ;;  # prints nothing: source-hashes file ends up empty, blob loop is a no-op
   esac
 fi
+
+if [[ "\$1" == "run" ]]; then
+  args=()
+  for a in "\$@"; do
+    case "\$a" in
+      andrey_audit-digest:*) a="$FIXTURES/audit-digest:\${a#*:}" ;;
+      andrey_blob-data:*)    a="$FIXTURES/blob-data:\${a#*:}" ;;
+    esac
+    args+=("\$a")
+  done
+  exec "$REAL_DOCKER" "\${args[@]}"
+fi
+
 exec "$REAL_DOCKER" "\$@"
 STUB
 chmod +x "$BIN/docker"
@@ -71,4 +92,7 @@ if ! compgen -G "$DEST2"/andrey-*.sql.gz >/dev/null; then
   fail "no .gz produced on the success path"
 fi
 gzip -t "$DEST2"/andrey-*.sql.gz || fail "produced .gz does not pass gzip -t"
-echo "PASS: normal path still produces a valid, verifiable dump"
+if ! compgen -G "$DEST2"/audit-digest-*.tar.gz >/dev/null; then
+  fail "no audit-digest tarball produced on the success path"
+fi
+echo "PASS: normal path still produces a valid, verifiable dump and digest archive"
