@@ -734,6 +734,23 @@ type ListAuditParams struct {
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// ListMyAuditParams defines parameters for ListMyAudit.
+type ListMyAuditParams struct {
+	// Action Exact action, e.g. territory.update.
+	Action *string `form:"action,omitempty" json:"action,omitempty"`
+
+	// Entity Exact entity kind, e.g. territory.
+	Entity *string    `form:"entity,omitempty" json:"entity,omitempty"`
+	From   *time.Time `form:"from,omitempty" json:"from,omitempty"`
+	To     *time.Time `form:"to,omitempty" json:"to,omitempty"`
+
+	// Cursor nextCursor from the previous page; omit for the newest page.
+	Cursor *int64 `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Page size, default 50, clamped to 200.
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // AppendUploadChunkParams defines parameters for AppendUploadChunk.
 type AppendUploadChunkParams struct {
 	UploadOffset int64 `json:"Upload-Offset"`
@@ -780,12 +797,15 @@ type InitiateUploadJSONRequestBody = UploadInitiate
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Read the audit journal
+	// Read the company's audit journal
 	// (GET /api/audit)
 	ListAudit(w http.ResponseWriter, r *http.Request, params ListAuditParams)
 	// List the actors present in the caller's slice of the journal
 	// (GET /api/audit/actors)
 	ListAuditActors(w http.ResponseWriter, r *http.Request)
+	// Read your own actions
+	// (GET /api/audit/mine)
+	ListMyAudit(w http.ResponseWriter, r *http.Request, params ListMyAuditParams)
 	// List models
 	// (GET /api/models)
 	ListModels(w http.ResponseWriter, r *http.Request)
@@ -897,7 +917,7 @@ type ServerInterface interface {
 
 type Unimplemented struct{}
 
-// Read the audit journal
+// Read the company's audit journal
 // (GET /api/audit)
 func (_ Unimplemented) ListAudit(w http.ResponseWriter, r *http.Request, params ListAuditParams) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -906,6 +926,12 @@ func (_ Unimplemented) ListAudit(w http.ResponseWriter, r *http.Request, params 
 // List the actors present in the caller's slice of the journal
 // (GET /api/audit/actors)
 func (_ Unimplemented) ListAuditActors(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Read your own actions
+// (GET /api/audit/mine)
+func (_ Unimplemented) ListMyAudit(w http.ResponseWriter, r *http.Request, params ListMyAuditParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1244,6 +1270,104 @@ func (siw *ServerInterfaceWrapper) ListAuditActors(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListAuditActors(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMyAudit operation middleware
+func (siw *ServerInterfaceWrapper) ListMyAudit(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListMyAuditParams
+
+	// ------------- Optional query parameter "action" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "action", r.URL.Query(), &params.Action, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "action"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "action", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "entity" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "entity", r.URL.Query(), &params.Entity, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "entity"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "entity", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: "int32"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMyAudit(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2323,6 +2447,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/api/audit/actors", wrapper.ListAuditActors)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/audit/mine", wrapper.ListMyAudit)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/models", wrapper.ListModels)
 	})
 	r.Group(func(r chi.Router) {
@@ -2585,6 +2712,84 @@ func (response ListAuditActors403JSONResponse) VisitListAuditActorsResponse(w ht
 type ListAuditActors500JSONResponse struct{ InternalJSONResponse }
 
 func (response ListAuditActors500JSONResponse) VisitListAuditActorsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyAuditRequestObject struct {
+	Params ListMyAuditParams
+}
+
+type ListMyAuditResponseObject interface {
+	VisitListMyAuditResponse(w http.ResponseWriter) error
+}
+
+type ListMyAudit200JSONResponse AuditPage
+
+func (response ListMyAudit200JSONResponse) VisitListMyAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyAudit400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response ListMyAudit400JSONResponse) VisitListMyAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyAudit401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListMyAudit401JSONResponse) VisitListMyAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyAudit403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListMyAudit403JSONResponse) VisitListMyAuditResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMyAudit500JSONResponse struct{ InternalJSONResponse }
+
+func (response ListMyAudit500JSONResponse) VisitListMyAuditResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -4528,12 +4733,15 @@ func (response FinalizeUpload500JSONResponse) VisitFinalizeUploadResponse(w http
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// Read the audit journal
+	// Read the company's audit journal
 	// (GET /api/audit)
 	ListAudit(ctx context.Context, request ListAuditRequestObject) (ListAuditResponseObject, error)
 	// List the actors present in the caller's slice of the journal
 	// (GET /api/audit/actors)
 	ListAuditActors(ctx context.Context, request ListAuditActorsRequestObject) (ListAuditActorsResponseObject, error)
+	// Read your own actions
+	// (GET /api/audit/mine)
+	ListMyAudit(ctx context.Context, request ListMyAuditRequestObject) (ListMyAuditResponseObject, error)
 	// List models
 	// (GET /api/models)
 	ListModels(ctx context.Context, request ListModelsRequestObject) (ListModelsResponseObject, error)
@@ -4713,6 +4921,32 @@ func (sh *strictHandler) ListAuditActors(w http.ResponseWriter, r *http.Request)
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListAuditActorsResponseObject); ok {
 		if err := validResponse.VisitListAuditActorsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListMyAudit operation middleware
+func (sh *strictHandler) ListMyAudit(w http.ResponseWriter, r *http.Request, params ListMyAuditParams) {
+	var request ListMyAuditRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListMyAudit(ctx, request.(ListMyAuditRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListMyAudit")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListMyAuditResponseObject); ok {
+		if err := validResponse.VisitListMyAuditResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
