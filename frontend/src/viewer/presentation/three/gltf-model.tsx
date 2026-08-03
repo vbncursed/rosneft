@@ -1,9 +1,11 @@
 import { Suspense, useLayoutEffect, type Ref } from "react";
 import { useGLTF } from "@react-three/drei";
 import type { Group, Mesh } from "three";
-import { assetUrl } from "@/shared/infrastructure/asset-url";
-import { pickLod, type LodArtifact } from "@/shared/domain/lod-artifact";
+import type { LodArtifact } from "@/shared/domain/lod-artifact";
 import { extendGltfLoader } from "@/viewer/presentation/three/gltf-loader-setup";
+import { useProgressiveLod } from "@/viewer/application/use-progressive-lod";
+import LodWarmer from "@/viewer/presentation/three/lod-warmer";
+import LodErrorBoundary from "@/viewer/presentation/three/lod-error-boundary";
 
 interface GltfModelProps {
   lods: LodArtifact[];
@@ -66,18 +68,25 @@ function GltfPrimitive({
   );
 }
 
-// GltfModel renders the parent project's GLB at LOD0 only. We deliberately
-// skip <Detailed>'s distance-based LOD switching: with one static mesh the
-// camera can zoom freely without three.js doing any per-frame LOD update,
-// and the GPU just redraws the same vertex/index buffers under a different
-// view matrix. lower LODs in the chain are not loaded — the catalog still
-// produces them, but the viewer ignores them.
+// GltfModel renders the territory progressively: the coarsest level in the
+// chain mounts first so there is something on screen while LOD0 is still on
+// the wire, then LOD0 replaces it.
+//
+// This is NOT drei's <Detailed>: the level on screen does not depend on camera
+// distance. A territory is usually framed whole, so distance-based switching
+// would leave it coarse forever, and the measure tool's raycast would land on
+// different geometry depending on zoom.
 export default function GltfModel({ lods, raycastable, groupRef }: GltfModelProps) {
-  const top = pickLod(lods, 0);
-  if (!top) return null;
+  const { url, warmUrl, onWarmReady, onFailed } = useProgressiveLod(lods, 0);
+  if (!url) return null;
   return (
-    <Suspense fallback={null}>
-      <GltfPrimitive url={assetUrl(top.hash)} raycastable={raycastable} groupRef={groupRef} />
-    </Suspense>
+    <>
+      <LodErrorBoundary resetKey={url} onError={onFailed}>
+        <Suspense fallback={null}>
+          <GltfPrimitive url={url} raycastable={raycastable} groupRef={groupRef} />
+        </Suspense>
+      </LodErrorBoundary>
+      {warmUrl && <LodWarmer url={warmUrl} onReady={onWarmReady} />}
+    </>
   );
 }
