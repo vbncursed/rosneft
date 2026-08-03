@@ -47,7 +47,7 @@ func (s *Store) GetByIdentifier(ctx context.Context, identifier string) (domain.
 }
 
 func (s *Store) hydrate(ctx context.Context, u domain.User) (domain.User, error) {
-	roles, err := s.roleSlugs(ctx, u.ID)
+	roles, titles, err := s.roleSlugs(ctx, u.ID)
 	if err != nil {
 		return domain.User{}, err
 	}
@@ -55,6 +55,6 @@ func (s *Store) hydrate(ctx context.Context, u domain.User) (domain.User, error)
 	if err != nil {
 		return domain.User{}, err
 	}
-	u.RoleSlugs, u.Permissions = roles, perms
+	u.RoleSlugs, u.RoleTitles, u.Permissions = roles, titles, perms
 	return u, nil
 }

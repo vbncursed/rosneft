@@ -35,8 +35,18 @@ type User struct {
 	UpdatedAt           *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	IsOwner             bool                   `protobuf:"varint,10,opt,name=is_owner,json=isOwner,proto3" json:"is_owner,omitempty"`                                      // root of trust: manages admins, grants owner, bypasses grant limits
 	OnboardingToursSeen []string               `protobuf:"bytes,11,rep,name=onboarding_tours_seen,json=onboardingToursSeen,proto3" json:"onboarding_tours_seen,omitempty"` // ids of the first-run tours already finished or skipped
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// role_titles maps each slug in role_slugs to its display title, so a client
+	// can name a role without a second call. A map rather than a parallel array
+	// because slugs are the stable key everything else addresses roles by, and a
+	// parallel array would desync silently on reorder.
+	//
+	// A slug missing from the map is possible (the role was deleted between the
+	// two reads), and clients must fall back to the slug rather than render
+	// nothing. Note the slug is NOT an abbreviation of the title: slug "admin" is
+	// titled "Company Owner", while a different role is slugged "owner".
+	RoleTitles    map[string]string `protobuf:"bytes,12,rep,name=role_titles,json=roleTitles,proto3" json:"role_titles,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *User) Reset() {
@@ -142,6 +152,13 @@ func (x *User) GetIsOwner() bool {
 func (x *User) GetOnboardingToursSeen() []string {
 	if x != nil {
 		return x.OnboardingToursSeen
+	}
+	return nil
+}
+
+func (x *User) GetRoleTitles() map[string]string {
+	if x != nil {
+		return x.RoleTitles
 	}
 	return nil
 }
@@ -2414,7 +2431,7 @@ var File_rosneft_auth_v1_auth_proto protoreflect.FileDescriptor
 
 const file_rosneft_auth_v1_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x1arosneft/auth/v1/auth.proto\x12\x0frosneft.auth.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x89\x03\n" +
+	"\x1arosneft/auth/v1/auth.proto\x12\x0frosneft.auth.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x90\x04\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
@@ -2430,7 +2447,12 @@ const file_rosneft_auth_v1_auth_proto_rawDesc = "" +
 	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x19\n" +
 	"\bis_owner\x18\n" +
 	" \x01(\bR\aisOwner\x122\n" +
-	"\x15onboarding_tours_seen\x18\v \x03(\tR\x13onboardingToursSeen\"x\n" +
+	"\x15onboarding_tours_seen\x18\v \x03(\tR\x13onboardingToursSeen\x12F\n" +
+	"\vrole_titles\x18\f \x03(\v2%.rosneft.auth.v1.User.RoleTitlesEntryR\n" +
+	"roleTitles\x1a=\n" +
+	"\x0fRoleTitlesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"x\n" +
 	"\x04Role\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x1b\n" +
@@ -2616,7 +2638,7 @@ func file_rosneft_auth_v1_auth_proto_rawDescGZIP() []byte {
 	return file_rosneft_auth_v1_auth_proto_rawDescData
 }
 
-var file_rosneft_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 47)
+var file_rosneft_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 48)
 var file_rosneft_auth_v1_auth_proto_goTypes = []any{
 	(*User)(nil),                      // 0: rosneft.auth.v1.User
 	(*Role)(nil),                      // 1: rosneft.auth.v1.Role
@@ -2663,78 +2685,80 @@ var file_rosneft_auth_v1_auth_proto_goTypes = []any{
 	(*SetRolePermissionsRequest)(nil), // 42: rosneft.auth.v1.SetRolePermissionsRequest
 	(*ListPermissionsRequest)(nil),    // 43: rosneft.auth.v1.ListPermissionsRequest
 	(*ListPermissionsResponse)(nil),   // 44: rosneft.auth.v1.ListPermissionsResponse
-	nil,                               // 45: rosneft.auth.v1.ResolveUserLoginsResponse.LoginsEntry
-	nil,                               // 46: rosneft.auth.v1.ResolveLabelsResponse.LabelsEntry
-	(*timestamppb.Timestamp)(nil),     // 47: google.protobuf.Timestamp
+	nil,                               // 45: rosneft.auth.v1.User.RoleTitlesEntry
+	nil,                               // 46: rosneft.auth.v1.ResolveUserLoginsResponse.LoginsEntry
+	nil,                               // 47: rosneft.auth.v1.ResolveLabelsResponse.LabelsEntry
+	(*timestamppb.Timestamp)(nil),     // 48: google.protobuf.Timestamp
 }
 var file_rosneft_auth_v1_auth_proto_depIdxs = []int32{
-	47, // 0: rosneft.auth.v1.User.created_at:type_name -> google.protobuf.Timestamp
-	47, // 1: rosneft.auth.v1.User.updated_at:type_name -> google.protobuf.Timestamp
-	0,  // 2: rosneft.auth.v1.ListUsersResponse.users:type_name -> rosneft.auth.v1.User
-	45, // 3: rosneft.auth.v1.ResolveUserLoginsResponse.logins:type_name -> rosneft.auth.v1.ResolveUserLoginsResponse.LoginsEntry
-	25, // 4: rosneft.auth.v1.ResolveLabelsRequest.refs:type_name -> rosneft.auth.v1.LabelRef
-	46, // 5: rosneft.auth.v1.ResolveLabelsResponse.labels:type_name -> rosneft.auth.v1.ResolveLabelsResponse.LabelsEntry
-	1,  // 6: rosneft.auth.v1.ListRolesResponse.roles:type_name -> rosneft.auth.v1.Role
-	2,  // 7: rosneft.auth.v1.ListPermissionsResponse.permissions:type_name -> rosneft.auth.v1.Permission
-	3,  // 8: rosneft.auth.v1.AuthService.Login:input_type -> rosneft.auth.v1.LoginRequest
-	5,  // 9: rosneft.auth.v1.AuthService.LoginVerify2FA:input_type -> rosneft.auth.v1.LoginVerify2FARequest
-	6,  // 10: rosneft.auth.v1.AuthService.PasskeyLoginBegin:input_type -> rosneft.auth.v1.PasskeyLoginBeginRequest
-	8,  // 11: rosneft.auth.v1.AuthService.PasskeyLoginFinish:input_type -> rosneft.auth.v1.PasskeyLoginFinishRequest
-	9,  // 12: rosneft.auth.v1.AuthService.Logout:input_type -> rosneft.auth.v1.LogoutRequest
-	11, // 13: rosneft.auth.v1.AuthService.ValidateToken:input_type -> rosneft.auth.v1.ValidateTokenRequest
-	13, // 14: rosneft.auth.v1.AuthService.GetMe:input_type -> rosneft.auth.v1.GetMeRequest
-	14, // 15: rosneft.auth.v1.AuthService.ChangePassword:input_type -> rosneft.auth.v1.ChangePasswordRequest
-	18, // 16: rosneft.auth.v1.AuthService.VerifyPassword:input_type -> rosneft.auth.v1.VerifyPasswordRequest
-	16, // 17: rosneft.auth.v1.AuthService.MarkTourSeen:input_type -> rosneft.auth.v1.MarkTourSeenRequest
-	20, // 18: rosneft.auth.v1.AuthService.CreateUser:input_type -> rosneft.auth.v1.CreateUserRequest
-	21, // 19: rosneft.auth.v1.AuthService.ListUsers:input_type -> rosneft.auth.v1.ListUsersRequest
-	23, // 20: rosneft.auth.v1.AuthService.ResolveUserLogins:input_type -> rosneft.auth.v1.ResolveUserLoginsRequest
-	28, // 21: rosneft.auth.v1.AuthService.GetUser:input_type -> rosneft.auth.v1.GetUserRequest
-	29, // 22: rosneft.auth.v1.AuthService.UpdateUser:input_type -> rosneft.auth.v1.UpdateUserRequest
-	30, // 23: rosneft.auth.v1.AuthService.FreezeUser:input_type -> rosneft.auth.v1.FreezeUserRequest
-	31, // 24: rosneft.auth.v1.AuthService.UnfreezeUser:input_type -> rosneft.auth.v1.UnfreezeUserRequest
-	32, // 25: rosneft.auth.v1.AuthService.SoftDeleteUser:input_type -> rosneft.auth.v1.SoftDeleteUserRequest
-	34, // 26: rosneft.auth.v1.AuthService.RestoreUser:input_type -> rosneft.auth.v1.RestoreUserRequest
-	35, // 27: rosneft.auth.v1.AuthService.SetUserOwner:input_type -> rosneft.auth.v1.SetUserOwnerRequest
-	36, // 28: rosneft.auth.v1.AuthService.ListRoles:input_type -> rosneft.auth.v1.ListRolesRequest
-	38, // 29: rosneft.auth.v1.AuthService.CreateRole:input_type -> rosneft.auth.v1.CreateRoleRequest
-	39, // 30: rosneft.auth.v1.AuthService.UpdateRole:input_type -> rosneft.auth.v1.UpdateRoleRequest
-	40, // 31: rosneft.auth.v1.AuthService.DeleteRole:input_type -> rosneft.auth.v1.DeleteRoleRequest
-	42, // 32: rosneft.auth.v1.AuthService.SetRolePermissions:input_type -> rosneft.auth.v1.SetRolePermissionsRequest
-	43, // 33: rosneft.auth.v1.AuthService.ListPermissions:input_type -> rosneft.auth.v1.ListPermissionsRequest
-	26, // 34: rosneft.auth.v1.AuthService.ResolveLabels:input_type -> rosneft.auth.v1.ResolveLabelsRequest
-	4,  // 35: rosneft.auth.v1.AuthService.Login:output_type -> rosneft.auth.v1.LoginResponse
-	4,  // 36: rosneft.auth.v1.AuthService.LoginVerify2FA:output_type -> rosneft.auth.v1.LoginResponse
-	7,  // 37: rosneft.auth.v1.AuthService.PasskeyLoginBegin:output_type -> rosneft.auth.v1.PasskeyLoginBeginResponse
-	4,  // 38: rosneft.auth.v1.AuthService.PasskeyLoginFinish:output_type -> rosneft.auth.v1.LoginResponse
-	10, // 39: rosneft.auth.v1.AuthService.Logout:output_type -> rosneft.auth.v1.LogoutResponse
-	12, // 40: rosneft.auth.v1.AuthService.ValidateToken:output_type -> rosneft.auth.v1.ValidateTokenResponse
-	0,  // 41: rosneft.auth.v1.AuthService.GetMe:output_type -> rosneft.auth.v1.User
-	15, // 42: rosneft.auth.v1.AuthService.ChangePassword:output_type -> rosneft.auth.v1.ChangePasswordResponse
-	19, // 43: rosneft.auth.v1.AuthService.VerifyPassword:output_type -> rosneft.auth.v1.VerifyPasswordResponse
-	17, // 44: rosneft.auth.v1.AuthService.MarkTourSeen:output_type -> rosneft.auth.v1.MarkTourSeenResponse
-	0,  // 45: rosneft.auth.v1.AuthService.CreateUser:output_type -> rosneft.auth.v1.User
-	22, // 46: rosneft.auth.v1.AuthService.ListUsers:output_type -> rosneft.auth.v1.ListUsersResponse
-	24, // 47: rosneft.auth.v1.AuthService.ResolveUserLogins:output_type -> rosneft.auth.v1.ResolveUserLoginsResponse
-	0,  // 48: rosneft.auth.v1.AuthService.GetUser:output_type -> rosneft.auth.v1.User
-	0,  // 49: rosneft.auth.v1.AuthService.UpdateUser:output_type -> rosneft.auth.v1.User
-	0,  // 50: rosneft.auth.v1.AuthService.FreezeUser:output_type -> rosneft.auth.v1.User
-	0,  // 51: rosneft.auth.v1.AuthService.UnfreezeUser:output_type -> rosneft.auth.v1.User
-	33, // 52: rosneft.auth.v1.AuthService.SoftDeleteUser:output_type -> rosneft.auth.v1.SoftDeleteUserResponse
-	0,  // 53: rosneft.auth.v1.AuthService.RestoreUser:output_type -> rosneft.auth.v1.User
-	0,  // 54: rosneft.auth.v1.AuthService.SetUserOwner:output_type -> rosneft.auth.v1.User
-	37, // 55: rosneft.auth.v1.AuthService.ListRoles:output_type -> rosneft.auth.v1.ListRolesResponse
-	1,  // 56: rosneft.auth.v1.AuthService.CreateRole:output_type -> rosneft.auth.v1.Role
-	1,  // 57: rosneft.auth.v1.AuthService.UpdateRole:output_type -> rosneft.auth.v1.Role
-	41, // 58: rosneft.auth.v1.AuthService.DeleteRole:output_type -> rosneft.auth.v1.DeleteRoleResponse
-	1,  // 59: rosneft.auth.v1.AuthService.SetRolePermissions:output_type -> rosneft.auth.v1.Role
-	44, // 60: rosneft.auth.v1.AuthService.ListPermissions:output_type -> rosneft.auth.v1.ListPermissionsResponse
-	27, // 61: rosneft.auth.v1.AuthService.ResolveLabels:output_type -> rosneft.auth.v1.ResolveLabelsResponse
-	35, // [35:62] is the sub-list for method output_type
-	8,  // [8:35] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	48, // 0: rosneft.auth.v1.User.created_at:type_name -> google.protobuf.Timestamp
+	48, // 1: rosneft.auth.v1.User.updated_at:type_name -> google.protobuf.Timestamp
+	45, // 2: rosneft.auth.v1.User.role_titles:type_name -> rosneft.auth.v1.User.RoleTitlesEntry
+	0,  // 3: rosneft.auth.v1.ListUsersResponse.users:type_name -> rosneft.auth.v1.User
+	46, // 4: rosneft.auth.v1.ResolveUserLoginsResponse.logins:type_name -> rosneft.auth.v1.ResolveUserLoginsResponse.LoginsEntry
+	25, // 5: rosneft.auth.v1.ResolveLabelsRequest.refs:type_name -> rosneft.auth.v1.LabelRef
+	47, // 6: rosneft.auth.v1.ResolveLabelsResponse.labels:type_name -> rosneft.auth.v1.ResolveLabelsResponse.LabelsEntry
+	1,  // 7: rosneft.auth.v1.ListRolesResponse.roles:type_name -> rosneft.auth.v1.Role
+	2,  // 8: rosneft.auth.v1.ListPermissionsResponse.permissions:type_name -> rosneft.auth.v1.Permission
+	3,  // 9: rosneft.auth.v1.AuthService.Login:input_type -> rosneft.auth.v1.LoginRequest
+	5,  // 10: rosneft.auth.v1.AuthService.LoginVerify2FA:input_type -> rosneft.auth.v1.LoginVerify2FARequest
+	6,  // 11: rosneft.auth.v1.AuthService.PasskeyLoginBegin:input_type -> rosneft.auth.v1.PasskeyLoginBeginRequest
+	8,  // 12: rosneft.auth.v1.AuthService.PasskeyLoginFinish:input_type -> rosneft.auth.v1.PasskeyLoginFinishRequest
+	9,  // 13: rosneft.auth.v1.AuthService.Logout:input_type -> rosneft.auth.v1.LogoutRequest
+	11, // 14: rosneft.auth.v1.AuthService.ValidateToken:input_type -> rosneft.auth.v1.ValidateTokenRequest
+	13, // 15: rosneft.auth.v1.AuthService.GetMe:input_type -> rosneft.auth.v1.GetMeRequest
+	14, // 16: rosneft.auth.v1.AuthService.ChangePassword:input_type -> rosneft.auth.v1.ChangePasswordRequest
+	18, // 17: rosneft.auth.v1.AuthService.VerifyPassword:input_type -> rosneft.auth.v1.VerifyPasswordRequest
+	16, // 18: rosneft.auth.v1.AuthService.MarkTourSeen:input_type -> rosneft.auth.v1.MarkTourSeenRequest
+	20, // 19: rosneft.auth.v1.AuthService.CreateUser:input_type -> rosneft.auth.v1.CreateUserRequest
+	21, // 20: rosneft.auth.v1.AuthService.ListUsers:input_type -> rosneft.auth.v1.ListUsersRequest
+	23, // 21: rosneft.auth.v1.AuthService.ResolveUserLogins:input_type -> rosneft.auth.v1.ResolveUserLoginsRequest
+	28, // 22: rosneft.auth.v1.AuthService.GetUser:input_type -> rosneft.auth.v1.GetUserRequest
+	29, // 23: rosneft.auth.v1.AuthService.UpdateUser:input_type -> rosneft.auth.v1.UpdateUserRequest
+	30, // 24: rosneft.auth.v1.AuthService.FreezeUser:input_type -> rosneft.auth.v1.FreezeUserRequest
+	31, // 25: rosneft.auth.v1.AuthService.UnfreezeUser:input_type -> rosneft.auth.v1.UnfreezeUserRequest
+	32, // 26: rosneft.auth.v1.AuthService.SoftDeleteUser:input_type -> rosneft.auth.v1.SoftDeleteUserRequest
+	34, // 27: rosneft.auth.v1.AuthService.RestoreUser:input_type -> rosneft.auth.v1.RestoreUserRequest
+	35, // 28: rosneft.auth.v1.AuthService.SetUserOwner:input_type -> rosneft.auth.v1.SetUserOwnerRequest
+	36, // 29: rosneft.auth.v1.AuthService.ListRoles:input_type -> rosneft.auth.v1.ListRolesRequest
+	38, // 30: rosneft.auth.v1.AuthService.CreateRole:input_type -> rosneft.auth.v1.CreateRoleRequest
+	39, // 31: rosneft.auth.v1.AuthService.UpdateRole:input_type -> rosneft.auth.v1.UpdateRoleRequest
+	40, // 32: rosneft.auth.v1.AuthService.DeleteRole:input_type -> rosneft.auth.v1.DeleteRoleRequest
+	42, // 33: rosneft.auth.v1.AuthService.SetRolePermissions:input_type -> rosneft.auth.v1.SetRolePermissionsRequest
+	43, // 34: rosneft.auth.v1.AuthService.ListPermissions:input_type -> rosneft.auth.v1.ListPermissionsRequest
+	26, // 35: rosneft.auth.v1.AuthService.ResolveLabels:input_type -> rosneft.auth.v1.ResolveLabelsRequest
+	4,  // 36: rosneft.auth.v1.AuthService.Login:output_type -> rosneft.auth.v1.LoginResponse
+	4,  // 37: rosneft.auth.v1.AuthService.LoginVerify2FA:output_type -> rosneft.auth.v1.LoginResponse
+	7,  // 38: rosneft.auth.v1.AuthService.PasskeyLoginBegin:output_type -> rosneft.auth.v1.PasskeyLoginBeginResponse
+	4,  // 39: rosneft.auth.v1.AuthService.PasskeyLoginFinish:output_type -> rosneft.auth.v1.LoginResponse
+	10, // 40: rosneft.auth.v1.AuthService.Logout:output_type -> rosneft.auth.v1.LogoutResponse
+	12, // 41: rosneft.auth.v1.AuthService.ValidateToken:output_type -> rosneft.auth.v1.ValidateTokenResponse
+	0,  // 42: rosneft.auth.v1.AuthService.GetMe:output_type -> rosneft.auth.v1.User
+	15, // 43: rosneft.auth.v1.AuthService.ChangePassword:output_type -> rosneft.auth.v1.ChangePasswordResponse
+	19, // 44: rosneft.auth.v1.AuthService.VerifyPassword:output_type -> rosneft.auth.v1.VerifyPasswordResponse
+	17, // 45: rosneft.auth.v1.AuthService.MarkTourSeen:output_type -> rosneft.auth.v1.MarkTourSeenResponse
+	0,  // 46: rosneft.auth.v1.AuthService.CreateUser:output_type -> rosneft.auth.v1.User
+	22, // 47: rosneft.auth.v1.AuthService.ListUsers:output_type -> rosneft.auth.v1.ListUsersResponse
+	24, // 48: rosneft.auth.v1.AuthService.ResolveUserLogins:output_type -> rosneft.auth.v1.ResolveUserLoginsResponse
+	0,  // 49: rosneft.auth.v1.AuthService.GetUser:output_type -> rosneft.auth.v1.User
+	0,  // 50: rosneft.auth.v1.AuthService.UpdateUser:output_type -> rosneft.auth.v1.User
+	0,  // 51: rosneft.auth.v1.AuthService.FreezeUser:output_type -> rosneft.auth.v1.User
+	0,  // 52: rosneft.auth.v1.AuthService.UnfreezeUser:output_type -> rosneft.auth.v1.User
+	33, // 53: rosneft.auth.v1.AuthService.SoftDeleteUser:output_type -> rosneft.auth.v1.SoftDeleteUserResponse
+	0,  // 54: rosneft.auth.v1.AuthService.RestoreUser:output_type -> rosneft.auth.v1.User
+	0,  // 55: rosneft.auth.v1.AuthService.SetUserOwner:output_type -> rosneft.auth.v1.User
+	37, // 56: rosneft.auth.v1.AuthService.ListRoles:output_type -> rosneft.auth.v1.ListRolesResponse
+	1,  // 57: rosneft.auth.v1.AuthService.CreateRole:output_type -> rosneft.auth.v1.Role
+	1,  // 58: rosneft.auth.v1.AuthService.UpdateRole:output_type -> rosneft.auth.v1.Role
+	41, // 59: rosneft.auth.v1.AuthService.DeleteRole:output_type -> rosneft.auth.v1.DeleteRoleResponse
+	1,  // 60: rosneft.auth.v1.AuthService.SetRolePermissions:output_type -> rosneft.auth.v1.Role
+	44, // 61: rosneft.auth.v1.AuthService.ListPermissions:output_type -> rosneft.auth.v1.ListPermissionsResponse
+	27, // 62: rosneft.auth.v1.AuthService.ResolveLabels:output_type -> rosneft.auth.v1.ResolveLabelsResponse
+	36, // [36:63] is the sub-list for method output_type
+	9,  // [9:36] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_rosneft_auth_v1_auth_proto_init() }
@@ -2748,7 +2772,7 @@ func file_rosneft_auth_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rosneft_auth_v1_auth_proto_rawDesc), len(file_rosneft_auth_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   47,
+			NumMessages:   48,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

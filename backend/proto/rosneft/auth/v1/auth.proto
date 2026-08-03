@@ -72,6 +72,16 @@ message User {
   google.protobuf.Timestamp updated_at = 9;
   bool is_owner = 10; // root of trust: manages admins, grants owner, bypasses grant limits
   repeated string onboarding_tours_seen = 11; // ids of the first-run tours already finished or skipped
+  // role_titles maps each slug in role_slugs to its display title, so a client
+  // can name a role without a second call. A map rather than a parallel array
+  // because slugs are the stable key everything else addresses roles by, and a
+  // parallel array would desync silently on reorder.
+  //
+  // A slug missing from the map is possible (the role was deleted between the
+  // two reads), and clients must fall back to the slug rather than render
+  // nothing. Note the slug is NOT an abbreviation of the title: slug "admin" is
+  // titled "Company Owner", while a different role is slugged "owner".
+  map<string, string> role_titles = 12;
 }
 
 message Role {

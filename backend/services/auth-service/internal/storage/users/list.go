@@ -48,12 +48,13 @@ func (s *Store) List(ctx context.Context, status string, includeDeleted bool, ow
 	for i := range out {
 		ids[i] = out[i].ID
 	}
-	byUser, err := s.roleSlugsByUsers(ctx, ids)
+	byUser, titlesByUser, err := s.roleSlugsByUsers(ctx, ids)
 	if err != nil {
 		return nil, fmt.Errorf("users.List: roles: %w", err)
 	}
 	for i := range out {
 		out[i].RoleSlugs = byUser[out[i].ID]
+		out[i].RoleTitles = titlesByUser[out[i].ID]
 	}
 	return out, nil
 }
