@@ -24,15 +24,13 @@ func (g *Gateway) ListAuditActors(ctx context.Context, p domain.AuditPrincipal, 
 		return nil, err
 	}
 
-	// A read_own caller filters by exactly one actor — themselves. Asking the
-	// journal for the company's roster and hiding it client-side would leak who
-	// else works there, which is precisely what the narrower grant withholds.
-	ids := []string{sc.Actor}
-	if sc.Actor == "" {
-		ids, err = g.audit.ListActors(ctx, domain.AuditQuery{AllCompanies: sc.All, CompanyID: sc.Company})
-		if err != nil {
-			return nil, err
-		}
+	// No actor pin to honour here: AuditScope now only ever answers for the
+	// company journal, so it never sets Actor. A read_own caller does not reach
+	// this function at all — /api/audit/actors requires audit:read, and the
+	// own-journal has no actor filter to populate because it shows exactly one.
+	ids, err := g.audit.ListActors(ctx, domain.AuditQuery{AllCompanies: sc.All, CompanyID: sc.Company})
+	if err != nil {
+		return nil, err
 	}
 	if len(ids) == 0 {
 		return []domain.AuditActor{}, nil

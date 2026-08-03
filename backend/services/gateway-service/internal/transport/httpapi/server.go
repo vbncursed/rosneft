@@ -51,10 +51,17 @@ type Service interface {
 	CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error)
 	DeleteDocument(ctx context.Context, id int64) error
 
-	// Both take the whole principal: the journal's scope is resolved in the
-	// service layer from the session, never from a request parameter, and the
-	// permission itself decides how far it reaches — audit:read sees the
-	// company, audit:read_own only the caller.
+	// ListAudit takes a scope the HANDLER already resolved — AuditScope for the
+	// company journal, AuditOwnScope for /api/audit/mine. Which route was called
+	// is what decides how far the read reaches; letting the grant decide inside a
+	// function both routes share is what once served the whole company under a
+	// "My activity" heading.
+	//
+	// ListAuditActors still takes the principal: it backs the company journal's
+	// filter alone, so it has one scope to resolve and resolves it itself.
+	//
+	// Neither derives the tenant from a request parameter — that comes from the
+	// session, or one Company Owner could read another's history.
 	ListAudit(ctx context.Context, q domain.AuditQuery, sc domain.AuditScope, token string, wantRefs bool) ([]domain.AuditEntry, int64, map[string]string, error)
 	ListAuditActors(ctx context.Context, p domain.AuditPrincipal, token string) ([]domain.AuditActor, error)
 

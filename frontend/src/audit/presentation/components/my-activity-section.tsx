@@ -24,8 +24,10 @@ export default function MyActivitySection() {
   const { entries, refs, isLoading, error, hasMore, loadMore, isLoadingMore } =
     useAuditLog(EMPTY_FILTERS, fetchMyAuditPage, "mine");
 
-  // Гейт — UX, а не граница безопасности: настоящую проверку делает AuditScope
-  // на шлюзе. Здесь он только убирает секцию, которая всё равно вернула бы 403.
+  // Гейт — UX, а не граница безопасности: настоящую проверку делает
+  // AuditOwnScope на шлюзе (не AuditScope — это скоуп компанейского журнала, и
+  // именно он раньше отдавал сюда всю компанию). Здесь гейт только убирает
+  // секцию, которая всё равно вернула бы 403.
   if (!can(me, "audit:read_own") && !can(me, "audit:read")) return null;
 
   return (

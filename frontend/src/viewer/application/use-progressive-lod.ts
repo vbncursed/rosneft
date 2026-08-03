@@ -31,11 +31,19 @@ export function useProgressiveLod(
   const [readyHash, setReadyHash] = useState<string | null>(null);
   const [broken, setBroken] = useState<readonly string[]>([]);
 
-  // No useMemo/useCallback here on purpose: the React Compiler is on in this
-  // project and refuses to optimise a component whose manual memoization it
-  // cannot preserve. It memoizes these itself, and the identity of
-  // onWarmReady/onFailed matters — LodWarmer's effect takes onReady as a
-  // dependency.
+  // No useMemo/useCallback here, and the reason is narrower than it looks.
+  // eslint-plugin-react-hooks v7 ships React-Compiler-derived rules, and
+  // `preserve-manual-memoization` rejects manual memoization the compiler could
+  // not reproduce — it fires whether or not the compiler is actually wired into
+  // the build, and here it is NOT (no babel-plugin-react-compiler, and
+  // vite.config.ts calls react() with no options).
+  //
+  // So nothing memoizes these for us: onWarmReady/onFailed are fresh closures
+  // each render, and LodWarmer's effect lists onReady as a dependency. The cost
+  // is bounded — the effect only re-runs setReadyHash with a value it already
+  // holds, which React discards, and LodWarmer unmounts the moment the swap
+  // lands. Left as is rather than routed through a ref: that trades a real
+  // indirection for a redundant no-op.
   const available = chain.filter((a) => !broken.includes(a.hash));
   const target = pickLod(available, targetLod);
   const ready = target !== null && readyHash === target.hash;
