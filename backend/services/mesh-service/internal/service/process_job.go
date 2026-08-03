@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/converter"
@@ -35,6 +36,16 @@ func (m *Mesh) ProcessJob(ctx context.Context, jobID string) error {
 		_ = m.markFailed(ctx, job, err)
 		return err
 	}
+
+	// Release the reconciler's claim now that every LOD is published. A
+	// user-initiated conversion holds no claim, so this is a no-op for that
+	// path. Logged rather than returned: the artifacts are already published,
+	// so failing an otherwise successful conversion over a `DEL` that didn't
+	// land would be worse than the stale key, which the TTL clears anyway.
+	if err := m.queue.UnlockTarget(ctx, job.Kind, job.Slug); err != nil {
+		slog.WarnContext(ctx, "process: unlock target failed", "kind", job.Kind, "slug", job.Slug, "err", err)
+	}
+
 	return m.markSucceeded(ctx, job)
 }
 
