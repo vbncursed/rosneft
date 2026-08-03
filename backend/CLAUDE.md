@@ -133,7 +133,9 @@ Each entity has its own artifact family (`territory_artifacts` / `model_artifact
 5. Optional `gltfpack` post-processing pass — flag set chosen by config:
    - `MESH_DRACO_ENABLED=true` (default) → `-cc` adds `KHR_draco_mesh_compression`.
    - `MESH_KTX2_ENABLED=true` (default on) → `-tc` re-encodes textures via Basis Universal (`KHR_texture_basisu`). Frontend MUST register a `KTX2Loader` via `useGLTF.setKTX2Loader(...)` — drei does NOT auto-register one, and missing loader silently produces solid-colour textures.
-   - `MESH_LOD_RATIOS=0.5,0.25` (default) → for each ratio, run `gltfpack -si <r>` against the LOD0 GLB to produce LOD1, LOD2, …. LOD0 itself is never simplified (it stays full quality). Frontends that don't request lower LODs simply ignore the extra artifacts.
+   - `MESH_LOD_RATIOS=0.5,0.25` (default) → for each ratio, run `gltfpack -si <r> -ts <r>` against the **uncompressed** GLB to produce LOD1, LOD2, …. LOD0 itself is never simplified (it stays full quality). Frontends that don't request lower LODs simply ignore the extra artifacts.
+     - **`-ts` takes the same ratio as `-si`, and the input must be the raw GLB.** gltfpack cannot decode Basis Universal, so a pass fed the already-compressed LOD0 silently ignores `-ts` and every LOD ships full-resolution textures. That is why `ConvertLODs` calls `convertRaw` and hands `raw.content` to `Simplify` rather than reusing `base.Content` — see `converter/raw.go`.
+     - Measured on `dji-wp-46-cut` (1.8M triangles): adding `-ts` took LOD2 from 37.8% to **23.3%** of LOD0's bytes. Textures turned out to be only ~17% of the file, not the majority — Draco already does most of the work — but they were a fixed floor the coarse LOD could not get under.
 6. Worker writes each LOD GLB to BlobStore (content-addressed, SHA-256 filename, 2-char prefix sharding) and calls `RegisterTerritoryArtifact` or `RegisterModelArtifact` (selected by Job.Kind) in catalog.
 7. Reconciler runs in-process every minute: lists every territory + model via the catalog client, queues `SubmitConversion` for any without a LOD0 artifact — auto-recovers stuck conversions without manual trigger.
 

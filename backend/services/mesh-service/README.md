@@ -137,7 +137,7 @@ All env vars are prefixed `MESH_`. Defaults shown.
 | `MESH_DRACO_ENABLED` | `true` | KHR_draco_mesh_compression | `mesh-worker` |
 | `MESH_KTX2_ENABLED` | `true` | KHR_texture_basisu (frontend KTX2Loader required) | `mesh-worker` |
 | `MESH_DRACO_BIN` | `gltfpack` | Path/name of gltfpack binary | `mesh-worker` |
-| `MESH_LOD_RATIOS` | `0.5,0.25` | Comma-separated simplify ratios for extra LODs (LOD0 always = full quality) | `mesh-worker` |
+| `MESH_LOD_RATIOS` | `0.5,0.25` | Comma-separated ratios for extra LODs; each drives both `-si` (triangles) and `-ts` (texture side). LOD0 always = full quality. Requires `MESH_KTX2_ENABLED` for `-ts` to bite | `mesh-worker` |
 | `MESH_LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error` | both |
 | `MESH_LOG_FORMAT` | `json` | `json` / `text` | both |
 | `MESH_SHUTDOWN_TIMEOUT` | `30s` | Graceful drain | both |

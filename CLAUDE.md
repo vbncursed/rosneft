@@ -170,7 +170,15 @@ const ktx2Loader = new KTX2Loader().setTranscoderPath('/basis/').detectSupport(r
 useGLTF.setKTX2Loader(ktx2Loader);
 ```
 
-LOD generation is on by default with `MESH_LOD_RATIOS=0.5,0.25` — every conversion produces three artifacts: LOD0 (full quality, never simplified), LOD1 (~50% triangles), LOD2 (~25% triangles). Use `getArtifact(slug, lod)` per level or drei `<Detailed>` to switch — placements far from the camera should grab LOD2; the main scene asset should always grab LOD0. Frontends that don't yet request lower LODs continue to use LOD0 only — extra artifacts are harmless.
+LOD generation is on by default with `MESH_LOD_RATIOS=0.5,0.25` — every conversion produces three artifacts: LOD0 (full quality, never simplified), LOD1 (~50% triangles), LOD2 (~25% triangles). Lower LODs also carry textures scaled by the same ratio (`gltfpack -ts`), so they are lighter on the wire and not merely lighter in triangles: on `dji-wp-46-cut`, LOD2 is 23% of LOD0's bytes.
+
+**Loading is progressive, and both the territory and every placement use the same mechanism.** `useProgressiveLod(chain, targetLod)` (`viewer/application/`) shows the coarsest available level immediately and returns a `warmUrl`; `<LodWarmer>` downloads the target inside its own `<Suspense>` and calls back, at which point the hook swaps `url` to the target. `gltf-model.tsx` and `placement-instance.tsx` both do exactly this with `targetLod: 0`. The pure decision lives in `selectProgressive` (`shared/domain/lod-artifact.ts`) and is unit-tested; the hook is spec-tested with `renderHook`.
+
+This is deliberately **not** drei's `<Detailed>`: the level on screen does not depend on camera distance. A territory is normally framed whole, so distance-based switching would leave it coarse forever, and the measure tool's raycast would hit different geometry depending on zoom.
+
+The hook also owns the fallback ladder — a level that fails to load drops out of the chain by hash. That replaced an index-based ladder that only placements had; the territory previously had no fallback at all. A chain containing only LOD0 yields `warmUrl: null` and behaves exactly as before progressive loading existed, so un-reconverted territories are safe.
+
+`GlbPreloader` warms only the coarsest level of each chain. Do not add LOD0 back to it: racing it into the cache alongside the coarse level puts both on the wire at once and defeats the point.
 
 ## Backend gateway endpoints used by the frontend
 
