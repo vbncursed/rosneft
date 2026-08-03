@@ -14,15 +14,20 @@ import (
 // holding ANY of them is enough. Only mutations are listed; reads need any
 // authenticated principal.
 //
-// A list rather than a single slug because the journal has two grants of
-// different width: audit:read for the company's history, audit:read_own for
-// your own actions. Both reach the same route; AuditScope decides how far each
-// one sees.
+// The journal has two grants of different width, and they open different
+// routes: audit:read reads the company's history, audit:read_own reads your
+// own, and neither reaches the other's. Putting both on one route and letting
+// the scope resolver sort it out is what let /account render the whole company
+// under a "My activity" heading — a Company Owner holds both, and the resolver
+// preferred the wider one.
 var routePerms = map[string][]string{
-	// The one gated read: the journal is not open to every authenticated
+	// The gated reads: the journals are not open to every authenticated
 	// principal the way the content endpoints are.
-	"GET /api/audit":                                 {"audit:read", "audit:read_own"},
-	"GET /api/audit/actors":                          {"audit:read", "audit:read_own"},
+	"GET /api/audit":        {"audit:read"},
+	"GET /api/audit/actors": {"audit:read"},
+	// Either grant opens the own-journal: a Company Owner carries only the
+	// wider one in some deployments and must not lose their own account page.
+	"GET /api/audit/mine":                            {"audit:read_own", "audit:read"},
 	"POST /api/territories":                          {"territory:create"},
 	"PATCH /api/territories/{slug}":                  {"territory:write"},
 	"DELETE /api/territories/{slug}":                 {"territory:delete"},

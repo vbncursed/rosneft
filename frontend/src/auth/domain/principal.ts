@@ -5,6 +5,11 @@ export interface Principal {
   status: "active" | "frozen" | "deleted";
   totpEnabled: boolean;
   roleSlugs: string[];
+  // Slug → display title for each entry in roleSlugs. The slug is not an
+  // abbreviation of the title: slug "admin" is titled "Company Owner", while a
+  // different role is slugged "owner". A slug missing here means the role was
+  // deleted after it was granted — show the slug rather than nothing.
+  roleTitles: Record<string, string>;
   permissions: string[];
   isOwner: boolean;
   // Ids of the first-run tours this user has finished or skipped.

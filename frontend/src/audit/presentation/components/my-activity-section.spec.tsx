@@ -16,8 +16,13 @@ vi.mock("@/auth/presentation/current-user-context", () => ({
 
 const useAuditLog = vi.fn();
 vi.mock("@/audit/application/use-audit-log", () => ({
-  useAuditLog: (f: unknown) => useAuditLog(f),
+  useAuditLog: (f: unknown, fetchPage: unknown, scope: unknown) =>
+    useAuditLog(f, fetchPage, scope),
 }));
+
+// Imported so the assertion below compares against the real function, not a
+// name: renaming the export must break the test rather than pass it silently.
+import { fetchMyAuditPage } from "@/audit/infrastructure/audit-gateway";
 
 import MyActivitySection from "./my-activity-section";
 
@@ -93,6 +98,19 @@ describe("MyActivitySection", () => {
     render(<MyActivitySection />);
 
     expect(screen.getByText(/My activity/i)).toBeTruthy();
+  });
+
+  // The bug this section shipped with: it read the company journal and trusted
+  // the gateway to narrow the result. For a Company Owner — audit:read as well
+  // as audit:read_own — the gateway did not narrow it, and "My activity" listed
+  // everyone. The endpoint is the boundary, so it is what gets asserted.
+  it("reads the own-journal, not the company journal", () => {
+    useCurrentUser.mockReturnValue(principal(["audit:read", "audit:read_own"]));
+    useAuditLog.mockReturnValue(log());
+
+    render(<MyActivitySection />);
+
+    expect(useAuditLog).toHaveBeenCalledWith(expect.anything(), fetchMyAuditPage, "mine");
   });
 
   // An empty history and a failed load look identical if the error is dropped,

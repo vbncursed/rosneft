@@ -10,16 +10,25 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
-// ConvertLODs produces LOD0 (full quality, via Convert) plus one additional
-// LOD artifact per configured ratio. The slice is ordered LOD0 → LODN; index
-// in the slice IS the LOD level the catalog should record. When no ratios
-// are configured or no simplifier is wired, returns just LOD0.
+// ConvertLODs produces LOD0 (full quality) plus one additional LOD artifact
+// per configured ratio. The slice is ordered LOD0 → LODN; index in the slice
+// IS the LOD level the catalog should record. When no ratios are configured
+// or no simplifier is wired, returns just LOD0.
+//
+// Every LOD — including LOD0 — is derived from the same uncompressed GLB,
+// never from LOD0's compressed bytes: gltfpack cannot decode Basis Universal
+// textures, so simplifying the compressed artifact would leave every LOD
+// carrying full-resolution textures.
 //
 // LOD>0 artifacts skip vertex/face accounting (they are reported as 0)
 // because parsing the simplified GLB to count faces is expensive and the
 // frontend only surfaces stats for LOD0 anyway.
 func (c *Converter) ConvertLODs(ctx context.Context, sourcePath string) ([]domain.ConversionResult, error) {
-	base, err := c.Convert(ctx, sourcePath)
+	raw, err := c.convertRaw(ctx, sourcePath)
+	if err != nil {
+		return nil, err
+	}
+	base, err := c.finish(ctx, raw)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +45,7 @@ func (c *Converter) ConvertLODs(ctx context.Context, sourcePath string) ([]domai
 	per := lodSpan / float32(len(c.lodRatios))
 	for i, ratio := range c.lodRatios {
 		report(ctx, fmt.Sprintf("lod-%d", i+1), lodStart+per*float32(i))
-		lod, err := c.simplifyLOD(ctx, base.Content, ratio)
+		lod, err := c.simplifyLOD(ctx, raw.content, ratio)
 		if err != nil {
 			// Per-LOD failures shouldn't fail the whole job — LOD0 is still
 			// usable. Log and move on so the worker can register what it has.

@@ -71,8 +71,9 @@ func AuditCompany(ctx context.Context) string {
 }
 
 // Perms returns the caller's permission snapshot. Exported for the audit
-// handlers, which need the grant itself and not just its effect: audit:read and
-// audit:read_own reach the same route but resolve to different scopes.
+// handlers: RequirePermissionForRoute only answers "may this caller in at all",
+// and AuditScope/AuditOwnScope still need to see which grant they hold to build
+// the filter behind it.
 func Perms(ctx context.Context) []string {
 	return principalPerms(ctx)
 }
@@ -100,10 +101,31 @@ func Token(ctx context.Context) string {
 	return t
 }
 
-// NewTestContext builds a principal context outside a real request. It exists
-// because the territory gate lives in another package and cannot reach the
-// unexported context keys; keeping the construction here means the gate's tests
-// exercise the same encoding Authenticate writes, not a copy of it.
+// TestPrincipal is what a test wants encoded into the context. A struct rather
+// than six parameters: a caller that sets only Perms should not have to get the
+// other five right by position.
+type TestPrincipal struct {
+	UserID       string
+	Perms        []string
+	IsOwner      bool
+	OwningAdmin  string
+	AuditCompany string
+}
+
+// NewTestContextFor builds a principal context outside a real request. It
+// exists because the gates and handlers that need one live in another package
+// and cannot reach the unexported context keys; keeping the construction here
+// means their tests exercise the same encoding Authenticate writes, not a copy
+// of it.
+func NewTestContextFor(ctx context.Context, p TestPrincipal) context.Context {
+	return withPrincipal(ctx, p.UserID, p.Perms, p.IsOwner, p.OwningAdmin, p.AuditCompany)
+}
+
+// NewTestContext is the territory/blob gates' shorthand: those care only about
+// the scope, so the user id is a placeholder and the permissions are empty.
 func NewTestContext(ctx context.Context, isOwner bool, owningAdmin string) context.Context {
-	return withPrincipal(ctx, "test-user", nil, isOwner, owningAdmin, owningAdmin)
+	return NewTestContextFor(ctx, TestPrincipal{
+		UserID: "test-user", IsOwner: isOwner,
+		OwningAdmin: owningAdmin, AuditCompany: owningAdmin,
+	})
 }

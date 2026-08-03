@@ -16,6 +16,7 @@ func userToProto(u domain.User) *authv1.User {
 		// totp_enabled is owned by twofa-service; the gateway overlays the real
 		// value via twofa.IsEnabled when composing the user DTO.
 		RoleSlugs:           u.RoleSlugs,
+		RoleTitles:          u.RoleTitles,
 		Permissions:         u.Permissions,
 		CreatedAt:           timestamppb.New(u.CreatedAt),
 		UpdatedAt:           timestamppb.New(u.UpdatedAt),
