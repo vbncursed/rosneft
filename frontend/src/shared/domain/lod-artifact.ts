@@ -34,3 +34,39 @@ export function pickLod(
 ): LodArtifact | null {
   return chain.length === 0 ? null : orderByPreferred(chain, preferred)[0];
 }
+
+// pickCoarsest returns the entry with the highest lod number — the cheapest
+// thing in the chain to download, and therefore what a progressive load shows
+// first. Null only when the chain is empty.
+export function pickCoarsest(chain: LodArtifact[]): LodArtifact | null {
+  return chain.reduce<LodArtifact | null>(
+    (best, a) => (best === null || a.lod > best.lod ? a : best),
+    null,
+  );
+}
+
+// ProgressiveSelection splits "what is on screen" from "what is downloading
+// behind it". `warm` is null whenever there is nothing left to upgrade to —
+// either because the target already arrived, or because it IS the coarsest.
+export interface ProgressiveSelection {
+  show: LodArtifact | null;
+  warm: LodArtifact | null;
+}
+
+// selectProgressive decides both at once. Before the target has loaded, the
+// coarsest entry is shown and the target warms; afterwards the target is shown
+// and nothing warms. Keeping this pure is what makes the swap testable without
+// a WebGL context.
+export function selectProgressive(
+  chain: LodArtifact[],
+  targetLod: number,
+  ready: boolean,
+): ProgressiveSelection {
+  const target = pickLod(chain, targetLod);
+  if (target === null) return { show: null, warm: null };
+  const coarsest = pickCoarsest(chain);
+  if (ready || coarsest === null || coarsest.lod === target.lod) {
+    return { show: target, warm: null };
+  }
+  return { show: coarsest, warm: target };
+}
