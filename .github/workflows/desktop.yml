@@ -14,6 +14,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -25,6 +28,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: desktop/src-tauri
+      # tauri::generate_context!() embeds frontendDist at Rust compile time, so
+      # cargo fmt/clippy/test all need a built frontend/dist to exist first —
+      # not just `cargo tauri build` (that's the `build` job below).
+      - run: yarn --cwd frontend install --frozen-lockfile
+      - run: yarn --cwd frontend build
       - run: make -C desktop check
 
   build:

@@ -28,6 +28,12 @@ cd src-tauri && cargo run                   # run against production
 DESKTOP_UPSTREAM=http://localhost:8080 cargo run   # run against a local backend
 ```
 
+`make check` needs `frontend/dist` to exist before it runs: `tauri::generate_context!()`
+embeds `frontendDist` at Rust compile time, so `cargo fmt`/`clippy`/`test` all
+fail to even compile without it. `check` fails fast with the fix
+(`yarn --cwd ../frontend build`) rather than building the frontend itself —
+that would make a fast gate slow every time it runs.
+
 The frontend is still developed with `yarn dev` in a browser. `cargo run`
 serves a built `dist`, so rebuild the frontend after changing it.
 
