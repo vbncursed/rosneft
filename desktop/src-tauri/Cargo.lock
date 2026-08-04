@@ -38,6 +38,7 @@ version = "0.1.0"
 dependencies = [
  "async-stream",
  "axum",
+ "bytes",
  "futures-util",
  "hex",
  "keyring",
@@ -50,6 +51,7 @@ dependencies = [
  "tauri-build",
  "tempfile",
  "tokio",
+ "tower",
  "tower-http",
  "url",
 ]

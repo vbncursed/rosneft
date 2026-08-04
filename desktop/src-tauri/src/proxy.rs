@@ -56,9 +56,8 @@ fn strip_set_cookie(res: &mut reqwest::Response) {
 
 /// Raw upstream call. Split out so tests can drive it without a Tauri app.
 /// `forward` streams instead of calling this for /api/ traffic (see its doc
-/// comment), but this is not dead: Task 4's `handle_asset` calls it for the
-/// asset-proxy path. Do not delete it or gate it behind `#[cfg(test)]`.
-#[allow(dead_code)]
+/// comment); `handle_asset` (server.rs) is its production caller for the
+/// asset-proxy path.
 pub async fn send(
     client: &reqwest::Client,
     upstream: &url::Url,

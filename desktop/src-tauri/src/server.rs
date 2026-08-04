@@ -1,17 +1,23 @@
 use axum::body::Body;
-use axum::extract::State;
+use axum::extract::{Path, State};
 use axum::http::{header, Request, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::any;
 use axum::Router;
+use futures_util::StreamExt;
 use std::net::SocketAddr;
+use tower::ServiceExt;
+use tower_http::services::ServeFile;
 
 use crate::guard::Nonce;
 use crate::spa::{classify, Route};
 use crate::state::Shared;
 
 pub fn router(state: Shared) -> Router {
-    Router::new().fallback(any(handle)).with_state(state)
+    Router::new()
+        .route("/api/assets/{hash}", any(handle_asset))
+        .fallback(any(handle))
+        .with_state(state)
 }
 
 /// Binds 127.0.0.1 on an ephemeral port and serves in a background task.
@@ -45,6 +51,82 @@ async fn handle(State(state): State<Shared>, req: Request<Body>) -> Response {
         return crate::proxy::forward(&state, req).await;
     }
     serve_static(&state, route)
+}
+
+/// Cache-through handler for /api/assets/{hash}. A hit is served by
+/// `ServeFile` so `Range` requests still work (pdf.js needs it); a miss is
+/// proxied and teed to disk so a later request is a hit.
+async fn handle_asset(
+    State(state): State<Shared>,
+    Path(hash): Path<String>,
+    req: Request<Body>,
+) -> Response {
+    let cookie = req
+        .headers()
+        .get(header::COOKIE)
+        .and_then(|v| v.to_str().ok());
+    if !state.nonce.matches(cookie) {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    let Some(root) = state.user_cache_root() else {
+        return crate::proxy::forward(&state, req).await;
+    };
+    if !crate::cache::is_valid_hash(&hash) {
+        return crate::proxy::forward(&state, req).await;
+    }
+
+    let path = crate::paths::blobs(&root).join(&hash);
+    if path.is_file() {
+        // ServeFile answers Range, and pdf.js loads documents by range. Its
+        // Service::Error is Infallible (tower-http 0.6.11,
+        // services/fs/serve_dir/mod.rs), so there is no failure case to fall
+        // back from here — and thus no need to keep `req` alive past the move
+        // into `oneshot` for a fallback call that could never run.
+        return match ServeFile::new(&path).oneshot(req).await {
+            Ok(res) => res.into_response(),
+            Err(never) => match never {},
+        };
+    }
+
+    let method = req.method().clone();
+    let headers = req.headers().clone();
+    let pq = req
+        .uri()
+        .path_and_query()
+        .map(|p| p.as_str().to_string())
+        .unwrap_or_default();
+    let res = match crate::proxy::send(
+        &state.http,
+        &state.upstream,
+        method.as_str(),
+        &pq,
+        headers,
+        Vec::new(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(_) => return crate::proxy::unreachable(),
+    };
+    // Only a complete 200 is cacheable: a 206 is a slice and a 404 is not content.
+    if res.status() != reqwest::StatusCode::OK {
+        return crate::proxy::relay(res);
+    }
+    let _ = tokio::fs::create_dir_all(crate::paths::blobs(&root)).await;
+
+    let status = StatusCode::OK;
+    let mut out = Response::builder().status(status);
+    for (k, v) in res.headers().iter() {
+        let name = k.as_str().to_ascii_lowercase();
+        if name == "set-cookie" || name == "content-length" || name == "transfer-encoding" {
+            continue;
+        }
+        out = out.header(k, v);
+    }
+    let upstream = res.bytes_stream().map(|c| c.map_err(std::io::Error::other));
+    let teed = crate::cache::tee_to_disk(upstream, path, hash);
+    out.body(Body::from_stream(teed))
+        .unwrap_or_else(|_| StatusCode::BAD_GATEWAY.into_response())
 }
 
 // Pulled out of `handle` so the gate itself is unit-testable without an

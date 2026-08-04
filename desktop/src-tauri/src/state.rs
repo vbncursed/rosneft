@@ -4,9 +4,6 @@ use std::sync::Arc;
 use tauri::AppHandle;
 use url::Url;
 
-// cache_dir is wired up by the disk cache added in a later task; this task
-// only serves the embedded SPA from `app` and proxies /api through `http`.
-#[allow(dead_code)]
 #[derive(Clone)]
 pub struct AppState {
     pub app: AppHandle,
@@ -21,6 +18,22 @@ impl AppState {
     /// The gateway's session cookie as the jar currently holds it.
     pub fn session_cookie(&self) -> Option<String> {
         read_session_cookie(&self.jar, &self.upstream)
+    }
+
+    /// None until we know who is signed in — before that there is no directory
+    /// the cache may safely use, so requests go straight upstream.
+    pub fn user_cache_root(&self) -> Option<PathBuf> {
+        let stored = crate::session::load()?;
+        let host = self.upstream.host_str()?;
+        let host = match self.upstream.port() {
+            Some(p) => format!("{host}:{p}"),
+            None => host.to_string(),
+        };
+        Some(crate::paths::user_root(
+            &self.cache_dir,
+            &host,
+            &stored.user_id,
+        ))
     }
 }
 
