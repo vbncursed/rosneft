@@ -103,6 +103,21 @@ pub fn unreachable() -> Response {
         .into_response()
 }
 
+/// Replays the last good body for a request whose network call failed at the
+/// transport level. An HTTP status never reaches here — a 500 is an answer.
+pub fn offline_fallback(
+    dir: &std::path::Path,
+    method: &str,
+    path_and_query: &str,
+) -> Option<Response> {
+    if !crate::snapshot::cacheable(method, path_and_query) {
+        return None;
+    }
+    let (content_type, body) =
+        crate::snapshot::load(dir, &crate::snapshot::key(method, path_and_query))?;
+    Some((StatusCode::OK, [(header::CONTENT_TYPE, content_type)], body).into_response())
+}
+
 /// SSE (`/api/jobs/{id}/events`) and 8 MB upload chunks go through this path,
 /// so the request body is streamed straight into the outbound reqwest body
 /// (`into_data_stream` -> `Body::wrap_stream`) rather than buffered with
@@ -134,21 +149,25 @@ pub async fn forward(state: &Shared, req: Request<Body>) -> Response {
             strip_set_cookie(&mut res);
             post_process(state, &method, &path_and_query, res).await
         }
-        Err(_) => unreachable(),
+        Err(_) => state
+            .user_cache_root()
+            .and_then(|root| {
+                offline_fallback(
+                    &crate::paths::snapshots(&root),
+                    method.as_str(),
+                    &path_and_query,
+                )
+            })
+            .unwrap_or_else(unreachable),
     }
 }
 
-/// Only `GET /api/auth/me` buffers; everything else (SSE, uploads, ...)
-/// streams straight through `relay`. Pure predicate, pulled out of
-/// `post_process` so this rule is directly assertable without a live
-/// upstream or an `AppState`.
-fn buffers_response(method: &Method, path_and_query: &str) -> bool {
-    method == Method::GET && path_and_query.starts_with("/api/auth/me")
-}
-
-/// /api/auth/me is buffered on purpose: it is a few hundred bytes and it is the
-/// only place the user id is available, and the id is what keys the per-user
-/// cache directory. Everything else streams.
+/// Successful GETs on the cacheable set are buffered so they can be written
+/// to the snapshot store; everything else (SSE, uploads, mutations, ...)
+/// streams straight through `relay`. /api/auth/me is a member of that set —
+/// it is also the only place the user id is available, and the id is what
+/// keys the per-user cache directory — so its session bookkeeping lives
+/// inside the same buffered branch rather than a separate one.
 async fn post_process(
     state: &Shared,
     method: &Method,
@@ -164,10 +183,10 @@ async fn post_process(
     {
         crate::session::clear();
     }
-    if !(buffers_response(method, path_and_query) && res.status().is_success()) {
+    if !(res.status().is_success() && crate::snapshot::cacheable(method.as_str(), path_and_query)) {
         return relay(res);
     }
-
+    // A cacheable JSON GET is buffered so it can be written; these are kilobytes.
     let status = StatusCode::from_u16(res.status().as_u16()).unwrap_or(StatusCode::OK);
     let content_type = res
         .headers()
@@ -178,10 +197,21 @@ async fn post_process(
     let Ok(bytes) = res.bytes().await else {
         return unreachable();
     };
-    if let Some(user_id) = crate::session::user_id_from_me(&bytes) {
-        if let Some(token) = state.session_cookie() {
+    if path_and_query.starts_with("/api/auth/me") {
+        if let (Some(user_id), Some(token)) = (
+            crate::session::user_id_from_me(&bytes),
+            state.session_cookie(),
+        ) {
             crate::session::store(&crate::session::Stored { token, user_id });
         }
+    }
+    if let Some(root) = state.user_cache_root() {
+        crate::snapshot::save(
+            &crate::paths::snapshots(&root),
+            &crate::snapshot::key(method.as_str(), path_and_query),
+            &content_type,
+            &bytes,
+        );
     }
     (status, [(header::CONTENT_TYPE, content_type)], bytes).into_response()
 }
@@ -355,17 +385,48 @@ mod tests {
         );
     }
 
-    #[test]
-    fn only_get_auth_me_buffers() {
-        assert!(buffers_response(&Method::GET, "/api/auth/me"));
-        assert!(buffers_response(&Method::GET, "/api/auth/me?x=1"));
+    #[tokio::test]
+    async fn replays_a_snapshot_when_the_upstream_is_gone() {
+        let dir = tempfile::tempdir().unwrap();
+        let k = crate::snapshot::key("GET", "/api/territories");
+        crate::snapshot::save(dir.path(), &k, "application/json", b"[{\"slug\":\"a\"}]");
+
+        let res = offline_fallback(dir.path(), "GET", "/api/territories");
+        let res = res.expect("a saved snapshot must answer when the network does not");
+        assert_eq!(res.status(), StatusCode::OK);
     }
 
-    #[test]
-    fn everything_else_streams() {
-        assert!(!buffers_response(&Method::POST, "/api/auth/me"));
-        assert!(!buffers_response(&Method::GET, "/api/jobs/abc/events"));
-        assert!(!buffers_response(&Method::PATCH, "/api/uploads/abc"));
-        assert!(!buffers_response(&Method::GET, "/api/territories"));
+    #[tokio::test]
+    async fn without_a_snapshot_it_is_a_service_error() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(offline_fallback(dir.path(), "GET", "/api/territories").is_none());
+    }
+
+    // A 500 is the server talking. Replaying yesterday's body over it would
+    // hide a real outage behind stale data.
+    #[tokio::test]
+    async fn an_upstream_500_is_passed_through() {
+        let base = stub(axum::Router::new().route(
+            "/api/territories",
+            get(|| async { StatusCode::INTERNAL_SERVER_ERROR }),
+        ))
+        .await;
+        let client = reqwest::Client::new();
+        let upstream = url::Url::parse(&base).unwrap();
+        let res = send(
+            &client,
+            &upstream,
+            "GET",
+            "/api/territories",
+            Default::default(),
+            Vec::new(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(res.status(), 500);
+        assert!(
+            !res.status().is_success(),
+            "nothing here may be replaced by a snapshot"
+        );
     }
 }

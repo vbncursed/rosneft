@@ -149,7 +149,7 @@ async fn handle_asset(
 /// Pure request-disposition decision for `handle_asset`, pulled out so the
 /// no-cache-root / hit-vs-miss branching is unit-testable without a Tauri
 /// `AppHandle` — the same pattern as `allowed()` below and
-/// `proxy::buffers_response`. Hash validity is not an input here: it is a
+/// `snapshot::cacheable`. Hash validity is not an input here: it is a
 /// trust boundary (the hash becomes a filename), so it is a guard clause at
 /// the top of `handle_asset`, before this function — or any I/O — ever runs.
 #[derive(Debug, PartialEq, Eq)]

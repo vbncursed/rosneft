@@ -7,6 +7,7 @@ mod paths;
 mod proxy;
 mod server;
 mod session;
+mod snapshot;
 mod spa;
 mod state;
 

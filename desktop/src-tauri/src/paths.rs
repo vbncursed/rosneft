@@ -24,11 +24,6 @@ pub fn tmp(root: &Path) -> PathBuf {
     root.join("tmp")
 }
 
-// Not called yet: this task only wires up the blob cache. `snapshots` is
-// part of the brief's declared interface for a later task (caching scene
-// bundle JSON for offline territory viewing), the same way `cache_dir` and
-// `proxy::send` carried this attribute across tasks 1-4.
-#[allow(dead_code)]
 pub fn snapshots(root: &Path) -> PathBuf {
     root.join("snapshots")
 }
