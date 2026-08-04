@@ -68,12 +68,17 @@ async fn handle_asset(
     if !state.nonce.matches(cookie) {
         return StatusCode::FORBIDDEN.into_response();
     }
+    // {hash} becomes a filename below (join + is_file), so it must be proven
+    // safe before it touches the filesystem in any way — not after.
+    if !crate::cache::is_valid_hash(&hash) {
+        return crate::proxy::forward(&state, req).await;
+    }
 
     let root = state.user_cache_root();
     let path = root.as_deref().map(|r| crate::paths::blobs(r).join(&hash));
     let file_exists = path.as_deref().is_some_and(std::path::Path::is_file);
 
-    match asset_disposition(&hash, root.is_some(), file_exists) {
+    match asset_disposition(root.is_some(), file_exists) {
         AssetDisposition::Passthrough => crate::proxy::forward(&state, req).await,
         AssetDisposition::Hit => {
             let path = path.expect("Hit implies root and path are Some");
@@ -135,15 +140,14 @@ async fn handle_asset(
 }
 
 /// Pure request-disposition decision for `handle_asset`, pulled out so the
-/// no-cache-root / invalid-hash / hit-vs-miss branching is unit-testable
-/// without a Tauri `AppHandle` — the same pattern as `allowed()` below and
-/// `proxy::buffers_response`. The caller does the (unavoidably impure) I/O —
-/// resolving the cache root and checking whether the file exists — and hands
-/// the results in.
+/// no-cache-root / hit-vs-miss branching is unit-testable without a Tauri
+/// `AppHandle` — the same pattern as `allowed()` below and
+/// `proxy::buffers_response`. Hash validity is not an input here: it is a
+/// trust boundary (the hash becomes a filename), so it is a guard clause at
+/// the top of `handle_asset`, before this function — or any I/O — ever runs.
 #[derive(Debug, PartialEq, Eq)]
 enum AssetDisposition {
-    /// No user cache root yet, or the hash can't be trusted as a filename:
-    /// skip the cache and let the proxy handle it.
+    /// No user cache root yet: skip the cache and let the proxy handle it.
     Passthrough,
     /// A cache file already exists at the computed path.
     Hit,
@@ -151,8 +155,8 @@ enum AssetDisposition {
     Miss,
 }
 
-fn asset_disposition(hash: &str, has_cache_root: bool, file_exists: bool) -> AssetDisposition {
-    if !has_cache_root || !crate::cache::is_valid_hash(hash) {
+fn asset_disposition(has_cache_root: bool, file_exists: bool) -> AssetDisposition {
+    if !has_cache_root {
         return AssetDisposition::Passthrough;
     }
     if file_exists {
@@ -246,43 +250,27 @@ mod tests {
         assert!(!allowed(&Route::NotFound, &nonce, None));
     }
 
-    const VALID_HASH: &str = "a2c3e8b6b3c9d5f1a2c3e8b6b3c9d5f1a2c3e8b6b3c9d5f1a2c3e8b6b3c9d5f1";
-
     #[test]
     fn passthrough_without_a_cache_root() {
         // Before login there is no directory the cache may safely use, no
-        // matter what the hash or the (nonexistent) file check say.
+        // matter what the (nonexistent) file check says.
         assert_eq!(
-            asset_disposition(VALID_HASH, false, false),
+            asset_disposition(false, false),
             AssetDisposition::Passthrough
         );
         assert_eq!(
-            asset_disposition(VALID_HASH, false, true),
-            AssetDisposition::Passthrough
-        );
-    }
-
-    #[test]
-    fn passthrough_on_an_invalid_hash_even_with_a_root() {
-        assert_eq!(
-            asset_disposition("../../etc/passwd", true, false),
+            asset_disposition(false, true),
             AssetDisposition::Passthrough
         );
     }
 
     #[test]
     fn hit_when_the_file_already_exists() {
-        assert_eq!(
-            asset_disposition(VALID_HASH, true, true),
-            AssetDisposition::Hit
-        );
+        assert_eq!(asset_disposition(true, true), AssetDisposition::Hit);
     }
 
     #[test]
     fn miss_when_nothing_is_cached_yet() {
-        assert_eq!(
-            asset_disposition(VALID_HASH, true, false),
-            AssetDisposition::Miss
-        );
+        assert_eq!(asset_disposition(true, false), AssetDisposition::Miss);
     }
 }
