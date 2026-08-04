@@ -175,13 +175,13 @@ async fn post_process(
     res: reqwest::Response,
 ) -> Response {
     if res.status() == reqwest::StatusCode::UNAUTHORIZED {
-        crate::session::clear();
+        state.clear_session();
     }
     if method == Method::POST
         && path_and_query.starts_with("/api/auth/logout")
         && res.status().is_success()
     {
-        crate::session::clear();
+        state.clear_session();
     }
     if !(res.status().is_success() && crate::snapshot::cacheable(method.as_str(), path_and_query)) {
         return relay(res);
@@ -202,7 +202,7 @@ async fn post_process(
             crate::session::user_id_from_me(&bytes),
             state.session_cookie(),
         ) {
-            crate::session::store(&crate::session::Stored { token, user_id });
+            state.store_session(crate::session::Stored { token, user_id });
         }
     }
     if let Some(root) = state.user_cache_root() {
