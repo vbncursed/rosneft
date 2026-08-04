@@ -17,27 +17,24 @@ pub struct AppState {
     pub jar: Arc<reqwest::cookie::Jar>,
 }
 
-#[allow(dead_code)]
 impl AppState {
-    pub fn upstream_url(&self, path_and_query: &str) -> Url {
-        let mut u = self.upstream.clone();
-        u.set_path("");
-        u.set_query(None);
-        // join() on a base whose path is empty resolves the absolute path as-is.
-        u.join(path_and_query)
-            .unwrap_or_else(|_| self.upstream.clone())
-    }
-
     /// The gateway's session cookie as the jar currently holds it.
     pub fn session_cookie(&self) -> Option<String> {
-        let header = self.jar.cookies(&self.upstream)?;
-        let header = header.to_str().ok()?;
-        header
-            .split(';')
-            .filter_map(|c| c.trim().split_once('='))
-            .find(|(k, _)| *k == SESSION_COOKIE)
-            .map(|(_, v)| v.to_string())
+        read_session_cookie(&self.jar, &self.upstream)
     }
+}
+
+/// Pure lookup pulled out of `AppState::session_cookie` so it is unit-testable
+/// without an `AppHandle`: a bare `reqwest::cookie::Jar` is constructible in a
+/// test, `AppState` is not.
+pub fn read_session_cookie(jar: &reqwest::cookie::Jar, upstream: &Url) -> Option<String> {
+    let header = jar.cookies(upstream)?;
+    let header = header.to_str().ok()?;
+    header
+        .split(';')
+        .filter_map(|c| c.trim().split_once('='))
+        .find(|(k, _)| *k == SESSION_COOKIE)
+        .map(|(_, v)| v.to_string())
 }
 
 /// Mirrors sessionCookieName in
@@ -45,3 +42,34 @@ impl AppState {
 pub const SESSION_COOKIE: &str = "andrey_session";
 
 pub type Shared = Arc<AppState>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn no_session_yet_is_none() {
+        let jar = reqwest::cookie::Jar::default();
+        let upstream = Url::parse("http://localhost:8080").unwrap();
+        assert_eq!(read_session_cookie(&jar, &upstream), None);
+    }
+
+    #[test]
+    fn reads_the_session_cookie_out_of_the_jar() {
+        let jar = reqwest::cookie::Jar::default();
+        let upstream = Url::parse("http://localhost:8080").unwrap();
+        jar.add_cookie_str(&format!("{SESSION_COOKIE}=abc123; Path=/"), &upstream);
+        assert_eq!(
+            read_session_cookie(&jar, &upstream),
+            Some("abc123".to_string())
+        );
+    }
+
+    #[test]
+    fn ignores_other_cookies_in_the_jar() {
+        let jar = reqwest::cookie::Jar::default();
+        let upstream = Url::parse("http://localhost:8080").unwrap();
+        jar.add_cookie_str("theme=dark; Path=/", &upstream);
+        assert_eq!(read_session_cookie(&jar, &upstream), None);
+    }
+}

@@ -55,8 +55,9 @@ fn strip_set_cookie(res: &mut reqwest::Response) {
 }
 
 /// Raw upstream call. Split out so tests can drive it without a Tauri app.
-/// `forward` streams instead of calling this (see its doc comment), so only
-/// the tests below call it — same pattern as `Nonce::value` in guard.rs.
+/// `forward` streams instead of calling this for /api/ traffic (see its doc
+/// comment), but this is not dead: Task 4's `handle_asset` calls it for the
+/// asset-proxy path. Do not delete it or gate it behind `#[cfg(test)]`.
 #[allow(dead_code)]
 pub async fn send(
     client: &reqwest::Client,
@@ -98,7 +99,7 @@ pub fn unreachable() -> Response {
     (
         StatusCode::SERVICE_UNAVAILABLE,
         [(header::CONTENT_TYPE, "application/json")],
-        r#"{"code":"upstream_unreachable","message":"Нет связи с сервером"}"#,
+        r#"{"code":"upstream_unreachable","message":"Cannot reach the server"}"#,
     )
         .into_response()
 }
@@ -138,6 +139,14 @@ pub async fn forward(state: &Shared, req: Request<Body>) -> Response {
     }
 }
 
+/// Only `GET /api/auth/me` buffers; everything else (SSE, uploads, ...)
+/// streams straight through `relay`. Pure predicate, pulled out of
+/// `post_process` so this rule is directly assertable without a live
+/// upstream or an `AppState`.
+fn buffers_response(method: &Method, path_and_query: &str) -> bool {
+    method == Method::GET && path_and_query.starts_with("/api/auth/me")
+}
+
 /// /api/auth/me is buffered on purpose: it is a few hundred bytes and it is the
 /// only place the user id is available, and the id is what keys the per-user
 /// cache directory. Everything else streams.
@@ -156,10 +165,7 @@ async fn post_process(
     {
         crate::session::clear();
     }
-    if !(method == Method::GET
-        && path_and_query.starts_with("/api/auth/me")
-        && res.status().is_success())
-    {
+    if !(buffers_response(method, path_and_query) && res.status().is_success()) {
         return relay(res);
     }
 
@@ -287,5 +293,80 @@ mod tests {
         .unwrap();
 
         assert!(echo.text().await.unwrap().contains("session=secret"));
+    }
+
+    #[tokio::test]
+    async fn strips_cookie_host_and_hop_by_hop_headers_before_forwarding() {
+        let base = stub(axum::Router::new().route(
+            "/api/echo-headers",
+            get(|headers: axum::http::HeaderMap| async move {
+                axum::Json(serde_json::json!({
+                    "cookie": headers.get(header::COOKIE).and_then(|v| v.to_str().ok()),
+                    "connection": headers.get(header::CONNECTION).and_then(|v| v.to_str().ok()),
+                    "host": headers.get(header::HOST).and_then(|v| v.to_str().ok()),
+                    "accept": headers.get(header::ACCEPT).and_then(|v| v.to_str().ok()),
+                }))
+            }),
+        ))
+        .await;
+
+        let client = reqwest::Client::new();
+        let upstream = url::Url::parse(&base).unwrap();
+
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            header::COOKIE,
+            "dsk=loopback-nonce-must-not-leave".parse().unwrap(),
+        );
+        headers.insert(header::HOST, "127.0.0.1:1234".parse().unwrap());
+        headers.insert(header::CONNECTION, "keep-alive".parse().unwrap());
+        headers.insert(header::ACCEPT, "application/json".parse().unwrap());
+
+        let res = send(
+            &client,
+            &upstream,
+            "GET",
+            "/api/echo-headers",
+            headers,
+            Vec::new(),
+        )
+        .await
+        .unwrap();
+        let body: serde_json::Value = serde_json::from_str(&res.text().await.unwrap()).unwrap();
+
+        assert_eq!(
+            body["cookie"],
+            serde_json::Value::Null,
+            "the loopback nonce cookie must not reach the gateway"
+        );
+        assert_eq!(
+            body["connection"],
+            serde_json::Value::Null,
+            "hop-by-hop headers must not be forwarded"
+        );
+        assert_ne!(
+            body["host"].as_str().unwrap(),
+            "127.0.0.1:1234",
+            "Host must be the upstream's own authority, not the loopback origin's"
+        );
+        assert_eq!(
+            body["accept"],
+            serde_json::json!("application/json"),
+            "a normal header must still be forwarded"
+        );
+    }
+
+    #[test]
+    fn only_get_auth_me_buffers() {
+        assert!(buffers_response(&Method::GET, "/api/auth/me"));
+        assert!(buffers_response(&Method::GET, "/api/auth/me?x=1"));
+    }
+
+    #[test]
+    fn everything_else_streams() {
+        assert!(!buffers_response(&Method::POST, "/api/auth/me"));
+        assert!(!buffers_response(&Method::GET, "/api/jobs/abc/events"));
+        assert!(!buffers_response(&Method::PATCH, "/api/uploads/abc"));
+        assert!(!buffers_response(&Method::GET, "/api/territories"));
     }
 }
