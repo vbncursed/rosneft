@@ -6,15 +6,22 @@ use std::path::Path;
 /// GET only, and never /api/assets (it has its own cache) nor the job event
 /// stream. /api/auth is closed apart from /me, which is load-bearing: the
 /// router guard reads it, and without a snapshot there is no offline mode.
+///
+/// A query string is refused outright, which is what keeps the store bounded.
+/// `key` hashes method + path + query, so `/api/audit?limit=50&cursor=…` —
+/// cursor-paged infinite scroll — would mint a file per page in a directory
+/// nothing ever sweeps. Nothing on the offline boot path carries a query:
+/// /api/auth/me, /api/territories and /api/territories/{slug}/scene are all
+/// bare paths. This is the cheaper of the two fixes (the other being an
+/// `enforce_cap` sweep over snapshots/) and it also drops a snapshot nobody
+/// could use: page 2 of a cursor scroll is meaningless without page 1.
 pub fn cacheable(method: &str, path: &str) -> bool {
-    if method != "GET" || !path.starts_with("/api/") {
+    if method != "GET" || !path.starts_with("/api/") || path.contains('?') {
         return false;
     }
-    // Strip the query before matching the route shape: `/events` must be the
-    // last path segment, not merely a substring (a slug like `events-park`
-    // must not be excluded).
-    let route = path.split('?').next().unwrap_or(path);
-    if path.starts_with("/api/assets/") || route.ends_with("/events") {
+    // `/events` must be the last path segment, not merely a substring — a slug
+    // like `events-park` must stay cacheable.
+    if path.starts_with("/api/assets/") || path.ends_with("/events") {
         return false;
     }
     if path.starts_with("/api/auth/") {
@@ -92,6 +99,17 @@ mod tests {
         assert!(cacheable("GET", "/api/auth/me"));
         assert!(!cacheable("GET", "/api/auth/passkeys"));
         assert!(!cacheable("GET", "/api/auth/login"));
+    }
+
+    // The store has no eviction, and `key` hashes the query — so a paged route
+    // would grow a file per page forever. Nothing that boots the app offline
+    // carries a query.
+    #[test]
+    fn never_caches_a_paged_route() {
+        assert!(!cacheable("GET", "/api/audit?limit=50&cursor=1200"));
+        assert!(!cacheable("GET", "/api/audit/mine?limit=50"));
+        assert!(!cacheable("GET", "/api/metrics/query?panel=cpu&range=1h"));
+        assert!(cacheable("GET", "/api/audit"));
     }
 
     #[test]
