@@ -68,65 +68,98 @@ async fn handle_asset(
     if !state.nonce.matches(cookie) {
         return StatusCode::FORBIDDEN.into_response();
     }
-    let Some(root) = state.user_cache_root() else {
-        return crate::proxy::forward(&state, req).await;
-    };
-    if !crate::cache::is_valid_hash(&hash) {
-        return crate::proxy::forward(&state, req).await;
-    }
 
-    let path = crate::paths::blobs(&root).join(&hash);
-    if path.is_file() {
-        // ServeFile answers Range, and pdf.js loads documents by range. Its
-        // Service::Error is Infallible (tower-http 0.6.11,
-        // services/fs/serve_dir/mod.rs), so there is no failure case to fall
-        // back from here — and thus no need to keep `req` alive past the move
-        // into `oneshot` for a fallback call that could never run.
-        return match ServeFile::new(&path).oneshot(req).await {
-            Ok(res) => res.into_response(),
-            Err(never) => match never {},
-        };
-    }
+    let root = state.user_cache_root();
+    let path = root.as_deref().map(|r| crate::paths::blobs(r).join(&hash));
+    let file_exists = path.as_deref().is_some_and(std::path::Path::is_file);
 
-    let method = req.method().clone();
-    let headers = req.headers().clone();
-    let pq = req
-        .uri()
-        .path_and_query()
-        .map(|p| p.as_str().to_string())
-        .unwrap_or_default();
-    let res = match crate::proxy::send(
-        &state.http,
-        &state.upstream,
-        method.as_str(),
-        &pq,
-        headers,
-        Vec::new(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(_) => return crate::proxy::unreachable(),
-    };
-    // Only a complete 200 is cacheable: a 206 is a slice and a 404 is not content.
-    if res.status() != reqwest::StatusCode::OK {
-        return crate::proxy::relay(res);
-    }
-    let _ = tokio::fs::create_dir_all(crate::paths::blobs(&root)).await;
-
-    let status = StatusCode::OK;
-    let mut out = Response::builder().status(status);
-    for (k, v) in res.headers().iter() {
-        let name = k.as_str().to_ascii_lowercase();
-        if name == "set-cookie" || name == "content-length" || name == "transfer-encoding" {
-            continue;
+    match asset_disposition(&hash, root.is_some(), file_exists) {
+        AssetDisposition::Passthrough => crate::proxy::forward(&state, req).await,
+        AssetDisposition::Hit => {
+            let path = path.expect("Hit implies root and path are Some");
+            // ServeFile answers Range, and pdf.js loads documents by range. Its
+            // Service::Error is Infallible (tower-http 0.6.11,
+            // services/fs/serve_dir/mod.rs), so there is no failure case to fall
+            // back from here — and thus no need to keep `req` alive past the move
+            // into `oneshot` for a fallback call that could never run.
+            match ServeFile::new(&path).oneshot(req).await {
+                Ok(res) => res.into_response(),
+                Err(never) => match never {},
+            }
         }
-        out = out.header(k, v);
+        AssetDisposition::Miss => {
+            let root = root.expect("Miss implies root and path are Some");
+            let path = path.expect("Miss implies root and path are Some");
+
+            let method = req.method().clone();
+            let headers = req.headers().clone();
+            let pq = req
+                .uri()
+                .path_and_query()
+                .map(|p| p.as_str().to_string())
+                .unwrap_or_default();
+            let res = match crate::proxy::send(
+                &state.http,
+                &state.upstream,
+                method.as_str(),
+                &pq,
+                headers,
+                Vec::new(),
+            )
+            .await
+            {
+                Ok(r) => r,
+                Err(_) => return crate::proxy::unreachable(),
+            };
+            // Only a complete 200 is cacheable: a 206 is a slice and a 404 is not content.
+            if res.status() != reqwest::StatusCode::OK {
+                return crate::proxy::relay(res);
+            }
+            let _ = tokio::fs::create_dir_all(crate::paths::blobs(&root)).await;
+
+            let status = StatusCode::OK;
+            let mut out = Response::builder().status(status);
+            for (k, v) in res.headers().iter() {
+                let name = k.as_str().to_ascii_lowercase();
+                if name == "set-cookie" || name == "content-length" || name == "transfer-encoding" {
+                    continue;
+                }
+                out = out.header(k, v);
+            }
+            let upstream = res.bytes_stream().map(|c| c.map_err(std::io::Error::other));
+            let teed = crate::cache::tee_to_disk(upstream, path, hash);
+            out.body(Body::from_stream(teed))
+                .unwrap_or_else(|_| StatusCode::BAD_GATEWAY.into_response())
+        }
     }
-    let upstream = res.bytes_stream().map(|c| c.map_err(std::io::Error::other));
-    let teed = crate::cache::tee_to_disk(upstream, path, hash);
-    out.body(Body::from_stream(teed))
-        .unwrap_or_else(|_| StatusCode::BAD_GATEWAY.into_response())
+}
+
+/// Pure request-disposition decision for `handle_asset`, pulled out so the
+/// no-cache-root / invalid-hash / hit-vs-miss branching is unit-testable
+/// without a Tauri `AppHandle` — the same pattern as `allowed()` below and
+/// `proxy::buffers_response`. The caller does the (unavoidably impure) I/O —
+/// resolving the cache root and checking whether the file exists — and hands
+/// the results in.
+#[derive(Debug, PartialEq, Eq)]
+enum AssetDisposition {
+    /// No user cache root yet, or the hash can't be trusted as a filename:
+    /// skip the cache and let the proxy handle it.
+    Passthrough,
+    /// A cache file already exists at the computed path.
+    Hit,
+    /// Nothing cached yet: fetch from upstream and tee to disk.
+    Miss,
+}
+
+fn asset_disposition(hash: &str, has_cache_root: bool, file_exists: bool) -> AssetDisposition {
+    if !has_cache_root || !crate::cache::is_valid_hash(hash) {
+        return AssetDisposition::Passthrough;
+    }
+    if file_exists {
+        AssetDisposition::Hit
+    } else {
+        AssetDisposition::Miss
+    }
 }
 
 // Pulled out of `handle` so the gate itself is unit-testable without an
@@ -211,5 +244,45 @@ mod tests {
     fn not_found_is_denied_without_a_cookie() {
         let nonce = Nonce::new();
         assert!(!allowed(&Route::NotFound, &nonce, None));
+    }
+
+    const VALID_HASH: &str = "a2c3e8b6b3c9d5f1a2c3e8b6b3c9d5f1a2c3e8b6b3c9d5f1a2c3e8b6b3c9d5f1";
+
+    #[test]
+    fn passthrough_without_a_cache_root() {
+        // Before login there is no directory the cache may safely use, no
+        // matter what the hash or the (nonexistent) file check say.
+        assert_eq!(
+            asset_disposition(VALID_HASH, false, false),
+            AssetDisposition::Passthrough
+        );
+        assert_eq!(
+            asset_disposition(VALID_HASH, false, true),
+            AssetDisposition::Passthrough
+        );
+    }
+
+    #[test]
+    fn passthrough_on_an_invalid_hash_even_with_a_root() {
+        assert_eq!(
+            asset_disposition("../../etc/passwd", true, false),
+            AssetDisposition::Passthrough
+        );
+    }
+
+    #[test]
+    fn hit_when_the_file_already_exists() {
+        assert_eq!(
+            asset_disposition(VALID_HASH, true, true),
+            AssetDisposition::Hit
+        );
+    }
+
+    #[test]
+    fn miss_when_nothing_is_cached_yet() {
+        assert_eq!(
+            asset_disposition(VALID_HASH, true, false),
+            AssetDisposition::Miss
+        );
     }
 }

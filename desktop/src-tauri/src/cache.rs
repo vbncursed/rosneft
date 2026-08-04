@@ -1,7 +1,8 @@
 use futures_util::Stream;
 use futures_util::StreamExt;
 use sha2::{Digest, Sha256};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::io::AsyncWriteExt;
 
 /// Blob hashes are sha256 hex from upload-service, so anything else is either a
@@ -11,6 +12,42 @@ pub fn is_valid_hash(hash: &str) -> bool {
         && hash
             .bytes()
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+static TMP_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+/// A temp path unique per call, not just per process: two concurrent misses
+/// for the same hash (same dest) must not open the same file, or one
+/// writer's `File::create` truncates out from under the other's already
+/// in-flight write.
+fn tmp_path(dest: &Path) -> PathBuf {
+    let n = TMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+    dest.with_extension(format!("part-{}-{n}", std::process::id()))
+}
+
+/// Deletes its path on drop unless disarmed. `async_stream::stream!` has no
+/// async destructor, so a stream dropped mid-poll (the webview cancels the
+/// fetch, the window closes) never reaches the cleanup tail below — only
+/// ordinary sync `Drop` impls run at the suspension point, which is exactly
+/// what this is for.
+struct TempFile(PathBuf, bool);
+
+impl TempFile {
+    fn new(path: PathBuf) -> Self {
+        Self(path, true)
+    }
+
+    fn disarm(mut self) {
+        self.1 = false;
+    }
+}
+
+impl Drop for TempFile {
+    fn drop(&mut self) {
+        if self.1 {
+            let _ = std::fs::remove_file(&self.0);
+        }
+    }
 }
 
 /// Passes chunks through to the caller while writing them to a temp file, and
@@ -26,13 +63,8 @@ where
     S: Stream<Item = Result<bytes::Bytes, std::io::Error>>,
 {
     async_stream::stream! {
-        // ponytail: dropping this stream before it completes (the webview
-        // cancels the fetch, the window closes) skips straight to the local
-        // drops below — there is no async cleanup on Drop for a generator, so
-        // the .part file is orphaned. It never becomes a served cache entry
-        // (only a rename does that), so correctness holds; it is a disk-space
-        // leak only. Upgrade path: sweep `blobs/*.part-*` on cache-dir startup.
-        let tmp = dest.with_extension(format!("part-{}", std::process::id()));
+        let tmp = tmp_path(&dest);
+        let guard = TempFile::new(tmp.clone());
         // A cache that cannot write is a cache that is off, not a failed request.
         let mut file = tokio::fs::File::create(&tmp).await.ok();
         let mut hasher = Sha256::new();
@@ -65,10 +97,13 @@ where
             let ok = complete && f.flush().await.is_ok() && hex::encode(hasher.finalize()) == hash;
             drop(f);
             if ok && tokio::fs::rename(&tmp, &dest).await.is_ok() {
+                guard.disarm();
                 return;
             }
         }
-        let _ = tokio::fs::remove_file(&tmp).await;
+        // Nothing to do here: `guard` removes `tmp` on drop, whether we fall
+        // through normally (hash mismatch, write failure) or the whole
+        // stream is dropped mid-poll before ever reaching this line.
     }
 }
 
@@ -165,5 +200,21 @@ mod tests {
         tokio::task::yield_now().await;
 
         assert!(!dest.exists());
+        assert_eq!(
+            std::fs::read_dir(dir.path()).unwrap().count(),
+            0,
+            "a stream dropped mid-transfer must not leak its temp file"
+        );
+    }
+
+    // Two concurrent misses for the same hash must not open the same temp
+    // path — same content masks a real interleaving race in a test (both
+    // writers would write identical bytes anyway), so the reliable check is
+    // on the naming scheme itself: it must not collide for the same dest,
+    // even within one process.
+    #[test]
+    fn tmp_path_never_collides_for_the_same_dest() {
+        let dest = std::path::Path::new("/cache/blobs/somehash");
+        assert_ne!(tmp_path(dest), tmp_path(dest));
     }
 }
