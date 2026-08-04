@@ -76,3 +76,13 @@ equirect_panoramas/
 
 # local screenshots
 /ui*.png
+
+# Subagent-driven-development scratch: ledgers, briefs, review packages.
+# Git history is the record; this is working state for one plan run.
+.superpowers/
+
+# Local/production compose overrides hold secrets (bot tokens, CSRF and 2FA
+# keys, bootstrap passwords). Production keeps its own copy on the host and it
+# has never been tracked — this makes that explicit rather than accidental.
+docker-compose.override.yml
+docker-compose.override.*.yml

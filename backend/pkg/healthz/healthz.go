@@ -10,6 +10,8 @@ package healthz
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"maps"
 	"net/http"
 	"sync"
@@ -95,11 +97,7 @@ func (h *Handler) Ready(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.mu.RLock()
-	probes := make(map[string]Probe, len(h.probes))
-	maps.Copy(probes, h.probes)
-	h.mu.RUnlock()
-
+	probes := h.snapshotProbes()
 	if len(probes) == 0 {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"status":  "ok",
@@ -111,10 +109,60 @@ func (h *Handler) Ready(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), h.timeout)
 	defer cancel()
 
+	errs := evalProbes(ctx, probes)
+	status := http.StatusOK
+	statusText := "ok"
+	results := make(map[string]string, len(errs))
+	for name, err := range errs {
+		if err != nil {
+			results[name] = err.Error()
+			status = http.StatusServiceUnavailable
+			statusText = "degraded"
+		} else {
+			results[name] = "ok"
+		}
+	}
+	writeJSON(w, status, map[string]any{
+		"status":  statusText,
+		"service": h.service,
+		"checks":  results,
+	})
+}
+
+// CheckAll runs every registered probe concurrently under ctx — the same
+// evaluation Ready performs — and joins the failures into one error, or
+// returns nil when every probe passes (including when none are registered).
+//
+// It exists for long-running readiness watchers such as
+// grpcutil.WatchReadiness, which publish the service_ready gauge on a timer
+// rather than writing an HTTP response: they can hand this method straight
+// to ReadinessConfig.Probe instead of duplicating the probe list a service
+// already registered here.
+func (h *Handler) CheckAll(ctx context.Context) error {
+	errs := evalProbes(ctx, h.snapshotProbes())
+	var joined []error
+	for name, err := range errs {
+		if err != nil {
+			joined = append(joined, fmt.Errorf("%s: %w", name, err))
+		}
+	}
+	return errors.Join(joined...)
+}
+
+func (h *Handler) snapshotProbes() map[string]Probe {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	probes := make(map[string]Probe, len(h.probes))
+	maps.Copy(probes, h.probes)
+	return probes
+}
+
+// evalProbes runs every probe concurrently under ctx and returns each
+// probe's error keyed by name (nil means it passed).
+func evalProbes(ctx context.Context, probes map[string]Probe) map[string]error {
 	var (
 		mu      sync.Mutex
-		results = make(map[string]string, len(probes))
-		failed  bool
+		results = make(map[string]error, len(probes))
 		wg      sync.WaitGroup
 	)
 	for name, probe := range probes {
@@ -122,27 +170,11 @@ func (h *Handler) Ready(w http.ResponseWriter, r *http.Request) {
 			err := probe(ctx)
 			mu.Lock()
 			defer mu.Unlock()
-			if err != nil {
-				results[name] = err.Error()
-				failed = true
-			} else {
-				results[name] = "ok"
-			}
+			results[name] = err
 		})
 	}
 	wg.Wait()
-
-	status := http.StatusOK
-	statusText := "ok"
-	if failed {
-		status = http.StatusServiceUnavailable
-		statusText = "degraded"
-	}
-	writeJSON(w, status, map[string]any{
-		"status":  statusText,
-		"service": h.service,
-		"checks":  results,
-	})
+	return results
 }
 
 func writeJSON(w http.ResponseWriter, status int, body any) {

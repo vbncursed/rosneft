@@ -87,3 +87,15 @@ groups:
           severity: warning
         annotations:
           summary: "Login failures above 30/min (possible brute force)"
+
+      # for: 2m, not 1m: a Postgres restart during deploy drops readiness for
+      # a few seconds, and a one-minute window would page on every deploy —
+      # which trains the reader to mute the alert, the same as no receiver.
+      - alert: ServiceNotReady
+        expr: service_ready == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.service }} is up but not ready"
+          description: "Its dependency probe has been failing for two minutes. TargetDown cannot see this: the process is alive and /metrics answers."

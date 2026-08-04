@@ -39,9 +39,11 @@ func (s *ReconcileSuite) SetupTest() {
 	s.ctx = s.T().Context()
 }
 
-// allowSubmit stubs the SubmitConversion fan-out (save → enqueue → get) so
-// reconcile can queue missing targets; reconcile only counts the submits.
+// allowSubmit stubs the lock claim plus the SubmitConversion fan-out
+// (save → enqueue → get) so reconcile can queue missing targets; reconcile
+// only counts the submits.
 func (s *ReconcileSuite) allowSubmit() {
+	s.queue.TryLockTargetMock.Return(true, nil)
 	s.queue.SaveJobMock.Return(nil)
 	s.queue.EnqueueJobMock.Return(nil)
 	s.queue.GetJobMock.Return(domain.Job{}, nil)
@@ -97,7 +99,9 @@ func (s *ReconcileSuite) TestStopsOnSubmitFailure() {
 		{Kind: domain.KindTerritory, Slug: "t2", SourceBlobHash: "h"},
 	}, nil)
 	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.queue.TryLockTargetMock.Return(true, nil)
 	s.queue.SaveJobMock.Return(errors.New("redis down"))
+	s.queue.UnlockTargetMock.Return(nil)
 
 	queued, err := s.svc.ReconcileMissingArtifacts(s.ctx)
 	assert.ErrorContains(s.T(), err, "redis down")
@@ -113,4 +117,51 @@ func (s *ReconcileSuite) TestRespectsCancelledContext() {
 	cancel()
 	_, err := s.svc.ReconcileMissingArtifacts(ctx)
 	assert.Assert(s.T(), err != nil)
+}
+
+func (s *ReconcileSuite) TestSkipsTargetAlreadyInFlight() {
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
+		{Kind: domain.KindTerritory, Slug: "t1"},
+	}, nil)
+	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.queue.TryLockTargetMock.Return(false, nil)
+
+	n, err := s.svc.ReconcileMissingArtifacts(s.T().Context())
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), 0, n)
+	// SaveJob is not configured on the mock: the controller fails the test if
+	// the reconciler reaches it, which is exactly the regression we guard.
+}
+
+func (s *ReconcileSuite) TestQueuesTargetWhenLockIsFree() {
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
+		{Kind: domain.KindTerritory, Slug: "t1"},
+	}, nil)
+	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.queue.TryLockTargetMock.Return(true, nil)
+	s.queue.SaveJobMock.Return(nil)
+	s.queue.EnqueueJobMock.Return(nil)
+	s.queue.GetJobMock.Return(domain.Job{ID: "j1"}, nil)
+
+	n, err := s.svc.ReconcileMissingArtifacts(s.T().Context())
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), 1, n)
+}
+
+func (s *ReconcileSuite) TestReleasesLockWhenSubmitFails() {
+	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
+		{Kind: domain.KindTerritory, Slug: "t1"},
+	}, nil)
+	s.catalog.HasLOD0Mock.Return(false, nil)
+	s.queue.TryLockTargetMock.Return(true, nil)
+	s.queue.SaveJobMock.Return(errors.New("redis down"))
+	s.queue.UnlockTargetMock.Return(nil)
+
+	_, err := s.svc.ReconcileMissingArtifacts(s.T().Context())
+
+	assert.ErrorContains(s.T(), err, "redis down")
+	// Without the release, a failed submit would block this target for the
+	// full 30-minute TTL — the reconciler's whole job is to retry.
 }

@@ -27,3 +27,8 @@ func Dial(target string) (*Client, error) {
 
 // Close releases the connection.
 func (c *Client) Close() error { return c.conn.Close() }
+
+// Conn exposes the underlying connection so the gateway can register a
+// readiness probe against this backend. It is not for making calls — the
+// typed methods on Client are.
+func (c *Client) Conn() grpc.ClientConnInterface { return c.conn }

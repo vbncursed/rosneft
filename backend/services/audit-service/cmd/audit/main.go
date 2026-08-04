@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 	"github.com/vbncursed/rosneft/backend/services/audit-service/internal/bootstrap"
 	"github.com/vbncursed/rosneft/backend/services/audit-service/internal/config"
 )
@@ -49,6 +50,13 @@ func newRootCmd() *cobra.Command {
 		subCmd("migrate-status", "Print migration status", bootstrap.RunMigrateStatus),
 		subCmd("verify", "Recompute the checkpoint chain and compare it to the witness", bootstrap.RunVerify),
 		subCmd("export", "Write entries older than --before to --out as JSONL", bootstrap.RunExport),
+		grpcutil.HealthcheckCmd(func(c *cobra.Command) (string, error) {
+			cfg, err := loadCfg(c)
+			if err != nil {
+				return "", err
+			}
+			return "localhost" + cfg.GRPCAddr, nil
+		}),
 	)
 	return cmd
 }
