@@ -29,18 +29,56 @@ pub fn spawn(state: Shared) -> std::io::Result<SocketAddr> {
 }
 
 async fn handle(State(state): State<Shared>, req: Request<Body>) -> Response {
-    serve_static(&state, req.uri().path())
+    let cookie = req
+        .headers()
+        .get(header::COOKIE)
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_string);
+    let path = req.uri().path().to_string();
+
+    let route = classify(&path);
+    // index.html is the only response allowed without the nonce: it is what
+    // hands the nonce out, both on a cold start and on a reload of a deep
+    // router path.
+    if !matches!(route, Route::Index) && !state.nonce.matches(cookie.as_deref()) {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    serve_static(&state, route)
 }
 
-fn serve_static(state: &Shared, path: &str) -> Response {
-    let route = classify(path);
+fn serve_static(state: &Shared, route: Route) -> Response {
     let asset_path = match route {
         Route::NotFound => return StatusCode::NOT_FOUND.into_response(),
         Route::Index => "index.html".to_string(),
         Route::Asset(p) => p,
     };
+    let is_index = asset_path == "index.html";
     match state.app.asset_resolver().get(asset_path) {
-        Some(asset) => ([(header::CONTENT_TYPE, asset.mime_type)], asset.bytes).into_response(),
+        Some(asset) => {
+            let mut res = ([(header::CONTENT_TYPE, asset.mime_type)], asset.bytes).into_response();
+            if is_index {
+                if let Ok(v) = state.nonce.set_cookie().parse() {
+                    res.headers_mut().append(header::SET_COOKIE, v);
+                }
+                if let Ok(v) = CSP.parse() {
+                    res.headers_mut().insert(header::CONTENT_SECURITY_POLICY, v);
+                }
+            }
+            res
+        }
         None => StatusCode::NOT_FOUND.into_response(),
     }
 }
+
+/// Tauri injects its own CSP only when it serves the page; we serve it, so the
+/// header is ours. wasm-unsafe-eval and blob: workers are load-bearing: without
+/// them the Draco decoder and the KTX2 transcoder never start, and the failure
+/// looks like a flat-coloured model rather than an error.
+const CSP: &str = "default-src 'self'; \
+     script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'; \
+     worker-src 'self' blob:; \
+     style-src 'self' 'unsafe-inline'; \
+     img-src 'self' data: blob:; \
+     font-src 'self' data:; \
+     connect-src 'self' blob: data:; \
+     frame-src 'self'";

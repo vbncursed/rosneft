@@ -12,6 +12,7 @@ pub struct AppState {
     pub upstream: Url,
     pub http: reqwest::Client,
     pub cache_dir: PathBuf,
+    pub nonce: crate::guard::Nonce,
 }
 
 #[allow(dead_code)]

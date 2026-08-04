@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod guard;
 mod server;
 mod spa;
 mod state;
@@ -28,6 +29,7 @@ fn main() {
                 upstream,
                 http: reqwest::Client::builder().cookie_store(true).build()?,
                 cache_dir,
+                nonce: guard::Nonce::new(),
             });
 
             let addr = server::spawn(state)?;
