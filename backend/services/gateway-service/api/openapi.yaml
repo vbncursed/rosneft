@@ -50,7 +50,7 @@ components:
         title: { type: string }
         description: { type: string }
         externalPanoramaUrl: { type: string }
-        sourceBlobHash: { type: string }
+        sourceBlobHash: { type: string, pattern: '^[0-9a-f]{64}$' }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -61,9 +61,10 @@ components:
         slug: { type: string }
         title: { type: string }
         description: { type: string }
-        sourceBlobHash: { type: string }
+        sourceBlobHash: { type: string, pattern: '^[0-9a-f]{64}$' }
         thumbnailBlobHash:
           type: string
+          pattern: '^([0-9a-f]{64})?$'
           description: |
             Optional thumbnail image blob hash. Empty/absent = no thumbnail.
             Fetch the image from /api/assets/{thumbnailBlobHash}.
@@ -285,9 +286,10 @@ components:
         title: { type: string }
         description: { type: string }
         externalPanoramaUrl: { type: string }
-        sourceBlobHash: { type: string }
+        sourceBlobHash: { type: string, pattern: '^[0-9a-f]{64}$' }
         thumbnailBlobHash:
           type: string
+          pattern: '^([0-9a-f]{64})?$'
           description: |
             Optional model thumbnail image blob hash (models only; ignored for
             territories). Upload the image via /api/uploads first.
@@ -301,6 +303,7 @@ components:
       properties:
         thumbnailBlobHash:
           type: string
+          pattern: '^([0-9a-f]{64})?$'
           description: New thumbnail blob hash; empty string clears it.
 
     TerritoryUpdate:
@@ -329,7 +332,7 @@ components:
         freshly uploaded ZIP (via /api/uploads); the territory's source is
         swapped to it and a new conversion is queued.
       properties:
-        sourceBlobHash: { type: string }
+        sourceBlobHash: { type: string, pattern: '^[0-9a-f]{64}$' }
 
     TerritoryCreated:
       type: object
