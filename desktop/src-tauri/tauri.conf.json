@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Andrey",
+  "version": "0.1.0",
+  "identifier": "fun.vbncursed.andrey.desktop",
+  "build": {
+    "frontendDist": "../../frontend/dist",
+    "beforeBuildCommand": "yarn --cwd ../../frontend build",
+    "beforeDevCommand": "yarn --cwd ../../frontend build"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg", "appimage", "nsis"],
+    "icon": ["icons/icon.png"]
+  }
+}
