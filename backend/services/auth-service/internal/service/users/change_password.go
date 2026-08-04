@@ -9,23 +9,18 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/validate"
 )
 
-// changePasswordLockKey namespaces the throttle counter under the userID so it
-// can never alias a Login identifier (email or username): a stolen session
-// can only lock the attacker's own change-password attempts out of this
-// namespace, never the victim out of logging in.
-func changePasswordLockKey(userID string) string {
-	return "changepw:" + userID
-}
-
 // ChangePassword verifies the old password then stores the new hash. Failed
-// attempts are throttled the same way Login throttles them, keyed by userID
-// rather than identifier — see changePasswordLockKey.
+// attempts are throttled the same way Login throttles them, through
+// dedicated Sessions methods keyed by userID under their own Redis
+// namespace — see the Sessions interface doc for why reusing Login's
+// IsLocked/RegisterFail/ClearFails would not be safe here: Login's
+// identifier reaches its throttle key with no validation, so it could be
+// crafted to alias any string derived from a userID.
 func (s *Service) ChangePassword(ctx context.Context, userID, oldPlain, newPlain string) error {
 	if err := validate.Password(newPlain); err != nil {
 		return err
 	}
-	lockKey := changePasswordLockKey(userID)
-	locked, err := s.sessions.IsLocked(ctx, lockKey)
+	locked, err := s.sessions.IsChangePasswordLocked(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -41,7 +36,7 @@ func (s *Service) ChangePassword(ctx context.Context, userID, oldPlain, newPlain
 		return fmt.Errorf("users.ChangePassword: verify: %w", err)
 	}
 	if !ok {
-		_ = s.sessions.RegisterFail(ctx, lockKey)
+		_ = s.sessions.RegisterChangePasswordFail(ctx, userID)
 		return domain.ErrInvalidCredential
 	}
 	hash, err := password.Hash(newPlain)
@@ -51,6 +46,6 @@ func (s *Service) ChangePassword(ctx context.Context, userID, oldPlain, newPlain
 	if err := s.store.ChangePassword(ctx, userID, hash); err != nil {
 		return err
 	}
-	_ = s.sessions.ClearFails(ctx, lockKey)
+	_ = s.sessions.ClearChangePasswordFails(ctx, userID)
 	return nil
 }

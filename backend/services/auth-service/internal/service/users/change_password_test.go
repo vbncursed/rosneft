@@ -38,7 +38,7 @@ func (s *ChangePasswordSuite) SetupTest() {
 // must never be reached, which minimock enforces by failing the test on an
 // unconfigured call.
 func (s *ChangePasswordSuite) TestChangePasswordRefusesWhenLocked() {
-	s.ss.IsLockedMock.Expect(s.ctx, "changepw:u1").Return(true, nil)
+	s.ss.IsChangePasswordLockedMock.Expect(s.ctx, "u1").Return(true, nil)
 
 	err := s.svc.ChangePassword(s.ctx, "u1", "old", "NewPassw0rd!")
 
@@ -49,9 +49,9 @@ func (s *ChangePasswordSuite) TestChangePasswordRegistersFailOnWrongOldPassword(
 	hash, err := password.Hash("correct-horse")
 	assert.NilError(s.T(), err)
 
-	s.ss.IsLockedMock.Expect(s.ctx, "changepw:u1").Return(false, nil)
+	s.ss.IsChangePasswordLockedMock.Expect(s.ctx, "u1").Return(false, nil)
 	s.st.GetByIDMock.Expect(s.ctx, "u1").Return(domain.User{ID: "u1", PasswordHash: hash}, nil)
-	s.ss.RegisterFailMock.Expect(s.ctx, "changepw:u1").Return(nil)
+	s.ss.RegisterChangePasswordFailMock.Expect(s.ctx, "u1").Return(nil)
 
 	err = s.svc.ChangePassword(s.ctx, "u1", "wrong-password", "NewPassw0rd!")
 
@@ -62,9 +62,9 @@ func (s *ChangePasswordSuite) TestChangePasswordClearsFailsAndChangesOnSuccess()
 	hash, err := password.Hash("correct-horse")
 	assert.NilError(s.T(), err)
 
-	s.ss.IsLockedMock.Expect(s.ctx, "changepw:u1").Return(false, nil)
+	s.ss.IsChangePasswordLockedMock.Expect(s.ctx, "u1").Return(false, nil)
 	s.st.GetByIDMock.Expect(s.ctx, "u1").Return(domain.User{ID: "u1", PasswordHash: hash}, nil)
-	s.ss.ClearFailsMock.Expect(s.ctx, "changepw:u1").Return(nil)
+	s.ss.ClearChangePasswordFailsMock.Expect(s.ctx, "u1").Return(nil)
 	s.st.ChangePasswordMock.Set(func(_ context.Context, id, newHash string) error {
 		assert.Equal(s.T(), id, "u1")
 		ok, verr := password.Verify("NewPassw0rd!", newHash)
