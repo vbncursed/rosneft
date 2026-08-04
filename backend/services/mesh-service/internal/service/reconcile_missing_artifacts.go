@@ -13,12 +13,15 @@ import (
 // message (no XAUTOCLAIM/XCLAIM anywhere in this service), so this TTL is the
 // sole path back to a queued retry.
 //
-// Measured against production Prometheus on 2026-08-03:
-// histogram_quantile(1.0, …) over mesh_conversion_duration_seconds_bucket for
-// the prior 15 days gave a p100 of 59.25s (the le=60 bucket held all 60
-// observations; le=30 held 36). 10 minutes is still ~10x that measured
-// maximum — comfortable headroom without leaving a dead worker's target
-// stuck for half an hour.
+// Measured against production Prometheus on 2026-08-03, 15-day window, from
+// the cumulative bucket counts of mesh_conversion_duration_seconds (count=60,
+// sum=1424.18s, mean≈23.7s): le=1 → 15, le=5 → 16, le=15 → 23, le=30 → 36,
+// le=60 → 60 (every observation). All 60 conversions therefore completed
+// within the le=60 bucket, with 36 of them under 30s; the slowest fell
+// somewhere in (30s, 60s] — a classic histogram can't say where inside a
+// bucket, only that 60s bounds it from above. 10 minutes is still a tenfold
+// margin over that 60s bound — comfortable headroom without leaving a dead
+// worker's target stuck for half an hour.
 const ReconcileLockTTL = 10 * time.Minute
 
 // ReconcileMissingArtifacts queues a conversion for every catalog target
