@@ -12,8 +12,8 @@ import (
 // unique value. A non-empty slug is the update path (read-modify-write),
 // which upserts the row as-is.
 func (c *Catalog) UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error) {
-	if t.SourceBlobHash == "" {
-		return domain.Territory{}, fmt.Errorf("service.UpsertTerritory: %w: empty source_blob_hash", domain.ErrInvalidInput)
+	if err := validateBlobHash(t.SourceBlobHash, true); err != nil {
+		return domain.Territory{}, fmt.Errorf("service.UpsertTerritory: %w", err)
 	}
 	if t.Slug != "" {
 		return c.repo.UpsertTerritory(ctx, t)

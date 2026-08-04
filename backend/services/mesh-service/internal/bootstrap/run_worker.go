@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/config"
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/service"
@@ -74,6 +75,12 @@ func RunWorker(ctx context.Context, cfg config.Config) error {
 	// catalog project missing a LOD0 artifact. First pass retries with
 	// backoff because catalog might still be coming up.
 	go runReconciler(rootCtx, svc)
+
+	go grpcutil.WatchReadiness(rootCtx, grpcutil.ReadinessConfig{
+		Service: "mesh-worker",
+		Probe:   func(ctx context.Context) error { return rdb.Ping(ctx).Err() },
+		Logger:  logger,
+	})
 
 	go func() {
 		if err := metrics.Serve(cfg.MetricsAddr); err != nil && !errors.Is(err, http.ErrServerClosed) {

@@ -15,6 +15,12 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/service/mocks"
 )
 
+// validBlobHash is a syntactically valid 64-character lowercase-hex SHA-256
+// digest, the shape upload-service.Finalize always emits
+// (hex.EncodeToString of a sha256.Sum). Shared with models_test.go — both
+// files are package service_test.
+const validBlobHash = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
 type TerritoriesSuite struct {
 	suite.Suite
 	repo *mocks.RepositoryMock
@@ -33,7 +39,7 @@ func (s *TerritoriesSuite) SetupTest() {
 }
 
 func (s *TerritoriesSuite) TestCreateRejectsEmptyTitle() {
-	_, err := s.svc.UpsertTerritory(s.ctx, domain.Territory{SourceBlobHash: "h"})
+	_, err := s.svc.UpsertTerritory(s.ctx, domain.Territory{SourceBlobHash: validBlobHash})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
@@ -42,8 +48,35 @@ func (s *TerritoriesSuite) TestUpsertRejectsEmptySourceHash() {
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
+// TestUpsertRejectsNonHexSourceHash guards the write boundary a caller with
+// territory:create can otherwise reach: a hash that isn't hex can never
+// name a real blob, but nothing stopped it from landing in the column.
+func (s *TerritoriesSuite) TestUpsertRejectsNonHexSourceHash() {
+	_, err := s.svc.UpsertTerritory(s.ctx, domain.Territory{
+		Slug: "t1", Title: "Site",
+		SourceBlobHash: "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+	})
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *TerritoriesSuite) TestUpsertRejectsShortSourceHash() {
+	_, err := s.svc.UpsertTerritory(s.ctx, domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "abc123"})
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+// TestUpsertRejectsShellMetacharactersInSourceHash is the case that connects
+// this validation to the command injection it exists to prevent: this exact
+// value used to be interpolated straight into a root `sh -c` by
+// ops/backup/dump.sh once it came back out of the database.
+func (s *TerritoriesSuite) TestUpsertRejectsShellMetacharactersInSourceHash() {
+	_, err := s.svc.UpsertTerritory(s.ctx, domain.Territory{
+		Slug: "t1", Title: "Site", SourceBlobHash: `aa";rm -rf /;#`,
+	})
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
 func (s *TerritoriesSuite) TestUpsertForwardsValidInput() {
-	in := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "abc"}
+	in := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: validBlobHash}
 	s.repo.UpsertTerritoryMock.Expect(s.ctx, in).Return(in, nil)
 	out, err := s.svc.UpsertTerritory(s.ctx, in)
 	assert.NilError(s.T(), err)
@@ -51,9 +84,9 @@ func (s *TerritoriesSuite) TestUpsertForwardsValidInput() {
 }
 
 func (s *TerritoriesSuite) TestCreateGeneratesSlugFromTitle() {
-	in := domain.Territory{Title: "Москва", SourceBlobHash: "h"}
+	in := domain.Territory{Title: "Москва", SourceBlobHash: validBlobHash}
 	s.repo.CreateTerritoryMock.
-		Expect(s.ctx, domain.Territory{Slug: "moskva", Title: "Москва", SourceBlobHash: "h"}).
+		Expect(s.ctx, domain.Territory{Slug: "moskva", Title: "Москва", SourceBlobHash: validBlobHash}).
 		Return(domain.Territory{Slug: "moskva"}, nil)
 	out, err := s.svc.UpsertTerritory(s.ctx, in)
 	assert.NilError(s.T(), err)
@@ -61,18 +94,18 @@ func (s *TerritoriesSuite) TestCreateGeneratesSlugFromTitle() {
 }
 
 func (s *TerritoriesSuite) TestCreateResolvesSlugCollision() {
-	taken := domain.Territory{Slug: "moskva", Title: "Москва", SourceBlobHash: "h"}
-	free := domain.Territory{Slug: "moskva-2", Title: "Москва", SourceBlobHash: "h"}
+	taken := domain.Territory{Slug: "moskva", Title: "Москва", SourceBlobHash: validBlobHash}
+	free := domain.Territory{Slug: "moskva-2", Title: "Москва", SourceBlobHash: validBlobHash}
 	s.repo.CreateTerritoryMock.When(s.ctx, taken).Then(domain.Territory{}, domain.ErrSlugConflict)
 	s.repo.CreateTerritoryMock.When(s.ctx, free).Then(domain.Territory{Slug: "moskva-2"}, nil)
 
-	out, err := s.svc.UpsertTerritory(s.ctx, domain.Territory{Title: "Москва", SourceBlobHash: "h"})
+	out, err := s.svc.UpsertTerritory(s.ctx, domain.Territory{Title: "Москва", SourceBlobHash: validBlobHash})
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), out.Slug, "moskva-2")
 }
 
 func (s *TerritoriesSuite) TestUpsertPropagatesRepoError() {
-	in := domain.Territory{Slug: "t1", SourceBlobHash: "h"}
+	in := domain.Territory{Slug: "t1", SourceBlobHash: validBlobHash}
 	s.repo.UpsertTerritoryMock.Expect(s.ctx, in).Return(domain.Territory{}, errors.New("db down"))
 	_, err := s.svc.UpsertTerritory(s.ctx, in)
 	assert.ErrorContains(s.T(), err, "db down")

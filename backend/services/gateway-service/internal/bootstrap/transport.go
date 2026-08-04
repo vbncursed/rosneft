@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	slogchi "github.com/samber/slog-chi"
+	"google.golang.org/grpc"
 
 	"github.com/vbncursed/rosneft/backend/pkg/healthz"
 	"github.com/vbncursed/rosneft/backend/pkg/metrics"
@@ -55,6 +56,7 @@ func InitRouter(
 	authH *authhttp.Handlers,
 	logger *slog.Logger,
 	cfg config.Config,
+	backends map[string]grpc.ClientConnInterface,
 ) (chi.Router, *healthz.Handler) {
 	r := newRouterWithCORS(cfg.AllowedOrigins)
 
@@ -81,7 +83,11 @@ func InitRouter(
 		},
 	}))
 
+	// Eight named probes, evaluated concurrently under one 2s deadline — the
+	// shape healthz was written for. MarkReady on its own reported ok with an
+	// empty checks map from the process's first millisecond.
 	hz := healthz.New(healthz.Config{Service: "gateway-service"})
+	registerBackendProbes(hz, backends)
 	hz.MarkReady()
 	r.Get("/healthz", hz.Live)
 	r.Get("/readyz", hz.Ready)

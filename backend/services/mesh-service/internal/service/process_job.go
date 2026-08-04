@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/converter"
@@ -21,7 +22,10 @@ import (
 //  7. Mark the job Succeeded with the LOD0 artifact hash.
 //
 // On any error it marks the job Failed and returns the error so the caller
-// can decide whether to ack or retry.
+// can decide whether to ack or retry. Either way — success or failure — the
+// reconciler's claim on the target is released before returning: see the
+// unlock call below for why a failure releases too, rather than waiting out
+// the TTL.
 func (m *Mesh) ProcessJob(ctx context.Context, jobID string) error {
 	job, err := m.queue.GetJob(ctx, jobID)
 	if err != nil {
@@ -32,10 +36,35 @@ func (m *Mesh) ProcessJob(ctx context.Context, jobID string) error {
 	}
 
 	if err := m.runConversion(ctx, &job); err != nil {
+		// Release rather than hold ReconcileLockTTL: its own doc comment
+		// scopes it to the worker dying between claim and finish, and that
+		// case never reaches here — a returned error means the worker is
+		// alive and already knows the outcome. Holding the claim anyway
+		// previously left process_job.go and reconcile_missing_artifacts.go
+		// disagreeing silently: a submit failure was released for retry, a
+		// conversion failure was not. Same rule now for both: the
+		// reconciler's job is to retry, so nothing here should block it.
+		m.unlockTarget(ctx, job)
 		_ = m.markFailed(ctx, job, err)
 		return err
 	}
+
+	// A user-initiated conversion holds no claim, so this is a no-op for
+	// that path.
+	m.unlockTarget(ctx, job)
+
 	return m.markSucceeded(ctx, job)
+}
+
+// unlockTarget releases the reconciler's claim on job's target. Logged
+// rather than returned in both callers: failing ProcessJob itself over an
+// `UnlockTarget` that didn't land would be worse than the stale key, which
+// the TTL clears regardless — and either way ProcessJob's own outcome
+// (published artifacts, or a job already marked Failed) is already decided.
+func (m *Mesh) unlockTarget(ctx context.Context, job domain.Job) {
+	if err := m.queue.UnlockTarget(ctx, job.Kind, job.Slug); err != nil {
+		slog.WarnContext(ctx, "process: unlock target failed", "kind", job.Kind, "slug", job.Slug, "err", err)
+	}
 }
 
 func (m *Mesh) markRunning(ctx context.Context, j *domain.Job) error {
