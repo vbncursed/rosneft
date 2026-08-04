@@ -182,7 +182,7 @@ mod tests {
 
 - [ ] **Step 7: Убедиться, что тест не компилируется**
 
-Run: `cd desktop/src-tauri && cargo test --lib spa`
+Run: `cd desktop/src-tauri && cargo test spa`
 Expected: FAIL — `cannot find function classify`
 
 - [ ] **Step 8: Реализовать `classify`**
@@ -217,7 +217,7 @@ pub fn classify(path: &str) -> Route {
 
 - [ ] **Step 9: Тест проходит**
 
-Run: `cargo test --lib spa`
+Run: `cargo test spa`
 Expected: PASS, 4 теста
 
 - [ ] **Step 10: Создать `desktop/src-tauri/src/state.rs`**
@@ -442,7 +442,7 @@ mod tests {
 
 - [ ] **Step 2: Запустить, убедиться что не компилируется**
 
-Run: `cargo test --lib guard`
+Run: `cargo test guard`
 Expected: FAIL — `cannot find type Nonce`
 
 - [ ] **Step 3: Реализовать `Nonce`**
@@ -486,7 +486,7 @@ impl Nonce {
 
 - [ ] **Step 4: Тесты проходят**
 
-Run: `cargo test --lib guard`
+Run: `cargo test guard`
 Expected: PASS, 5 тестов
 
 - [ ] **Step 5: Положить `Nonce` в состояние**
@@ -626,7 +626,7 @@ mod tests {
 
 - [ ] **Step 2: Убедиться, что падает**
 
-Run: `cargo test --lib session`
+Run: `cargo test session`
 Expected: FAIL — `cannot find function user_id_from_me`
 
 - [ ] **Step 3: Реализовать `session.rs`**
@@ -671,7 +671,7 @@ pub fn user_id_from_me(body: &[u8]) -> Option<String> {
 
 - [ ] **Step 4: Тесты проходят**
 
-Run: `cargo test --lib session`
+Run: `cargo test session`
 Expected: PASS, 2 теста
 
 - [ ] **Step 5: Тест форвардинга с заглушкой апстрима**
@@ -762,7 +762,7 @@ mod tests {
 
 - [ ] **Step 6: Убедиться, что падает**
 
-Run: `cargo test --lib proxy`
+Run: `cargo test proxy`
 Expected: FAIL — `cannot find function send`
 
 - [ ] **Step 7: Реализовать `proxy.rs`**
@@ -839,7 +839,7 @@ pub fn unreachable() -> Response {
     (
         StatusCode::SERVICE_UNAVAILABLE,
         [(header::CONTENT_TYPE, "application/json")],
-        r#"{"code":"upstream_unreachable","message":"Нет связи с сервером"}"#,
+        r#"{"code":"upstream_unreachable","message":"Cannot reach the server"}"#,
     )
         .into_response()
 }
@@ -1048,7 +1048,7 @@ mod tests {
 
 - [ ] **Step 2: Убедиться, что падают**
 
-Run: `cargo test --lib paths cache`
+Run: `cargo test paths cache`
 Expected: FAIL — функции не найдены
 
 - [ ] **Step 3: Реализовать `paths.rs`**
@@ -1090,7 +1090,7 @@ pub fn is_valid_hash(hash: &str) -> bool {
 
 - [ ] **Step 5: Тесты проходят**
 
-Run: `cargo test --lib paths cache`
+Run: `cargo test paths cache`
 Expected: PASS, 5 тестов
 
 - [ ] **Step 6: Тест записи с проверкой sha256**
@@ -1161,7 +1161,7 @@ Expected: PASS, 5 тестов
 
 - [ ] **Step 7: Убедиться, что падают**
 
-Run: `cargo test --lib cache`
+Run: `cargo test cache`
 Expected: FAIL — `cannot find function tee_to_disk`
 
 - [ ] **Step 8: Реализовать `tee_to_disk`**
@@ -1233,7 +1233,7 @@ where
 
 - [ ] **Step 9: Тесты проходят**
 
-Run: `cargo test --lib cache`
+Run: `cargo test cache`
 Expected: PASS, 5 тестов
 
 - [ ] **Step 10: Подключить кэш к маршруту в `server.rs`**
@@ -1400,7 +1400,7 @@ mod tests {
 
 - [ ] **Step 2: Убедиться, что падают**
 
-Run: `cargo test --lib evict`
+Run: `cargo test evict`
 Expected: FAIL — `cannot find function enforce_cap`
 
 - [ ] **Step 3: Реализовать**
@@ -1454,7 +1454,7 @@ pub fn enforce_cap(dir: &Path, cap_bytes: u64) -> std::io::Result<()> {
 
 - [ ] **Step 4: Тесты проходят**
 
-Run: `cargo test --lib evict`
+Run: `cargo test evict`
 Expected: PASS, 3 теста
 
 - [ ] **Step 5: Вызывать после записи и на старте**
@@ -1568,7 +1568,7 @@ mod tests {
 
 - [ ] **Step 2: Убедиться, что падают**
 
-Run: `cargo test --lib snapshot`
+Run: `cargo test snapshot`
 Expected: FAIL
 
 - [ ] **Step 3: Реализовать**
@@ -1625,7 +1625,7 @@ pub fn load(dir: &Path, key: &str) -> Option<(String, Vec<u8>)> {
 
 - [ ] **Step 4: Тесты проходят**
 
-Run: `cargo test --lib snapshot`
+Run: `cargo test snapshot`
 Expected: PASS, 7 тестов
 
 - [ ] **Step 5: Тест поведения на транспортной ошибке и на 500**
@@ -1671,7 +1671,7 @@ Expected: PASS, 7 тестов
 
 - [ ] **Step 6: Убедиться, что падают**
 
-Run: `cargo test --lib proxy`
+Run: `cargo test proxy`
 Expected: FAIL — `cannot find function offline_fallback`
 
 - [ ] **Step 7: Реализовать в `proxy.rs`**
@@ -1798,7 +1798,9 @@ describe("isPasskeySupported in the desktop shell", () => {
 Run: `cd frontend && yarn test:spa src/auth/infrastructure/webauthn.spec.ts`
 Expected: FAIL — возвращается `true`
 
-- [ ] **Step 4: Объявить флаг в `frontend/src/vite-env.d.ts`**
+- [ ] **Step 4: Объявить флаг рядом с тем, кто его читает**
+
+Объявление кладётся в `webauthn.ts` — он уже модуль, и augmentation в нём безопасен:
 
 ```ts
 declare global {
@@ -1808,6 +1810,8 @@ declare global {
   }
 }
 ```
+
+**Не в `vite-env.d.ts`.** Тот файл не содержит верхнеуровневых `import`/`export`, поэтому его `interface ImportMetaEnv` сливается глобально. Добавление `declare global` (а с ним и `export {}`) превращает файл в модуль, слияние пропадает, и `import.meta.env.VITE_API_URL` молча деградирует до `any` — без единой ошибки сборки.
 
 - [ ] **Step 5: Закрыть в `isPasskeySupported`**
 
@@ -1879,6 +1883,8 @@ build:
 	yarn --cwd ../frontend build
 	cd src-tauri && cargo tauri build
 ```
+
+`cargo tauri` — это отдельный CLI: `cargo install tauri-cli --version "^2"`. В CI его ставит `tauri-action`, локально — руками. Дописать это в `desktop/README.md` рядом с rustup.
 
 - [ ] **Step 2: Прогнать**
 
