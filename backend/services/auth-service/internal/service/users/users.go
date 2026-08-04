@@ -27,12 +27,17 @@ type Store interface {
 }
 
 // Sessions lets status changes evict live sessions and lets ChangePassword
-// throttle repeated failed attempts the same way Login does.
+// throttle repeated failed attempts, mirroring Login's IsLocked/RegisterFail/
+// ClearFails but under their own dedicated Redis key namespace
+// (changepw_fail:<userID>, not login_fail:<identifier>) — reusing Login's
+// methods would key the counter off a value derived from userID that Login's
+// wholly-unvalidated identifier could be crafted to reproduce. See
+// session.changePasswordFailKey and session/store_test.go.
 type Sessions interface {
 	DeleteUser(ctx context.Context, userID string) error
-	IsLocked(ctx context.Context, identifier string) (bool, error)
-	RegisterFail(ctx context.Context, identifier string) error
-	ClearFails(ctx context.Context, identifier string) error
+	IsChangePasswordLocked(ctx context.Context, userID string) (bool, error)
+	RegisterChangePasswordFail(ctx context.Context, userID string) error
+	ClearChangePasswordFails(ctx context.Context, userID string) error
 }
 
 // Service is the user-admin service.
