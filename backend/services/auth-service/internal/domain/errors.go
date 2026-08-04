@@ -14,13 +14,17 @@ var (
 	ErrInvalidCredential = errors.New("invalid credentials")
 	ErrAccountFrozen     = errors.New("account is frozen")
 	ErrAccountDeleted    = errors.New("account is deleted")
-	ErrLoginThrottled    = errors.New("too many failed attempts")
-	ErrSessionInvalid    = errors.New("session invalid or expired")
-	ErrTwoFAInvalidCode  = errors.New("invalid 2fa code")
-	ErrSystemRole        = errors.New("system role cannot be modified this way")
-	ErrLastAdmin         = errors.New("cannot remove the last admin")
-	ErrSelfTarget        = errors.New("cannot perform this action on yourself")
-	ErrAdminOwnerOnly    = errors.New("only the owner can manage admin accounts")
+	// ErrLoginThrottled covers both Login's per-identifier lockout and
+	// ChangePassword's per-user lockout — the failure mode ("too many failed
+	// attempts") and the caller-facing status (PermissionDenied) are the same
+	// for both; only the throttle store's key namespace differs.
+	ErrLoginThrottled   = errors.New("too many failed attempts")
+	ErrSessionInvalid   = errors.New("session invalid or expired")
+	ErrTwoFAInvalidCode = errors.New("invalid 2fa code")
+	ErrSystemRole       = errors.New("system role cannot be modified this way")
+	ErrLastAdmin        = errors.New("cannot remove the last admin")
+	ErrSelfTarget       = errors.New("cannot perform this action on yourself")
+	ErrAdminOwnerOnly   = errors.New("only the owner can manage admin accounts")
 	// ErrPrivilegeEscalation guards role/permission grants: a non-owner may only
 	// confer access it already holds. ErrOwnerOnly guards the owner flag itself.
 	ErrPrivilegeEscalation = errors.New("you cannot grant access you do not have yourself")

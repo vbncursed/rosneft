@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
+	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 	meshv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/mesh/v1"
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/config"
@@ -39,6 +40,14 @@ func RunAPI(ctx context.Context, cfg config.Config) error {
 
 	svc := InitServiceAPI(store)
 	grpcSrv, healthSrv := InitGRPCServer(svc, logger)
+
+	go grpcutil.WatchReadiness(rootCtx, grpcutil.ReadinessConfig{
+		Service: "mesh-api",
+		Health:  healthSrv,
+		Names:   []string{"", meshv1.MeshService_ServiceDesc.ServiceName},
+		Probe:   func(ctx context.Context) error { return rdb.Ping(ctx).Err() },
+		Logger:  logger,
+	})
 
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {
