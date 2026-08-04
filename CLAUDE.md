@@ -157,9 +157,41 @@ the origin breaks asset loading while login still appears to work.
   PDFs and SSE all fail while the login screen looks fine.
 - The session cookie never reaches the webview: the proxy holds it in a jar and
   strips `Set-Cookie`, storing the token in the OS keychain.
-- The loopback port is gated by a per-run nonce cookie handed out with
-  `index.html`. Any new response path that bypasses the guard opens an
-  authenticated session to every local process.
+- **The loopback port is gated by a per-run nonce, and the gate is keyed on the
+  path prefix, never on `spa::classify`.** `classify` answers `Route::Index` for
+  any path whose last segment has no dot — and no `/api` path has one — so a
+  gate that classified first waved the entire authenticated gateway session
+  through with no cookie: `/api/territories` and `/api/auth/me` answered **200**
+  to any local process. `server.rs`'s `dispatch()` checks `/api/` first and
+  unconditionally. Any new response path that bypasses it opens that session
+  again.
+- **The nonce is handed to the webview out of band, in the URL `main.rs` opens
+  it with (`?dsk=…`), and only a request carrying it in the query gets the
+  cookie.** Setting the cookie on every `index.html` response made the guard a
+  two-request formality — `GET /` handed the nonce to any caller. `GET /` with
+  no query still returns `index.html`, deliberately *without* a cookie, so a
+  stray navigation gets a shell whose subresources all 403 rather than an error
+  that would brick the window; a reload of a deep router path carries no query
+  but does carry the cookie set on the first load.
+- **`reqwest` must keep its `gzip`/`brotli`/`deflate` features, and the
+  webview's `Accept-Encoding` must keep being dropped in `filtered_request`.**
+  The gateway compresses every JSON response; without the features reqwest
+  hands the compressed bytes on and `client.ts` throws `SyntaxError` on
+  `res.json()` — every route, the whole product. This survived eight reviews
+  because every live check used plain `curl`, which sends no `Accept-Encoding`
+  and so got an uncompressed answer. **Verify proxy behaviour with the headers a
+  webview actually sends.**
+- **One header policy for every upstream-derived response: `proxy::copy_headers`.**
+  Four hand-rolled ones diverged, and the divergence is where the bug above
+  lived. `ETag` must survive (no ETag, no revalidation, every JSON GET refetched
+  in full) and so must `Content-Length` (without it a first GLB download is
+  chunked and `GLTFLoader` loses `lengthComputable`).
+- **Declaring `Content-Length` is why `cache::tee_to_disk` holds back one
+  chunk.** hyper stops polling a response body the instant the declared length
+  is satisfied, so anything the tee did after its final `yield` never ran: the
+  download completed, the `rename` did not, and the `TempFile` Drop guard
+  deleted a byte-perfect blob. The promote happens before the last chunk goes
+  out. Verified by removing the header and watching the blob appear.
 - `/api/assets/{hash}` is cached on disk per `(upstream, user)`. The split is
   not tidiness: serving from cache skips the gateway's `RequireBlobAccess`, so
   a shared directory would leak one tenant's models to the next user.
@@ -181,15 +213,21 @@ the origin breaks asset loading while login still appears to work.
   keychain is written through on login/logout and read back exactly once, in
   a `spawn_blocking` that runs off `setup()`'s critical path, so a slow or
   prompting read never blocks the server or the window from coming up.
-- **A decision that needs a test goes in a pure function, because `AppState`
-  cannot be constructed in a test** — it holds a live Tauri `AppHandle`. The
-  fix for "this is untestable" was the same move five times over: pull the
-  branching out of the handler into a plain function that takes owned/borrowed
-  values, and have the handler call it. `allowed()` (server.rs, the nonce
-  gate), `asset_disposition()` (server.rs, hit/miss/passthrough), `cacheable()`
-  (snapshot.rs, which responses may be replayed offline), `read_session_cookie()`
-  and `resolve_cache_root()` (state.rs) are the current examples — treat the
-  pattern as the convention, not as one-off refactors.
+- **A decision that needs a test goes in a pure function**: pull the branching
+  out of the handler into a plain function over owned/borrowed values and have
+  the handler call it. `dispatch()` (server.rs, the nonce gate),
+  `asset_disposition()` (server.rs, hit/miss/passthrough), `cacheable()` and
+  `snapshot_worthy()`/`clears_session()` (snapshot.rs, proxy.rs — which
+  responses may be replayed offline, written, or drop the session),
+  `read_session_cookie()` and `resolve_cache_root()` (state.rs) are the
+  examples. Treat it as the convention, not as one-off refactors.
+- **A pure predicate is not a route test, and the difference shipped a
+  vulnerability.** `allowed()` was correct and unit-tested; `handle` called it
+  with the wrong input. `AppState.app` is therefore `Option<AppHandle>` —
+  `None` in tests, which cannot build one — and `state::test_state()` gives the
+  router a real state, so the gate and the upstream→snapshot→replay round trip
+  are exercised through `router().oneshot()`. Only `serve_static` reads the
+  handle. Cover a security decision at both levels.
 - Temp files for the blob cache are staged in a sibling `tmp/`, never inside
   `blobs/`. They used to sit next to their destination, where `evict::enforce_cap`
   saw an ordinary file and could unlink a download mid-flight — the atomic
@@ -198,8 +236,21 @@ the origin breaks asset loading while login still appears to work.
   ever sweeps, and it is cleared once at startup — the only thing that ever
   reclaims a temp file orphaned by a hard kill, since a stream dropped mid-poll
   has no async destructor to clean up after itself.
+- **The snapshot store refuses any path with a query.** `snapshot::key` hashes
+  method + path + query and nothing sweeps `snapshots/`, so cursor-paged
+  `/api/audit?limit=…&cursor=…` would mint a file per page forever. Nothing on
+  the offline boot path carries a query.
+- **`POST /api/auth/login` clears the stored session, whatever it answers.**
+  Nothing stops a signed-in user reaching `/login`, and the user id only
+  refreshes on the next `/api/auth/me` — in that window `user_cache_root()`
+  still resolved to the *previous* user and a cache hit handed B one of A's
+  blobs with no gateway call, defeating the per-user split entirely.
 - Passkeys are unavailable in the shell (the RP origin is a loopback port).
   `isPasskeySupported()` is the single gate — do not add a second check.
+- Logging is `tauri-plugin-log` at `Info` (Trace is tao's webview firehose); a
+  bind failure raises a native dialog through `tauri-plugin-dialog` and exits.
+  Use `show`, not `blocking_show` — `setup()` runs on the main thread and
+  `blocking_show` freezes the app there.
 - `make -C desktop check` runs fmt, clippy and tests. `make -C desktop build`
   additionally needs the Tauri CLI (`cargo install tauri-cli --version "^2"`,
   a separate binary from the `tauri` crate) installed locally; CI installs it
