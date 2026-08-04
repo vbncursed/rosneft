@@ -19,10 +19,12 @@ static TMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 /// A temp path unique per call, not just per process: two concurrent misses
 /// for the same hash (same dest) must not open the same file, or one
 /// writer's `File::create` truncates out from under the other's already
-/// in-flight write.
-fn tmp_path(dest: &Path) -> PathBuf {
+/// in-flight write. Lives in `tmp_dir` — a directory `evict::enforce_cap`
+/// never scans — not next to `dest`, so a download in progress can never be
+/// mistaken for a disposable cache entry.
+fn tmp_path(tmp_dir: &Path, hash: &str) -> PathBuf {
     let n = TMP_COUNTER.fetch_add(1, Ordering::Relaxed);
-    dest.with_extension(format!("part-{}-{n}", std::process::id()))
+    tmp_dir.join(format!("{hash}.part-{}-{n}", std::process::id()))
 }
 
 /// Deletes its path on drop unless disarmed. `async_stream::stream!` has no
@@ -53,9 +55,14 @@ impl Drop for TempFile {
 /// Passes chunks through to the caller while writing them to a temp file, and
 /// promotes the temp file only when the stream ends and the sha256 matches the
 /// hash the URL asked for. A dropped stream leaves nothing behind, so an
-/// interrupted download can never be served later as a complete model.
+/// interrupted download can never be served later as a complete model. The
+/// temp file is staged in `tmp_dir`, not next to `dest`: `rename` is still
+/// atomic across the two because both live under the same cache root and
+/// therefore the same filesystem, but a directory `evict::enforce_cap` sweeps
+/// never sees a download that is still in progress.
 pub fn tee_to_disk<S>(
     upstream: S,
+    tmp_dir: PathBuf,
     dest: PathBuf,
     hash: String,
 ) -> impl Stream<Item = Result<bytes::Bytes, std::io::Error>>
@@ -63,9 +70,11 @@ where
     S: Stream<Item = Result<bytes::Bytes, std::io::Error>>,
 {
     async_stream::stream! {
-        let tmp = tmp_path(&dest);
+        // A cache that cannot write is a cache that is off, not a failed
+        // request — same tolerance as the `File::create` below.
+        let _ = tokio::fs::create_dir_all(&tmp_dir).await;
+        let tmp = tmp_path(&tmp_dir, &hash);
         let guard = TempFile::new(tmp.clone());
-        // A cache that cannot write is a cache that is off, not a failed request.
         let mut file = tokio::fs::File::create(&tmp).await.ok();
         let mut hasher = Sha256::new();
         let mut complete = false;
@@ -145,14 +154,31 @@ mod tests {
         futures_util::stream::iter(parts)
     }
 
+    // `dest` lives in blobs/, `tmp_dir` in a sibling tmp/ — the same split
+    // `evict::enforce_cap` relies on to never see an in-flight download.
+    // `blobs/` is pre-created here because the real caller (`handle_asset`)
+    // always creates it before invoking `tee_to_disk`; `tmp/` is deliberately
+    // left uncreated so these tests also cover `tee_to_disk` creating it.
+    fn dirs(root: &std::path::Path) -> (PathBuf, PathBuf) {
+        let blobs = root.join("blobs");
+        std::fs::create_dir_all(&blobs).unwrap();
+        (blobs, root.join("tmp"))
+    }
+
     #[tokio::test]
     async fn writes_the_file_when_the_hash_matches() {
         let dir = tempdir().unwrap();
+        let (blobs, tmp_dir) = dirs(dir.path());
         let data = b"hello world";
         let hash = hex::encode(sha2::Sha256::digest(data));
-        let dest = dir.path().join(&hash);
+        let dest = blobs.join(&hash);
 
-        let mut s = Box::pin(tee_to_disk(chunks(data), dest.clone(), hash.clone()));
+        let mut s = Box::pin(tee_to_disk(
+            chunks(data),
+            tmp_dir,
+            dest.clone(),
+            hash.clone(),
+        ));
         while let Some(c) = s.next().await {
             c.unwrap();
         }
@@ -165,10 +191,16 @@ mod tests {
     #[tokio::test]
     async fn writes_nothing_when_the_hash_does_not_match() {
         let dir = tempdir().unwrap();
+        let (blobs, tmp_dir) = dirs(dir.path());
         let hash = "b".repeat(64);
-        let dest = dir.path().join(&hash);
+        let dest = blobs.join(&hash);
 
-        let mut s = Box::pin(tee_to_disk(chunks(b"hello world"), dest.clone(), hash));
+        let mut s = Box::pin(tee_to_disk(
+            chunks(b"hello world"),
+            tmp_dir.clone(),
+            dest.clone(),
+            hash,
+        ));
         while let Some(c) = s.next().await {
             c.unwrap();
         }
@@ -180,20 +212,26 @@ mod tests {
             "a corrupt download must not become a valid cache entry"
         );
         assert_eq!(
-            std::fs::read_dir(dir.path()).unwrap().count(),
+            std::fs::read_dir(&blobs).unwrap().count(),
             0,
-            "no temp file left behind"
+            "no temp file left behind in blobs/"
+        );
+        assert_eq!(
+            std::fs::read_dir(&tmp_dir).unwrap().count(),
+            0,
+            "temp file cleaned up from tmp/"
         );
     }
 
     #[tokio::test]
     async fn writes_nothing_when_the_stream_is_cut_short() {
         let dir = tempdir().unwrap();
+        let (blobs, tmp_dir) = dirs(dir.path());
         let data = b"hello world";
         let hash = hex::encode(sha2::Sha256::digest(data));
-        let dest = dir.path().join(&hash);
+        let dest = blobs.join(&hash);
 
-        let s = tee_to_disk(chunks(data), dest.clone(), hash);
+        let s = tee_to_disk(chunks(data), tmp_dir.clone(), dest.clone(), hash);
         let mut s = Box::pin(s);
         let _ = s.next().await; // take one chunk, then walk away
         drop(s);
@@ -201,7 +239,12 @@ mod tests {
 
         assert!(!dest.exists());
         assert_eq!(
-            std::fs::read_dir(dir.path()).unwrap().count(),
+            std::fs::read_dir(&blobs).unwrap().count(),
+            0,
+            "a stream dropped mid-transfer must not leak its temp file into blobs/"
+        );
+        assert_eq!(
+            std::fs::read_dir(&tmp_dir).unwrap().count(),
             0,
             "a stream dropped mid-transfer must not leak its temp file"
         );
@@ -214,7 +257,28 @@ mod tests {
     // even within one process.
     #[test]
     fn tmp_path_never_collides_for_the_same_dest() {
-        let dest = std::path::Path::new("/cache/blobs/somehash");
-        assert_ne!(tmp_path(dest), tmp_path(dest));
+        let tmp_dir = std::path::Path::new("/cache/tmp");
+        let hash = "a".repeat(64);
+        assert_ne!(tmp_path(tmp_dir, &hash), tmp_path(tmp_dir, &hash));
+    }
+
+    // This is the property Task 5's fix depends on: `evict::enforce_cap`
+    // sweeps `paths::blobs(root)`, so a temp path that ever landed there
+    // would be eligible for eviction mid-download.
+    #[test]
+    fn tmp_path_never_lands_in_the_blobs_dir() {
+        let root = std::path::Path::new("/cache/root");
+        let blobs = crate::paths::blobs(root);
+        let tmp_dir = crate::paths::tmp(root);
+        let hash = "a".repeat(64);
+
+        let t = tmp_path(&tmp_dir, &hash);
+
+        assert_eq!(t.parent(), Some(tmp_dir.as_path()));
+        assert_ne!(
+            t.parent(),
+            Some(blobs.as_path()),
+            "a temp file must never land where enforce_cap sweeps"
+        );
     }
 }

@@ -15,6 +15,15 @@ pub fn blobs(root: &Path) -> PathBuf {
     root.join("blobs")
 }
 
+/// Where `cache::tee_to_disk` stages a download before the atomic rename into
+/// `blobs/`. Kept out of `blobs/` on purpose: `evict::enforce_cap` sweeps
+/// `blobs/` and treats every entry it finds as disposable, and a `.part-*`
+/// file is an ordinary file to that walk — nothing about it says "still being
+/// written."
+pub fn tmp(root: &Path) -> PathBuf {
+    root.join("tmp")
+}
+
 // Not called yet: this task only wires up the blob cache. `snapshots` is
 // part of the brief's declared interface for a later task (caching scene
 // bundle JSON for offline territory viewing), the same way `cache_dir` and

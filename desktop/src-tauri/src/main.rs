@@ -55,6 +55,14 @@ fn main() {
                 tauri::async_runtime::spawn_blocking(move || {
                     let _ = evict::enforce_cap(&blobs, evict::CAP_BYTES);
                 });
+
+                // Startup is the only moment nothing can be mid-download, so
+                // everything left in tmp/ was orphaned by a hard kill — the
+                // one case the `TempFile` Drop guard in cache.rs cannot cover.
+                let tmp = paths::tmp(&root);
+                tauri::async_runtime::spawn_blocking(move || {
+                    let _ = std::fs::remove_dir_all(&tmp);
+                });
             }
 
             let addr = server::spawn(state)?;

@@ -139,7 +139,7 @@ async fn handle_asset(
                 out = out.header(k, v);
             }
             let upstream = res.bytes_stream().map(|c| c.map_err(std::io::Error::other));
-            let teed = crate::cache::tee_to_disk(upstream, path, hash);
+            let teed = crate::cache::tee_to_disk(upstream, crate::paths::tmp(&root), path, hash);
             out.body(Body::from_stream(teed))
                 .unwrap_or_else(|_| StatusCode::BAD_GATEWAY.into_response())
         }
