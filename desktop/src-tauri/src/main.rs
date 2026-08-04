@@ -13,6 +13,7 @@ mod state;
 
 use std::sync::Arc;
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 use url::Url;
 
 const DEFAULT_UPSTREAM: &str = "https://andrey.vbncursed.fun";
@@ -24,6 +25,18 @@ const INIT_SCRIPT: &str = "window.__DESKTOP__ = true;";
 
 fn main() {
     tauri::Builder::default()
+        // Default targets are stdout and a file in the platform log directory.
+        // The crate had no logging at all, and with no console in a release
+        // build a failure on someone else's machine left nothing to read.
+        // Info, not the default Trace: tao logs every `validAttributesForMarkedText`
+        // the webview asks for, and a support log nobody can read is the same
+        // as no log.
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(log::LevelFilter::Info)
+                .build(),
+        )
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let upstream =
                 std::env::var("DESKTOP_UPSTREAM").unwrap_or_else(|_| DEFAULT_UPSTREAM.to_string());
@@ -32,7 +45,7 @@ fn main() {
 
             let jar = std::sync::Arc::new(reqwest::cookie::Jar::default());
             let state = Arc::new(state::AppState {
-                app: app.handle().clone(),
+                app: Some(app.handle().clone()),
                 upstream: upstream.clone(),
                 http: reqwest::Client::builder()
                     .cookie_provider(jar.clone())
@@ -80,8 +93,34 @@ fn main() {
                 });
             }
 
-            let addr = server::spawn(state)?;
-            let url = Url::parse(&format!("http://{addr}/"))?;
+            // The nonce is handed to the webview here and nowhere else: the
+            // first response to a URL carrying it turns it into a cookie
+            // (server.rs, `serve_static`). Any other local process asking for
+            // `/` gets index.html with no cookie and cannot go further.
+            let nonce_query = state.nonce.query_param();
+
+            let addr = match server::spawn(state) {
+                Ok(addr) => addr,
+                Err(e) => {
+                    // Propagating this only ever reached `.expect()` in a
+                    // process with no console (`windows_subsystem = "windows"`),
+                    // so the app simply never appeared and said nothing.
+                    //
+                    // `show`, not `blocking_show`: `setup` runs on the main
+                    // thread and `blocking_show` freezes the app there (its own
+                    // doc comment says so). This queues the dialog onto the
+                    // event loop `run()` is about to start and exits when the
+                    // user dismisses it — no window is created in the meantime.
+                    log::error!("cannot bind the loopback server: {e}");
+                    app.dialog()
+                        .message(format!("Andrey could not start its local server.\n\n{e}"))
+                        .kind(MessageDialogKind::Error)
+                        .title("Andrey")
+                        .show(|_| std::process::exit(1));
+                    return Ok(());
+                }
+            };
+            let url = Url::parse(&format!("http://{addr}/?{nonce_query}"))?;
 
             WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
                 .title("Andrey")

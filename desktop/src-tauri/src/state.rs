@@ -6,7 +6,13 @@ use url::Url;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub app: AppHandle,
+    /// Read only by `serve_static`, to pull files out of the embedded `dist`.
+    /// `None` only in tests: a Tauri `AppHandle` cannot be constructed outside
+    /// a running app, and making the one field that needs one optional is what
+    /// lets the router itself be exercised — the nonce gate on `/api/**` and
+    /// the upstream→snapshot→replay round trip — instead of only the pure
+    /// predicates sitting behind it.
+    pub app: Option<AppHandle>,
     pub upstream: Url,
     pub http: reqwest::Client,
     pub cache_dir: PathBuf,
@@ -86,6 +92,30 @@ pub fn read_session_cookie(jar: &reqwest::cookie::Jar, upstream: &Url) -> Option
 pub const SESSION_COOKIE: &str = "andrey_session";
 
 pub type Shared = Arc<AppState>;
+
+/// A state with no Tauri handle, for tests that drive the router or the proxy.
+/// `session` decides whether `user_cache_root()` resolves, which is what turns
+/// the asset cache and the snapshot store on.
+#[cfg(test)]
+pub fn test_state(
+    upstream: &str,
+    cache_dir: PathBuf,
+    session: Option<crate::session::Stored>,
+) -> Shared {
+    let jar = Arc::new(reqwest::cookie::Jar::default());
+    Arc::new(AppState {
+        app: None,
+        upstream: Url::parse(upstream).unwrap(),
+        http: reqwest::Client::builder()
+            .cookie_provider(jar.clone())
+            .build()
+            .unwrap(),
+        cache_dir,
+        nonce: crate::guard::Nonce::new(),
+        jar,
+        session: Arc::new(Mutex::new(session)),
+    })
+}
 
 #[cfg(test)]
 mod tests {

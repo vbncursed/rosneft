@@ -16,9 +16,12 @@ const HOP_BY_HOP: [&str; 6] = [
 ];
 
 /// Shared by `send` and `forward`: resolves the upstream URL and copies every
-/// header except hop-by-hop, Host and Cookie. Host and Cookie belong to the
-/// loopback origin, not the gateway; the client's own jar supplies the real
-/// session cookie.
+/// header except hop-by-hop, Host, Cookie and Accept-Encoding. Host and Cookie
+/// belong to the loopback origin, not the gateway; the client's own jar
+/// supplies the real session cookie. Accept-Encoding is dropped so what the
+/// webview negotiates can never drift from what reqwest is built to decode:
+/// reqwest fills in its own (gzip/br/deflate — see Cargo.toml) and strips
+/// Content-Encoding once it has decoded the body.
 fn filtered_request(
     client: &reqwest::Client,
     upstream: &url::Url,
@@ -37,7 +40,11 @@ fn filtered_request(
     );
     for (k, v) in headers.iter() {
         let name = k.as_str().to_ascii_lowercase();
-        if HOP_BY_HOP.contains(&name.as_str()) || name == "host" || name == "cookie" {
+        if HOP_BY_HOP.contains(&name.as_str())
+            || name == "host"
+            || name == "cookie"
+            || name == "accept-encoding"
+        {
             continue;
         }
         req = req.header(k, v);
@@ -75,18 +82,37 @@ pub async fn send(
     Ok(res)
 }
 
-/// Copies an upstream response back to the webview, dropping Set-Cookie so the
-/// session lives only in the proxy's jar and the OS keychain.
-pub fn relay(res: reqwest::Response) -> Response {
-    let status = StatusCode::from_u16(res.status().as_u16()).unwrap_or(StatusCode::BAD_GATEWAY);
-    let mut out = Response::builder().status(status);
-    for (k, v) in res.headers().iter() {
+/// The one header policy for every response derived from an upstream one.
+///
+/// Hop-by-hop headers describe this proxy's connection to the gateway, and
+/// Set-Cookie is the session, which must never reach the webview. Everything
+/// else passes through — ETag above all, since the webview's `If-None-Match`
+/// revalidation depends on having received one, and Content-Length, which
+/// `GLTFLoader` needs for `lengthComputable` on a first-time model download.
+///
+/// There used to be four of these, one per response-building path, and they
+/// disagreed: the buffered branch rebuilt the response from Content-Type
+/// alone (losing ETag, and losing Content-Encoding off a body reqwest could
+/// not decode), while the asset-miss branch forwarded hop-by-hop headers.
+pub fn copy_headers(
+    mut out: axum::http::response::Builder,
+    headers: &HeaderMap,
+) -> axum::http::response::Builder {
+    for (k, v) in headers.iter() {
         let name = k.as_str().to_ascii_lowercase();
-        if HOP_BY_HOP.contains(&name.as_str()) || name == "set-cookie" || name == "content-length" {
+        if HOP_BY_HOP.contains(&name.as_str()) || name == "set-cookie" {
             continue;
         }
         out = out.header(k, v);
     }
+    out
+}
+
+/// Copies an upstream response back to the webview, dropping Set-Cookie so the
+/// session lives only in the proxy's jar and the OS keychain.
+pub fn relay(res: reqwest::Response) -> Response {
+    let status = StatusCode::from_u16(res.status().as_u16()).unwrap_or(StatusCode::BAD_GATEWAY);
+    let out = copy_headers(Response::builder().status(status), res.headers());
     let stream = res.bytes_stream().map(|c| c.map_err(std::io::Error::other));
     out.body(Body::from_stream(stream))
         .unwrap_or_else(|_| StatusCode::BAD_GATEWAY.into_response())
@@ -174,24 +200,17 @@ async fn post_process(
     path_and_query: &str,
     res: reqwest::Response,
 ) -> Response {
-    if res.status() == reqwest::StatusCode::UNAUTHORIZED {
+    let status = res.status().as_u16();
+    if clears_session(status, method.as_str(), path_and_query) {
         state.clear_session();
     }
-    if method == Method::POST
-        && path_and_query.starts_with("/api/auth/logout")
-        && res.status().is_success()
-    {
-        state.clear_session();
-    }
-    if !(res.status() == reqwest::StatusCode::OK
-        && crate::snapshot::cacheable(method.as_str(), path_and_query))
-    {
+    if !snapshot_worthy(status, method.as_str(), path_and_query) {
         return relay(res);
     }
     // A cacheable JSON GET is buffered so it can be written; these are kilobytes.
-    let status = StatusCode::from_u16(res.status().as_u16()).unwrap_or(StatusCode::OK);
-    let content_type = res
-        .headers()
+    let status = StatusCode::from_u16(status).unwrap_or(StatusCode::OK);
+    let headers = res.headers().clone();
+    let content_type = headers
         .get(header::CONTENT_TYPE)
         .and_then(|v| v.to_str().ok())
         .unwrap_or("application/json")
@@ -215,7 +234,39 @@ async fn post_process(
             &bytes,
         );
     }
-    (status, [(header::CONTENT_TYPE, content_type)], bytes).into_response()
+    copy_headers(Response::builder().status(status), &headers)
+        .body(Body::from(bytes))
+        .unwrap_or_else(|_| StatusCode::BAD_GATEWAY.into_response())
+}
+
+/// Whether an upstream response must drop the stored session.
+///
+/// Login is on the list and its status is deliberately not consulted. Nothing
+/// in the SPA stops a signed-in user from reaching `/login`, and the user id
+/// only refreshes when the following `/api/auth/me` lands — so between
+/// login-as-B and that call, `user_cache_root()` would still resolve to A's
+/// directory and an asset hit would hand B one of A's blobs without ever
+/// asking the gateway, which is precisely the check `RequireBlobAccess` is.
+/// Clearing here leaves the root `None` until `/me` answers, and
+/// `asset_disposition` already routes that to `Passthrough`.
+fn clears_session(status: u16, method: &str, path_and_query: &str) -> bool {
+    if status == 401 {
+        return true;
+    }
+    if method != "POST" {
+        return false;
+    }
+    path_and_query.starts_with("/api/auth/login")
+        || (path_and_query.starts_with("/api/auth/logout") && (200..300).contains(&status))
+}
+
+/// Whether a response should be buffered and written to the snapshot store.
+///
+/// Only a 200. A 204 is a success (`is_success()` would take it) with no body,
+/// and replaying an empty document offline would read as a real, if empty,
+/// answer instead of the error it should surface.
+fn snapshot_worthy(status: u16, method: &str, path_and_query: &str) -> bool {
+    status == 200 && crate::snapshot::cacheable(method, path_and_query)
 }
 
 #[cfg(test)]
@@ -436,28 +487,139 @@ mod tests {
     // have accepted it) but has no body to snapshot; treating it as
     // snapshot-worthy would replay an empty document later as if it were a
     // real, if empty, answer instead of the error it should surface offline.
+    #[test]
+    fn only_a_200_is_snapshot_worthy() {
+        assert!(snapshot_worthy(200, "GET", "/api/territories"));
+        assert!(!snapshot_worthy(204, "GET", "/api/territories"));
+        assert!(!snapshot_worthy(500, "GET", "/api/territories"));
+        assert!(!snapshot_worthy(200, "POST", "/api/territories"));
+    }
+
+    #[test]
+    fn a_401_clears_the_session() {
+        assert!(clears_session(401, "GET", "/api/territories"));
+    }
+
+    #[test]
+    fn a_successful_logout_clears_the_session() {
+        assert!(clears_session(200, "POST", "/api/auth/logout"));
+        assert!(!clears_session(500, "POST", "/api/auth/logout"));
+    }
+
+    // Signing in as somebody else must drop the previous user id immediately,
+    // whatever the login answers: until /api/auth/me lands, `user_cache_root`
+    // would otherwise still point at the previous user's blobs.
+    #[test]
+    fn any_login_attempt_clears_the_session() {
+        assert!(clears_session(200, "POST", "/api/auth/login"));
+        assert!(clears_session(400, "POST", "/api/auth/login"));
+        assert!(clears_session(200, "POST", "/api/auth/login/2fa"));
+    }
+
+    #[test]
+    fn an_ordinary_read_leaves_the_session_alone() {
+        assert!(!clears_session(200, "GET", "/api/territories"));
+        assert!(!clears_session(200, "GET", "/api/auth/me"));
+    }
+
+    fn gzipped(body: &[u8]) -> Vec<u8> {
+        use std::io::Write;
+        let mut e = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+        e.write_all(body).unwrap();
+        e.finish().unwrap()
+    }
+
+    /// The round trip nothing covered: a compressed upstream 200 on a
+    /// cacheable route must reach the webview as readable JSON with its ETag
+    /// intact, land in the snapshot store as *decoded* bytes, and come back
+    /// out of it once the upstream is gone.
+    ///
+    /// The gzip body is the point. Every live check during this project used
+    /// plain `curl`, which sends no `Accept-Encoding`, so the gateway answered
+    /// uncompressed and the missing decoder went unnoticed for eight reviews:
+    /// the webview was getting gzip bytes labelled `application/json` and
+    /// `res.json()` threw.
     #[tokio::test]
-    async fn a_204_does_not_pass_the_snapshot_status_check() {
-        let base = stub(
-            axum::Router::new().route("/api/territories", get(|| async { StatusCode::NO_CONTENT })),
+    async fn a_compressed_response_round_trips_through_the_snapshot_store() {
+        const BODY: &[u8] = br#"[{"slug":"dji-wp-46-cut","title":"DJI"}]"#;
+
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .unwrap();
+        let addr = listener.local_addr().unwrap();
+        let serving = tokio::spawn(async move {
+            let _ = axum::serve(
+                listener,
+                axum::Router::new().route(
+                    "/api/territories",
+                    get(|| async {
+                        (
+                            [
+                                (header::CONTENT_TYPE, "application/json"),
+                                (header::CONTENT_ENCODING, "gzip"),
+                                (header::ETAG, "\"abc123\""),
+                            ],
+                            gzipped(BODY),
+                        )
+                    }),
+                ),
+            )
+            .await;
+        });
+
+        let dir = tempfile::tempdir().unwrap();
+        let state = crate::state::test_state(
+            &format!("http://{addr}"),
+            dir.path().into(),
+            Some(crate::session::Stored {
+                token: "t".into(),
+                user_id: "usr_1".into(),
+            }),
+        );
+
+        let online = forward(
+            &state,
+            Request::builder()
+                .uri("/api/territories")
+                .body(Body::empty())
+                .unwrap(),
         )
         .await;
-        let client = reqwest::Client::new();
-        let upstream = url::Url::parse(&base).unwrap();
-        let res = send(
-            &client,
-            &upstream,
-            "GET",
-            "/api/territories",
-            Default::default(),
-            Vec::new(),
+        assert_eq!(online.status(), StatusCode::OK);
+        assert!(
+            online.headers().get(header::CONTENT_ENCODING).is_none(),
+            "reqwest decodes the body, so no encoding header may survive to the webview"
+        );
+        assert_eq!(
+            online.headers().get(header::ETAG).unwrap(),
+            "\"abc123\"",
+            "without the ETag the webview cannot revalidate and refetches every JSON GET in full"
+        );
+        let body = axum::body::to_bytes(online.into_body(), 64 * 1024)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], BODY, "the webview must receive parseable JSON");
+
+        // Take the upstream away; the same call must now answer from disk.
+        serving.abort();
+        let _ = serving.await;
+
+        let offline = forward(
+            &state,
+            Request::builder()
+                .uri("/api/territories")
+                .body(Body::empty())
+                .unwrap(),
         )
-        .await
-        .unwrap();
-        assert_ne!(
-            res.status(),
-            reqwest::StatusCode::OK,
-            "post_process's snapshot guard checks equality with OK, not is_success()"
+        .await;
+        assert_eq!(offline.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(offline.into_body(), 64 * 1024)
+            .await
+            .unwrap();
+        assert_eq!(
+            &body[..],
+            BODY,
+            "the snapshot must hold decoded bytes, not whatever was on the wire"
         );
     }
 }

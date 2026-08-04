@@ -1,8 +1,15 @@
 use rand::RngCore;
 
-/// A per-run secret the webview gets as a cookie on the first HTML response.
-/// Every other request must echo it, which keeps other local processes off a
+/// A per-run secret handed to the webview out of band — `main.rs` opens the
+/// window on `http://127.0.0.1:{port}/?dsk={nonce}` — and turned into a
+/// session cookie by the `index.html` response that carries it. Every request
+/// afterwards must echo the cookie, which keeps other local processes off a
 /// port that is otherwise a live authenticated session to the gateway.
+///
+/// The URL is the only place the nonce is ever published, and only the webview
+/// we launched is opened on it. Setting the cookie on *every* `index.html`
+/// response instead made the guard a two-request formality: `GET /` handed the
+/// nonce to any caller, who then replayed it.
 // Clone: AppState derives Clone (Task 1); Arc<AppState> would work without it,
 // but keeping AppState itself cloneable means every field must be too.
 #[derive(Clone)]
@@ -15,27 +22,46 @@ impl Nonce {
         Nonce(hex::encode(bytes))
     }
 
-    // Only the tests below call this; the bin target compiles them out, so
-    // clippy sees no caller without the allow.
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn value(&self) -> &str {
         &self.0
     }
 
     pub fn set_cookie(&self) -> String {
-        format!("dsk={}; Path=/; SameSite=Strict; HttpOnly", self.0)
+        format!("{NAME}={}; Path=/; SameSite=Strict; HttpOnly", self.0)
+    }
+
+    /// The query string `main.rs` opens the webview with. The single place the
+    /// nonce leaves this process other than the cookie it becomes.
+    pub fn query_param(&self) -> String {
+        format!("{NAME}={}", self.0)
     }
 
     pub fn matches(&self, cookie_header: Option<&str>) -> bool {
-        let Some(header) = cookie_header else {
+        self.present_in(cookie_header, ';')
+    }
+
+    /// The handoff: a request whose query carries the nonce is the webview's
+    /// first load, and only that response is allowed to set the cookie.
+    pub fn matches_query(&self, query: Option<&str>) -> bool {
+        self.present_in(query, '&')
+    }
+
+    /// Cookie headers separate on `;`, query strings on `&`; the pair syntax
+    /// and the comparison are otherwise identical, and there must be exactly
+    /// one comparison — see `constant_time_eq` below.
+    fn present_in(&self, raw: Option<&str>, separator: char) -> bool {
+        let Some(raw) = raw else {
             return false;
         };
-        header
-            .split(';')
+        raw.split(separator)
             .filter_map(|c| c.trim().split_once('='))
-            .any(|(k, v)| k == "dsk" && constant_time_eq(v, &self.0))
+            .any(|(k, v)| k == NAME && constant_time_eq(v, &self.0))
     }
 }
+
+/// The cookie name and the query parameter name, deliberately the same one.
+const NAME: &str = "dsk";
 
 // This is the authorization decision guarding a live gateway session; a
 // short-circuiting `==` would leak the nonce one byte at a time to a
@@ -94,6 +120,34 @@ mod tests {
             .collect();
         let header = format!("dsk={wrong}");
         assert!(!n.matches(Some(&header)));
+    }
+
+    // The out-of-band handoff: the webview's first URL carries the nonce in
+    // the query, and that is the only request allowed to set the cookie.
+    #[test]
+    fn accepts_its_own_query_parameter() {
+        let n = Nonce::new();
+        assert!(n.matches_query(Some(&n.query_param())));
+        assert!(n.matches_query(Some(&format!("next=/home&{}", n.query_param()))));
+    }
+
+    #[test]
+    fn rejects_a_missing_or_wrong_query_parameter() {
+        let n = Nonce::new();
+        assert!(!n.matches_query(None));
+        assert!(!n.matches_query(Some("")));
+        assert!(!n.matches_query(Some("dsk=deadbeef")));
+        assert!(!n.matches_query(Some("jobId=abc")));
+    }
+
+    // A cookie header is not a query string: `;` and `&` must not be
+    // interchangeable, or a caller could smuggle one shape into the other.
+    #[test]
+    fn the_two_separators_do_not_cross_over() {
+        let n = Nonce::new();
+        let pair = n.query_param();
+        assert!(!n.matches_query(Some(&format!("a=1;{pair}"))));
+        assert!(!n.matches(Some(&format!("a=1&{pair}"))));
     }
 
     #[test]

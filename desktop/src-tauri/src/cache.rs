@@ -60,6 +60,13 @@ impl Drop for TempFile {
 /// atomic across the two because both live under the same cache root and
 /// therefore the same filesystem, but a directory `evict::enforce_cap` sweeps
 /// never sees a download that is still in progress.
+///
+/// One chunk of lookahead: the last chunk read from upstream is held back
+/// until after the promote. hyper stops polling a response body the instant a
+/// declared `Content-Length` is satisfied, so work queued after the final
+/// `yield` simply never happens — the download completed, the rename did not,
+/// and the `TempFile` guard deleted a byte-perfect blob on drop. Holding the
+/// last chunk makes the promote independent of how the consumer polls.
 pub fn tee_to_disk<S>(
     upstream: S,
     tmp_dir: PathBuf,
@@ -77,7 +84,8 @@ where
         let guard = TempFile::new(tmp.clone());
         let mut file = tokio::fs::File::create(&tmp).await.ok();
         let mut hasher = Sha256::new();
-        let mut complete = false;
+        // The chunk read from upstream but not yet handed to the consumer.
+        let mut pending: Option<bytes::Bytes> = None;
 
         futures_util::pin_mut!(upstream);
         while let Some(item) = upstream.next().await {
@@ -89,30 +97,35 @@ where
                         }
                     }
                     hasher.update(&chunk);
-                    yield Ok(chunk);
+                    if let Some(previous) = pending.replace(chunk) {
+                        yield Ok(previous);
+                    }
                 }
                 Err(e) => {
+                    if let Some(previous) = pending.take() {
+                        yield Ok(previous);
+                    }
                     yield Err(e);
                     file = None;
                     break;
                 }
             }
         }
-        if file.is_some() {
-            complete = true;
-        }
 
         if let Some(mut f) = file.take() {
-            let ok = complete && f.flush().await.is_ok() && hex::encode(hasher.finalize()) == hash;
+            let ok = f.flush().await.is_ok() && hex::encode(hasher.finalize()) == hash;
             drop(f);
             if ok && tokio::fs::rename(&tmp, &dest).await.is_ok() {
                 guard.disarm();
-                return;
             }
         }
-        // Nothing to do here: `guard` removes `tmp` on drop, whether we fall
-        // through normally (hash mismatch, write failure) or the whole
-        // stream is dropped mid-poll before ever reaching this line.
+        // Only now, with the blob already in place: see the lookahead note above.
+        if let Some(last) = pending.take() {
+            yield Ok(last);
+        }
+        // Nothing else to do: `guard` removes `tmp` on drop, whether we fell
+        // through normally (hash mismatch, write failure) or the whole stream
+        // was dropped mid-poll before ever reaching this line.
     }
 }
 
@@ -186,6 +199,35 @@ mod tests {
         tokio::task::yield_now().await;
 
         assert_eq!(tokio::fs::read(&dest).await.unwrap(), data);
+    }
+
+    // The regression guard for the interaction that cost the whole disk cache:
+    // forwarding the upstream's Content-Length makes hyper stop polling the
+    // body the moment that many bytes have gone out, so a promote queued after
+    // the final yield never runs — every first download was served correctly
+    // and cached nowhere.
+    #[tokio::test]
+    async fn the_blob_is_promoted_before_its_last_chunk_is_handed_over() {
+        let dir = tempdir().unwrap();
+        let (blobs, tmp_dir) = dirs(dir.path());
+        let data = b"hello world";
+        let hash = hex::encode(sha2::Sha256::digest(data));
+        let dest = blobs.join(&hash);
+        let expected = data.len().div_ceil(3);
+
+        let mut s = Box::pin(tee_to_disk(chunks(data), tmp_dir, dest.clone(), hash));
+        let mut seen = 0;
+        while let Some(c) = s.next().await {
+            c.unwrap();
+            seen += 1;
+            if seen == expected {
+                assert!(
+                    dest.exists(),
+                    "the blob must already be in place when its last byte reaches the consumer"
+                );
+            }
+        }
+        assert_eq!(seen, expected, "no chunk may be swallowed by the lookahead");
     }
 
     #[tokio::test]

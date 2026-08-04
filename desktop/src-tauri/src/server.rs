@@ -30,7 +30,13 @@ pub fn spawn(state: Shared) -> std::io::Result<SocketAddr> {
     tauri::async_runtime::spawn(async move {
         let listener =
             tokio::net::TcpListener::from_std(listener).expect("std listener converts to tokio");
-        let _ = axum::serve(listener, app).await;
+        // If this ever returns, the window is pointed at a dead port and every
+        // request fails with nothing on screen to say why. There is no console
+        // under `windows_subsystem = "windows"`, so the log file is the only
+        // place a support ticket from another machine can come from.
+        if let Err(e) = axum::serve(listener, app).await {
+            log::error!("loopback server stopped: {e}");
+        }
     });
     Ok(addr)
 }
@@ -42,15 +48,13 @@ async fn handle(State(state): State<Shared>, req: Request<Body>) -> Response {
         .and_then(|v| v.to_str().ok())
         .map(str::to_string);
     let path = req.uri().path().to_string();
+    let query = req.uri().query().map(str::to_string);
 
-    let route = classify(&path);
-    if !allowed(&route, &state.nonce, cookie.as_deref()) {
-        return StatusCode::FORBIDDEN.into_response();
+    match dispatch(&path, &state.nonce, cookie.as_deref()) {
+        Dispatch::Forbidden => StatusCode::FORBIDDEN.into_response(),
+        Dispatch::Api => crate::proxy::forward(&state, req).await,
+        Dispatch::Static(route) => serve_static(&state, route, query.as_deref()),
     }
-    if path.starts_with("/api/") {
-        return crate::proxy::forward(&state, req).await;
-    }
-    serve_static(&state, route)
 }
 
 /// Cache-through handler for /api/assets/{hash}. A hit is served by
@@ -129,15 +133,19 @@ async fn handle_asset(
                 let _ = crate::evict::enforce_cap(&blobs, crate::evict::CAP_BYTES);
             });
 
-            let status = StatusCode::OK;
-            let mut out = Response::builder().status(status);
-            for (k, v) in res.headers().iter() {
-                let name = k.as_str().to_ascii_lowercase();
-                if name == "set-cookie" || name == "content-length" || name == "transfer-encoding" {
-                    continue;
-                }
-                out = out.header(k, v);
-            }
+            // Same header policy as every other upstream-derived response,
+            // Content-Length included: the tee changes no byte count, and
+            // without it a first-time GLB download streams chunked and
+            // GLTFLoader's progress bar loses `lengthComputable` on exactly
+            // the request where a progress bar is worth having.
+            //
+            // Declaring a length is why `tee_to_disk` holds back one chunk:
+            // hyper stops polling a body the moment the declared length is
+            // satisfied, so the promote has to already have happened by then.
+            let out = crate::proxy::copy_headers(
+                Response::builder().status(StatusCode::OK),
+                res.headers(),
+            );
             let upstream = res.bytes_stream().map(|c| c.map_err(std::io::Error::other));
             let teed = crate::cache::tee_to_disk(upstream, crate::paths::tmp(&root), path, hash);
             out.body(Body::from_stream(teed))
@@ -148,7 +156,7 @@ async fn handle_asset(
 
 /// Pure request-disposition decision for `handle_asset`, pulled out so the
 /// no-cache-root / hit-vs-miss branching is unit-testable without a Tauri
-/// `AppHandle` — the same pattern as `allowed()` below and
+/// `AppHandle` — the same pattern as `dispatch()` below and
 /// `snapshot::cacheable`. Hash validity is not an input here: it is a
 /// trust boundary (the hash becomes a filename), so it is a guard clause at
 /// the top of `handle_asset`, before this function — or any I/O — ever runs.
@@ -173,29 +181,67 @@ fn asset_disposition(has_cache_root: bool, file_exists: bool) -> AssetDispositio
     }
 }
 
-// Pulled out of `handle` so the gate itself is unit-testable without an
-// AppHandle: this is the one place that decides whether the loopback port
-// hands out an authenticated gateway session or not.
-fn allowed(route: &Route, nonce: &Nonce, cookie: Option<&str>) -> bool {
-    // index.html is the only response allowed without the nonce: it is what
-    // hands the nonce out, both on a cold start and on a reload of a deep
-    // router path.
-    matches!(route, Route::Index) || nonce.matches(cookie)
+/// What `handle` does with a request, decided in one pure function so the gate
+/// can be tested against real paths rather than against a classification —
+/// which is the mistake this replaces.
+#[derive(Debug, PartialEq, Eq)]
+enum Dispatch {
+    Forbidden,
+    Api,
+    Static(Route),
 }
 
-fn serve_static(state: &Shared, route: Route) -> Response {
+// This is the one place that decides whether the loopback port hands out an
+// authenticated gateway session or not.
+fn dispatch(path: &str, nonce: &Nonce, cookie: Option<&str>) -> Dispatch {
+    let has_nonce = nonce.matches(cookie);
+    // Checked by prefix, and *before* `classify`: `classify` answers `Index`
+    // for every path whose last segment has no dot, and no API path has one,
+    // so gating on the classification let the entire API — /api/territories,
+    // /api/auth/me, every mutation — through with no cookie at all.
+    if path.starts_with("/api/") {
+        return if has_nonce {
+            Dispatch::Api
+        } else {
+            Dispatch::Forbidden
+        };
+    }
+    let route = classify(path);
+    // index.html is the one response served without the nonce, so a stray
+    // navigation gets the app shell rather than an error. It gets no cookie
+    // with it (see `serve_static`), so none of its subresources will load —
+    // which is the point.
+    if has_nonce || matches!(route, Route::Index) {
+        Dispatch::Static(route)
+    } else {
+        Dispatch::Forbidden
+    }
+}
+
+fn serve_static(state: &Shared, route: Route, query: Option<&str>) -> Response {
     let asset_path = match route {
         Route::NotFound => return StatusCode::NOT_FOUND.into_response(),
         Route::Index => "index.html".to_string(),
         Route::Asset(p) => p,
     };
     let is_index = asset_path == "index.html";
-    match state.app.asset_resolver().get(asset_path) {
+    // None only in tests, which cannot build a Tauri handle; production always
+    // has one (main.rs).
+    let Some(app) = state.app.as_ref() else {
+        return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+    };
+    match app.asset_resolver().get(asset_path) {
         Some(asset) => {
             let mut res = ([(header::CONTENT_TYPE, asset.mime_type)], asset.bytes).into_response();
             if is_index {
-                if let Ok(v) = state.nonce.set_cookie().parse() {
-                    res.headers_mut().append(header::SET_COOKIE, v);
+                // Only the request that already proves it knows the nonce gets
+                // it as a cookie. A reload of a deep router path carries no
+                // query but does carry the cookie set on the first load, so it
+                // needs nothing here.
+                if state.nonce.matches_query(query) {
+                    if let Ok(v) = state.nonce.set_cookie().parse() {
+                        res.headers_mut().append(header::SET_COOKIE, v);
+                    }
                 }
                 if let Ok(v) = CSP.parse() {
                     res.headers_mut().insert(header::CONTENT_SECURITY_POLICY, v);
@@ -224,37 +270,113 @@ const CSP: &str = "default-src 'self'; \
 mod tests {
     use super::*;
 
+    use axum::body::Body;
+    use tower::ServiceExt;
+
+    fn cookie(nonce: &Nonce) -> String {
+        format!("dsk={}", nonce.value())
+    }
+
     #[test]
     fn index_is_allowed_without_a_cookie() {
         let nonce = Nonce::new();
-        assert!(allowed(&Route::Index, &nonce, None));
+        assert_eq!(dispatch("/", &nonce, None), Dispatch::Static(Route::Index));
+        assert_eq!(
+            dispatch("/territories/foo", &nonce, None),
+            Dispatch::Static(Route::Index)
+        );
     }
 
     #[test]
     fn asset_is_denied_without_a_cookie() {
         let nonce = Nonce::new();
-        assert!(!allowed(
-            &Route::Asset("assets/app.js".into()),
-            &nonce,
-            None
-        ));
+        assert_eq!(
+            dispatch("/assets/app.js", &nonce, None),
+            Dispatch::Forbidden
+        );
     }
 
     #[test]
     fn asset_is_allowed_with_the_matching_cookie() {
         let nonce = Nonce::new();
-        let cookie = format!("dsk={}", nonce.value());
-        assert!(allowed(
-            &Route::Asset("assets/app.js".into()),
-            &nonce,
-            Some(&cookie)
-        ));
+        assert_eq!(
+            dispatch("/assets/app.js", &nonce, Some(&cookie(&nonce))),
+            Dispatch::Static(Route::Asset("assets/app.js".into()))
+        );
     }
 
     #[test]
     fn not_found_is_denied_without_a_cookie() {
         let nonce = Nonce::new();
-        assert!(!allowed(&Route::NotFound, &nonce, None));
+        assert_eq!(dispatch("/sw.js", &nonce, None), Dispatch::Forbidden);
+    }
+
+    // The whole product lives under /api, and none of its paths has a dot in
+    // the last segment — so `classify` calls every one of them `Index`, and a
+    // gate that asked `classify` first answered "no cookie needed" for the
+    // entire authenticated gateway session.
+    #[test]
+    fn the_api_is_denied_without_a_cookie() {
+        let nonce = Nonce::new();
+        for path in [
+            "/api/territories",
+            "/api/auth/me",
+            "/api/models",
+            "/api/assets/deadbeef",
+            "/api/jobs/j1/events",
+        ] {
+            assert_eq!(
+                dispatch(path, &nonce, None),
+                Dispatch::Forbidden,
+                "{path} must not be reachable without the nonce"
+            );
+        }
+    }
+
+    #[test]
+    fn the_api_is_allowed_with_the_matching_cookie() {
+        let nonce = Nonce::new();
+        assert_eq!(
+            dispatch("/api/territories", &nonce, Some(&cookie(&nonce))),
+            Dispatch::Api
+        );
+    }
+
+    // The route-level counterpart: `dispatch` is pure and could still be
+    // wired up wrong. This drives the real router, so it fails if `handle`
+    // ever stops consulting the gate before proxying.
+    #[tokio::test]
+    async fn the_router_refuses_an_api_request_with_no_cookie() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = crate::state::test_state("http://127.0.0.1:1", dir.path().into(), None);
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/api/territories")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::FORBIDDEN);
+    }
+
+    // /api/assets/{hash} is its own route, so it does not pass through
+    // `handle` at all and needs its own proof.
+    #[tokio::test]
+    async fn the_router_refuses_an_asset_request_with_no_cookie() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = crate::state::test_state("http://127.0.0.1:1", dir.path().into(), None);
+        let res = router(state)
+            .oneshot(
+                Request::builder()
+                    .uri(format!("/api/assets/{}", "a".repeat(64)))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::FORBIDDEN);
     }
 
     #[test]
