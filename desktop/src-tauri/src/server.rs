@@ -122,6 +122,13 @@ async fn handle_asset(
             }
             let _ = tokio::fs::create_dir_all(crate::paths::blobs(&root)).await;
 
+            // Blocking fs walk, kept off the async worker. Fire-and-forget: eviction
+            // failing is not a reason to fail the download it was triggered by.
+            let blobs = crate::paths::blobs(&root);
+            tauri::async_runtime::spawn_blocking(move || {
+                let _ = crate::evict::enforce_cap(&blobs, crate::evict::CAP_BYTES);
+            });
+
             let status = StatusCode::OK;
             let mut out = Response::builder().status(status);
             for (k, v) in res.headers().iter() {

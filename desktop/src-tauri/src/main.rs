@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod cache;
+mod evict;
 mod guard;
 mod paths;
 mod proxy;
@@ -48,6 +49,13 @@ fn main() {
                 nonce: guard::Nonce::new(),
                 jar,
             });
+
+            if let Some(root) = state.user_cache_root() {
+                let blobs = paths::blobs(&root);
+                tauri::async_runtime::spawn_blocking(move || {
+                    let _ = evict::enforce_cap(&blobs, evict::CAP_BYTES);
+                });
+            }
 
             let addr = server::spawn(state)?;
             let url = Url::parse(&format!("http://{addr}/"))?;
