@@ -11,8 +11,11 @@ import (
 // signal: the slug is generated from the title and resolved to a unique
 // value. A non-empty slug upserts the row as-is.
 func (c *Catalog) UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error) {
-	if m.SourceBlobHash == "" {
-		return domain.Model{}, fmt.Errorf("service.UpsertModel: %w: empty source_blob_hash", domain.ErrInvalidInput)
+	if err := validateBlobHash(m.SourceBlobHash, true); err != nil {
+		return domain.Model{}, fmt.Errorf("service.UpsertModel: %w", err)
+	}
+	if err := validateBlobHash(m.ThumbnailBlobHash, false); err != nil {
+		return domain.Model{}, fmt.Errorf("service.UpsertModel: %w", err)
 	}
 	if m.Slug != "" {
 		return c.repo.UpsertModel(ctx, m)

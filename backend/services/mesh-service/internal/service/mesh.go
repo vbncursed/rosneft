@@ -6,6 +6,7 @@ package service
 import (
 	"context"
 	"io"
+	"time"
 
 	"github.com/vbncursed/rosneft/backend/pkg/blobstore"
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
@@ -18,6 +19,17 @@ type Queue interface {
 	SaveJob(ctx context.Context, j domain.Job) error
 	GetJob(ctx context.Context, id string) (domain.Job, error)
 	EnqueueJob(ctx context.Context, jobID string) error
+
+	// TryLockTarget claims a target for the reconciler. Reports false when
+	// another attempt already holds it. The lock is what stops the reconciler
+	// re-queueing an entity whose conversion is still running: HasLOD0 only
+	// turns true at the very end of processing, so a conversion longer than
+	// the tick interval would otherwise be queued again on every tick.
+	TryLockTarget(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) (bool, error)
+
+	// UnlockTarget releases the claim. Failing to call it is not fatal — the
+	// TTL expires — but it delays the next legitimate reconcile.
+	UnlockTarget(ctx context.Context, kind domain.Kind, slug string) error
 }
 
 // Catalog is the catalog client surface used by ProcessJob and the

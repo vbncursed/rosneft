@@ -11,6 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/vbncursed/rosneft/backend/pkg/grpcutil"
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/bootstrap"
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/config"
 )
@@ -45,6 +46,13 @@ func newRootCmd() *cobra.Command {
 		newMigrateUpCmd(),
 		newMigrateDownCmd(),
 		newMigrateStatusCmd(),
+		grpcutil.HealthcheckCmd(func(c *cobra.Command) (string, error) {
+			cfg, err := loadCfg(c)
+			if err != nil {
+				return "", err
+			}
+			return "localhost" + cfg.GRPCAddr, nil
+		}),
 	)
 	return cmd
 }
