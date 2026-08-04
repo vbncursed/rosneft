@@ -21,7 +21,8 @@ impl AppState {
         u.set_path("");
         u.set_query(None);
         // join() on a base whose path is empty resolves the absolute path as-is.
-        u.join(path_and_query).unwrap_or_else(|_| self.upstream.clone())
+        u.join(path_and_query)
+            .unwrap_or_else(|_| self.upstream.clone())
     }
 }
 

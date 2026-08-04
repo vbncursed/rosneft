@@ -21,8 +21,8 @@ pub fn spawn(state: Shared) -> std::io::Result<SocketAddr> {
     let addr = listener.local_addr()?;
     let app = router(state);
     tauri::async_runtime::spawn(async move {
-        let listener = tokio::net::TcpListener::from_std(listener)
-            .expect("std listener converts to tokio");
+        let listener =
+            tokio::net::TcpListener::from_std(listener).expect("std listener converts to tokio");
         let _ = axum::serve(listener, app).await;
     });
     Ok(addr)
@@ -40,11 +40,7 @@ fn serve_static(state: &Shared, path: &str) -> Response {
         Route::Asset(p) => p,
     };
     match state.app.asset_resolver().get(asset_path) {
-        Some(asset) => (
-            [(header::CONTENT_TYPE, asset.mime_type)],
-            asset.bytes,
-        )
-            .into_response(),
+        Some(asset) => ([(header::CONTENT_TYPE, asset.mime_type)], asset.bytes).into_response(),
         None => StatusCode::NOT_FOUND.into_response(),
     }
 }

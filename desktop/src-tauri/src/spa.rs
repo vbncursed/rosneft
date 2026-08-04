@@ -16,6 +16,10 @@ pub fn classify(path: &str) -> Route {
     }
     // An extension in the last segment means a real file. Everything else is a
     // router path, and the router only exists once index.html has loaded.
+    // ponytail: a route whose last segment contains a dot (no such segment
+    // exists today — slugs are server-generated, see catalog-service's
+    // slug.Generate) would be misrouted to Asset and 404. Upgrade path: match
+    // against the known set of dist entries, or a stricter extension pattern.
     match trimmed.rsplit('/').next() {
         Some(last) if last.contains('.') => Route::Asset(trimmed.to_string()),
         _ => Route::Index,
@@ -33,9 +37,18 @@ mod tests {
 
     #[test]
     fn file_with_extension_is_an_asset() {
-        assert_eq!(classify("/assets/index-a1b2.js"), Route::Asset("assets/index-a1b2.js".into()));
-        assert_eq!(classify("/draco/draco_decoder.wasm"), Route::Asset("draco/draco_decoder.wasm".into()));
-        assert_eq!(classify("/pdfjs/web/viewer.html"), Route::Asset("pdfjs/web/viewer.html".into()));
+        assert_eq!(
+            classify("/assets/index-a1b2.js"),
+            Route::Asset("assets/index-a1b2.js".into())
+        );
+        assert_eq!(
+            classify("/draco/draco_decoder.wasm"),
+            Route::Asset("draco/draco_decoder.wasm".into())
+        );
+        assert_eq!(
+            classify("/pdfjs/web/viewer.html"),
+            Route::Asset("pdfjs/web/viewer.html".into())
+        );
     }
 
     // Deep router paths must fall back to index.html, or a reload on
@@ -51,5 +64,16 @@ mod tests {
     #[test]
     fn service_worker_is_refused() {
         assert_eq!(classify("/sw.js"), Route::NotFound);
+    }
+
+    // Pins today's ceiling: a dotted route segment is indistinguishable from
+    // an asset. Not reachable in practice — slugs can't contain a dot — see
+    // the ponytail comment above the match in classify().
+    #[test]
+    fn dotted_route_segment_is_treated_as_an_asset() {
+        assert_eq!(
+            classify("/territories/v1.2"),
+            Route::Asset("territories/v1.2".into())
+        );
     }
 }

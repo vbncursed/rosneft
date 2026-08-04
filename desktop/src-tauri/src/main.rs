@@ -18,8 +18,8 @@ const INIT_SCRIPT: &str = "window.__DESKTOP__ = true;";
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
-            let upstream = std::env::var("DESKTOP_UPSTREAM")
-                .unwrap_or_else(|_| DEFAULT_UPSTREAM.to_string());
+            let upstream =
+                std::env::var("DESKTOP_UPSTREAM").unwrap_or_else(|_| DEFAULT_UPSTREAM.to_string());
             let upstream = Url::parse(&upstream)?;
             let cache_dir = app.path().app_cache_dir()?;
 
