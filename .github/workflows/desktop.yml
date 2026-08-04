@@ -1,0 +1,60 @@
+name: desktop
+
+on:
+  push:
+    tags: ["desktop-v*"]
+  pull_request:
+    paths:
+      - "desktop/**"
+      - "frontend/**"
+      - ".github/workflows/desktop.yml"
+
+jobs:
+  check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      # webkit2gtk and its friends are what tauri links against; without them
+      # cargo fails at link time, not at compile time, which reads as a mystery.
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+      - run: make -C desktop check
+
+  build:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-22.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: dtolnay/rust-toolchain@stable
+      - if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+      - run: yarn --cwd frontend install --frozen-lockfile
+      # No tagName/releaseId: this only builds and packages, it does not
+      # create or upload to a GitHub Release. The icons are placeholders
+      # (see desktop/README.md) and there is no updater signing key, so a
+      # matrix build here is a packaging smoke test, not a publishable
+      # artifact — release automation is out of scope for this task.
+      - uses: tauri-apps/tauri-action@v1
+        with:
+          projectPath: desktop
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

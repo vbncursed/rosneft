@@ -12,6 +12,7 @@ andrey/
 ├── backend/            # Go 1.26.5 microservices (gateway, catalog, content, auth,
 │                       #   twofa, passkey, mesh, upload, asset)
 ├── frontend/           # Vite + React 19 SPA viewer (TanStack Router + react-three-fiber)
+├── desktop/            # Tauri v2 desktop shell wrapping the same SPA
 ├── ops/                # deployment + observability config (Prometheus, …)
 ├── docs/               # design specs and implementation plans
 ├── docker-compose.yml  # postgres, redis, every backend service, prometheus
@@ -57,6 +58,18 @@ Persistence: PostgreSQL 17 + Redis 8 Streams + local FS blob store
 (built from `zeux/meshoptimizer`) for Draco / KTX2 / LOD encoding.
 
 See [`backend/README.md`](backend/README.md).
+
+### Desktop (`desktop/`)
+
+Tauri v2 wrapper around the same Vite + React SPA — no separate frontend, no
+separate build. A loopback axum server inside the Rust process serves the
+embedded `frontend/dist` and proxies `/api` to the gateway, reproducing
+production's nginx single-origin topology so the frontend needs no
+desktop-specific code. Holds the session in the OS keychain (never in the
+webview), caches `/api/assets/{hash}` on disk per user under a 5 GB cap, and
+replays the last good JSON response when the network is down.
+
+See [`desktop/README.md`](desktop/README.md).
 
 ## Frontend ↔ backend performance features
 

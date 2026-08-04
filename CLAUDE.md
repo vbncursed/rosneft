@@ -142,6 +142,69 @@ frontend/
 - Two test runners: pure domain logic → `node --test` (`*.test.ts`); jsdom/React → vitest (`*.spec.ts[x]`). Globs don't overlap.
 - Client env is `VITE_API_URL` — **empty in both dev and prod**. nginx serves the SPA and proxies `/api` in production; Vite's dev server proxies `/api` by default in development. Single origin is not a convenience: it is what lets the httpOnly session cookie ride on `<img>`, the pdf.js `<iframe>` and three.js loader requests, none of which can carry an Authorization header. `VITE_DEV_PROXY` overrides the dev target. Dev runs on port **3000** — `PASSKEY_RP_ORIGINS` is pinned to it.
 
+## Desktop shell (`desktop/`)
+
+Tauri v2 wrapper around the same SPA. A loopback axum server inside the Rust
+process serves the embedded `frontend/dist` through `app.asset_resolver()` and
+proxies `/api` to the gateway, reproducing production's nginx topology. That is
+deliberate and load-bearing: the frontend is single-origin by design — the
+session cookie has to ride on three.js loader requests, the pdf.js `<iframe>`
+and `EventSource`, none of which can carry a header — so anything that changes
+the origin breaks asset loading while login still appears to work.
+
+- **Never point the webview at a remote URL directly.** `tauri://localhost` is
+  cross-site to the gateway, `SameSite=Lax` withholds the cookie, and models,
+  PDFs and SSE all fail while the login screen looks fine.
+- The session cookie never reaches the webview: the proxy holds it in a jar and
+  strips `Set-Cookie`, storing the token in the OS keychain.
+- The loopback port is gated by a per-run nonce cookie handed out with
+  `index.html`. Any new response path that bypasses the guard opens an
+  authenticated session to every local process.
+- `/api/assets/{hash}` is cached on disk per `(upstream, user)`. The split is
+  not tidiness: serving from cache skips the gateway's `RequireBlobAccess`, so
+  a shared directory would leak one tenant's models to the next user.
+- The blob cache is evicted **least-recently-modified**, not LRU — say it that
+  way, the two are not the same thing here. A cache hit is served through
+  `tower_http::services::ServeFile`, which reads the file's bytes but never
+  touches its mtime, so a blob opened daily is exactly as evictable as one
+  downloaded once and forgotten. `evict.rs`'s own doc comment already says
+  this correctly; this is an accepted trade-off (a real LRU would need a
+  side-index this crate doesn't have), not a bug to "fix" by adding one.
+- **Never read the OS keychain on the startup path or the request path.**
+  `session::load()` used to run before `server::spawn`, and macOS pops an
+  authorization prompt whenever the reading binary's signature differs from
+  the one that wrote the entry — true on every rebuild, and in production on
+  every app update. The result was no server and no window at all: a dead
+  process sitting behind a modal dialog nobody could see. The session now
+  lives in `AppState.session: Arc<Mutex<Option<Stored>>>` as the source of
+  truth for every request (`user_cache_root`, snapshot save/replay); the
+  keychain is written through on login/logout and read back exactly once, in
+  a `spawn_blocking` that runs off `setup()`'s critical path, so a slow or
+  prompting read never blocks the server or the window from coming up.
+- **A decision that needs a test goes in a pure function, because `AppState`
+  cannot be constructed in a test** — it holds a live Tauri `AppHandle`. The
+  fix for "this is untestable" was the same move five times over: pull the
+  branching out of the handler into a plain function that takes owned/borrowed
+  values, and have the handler call it. `allowed()` (server.rs, the nonce
+  gate), `asset_disposition()` (server.rs, hit/miss/passthrough), `cacheable()`
+  (snapshot.rs, which responses may be replayed offline), `read_session_cookie()`
+  and `resolve_cache_root()` (state.rs) are the current examples — treat the
+  pattern as the convention, not as one-off refactors.
+- Temp files for the blob cache are staged in a sibling `tmp/`, never inside
+  `blobs/`. They used to sit next to their destination, where `evict::enforce_cap`
+  saw an ordinary file and could unlink a download mid-flight — the atomic
+  `rename` into `blobs/` then failed and a fully-verified, fully-downloaded
+  blob was silently thrown away. `tmp/` is outside every directory eviction
+  ever sweeps, and it is cleared once at startup — the only thing that ever
+  reclaims a temp file orphaned by a hard kill, since a stream dropped mid-poll
+  has no async destructor to clean up after itself.
+- Passkeys are unavailable in the shell (the RP origin is a loopback port).
+  `isPasskeySupported()` is the single gate — do not add a second check.
+- `make -C desktop check` runs fmt, clippy and tests. `make -C desktop build`
+  additionally needs the Tauri CLI (`cargo install tauri-cli --version "^2"`,
+  a separate binary from the `tauri` crate) installed locally; CI installs it
+  itself via `tauri-apps/tauri-action`.
+
 ## Territory route composition
 
 `/territories/$slug` is a TanStack Router route. Its loader primes the query
