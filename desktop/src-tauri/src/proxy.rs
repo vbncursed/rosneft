@@ -183,7 +183,9 @@ async fn post_process(
     {
         state.clear_session();
     }
-    if !(res.status().is_success() && crate::snapshot::cacheable(method.as_str(), path_and_query)) {
+    if !(res.status() == reqwest::StatusCode::OK
+        && crate::snapshot::cacheable(method.as_str(), path_and_query))
+    {
         return relay(res);
     }
     // A cacheable JSON GET is buffered so it can be written; these are kilobytes.
@@ -427,6 +429,35 @@ mod tests {
         assert!(
             !res.status().is_success(),
             "nothing here may be replaced by a snapshot"
+        );
+    }
+
+    // The policy is "a 200 is written". A 204 is success (is_success() would
+    // have accepted it) but has no body to snapshot; treating it as
+    // snapshot-worthy would replay an empty document later as if it were a
+    // real, if empty, answer instead of the error it should surface offline.
+    #[tokio::test]
+    async fn a_204_does_not_pass_the_snapshot_status_check() {
+        let base = stub(
+            axum::Router::new().route("/api/territories", get(|| async { StatusCode::NO_CONTENT })),
+        )
+        .await;
+        let client = reqwest::Client::new();
+        let upstream = url::Url::parse(&base).unwrap();
+        let res = send(
+            &client,
+            &upstream,
+            "GET",
+            "/api/territories",
+            Default::default(),
+            Vec::new(),
+        )
+        .await
+        .unwrap();
+        assert_ne!(
+            res.status(),
+            reqwest::StatusCode::OK,
+            "post_process's snapshot guard checks equality with OK, not is_success()"
         );
     }
 }

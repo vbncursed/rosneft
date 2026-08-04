@@ -10,7 +10,11 @@ pub fn cacheable(method: &str, path: &str) -> bool {
     if method != "GET" || !path.starts_with("/api/") {
         return false;
     }
-    if path.starts_with("/api/assets/") || path.contains("/events") {
+    // Strip the query before matching the route shape: `/events` must be the
+    // last path segment, not merely a substring (a slug like `events-park`
+    // must not be excluded).
+    let route = path.split('?').next().unwrap_or(path);
+    if path.starts_with("/api/assets/") || route.ends_with("/events") {
         return false;
     }
     if path.starts_with("/api/auth/") {
@@ -72,6 +76,13 @@ mod tests {
     fn never_caches_blobs_or_streams() {
         assert!(!cacheable("GET", "/api/assets/abc"));
         assert!(!cacheable("GET", "/api/jobs/j1/events"));
+    }
+
+    // The exclusion is the /events route shape, not the substring "events" —
+    // a slug that merely starts with it must stay cacheable.
+    #[test]
+    fn does_not_exclude_a_slug_that_merely_contains_events() {
+        assert!(cacheable("GET", "/api/territories/events-park/scene"));
     }
 
     // /me is the one auth route allowed a snapshot: without it the router guard
