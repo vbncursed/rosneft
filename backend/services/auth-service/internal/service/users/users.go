@@ -26,9 +26,13 @@ type Store interface {
 	ResolveLogins(ctx context.Context, ids []string) (map[string]string, error)
 }
 
-// Sessions lets status changes evict live sessions.
+// Sessions lets status changes evict live sessions and lets ChangePassword
+// throttle repeated failed attempts the same way Login does.
 type Sessions interface {
 	DeleteUser(ctx context.Context, userID string) error
+	IsLocked(ctx context.Context, identifier string) (bool, error)
+	RegisterFail(ctx context.Context, identifier string) error
+	ClearFails(ctx context.Context, identifier string) error
 }
 
 // Service is the user-admin service.
