@@ -51,6 +51,36 @@ docker compose -f docker-compose.yml up -d --no-build
 
 Then point the shell at it with `DESKTOP_UPSTREAM=http://localhost:8080`.
 
+### The macOS keychain prompt comes back after every rebuild
+
+On macOS the app asks for keychain authorisation on each `cargo run` following a
+`cargo build`, and clicking **Always Allow** does not stop it. That is the
+system working as designed: the keychain ACL authorises the *binary that asked*,
+identified by its signature, and every rebuild produces a different binary that
+was never on the list. Development recompiles constantly, so the entry is
+perpetually asked for by a stranger. A released, signed build has a stable
+identity and is authorised once.
+
+This is the visible half of a bug that is already fixed, and the difference
+matters. `session::load()` used to run in `setup()` before `server::spawn`, so
+the prompt blocked startup: no server, no window, a process sitting behind a
+modal nobody could see. The read now happens in a `spawn_blocking` off the
+critical path — the window opens and the app works while the prompt is up, and a
+request that arrives first simply has no session and gets bounced to `/login`.
+So the prompt is noise now, not a hang.
+
+If it is intolerable in a tight dev loop, delete the entry and there is nothing
+left to authorise:
+
+```bash
+security delete-generic-password -s fun.vbncursed.andrey.desktop
+```
+
+The cost is signing in again on the next launch, and it has to be repeated each
+time a login writes the entry back. It is a convenience for whoever is
+recompiling; a user never needs it, and there is no flag or environment variable
+to turn the keychain off — the session has one storage mechanism.
+
 ## Icons are placeholders
 
 `src-tauri/icons/icon.png` was derived from `frontend/public/apple-icon.png`
