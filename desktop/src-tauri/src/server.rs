@@ -6,6 +6,7 @@ use axum::routing::any;
 use axum::Router;
 use std::net::SocketAddr;
 
+use crate::guard::Nonce;
 use crate::spa::{classify, Route};
 use crate::state::Shared;
 
@@ -37,13 +38,20 @@ async fn handle(State(state): State<Shared>, req: Request<Body>) -> Response {
     let path = req.uri().path().to_string();
 
     let route = classify(&path);
-    // index.html is the only response allowed without the nonce: it is what
-    // hands the nonce out, both on a cold start and on a reload of a deep
-    // router path.
-    if !matches!(route, Route::Index) && !state.nonce.matches(cookie.as_deref()) {
+    if !allowed(&route, &state.nonce, cookie.as_deref()) {
         return StatusCode::FORBIDDEN.into_response();
     }
     serve_static(&state, route)
+}
+
+// Pulled out of `handle` so the gate itself is unit-testable without an
+// AppHandle: this is the one place that decides whether the loopback port
+// hands out an authenticated gateway session or not.
+fn allowed(route: &Route, nonce: &Nonce, cookie: Option<&str>) -> bool {
+    // index.html is the only response allowed without the nonce: it is what
+    // hands the nonce out, both on a cold start and on a reload of a deep
+    // router path.
+    matches!(route, Route::Index) || nonce.matches(cookie)
 }
 
 fn serve_static(state: &Shared, route: Route) -> Response {
@@ -82,3 +90,41 @@ const CSP: &str = "default-src 'self'; \
      font-src 'self' data:; \
      connect-src 'self' blob: data:; \
      frame-src 'self'";
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn index_is_allowed_without_a_cookie() {
+        let nonce = Nonce::new();
+        assert!(allowed(&Route::Index, &nonce, None));
+    }
+
+    #[test]
+    fn asset_is_denied_without_a_cookie() {
+        let nonce = Nonce::new();
+        assert!(!allowed(
+            &Route::Asset("assets/app.js".into()),
+            &nonce,
+            None
+        ));
+    }
+
+    #[test]
+    fn asset_is_allowed_with_the_matching_cookie() {
+        let nonce = Nonce::new();
+        let cookie = format!("dsk={}", nonce.value());
+        assert!(allowed(
+            &Route::Asset("assets/app.js".into()),
+            &nonce,
+            Some(&cookie)
+        ));
+    }
+
+    #[test]
+    fn not_found_is_denied_without_a_cookie() {
+        let nonce = Nonce::new();
+        assert!(!allowed(&Route::NotFound, &nonce, None));
+    }
+}

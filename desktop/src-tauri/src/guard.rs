@@ -33,8 +33,26 @@ impl Nonce {
         header
             .split(';')
             .filter_map(|c| c.trim().split_once('='))
-            .any(|(k, v)| k == "dsk" && v == self.0)
+            .any(|(k, v)| k == "dsk" && constant_time_eq(v, &self.0))
     }
+}
+
+// This is the authorization decision guarding a live gateway session; a
+// short-circuiting `==` would leak the nonce one byte at a time to a
+// co-resident process timing responses, exactly the attacker this guard
+// exists for. Length may short-circuit (the length is not the secret); the
+// byte fold accumulates into one variable and is tested once at the end so
+// it cannot be optimized into an early exit.
+fn constant_time_eq(a: &str, b: &str) -> bool {
+    let (a, b) = (a.as_bytes(), b.as_bytes());
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for i in 0..a.len() {
+        diff |= a[i] ^ b[i];
+    }
+    diff == 0
 }
 
 #[cfg(test)]
@@ -62,6 +80,20 @@ mod tests {
         assert!(!n.matches(Some("")));
         assert!(!n.matches(Some("dsk=deadbeef")));
         assert!(!n.matches(Some("theme=dark")));
+    }
+
+    #[test]
+    fn rejects_same_length_wrong_value() {
+        let n = Nonce::new();
+        // Same length as a real nonce, guaranteed different content: flips
+        // every hex digit into another one from the same alphabet.
+        let wrong: String = n
+            .value()
+            .chars()
+            .map(|c| if c == '0' { '1' } else { '0' })
+            .collect();
+        let header = format!("dsk={wrong}");
+        assert!(!n.matches(Some(&header)));
     }
 
     #[test]
