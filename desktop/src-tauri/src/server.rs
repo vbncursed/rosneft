@@ -41,6 +41,9 @@ async fn handle(State(state): State<Shared>, req: Request<Body>) -> Response {
     if !allowed(&route, &state.nonce, cookie.as_deref()) {
         return StatusCode::FORBIDDEN.into_response();
     }
+    if path.starts_with("/api/") {
+        return crate::proxy::forward(&state, req).await;
+    }
     serve_static(&state, route)
 }
 

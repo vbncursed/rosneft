@@ -1,7 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod guard;
+mod proxy;
 mod server;
+mod session;
 mod spa;
 mod state;
 
@@ -24,12 +26,25 @@ fn main() {
             let upstream = Url::parse(&upstream)?;
             let cache_dir = app.path().app_cache_dir()?;
 
+            let jar = std::sync::Arc::new(reqwest::cookie::Jar::default());
+            // Restore the session saved on a previous run so the user isn't
+            // asked to log in again after closing and reopening the app.
+            if let Some(stored) = session::load() {
+                jar.add_cookie_str(
+                    &format!("{}={}; Path=/", state::SESSION_COOKIE, stored.token),
+                    &upstream,
+                );
+            }
+
             let state = Arc::new(state::AppState {
                 app: app.handle().clone(),
                 upstream,
-                http: reqwest::Client::builder().cookie_store(true).build()?,
+                http: reqwest::Client::builder()
+                    .cookie_provider(jar.clone())
+                    .build()?,
                 cache_dir,
                 nonce: guard::Nonce::new(),
+                jar,
             });
 
             let addr = server::spawn(state)?;
