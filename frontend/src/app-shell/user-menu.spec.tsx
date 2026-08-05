@@ -26,6 +26,7 @@ const principal = (roleSlugs: string[], roleTitles: Record<string, string>) => (
   username: "vbncursed",
   status: "active" as const,
   totpEnabled: false,
+  passkeyEnabled: null,
   roleSlugs,
   roleTitles,
   permissions: [],
