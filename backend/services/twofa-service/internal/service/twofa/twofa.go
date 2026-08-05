@@ -12,6 +12,8 @@ import (
 type Store interface {
 	Get(ctx context.Context, userID string) (domain.Credential, error)
 	Set(ctx context.Context, userID string, enabled bool, secret []byte) error
+	// EnabledFor returns the subset of userIDs with 2FA switched on.
+	EnabledFor(ctx context.Context, userIDs []string) ([]string, error)
 }
 
 type Recovery interface {
