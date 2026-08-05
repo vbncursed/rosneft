@@ -225,6 +225,13 @@ the origin breaks asset loading while login still appears to work.
   keychain is written through on login/logout and read back exactly once, in
   a `spawn_blocking` that runs off `setup()`'s critical path, so a slow or
   prompting read never blocks the server or the window from coming up.
+- **`clear_session` deletes the keychain entry only if this process actually
+  held a session.** The restore runs off the critical path, so a 401 can land
+  before it does, and `proxy::clears_session` turns every 401 into a clear —
+  deleting there destroys a credential this run never read and makes a slow or
+  prompting keychain read a permanent logout. The decision is `clears_keychain`
+  in `state.rs`, kept pure because `session::clear()` writes to the real OS
+  keychain and cannot be exercised in a test.
 - **A decision that needs a test goes in a pure function**: pull the branching
   out of the handler into a plain function over owned/borrowed values and have
   the handler call it. `dispatch()` (server.rs, the nonce gate),

@@ -50,9 +50,25 @@ impl AppState {
     }
 
     pub fn clear_session(&self) {
-        crate::session::clear();
-        *self.session.lock().unwrap() = None;
+        let mut session = self.session.lock().unwrap();
+        if clears_keychain(session.take().as_ref()) {
+            crate::session::clear();
+        }
     }
+}
+
+/// Whether dropping the in-memory session must also delete the stored one.
+///
+/// Only when this process actually held one. The keychain entry is restored off
+/// the critical path (`main.rs`), so a 401 can arrive before it lands, and
+/// `proxy::clears_session` turns every 401 into a clear. Deleting there would
+/// destroy a credential this process never read — a prompting or slow keychain
+/// read would become a permanent logout instead of one skipped restore. Logout
+/// and a 401 against a live session are unaffected: the session is `Some` in
+/// both, and so is a login while signed in, which is what keeps
+/// `user_cache_root` from handing B one of A's blobs.
+pub fn clears_keychain(current: Option<&crate::session::Stored>) -> bool {
+    current.is_some()
 }
 
 /// Pure resolution pulled out of `AppState::user_cache_root` so it is
@@ -163,5 +179,23 @@ mod tests {
         let dir = Path::new("/cache");
         let upstream = Url::parse("http://localhost:8080").unwrap();
         assert_eq!(resolve_cache_root(dir, &upstream, None), None);
+    }
+
+    #[test]
+    fn a_held_session_is_dropped_from_the_keychain_too() {
+        let stored = crate::session::Stored {
+            token: "t".to_string(),
+            user_id: "usr_1".to_string(),
+        };
+        assert!(clears_keychain(Some(&stored)));
+    }
+
+    // `main.rs` restores the keychain entry off the critical path, so a 401 can
+    // land before it does — and `proxy::clears_session` turns every 401 into a
+    // clear. Deleting on that path destroys a credential this process never
+    // read, which turns a transient failure into a permanent logout.
+    #[test]
+    fn a_clear_before_the_restore_lands_leaves_the_keychain_alone() {
+        assert!(!clears_keychain(None));
     }
 }
