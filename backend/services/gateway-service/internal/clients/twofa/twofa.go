@@ -43,6 +43,16 @@ func (c *Client) IsEnabled(ctx context.Context, userID string) (bool, error) {
 	return resp.GetEnabled(), nil
 }
 
+// EnabledFor is the batch form of IsEnabled — one round trip for the whole
+// admin user list instead of one per row.
+func (c *Client) EnabledFor(ctx context.Context, userIDs []string) ([]string, error) {
+	resp, err := c.cc.EnabledFor(ctx, &twofav1.EnabledForRequest{UserIds: userIDs})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetEnabledUserIds(), nil
+}
+
 // Verify checks a TOTP/recovery code for a user (step-up factor). Wraps the
 // internal Verify RPC; twofa-service rate-limits failed attempts.
 func (c *Client) Verify(ctx context.Context, userID, code string) (bool, error) {
