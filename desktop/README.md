@@ -94,10 +94,19 @@ build outright without one — `icons/icon.ico not found`, after a full release
 compile. A single `icon.png` is enough for macOS and Linux, which is why this
 only surfaced on the Windows runner.
 
+**The shapes differ per platform on purpose.** `icon.icns` is masked to a
+superellipse and inset to Apple's grid — 824px of artwork on a 1024px canvas,
+transparent margins included. macOS does not apply that mask for you: ship a
+full-bleed square and the app sits visibly larger than every neighbour in the
+Dock. Windows and Linux take the square PNG and `.ico` unmasked, which is why
+`icon.png` and the sized PNGs still have opaque corners — do not "fix" them to
+match the macOS one.
+
 Regenerating from new artwork needs no Tauri CLI:
 
 ```bash
 cd src-tauri/icons
+# Square set — Windows and Linux, unmasked.
 python3 -c "
 from PIL import Image
 s = Image.open('icon.png').convert('RGBA')
@@ -105,6 +114,30 @@ s.resize((256,256)).save('icon.ico', sizes=[(16,16),(32,32),(48,48),(256,256)])
 for n, px in [('32x32.png',32), ('128x128.png',128), ('128x128@2x.png',256)]:
     s.resize((px,px)).save(n)
 "
+# macOS — superellipse mask, 824 of artwork on a 1024 canvas.
+python3 -c "
+from PIL import Image, ImageDraw
+import math
+def mask(size, n=5.0, ss=4):
+    big = size*ss; m = Image.new('L',(big,big),0); r = big/2.0
+    pts=[]
+    for i in range(2048):
+        t = 2*math.pi*i/2048; ct, st = math.cos(t), math.sin(t)
+        pts.append((r+math.copysign(abs(ct)**(2/n),ct)*r,
+                    r+math.copysign(abs(st)**(2/n),st)*r))
+    ImageDraw.Draw(m).polygon(pts, fill=255)
+    return m.resize((size,size), Image.LANCZOS)
+body = Image.open('icon.png').convert('RGBA').resize((824,824), Image.LANCZOS)
+body.putalpha(mask(824))
+c = Image.new('RGBA',(1024,1024),(0,0,0,0)); c.paste(body,(100,100),body)
+c.save('macos_master.png')
+"
+mkdir -p icon.iconset
+for s in 16 32 128 256 512; do
+  sips -z $s $s macos_master.png --out icon.iconset/icon_${s}x${s}.png
+  sips -z $((s*2)) $((s*2)) macos_master.png --out icon.iconset/icon_${s}x${s}@2x.png
+done
+iconutil -c icns icon.iconset -o icon.icns && rm -rf icon.iconset macos_master.png
 ```
 
 `icon.icns` for macOS comes from `sips` + `iconutil`; `cargo tauri icon` does
