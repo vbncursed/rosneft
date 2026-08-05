@@ -81,15 +81,34 @@ time a login writes the entry back. It is a convenience for whoever is
 recompiling; a user never needs it, and there is no flag or environment variable
 to turn the keychain off — the session has one storage mechanism.
 
-## Icons are placeholders
+## Icons are placeholder artwork, but a complete set
 
-`src-tauri/icons/icon.png` was derived from `frontend/public/apple-icon.png`
-with `sips` — it is a single square PNG, not a real icon set. The
-per-platform files `cargo tauri build` normally expects (`icon.icns` for
-macOS, `icon.ico` for Windows) were never generated, so a release build will
-either fall back to a low-quality auto-conversion of `icon.png` or fail
-depending on platform — do not treat a build produced today as
-release-ready on icon grounds alone.
+Every file in `src-tauri/icons/` is a rescale of `frontend/public/apple-icon.png`
+— the artwork is the web app's, not something drawn for a desktop icon, and it
+carries no rounded-rect mask, no per-size hinting, and nothing that reads at
+16px. Replace it before anyone outside the team sees a build.
+
+The set itself is complete and load-bearing: `icon.ico` is **required** on
+Windows, where `tauri-build` generates a resource file from it and fails the
+build outright without one — `icons/icon.ico not found`, after a full release
+compile. A single `icon.png` is enough for macOS and Linux, which is why this
+only surfaced on the Windows runner.
+
+Regenerating from new artwork needs no Tauri CLI:
+
+```bash
+cd src-tauri/icons
+python3 -c "
+from PIL import Image
+s = Image.open('icon.png').convert('RGBA')
+s.resize((256,256)).save('icon.ico', sizes=[(16,16),(32,32),(48,48),(256,256)])
+for n, px in [('32x32.png',32), ('128x128.png',128), ('128x128@2x.png',256)]:
+    s.resize((px,px)).save(n)
+"
+```
+
+`icon.icns` for macOS comes from `sips` + `iconutil`; `cargo tauri icon` does
+all of it in one step if you have the CLI installed.
 
 ## Manual checklist per OS
 
