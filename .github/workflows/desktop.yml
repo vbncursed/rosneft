@@ -70,23 +70,106 @@ jobs:
       # itself lives a level deeper, so any relative path there is correct
       # for exactly one of the two ways this gets invoked.
       - run: yarn --cwd frontend build
-      # No tagName/releaseId: this only builds and packages, it does not
-      # create or upload to a GitHub Release. The icons are placeholders
-      # (see desktop/README.md) and there is no updater signing key, so a
-      # matrix build here is a packaging smoke test, not a publishable
-      # artifact — release automation is out of scope for this task.
-      # tagName is what turns this from a build into a publish: without it
-      # tauri-action never touches Releases. It is set only on a tag push, so
-      # a PR run still just builds — a pull request must not be able to
-      # publish anything.
+
+      # The version lives in tauri.conf.json — the bundler stamps it into every
+      # installer name — and the tag has to agree with it, or a release called
+      # v0.2.0 ships files called 0.1.0. Nothing used to check that, and the
+      # mismatch is only visible to whoever reads both. Checked before the
+      # build, so a wrong tag costs seconds instead of three full builds.
+      - id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./desktop/src-tauri/tauri.conf.json').version")
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            expected="desktop-v${version}"
+            if [ "$GITHUB_REF_NAME" != "$expected" ]; then
+              echo "::error::tag $GITHUB_REF_NAME does not match tauri.conf.json version $version (expected $expected)"
+              exit 1
+            fi
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # Builds and packages only. Publishing is the step below: tauri-action
+      # uploads whatever the bundler named, and those names (Andrey_0.2.0_
+      # aarch64.dmg) leak the bundler's arch spelling into a user-facing
+      # download. Leaving tagName empty keeps this action away from Releases
+      # entirely, on a tag push as much as on a pull request.
       - uses: tauri-apps/tauri-action@v1
-        id: tauri
         with:
           projectPath: desktop
-          tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
-          releaseName: ${{ startsWith(github.ref, 'refs/tags/') && format('Andrey Desktop {0}', github.ref_name) || '' }}
-          releaseDraft: false
-          releaseBody: |
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # One name for both destinations — the run's Artifacts and the Release —
+      # so a file downloaded from either is called the same thing.
+      #
+      # The arch label follows each platform's own convention rather than one
+      # spelling for all three: macOS says arm64, Linux says x86_64, Windows
+      # says x64, and a user matching a download against their machine reads
+      # the word their OS uses. RUNNER_ARCH is only consulted on macOS, where
+      # both kinds of runner exist.
+      - id: package
+        shell: bash
+        # Passed as an environment variable rather than interpolated into the
+        # script: `${{ }}` is textual substitution into the shell source, and
+        # that is the shape workflow injections take. This value comes from our
+        # own tauri.conf.json, but the habit is the point.
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          version="$VERSION"
+          case "$RUNNER_OS" in
+            macOS)   platform=macos;   arch=$([ "$RUNNER_ARCH" = ARM64 ] && echo arm64 || echo x64) ;;
+            Linux)   platform=linux;   arch=x86_64 ;;
+            Windows) platform=windows; arch=x64 ;;
+            *)       echo "::error::unknown runner OS $RUNNER_OS"; exit 1 ;;
+          esac
+
+          mkdir -p dist
+          shopt -s nullglob
+          bundle=desktop/src-tauri/target/release/bundle
+          for built in "$bundle"/dmg/*.dmg "$bundle"/appimage/*.AppImage "$bundle"/nsis/*.exe; do
+            ext="${built##*.}"
+            # NSIS produces an installer, not the app; the suffix says so.
+            [ "$ext" = exe ] && suffix=-setup || suffix=
+            mv "$built" "dist/Andrey-${version}-${platform}-${arch}${suffix}.${ext}"
+          done
+
+          # Every OS produces exactly one installer. An empty dist/ means the
+          # bundler wrote somewhere these globs do not look, and silently
+          # publishing nothing is the failure this catches.
+          count=$(ls -1 dist | wc -l)
+          [ "$count" -eq 1 ] || { echo "::error::expected 1 installer, found $count"; ls -la dist; exit 1; }
+          ls -la dist
+
+      # Without this the installers are built and then thrown away with the
+      # runner. They are unsigned, so treat a download as a smoke test, not a
+      # release — see desktop/README.md for what each OS does to an unsigned
+      # bundle and how to get past it.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: andrey-desktop-${{ matrix.os }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+      # Only a tag publishes; a pull request cannot, whatever it does to this
+      # file. The three matrix jobs all target the same release and finish at
+      # different times, so the action has to create-or-update rather than
+      # create — that is what this one does, and it is why the upload is not
+      # three hand-rolled `gh release` calls racing each other.
+      - if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          # The tag is `desktop-v0.2.0`; the title says `Andrey Desktop v0.2.0`.
+          # Interpolating the tag straight in produced "Andrey Desktop
+          # desktop-v0.2.0", which reads like a typo because it is one.
+          name: Andrey Desktop v${{ steps.meta.outputs.version }}
+          files: dist/*
+          draft: false
+          body: |
             Desktop client for the 3D viewer. Points at production
             (`https://andrey.vbncursed.fun`) — sign in with your normal account.
 
@@ -102,20 +185,3 @@ jobs:
               back to software rendering on some drivers.
 
             There is no auto-update; check back here for newer builds.
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # Without this the installers are built and then thrown away with the
-      # runner. They are unsigned, so treat a download as a smoke test, not a
-      # release — see desktop/README.md for what each OS does to an unsigned
-      # bundle and how to get past it.
-      - uses: actions/upload-artifact@v7
-        with:
-          name: andrey-desktop-${{ matrix.os }}
-          # Every OS produces exactly one of these; the other two globs match
-          # nothing, and if-no-files-found only fires when all of them do.
-          path: |
-            desktop/src-tauri/target/release/bundle/dmg/*.dmg
-            desktop/src-tauri/target/release/bundle/appimage/*.AppImage
-            desktop/src-tauri/target/release/bundle/nsis/*.exe
-          if-no-files-found: error
-          retention-days: 14

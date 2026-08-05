@@ -125,17 +125,36 @@ assets are served from inside the binary, so no Cloudflare setting affects them.
 published by pushing a `desktop-v*` tag:
 
 ```bash
-git tag desktop-v0.1.0 && git push origin desktop-v0.1.0
+git tag desktop-v0.2.0 && git push origin desktop-v0.2.0
 ```
 
-The version in the tag should match `version` in `src-tauri/tauri.conf.json`;
-nothing enforces that, and a mismatch is only visible to whoever reads both.
+**Bump `version` in `src-tauri/tauri.conf.json` first** (and `Cargo.toml`, which
+is kept in step with it). The tag must be `desktop-v<that version>`: the release
+job checks the two agree and fails before building if they do not, because the
+bundler stamps the config's version into every installer name — a release titled
+v0.2.0 full of files called 0.1.0 is the failure this prevents.
+
+The release is titled `Andrey Desktop v0.2.0` — the workflow builds the title
+from the version, not from the tag, which is why it no longer reads
+"Andrey Desktop desktop-v0.2.0". Installers are renamed out of the bundler's
+own scheme before they are published:
+
+```
+Andrey-0.2.0-macos-arm64.dmg
+Andrey-0.2.0-linux-x86_64.AppImage
+Andrey-0.2.0-windows-x64-setup.exe
+```
+
+The arch label follows each platform's own vocabulary rather than one spelling
+for all three — somebody matching a download against their machine reads the
+word their OS uses. The run's Artifacts carry the same names.
 
 **Every other run** — pull requests touching `desktop/` or `frontend/`, and
 manual runs from the Actions tab — builds the same installers but publishes
 nothing: they land in the run's **Artifacts** section and expire after 14
-days. `tagName` is set only on a tag push, so a pull request cannot publish a
-release even if it edits this workflow.
+days. The publish step is gated on `refs/tags/`, and `tauri-action` is given no
+`tagName` at all, so a pull request cannot publish a release even if it edits
+this workflow.
 
 `.dmg` for macOS, `.AppImage` for Linux, `.exe` (NSIS) for Windows.
 
