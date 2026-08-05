@@ -56,7 +56,17 @@ export default function PasskeysSection() {
   }
 
   async function remove(id: string) {
-    const totp = me?.totpEnabled ?? false;
+    const totp = me?.totpEnabled;
+    // null means twofa-service did not answer, so we cannot tell which factor
+    // to ask for. Guessing is not the fallback it looks like: the gateway
+    // derives the factor server-side too, and its own IsEnabled call fails the
+    // request outright when the service is down — so the removal would 403 no
+    // matter which field we collected. Say that instead of taking a password
+    // and throwing it away.
+    if (totp === null || totp === undefined) {
+      notify.error("Two-factor status is unavailable right now, so passkeys cannot be removed. Try again shortly.");
+      return;
+    }
     const value = await confirmWithInput({
       title: "Remove passkey",
       message: totp
