@@ -83,9 +83,22 @@ to turn the keychain off — the session has one storage mechanism.
 
 ## Getting a build, and opening it once you have
 
-CI builds installers for all three platforms on every PR touching `desktop/`
-or `frontend/`, on a `desktop-v*` tag, and on a manual run from the Actions
-tab. They land in the run's **Artifacts** section and expire after 14 days.
+**Released builds** live under [Releases](https://github.com/vbncursed/rosneft/releases),
+published by pushing a `desktop-v*` tag:
+
+```bash
+git tag desktop-v0.1.0 && git push origin desktop-v0.1.0
+```
+
+The version in the tag should match `version` in `src-tauri/tauri.conf.json`;
+nothing enforces that, and a mismatch is only visible to whoever reads both.
+
+**Every other run** — pull requests touching `desktop/` or `frontend/`, and
+manual runs from the Actions tab — builds the same installers but publishes
+nothing: they land in the run's **Artifacts** section and expire after 14
+days. `tagName` is set only on a tag push, so a pull request cannot publish a
+release even if it edits this workflow.
+
 `.dmg` for macOS, `.AppImage` for Linux, `.exe` (NSIS) for Windows.
 
 **Nothing here is signed**, and every platform will object. That is expected,

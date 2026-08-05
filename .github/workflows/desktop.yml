@@ -69,10 +69,33 @@ jobs:
       # (see desktop/README.md) and there is no updater signing key, so a
       # matrix build here is a packaging smoke test, not a publishable
       # artifact — release automation is out of scope for this task.
+      # tagName is what turns this from a build into a publish: without it
+      # tauri-action never touches Releases. It is set only on a tag push, so
+      # a PR run still just builds — a pull request must not be able to
+      # publish anything.
       - uses: tauri-apps/tauri-action@v1
         id: tauri
         with:
           projectPath: desktop
+          tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+          releaseName: ${{ startsWith(github.ref, 'refs/tags/') && format('Andrey Desktop {0}', github.ref_name) || '' }}
+          releaseDraft: false
+          releaseBody: |
+            Desktop client for the 3D viewer. Points at production
+            (`https://andrey.vbncursed.fun`) — sign in with your normal account.
+
+            **These builds are not code-signed, and every OS will object.**
+
+            - **macOS** reports an unsigned app as *"damaged and can't be
+              opened"*. The message is misleading — the file is fine. After
+              dragging it to `/Applications`, run:
+              `xattr -dr com.apple.quarantine /Applications/Andrey.app`
+            - **Windows** shows SmartScreen: *More info → Run anyway*.
+            - **Linux** needs `chmod +x` on the `.AppImage`. If a scene runs at
+              a crawl, try `WEBKIT_DISABLE_DMABUF_RENDERER=1` — WebKitGTK falls
+              back to software rendering on some drivers.
+
+            There is no auto-update; check back here for newer builds.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # Without this the installers are built and then thrown away with the
