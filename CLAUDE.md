@@ -155,6 +155,18 @@ the origin breaks asset loading while login still appears to work.
 - **Never point the webview at a remote URL directly.** `tauri://localhost` is
   cross-site to the gateway, `SameSite=Lax` withholds the cookie, and models,
   PDFs and SSE all fail while the login screen looks fine.
+- **The loopback port is fixed (`17817`), and that is load-bearing.** The
+  webview's origin is `http://127.0.0.1:<port>`, `localStorage` is partitioned
+  by origin, and the SPA's session marker (`andrey.authed`) lives in it — so an
+  ephemeral port handed the router guard an empty store on every launch and
+  bounced the user to `/login` while a perfectly good session sat in the
+  proxy's jar. It also threw away the WebKit HTTP cache, IndexedDB and the
+  service worker each start. The number is below every platform's ephemeral
+  range (Linux 32768–60999, macOS/Windows 49152–65535) so the kernel cannot
+  hand it out; `DESKTOP_PORT` overrides it for a dev build running beside an
+  installed one. If the port is taken, `bind_loopback` falls back to an
+  ephemeral one and logs a warning — one login, which is the old behaviour, not
+  a broken window.
 - The session cookie never reaches the webview: the proxy holds it in a jar and
   strips `Set-Cookie`, storing the token in the OS keychain.
 - **The loopback port is gated by a per-run nonce, and the gate is keyed on the
