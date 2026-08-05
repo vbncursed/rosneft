@@ -3,15 +3,10 @@ import PasswordField from "@/shared/presentation/components/password-field";
 import OtpInput from "@/shared/presentation/components/otp-input";
 import { login, verifyTwoFactor } from "@/auth/infrastructure/auth-login";
 import { loginBegin, loginFinish } from "@/auth/infrastructure/passkey-gateway";
-import { getAssertion, isPasskeyCancelled } from "@/auth/infrastructure/webauthn";
-
-// Passkey/WebAuthn is origin-bound to the web domain; in the desktop app the
-// origin is 127.0.0.1 (not a valid RP), so the flow 500s — hide it there.
-// ponytail: probed once at module scope, neither value changes at runtime.
-const canPasskey =
-  !navigator.userAgent.includes("Electron") && typeof window.PublicKeyCredential === "function";
+import { getAssertion, isPasskeyCancelled, isPasskeySupported } from "@/auth/infrastructure/webauthn";
 
 export default function LoginForm({ next }: { next: string }) {
+  const canPasskey = isPasskeySupported();
   const [step, setStep] = useState<"creds" | "2fa">("creds");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");

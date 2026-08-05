@@ -1,8 +1,8 @@
 // Run with: yarn test:spa  (vitest + jsdom — DOMException is a browser type).
-import { test } from "vitest";
+import { afterEach, describe, expect, it, test } from "vitest";
 import assert from "node:assert/strict";
 
-import { isPasskeyCancelled } from "./webauthn";
+import { isPasskeyCancelled, isPasskeySupported } from "./webauthn";
 
 // The exact error a browser raises when the prompt is dismissed. The spec keeps
 // cancellation and timeout indistinguishable, so this one message covers both.
@@ -41,4 +41,27 @@ test("matching is by name, not by message text", () => {
     isPasskeyCancelled(new Error("The operation either timed out or was not allowed.")),
     false,
   );
+});
+
+describe("isPasskeySupported in the desktop shell", () => {
+  afterEach(() => {
+    delete (window as { __DESKTOP__?: boolean }).__DESKTOP__;
+    // @ts-expect-error -- test-only stub, restoring jsdom's absence of the API.
+    delete navigator.credentials;
+  });
+
+  // The RP origin inside the shell is a loopback port, which
+  // PASSKEY_RP_ORIGINS will never list. A ceremony started here fails with an
+  // opaque client-side error and no server log, so the UI must not offer one.
+  it("reports unsupported when running inside the desktop shell", () => {
+    (window as { PublicKeyCredential?: unknown }).PublicKeyCredential = function () {};
+    // jsdom has no navigator.credentials by default; stub it so this test
+    // actually exercises the __DESKTOP__ gate rather than passing vacuously.
+    Object.defineProperty(navigator, "credentials", {
+      value: { create: () => {}, get: () => {} },
+      configurable: true,
+    });
+    (window as { __DESKTOP__?: boolean }).__DESKTOP__ = true;
+    expect(isPasskeySupported()).toBe(false);
+  });
 });
