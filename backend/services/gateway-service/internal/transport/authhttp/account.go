@@ -15,11 +15,11 @@ func (h *Handlers) me(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	// auth no longer owns 2FA state; overlay the real flag from twofa-service.
-	out := userToJSON(u)
-	if on, err := h.twofa.IsEnabled(r.Context(), u.GetId()); err == nil {
-		out.TOTPEnabled = on
-	}
+	// auth-service does not own 2FA state, so the proto flag is always zero;
+	// overlay the real one. Passkey state is deliberately not fetched here —
+	// see factors(): this route runs on every page load and nothing reads it.
+	totp, _ := h.factors(r.Context(), []string{u.GetId()}, false)
+	out := userToJSON(u, totp, nil)
 	// The SPA's only way back to a token after a page reload.
 	out.CSRFToken = h.CSRFToken(sessionToken(r))
 	writeJSON(w, http.StatusOK, out)

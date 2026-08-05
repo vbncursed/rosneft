@@ -3,7 +3,13 @@ export interface Principal {
   email: string;
   username: string;
   status: "active" | "frozen" | "deleted";
-  totpEnabled: boolean;
+  // Tri-state. null means the owning service could not be reached, so the
+  // status is unknown — never collapse it to false. A confident wrong "off" in
+  // the admin console is the bug this field was widened to fix.
+  totpEnabled: boolean | null;
+  // Whether the user has at least one passkey. null = unknown, and always null
+  // on /api/auth/me, which does not fetch it.
+  passkeyEnabled: boolean | null;
   roleSlugs: string[];
   // Slug → display title for each entry in roleSlugs. The slug is not an
   // abbreviation of the title: slug "admin" is titled "Company Owner", while a

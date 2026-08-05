@@ -25,6 +25,7 @@ const (
 	PasskeyService_DeleteCredential_FullMethodName   = "/rosneft.passkey.v1.PasskeyService/DeleteCredential"
 	PasskeyService_BeginLogin_FullMethodName         = "/rosneft.passkey.v1.PasskeyService/BeginLogin"
 	PasskeyService_FinishLogin_FullMethodName        = "/rosneft.passkey.v1.PasskeyService/FinishLogin"
+	PasskeyService_CredentialedUsers_FullMethodName  = "/rosneft.passkey.v1.PasskeyService/CredentialedUsers"
 )
 
 // PasskeyServiceClient is the client API for PasskeyService service.
@@ -44,6 +45,11 @@ type PasskeyServiceClient interface {
 	// Internal surface (auth-service-called during login; no token).
 	BeginLogin(ctx context.Context, in *BeginLoginRequest, opts ...grpc.CallOption) (*BeginLoginResponse, error)
 	FinishLogin(ctx context.Context, in *FinishLoginRequest, opts ...grpc.CallOption) (*FinishLoginResponse, error)
+	// CredentialedUsers answers "which of these users have at least one passkey".
+	// Internal surface (no token) because it is keyed on ids, not on the caller:
+	// ListCredentials resolves the caller via auth.GetMe and so cannot answer for
+	// anybody else. Returns ids only — never names, counts, or key material.
+	CredentialedUsers(ctx context.Context, in *CredentialedUsersRequest, opts ...grpc.CallOption) (*CredentialedUsersResponse, error)
 }
 
 type passkeyServiceClient struct {
@@ -114,6 +120,16 @@ func (c *passkeyServiceClient) FinishLogin(ctx context.Context, in *FinishLoginR
 	return out, nil
 }
 
+func (c *passkeyServiceClient) CredentialedUsers(ctx context.Context, in *CredentialedUsersRequest, opts ...grpc.CallOption) (*CredentialedUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CredentialedUsersResponse)
+	err := c.cc.Invoke(ctx, PasskeyService_CredentialedUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PasskeyServiceServer is the server API for PasskeyService service.
 // All implementations must embed UnimplementedPasskeyServiceServer
 // for forward compatibility.
@@ -131,6 +147,11 @@ type PasskeyServiceServer interface {
 	// Internal surface (auth-service-called during login; no token).
 	BeginLogin(context.Context, *BeginLoginRequest) (*BeginLoginResponse, error)
 	FinishLogin(context.Context, *FinishLoginRequest) (*FinishLoginResponse, error)
+	// CredentialedUsers answers "which of these users have at least one passkey".
+	// Internal surface (no token) because it is keyed on ids, not on the caller:
+	// ListCredentials resolves the caller via auth.GetMe and so cannot answer for
+	// anybody else. Returns ids only — never names, counts, or key material.
+	CredentialedUsers(context.Context, *CredentialedUsersRequest) (*CredentialedUsersResponse, error)
 	mustEmbedUnimplementedPasskeyServiceServer()
 }
 
@@ -158,6 +179,9 @@ func (UnimplementedPasskeyServiceServer) BeginLogin(context.Context, *BeginLogin
 }
 func (UnimplementedPasskeyServiceServer) FinishLogin(context.Context, *FinishLoginRequest) (*FinishLoginResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method FinishLogin not implemented")
+}
+func (UnimplementedPasskeyServiceServer) CredentialedUsers(context.Context, *CredentialedUsersRequest) (*CredentialedUsersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CredentialedUsers not implemented")
 }
 func (UnimplementedPasskeyServiceServer) mustEmbedUnimplementedPasskeyServiceServer() {}
 func (UnimplementedPasskeyServiceServer) testEmbeddedByValue()                        {}
@@ -288,6 +312,24 @@ func _PasskeyService_FinishLogin_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PasskeyService_CredentialedUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CredentialedUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PasskeyServiceServer).CredentialedUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PasskeyService_CredentialedUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PasskeyServiceServer).CredentialedUsers(ctx, req.(*CredentialedUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PasskeyService_ServiceDesc is the grpc.ServiceDesc for PasskeyService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -318,6 +360,10 @@ var PasskeyService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FinishLogin",
 			Handler:    _PasskeyService_FinishLogin_Handler,
+		},
+		{
+			MethodName: "CredentialedUsers",
+			Handler:    _PasskeyService_CredentialedUsers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

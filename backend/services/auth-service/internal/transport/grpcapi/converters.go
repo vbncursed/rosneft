@@ -13,8 +13,10 @@ func userToProto(u domain.User) *authv1.User {
 		Email:    u.Email,
 		Username: u.Username,
 		Status:   u.Status,
-		// totp_enabled is owned by twofa-service; the gateway overlays the real
-		// value via twofa.IsEnabled when composing the user DTO.
+		// totp_enabled is owned by twofa-service and stays zero here; the gateway
+		// overlays the real value via twofa.EnabledFor when composing the user
+		// DTO. Leaving it unset is why every consumer must go through that
+		// overlay — reading this field directly reports "off" for everyone.
 		RoleSlugs:           u.RoleSlugs,
 		RoleTitles:          u.RoleTitles,
 		Permissions:         u.Permissions,

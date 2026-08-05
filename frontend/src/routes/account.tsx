@@ -23,7 +23,11 @@ function Account() {
           <p className="mt-1 text-sm text-neutral-400">{p.email}</p>
         </header>
         <ChangePasswordForm />
-        <TwoFactorSection initiallyEnabled={p.totpEnabled} />
+        {/* Unknown degrades to "off" here on purpose: this section manages the
+            user's own factor, and with twofa-service down every button in it
+            fails anyway. The tri-state matters in the admin console, where one
+            person reads another's security posture. */}
+        <TwoFactorSection initiallyEnabled={p.totpEnabled ?? false} />
         <PasskeysSection />
         <MyActivitySection />
       </section>

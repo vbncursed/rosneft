@@ -18,6 +18,19 @@ interface Props {
 // matching text-indent balances it so short labels like "NO" aren't right-heavy.
 const PILL = "inline-block whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] [text-indent:0.18em]";
 
+// Tri-state on purpose: null means the owning service did not answer, and the
+// console must not print an unverified "No" — that was the reported bug.
+function FactorPill({ on }: { on: boolean | null }) {
+  if (on === null) {
+    return <span className={`${PILL} border-white/15 text-neutral-400`} title="Status unavailable">—</span>;
+  }
+  return (
+    <span className={`${PILL} ${on ? "border-emerald-300/40 text-emerald-300" : "border-red-400/40 text-red-300"}`}>
+      {on ? "Yes" : "No"}
+    </span>
+  );
+}
+
 export default function UserRow({ u, me, roleTitle, onEditRoles, act }: Props) {
   const self = u.id === me.id;
   // Only the owner may freeze/delete an admin account (mirrors the backend guard).
@@ -54,11 +67,8 @@ export default function UserRow({ u, me, roleTitle, onEditRoles, act }: Props) {
         </span>
       </td>
       <td className="px-3 py-2"><StatusBadge status={u.status} /></td>
-      <td className="px-3 py-2">
-        <span className={`${PILL} ${u.totpEnabled ? "border-emerald-300/40 text-emerald-300" : "border-red-400/40 text-red-300"}`}>
-          {u.totpEnabled ? "Yes" : "No"}
-        </span>
-      </td>
+      <td className="px-3 py-2"><FactorPill on={u.totpEnabled} /></td>
+      <td className="px-3 py-2"><FactorPill on={u.passkeyEnabled} /></td>
       <td className="px-3 py-2 text-right"><RowActionsMenu items={items} ariaLabel={`Actions for ${u.username}`} /></td>
     </tr>
   );

@@ -5,6 +5,26 @@ import (
 	passkeyv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/passkey/v1"
 )
 
+// factorSet holds the user ids for which one authentication factor is on.
+//
+// A nil set is NOT an empty one. Empty means "we asked and nobody has it"; nil
+// means the owning service (twofa / passkey) never answered, so the state is
+// unknown. Collapsing that to "off" is exactly the failure this type exists to
+// prevent: the admin console printing an unverified "No".
+type factorSet map[string]struct{}
+
+// state answers tri-state: nil for unknown, otherwise a pointer to on/off.
+func (f factorSet) state(userID string) *bool {
+	if f == nil {
+		return nil
+	}
+	// &ok, not new(ok): staticcheck does not yet model Go 1.26's new(expr) and
+	// reports SA4006 "value never used" for it. This is an address-of on an
+	// existing variable, not the pointer-to-literal case CLAUDE.md rules on.
+	_, ok := f[userID]
+	return &ok
+}
+
 func credToJSON(c *passkeyv1.Credential) map[string]any {
 	return map[string]any{
 		"id":         c.GetId(),
@@ -15,12 +35,17 @@ func credToJSON(c *passkeyv1.Credential) map[string]any {
 }
 
 type userJSON struct {
-	ID          string   `json:"id"`
-	Email       string   `json:"email"`
-	Username    string   `json:"username"`
-	Status      string   `json:"status"`
-	TOTPEnabled bool     `json:"totpEnabled"`
-	RoleSlugs   []string `json:"roleSlugs"`
+	ID       string `json:"id"`
+	Email    string `json:"email"`
+	Username string `json:"username"`
+	Status   string `json:"status"`
+	// TOTPEnabled and PasskeyEnabled are tri-state on the wire: an absent key
+	// means the owning service could not answer. They never come from the proto
+	// user — auth-service does not own either factor and leaves both zero — so
+	// they are filled from the overlaid factorSets and from nowhere else.
+	TOTPEnabled    *bool    `json:"totpEnabled,omitempty"`
+	PasskeyEnabled *bool    `json:"passkeyEnabled,omitempty"`
+	RoleSlugs      []string `json:"roleSlugs"`
 	// RoleTitles names each slug in RoleSlugs. The slug is not an abbreviation
 	// of the title — slug "admin" is titled "Company Owner", while a different
 	// role is slugged "owner" — so a UI that prints the slug names the wrong
@@ -37,13 +62,18 @@ type userJSON struct {
 	CSRFToken string `json:"csrfToken,omitzero"`
 }
 
-func userToJSON(u *authv1.User) userJSON {
+// userToJSON requires both factor sets by construction. There is deliberately
+// no overload that omits them: eight handlers used to call a bare converter and
+// every one of them shipped a hardcoded "2FA: off" for months. A route that
+// cannot obtain the sets has to pass nil and say "unknown" out loud.
+func userToJSON(u *authv1.User, totp, passkeys factorSet) userJSON {
 	return userJSON{
 		ID:                  u.GetId(),
 		Email:               u.GetEmail(),
 		Username:            u.GetUsername(),
 		Status:              u.GetStatus(),
-		TOTPEnabled:         u.GetTotpEnabled(),
+		TOTPEnabled:         totp.state(u.GetId()),
+		PasskeyEnabled:      passkeys.state(u.GetId()),
 		RoleSlugs:           u.GetRoleSlugs(),
 		RoleTitles:          u.GetRoleTitles(),
 		Permissions:         u.GetPermissions(),
@@ -52,10 +82,10 @@ func userToJSON(u *authv1.User) userJSON {
 	}
 }
 
-func usersToJSON(in []*authv1.User) []userJSON {
+func usersToJSON(in []*authv1.User, totp, passkeys factorSet) []userJSON {
 	out := make([]userJSON, 0, len(in))
 	for _, u := range in {
-		out = append(out, userToJSON(u))
+		out = append(out, userToJSON(u, totp, passkeys))
 	}
 	return out
 }

@@ -20,6 +20,9 @@ import (
 type Store interface {
 	Create(ctx context.Context, c domain.Credential) error
 	ListByUser(ctx context.Context, userID string) ([]domain.Credential, error)
+	// UsersWithCredentials returns the subset of userIDs that own at least one
+	// credential — one id per user, however many keys they have.
+	UsersWithCredentials(ctx context.Context, userIDs []string) ([]string, error)
 	DeleteByCredentialID(ctx context.Context, userID string, credID []byte) error
 	UpdateAfterLogin(ctx context.Context, credID []byte, count uint32, backupState bool) error
 }

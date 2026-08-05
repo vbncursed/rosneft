@@ -19,6 +19,13 @@ type StoreMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
+	funcEnabledFor          func(ctx context.Context, userIDs []string) (sa1 []string, err error)
+	funcEnabledForOrigin    string
+	inspectFuncEnabledFor   func(ctx context.Context, userIDs []string)
+	afterEnabledForCounter  uint64
+	beforeEnabledForCounter uint64
+	EnabledForMock          mStoreMockEnabledFor
+
 	funcGet          func(ctx context.Context, userID string) (c2 domain.Credential, err error)
 	funcGetOrigin    string
 	inspectFuncGet   func(ctx context.Context, userID string)
@@ -42,6 +49,9 @@ func NewStoreMock(t minimock.Tester) *StoreMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.EnabledForMock = mStoreMockEnabledFor{mock: m}
+	m.EnabledForMock.callArgs = []*StoreMockEnabledForParams{}
+
 	m.GetMock = mStoreMockGet{mock: m}
 	m.GetMock.callArgs = []*StoreMockGetParams{}
 
@@ -51,6 +61,349 @@ func NewStoreMock(t minimock.Tester) *StoreMock {
 	t.Cleanup(m.MinimockFinish)
 
 	return m
+}
+
+type mStoreMockEnabledFor struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockEnabledForExpectation
+	expectations       []*StoreMockEnabledForExpectation
+
+	callArgs []*StoreMockEnabledForParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockEnabledForExpectation specifies expectation struct of the Store.EnabledFor
+type StoreMockEnabledForExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockEnabledForParams
+	paramPtrs          *StoreMockEnabledForParamPtrs
+	expectationOrigins StoreMockEnabledForExpectationOrigins
+	results            *StoreMockEnabledForResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockEnabledForParams contains parameters of the Store.EnabledFor
+type StoreMockEnabledForParams struct {
+	ctx     context.Context
+	userIDs []string
+}
+
+// StoreMockEnabledForParamPtrs contains pointers to parameters of the Store.EnabledFor
+type StoreMockEnabledForParamPtrs struct {
+	ctx     *context.Context
+	userIDs *[]string
+}
+
+// StoreMockEnabledForResults contains results of the Store.EnabledFor
+type StoreMockEnabledForResults struct {
+	sa1 []string
+	err error
+}
+
+// StoreMockEnabledForOrigins contains origins of expectations of the Store.EnabledFor
+type StoreMockEnabledForExpectationOrigins struct {
+	origin        string
+	originCtx     string
+	originUserIDs string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmEnabledFor *mStoreMockEnabledFor) Optional() *mStoreMockEnabledFor {
+	mmEnabledFor.optional = true
+	return mmEnabledFor
+}
+
+// Expect sets up expected params for Store.EnabledFor
+func (mmEnabledFor *mStoreMockEnabledFor) Expect(ctx context.Context, userIDs []string) *mStoreMockEnabledFor {
+	if mmEnabledFor.mock.funcEnabledFor != nil {
+		mmEnabledFor.mock.t.Fatalf("StoreMock.EnabledFor mock is already set by Set")
+	}
+
+	if mmEnabledFor.defaultExpectation == nil {
+		mmEnabledFor.defaultExpectation = &StoreMockEnabledForExpectation{}
+	}
+
+	if mmEnabledFor.defaultExpectation.paramPtrs != nil {
+		mmEnabledFor.mock.t.Fatalf("StoreMock.EnabledFor mock is already set by ExpectParams functions")
+	}
+
+	mmEnabledFor.defaultExpectation.params = &StoreMockEnabledForParams{ctx, userIDs}
+	mmEnabledFor.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmEnabledFor.expectations {
+		if minimock.Equal(e.params, mmEnabledFor.defaultExpectation.params) {
+			mmEnabledFor.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmEnabledFor.defaultExpectation.params)
+		}
+	}
+
+	return mmEnabledFor
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.EnabledFor
+func (mmEnabledFor *mStoreMockEnabledFor) ExpectCtxParam1(ctx context.Context) *mStoreMockEnabledFor {
+	if mmEnabledFor.mock.funcEnabledFor != nil {
+		mmEnabledFor.mock.t.Fatalf("StoreMock.EnabledFor mock is already set by Set")
+	}
+
+	if mmEnabledFor.defaultExpectation == nil {
+		mmEnabledFor.defaultExpectation = &StoreMockEnabledForExpectation{}
+	}
+
+	if mmEnabledFor.defaultExpectation.params != nil {
+		mmEnabledFor.mock.t.Fatalf("StoreMock.EnabledFor mock is already set by Expect")
+	}
+
+	if mmEnabledFor.defaultExpectation.paramPtrs == nil {
+		mmEnabledFor.defaultExpectation.paramPtrs = &StoreMockEnabledForParamPtrs{}
+	}
+	mmEnabledFor.defaultExpectation.paramPtrs.ctx = &ctx
+	mmEnabledFor.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmEnabledFor
+}
+
+// ExpectUserIDsParam2 sets up expected param userIDs for Store.EnabledFor
+func (mmEnabledFor *mStoreMockEnabledFor) ExpectUserIDsParam2(userIDs []string) *mStoreMockEnabledFor {
+	if mmEnabledFor.mock.funcEnabledFor != nil {
+		mmEnabledFor.mock.t.Fatalf("StoreMock.EnabledFor mock is already set by Set")
+	}
+
+	if mmEnabledFor.defaultExpectation == nil {
+		mmEnabledFor.defaultExpectation = &StoreMockEnabledForExpectation{}
+	}
+
+	if mmEnabledFor.defaultExpectation.params != nil {
+		mmEnabledFor.mock.t.Fatalf("StoreMock.EnabledFor mock is already set by Expect")
+	}
+
+	if mmEnabledFor.defaultExpectation.paramPtrs == nil {
+		mmEnabledFor.defaultExpectation.paramPtrs = &StoreMockEnabledForParamPtrs{}
+	}
+	mmEnabledFor.defaultExpectation.paramPtrs.userIDs = &userIDs
+	mmEnabledFor.defaultExpectation.expectationOrigins.originUserIDs = minimock.CallerInfo(1)
+
+	return mmEnabledFor
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.EnabledFor
+func (mmEnabledFor *mStoreMockEnabledFor) Inspect(f func(ctx context.Context, userIDs []string)) *mStoreMockEnabledFor {
+	if mmEnabledFor.mock.inspectFuncEnabledFor != nil {
+		mmEnabledFor.mock.t.Fatalf("Inspect function is already set for StoreMock.EnabledFor")
+	}
+
+	mmEnabledFor.mock.inspectFuncEnabledFor = f
+
+	return mmEnabledFor
+}
+
+// Return sets up results that will be returned by Store.EnabledFor
+func (mmEnabledFor *mStoreMockEnabledFor) Return(sa1 []string, err error) *StoreMock {
+	if mmEnabledFor.mock.funcEnabledFor != nil {
+		mmEnabledFor.mock.t.Fatalf("StoreMock.EnabledFor mock is already set by Set")
+	}
+
+	if mmEnabledFor.defaultExpectation == nil {
+		mmEnabledFor.defaultExpectation = &StoreMockEnabledForExpectation{mock: mmEnabledFor.mock}
+	}
+	mmEnabledFor.defaultExpectation.results = &StoreMockEnabledForResults{sa1, err}
+	mmEnabledFor.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmEnabledFor.mock
+}
+
+// Set uses given function f to mock the Store.EnabledFor method
+func (mmEnabledFor *mStoreMockEnabledFor) Set(f func(ctx context.Context, userIDs []string) (sa1 []string, err error)) *StoreMock {
+	if mmEnabledFor.defaultExpectation != nil {
+		mmEnabledFor.mock.t.Fatalf("Default expectation is already set for the Store.EnabledFor method")
+	}
+
+	if len(mmEnabledFor.expectations) > 0 {
+		mmEnabledFor.mock.t.Fatalf("Some expectations are already set for the Store.EnabledFor method")
+	}
+
+	mmEnabledFor.mock.funcEnabledFor = f
+	mmEnabledFor.mock.funcEnabledForOrigin = minimock.CallerInfo(1)
+	return mmEnabledFor.mock
+}
+
+// When sets expectation for the Store.EnabledFor which will trigger the result defined by the following
+// Then helper
+func (mmEnabledFor *mStoreMockEnabledFor) When(ctx context.Context, userIDs []string) *StoreMockEnabledForExpectation {
+	if mmEnabledFor.mock.funcEnabledFor != nil {
+		mmEnabledFor.mock.t.Fatalf("StoreMock.EnabledFor mock is already set by Set")
+	}
+
+	expectation := &StoreMockEnabledForExpectation{
+		mock:               mmEnabledFor.mock,
+		params:             &StoreMockEnabledForParams{ctx, userIDs},
+		expectationOrigins: StoreMockEnabledForExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmEnabledFor.expectations = append(mmEnabledFor.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.EnabledFor return parameters for the expectation previously defined by the When method
+func (e *StoreMockEnabledForExpectation) Then(sa1 []string, err error) *StoreMock {
+	e.results = &StoreMockEnabledForResults{sa1, err}
+	return e.mock
+}
+
+// Times sets number of times Store.EnabledFor should be invoked
+func (mmEnabledFor *mStoreMockEnabledFor) Times(n uint64) *mStoreMockEnabledFor {
+	if n == 0 {
+		mmEnabledFor.mock.t.Fatalf("Times of StoreMock.EnabledFor mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmEnabledFor.expectedInvocations, n)
+	mmEnabledFor.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmEnabledFor
+}
+
+func (mmEnabledFor *mStoreMockEnabledFor) invocationsDone() bool {
+	if len(mmEnabledFor.expectations) == 0 && mmEnabledFor.defaultExpectation == nil && mmEnabledFor.mock.funcEnabledFor == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmEnabledFor.mock.afterEnabledForCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmEnabledFor.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// EnabledFor implements mm_twofa.Store
+func (mmEnabledFor *StoreMock) EnabledFor(ctx context.Context, userIDs []string) (sa1 []string, err error) {
+	mm_atomic.AddUint64(&mmEnabledFor.beforeEnabledForCounter, 1)
+	defer mm_atomic.AddUint64(&mmEnabledFor.afterEnabledForCounter, 1)
+
+	mmEnabledFor.t.Helper()
+
+	if mmEnabledFor.inspectFuncEnabledFor != nil {
+		mmEnabledFor.inspectFuncEnabledFor(ctx, userIDs)
+	}
+
+	mm_params := StoreMockEnabledForParams{ctx, userIDs}
+
+	// Record call args
+	mmEnabledFor.EnabledForMock.mutex.Lock()
+	mmEnabledFor.EnabledForMock.callArgs = append(mmEnabledFor.EnabledForMock.callArgs, &mm_params)
+	mmEnabledFor.EnabledForMock.mutex.Unlock()
+
+	for _, e := range mmEnabledFor.EnabledForMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.sa1, e.results.err
+		}
+	}
+
+	if mmEnabledFor.EnabledForMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmEnabledFor.EnabledForMock.defaultExpectation.Counter, 1)
+		mm_want := mmEnabledFor.EnabledForMock.defaultExpectation.params
+		mm_want_ptrs := mmEnabledFor.EnabledForMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockEnabledForParams{ctx, userIDs}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmEnabledFor.t.Errorf("StoreMock.EnabledFor got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmEnabledFor.EnabledForMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.userIDs != nil && !minimock.Equal(*mm_want_ptrs.userIDs, mm_got.userIDs) {
+				mmEnabledFor.t.Errorf("StoreMock.EnabledFor got unexpected parameter userIDs, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmEnabledFor.EnabledForMock.defaultExpectation.expectationOrigins.originUserIDs, *mm_want_ptrs.userIDs, mm_got.userIDs, minimock.Diff(*mm_want_ptrs.userIDs, mm_got.userIDs))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmEnabledFor.t.Errorf("StoreMock.EnabledFor got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmEnabledFor.EnabledForMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmEnabledFor.EnabledForMock.defaultExpectation.results
+		if mm_results == nil {
+			mmEnabledFor.t.Fatal("No results are set for the StoreMock.EnabledFor")
+		}
+		return (*mm_results).sa1, (*mm_results).err
+	}
+	if mmEnabledFor.funcEnabledFor != nil {
+		return mmEnabledFor.funcEnabledFor(ctx, userIDs)
+	}
+	mmEnabledFor.t.Fatalf("Unexpected call to StoreMock.EnabledFor. %v %v", ctx, userIDs)
+	return
+}
+
+// EnabledForAfterCounter returns a count of finished StoreMock.EnabledFor invocations
+func (mmEnabledFor *StoreMock) EnabledForAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmEnabledFor.afterEnabledForCounter)
+}
+
+// EnabledForBeforeCounter returns a count of StoreMock.EnabledFor invocations
+func (mmEnabledFor *StoreMock) EnabledForBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmEnabledFor.beforeEnabledForCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.EnabledFor.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmEnabledFor *mStoreMockEnabledFor) Calls() []*StoreMockEnabledForParams {
+	mmEnabledFor.mutex.RLock()
+
+	argCopy := make([]*StoreMockEnabledForParams, len(mmEnabledFor.callArgs))
+	copy(argCopy, mmEnabledFor.callArgs)
+
+	mmEnabledFor.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockEnabledForDone returns true if the count of the EnabledFor invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockEnabledForDone() bool {
+	if m.EnabledForMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.EnabledForMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.EnabledForMock.invocationsDone()
+}
+
+// MinimockEnabledForInspect logs each unmet expectation
+func (m *StoreMock) MinimockEnabledForInspect() {
+	for _, e := range m.EnabledForMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.EnabledFor at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterEnabledForCounter := mm_atomic.LoadUint64(&m.afterEnabledForCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.EnabledForMock.defaultExpectation != nil && afterEnabledForCounter < 1 {
+		if m.EnabledForMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.EnabledFor at\n%s", m.EnabledForMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.EnabledFor at\n%s with params: %#v", m.EnabledForMock.defaultExpectation.expectationOrigins.origin, *m.EnabledForMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcEnabledFor != nil && afterEnabledForCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.EnabledFor at\n%s", m.funcEnabledForOrigin)
+	}
+
+	if !m.EnabledForMock.invocationsDone() && afterEnabledForCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.EnabledFor at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.EnabledForMock.expectedInvocations), m.EnabledForMock.expectedInvocationsOrigin, afterEnabledForCounter)
+	}
 }
 
 type mStoreMockGet struct {
@@ -804,6 +1157,8 @@ func (m *StoreMock) MinimockSetInspect() {
 func (m *StoreMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
 		if !m.minimockDone() {
+			m.MinimockEnabledForInspect()
+
 			m.MinimockGetInspect()
 
 			m.MinimockSetInspect()
@@ -830,6 +1185,7 @@ func (m *StoreMock) MinimockWait(timeout mm_time.Duration) {
 func (m *StoreMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockEnabledForDone() &&
 		m.MinimockGetDone() &&
 		m.MinimockSetDone()
 }

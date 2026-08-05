@@ -22,6 +22,7 @@ type Service interface {
 	FinishLogin(ctx context.Context, flowID, assertionJSON string) (string, error)
 	List(ctx context.Context, userID string) ([]domain.Credential, error)
 	Delete(ctx context.Context, userID, credentialID string) error
+	CredentialedUsers(ctx context.Context, userIDs []string) ([]string, error)
 }
 
 // Identity resolves a session token to (userID, username) via auth-service.
