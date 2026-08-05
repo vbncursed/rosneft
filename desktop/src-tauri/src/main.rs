@@ -25,6 +25,17 @@ const INIT_SCRIPT: &str = "window.__DESKTOP__ = true;";
 
 fn main() {
     tauri::Builder::default()
+        // First in the chain, as the plugin requires: a second launch has to be
+        // stopped before it can build a window or reach `server::spawn`. The
+        // loopback port is fixed now, so a second process would take the
+        // ephemeral fallback — a different origin, an empty localStorage, and a
+        // login whose `POST /api/auth/login` deletes the keychain entry the
+        // first instance is still using.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_focus();
+            }
+        }))
         // Default targets are stdout and a file in the platform log directory.
         // The crate had no logging at all, and with no console in a release
         // build a failure on someone else's machine left nothing to read.
