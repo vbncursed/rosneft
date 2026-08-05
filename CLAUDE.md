@@ -225,6 +225,18 @@ the origin breaks asset loading while login still appears to work.
   keychain is written through on login/logout and read back exactly once, in
   a `spawn_blocking` that runs off `setup()`'s critical path, so a slow or
   prompting read never blocks the server or the window from coming up.
+- **Gateway-bound requests wait for that read; the startup path does not.**
+  The dialog waits for a human — eight seconds in the run that found this — and
+  the webview is up long before the answer. Its first call is `/api/auth/me`,
+  which went out with no cookie, took a 401, and made the SPA drop its session
+  marker and land on `/login` while the restore was still behind the dialog:
+  the fixed port kept the marker across restarts, and this destroyed it anyway.
+  `proxy::await_restore` holds `forward` and `handle_asset` on a
+  `watch::Receiver<bool>` the restore closure releases on both its paths (a
+  first launch with nothing stored must not stall for the whole budget), capped
+  by `RESTORE_WAIT` so a dialog nobody answers degrades to the old behaviour
+  instead of hanging. The window is already on screen, so the wait reads as a
+  spinner, not a freeze.
 - **`clear_session` deletes the keychain entry only if this process actually
   held a session.** The restore runs off the critical path, so a 401 can land
   before it does, and `proxy::clears_session` turns every 401 into a clear —
