@@ -81,6 +81,34 @@ time a login writes the entry back. It is a convenience for whoever is
 recompiling; a user never needs it, and there is no flag or environment variable
 to turn the keychain off — the session has one storage mechanism.
 
+## Getting a build, and opening it once you have
+
+CI builds installers for all three platforms on every PR touching `desktop/`
+or `frontend/`, on a `desktop-v*` tag, and on a manual run from the Actions
+tab. They land in the run's **Artifacts** section and expire after 14 days.
+`.dmg` for macOS, `.AppImage` for Linux, `.exe` (NSIS) for Windows.
+
+**Nothing here is signed**, and every platform will object. That is expected,
+not a broken build — but it does mean an installer cannot simply be handed to
+someone outside the team.
+
+- **macOS** refuses hardest. A download carries a quarantine attribute, and
+  for an unsigned bundle recent macOS reports it as *"damaged and can't be
+  opened"* rather than anything about signing — the message is misleading, the
+  file is fine. Clear the attribute after copying the app out of the `.dmg`:
+
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/Andrey.app
+  ```
+
+- **Windows** shows a SmartScreen warning: *More info → Run anyway*.
+- **Linux** needs the `.AppImage` marked executable (`chmod +x`). On some
+  drivers WebKitGTK falls back to software rendering and a large scene will
+  crawl — `WEBKIT_DISABLE_DMABUF_RENDERER=1` is the known workaround.
+
+Signing, notarization and auto-update are all out of scope for this iteration.
+Until they exist, treat a downloaded build as a smoke test.
+
 ## Icons are placeholder artwork, but a complete set
 
 Every file in `src-tauri/icons/` is a rescale of `frontend/public/apple-icon.png`

@@ -1,6 +1,9 @@
 name: desktop
 
 on:
+  # Manual runs are how you get installers without cutting a tag: trigger this
+  # from the Actions tab and download them from the run's Artifacts section.
+  workflow_dispatch:
   push:
     tags: ["desktop-v*"]
   pull_request:
@@ -67,7 +70,23 @@ jobs:
       # matrix build here is a packaging smoke test, not a publishable
       # artifact — release automation is out of scope for this task.
       - uses: tauri-apps/tauri-action@v1
+        id: tauri
         with:
           projectPath: desktop
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Without this the installers are built and then thrown away with the
+      # runner. They are unsigned, so treat a download as a smoke test, not a
+      # release — see desktop/README.md for what each OS does to an unsigned
+      # bundle and how to get past it.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: andrey-desktop-${{ matrix.os }}
+          # Every OS produces exactly one of these; the other two globs match
+          # nothing, and if-no-files-found only fires when all of them do.
+          path: |
+            desktop/src-tauri/target/release/bundle/dmg/*.dmg
+            desktop/src-tauri/target/release/bundle/appimage/*.AppImage
+            desktop/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+          retention-days: 14
