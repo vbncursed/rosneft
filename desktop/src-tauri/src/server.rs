@@ -20,10 +20,46 @@ pub fn router(state: Shared) -> Router {
         .with_state(state)
 }
 
-/// Binds 127.0.0.1 on an ephemeral port and serves in a background task.
-/// Returns the bound address so the caller can point the webview at it.
+/// The loopback port the webview's origin is built from, and therefore the key
+/// its `localStorage` is partitioned by. It must not change between runs: the
+/// SPA's session marker (`andrey.authed`, `session-marker.ts`) lives there, and
+/// a fresh origin every launch is a fresh empty store — which sends the route
+/// guard to /login while the proxy's restored session sits unused. That was the
+/// whole of "the desktop app logs me out every restart".
+///
+/// Below every platform's ephemeral range (Linux 32768–60999, macOS and Windows
+/// 49152–65535), so the kernel never hands this number to another process.
+const PORT: u16 = 17817;
+
+/// `DESKTOP_PORT` exists so a dev build can run beside an installed copy
+/// without stealing its origin. Anything unparseable falls back to `PORT`
+/// rather than failing the launch.
+fn preferred_port(env: Option<&str>) -> u16 {
+    env.and_then(|v| v.parse().ok()).unwrap_or(PORT)
+}
+
+/// Binds the fixed port, falling back to an ephemeral one when another process
+/// holds it. The fallback costs the user one login — the origin, and with it
+/// `localStorage`, is new — which is exactly the behaviour this change
+/// replaces, so it degrades to the old state rather than to a failure.
+fn bind_loopback(preferred: u16) -> std::io::Result<std::net::TcpListener> {
+    match std::net::TcpListener::bind(("127.0.0.1", preferred)) {
+        Ok(listener) => Ok(listener),
+        Err(e) => {
+            log::warn!(
+                "loopback port {preferred} is taken ({e}); falling back to an ephemeral port, \
+                 which will ask for a login"
+            );
+            std::net::TcpListener::bind(("127.0.0.1", 0))
+        }
+    }
+}
+
+/// Binds 127.0.0.1 on the fixed port and serves in a background task. Returns
+/// the bound address so the caller can point the webview at it.
 pub fn spawn(state: Shared) -> std::io::Result<SocketAddr> {
-    let listener = std::net::TcpListener::bind(("127.0.0.1", 0))?;
+    let env = std::env::var("DESKTOP_PORT").ok();
+    let listener = bind_loopback(preferred_port(env.as_deref()))?;
     listener.set_nonblocking(true)?;
     let addr = listener.local_addr()?;
     let app = router(state);
@@ -418,5 +454,65 @@ mod tests {
     #[test]
     fn miss_when_nothing_is_cached_yet() {
         assert_eq!(asset_disposition(true, false), AssetDisposition::Miss);
+    }
+
+    #[test]
+    fn the_default_port_is_the_fixed_one() {
+        assert_eq!(preferred_port(None), PORT);
+    }
+
+    #[test]
+    fn the_environment_overrides_the_port() {
+        assert_eq!(preferred_port(Some("41573")), 41573);
+    }
+
+    // A typo in an environment variable must not cost the user a dead window.
+    #[test]
+    fn an_unparseable_override_falls_back_to_the_fixed_port() {
+        assert_eq!(preferred_port(Some("")), PORT);
+        assert_eq!(preferred_port(Some("http://x")), PORT);
+        assert_eq!(preferred_port(Some("70000")), PORT);
+    }
+
+    // The fixed port is what keeps the webview's origin — and the localStorage
+    // the SPA's session marker lives in — stable across runs. When some other
+    // process holds it, the shell must still come up: one login is the old
+    // behaviour, a dead window is not.
+    #[test]
+    fn a_taken_port_falls_back_to_an_ephemeral_one() {
+        let taken = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = taken.local_addr().unwrap().port();
+
+        let listener = bind_loopback(port).expect("a taken port must not fail the launch");
+        assert_ne!(listener.local_addr().unwrap().port(), port);
+    }
+
+    // Asks for a port proven free by binding and releasing it. The window
+    // between the two is microseconds; nothing else in this suite allocates
+    // from the ephemeral pool at that moment.
+    #[test]
+    fn a_free_port_is_used_as_asked() {
+        let port = {
+            let probe = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+            probe.local_addr().unwrap().port()
+        };
+        let listener = bind_loopback(port).expect("a free port must bind");
+        assert_eq!(listener.local_addr().unwrap().port(), port);
+    }
+
+    // A stale `dsk` cookie from the previous run now arrives on a fixed port,
+    // where before every run had a fresh origin. index.html is served without a
+    // matching nonce on purpose, and `serve_static` overwrites the cookie from
+    // the `?dsk=` query — so the handoff heals itself and the window never
+    // locks itself out.
+    #[test]
+    fn a_stale_nonce_cookie_still_gets_the_index() {
+        let nonce = Nonce::new();
+        let stale = "dsk=00000000000000000000000000000000";
+        assert_eq!(
+            dispatch("/", &nonce, Some(stale)),
+            Dispatch::Static(Route::Index)
+        );
+        assert!(nonce.matches_query(Some(&nonce.query_param())));
     }
 }
