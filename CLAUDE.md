@@ -155,6 +155,21 @@ the origin breaks asset loading while login still appears to work.
 - **Never point the webview at a remote URL directly.** `tauri://localhost` is
   cross-site to the gateway, `SameSite=Lax` withholds the cookie, and models,
   PDFs and SSE all fail while the login screen looks fine.
+- **The loopback port is fixed (`17817`), and that is load-bearing.** The
+  webview's origin is `http://127.0.0.1:<port>`, `localStorage` is partitioned
+  by origin, and the SPA's session marker (`andrey.authed`) lives in it — so an
+  ephemeral port handed the router guard an empty store on every launch and
+  bounced the user to `/login` while a perfectly good session sat in the
+  proxy's jar. It also threw away the WebKit HTTP cache, IndexedDB and the
+  service worker each start. The number is below every platform's ephemeral
+  range (Linux 32768–60999, macOS/Windows 49152–65535) so the kernel cannot
+  hand it out; `DESKTOP_PORT` overrides it for a dev build running beside an
+  installed one, **and switches the single-instance plugin off** — that plugin
+  locks on `/tmp/{identifier}_si.sock`, the bundle identifier alone, so it
+  cannot tell the two apart and would `exit(0)` the dev build before it bound
+  anything. If the port is taken, `bind_loopback` falls back to an ephemeral one
+  and logs a warning — one login, which is the old behaviour, not a broken
+  window.
 - The session cookie never reaches the webview: the proxy holds it in a jar and
   strips `Set-Cookie`, storing the token in the OS keychain.
 - **The loopback port is gated by a per-run nonce, and the gate is keyed on the
@@ -213,6 +228,25 @@ the origin breaks asset loading while login still appears to work.
   keychain is written through on login/logout and read back exactly once, in
   a `spawn_blocking` that runs off `setup()`'s critical path, so a slow or
   prompting read never blocks the server or the window from coming up.
+- **Gateway-bound requests wait for that read; the startup path does not.**
+  The dialog waits for a human — eight seconds in the run that found this — and
+  the webview is up long before the answer. Its first call is `/api/auth/me`,
+  which went out with no cookie, took a 401, and made the SPA drop its session
+  marker and land on `/login` while the restore was still behind the dialog:
+  the fixed port kept the marker across restarts, and this destroyed it anyway.
+  `proxy::await_restore` holds `forward` and `handle_asset` on a
+  `watch::Receiver<bool>` the restore closure releases on both its paths (a
+  first launch with nothing stored must not stall for the whole budget), capped
+  by `RESTORE_WAIT` so a dialog nobody answers degrades to the old behaviour
+  instead of hanging. The window is already on screen, so the wait reads as a
+  spinner, not a freeze.
+- **`clear_session` deletes the keychain entry only if this process actually
+  held a session.** The restore runs off the critical path, so a 401 can land
+  before it does, and `proxy::clears_session` turns every 401 into a clear —
+  deleting there destroys a credential this run never read and makes a slow or
+  prompting keychain read a permanent logout. The decision is `clears_keychain`
+  in `state.rs`, kept pure because `session::clear()` writes to the real OS
+  keychain and cannot be exercised in a test.
 - **A decision that needs a test goes in a pure function**: pull the branching
   out of the handler into a plain function over owned/borrowed values and have
   the handler call it. `dispatch()` (server.rs, the nonce gate),

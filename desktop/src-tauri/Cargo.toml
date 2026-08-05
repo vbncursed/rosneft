@@ -12,7 +12,7 @@ tauri = { version = "2", features = [] }
 axum = "0.8"
 tower = "0.5"
 tower-http = { version = "0.6", features = ["fs"] }
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "io-util", "net"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "io-util", "net", "sync", "time"] }
 # gzip/brotli/deflate are not optional: the gateway compresses every JSON
 # response (chi Compressor, br/gzip/deflate), and without these features
 # reqwest hands the compressed bytes straight to the webview, which then
@@ -31,6 +31,11 @@ rand = "0.9"
 url = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-log = "2"
+# A second process would bind the fallback loopback port (the fixed one is
+# taken by the first), and its login would delete the keychain entry the first
+# instance is running on. On macOS a second launch of the .app already just
+# activates the running one; on Windows it really does start a second process.
+tauri-plugin-single-instance = "2"
 log = "0.4"
 
 [dev-dependencies]

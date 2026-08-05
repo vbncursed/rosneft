@@ -26,6 +26,11 @@ pub struct AppState {
     /// `clear_session` and read back only at startup, off the critical path
     /// (see `main.rs`).
     pub session: Arc<Mutex<Option<crate::session::Stored>>>,
+    /// Flips to `true` once the startup keychain read has finished, whether or
+    /// not it found anything. `proxy::await_restore` waits on it: the read can
+    /// put a macOS authorization dialog on screen and then waits for a human,
+    /// while the webview is already up and asking for `/api/auth/me`.
+    pub restored: tokio::sync::watch::Receiver<bool>,
 }
 
 impl AppState {
@@ -50,9 +55,30 @@ impl AppState {
     }
 
     pub fn clear_session(&self) {
-        crate::session::clear();
-        *self.session.lock().unwrap() = None;
+        // Taken in its own statement so the guard is gone before the keychain
+        // write: `session::clear()` can raise the same macOS authorization
+        // dialog the restore does, and holding the lock across it would park
+        // every concurrent `user_cache_root()` — an asset request, a snapshot
+        // save — on a tokio worker thread until a human clicks something.
+        let taken = self.session.lock().unwrap().take();
+        if clears_keychain(taken.as_ref()) {
+            crate::session::clear();
+        }
     }
+}
+
+/// Whether dropping the in-memory session must also delete the stored one.
+///
+/// Only when this process actually held one. The keychain entry is restored off
+/// the critical path (`main.rs`), so a 401 can arrive before it lands, and
+/// `proxy::clears_session` turns every 401 into a clear. Deleting there would
+/// destroy a credential this process never read — a prompting or slow keychain
+/// read would become a permanent logout instead of one skipped restore. Logout
+/// and a 401 against a live session are unaffected: the session is `Some` in
+/// both, and so is a login while signed in, which is what keeps
+/// `user_cache_root` from handing B one of A's blobs.
+pub fn clears_keychain(current: Option<&crate::session::Stored>) -> bool {
+    current.is_some()
 }
 
 /// Pure resolution pulled out of `AppState::user_cache_root` so it is
@@ -103,8 +129,12 @@ pub fn test_state(
     session: Option<crate::session::Stored>,
 ) -> Shared {
     let jar = Arc::new(reqwest::cookie::Jar::default());
+    // Already restored: a test drives the router directly, with no startup
+    // closure to release the barrier.
+    let (_tx, restored) = tokio::sync::watch::channel(true);
     Arc::new(AppState {
         app: None,
+        restored,
         upstream: Url::parse(upstream).unwrap(),
         http: reqwest::Client::builder()
             .cookie_provider(jar.clone())
@@ -163,5 +193,23 @@ mod tests {
         let dir = Path::new("/cache");
         let upstream = Url::parse("http://localhost:8080").unwrap();
         assert_eq!(resolve_cache_root(dir, &upstream, None), None);
+    }
+
+    #[test]
+    fn a_held_session_is_dropped_from_the_keychain_too() {
+        let stored = crate::session::Stored {
+            token: "t".to_string(),
+            user_id: "usr_1".to_string(),
+        };
+        assert!(clears_keychain(Some(&stored)));
+    }
+
+    // `main.rs` restores the keychain entry off the critical path, so a 401 can
+    // land before it does — and `proxy::clears_session` turns every 401 into a
+    // clear. Deleting on that path destroys a credential this process never
+    // read, which turns a transient failure into a permanent logout.
+    #[test]
+    fn a_clear_before_the_restore_lands_leaves_the_keychain_alone() {
+        assert!(!clears_keychain(None));
     }
 }
