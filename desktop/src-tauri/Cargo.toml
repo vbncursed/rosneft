@@ -1,6 +1,9 @@
 [package]
 name = "andrey-desktop"
-version = "0.1.0"
+# Kept in step with `version` in tauri.conf.json, which is what the bundler and
+# the installer names use. The CI release job refuses to publish when the tag,
+# that field and this one disagree.
+version = "0.2.0"
 edition = "2021"
 rust-version = "1.77"
 
