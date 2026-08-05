@@ -21,6 +21,15 @@ func (s *Service) IsEnabled(ctx context.Context, userID string) (bool, error) {
 	return c.Enabled, nil
 }
 
+// EnabledFor is the batch form of IsEnabled. The admin user list asks for N
+// users at once; N round trips for N rows is the shape this exists to avoid.
+func (s *Service) EnabledFor(ctx context.Context, userIDs []string) ([]string, error) {
+	if len(userIDs) == 0 {
+		return nil, nil
+	}
+	return s.store.EnabledFor(ctx, userIDs)
+}
+
 // Verify checks a TOTP or one-time recovery code for a user with 2FA enabled.
 // It is rate-limited per user: locked after too many fails, cleared on success.
 func (s *Service) Verify(ctx context.Context, userID, code string) (bool, error) {
