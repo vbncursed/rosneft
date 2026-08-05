@@ -1,8 +1,18 @@
 import { create, get, supported } from "@github/webauthn-json";
 
+declare global {
+  interface Window {
+    /** Set by the Tauri shell's initialization script. Absent in a browser. */
+    __DESKTOP__?: boolean;
+  }
+}
+
 // isPasskeySupported reports whether the browser can run WebAuthn ceremonies.
+// Inside the Tauri shell (window.__DESKTOP__) the RP origin is a loopback
+// port that PASSKEY_RP_ORIGINS will never list, so ceremonies fail with an
+// opaque client-side error and no server log — the UI must not offer one.
 export function isPasskeySupported(): boolean {
-  return typeof window !== "undefined" && supported();
+  return typeof window !== "undefined" && !window.__DESKTOP__ && supported();
 }
 
 // isPasskeyCancelled reports whether a ceremony ended because the user walked

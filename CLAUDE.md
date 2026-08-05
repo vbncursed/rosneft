@@ -142,6 +142,120 @@ frontend/
 - Two test runners: pure domain logic → `node --test` (`*.test.ts`); jsdom/React → vitest (`*.spec.ts[x]`). Globs don't overlap.
 - Client env is `VITE_API_URL` — **empty in both dev and prod**. nginx serves the SPA and proxies `/api` in production; Vite's dev server proxies `/api` by default in development. Single origin is not a convenience: it is what lets the httpOnly session cookie ride on `<img>`, the pdf.js `<iframe>` and three.js loader requests, none of which can carry an Authorization header. `VITE_DEV_PROXY` overrides the dev target. Dev runs on port **3000** — `PASSKEY_RP_ORIGINS` is pinned to it.
 
+## Desktop shell (`desktop/`)
+
+Tauri v2 wrapper around the same SPA. A loopback axum server inside the Rust
+process serves the embedded `frontend/dist` through `app.asset_resolver()` and
+proxies `/api` to the gateway, reproducing production's nginx topology. That is
+deliberate and load-bearing: the frontend is single-origin by design — the
+session cookie has to ride on three.js loader requests, the pdf.js `<iframe>`
+and `EventSource`, none of which can carry a header — so anything that changes
+the origin breaks asset loading while login still appears to work.
+
+- **Never point the webview at a remote URL directly.** `tauri://localhost` is
+  cross-site to the gateway, `SameSite=Lax` withholds the cookie, and models,
+  PDFs and SSE all fail while the login screen looks fine.
+- The session cookie never reaches the webview: the proxy holds it in a jar and
+  strips `Set-Cookie`, storing the token in the OS keychain.
+- **The loopback port is gated by a per-run nonce, and the gate is keyed on the
+  path prefix, never on `spa::classify`.** `classify` answers `Route::Index` for
+  any path whose last segment has no dot — and no `/api` path has one — so a
+  gate that classified first waved the entire authenticated gateway session
+  through with no cookie: `/api/territories` and `/api/auth/me` answered **200**
+  to any local process. `server.rs`'s `dispatch()` checks `/api/` first and
+  unconditionally. Any new response path that bypasses it opens that session
+  again.
+- **The nonce is handed to the webview out of band, in the URL `main.rs` opens
+  it with (`?dsk=…`), and only a request carrying it in the query gets the
+  cookie.** Setting the cookie on every `index.html` response made the guard a
+  two-request formality — `GET /` handed the nonce to any caller. `GET /` with
+  no query still returns `index.html`, deliberately *without* a cookie, so a
+  stray navigation gets a shell whose subresources all 403 rather than an error
+  that would brick the window; a reload of a deep router path carries no query
+  but does carry the cookie set on the first load.
+- **`reqwest` must keep its `gzip`/`brotli`/`deflate` features, and the
+  webview's `Accept-Encoding` must keep being dropped in `filtered_request`.**
+  The gateway compresses every JSON response; without the features reqwest
+  hands the compressed bytes on and `client.ts` throws `SyntaxError` on
+  `res.json()` — every route, the whole product. This survived eight reviews
+  because every live check used plain `curl`, which sends no `Accept-Encoding`
+  and so got an uncompressed answer. **Verify proxy behaviour with the headers a
+  webview actually sends.**
+- **One header policy for every upstream-derived response: `proxy::copy_headers`.**
+  Four hand-rolled ones diverged, and the divergence is where the bug above
+  lived. `ETag` must survive (no ETag, no revalidation, every JSON GET refetched
+  in full) and so must `Content-Length` (without it a first GLB download is
+  chunked and `GLTFLoader` loses `lengthComputable`).
+- **Declaring `Content-Length` is why `cache::tee_to_disk` holds back one
+  chunk.** hyper stops polling a response body the instant the declared length
+  is satisfied, so anything the tee did after its final `yield` never ran: the
+  download completed, the `rename` did not, and the `TempFile` Drop guard
+  deleted a byte-perfect blob. The promote happens before the last chunk goes
+  out. Verified by removing the header and watching the blob appear.
+- `/api/assets/{hash}` is cached on disk per `(upstream, user)`. The split is
+  not tidiness: serving from cache skips the gateway's `RequireBlobAccess`, so
+  a shared directory would leak one tenant's models to the next user.
+- The blob cache is evicted **least-recently-modified**, not LRU — say it that
+  way, the two are not the same thing here. A cache hit is served through
+  `tower_http::services::ServeFile`, which reads the file's bytes but never
+  touches its mtime, so a blob opened daily is exactly as evictable as one
+  downloaded once and forgotten. `evict.rs`'s own doc comment already says
+  this correctly; this is an accepted trade-off (a real LRU would need a
+  side-index this crate doesn't have), not a bug to "fix" by adding one.
+- **Never read the OS keychain on the startup path or the request path.**
+  `session::load()` used to run before `server::spawn`, and macOS pops an
+  authorization prompt whenever the reading binary's signature differs from
+  the one that wrote the entry — true on every rebuild, and in production on
+  every app update. The result was no server and no window at all: a dead
+  process sitting behind a modal dialog nobody could see. The session now
+  lives in `AppState.session: Arc<Mutex<Option<Stored>>>` as the source of
+  truth for every request (`user_cache_root`, snapshot save/replay); the
+  keychain is written through on login/logout and read back exactly once, in
+  a `spawn_blocking` that runs off `setup()`'s critical path, so a slow or
+  prompting read never blocks the server or the window from coming up.
+- **A decision that needs a test goes in a pure function**: pull the branching
+  out of the handler into a plain function over owned/borrowed values and have
+  the handler call it. `dispatch()` (server.rs, the nonce gate),
+  `asset_disposition()` (server.rs, hit/miss/passthrough), `cacheable()` and
+  `snapshot_worthy()`/`clears_session()` (snapshot.rs, proxy.rs — which
+  responses may be replayed offline, written, or drop the session),
+  `read_session_cookie()` and `resolve_cache_root()` (state.rs) are the
+  examples. Treat it as the convention, not as one-off refactors.
+- **A pure predicate is not a route test, and the difference shipped a
+  vulnerability.** `allowed()` was correct and unit-tested; `handle` called it
+  with the wrong input. `AppState.app` is therefore `Option<AppHandle>` —
+  `None` in tests, which cannot build one — and `state::test_state()` gives the
+  router a real state, so the gate and the upstream→snapshot→replay round trip
+  are exercised through `router().oneshot()`. Only `serve_static` reads the
+  handle. Cover a security decision at both levels.
+- Temp files for the blob cache are staged in a sibling `tmp/`, never inside
+  `blobs/`. They used to sit next to their destination, where `evict::enforce_cap`
+  saw an ordinary file and could unlink a download mid-flight — the atomic
+  `rename` into `blobs/` then failed and a fully-verified, fully-downloaded
+  blob was silently thrown away. `tmp/` is outside every directory eviction
+  ever sweeps, and it is cleared once at startup — the only thing that ever
+  reclaims a temp file orphaned by a hard kill, since a stream dropped mid-poll
+  has no async destructor to clean up after itself.
+- **The snapshot store refuses any path with a query.** `snapshot::key` hashes
+  method + path + query and nothing sweeps `snapshots/`, so cursor-paged
+  `/api/audit?limit=…&cursor=…` would mint a file per page forever. Nothing on
+  the offline boot path carries a query.
+- **`POST /api/auth/login` clears the stored session, whatever it answers.**
+  Nothing stops a signed-in user reaching `/login`, and the user id only
+  refreshes on the next `/api/auth/me` — in that window `user_cache_root()`
+  still resolved to the *previous* user and a cache hit handed B one of A's
+  blobs with no gateway call, defeating the per-user split entirely.
+- Passkeys are unavailable in the shell (the RP origin is a loopback port).
+  `isPasskeySupported()` is the single gate — do not add a second check.
+- Logging is `tauri-plugin-log` at `Info` (Trace is tao's webview firehose); a
+  bind failure raises a native dialog through `tauri-plugin-dialog` and exits.
+  Use `show`, not `blocking_show` — `setup()` runs on the main thread and
+  `blocking_show` freezes the app there.
+- `make -C desktop check` runs fmt, clippy and tests. `make -C desktop build`
+  additionally needs the Tauri CLI (`cargo install tauri-cli --version "^2"`,
+  a separate binary from the `tauri` crate) installed locally; CI installs it
+  itself via `tauri-apps/tauri-action`.
+
 ## Territory route composition
 
 `/territories/$slug` is a TanStack Router route. Its loader primes the query
