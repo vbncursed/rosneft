@@ -86,3 +86,8 @@ equirect_panoramas/
 # has never been tracked — this makes that explicit rather than accidental.
 docker-compose.override.yml
 docker-compose.override.*.yml
+
+# ── Agent skills installed by the `skills` CLI (third-party, per-developer) ──
+.agents/
+skills-lock.json
+.claude/skills/tauri*
