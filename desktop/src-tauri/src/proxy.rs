@@ -38,12 +38,24 @@ fn filtered_request(
         reqwest::Method::from_bytes(method.as_bytes()).unwrap_or(reqwest::Method::GET),
         url,
     );
+    // A snapshot is only written from a 200, so letting the webview revalidate
+    // would freeze the offline copy at whatever the route answered on first
+    // launch: every later fetch would 304 and rewrite nothing. These bodies are
+    // kilobytes and the models beside them are megabytes, so paying for a full
+    // response is the cheaper half of the trade.
+    let revalidates = !crate::snapshot::cacheable(method, path_and_query);
+
     for (k, v) in headers.iter() {
         let name = k.as_str().to_ascii_lowercase();
         if HOP_BY_HOP.contains(&name.as_str())
             || name == "host"
             || name == "cookie"
+            // reqwest sets this itself, from what it can actually decode.
             || name == "accept-encoding"
+            // The document URL carries the loopback nonce, so Referer would
+            // hand this run's secret to the upstream's access log.
+            || name == "referer"
+            || (!revalidates && name == "if-none-match")
         {
             continue;
         }
@@ -387,6 +399,8 @@ mod tests {
                     "connection": headers.get(header::CONNECTION).and_then(|v| v.to_str().ok()),
                     "host": headers.get(header::HOST).and_then(|v| v.to_str().ok()),
                     "accept": headers.get(header::ACCEPT).and_then(|v| v.to_str().ok()),
+                    "referer": headers.get(header::REFERER).and_then(|v| v.to_str().ok()),
+                    "if_none_match": headers.get(header::IF_NONE_MATCH).and_then(|v| v.to_str().ok()),
                 }))
             }),
         ))
@@ -403,6 +417,12 @@ mod tests {
         headers.insert(header::HOST, "127.0.0.1:1234".parse().unwrap());
         headers.insert(header::CONNECTION, "keep-alive".parse().unwrap());
         headers.insert(header::ACCEPT, "application/json".parse().unwrap());
+        headers.insert(
+            header::REFERER,
+            "http://127.0.0.1:1234/?dsk=loopback-nonce-must-not-leave"
+                .parse()
+                .unwrap(),
+        );
 
         let res = send(
             &client,
@@ -432,9 +452,61 @@ mod tests {
             "Host must be the upstream's own authority, not the loopback origin's"
         );
         assert_eq!(
+            body["referer"],
+            serde_json::Value::Null,
+            "the document URL carries the nonce, so Referer must not reach the gateway"
+        );
+        assert_eq!(
             body["accept"],
             serde_json::json!("application/json"),
             "a normal header must still be forwarded"
+        );
+    }
+
+    // A snapshot is written only from a 200. Letting the webview revalidate a
+    // snapshotted route would pin the offline copy to whatever it answered on
+    // first launch, since every later fetch 304s and rewrites nothing.
+    #[tokio::test]
+    async fn if_none_match_is_dropped_only_where_a_snapshot_would_freeze() {
+        let base = stub(axum::Router::new().route(
+            "/{*rest}",
+            get(|headers: axum::http::HeaderMap| async move {
+                axum::Json(serde_json::json!({
+                    "if_none_match": headers
+                        .get(header::IF_NONE_MATCH)
+                        .and_then(|v| v.to_str().ok()),
+                }))
+            }),
+        ))
+        .await;
+
+        let client = reqwest::Client::new();
+        let upstream = url::Url::parse(&base).unwrap();
+
+        let probe = |path: &'static str| {
+            let client = client.clone();
+            let upstream = upstream.clone();
+            async move {
+                let mut headers = HeaderMap::new();
+                headers.insert(header::IF_NONE_MATCH, "\"abc\"".parse().unwrap());
+                let res = send(&client, &upstream, "GET", path, headers, Vec::new())
+                    .await
+                    .unwrap();
+                let body: serde_json::Value =
+                    serde_json::from_str(&res.text().await.unwrap()).unwrap();
+                body["if_none_match"].clone()
+            }
+        };
+
+        assert_eq!(
+            probe("/api/territories").await,
+            serde_json::Value::Null,
+            "a snapshotted route must always answer 200 so the snapshot refreshes"
+        );
+        assert_eq!(
+            probe("/api/assets/deadbeef").await,
+            serde_json::json!("\"abc\""),
+            "blobs have their own cache and are immutable — revalidation is free there"
         );
     }
 
