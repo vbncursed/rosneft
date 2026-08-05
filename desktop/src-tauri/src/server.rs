@@ -491,18 +491,12 @@ mod tests {
         assert_ne!(listener.local_addr().unwrap().port(), port);
     }
 
-    // Asks for a port proven free by binding and releasing it. The window
-    // between the two is microseconds; nothing else in this suite allocates
-    // from the ephemeral pool at that moment.
-    #[test]
-    fn a_free_port_is_used_as_asked() {
-        let port = {
-            let probe = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
-            probe.local_addr().unwrap().port()
-        };
-        let listener = bind_loopback(port).expect("a free port must bind");
-        assert_eq!(listener.local_addr().unwrap().port(), port);
-    }
+    // There is deliberately no "a free port is used as asked" test. Proving it
+    // means binding a port, releasing it, and asking for the same number back —
+    // and `proxy::tests::stub` binds ("127.0.0.1", 0) from parallel threads of
+    // this same binary, so the pool can hand that number away in between. The
+    // test would fail as a fallback, which is exactly the wrong story for a CI
+    // flake to tell.
 
     // A stale `dsk` cookie from the previous run now arrives on a fixed port,
     // where before every run had a fresh origin. index.html is served without a

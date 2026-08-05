@@ -164,9 +164,12 @@ the origin breaks asset loading while login still appears to work.
   service worker each start. The number is below every platform's ephemeral
   range (Linux 32768–60999, macOS/Windows 49152–65535) so the kernel cannot
   hand it out; `DESKTOP_PORT` overrides it for a dev build running beside an
-  installed one. If the port is taken, `bind_loopback` falls back to an
-  ephemeral one and logs a warning — one login, which is the old behaviour, not
-  a broken window.
+  installed one, **and switches the single-instance plugin off** — that plugin
+  locks on `/tmp/{identifier}_si.sock`, the bundle identifier alone, so it
+  cannot tell the two apart and would `exit(0)` the dev build before it bound
+  anything. If the port is taken, `bind_loopback` falls back to an ephemeral one
+  and logs a warning — one login, which is the old behaviour, not a broken
+  window.
 - The session cookie never reaches the webview: the proxy holds it in a jar and
   strips `Set-Cookie`, storing the token in the OS keychain.
 - **The loopback port is gated by a per-run nonce, and the gate is keyed on the

@@ -33,7 +33,10 @@ The loopback server binds a **fixed** port (`17817`). That is not cosmetic: the
 webview's origin is built from it, `localStorage` is partitioned by origin, and
 the SPA keeps its session marker there — an ephemeral port means an empty store
 and a login prompt on every launch. `DESKTOP_PORT` overrides it so a dev build
-can run beside an installed copy instead of fighting it for the origin.
+can run beside an installed copy instead of fighting it for the origin — and it
+also turns off the single-instance guard, which locks on the bundle identifier
+alone and would otherwise stop the dev build as a duplicate of the installed
+one.
 
 `make check` needs `frontend/dist` to exist before it runs: `tauri::generate_context!()`
 embeds `frontendDist` at Rust compile time, so `cargo fmt`/`clippy`/`test` all
