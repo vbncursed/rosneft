@@ -26,6 +26,11 @@ pub struct AppState {
     /// `clear_session` and read back only at startup, off the critical path
     /// (see `main.rs`).
     pub session: Arc<Mutex<Option<crate::session::Stored>>>,
+    /// Flips to `true` once the startup keychain read has finished, whether or
+    /// not it found anything. `proxy::await_restore` waits on it: the read can
+    /// put a macOS authorization dialog on screen and then waits for a human,
+    /// while the webview is already up and asking for `/api/auth/me`.
+    pub restored: tokio::sync::watch::Receiver<bool>,
 }
 
 impl AppState {
@@ -119,8 +124,12 @@ pub fn test_state(
     session: Option<crate::session::Stored>,
 ) -> Shared {
     let jar = Arc::new(reqwest::cookie::Jar::default());
+    // Already restored: a test drives the router directly, with no startup
+    // closure to release the barrier.
+    let (_tx, restored) = tokio::sync::watch::channel(true);
     Arc::new(AppState {
         app: None,
+        restored,
         upstream: Url::parse(upstream).unwrap(),
         http: reqwest::Client::builder()
             .cookie_provider(jar.clone())
