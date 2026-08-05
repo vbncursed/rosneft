@@ -40,6 +40,12 @@ jobs:
 
   build:
     needs: check
+    # The repository's default workflow token is read-only, so creating a
+    # release fails with "Resource not accessible by integration" — after a
+    # full build on all three runners. Granted here rather than repo-wide so
+    # the check job keeps the read-only default.
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
