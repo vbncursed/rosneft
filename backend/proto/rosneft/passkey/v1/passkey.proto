@@ -18,6 +18,11 @@ service PasskeyService {
   // Internal surface (auth-service-called during login; no token).
   rpc BeginLogin(BeginLoginRequest) returns (BeginLoginResponse);
   rpc FinishLogin(FinishLoginRequest) returns (FinishLoginResponse);
+  // CredentialedUsers answers "which of these users have at least one passkey".
+  // Internal surface (no token) because it is keyed on ids, not on the caller:
+  // ListCredentials resolves the caller via auth.GetMe and so cannot answer for
+  // anybody else. Returns ids only — never names, counts, or key material.
+  rpc CredentialedUsers(CredentialedUsersRequest) returns (CredentialedUsersResponse);
 }
 
 // options_json is the raw PublicKeyCredentialCreationOptions/RequestOptions
@@ -55,6 +60,9 @@ message FinishLoginRequest {
   string assertion_json = 2; // navigator.credentials.get() result, JSON
 }
 message FinishLoginResponse { string user_id = 1; } // verified; NOT a session
+
+message CredentialedUsersRequest { repeated string user_ids = 1; }
+message CredentialedUsersResponse { repeated string user_ids_with_credentials = 1; }
 
 message Credential {
   string id = 1;           // base64url credential id

@@ -443,7 +443,21 @@ components:
         email: { type: string }
         username: { type: string }
         status: { type: string, enum: [active, frozen, deleted] }
-        totpEnabled: { type: boolean }
+        totpEnabled:
+          type: boolean
+          description: >
+            Whether TOTP two-factor auth is on. ABSENT MEANS UNKNOWN — the
+            owning service (twofa) could not be reached. Render an absent value
+            as "unknown", never as "off": auth-service does not own this flag
+            and the gateway overlays it, so a missing key is a failed lookup and
+            not a disabled factor.
+        passkeyEnabled:
+          type: boolean
+          description: >
+            Whether the user has at least one passkey registered. Absent means
+            unknown, exactly as for totpEnabled. Always absent on
+            /api/auth/me — that route runs on every page load and deliberately
+            does not pay for the lookup, since nothing there consumes it.
         roleSlugs: { type: array, items: { type: string } }
         roleTitles:
           type: object

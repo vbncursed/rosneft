@@ -485,6 +485,94 @@ func (x *IsEnabledResponse) GetEnabled() bool {
 	return false
 }
 
+type EnabledForRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserIds       []string               `protobuf:"bytes,1,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnabledForRequest) Reset() {
+	*x = EnabledForRequest{}
+	mi := &file_rosneft_twofa_v1_twofa_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnabledForRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnabledForRequest) ProtoMessage() {}
+
+func (x *EnabledForRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_twofa_v1_twofa_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnabledForRequest.ProtoReflect.Descriptor instead.
+func (*EnabledForRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_twofa_v1_twofa_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *EnabledForRequest) GetUserIds() []string {
+	if x != nil {
+		return x.UserIds
+	}
+	return nil
+}
+
+type EnabledForResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	EnabledUserIds []string               `protobuf:"bytes,1,rep,name=enabled_user_ids,json=enabledUserIds,proto3" json:"enabled_user_ids,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *EnabledForResponse) Reset() {
+	*x = EnabledForResponse{}
+	mi := &file_rosneft_twofa_v1_twofa_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnabledForResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnabledForResponse) ProtoMessage() {}
+
+func (x *EnabledForResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_twofa_v1_twofa_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnabledForResponse.ProtoReflect.Descriptor instead.
+func (*EnabledForResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_twofa_v1_twofa_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *EnabledForResponse) GetEnabledUserIds() []string {
+	if x != nil {
+		return x.EnabledUserIds
+	}
+	return nil
+}
+
 type VerifyRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -495,7 +583,7 @@ type VerifyRequest struct {
 
 func (x *VerifyRequest) Reset() {
 	*x = VerifyRequest{}
-	mi := &file_rosneft_twofa_v1_twofa_proto_msgTypes[10]
+	mi := &file_rosneft_twofa_v1_twofa_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -507,7 +595,7 @@ func (x *VerifyRequest) String() string {
 func (*VerifyRequest) ProtoMessage() {}
 
 func (x *VerifyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_twofa_v1_twofa_proto_msgTypes[10]
+	mi := &file_rosneft_twofa_v1_twofa_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -520,7 +608,7 @@ func (x *VerifyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifyRequest.ProtoReflect.Descriptor instead.
 func (*VerifyRequest) Descriptor() ([]byte, []int) {
-	return file_rosneft_twofa_v1_twofa_proto_rawDescGZIP(), []int{10}
+	return file_rosneft_twofa_v1_twofa_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *VerifyRequest) GetUserId() string {
@@ -546,7 +634,7 @@ type VerifyResponse struct {
 
 func (x *VerifyResponse) Reset() {
 	*x = VerifyResponse{}
-	mi := &file_rosneft_twofa_v1_twofa_proto_msgTypes[11]
+	mi := &file_rosneft_twofa_v1_twofa_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -558,7 +646,7 @@ func (x *VerifyResponse) String() string {
 func (*VerifyResponse) ProtoMessage() {}
 
 func (x *VerifyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_twofa_v1_twofa_proto_msgTypes[11]
+	mi := &file_rosneft_twofa_v1_twofa_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -571,7 +659,7 @@ func (x *VerifyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifyResponse.ProtoReflect.Descriptor instead.
 func (*VerifyResponse) Descriptor() ([]byte, []int) {
-	return file_rosneft_twofa_v1_twofa_proto_rawDescGZIP(), []int{11}
+	return file_rosneft_twofa_v1_twofa_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *VerifyResponse) GetValid() bool {
@@ -609,18 +697,24 @@ const file_rosneft_twofa_v1_twofa_proto_rawDesc = "" +
 	"\x10IsEnabledRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"-\n" +
 	"\x11IsEnabledResponse\x12\x18\n" +
-	"\aenabled\x18\x01 \x01(\bR\aenabled\"<\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\".\n" +
+	"\x11EnabledForRequest\x12\x19\n" +
+	"\buser_ids\x18\x01 \x03(\tR\auserIds\">\n" +
+	"\x12EnabledForResponse\x12(\n" +
+	"\x10enabled_user_ids\x18\x01 \x03(\tR\x0eenabledUserIds\"<\n" +
 	"\rVerifyRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\"&\n" +
 	"\x0eVerifyResponse\x12\x14\n" +
-	"\x05valid\x18\x01 \x01(\bR\x05valid2\xfe\x03\n" +
+	"\x05valid\x18\x01 \x01(\bR\x05valid2\xd7\x04\n" +
 	"\fTwoFAService\x12H\n" +
 	"\x05Setup\x12\x1e.rosneft.twofa.v1.SetupRequest\x1a\x1f.rosneft.twofa.v1.SetupResponse\x12K\n" +
 	"\x06Enable\x12\x1f.rosneft.twofa.v1.EnableRequest\x1a .rosneft.twofa.v1.EnableResponse\x12N\n" +
 	"\aDisable\x12 .rosneft.twofa.v1.DisableRequest\x1a!.rosneft.twofa.v1.DisableResponse\x12d\n" +
 	"\x17RegenerateRecoveryCodes\x12#.rosneft.twofa.v1.RegenerateRequest\x1a$.rosneft.twofa.v1.RegenerateResponse\x12T\n" +
-	"\tIsEnabled\x12\".rosneft.twofa.v1.IsEnabledRequest\x1a#.rosneft.twofa.v1.IsEnabledResponse\x12K\n" +
+	"\tIsEnabled\x12\".rosneft.twofa.v1.IsEnabledRequest\x1a#.rosneft.twofa.v1.IsEnabledResponse\x12W\n" +
+	"\n" +
+	"EnabledFor\x12#.rosneft.twofa.v1.EnabledForRequest\x1a$.rosneft.twofa.v1.EnabledForResponse\x12K\n" +
 	"\x06Verify\x12\x1f.rosneft.twofa.v1.VerifyRequest\x1a .rosneft.twofa.v1.VerifyResponseBLZJgithub.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/twofa/v1;twofav1b\x06proto3"
 
 var (
@@ -635,7 +729,7 @@ func file_rosneft_twofa_v1_twofa_proto_rawDescGZIP() []byte {
 	return file_rosneft_twofa_v1_twofa_proto_rawDescData
 }
 
-var file_rosneft_twofa_v1_twofa_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_rosneft_twofa_v1_twofa_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_rosneft_twofa_v1_twofa_proto_goTypes = []any{
 	(*SetupRequest)(nil),       // 0: rosneft.twofa.v1.SetupRequest
 	(*SetupResponse)(nil),      // 1: rosneft.twofa.v1.SetupResponse
@@ -647,8 +741,10 @@ var file_rosneft_twofa_v1_twofa_proto_goTypes = []any{
 	(*RegenerateResponse)(nil), // 7: rosneft.twofa.v1.RegenerateResponse
 	(*IsEnabledRequest)(nil),   // 8: rosneft.twofa.v1.IsEnabledRequest
 	(*IsEnabledResponse)(nil),  // 9: rosneft.twofa.v1.IsEnabledResponse
-	(*VerifyRequest)(nil),      // 10: rosneft.twofa.v1.VerifyRequest
-	(*VerifyResponse)(nil),     // 11: rosneft.twofa.v1.VerifyResponse
+	(*EnabledForRequest)(nil),  // 10: rosneft.twofa.v1.EnabledForRequest
+	(*EnabledForResponse)(nil), // 11: rosneft.twofa.v1.EnabledForResponse
+	(*VerifyRequest)(nil),      // 12: rosneft.twofa.v1.VerifyRequest
+	(*VerifyResponse)(nil),     // 13: rosneft.twofa.v1.VerifyResponse
 }
 var file_rosneft_twofa_v1_twofa_proto_depIdxs = []int32{
 	0,  // 0: rosneft.twofa.v1.TwoFAService.Setup:input_type -> rosneft.twofa.v1.SetupRequest
@@ -656,15 +752,17 @@ var file_rosneft_twofa_v1_twofa_proto_depIdxs = []int32{
 	4,  // 2: rosneft.twofa.v1.TwoFAService.Disable:input_type -> rosneft.twofa.v1.DisableRequest
 	6,  // 3: rosneft.twofa.v1.TwoFAService.RegenerateRecoveryCodes:input_type -> rosneft.twofa.v1.RegenerateRequest
 	8,  // 4: rosneft.twofa.v1.TwoFAService.IsEnabled:input_type -> rosneft.twofa.v1.IsEnabledRequest
-	10, // 5: rosneft.twofa.v1.TwoFAService.Verify:input_type -> rosneft.twofa.v1.VerifyRequest
-	1,  // 6: rosneft.twofa.v1.TwoFAService.Setup:output_type -> rosneft.twofa.v1.SetupResponse
-	3,  // 7: rosneft.twofa.v1.TwoFAService.Enable:output_type -> rosneft.twofa.v1.EnableResponse
-	5,  // 8: rosneft.twofa.v1.TwoFAService.Disable:output_type -> rosneft.twofa.v1.DisableResponse
-	7,  // 9: rosneft.twofa.v1.TwoFAService.RegenerateRecoveryCodes:output_type -> rosneft.twofa.v1.RegenerateResponse
-	9,  // 10: rosneft.twofa.v1.TwoFAService.IsEnabled:output_type -> rosneft.twofa.v1.IsEnabledResponse
-	11, // 11: rosneft.twofa.v1.TwoFAService.Verify:output_type -> rosneft.twofa.v1.VerifyResponse
-	6,  // [6:12] is the sub-list for method output_type
-	0,  // [0:6] is the sub-list for method input_type
+	10, // 5: rosneft.twofa.v1.TwoFAService.EnabledFor:input_type -> rosneft.twofa.v1.EnabledForRequest
+	12, // 6: rosneft.twofa.v1.TwoFAService.Verify:input_type -> rosneft.twofa.v1.VerifyRequest
+	1,  // 7: rosneft.twofa.v1.TwoFAService.Setup:output_type -> rosneft.twofa.v1.SetupResponse
+	3,  // 8: rosneft.twofa.v1.TwoFAService.Enable:output_type -> rosneft.twofa.v1.EnableResponse
+	5,  // 9: rosneft.twofa.v1.TwoFAService.Disable:output_type -> rosneft.twofa.v1.DisableResponse
+	7,  // 10: rosneft.twofa.v1.TwoFAService.RegenerateRecoveryCodes:output_type -> rosneft.twofa.v1.RegenerateResponse
+	9,  // 11: rosneft.twofa.v1.TwoFAService.IsEnabled:output_type -> rosneft.twofa.v1.IsEnabledResponse
+	11, // 12: rosneft.twofa.v1.TwoFAService.EnabledFor:output_type -> rosneft.twofa.v1.EnabledForResponse
+	13, // 13: rosneft.twofa.v1.TwoFAService.Verify:output_type -> rosneft.twofa.v1.VerifyResponse
+	7,  // [7:14] is the sub-list for method output_type
+	0,  // [0:7] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name
@@ -681,7 +779,7 @@ func file_rosneft_twofa_v1_twofa_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rosneft_twofa_v1_twofa_proto_rawDesc), len(file_rosneft_twofa_v1_twofa_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

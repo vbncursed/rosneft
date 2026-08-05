@@ -2,6 +2,7 @@ package twofa_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -114,4 +115,34 @@ func (s *TwoFASuite) TestSetupRejectsWhenAlreadyOn() {
 
 	_, _, err := s.svc.Setup(s.ctx, "u1", "ivan")
 	assert.ErrorIs(s.T(), err, domain.ErrTwoFAAlreadyEnabled)
+}
+
+// The batch form the admin user list depends on. Ids the store does not report
+// are off; nothing is invented for them here.
+func (s *TwoFASuite) TestEnabledForReturnsOnlyTheEnabledIds() {
+	s.st.EnabledForMock.Expect(s.ctx, []string{"a", "b"}).Return([]string{"a"}, nil)
+
+	got, err := s.svc.EnabledFor(s.ctx, []string{"a", "b"})
+
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), got, []string{"a"})
+}
+
+// An empty batch must not reach the database. The gateway calls this on every
+// admin list render, including one with no rows to show.
+func (s *TwoFASuite) TestEnabledForSkipsTheStoreOnAnEmptyBatch() {
+	got, err := s.svc.EnabledFor(s.ctx, nil)
+
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), got == nil)
+}
+
+// A store failure is not "nobody has 2FA on" — it is no answer at all, and the
+// caller has to be able to tell the difference.
+func (s *TwoFASuite) TestEnabledForPropagatesTheStoreError() {
+	s.st.EnabledForMock.Expect(s.ctx, []string{"a"}).Return(nil, errors.New("db down"))
+
+	_, err := s.svc.EnabledFor(s.ctx, []string{"a"})
+
+	assert.ErrorContains(s.T(), err, "db down")
 }

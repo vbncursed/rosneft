@@ -10,6 +10,7 @@ const principal = (permissions: string[]): Principal => ({
   username: "u",
   status: "active",
   totpEnabled: false,
+  passkeyEnabled: null,
   roleTitles: {},
   roleSlugs: [],
   permissions,

@@ -11,6 +11,7 @@ function principal(over: Partial<Principal>): Principal {
     username: "u",
     status: "active",
     totpEnabled: false,
+    passkeyEnabled: null,
     roleSlugs: [],
     permissions: [],
     isOwner: false,

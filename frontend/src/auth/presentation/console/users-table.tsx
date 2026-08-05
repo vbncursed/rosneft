@@ -37,20 +37,20 @@ export default function UsersTable({ roles }: { roles: Role[] }) {
         <Checkbox checked={includeDeleted} onChange={setIncludeDeleted} label="include deleted" />
       </div>
 
-      {/* overflow-x-auto, not overflow-hidden: six columns plus an unbreakable
+      {/* overflow-x-auto, not overflow-hidden: seven columns plus an unbreakable
           email do not fit a phone, and hiding the overflow left the right-hand
           columns unreachable. min-w keeps the table readable instead of letting
           the browser crush every column to its longest word before scrolling. */}
       <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.03]">
-        <table className="w-full min-w-[46rem] text-left">
+        <table className="w-full min-w-[52rem] text-left">
           <thead className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
-            <tr><th className="px-3 py-2">User</th><th className="px-3 py-2">Email</th><th className="px-3 py-2">Roles</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">2FA</th><th /></tr>
+            <tr><th className="px-3 py-2">User</th><th className="px-3 py-2">Email</th><th className="px-3 py-2">Roles</th><th className="px-3 py-2">Status</th><th className="px-3 py-2">2FA</th><th className="px-3 py-2">Passkey</th><th /></tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-neutral-500">Loading…</td></tr>
+              <tr><td colSpan={7} className="px-3 py-6 text-center text-sm text-neutral-500">Loading…</td></tr>
             ) : users.length === 0 ? (
-              <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-neutral-500">No users.</td></tr>
+              <tr><td colSpan={7} className="px-3 py-6 text-center text-sm text-neutral-500">No users.</td></tr>
             ) : users.map((u) => <UserRow key={u.id} u={u} me={me} roleTitle={roleTitle} act={act} onEditRoles={setEditing} />)}
           </tbody>
         </table>

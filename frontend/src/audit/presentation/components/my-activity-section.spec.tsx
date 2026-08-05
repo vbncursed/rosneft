@@ -32,6 +32,7 @@ const principal = (permissions: string[], isOwner = false) => ({
   username: "vbncursed",
   status: "active" as const,
   totpEnabled: false,
+  passkeyEnabled: null,
   roleSlugs: [],
   permissions,
   isOwner,

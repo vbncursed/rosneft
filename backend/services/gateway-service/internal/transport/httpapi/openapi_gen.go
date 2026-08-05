@@ -235,14 +235,19 @@ type AuthUser struct {
 	Id                  *string   `json:"id,omitempty"`
 	IsOwner             *bool     `json:"isOwner,omitempty"`
 	OnboardingToursSeen *[]string `json:"onboardingToursSeen,omitempty"`
-	Permissions         *[]string `json:"permissions,omitempty"`
-	RoleSlugs           *[]string `json:"roleSlugs,omitempty"`
+
+	// PasskeyEnabled Whether the user has at least one passkey registered. Absent means unknown, exactly as for totpEnabled. Always absent on /api/auth/me — that route runs on every page load and deliberately does not pay for the lookup, since nothing there consumes it.
+	PasskeyEnabled *bool     `json:"passkeyEnabled,omitempty"`
+	Permissions    *[]string `json:"permissions,omitempty"`
+	RoleSlugs      *[]string `json:"roleSlugs,omitempty"`
 
 	// RoleTitles Slug → display title for each entry in roleSlugs. The slug is not an abbreviation of the title: slug "admin" is titled "Company Owner" while a different role is slugged "owner", so a UI printing the slug names the wrong role. A slug absent from the map means the role was deleted between reads — fall back to showing the slug.
-	RoleTitles  *map[string]string `json:"roleTitles,omitempty"`
-	Status      *AuthUserStatus    `json:"status,omitempty"`
-	TotpEnabled *bool              `json:"totpEnabled,omitempty"`
-	Username    *string            `json:"username,omitempty"`
+	RoleTitles *map[string]string `json:"roleTitles,omitempty"`
+	Status     *AuthUserStatus    `json:"status,omitempty"`
+
+	// TotpEnabled Whether TOTP two-factor auth is on. ABSENT MEANS UNKNOWN — the owning service (twofa) could not be reached. Render an absent value as "unknown", never as "off": auth-service does not own this flag and the gateway overlays it, so a missing key is a failed lookup and not a disabled factor.
+	TotpEnabled *bool   `json:"totpEnabled,omitempty"`
+	Username    *string `json:"username,omitempty"`
 }
 
 // AuthUserStatus defines model for AuthUser.Status.
