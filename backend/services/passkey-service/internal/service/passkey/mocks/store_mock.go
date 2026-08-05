@@ -46,6 +46,13 @@ type StoreMock struct {
 	afterUpdateAfterLoginCounter  uint64
 	beforeUpdateAfterLoginCounter uint64
 	UpdateAfterLoginMock          mStoreMockUpdateAfterLogin
+
+	funcUsersWithCredentials          func(ctx context.Context, userIDs []string) (sa1 []string, err error)
+	funcUsersWithCredentialsOrigin    string
+	inspectFuncUsersWithCredentials   func(ctx context.Context, userIDs []string)
+	afterUsersWithCredentialsCounter  uint64
+	beforeUsersWithCredentialsCounter uint64
+	UsersWithCredentialsMock          mStoreMockUsersWithCredentials
 }
 
 // NewStoreMock returns a mock for mm_passkey.Store
@@ -67,6 +74,9 @@ func NewStoreMock(t minimock.Tester) *StoreMock {
 
 	m.UpdateAfterLoginMock = mStoreMockUpdateAfterLogin{mock: m}
 	m.UpdateAfterLoginMock.callArgs = []*StoreMockUpdateAfterLoginParams{}
+
+	m.UsersWithCredentialsMock = mStoreMockUsersWithCredentials{mock: m}
+	m.UsersWithCredentialsMock.callArgs = []*StoreMockUsersWithCredentialsParams{}
 
 	t.Cleanup(m.MinimockFinish)
 
@@ -1535,6 +1545,349 @@ func (m *StoreMock) MinimockUpdateAfterLoginInspect() {
 	}
 }
 
+type mStoreMockUsersWithCredentials struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockUsersWithCredentialsExpectation
+	expectations       []*StoreMockUsersWithCredentialsExpectation
+
+	callArgs []*StoreMockUsersWithCredentialsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockUsersWithCredentialsExpectation specifies expectation struct of the Store.UsersWithCredentials
+type StoreMockUsersWithCredentialsExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockUsersWithCredentialsParams
+	paramPtrs          *StoreMockUsersWithCredentialsParamPtrs
+	expectationOrigins StoreMockUsersWithCredentialsExpectationOrigins
+	results            *StoreMockUsersWithCredentialsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockUsersWithCredentialsParams contains parameters of the Store.UsersWithCredentials
+type StoreMockUsersWithCredentialsParams struct {
+	ctx     context.Context
+	userIDs []string
+}
+
+// StoreMockUsersWithCredentialsParamPtrs contains pointers to parameters of the Store.UsersWithCredentials
+type StoreMockUsersWithCredentialsParamPtrs struct {
+	ctx     *context.Context
+	userIDs *[]string
+}
+
+// StoreMockUsersWithCredentialsResults contains results of the Store.UsersWithCredentials
+type StoreMockUsersWithCredentialsResults struct {
+	sa1 []string
+	err error
+}
+
+// StoreMockUsersWithCredentialsOrigins contains origins of expectations of the Store.UsersWithCredentials
+type StoreMockUsersWithCredentialsExpectationOrigins struct {
+	origin        string
+	originCtx     string
+	originUserIDs string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmUsersWithCredentials *mStoreMockUsersWithCredentials) Optional() *mStoreMockUsersWithCredentials {
+	mmUsersWithCredentials.optional = true
+	return mmUsersWithCredentials
+}
+
+// Expect sets up expected params for Store.UsersWithCredentials
+func (mmUsersWithCredentials *mStoreMockUsersWithCredentials) Expect(ctx context.Context, userIDs []string) *mStoreMockUsersWithCredentials {
+	if mmUsersWithCredentials.mock.funcUsersWithCredentials != nil {
+		mmUsersWithCredentials.mock.t.Fatalf("StoreMock.UsersWithCredentials mock is already set by Set")
+	}
+
+	if mmUsersWithCredentials.defaultExpectation == nil {
+		mmUsersWithCredentials.defaultExpectation = &StoreMockUsersWithCredentialsExpectation{}
+	}
+
+	if mmUsersWithCredentials.defaultExpectation.paramPtrs != nil {
+		mmUsersWithCredentials.mock.t.Fatalf("StoreMock.UsersWithCredentials mock is already set by ExpectParams functions")
+	}
+
+	mmUsersWithCredentials.defaultExpectation.params = &StoreMockUsersWithCredentialsParams{ctx, userIDs}
+	mmUsersWithCredentials.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmUsersWithCredentials.expectations {
+		if minimock.Equal(e.params, mmUsersWithCredentials.defaultExpectation.params) {
+			mmUsersWithCredentials.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUsersWithCredentials.defaultExpectation.params)
+		}
+	}
+
+	return mmUsersWithCredentials
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.UsersWithCredentials
+func (mmUsersWithCredentials *mStoreMockUsersWithCredentials) ExpectCtxParam1(ctx context.Context) *mStoreMockUsersWithCredentials {
+	if mmUsersWithCredentials.mock.funcUsersWithCredentials != nil {
+		mmUsersWithCredentials.mock.t.Fatalf("StoreMock.UsersWithCredentials mock is already set by Set")
+	}
+
+	if mmUsersWithCredentials.defaultExpectation == nil {
+		mmUsersWithCredentials.defaultExpectation = &StoreMockUsersWithCredentialsExpectation{}
+	}
+
+	if mmUsersWithCredentials.defaultExpectation.params != nil {
+		mmUsersWithCredentials.mock.t.Fatalf("StoreMock.UsersWithCredentials mock is already set by Expect")
+	}
+
+	if mmUsersWithCredentials.defaultExpectation.paramPtrs == nil {
+		mmUsersWithCredentials.defaultExpectation.paramPtrs = &StoreMockUsersWithCredentialsParamPtrs{}
+	}
+	mmUsersWithCredentials.defaultExpectation.paramPtrs.ctx = &ctx
+	mmUsersWithCredentials.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmUsersWithCredentials
+}
+
+// ExpectUserIDsParam2 sets up expected param userIDs for Store.UsersWithCredentials
+func (mmUsersWithCredentials *mStoreMockUsersWithCredentials) ExpectUserIDsParam2(userIDs []string) *mStoreMockUsersWithCredentials {
+	if mmUsersWithCredentials.mock.funcUsersWithCredentials != nil {
+		mmUsersWithCredentials.mock.t.Fatalf("StoreMock.UsersWithCredentials mock is already set by Set")
+	}
+
+	if mmUsersWithCredentials.defaultExpectation == nil {
+		mmUsersWithCredentials.defaultExpectation = &StoreMockUsersWithCredentialsExpectation{}
+	}
+
+	if mmUsersWithCredentials.defaultExpectation.params != nil {
+		mmUsersWithCredentials.mock.t.Fatalf("StoreMock.UsersWithCredentials mock is already set by Expect")
+	}
+
+	if mmUsersWithCredentials.defaultExpectation.paramPtrs == nil {
+		mmUsersWithCredentials.defaultExpectation.paramPtrs = &StoreMockUsersWithCredentialsParamPtrs{}
+	}
+	mmUsersWithCredentials.defaultExpectation.paramPtrs.userIDs = &userIDs
+	mmUsersWithCredentials.defaultExpectation.expectationOrigins.originUserIDs = minimock.CallerInfo(1)
+
+	return mmUsersWithCredentials
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.UsersWithCredentials
+func (mmUsersWithCredentials *mStoreMockUsersWithCredentials) Inspect(f func(ctx context.Context, userIDs []string)) *mStoreMockUsersWithCredentials {
+	if mmUsersWithCredentials.mock.inspectFuncUsersWithCredentials != nil {
+		mmUsersWithCredentials.mock.t.Fatalf("Inspect function is already set for StoreMock.UsersWithCredentials")
+	}
+
+	mmUsersWithCredentials.mock.inspectFuncUsersWithCredentials = f
+
+	return mmUsersWithCredentials
+}
+
+// Return sets up results that will be returned by Store.UsersWithCredentials
+func (mmUsersWithCredentials *mStoreMockUsersWithCredentials) Return(sa1 []string, err error) *StoreMock {
+	if mmUsersWithCredentials.mock.funcUsersWithCredentials != nil {
+		mmUsersWithCredentials.mock.t.Fatalf("StoreMock.UsersWithCredentials mock is already set by Set")
+	}
+
+	if mmUsersWithCredentials.defaultExpectation == nil {
+		mmUsersWithCredentials.defaultExpectation = &StoreMockUsersWithCredentialsExpectation{mock: mmUsersWithCredentials.mock}
+	}
+	mmUsersWithCredentials.defaultExpectation.results = &StoreMockUsersWithCredentialsResults{sa1, err}
+	mmUsersWithCredentials.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmUsersWithCredentials.mock
+}
+
+// Set uses given function f to mock the Store.UsersWithCredentials method
+func (mmUsersWithCredentials *mStoreMockUsersWithCredentials) Set(f func(ctx context.Context, userIDs []string) (sa1 []string, err error)) *StoreMock {
+	if mmUsersWithCredentials.defaultExpectation != nil {
+		mmUsersWithCredentials.mock.t.Fatalf("Default expectation is already set for the Store.UsersWithCredentials method")
+	}
+
+	if len(mmUsersWithCredentials.expectations) > 0 {
+		mmUsersWithCredentials.mock.t.Fatalf("Some expectations are already set for the Store.UsersWithCredentials method")
+	}
+
+	mmUsersWithCredentials.mock.funcUsersWithCredentials = f
+	mmUsersWithCredentials.mock.funcUsersWithCredentialsOrigin = minimock.CallerInfo(1)
+	return mmUsersWithCredentials.mock
+}
+
+// When sets expectation for the Store.UsersWithCredentials which will trigger the result defined by the following
+// Then helper
+func (mmUsersWithCredentials *mStoreMockUsersWithCredentials) When(ctx context.Context, userIDs []string) *StoreMockUsersWithCredentialsExpectation {
+	if mmUsersWithCredentials.mock.funcUsersWithCredentials != nil {
+		mmUsersWithCredentials.mock.t.Fatalf("StoreMock.UsersWithCredentials mock is already set by Set")
+	}
+
+	expectation := &StoreMockUsersWithCredentialsExpectation{
+		mock:               mmUsersWithCredentials.mock,
+		params:             &StoreMockUsersWithCredentialsParams{ctx, userIDs},
+		expectationOrigins: StoreMockUsersWithCredentialsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmUsersWithCredentials.expectations = append(mmUsersWithCredentials.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.UsersWithCredentials return parameters for the expectation previously defined by the When method
+func (e *StoreMockUsersWithCredentialsExpectation) Then(sa1 []string, err error) *StoreMock {
+	e.results = &StoreMockUsersWithCredentialsResults{sa1, err}
+	return e.mock
+}
+
+// Times sets number of times Store.UsersWithCredentials should be invoked
+func (mmUsersWithCredentials *mStoreMockUsersWithCredentials) Times(n uint64) *mStoreMockUsersWithCredentials {
+	if n == 0 {
+		mmUsersWithCredentials.mock.t.Fatalf("Times of StoreMock.UsersWithCredentials mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmUsersWithCredentials.expectedInvocations, n)
+	mmUsersWithCredentials.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmUsersWithCredentials
+}
+
+func (mmUsersWithCredentials *mStoreMockUsersWithCredentials) invocationsDone() bool {
+	if len(mmUsersWithCredentials.expectations) == 0 && mmUsersWithCredentials.defaultExpectation == nil && mmUsersWithCredentials.mock.funcUsersWithCredentials == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmUsersWithCredentials.mock.afterUsersWithCredentialsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmUsersWithCredentials.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// UsersWithCredentials implements mm_passkey.Store
+func (mmUsersWithCredentials *StoreMock) UsersWithCredentials(ctx context.Context, userIDs []string) (sa1 []string, err error) {
+	mm_atomic.AddUint64(&mmUsersWithCredentials.beforeUsersWithCredentialsCounter, 1)
+	defer mm_atomic.AddUint64(&mmUsersWithCredentials.afterUsersWithCredentialsCounter, 1)
+
+	mmUsersWithCredentials.t.Helper()
+
+	if mmUsersWithCredentials.inspectFuncUsersWithCredentials != nil {
+		mmUsersWithCredentials.inspectFuncUsersWithCredentials(ctx, userIDs)
+	}
+
+	mm_params := StoreMockUsersWithCredentialsParams{ctx, userIDs}
+
+	// Record call args
+	mmUsersWithCredentials.UsersWithCredentialsMock.mutex.Lock()
+	mmUsersWithCredentials.UsersWithCredentialsMock.callArgs = append(mmUsersWithCredentials.UsersWithCredentialsMock.callArgs, &mm_params)
+	mmUsersWithCredentials.UsersWithCredentialsMock.mutex.Unlock()
+
+	for _, e := range mmUsersWithCredentials.UsersWithCredentialsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.sa1, e.results.err
+		}
+	}
+
+	if mmUsersWithCredentials.UsersWithCredentialsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmUsersWithCredentials.UsersWithCredentialsMock.defaultExpectation.Counter, 1)
+		mm_want := mmUsersWithCredentials.UsersWithCredentialsMock.defaultExpectation.params
+		mm_want_ptrs := mmUsersWithCredentials.UsersWithCredentialsMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockUsersWithCredentialsParams{ctx, userIDs}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmUsersWithCredentials.t.Errorf("StoreMock.UsersWithCredentials got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUsersWithCredentials.UsersWithCredentialsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.userIDs != nil && !minimock.Equal(*mm_want_ptrs.userIDs, mm_got.userIDs) {
+				mmUsersWithCredentials.t.Errorf("StoreMock.UsersWithCredentials got unexpected parameter userIDs, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUsersWithCredentials.UsersWithCredentialsMock.defaultExpectation.expectationOrigins.originUserIDs, *mm_want_ptrs.userIDs, mm_got.userIDs, minimock.Diff(*mm_want_ptrs.userIDs, mm_got.userIDs))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmUsersWithCredentials.t.Errorf("StoreMock.UsersWithCredentials got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmUsersWithCredentials.UsersWithCredentialsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmUsersWithCredentials.UsersWithCredentialsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmUsersWithCredentials.t.Fatal("No results are set for the StoreMock.UsersWithCredentials")
+		}
+		return (*mm_results).sa1, (*mm_results).err
+	}
+	if mmUsersWithCredentials.funcUsersWithCredentials != nil {
+		return mmUsersWithCredentials.funcUsersWithCredentials(ctx, userIDs)
+	}
+	mmUsersWithCredentials.t.Fatalf("Unexpected call to StoreMock.UsersWithCredentials. %v %v", ctx, userIDs)
+	return
+}
+
+// UsersWithCredentialsAfterCounter returns a count of finished StoreMock.UsersWithCredentials invocations
+func (mmUsersWithCredentials *StoreMock) UsersWithCredentialsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUsersWithCredentials.afterUsersWithCredentialsCounter)
+}
+
+// UsersWithCredentialsBeforeCounter returns a count of StoreMock.UsersWithCredentials invocations
+func (mmUsersWithCredentials *StoreMock) UsersWithCredentialsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUsersWithCredentials.beforeUsersWithCredentialsCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.UsersWithCredentials.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmUsersWithCredentials *mStoreMockUsersWithCredentials) Calls() []*StoreMockUsersWithCredentialsParams {
+	mmUsersWithCredentials.mutex.RLock()
+
+	argCopy := make([]*StoreMockUsersWithCredentialsParams, len(mmUsersWithCredentials.callArgs))
+	copy(argCopy, mmUsersWithCredentials.callArgs)
+
+	mmUsersWithCredentials.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockUsersWithCredentialsDone returns true if the count of the UsersWithCredentials invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockUsersWithCredentialsDone() bool {
+	if m.UsersWithCredentialsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.UsersWithCredentialsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.UsersWithCredentialsMock.invocationsDone()
+}
+
+// MinimockUsersWithCredentialsInspect logs each unmet expectation
+func (m *StoreMock) MinimockUsersWithCredentialsInspect() {
+	for _, e := range m.UsersWithCredentialsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.UsersWithCredentials at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterUsersWithCredentialsCounter := mm_atomic.LoadUint64(&m.afterUsersWithCredentialsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.UsersWithCredentialsMock.defaultExpectation != nil && afterUsersWithCredentialsCounter < 1 {
+		if m.UsersWithCredentialsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.UsersWithCredentials at\n%s", m.UsersWithCredentialsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.UsersWithCredentials at\n%s with params: %#v", m.UsersWithCredentialsMock.defaultExpectation.expectationOrigins.origin, *m.UsersWithCredentialsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcUsersWithCredentials != nil && afterUsersWithCredentialsCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.UsersWithCredentials at\n%s", m.funcUsersWithCredentialsOrigin)
+	}
+
+	if !m.UsersWithCredentialsMock.invocationsDone() && afterUsersWithCredentialsCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.UsersWithCredentials at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.UsersWithCredentialsMock.expectedInvocations), m.UsersWithCredentialsMock.expectedInvocationsOrigin, afterUsersWithCredentialsCounter)
+	}
+}
+
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *StoreMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
@@ -1546,6 +1899,8 @@ func (m *StoreMock) MinimockFinish() {
 			m.MinimockListByUserInspect()
 
 			m.MinimockUpdateAfterLoginInspect()
+
+			m.MinimockUsersWithCredentialsInspect()
 		}
 	})
 }
@@ -1572,5 +1927,6 @@ func (m *StoreMock) minimockDone() bool {
 		m.MinimockCreateDone() &&
 		m.MinimockDeleteByCredentialIDDone() &&
 		m.MinimockListByUserDone() &&
-		m.MinimockUpdateAfterLoginDone()
+		m.MinimockUpdateAfterLoginDone() &&
+		m.MinimockUsersWithCredentialsDone()
 }

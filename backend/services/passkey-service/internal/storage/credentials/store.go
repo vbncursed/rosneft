@@ -53,6 +53,33 @@ func (s *Store) ListByUser(ctx context.Context, userID string) ([]domain.Credent
 	return out, rows.Err()
 }
 
+// UsersWithCredentials returns the subset of userIDs owning at least one
+// credential. DISTINCT, not a count: the caller asks a yes/no question, and a
+// user with four keys must not appear four times in the answer.
+func (s *Store) UsersWithCredentials(ctx context.Context, userIDs []string) ([]string, error) {
+	if len(userIDs) == 0 {
+		return nil, nil
+	}
+	const q = `SELECT DISTINCT user_id FROM passkey_credentials WHERE user_id = ANY($1)`
+	rows, err := s.pool.Query(ctx, q, userIDs)
+	if err != nil {
+		return nil, fmt.Errorf("credentials.UsersWithCredentials: %w", err)
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("credentials.UsersWithCredentials: %w", err)
+		}
+		out = append(out, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("credentials.UsersWithCredentials: %w", err)
+	}
+	return out, nil
+}
+
 // DeleteByCredentialID removes a credential scoped to its owner (defence in
 // depth: a user can only delete their own).
 func (s *Store) DeleteByCredentialID(ctx context.Context, userID string, credID []byte) error {
