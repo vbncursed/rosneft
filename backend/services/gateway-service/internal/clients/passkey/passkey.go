@@ -32,6 +32,17 @@ func (c *Client) ListCredentials(ctx context.Context, token string) ([]*passkeyv
 	return resp.GetCredentials(), nil
 }
 
+// CredentialedUsers reports which of userIDs own at least one passkey. Unlike
+// ListCredentials it is keyed on ids rather than on the caller's token, which
+// is what lets the admin console ask about somebody else.
+func (c *Client) CredentialedUsers(ctx context.Context, userIDs []string) ([]string, error) {
+	resp, err := c.cc.CredentialedUsers(ctx, &passkeyv1.CredentialedUsersRequest{UserIds: userIDs})
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetUserIdsWithCredentials(), nil
+}
+
 func (c *Client) DeleteCredential(ctx context.Context, token, credID string) error {
 	_, err := c.cc.DeleteCredential(ctx, &passkeyv1.DeleteCredentialRequest{Token: token, CredentialId: credID})
 	return err
