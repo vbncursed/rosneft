@@ -81,6 +81,34 @@ time a login writes the entry back. It is a convenience for whoever is
 recompiling; a user never needs it, and there is no flag or environment variable
 to turn the keychain off — the session has one storage mechanism.
 
+## Cloudflare must not challenge `/api`
+
+Production sits behind Cloudflare, and **Bot Fight Mode breaks this app
+completely**: every `/api` request answers `403` with `cf-mitigated: challenge`
+and a `Just a moment...` page, so the SPA reports *"You don't have permission
+to do this"* — `client.ts`'s text for a 403 — before a single request reaches
+the gateway.
+
+The reason is structural, not a misconfiguration. The proxy calls the gateway
+from Rust via `reqwest`: its own cookie jar, no JavaScript engine, so it cannot
+solve a challenge, ever. A browser passes once and carries `cf_clearance`
+afterwards, which is why the site works there while the desktop client does
+not — and why this is invisible against `localhost:8080`, where there is no
+Cloudflare at all.
+
+**Bot Fight Mode (the free one) cannot be skipped by a WAF custom rule.** It
+runs before custom rules, and the skip list only offers *Super* Bot Fight Mode,
+a paid feature. Turn it off under Security → Bots. Check Security Level too —
+"I'm Under Attack" challenges everything on its own.
+
+A custom rule skipping `Browser Integrity Check` for `starts_with(uri.path,
+"/api/")` is worth keeping alongside: that check also rejects clients without
+browser-shaped headers. It is not a substitute for turning Bot Fight Mode off.
+
+Nothing is lost by exempting `/api`: authentication there is the session cookie
+plus CSRF plus RBAC, none of which a challenge contributes to. The SPA and its
+assets are served from inside the binary, so no Cloudflare setting affects them.
+
 ## Getting a build, and opening it once you have
 
 **Released builds** live under [Releases](https://github.com/vbncursed/rosneft/releases),
