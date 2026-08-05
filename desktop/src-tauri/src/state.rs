@@ -55,8 +55,13 @@ impl AppState {
     }
 
     pub fn clear_session(&self) {
-        let mut session = self.session.lock().unwrap();
-        if clears_keychain(session.take().as_ref()) {
+        // Taken in its own statement so the guard is gone before the keychain
+        // write: `session::clear()` can raise the same macOS authorization
+        // dialog the restore does, and holding the lock across it would park
+        // every concurrent `user_cache_root()` — an asset request, a snapshot
+        // save — on a tokio worker thread until a human clicks something.
+        let taken = self.session.lock().unwrap().take();
+        if clears_keychain(taken.as_ref()) {
             crate::session::clear();
         }
     }

@@ -156,11 +156,6 @@ pub fn offline_fallback(
     Some((StatusCode::OK, [(header::CONTENT_TYPE, content_type)], body).into_response())
 }
 
-/// SSE (`/api/jobs/{id}/events`) and 8 MB upload chunks go through this path,
-/// so the request body is streamed straight into the outbound reqwest body
-/// (`into_data_stream` -> `Body::wrap_stream`) rather than buffered with
-/// `axum::body::to_bytes`: buffering would hold whole upload chunks in memory
-/// and stall the request until the last byte arrived. GET/HEAD carry no body.
 /// How long a request may wait for the startup keychain read. A dialog nobody
 /// answers must not hang the app forever; on timeout the request goes out as it
 /// did before this barrier existed.
@@ -190,6 +185,11 @@ pub async fn await_restore(
     let _ = tokio::time::timeout(budget, restored.wait_for(|done| *done)).await;
 }
 
+/// SSE (`/api/jobs/{id}/events`) and 8 MB upload chunks go through this path,
+/// so the request body is streamed straight into the outbound reqwest body
+/// (`into_data_stream` -> `Body::wrap_stream`) rather than buffered with
+/// `axum::body::to_bytes`: buffering would hold whole upload chunks in memory
+/// and stall the request until the last byte arrived. GET/HEAD carry no body.
 pub async fn forward(state: &Shared, req: Request<Body>) -> Response {
     await_restore(&state.restored, RESTORE_WAIT).await;
     let method = req.method().clone();
