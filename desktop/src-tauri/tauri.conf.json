@@ -4,9 +4,7 @@
   "version": "0.1.0",
   "identifier": "fun.vbncursed.andrey.desktop",
   "build": {
-    "frontendDist": "../../frontend/dist",
-    "beforeBuildCommand": "yarn --cwd ../../frontend build",
-    "beforeDevCommand": "yarn --cwd ../../frontend build"
+    "frontendDist": "../../frontend/dist"
   },
   "app": {
     "windows": [],

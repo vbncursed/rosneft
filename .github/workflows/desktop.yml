@@ -56,6 +56,11 @@ jobs:
         with:
           workspaces: desktop/src-tauri
       - run: yarn --cwd frontend install --frozen-lockfile
+      # Explicit, because tauri.conf.json declares no beforeBuildCommand:
+      # tauri resolves it against projectPath (desktop/) while the config
+      # itself lives a level deeper, so any relative path there is correct
+      # for exactly one of the two ways this gets invoked.
+      - run: yarn --cwd frontend build
       # No tagName/releaseId: this only builds and packages, it does not
       # create or upload to a GitHub Release. The icons are placeholders
       # (see desktop/README.md) and there is no updater signing key, so a
