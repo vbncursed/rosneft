@@ -26,7 +26,17 @@ make check                                  # fmt + clippy + test
 make build                                  # bundle for the current OS (needs the Tauri CLI above)
 cd src-tauri && cargo run                   # run against production
 DESKTOP_UPSTREAM=http://localhost:8080 cargo run   # run against a local backend
+DESKTOP_PORT=17818 cargo run                       # run beside an installed copy
 ```
+
+The loopback server binds a **fixed** port (`17817`). That is not cosmetic: the
+webview's origin is built from it, `localStorage` is partitioned by origin, and
+the SPA keeps its session marker there — an ephemeral port means an empty store
+and a login prompt on every launch. `DESKTOP_PORT` overrides it so a dev build
+can run beside an installed copy instead of fighting it for the origin — and it
+also turns off the single-instance guard, which locks on the bundle identifier
+alone and would otherwise stop the dev build as a duplicate of the installed
+one.
 
 `make check` needs `frontend/dist` to exist before it runs: `tauri::generate_context!()`
 embeds `frontendDist` at Rust compile time, so `cargo fmt`/`clippy`/`test` all

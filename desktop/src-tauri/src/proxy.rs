@@ -156,12 +156,42 @@ pub fn offline_fallback(
     Some((StatusCode::OK, [(header::CONTENT_TYPE, content_type)], body).into_response())
 }
 
+/// How long a request may wait for the startup keychain read. A dialog nobody
+/// answers must not hang the app forever; on timeout the request goes out as it
+/// did before this barrier existed.
+pub const RESTORE_WAIT: std::time::Duration = std::time::Duration::from_secs(60);
+
+/// Holds a request until the startup keychain read has finished.
+///
+/// The read can put a macOS authorization dialog on screen — it does so on every
+/// rebuild, and in production on every app update — and then it waits for a
+/// human. Eight seconds, in the run that produced this function. The webview is
+/// up long before that and its first call is `/api/auth/me`, which would go out
+/// with no cookie, take a 401, and make the SPA drop its session marker and
+/// land on /login while the restore was still sitting behind the dialog. The
+/// user then logs in again, and the app looks like it never remembers anything.
+///
+/// Waiting turns that into a spinner and a restored session. It costs nothing
+/// once the read has landed: `wait_for` returns immediately when the value
+/// already matches.
+///
+/// Takes the receiver and the budget rather than `&Shared` so the wait can be
+/// tested in milliseconds without an `AppState`.
+pub async fn await_restore(
+    restored: &tokio::sync::watch::Receiver<bool>,
+    budget: std::time::Duration,
+) {
+    let mut restored = restored.clone();
+    let _ = tokio::time::timeout(budget, restored.wait_for(|done| *done)).await;
+}
+
 /// SSE (`/api/jobs/{id}/events`) and 8 MB upload chunks go through this path,
 /// so the request body is streamed straight into the outbound reqwest body
 /// (`into_data_stream` -> `Body::wrap_stream`) rather than buffered with
 /// `axum::body::to_bytes`: buffering would hold whole upload chunks in memory
 /// and stall the request until the last byte arrived. GET/HEAD carry no body.
 pub async fn forward(state: &Shared, req: Request<Body>) -> Response {
+    await_restore(&state.restored, RESTORE_WAIT).await;
     let method = req.method().clone();
     let path_and_query = req
         .uri()
@@ -586,6 +616,40 @@ mod tests {
         assert!(clears_session(200, "POST", "/api/auth/login"));
         assert!(clears_session(400, "POST", "/api/auth/login"));
         assert!(clears_session(200, "POST", "/api/auth/login/2fa"));
+    }
+
+    // Once the keychain read has landed the barrier must cost nothing: it is on
+    // the path of every single API call, not just the first.
+    #[tokio::test]
+    async fn an_already_restored_state_does_not_wait() {
+        let (_tx, rx) = tokio::sync::watch::channel(true);
+        let start = std::time::Instant::now();
+        await_restore(&rx, std::time::Duration::from_secs(30)).await;
+        assert!(start.elapsed() < std::time::Duration::from_millis(50));
+    }
+
+    // The case this exists for: /api/auth/me arrives while the keychain dialog
+    // is still on screen. It must come out the other side, not 401.
+    #[tokio::test]
+    async fn a_pending_restore_is_waited_for() {
+        let (tx, rx) = tokio::sync::watch::channel(false);
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+            let _ = tx.send(true);
+        });
+        await_restore(&rx, std::time::Duration::from_secs(30)).await;
+        assert!(*rx.borrow(), "the wait must end with the restore done");
+    }
+
+    // A dialog nobody ever answers must not hang the app: the request goes out
+    // without a session, exactly as it did before the barrier existed.
+    #[tokio::test]
+    async fn a_restore_that_never_lands_gives_up() {
+        let (_tx, rx) = tokio::sync::watch::channel(false);
+        let start = std::time::Instant::now();
+        await_restore(&rx, std::time::Duration::from_millis(20)).await;
+        assert!(start.elapsed() >= std::time::Duration::from_millis(20));
+        assert!(!*rx.borrow());
     }
 
     #[test]
