@@ -254,11 +254,28 @@ fn serve_static(state: &Shared, route: Route, query: Option<&str>) -> Response {
 }
 
 /// Tauri injects its own CSP only when it serves the page; we serve it, so the
-/// header is ours. wasm-unsafe-eval and blob: workers are load-bearing: without
-/// them the Draco decoder and the KTX2 transcoder never start, and the failure
-/// looks like a flat-coloured model rather than an error.
+/// header is ours.
+///
+/// `'unsafe-eval'` is load-bearing and cannot be narrowed to
+/// `'wasm-unsafe-eval'`. The KTX2/Basis transcoder in `public/basis/` is
+/// Emscripten output, and its embind layer builds every binding with
+/// `new Function(...)` (`craftInvokerFunction`); `'wasm-unsafe-eval'` permits
+/// compiling WebAssembly and nothing else, so the transcoder throws at init.
+/// `'unsafe-eval'` already covers WASM compilation, which is why it is not
+/// listed alongside.
+///
+/// The failure is invisible, which is why this must not be tightened back
+/// without opening the app: the throw surfaces as an unhandled promise
+/// rejection, `useProgressiveLod` never observes a load failure, never drops
+/// the level from its chain, and the coarsest LOD stays on screen. On a
+/// territory whose lower LODs carry no geometry that is an empty dark scene
+/// with nothing in the console but the rejection itself.
+///
+/// The loosening is real but narrow: the only scripts this origin serves are
+/// our own bundle and those decoders, from a loopback port gated by a per-run
+/// nonce.
 const CSP: &str = "default-src 'self'; \
-     script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'; \
+     script-src 'self' 'unsafe-eval' 'unsafe-inline'; \
      worker-src 'self' blob:; \
      style-src 'self' 'unsafe-inline'; \
      img-src 'self' data: blob:; \

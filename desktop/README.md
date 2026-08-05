@@ -117,7 +117,19 @@ passed.
 - [ ] Reopening a territory issues no network requests for the GLB.
 - [ ] With the network off, a previously opened territory still opens.
 - [ ] Signing in as a second user does not serve the first user's models.
-- [ ] Everything visual — scene rendering, textures, PDF display, the
-      in-scene translate/rotate/scale gizmo — has never been seen by any
-      agent that worked on this shell; none of them could open a window.
-      This is not a "probably fine" item, it is a genuinely unverified one.
+- [x] **A territory renders, on macOS.** Confirmed by hand on 2026-08-05
+      against a local backend: `dji-wp-46-cut` renders, and its placements
+      render with it. Everything else visual — textures on other models, PDF
+      display, the in-scene translate/rotate/scale gizmo — is still unseen,
+      and none of it has been looked at on Linux or Windows at all.
+
+      Getting that far took a CSP fix that no test could have produced, and
+      the shape of the failure is the reason this checklist exists: the
+      KTX2/Basis transcoder is Emscripten output whose embind layer builds
+      bindings with `new Function`, which `'wasm-unsafe-eval'` does not
+      permit. It threw as an unhandled promise rejection, so
+      `useProgressiveLod` never saw a load failure, never dropped the level,
+      and left the coarsest LOD on screen — an empty dark scene, nothing in
+      the console but the rejection. 68 Rust tests, two whole-branch reviews
+      and a live `curl` pass all reported green through it. Someone opening
+      the window and reading the console found it in one attempt.
