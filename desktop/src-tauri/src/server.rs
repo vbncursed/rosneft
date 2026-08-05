@@ -108,6 +108,10 @@ async fn handle_asset(
     if !state.nonce.matches(cookie) {
         return StatusCode::FORBIDDEN.into_response();
     }
+    // Not just `forward`'s concern: this handler reads `user_cache_root()`
+    // itself, and before the restore lands that is `None` — the request would
+    // skip the cache and go out with no session cookie.
+    crate::proxy::await_restore(&state.restored, crate::proxy::RESTORE_WAIT).await;
     // {hash} becomes a filename below (join + is_file), so it must be proven
     // safe before it touches the filesystem in any way — not after.
     if !crate::cache::is_valid_hash(&hash) {

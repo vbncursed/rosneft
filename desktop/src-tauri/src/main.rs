@@ -55,8 +55,13 @@ fn main() {
             let cache_dir = app.path().app_cache_dir()?;
 
             let jar = std::sync::Arc::new(reqwest::cookie::Jar::default());
+            // Released by the restore closure below, whatever it finds. Until
+            // then every gateway-bound request waits on it — see
+            // `proxy::await_restore` for why that beats letting them 401.
+            let (restored_tx, restored) = tokio::sync::watch::channel(false);
             let state = Arc::new(state::AppState {
                 app: Some(app.handle().clone()),
+                restored,
                 upstream: upstream.clone(),
                 http: reqwest::Client::builder()
                     .cookie_provider(jar.clone())
@@ -74,33 +79,46 @@ fn main() {
             // means no server and no window until a human clicks the prompt
             // — worse than the white-screen failure this shell was built to
             // avoid. So it runs off the critical path: `server::spawn` and
-            // the window below do not wait for it. A request that arrives
-            // before it lands simply has no session, gets a 401, and the
-            // SPA's existing guard bounces to /login.
+            // the window below do not wait for it.
+            //
+            // Requests do, though. Letting a request that arrives first go out
+            // with no session was the plan once, and it is what made the app
+            // look amnesiac: `/api/auth/me` took a 401 while the dialog was
+            // still on screen, and the SPA dropped its session marker and went
+            // to /login. `proxy::await_restore` holds those requests instead —
+            // the window is already up, so the wait reads as a spinner behind a
+            // dialog the user is answering anyway.
             {
                 let state = state.clone();
                 let jar = jar.clone();
                 let upstream = upstream.clone();
                 tauri::async_runtime::spawn_blocking(move || {
-                    let Some(stored) = session::load() else {
-                        return;
-                    };
-                    jar.add_cookie_str(
-                        &format!("{}={}; Path=/", state::SESSION_COOKIE, stored.token),
-                        &upstream,
-                    );
-                    *state.session.lock().unwrap() = Some(stored);
+                    match session::load() {
+                        Some(stored) => {
+                            jar.add_cookie_str(
+                                &format!("{}={}; Path=/", state::SESSION_COOKIE, stored.token),
+                                &upstream,
+                            );
+                            *state.session.lock().unwrap() = Some(stored);
+                            log::info!("session restored from the keychain");
 
-                    // Startup is the only moment nothing can be mid-download,
-                    // so everything left in tmp/ was orphaned by a hard kill
-                    // — the one case the `TempFile` Drop guard in cache.rs
-                    // cannot cover. Moved here (from a plain `setup()` check)
-                    // because the cache root needs the session this closure
-                    // just loaded.
-                    if let Some(root) = state.user_cache_root() {
-                        let _ = evict::enforce_cap(&paths::blobs(&root), evict::CAP_BYTES);
-                        let _ = std::fs::remove_dir_all(paths::tmp(&root));
+                            // Startup is the only moment nothing can be
+                            // mid-download, so everything left in tmp/ was
+                            // orphaned by a hard kill — the one case the
+                            // `TempFile` Drop guard in cache.rs cannot cover.
+                            // Moved here (from a plain `setup()` check) because
+                            // the cache root needs the session just loaded.
+                            if let Some(root) = state.user_cache_root() {
+                                let _ = evict::enforce_cap(&paths::blobs(&root), evict::CAP_BYTES);
+                                let _ = std::fs::remove_dir_all(paths::tmp(&root));
+                            }
+                        }
+                        None => log::info!("no stored session; the app will ask for a login"),
                     }
+                    // Releases every request waiting on the read, found or not.
+                    // Must run on both paths, or a first launch with nothing
+                    // stored would stall every call for the whole budget.
+                    let _ = restored_tx.send(true);
                 });
             }
 
