@@ -592,6 +592,94 @@ func (x *FinishLoginResponse) GetUserId() string {
 	return ""
 }
 
+type CredentialedUsersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserIds       []string               `protobuf:"bytes,1,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CredentialedUsersRequest) Reset() {
+	*x = CredentialedUsersRequest{}
+	mi := &file_rosneft_passkey_v1_passkey_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CredentialedUsersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CredentialedUsersRequest) ProtoMessage() {}
+
+func (x *CredentialedUsersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_passkey_v1_passkey_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CredentialedUsersRequest.ProtoReflect.Descriptor instead.
+func (*CredentialedUsersRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_passkey_v1_passkey_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *CredentialedUsersRequest) GetUserIds() []string {
+	if x != nil {
+		return x.UserIds
+	}
+	return nil
+}
+
+type CredentialedUsersResponse struct {
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	UserIdsWithCredentials []string               `protobuf:"bytes,1,rep,name=user_ids_with_credentials,json=userIdsWithCredentials,proto3" json:"user_ids_with_credentials,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *CredentialedUsersResponse) Reset() {
+	*x = CredentialedUsersResponse{}
+	mi := &file_rosneft_passkey_v1_passkey_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CredentialedUsersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CredentialedUsersResponse) ProtoMessage() {}
+
+func (x *CredentialedUsersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_passkey_v1_passkey_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CredentialedUsersResponse.ProtoReflect.Descriptor instead.
+func (*CredentialedUsersResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_passkey_v1_passkey_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *CredentialedUsersResponse) GetUserIdsWithCredentials() []string {
+	if x != nil {
+		return x.UserIdsWithCredentials
+	}
+	return nil
+}
+
 type Credential struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"` // base64url credential id
@@ -604,7 +692,7 @@ type Credential struct {
 
 func (x *Credential) Reset() {
 	*x = Credential{}
-	mi := &file_rosneft_passkey_v1_passkey_proto_msgTypes[12]
+	mi := &file_rosneft_passkey_v1_passkey_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -616,7 +704,7 @@ func (x *Credential) String() string {
 func (*Credential) ProtoMessage() {}
 
 func (x *Credential) ProtoReflect() protoreflect.Message {
-	mi := &file_rosneft_passkey_v1_passkey_proto_msgTypes[12]
+	mi := &file_rosneft_passkey_v1_passkey_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -629,7 +717,7 @@ func (x *Credential) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Credential.ProtoReflect.Descriptor instead.
 func (*Credential) Descriptor() ([]byte, []int) {
-	return file_rosneft_passkey_v1_passkey_proto_rawDescGZIP(), []int{12}
+	return file_rosneft_passkey_v1_passkey_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *Credential) GetId() string {
@@ -695,7 +783,11 @@ const file_rosneft_passkey_v1_passkey_proto_rawDesc = "" +
 	"\aflow_id\x18\x01 \x01(\tR\x06flowId\x12%\n" +
 	"\x0eassertion_json\x18\x02 \x01(\tR\rassertionJson\".\n" +
 	"\x13FinishLoginResponse\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"q\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"5\n" +
+	"\x18CredentialedUsersRequest\x12\x19\n" +
+	"\buser_ids\x18\x01 \x03(\tR\auserIds\"V\n" +
+	"\x19CredentialedUsersResponse\x129\n" +
+	"\x19user_ids_with_credentials\x18\x01 \x03(\tR\x16userIdsWithCredentials\"q\n" +
 	"\n" +
 	"Credential\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
@@ -703,7 +795,7 @@ const file_rosneft_passkey_v1_passkey_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x03 \x01(\tR\tcreatedAt\x12 \n" +
 	"\flast_used_at\x18\x04 \x01(\tR\n" +
-	"lastUsedAt2\x8f\x05\n" +
+	"lastUsedAt2\x81\x06\n" +
 	"\x0ePasskeyService\x12p\n" +
 	"\x11BeginRegistration\x12,.rosneft.passkey.v1.BeginRegistrationRequest\x1a-.rosneft.passkey.v1.BeginRegistrationResponse\x12s\n" +
 	"\x12FinishRegistration\x12-.rosneft.passkey.v1.FinishRegistrationRequest\x1a..rosneft.passkey.v1.FinishRegistrationResponse\x12j\n" +
@@ -711,7 +803,8 @@ const file_rosneft_passkey_v1_passkey_proto_rawDesc = "" +
 	"\x10DeleteCredential\x12+.rosneft.passkey.v1.DeleteCredentialRequest\x1a,.rosneft.passkey.v1.DeleteCredentialResponse\x12[\n" +
 	"\n" +
 	"BeginLogin\x12%.rosneft.passkey.v1.BeginLoginRequest\x1a&.rosneft.passkey.v1.BeginLoginResponse\x12^\n" +
-	"\vFinishLogin\x12&.rosneft.passkey.v1.FinishLoginRequest\x1a'.rosneft.passkey.v1.FinishLoginResponseBPZNgithub.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/passkey/v1;passkeyv1b\x06proto3"
+	"\vFinishLogin\x12&.rosneft.passkey.v1.FinishLoginRequest\x1a'.rosneft.passkey.v1.FinishLoginResponse\x12p\n" +
+	"\x11CredentialedUsers\x12,.rosneft.passkey.v1.CredentialedUsersRequest\x1a-.rosneft.passkey.v1.CredentialedUsersResponseBPZNgithub.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/passkey/v1;passkeyv1b\x06proto3"
 
 var (
 	file_rosneft_passkey_v1_passkey_proto_rawDescOnce sync.Once
@@ -725,7 +818,7 @@ func file_rosneft_passkey_v1_passkey_proto_rawDescGZIP() []byte {
 	return file_rosneft_passkey_v1_passkey_proto_rawDescData
 }
 
-var file_rosneft_passkey_v1_passkey_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_rosneft_passkey_v1_passkey_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_rosneft_passkey_v1_passkey_proto_goTypes = []any{
 	(*BeginRegistrationRequest)(nil),   // 0: rosneft.passkey.v1.BeginRegistrationRequest
 	(*BeginRegistrationResponse)(nil),  // 1: rosneft.passkey.v1.BeginRegistrationResponse
@@ -739,25 +832,29 @@ var file_rosneft_passkey_v1_passkey_proto_goTypes = []any{
 	(*BeginLoginResponse)(nil),         // 9: rosneft.passkey.v1.BeginLoginResponse
 	(*FinishLoginRequest)(nil),         // 10: rosneft.passkey.v1.FinishLoginRequest
 	(*FinishLoginResponse)(nil),        // 11: rosneft.passkey.v1.FinishLoginResponse
-	(*Credential)(nil),                 // 12: rosneft.passkey.v1.Credential
+	(*CredentialedUsersRequest)(nil),   // 12: rosneft.passkey.v1.CredentialedUsersRequest
+	(*CredentialedUsersResponse)(nil),  // 13: rosneft.passkey.v1.CredentialedUsersResponse
+	(*Credential)(nil),                 // 14: rosneft.passkey.v1.Credential
 }
 var file_rosneft_passkey_v1_passkey_proto_depIdxs = []int32{
-	12, // 0: rosneft.passkey.v1.FinishRegistrationResponse.credential:type_name -> rosneft.passkey.v1.Credential
-	12, // 1: rosneft.passkey.v1.ListCredentialsResponse.credentials:type_name -> rosneft.passkey.v1.Credential
+	14, // 0: rosneft.passkey.v1.FinishRegistrationResponse.credential:type_name -> rosneft.passkey.v1.Credential
+	14, // 1: rosneft.passkey.v1.ListCredentialsResponse.credentials:type_name -> rosneft.passkey.v1.Credential
 	0,  // 2: rosneft.passkey.v1.PasskeyService.BeginRegistration:input_type -> rosneft.passkey.v1.BeginRegistrationRequest
 	2,  // 3: rosneft.passkey.v1.PasskeyService.FinishRegistration:input_type -> rosneft.passkey.v1.FinishRegistrationRequest
 	4,  // 4: rosneft.passkey.v1.PasskeyService.ListCredentials:input_type -> rosneft.passkey.v1.ListCredentialsRequest
 	6,  // 5: rosneft.passkey.v1.PasskeyService.DeleteCredential:input_type -> rosneft.passkey.v1.DeleteCredentialRequest
 	8,  // 6: rosneft.passkey.v1.PasskeyService.BeginLogin:input_type -> rosneft.passkey.v1.BeginLoginRequest
 	10, // 7: rosneft.passkey.v1.PasskeyService.FinishLogin:input_type -> rosneft.passkey.v1.FinishLoginRequest
-	1,  // 8: rosneft.passkey.v1.PasskeyService.BeginRegistration:output_type -> rosneft.passkey.v1.BeginRegistrationResponse
-	3,  // 9: rosneft.passkey.v1.PasskeyService.FinishRegistration:output_type -> rosneft.passkey.v1.FinishRegistrationResponse
-	5,  // 10: rosneft.passkey.v1.PasskeyService.ListCredentials:output_type -> rosneft.passkey.v1.ListCredentialsResponse
-	7,  // 11: rosneft.passkey.v1.PasskeyService.DeleteCredential:output_type -> rosneft.passkey.v1.DeleteCredentialResponse
-	9,  // 12: rosneft.passkey.v1.PasskeyService.BeginLogin:output_type -> rosneft.passkey.v1.BeginLoginResponse
-	11, // 13: rosneft.passkey.v1.PasskeyService.FinishLogin:output_type -> rosneft.passkey.v1.FinishLoginResponse
-	8,  // [8:14] is the sub-list for method output_type
-	2,  // [2:8] is the sub-list for method input_type
+	12, // 8: rosneft.passkey.v1.PasskeyService.CredentialedUsers:input_type -> rosneft.passkey.v1.CredentialedUsersRequest
+	1,  // 9: rosneft.passkey.v1.PasskeyService.BeginRegistration:output_type -> rosneft.passkey.v1.BeginRegistrationResponse
+	3,  // 10: rosneft.passkey.v1.PasskeyService.FinishRegistration:output_type -> rosneft.passkey.v1.FinishRegistrationResponse
+	5,  // 11: rosneft.passkey.v1.PasskeyService.ListCredentials:output_type -> rosneft.passkey.v1.ListCredentialsResponse
+	7,  // 12: rosneft.passkey.v1.PasskeyService.DeleteCredential:output_type -> rosneft.passkey.v1.DeleteCredentialResponse
+	9,  // 13: rosneft.passkey.v1.PasskeyService.BeginLogin:output_type -> rosneft.passkey.v1.BeginLoginResponse
+	11, // 14: rosneft.passkey.v1.PasskeyService.FinishLogin:output_type -> rosneft.passkey.v1.FinishLoginResponse
+	13, // 15: rosneft.passkey.v1.PasskeyService.CredentialedUsers:output_type -> rosneft.passkey.v1.CredentialedUsersResponse
+	9,  // [9:16] is the sub-list for method output_type
+	2,  // [2:9] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name
 	2,  // [2:2] is the sub-list for extension extendee
 	0,  // [0:2] is the sub-list for field type_name
@@ -774,7 +871,7 @@ func file_rosneft_passkey_v1_passkey_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rosneft_passkey_v1_passkey_proto_rawDesc), len(file_rosneft_passkey_v1_passkey_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

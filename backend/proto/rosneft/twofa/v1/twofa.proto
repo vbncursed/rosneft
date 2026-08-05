@@ -17,6 +17,11 @@ service TwoFAService {
 
   // Internal surface (called by auth-service during login).
   rpc IsEnabled(IsEnabledRequest) returns (IsEnabledResponse);
+  // EnabledFor is the batch form of IsEnabled: the admin user list needs an
+  // answer per user and must not cost a round trip per user. Ids absent from
+  // the response are off — unenrolled and enrolled-but-disabled are the same
+  // answer to the caller, so no per-id tri-state is needed here.
+  rpc EnabledFor(EnabledForRequest) returns (EnabledForResponse);
   rpc Verify(VerifyRequest) returns (VerifyResponse);
 }
 
@@ -43,6 +48,8 @@ message RegenerateResponse { repeated string recovery_codes = 1; }
 
 message IsEnabledRequest { string user_id = 1; }
 message IsEnabledResponse { bool enabled = 1; }
+message EnabledForRequest { repeated string user_ids = 1; }
+message EnabledForResponse { repeated string enabled_user_ids = 1; }
 message VerifyRequest {
   string user_id = 1;
   string code = 2;
