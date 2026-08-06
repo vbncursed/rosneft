@@ -96,8 +96,6 @@ two.
 ```sql
 -- +goose Up
 -- +goose StatementBegin
--- The ::text casts are load-bearing: email is CITEXT, so `email <> lower(email)`
--- is never true and an uncast UPDATE silently touches zero rows.
 UPDATE users SET email = lower(email::text)
 WHERE email::text <> lower(email::text);
 -- +goose StatementEnd
@@ -108,12 +106,27 @@ SELECT 1;  -- irreversible: the original casing is gone
 -- +goose StatementEnd
 ```
 
-The `WHERE` clause is an audit constraint, not an optimization. `users` carries
-the `audit_capture()` trigger, and email is not in the trigger's ignore list
-(`updated_at`, `onboarding_tours_seen`, `rescale_baseline_max`), so an
-unfiltered UPDATE would file one journal entry per user attributed to nobody —
-the migration runs outside `audittx.Run`, so no actor is published. With the
-filter, only genuinely mixed-case rows are touched: one row on production.
+**Correction, verified against a live database during implementation.** An
+earlier draft of this spec claimed the `::text` casts were load-bearing —
+that `email <> lower(email)` would be evaluated case-insensitively on a CITEXT
+column and silently update zero rows. That is wrong. There is no
+`lower(citext)` overload, so `lower(email)` resolves to `lower(text)` through
+citext's implicit cast and returns `text`, which makes the predicate
+case-sensitive. The uncast form works. Measured on the compose database: uncast
+`UPDATE 1`, cast `UPDATE 1`, both idempotent on re-run.
+
+The casts stay anyway, for a smaller and honest reason: the resolution chain is
+subtle enough that a reader can reasonably misread the predicate as
+case-insensitive, and it would invert into an always-false predicate if a
+`lower(citext)` overload ever appeared. Explicit costs nothing.
+
+The `WHERE` clause is an audit constraint, not an optimization, and this part
+did hold up. `users` carries the `audit_capture()` trigger, and email is not in
+the trigger's ignore list (`updated_at`, `onboarding_tours_seen`,
+`rescale_baseline_max`) — confirmed by observing a `user.update` row appear for
+each changed user. Without the filter every user would be journalled, attributed
+to nobody, since the migration runs outside `audittx.Run`. With it, only
+genuinely mixed-case rows are touched: one row on production.
 
 ### 5. Frontend
 

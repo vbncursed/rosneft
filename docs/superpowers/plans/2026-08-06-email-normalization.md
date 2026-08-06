@@ -376,14 +376,19 @@ Create `backend/services/auth-service/internal/migrate/migrations/00014_lowercas
 ```sql
 -- +goose Up
 -- +goose StatementBegin
--- The ::text casts are load-bearing. users.email is CITEXT, so the comparison
--- `email <> lower(email)` is evaluated case-insensitively and is never true —
--- an uncast UPDATE reports success and touches zero rows.
+-- The ::text casts are explicit on purpose, though not strictly required today.
+-- users.email is CITEXT, which compares case-insensitively — but there is no
+-- lower(citext) overload, so `lower(email)` resolves to lower(text) via the
+-- implicit cast and yields text, making the predicate case-sensitive after all.
+-- That is a subtle chain to rely on silently, and it would invert into an
+-- always-false predicate if a lower(citext) overload ever appeared. Spelling
+-- the casts out costs nothing and says what the comparison means.
 --
 -- The WHERE clause is an audit constraint, not an optimization. users carries
--- the audit_capture() trigger and email is not in its ignore list, so an
--- unfiltered UPDATE would file one journal entry per user. This migration runs
--- outside audittx.Run, so those entries would carry no actor.
+-- the audit_capture() trigger and email is not in its ignore list — verified:
+-- the statement files a user.update entry per changed row — so an unfiltered
+-- UPDATE would journal every user in the table. This migration runs outside
+-- audittx.Run, so those entries would carry no actor.
 UPDATE users SET email = lower(email::text)
 WHERE email::text <> lower(email::text);
 -- +goose StatementEnd
@@ -396,7 +401,9 @@ SELECT 1;  -- irreversible: the original casing is not recoverable
 
 - [ ] **Step 3: Verify the cast against a live database**
 
-This is the step that proves the citext trap is handled. It needs the compose stack up (`make -C backend compose-up`).
+**Corrected during execution.** This step was written to prove a "citext trap" — the belief that `email <> lower(email)` is evaluated case-insensitively on a CITEXT column and updates zero rows. Running it disproved that: there is no `lower(citext)` overload, so `lower(email)` resolves to `lower(text)` through citext's implicit cast and returns `text`, making the predicate case-sensitive. Both forms work. The casts stay for readability and overload-resolution safety, not necessity. Steps 3 and 4 below are rewritten to what was actually run.
+
+It needs the compose stack up (`make -C backend compose-up`).
 
 Insert a mixed-case probe row, run the migration's exact statement, and confirm it moved:
 
@@ -422,22 +429,28 @@ docker compose exec -T postgres psql -U andrey -d andrey -c \
 
 Expected: `probe.case@example.com`.
 
-- [ ] **Step 4: Verify the uncast form does nothing (the trap)**
+- [ ] **Step 4: Establish why the predicate is case-sensitive, and confirm the audit trigger fires**
 
-Re-insert the probe and run the naive version, to see the failure mode the casts exist to avoid:
+The comparison's behaviour rests on overload resolution, so check it directly rather than inferring it:
 
 ```bash
 docker compose exec -T postgres psql -U andrey -d andrey -c \
-  "INSERT INTO users (email, username, password_hash) VALUES ('Probe.Case@Example.COM', 'probecase', 'x');"
-
-docker compose exec -T postgres psql -U andrey -d andrey -c \
-  "UPDATE users SET email = lower(email) WHERE email <> lower(email);"
-
-docker compose exec -T postgres psql -U andrey -d andrey -c \
-  "DELETE FROM users WHERE username = 'probecase';"
+  "SELECT pg_typeof(lower('Ab'::citext)) AS lower_result,
+          'Ab'::citext <> lower('Ab'::citext) AS uncast_predicate,
+          'Ab'::citext <> 'ab'::citext AS citext_vs_citext;"
 ```
 
-Expected: `UPDATE 0` — the naive statement succeeds and changes nothing. Record this in the commit message; it is the reason the migration looks the way it does.
+Expected: `lower_result = text`, `uncast_predicate = t`, `citext_vs_citext = f`. The third column is the case-insensitive comparison the trap theory assumed the first two would inherit; they do not, because `lower()` has left citext behind.
+
+Then confirm the backfill is journalled, which is what the `WHERE` clause exists to bound:
+
+```bash
+docker compose exec -T postgres psql -U andrey -d andrey -c \
+  "SELECT action, entity, entity_label FROM audit_log
+   WHERE entity_label ILIKE '%probe.case%' ORDER BY id DESC LIMIT 3;"
+```
+
+Expected: a `user.update` row for the changed email. That is one journal entry per changed user, which is why the statement must not run unfiltered.
 
 - [ ] **Step 5: Verify goose applies it on boot**
 
@@ -454,10 +467,10 @@ Expected: goose logs the `00014_lowercase_emails.sql` migration applied, and the
 git add backend/services/auth-service/internal/migrate/migrations/00014_lowercase_emails.sql
 git commit -m "feat(auth): backfill existing emails to lower case
 
-The ::text casts are required: email is CITEXT, so the uncast predicate
-\`email <> lower(email)\` is never true and the statement silently updates zero
-rows. Verified both forms against the compose database — cast: UPDATE 1,
-uncast: UPDATE 0."
+The ::text casts are explicit rather than necessary. email is CITEXT, but
+lower() has no citext overload, so lower(email) resolves to lower(text) and
+returns text — the predicate is case-sensitive either way. Verified on the
+compose database: both forms UPDATE 1, both idempotent on re-run."
 ```
 
 ---
@@ -672,9 +685,11 @@ Includes a defect found during analysis: `Login` keyed brute-force throttling on
 the raw identifier, so case variants of one address got independent attempt
 counters against the same account.
 
-The backfill migration's `::text` casts are required — `email <> lower(email)`
-is evaluated case-insensitively on a CITEXT column and is never true, so the
-uncast statement reports success and updates zero rows.
+The backfill migration's `::text` casts are explicit rather than required.
+`email` is CITEXT, but `lower()` has no citext overload, so `lower(email)`
+resolves to `lower(text)` and returns text — the predicate is case-sensitive
+either way. The casts stay because that resolution chain is easy to misread and
+would invert if a `lower(citext)` overload ever appeared.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 EOF
