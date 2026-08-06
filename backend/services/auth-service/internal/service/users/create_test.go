@@ -40,3 +40,18 @@ func (s *UsersSuite) TestCreateFoldsBeforeValidating() {
 	_, err := s.svc.Create(s.ctx, "admin", "  "+atCeiling+"  ", "ernest", "Passw0rd!", nil)
 	assert.NilError(s.T(), err)
 }
+
+// A padded username must be trimmed on the way in. Login folds the identifier,
+// and citext ignores case but not whitespace — so a stored " ivan " could never
+// be matched by the folded "ivan", leaving the account impossible to log into.
+func (s *UsersSuite) TestCreateTrimsUsername() {
+	var got string
+	s.st.CreateMock.Set(func(_ context.Context, u domain.User) (domain.User, error) {
+		got = u.Username
+		return domain.User{ID: "u1", Username: u.Username}, nil
+	})
+
+	_, err := s.svc.Create(s.ctx, "admin", "ernest@gmail.com", "  Ernest  ", "Passw0rd!", nil)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), got, "Ernest")
+}

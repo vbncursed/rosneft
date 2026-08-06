@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/password"
@@ -13,6 +14,10 @@ import (
 // the actor as its creator (created_by).
 func (s *Service) Create(ctx context.Context, actorID, email, username, plain string, roleSlugs []string) (domain.User, error) {
 	email = domain.Fold(email)
+	// Username keeps its case — it is a display name — but not its padding.
+	// Login folds the identifier, and citext ignores case, not whitespace, so a
+	// stored " ivan " could never be matched by the folded "ivan".
+	username = strings.TrimSpace(username)
 	if err := validate.Username(username); err != nil {
 		return domain.User{}, err
 	}
