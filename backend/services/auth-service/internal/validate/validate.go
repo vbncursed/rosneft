@@ -5,6 +5,7 @@ package validate
 import (
 	"fmt"
 	"net/mail"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -36,10 +37,18 @@ func TourID(s string) error {
 	return nil
 }
 
-// Username requires 3–50 characters.
+// Username requires 3–50 characters and no whitespace: a username is one word.
+//
+// The whitespace rule is enforced here, not only in the form, because the API
+// is reachable without the frontend. Interior whitespace is the case that only
+// this check can catch — Create trims the edges before calling it, so a padded
+// name arrives already stripped.
 func Username(s string) error {
 	if n := utf8.RuneCountInString(s); n < usernameMin || n > usernameMax {
 		return fmt.Errorf("validate: %w: username must be %d–%d characters", domain.ErrInvalidInput, usernameMin, usernameMax)
+	}
+	if strings.ContainsFunc(s, unicode.IsSpace) {
+		return fmt.Errorf("validate: %w: username must be one word, without spaces", domain.ErrInvalidInput)
 	}
 	return nil
 }

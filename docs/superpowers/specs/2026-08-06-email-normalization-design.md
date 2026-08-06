@@ -168,8 +168,20 @@ Existing test conventions apply: `testify/suite` for grouping,
   paths are covered in Go and live in one service; the constraint would turn a
   future miss into a failed insert rather than a silent correction, at the cost
   of another migration.
-- **Username normalization** — username is a display name where casing is
+- **Username *case* normalization** — username is a display name where casing is
   meaningful; uniqueness and login are already case-insensitive via citext.
+
+  **But username *padding* had to come into scope**, discovered after the first
+  two PRs merged. `validate.Username` checks length only, so `"  ivan  "` is a
+  legal username. Folding the login identifier trims it to `"ivan"`, and citext
+  compares case-insensitively but not whitespace-insensitively — so a padded
+  username became impossible to log in with, an account-locking regression this
+  work introduced. `Create` and `EnsureBootstrapAdmin` now trim the username
+  (without lower-casing it), and migration `00015_trim_credentials.sql` trims
+  both columns for existing rows — `00014` lower-cased email but never trimmed
+  it, leaving a shape `Fold` would never produce. Verified on a live database:
+  after 00014 a padded address is `[  padded@example.com  ]`; after 00015 it is
+  `[padded@example.com]` with the username `[PadUser]` intact.
 - **`credential-rules.ts`** — the input can no longer hold an upper-case
   character, so a validation rule would never fire.
 - **Post-creation email edit** — does not exist today and this feature does not
