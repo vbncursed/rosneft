@@ -34,6 +34,14 @@ func (s *ValidateSuite) TestUsername() {
 		{"min", "abc", true},
 		{"max", strings.Repeat("a", 50), true},
 		{"too long", strings.Repeat("a", 51), false},
+		// A username is one word. Interior whitespace is the case the frontend
+		// cannot be trusted to enforce, since the API is reachable without it.
+		{"interior space", "Ivan Petrov", false},
+		{"interior tab", "ivan\tpetrov", false},
+		{"interior newline", "ivan\npetrov", false},
+		{"leading space", " ivan", false},
+		{"trailing space", "ivan ", false},
+		{"non-breaking space", "ivan petrov", false},
 	}
 	for _, c := range cases {
 		s.check(c.name, validate.Username(c.in), c.ok)
