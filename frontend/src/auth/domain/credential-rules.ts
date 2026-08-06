@@ -7,6 +7,18 @@ const PASSWORD_MIN = 8;
 const PASSWORD_MAX = 256;
 const EMAIL_MAX = 254;
 
+// Credentials carry no whitespace: a username is one word and an email cannot
+// hold a space. Applying this on every keystroke is what makes a pasted
+// "  ErnuS  " land as "ErnuS" — the padded form reaches the database otherwise,
+// and login folds the identifier, so citext (case-insensitive, not
+// whitespace-insensitive) could never match it again.
+//
+// Passwords are deliberately excluded: a space is a legal password character,
+// and stripping it would silently change what the user typed.
+export function stripSpaces(v: string): string {
+  return v.replace(/\s/g, "");
+}
+
 export function validateUsername(v: string): string | null {
   const n = [...v].length;
   if (n < USERNAME_MIN || n > USERNAME_MAX) {

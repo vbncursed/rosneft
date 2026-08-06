@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -21,6 +22,7 @@ import (
 	rolestore "github.com/vbncursed/rosneft/backend/services/auth-service/internal/storage/roles"
 	userstore "github.com/vbncursed/rosneft/backend/services/auth-service/internal/storage/users"
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/transport/grpcapi"
+	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/validate"
 )
 
 // InitService wires storage → session → services → gRPC handler. Returns the
@@ -60,12 +62,21 @@ func EnsureBootstrapAdmin(ctx context.Context, store *userstore.Store, cfg confi
 	if n > 0 {
 		return nil
 	}
+	// This is the second path that writes a username, and it does not go through
+	// the users service — so the one-word rule has to be applied here too, or a
+	// fresh install can seed an admin the API would refuse to create. Checked
+	// after the "admin exists" return on purpose: a stale env var on a running
+	// system is unused, and must not block startup.
+	username := strings.TrimSpace(cfg.BootstrapUsername)
+	if err := validate.Username(username); err != nil {
+		return fmt.Errorf("bootstrap admin: %w", err)
+	}
 	hash, err := password.Hash(cfg.BootstrapPassword)
 	if err != nil {
 		return fmt.Errorf("bootstrap admin: hash: %w", err)
 	}
 	_, err = store.Create(ctx, domain.User{
-		Email: domain.Fold(cfg.BootstrapEmail), Username: cfg.BootstrapUsername,
+		Email: domain.Fold(cfg.BootstrapEmail), Username: username,
 		PasswordHash: hash, RoleSlugs: []string{"admin"}, IsOwner: true,
 	})
 	if err != nil && !errors.Is(err, domain.ErrEmailTaken) && !errors.Is(err, domain.ErrUsernameTaken) {

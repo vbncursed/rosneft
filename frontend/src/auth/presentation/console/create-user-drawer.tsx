@@ -5,7 +5,7 @@ import type { Role } from "@/auth/domain/role";
 import { canGrant } from "@/auth/domain/principal";
 import { useCurrentUser } from "@/auth/presentation/current-user-context";
 import { createUser } from "@/auth/infrastructure/auth-admin-gateway";
-import { validateUsername, validateEmail, validatePassword, generatePassword } from "@/auth/domain/credential-rules";
+import { validateUsername, validateEmail, validatePassword, generatePassword, stripSpaces } from "@/auth/domain/credential-rules";
 import { notify } from "@/shared/application/toast/notify";
 import MotionModal from "@/shared/presentation/motion/motion-modal";
 
@@ -45,8 +45,8 @@ export default function CreateUserDrawer({ roles, onClose, onCreated }: { roles:
     <MotionModal open onClose={onClose} className="mx-4 flex w-full max-w-md flex-col gap-4 rounded-2xl border border-white/15 bg-[#0c0d10]/95 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
       <form onSubmit={submit} className="contents">
         <p className="text-xs uppercase tracking-[0.36em] text-cyan-300/80">New user</p>
-        <Field label="Email" value={email} onChange={(v) => setEmail(v.toLowerCase())} required error={email ? emailErr : null} />
-        <Field label="Username" value={username} onChange={setUsername} required error={username ? usernameErr : null} />
+        <Field label="Email" value={email} onChange={(v) => setEmail(stripSpaces(v).toLowerCase())} required error={email ? emailErr : null} />
+        <Field label="Username" value={username} onChange={(v) => setUsername(stripSpaces(v))} required error={username ? usernameErr : null} />
         <PasswordField label="Password" value={password} onChange={setPassword} required autoComplete="new-password"
           error={password ? passwordErr : null} onGenerate={() => setPassword(generatePassword())} />
         <div>
