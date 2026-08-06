@@ -16,6 +16,13 @@ func (s *Service) Login(ctx context.Context, identifier, plain string) (string, 
 	if identifier == "" || plain == "" {
 		return "", "", fmt.Errorf("auth.Login: %w: identifier and password required", domain.ErrInvalidInput)
 	}
+	// Fold once: the session store keys throttling on this string, and an
+	// unfolded key gives every case variant its own attempt counter against the
+	// same account. GetByIdentifier compares through citext and would match
+	// either way — folding it too keeps one variable rather than two, and makes
+	// a whitespace-padded paste resolve.
+	identifier = domain.Fold(identifier)
+
 	locked, err := s.sessions.IsLocked(ctx, identifier)
 	if err != nil {
 		return "", "", err
