@@ -42,28 +42,57 @@ beforeAll(() => {
 
 afterEach(cleanup);
 
-function emailInput() {
+// Field renders <label> as a sibling, not wrapping the input and with no
+// htmlFor, so getByLabelText cannot reach either one. Email is the first
+// textbox in the form, Username the second.
+function fields() {
   render(<CreateUserDrawer roles={[]} onClose={() => {}} onCreated={() => {}} />);
-  // Field renders <label> as a sibling, not wrapping the input and with no
-  // htmlFor, so getByLabelText cannot reach it — the Email field is the first
-  // textbox in the form.
-  return screen.getAllByRole("textbox")[0] as HTMLInputElement;
+  const boxes = screen.getAllByRole("textbox") as HTMLInputElement[];
+  return { email: boxes[0], username: boxes[1] };
 }
 
 describe("CreateUserDrawer email field", () => {
   it("lower-cases an upper-case address as it is typed", () => {
-    const input = emailInput();
+    const { email } = fields();
 
-    fireEvent.change(input, { target: { value: "Ernest.Sayapov@Gmail.COM" } });
+    fireEvent.change(email, { target: { value: "Ernest.Sayapov@Gmail.COM" } });
 
-    expect(input.value).toBe("ernest.sayapov@gmail.com");
+    expect(email.value).toBe("ernest.sayapov@gmail.com");
   });
 
   it("leaves an already lower-case address alone", () => {
-    const input = emailInput();
+    const { email } = fields();
 
-    fireEvent.change(input, { target: { value: "ernest@gmail.com" } });
+    fireEvent.change(email, { target: { value: "ernest@gmail.com" } });
 
-    expect(input.value).toBe("ernest@gmail.com");
+    expect(email.value).toBe("ernest@gmail.com");
+  });
+
+  it("drops whitespace from a padded paste", () => {
+    const { email } = fields();
+
+    fireEvent.change(email, { target: { value: "  Ernest@Gmail.com  " } });
+
+    expect(email.value).toBe("ernest@gmail.com");
+  });
+});
+
+describe("CreateUserDrawer username field", () => {
+  // A padded username used to reach the database intact and, once login started
+  // folding the identifier, could never be matched again.
+  it("drops whitespace but keeps the case", () => {
+    const { username } = fields();
+
+    fireEvent.change(username, { target: { value: "  ErnuS  " } });
+
+    expect(username.value).toBe("ErnuS");
+  });
+
+  it("refuses an interior space — a username is one word", () => {
+    const { username } = fields();
+
+    fireEvent.change(username, { target: { value: "Ivan Petrov" } });
+
+    expect(username.value).toBe("IvanPetrov");
   });
 });

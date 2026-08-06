@@ -4,6 +4,7 @@ import OtpInput from "@/shared/presentation/components/otp-input";
 import { login, verifyTwoFactor } from "@/auth/infrastructure/auth-login";
 import { loginBegin, loginFinish } from "@/auth/infrastructure/passkey-gateway";
 import { getAssertion, isPasskeyCancelled, isPasskeySupported } from "@/auth/infrastructure/webauthn";
+import { stripSpaces } from "@/auth/domain/credential-rules";
 
 export default function LoginForm({ next }: { next: string }) {
   const canPasskey = isPasskeySupported();
@@ -72,7 +73,7 @@ export default function LoginForm({ next }: { next: string }) {
         <form className="mt-6 flex flex-col gap-4" onSubmit={submitCreds}>
           <div>
             <label className={label} htmlFor="id">Email or username</label>
-            <input id="id" autoFocus value={identifier} onChange={(e) => setIdentifier(e.target.value)} className={inputCls} />
+            <input id="id" autoFocus value={identifier} onChange={(e) => setIdentifier(stripSpaces(e.target.value))} className={inputCls} />
           </div>
           <PasswordField label="Password" value={password} onChange={setPassword} autoComplete="current-password" />
           <button type="submit" disabled={busy || !identifier || !password}
