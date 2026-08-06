@@ -13,15 +13,19 @@ import (
 // Login authenticates by email-or-username + password. Returns a session token
 // directly when 2FA is off, or a challenge token (token empty) when on.
 func (s *Service) Login(ctx context.Context, identifier, plain string) (string, string, error) {
+	// Fold once, and before the empty check rather than after it. The session
+	// store keys throttling on this string, and an unfolded key gives every case
+	// variant its own attempt counter against the same account. GetByIdentifier
+	// compares through citext and would match either way — folding it too keeps
+	// one variable rather than two, and makes a whitespace-padded paste resolve.
+	//
+	// Folding after the guard let a whitespace-only identifier past it and then
+	// keyed the throttle on "", so every such submission shared one bucket. The
+	// password is deliberately not folded: trimming a password changes it.
+	identifier = domain.Fold(identifier)
 	if identifier == "" || plain == "" {
 		return "", "", fmt.Errorf("auth.Login: %w: identifier and password required", domain.ErrInvalidInput)
 	}
-	// Fold once: the session store keys throttling on this string, and an
-	// unfolded key gives every case variant its own attempt counter against the
-	// same account. GetByIdentifier compares through citext and would match
-	// either way — folding it too keeps one variable rather than two, and makes
-	// a whitespace-padded paste resolve.
-	identifier = domain.Fold(identifier)
 
 	locked, err := s.sessions.IsLocked(ctx, identifier)
 	if err != nil {
