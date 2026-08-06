@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -65,7 +66,7 @@ func EnsureBootstrapAdmin(ctx context.Context, store *userstore.Store, cfg confi
 		return fmt.Errorf("bootstrap admin: hash: %w", err)
 	}
 	_, err = store.Create(ctx, domain.User{
-		Email: domain.Fold(cfg.BootstrapEmail), Username: cfg.BootstrapUsername,
+		Email: domain.Fold(cfg.BootstrapEmail), Username: strings.TrimSpace(cfg.BootstrapUsername),
 		PasswordHash: hash, RoleSlugs: []string{"admin"}, IsOwner: true,
 	})
 	if err != nil && !errors.Is(err, domain.ErrEmailTaken) && !errors.Is(err, domain.ErrUsernameTaken) {
