@@ -125,3 +125,13 @@ func (s *LoginSuite) TestLoginFoldsIdentifierOnFailure() {
 	_, _, err := s.svc.Login(s.ctx, "Ernest@Gmail.COM", "wrong")
 	assert.ErrorIs(s.T(), err, domain.ErrInvalidCredential)
 }
+
+// A whitespace-only identifier must be rejected as invalid input, not carried
+// into the session store. Folding after the empty check let "   " through the
+// guard and keyed the throttle on "", giving every such submission one shared
+// bucket. No mock expectation is set here on purpose: minimock fails the test
+// if Login reaches the session store at all.
+func (s *LoginSuite) TestLoginRejectsWhitespaceOnlyIdentifier() {
+	_, _, err := s.svc.Login(s.ctx, "   ", "pw")
+	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+}
