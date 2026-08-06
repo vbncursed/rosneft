@@ -93,3 +93,35 @@ func (s *LoginSuite) TestLogin2FARequired() {
 	assert.Equal(s.T(), token, "")
 	assert.Equal(s.T(), challenge, "chal1")
 }
+
+// Throttling is keyed on the identifier, so an unfolded key gives each case
+// variant its own attempt counter against the same account and multiplies the
+// brute-force budget. Every session call must see the folded form.
+func (s *LoginSuite) TestLoginFoldsIdentifier() {
+	hash, _ := password.Hash("pw")
+	u := domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash}
+
+	s.ss.IsLockedMock.Expect(s.ctx, "ernest@gmail.com").Return(false, nil)
+	s.us.GetByIdentifierMock.Expect(s.ctx, "ernest@gmail.com").Return(u, nil)
+	s.ss.ClearFailsMock.Expect(s.ctx, "ernest@gmail.com").Return(nil)
+	s.tf.IsEnabledMock.Expect(s.ctx, "u1").Return(false, nil)
+	s.ss.CreateMock.Return("tok123", nil)
+
+	token, _, err := s.svc.Login(s.ctx, "  Ernest@Gmail.COM ", "pw")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), token, "tok123")
+}
+
+// A failed attempt must register against the folded key too, or the counter it
+// increments is not the one the next attempt is checked against.
+func (s *LoginSuite) TestLoginFoldsIdentifierOnFailure() {
+	hash, _ := password.Hash("pw")
+	u := domain.User{ID: "u1", Status: domain.StatusActive, PasswordHash: hash}
+
+	s.ss.IsLockedMock.Expect(s.ctx, "ernest@gmail.com").Return(false, nil)
+	s.us.GetByIdentifierMock.Expect(s.ctx, "ernest@gmail.com").Return(u, nil)
+	s.ss.RegisterFailMock.Expect(s.ctx, "ernest@gmail.com").Return(nil)
+
+	_, _, err := s.svc.Login(s.ctx, "Ernest@Gmail.COM", "wrong")
+	assert.ErrorIs(s.T(), err, domain.ErrInvalidCredential)
+}
