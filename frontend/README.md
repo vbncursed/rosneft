@@ -56,6 +56,15 @@ any preview.
 unfurlers — so it names the production host even in the desktop shell, where
 nothing reads these tags.
 
+**robots.txt** (`public/robots.txt`) deliberately says `Allow: /`, not
+`Disallow: /`. Deindexing is done by the `X-Robots-Tag: noindex` header nginx
+sets on every response, and a crawler only sees that header on a URL it is
+allowed to fetch — disallowing the path hides the noindex and leaves a
+already-known URL in the index without a description. Cloudflare appends its
+own managed block (the AI-crawler blocks) beneath ours; that list lives in the
+Cloudflare dashboard, not in this repo. Before the file existed, `/robots.txt`
+fell through nginx's SPA fallback and answered 200 with the app's HTML shell.
+
 **Regenerating the preview card** (`public/og-card.png`, 1200x630) after editing
 `public/og-card.svg`:
 
