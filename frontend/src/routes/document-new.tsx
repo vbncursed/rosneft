@@ -5,6 +5,7 @@ import { requirePermission } from "@/routes/guard";
 import { sceneBundleQuery } from "@/territory/application/scene-bundle-query";
 import { HttpError } from "@/shared/infrastructure/http/http-error";
 import DocumentUploadForm from "@/document/presentation/components/document-upload-form";
+import { titleMeta } from "@/shared/presentation/page-title";
 
 function NewDocument() {
   const { slug } = documentNewRoute.useParams();
@@ -20,6 +21,7 @@ function NewDocument() {
 export const documentNewRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/territories/$slug/documents/new",
+  head: ({ params }) => titleMeta(`New document · ${params.slug}`),
   beforeLoad: ({ context, location }) =>
     requirePermission(context.queryClient, location, "document:write"),
   loader: async ({ context, params }) => {

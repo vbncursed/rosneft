@@ -5,6 +5,7 @@ import { meQuery } from "@/auth/application/me-query";
 import { can } from "@/auth/domain/principal";
 import { useCurrentUser } from "@/auth/presentation/current-user-context";
 import ConsoleSidebar from "@/auth/presentation/console/console-sidebar";
+import { titleMeta } from "@/shared/presentation/page-title";
 
 function ConsoleShell() {
   const me = useCurrentUser();
@@ -32,6 +33,7 @@ function ConsoleShell() {
 export const adminLayoutRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/admin",
+  head: () => titleMeta("Admin"),
   beforeLoad: async ({ context, location }) => {
     requireAuth(location);
     const me = await context.queryClient.ensureQueryData(meQuery);

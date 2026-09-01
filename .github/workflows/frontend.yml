@@ -1,0 +1,90 @@
+name: frontend
+
+# The frontend was only ever *built* by desktop.yml, as a prerequisite for the
+# Rust compile — never linted, never tested. So 200 node assertions, 293 vitest
+# tests and the 200-line architecture rule were enforced on developer machines
+# and nowhere else.
+
+on:
+  pull_request:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend.yml"
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: frontend
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      # `defaults.run.working-directory` above applies to `run` steps only,
+      # so every action still takes repo-root-relative paths.
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+
+      - run: yarn install --frozen-lockfile
+
+      # tsc --noEmit && oxlint. Both matter: oxlint does not typecheck, and tsc
+      # caught a missing router context in a spec that vitest ran happily.
+      - run: yarn lint
+
+      - run: yarn test       # node --test, pure domain logic
+      - run: yarn test:spa   # vitest + jsdom, components and integration
+
+      # Build last: it is the slowest and the least likely to be the thing that
+      # broke. .env.production pins VITE_API_URL empty; without it every API
+      # call in the bundle goes to `undefined/api/...` and nothing warns.
+      - run: yarn build
+
+      # yarn 1's audit exit code is a bitmask of every severity it found and it
+      # ignores both --level and --groups: `--level critical --groups
+      # dependencies` still exits 28 when the only findings are a moderate and
+      # a high in a dev-only package. Verified against a deliberately
+      # vulnerable fixture, not assumed. So the exit code is discarded and the
+      # decision is made from --json: high or critical, production
+      # dependencies only.
+      - name: audit production dependencies
+        run: |
+          set -uo pipefail
+          report="${RUNNER_TEMP:-/tmp}/yarn-audit.ndjson"
+          yarn audit --json --groups dependencies > "$report" || true
+          REPORT="$report" python3 - <<'PY'
+          import json, os, sys
+
+          blocking = set()
+          with open(os.environ["REPORT"]) as f:
+              for line in f:
+                  line = line.strip()
+                  if not line:
+                      continue
+                  try:
+                      entry = json.loads(line)
+                  except ValueError:
+                      continue
+                  if entry.get("type") != "auditAdvisory":
+                      continue
+                  a = entry["data"]["advisory"]
+                  if a["severity"] in ("high", "critical"):
+                      blocking.add((a["severity"], a["module_name"], a["title"], a.get("url", "")))
+
+          for sev, mod, title, url in sorted(blocking):
+              print(f"::error::{sev} in {mod}: {title} {url}")
+          print(f"{len(blocking)} high/critical advisories in production dependencies")
+          sys.exit(1 if blocking else 0)
+          PY

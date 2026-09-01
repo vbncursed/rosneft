@@ -11,7 +11,7 @@ cookie the browser attaches itself — and renders converted GLBs with
 yarn dev               # Vite dev server (http://localhost:3000, /api proxied to the gateway)
 yarn build             # production build → dist/
 yarn preview           # serve the production build locally
-yarn lint              # ESLint flat config
+yarn lint              # tsc --noEmit + oxlint
 yarn test              # domain unit tests (node --test, src/**/*.test.ts)
 yarn test:spa          # component/integration tests (vitest, src/**/*.spec.ts[x])
 yarn openapi:generate  # regenerate src/shared/infrastructure/api/dto.ts from
@@ -31,7 +31,81 @@ yarn openapi:generate  # regenerate src/shared/infrastructure/api/dto.ts from
 - Data: `@tanstack/react-query` (query client in `src/shared/infrastructure/query/`).
 - Tailwind CSS 4 via `@tailwindcss/postcss` (CSS-first config, `@theme inline`)
 - `@react-three/fiber` + `@react-three/drei` (Bounds, OrbitControls, TransformControls, useGLTF, Line, Html), `three`, `three-mesh-bvh`
-- ESLint 9 flat config: `@eslint/js` + `typescript-eslint` + `eslint-plugin-react-hooks` + `globals`, plus `max-lines: 200`
+- oxlint (`.oxlintrc.json`) — see [Linting](#linting) below
+
+## Document head
+
+**Per-route titles.** Every route sets one through TanStack's `head` option and
+the `titleMeta()` helper in `shared/presentation/page-title.ts`; `<HeadContent />`
+in `routes/root.tsx` renders the tags and React 19 hoists them into `<head>`.
+The deepest matched route wins, so a child overrides its layout. Before this,
+nothing in the app ever set a title and all 22 routes shared one — three open
+territories meant three indistinguishable tabs, history entries and bookmarks.
+The wiring is covered by `page-title.spec.tsx`, which fails if `<HeadContent />`
+is removed; a broken chain here is silent, not an error.
+
+**Link previews are static, and cannot be otherwise.** The `og:` and `twitter:`
+tags live in `index.html` and are identical for every route. No unfurler —
+Slack, Telegram, WhatsApp, iMessage, Twitter — runs JavaScript; they read the
+served HTML, which for a client-rendered SPA is always the same shell.
+Per-route previews would need SSR or prerendering. Do not try to set `og:` tags
+from a route's `head`: it will look right in the browser and change nothing in
+any preview.
+
+`og:image` must be an absolute URL — a relative path is dropped by most
+unfurlers — so it names the production host even in the desktop shell, where
+nothing reads these tags.
+
+**robots.txt** (`public/robots.txt`) deliberately says `Allow: /`, not
+`Disallow: /`. Deindexing is done by the `X-Robots-Tag: noindex` header nginx
+sets on every response, and a crawler only sees that header on a URL it is
+allowed to fetch — disallowing the path hides the noindex and leaves a
+already-known URL in the index without a description. **As of 2026-09-01 the public
+does not see this file at all**: Cloudflare's managed robots.txt replaces it
+wholesale rather than appending to it, verified against the origin and through
+a cache-busted edge request. The file is the policy of record and goes live the
+moment that Cloudflare feature is switched off — at which point the AI-crawler
+blocks it currently provides have to be copied in. Before the file existed,
+`/robots.txt` fell through nginx's SPA fallback and answered 200 with the app's
+HTML shell.
+
+**Regenerating the preview card** (`public/og-card.png`, 1200x630) after editing
+`public/og-card.svg`:
+
+```bash
+sips -s format png public/og-card.svg --out public/og-card.png
+```
+
+`sips` is macOS-native and preserves the SVG's own dimensions; ImageMagick is
+not required.
+
+## Linting
+
+`.oxlintrc.json` is kept as strict JSON with no comments, even though oxlint
+accepts them: an editor's JSON validator flags them, and renaming the file to
+`.jsonc` would take it off oxlint's default discovery path — the editor
+extension would then silently lint with its own defaults instead of these
+rules. So the reasoning lives here.
+
+**Why oxlint and not ESLint.** Not a preference. typescript-eslint refuses to
+load under TypeScript 7 (`typescript-eslint does not support TS 7.0`, see
+typescript-eslint#10940), so the old `eslint.config.mjs` could not run at all
+once TS moved to the native port. `yarn lint` also went from ~5.8 s to ~0.6 s.
+
+**The rule set is a mirror, not oxlint's defaults.** A linter swap should
+change the engine, not the policy, or a real regression is indistinguishable
+from a new opinion. Concretely:
+
+| Setting | Why |
+| --- | --- |
+| `plugins` listed explicitly | Drops the unicorn plugin oxlint enables by default. Its rules are reasonable, but ESLint never ran them here. |
+| `max-lines: 200`, `skipBlankLines`, `skipComments` | The architecture rule, same numbers as before, so no file changes status in the swap. |
+| `react/set-state-in-effect`, `react/immutability` off | Carried over verbatim from `eslint.config.mjs`. These React-Compiler-oriented rules flag intentional patterns: setState inside data-fetch/async effects, and imperative mutation of three.js objects (OrbitControls, TransformControls), which are not React state. |
+| `react/no-did-update-set-state` off | oxlint's react plugin bundles rules `eslint-plugin-react-hooks` does not have. `lod-error-boundary.tsx` sets state in `componentDidUpdate` on purpose — that is how a failed LOD level drops out of the chain. |
+| `typescript/no-unused-vars` with `^_` | A leading underscore marks a parameter that exists only to give a signature its shape. |
+| `dto.ts` override | openapi-typescript output; the only permanent `max-lines` exemption. |
+
+`oxlint` does not typecheck, so `yarn lint` runs `tsc --noEmit` first.
 
 ## Architecture
 
@@ -79,7 +153,7 @@ src/
 
 ### Hard rules
 
-- **200 lines per file** (skipBlankLines, skipComments). Enforced by ESLint. The autogen `src/shared/infrastructure/api/dto.ts` is the only permanent exemption.
+- **200 lines per file** (skipBlankLines, skipComments). Enforced by oxlint. The autogen `src/shared/infrastructure/api/dto.ts` is the only permanent exemption.
 - **No speculative abstractions, no dead code, no helpers "just in case."** Add only what the current task requires.
 - Single path alias `@/*` → `frontend/src/*`. No relative `../../..` imports.
 

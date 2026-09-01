@@ -5,6 +5,7 @@ import { requirePermission } from "@/routes/guard";
 import { sceneBundleQuery } from "@/territory/application/scene-bundle-query";
 import { HttpError } from "@/shared/infrastructure/http/http-error";
 import PanoramaUploadForm from "@/panorama/presentation/components/panorama-upload-form";
+import { titleMeta } from "@/shared/presentation/page-title";
 
 function NewPanorama() {
   const { slug } = panoramaNewRoute.useParams();
@@ -22,6 +23,7 @@ function NewPanorama() {
 export const panoramaNewRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/territories/$slug/panoramas/new",
+  head: ({ params }) => titleMeta(`New panorama · ${params.slug}`),
   beforeLoad: ({ context, location }) =>
     requirePermission(context.queryClient, location, "panorama:write"),
   loader: async ({ context, params }) => {

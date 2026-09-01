@@ -10,6 +10,7 @@ package grpcutil
 
 import (
 	"log/slog"
+	"slices"
 	"time"
 
 	"google.golang.org/grpc"
@@ -42,7 +43,7 @@ var ServerEnforcement = keepalive.EnforcementPolicy{
 // (e.g. TLS credentials); they are appended after the defaults so callers can
 // override.
 func NewServer(logger *slog.Logger, extra ...grpc.ServerOption) *grpc.Server {
-	opts := []grpc.ServerOption{
+	opts := slices.Grow([]grpc.ServerOption{
 		grpc.KeepaliveParams(ServerKeepalive),
 		grpc.KeepaliveEnforcementPolicy(ServerEnforcement),
 		grpc.MaxRecvMsgSize(MaxMessageSize),
@@ -61,7 +62,7 @@ func NewServer(logger *slog.Logger, extra ...grpc.ServerOption) *grpc.Server {
 			ActorStreamInterceptor(),
 			SlogStreamInterceptor(logger),
 		),
-	}
+	}, len(extra))
 	opts = append(opts, extra...)
 	return grpc.NewServer(opts...)
 }

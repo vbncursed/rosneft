@@ -7,6 +7,7 @@ import { HttpError } from "@/shared/infrastructure/http/http-error";
 import ViewerEntry from "@/viewer/presentation/components/viewer-entry";
 import ViewerSkeleton from "@/viewer/presentation/components/viewer-skeleton";
 import ConversionPending from "@/conversion/presentation/conversion-pending";
+import { titleMeta } from "@/shared/presentation/page-title";
 
 function TerritoryViewer() {
   const { slug } = territoryViewerRoute.useParams();
@@ -38,6 +39,7 @@ function TerritoryViewer() {
 export const territoryViewerRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/territories/$slug",
+  head: ({ params }) => titleMeta(params.slug),
   validateSearch: (s: Record<string, unknown>): { jobId?: string } => ({
     jobId: typeof s.jobId === "string" ? s.jobId : undefined,
   }),
