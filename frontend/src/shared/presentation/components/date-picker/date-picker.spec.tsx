@@ -16,7 +16,8 @@ vi.mock("motion/react", () => ({
     div: (props: Record<string, unknown>) => {
       // motion-специфичные пропсы отбрасываем, иначе React ругается на
       // неизвестные DOM-атрибуты. Ведущее подчёркивание — принятая в проекте
-      // отметка намеренно неиспользуемой переменной (eslint.config.mjs:30-33).
+      // отметка намеренно неиспользуемой переменной (.oxlintrc.json,
+      // typescript/no-unused-vars → varsIgnorePattern).
       const {
         variants: _variants,
         initial: _initial,

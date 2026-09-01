@@ -8,6 +8,7 @@ import (
 )
 
 func RunMigrateUp(ctx context.Context, cfg config.Config) error { return migrate.Up(ctx, cfg.DBDSN) }
+
 func RunMigrateDown(ctx context.Context, cfg config.Config) error {
 	return migrate.Down(ctx, cfg.DBDSN)
 }

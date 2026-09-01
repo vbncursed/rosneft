@@ -3,6 +3,7 @@ import { authedLayoutRoute } from "@/routes/layout";
 import { requirePermission } from "@/routes/guard";
 import UploadForm from "@/upload/presentation/components/upload-form";
 import { createTerritory } from "@/territory/infrastructure/territory-gateway";
+import { titleMeta } from "@/shared/presentation/page-title";
 
 function NewTerritory() {
   return (
@@ -24,6 +25,7 @@ function NewTerritory() {
 export const territoryNewRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/territories/new",
+  head: () => titleMeta("New territory"),
   beforeLoad: ({ context, location }) =>
     requirePermission(context.queryClient, location, "territory:write"),
   component: NewTerritory,

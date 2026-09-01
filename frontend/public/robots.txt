@@ -1,0 +1,43 @@
+# Served from frontend/public/robots.txt.
+#
+# Deliberately NOT "Disallow: /", even though every route is behind a session
+# and nothing here belongs in a search index.
+#
+# The deindexing is done by `X-Robots-Tag: noindex, nofollow`, which nginx sets
+# on every response (ops/nginx/security-headers.conf). A crawler only ever sees
+# that header if it is allowed to fetch the URL. Disallowing the path hides the
+# noindex, and a URL Google already knows then stays in the index — just without
+# a description, which is worse than either outcome on purpose. Allow + noindex
+# removes a page; Disallow alone does not.
+#
+# !!! THIS FILE IS NOT WHAT THE PUBLIC SEES, AS OF 2026-09-01. !!!
+#
+# Cloudflare's managed robots.txt REPLACES it wholesale — it does not append to
+# it, despite the BEGIN/END markers in its output suggesting a merge. Verified
+# after deploying this file: the origin serves it correctly
+# (curl --resolve andrey.vbncursed.fun:443:85.192.26.113), while a cache-busted
+# request through the edge (cf-cache-status: MISS, so it did reach the origin)
+# still returns only Cloudflare's block. Check before assuming an edit here
+# changed anything.
+#
+# It is kept anyway because it is the policy of record, and because it becomes
+# the served file the moment Cloudflare's managed robots.txt is switched off in
+# the dashboard (AI Crawl Control) or the site stops being proxied. If you do
+# switch it off, the AI-crawler blocks (GPTBot, ClaudeBot, CCBot,
+# Google-Extended, Bytespider, …) disappear with it and have to be copied in
+# here — Cloudflare maintains that list, this file does not.
+#
+# What Cloudflare currently serves is not wrong: `User-agent: * / Allow: /`,
+# which is exactly the Allow-plus-noindex behaviour described above.
+#
+# Until this file existed, /robots.txt fell through nginx's SPA fallback and
+# answered 200 with the app's HTML shell.
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# No Sitemap: line, and no sitemap.xml. The only URLs worth listing are
+# territory and model slugs, so that file would be a public inventory of a
+# private tenant's contents, served to anyone with no session at all. See
+# frontend/README.md for the same reasoning about rel=canonical.

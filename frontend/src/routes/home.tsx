@@ -12,6 +12,7 @@ import { preloadModelViewer } from "@/viewer/presentation/components/viewer-entr
 import DeleteTerritoryButton from "@/territory/presentation/delete-territory-button";
 import ReplaceSourceButton from "@/territory/presentation/replace-source-button";
 import DeleteModelButton from "@/model/presentation/delete-model-button";
+import { titleMeta } from "@/shared/presentation/page-title";
 
 const newLink =
   "cursor-pointer rounded-full border border-white/20 bg-white/[0.04] px-4 py-2 text-xs uppercase tracking-[0.2em] text-white transition-colors hover:bg-white/[0.1]";
@@ -103,6 +104,7 @@ function Home() {
 export const homeRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/",
+  head: () => titleMeta(),
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(territoriesQuery),

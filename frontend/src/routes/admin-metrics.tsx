@@ -4,6 +4,7 @@ import { requireAuth, consoleLanding } from "@/routes/guard";
 import { meQuery } from "@/auth/application/me-query";
 import { STAT_IDS, SECTIONS, view } from "@/metrics/domain/panel-catalog";
 import MetricsDashboard from "@/metrics/presentation/components/metrics-dashboard";
+import { titleMeta } from "@/shared/presentation/page-title";
 
 function AdminMetrics() {
   return (
@@ -19,6 +20,7 @@ function AdminMetrics() {
 export const adminMetricsRoute = createRoute({
   getParentRoute: () => adminLayoutRoute,
   path: "metrics",
+  head: () => titleMeta("Metrics · Admin"),
   beforeLoad: async ({ context, location }) => {
     requireAuth(location);
     const me = await context.queryClient.ensureQueryData(meQuery);

@@ -1,0 +1,55 @@
+name: backend
+
+# The backend had no CI at all: `desktop.yml` was the only workflow, it skips
+# Go entirely, and a green tick on a pull request therefore said nothing about
+# any of the twelve modules. This is that gap.
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend.yml"
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # go.work is the single source of the language version — the same file
+      # the bump procedure in backend/README.md edits — so CI cannot drift from
+      # the modules by pinning a number here as well.
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.work
+          cache-dependency-path: backend/**/go.sum
+
+      # Pinned, deliberately. golangci-lint's findings change between patch
+      # releases: the README's "lint issue counts are byte-identical to the
+      # baseline" claim was recorded under an older build, and 2.13.1 found
+      # three real issues on an untouched tree. An unpinned linter means CI and
+      # developers disagree about what passes. Bump this on purpose.
+      - run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.1
+
+      # Not pinned, deliberately, and for the opposite reason: a vulnerability
+      # scanner's whole value is knowing about what was published yesterday.
+      - run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      # One command rather than a step per tool. `make check` is the documented
+      # commit gate that .githooks/pre-commit already runs, and reimplementing
+      # it in YAML would let the two drift — the failure mode being a green PR
+      # that a local commit would have rejected. It covers: gofmt -s, go mod
+      # tidy drift, `GOWORK=off go vet` (catches requires missing from go.mod
+      # that the workspace hides, i.e. Docker build failures), golangci-lint,
+      # `go test -race -shuffle=on`, and govulncheck.
+      - run: make -C backend check

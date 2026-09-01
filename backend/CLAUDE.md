@@ -4,7 +4,7 @@ Guidance for Claude Code when working in `backend/`.
 
 ## Stack
 
-- **Go 1.26.5**, `go.work` workspace with one module per service (`services/*`) plus `pkg/` and `proto/` — 11 modules, all pinning `go 1.26.5`; every build stage is `golang:1.26.5-alpine`. Dependency matrix and bump procedure: [`README.md#toolchain--dependencies`](README.md#toolchain--dependencies).
+- **Go 1.27.0**, `go.work` workspace with one module per service (`services/*`) plus `pkg/` and `proto/` — 11 modules, all pinning `go 1.27.0`; every build stage is `golang:1.27.0-alpine`. Dependency matrix and bump procedure: [`README.md#toolchain--dependencies`](README.md#toolchain--dependencies).
 - **Postgres 17** (catalog), **Redis 8 Streams** (mesh job queue), filesystem `BlobStore` (asset).
 - **gRPC** for service-to-service, **HTTP/JSON** for the gateway, OpenAPI spec served by gateway with Scalar UI.
 - **Docker Compose** orchestrates the containers: `postgres`, `redis`, `gateway`, `catalog`, `auth`, `twofa`, `passkey`, `content`, `mesh-api`, `mesh-worker`, `asset`, `upload`, `prometheus`. The compose file lives at the repo root (`docker-compose.yml`); `make compose-up` from `backend/` works via `-f ../docker-compose.yml`. The frontend is **not** a compose service — it runs locally (`yarn dev --port 3000`; port 3000, not Vite's 5173, because `PASSKEY_RP_ORIGINS` is pinned to it).
@@ -33,7 +33,7 @@ Guidance for Claude Code when working in `backend/`.
 - Catalog client lives inside `mesh-service/internal/catalog/`; mesh-service depends on a small interface, not the proto types.
 - Bootstrap pattern: `internal/bootstrap/` wires service+transport+config and is the only place that touches `os.Args`/env/clients.
 - Errors are sentinels in `domain/errors.go`; transport translates them to gRPC `codes.*` / HTTP statuses.
-- **File size cap: 200 lines**, same as the frontend rule. Reviewed by hand on the backend (no ESLint equivalent).
+- **File size cap: 200 lines**, same as the frontend rule. Reviewed by hand on the backend (no oxlint equivalent).
 - **Tests**: `testify/suite` for grouping + `gotest.tools/v3/assert` for assertions + `gojuno/minimock/v3` for interface mocks. Stdlib `testing` alone is not used in new tests. Service dependencies are mocked via `//go:generate minimock -i <Interfaces> -o ./mocks -s _mock.go` on the interface file (mirrors auth-service); the generated `mocks/` package is lint-exempt. Assertions stay `gotest.tools` even inside suite methods (`assert.X(s.T(), …)`, not `s.Equal()`). Build the controller per test in `SetupTest` with `minimock.NewController(s.T())` (auto-verifies on cleanup — no manual `AssertExpectations`). For an errgroup/derived-context call, match the ctx with `minimock.AnyContext`.
 
 ## Build / run
@@ -404,6 +404,7 @@ gets stolen.
 
 ## Tests / CI
 
+- **`.github/workflows/backend.yml` runs `make check` on every PR touching `backend/`.** Until it existed the only workflow was `desktop.yml`, which skips Go entirely, so a green tick said nothing about any of the twelve modules. It runs the Makefile rather than a step per tool, so CI and `.githooks/pre-commit` cannot drift into disagreeing about what passes. golangci-lint is **pinned** there: its findings move between patch releases, which is how this README's "byte-identical baseline" claim came to be wrong.
 - `go test -race -shuffle=on ./...` per module — see `make test`.
 - Service-layer coverage lives in `internal/service/*_test.go`, driven by minimock-generated mocks (`internal/service/mocks/`).
 - No external dependencies in unit tests (no testcontainers); reconciler & worker behaviour is verified against minimock `QueueMock`/`CatalogMock`/`ConverterMock`.

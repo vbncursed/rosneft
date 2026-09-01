@@ -6,9 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Run `make -C backend check` — gofmt, `go mod tidy` drift, `GOWORK=off go vet`,
 golangci-lint, `go test -race -shuffle=on`, govulncheck. ~80 s. `.githooks/pre-commit`
-runs it for you once `make -C backend hooks` has been run in the clone. Rationale for
+runs it for you once `make -C backend hooks` has been run in the clone, and
+`.github/workflows/backend.yml` runs the same target on every PR. Rationale for
 the two non-obvious steps (`vet` and `tidy-check` both run with the workspace off, and
 catch Docker-build failures that `make lint` cannot see): [`backend/CLAUDE.md`](backend/CLAUDE.md#the-commit-gate).
+
+## CI
+
+Four workflows, and until 2026-09-01 there was one. `backend.yml` runs
+`make -C backend check`; `frontend.yml` runs lint, both test runners, the build
+and a production-dependency audit; `desktop.yml` runs `make -C desktop check`,
+`cargo audit` and the three-platform bundle; `dependabot.yml` watches gomod,
+npm, cargo **and github-actions**. Each workflow invokes the same Makefile or
+yarn script a developer runs, never a reimplementation of it in YAML — the
+failure that shape produces is a green PR that a local commit would reject.
 
 # Frontend is a Vite + React SPA (no Next.js)
 
@@ -31,7 +42,7 @@ All commands run from `frontend/`:
 yarn dev          # Vite dev server (http://localhost:3000, /api proxied to the gateway)
 yarn build        # Production build → dist/
 yarn preview      # Serve the production build locally
-yarn lint         # ESLint (flat config, eslint.config.mjs)
+yarn lint         # tsc --noEmit + oxlint (.oxlintrc.json)
 yarn test         # Domain unit tests (node --test, src/**/*.test.ts)
 yarn test:spa     # Component/integration tests (vitest, src/**/*.spec.ts[x])
 ```
@@ -39,14 +50,14 @@ yarn test:spa     # Component/integration tests (vitest, src/**/*.spec.ts[x])
 ## Stack
 
 - **Vite 8 + React 19** SPA. Routing: `@tanstack/react-router` (`src/routes/`). Data: `@tanstack/react-query`. Entry: `src/main.tsx`.
-- **TypeScript** strict mode, bundler module resolution. Single path alias `@/*` → `frontend/src/*`.
+- **TypeScript 7** (the native port) strict mode, bundler module resolution. Single path alias `@/*` → `frontend/src/*`.
 - **Tailwind CSS 4** via `@tailwindcss/postcss` — uses `@import "tailwindcss"` and `@theme inline` syntax, not v3 `@tailwind` directives
-- **ESLint 9** flat config: `@eslint/js` + `typescript-eslint` + `eslint-plugin-react-hooks` + `globals`, plus `max-lines: 200` rule
+- **oxlint** (`.oxlintrc.json`), not ESLint — typescript-eslint refuses to load under TypeScript 7, so the flat config could not run at all. The rule set deliberately mirrors what ESLint enforced (unicorn off) so the swap changed the engine, not the policy. **Keep the config strict JSON: no comments** — an editor's JSON validator flags them, and `.jsonc` falls off oxlint's default discovery so the editor extension would silently lint with its own rules. Rationale per rule: [`frontend/README.md#linting`](frontend/README.md#linting).
 
 ## Architecture rules (hard)
 
 - **Clean Architecture + DDD**. Every file lives in one of four layers under a bounded context: `domain/`, `application/`, `infrastructure/`, `presentation/`.
-- **Hard cap: 200 lines per file** (skipBlankLines, skipComments). Enforced by ESLint. Generated files are exempted explicitly.
+- **Hard cap: 200 lines per file** (skipBlankLines, skipComments). Enforced by oxlint. Generated files are exempted explicitly.
 - **No speculative abstractions, no dead code, no helpers "just in case"** — only what the current task requires.
 - Dependencies point strictly inward: `domain ← application ← presentation`. Domain imports nothing outward; application never imports presentation. Presentation talks to `application/` use cases or an `infrastructure/` gateway that already returns domain entities — never DTO types.
 - DTO→domain mapping happens inside gateways; openapi-typescript output is treated as an internal implementation detail.
@@ -138,7 +149,8 @@ frontend/
 ## Key conventions
 
 - Tailwind v4 syntax: `@theme inline` block for design tokens, `@import "tailwindcss"` instead of `@tailwind base/components/utilities`
-- ESLint flat config (`eslint.config.mjs`), not legacy `.eslintrc`
+- oxlint config is `.oxlintrc.json` (comments allowed). There is no `eslint.config.mjs` any more — do not add one back.
+- Every route sets its own `<title>` through TanStack's `head` option plus `titleMeta()` (`shared/presentation/page-title.ts`); `<HeadContent />` lives in `routes/root.tsx`. Deepest match wins. **Open-Graph/Twitter tags are static in `index.html` and cannot be per-route** — no unfurler runs JavaScript, so they read the one shell this SPA serves for every URL. Setting `og:` from a route's `head` looks right in the browser and changes nothing in any preview.
 - Two test runners: pure domain logic → `node --test` (`*.test.ts`); jsdom/React → vitest (`*.spec.ts[x]`). Globs don't overlap.
 - Client env is `VITE_API_URL` — **empty in both dev and prod**. nginx serves the SPA and proxies `/api` in production; Vite's dev server proxies `/api` by default in development. Single origin is not a convenience: it is what lets the httpOnly session cookie ride on `<img>`, the pdf.js `<iframe>` and three.js loader requests, none of which can carry an Authorization header. `VITE_DEV_PROXY` overrides the dev target. Dev runs on port **3000** — `PASSKEY_RP_ORIGINS` is pinned to it.
 
@@ -195,7 +207,30 @@ the origin breaks asset loading while login still appears to work.
   `res.json()` — every route, the whole product. This survived eight reviews
   because every live check used plain `curl`, which sends no `Accept-Encoding`
   and so got an uncompressed answer. **Verify proxy behaviour with the headers a
-  webview actually sends.**
+  webview actually sends.** It is now a test rather than a warning:
+  `proxy::tests::decodes_a_compressed_upstream_body_and_drops_content_encoding`
+  drives a gzipped upstream through `send()` with `Accept-Encoding: br, gzip`
+  and fails if the body arrives still encoded. In reqwest 0.13 the TLS feature
+  was renamed `rustls-tls` → `rustls`; the three decoding features kept their
+  names, so a careless rename can still silently drop them.
+- **The CSP is keyed on the response's content type, not on `is_index`.** A CSP
+  header binds one document and an iframe does not inherit its parent's, so
+  gating on the index left the other two HTML documents this bundle ships —
+  `offline.html` and the vendored `pdfjs/web/viewer.html` — with no policy at
+  all. The viewer is the one that renders untrusted input: a PDF is whatever a
+  user uploaded. `serves_csp()` is pure because `serve_static` needs an
+  `AppHandle` no test can build. `base-uri`, `form-action` and `frame-ancestors`
+  are spelled out because they do **not** fall back to `default-src` — omitted,
+  they are unrestricted, and with `'unsafe-inline'` in `script-src` an injected
+  `<base href>` would repoint every relative URL on the page.
+- **There is no `capabilities/` directory, and that is the strongest setting,
+  not a missing file.** This shell registers no `#[tauri::command]`, calls no
+  `invoke_handler`, and the SPA never touches `window.__TAURI__` or
+  `@tauri-apps/api` — the plugins (dialog, log, single-instance) are driven
+  from Rust only. In Tauri v2 a webview reaches a command only through a
+  granted capability, so no capability file means the webview can call nothing.
+  Adding a `default.json` "for completeness" would hand it access it does not
+  have today.
 - **One header policy for every upstream-derived response: `proxy::copy_headers`.**
   Four hand-rolled ones diverged, and the divergence is where the bug above
   lived. `ETag` must survive (no ETag, no revalidation, every JSON GET refetched
