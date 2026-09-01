@@ -1,4 +1,4 @@
-use rand::RngCore;
+use rand::Rng;
 
 /// A per-run secret handed to the webview out of band — `main.rs` opens the
 /// window on `http://127.0.0.1:{port}/?dsk={nonce}` — and turned into a

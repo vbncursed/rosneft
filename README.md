@@ -9,7 +9,7 @@ the browser fetches compact binary artifacts instead of 100+ MB ASCII files.
 
 ```
 andrey/
-├── backend/            # Go 1.26.5 microservices (gateway, catalog, content, auth,
+├── backend/            # Go 1.27.0 microservices (gateway, catalog, content, auth,
 │                       #   twofa, passkey, mesh, upload, asset)
 ├── frontend/           # Vite + React 19 SPA viewer (TanStack Router + react-three-fiber)
 ├── desktop/            # Tauri v2 desktop shell wrapping the same SPA
@@ -38,7 +38,7 @@ See [`frontend/README.md`](frontend/README.md).
 
 ### Backend (`backend/`)
 
-Go **1.26.5** multi-module workspace (`go.work`, 12 modules). Services:
+Go **1.27.0** multi-module workspace (`go.work`, 12 modules). Services:
 
 | Service           | Purpose                                                       | Network            |
 | ----------------- | ------------------------------------------------------------- | ------------------ |
@@ -91,7 +91,7 @@ Implemented across both sides; some are opt-in until both halves are wired:
 
 | Half | Runtime | Pinned where |
 | --- | --- | --- |
-| Backend | **Go 1.26.5** | `backend/go.work` + all 11 `go.mod` files; `golang:1.26.5-alpine` in every service Dockerfile |
+| Backend | **Go 1.27.0** | `backend/go.work` + all 11 `go.mod` files; `golang:1.27.0-alpine` in every service Dockerfile |
 | Frontend | **Node + Yarn**, Vite 8, React 19, TypeScript strict | `frontend/package.json` |
 | Datastores | PostgreSQL 17, Redis 8 | `docker-compose.yml` |
 
@@ -126,7 +126,7 @@ Browse `http://localhost:8080/docs` for the Scalar API explorer.
 - **Clean Architecture + DDD**, every file lives in one of `domain/`,
   `application/`, `infrastructure/`, or `presentation/` under a bounded
   context.
-- **Hard cap: 200 lines per file** in the frontend (enforced by ESLint);
+- **Hard cap: 200 lines per file** in the frontend (enforced by oxlint);
   the backend enforces a similar discipline through review.
 - **No speculative abstractions, no dead code.** Add only what the current
   task requires.

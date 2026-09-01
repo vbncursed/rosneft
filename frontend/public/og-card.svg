@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0a0a0a"/>
+  <rect x="0" y="0" width="1200" height="4" fill="#2FD79A"/>
+  <g transform="translate(186 175) scale(4.375)">
+    <g fill="none" stroke="#2FD79A" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+      <path d="M32 8 11 20v24l21 12 21-12V20Z"/>
+      <path d="M32 8v24M32 32 11 44M32 32l21 12" stroke-width="3" opacity=".5"/>
+    </g>
+    <g fill="#2FD79A">
+      <circle cx="11" cy="20" r="4.5"/><circle cx="53" cy="20" r="4.5"/>
+      <circle cx="11" cy="44" r="4.5"/><circle cx="53" cy="44" r="4.5"/>
+      <circle cx="32" cy="56" r="4.5"/>
+    </g>
+    <circle cx="32" cy="8" r="6" fill="#FF7A45"/>
+  </g>
+  <text x="570" y="300" fill="#ffffff" font-family="Helvetica Neue, Helvetica, Arial" font-size="104" font-weight="600" letter-spacing="-2">Andrey</text>
+  <text x="574" y="360" fill="#8a8a8a" font-family="Helvetica Neue, Helvetica, Arial" font-size="34">3D territory &amp; model viewer</text>
+</svg>
