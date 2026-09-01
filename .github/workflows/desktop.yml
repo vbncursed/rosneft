@@ -38,6 +38,17 @@ jobs:
       - run: yarn --cwd frontend build
       - run: make -C desktop check
 
+      # `make check` is fmt, clippy and tests — it scans no dependencies. Five
+      # crates took a major bump in one commit here, so the advisory database
+      # is the only thing that would notice a known hole in one of them.
+      # taiki-e/install-action fetches a prebuilt binary; `cargo install
+      # cargo-audit` compiles it on every run for the same result.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      - run: cargo audit
+        working-directory: desktop/src-tauri
+
   build:
     needs: check
     # The repository's default workflow token is read-only, so creating a
@@ -161,7 +172,7 @@ jobs:
       # create — that is what this one does, and it is why the upload is not
       # three hand-rolled `gh release` calls racing each other.
       - if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           # The tag is `desktop-v0.2.0`; the title says `Andrey Desktop v0.2.0`.
           # Interpolating the tag straight in produced "Andrey Desktop
