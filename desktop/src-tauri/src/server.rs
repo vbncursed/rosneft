@@ -272,6 +272,13 @@ fn serve_static(state: &Shared, route: Route, query: Option<&str>) -> Response {
     };
     match app.asset_resolver().get(asset_path) {
         Some(asset) => {
+            // Keyed on the type, not on `is_index`: a CSP header binds one
+            // document, and an iframe does not inherit its parent's. The bundle
+            // ships three HTML documents — index.html, offline.html and the
+            // vendored pdfjs/web/viewer.html — and the viewer is the one that
+            // renders untrusted input, since a PDF is whatever a user uploaded.
+            // Gating on `is_index` left exactly that document with no policy.
+            let is_html = serves_csp(&asset.mime_type);
             let mut res = ([(header::CONTENT_TYPE, asset.mime_type)], asset.bytes).into_response();
             if is_index {
                 // Only the request that already proves it knows the nonce gets
@@ -283,6 +290,8 @@ fn serve_static(state: &Shared, route: Route, query: Option<&str>) -> Response {
                         res.headers_mut().append(header::SET_COOKIE, v);
                     }
                 }
+            }
+            if is_html {
                 if let Ok(v) = CSP.parse() {
                     res.headers_mut().insert(header::CONTENT_SECURITY_POLICY, v);
                 }
@@ -291,6 +300,13 @@ fn serve_static(state: &Shared, route: Route, query: Option<&str>) -> Response {
         }
         None => StatusCode::NOT_FOUND.into_response(),
     }
+}
+
+/// Which responses carry the CSP. Pure so it can be tested: `serve_static`
+/// needs a Tauri `AppHandle`, which a test cannot build (`AppState.app` is
+/// `None` there), so the route itself is out of reach.
+fn serves_csp(mime: &str) -> bool {
+    mime.starts_with("text/html")
 }
 
 /// Tauri injects its own CSP only when it serves the page; we serve it, so the
@@ -314,6 +330,14 @@ fn serve_static(state: &Shared, route: Route, query: Option<&str>) -> Response {
 /// The loosening is real but narrow: the only scripts this origin serves are
 /// our own bundle and those decoders, from a loopback port gated by a per-run
 /// nonce.
+///
+/// `base-uri`, `form-action`, `frame-ancestors` and `object-src` are spelled
+/// out because the first three do **not** fall back to `default-src` — leaving
+/// them off leaves them unrestricted, which with `'unsafe-inline'` in
+/// `script-src` puts an injected `<base href>` one step from repointing every
+/// relative URL on the page. Nothing here uses `<base>`, `<object>` or
+/// `<embed>`, and every form in the SPA submits through an `onSubmit` handler
+/// with no `action`, so all four close doors the app never opens.
 const CSP: &str = "default-src 'self'; \
      script-src 'self' 'unsafe-eval' 'unsafe-inline'; \
      worker-src 'self' blob:; \
@@ -321,7 +345,11 @@ const CSP: &str = "default-src 'self'; \
      img-src 'self' data: blob:; \
      font-src 'self' data:; \
      connect-src 'self' blob: data:; \
-     frame-src 'self'";
+     frame-src 'self'; \
+     frame-ancestors 'self'; \
+     base-uri 'self'; \
+     form-action 'self'; \
+     object-src 'none'";
 
 #[cfg(test)]
 mod tests {
@@ -332,6 +360,37 @@ mod tests {
 
     fn cookie(nonce: &Nonce) -> String {
         format!("dsk={}", nonce.value())
+    }
+
+    #[test]
+    fn every_html_document_carries_the_csp_not_just_the_index() {
+        // The bundle ships three. viewer.html is the one that renders a
+        // user-uploaded PDF, and an iframe does not inherit its parent's CSP.
+        assert!(serves_csp("text/html"));
+        assert!(serves_csp("text/html; charset=utf-8"));
+        // Subresources are not documents; a CSP header on them binds nothing.
+        assert!(!serves_csp("application/javascript"));
+        assert!(!serves_csp("model/gltf-binary"));
+        assert!(!serves_csp("application/pdf"));
+    }
+
+    #[test]
+    fn the_csp_spells_out_the_directives_that_do_not_inherit() {
+        // base-uri, form-action and frame-ancestors do NOT fall back to
+        // default-src: dropping them leaves them unrestricted, not 'self'.
+        for directive in [
+            "base-uri 'self'",
+            "form-action 'self'",
+            "frame-ancestors 'self'",
+            "object-src 'none'",
+        ] {
+            assert!(CSP.contains(directive), "CSP lost `{directive}`");
+        }
+        // The one loosening that is load-bearing — see the CSP doc comment.
+        assert!(
+            CSP.contains("'unsafe-eval'"),
+            "KTX2/Basis transcoder needs it"
+        );
     }
 
     #[test]

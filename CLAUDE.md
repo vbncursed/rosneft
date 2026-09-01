@@ -201,6 +201,24 @@ the origin breaks asset loading while login still appears to work.
   and fails if the body arrives still encoded. In reqwest 0.13 the TLS feature
   was renamed `rustls-tls` → `rustls`; the three decoding features kept their
   names, so a careless rename can still silently drop them.
+- **The CSP is keyed on the response's content type, not on `is_index`.** A CSP
+  header binds one document and an iframe does not inherit its parent's, so
+  gating on the index left the other two HTML documents this bundle ships —
+  `offline.html` and the vendored `pdfjs/web/viewer.html` — with no policy at
+  all. The viewer is the one that renders untrusted input: a PDF is whatever a
+  user uploaded. `serves_csp()` is pure because `serve_static` needs an
+  `AppHandle` no test can build. `base-uri`, `form-action` and `frame-ancestors`
+  are spelled out because they do **not** fall back to `default-src` — omitted,
+  they are unrestricted, and with `'unsafe-inline'` in `script-src` an injected
+  `<base href>` would repoint every relative URL on the page.
+- **There is no `capabilities/` directory, and that is the strongest setting,
+  not a missing file.** This shell registers no `#[tauri::command]`, calls no
+  `invoke_handler`, and the SPA never touches `window.__TAURI__` or
+  `@tauri-apps/api` — the plugins (dialog, log, single-instance) are driven
+  from Rust only. In Tauri v2 a webview reaches a command only through a
+  granted capability, so no capability file means the webview can call nothing.
+  Adding a `default.json` "for completeness" would hand it access it does not
+  have today.
 - **One header policy for every upstream-derived response: `proxy::copy_headers`.**
   Four hand-rolled ones diverged, and the divergence is where the bug above
   lived. `ETag` must survive (no ETag, no revalidation, every JSON GET refetched

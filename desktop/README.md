@@ -255,6 +255,13 @@ passed.
 - [ ] A Draco + KTX2 model shows textures. A flat-coloured model means the CSP
       blocked the decoder — the failure is silent, not an error.
 - [ ] A PDF document opens and scrolls (pdf.js loads it by byte range).
+      **Re-check this after the CSP change**: `viewer.html` now receives the
+      policy, where before only `index.html` did, and an iframe does not
+      inherit its parent's. Its needs were read off the vendored file — no
+      inline scripts, one `<style>` block covered by `style-src
+      'unsafe-inline'`, worker covered by `worker-src 'self' blob:` — but
+      read is not run, and a CSP violation here is a blank iframe with only a
+      console message, the same silent shape as the KTX2 failure below.
 - [ ] Uploading a model shows live conversion progress via SSE. **This has
       never actually been observed**: the response shape was confirmed to be
       `chunked` with no `Content-Length` (so the transport is capable of
