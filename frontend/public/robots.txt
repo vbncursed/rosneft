@@ -10,16 +10,28 @@
 # a description, which is worse than either outcome on purpose. Allow + noindex
 # removes a page; Disallow alone does not.
 #
-# Cloudflare appends its own managed block below, between its BEGIN/END markers,
-# and that is where the AI crawlers (GPTBot, ClaudeBot, CCBot, Google-Extended,
-# Bytespider, …) are blocked. That list is maintained in the Cloudflare
-# dashboard, not here; duplicating it would only drift. A bot named there
-# matches its own, more specific group and never falls through to the `*` group
-# in this file, so the two do not conflict.
+# !!! THIS FILE IS NOT WHAT THE PUBLIC SEES, AS OF 2026-09-01. !!!
+#
+# Cloudflare's managed robots.txt REPLACES it wholesale — it does not append to
+# it, despite the BEGIN/END markers in its output suggesting a merge. Verified
+# after deploying this file: the origin serves it correctly
+# (curl --resolve andrey.vbncursed.fun:443:85.192.26.113), while a cache-busted
+# request through the edge (cf-cache-status: MISS, so it did reach the origin)
+# still returns only Cloudflare's block. Check before assuming an edit here
+# changed anything.
+#
+# It is kept anyway because it is the policy of record, and because it becomes
+# the served file the moment Cloudflare's managed robots.txt is switched off in
+# the dashboard (AI Crawl Control) or the site stops being proxied. If you do
+# switch it off, the AI-crawler blocks (GPTBot, ClaudeBot, CCBot,
+# Google-Extended, Bytespider, …) disappear with it and have to be copied in
+# here — Cloudflare maintains that list, this file does not.
+#
+# What Cloudflare currently serves is not wrong: `User-agent: * / Allow: /`,
+# which is exactly the Allow-plus-noindex behaviour described above.
 #
 # Until this file existed, /robots.txt fell through nginx's SPA fallback and
-# answered 200 with the app's HTML shell, and the entire policy lived in a
-# dashboard nothing in this repository could see.
+# answered 200 with the app's HTML shell.
 
 User-agent: *
 Allow: /

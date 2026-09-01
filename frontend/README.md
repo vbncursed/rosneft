@@ -60,10 +60,14 @@ nothing reads these tags.
 `Disallow: /`. Deindexing is done by the `X-Robots-Tag: noindex` header nginx
 sets on every response, and a crawler only sees that header on a URL it is
 allowed to fetch — disallowing the path hides the noindex and leaves a
-already-known URL in the index without a description. Cloudflare appends its
-own managed block (the AI-crawler blocks) beneath ours; that list lives in the
-Cloudflare dashboard, not in this repo. Before the file existed, `/robots.txt`
-fell through nginx's SPA fallback and answered 200 with the app's HTML shell.
+already-known URL in the index without a description. **As of 2026-09-01 the public
+does not see this file at all**: Cloudflare's managed robots.txt replaces it
+wholesale rather than appending to it, verified against the origin and through
+a cache-busted edge request. The file is the policy of record and goes live the
+moment that Cloudflare feature is switched off — at which point the AI-crawler
+blocks it currently provides have to be copied in. Before the file existed,
+`/robots.txt` fell through nginx's SPA fallback and answered 200 with the app's
+HTML shell.
 
 **Regenerating the preview card** (`public/og-card.png`, 1200x630) after editing
 `public/og-card.svg`:
