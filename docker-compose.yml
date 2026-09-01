@@ -7,7 +7,7 @@ x-tz: &tz
 services:
   postgres:
     restart: unless-stopped
-    image: postgres:latest
+    image: postgres:18.6
     environment:
       <<: *tz
       POSTGRES_DB: andrey
@@ -25,7 +25,7 @@ services:
 
   redis:
     restart: unless-stopped
-    image: redis:latest
+    image: redis:8.10.1
     environment:
       <<: *tz
     ports:
@@ -372,7 +372,7 @@ services:
 
   prometheus:
     restart: unless-stopped
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.14.0
     environment:
       <<: *tz
     command:
@@ -389,7 +389,7 @@ services:
 
   alertmanager:
     restart: unless-stopped
-    image: prom/alertmanager:latest
+    image: prom/alertmanager:v0.33.1
     environment:
       <<: *tz
     command:
