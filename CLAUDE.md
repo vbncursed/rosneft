@@ -31,7 +31,7 @@ All commands run from `frontend/`:
 yarn dev          # Vite dev server (http://localhost:3000, /api proxied to the gateway)
 yarn build        # Production build → dist/
 yarn preview      # Serve the production build locally
-yarn lint         # ESLint (flat config, eslint.config.mjs)
+yarn lint         # tsc --noEmit + oxlint (.oxlintrc.json)
 yarn test         # Domain unit tests (node --test, src/**/*.test.ts)
 yarn test:spa     # Component/integration tests (vitest, src/**/*.spec.ts[x])
 ```
@@ -39,14 +39,14 @@ yarn test:spa     # Component/integration tests (vitest, src/**/*.spec.ts[x])
 ## Stack
 
 - **Vite 8 + React 19** SPA. Routing: `@tanstack/react-router` (`src/routes/`). Data: `@tanstack/react-query`. Entry: `src/main.tsx`.
-- **TypeScript** strict mode, bundler module resolution. Single path alias `@/*` → `frontend/src/*`.
+- **TypeScript 7** (the native port) strict mode, bundler module resolution. Single path alias `@/*` → `frontend/src/*`.
 - **Tailwind CSS 4** via `@tailwindcss/postcss` — uses `@import "tailwindcss"` and `@theme inline` syntax, not v3 `@tailwind` directives
-- **ESLint 9** flat config: `@eslint/js` + `typescript-eslint` + `eslint-plugin-react-hooks` + `globals`, plus `max-lines: 200` rule
+- **oxlint** (`.oxlintrc.json`), not ESLint — typescript-eslint refuses to load under TypeScript 7, so the flat config could not run at all. The rule set deliberately mirrors what ESLint enforced (unicorn off) so the swap changed the engine, not the policy. **Keep the config strict JSON: no comments** — an editor's JSON validator flags them, and `.jsonc` falls off oxlint's default discovery so the editor extension would silently lint with its own rules. Rationale per rule: [`frontend/README.md#linting`](frontend/README.md#linting).
 
 ## Architecture rules (hard)
 
 - **Clean Architecture + DDD**. Every file lives in one of four layers under a bounded context: `domain/`, `application/`, `infrastructure/`, `presentation/`.
-- **Hard cap: 200 lines per file** (skipBlankLines, skipComments). Enforced by ESLint. Generated files are exempted explicitly.
+- **Hard cap: 200 lines per file** (skipBlankLines, skipComments). Enforced by oxlint. Generated files are exempted explicitly.
 - **No speculative abstractions, no dead code, no helpers "just in case"** — only what the current task requires.
 - Dependencies point strictly inward: `domain ← application ← presentation`. Domain imports nothing outward; application never imports presentation. Presentation talks to `application/` use cases or an `infrastructure/` gateway that already returns domain entities — never DTO types.
 - DTO→domain mapping happens inside gateways; openapi-typescript output is treated as an internal implementation detail.
@@ -138,7 +138,7 @@ frontend/
 ## Key conventions
 
 - Tailwind v4 syntax: `@theme inline` block for design tokens, `@import "tailwindcss"` instead of `@tailwind base/components/utilities`
-- ESLint flat config (`eslint.config.mjs`), not legacy `.eslintrc`
+- oxlint config is `.oxlintrc.json` (comments allowed). There is no `eslint.config.mjs` any more — do not add one back.
 - Two test runners: pure domain logic → `node --test` (`*.test.ts`); jsdom/React → vitest (`*.spec.ts[x]`). Globs don't overlap.
 - Client env is `VITE_API_URL` — **empty in both dev and prod**. nginx serves the SPA and proxies `/api` in production; Vite's dev server proxies `/api` by default in development. Single origin is not a convenience: it is what lets the httpOnly session cookie ride on `<img>`, the pdf.js `<iframe>` and three.js loader requests, none of which can carry an Authorization header. `VITE_DEV_PROXY` overrides the dev target. Dev runs on port **3000** — `PASSKEY_RP_ORIGINS` is pinned to it.
 
