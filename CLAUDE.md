@@ -139,6 +139,7 @@ frontend/
 
 - Tailwind v4 syntax: `@theme inline` block for design tokens, `@import "tailwindcss"` instead of `@tailwind base/components/utilities`
 - oxlint config is `.oxlintrc.json` (comments allowed). There is no `eslint.config.mjs` any more — do not add one back.
+- Every route sets its own `<title>` through TanStack's `head` option plus `titleMeta()` (`shared/presentation/page-title.ts`); `<HeadContent />` lives in `routes/root.tsx`. Deepest match wins. **Open-Graph/Twitter tags are static in `index.html` and cannot be per-route** — no unfurler runs JavaScript, so they read the one shell this SPA serves for every URL. Setting `og:` from a route's `head` looks right in the browser and changes nothing in any preview.
 - Two test runners: pure domain logic → `node --test` (`*.test.ts`); jsdom/React → vitest (`*.spec.ts[x]`). Globs don't overlap.
 - Client env is `VITE_API_URL` — **empty in both dev and prod**. nginx serves the SPA and proxies `/api` in production; Vite's dev server proxies `/api` by default in development. Single origin is not a convenience: it is what lets the httpOnly session cookie ride on `<img>`, the pdf.js `<iframe>` and three.js loader requests, none of which can carry an Authorization header. `VITE_DEV_PROXY` overrides the dev target. Dev runs on port **3000** — `PASSKEY_RP_ORIGINS` is pinned to it.
 

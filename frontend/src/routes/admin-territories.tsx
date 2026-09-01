@@ -5,6 +5,7 @@ import { requireAuth, consoleLanding } from "@/routes/guard";
 import { meQuery } from "@/auth/application/me-query";
 import { territoriesQuery } from "@/territory/application/territories-query";
 import TerritoryAccessTable from "@/territory/presentation/territory-access-table";
+import { titleMeta } from "@/shared/presentation/page-title";
 
 function AdminTerritories() {
   const { data: territories } = useSuspenseQuery(territoriesQuery);
@@ -15,6 +16,7 @@ function AdminTerritories() {
 export const adminTerritoriesRoute = createRoute({
   getParentRoute: () => adminLayoutRoute,
   path: "territories",
+  head: () => titleMeta("Territories · Admin"),
   beforeLoad: async ({ context, location }) => {
     requireAuth(location);
     const me = await context.queryClient.ensureQueryData(meQuery);

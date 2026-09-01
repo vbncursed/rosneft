@@ -10,6 +10,7 @@ import CatalogCard from "@/shared/presentation/catalog/catalog-card";
 import { preloadModelViewer } from "@/viewer/presentation/components/viewer-entry";
 import DeleteTerritoryButton from "@/territory/presentation/delete-territory-button";
 import ReplaceSourceButton from "@/territory/presentation/replace-source-button";
+import { titleMeta } from "@/shared/presentation/page-title";
 
 function Territories() {
   // Warm the viewer chunk while the catalog is being read: without it the first
@@ -60,6 +61,7 @@ function Territories() {
 export const territoriesRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/territories",
+  head: () => titleMeta("Territories"),
   loader: ({ context }) => context.queryClient.ensureQueryData(territoriesQuery),
   component: Territories,
 });

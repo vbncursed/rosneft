@@ -5,6 +5,7 @@ import ChangePasswordForm from "@/auth/presentation/account/change-password-form
 import TwoFactorSection from "@/auth/presentation/account/two-factor-section";
 import PasskeysSection from "@/auth/presentation/account/passkeys-section";
 import MyActivitySection from "@/audit/presentation/components/my-activity-section";
+import { titleMeta } from "@/shared/presentation/page-title";
 
 function Account() {
   const p = useCurrentUser();
@@ -38,5 +39,6 @@ function Account() {
 export const accountRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/account",
+  head: () => titleMeta("Account"),
   component: Account,
 });
