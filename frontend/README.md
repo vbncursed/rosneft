@@ -11,7 +11,7 @@ cookie the browser attaches itself — and renders converted GLBs with
 yarn dev               # Vite dev server (http://localhost:3000, /api proxied to the gateway)
 yarn build             # production build → dist/
 yarn preview           # serve the production build locally
-yarn lint              # ESLint flat config
+yarn lint              # tsc --noEmit + oxlint
 yarn test              # domain unit tests (node --test, src/**/*.test.ts)
 yarn test:spa          # component/integration tests (vitest, src/**/*.spec.ts[x])
 yarn openapi:generate  # regenerate src/shared/infrastructure/api/dto.ts from
@@ -31,7 +31,35 @@ yarn openapi:generate  # regenerate src/shared/infrastructure/api/dto.ts from
 - Data: `@tanstack/react-query` (query client in `src/shared/infrastructure/query/`).
 - Tailwind CSS 4 via `@tailwindcss/postcss` (CSS-first config, `@theme inline`)
 - `@react-three/fiber` + `@react-three/drei` (Bounds, OrbitControls, TransformControls, useGLTF, Line, Html), `three`, `three-mesh-bvh`
-- ESLint 9 flat config: `@eslint/js` + `typescript-eslint` + `eslint-plugin-react-hooks` + `globals`, plus `max-lines: 200`
+- oxlint (`.oxlintrc.json`) — see [Linting](#linting) below
+
+## Linting
+
+`.oxlintrc.json` is kept as strict JSON with no comments, even though oxlint
+accepts them: an editor's JSON validator flags them, and renaming the file to
+`.jsonc` would take it off oxlint's default discovery path — the editor
+extension would then silently lint with its own defaults instead of these
+rules. So the reasoning lives here.
+
+**Why oxlint and not ESLint.** Not a preference. typescript-eslint refuses to
+load under TypeScript 7 (`typescript-eslint does not support TS 7.0`, see
+typescript-eslint#10940), so the old `eslint.config.mjs` could not run at all
+once TS moved to the native port. `yarn lint` also went from ~5.8 s to ~0.6 s.
+
+**The rule set is a mirror, not oxlint's defaults.** A linter swap should
+change the engine, not the policy, or a real regression is indistinguishable
+from a new opinion. Concretely:
+
+| Setting | Why |
+| --- | --- |
+| `plugins` listed explicitly | Drops the unicorn plugin oxlint enables by default. Its rules are reasonable, but ESLint never ran them here. |
+| `max-lines: 200`, `skipBlankLines`, `skipComments` | The architecture rule, same numbers as before, so no file changes status in the swap. |
+| `react/set-state-in-effect`, `react/immutability` off | Carried over verbatim from `eslint.config.mjs`. These React-Compiler-oriented rules flag intentional patterns: setState inside data-fetch/async effects, and imperative mutation of three.js objects (OrbitControls, TransformControls), which are not React state. |
+| `react/no-did-update-set-state` off | oxlint's react plugin bundles rules `eslint-plugin-react-hooks` does not have. `lod-error-boundary.tsx` sets state in `componentDidUpdate` on purpose — that is how a failed LOD level drops out of the chain. |
+| `typescript/no-unused-vars` with `^_` | A leading underscore marks a parameter that exists only to give a signature its shape. |
+| `dto.ts` override | openapi-typescript output; the only permanent `max-lines` exemption. |
+
+`oxlint` does not typecheck, so `yarn lint` runs `tsc --noEmit` first.
 
 ## Architecture
 
@@ -79,7 +107,7 @@ src/
 
 ### Hard rules
 
-- **200 lines per file** (skipBlankLines, skipComments). Enforced by ESLint. The autogen `src/shared/infrastructure/api/dto.ts` is the only permanent exemption.
+- **200 lines per file** (skipBlankLines, skipComments). Enforced by oxlint. The autogen `src/shared/infrastructure/api/dto.ts` is the only permanent exemption.
 - **No speculative abstractions, no dead code, no helpers "just in case."** Add only what the current task requires.
 - Single path alias `@/*` → `frontend/src/*`. No relative `../../..` imports.
 

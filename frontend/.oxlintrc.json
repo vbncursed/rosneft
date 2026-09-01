@@ -1,0 +1,22 @@
+{
+  "ignorePatterns": ["dist/**", "build/**", "public/**"],
+  "plugins": ["typescript", "react", "oxc"],
+  "env": { "browser": true, "node": true },
+  "categories": { "correctness": "error" },
+  "rules": {
+    "max-lines": ["error", { "max": 200, "skipBlankLines": true, "skipComments": true }],
+    "react/set-state-in-effect": "off",
+    "react/immutability": "off",
+    "react/no-did-update-set-state": "off",
+    "typescript/no-unused-vars": [
+      "error",
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["**/shared/infrastructure/api/dto.ts"],
+      "rules": { "max-lines": "off" }
+    }
+  ]
+}

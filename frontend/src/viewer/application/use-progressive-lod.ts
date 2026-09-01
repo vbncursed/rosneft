@@ -32,11 +32,12 @@ export function useProgressiveLod(
   const [broken, setBroken] = useState<readonly string[]>([]);
 
   // No useMemo/useCallback here, and the reason is narrower than it looks.
-  // eslint-plugin-react-hooks v7 ships React-Compiler-derived rules, and
-  // `preserve-manual-memoization` rejects manual memoization the compiler could
-  // not reproduce — it fires whether or not the compiler is actually wired into
-  // the build, and here it is NOT (no babel-plugin-react-compiler, and
-  // vite.config.ts calls react() with no options).
+  // The React-Compiler-derived rules (shipped by eslint-plugin-react-hooks v7,
+  // and carried over by oxlint's react plugin) reject manual memoization the
+  // compiler could not reproduce — they fire whether or not the compiler is
+  // actually wired into the build, and here it is NOT (no
+  // babel-plugin-react-compiler, and vite.config.ts calls react() with no
+  // options).
   //
   // So nothing memoizes these for us: onWarmReady and onFailed are fresh
   // closures on every render. Consumers must therefore not key an effect on

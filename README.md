@@ -126,7 +126,7 @@ Browse `http://localhost:8080/docs` for the Scalar API explorer.
 - **Clean Architecture + DDD**, every file lives in one of `domain/`,
   `application/`, `infrastructure/`, or `presentation/` under a bounded
   context.
-- **Hard cap: 200 lines per file** in the frontend (enforced by ESLint);
+- **Hard cap: 200 lines per file** in the frontend (enforced by oxlint);
   the backend enforces a similar discipline through review.
 - **No speculative abstractions, no dead code.** Add only what the current
   task requires.
