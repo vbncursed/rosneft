@@ -1,0 +1,31 @@
+# Served from frontend/public/robots.txt.
+#
+# Deliberately NOT "Disallow: /", even though every route is behind a session
+# and nothing here belongs in a search index.
+#
+# The deindexing is done by `X-Robots-Tag: noindex, nofollow`, which nginx sets
+# on every response (ops/nginx/security-headers.conf). A crawler only ever sees
+# that header if it is allowed to fetch the URL. Disallowing the path hides the
+# noindex, and a URL Google already knows then stays in the index — just without
+# a description, which is worse than either outcome on purpose. Allow + noindex
+# removes a page; Disallow alone does not.
+#
+# Cloudflare appends its own managed block below, between its BEGIN/END markers,
+# and that is where the AI crawlers (GPTBot, ClaudeBot, CCBot, Google-Extended,
+# Bytespider, …) are blocked. That list is maintained in the Cloudflare
+# dashboard, not here; duplicating it would only drift. A bot named there
+# matches its own, more specific group and never falls through to the `*` group
+# in this file, so the two do not conflict.
+#
+# Until this file existed, /robots.txt fell through nginx's SPA fallback and
+# answered 200 with the app's HTML shell, and the entire policy lived in a
+# dashboard nothing in this repository could see.
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# No Sitemap: line, and no sitemap.xml. The only URLs worth listing are
+# territory and model slugs, so that file would be a public inventory of a
+# private tenant's contents, served to anyone with no session at all. See
+# frontend/README.md for the same reasoning about rel=canonical.
