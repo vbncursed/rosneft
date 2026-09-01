@@ -6,9 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Run `make -C backend check` — gofmt, `go mod tidy` drift, `GOWORK=off go vet`,
 golangci-lint, `go test -race -shuffle=on`, govulncheck. ~80 s. `.githooks/pre-commit`
-runs it for you once `make -C backend hooks` has been run in the clone. Rationale for
+runs it for you once `make -C backend hooks` has been run in the clone, and
+`.github/workflows/backend.yml` runs the same target on every PR. Rationale for
 the two non-obvious steps (`vet` and `tidy-check` both run with the workspace off, and
 catch Docker-build failures that `make lint` cannot see): [`backend/CLAUDE.md`](backend/CLAUDE.md#the-commit-gate).
+
+## CI
+
+Four workflows, and until 2026-09-01 there was one. `backend.yml` runs
+`make -C backend check`; `frontend.yml` runs lint, both test runners, the build
+and a production-dependency audit; `desktop.yml` runs `make -C desktop check`,
+`cargo audit` and the three-platform bundle; `dependabot.yml` watches gomod,
+npm, cargo **and github-actions**. Each workflow invokes the same Makefile or
+yarn script a developer runs, never a reimplementation of it in YAML — the
+failure that shape produces is a green PR that a local commit would reject.
 
 # Frontend is a Vite + React SPA (no Next.js)
 

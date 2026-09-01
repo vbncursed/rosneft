@@ -404,6 +404,7 @@ gets stolen.
 
 ## Tests / CI
 
+- **`.github/workflows/backend.yml` runs `make check` on every PR touching `backend/`.** Until it existed the only workflow was `desktop.yml`, which skips Go entirely, so a green tick said nothing about any of the twelve modules. It runs the Makefile rather than a step per tool, so CI and `.githooks/pre-commit` cannot drift into disagreeing about what passes. golangci-lint is **pinned** there: its findings move between patch releases, which is how this README's "byte-identical baseline" claim came to be wrong.
 - `go test -race -shuffle=on ./...` per module — see `make test`.
 - Service-layer coverage lives in `internal/service/*_test.go`, driven by minimock-generated mocks (`internal/service/mocks/`).
 - No external dependencies in unit tests (no testcontainers); reconciler & worker behaviour is verified against minimock `QueueMock`/`CatalogMock`/`ConverterMock`.
