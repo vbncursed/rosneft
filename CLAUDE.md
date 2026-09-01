@@ -195,7 +195,12 @@ the origin breaks asset loading while login still appears to work.
   `res.json()` — every route, the whole product. This survived eight reviews
   because every live check used plain `curl`, which sends no `Accept-Encoding`
   and so got an uncompressed answer. **Verify proxy behaviour with the headers a
-  webview actually sends.**
+  webview actually sends.** It is now a test rather than a warning:
+  `proxy::tests::decodes_a_compressed_upstream_body_and_drops_content_encoding`
+  drives a gzipped upstream through `send()` with `Accept-Encoding: br, gzip`
+  and fails if the body arrives still encoded. In reqwest 0.13 the TLS feature
+  was renamed `rustls-tls` → `rustls`; the three decoding features kept their
+  names, so a careless rename can still silently drop them.
 - **One header policy for every upstream-derived response: `proxy::copy_headers`.**
   Four hand-rolled ones diverged, and the divergence is where the bug above
   lived. `ETag` must survive (no ETag, no revalidation, every JSON GET refetched

@@ -267,6 +267,15 @@ passed.
 - [ ] Reopening a territory issues no network requests for the GLB.
 - [ ] With the network off, a previously opened territory still opens.
 - [ ] Signing in as a second user does not serve the first user's models.
+- [ ] **The session survives a restart on Linux.** keyring 4 replaced the
+      blocking `dbus-secret-service` backend with pure-Rust `zbus`
+      (`sync-secret-service` → the `v1` feature's
+      `zbus-secret-service-keyring-store`). The store/load/clear round trip was
+      confirmed by hand against the real macOS keychain on the upgrade; the
+      Secret Service path was not, and an AppImage is exactly where a dbus
+      stack change shows up. A failure here is silent in the worst way — the
+      app just asks for a login every start, which `session::load` swallows on
+      purpose so a box with no Secret Service still runs.
 - [x] **A territory renders, on macOS.** Confirmed by hand on 2026-08-05
       against a local backend: `dji-wp-46-cut` renders, and its placements
       render with it. Everything else visual — textures on other models, PDF
