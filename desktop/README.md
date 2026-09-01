@@ -51,7 +51,7 @@ serves a built `dist`, so rebuild the frontend after changing it.
 
 `make -C backend compose-up` passes `--build` to `docker compose`, which on a
 machine that cannot reach Docker Hub fails trying to pull the
-`golang:1.26.5-alpine` base rather than reusing what is already built. If the
+`golang:1.27.0-alpine` base rather than reusing what is already built. If the
 images are already built (from an earlier successful compose-up, or built
 elsewhere), start from them directly and skip the rebuild:
 

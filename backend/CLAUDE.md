@@ -4,7 +4,7 @@ Guidance for Claude Code when working in `backend/`.
 
 ## Stack
 
-- **Go 1.26.5**, `go.work` workspace with one module per service (`services/*`) plus `pkg/` and `proto/` — 11 modules, all pinning `go 1.26.5`; every build stage is `golang:1.26.5-alpine`. Dependency matrix and bump procedure: [`README.md#toolchain--dependencies`](README.md#toolchain--dependencies).
+- **Go 1.27.0**, `go.work` workspace with one module per service (`services/*`) plus `pkg/` and `proto/` — 11 modules, all pinning `go 1.27.0`; every build stage is `golang:1.27.0-alpine`. Dependency matrix and bump procedure: [`README.md#toolchain--dependencies`](README.md#toolchain--dependencies).
 - **Postgres 17** (catalog), **Redis 8 Streams** (mesh job queue), filesystem `BlobStore` (asset).
 - **gRPC** for service-to-service, **HTTP/JSON** for the gateway, OpenAPI spec served by gateway with Scalar UI.
 - **Docker Compose** orchestrates the containers: `postgres`, `redis`, `gateway`, `catalog`, `auth`, `twofa`, `passkey`, `content`, `mesh-api`, `mesh-worker`, `asset`, `upload`, `prometheus`. The compose file lives at the repo root (`docker-compose.yml`); `make compose-up` from `backend/` works via `-f ../docker-compose.yml`. The frontend is **not** a compose service — it runs locally (`yarn dev --port 3000`; port 3000, not Vite's 5173, because `PASSKEY_RP_ORIGINS` is pinned to it).
