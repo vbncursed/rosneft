@@ -23,13 +23,17 @@ func New(assetTarget string) (http.Handler, error) {
 		return nil, fmt.Errorf("proxy: target must include scheme and host: %q", assetTarget)
 	}
 
-	rp := httputil.NewSingleHostReverseProxy(target)
-	originalDirector := rp.Director
-	rp.Director = func(r *http.Request) {
-		originalDirector(r)
-		// Rewrite "/api/assets/<hash>" to "/assets/<hash>" for asset-service.
-		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/api")
-		r.Host = target.Host
-	}
-	return rp, nil
+	// Rewrite, not Director: Director is deprecated, and it also appends to
+	// whatever X-Forwarded-For the caller sent instead of replacing it.
+	// SetXForwarded overwrites the header with the real peer, which is the
+	// posture bootstrap/transport.go already documents for the inbound side —
+	// a client-supplied X-Forwarded-For is not evidence of anything.
+	return &httputil.ReverseProxy{
+		Rewrite: func(r *httputil.ProxyRequest) {
+			r.SetURL(target) // also blanks Out.Host so the target's host is sent
+			r.SetXForwarded()
+			// Rewrite "/api/assets/<hash>" to "/assets/<hash>" for asset-service.
+			r.Out.URL.Path = strings.TrimPrefix(r.Out.URL.Path, "/api")
+		},
+	}, nil
 }

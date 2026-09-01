@@ -14,23 +14,26 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 axum = "0.8"
 tower = "0.5"
-tower-http = { version = "0.6", features = ["fs"] }
+tower-http = { version = "0.7", features = ["fs"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "io-util", "net", "sync", "time"] }
 # gzip/brotli/deflate are not optional: the gateway compresses every JSON
 # response (chi Compressor, br/gzip/deflate), and without these features
 # reqwest hands the compressed bytes straight to the webview, which then
 # fails res.json() with a SyntaxError. With them, reqwest advertises only
 # what it can decode and strips Content-Encoding/Content-Length once it has.
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream", "cookies", "gzip", "brotli", "deflate"] }
+# Guarded by proxy::tests::decodes_a_compressed_upstream_body_and_drops_content_encoding,
+# which fails if any of the three is dropped. "rustls" was "rustls-tls" before
+# reqwest 0.13 — the decoding features were not renamed, so do not "fix" them.
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "stream", "cookies", "gzip", "brotli", "deflate"] }
 async-stream = "0.3"
 futures-util = "0.3"
-keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
+keyring = { version = "4", features = ["v1"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sha2 = "0.10"
+sha2 = "0.11"
 hex = "0.4"
 bytes = "1"
-rand = "0.9"
+rand = "0.10"
 url = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-log = "2"

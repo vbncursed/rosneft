@@ -6,6 +6,7 @@ import { meQuery } from "@/auth/application/me-query";
 import { can } from "@/auth/domain/principal";
 import { territoriesQuery } from "@/territory/application/territories-query";
 import { modelsQuery } from "@/model/application/models-query";
+import { titleMeta } from "@/shared/presentation/page-title";
 
 const card =
   "group rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition hover:border-white/30 hover:bg-white/[0.06]";
@@ -40,6 +41,7 @@ function AdminContent() {
 export const adminContentRoute = createRoute({
   getParentRoute: () => adminLayoutRoute,
   path: "content",
+  head: () => titleMeta("Content · Admin"),
   beforeLoad: async ({ context, location }) => {
     requireAuth(location);
     const me = await context.queryClient.ensureQueryData(meQuery);

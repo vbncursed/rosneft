@@ -3,12 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Interactive viewer for territories and models" />
+    <meta name="description" content="Walk through scanned territories in 3D — place models, measure distances, and pin panoramas and documents to the scene." />
     <meta name="theme-color" content="#0a0a0a" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-icon.png" />
     <!-- use-credentials: без cookies Cloudflare (Bot Fight Mode) отдаёт на манифест 403 -->
     <link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
+
+    <!-- Link previews. These are static and identical for every route, and that
+         is not an oversight: the SPA renders client-side, and no unfurler
+         (Slack, Telegram, WhatsApp, iMessage, Twitter) runs JavaScript — they
+         read this file and nothing else. Per-route previews would need SSR or
+         prerendering. The per-route <title> below IS dynamic, because that one
+         runs in a real browser for a real user.
+         og:image must be absolute; a relative path is dropped by most
+         unfurlers. It is fine that this names the production host even in the
+         desktop shell — nothing there ever reads these tags. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Andrey" />
+    <meta property="og:title" content="Andrey — 3D territory &amp; model viewer" />
+    <meta property="og:description" content="Walk through scanned territories in 3D — place models, measure distances, and pin panoramas and documents to the scene." />
+    <meta property="og:url" content="https://andrey.vbncursed.fun/" />
+    <meta property="og:image" content="https://andrey.vbncursed.fun/og-card.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Andrey — 3D territory and model viewer" />
+    <meta name="twitter:card" content="summary_large_image" />
+
     <title>Andrey 3D Viewer</title>
   </head>
   <body>

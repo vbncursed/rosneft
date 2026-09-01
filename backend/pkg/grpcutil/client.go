@@ -2,6 +2,7 @@ package grpcutil
 
 import (
 	"fmt"
+	"slices"
 	"time"
 
 	"google.golang.org/grpc"
@@ -50,7 +51,7 @@ const retryServiceConfig = `{
 // Pass additional grpc.DialOption values when callers need extras (e.g. TLS,
 // custom interceptors); they are appended last so they can override defaults.
 func Dial(target string, extra ...grpc.DialOption) (*grpc.ClientConn, error) {
-	opts := []grpc.DialOption{
+	opts := slices.Grow([]grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(ClientKeepalive),
 		// Forwards the ctx actor as metadata so the next hop can attribute the
@@ -61,7 +62,7 @@ func Dial(target string, extra ...grpc.DialOption) (*grpc.ClientConn, error) {
 			grpc.MaxCallRecvMsgSize(MaxMessageSize),
 			grpc.MaxCallSendMsgSize(MaxMessageSize),
 		),
-	}
+	}, len(extra))
 	opts = append(opts, extra...)
 	conn, err := grpc.NewClient(target, opts...)
 	if err != nil {

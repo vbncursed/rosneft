@@ -7,7 +7,7 @@ of 100+ MB ASCII files.
 
 ## Stack
 
-- **Go 1.26.5** — modern stdlib (`slices`, `maps`, `cmp`, `slog`, `errors.AsType`, `wg.Go`, `strings.SplitSeq`)
+- **Go 1.27.0** — modern stdlib (`slices`, `maps`, `cmp`, `slog`, `errors.AsType`, `wg.Go`, `strings.SplitSeq`)
 - **gRPC** — internal service-to-service
 - **REST + OpenAPI 3.0** — gateway → frontend (schema-first, `oapi-codegen` generates Go server stubs; frontend generates TS client from the same spec)
 - **PostgreSQL 17** — catalog + auth persistence (shared instance, separate tables / goose version table)
@@ -17,8 +17,8 @@ of 100+ MB ASCII files.
 - **Cobra + Viper** — CLI / config (flag > env > file > default)
 - **gltfpack** (built from `zeux/meshoptimizer` in the worker image) — Draco / KTX2 / LOD encoder
 
-Every module pins `go 1.26.5` and every service image builds from
-`golang:1.26.5-alpine`. See [Toolchain & dependencies](#toolchain--dependencies)
+Every module pins `go 1.27.0` and every service image builds from
+`golang:1.27.0-alpine`. See [Toolchain & dependencies](#toolchain--dependencies)
 for the full pinned-version matrix.
 
 ## Services
@@ -98,23 +98,34 @@ backend/
 
 | Where | Value |
 | --- | --- |
-| `go.work` + all 11 `go.mod` files | `go 1.26.5` |
-| every service `Dockerfile` build stage | `golang:1.26.5-alpine` |
+| `go.work` + all 11 `go.mod` files | `go 1.27.0` |
+| every service `Dockerfile` build stage | `golang:1.27.0-alpine` |
 | runtime images | `gcr.io/distroless/static` (all services except mesh-worker) |
 | `mesh-worker` runtime image | `gcr.io/distroless/cc-debian12:nonroot` (glibc + libstdc++ for `gltfpack`) |
 
 No `toolchain` directive is pinned — the `go` line is the floor, and CI/dev use
-whatever ≥1.26.5 toolchain is installed. Bump procedure:
+whatever ≥1.27.0 toolchain is installed. Bump procedure:
 
 ```bash
 # 1. bump the language version everywhere
-sed -i '' 's/^go 1\.26\.5$/go 1.26.X/' go.work pkg/go.mod proto/go.mod services/*/go.mod
-sed -i '' 's/golang:1\.26\.5-alpine/golang:1.26.X-alpine/' services/*/Dockerfile*
+sed -i '' 's/^go 1\.27\.0$/go 1.27.X/' go.work pkg/go.mod proto/go.mod services/*/go.mod
+sed -i '' 's/golang:1\.27\.0-alpine/golang:1.27.X-alpine/' services/*/Dockerfile*
 # 2. refresh dependencies per module
-for m in pkg proto services/*; do (cd $m && go get -u ./... && go mod tidy); done
-# 3. verify
-make build && make test && make lint
+for m in pkg proto services/*; do (cd $m && GOWORK=off go get -u ./... && GOWORK=off go mod tidy); done
+# 3. test-only deps are NOT reachable from ./... — name them
+for m in services/audit-service services/catalog-service; do \
+  (cd $m && GOWORK=off go get -u github.com/testcontainers/testcontainers-go \
+                                  github.com/testcontainers/testcontainers-go/modules/postgres); done
+# 4. verify — the whole gate, not just build/test/lint
+make check
+# 5. confirm nothing direct is left behind
+for m in pkg proto services/*; do (cd $m && GOWORK=off go list -m -u \
+  -f '{{if and .Update (not .Indirect)}}{{.Path}} {{.Version}} -> {{.Update.Version}}{{end}}' all); done | sort -u
 ```
+
+> `sed` on `Dockerfile*`, not `Dockerfile`: `mesh-service` splits its build
+> into `Dockerfile.api` and `Dockerfile.worker`, so a plain `-name Dockerfile`
+> leaves two stages on the old image and nothing fails until a build runs.
 
 > `go get -u` must run **per module**, not through the workspace. With
 > `go.work` active, `go get` resolves the sibling `backend/pkg` and
@@ -127,16 +138,16 @@ make build && make test && make lint
 
 | Module | Version | Used by | Role |
 | --- | --- | --- | --- |
-| `google.golang.org/grpc` | v1.82.1 | all | Service-to-service transport |
-| `google.golang.org/protobuf` | v1.36.11 | proto, auth, catalog, content, mesh | Generated message runtime |
+| `google.golang.org/grpc` | v1.83.2 | all | Service-to-service transport |
+| `google.golang.org/protobuf` | v1.36.12 | proto, auth, catalog, content, mesh | Generated message runtime |
 | `github.com/spf13/cobra` | v1.10.2 | all services | CLI root command |
 | `github.com/spf13/viper` | v1.21.0 | all services | Layered config (flag > env > default) |
 | `github.com/jackc/pgx/v5` | v5.10.0 | auth, catalog, content, passkey, twofa | Postgres driver + pool |
 | `github.com/pressly/goose/v3` | v3.27.3 | auth, catalog, content, passkey, twofa | Embedded SQL migrations |
-| `github.com/redis/go-redis/v9` | v9.21.0 | auth, mesh, passkey, twofa | Streams (mesh) / sessions / ceremony + rate-limit state |
+| `github.com/redis/go-redis/v9` | v9.22.0 | auth, mesh, passkey, twofa | Streams (mesh) / sessions / ceremony + rate-limit state |
 | `github.com/prometheus/client_golang` | v1.24.1 | pkg, auth, mesh, twofa, upload | `/metrics` exposition |
 | `github.com/gojuno/minimock/v3` | v3.4.7 | all services (test) | Generated interface mocks |
-| `github.com/stretchr/testify` | v1.11.1 | all (test) | `suite` grouping only |
+| `github.com/stretchr/testify` | v1.12.1 | all (test) | `suite` grouping only |
 | `gotest.tools/v3` | v3.5.2 | all (test) | `assert` — the actual assertions |
 
 ### Per-module direct dependencies
@@ -145,33 +156,57 @@ make build && make test && make lint
 | --- | --- |
 | `pkg` | — (grpc + prometheus + test libs only) |
 | `proto` | — (grpc + protobuf only) |
-| `gateway-service` | `andybalholm/brotli` v1.2.2 · `getkin/kin-openapi` v0.145.0 · `go-chi/chi/v5` v5.3.1 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.6.0 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.22.0 |
+| `gateway-service` | `andybalholm/brotli` v1.2.3 · `getkin/kin-openapi` v0.149.0 · `go-chi/chi/v5` v5.3.2 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.7.0 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.22.0 |
 | `catalog-service` | — |
 | `content-service` | — |
-| `auth-service` | `golang.org/x/crypto` v0.54.0 (argon2id) |
+| `auth-service` | `golang.org/x/crypto` v0.55.0 (argon2id) |
 | `twofa-service` | `pquerna/otp` v1.5.0 (TOTP) |
-| `passkey-service` | `go-webauthn/webauthn` v0.17.4 |
-| `mesh-service` | `qmuntal/gltf` v0.28.0 (GLB writer) |
+| `passkey-service` | `go-webauthn/webauthn` v0.18.0 |
+| `mesh-service` | `qmuntal/gltf` v0.29.0 (GLB writer) |
 | `upload-service` | — |
 | `asset-service` | — (does not import `proto`; HTTP-only) |
 
-### Notable version moves in the 1.26.5 refresh
+### Notable version moves in the 1.27.0 refresh
 
 | Dependency | From → To | Note |
 | --- | --- | --- |
-| Go | 1.26.4 → **1.26.5** | Patch release; no source changes needed |
-| `google.golang.org/grpc` | 1.81.1 → **1.82.1** | Minor; no API breaks in our surface |
-| `getkin/kin-openapi` | 0.140.0 → **0.145.0** | Pulls `go-openapi/jsonpointer` 0.23.1 → 1.0.0; the embedded spec validator still round-trips (`make openapi-gen` unchanged) |
-| `oapi-codegen/runtime` | 1.4.2 → **1.6.0** | Generated gateway stubs compile unchanged |
-| `prometheus/client_golang` | 1.23.2 → **1.24.1** | |
-| `pressly/goose/v3` | 3.27.1 → **3.27.3** | |
-| `golang.org/x/crypto` | 0.53.0 → **0.54.0** | argon2id path unaffected |
-| `andybalholm/brotli` | 1.2.1 → **1.2.2** | Gateway compression middleware |
-| `go-chi/chi/v5` | 5.3.0 → **5.3.1** | |
+| Go | 1.26.5 → **1.27.0** | Language version in `go.work` and all 12 `go.mod`; every build stage now `golang:1.27.0-alpine` |
+| `getkin/kin-openapi` | 0.146.0 → **0.149.0** | The embedded spec validator still round-trips (`make openapi-gen` unchanged) |
+| `oapi-codegen/runtime` | 1.6.0 → **1.7.0** | Generated gateway stubs compile unchanged |
+| `go-webauthn/webauthn` | 0.17.4 → **0.18.0** | Pre-1.0 minor; passkey register/login ceremonies unchanged |
+| `qmuntal/gltf` | 0.28.0 → **0.29.0** | Pre-1.0 minor; GLB writer surface unchanged |
+| `testcontainers-go` (+ `modules/postgres`) | 0.43.0 → **0.44.0** | Pre-1.0 minor. `go get -u ./...` does **not** reach it — it is test-only and needs naming explicitly |
+| `stretchr/testify` | 1.11.1 → **1.12.1** | |
+| `google.golang.org/grpc` | 1.83.0 → **1.83.2** | |
+| `google.golang.org/protobuf` | 1.36.11 → **1.36.12** | |
+| `golang.org/x/crypto` | 0.54.0 → **0.55.0** | argon2id path unaffected |
+| `redis/go-redis/v9` | 9.21.0 → **9.22.0** | |
+| `andybalholm/brotli` | 1.2.2 → **1.2.3** | Gateway compression middleware |
+| `go-chi/chi/v5` | 5.3.1 → **5.3.2** | |
 
-`make build`, `make test` (`-race -shuffle=on`), and `make lint` were all run
-across every module after the refresh. Lint issue counts are byte-identical to
-the pre-upgrade baseline — the dependency bump introduced no new findings.
+`make check` passes in full: gofmt, tidy drift, `GOWORK=off go vet`,
+golangci-lint, `go test -race -shuffle=on`, govulncheck (0 vulnerabilities
+reachable from our code).
+
+Three lint findings were fixed on the way, and none of them came from this
+refresh — all three reproduce on the pre-bump tree with the same
+golangci-lint 2.13.1, which is newer than the one that recorded the previous
+"byte-identical baseline" claim:
+
+- `pkg/grpcutil` (×2, `prealloc`) — the option slices now go through
+  `slices.Grow`, which preallocates for the variadic `extra` without giving up
+  the readable composite literal.
+- `gateway-service` `asset_proxy.go` (`staticcheck` SA1019) —
+  `httputil.ReverseProxy.Director` is deprecated as of Go 1.26. Migrated to
+  `Rewrite`. This is not a pure rename: `Director` **appends** to a
+  caller-supplied `X-Forwarded-For`, while the new code calls
+  `SetXForwarded()`, which **replaces** it with the real peer. Nothing
+  downstream reads the header, and replacing matches the posture
+  `bootstrap/transport.go` already documents for the inbound side. The proxy
+  had no tests at all; it now has two.
+- `auth-service` `bootstrap/migrate.go` (`gofumpt`) — a missing blank line
+  after a single-line function body. `make fmt-check` uses `gofmt -s`, which
+  does not see this; only golangci-lint's formatter does.
 
 ## Local development
 
