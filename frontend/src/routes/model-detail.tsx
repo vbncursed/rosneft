@@ -8,6 +8,7 @@ import { can } from "@/auth/domain/principal";
 import ConversionPending from "@/conversion/presentation/conversion-pending";
 import DeleteModelButton from "@/model/presentation/delete-model-button";
 import ModelThumbnailEditor from "@/model/presentation/model-thumbnail-editor";
+import { titleMeta } from "@/shared/presentation/page-title";
 
 function ModelDetail() {
   const { slug } = modelDetailRoute.useParams();
@@ -57,6 +58,7 @@ function ModelDetail() {
 export const modelDetailRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/models/$slug",
+  head: ({ params }) => titleMeta(params.slug),
   validateSearch: (s: Record<string, unknown>): { jobId?: string } => ({
     jobId: typeof s.jobId === "string" ? s.jobId : undefined,
   }),

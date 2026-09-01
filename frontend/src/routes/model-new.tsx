@@ -3,6 +3,7 @@ import { authedLayoutRoute } from "@/routes/layout";
 import { requirePermission } from "@/routes/guard";
 import BatchUploadForm from "@/upload/presentation/components/batch-upload-form";
 import { createModel } from "@/model/infrastructure/model-gateway";
+import { titleMeta } from "@/shared/presentation/page-title";
 
 function NewModel() {
   return (
@@ -22,6 +23,7 @@ function NewModel() {
 export const modelNewRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/models/new",
+  head: () => titleMeta("New model"),
   beforeLoad: ({ context, location }) =>
     requirePermission(context.queryClient, location, "model:write"),
   component: NewModel,

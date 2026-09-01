@@ -33,6 +33,39 @@ yarn openapi:generate  # regenerate src/shared/infrastructure/api/dto.ts from
 - `@react-three/fiber` + `@react-three/drei` (Bounds, OrbitControls, TransformControls, useGLTF, Line, Html), `three`, `three-mesh-bvh`
 - oxlint (`.oxlintrc.json`) — see [Linting](#linting) below
 
+## Document head
+
+**Per-route titles.** Every route sets one through TanStack's `head` option and
+the `titleMeta()` helper in `shared/presentation/page-title.ts`; `<HeadContent />`
+in `routes/root.tsx` renders the tags and React 19 hoists them into `<head>`.
+The deepest matched route wins, so a child overrides its layout. Before this,
+nothing in the app ever set a title and all 22 routes shared one — three open
+territories meant three indistinguishable tabs, history entries and bookmarks.
+The wiring is covered by `page-title.spec.tsx`, which fails if `<HeadContent />`
+is removed; a broken chain here is silent, not an error.
+
+**Link previews are static, and cannot be otherwise.** The `og:` and `twitter:`
+tags live in `index.html` and are identical for every route. No unfurler —
+Slack, Telegram, WhatsApp, iMessage, Twitter — runs JavaScript; they read the
+served HTML, which for a client-rendered SPA is always the same shell.
+Per-route previews would need SSR or prerendering. Do not try to set `og:` tags
+from a route's `head`: it will look right in the browser and change nothing in
+any preview.
+
+`og:image` must be an absolute URL — a relative path is dropped by most
+unfurlers — so it names the production host even in the desktop shell, where
+nothing reads these tags.
+
+**Regenerating the preview card** (`public/og-card.png`, 1200x630) after editing
+`public/og-card.svg`:
+
+```bash
+sips -s format png public/og-card.svg --out public/og-card.png
+```
+
+`sips` is macOS-native and preserves the SVG's own dimensions; ImageMagick is
+not required.
+
 ## Linting
 
 `.oxlintrc.json` is kept as strict JSON with no comments, even though oxlint

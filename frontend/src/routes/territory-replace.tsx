@@ -5,6 +5,7 @@ import { requirePermission } from "@/routes/guard";
 import { sceneBundleQuery } from "@/territory/application/scene-bundle-query";
 import { HttpError } from "@/shared/infrastructure/http/http-error";
 import ReplaceSourceForm from "@/territory/presentation/components/replace-source-form";
+import { titleMeta } from "@/shared/presentation/page-title";
 
 function ReplaceTerritory() {
   const { slug } = territoryReplaceRoute.useParams();
@@ -20,6 +21,7 @@ function ReplaceTerritory() {
 export const territoryReplaceRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/territories/$slug/replace",
+  head: ({ params }) => titleMeta(`Replace source · ${params.slug}`),
   beforeLoad: ({ context, location }) =>
     requirePermission(context.queryClient, location, "territory:write"),
   loader: async ({ context, params }) => {

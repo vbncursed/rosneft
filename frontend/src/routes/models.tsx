@@ -7,6 +7,7 @@ import { can } from "@/auth/domain/principal";
 import { MotionList, MotionItem } from "@/shared/presentation/motion";
 import CatalogCard from "@/shared/presentation/catalog/catalog-card";
 import DeleteModelButton from "@/model/presentation/delete-model-button";
+import { titleMeta } from "@/shared/presentation/page-title";
 
 function Models() {
   const me = useCurrentUser();
@@ -47,6 +48,7 @@ function Models() {
 export const modelsRoute = createRoute({
   getParentRoute: () => authedLayoutRoute,
   path: "/models",
+  head: () => titleMeta("Models"),
   loader: ({ context }) => context.queryClient.ensureQueryData(modelsQuery),
   component: Models,
 });
