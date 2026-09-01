@@ -329,6 +329,69 @@ mod tests {
         format!("http://{addr}")
     }
 
+    /// The trap this crate's Cargo.toml comment is about, made executable.
+    /// The gateway compresses every JSON response; if reqwest is ever built
+    /// without gzip/brotli/deflate it hands the compressed bytes straight
+    /// through and `client.ts` throws SyntaxError on res.json() — every route,
+    /// the whole product. It survived eight reviews because every live check
+    /// used plain curl, which sends no Accept-Encoding and so got an
+    /// uncompressed answer. This sends what a webview actually sends.
+    #[tokio::test]
+    async fn decodes_a_compressed_upstream_body_and_drops_content_encoding() {
+        use std::io::Write;
+
+        let mut enc = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+        enc.write_all(br#"{"ok":true}"#).unwrap();
+        let gz = enc.finish().unwrap();
+
+        let base = stub(axum::Router::new().route(
+            "/api/auth/me",
+            get(move || {
+                let gz = gz.clone();
+                async move {
+                    (
+                        [
+                            (axum::http::header::CONTENT_ENCODING, "gzip"),
+                            (axum::http::header::CONTENT_TYPE, "application/json"),
+                        ],
+                        gz,
+                    )
+                }
+            }),
+        ))
+        .await;
+
+        // Exactly the features main.rs builds the real client with.
+        let client = reqwest::Client::builder().build().unwrap();
+        let upstream = url::Url::parse(&base).unwrap();
+
+        // A webview negotiates its own encodings; filtered_request must drop
+        // this so it can never drift from what reqwest is built to decode.
+        let mut headers = HeaderMap::new();
+        headers.insert("accept-encoding", "br, gzip".parse().unwrap());
+
+        let res = send(
+            &client,
+            &upstream,
+            "GET",
+            "/api/auth/me",
+            headers,
+            Vec::new(),
+        )
+        .await
+        .unwrap();
+
+        assert!(
+            res.headers().get("content-encoding").is_none(),
+            "Content-Encoding survived; the body reaching the webview is still compressed"
+        );
+        assert_eq!(
+            res.bytes().await.unwrap().as_ref(),
+            br#"{"ok":true}"#,
+            "body was not decoded — reqwest is missing its gzip/brotli/deflate features"
+        );
+    }
+
     #[tokio::test]
     async fn strips_set_cookie_from_the_response() {
         let base = stub(axum::Router::new().route(
