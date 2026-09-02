@@ -24,7 +24,11 @@ export function ConsoleSidebar({
     // Not an <aside>: the column is the console's primary navigation, and the
     // <nav> inside already carries that landmark. A second complementary
     // region here competes with the person inspector for the same role.
-    <div className="flex flex-col gap-5.5 border-r border-line bg-panel px-4.5 py-6">
+    //
+    // self-start is what makes the sticky work: a grid cell stretches to the
+    // row's height by default, so the column would already be as tall as the
+    // page and have nothing left to stick to.
+    <div className="sticky top-0 flex h-dvh flex-col gap-5.5 self-start overflow-hidden border-r border-line bg-panel px-4.5 py-6">
       <div className="flex items-center gap-2.5">
         <span
           aria-hidden="true"
@@ -37,7 +41,12 @@ export function ConsoleSidebar({
         </span>
       </div>
 
-      <ConsoleNav items={items} active={active} backHref={backHref} />
+      <ConsoleNav
+        items={items}
+        active={active}
+        backHref={backHref}
+        className="min-h-0 overflow-y-auto"
+      />
 
       <div className="mt-auto flex flex-col gap-3 border-t border-line pt-4">
         <ThemeToggle />
