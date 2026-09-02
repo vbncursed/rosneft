@@ -37,7 +37,7 @@ export default {
   ),
   readOnly: (
     <div className="rounded-card border border-line bg-panel p-6">
-      <PermissionMatrix all={ALL} granted={["audit:read"]} onToggle={() => {}} disabled />
+      <PermissionMatrix all={ALL} granted={["audit:read"]} onToggle={() => {}} readOnly />
     </div>
   ),
 };

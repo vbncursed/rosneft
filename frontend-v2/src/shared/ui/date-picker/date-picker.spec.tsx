@@ -79,6 +79,20 @@ describe("DatePicker", () => {
     expect(screen.queryByRole("button", { name: "32 August 2026" })).not.toBeInTheDocument();
   });
 
+  it("gives the calendar a width of its own, so the grid cannot collapse", async () => {
+    render(<Harness />);
+    await userEvent.click(field());
+    expect(screen.getByRole("dialog").className).toMatch(/w-\[17\.5rem\]/);
+  });
+
+  it("draws square day cells rather than letting the digits size them", async () => {
+    render(<Harness />);
+    await userEvent.click(field());
+    expect(screen.getByRole("button", { name: "12 August 2026" }).className).toContain(
+      "aspect-square",
+    );
+  });
+
   it("closes on Escape without changing the value", async () => {
     render(<Harness />);
     await userEvent.click(field());

@@ -12,6 +12,7 @@ const button = cva(
         ghost: "border-transparent bg-transparent text-fg hover:bg-panel-2",
         danger: "border-bad bg-bad-soft text-bad hover:bg-bad/20",
         accent: "border-accent-line bg-accent-soft text-accent hover:bg-accent/20",
+        success: "border-ok bg-ok-soft text-ok hover:bg-ok/20",
         // "← Back to site": no chrome at all, only the mono label.
         link: "border-transparent bg-transparent text-muted hover:text-fg",
       },
@@ -38,6 +39,9 @@ const button = cva(
       { shape: "control", size: "md", variant: "danger", class: "font-semibold" },
       { shape: "control", size: "md", variant: "accent", class: "font-semibold" },
       { shape: "pill", variant: "link", class: "px-0 tracking-[0.2em]" },
+      // A pill sits on a panel and shows it through; only the control-shaped
+      // secondary takes the raised panel-2 ground.
+      { shape: "pill", variant: "secondary", class: "bg-transparent hover:bg-panel-2" },
     ],
     defaultVariants: { variant: "secondary", shape: "control", size: "md" },
   },

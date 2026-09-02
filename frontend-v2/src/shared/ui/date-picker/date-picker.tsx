@@ -52,7 +52,7 @@ export function DatePicker({
   const days = monthGrid(view.year, view.month);
 
   return (
-    <div ref={root} className={cx("relative w-fit", className)}>
+    <div ref={root} className={cx("relative", className)}>
       <button
         type="button"
         disabled={disabled}
@@ -80,7 +80,7 @@ export function DatePicker({
         <div
           role="dialog"
           aria-label={label}
-          className="absolute z-10 mt-1 rounded-[10px] border border-line-2 bg-panel-2 p-3.5 shadow-elevation"
+          className="absolute z-10 mt-1 w-[17.5rem] rounded-[10px] border border-line-2 bg-panel-2 p-3.5 shadow-elevation"
         >
           <div className="mb-2.5 flex items-center justify-between gap-4">
             <button
@@ -131,7 +131,7 @@ export function DatePicker({
                     setOpen(false);
                   }}
                   className={cx(
-                    "cursor-pointer rounded-control-sm border py-[5px] text-center font-mono text-[11px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
+                    "flex aspect-square cursor-pointer items-center justify-center rounded-control-sm border text-center font-mono text-[11px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
                     day.iso === value
                       ? "border-accent bg-accent font-semibold text-accent-fg"
                       : day.iso === todayIso
@@ -142,7 +142,7 @@ export function DatePicker({
                   {day.day}
                 </button>
               ) : (
-                <span key={day.iso} aria-hidden="true" className="py-[5px]" />
+                <span key={day.iso} aria-hidden="true" className="aspect-square" />
               ),
             )}
           </div>

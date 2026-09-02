@@ -45,6 +45,22 @@ describe("Button", () => {
     expect(screen.getByRole("button", { name: "More actions" })).toBeDefined();
   });
 
+  it("keeps a secondary pill transparent — only the control shape is raised", () => {
+    const { rerender } = render(<Button shape="pill">+ Upload</Button>);
+    expect(screen.getByRole("button", { name: "+ Upload" }).className).toContain("bg-transparent");
+
+    rerender(<Button>+ Upload</Button>);
+    expect(screen.getByRole("button", { name: "+ Upload" }).className).toContain("bg-panel-2");
+  });
+
+  it("offers a success variant for a confirming action", () => {
+    render(<Button variant="success">I saved them</Button>);
+    const cls = screen.getByRole("button", { name: "I saved them" }).className;
+    expect(cls).toContain("border-ok");
+    expect(cls).toContain("bg-ok-soft");
+    expect(cls).toContain("text-ok");
+  });
+
   it("applies the variant and shape classes", () => {
     render(
       <Button variant="danger" shape="pill">
