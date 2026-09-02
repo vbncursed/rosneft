@@ -1,4 +1,4 @@
-export type CoverageTone = "ok" | "warn" | "bad" | "neutral";
+export type CoverageTone = "ok" | "warn" | "bad" | "accent" | "neutral";
 
 export type CoverageSegment = {
   tone: CoverageTone;

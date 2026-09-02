@@ -54,6 +54,16 @@ export const GLYPHS = {
       </>
     ),
   },
+  lock: {
+    box: "0 0 24 24",
+    width: 1.8,
+    body: (
+      <>
+        <rect x="4" y="10" width="16" height="11" rx="2" />
+        <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+      </>
+    ),
+  },
   magnet: {
     box: "0 0 24 24",
     width: 2,
@@ -63,6 +73,11 @@ export const GLYPHS = {
         <path d="M5 3h4M15 3h4M5 7h4M15 7h4" />
       </>
     ),
+  },
+  plus: {
+    box: "0 0 24 24",
+    width: 1.8,
+    body: <path d="M12 5v14M5 12h14" />,
   },
   ruler: {
     box: "0 0 24 24",

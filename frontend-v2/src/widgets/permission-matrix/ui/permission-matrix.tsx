@@ -80,6 +80,10 @@ export function PermissionMatrix({
                     disabled={state === "locked" || state === "system"}
                     onClick={() => onToggle(permission.slug)}
                     aria-pressed={on}
+                    // The visible label is the action alone, so "write" appears
+                    // once per group; the slug is what makes each chip's name
+                    // unique and says which resource it belongs to.
+                    aria-label={permission.slug}
                     title={locked ? LOCKED_TITLE : permission.description}
                     className={cx(
                       "inline-flex items-center gap-[7px] rounded-control border px-[11px] py-1.5 font-mono text-[11px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",

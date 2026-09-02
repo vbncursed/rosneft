@@ -40,3 +40,21 @@ describe("ProgressBar", () => {
     expect(container.querySelector("p")).toBeNull();
   });
 });
+
+describe("ProgressBar · thin", () => {
+  it("drops the frame for a meter inside a card", () => {
+    const { container } = render(<ProgressBar variant="thin" value={40} ariaLabel="Granted" />);
+    const track = screen.getByRole("progressbar");
+    expect(track.className).toContain("h-[5px]");
+    expect(track.className).not.toContain("border-line");
+    expect(container).toBeTruthy();
+  });
+
+  it("still reports its value", () => {
+    render(<ProgressBar variant="thin" value={40} ariaLabel="Granted" />);
+    expect(screen.getByRole("progressbar", { name: "Granted" })).toHaveAttribute(
+      "aria-valuenow",
+      "40",
+    );
+  });
+});
