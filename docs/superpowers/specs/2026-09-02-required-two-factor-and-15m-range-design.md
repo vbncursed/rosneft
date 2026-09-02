@@ -173,9 +173,21 @@ Named here so the next session does not rediscover them:
   change, a worker that cooperates with an abort, and a reconciler that
   understands the new terminal state. Its own spec, later.
 - **Silence alert** — alerts are read as `ALERTS{alertstate=~"firing|pending"}`
-  straight from Prometheus, which is a read-only view. Silencing needs
-  Alertmanager, which is not deployed anywhere in this repository. Its own
-  spec, later.
+  straight from Prometheus, which is a read-only view, so silencing cannot go
+  through the same path.
+
+  **Correction, 2026-09-02:** an earlier draft of this spec said Alertmanager
+  was not deployed anywhere in this repository. That was wrong, and it was
+  wrong because the search that produced it covered `backend/` and `deploy/`
+  while `docker-compose.yml` and `ops/` sit at the repository root. It **is**
+  deployed — `prom/alertmanager:v0.33.1`, configured from `ops/alertmanager`,
+  with Prometheus wired to it (`alertmanagers: targets: ["alertmanager:9093"]`
+  in `ops/prometheus/prometheus.yml`).
+
+  So the work is smaller than this spec first claimed: a proxy to
+  Alertmanager's `/api/v2/silences`, owner-gated in the shape
+  `/api/metrics/query` already uses, rather than an infrastructure project.
+  Still its own spec, but a comparable one to the metrics proxy.
 - **Territory visibility / per-person grants** — investigated and dropped: the
   access model already expresses both. `scopeOwningAdmin` keys a guest's scope
   to their own id and everyone else's to their tenant admin, so a row in
