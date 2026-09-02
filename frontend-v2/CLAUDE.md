@@ -75,6 +75,18 @@ native `<dialog>` on purpose (that is what gives a real browser the focus trap
 and the inert background), so `shared/lib/test-setup.ts` carries a small shim.
 Do not hand-roll a focus trap to make tests easier.
 
+**`yarn openapi:generate` crashes under `typescript@7.0.2`.**
+`openapi-typescript` builds its output through `ts.factory`, which the
+TypeScript 7 native port does not expose — its `peerDependencies` say `^5.x`,
+so this is not a bug to wait out, the generator never supported 7. The fix is
+the scoped `resolutions` entry above (`openapi-typescript/typescript`:
+`5.9.3`), which nests a classic compiler for the generator alone and leaves
+`tsc -b` on 7.0.2. **Do not "clean up" that entry.** JSON carries no comment,
+so a future dependency bump meets an unexplained pin; deleting it fails
+nothing today — the build and tests stay green — it only fails the next
+person who runs the generator, which may be months later. `frontend/` carries
+the identical pin for the identical reason.
+
 ## The per-module contract
 
 Every module gets its **own** `*.spec.ts(x)` beside it — not "covered by a
