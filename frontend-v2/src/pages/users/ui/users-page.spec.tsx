@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { UsersPage, type UsersPageProps } from "./users-page";
 import type { User } from "@/entities/user";
 
@@ -24,12 +24,6 @@ const person = (id: string, username: string, over: Partial<User> = {}) => ({
 });
 
 const props = (over: Partial<UsersPageProps> = {}): UsersPageProps => ({
-  nav: [
-    { key: "users", label: "Users", href: "/admin/users" },
-    { key: "roles", label: "Roles & Permissions", href: "/admin/roles" },
-  ],
-  backHref: "/",
-  viewer: { username: "a.ivanova", roleTitle: "Company Owner" },
   groups: [
     { key: "admins", label: "Owners & admins", people: [person("u-1", "a.ivanova")], total: 3 },
     { key: "ops", label: "Field operators", people: [person("u-2", "d.smirnov")], total: 11 },
@@ -61,21 +55,16 @@ const props = (over: Partial<UsersPageProps> = {}): UsersPageProps => ({
   ...over,
 });
 
-beforeEach(() => {
-  vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({ matches: false } as MediaQueryList));
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-  localStorage.clear();
-  document.documentElement.removeAttribute("data-theme");
-});
-
 describe("UsersPage", () => {
-  it("names the page with one h1 and marks Users as the open section", () => {
+  it("names the page with one h1", () => {
     render(<UsersPage {...props()} />);
     expect(screen.getByRole("heading", { level: 1, name: "Users" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Users" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("draws no chrome of its own — the layout owns the column", () => {
+    render(<UsersPage {...props()} />);
+    expect(screen.queryByRole("navigation", { name: "Console" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("main")).not.toBeInTheDocument();
   });
 
   it("summarises the population above the list", () => {
