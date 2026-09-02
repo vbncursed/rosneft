@@ -11,6 +11,7 @@ describe("the glyph registry", () => {
     expect([...ICON_NAMES].sort()).toEqual([
       "calendar",
       "cube",
+      "download",
       "eye",
       "eye-off",
       "kebab",

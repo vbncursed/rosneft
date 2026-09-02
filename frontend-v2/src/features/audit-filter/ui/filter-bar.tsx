@@ -2,12 +2,22 @@ import { useEffect, useRef } from "react";
 import { Icon } from "@/shared/ui/icon";
 import { parseFilters, removeToken } from "../model/query";
 
+export type ExtraFilter = {
+  label: string;
+  onRemove: () => void;
+};
+
 export type FilterBarProps = {
   query: string;
   onChange: (query: string) => void;
   placeholder?: string;
   /** Names the field for assistive tech. */
   label?: string;
+  /**
+   * Chips that are not part of the query text — a date range preset, say.
+   * They read the same but are owned by the page, not the parser.
+   */
+  extra?: ExtraFilter[];
 };
 
 const DEFAULT_PLACEHOLDER = "filter: entity:territory actor:a.ivanova failed:true";
@@ -17,6 +27,7 @@ export function FilterBar({
   onChange,
   placeholder = DEFAULT_PLACEHOLDER,
   label = "Filter events",
+  extra = [],
 }: FilterBarProps) {
   const input = useRef<HTMLInputElement>(null);
   const chips = parseFilters(query);
@@ -55,6 +66,23 @@ export function FilterBar({
             type="button"
             onClick={() => onChange(removeToken(query, chip.token))}
             aria-label={`Remove filter ${chip.token}`}
+            className="cursor-pointer border-none bg-transparent p-0 leading-none text-accent hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            ×
+          </button>
+        </span>
+      ))}
+
+      {extra.map((filter) => (
+        <span
+          key={filter.label}
+          className="flex shrink-0 items-center gap-[7px] rounded-full border border-accent bg-accent-soft px-[11px] py-1 font-mono text-[10px] text-accent"
+        >
+          {filter.label}
+          <button
+            type="button"
+            onClick={filter.onRemove}
+            aria-label={`Remove filter ${filter.label}`}
             className="cursor-pointer border-none bg-transparent p-0 leading-none text-accent hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             ×

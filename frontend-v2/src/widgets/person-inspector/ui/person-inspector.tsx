@@ -1,14 +1,10 @@
-import { Fragment, type ReactNode } from "react";
-import { clsx as cx } from "clsx";
+import type { ReactNode } from "react";
 import type { User } from "@/entities/user";
 import { Avatar } from "@/shared/ui/avatar";
+import { DetailList, type Detail } from "@/shared/ui/detail-list";
 import { Button } from "@/shared/ui/button";
 
-export type PersonDetail = {
-  label: string;
-  value: ReactNode;
-  tone?: "ok" | "warn" | "bad" | "dim" | "fg";
-};
+export type PersonDetail = Detail;
 
 export type PersonInspectorProps = {
   user: User;
@@ -25,18 +21,10 @@ export type PersonInspectorProps = {
   canManage?: boolean;
 };
 
-const DETAIL_TONE = {
-  ok: "text-ok",
-  warn: "text-warn",
-  bad: "text-bad",
-  dim: "text-dim",
-  fg: "text-fg",
-} as const;
-
-const STATUS_TEXT = {
-  active: "text-ok",
-  frozen: "text-warn",
-  deleted: "text-dim",
+const STATUS_TONE = {
+  active: "ok",
+  frozen: "warn",
+  deleted: "dim",
 } as const;
 
 export function PersonInspector({
@@ -69,17 +57,10 @@ export function PersonInspector({
           </button>
         </div>
 
-        <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-2.5 px-4 py-3.5 font-mono text-[11px]">
-          <dt className="text-dim">status</dt>
-          <dd className={cx("m-0", STATUS_TEXT[user.status])}>{user.status}</dd>
-
-          {details.map((detail) => (
-            <Fragment key={detail.label}>
-              <dt className="text-dim">{detail.label}</dt>
-              <dd className={cx("m-0", DETAIL_TONE[detail.tone ?? "fg"])}>{detail.value}</dd>
-            </Fragment>
-          ))}
-        </dl>
+        <DetailList
+          className="px-4 py-3.5"
+          items={[{ label: "status", value: user.status, tone: STATUS_TONE[user.status] }, ...details]}
+        />
       </div>
 
       {children}

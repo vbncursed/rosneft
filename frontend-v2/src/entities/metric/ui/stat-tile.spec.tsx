@@ -67,3 +67,19 @@ describe("StatTile · console variant", () => {
     expect(screen.getByLabelText("A: 1").className).toContain("text-[26px]");
   });
 });
+
+describe("StatTile · bare", () => {
+  it("drops the frame so a caller can group several in one panel", () => {
+    const { container } = render(
+      <StatTile bare label="Today" state={{ kind: "value", value: "312" }} />,
+    );
+    const cls = container.firstElementChild!.className;
+    expect(cls).not.toContain("border-line");
+    expect(cls).not.toContain("bg-panel");
+  });
+
+  it("still reads the same to assistive tech", () => {
+    render(<StatTile bare label="Failed" state={{ kind: "value", value: "4" }} tone="bad" />);
+    expect(screen.getByLabelText("Failed: 4")).toBeInTheDocument();
+  });
+});

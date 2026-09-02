@@ -13,6 +13,8 @@ export type StatTileProps = {
   tone?: StatTileTone;
   /** The console screens set their numbers at 26px, the dashboard at 22. */
   size?: "md" | "lg";
+  /** Drops the frame: the audit header groups its counters in one panel. */
+  bare?: boolean;
   className?: string;
 };
 
@@ -30,6 +32,7 @@ export function StatTile({
   hint,
   tone = "accent",
   size = "md",
+  bare = false,
   className,
 }: StatTileProps) {
   const valueTone =
@@ -38,8 +41,8 @@ export function StatTile({
   return (
     <div
       className={cx(
-        "rounded-[11px] border border-line bg-panel",
-        size === "lg" ? "px-4.5 py-4" : "p-3.5",
+        bare ? "" : "rounded-[11px] border border-line bg-panel",
+        bare ? "" : size === "lg" ? "px-4.5 py-4" : "p-3.5",
         className,
       )}
     >

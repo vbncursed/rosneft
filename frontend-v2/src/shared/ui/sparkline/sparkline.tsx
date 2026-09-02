@@ -27,7 +27,7 @@ export function Sparkline({
   const peak = bars.find((bar) => bar.peak);
 
   return (
-    <div className={cx("rounded-[10px] border border-line bg-panel-2 px-4 py-3.5", className)}>
+    <div className={className}>
       <div className="flex items-baseline justify-between gap-3">
         <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted">{label}</span>
         {detail ? <span className="font-mono text-[11px] text-muted">{detail}</span> : null}

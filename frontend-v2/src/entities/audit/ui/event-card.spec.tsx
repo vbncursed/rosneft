@@ -90,3 +90,22 @@ describe("EventCard", () => {
     expect(screen.getByText("system")).toBeInTheDocument();
   });
 });
+
+describe("EventCard · actor", () => {
+  it("shows the actor's avatar beside their name", () => {
+    render(<EventCard entry={entry()} summary="s" />);
+    expect(screen.getByRole("img", { name: "a.ivanova" })).toBeInTheDocument();
+  });
+
+  it("gives a system change no avatar — nobody was behind it", () => {
+    render(<EventCard entry={entry({ actorId: "", actorLogin: "" })} summary="s" />);
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.getByText("system").className).toContain("italic");
+  });
+
+  it("falls back to the actor id when the account is gone", () => {
+    render(<EventCard entry={entry({ actorLogin: "" })} summary="s" />);
+    expect(screen.getByRole("img", { name: "u-1" })).toBeInTheDocument();
+    expect(screen.getByText("u-1")).toBeInTheDocument();
+  });
+})
