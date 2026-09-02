@@ -11,6 +11,8 @@ export type OtpInputProps = {
   label?: string;
   className?: string;
   autoFocus?: boolean;
+  /** lg is the login screen's full-width row of taller cells. */
+  size?: "md" | "lg";
 };
 
 export function OtpInput({
@@ -21,6 +23,7 @@ export function OtpInput({
   label = "One-time code",
   className,
   autoFocus = false,
+  size = "md",
 }: OtpInputProps) {
   const groupId = useId();
   const cells = useRef<(HTMLInputElement | null)[]>([]);
@@ -95,7 +98,8 @@ export function OtpInput({
             maxLength={1}
             aria-label={`Digit ${index + 1} of ${length}`}
             className={cx(
-              "h-12 w-10 rounded-control border bg-panel-2 text-center font-mono text-lg text-fg outline-none transition-colors duration-150",
+              "rounded-control border bg-panel-2 text-center font-mono text-fg outline-none transition-colors duration-150",
+              size === "lg" ? "h-14 flex-1 text-xl" : "h-12 w-10 text-lg",
               "focus:border-accent focus:ring-[3px] focus:ring-accent-soft",
               "disabled:border-line disabled:text-dim",
               complete ? "border-accent bg-accent-soft" : "border-line-2",
