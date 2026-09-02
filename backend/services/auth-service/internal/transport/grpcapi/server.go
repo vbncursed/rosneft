@@ -41,6 +41,7 @@ type UsersSvc interface {
 	SoftDelete(ctx context.Context, actorID string, scopeAll bool, id string) error
 	Restore(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
 	SetOwner(ctx context.Context, actorID, id string, isOwner bool) (domain.User, error)
+	SetTOTPRequired(ctx context.Context, actorID string, scopeAll bool, id string, required bool) (domain.User, error)
 	ChangePassword(ctx context.Context, userID, oldPlain, newPlain string) error
 	MarkTourSeen(ctx context.Context, userID, tour string) error
 }
