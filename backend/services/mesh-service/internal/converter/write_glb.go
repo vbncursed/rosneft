@@ -93,8 +93,8 @@ func writeGLB(positions []vertex, uvs []uv, groups []materialGroup, materials []
 
 		prims = append(prims, &gltf.Primitive{
 			Attributes: attrs,
-			Indices:    gltf.Index(idx),
-			Material:   gltf.Index(matIdx),
+			Indices:    new(idx),
+			Material:   new(matIdx),
 		})
 	}
 
@@ -103,9 +103,9 @@ func writeGLB(positions []vertex, uvs []uv, groups []materialGroup, materials []
 	}
 
 	doc.Meshes = []*gltf.Mesh{{Primitives: prims}}
-	doc.Nodes = []*gltf.Node{{Mesh: gltf.Index(0)}}
+	doc.Nodes = []*gltf.Node{{Mesh: new(0)}}
 	doc.Scenes = []*gltf.Scene{{Nodes: []int{0}}}
-	doc.Scene = gltf.Index(0)
+	doc.Scene = new(0)
 
 	var buf bytes.Buffer
 	enc := gltf.NewEncoder(&buf)
@@ -168,8 +168,8 @@ func embedTexture(doc *gltf.Document, tex *textureAsset, samplerIdx int, cache m
 		return 0, fmt.Errorf("write image: %w", err)
 	}
 	doc.Textures = append(doc.Textures, &gltf.Texture{
-		Source:  gltf.Index(imgIdx),
-		Sampler: gltf.Index(samplerIdx),
+		Source:  new(imgIdx),
+		Sampler: new(samplerIdx),
 	})
 	textureIdx := len(doc.Textures) - 1
 	cache[tex.Path] = textureIdx

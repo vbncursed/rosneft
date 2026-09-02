@@ -20,9 +20,10 @@ func (s *Server) ListMyAudit(ctx context.Context, req ListMyAuditRequestObject) 
 	sc, err := service.AuditOwnScope(auditPrincipal(ctx))
 	switch {
 	case isForbidden(err):
-		return ListMyAudit403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse{
-			Code: apperr.SlugForbidden, Message: "no audit scope for this principal",
-		}}, nil
+		return ListMyAudit403JSONResponse{
+			Code:    apperr.SlugForbidden,
+			Message: "no audit scope for this principal",
+		}, nil
 	case err != nil:
 		return ListMyAudit500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
 	}
@@ -31,9 +32,10 @@ func (s *Server) ListMyAudit(ctx context.Context, req ListMyAuditRequestObject) 
 		myAuditQuery(req.Params), sc, authhttp.Token(ctx), true)
 	switch {
 	case isForbidden(err):
-		return ListMyAudit403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse{
-			Code: apperr.SlugForbidden, Message: "no audit scope for this principal",
-		}}, nil
+		return ListMyAudit403JSONResponse{
+			Code:    apperr.SlugForbidden,
+			Message: "no audit scope for this principal",
+		}, nil
 	case isInvalid(err):
 		return ListMyAudit400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
 	case err != nil:

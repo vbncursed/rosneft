@@ -76,9 +76,10 @@ func (s *Server) ListAudit(ctx context.Context, req ListAuditRequestObject) (Lis
 	sc, err := service.AuditScope(auditPrincipal(ctx))
 	switch {
 	case isForbidden(err):
-		return ListAudit403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse{
-			Code: apperr.SlugForbidden, Message: "no audit scope for this principal",
-		}}, nil
+		return ListAudit403JSONResponse{
+			Code:    apperr.SlugForbidden,
+			Message: "no audit scope for this principal",
+		}, nil
 	case err != nil:
 		// Refusal is the only thing AuditScope returns today, but collapsing
 		// every future error into 403 would tell a caller they lack a grant
@@ -89,9 +90,10 @@ func (s *Server) ListAudit(ctx context.Context, req ListAuditRequestObject) (Lis
 		auditQueryFromParams(req.Params), sc, authhttp.Token(ctx), true)
 	switch {
 	case isForbidden(err):
-		return ListAudit403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse{
-			Code: apperr.SlugForbidden, Message: "no audit scope for this principal",
-		}}, nil
+		return ListAudit403JSONResponse{
+			Code:    apperr.SlugForbidden,
+			Message: "no audit scope for this principal",
+		}, nil
 	case isInvalid(err):
 		return ListAudit400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
 	case err != nil:
@@ -119,9 +121,10 @@ func (s *Server) ListAuditActors(ctx context.Context, _ ListAuditActorsRequestOb
 	actors, err := s.svc.ListAuditActors(ctx, auditPrincipal(ctx), authhttp.Token(ctx))
 	switch {
 	case isForbidden(err):
-		return ListAuditActors403JSONResponse{ForbiddenJSONResponse: ForbiddenJSONResponse{
-			Code: apperr.SlugForbidden, Message: "no audit scope for this principal",
-		}}, nil
+		return ListAuditActors403JSONResponse{
+			Code:    apperr.SlugForbidden,
+			Message: "no audit scope for this principal",
+		}, nil
 	case isInvalid(err):
 		return ListAuditActors400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
 	case err != nil:

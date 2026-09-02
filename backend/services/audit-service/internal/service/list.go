@@ -3,8 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-
-	"github.com/google/uuid"
+	"uuid"
 
 	"github.com/vbncursed/rosneft/backend/services/audit-service/internal/domain"
 )
@@ -34,8 +33,10 @@ func (s *Service) List(ctx context.Context, f domain.Filter) ([]domain.Entry, in
 	if !f.AllCompanies && f.CompanyID == "" {
 		return nil, 0, fmt.Errorf("audit.List: %w: company id required for a scoped read", domain.ErrInvalidInput)
 	}
-	if f.ActorID != "" && uuid.Validate(f.ActorID) != nil {
-		return nil, 0, fmt.Errorf("audit.List: %w: actor id must be a uuid", domain.ErrInvalidInput)
+	if f.ActorID != "" {
+		if _, err := uuid.Parse(f.ActorID); err != nil {
+			return nil, 0, fmt.Errorf("audit.List: %w: actor id must be a uuid", domain.ErrInvalidInput)
+		}
 	}
 	want := f.Limit
 	if want <= 0 {

@@ -4,7 +4,6 @@ go 1.27.0
 
 require (
 	github.com/gojuno/minimock/v3 v3.4.7
-	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/pressly/goose/v3 v3.27.3
 	github.com/prometheus/client_golang v1.24.1
