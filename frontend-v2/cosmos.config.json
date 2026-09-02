@@ -3,5 +3,5 @@
   "plugins": ["react-cosmos-plugin-vite"],
   "port": 5100,
   "watchDirs": ["src"],
-  "lazy": true
+  "lazy": false
 }
