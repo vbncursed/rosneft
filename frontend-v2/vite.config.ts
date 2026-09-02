@@ -3,6 +3,8 @@ import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+// Shared with src/architecture.spec.ts's EXEMPT — one policy, one list.
+import { EXEMPT_MODULES } from "./exempt-modules.ts";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -28,11 +30,10 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],
-      // Wiring, fixtures and the guard itself are not units under test.
+      // The modules architecture.spec.ts excuses from needing a spec, plus
+      // the files that are specs or sample data themselves.
       exclude: [
-        "src/main.tsx",
-        "src/cosmos.decorator.tsx",
-        "src/shared/lib/test-setup.ts",
+        ...EXEMPT_MODULES,
         "src/**/*.fixture.tsx",
         "src/**/index.ts",
         "src/architecture.spec.ts",

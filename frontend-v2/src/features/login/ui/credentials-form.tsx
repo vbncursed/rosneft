@@ -20,8 +20,14 @@ export type CredentialsFormProps = {
   onIdentifierChange: (value: string) => void;
   password: string;
   onPasswordChange: (value: string) => void;
-  remember: boolean;
-  onRememberChange: (value: boolean) => void;
+  /**
+   * Absent while nothing acts on it. The gateway's LoginRequest carries no
+   * such field and the session cookie is a fixed 720 hours, so a checkbox
+   * claiming to limit exposure on a shared machine would be a lie — worse
+   * than no control at all. Optional for the same reason `onPasskey` is.
+   */
+  remember?: boolean;
+  onRememberChange?: (value: boolean) => void;
 
   onSubmit: () => void;
   /** Absent where passkeys cannot work — the desktop shell's loopback origin. */
@@ -91,13 +97,15 @@ export function CredentialsForm({
         disabled={submitting}
       />
 
-      <Checkbox
-        label="Keep me signed in on this device"
-        checked={remember}
-        onChange={(e) => onRememberChange(e.target.checked)}
-        disabled={submitting}
-        labelClassName="text-xs text-muted"
-      />
+      {onRememberChange ? (
+        <Checkbox
+          label="Keep me signed in on this device"
+          checked={remember ?? false}
+          onChange={(e) => onRememberChange(e.target.checked)}
+          disabled={submitting}
+          labelClassName="text-xs text-muted"
+        />
+      ) : null}
 
       <Button type="submit" size="lg" className={SECONDARY} loading={submitting}>
         Sign in

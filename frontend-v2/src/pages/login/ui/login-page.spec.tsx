@@ -8,8 +8,6 @@ const credentials = () => ({
   onIdentifierChange: vi.fn(),
   password: "",
   onPasswordChange: vi.fn(),
-  remember: false,
-  onRememberChange: vi.fn(),
   onSubmit: vi.fn(),
 });
 
@@ -51,6 +49,18 @@ describe("LoginPage", () => {
     render(<LoginPage {...props()} />);
     expect(screen.getByRole("heading", { level: 1, name: "Welcome back" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "About this platform" })).toBeInTheDocument();
+  });
+
+  // CredentialsForm hides the passkey button without `onPasskey`, so copy
+  // naming it sends the reader looking for a control that is not there.
+  it("names the passkey route only when the passkey route is offered", () => {
+    const { rerender } = render(<LoginPage {...props()} />);
+    expect(screen.queryByText(/Use your passkey/)).not.toBeInTheDocument();
+
+    rerender(
+      <LoginPage {...props({ credentials: { ...credentials(), onPasskey: vi.fn() } })} />,
+    );
+    expect(screen.getByText(/Use your passkey/)).toBeInTheDocument();
   });
 
   it("shows where the reader is in the flow", () => {

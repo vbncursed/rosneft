@@ -8,8 +8,6 @@ const props = (over: Partial<CredentialsFormProps> = {}): CredentialsFormProps =
   onIdentifierChange: vi.fn(),
   password: "",
   onPasswordChange: vi.fn(),
-  remember: false,
-  onRememberChange: vi.fn(),
   onSubmit: vi.fn(),
   ...over,
 });
@@ -58,9 +56,15 @@ describe("CredentialsForm", () => {
     expect(onPasskey).toHaveBeenCalledOnce();
   });
 
-  it("remembers the device when asked", async () => {
+  // A control that claims to limit exposure on a shared machine and does not
+  // is worse than no control: the gateway has no such field. It is drawn only
+  // where something is listening, exactly like the passkey button above.
+  it("offers the remember-me choice only where something acts on it", async () => {
     const onRememberChange = vi.fn();
-    render(<CredentialsForm {...props({ onRememberChange })} />);
+    const { rerender } = render(<CredentialsForm {...props()} />);
+    expect(screen.queryByRole("checkbox", { name: /Keep me signed in/ })).not.toBeInTheDocument();
+
+    rerender(<CredentialsForm {...props({ remember: false, onRememberChange })} />);
     await userEvent.click(screen.getByRole("checkbox", { name: /Keep me signed in/ }));
     expect(onRememberChange).toHaveBeenCalledWith(true);
   });
@@ -72,7 +76,11 @@ describe("CredentialsForm", () => {
   });
 
   it("freezes every control while the request is in flight", () => {
-    render(<CredentialsForm {...props({ submitting: true, onPasskey: vi.fn() })} />);
+    render(
+      <CredentialsForm
+        {...props({ submitting: true, onPasskey: vi.fn(), onRememberChange: vi.fn() })}
+      />,
+    );
     expect(screen.getByLabelText("Email or username")).toBeDisabled();
     expect(screen.getByRole("button", { name: /Sign in/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Continue with passkey/ })).toBeDisabled();
