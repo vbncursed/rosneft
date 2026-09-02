@@ -7,7 +7,7 @@ describe("the glyph registry", () => {
     expect(new Set(ICON_NAMES).size).toBe(ICON_NAMES.length);
   });
 
-  it("carries the nine glyphs the design system draws", () => {
+  it("carries the glyphs the design system draws", () => {
     expect([...ICON_NAMES].sort()).toEqual([
       "calendar",
       "cube",
@@ -17,6 +17,7 @@ describe("the glyph registry", () => {
       "magnet",
       "pencil",
       "ruler",
+      "search",
       "trash",
     ]);
   });

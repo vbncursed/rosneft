@@ -84,6 +84,16 @@ export const GLYPHS = {
       </>
     ),
   },
+  search: {
+    box: "0 0 24 24",
+    width: 1.8,
+    body: (
+      <>
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.6-3.6" />
+      </>
+    ),
+  },
   kebab: {
     box: "0 0 16 16",
     width: 0,
