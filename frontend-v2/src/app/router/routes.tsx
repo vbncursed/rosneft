@@ -1,5 +1,6 @@
 import { createRootRoute, createRoute, Outlet, redirect } from "@tanstack/react-router";
 import { isAuthed } from "@/shared/session";
+import { LoginRouteComponent } from "./login-route";
 import { redirectTarget } from "./guard";
 
 export const rootRoute = createRootRoute({
@@ -9,9 +10,7 @@ export const rootRoute = createRootRoute({
 export const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
-  // Real content lands in the next task, once the login screen is wired to
-  // the auth gateway.
-  component: () => <p>Login</p>,
+  component: LoginRouteComponent,
 });
 
 // Pathless-in-effect: `/console` itself has no screen, only children. Gates
