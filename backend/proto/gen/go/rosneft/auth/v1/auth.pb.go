@@ -735,8 +735,11 @@ type ValidateTokenResponse struct {
 	// Unmangled ResolveOwningAdmin result — the audit log's company key. Differs
 	// from owning_admin_id for guests, whose territory scope is keyed to self.
 	AuditCompanyId string `protobuf:"bytes,5,opt,name=audit_company_id,json=auditCompanyId,proto3" json:"audit_company_id,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// The account is required to carry a second factor and has not enrolled one.
+	// The gateway restricts such a session to the enrollment endpoints.
+	MustEnrollTwoFactor bool `protobuf:"varint,6,opt,name=must_enroll_two_factor,json=mustEnrollTwoFactor,proto3" json:"must_enroll_two_factor,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ValidateTokenResponse) Reset() {
@@ -802,6 +805,13 @@ func (x *ValidateTokenResponse) GetAuditCompanyId() string {
 		return x.AuditCompanyId
 	}
 	return ""
+}
+
+func (x *ValidateTokenResponse) GetMustEnrollTwoFactor() bool {
+	if x != nil {
+		return x.MustEnrollTwoFactor
+	}
+	return false
 }
 
 type GetMeRequest struct {
@@ -2558,13 +2568,14 @@ const file_rosneft_auth_v1_auth_proto_rawDesc = "" +
 	"\x05token\x18\x01 \x01(\tR\x05token\"\x10\n" +
 	"\x0eLogoutResponse\",\n" +
 	"\x14ValidateTokenRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"\xbf\x01\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"\xf4\x01\n" +
 	"\x15ValidateTokenResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12 \n" +
 	"\vpermissions\x18\x02 \x03(\tR\vpermissions\x12\x19\n" +
 	"\bis_owner\x18\x03 \x01(\bR\aisOwner\x12&\n" +
 	"\x0fowning_admin_id\x18\x04 \x01(\tR\rowningAdminId\x12(\n" +
-	"\x10audit_company_id\x18\x05 \x01(\tR\x0eauditCompanyId\"$\n" +
+	"\x10audit_company_id\x18\x05 \x01(\tR\x0eauditCompanyId\x123\n" +
+	"\x16must_enroll_two_factor\x18\x06 \x01(\bR\x13mustEnrollTwoFactor\"$\n" +
 	"\fGetMeRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\"s\n" +
 	"\x15ChangePasswordRequest\x12\x14\n" +
