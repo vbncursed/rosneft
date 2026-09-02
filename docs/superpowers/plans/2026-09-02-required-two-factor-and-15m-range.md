@@ -26,8 +26,17 @@ oapi-codegen, testify/suite + minimock, gotest.tools/assert.
   `git add .`. Check `git diff --cached --name-only` before every commit.
 - **`make -C backend check` is the gate** — gofmt, `go mod tidy` drift,
   `GOWORK=off go vet`, golangci-lint, `go test -race -shuffle=on`, govulncheck.
-  ~80 s. Run it before each commit; it is what `.githooks/pre-commit` and
+  ~4 min. Run it before each commit; it is what `.githooks/pre-commit` and
   `.github/workflows/backend.yml` both run.
+- **Run it as `CC=/usr/bin/clang CXX=/usr/bin/clang++ make -C backend check`.**
+  This machine's Homebrew llvm 22.1.8 is linked against `libz3.4.16.dylib`
+  while z3 5.1.0 is what is installed, so `runtime/cgo` fails to load and both
+  `go vet` and `-race` die before running a line of our code. Xcode's clang has
+  no such problem. Verified green on a clean tree before this plan started.
+- **A `govulncheck` failure on `dial tcp: lookup vuln.go.dev` is not your
+  failure.** It reads a remote database and this network drops out often; retry
+  once, and if it still cannot resolve, say so in your report and move on. CI
+  runs the same target with a working network.
 - **Before editing any Go file**, run the modern-Go guideline list for it:
   `sh ~/.claude/plugins/cache/goland-claude-marketplace/modern-go-guidelines/1.1.1/skills/use-modern-go/scripts/run-tool.sh list --file-path <file>`
   and follow what applies. `slices.Contains`, `any`, `errors.Is`, `min`/`max`
@@ -139,7 +148,7 @@ to:
 
 ```bash
 make -C backend openapi-gen
-make -C backend check
+CC=/usr/bin/clang CXX=/usr/bin/clang++ make -C backend check
 ```
 
 Expected: both succeed. `openapi_gen.go` shows the new enum value.
@@ -274,28 +283,23 @@ Then:
 make -C backend openapi-gen
 ```
 
-- [ ] **Step 7: Prove the column round-trips**
-
-The integration suite is the only place a real column can be exercised. Add to
-`backend/services/auth-service/internal/storage/users/` a new
-`set_totp_required_integration_test.go` in Task 3; for now assert the default in
-the existing user-store integration suite by extending its "creates and reads
-back a user" case with:
-
-```go
-	assert.Equal(s.T(), got.TOTPRequired, false, "new accounts must not be required by default")
-```
-
-- [ ] **Step 8: Run the gate**
+- [ ] **Step 7: Run the gate**
 
 ```bash
-make -C backend check
+CC=/usr/bin/clang CXX=/usr/bin/clang++ make -C backend check
 ```
 
-Expected: PASS. A scan-order mistake shows here as a type error from pgx, not
-at runtime.
+Expected: PASS.
 
-- [ ] **Step 9: Commit**
+**What this does not cover.** `auth-service` has no storage tests against a
+database — only `pick_owning_admin_test.go`, which is pure. A `userColumns`
+list that disagrees with `scanUser`'s destinations is a **runtime** pgx error,
+not a compile error, so nothing here catches it. The integration suite that
+does is written in Task 3, where there is finally something to write to.
+Until then, treat the column list and the scan order as one edit and check
+them against each other by eye before committing.
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add backend/services/auth-service backend/proto backend/services/gateway-service/api
@@ -535,10 +539,77 @@ func (s *Server) SetUserTOTPRequired(ctx context.Context, req *authv1.SetUserTOT
 }
 ```
 
-- [ ] **Step 9: Run the gate and commit**
+- [ ] **Step 9: Cover the column against a real database**
+
+Nothing so far proves the migration applies, or that `userColumns` and
+`scanUser` agree — a mismatch there is a runtime pgx error and `auth-service`
+has no storage tests against a database at all. Write the first one, copying
+the shape of
+`backend/services/catalog-service/internal/storage/resolve_blob_access_integration_test.go`:
+a `//go:build integration` file, a testcontainers Postgres, `migrate` run
+against it, then the round trip.
+
+Create
+`backend/services/auth-service/internal/storage/users/set_totp_required_integration_test.go`:
+
+```go
+//go:build integration
+
+package users_test
+
+// Suite scaffolding — container, pool, migrate — mirrors
+// catalog-service/internal/storage/resolve_blob_access_integration_test.go.
+// Copy its SetupSuite/TearDownSuite verbatim, swapping catalog's migrate
+// package for auth-service's.
+
+// A new account is not required to carry a second factor.
+func (s *TOTPRequiredSuite) TestDefaultsToFalse() {
+	u := s.createUser("a@example.com", "a")
+	assert.Equal(s.T(), u.TOTPRequired, false)
+}
+
+// The round trip is what proves the column list and the scan destinations
+// agree: they are two separate edits, and pgx only complains at runtime.
+func (s *TOTPRequiredSuite) TestSetAndReadBack() {
+	u := s.createUser("b@example.com", "b")
+
+	got, err := s.store.SetTOTPRequired(s.T().Context(), u.ID, true)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), got.TOTPRequired, true)
+
+	reread, err := s.store.GetByID(s.T().Context(), u.ID)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), reread.TOTPRequired, true)
+}
+
+// Unrequiring is the same statement with the other value, and it must not
+// disturb anything else on the row.
+func (s *TOTPRequiredSuite) TestUnrequireLeavesTheRestAlone() {
+	u := s.createUser("c@example.com", "c")
+	_, err := s.store.SetTOTPRequired(s.T().Context(), u.ID, true)
+	assert.NilError(s.T(), err)
+
+	got, err := s.store.SetTOTPRequired(s.T().Context(), u.ID, false)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), got.TOTPRequired, false)
+	assert.Equal(s.T(), got.Email, u.Email)
+	assert.Equal(s.T(), got.Status, u.Status)
+}
+```
+
+Run it — the tag keeps it out of `make check`, so it needs asking for by name:
 
 ```bash
-make -C backend check
+cd backend && go test -tags integration ./services/auth-service/internal/storage/users/... -v
+```
+
+Expected: PASS, three tests. If Docker is not running, testcontainers fails to
+start — say so in your report rather than deleting the suite.
+
+- [ ] **Step 10: Run the gate and commit**
+
+```bash
+CC=/usr/bin/clang CXX=/usr/bin/clang++ make -C backend check
 git add backend/services/auth-service backend/proto
 git diff --cached --name-only
 git commit -m "feat(auth): set a second-factor requirement on an account
@@ -814,7 +885,7 @@ gateway's client returns it as a seventh value. In
 `authhttp/middleware.go:26`:
 
 ```go
-		uid, perms, isOwner, owningAdmin, auditCompany, mustEnroll, err := h.client.ValidateToken(r.Context(), token)
+		uid, perms, isOwner, owningAdmin, auditCompany, _, err := h.client.ValidateToken(r.Context(), token)
 ```
 
 and in `authhttp/audit.go:91`, add one `_`:
@@ -823,13 +894,14 @@ and in `authhttp/audit.go:91`, add one `_`:
 	if uid, _, _, _, company, _, err := h.client.ValidateToken(r.Context(), token); err == nil {
 ```
 
-`mustEnroll` is unused at this step — the gate is Task 6. Assign it to `_` in
-`middleware.go` for now so the package compiles, and replace that in Task 6.
+**Both positions take `_`, not a named variable.** Nothing consumes the new
+value until Task 6 builds the gate, and Go rejects a declared-and-unused local
+— naming it here does not compile. Task 6 replaces this whole function anyway.
 
 - [ ] **Step 7: Run the gate and commit**
 
 ```bash
-make -C backend check
+CC=/usr/bin/clang CXX=/usr/bin/clang++ make -C backend check
 git add backend/services/auth-service backend/proto backend/services/gateway-service
 git diff --cached --name-only
 git commit -m "feat(auth): ValidateToken reports a session that must enroll 2FA
@@ -976,20 +1048,17 @@ Rather than turn a nine-method client into an interface, pull the middleware's
 body out over the one function it needs. That is the same move the repo already
 makes for decisions that need a test.
 
-Append to `enrollment_test.go`:
+Append to `enrollment_test.go` — **the file already has a `package authhttp`
+clause and a `testing` import from Step 1; merge these imports into that one
+header rather than pasting a second one**:
 
 ```go
-package authhttp
-
-import (
-	"context"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-
-	"github.com/vbncursed/rosneft/backend/pkg/apperr"
-)
+// merge into the existing import block:
+//   "context"
+//   "net/http"
+//   "net/http/httptest"
+//   "strings"
+//   "github.com/vbncursed/rosneft/backend/pkg/apperr"
 
 func okValidator(mustEnroll bool) validateFunc {
 	return func(context.Context, string) (string, []string, bool, string, string, bool, error) {
@@ -1135,7 +1204,7 @@ make -C backend openapi-gen
 - [ ] **Step 11: Run the full gate and commit**
 
 ```bash
-make -C backend check
+CC=/usr/bin/clang CXX=/usr/bin/clang++ make -C backend check
 git add backend/pkg/apperr backend/services/gateway-service
 git diff --cached --name-only
 git commit -m "feat(gateway): refuse a session that owes a second factor
