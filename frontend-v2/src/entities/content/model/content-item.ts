@@ -11,17 +11,16 @@ export type ContentItem = {
   slug: string;
   title: string;
   status: ConversionStatus;
-  /** Human-readable source size, or "—" while there is nothing converted. */
-  size: string;
-  /** LOD levels present, e.g. "0-2", or "—". */
+  /** The mono line under the title — slug plus whatever else identifies it. */
+  meta: string;
+  /** LOD levels present, e.g. "LOD 0-2", or "—". */
   lods: string;
-  /** Short date, e.g. "31.08". */
-  updated: string;
+  /** Human-readable artifact size, or "—" while there is nothing converted. */
+  size: string;
   /** 0–100 while converting. */
   progress?: number;
-  /** What the worker is doing, e.g. "Compressing textures…". */
+  /** One word for what the worker is doing, e.g. "textures". */
   stage?: string;
-  thumbnailUrl?: string;
 };
 
 /** Where the catalog links this item. */
@@ -31,29 +30,50 @@ export const contentPath = (item: ContentItem) =>
 /** Only a finished conversion can be opened. */
 export const isOpenable = (item: ContentItem) => item.status === "ready";
 
-export type ContentTab = "all" | "territory" | "model";
+/** Nothing converted yet — the design writes both columns as an em dash. */
+export const hasArtifacts = (item: ContentItem) => item.lods !== "—";
 
-/** Filters by tab and by a plain-text query over title and slug. */
-export function filterContent(
-  items: ContentItem[],
-  tab: ContentTab,
-  query: string,
-): ContentItem[] {
-  const needle = query.trim().toLowerCase();
-  return items.filter((item) => {
-    if (tab !== "all" && item.kind !== tab) return false;
-    if (!needle) return true;
-    return (
-      item.title.toLowerCase().includes(needle) || item.slug.toLowerCase().includes(needle)
-    );
+export type ContentFilter = { key: string; value: string };
+
+/**
+ * Narrows the catalog by `key:value` filters. An unknown key matches nothing
+ * rather than everything: silently ignoring a typo would show a full list and
+ * look like the filter simply did not work.
+ */
+export function matchesFilters(item: ContentItem, filters: ContentFilter[]): boolean {
+  return filters.every(({ key, value }) => {
+    const needle = value.toLowerCase();
+    switch (key) {
+      case "kind":
+        return item.kind === needle;
+      case "status":
+        return item.status === needle;
+      case "lod":
+        return item.lods.toLowerCase().includes(needle);
+      case "slug":
+        return item.slug.toLowerCase().includes(needle);
+      default:
+        return false;
+    }
   });
 }
 
-/** How many of each kind, for the tab labels. */
-export function countByKind(items: ContentItem[]) {
+/** Free text matches the title, the slug or the meta line. */
+export function matchesText(item: ContentItem, text: string): boolean {
+  const needle = text.trim().toLowerCase();
+  if (!needle) return true;
+  return (
+    item.title.toLowerCase().includes(needle) ||
+    item.slug.toLowerCase().includes(needle) ||
+    item.meta.toLowerCase().includes(needle)
+  );
+}
+
+/** How the pipeline splits, for the coverage meter above the list. */
+export function pipelineCounts(items: ContentItem[]) {
   return {
-    all: items.length,
-    territory: items.filter((i) => i.kind === "territory").length,
-    model: items.filter((i) => i.kind === "model").length,
+    ready: items.filter((i) => i.status === "ready").length,
+    converting: items.filter((i) => i.status === "converting").length,
+    failed: items.filter((i) => i.status === "failed").length,
   };
 }

@@ -1,11 +1,13 @@
-import { countByKind, ContentCard, type ContentItem, type ContentTab } from "@/entities/content";
-import type { ConversionJob } from "@/entities/conversion";
+import type { ReactNode } from "react";
+import type { ContentItem } from "@/entities/content";
+import type { ConversionStage } from "@/entities/conversion";
 import { StatTile, type StatTileTone } from "@/entities/metric";
+import { FilterBar, type ExtraFilter } from "@/features/audit-filter";
 import { Button } from "@/shared/ui/button";
-import { EmptyState } from "@/shared/ui/card";
-import { SearchField } from "@/shared/ui/search-field";
-import { Tabs } from "@/shared/ui/tabs";
-import { ConversionQueue } from "@/widgets/conversion-queue";
+import { CoverageMeter, type CoverageSegment } from "@/shared/ui/coverage-meter";
+import type { Detail } from "@/shared/ui/detail-list";
+import { ContentGroups, type ContentGroup } from "@/widgets/content-groups";
+import { ContentInspector } from "@/widgets/content-inspector";
 import { PageHeader } from "@/widgets/page-header";
 
 export type ContentPageStat = {
@@ -15,61 +17,87 @@ export type ContentPageStat = {
   tone?: StatTileTone;
 };
 
-export type ContentPageProps = {
-  /** Already filtered by the route; the tab counts come from `counts`. */
-  items: ContentItem[];
-  /** Totals for the tab labels, which do not shrink as the query narrows. */
-  counts: ReturnType<typeof countByKind>;
-  stats: ContentPageStat[];
-  jobs: ConversionJob[];
+/** The item open in the inspector, with what the route resolved about it. */
+export type InspectedContent = {
+  item: ContentItem;
+  details: Detail[];
+  stages?: ConversionStage[];
+  conversionNote?: string;
+};
 
-  tab: ContentTab;
-  onTabChange: (tab: ContentTab) => void;
+export type ContentPageProps = {
+  groups: ContentGroup[];
+  pipeline: { label: string; detail: string; segments: CoverageSegment[] };
+  stats: ContentPageStat[];
+
   query: string;
   onQueryChange: (query: string) => void;
+  extraFilters?: ExtraFilter[];
+
+  selectedSlug: string | null;
+  onSelect: (item: ContentItem) => void;
+  onCloseInspector: () => void;
+  /** Absent while the selected item's detail is still loading. */
+  inspected?: InspectedContent | null;
+  renderRowActions?: (item: ContentItem) => ReactNode;
 
   onUploadTerritory: () => void;
   onUploadModel: () => void;
-  onReplace?: (item: ContentItem) => void;
-  onDelete?: (item: ContentItem) => void;
+  onReplaceSource: () => void;
+  onOpenInViewer: () => void;
+  onDelete: () => void;
+  onCancelJob?: () => void;
   canManage?: boolean;
 };
 
+const FILTER_PLACEHOLDER = "filter: kind:territory status:converting lod:2";
+
 export function ContentPage({
-  items,
-  counts,
+  groups,
+  pipeline,
   stats,
-  jobs,
-  tab,
-  onTabChange,
   query,
   onQueryChange,
+  extraFilters,
+  selectedSlug,
+  onSelect,
+  onCloseInspector,
+  inspected,
+  renderRowActions,
   onUploadTerritory,
   onUploadModel,
-  onReplace,
+  onReplaceSource,
+  onOpenInViewer,
   onDelete,
+  onCancelJob,
   canManage = true,
 }: ContentPageProps) {
   return (
     <>
       <PageHeader
         size="lg"
-        eyebrow="Catalog"
+        eyebrow="Catalog · conversion pipeline"
         title="Content"
-        description="Territories, models and their conversion artifacts."
         action={
           canManage ? (
             <div className="flex gap-2.5">
-              <Button onClick={onUploadModel}>+ Upload model</Button>
+              <Button onClick={onUploadModel}>+ Model</Button>
               <Button variant="primary" onClick={onUploadTerritory}>
-                + Upload territory
+                + Territory
               </Button>
             </div>
           ) : undefined
         }
       />
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
+        <CoverageMeter
+          label={pipeline.label}
+          detail={pipeline.detail}
+          detailTone="ok"
+          segments={pipeline.segments}
+          className="rounded-[11px] border border-line bg-panel px-4.5 py-4"
+        />
         {stats.map((stat) => (
           <StatTile
             key={stat.label}
@@ -82,53 +110,41 @@ export function ContentPage({
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <Tabs
-          ariaLabel="Content kind"
-          value={tab}
-          onChange={onTabChange}
-          className="flex-1"
-          tabs={[
-            { value: "all", label: `All · ${counts.all}` },
-            { value: "territory", label: `Territories · ${counts.territory}` },
-            { value: "model", label: `Models · ${counts.model}` },
-          ]}
-        />
-        <SearchField
-          value={query}
-          onChange={onQueryChange}
-          label="Search content"
-          placeholder="title or slug"
-          className="min-w-60"
-        />
-      </div>
+      <FilterBar
+        query={query}
+        onChange={onQueryChange}
+        extra={extraFilters}
+        label="Filter content"
+        placeholder={FILTER_PLACEHOLDER}
+      />
 
-      {items.length === 0 ? (
-        <EmptyState
-          title="Nothing matches"
-          description="Try a different search, or upload something new."
-          action={
-            canManage ? (
-              <Button variant="primary" size="sm" onClick={onUploadTerritory}>
-                + Upload territory
-              </Button>
-            ) : undefined
-          }
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(420px,1fr)_minmax(300px,380px)]">
+        <ContentGroups
+          groups={groups}
+          selectedSlug={selectedSlug}
+          onSelect={onSelect}
+          renderActions={renderRowActions}
+          onDropZoneClick={canManage ? onUploadTerritory : undefined}
         />
-      ) : (
-        <div className="grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
-          {items.map((item) => (
-            <ContentCard
-              key={`${item.kind}:${item.slug}`}
-              item={item}
-              onReplace={canManage && onReplace ? () => onReplace(item) : undefined}
-              onDelete={canManage && onDelete ? () => onDelete(item) : undefined}
+
+        {inspected ? (
+          // Sticky so the item stays readable while the catalog scrolls.
+          <div className="xl:sticky xl:top-6">
+            <ContentInspector
+              item={inspected.item}
+              details={inspected.details}
+              stages={inspected.stages}
+              conversionNote={inspected.conversionNote}
+              canManage={canManage}
+              onClose={onCloseInspector}
+              onReplaceSource={onReplaceSource}
+              onOpenInViewer={onOpenInViewer}
+              onDelete={onDelete}
+              onCancelJob={inspected.item.status === "converting" ? onCancelJob : undefined}
             />
-          ))}
-        </div>
-      )}
-
-      <ConversionQueue jobs={jobs} />
+          </div>
+        ) : null}
+      </div>
     </>
   );
 }

@@ -24,6 +24,7 @@ describe("the glyph registry", () => {
       "ruler",
       "search",
       "trash",
+      "upload",
       "warning",
     ]);
   });
