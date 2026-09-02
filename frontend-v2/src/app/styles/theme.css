@@ -108,4 +108,21 @@
   --radius-card: 12px;
 
   --shadow-elevation: var(--elevation);
+
+  /* The conversion bar before a job reports any progress. */
+  --animate-indeterminate: indeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes indeterminate {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(350%);
+  }
+}
+
+/* The native dialog's backdrop — one rule for every overlay in the app. */
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.55);
 }
