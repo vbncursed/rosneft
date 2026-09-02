@@ -6,6 +6,8 @@ export type FieldProps = {
   /** Must match the control's own id — this is what ties the label to it. */
   id: string;
   label?: ReactNode;
+  /** A control shown on the label's row, outside the <label> itself. */
+  labelAction?: ReactNode;
   hint?: ReactNode;
   error?: ReactNode;
   required?: boolean;
@@ -18,6 +20,7 @@ export type FieldProps = {
 export function Field({
   id,
   label,
+  labelAction,
   hint,
   error,
   required,
@@ -28,16 +31,19 @@ export function Field({
   return (
     <div className={cx("flex flex-col", className)}>
       {label ? (
-        <label
-          htmlFor={id}
-          className={cx(
-            "font-mono text-[10px] uppercase tracking-[0.18em]",
-            disabled ? "text-dim" : "text-muted",
-          )}
-        >
-          {label}
-          {required ? <span aria-hidden="true"> *</span> : null}
-        </label>
+        <div className="flex items-center justify-between gap-2">
+          <label
+            htmlFor={id}
+            className={cx(
+              "font-mono text-[10px] uppercase tracking-[0.18em]",
+              disabled ? "text-dim" : "text-muted",
+            )}
+          >
+            {label}
+            {required ? <span aria-hidden="true"> *</span> : null}
+          </label>
+          {labelAction}
+        </div>
       ) : null}
 
       {children}

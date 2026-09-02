@@ -47,3 +47,16 @@ describe("ThemeToggle", () => {
     expect(document.documentElement.dataset.theme).toBe("dark");
   });
 });
+
+describe("ThemeToggle · compact", () => {
+  it("drops the label and rounds the button", () => {
+    render(<ThemeToggle variant="compact" />);
+    expect(screen.queryByText("Appearance")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Theme:/ }).className).toContain("rounded-full");
+  });
+
+  it("still names the current theme and what pressing it does", () => {
+    render(<ThemeToggle variant="compact" />);
+    expect(screen.getByRole("button", { name: "Theme: dark. Switch to light" })).toBeInTheDocument();
+  });
+});

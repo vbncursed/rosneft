@@ -92,3 +92,17 @@ describe("OtpInput", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 });
+
+describe("OtpInput · sizes", () => {
+  it("keeps fixed-width cells by default", () => {
+    render(<Harness />);
+    expect(cell(1).className).toContain("w-10");
+  });
+
+  it("lets the cells share the row when large", () => {
+    render(<OtpInput value="" onChange={() => {}} size="lg" />);
+    const first = screen.getByLabelText("Digit 1 of 6");
+    expect(first.className).toContain("flex-1");
+    expect(first.className).toContain("h-14");
+  });
+});

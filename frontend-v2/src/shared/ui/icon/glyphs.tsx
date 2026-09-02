@@ -23,6 +23,11 @@ export const GLYPHS = {
       </>
     ),
   },
+  check: {
+    box: "0 0 24 24",
+    width: 2.2,
+    body: <path d="M20 6 9 17l-5-5" />,
+  },
   cube: {
     box: "0 0 24 24",
     width: 1.4,
@@ -71,6 +76,17 @@ export const GLYPHS = {
       <>
         <path d="M5 3v8a7 7 0 0 0 14 0V3" />
         <path d="M5 3h4M15 3h4M5 7h4M15 7h4" />
+      </>
+    ),
+  },
+  // A wider, shorter body than `lock` — the design draws the two differently.
+  passkey: {
+    box: "0 0 24 24",
+    width: 1.8,
+    body: (
+      <>
+        <rect x="3" y="11" width="18" height="10" rx="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
       </>
     ),
   },

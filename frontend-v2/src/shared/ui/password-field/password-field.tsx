@@ -8,9 +8,8 @@ export type PasswordFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "id
   hint?: ReactNode;
   error?: ReactNode;
   id?: string;
-  /** Renders the design's "Generate" affordance beside the label. */
-  onGenerate?: () => void;
-  generateLabel?: string;
+  /** A control beside the label — "Generate" on an admin form, "Forgot?" on login. */
+  action?: { label: string; onClick: () => void };
   fieldClassName?: string;
 };
 
@@ -19,8 +18,7 @@ export function PasswordField({
   hint,
   error,
   id,
-  onGenerate,
-  generateLabel = "Generate",
+  action,
   className,
   fieldClassName,
   required,
@@ -34,22 +32,18 @@ export function PasswordField({
   return (
     <Field
       id={fieldId}
-      label={
-        onGenerate ? (
-          <span className="flex items-center justify-between gap-2">
-            <span>{label}</span>
-            <button
-              type="button"
-              onClick={onGenerate}
-              disabled={disabled}
-              className="cursor-pointer border-none bg-transparent font-mono text-[10px] uppercase tracking-[0.16em] text-accent hover:underline disabled:cursor-not-allowed disabled:opacity-55"
-            >
-              {generateLabel}
-            </button>
-          </span>
-        ) : (
-          label
-        )
+      label={label}
+      labelAction={
+        action ? (
+          <button
+            type="button"
+            onClick={action.onClick}
+            disabled={disabled}
+            className="cursor-pointer border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.16em] text-accent hover:underline disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            {action.label}
+          </button>
+        ) : undefined
       }
       hint={hint}
       error={error}

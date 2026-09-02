@@ -36,14 +36,21 @@ describe("PasswordField", () => {
     expect(input()).toHaveValue("Kf7-tundra-halo");
   });
 
-  it("shows the generate action only when a handler is given", async () => {
-    const onGenerate = vi.fn();
+  it("shows a label action only when one is given", async () => {
+    const onClick = vi.fn();
     const { rerender } = render(<PasswordField label="Password" />);
     expect(screen.queryByRole("button", { name: "Generate" })).not.toBeInTheDocument();
 
-    rerender(<PasswordField label="Password" onGenerate={onGenerate} />);
+    rerender(<PasswordField label="Password" action={{ label: "Generate", onClick }} />);
     await userEvent.click(screen.getByRole("button", { name: "Generate" }));
-    expect(onGenerate).toHaveBeenCalledOnce();
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
+  it("keeps that action out of the field's accessible name", () => {
+    render(<PasswordField label="Password" action={{ label: "Forgot?", onClick: () => {} }} />);
+    // Inside the <label> it would read as "Password Forgot?" and clicking it
+    // would also focus the input.
+    expect(screen.getByLabelText("Password")).toBeInTheDocument();
   });
 
   it("announces a validation error", () => {
