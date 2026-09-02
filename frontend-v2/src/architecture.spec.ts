@@ -17,6 +17,11 @@ const EXEMPT = new Set([
   // they used to hold is redirectTarget, which has its own spec.
   "src/app/router/routes.tsx",
   "src/app/router/router.tsx",
+  // Split out of routes.tsx solely so a named, hook-calling route component
+  // does not sit beside route consts (rules-of-hooks wants the name,
+  // only-export-components then objects to the mix). It spreads useLogin()'s
+  // return into LoginPage and decides nothing itself — useLogin has the spec.
+  "src/app/router/login-route.tsx",
 ]);
 
 const isBarrel = (file: string) => basename(file) === "index.ts";
