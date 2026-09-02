@@ -4,45 +4,72 @@ import { describe, expect, it, vi } from "vitest";
 import { ContentPage, type ContentPageProps } from "./content-page";
 import type { ContentItem } from "@/entities/content";
 
-const item = (over: Partial<ContentItem> = {}): ContentItem => ({
+const item = (slug: string, title: string, over: Partial<ContentItem> = {}): ContentItem => ({
   kind: "territory",
-  slug: "north-ridge-pad",
-  title: "North Ridge Pad",
+  slug,
+  title,
   status: "ready",
+  meta: `${slug} · upd. 31.08`,
+  lods: "LOD 0-2",
   size: "412 MB",
-  lods: "0-2",
-  updated: "31.08",
   ...over,
 });
 
 const props = (over: Partial<ContentPageProps> = {}): ContentPageProps => ({
-  items: [item(), item({ kind: "model", slug: "pump-jack-unit", title: "Pump Jack Unit" })],
-  counts: { all: 43, territory: 12, model: 31 },
+  groups: [
+    {
+      key: "attention",
+      label: "Needs attention",
+      note: "3 items",
+      items: [
+        item("terminal-yard-4", "Terminal Yard 4", { status: "converting", progress: 62, stage: "textures" }),
+      ],
+    },
+    {
+      key: "territories",
+      label: "Territories",
+      note: "12 items · 11 ready",
+      items: [item("north-ridge-pad", "North Ridge Pad")],
+    },
+  ],
+  pipeline: {
+    label: "Pipeline state",
+    detail: "40 / 43 ready",
+    segments: [
+      { tone: "ok", value: 40, label: "ready" },
+      { tone: "warn", value: 2, label: "converting" },
+      { tone: "bad", value: 1, label: "failed" },
+    ],
+  },
   stats: [
     { label: "Territories", value: "12", hint: "3 shared with guests" },
     { label: "Models", value: "31", hint: "placeable assets" },
-    { label: "Converting", value: "2", hint: "in flight · 1 failed", tone: "bad" },
     { label: "Storage", value: "184 GB", hint: "GLB + KTX2 artifacts", tone: "accent" },
   ],
-  jobs: [
-    { id: "1", slug: "terminal-yard-4", state: "running", progress: 62, stage: "Compressing…", eta: "~4 min" },
-  ],
-  tab: "all",
-  onTabChange: vi.fn(),
   query: "",
   onQueryChange: vi.fn(),
+  selectedSlug: null,
+  onSelect: vi.fn(),
+  onCloseInspector: vi.fn(),
   onUploadTerritory: vi.fn(),
   onUploadModel: vi.fn(),
+  onReplaceSource: vi.fn(),
+  onOpenInViewer: vi.fn(),
+  onDelete: vi.fn(),
+  ...over,
+});
+
+const inspected = (over = {}) => ({
+  item: item("terminal-yard-4", "Terminal Yard 4", { status: "converting", progress: 62 }),
+  details: [{ label: "job", value: "8f21 · mesh-worker-2" }],
   ...over,
 });
 
 describe("ContentPage", () => {
-  it("names the page and explains it", () => {
+  it("names the page with one h1", () => {
     render(<ContentPage {...props()} />);
     expect(screen.getByRole("heading", { level: 1, name: "Content" })).toBeInTheDocument();
-    expect(
-      screen.getByText("Territories, models and their conversion artifacts."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Catalog · conversion pipeline")).toBeInTheDocument();
   });
 
   it("draws no chrome of its own — the layout owns the column", () => {
@@ -51,76 +78,105 @@ describe("ContentPage", () => {
     expect(screen.queryByRole("main")).not.toBeInTheDocument();
   });
 
-  it("summarises the catalog above the grid", () => {
+  it("summarises the pipeline above the list", () => {
     render(<ContentPage {...props()} />);
-    expect(screen.getByLabelText("Territories: 12")).toBeInTheDocument();
+    expect(screen.getByText("40 / 43 ready")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /Pipeline state/ })).toBeInTheDocument();
     expect(screen.getByLabelText("Storage: 184 GB").className).toContain("text-accent");
   });
 
-  it("counts every kind in its tab, whatever the query narrowed to", () => {
-    render(<ContentPage {...props({ query: "refinery", items: [item()] })} />);
-    expect(screen.getByRole("tab", { name: "All · 43" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Models · 31" })).toBeInTheDocument();
+  it("groups the catalog", () => {
+    render(<ContentPage {...props()} />);
+    expect(screen.getByRole("region", { name: "Needs attention" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Territories" })).toBeInTheDocument();
   });
 
-  it("switches tabs", async () => {
-    const onTabChange = vi.fn();
-    render(<ContentPage {...props({ onTabChange })} />);
-    await userEvent.click(screen.getByRole("tab", { name: /Territories/ }));
-    expect(onTabChange).toHaveBeenCalledWith("territory");
-  });
-
-  it("reports what is searched for", async () => {
+  it("filters through the command bar", async () => {
     const onQueryChange = vi.fn();
     render(<ContentPage {...props({ onQueryChange })} />);
-    await userEvent.type(screen.getByRole("searchbox", { name: "Search content" }), "r");
+    await userEvent.type(screen.getByRole("textbox", { name: "Filter content" }), "k");
     expect(onQueryChange).toHaveBeenCalled();
   });
 
-  it("renders one card per item", () => {
-    render(<ContentPage {...props()} />);
-    expect(screen.getAllByRole("article")).toHaveLength(2);
+  it("shows a chip for a key:value query", () => {
+    render(<ContentPage {...props({ query: "kind:territory" })} />);
+    expect(screen.getByRole("button", { name: "Remove filter kind:territory" })).toBeInTheDocument();
   });
 
-  it("offers both uploads, and a way out of an empty result", async () => {
+  it("selects an item with the whole record", async () => {
+    const onSelect = vi.fn();
+    render(<ContentPage {...props({ onSelect })} />);
+    await userEvent.click(screen.getByRole("article", { name: "North Ridge Pad" }));
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ slug: "north-ridge-pad" }));
+  });
+
+  it("keeps the inspector out of the tree until an item is open", () => {
+    render(<ContentPage {...props({ selectedSlug: "terminal-yard-4", inspected: null })} />);
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
+  });
+
+  it("opens the inspector on the selected item", () => {
+    render(<ContentPage {...props({ selectedSlug: "terminal-yard-4", inspected: inspected() })} />);
+    expect(
+      screen.getByRole("complementary", { name: "Content: Terminal Yard 4" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("8f21 · mesh-worker-2")).toBeInTheDocument();
+  });
+
+  it("offers to cancel a job only while the item is converting", () => {
+    const onCancelJob = vi.fn();
+    const { rerender } = render(
+      <ContentPage {...props({ selectedSlug: "terminal-yard-4", inspected: inspected(), onCancelJob })} />,
+    );
+    expect(screen.getByRole("button", { name: "Cancel job" })).toBeInTheDocument();
+
+    rerender(
+      <ContentPage
+        {...props({
+          selectedSlug: "north-ridge-pad",
+          inspected: inspected({ item: item("north-ridge-pad", "North Ridge Pad") }),
+          onCancelJob,
+        })}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Cancel job" })).not.toBeInTheDocument();
+  });
+
+  it("offers both uploads", async () => {
     const onUploadTerritory = vi.fn();
     const onUploadModel = vi.fn();
     render(<ContentPage {...props({ onUploadTerritory, onUploadModel })} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "+ Upload model" }));
-    await userEvent.click(screen.getByRole("button", { name: "+ Upload territory" }));
+    await userEvent.click(screen.getByRole("button", { name: "+ Model" }));
+    await userEvent.click(screen.getByRole("button", { name: "+ Territory" }));
     expect(onUploadModel).toHaveBeenCalledOnce();
     expect(onUploadTerritory).toHaveBeenCalledOnce();
   });
 
-  it("says so when nothing matches, and offers the way forward", () => {
-    render(<ContentPage {...props({ items: [] })} />);
-    expect(screen.getByText("Nothing matches")).toBeInTheDocument();
-    expect(screen.queryByRole("article")).not.toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "+ Upload territory" }).length).toBeGreaterThan(0);
-  });
-
-  it("passes both row actions down, each carrying the item it acts on", async () => {
-    const onDelete = vi.fn();
-    const onReplace = vi.fn();
-    render(<ContentPage {...props({ onDelete, onReplace })} />);
-
-    await userEvent.click(screen.getByRole("button", { name: "Delete North Ridge Pad" }));
-    expect(onDelete).toHaveBeenCalledWith(expect.objectContaining({ slug: "north-ridge-pad" }));
-
-    await userEvent.click(screen.getByRole("button", { name: "Replace source of Pump Jack Unit" }));
-    expect(onReplace).toHaveBeenCalledWith(expect.objectContaining({ slug: "pump-jack-unit" }));
+  it("reaches the same upload from the drop target", async () => {
+    const onUploadTerritory = vi.fn();
+    render(<ContentPage {...props({ onUploadTerritory })} />);
+    await userEvent.click(screen.getByRole("button", { name: /Drop an OBJ or GLB/ }));
+    expect(onUploadTerritory).toHaveBeenCalledOnce();
   });
 
   it("hides every management control from a reader who may not manage content", () => {
-    render(<ContentPage {...props({ canManage: false, onDelete: vi.fn() })} />);
-    expect(screen.queryByRole("button", { name: /Upload/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^Delete/ })).not.toBeInTheDocument();
+    render(
+      <ContentPage
+        {...props({ canManage: false, selectedSlug: "terminal-yard-4", inspected: inspected() })}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: /^\+ /})).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Drop an OBJ/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
   });
 
-  it("shows what is converting under the grid", () => {
-    render(<ContentPage {...props()} />);
-    expect(screen.getByRole("list", { name: "Conversion queue" })).toBeInTheDocument();
-    expect(screen.getByText("terminal-yard-4")).toBeInTheDocument();
+  it("builds row actions per item", () => {
+    render(
+      <ContentPage
+        {...props({ renderRowActions: (i) => <button type="button">{`More: ${i.title}`}</button> })}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "More: North Ridge Pad" })).toBeInTheDocument();
   });
 });

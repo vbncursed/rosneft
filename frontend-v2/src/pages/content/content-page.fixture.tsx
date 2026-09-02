@@ -1,33 +1,58 @@
 import { useMemo, useState } from "react";
-import { countByKind, filterContent, type ContentItem, type ContentTab } from "@/entities/content";
-import type { ConversionJob } from "@/entities/conversion";
+import {
+  matchesFilters,
+  matchesText,
+  pipelineCounts,
+  type ContentItem,
+} from "@/entities/content";
+import { parseFilters, freeText } from "@/features/audit-filter";
+import { Icon } from "@/shared/ui/icon";
+import { Menu } from "@/shared/ui/menu";
 import { ConsoleLayout } from "@/widgets/console-layout";
+import type { ContentGroup } from "@/widgets/content-groups";
 import { ContentPage } from "./ui/content-page";
 
 const noop = () => {};
 
-const ITEMS: ContentItem[] = [
-  { kind: "territory", slug: "north-ridge-pad", title: "North Ridge Pad", status: "ready", size: "412 MB", lods: "0-2", updated: "31.08" },
-  { kind: "territory", slug: "refinery-block-c", title: "Refinery Block C", status: "ready", size: "1.2 GB", lods: "0-2", updated: "29.08" },
-  {
-    kind: "territory", slug: "terminal-yard-4", title: "Terminal Yard 4", status: "converting",
-    size: "760 MB", lods: "0-1", updated: "27.08", progress: 62, stage: "Compressing textures…",
-  },
-  { kind: "model", slug: "pump-jack-unit", title: "Pump Jack Unit", status: "ready", size: "38 MB", lods: "0-2", updated: "24.08" },
-  { kind: "model", slug: "storage-tank-500", title: "Storage Tank 500", status: "ready", size: "96 MB", lods: "0-2", updated: "22.08" },
-  { kind: "model", slug: "flare-stack", title: "Flare Stack", status: "failed", size: "—", lods: "—", updated: "21.08" },
-];
+const make = (
+  kind: ContentItem["kind"],
+  slug: string,
+  title: string,
+  over: Partial<ContentItem> = {},
+): ContentItem => ({
+  kind,
+  slug,
+  title,
+  status: "ready",
+  meta: `${slug} · upd. 31.08`,
+  lods: "LOD 0-2",
+  size: "412 MB",
+  ...over,
+});
 
-const JOBS: ConversionJob[] = [
-  { id: "1", slug: "terminal-yard-4", state: "running", progress: 62, stage: "Compressing textures and geometry…", eta: "~4 min" },
-  { id: "2", slug: "pipe-rack-b7", state: "running", progress: 18, stage: "Parsing OBJ…", eta: "~11 min" },
-  { id: "3", slug: "flare-stack", state: "failed", progress: 18, stage: "OBJ parse error at line 84120", eta: "—" },
+const ITEMS: ContentItem[] = [
+  make("territory", "terminal-yard-4", "Terminal Yard 4", {
+    status: "converting", progress: 62, stage: "textures",
+    meta: "terminal-yard-4 · job 8f21 · mesh-worker-2", lods: "LOD 0-1", size: "760 MB",
+  }),
+  make("model", "pipe-rack-b7", "Pipe Rack B7", {
+    status: "converting", progress: 18, stage: "parsing",
+    meta: "pipe-rack-b7 · job 8f22 · queued 11 min", lods: "—", size: "1.1 GB",
+  }),
+  make("model", "flare-stack", "Flare Stack", {
+    status: "failed", meta: "flare-stack · OBJ parse error at line 84120", lods: "—", size: "—",
+  }),
+  make("territory", "north-ridge-pad", "North Ridge Pad", { meta: "north-ridge-pad · upd. 31.08 · 3 placements" }),
+  make("territory", "refinery-block-c", "Refinery Block C", { meta: "refinery-block-c · upd. 29.08 · 14 placements", size: "1.2 GB" }),
+  make("territory", "tank-farm-south", "Tank Farm South", { meta: "tank-farm-south · upd. 26.08 · 8 placements", size: "689 MB" }),
+  make("model", "pump-jack-unit", "Pump Jack Unit", { meta: "pump-jack-unit · used in 6 territories", size: "38 MB" }),
+  make("model", "storage-tank-500", "Storage Tank 500", { meta: "storage-tank-500 · used in 4 territories", size: "96 MB" }),
+  make("model", "valve-assembly", "Valve Assembly", { meta: "valve-assembly · used in 2 territories", lods: "LOD 0-1", size: "12 MB" }),
 ];
 
 const STATS = [
   { label: "Territories", value: "12", hint: "3 shared with guests" },
   { label: "Models", value: "31", hint: "placeable assets" },
-  { label: "Converting", value: "2", hint: "in flight · 1 failed", tone: "bad" as const },
   { label: "Storage", value: "184 GB", hint: "GLB + KTX2 artifacts", tone: "accent" as const },
 ];
 
@@ -40,13 +65,38 @@ const NAV = [
   { key: "metrics", label: "Metrics", href: "#" },
 ];
 
-function Live({ initialQuery = "" }: { initialQuery?: string }) {
-  const [tab, setTab] = useState<ContentTab>("all");
-  const [query, setQuery] = useState(initialQuery);
+const STAGES = [
+  { label: "Parsing OBJ", state: "done" as const, time: "1m 12s" },
+  { label: "Building LOD 0-1", state: "done" as const, time: "3m 04s" },
+  { label: "Compressing textures", state: "active" as const, time: "running" },
+  { label: "Building LOD 2", state: "pending" as const, time: "queued" },
+];
 
-  // The route would filter server-side; here the pure helper does it, which is
-  // also what its own spec covers.
-  const items = useMemo(() => filterContent(ITEMS, tab, query), [tab, query]);
+function group(items: ContentItem[]): ContentGroup[] {
+  const attention = items.filter((i) => i.status !== "ready");
+  const territories = items.filter((i) => i.status === "ready" && i.kind === "territory");
+  const models = items.filter((i) => i.status === "ready" && i.kind === "model");
+  return [
+    { key: "attention", label: "Needs attention", note: `${attention.length} items`, items: attention },
+    { key: "territories", label: "Territories", note: `${territories.length} items`, items: territories },
+    { key: "models", label: "Models", note: `${models.length} items`, items: models },
+  ];
+}
+
+function Live({ initialSelected }: { initialSelected: string | null }) {
+  const [query, setQuery] = useState("kind:territory");
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(initialSelected);
+
+  // The route would filter server-side; here the pure helpers do it, which is
+  // also what their own specs cover.
+  const visible = useMemo(() => {
+    const filters = parseFilters(query);
+    const text = freeText(query);
+    return ITEMS.filter((i) => matchesFilters(i, filters) && matchesText(i, text));
+  }, [query]);
+
+  const counts = pipelineCounts(ITEMS);
+  const selected = ITEMS.find((i) => i.slug === selectedSlug) ?? null;
 
   return (
     <ConsoleLayout
@@ -56,24 +106,58 @@ function Live({ initialQuery = "" }: { initialQuery?: string }) {
       viewer={{ username: "a.ivanova", roleTitle: "Company Owner" }}
     >
       <ContentPage
-        items={items}
-        counts={countByKind(ITEMS)}
+        groups={group(visible)}
+        pipeline={{
+          label: "Pipeline state",
+          detail: `${counts.ready} / ${ITEMS.length} ready`,
+          segments: [
+            { tone: "ok", value: counts.ready, label: "ready" },
+            { tone: "warn", value: counts.converting, label: "converting" },
+            { tone: "bad", value: counts.failed, label: "failed" },
+          ],
+        }}
         stats={STATS}
-        jobs={JOBS}
-        tab={tab}
-        onTabChange={setTab}
         query={query}
         onQueryChange={setQuery}
+        selectedSlug={selectedSlug}
+        onSelect={(i) => setSelectedSlug(i.slug)}
+        onCloseInspector={() => setSelectedSlug(null)}
+        inspected={
+          selected && {
+            item: selected,
+            conversionNote: selected.status === "converting" ? "62% · ~4 min" : undefined,
+            stages: selected.status === "converting" ? STAGES : undefined,
+            details: [
+              { label: "source", value: `${selected.slug}.obj · 2.4 GB` },
+              { label: "artifacts", value: `GLB + KTX2 · ${selected.size}` },
+              { label: "lods", value: selected.lods },
+              { label: "job", value: "8f21 · mesh-worker-2" },
+            ],
+          }
+        }
+        renderRowActions={(i) => (
+          <Menu
+            triggerLabel={`Actions for ${i.title}`}
+            trigger={<Icon name="kebab" size={15} />}
+            items={[
+              { label: "Replace source", onSelect: noop },
+              { label: "Open in viewer", onSelect: noop, tone: "accent" },
+              { label: "Delete", onSelect: noop, tone: "bad" },
+            ]}
+          />
+        )}
         onUploadTerritory={noop}
         onUploadModel={noop}
-        onReplace={noop}
+        onReplaceSource={noop}
+        onOpenInViewer={noop}
         onDelete={noop}
+        onCancelJob={noop}
       />
     </ConsoleLayout>
   );
 }
 
 export default {
-  catalog: <Live />,
-  nothingMatches: <Live initialQuery="nonexistent" />,
+  converting: <Live initialSelected="terminal-yard-4" />,
+  catalogOnly: <Live initialSelected={null} />,
 };

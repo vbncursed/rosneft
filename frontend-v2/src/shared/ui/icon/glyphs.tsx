@@ -125,6 +125,17 @@ export const GLYPHS = {
     width: 1.8,
     body: <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />,
   },
+  upload: {
+    box: "0 0 24 24",
+    width: 1.7,
+    body: (
+      <>
+        <path d="M12 15V3" />
+        <path d="m7 8 5-5 5 5" />
+        <path d="M4 21h16" />
+      </>
+    ),
+  },
   warning: {
     box: "0 0 24 24",
     width: 1.8,

@@ -1,10 +1,12 @@
 export {
   contentPath,
-  countByKind,
-  filterContent,
+  hasArtifacts,
   isOpenable,
+  matchesFilters,
+  matchesText,
+  pipelineCounts,
+  type ContentFilter,
   type ContentItem,
   type ContentKind,
-  type ContentTab,
 } from "./model/content-item";
-export { ContentCard, type ContentCardProps } from "./ui/content-card";
+export { ContentRow, type ContentRowProps } from "./ui/content-row";

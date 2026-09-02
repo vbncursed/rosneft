@@ -44,3 +44,25 @@ export const JOB_TONE = { queued: "neutral", running: "warn", failed: "bad" } as
 /** A failed job's bar is full: it got as far as it is going to get. */
 export const jobProgress = (job: ConversionJob) =>
   job.state === "failed" ? 100 : job.progress;
+
+/** One step of the pipeline, as the inspector lists them. */
+export type StageState = "done" | "active" | "pending";
+
+export type ConversionStage = {
+  label: string;
+  state: StageState;
+  /** Elapsed for a finished step, or what it is doing, e.g. "running". */
+  time: string;
+};
+
+export const STAGE_DOT: Record<StageState, string> = {
+  done: "bg-ok",
+  active: "bg-warn",
+  pending: "bg-line-2",
+};
+
+export const STAGE_TEXT: Record<StageState, string> = {
+  done: "text-fg",
+  active: "text-warn",
+  pending: "text-dim",
+};
