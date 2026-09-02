@@ -76,6 +76,18 @@ checks a token class survived.
 Fixtures render inside `src/cosmos.decorator.tsx`, which loads the real
 stylesheet — what Cosmos shows is what the app shows.
 
+**`lazy: true` is load-bearing.** Cosmos defaults to importing every fixture
+and decorator statically into one bundle, so opening a single fixture pulled
+the whole of `src` — and in dev, where Vite serves each module as its own
+request, that is a few hundred round trips before anything paints. With it
+on, a fixture is a dynamic import and only its own graph loads.
+`watchDirs` is narrowed to `src` for the same reason: the default is `.`.
+
+If Cosmos ever seems to hang, check nothing is already holding the port —
+`lsof -nP -iTCP:5100 -sTCP:LISTEN`. Killing the `yarn cosmos` wrapper leaves
+the child alive; `pkill -f 'node_modules/.bin/cosmos'` is what actually stops
+it.
+
 ### The rules are enforced, not remembered
 
 `src/architecture.spec.ts` fails the suite when any of these slips:
