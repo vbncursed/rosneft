@@ -11,7 +11,7 @@ for tokens, spacing and states.
 yarn dev          # Vite dev server on :3001, /api proxied to the gateway
 yarn build        # tsc -b && vite build → dist/
 yarn preview      # serve the production build
-yarn lint         # tsc --noEmit + oxlint
+yarn lint         # tsc -b --noEmit + oxlint
 yarn test         # vitest (jsdom) — every *.spec.ts(x)
 yarn test:watch   # the same, watching
 yarn test:coverage
@@ -35,11 +35,11 @@ column, and its spec asserts as much.
 
 | Layer | Slices |
 | --- | --- |
-| `shared/ui` | icon, button, badge, detail-list, search-field, field, text-field, password-field, checkbox, otp-input, quantity-stepper, vec3-field, dropdown, segmented, date-picker, toast, callout, progress-bar, skeleton, sparkline, coverage-meter, modal, drawer, menu, card, section-heading, tabs, avatar, breadcrumbs, catalog-card |
+| `shared/ui` | icon, button, badge, detail-list, search-field, radio-card, field, text-field, password-field, checkbox, otp-input, quantity-stepper, vec3-field, dropdown, segmented, date-picker, toast, callout, progress-bar, skeleton, sparkline, coverage-meter, modal, drawer, menu, card, section-heading, tabs, avatar, breadcrumbs, catalog-card |
 | `entities` | conversion, content, territory, model, audit, user, role, metric, placement, permission |
 | `features` | measure, snap, onboarding, recovery-codes, theme-toggle, audit-filter, role-assign |
-| `widgets` | users-table, permission-matrix, alerts-card, console-nav, console-sidebar, console-layout, page-header, viewer-panel, viewer-toolbar, viewer-skeleton, objects-panel, model-picker, people-groups, event-timeline, record-inspector, person-inspector, role-groups, role-inspector, content-groups, content-inspector |
-| `pages` | users, audit, roles, content |
+| `widgets` | users-table, permission-matrix, alerts-card, console-nav, console-sidebar, console-layout, page-header, viewer-panel, viewer-toolbar, viewer-skeleton, objects-panel, model-picker, people-groups, event-timeline, record-inspector, person-inspector, role-groups, role-inspector, content-groups, content-inspector, access-groups, access-inspector |
+| `pages` | users, audit, roles, content, territory-access |
 
 ## Layout — Feature-Sliced Design
 
@@ -120,6 +120,11 @@ wiring. `index.ts` barrels are exempt as re-exports.
 
 `yarn test:coverage` enforces 90% statements / lines / functions and 85%
 branches over the same set.
+
+**Type-checking needs `tsc -b`, not `tsc --noEmit`.** The root `tsconfig.json`
+is solution-style — `files: []` plus references — so a bare `tsc --noEmit`
+compiles nothing and exits 0 whatever is in `src`. It silently passed a
+deliberately broken file until this was found; `-b` walks the references.
 
 ## Theme
 
