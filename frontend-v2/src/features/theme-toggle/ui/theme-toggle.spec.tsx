@@ -14,9 +14,15 @@ afterEach(() => {
 });
 
 describe("ThemeToggle", () => {
-  it("shows the theme in effect", () => {
+  it("shows the theme in effect, under its own label", () => {
     render(<ThemeToggle />);
     expect(screen.getByText("dark")).toBeInTheDocument();
+    expect(screen.getByText("Appearance")).toBeInTheDocument();
+  });
+
+  it("takes a different label", () => {
+    render(<ThemeToggle label="Theme" />);
+    expect(screen.getByText("Theme")).toBeInTheDocument();
   });
 
   it("names both the current theme and what pressing it does", () => {

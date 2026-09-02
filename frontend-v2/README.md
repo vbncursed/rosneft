@@ -25,15 +25,17 @@ Port 3001, not 3000: `frontend/` keeps 3000 while both apps coexist.
 
 ## What is here
 
-The design system's components, ported layer by layer. `pages/` is still
-empty — routing and data come next.
+The design system's components, ported layer by layer, and the first screen
+built from them. Routing and data come next — `UsersPage` takes everything
+through props and owns no fetching.
 
 | Layer | Slices |
 | --- | --- |
 | `shared/ui` | icon, button, badge, field, text-field, password-field, checkbox, otp-input, quantity-stepper, vec3-field, dropdown, segmented, date-picker, toast, callout, progress-bar, skeleton, sparkline, coverage-meter, modal, drawer, menu, card, section-heading, tabs, avatar, breadcrumbs, catalog-card |
 | `entities` | conversion, territory, model, audit, user, metric, placement, permission |
 | `features` | measure, snap, onboarding, recovery-codes, theme-toggle, audit-filter, role-assign |
-| `widgets` | users-table, permission-matrix, alerts-card, console-nav, page-header, viewer-panel, viewer-toolbar, viewer-skeleton, objects-panel, model-picker, event-timeline, record-inspector, person-inspector |
+| `widgets` | users-table, permission-matrix, alerts-card, console-nav, console-sidebar, page-header, viewer-panel, viewer-toolbar, viewer-skeleton, objects-panel, model-picker, people-groups, event-timeline, record-inspector, person-inspector |
+| `pages` | users |
 
 ## Layout — Feature-Sliced Design
 

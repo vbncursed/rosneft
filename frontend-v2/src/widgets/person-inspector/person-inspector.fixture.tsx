@@ -24,7 +24,11 @@ function Live() {
   return (
     <PersonInspector
       user={USER}
-      sessions="2 devices"
+      details={[
+        { label: "created", value: "2026-04-11" },
+        { label: "last seen", value: "yesterday 18:02" },
+        { label: "sessions", value: "2 devices" },
+      ]}
       onClose={noop}
       onResetPassword={noop}
       onRequire2fa={noop}

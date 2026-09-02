@@ -1,13 +1,19 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { clsx as cx } from "clsx";
 import type { User } from "@/entities/user";
 import { Avatar } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 
+export type PersonDetail = {
+  label: string;
+  value: ReactNode;
+  tone?: "ok" | "warn" | "bad" | "dim" | "fg";
+};
+
 export type PersonInspectorProps = {
   user: User;
-  /** e.g. "2 devices". */
-  sessions?: string;
+  /** Extra rows under the status, e.g. created / last seen / sessions. */
+  details?: PersonDetail[];
   onClose: () => void;
   onResetPassword: () => void;
   onRequire2fa: () => void;
@@ -19,6 +25,14 @@ export type PersonInspectorProps = {
   canManage?: boolean;
 };
 
+const DETAIL_TONE = {
+  ok: "text-ok",
+  warn: "text-warn",
+  bad: "text-bad",
+  dim: "text-dim",
+  fg: "text-fg",
+} as const;
+
 const STATUS_TEXT = {
   active: "text-ok",
   frozen: "text-warn",
@@ -27,7 +41,7 @@ const STATUS_TEXT = {
 
 export function PersonInspector({
   user,
-  sessions,
+  details = [],
   onClose,
   onResetPassword,
   onRequire2fa,
@@ -59,12 +73,12 @@ export function PersonInspector({
           <dt className="text-dim">status</dt>
           <dd className={cx("m-0", STATUS_TEXT[user.status])}>{user.status}</dd>
 
-          {sessions ? (
-            <>
-              <dt className="text-dim">sessions</dt>
-              <dd className="m-0 text-fg">{sessions}</dd>
-            </>
-          ) : null}
+          {details.map((detail) => (
+            <Fragment key={detail.label}>
+              <dt className="text-dim">{detail.label}</dt>
+              <dd className={cx("m-0", DETAIL_TONE[detail.tone ?? "fg"])}>{detail.value}</dd>
+            </Fragment>
+          ))}
         </dl>
       </div>
 

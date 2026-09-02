@@ -14,6 +14,7 @@ export type ConsoleNavProps = {
   active: string;
   backHref: string;
   backLabel?: string;
+  className?: string;
 };
 
 export function ConsoleNav({
@@ -21,11 +22,12 @@ export function ConsoleNav({
   active,
   backHref,
   backLabel = "← Back to site",
+  className,
 }: ConsoleNavProps) {
   return (
     <nav
       aria-label="Console"
-      className="flex flex-col gap-[3px] rounded-card border border-line bg-panel p-4.5"
+      className={cx("flex flex-col gap-[3px]", className)}
     >
       <a
         href={backHref}
