@@ -27,3 +27,43 @@ describe("StatTile", () => {
     expect(screen.getByLabelText("P95: unavailable").className).toContain("text-bad");
   });
 });
+
+describe("StatTile · console variant", () => {
+  it("shows a hint under the number when given one", () => {
+    render(
+      <StatTile label="Accounts" state={{ kind: "value", value: "26" }} hint="24 active · 2 frozen" />,
+    );
+    expect(screen.getByText("24 active · 2 frozen")).toBeInTheDocument();
+  });
+
+  it("omits the hint line entirely when there is none", () => {
+    const { container } = render(<StatTile label="Accounts" state={{ kind: "value", value: "26" }} />);
+    expect(container.querySelectorAll("p")).toHaveLength(2);
+  });
+
+  it("takes the tone it is told for a settled value", () => {
+    const { rerender } = render(
+      <StatTile label="Needs attention" state={{ kind: "value", value: "5" }} tone="bad" />,
+    );
+    expect(screen.getByLabelText("Needs attention: 5").className).toContain("text-bad");
+
+    rerender(<StatTile label="Accounts" state={{ kind: "value", value: "26" }} tone="fg" />);
+    expect(screen.getByLabelText("Accounts: 26").className).toContain("text-fg");
+  });
+
+  it("keeps the loading and failure tones whatever the caller asks for", () => {
+    const { rerender } = render(<StatTile label="P95" state={{ kind: "loading" }} tone="fg" />);
+    expect(screen.getByLabelText("P95: loading").className).toContain("text-muted");
+
+    rerender(<StatTile label="P95" state={{ kind: "unavailable" }} tone="fg" />);
+    expect(screen.getByLabelText("P95: unavailable").className).toContain("text-bad");
+  });
+
+  it("sets the console size larger than the dashboard one", () => {
+    const { rerender } = render(<StatTile label="A" state={{ kind: "value", value: "1" }} />);
+    expect(screen.getByLabelText("A: 1").className).toContain("text-[22px]");
+
+    rerender(<StatTile label="A" state={{ kind: "value", value: "1" }} size="lg" />);
+    expect(screen.getByLabelText("A: 1").className).toContain("text-[26px]");
+  });
+});

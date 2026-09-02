@@ -40,12 +40,39 @@ describe("PersonInspector", () => {
     expect(screen.getByText("frozen").className).toContain("text-warn");
   });
 
-  it("shows the session count only when there is one", () => {
-    const { rerender } = render(<PersonInspector user={user()} {...handlers()} />);
-    expect(screen.queryByText("sessions")).not.toBeInTheDocument();
-
-    rerender(<PersonInspector user={user()} sessions="2 devices" {...handlers()} />);
+  it("lists the detail rows it is given, in order", () => {
+    render(
+      <PersonInspector
+        user={user()}
+        details={[
+          { label: "created", value: "2026-04-11" },
+          { label: "last seen", value: "yesterday 18:02" },
+          { label: "sessions", value: "2 devices" },
+        ]}
+        {...handlers()}
+      />,
+    );
+    expect(screen.getByText("2026-04-11")).toBeInTheDocument();
     expect(screen.getByText("2 devices")).toBeInTheDocument();
+
+    const terms = [...document.querySelectorAll("dt")].map((d) => d.textContent);
+    expect(terms).toEqual(["status", "created", "last seen", "sessions"]);
+  });
+
+  it("shows only the status when no details are given", () => {
+    render(<PersonInspector user={user()} {...handlers()} />);
+    expect([...document.querySelectorAll("dt")].map((d) => d.textContent)).toEqual(["status"]);
+  });
+
+  it("tones a detail row when asked", () => {
+    render(
+      <PersonInspector
+        user={user()}
+        details={[{ label: "sessions", value: "none", tone: "dim" }]}
+        {...handlers()}
+      />,
+    );
+    expect(screen.getByText("none").className).toContain("text-dim");
   });
 
   it("offers the four management actions", async () => {

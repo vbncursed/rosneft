@@ -1,1 +1,1 @@
-export { PersonInspector, type PersonInspectorProps } from "./ui/person-inspector";
+export { PersonInspector, type PersonDetail, type PersonInspectorProps } from "./ui/person-inspector";

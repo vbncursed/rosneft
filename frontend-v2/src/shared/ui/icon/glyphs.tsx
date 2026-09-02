@@ -84,6 +84,11 @@ export const GLYPHS = {
       </>
     ),
   },
+  moon: {
+    box: "0 0 24 24",
+    width: 1.8,
+    body: <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />,
+  },
   warning: {
     box: "0 0 24 24",
     width: 1.8,
