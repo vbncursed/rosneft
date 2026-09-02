@@ -4,7 +4,7 @@ const back = { label: "← Catalog", href: "#" };
 const metadata = { vertices: 4812330, faces: 1604110, dimensions: { x: 182, y: 44, z: 96 } };
 
 export default (
-  <div className="grid max-w-2xl gap-4 md:grid-cols-2">
+  <div className="p-6 grid max-w-2xl gap-4 md:grid-cols-2">
     <ViewerPanel title="Refinery Block C" back={back} metadata={metadata} />
     <ViewerPanel
       title="Refinery Block C"

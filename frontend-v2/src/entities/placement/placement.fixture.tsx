@@ -22,7 +22,7 @@ function List() {
   const [visible, setVisible] = useState<Record<number, boolean>>({ 1: false, 2: true, 3: false });
 
   return (
-    <div className="flex max-w-sm flex-col gap-3">
+    <div className="p-6 flex max-w-sm flex-col gap-3">
       {PLACEMENTS.map((placement) => (
         <ObjectRow
           key={placement.id}

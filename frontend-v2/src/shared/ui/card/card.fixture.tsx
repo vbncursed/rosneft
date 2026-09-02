@@ -5,14 +5,14 @@ import { EmptyState } from "./empty-state";
 import { ErrorState } from "./error-state";
 
 export default (
-  <div className="flex flex-col gap-4">
+  <div className="p-6 flex flex-col gap-4">
     <Card title="Users" actions={<Button variant="primary" size="sm">+ New user</Button>}>
       <p className="m-0 text-[13px] text-muted">Table rows go here.</p>
     </Card>
     <Card overline="Progress · upload">
       <ProgressBar className="mt-3" value={64} label="Uploading chunks" detail="64%" />
     </Card>
-    <div className="grid grid-cols-3 gap-4">
+    <div className="p-6 grid grid-cols-3 gap-4">
       <EmptyState
         title="Catalog is empty"
         description="Upload your first territory."

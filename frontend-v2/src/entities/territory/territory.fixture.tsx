@@ -11,7 +11,7 @@ const base: Territory = {
 };
 
 const cards = (
-  <div className="grid gap-4 md:grid-cols-3">
+  <div className="p-6 grid gap-4 md:grid-cols-3">
     <TerritoryCard territory={base} conversion={{ status: "ready" }} />
     <TerritoryCard
       highlighted

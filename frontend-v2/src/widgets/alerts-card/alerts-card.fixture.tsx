@@ -2,7 +2,7 @@ import { AlertsCard } from "./ui/alerts-card";
 
 export default {
   firing: (
-    <div className="max-w-sm">
+    <div className="p-6 max-w-sm">
       <AlertsCard
         alerts={[
           { id: "a", name: "HighErrorRate · gateway", severity: "firing" },
@@ -12,7 +12,7 @@ export default {
     </div>
   ),
   clear: (
-    <div className="max-w-sm">
+    <div className="p-6 max-w-sm">
       <AlertsCard alerts={[]} />
     </div>
   ),

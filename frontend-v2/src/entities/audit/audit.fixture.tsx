@@ -35,7 +35,7 @@ const ENTRIES: AuditEntry[] = [
 function Journal() {
   const [openId, setOpenId] = useState<number | null>(1);
   return (
-    <div className="overflow-hidden rounded-card border border-line bg-panel">
+    <div className="p-6 overflow-hidden rounded-card border border-line bg-panel">
       {ENTRIES.map((entry) => (
         <AuditRow
           key={entry.id}

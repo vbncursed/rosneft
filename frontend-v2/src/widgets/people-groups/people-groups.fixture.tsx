@@ -55,12 +55,12 @@ function Live() {
 
 export default {
   grouped: (
-    <div className="max-w-3xl">
+    <div className="p-6 max-w-3xl">
       <Live />
     </div>
   ),
   filteredToNothing: (
-    <div className="max-w-3xl">
+    <div className="p-6 max-w-3xl">
       <PeopleGroups groups={[{ key: "ops", label: "Field operators", people: [] }]} />
     </div>
   ),

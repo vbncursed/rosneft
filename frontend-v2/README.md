@@ -82,6 +82,12 @@ checks a token class survived.
 Fixtures render inside `src/cosmos.decorator.tsx`, which loads the real
 stylesheet — what Cosmos shows is what the app shows.
 
+**The decorator adds no padding, and must not.** A full-screen fixture — a
+page, the console shell — has to reach the edges of the frame, and Cosmos
+composes decorators rather than letting a nested one replace its parent, so a
+gutter set there could not be opted out of. Component fixtures carry their
+own `p-6`; page-level ones deliberately do not.
+
 **`lazy` is deliberately `false`.** Cosmos then imports every fixture into one
 bundle, so the first load is heavy and every fixture after it is instant —
 which is the right trade for browsing the library, where you open one after

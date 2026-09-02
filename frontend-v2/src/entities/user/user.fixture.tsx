@@ -77,7 +77,7 @@ const HEADS = ["User", "Email", "Roles", "Status", "2FA", "Passkey", ""];
 
 export default {
   table: (
-    <div className="overflow-hidden rounded-card border border-line bg-panel">
+    <div className="p-6 overflow-hidden rounded-card border border-line bg-panel">
       <table className="w-full border-collapse text-left">
         <thead>
           <tr className="font-mono text-[9px] uppercase tracking-[0.18em] text-dim">
@@ -111,7 +111,7 @@ export default {
     </div>
   ),
   cards: (
-    <div className="grid gap-2.5 md:grid-cols-2">
+    <div className="p-6 grid gap-2.5 md:grid-cols-2">
       {SAMPLES.map(({ user, territories, lastSeen }) => (
         <PersonCard
           key={user.id}
