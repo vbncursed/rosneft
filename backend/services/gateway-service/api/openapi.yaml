@@ -1948,6 +1948,45 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /api/auth/users/{id}/2fa/require:
+    post:
+      tags: [auth]
+      summary: Require a second factor of a user (requires users:write)
+      description: >
+        Idempotent — requiring an already-required account answers 200. The user
+        keeps signing in, but their session may reach only the enrollment
+        endpoints until a second factor is enrolled.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/auth/users/{id}/2fa/unrequire:
+    post:
+      tags: [auth]
+      summary: Stop requiring a second factor of a user (requires users:write)
+      description: Idempotent. Does not disable an enrolled second factor.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /api/auth/users/{id}/restore:
     post:
       tags: [auth]
