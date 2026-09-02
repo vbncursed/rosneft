@@ -1,6 +1,7 @@
 import { clsx as cx } from "clsx";
+import { Avatar } from "@/shared/ui/avatar";
 import { Badge } from "@/shared/ui/badge";
-import { actorName, formatAt, type AuditEntry } from "../model/audit-entry";
+import { actorName, formatAt, isSystemChange, type AuditEntry } from "../model/audit-entry";
 import { eventKind, type EventKind } from "../model/event-kind";
 
 export type EventCardProps = {
@@ -44,6 +45,7 @@ const KIND_WORD: Record<EventKind, string> = {
 export function EventCard({ entry, summary, selected = false, onSelect }: EventCardProps) {
   const kind = eventKind(entry.action);
   const failed = entry.result === "failed";
+  const system = isSystemChange(entry);
 
   return (
     <article
@@ -52,7 +54,7 @@ export function EventCard({ entry, summary, selected = false, onSelect }: EventC
       aria-label={`${entry.action}, ${KIND_WORD[kind]} ${entry.entityLabel}${failed ? ", failed" : ""}`}
       className={cx(
         "relative flex cursor-pointer items-start gap-3 overflow-hidden rounded-[11px] border py-3.5 pl-4.5 pr-4 transition-colors duration-150",
-        selected ? "border-accent bg-accent-soft" : "border-line bg-panel-2 hover:border-line-2",
+        selected ? "border-accent bg-accent-soft" : "border-line bg-panel hover:border-line-2",
       )}
     >
       <span
@@ -85,9 +87,21 @@ export function EventCard({ entry, summary, selected = false, onSelect }: EventC
         <p className="m-0 mt-[5px] text-xs text-muted">{summary}</p>
       </div>
 
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="truncate text-xs text-muted">{actorName(entry)}</span>
-        <span className="w-11 text-right font-mono text-[11px] text-dim">
+      <div className="flex min-w-0 shrink items-center gap-3">
+        <div className="flex min-w-0 items-center gap-[7px]">
+          {system ? null : <Avatar name={entry.actorLogin || entry.actorId} size={22} />}
+          <span
+            className={cx(
+              "min-w-0 truncate",
+              // A worker or a migration is not a person; the italic mono says so
+              // without needing a second column to explain it.
+              system ? "font-mono text-[11px] italic text-dim" : "text-xs text-muted",
+            )}
+          >
+            {actorName(entry)}
+          </span>
+        </div>
+        <span className="w-11 shrink-0 text-right font-mono text-[11px] text-dim">
           {formatAt(entry.at).slice(11)}
         </span>
       </div>

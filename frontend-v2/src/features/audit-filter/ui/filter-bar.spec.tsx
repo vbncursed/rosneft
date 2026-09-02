@@ -74,3 +74,33 @@ describe("FilterBar", () => {
     expect(screen.getByText("⌘K")).toHaveAttribute("aria-hidden", "true");
   });
 });
+
+describe("FilterBar · chips the parser does not own", () => {
+  it("shows an extra chip alongside the parsed ones", () => {
+    render(
+      <FilterBar
+        query="entity:territory"
+        onChange={vi.fn()}
+        extra={[{ label: "last 7 days", onRemove: vi.fn() }]}
+      />,
+    );
+    expect(screen.getByText("entity:territory")).toBeInTheDocument();
+    expect(screen.getByText("last 7 days")).toBeInTheDocument();
+  });
+
+  it("removes an extra chip through its own handler, leaving the query alone", async () => {
+    const onRemove = vi.fn();
+    const onChange = vi.fn();
+    render(
+      <FilterBar query="entity:territory" onChange={onChange} extra={[{ label: "last 7 days", onRemove }]} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Remove filter last 7 days" }));
+    expect(onRemove).toHaveBeenCalledOnce();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("shows none when there are none", () => {
+    render(<FilterBar query="" onChange={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: /Remove filter/ })).not.toBeInTheDocument();
+  });
+});

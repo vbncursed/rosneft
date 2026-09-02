@@ -29,24 +29,39 @@ describe("RecordInspector", () => {
     expect(panel).toHaveTextContent("Refinery Block C");
   });
 
-  it("lists actor and result", () => {
-    render(<RecordInspector entry={entry()} {...props} />);
-    expect(screen.getByText("actor")).toBeInTheDocument();
-    expect(screen.getByText("a.ivanova")).toBeInTheDocument();
+  it("lists the facts it is handed, in order", () => {
+    render(
+      <RecordInspector
+        entry={entry()}
+        details={[
+          { label: "actor", value: "a.ivanova · Company Owner" },
+          { label: "ip", value: "10.42.0.18" },
+          { label: "result", value: "ok", tone: "ok" },
+        ]}
+        {...props}
+      />,
+    );
+    expect(screen.getByText("a.ivanova · Company Owner")).toBeInTheDocument();
+    expect(screen.getByText("10.42.0.18")).toBeInTheDocument();
     expect(screen.getByText("ok").className).toContain("text-ok");
   });
 
-  it("colours a failed result", () => {
-    render(<RecordInspector entry={entry({ result: "failed" })} {...props} />);
-    expect(screen.getByText("failed").className).toContain("text-bad");
+  it("shows no fact block when it was given none", () => {
+    render(<RecordInspector entry={entry()} {...props} />);
+    expect(document.querySelector("dl")).toBeNull();
   });
 
-  it("shows the digest only when the server sent one", () => {
+  it("names the record in the overline when an id is known", () => {
     const { rerender } = render(<RecordInspector entry={entry()} {...props} />);
-    expect(screen.queryByText("digest")).not.toBeInTheDocument();
+    expect(screen.getByText("Record inspector")).toBeInTheDocument();
 
-    rerender(<RecordInspector entry={entry()} digest="sha256:9c1f…a204" {...props} />);
-    expect(screen.getByText("sha256:9c1f…a204")).toBeInTheDocument();
+    rerender(<RecordInspector entry={entry()} recordId="4f21c8" {...props} />);
+    expect(screen.getByText("Record · 4f21c8")).toBeInTheDocument();
+  });
+
+  it("counts the changed fields in the heading", () => {
+    render(<RecordInspector entry={entry()} {...props} />);
+    expect(screen.getByText("Changed fields · 3")).toBeInTheDocument();
   });
 
   it("writes each changed field with its sign", () => {
@@ -83,5 +98,19 @@ describe("RecordInspector", () => {
     rerender(<RecordInspector entry={entry()} {...props} onOpenEntity={onOpenEntity} />);
     await userEvent.click(screen.getByRole("button", { name: "Open entity" }));
     expect(onOpenEntity).toHaveBeenCalledOnce();
+  });
+});
+
+describe("RecordInspector · dismissing", () => {
+  it("offers no close control when there is nothing to close to", () => {
+    render(<RecordInspector entry={entry()} {...props} />);
+    expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+  });
+
+  it("closes through the header control", async () => {
+    const onClose = vi.fn();
+    render(<RecordInspector entry={entry()} {...props} onClose={onClose} />);
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });
