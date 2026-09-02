@@ -16,8 +16,7 @@ func (s *Service) SoftDelete(ctx context.Context, actorID string, scopeAll bool,
 	if err := s.guard(ctx, actorID, id); err != nil {
 		return err
 	}
-	now := time.Now()
-	if _, err := s.store.SetStatus(ctx, id, domain.StatusDeleted, &now); err != nil {
+	if _, err := s.store.SetStatus(ctx, id, domain.StatusDeleted, new(time.Now())); err != nil {
 		return err
 	}
 	return s.sessions.DeleteUser(ctx, id)

@@ -120,9 +120,6 @@ func writeGLB(positions []vertex, uvs []uv, groups []materialGroup, materials []
 // hasUVs is false the texture is dropped even if present — UV-less primitives
 // can't sample it correctly; baseColorFactor still works.
 func buildMaterial(doc *gltf.Document, m glMaterial, hasUVs bool, samplerIdx int, cache map[string]int) (int, error) {
-	roughness := float64(1.0)
-	metallic := float64(0.0)
-
 	pbr := &gltf.PBRMetallicRoughness{
 		BaseColorFactor: &[4]float64{
 			float64(m.BaseColor[0]),
@@ -130,8 +127,8 @@ func buildMaterial(doc *gltf.Document, m glMaterial, hasUVs bool, samplerIdx int
 			float64(m.BaseColor[2]),
 			float64(m.BaseColor[3]),
 		},
-		RoughnessFactor: &roughness,
-		MetallicFactor:  &metallic,
+		RoughnessFactor: new(float64(1.0)),
+		MetallicFactor:  new(float64(0.0)),
 	}
 
 	if m.Texture != nil && hasUVs {
