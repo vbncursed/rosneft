@@ -35,11 +35,11 @@ column, and its spec asserts as much.
 
 | Layer | Slices |
 | --- | --- |
-| `shared/ui` | icon, button, badge, detail-list, field, text-field, password-field, checkbox, otp-input, quantity-stepper, vec3-field, dropdown, segmented, date-picker, toast, callout, progress-bar, skeleton, sparkline, coverage-meter, modal, drawer, menu, card, section-heading, tabs, avatar, breadcrumbs, catalog-card |
-| `entities` | conversion, territory, model, audit, user, role, metric, placement, permission |
+| `shared/ui` | icon, button, badge, detail-list, search-field, field, text-field, password-field, checkbox, otp-input, quantity-stepper, vec3-field, dropdown, segmented, date-picker, toast, callout, progress-bar, skeleton, sparkline, coverage-meter, modal, drawer, menu, card, section-heading, tabs, avatar, breadcrumbs, catalog-card |
+| `entities` | conversion, content, territory, model, audit, user, role, metric, placement, permission |
 | `features` | measure, snap, onboarding, recovery-codes, theme-toggle, audit-filter, role-assign |
-| `widgets` | users-table, permission-matrix, alerts-card, console-nav, console-sidebar, console-layout, page-header, viewer-panel, viewer-toolbar, viewer-skeleton, objects-panel, model-picker, people-groups, event-timeline, record-inspector, person-inspector, role-groups, role-inspector |
-| `pages` | users, audit, roles |
+| `widgets` | users-table, permission-matrix, alerts-card, console-nav, console-sidebar, console-layout, page-header, viewer-panel, viewer-toolbar, viewer-skeleton, objects-panel, model-picker, people-groups, event-timeline, record-inspector, person-inspector, role-groups, role-inspector, conversion-queue |
+| `pages` | users, audit, roles, content |
 
 ## Layout — Feature-Sliced Design
 

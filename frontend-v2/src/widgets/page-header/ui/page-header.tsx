@@ -7,13 +7,22 @@ export type PageHeaderProps = {
   title: string;
   /** lg is the console screens' 34px title; md the catalog's 28px. */
   size?: "md" | "lg";
+  /** One sentence under the title, where the page needs explaining. */
+  description?: ReactNode;
   /** The way back up, e.g. { label: "← Home", href: "/" }. */
   back?: { label: string; href: string };
   /** The page's primary action. */
   action?: ReactNode;
 };
 
-export function PageHeader({ eyebrow, title, size = "md", back, action }: PageHeaderProps) {
+export function PageHeader({
+  eyebrow,
+  title,
+  size = "md",
+  description,
+  back,
+  action,
+}: PageHeaderProps) {
   return (
     <header
       className={cx(
@@ -49,6 +58,9 @@ export function PageHeader({ eyebrow, title, size = "md", back, action }: PageHe
         >
           {title}
         </h1>
+        {description ? (
+          <p className="m-0 mt-2 text-[13px] text-muted">{description}</p>
+        ) : null}
       </div>
       {action}
     </header>

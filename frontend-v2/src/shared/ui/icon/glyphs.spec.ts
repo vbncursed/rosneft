@@ -20,6 +20,7 @@ describe("the glyph registry", () => {
       "moon",
       "pencil",
       "plus",
+      "refresh",
       "ruler",
       "search",
       "trash",

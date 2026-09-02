@@ -22,3 +22,25 @@ export function trailingNote(state: ConversionState): string | undefined {
   }
   return undefined;
 }
+
+/** A conversion the worker is running, or has stopped running. */
+export type JobState = "queued" | "running" | "failed";
+
+export type ConversionJob = {
+  id: string;
+  /** The territory or model being converted. */
+  slug: string;
+  state: JobState;
+  /** 0–100; absent before the worker reports anything. */
+  progress?: number;
+  /** What it is doing, or why it stopped. */
+  stage: string;
+  /** e.g. "~4 min", or "—" when there is nothing to estimate. */
+  eta: string;
+};
+
+export const JOB_TONE = { queued: "neutral", running: "warn", failed: "bad" } as const;
+
+/** A failed job's bar is full: it got as far as it is going to get. */
+export const jobProgress = (job: ConversionJob) =>
+  job.state === "failed" ? 100 : job.progress;
