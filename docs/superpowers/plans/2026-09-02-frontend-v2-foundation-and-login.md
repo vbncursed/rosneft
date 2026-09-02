@@ -85,7 +85,13 @@ const EXEMPT = new Set([
 yarn lint && yarn test
 ```
 
-Expected: both pass. If oxlint flags the generated file's length, exempt it the way `frontend/` does — check `frontend/.oxlintrc.json` for the existing `dto.ts` exemption and mirror it rather than inventing one.
+Expected: both pass, with `yarn test` still reporting the 1490 that passed before you started.
+
+**No oxlint change is needed.** `frontend-v2/.oxlintrc.json` carries no
+line-count rule — unlike `frontend/`, which caps files at 200 lines and
+therefore has to exempt its own `dto.ts`. Do not copy that exemption across;
+there is nothing here for it to switch off, and a rule-less override is noise
+the next reader has to decode.
 
 - [ ] **Step 6: Commit**
 
@@ -826,6 +832,19 @@ Frontend-only; --no-verify because the pre-commit hook runs the Go gate."
 - Produces: `useLogin()` returning exactly `LoginPageProps`.
 
 **The page component is not modified.** The hook returns its existing prop type, which is what keeps the Cosmos fixtures working — they feed the same props by hand.
+
+**Passkey sign-in is out of scope, and `onPasskey` is left undefined** so the
+button does not render. `CredentialsFormProps` makes it optional precisely so a
+caller that cannot offer it does not have to.
+
+Two things block it, and neither is a line of this task's work. The gateway's
+`PASSKEY_RP_ORIGINS` is pinned to `http://localhost:3000` — `frontend/`'s dev
+port — while this SPA serves on 3001, and WebAuthn compares origins exactly, so
+a ceremony started here is refused by the passkey service whatever the client
+does. And the browser-side ceremony itself is a module this codebase has not
+ported yet (`frontend/src/auth/infrastructure/webauthn.ts` plus its gateway).
+Enabling it is a one-line compose change and a port, together worth their own
+task; rendering a button that cannot succeed is worse than rendering none.
 
 - [ ] **Step 1: Write the failing spec**
 
