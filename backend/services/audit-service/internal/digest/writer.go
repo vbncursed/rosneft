@@ -8,7 +8,7 @@
 package digest
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"os"
 	"sync"
