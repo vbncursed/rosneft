@@ -43,6 +43,7 @@ service AuthService {
   rpc SoftDeleteUser(SoftDeleteUserRequest) returns (SoftDeleteUserResponse);
   rpc RestoreUser(RestoreUserRequest) returns (User);
   rpc SetUserOwner(SetUserOwnerRequest) returns (User);
+  rpc SetUserTOTPRequired(SetUserTOTPRequiredRequest) returns (User);
 
   // --- roles / permissions ---
   rpc ListRoles(ListRolesRequest) returns (ListRolesResponse);
@@ -243,6 +244,14 @@ message SetUserOwnerRequest {
   string token = 1; // actor; must already be an owner
   string id = 2;
   bool is_owner = 3;
+}
+
+// SetUserTOTPRequiredRequest sets or clears the second-factor policy on one
+// account. Owner-scoped like the other per-account admin actions.
+message SetUserTOTPRequiredRequest {
+  string token = 1; // actor resolved server-side from the session
+  string id = 2;
+  bool required = 3;
 }
 
 message ListRolesRequest {
