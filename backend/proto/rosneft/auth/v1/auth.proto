@@ -145,6 +145,9 @@ message ValidateTokenResponse {
   // Unmangled ResolveOwningAdmin result — the audit log's company key. Differs
   // from owning_admin_id for guests, whose territory scope is keyed to self.
   string audit_company_id = 5;
+  // The account is required to carry a second factor and has not enrolled one.
+  // The gateway restricts such a session to the enrollment endpoints.
+  bool must_enroll_two_factor = 6;
 }
 
 message GetMeRequest {

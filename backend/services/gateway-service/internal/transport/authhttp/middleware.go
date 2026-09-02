@@ -23,7 +23,7 @@ func (h *Handlers) Authenticate(next http.Handler) http.Handler {
 			apperr.Write(w, http.StatusUnauthorized, apperr.SlugUnauthenticated, "missing session")
 			return
 		}
-		uid, perms, isOwner, owningAdmin, auditCompany, err := h.client.ValidateToken(r.Context(), token)
+		uid, perms, isOwner, owningAdmin, auditCompany, _, err := h.client.ValidateToken(r.Context(), token)
 		if err != nil {
 			fail(w, err) // maps Unauthenticated → 401
 			return
