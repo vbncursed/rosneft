@@ -11,7 +11,7 @@ function Picker() {
   const [selected, setSelected] = useState("storage-tank-500");
   const [quantity, setQuantity] = useState(3);
   return (
-    <div className="grid max-w-sm grid-cols-3 gap-2.5">
+    <div className="p-6 grid max-w-sm grid-cols-3 gap-2.5">
       <ModelPickerCard model={pump} selected={selected === pump.slug} onSelect={() => setSelected(pump.slug)} />
       <ModelPickerCard
         model={tank}
@@ -27,7 +27,7 @@ function Picker() {
 
 export default {
   cards: (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="p-6 grid gap-4 md:grid-cols-2">
       <ModelCard
         model={{ ...flare, description: "Elevated flare with knockout drum." }}
         conversion={{ status: "ready" }}

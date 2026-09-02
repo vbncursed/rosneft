@@ -3,7 +3,7 @@ import { Button } from "@/shared/ui/button";
 import { CatalogCard } from "./catalog-card";
 
 export default (
-  <div className="grid gap-4 md:grid-cols-3">
+  <div className="p-6 grid gap-4 md:grid-cols-3">
     <CatalogCard
       kind="Territory"
       title="Refinery Block C"

@@ -17,7 +17,7 @@ const entry: AuditEntry = {
 
 export default {
   changed: (
-    <div className="max-w-sm">
+    <div className="p-6 max-w-sm">
       <RecordInspector
         entry={entry}
         digest="sha256:9c1f…a204"
@@ -27,7 +27,7 @@ export default {
     </div>
   ),
   failedAndGone: (
-    <div className="max-w-sm">
+    <div className="p-6 max-w-sm">
       <RecordInspector
         entry={{ ...entry, action: "model.delete", result: "failed", newRow: null }}
         onCopyJson={() => {}}

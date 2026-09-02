@@ -2,9 +2,9 @@ import { Icon } from "@/shared/ui/icon";
 import { Button } from "./button";
 
 const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div className="flex flex-col gap-3">
+  <div className="p-6 flex flex-col gap-3">
     <p className="m-0 font-mono text-[10px] uppercase tracking-[0.2em] text-muted">{label}</p>
-    <div className="flex flex-wrap items-center gap-2.5">{children}</div>
+    <div className="p-6 flex flex-wrap items-center gap-2.5">{children}</div>
   </div>
 );
 

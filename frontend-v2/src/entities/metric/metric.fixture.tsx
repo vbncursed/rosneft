@@ -2,8 +2,8 @@ import { AlertRow } from "./ui/alert-row";
 import { StatTile } from "./ui/stat-tile";
 
 export default (
-  <div className="flex max-w-sm flex-col gap-4">
-    <div className="grid grid-cols-2 gap-2.5">
+  <div className="p-6 flex max-w-sm flex-col gap-4">
+    <div className="p-6 grid grid-cols-2 gap-2.5">
       <StatTile label="Req/s" state={{ kind: "value", value: "142" }} />
       <StatTile label="P95" state={{ kind: "loading" }} />
       <StatTile label="Error rate" state={{ kind: "unavailable" }} />
