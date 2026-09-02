@@ -22,7 +22,6 @@ function Live({ initialStep, initialError }: { initialStep: LoginStep; initialEr
   const [step, setStep] = useState<LoginStep>(initialStep);
   const [identifier, setIdentifier] = useState("a.ivanova");
   const [password, setPassword] = useState("passwordvalue");
-  const [remember, setRemember] = useState(true);
   const [code, setCode] = useState("402");
   const [error, setError] = useState<string | undefined>(initialError);
 
@@ -38,8 +37,6 @@ function Live({ initialStep, initialError }: { initialStep: LoginStep; initialEr
         onIdentifierChange: setIdentifier,
         password,
         onPasswordChange: setPassword,
-        remember,
-        onRememberChange: setRemember,
         onSubmit: () => setStep("two-factor"),
         onPasskey: noop,
       }}

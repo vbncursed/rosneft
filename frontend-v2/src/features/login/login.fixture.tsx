@@ -4,7 +4,7 @@ import { TwoFactorForm } from "./ui/two-factor-form";
 
 const noop = () => {};
 
-function Credentials({ withPasskey }: { withPasskey: boolean }) {
+function Credentials({ withPasskey, withRemember }: { withPasskey: boolean; withRemember?: boolean }) {
   const [identifier, setIdentifier] = useState("a.ivanova");
   const [password, setPassword] = useState("passwordvalue");
   const [remember, setRemember] = useState(true);
@@ -16,7 +16,7 @@ function Credentials({ withPasskey }: { withPasskey: boolean }) {
       password={password}
       onPasswordChange={setPassword}
       remember={remember}
-      onRememberChange={setRemember}
+      onRememberChange={withRemember ? setRemember : undefined}
       onSubmit={noop}
       onPasskey={withPasskey ? noop : undefined}
     />
@@ -57,12 +57,15 @@ export default {
         onIdentifierChange={noop}
         password="wrong"
         onPasswordChange={noop}
-        remember={false}
-        onRememberChange={noop}
         onSubmit={noop}
         onPasskey={noop}
         error="Invalid username or password."
       />
+    </div>
+  ),
+  withRemember: (
+    <div className="max-w-sm rounded-card border border-line bg-panel-2 p-6">
+      <Credentials withPasskey withRemember />
     </div>
   ),
   twoFactor: (

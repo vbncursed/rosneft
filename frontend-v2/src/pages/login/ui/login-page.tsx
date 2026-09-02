@@ -40,7 +40,7 @@ const COPY = {
   credentials: {
     eyebrow: "Sign in",
     heading: "Welcome back",
-    sub: "Use your passkey, or sign in with a password.",
+    sub: "Sign in with your email or username.",
   },
   "two-factor": {
     eyebrow: "Two-factor",
@@ -48,6 +48,11 @@ const COPY = {
     sub: "Six digits from your authenticator app.",
   },
 } as const;
+
+// Only when the passkey route is actually on offer — CredentialsForm hides the
+// button without `onPasskey`, and copy naming a control that is not drawn
+// sends the reader looking for it.
+const PASSKEY_SUB = "Use your passkey, or sign in with a password.";
 
 export function LoginPage({
   step,
@@ -61,6 +66,7 @@ export function LoginPage({
   // The second step cannot be shown without the account it belongs to.
   const onTwoFactor = step === "two-factor" && twoFactor !== undefined;
   const copy = COPY[onTwoFactor ? "two-factor" : "credentials"];
+  const sub = !onTwoFactor && credentials.onPasskey ? PASSKEY_SUB : copy.sub;
 
   return (
     <div
@@ -92,7 +98,7 @@ export function LoginPage({
               {copy.eyebrow}
             </p>
             <h1 className="m-0 mt-[9px] text-[26px] font-bold tracking-[-0.02em]">{copy.heading}</h1>
-            <p className="m-0 mt-[7px] text-[13px] leading-[1.55] text-muted">{copy.sub}</p>
+            <p className="m-0 mt-[7px] text-[13px] leading-[1.55] text-muted">{sub}</p>
           </div>
 
           {onTwoFactor ? <TwoFactorForm {...twoFactor} /> : <CredentialsForm {...credentials} />}

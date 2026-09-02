@@ -17,6 +17,7 @@ yarn test:watch   # the same, watching
 yarn test:coverage
 yarn cosmos       # React Cosmos on :5100 — every *.fixture.tsx
 yarn cosmos:export
+yarn openapi:generate   # regenerate src/shared/api/dto.ts from the gateway's openapi.yaml
 ```
 
 Port 3001, not 3000: `frontend/` keeps 3000 while both apps coexist.
@@ -25,9 +26,24 @@ Port 3001, not 3000: `frontend/` keeps 3000 while both apps coexist.
 
 ## What is here
 
-The design system's components, ported layer by layer, and the first screen
-built from them. Routing and data come next — `UsersPage` takes everything
-through props and owns no fetching.
+The design system's components, ported layer by layer, the screens built from
+them, and — for login only — the wiring that makes one of them real: a session
+marker, an HTTP client with CSRF and a 401 bounce, the auth gateway, a router
+and its guard.
+
+Routes are `/login` and `/console/{users,roles,content,access,audit,metrics}`.
+`/` and `/console` render nothing themselves: they resolve a landing screen
+from the signed-in principal's permissions (`app/router/guard.ts`) and redirect
+to it.
+
+**The console screens are still placeholders** — each `/console/*` route
+renders a one-line `<p>`. The pages under `pages/*` take everything through
+props and own no fetching; giving them containers is their own plan.
+
+**Passkey sign-in is not wired**, deliberately: the gateway's passkey RP origin
+is pinned to `frontend/`'s port 3000, so a ceremony started on 3001 cannot
+succeed. `CredentialsForm` draws the button only when handed `onPasskey`, and
+the login container does not hand it one.
 
 Console screens render inside `widgets/console-layout`, which the route
 applies. A page renders only its own content: it never draws the navigation
@@ -115,8 +131,10 @@ person clicks it — and fixtures are where undertested sample data lives.
 - a `shared/ui` slice reaches past a sibling's `index.ts` into its internals
 - a source file sits outside a layer, or loose in a layer root instead of a slice
 
-`main.tsx`, `cosmos.decorator.tsx` and `shared/lib/test-setup.ts` are exempt as
-wiring. `index.ts` barrels are exempt as re-exports.
+Wiring is exempt, and the list lives in one place — `exempt-modules.ts` at the
+repo root, read by both `architecture.spec.ts` and `vite.config.ts`'s coverage
+exclude. Two copies of it drifted once and put untested router files in the
+coverage numerator. `index.ts` barrels are exempt as re-exports.
 
 `yarn test:coverage` enforces 90% statements / lines / functions and 85%
 branches over the same set.

@@ -25,7 +25,8 @@ failure that shape produces is a green PR that a local commit would reject.
 
 `frontend/` is the app in production. `frontend-v2/` is the redesign, built
 against the Claude Design project `Design System.dc.html` — Feature-Sliced, its
-own component library, no routing or data yet. **Working in it? Read
+own component library, a router and a working sign-in against the real
+gateway; its console screens are still placeholders. **Working in it? Read
 [`frontend-v2/CLAUDE.md`](frontend-v2/CLAUDE.md) first**: it records the design
 decisions, the user's working rules, and the tooling traps (chief among them
 that `tsc --noEmit` type-checks nothing there, and that a parallel session

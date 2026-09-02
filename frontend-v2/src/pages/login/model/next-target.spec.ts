@@ -10,6 +10,12 @@ describe("nextTarget", () => {
     expect(nextTarget("//evil.com")).toBe("/console");
   });
 
+  // Browsers normalise a backslash to a forward slash in the authority
+  // position, so this is protocol-relative too.
+  it("rejects a backslash-authority URL", () => {
+    expect(nextTarget("/\\evil.com")).toBe("/console");
+  });
+
   it("rejects an absolute URL", () => {
     expect(nextTarget("https://evil.com")).toBe("/console");
   });

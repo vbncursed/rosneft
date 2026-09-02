@@ -163,11 +163,37 @@ Cyrillic. Still undecided whether to swap the display face.
 
 See README for the full table. Shorthand: `shared/ui` has no domain knowledge;
 `entities/*` own a business object and its row/card; `features/*` are user
-actions; `widgets/*` are assembled blocks; `pages/*` compose and own no
-fetching — everything arrives through props.
+actions; `widgets/*` are assembled blocks; `pages/*` compose through props, and
+a container hook in `pages/*/model` is what fetches for them — `useLogin` is
+the one that exists.
+
+## What is wired
+
+Login works against the real gateway. `shared/api` is the HTTP client, the CSRF
+header and the 401 bounce; `shared/session` holds the marker and the
+`Principal`; `entities/user/api` has the auth gateway, its DTO→domain mapper
+and `meQuery`; `app/router` is the route tree and the guard; `app/query` the
+query client.
+
+Routes: `/login`, `/console/{users,roles,content,access,audit,metrics}`, and
+`/` and `/console` alone, both of which resolve a landing screen rather than
+rendering one. `consoleLanding` picks that screen from the principal's
+permissions — never a constant, or a roles-only administrator is sent to a
+users page that 403s.
 
 ## Not done yet
 
-Routing and data. Every page takes props and fetches nothing. `Andrey Viewer
-Mockup.dc.html` (the 3D viewer and the remaining screens) has no v2 and has not
-been ported.
+**The console screens are placeholders.** Every `/console/*` route renders a
+one-line `<p>`; the pages exist under `pages/*` and take props, but nothing
+fetches for them yet — that is their own plan.
+
+**Passkey sign-in is unwired, deliberately.** `CredentialsForm` draws the
+button only when handed `onPasskey`, and `useLogin` does not hand it one: the
+gateway's `PASSKEY_RP_ORIGINS` is pinned to `frontend/`'s port 3000, so a
+ceremony started from 3001 cannot succeed. The same rule hides the
+"Keep me signed in" checkbox — the gateway's `LoginRequest` has no such field
+and the session cookie is a fixed 720 hours, so the control would be a lie.
+An action with no endpoint is not rendered.
+
+`Andrey Viewer Mockup.dc.html` (the 3D viewer and the remaining screens) has no
+v2 and has not been ported.

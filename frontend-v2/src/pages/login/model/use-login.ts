@@ -54,7 +54,6 @@ export function useLogin(): LoginPageProps {
   const [step, setStep] = useState<LoginStep>("credentials");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(true);
   const [code, setCode] = useState("");
   // The token step one's login() hands back and step two must spend. null
   // until a challenge exists, which is also what gates rendering `twoFactor`.
@@ -112,8 +111,8 @@ export function useLogin(): LoginPageProps {
       onIdentifierChange: setIdentifier,
       password,
       onPasswordChange: setPassword,
-      remember,
-      onRememberChange: setRemember,
+      // No `remember`: the gateway has no such field and the cookie's lifetime
+      // is fixed, so the checkbox stays hidden rather than lying.
       onSubmit: submitCredentials,
       submitting,
     },
