@@ -438,6 +438,12 @@ components:
     # --- auth domain ---
     AuthUser:
       type: object
+      # Only fields the JSON encoder always emits a key for (no omitempty/omitzero
+      # on userJSON in authhttp/dto.go): totpEnabled and passkeyEnabled are
+      # deliberately tri-state (absent = unknown, see their own descriptions) and
+      # roleTitles/onboardingToursSeen/csrfToken carry omitzero, so none of those
+      # five belong here even though most requests populate them.
+      required: [id, email, username, status, totpRequired, roleSlugs, permissions, isOwner]
       properties:
         id: { type: string }
         email: { type: string }

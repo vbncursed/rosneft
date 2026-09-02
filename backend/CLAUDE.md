@@ -25,6 +25,12 @@ Guidance for Claude Code when working in `backend/`.
 | audit | `services/audit-service` | `audit` | gRPC `:9009`. Owns the append-only `audit_log` plus the generic `audit_capture()` trigger attached to every audited table. Shares the `andrey` DB, isolated by `audit_goose_db_version`. Re-attaches its triggers idempotently on every boot via `ensure_audit_triggers()`, so it needs no ordering against the other services' migrations. Also seals periodic checkpoint digests and witnesses them to a volume outside the database (`audit verify`, `audit export`). |
 | upload | `services/upload-service` | `upload` | Internal gRPC accepting resumable chunked uploads (`Initiate` / `WriteChunk(stream)` / `GetStatus` / `Finalize` / `Abort`). On Finalize the bytes are SHA-256 hashed and moved into BlobStore; the gateway forwards the resulting hash into `createTerritory` / `createModel`. |
 
+There is a request-path call cycle: `twofa.Setup → auth.GetMe → ValidateToken →
+twofa.IsEnabled`. It terminates at depth 2 and is not a deadlock today — no
+gRPC server here caps `MaxConcurrentStreams` — but whoever adds that cap later
+needs to know the cycle exists, since a cap tight enough to starve one call in
+the loop would starve the whole chain.
+
 ## Architecture conventions
 
 - One concern per file (`process_job.go`, `submit_conversion.go`, …) — never a god-file.
@@ -284,9 +290,12 @@ in `gateway-service/internal/transport/authhttp/audit.go`. Only events that
 change no table belong in that map: user and role mutations are already caught
 by the triggers, and listing them would double-write.
 
-The trigger logic is SQL, so it is covered by the repo's only integration tests:
+The trigger logic is SQL, so it is covered by integration tests:
 `services/audit-service/internal/migrate/*_integration_test.go`, behind the
-`integration` build tag. Run with `go test -tags=integration ./...` from
+`integration` build tag. They are not the only ones in the repo —
+`catalog-service/internal/storage/resolve_blob_access_integration_test.go` and
+`auth-service/internal/storage/users/set_totp_required_integration_test.go`
+cover SQL logic the same way, in their own services. Run with `go test -tags=integration ./...` from
 `services/audit-service`; needs Docker. `make test` stays Docker-free.
 
 ## Tenant isolation
