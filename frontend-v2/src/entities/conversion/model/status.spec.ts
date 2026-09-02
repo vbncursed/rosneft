@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isOpenable, trailingNote } from "./status";
+import { isOpenable, jobProgress, trailingNote } from "./status";
 
 describe("isOpenable", () => {
   it("opens only a finished conversion", () => {
@@ -26,5 +26,19 @@ describe("trailingNote", () => {
 
   it("stays silent on failure — the badge already carries that", () => {
     expect(trailingNote({ status: "failed" })).toBeUndefined();
+  });
+});
+
+describe("jobProgress", () => {
+  it("passes a running job's progress through", () => {
+    expect(jobProgress({ id: "1", slug: "t", state: "running", progress: 62, stage: "…", eta: "~4 min" })).toBe(62);
+  });
+
+  it("fills the bar for a failed job — it got as far as it will get", () => {
+    expect(jobProgress({ id: "1", slug: "t", state: "failed", progress: 18, stage: "…", eta: "—" })).toBe(100);
+  });
+
+  it("stays indeterminate before the worker reports anything", () => {
+    expect(jobProgress({ id: "1", slug: "t", state: "queued", stage: "…", eta: "—" })).toBeUndefined();
   });
 });

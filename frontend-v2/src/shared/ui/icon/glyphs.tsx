@@ -79,6 +79,16 @@ export const GLYPHS = {
     width: 1.8,
     body: <path d="M12 5v14M5 12h14" />,
   },
+  refresh: {
+    box: "0 0 24 24",
+    width: 1.7,
+    body: (
+      <>
+        <path d="M21 12a9 9 0 1 1-2.6-6.3" />
+        <path d="M21 3v6h-6" />
+      </>
+    ),
+  },
   ruler: {
     box: "0 0 24 24",
     width: 1.6,

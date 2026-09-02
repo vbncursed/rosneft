@@ -43,3 +43,23 @@ describe("PageHeader", () => {
     expect(screen.getByRole("banner")).toBeInTheDocument();
   });
 });
+
+describe("PageHeader · description", () => {
+  it("explains the page when it needs explaining", () => {
+    render(
+      <PageHeader
+        eyebrow="Catalog"
+        title="Content"
+        description="Territories, models and their conversion artifacts."
+      />,
+    );
+    expect(
+      screen.getByText("Territories, models and their conversion artifacts."),
+    ).toBeInTheDocument();
+  });
+
+  it("says nothing extra when there is nothing to add", () => {
+    const { container } = render(<PageHeader eyebrow="Models" title="Library" />);
+    expect(container.querySelectorAll("p")).toHaveLength(1);
+  });
+});
