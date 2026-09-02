@@ -56,6 +56,23 @@ describe("ConsoleSidebar", () => {
     expect(container.querySelector("span[aria-hidden]")).toHaveTextContent("A");
   });
 
+  it("stands the height of the viewport and stays put while the page scrolls", () => {
+    const { container } = sidebar();
+    const column = container.firstElementChild!.className;
+    expect(column).toContain("sticky");
+    expect(column).toContain("h-dvh");
+    // Without self-start the grid cell stretches to the row and the sticky
+    // has nothing left to stick to.
+    expect(column).toContain("self-start");
+  });
+
+  it("scrolls only its navigation, keeping the brand and the identity in place", () => {
+    sidebar();
+    expect(screen.getByRole("navigation", { name: "Console" }).className).toContain(
+      "overflow-y-auto",
+    );
+  });
+
   it("is not a complementary region — the nav inside is the landmark", () => {
     sidebar();
     expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
