@@ -1,0 +1,74 @@
+# frontend-v2
+
+The redesigned SPA. Vite 8 + React 19 + TypeScript 7, Tailwind 4, laid out
+Feature-Sliced. It is built against the Claude Design project
+`Design System.dc.html` — that document, not this code, is the source of truth
+for tokens, spacing and states.
+
+## Commands
+
+```bash
+yarn dev          # Vite dev server on :3001, /api proxied to the gateway
+yarn build        # tsc -b && vite build → dist/
+yarn preview      # serve the production build
+yarn lint         # tsc --noEmit + oxlint
+yarn test         # vitest (jsdom) — every *.spec.ts(x)
+yarn test:watch   # the same, watching
+yarn cosmos       # React Cosmos on :5100 — every *.fixture.tsx
+yarn cosmos:export
+```
+
+Port 3001, not 3000: `frontend/` keeps 3000 while both apps coexist.
+
+**Use yarn, never npm** — including version lookups (`yarn info <pkg> version`).
+
+## Layout — Feature-Sliced Design
+
+```
+src/
+  app/          # app-wide setup; app/styles/theme.css holds the design tokens
+  pages/        # route-level compositions
+  widgets/      # self-contained blocks assembled from features + entities
+  features/     # user-facing actions
+  entities/     # business objects (territory, model, placement, …)
+  shared/       # reusable, domain-free
+    ui/         # the design system's components
+    lib/        # helpers (cx, theme, test-setup)
+```
+
+Imports point downward only: `app → pages → widgets → features → entities → shared`.
+A slice never imports a sibling in the same layer.
+
+The single alias is `@/*` → `src/*`. Use it for anything outside the current
+slice; relative paths stay inside one.
+
+## Per-component contract
+
+Every component in `shared/ui` ships three files beside it:
+
+```
+button/
+  button.tsx          # the component
+  button.spec.tsx     # vitest + testing-library — behaviour, not markup
+  button.fixture.tsx  # React Cosmos — every state the design draws
+  index.ts            # the slice's public surface
+```
+
+Specs assert what a user can observe (roles, labels, values, focus), so a class
+rename does not break them. The exception is a variant test that deliberately
+checks a token class survived.
+
+Fixtures render inside `src/cosmos.decorator.tsx`, which loads the real
+stylesheet — what Cosmos shows is what the app shows.
+
+## Theme
+
+Tokens live in `src/app/styles/theme.css` as CSS custom properties on `:root`,
+re-exported to Tailwind through `@theme inline` (so `bg-panel`, `text-muted`,
+`border-line-2` all work). Dark is the design's default; the OS preference
+applies on its own and an explicit `data-theme` on `<html>` overrides it in
+either direction — `applyTheme()` in `shared/lib/theme.ts` is the only writer.
+
+**Archivo ships no Cyrillic subset.** Territory and model names may be Russian,
+so the `--font-sans` stack falls through to Helvetica Neue and then system-ui
+for those glyphs. JetBrains Mono does carry Cyrillic.

@@ -1,0 +1,6 @@
+{
+  "$schema": "./node_modules/react-cosmos/cosmos.schema.json",
+  "plugins": ["react-cosmos-plugin-vite"],
+  "port": 5100,
+  "fileWatcherEnabled": true
+}
