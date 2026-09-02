@@ -34,9 +34,8 @@ func (s *Service) Create(ctx context.Context, actorID, email, username, plain st
 	if err != nil {
 		return domain.User{}, fmt.Errorf("users.Create: hash: %w", err)
 	}
-	owner := actorID
 	return s.store.Create(ctx, domain.User{
 		Email: email, Username: username, PasswordHash: hash,
-		RoleSlugs: roleSlugs, CreatedBy: &owner,
+		RoleSlugs: roleSlugs, CreatedBy: new(actorID),
 	})
 }

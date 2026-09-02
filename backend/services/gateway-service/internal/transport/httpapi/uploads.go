@@ -57,9 +57,7 @@ func (s *Server) GetUploadStatus(ctx context.Context, req GetUploadStatusRequest
 	case err != nil:
 		return GetUploadStatus500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
 	}
-	offset := out.Offset
-	size := out.Size
-	return GetUploadStatus200Response{Headers: GetUploadStatus200ResponseHeaders{UploadOffset: &offset, UploadLength: &size}}, nil
+	return GetUploadStatus200Response{Headers: GetUploadStatus200ResponseHeaders{UploadOffset: new(out.Offset), UploadLength: new(out.Size)}}, nil
 }
 
 func (s *Server) FinalizeUpload(ctx context.Context, req FinalizeUploadRequestObject) (FinalizeUploadResponseObject, error) {

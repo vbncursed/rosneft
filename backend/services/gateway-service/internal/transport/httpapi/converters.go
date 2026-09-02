@@ -58,27 +58,22 @@ func vec3PtrFromAPI(v *Vec3) domain.Vec3 {
 }
 
 func artifactToAPI(a domain.Artifact, withChain bool) Artifact {
-	verts := int64(a.Vertices)
-	faces := int64(a.Faces)
 	out := Artifact{
 		Slug:        a.Slug,
 		Lod:         int32(a.LOD),
 		Hash:        a.Hash,
 		ContentType: a.ContentType,
 		Size:        a.Size,
-		Vertices:    &verts,
-		Faces:       &faces,
+		Vertices:    new(int64(a.Vertices)),
+		Faces:       new(int64(a.Faces)),
 	}
-	bbMin := vec3ToAPI(a.BBoxMin)
-	bbMax := vec3ToAPI(a.BBoxMax)
-	out.BboxMin = &bbMin
-	out.BboxMax = &bbMax
+	out.BboxMin = new(vec3ToAPI(a.BBoxMin))
+	out.BboxMax = new(vec3ToAPI(a.BBoxMax))
 	if !a.CreatedAt.IsZero() {
 		out.CreatedAt = &a.CreatedAt
 	}
 	if withChain && len(a.LODs) > 0 {
-		chain := lodChainToAPI(a.LODs)
-		out.Artifacts = &chain
+		out.Artifacts = new(lodChainToAPI(a.LODs))
 	}
 	return out
 }
@@ -86,14 +81,12 @@ func artifactToAPI(a domain.Artifact, withChain bool) Artifact {
 func lodChainToAPI(in []domain.LodArtifact) []LodArtifact {
 	out := make([]LodArtifact, len(in))
 	for i, l := range in {
-		verts := int64(l.Vertices)
-		faces := int64(l.Faces)
 		out[i] = LodArtifact{
 			Lod:      int32(l.LOD),
 			Hash:     l.Hash,
 			Size:     l.Size,
-			Vertices: &verts,
-			Faces:    &faces,
+			Vertices: new(int64(l.Vertices)),
+			Faces:    new(int64(l.Faces)),
 		}
 	}
 	return out
@@ -113,8 +106,7 @@ func jobToAPI(j domain.Job) Job {
 		out.ArtifactHash = &j.ArtifactHash
 	}
 	if j.Progress > 0 {
-		p := j.Progress
-		out.Progress = &p
+		out.Progress = new(j.Progress)
 	}
 	if j.Stage != "" {
 		out.Stage = &j.Stage
@@ -180,18 +172,15 @@ func sceneBundleToAPI(b domain.SceneBundle) SceneBundle {
 			opt.ThumbnailBlobHash = &m.ThumbnailBlobHash
 		}
 		if m.BBoxMin != nil {
-			bb := vec3ToAPI(*m.BBoxMin)
-			opt.BboxMin = &bb
+			opt.BboxMin = new(vec3ToAPI(*m.BBoxMin))
 		}
 		if m.BBoxMax != nil {
-			bb := vec3ToAPI(*m.BBoxMax)
-			opt.BboxMax = &bb
+			opt.BboxMax = new(vec3ToAPI(*m.BBoxMax))
 		}
 		out.ModelOptions[i] = opt
 	}
 	if b.Artifact != nil {
-		a := artifactToAPI(*b.Artifact, true)
-		out.Artifact = &a
+		out.Artifact = new(artifactToAPI(*b.Artifact, true))
 	}
 	if len(b.Panoramas) > 0 {
 		pans := make([]Panorama, len(b.Panoramas))
