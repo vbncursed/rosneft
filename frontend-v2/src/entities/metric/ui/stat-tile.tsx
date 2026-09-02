@@ -2,7 +2,7 @@ import { clsx as cx } from "clsx";
 import type { ReactNode } from "react";
 import { readout, readoutLabel, type MetricState } from "../model/metric";
 
-export type StatTileTone = "accent" | "fg" | "bad" | "muted";
+export type StatTileTone = "accent" | "fg" | "ok" | "warn" | "bad" | "muted";
 
 export type StatTileProps = {
   label: string;
@@ -21,6 +21,8 @@ export type StatTileProps = {
 const TONE: Record<StatTileTone, string> = {
   accent: "text-accent",
   fg: "text-fg",
+  ok: "text-ok",
+  warn: "text-warn",
   bad: "text-bad",
   muted: "text-muted",
 };

@@ -14,6 +14,7 @@ describe("the glyph registry", () => {
       "download",
       "eye",
       "eye-off",
+      "info",
       "kebab",
       "lock",
       "magnet",
