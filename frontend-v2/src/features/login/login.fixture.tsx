@@ -18,7 +18,6 @@ function Credentials({ withPasskey }: { withPasskey: boolean }) {
       remember={remember}
       onRememberChange={setRemember}
       onSubmit={noop}
-      onForgotPassword={noop}
       onPasskey={withPasskey ? noop : undefined}
     />
   );
@@ -61,7 +60,6 @@ export default {
         remember={false}
         onRememberChange={noop}
         onSubmit={noop}
-        onForgotPassword={noop}
         onPasskey={noop}
         error="Invalid username or password."
       />

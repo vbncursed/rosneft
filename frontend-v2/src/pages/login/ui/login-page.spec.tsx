@@ -11,7 +11,6 @@ const credentials = () => ({
   remember: false,
   onRememberChange: vi.fn(),
   onSubmit: vi.fn(),
-  onForgotPassword: vi.fn(),
 });
 
 const twoFactor = () => ({

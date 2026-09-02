@@ -5,6 +5,16 @@ import { Icon } from "@/shared/ui/icon";
 import { PasswordField } from "@/shared/ui/password-field";
 import { TextField } from "@/shared/ui/text-field";
 
+/**
+ * The screen mock draws its controls one notch below the design system's Large
+ * (14px, 13x20 pad) and puts the fields on `panel` against the `panel-2` ground.
+ * cva utilities cannot be overridden by appending, hence the important modifier.
+ */
+const FIELD = "bg-panel! rounded-[9px]! py-[11px]! text-[14px]! leading-[normal]!";
+
+const PRIMARY = "justify-center gap-[9px]! px-5! py-[13px]! text-[14px]!";
+const SECONDARY = "justify-center bg-panel! px-5! py-3! text-[14px]! font-medium!";
+
 export type CredentialsFormProps = {
   identifier: string;
   onIdentifierChange: (value: string) => void;
@@ -14,7 +24,6 @@ export type CredentialsFormProps = {
   onRememberChange: (value: boolean) => void;
 
   onSubmit: () => void;
-  onForgotPassword: () => void;
   /** Absent where passkeys cannot work — the desktop shell's loopback origin. */
   onPasskey?: () => void;
 
@@ -31,7 +40,6 @@ export function CredentialsForm({
   remember,
   onRememberChange,
   onSubmit,
-  onForgotPassword,
   onPasskey,
   submitting = false,
   error,
@@ -48,7 +56,7 @@ export function CredentialsForm({
           <Button
             variant="primary"
             size="lg"
-            className="justify-center"
+            className={PRIMARY}
             onClick={onPasskey}
             disabled={submitting}
           >
@@ -66,6 +74,7 @@ export function CredentialsForm({
 
       <TextField
         label="Email or username"
+        className={`${FIELD} px-[13px]!`}
         value={identifier}
         onChange={(e) => onIdentifierChange(e.target.value)}
         error={error}
@@ -74,8 +83,8 @@ export function CredentialsForm({
       />
 
       <PasswordField
+        className={`${FIELD} pl-[13px]! pr-[42px]!`}
         label="Password"
-        action={{ label: "Forgot?", onClick: onForgotPassword }}
         value={password}
         onChange={(e) => onPasswordChange(e.target.value)}
         autoComplete="current-password"
@@ -90,7 +99,7 @@ export function CredentialsForm({
         labelClassName="text-xs text-muted"
       />
 
-      <Button type="submit" size="lg" className="justify-center" loading={submitting}>
+      <Button type="submit" size="lg" className={SECONDARY} loading={submitting}>
         Sign in
       </Button>
     </form>

@@ -7,7 +7,7 @@ const INTRO = {
   brand: "Andrey · 3D Platform",
   headline: "Territories and models, rendered with precision",
   blurb: "Heavy conversion runs server-side — the browser gets a compact GLB instead of a 100 MB OBJ.",
-  footnote: "gateway · single origin · httpOnly session",
+  footnote: "Sessions are stored in a secure cookie your browser sends only to this site.",
   points: [
     { title: "Walk the site in 3D", hint: "Territories open straight in the browser — no plugins, no downloads." },
     { title: "Measure without a trip", hint: "Chain distances across pipe racks, tanks and clearances." },
@@ -41,7 +41,6 @@ function Live({ initialStep, initialError }: { initialStep: LoginStep; initialEr
         remember,
         onRememberChange: setRemember,
         onSubmit: () => setStep("two-factor"),
-        onForgotPassword: noop,
         onPasskey: noop,
       }}
       twoFactor={{

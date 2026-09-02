@@ -64,7 +64,7 @@ export function LoginPage({
 
   return (
     <div
-      className="relative flex min-h-dvh items-center justify-center bg-bg px-6 py-10 text-fg"
+      className="relative flex min-h-dvh items-center justify-center bg-bg px-6 py-10 leading-[normal] text-fg"
       style={{
         backgroundImage:
           "linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px)",
@@ -91,7 +91,7 @@ export function LoginPage({
             <p className="m-0 font-mono text-[10px] uppercase tracking-[0.22em] text-accent">
               {copy.eyebrow}
             </p>
-            <h1 className="m-0 mt-2 text-[26px] font-bold tracking-[-0.02em]">{copy.heading}</h1>
+            <h1 className="m-0 mt-[9px] text-[26px] font-bold tracking-[-0.02em]">{copy.heading}</h1>
             <p className="m-0 mt-[7px] text-[13px] leading-[1.55] text-muted">{copy.sub}</p>
           </div>
 
