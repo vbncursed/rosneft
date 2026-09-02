@@ -9,7 +9,8 @@
     "module": "esnext",
     "types": [
       "vite/client",
-      "vitest/globals"
+      "vitest/globals",
+      "node"
     ],
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,

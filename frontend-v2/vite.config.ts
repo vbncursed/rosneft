@@ -25,5 +25,19 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/shared/lib/test-setup.ts"],
     include: ["src/**/*.spec.ts", "src/**/*.spec.tsx"],
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.{ts,tsx}"],
+      // Wiring, fixtures and the guard itself are not units under test.
+      exclude: [
+        "src/main.tsx",
+        "src/cosmos.decorator.tsx",
+        "src/shared/lib/test-setup.ts",
+        "src/**/*.fixture.tsx",
+        "src/**/index.ts",
+        "src/architecture.spec.ts",
+      ],
+      thresholds: { statements: 90, branches: 85, functions: 90, lines: 90 },
+    },
   },
 });

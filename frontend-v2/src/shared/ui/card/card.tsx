@@ -1,5 +1,5 @@
 import type { HTMLAttributes, ReactNode } from "react";
-import { cx } from "@/shared/lib/cx";
+import { clsx as cx } from "clsx";
 
 export type CardProps = HTMLAttributes<HTMLDivElement> & {
   title?: ReactNode;

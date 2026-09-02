@@ -1,5 +1,5 @@
 import { useId, useRef, type ClipboardEvent, type KeyboardEvent } from "react";
-import { cx } from "@/shared/lib/cx";
+import { clsx as cx } from "clsx";
 import { clearDigitAt, isComplete, sanitize, setDigitAt } from "./otp";
 
 export type OtpInputProps = {

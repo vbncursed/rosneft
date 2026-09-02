@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cx } from "@/shared/lib/cx";
+import { clsx as cx } from "clsx";
 import { errorId, hintId } from "./field-ids";
 
 export type FieldProps = {

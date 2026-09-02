@@ -1,5 +1,5 @@
 import { useId, type InputHTMLAttributes, type ReactNode } from "react";
-import { cx } from "@/shared/lib/cx";
+import { clsx as cx } from "clsx";
 
 export type CheckboxProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "id"> & {
   label?: ReactNode;

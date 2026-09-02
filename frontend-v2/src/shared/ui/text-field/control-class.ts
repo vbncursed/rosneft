@@ -1,4 +1,4 @@
-import { cx } from "@/shared/lib/cx";
+import { clsx as cx } from "clsx";
 
 /** The shared input/textarea skin — one place so every field focuses alike. */
 export function controlClass({

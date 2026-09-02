@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { HTMLAttributes } from "react";
-import { cx } from "@/shared/lib/cx";
+import { clsx as cx } from "clsx";
 
 const badge = cva(
   "inline-flex items-center gap-1.5 border font-mono uppercase whitespace-nowrap",

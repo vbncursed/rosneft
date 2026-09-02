@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
-import { cx } from "@/shared/lib/cx";
+import { clsx as cx } from "clsx";
 import { useEscape } from "@/shared/lib/use-escape";
 
 export type DrawerProps = {

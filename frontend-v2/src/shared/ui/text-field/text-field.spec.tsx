@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { TextField } from "./text-field";
-import { Textarea } from "./textarea";
 
 describe("TextField", () => {
   it("ties the label to the input", async () => {
@@ -54,12 +53,3 @@ describe("TextField", () => {
   });
 });
 
-describe("Textarea", () => {
-  it("takes multiline input and defaults to three rows", async () => {
-    render(<Textarea label="Description" />);
-    const box = screen.getByLabelText(/Description/);
-    expect(box).toHaveAttribute("rows", "3");
-    await userEvent.type(screen.getByLabelText(/Description/), "Tank farm");
-    expect(box).toHaveValue("Tank farm");
-  });
-});

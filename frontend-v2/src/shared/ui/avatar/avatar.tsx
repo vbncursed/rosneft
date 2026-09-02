@@ -1,4 +1,4 @@
-import { cx } from "@/shared/lib/cx";
+import { clsx as cx } from "clsx";
 import { initials } from "./initials";
 
 export type AvatarProps = {

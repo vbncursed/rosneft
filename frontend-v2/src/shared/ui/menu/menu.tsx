@@ -1,5 +1,5 @@
 import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { cx } from "@/shared/lib/cx";
+import { clsx as cx } from "clsx";
 import { nextEnabled } from "@/shared/lib/roving";
 import { useDismiss } from "@/shared/lib/use-dismiss";
 
