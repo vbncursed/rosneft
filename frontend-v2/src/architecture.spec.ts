@@ -50,21 +50,33 @@ describe("every module carries its own spec", () => {
   });
 });
 
-describe("every shared/ui slice carries a Cosmos fixture", () => {
-  const uiRoot = join(SRC, "shared", "ui");
-  const slices = readdirSync(uiRoot).filter((entry) =>
-    statSync(join(uiRoot, entry)).isDirectory(),
-  );
+describe("every slice with a component carries a Cosmos fixture", () => {
+  // A slice is the directory that owns a component: shared/ui/button,
+  // entities/territory, and so on. Anything rendering JSX must be browsable.
+  const componentDirs = [
+    ...new Set(
+      sources.filter((f) => extname(f) === ".tsx").map((f) => f.slice(0, f.lastIndexOf("/"))),
+    ),
+  ];
+
+  const sliceOf = (dir: string) => {
+    const parts = rel(dir).split("/");
+    // src/shared/ui/button -> src/shared/ui/button
+    // src/entities/territory/ui -> src/entities/territory
+    return parts[1] === "shared" ? parts.slice(0, 4).join("/") : parts.slice(0, 3).join("/");
+  };
+
+  const slices = [...new Set(componentDirs.map(sliceOf))];
 
   it("finds slices to check", () => {
     expect(slices.length).toBeGreaterThan(10);
   });
 
   it.each(slices)("%s", (slice) => {
-    const files = readdirSync(join(uiRoot, slice));
+    const dir = join(SRC, "..", slice);
     expect(
-      files.some((f) => f.endsWith(".fixture.tsx")),
-      `shared/ui/${slice} has no *.fixture.tsx`,
+      walk(dir).some((f) => f.endsWith(".fixture.tsx")),
+      `${slice} renders JSX but has no *.fixture.tsx`,
     ).toBe(true);
   });
 });
@@ -96,18 +108,23 @@ describe("layer dependencies point inward only", () => {
   });
 });
 
-describe("shared/ui slices do not import each other's internals", () => {
-  it.each(sources.filter((f) => rel(f).startsWith("src/shared/ui/")).map((f) => [rel(f), f]))(
-    "%s",
-    (_label, file) => {
-      const slice = rel(file).split("/")[3];
-      const deep = [...readFileSync(file, "utf8").matchAll(/from\s+"@\/shared\/ui\/([^"]+)"/g)]
-        .map((m) => m[1])
-        .filter((target) => target.includes("/") && target.split("/")[0] !== slice);
+describe("slices do not import each other's internals", () => {
+  const sliceOf = (path: string) => {
+    const parts = path.split("/");
+    return parts[1] === "shared" ? parts.slice(0, 4).join("/") : parts.slice(0, 3).join("/");
+  };
 
-      expect(deep, `${rel(file)} reaches past a sibling slice's index.ts`).toEqual([]);
-    },
-  );
+  it.each(sources.map((f) => [rel(f), f]))("%s", (_label, file) => {
+    const own = sliceOf(rel(file));
+
+    const deep = [...readFileSync(file, "utf8").matchAll(/from\s+"@\/([^"]+)"/g)]
+      .map((m) => `src/${m[1]}`)
+      // A slice's own path is its public surface; anything deeper reaches
+      // past its index.ts.
+      .filter((target) => sliceOf(target) !== own && target !== sliceOf(target));
+
+    expect(deep, `${rel(file)} reaches past another slice's index.ts`).toEqual([]);
+  });
 });
 
 describe("the layout has no stray files", () => {
