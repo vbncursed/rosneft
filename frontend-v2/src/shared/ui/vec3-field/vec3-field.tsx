@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { cx } from "@/shared/lib/cx";
+import { clsx as cx } from "clsx";
 import { AXES, parseAxis, type Axis, type Vec3 } from "./vec3";
 
 export type Vec3FieldProps = {

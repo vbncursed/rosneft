@@ -91,3 +91,33 @@ describe("Drawer", () => {
     expect(screen.getByRole("dialog").className).toContain("mr-auto");
   });
 });
+
+describe("Drawer · native cancel", () => {
+  it("routes the browser's own Escape through onClose without closing behind it", () => {
+    const onClose = vi.fn();
+    render(
+      <Drawer open onClose={onClose} title="New user">
+        body
+      </Drawer>,
+    );
+    const cancel = new Event("cancel", { bubbles: true, cancelable: true });
+    screen.getByRole("dialog").dispatchEvent(cancel);
+
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(cancel.defaultPrevented).toBe(true);
+  });
+
+  it("leaves the tree when open goes false", () => {
+    const { rerender } = render(
+      <Drawer open onClose={() => {}} title="New user">
+        body
+      </Drawer>,
+    );
+    rerender(
+      <Drawer open={false} onClose={() => {}} title="New user">
+        body
+      </Drawer>,
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});

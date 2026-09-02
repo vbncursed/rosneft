@@ -1,4 +1,4 @@
-import { cx } from "@/shared/lib/cx";
+import { clsx as cx } from "clsx";
 
 export type SkeletonProps = {
   /** Any CSS length; the design uses percentages for text and px for blocks. */

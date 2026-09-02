@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cx } from "@/shared/lib/cx";
+import { clsx as cx } from "clsx";
 
 export type ToastTone = "error" | "warning" | "info" | "success";
 

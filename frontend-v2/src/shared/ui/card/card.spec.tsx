@@ -1,8 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { Card } from "./card";
-import { EmptyState } from "./empty-state";
-import { ErrorState } from "./error-state";
 
 describe("Card", () => {
   it("renders bare content with no header", () => {
@@ -36,27 +34,4 @@ describe("Card", () => {
   });
 });
 
-describe("EmptyState", () => {
-  it("names the gap and offers the way out", () => {
-    render(
-      <EmptyState
-        title="Catalog is empty"
-        description="Upload your first territory."
-        action={<button type="button">+ Upload</button>}
-      />,
-    );
-    expect(screen.getByText("Catalog is empty")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "+ Upload" })).toBeInTheDocument();
-  });
-});
 
-describe("ErrorState", () => {
-  it("announces itself and carries the technical detail", () => {
-    render(
-      <ErrorState title="Could not load the journal" detail="HTTP 503 · audit-service unavailable" />,
-    );
-    const alert = screen.getByRole("alert");
-    expect(alert).toHaveTextContent("Could not load the journal");
-    expect(alert).toHaveTextContent("HTTP 503 · audit-service unavailable");
-  });
-});

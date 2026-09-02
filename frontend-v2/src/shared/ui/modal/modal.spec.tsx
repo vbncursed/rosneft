@@ -101,3 +101,38 @@ describe("Modal", () => {
     expect(screen.getByLabelText("Password")).toHaveValue("secret");
   });
 });
+
+describe("Modal · native cancel", () => {
+  it("routes the browser's own Escape (the cancel event) through onClose", () => {
+    const onClose = vi.fn();
+    render(
+      <Modal open onClose={onClose} title="Make Root">
+        body
+      </Modal>,
+    );
+    const dialog = screen.getByRole("dialog");
+    const cancel = new Event("cancel", { bubbles: true, cancelable: true });
+    dialog.dispatchEvent(cancel);
+
+    expect(onClose).toHaveBeenCalledOnce();
+    // Prevented, so the element cannot close behind the caller's back and
+    // leave `open` claiming it is still up.
+    expect(cancel.defaultPrevented).toBe(true);
+  });
+
+  it("closes the underlying element when open goes false", () => {
+    const { rerender } = render(
+      <Modal open onClose={() => {}} title="Make Root">
+        body
+      </Modal>,
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    rerender(
+      <Modal open={false} onClose={() => {}} title="Make Root">
+        body
+      </Modal>,
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});

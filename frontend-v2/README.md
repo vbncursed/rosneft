@@ -14,6 +14,7 @@ yarn preview      # serve the production build
 yarn lint         # tsc --noEmit + oxlint
 yarn test         # vitest (jsdom) — every *.spec.ts(x)
 yarn test:watch   # the same, watching
+yarn test:coverage
 yarn cosmos       # React Cosmos on :5100 — every *.fixture.tsx
 yarn cosmos:export
 ```
@@ -42,16 +43,18 @@ A slice never imports a sibling in the same layer.
 The single alias is `@/*` → `src/*`. Use it for anything outside the current
 slice; relative paths stay inside one.
 
-## Per-component contract
+## Per-module contract
 
-Every component in `shared/ui` ships three files beside it:
+**Every module gets its own spec beside it — one file, one spec.** Not "covered
+by a neighbour's test": a module with no `*.spec.ts(x)` of its own fails the
+build.
 
 ```
 button/
   button.tsx          # the component
   button.spec.tsx     # vitest + testing-library — behaviour, not markup
   button.fixture.tsx  # React Cosmos — every state the design draws
-  index.ts            # the slice's public surface
+  index.ts            # the slice's public surface (exempt)
 ```
 
 Specs assert what a user can observe (roles, labels, values, focus), so a class
@@ -60,6 +63,23 @@ checks a token class survived.
 
 Fixtures render inside `src/cosmos.decorator.tsx`, which loads the real
 stylesheet — what Cosmos shows is what the app shows.
+
+### The rules are enforced, not remembered
+
+`src/architecture.spec.ts` fails the suite when any of these slips:
+
+- a module under `src/` has no neighbouring `*.spec.ts(x)`
+- a `shared/ui` slice has no `*.fixture.tsx`
+- an import points outward across layers (`shared` may not reach into `entities`,
+  and so on up the chain)
+- a `shared/ui` slice reaches past a sibling's `index.ts` into its internals
+- a source file sits outside a layer, or loose in a layer root instead of a slice
+
+`main.tsx`, `cosmos.decorator.tsx` and `shared/lib/test-setup.ts` are exempt as
+wiring. `index.ts` barrels are exempt as re-exports.
+
+`yarn test:coverage` enforces 90% statements / lines / functions and 85%
+branches over the same set.
 
 ## Theme
 

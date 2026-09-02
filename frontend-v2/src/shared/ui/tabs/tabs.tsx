@@ -1,5 +1,5 @@
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
-import { cx } from "@/shared/lib/cx";
+import { clsx as cx } from "clsx";
 import { nextEnabled } from "@/shared/lib/roving";
 
 export type Tab<T extends string> = {

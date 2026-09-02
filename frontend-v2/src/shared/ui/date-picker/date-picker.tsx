@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from "react";
-import { cx } from "@/shared/lib/cx";
+import { clsx as cx } from "clsx";
 import { useDismiss } from "@/shared/lib/use-dismiss";
 import { Icon } from "@/shared/ui/icon";
 import {

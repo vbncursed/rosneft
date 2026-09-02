@@ -1,4 +1,4 @@
-import { cx } from "@/shared/lib/cx";
+import { clsx as cx } from "clsx";
 
 export type QuantityStepperProps = {
   value: number;
