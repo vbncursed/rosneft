@@ -23,6 +23,18 @@ Port 3001, not 3000: `frontend/` keeps 3000 while both apps coexist.
 
 **Use yarn, never npm** — including version lookups (`yarn info <pkg> version`).
 
+## What is here
+
+The design system's components, ported layer by layer. `pages/` is still
+empty — routing and data come next.
+
+| Layer | Slices |
+| --- | --- |
+| `shared/ui` | icon, button, badge, field, text-field, password-field, checkbox, otp-input, quantity-stepper, vec3-field, dropdown, segmented, date-picker, toast, progress-bar, skeleton, modal, drawer, menu, card, tabs, avatar, breadcrumbs, catalog-card |
+| `entities` | conversion, territory, model, audit, user, metric, placement, permission |
+| `features` | measure, snap, onboarding, recovery-codes |
+| `widgets` | users-table, permission-matrix, alerts-card, console-nav, page-header, viewer-panel, viewer-toolbar, objects-panel, model-picker |
+
 ## Layout — Feature-Sliced Design
 
 ```
