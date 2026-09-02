@@ -1,7 +1,7 @@
 # frontend-v2 → gateway wiring — design
 
 Date: 2026-09-02
-Status: draft, awaiting review
+Status: approved, ready for planning
 
 ## Problem
 

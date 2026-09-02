@@ -1,7 +1,7 @@
 # Required two-factor and the 15m metrics range — design
 
 Date: 2026-09-02
-Status: draft, awaiting review
+Status: approved, ready for planning
 
 ## Problem
 
