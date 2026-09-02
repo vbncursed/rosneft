@@ -246,8 +246,11 @@ type AuthUser struct {
 	Status     *AuthUserStatus    `json:"status,omitempty"`
 
 	// TotpEnabled Whether TOTP two-factor auth is on. ABSENT MEANS UNKNOWN — the owning service (twofa) could not be reached. Render an absent value as "unknown", never as "off": auth-service does not own this flag and the gateway overlays it, so a missing key is a failed lookup and not a disabled factor.
-	TotpEnabled *bool   `json:"totpEnabled,omitempty"`
-	Username    *string `json:"username,omitempty"`
+	TotpEnabled *bool `json:"totpEnabled,omitempty"`
+
+	// TotpRequired An administrator requires a second factor of this account. Distinct from totpEnabled, which reports whether one is enrolled.
+	TotpRequired *bool   `json:"totpRequired,omitempty"`
+	Username     *string `json:"username,omitempty"`
 }
 
 // AuthUserStatus defines model for AuthUser.Status.

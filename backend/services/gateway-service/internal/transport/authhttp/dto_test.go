@@ -41,6 +41,15 @@ func (s *DTOSuite) TestANilSetMeansUnknownNotOff() {
 	assert.Assert(s.T(), out.PasskeyEnabled == nil)
 }
 
+// TOTPRequired has no unknown state, unlike the two factors above: it comes
+// straight off the proto user, which auth-service always fills, so it round
+// trips regardless of what the factor sets say.
+func (s *DTOSuite) TestUserToJSONCarriesTOTPRequiredFromTheProto() {
+	out := userToJSON(&authv1.User{Id: "u1", TotpRequired: true}, nil, nil)
+
+	assert.Equal(s.T(), out.TOTPRequired, true)
+}
+
 // Unknown must reach the client as an absent key, not as JSON null and not as
 // false — the SPA renders "—" off the absence.
 func (s *DTOSuite) TestUnknownFactorsAreOmittedFromTheJSON() {
