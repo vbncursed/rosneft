@@ -745,7 +745,11 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
     Forbidden:
-      description: Authenticated but lacking the required permission
+      description: >
+        Permission denied. Code `twofa_enrollment_required` means the account is
+        required to carry a second factor and has not enrolled one: only
+        /api/auth/me, /api/auth/logout and the /api/auth/2fa enrollment endpoints
+        are reachable until it does.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }

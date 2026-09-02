@@ -1,6 +1,7 @@
 package authhttp
 
 import (
+	"context"
 	"net/http"
 	"slices"
 
@@ -17,15 +18,38 @@ import (
 // the pdf.js <iframe>, EventSource and the three.js loaders all authenticate
 // through the cookie and can set no headers at all.
 func (h *Handlers) Authenticate(next http.Handler) http.Handler {
+	return authenticate(h.client.ValidateToken, next)
+}
+
+// validateFunc is exactly *auth.Client.ValidateToken. Naming it is what lets
+// the middleware's own behaviour be driven in a test: Handlers.client is a
+// concrete client with no interface behind it, and widening it to one for a
+// single method would be a larger change than this.
+type validateFunc func(ctx context.Context, token string) (
+	uid string, perms []string, isOwner bool, owningAdmin, auditCompany string,
+	mustEnroll bool, err error,
+)
+
+func authenticate(validate validateFunc, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := sessionToken(r)
 		if token == "" {
 			apperr.Write(w, http.StatusUnauthorized, apperr.SlugUnauthenticated, "missing session")
 			return
 		}
-		uid, perms, isOwner, owningAdmin, auditCompany, _, err := h.client.ValidateToken(r.Context(), token)
+		uid, perms, isOwner, owningAdmin, auditCompany, mustEnroll, err := validate(r.Context(), token)
 		if err != nil {
 			fail(w, err) // maps Unauthenticated → 401
+			return
+		}
+		// A session that owes a second factor may enroll one and nothing else.
+		// The check lives here rather than in its own middleware because
+		// Authenticate is mounted in six places and a seventh must inherit the
+		// gate rather than have to remember it. Before the principal is built,
+		// so a refused request never reaches a handler.
+		if mustEnroll && !enrollmentAllows(r.URL.Path) {
+			apperr.Write(w, http.StatusForbidden, apperr.SlugTwoFAEnrollmentRequired,
+				"enroll a second factor to continue")
 			return
 		}
 		ctx := withPrincipal(r.Context(), uid, perms, isOwner, owningAdmin, auditCompany)

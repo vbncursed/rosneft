@@ -23,6 +23,11 @@ const (
 	SlugConflict        = "conflict"
 	SlugUnprocessable   = "unprocessable"
 	SlugInternal        = "internal"
+
+	// SlugTwoFAEnrollmentRequired is a distinct code, not a bare forbidden: the
+	// SPA has to tell "enroll a second factor" apart from "you don't have
+	// permission", and it cannot do that from a 403 alone.
+	SlugTwoFAEnrollmentRequired = "twofa_enrollment_required"
 )
 
 // statusOrder fixes the precedence ToStatus uses when matching a domain error,
