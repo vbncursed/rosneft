@@ -11,6 +11,8 @@ export type ProgressBarProps = {
   /** Right-aligned readout, usually the percentage. */
   detail?: ReactNode;
   ariaLabel?: string;
+  /** thin is the frameless 5px meter the role cards and inspector use. */
+  variant?: "framed" | "thin";
   className?: string;
 };
 
@@ -32,6 +34,7 @@ export function ProgressBar({
   label,
   detail,
   ariaLabel,
+  variant = "framed",
   className,
 }: ProgressBarProps) {
   const indeterminate = value === undefined;
@@ -46,8 +49,10 @@ export function ProgressBar({
         aria-valuemax={indeterminate ? undefined : 100}
         aria-valuenow={indeterminate ? undefined : pct}
         className={cx(
-          "h-1.5 overflow-hidden rounded-full border",
-          tone === "bad" ? "border-bad bg-bad-soft" : "border-line bg-panel-2",
+          "overflow-hidden rounded-full",
+          variant === "thin"
+            ? "h-[5px] bg-panel-2"
+            : cx("h-1.5 border", tone === "bad" ? "border-bad bg-bad-soft" : "border-line bg-panel-2"),
         )}
       >
         {indeterminate ? (

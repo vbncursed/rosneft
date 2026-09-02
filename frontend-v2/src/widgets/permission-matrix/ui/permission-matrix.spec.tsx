@@ -16,19 +16,20 @@ describe("PermissionMatrix", () => {
     render(<PermissionMatrix all={ALL} granted={[]} onToggle={() => {}} />);
     expect(screen.getByText("territory")).toBeInTheDocument();
     expect(screen.getByText("users")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "read" })).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "territory:read" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "users:read" })).toBeInTheDocument();
   });
 
   it("marks the granted ones pressed", () => {
     render(<PermissionMatrix all={ALL} granted={["territory:write"]} onToggle={() => {}} />);
-    expect(screen.getByRole("button", { name: "write" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "delete" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "territory:write" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "territory:delete" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("toggles by slug, not by label", async () => {
     const onToggle = vi.fn();
     render(<PermissionMatrix all={ALL} granted={[]} onToggle={onToggle} />);
-    await userEvent.click(screen.getByRole("button", { name: "write" }));
+    await userEvent.click(screen.getByRole("button", { name: "territory:write" }));
     expect(onToggle).toHaveBeenCalledWith("territory:write");
   });
 
@@ -43,7 +44,7 @@ describe("PermissionMatrix", () => {
       />,
     );
 
-    const locked = screen.getByRole("button", { name: "delete" });
+    const locked = screen.getByRole("button", { name: "territory:delete" });
     expect(locked).toBeDisabled();
     expect(locked).toHaveAttribute("title", "You cannot grant a permission you do not have");
 
@@ -53,11 +54,7 @@ describe("PermissionMatrix", () => {
 
   it("leaves everything grantable when no allowlist is given", () => {
     render(<PermissionMatrix all={ALL} granted={[]} onToggle={() => {}} />);
-    for (const name of ["read", "write", "delete"]) {
-      for (const button of screen.getAllByRole("button", { name })) {
-        expect(button).toBeEnabled();
-      }
-    }
+    for (const button of screen.getAllByRole("button")) expect(button).toBeEnabled();
   });
 
   it("locks the whole matrix for a read-only role", async () => {
@@ -65,13 +62,13 @@ describe("PermissionMatrix", () => {
     render(<PermissionMatrix all={ALL} granted={["territory:read"]} onToggle={onToggle} readOnly />);
     for (const button of screen.getAllByRole("button")) expect(button).toBeDisabled();
 
-    await userEvent.click(screen.getByRole("button", { name: "write" }));
+    await userEvent.click(screen.getByRole("button", { name: "territory:write" }));
     expect(onToggle).not.toHaveBeenCalled();
   });
 
   it("still reports what a read-only role holds", () => {
     render(<PermissionMatrix all={ALL} granted={["territory:read"]} onToggle={() => {}} readOnly />);
-    expect(screen.getAllByRole("button", { name: "read" })[0]).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "territory:read" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
@@ -101,9 +98,17 @@ describe("PermissionMatrix", () => {
 
   it("shows a permission's description as its tooltip", () => {
     render(<PermissionMatrix all={ALL} granted={[]} onToggle={() => {}} />);
-    expect(screen.getAllByRole("button", { name: "read" })[0]).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "territory:read" })).toHaveAttribute(
       "title",
       "See territories",
     );
+  });
+});
+
+describe("PermissionMatrix · naming", () => {
+  it("names each chip by its slug, so two 'write' chips stay distinct", () => {
+    render(<PermissionMatrix all={ALL} granted={[]} onToggle={() => {}} />);
+    expect(screen.getByRole("button", { name: "territory:write" })).toHaveTextContent("write");
+    expect(screen.queryAllByRole("button", { name: "write" })).toHaveLength(0);
   });
 });

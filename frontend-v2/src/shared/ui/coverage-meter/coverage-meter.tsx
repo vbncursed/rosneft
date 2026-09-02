@@ -17,6 +17,7 @@ const FILL: Record<CoverageTone, string> = {
   ok: "bg-ok",
   warn: "bg-warn",
   bad: "bg-bad",
+  accent: "bg-accent",
   neutral: "bg-line-2",
 };
 
@@ -26,6 +27,7 @@ const TEXT: Record<CoverageTone, string> = {
   ok: "text-ok",
   warn: "text-warn",
   bad: "text-bad",
+  accent: "text-accent",
   neutral: "text-muted",
 };
 
