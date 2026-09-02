@@ -7,6 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/suite"
+	"gotest.tools/v3/assert"
+
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 )
 
@@ -89,5 +93,39 @@ func TestAuthenticateLeavesAnEnrolledSessionAlone(t *testing.T) {
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("got %d, want 200", rec.Code)
+	}
+}
+
+// enrollmentRouteMethods pairs each enrollmentPaths entry with the HTTP verb
+// mount.go actually registers it under. Kept separate from enrollmentPaths so
+// a mismatch here is a test failure, not a change to the list under test.
+var enrollmentRouteMethods = map[string]string{
+	"/api/auth/me":                      http.MethodGet,
+	"/api/auth/logout":                  http.MethodPost,
+	"/api/auth/2fa/setup":               http.MethodPost,
+	"/api/auth/2fa/enable":              http.MethodPost,
+	"/api/auth/2fa/recovery/regenerate": http.MethodPost,
+}
+
+// EnrollmentRouteSuite checks enrollmentPaths against the router mount.go
+// actually builds, not a hand-built request. A route renamed in mount.go and
+// forgotten here would otherwise silently stop matching — every flagged user
+// locked out of the endpoints that let them enroll, the exact failure this
+// allow-list exists to prevent, and nothing else would notice.
+type EnrollmentRouteSuite struct{ suite.Suite }
+
+func TestEnrollmentRouteSuite(t *testing.T) { suite.Run(t, new(EnrollmentRouteSuite)) }
+
+func (s *EnrollmentRouteSuite) TestEveryAllowedPathIsARealRoute() {
+	r := chi.NewRouter()
+	(&Handlers{}).Mount(r)
+
+	for _, p := range enrollmentPaths {
+		method, ok := enrollmentRouteMethods[p]
+		s.Require().True(ok, "%s has no verb recorded in enrollmentRouteMethods", p)
+
+		rctx := chi.NewRouteContext()
+		assert.Assert(s.T(), r.Match(rctx, method, p),
+			"%s is on the enrollment allow-list but no route serves %s %s", p, method, p)
 	}
 }

@@ -231,26 +231,26 @@ type AuthRole struct {
 type AuthUser struct {
 	// CsrfToken echo back as X-CSRF-Token on POST/PUT/PATCH/DELETE; required only for cookie sessions
 	CsrfToken           *string   `json:"csrfToken,omitempty"`
-	Email               *string   `json:"email,omitempty"`
-	Id                  *string   `json:"id,omitempty"`
-	IsOwner             *bool     `json:"isOwner,omitempty"`
+	Email               string    `json:"email"`
+	Id                  string    `json:"id"`
+	IsOwner             bool      `json:"isOwner"`
 	OnboardingToursSeen *[]string `json:"onboardingToursSeen,omitempty"`
 
 	// PasskeyEnabled Whether the user has at least one passkey registered. Absent means unknown, exactly as for totpEnabled. Always absent on /api/auth/me — that route runs on every page load and deliberately does not pay for the lookup, since nothing there consumes it.
-	PasskeyEnabled *bool     `json:"passkeyEnabled,omitempty"`
-	Permissions    *[]string `json:"permissions,omitempty"`
-	RoleSlugs      *[]string `json:"roleSlugs,omitempty"`
+	PasskeyEnabled *bool    `json:"passkeyEnabled,omitempty"`
+	Permissions    []string `json:"permissions"`
+	RoleSlugs      []string `json:"roleSlugs"`
 
 	// RoleTitles Slug → display title for each entry in roleSlugs. The slug is not an abbreviation of the title: slug "admin" is titled "Company Owner" while a different role is slugged "owner", so a UI printing the slug names the wrong role. A slug absent from the map means the role was deleted between reads — fall back to showing the slug.
 	RoleTitles *map[string]string `json:"roleTitles,omitempty"`
-	Status     *AuthUserStatus    `json:"status,omitempty"`
+	Status     AuthUserStatus     `json:"status"`
 
 	// TotpEnabled Whether TOTP two-factor auth is on. ABSENT MEANS UNKNOWN — the owning service (twofa) could not be reached. Render an absent value as "unknown", never as "off": auth-service does not own this flag and the gateway overlays it, so a missing key is a failed lookup and not a disabled factor.
 	TotpEnabled *bool `json:"totpEnabled,omitempty"`
 
 	// TotpRequired An administrator requires a second factor of this account. Distinct from totpEnabled, which reports whether one is enrolled.
-	TotpRequired *bool   `json:"totpRequired,omitempty"`
-	Username     *string `json:"username,omitempty"`
+	TotpRequired bool   `json:"totpRequired"`
+	Username     string `json:"username"`
 }
 
 // AuthUserStatus defines model for AuthUser.Status.

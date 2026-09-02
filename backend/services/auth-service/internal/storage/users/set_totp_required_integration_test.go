@@ -22,7 +22,9 @@ import (
 // auth-service has no other test that touches a database: userColumns and
 // scanUser are two separate lists that must agree on order, and a migration
 // that fails to apply is a runtime pgx error, not a compile error. This suite
-// is the first thing that would notice either going wrong.
+// is the only thing that *can* notice either going wrong — and only when run:
+// it is behind the integration tag, which neither `make check` nor
+// backend.yml passes, so it catches nothing unless someone runs it by hand.
 type TOTPRequiredSuite struct {
 	suite.Suite
 	pool  *pgxpool.Pool

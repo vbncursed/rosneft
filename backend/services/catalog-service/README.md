@@ -163,7 +163,7 @@ Postgres is required:
 ```bash
 docker run -d --name pg -p 5432:5432 \
   -e POSTGRES_USER=andrey -e POSTGRES_PASSWORD=andrey -e POSTGRES_DB=andrey \
-  postgres:17
+  postgres:18.6
 ```
 
 Then from `backend/`:
