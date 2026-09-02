@@ -82,6 +82,9 @@ message User {
   // nothing. Note the slug is NOT an abbreviation of the title: slug "admin" is
   // titled "Company Owner", while a different role is slugged "owner".
   map<string, string> role_titles = 12;
+  // Policy: an administrator requires a second factor of this account.
+  // totp_enabled (field 5) is the separate question of whether one is enrolled.
+  bool totp_required = 13;
 }
 
 message Role {

@@ -470,6 +470,11 @@ components:
             deleted between reads — fall back to showing the slug.
         permissions: { type: array, items: { type: string } }
         isOwner: { type: boolean }
+        totpRequired:
+          type: boolean
+          description: >
+            An administrator requires a second factor of this account. Distinct
+            from totpEnabled, which reports whether one is enrolled.
         onboardingToursSeen: { type: array, items: { type: string } }
         csrfToken: { type: string, description: "echo back as X-CSRF-Token on POST/PUT/PATCH/DELETE; required only for cookie sessions" }
     AuthRole:
