@@ -1,4 +1,5 @@
 import { EventCard, type AuditEntry } from "@/entities/audit";
+import { SectionHeading } from "@/shared/ui/section-heading";
 
 export type TimelineEvent = {
   entry: AuditEntry;
@@ -25,13 +26,11 @@ export function EventTimeline({
 }: EventTimelineProps) {
   return (
     <section aria-label={day} className="flex flex-col gap-3">
-      <div className="flex items-center gap-3 pb-1 pt-0.5">
-        <h2 className="m-0 text-[13px] font-semibold text-fg">{day}</h2>
-        {total !== undefined ? (
-          <span className="font-mono text-[10px] text-dim">{total} events</span>
-        ) : null}
-        <span aria-hidden="true" className="h-px flex-1 bg-line" />
-      </div>
+      <SectionHeading
+        title={day}
+        count={total === undefined ? undefined : `${total} events`}
+        className="pb-1 pt-0.5"
+      />
 
       {events.length === 0 ? (
         <p className="m-0 rounded-control border border-dashed border-line-2 px-3 py-[9px] text-[11px] text-muted">
