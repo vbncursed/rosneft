@@ -32,7 +32,7 @@ func (s *Server) GetModel(ctx context.Context, req GetModelRequestObject) (GetMo
 
 func (s *Server) CreateModel(ctx context.Context, req CreateModelRequestObject) (CreateModelResponseObject, error) {
 	if req.Body == nil {
-		return CreateModel400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
+		return CreateModel400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
 	m, job, err := s.svc.CreateModel(ctx, entityToModel(*req.Body))
 	switch {
@@ -46,7 +46,7 @@ func (s *Server) CreateModel(ctx context.Context, req CreateModelRequestObject) 
 
 func (s *Server) UpdateModel(ctx context.Context, req UpdateModelRequestObject) (UpdateModelResponseObject, error) {
 	if req.Body == nil {
-		return UpdateModel400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
+		return UpdateModel400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
 	m, err := s.svc.UpdateModel(ctx, req.Slug, domain.ModelUpdate{
 		ThumbnailBlobHash: req.Body.ThumbnailBlobHash,

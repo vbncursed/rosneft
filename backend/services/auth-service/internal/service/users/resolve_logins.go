@@ -3,8 +3,7 @@ package users
 import (
 	"context"
 	"fmt"
-
-	"github.com/google/uuid"
+	"uuid"
 
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
@@ -51,7 +50,7 @@ func (s *Service) ResolveLogins(ctx context.Context, ids []string) (map[string]s
 		// away one file over. It is about the answer: an unvalidated id would
 		// silently match nothing and read as "user deleted", which is a
 		// different fact from "you sent nonsense".
-		if uuid.Validate(id) != nil {
+		if _, err := uuid.Parse(id); err != nil {
 			return nil, fmt.Errorf("users.ResolveLogins: %w: id must be a uuid",
 				domain.ErrInvalidInput)
 		}

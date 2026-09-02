@@ -8,7 +8,7 @@ import (
 
 func (s *Server) InitiateUpload(ctx context.Context, req InitiateUploadRequestObject) (InitiateUploadResponseObject, error) {
 	if req.Body == nil {
-		return InitiateUpload400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
+		return InitiateUpload400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
 	body := *req.Body
 	contentType := ""
@@ -35,7 +35,7 @@ func (s *Server) InitiateUpload(ctx context.Context, req InitiateUploadRequestOb
 
 func (s *Server) AppendUploadChunk(ctx context.Context, req AppendUploadChunkRequestObject) (AppendUploadChunkResponseObject, error) {
 	if req.Body == nil {
-		return AppendUploadChunk400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "empty body"}}, nil
+		return AppendUploadChunk400JSONResponse{Code: apperr.SlugInvalidInput, Message: "empty body"}, nil
 	}
 	newOffset, err := s.svc.AppendUploadChunk(ctx, req.Id, req.Params.UploadOffset, req.Body)
 	switch {
