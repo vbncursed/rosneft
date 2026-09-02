@@ -15,6 +15,10 @@ export type StatTileProps = {
   size?: "md" | "lg";
   /** Drops the frame: the audit header groups its counters in one panel. */
   bare?: boolean;
+  /** Change against the previous window, e.g. "+8%". */
+  delta?: string;
+  /** Whether that change is good news; it is not the same as its sign. */
+  deltaTone?: StatTileTone;
   className?: string;
 };
 
@@ -35,6 +39,8 @@ export function StatTile({
   tone = "accent",
   size = "md",
   bare = false,
+  delta,
+  deltaTone = "muted",
   className,
 }: StatTileProps) {
   const valueTone =
@@ -48,7 +54,12 @@ export function StatTile({
         className,
       )}
     >
-      <p className="m-0 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">{label}</p>
+      <div className="flex items-center justify-between gap-2.5">
+        <p className="m-0 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">{label}</p>
+        {delta ? (
+          <span className={cx("font-mono text-[10px]", TONE[deltaTone])}>{delta}</span>
+        ) : null}
+      </div>
       <p
         aria-label={readoutLabel(label, state)}
         className={cx(

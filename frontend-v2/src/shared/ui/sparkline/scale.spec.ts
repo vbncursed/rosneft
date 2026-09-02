@@ -38,3 +38,23 @@ describe("toBars", () => {
     expect(toBars([])).toEqual([]);
   });
 });
+
+describe("toBars · highlight", () => {
+  it("accents the tallest bucket by default — when was it worst", () => {
+    expect(toBars([1, 9, 4]).findIndex((b) => b.peak)).toBe(1);
+  });
+
+  it("accents the newest bucket when asked — where is it now", () => {
+    expect(toBars([1, 9, 4], undefined, "last").findIndex((b) => b.peak)).toBe(2);
+  });
+
+  it("accents the newest even when the series is flat at zero", () => {
+    const bars = toBars([0, 0, 0], undefined, "last");
+    expect(bars.filter((b) => b.peak)).toHaveLength(1);
+    expect(bars[2].peak).toBe(true);
+  });
+
+  it("accents nothing in an empty series", () => {
+    expect(toBars([], undefined, "last")).toEqual([]);
+  });
+});

@@ -69,3 +69,30 @@ describe("Segmented", () => {
     expect(screen.getByTestId("readout")).toHaveTextContent("scale");
   });
 });
+
+describe("Segmented · mono", () => {
+  it("sets its labels in mono when asked", () => {
+    render(
+      <Segmented
+        ariaLabel="Range"
+        mono
+        value="6h"
+        onChange={() => {}}
+        items={[{ value: "6h", label: "6h" }, { value: "24h", label: "24h" }]}
+      />,
+    );
+    expect(screen.getByRole("radio", { name: "6h" }).className).toContain("font-mono");
+  });
+
+  it("stays sans by default", () => {
+    render(
+      <Segmented
+        ariaLabel="Range"
+        value="6h"
+        onChange={() => {}}
+        items={[{ value: "6h", label: "6h" }]}
+      />,
+    );
+    expect(screen.getByRole("radio", { name: "6h" }).className).not.toContain("font-mono");
+  });
+});

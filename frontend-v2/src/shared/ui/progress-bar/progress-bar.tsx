@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { clsx as cx } from "clsx";
 
-export type ProgressTone = "accent" | "ok" | "bad";
+export type ProgressTone = "accent" | "ok" | "warn" | "bad";
 
 export type ProgressBarProps = {
   /** 0–100. Omit it for the indeterminate "waiting to start" bar. */
@@ -19,12 +19,14 @@ export type ProgressBarProps = {
 const FILL: Record<ProgressTone, string> = {
   accent: "bg-accent",
   ok: "bg-ok",
+  warn: "bg-warn",
   bad: "bg-bad",
 };
 
 const TEXT: Record<ProgressTone, string> = {
   accent: "text-muted",
   ok: "text-ok",
+  warn: "text-warn",
   bad: "text-bad",
 };
 

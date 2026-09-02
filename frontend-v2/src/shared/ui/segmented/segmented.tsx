@@ -19,6 +19,8 @@ export type SegmentedProps<T extends string> = {
   tone?: "solid" | "soft";
   /** Gizmo mode fills its panel; the range picker hugs its content. */
   fill?: boolean;
+  /** The metrics range picker sets its labels in mono. */
+  mono?: boolean;
   className?: string;
 };
 
@@ -29,6 +31,7 @@ export function Segmented<T extends string>({
   ariaLabel,
   tone = "solid",
   fill = true,
+  mono = false,
   className,
 }: SegmentedProps<T>) {
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
@@ -68,7 +71,8 @@ export function Segmented<T extends string>({
             onClick={() => onChange(item.value)}
             onKeyDown={(e) => onKeyDown(index, e)}
             className={cx(
-              "flex items-center justify-center gap-1.5 rounded-control-sm border-none px-2 py-1.5 text-xs transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45",
+              "flex items-center justify-center gap-1.5 rounded-control-sm border-none py-1.5 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45",
+              mono ? "px-2.5 font-mono text-[11px]" : "px-2 text-xs",
               fill && "flex-1",
               item.disabled
                 ? "bg-transparent text-dim"
