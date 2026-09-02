@@ -104,5 +104,8 @@ describe("OtpInput · sizes", () => {
     const first = screen.getByLabelText("Digit 1 of 6");
     expect(first.className).toContain("flex-1");
     expect(first.className).toContain("h-14");
+    // Without it the input's intrinsic width wins over flex-shrink and the row
+    // overflows a narrow panel.
+    expect(first.className).toContain("min-w-0");
   });
 });

@@ -85,7 +85,7 @@ export function TwoFactorForm({
         type="submit"
         variant="primary"
         size="lg"
-        className="justify-center"
+        className="justify-center px-5! py-[13px]! text-[14px]!"
         loading={submitting}
         // A short code is a typo, not a decision; the button waits for six.
         disabled={!isComplete(code, LENGTH)}

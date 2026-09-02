@@ -11,7 +11,6 @@ const props = (over: Partial<CredentialsFormProps> = {}): CredentialsFormProps =
   remember: false,
   onRememberChange: vi.fn(),
   onSubmit: vi.fn(),
-  onForgotPassword: vi.fn(),
   ...over,
 });
 
@@ -57,13 +56,6 @@ describe("CredentialsForm", () => {
     render(<CredentialsForm {...props({ onPasskey })} />);
     await userEvent.click(screen.getByRole("button", { name: /Continue with passkey/ }));
     expect(onPasskey).toHaveBeenCalledOnce();
-  });
-
-  it("offers the way out of a forgotten password", async () => {
-    const onForgotPassword = vi.fn();
-    render(<CredentialsForm {...props({ onForgotPassword })} />);
-    await userEvent.click(screen.getByRole("button", { name: "Forgot?" }));
-    expect(onForgotPassword).toHaveBeenCalledOnce();
   });
 
   it("remembers the device when asked", async () => {

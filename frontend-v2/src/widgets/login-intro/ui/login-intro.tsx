@@ -13,7 +13,7 @@ export type LoginIntroProps = {
   headline: string;
   blurb: string;
   points: IntroPoint[];
-  /** Mono line pinned to the foot of the panel. */
+  /** Sentence pinned to the foot of the panel. */
   footnote?: ReactNode;
   mark?: string;
 };
@@ -28,7 +28,7 @@ export function LoginIntro({
   mark = "A",
 }: LoginIntroProps) {
   return (
-    <section aria-label="About this platform" className="flex flex-col gap-6 p-8">
+    <section aria-label="About this platform" className="flex h-full flex-col gap-[26px] p-8">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <span
@@ -64,7 +64,7 @@ export function LoginIntro({
       </ul>
 
       {footnote ? (
-        <p className="m-0 mt-auto font-mono text-[10px] uppercase tracking-[0.18em] text-dim">
+        <p className="m-0 mt-auto text-[11px] leading-[1.55] text-dim">
           {footnote}
         </p>
       ) : null}
