@@ -90,6 +90,10 @@ it.
 
 ### The rules are enforced, not remembered
 
+`src/fixtures.spec.tsx` renders every fixture. Cosmos loads one only when
+someone opens it, so a broken fixture otherwise sits there silently until a
+person clicks it — and fixtures are where undertested sample data lives.
+
 `src/architecture.spec.ts` fails the suite when any of these slips:
 
 - a module under `src/` has no neighbouring `*.spec.ts(x)`
