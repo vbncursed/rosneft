@@ -1,5 +1,6 @@
 import { Icon } from "@/shared/ui/icon";
 import { Menu } from "@/shared/ui/menu";
+import { PersonCard } from "./ui/person-card";
 import { UserRow } from "./ui/user-row";
 import type { User } from "./model/user";
 
@@ -54,7 +55,7 @@ const USERS: User[] = [
 
 const HEADS = ["User", "Email", "Roles", "Status", "2FA", "Passkey", ""];
 
-export default (
+const table = (
   <div className="overflow-hidden rounded-card border border-line bg-panel">
     <table className="w-full border-collapse text-left">
       <thead>
@@ -88,3 +89,27 @@ export default (
     </table>
   </div>
 );
+
+const SEEN: Record<string, [string, string]> = {
+  "1": ["all territories", "today 09:14"],
+  "2": ["3 territories", "yesterday 18:02"],
+  "3": ["2 territories", "18.08 11:05"],
+  "4": ["—", "12.05 10:03"],
+};
+
+export default {
+  table,
+  cards: (
+    <div className="grid gap-2.5 md:grid-cols-2">
+      {USERS.map((user) => (
+        <PersonCard
+          key={user.id}
+          user={user}
+          selected={user.id === "2"}
+          territories={SEEN[user.id][0]}
+          lastSeen={SEEN[user.id][1]}
+        />
+      ))}
+    </div>
+  ),
+};

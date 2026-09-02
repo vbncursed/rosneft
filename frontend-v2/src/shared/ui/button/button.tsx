@@ -13,6 +13,7 @@ const button = cva(
         danger: "border-bad bg-bad-soft text-bad hover:bg-bad/20",
         accent: "border-accent-line bg-accent-soft text-accent hover:bg-accent/20",
         success: "border-ok bg-ok-soft text-ok hover:bg-ok/20",
+        warning: "border-warn bg-transparent text-warn hover:bg-warn/10",
         // "← Back to site": no chrome at all, only the mono label.
         link: "border-transparent bg-transparent text-muted hover:text-fg",
       },

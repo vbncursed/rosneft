@@ -1,4 +1,5 @@
 import { Button } from "@/shared/ui/button";
+import { AccessRow } from "./ui/access-row";
 import { TerritoryCard } from "./ui/territory-card";
 import type { Territory } from "./model/territory";
 
@@ -9,7 +10,7 @@ const base: Territory = {
   sourceBlobHash: "abc123",
 };
 
-export default (
+const cards = (
   <div className="grid gap-4 md:grid-cols-3">
     <TerritoryCard territory={base} conversion={{ status: "ready" }} />
     <TerritoryCard
@@ -34,3 +35,13 @@ export default (
     />
   </div>
 );
+
+export default {
+  cards,
+  access: (
+    <div className="flex max-w-sm flex-col gap-1.5 rounded-card border border-line bg-panel p-6">
+      <AccessRow slug="refinery-block-c" via="direct" />
+      <AccessRow slug="north-ridge-pad" via="role" />
+    </div>
+  ),
+};

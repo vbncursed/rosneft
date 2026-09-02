@@ -84,6 +84,16 @@ export const GLYPHS = {
       </>
     ),
   },
+  warning: {
+    box: "0 0 24 24",
+    width: 1.8,
+    body: (
+      <>
+        <path d="M12 9v4M12 17h.01" />
+        <path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6A2 2 0 0 0 22 18L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+      </>
+    ),
+  },
   search: {
     box: "0 0 24 24",
     width: 1.8,
