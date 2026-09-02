@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AuditRow } from "./ui/audit-row";
+import { EventCard } from "./ui/event-card";
 import type { AuditEntry } from "./model/audit-entry";
 
 const ENTRIES: AuditEntry[] = [
@@ -47,4 +48,32 @@ function Journal() {
   );
 }
 
-export default <Journal />;
+const KINDS: { entry: AuditEntry; summary: string }[] = [
+  {
+    entry: { ...ENTRIES[0], id: 10, action: "territory.update", at: "2026-09-01T09:14:00Z" },
+    summary: "4 fields changed",
+  },
+  {
+    entry: { ...ENTRIES[0], id: 11, action: "placement.create", entityLabel: "Storage Tank 500", at: "2026-09-01T08:52:00Z" },
+    summary: "placed at 12.4 / 0.0 / −3.1",
+  },
+  {
+    entry: { ...ENTRIES[0], id: 12, action: "model.delete", entityLabel: "Pipe Segment 12", at: "2026-09-01T07:58:00Z" },
+    summary: "soft-deleted · 3 placements detached",
+  },
+  {
+    entry: { ...ENTRIES[0], id: 13, action: "auth.login", entityLabel: "session started", actorId: "", actorLogin: "", result: "failed", at: "2026-09-01T07:40:00Z" },
+    summary: "passkey · Chrome on macOS",
+  },
+];
+
+export default {
+  journalRows: <Journal />,
+  eventCards: (
+    <div className="flex max-w-2xl flex-col gap-3 rounded-card border border-line bg-panel p-6">
+      {KINDS.map(({ entry, summary }, i) => (
+        <EventCard key={entry.id} entry={entry} summary={summary} selected={i === 0} />
+      ))}
+    </div>
+  ),
+};
