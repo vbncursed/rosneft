@@ -59,6 +59,14 @@ describe("RecoveryCodes", () => {
     );
   });
 
+  it("dresses the three actions as the design does: two plain pills, one green", () => {
+    render(<RecoveryCodes codes={CODES} onConfirm={() => {}} />);
+    for (const name of ["Copy", "Download"]) {
+      expect(screen.getByRole("button", { name }).className).toContain("bg-transparent");
+    }
+    expect(screen.getByRole("button", { name: "I saved them" }).className).toContain("bg-ok-soft");
+  });
+
   it("does not dismiss itself — only the person confirming can", async () => {
     const onConfirm = vi.fn();
     render(<RecoveryCodes codes={CODES} onConfirm={onConfirm} />);

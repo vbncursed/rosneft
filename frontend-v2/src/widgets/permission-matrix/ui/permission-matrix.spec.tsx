@@ -60,13 +60,43 @@ describe("PermissionMatrix", () => {
     }
   });
 
-  it("locks the whole matrix while disabled", async () => {
+  it("locks the whole matrix for a read-only role", async () => {
     const onToggle = vi.fn();
-    render(<PermissionMatrix all={ALL} granted={["territory:read"]} onToggle={onToggle} disabled />);
+    render(<PermissionMatrix all={ALL} granted={["territory:read"]} onToggle={onToggle} readOnly />);
     for (const button of screen.getAllByRole("button")) expect(button).toBeDisabled();
 
     await userEvent.click(screen.getByRole("button", { name: "write" }));
     expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it("still reports what a read-only role holds", () => {
+    render(<PermissionMatrix all={ALL} granted={["territory:read"]} onToggle={() => {}} readOnly />);
+    expect(screen.getAllByRole("button", { name: "read" })[0]).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("counts what is granted in each group", () => {
+    render(<PermissionMatrix all={ALL} granted={["territory:read", "territory:write"]} onToggle={() => {}} />);
+    expect(screen.getByText("2 / 3")).toBeInTheDocument();
+    expect(screen.getByText("0 / 1")).toBeInTheDocument();
+  });
+
+  it("gives every chip a dot, so state is not carried by the border alone", () => {
+    const { container } = render(
+      <PermissionMatrix
+        all={ALL}
+        granted={["territory:read"]}
+        grantable={new Set(["territory:read", "territory:write"])}
+        onToggle={() => {}}
+      />,
+    );
+    const dots = [...container.querySelectorAll("span[aria-hidden]")].map((d) => d.className);
+    expect(dots).toHaveLength(4);
+    expect(dots.filter((c) => c.includes("bg-accent"))).toHaveLength(1);
+    // A locked chip's dot warns: it needs Root to grant.
+    expect(dots.filter((c) => c.includes("bg-warn"))).toHaveLength(2);
   });
 
   it("shows a permission's description as its tooltip", () => {

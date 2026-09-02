@@ -30,4 +30,19 @@ describe("Badge", () => {
     render(<Badge tone="bad">2fa no</Badge>);
     expect(screen.getByText("2fa no").className).toContain("text-bad");
   });
+
+  it("draws the accent ring solid, not translucent — the design's Root pill", () => {
+    render(<Badge tone="accent">Root</Badge>);
+    const cls = screen.getByText("Root").className;
+    expect(cls).toContain("border-accent");
+    expect(cls).not.toContain("border-accent-line");
+  });
+
+  it("writes a filled neutral chip in the foreground ink, an outlined one muted", () => {
+    const { rerender } = render(<Badge tone="neutral" fill="soft">Field Operator</Badge>);
+    expect(screen.getByText("Field Operator").className).toContain("text-fg");
+
+    rerender(<Badge tone="neutral" fill="outline">Company Owner</Badge>);
+    expect(screen.getByText("Company Owner").className).toContain("text-muted");
+  });
 });

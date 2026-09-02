@@ -48,7 +48,7 @@ export function RecoveryCodes({ codes, onConfirm }: RecoveryCodesProps) {
         >
           Download
         </Button>
-        <Button shape="pill" size="sm" variant="accent" onClick={onConfirm}>
+        <Button shape="pill" size="sm" variant="success" onClick={onConfirm}>
           I saved them
         </Button>
       </div>
