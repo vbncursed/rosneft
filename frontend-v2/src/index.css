@@ -1,0 +1,11 @@
+@import "@fontsource-variable/archivo";
+@import "@fontsource-variable/jetbrains-mono";
+@import "tailwindcss";
+@import "./app/styles/theme.css";
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+}
