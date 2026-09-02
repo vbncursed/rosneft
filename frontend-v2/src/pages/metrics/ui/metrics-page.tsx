@@ -1,0 +1,159 @@
+import { StatTile, type ServiceHealth, type StatTileTone } from "@/entities/metric";
+import { FilterBar, type ExtraFilter } from "@/features/audit-filter";
+import { Badge } from "@/shared/ui/badge";
+import { CoverageMeter, type CoverageSegment } from "@/shared/ui/coverage-meter";
+import { Segmented } from "@/shared/ui/segmented";
+import { AlertInspector, type FiringAlert } from "@/widgets/alert-inspector";
+import { MetricPanels, type MetricSection } from "@/widgets/metric-panels";
+import { PageHeader } from "@/widgets/page-header";
+import { ServiceHealthList } from "@/widgets/service-health";
+import { METRIC_RANGES, type MetricsRange } from "../model/range";
+
+export type MetricsPageStat = {
+  label: string;
+  value: string;
+  hint: string;
+  tone?: StatTileTone;
+  delta?: string;
+  deltaTone?: StatTileTone;
+};
+
+export type MetricsPageProps = {
+  services: ServiceHealth[];
+  sections: MetricSection[];
+  budget: { label: string; detail: string; detailTone?: StatTileTone; segments: CoverageSegment[] };
+  stats: MetricsPageStat[];
+
+  range: MetricsRange;
+  onRangeChange: (range: MetricsRange) => void;
+
+  query: string;
+  onQueryChange: (query: string) => void;
+  extraFilters?: ExtraFilter[];
+
+  selectedService: string | null;
+  onSelectService: (name: string) => void;
+  selectedPanel: string | null;
+  onSelectPanel: (key: string) => void;
+
+  /** How many alerts are firing; the header stays quiet at zero. */
+  firingCount?: number;
+  /** Absent when nothing is firing, or while the detail is still loading. */
+  alert?: FiringAlert | null;
+  onCloseAlert: () => void;
+  onSilence: () => void;
+  onOpenInAudit: () => void;
+  onCopyPromQl: () => void;
+};
+
+const FILTER_PLACEHOLDER = "filter: service:gateway group:red state:firing";
+
+export function MetricsPage({
+  services,
+  sections,
+  budget,
+  stats,
+  range,
+  onRangeChange,
+  query,
+  onQueryChange,
+  extraFilters,
+  selectedService,
+  onSelectService,
+  selectedPanel,
+  onSelectPanel,
+  firingCount = 0,
+  alert,
+  onCloseAlert,
+  onSilence,
+  onOpenInAudit,
+  onCopyPromQl,
+}: MetricsPageProps) {
+  return (
+    <>
+      <PageHeader
+        size="lg"
+        eyebrow="Prometheus · scrape 15s"
+        title="Metrics"
+        action={
+          <div className="flex items-center gap-2.5">
+            {firingCount > 0 ? (
+              <Badge tone="bad" fill="soft" className="tracking-[0.12em]">
+                <span aria-hidden="true" className="size-1.5 rounded-full bg-bad" />
+                {firingCount} {firingCount === 1 ? "alert" : "alerts"}
+              </Badge>
+            ) : null}
+            <Segmented
+              ariaLabel="Time range"
+              mono
+              fill={false}
+              tone="soft"
+              value={range}
+              onChange={onRangeChange}
+              className="bg-panel"
+              items={METRIC_RANGES.map((value) => ({ value, label: value }))}
+            />
+          </div>
+        }
+      />
+
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
+        <CoverageMeter
+          label={budget.label}
+          detail={budget.detail}
+          detailTone={budget.detailTone === "warn" ? "warn" : "ok"}
+          segments={budget.segments}
+          className="rounded-[11px] border border-line bg-panel px-4.5 py-4"
+        />
+        {stats.map((stat) => (
+          <StatTile
+            key={stat.label}
+            size="lg"
+            label={stat.label}
+            state={{ kind: "value", value: stat.value }}
+            hint={stat.hint}
+            tone={stat.tone ?? "fg"}
+            delta={stat.delta}
+            deltaTone={stat.deltaTone}
+          />
+        ))}
+      </div>
+
+      <FilterBar
+        query={query}
+        onChange={onQueryChange}
+        extra={extraFilters}
+        label="Filter metrics"
+        placeholder={FILTER_PLACEHOLDER}
+      />
+
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(420px,1fr)_minmax(300px,380px)]">
+        <div className="flex flex-col gap-4">
+          <ServiceHealthList
+            services={services}
+            selectedName={selectedService}
+            onSelect={onSelectService}
+          />
+          <MetricPanels
+            sections={sections}
+            selectedKey={selectedPanel}
+            onSelect={onSelectPanel}
+          />
+        </div>
+
+        {alert ? (
+          // Sticky so the firing alert stays in view while the panels scroll.
+          <div className="xl:sticky xl:top-6">
+            <AlertInspector
+              alert={alert}
+              onClose={onCloseAlert}
+              onSilence={onSilence}
+              onOpenInAudit={onOpenInAudit}
+              onCopyPromQl={onCopyPromQl}
+            />
+          </div>
+        ) : null}
+      </div>
+    </>
+  );
+}

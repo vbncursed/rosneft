@@ -12,6 +12,10 @@ export type SparklineProps = {
   dimFrom?: number;
   /** Names the unit in the accessible summary, e.g. "events per hour". */
   unit?: string;
+  /** Which bar takes the accent: the tallest, or the most recent. */
+  highlight?: "peak" | "last";
+  /** Off for a bare row sparkline with no heading of its own. */
+  showHeader?: boolean;
   className?: string;
 };
 
@@ -21,17 +25,23 @@ export function Sparkline({
   detail,
   dimFrom,
   unit = "events",
+  highlight = "peak",
+  showHeader = true,
   className,
 }: SparklineProps) {
-  const bars = toBars(values, dimFrom);
+  const bars = toBars(values, dimFrom, highlight);
   const peak = bars.find((bar) => bar.peak);
 
   return (
     <div className={className}>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted">{label}</span>
-        {detail ? <span className="font-mono text-[11px] text-muted">{detail}</span> : null}
-      </div>
+      {showHeader ? (
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted">
+            {label}
+          </span>
+          {detail ? <span className="font-mono text-[11px] text-muted">{detail}</span> : null}
+        </div>
+      ) : null}
 
       <div
         role="img"
@@ -40,9 +50,11 @@ export function Sparkline({
         aria-label={
           bars.length === 0
             ? `${label}: no data`
-            : `${label}: ${bars.length} buckets, peak ${peak?.value ?? 0} ${unit}`
+            : highlight === "last"
+              ? `${label}: ${bars.length} buckets, latest ${peak?.value ?? 0} ${unit}`
+              : `${label}: ${bars.length} buckets, peak ${peak?.value ?? 0} ${unit}`
         }
-        className="mt-3 flex h-13 items-end gap-[3px] overflow-hidden"
+        className={cx("flex items-end gap-[3px] overflow-hidden", showHeader ? "mt-3 h-13" : "h-full")}
       >
         {bars.map((bar, index) => (
           <span

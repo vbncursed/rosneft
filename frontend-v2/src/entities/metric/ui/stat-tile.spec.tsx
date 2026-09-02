@@ -83,3 +83,27 @@ describe("StatTile · bare", () => {
     expect(screen.getByLabelText("Failed: 4")).toBeInTheDocument();
   });
 });
+
+describe("StatTile · delta", () => {
+  it("shows the change beside the label", () => {
+    render(<StatTile label="Requests/sec" state={{ kind: "value", value: "142/s" }} delta="+8%" />);
+    expect(screen.getByText("+8%")).toBeInTheDocument();
+  });
+
+  it("tones the delta by whether it is good news, not by its sign", () => {
+    const { rerender } = render(
+      <StatTile label="p99" state={{ kind: "value", value: "452ms" }} delta="−12%" deltaTone="ok" />,
+    );
+    expect(screen.getByText("−12%").className).toContain("text-ok");
+
+    rerender(
+      <StatTile label="Error rate" state={{ kind: "value", value: "0.82%" }} delta="+0.3" deltaTone="bad" />,
+    );
+    expect(screen.getByText("+0.3").className).toContain("text-bad");
+  });
+
+  it("shows nothing extra when there is no delta", () => {
+    render(<StatTile label="Sessions" state={{ kind: "value", value: "37" }} />);
+    expect(screen.getByText("Sessions").parentElement!.childElementCount).toBe(1);
+  });
+});
