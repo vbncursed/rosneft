@@ -56,14 +56,22 @@ describe("ConsoleSidebar", () => {
     expect(container.querySelector("span[aria-hidden]")).toHaveTextContent("A");
   });
 
-  it("stands the height of the viewport and stays put while the page scrolls", () => {
+  it("fills the column for the whole height of the page", () => {
     const { container } = sidebar();
-    const column = container.firstElementChild!.className;
-    expect(column).toContain("sticky");
-    expect(column).toContain("h-dvh");
-    // Without self-start the grid cell stretches to the row and the sticky
-    // has nothing left to stick to.
-    expect(column).toContain("self-start");
+    const column = container.firstElementChild as HTMLElement;
+    // A plain grid item: it stretches to the row, so the panel fill and the
+    // right border reach the bottom of a long page.
+    expect(column.className).toContain("bg-panel");
+    expect(column.className).toContain("border-r");
+    expect(column.className).not.toContain("h-dvh");
+  });
+
+  it("holds its contents in place while the page scrolls past", () => {
+    const { container } = sidebar();
+    const inner = container.firstElementChild!.firstElementChild as HTMLElement;
+    expect(inner.className).toContain("sticky");
+    expect(inner.className).toContain("top-0");
+    expect(inner.className).toContain("h-dvh");
   });
 
   it("scrolls only its navigation, keeping the brand and the identity in place", () => {
