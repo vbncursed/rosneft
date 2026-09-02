@@ -27,7 +27,7 @@ func (s *QuerySuite) serving(h http.HandlerFunc) *Client {
 
 func (s *QuerySuite) TestStepSeconds() {
 	// Never finer than the scrape interval, always a whole number of scrapes.
-	for _, window := range []int{3600, 21600, 86400, 604800} {
+	for _, window := range []int{900, 3600, 21600, 86400, 604800} {
 		step := stepSeconds(window)
 		assert.Assert(s.T(), step >= scrapeSeconds, "window %d gave step %d", window, step)
 		assert.Equal(s.T(), step%scrapeSeconds, 0)
@@ -97,4 +97,13 @@ func (s *QuerySuite) TestRangeQueryUsesQueryRange() {
 	assert.Equal(s.T(), gotPath, "/api/v1/query_range")
 	// 21600s / 200 points = 108s, rounded to 7 whole scrapes = 105s.
 	assert.Equal(s.T(), gotStep, "105")
+}
+
+// The dashboard's shortest window. 900/200 rounds below one scrape, so the
+// floor in stepSeconds is what keeps the step legal.
+func (s *QuerySuite) TestFifteenMinuteRangeIsAllowed() {
+	window, ok := rangeSeconds["15m"]
+	assert.Assert(s.T(), ok, "15m missing from the range allow-list")
+	assert.Equal(s.T(), window, 900)
+	assert.Equal(s.T(), stepSeconds(window), 15)
 }

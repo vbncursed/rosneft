@@ -2170,7 +2170,7 @@ paths:
           name: range
           required: true
           description: Query window. Step is derived server-side (~200 points, rounded to whole 15s scrapes).
-          schema: { type: string, enum: [1h, 6h, 24h, 7d] }
+          schema: { type: string, enum: [15m, 1h, 6h, 24h, 7d] }
       responses:
         '200':
           description: One entry per time series
