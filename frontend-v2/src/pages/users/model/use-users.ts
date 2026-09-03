@@ -16,7 +16,7 @@ import {
 } from "@/entities/user";
 import { messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
-import { can, type Principal } from "@/shared/session";
+import { can } from "@/shared/session";
 
 export type ActionKind =
   | "freeze"
@@ -54,7 +54,6 @@ const run = ({ kind, user }: PendingAction): Promise<unknown> => {
 };
 
 export type UsersState = {
-  me: Principal | null;
   status: "loading" | "ready" | "unavailable";
   error: string | null;
   users: User[] | null;
@@ -73,6 +72,7 @@ export type UsersState = {
   creating: boolean;
   setCreating: (open: boolean) => void;
   create: (input: NewUser) => void;
+  createBusy: boolean;
   addingRole: boolean;
   setAddingRole: (open: boolean) => void;
   setRoles: (roleSlugs: string[]) => void;
@@ -132,10 +132,16 @@ export function useUsers(): UsersState {
     onError: fail,
   });
 
+  // Both queries, not just the list. With roles still pending — or refused,
+  // which `users:read` alone gets — every person would file under "No role"
+  // and "Roles in use" would read 0: a confident wrong answer wearing a
+  // loaded screen's clothes.
+  const failed = users.isError ? users.error : roles.isError ? roles.error : null;
+
   return {
-    me,
-    status: users.isPending ? "loading" : users.isError ? "unavailable" : "ready",
-    error: users.isError ? messageOf(users.error) : null,
+    status:
+      users.isPending || roles.isPending ? "loading" : failed ? "unavailable" : "ready",
+    error: failed ? messageOf(failed) : null,
     users: users.data ?? null,
     roles: roles.data ?? [],
     canManage: can(me, "users:write"),
@@ -151,6 +157,7 @@ export function useUsers(): UsersState {
     creating,
     setCreating,
     create: creation.mutate,
+    createBusy: creation.isPending,
     addingRole,
     setAddingRole,
     setRoles: (roleSlugs) => selected && roleChange.mutate({ id: selected.id, roleSlugs }),
