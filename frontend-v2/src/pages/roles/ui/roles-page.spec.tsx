@@ -175,4 +175,10 @@ describe("RolesPage", () => {
     );
     expect(screen.getByText("No roles match this filter.")).toBeInTheDocument();
   });
+
+  it("hands the inspector a reader's view when the actor may not manage roles", () => {
+    render(<RolesPage {...props({ edited: edited(), canManage: false })} />);
+    expect(screen.queryByRole("button", { name: "Save permissions" })).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Role name" })).toHaveAttribute("readonly");
+  });
 });

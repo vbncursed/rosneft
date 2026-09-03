@@ -20,11 +20,15 @@ export type RoleInspectorProps = {
   onSave: () => void;
   /** True while a save is in flight; also blocks editing. */
   saving?: boolean;
+  /** The reader may not change roles at all — no grant, not a system role. */
+  readOnly?: boolean;
   /** Unsaved changes exist. */
   dirty?: boolean;
 };
 
 const LOCKED_NOTE = "Locked chips need Root — you can't grant a permission you don't hold.";
+const SYSTEM_NOTE = "System roles are defined by migrations and cannot be edited here.";
+const NO_GRANT_NOTE = "You can view roles here, but changing one needs roles:manage.";
 
 export function RoleInspector({
   role,
@@ -38,9 +42,14 @@ export function RoleInspector({
   onSave,
   saving = false,
   dirty = false,
+  readOnly = false,
 }: RoleInspectorProps) {
   // A system role is defined by migrations; its set is shown, never edited.
-  const readOnly = role.kind === "system" || saving;
+  const locked = readOnly || role.kind === "system" || saving;
+  // Why there is nothing to press. The role being immutable and the reader
+  // lacking the grant are different sentences; a save that only earns a 403
+  // is not drawn either way.
+  const notice = role.kind === "system" ? SYSTEM_NOTE : readOnly ? NO_GRANT_NOTE : null;
   const hasLocked = grantable ? all.some((p) => !grantable.has(p.slug)) : false;
   const share = all.length === 0 ? 0 : Math.round((granted.length / all.length) * 100);
 
@@ -52,12 +61,12 @@ export function RoleInspector({
       <div className="flex items-start justify-between gap-3 border-b border-line bg-accent-soft p-4.5">
         <div className="min-w-0 flex-1">
           <p className="m-0 font-mono text-[9px] uppercase tracking-[0.2em] text-accent">
-            {readOnly ? "Viewing role" : "Editing role"}
+            {locked ? "Viewing role" : "Editing role"}
           </p>
           <input
             value={role.title}
             onChange={(e) => onRename(e.target.value)}
-            readOnly={readOnly}
+            readOnly={locked}
             aria-label="Role name"
             className="mt-2 w-full border-0 border-b border-solid border-accent-line bg-transparent py-[3px] font-sans text-lg font-semibold tracking-[-0.01em] text-fg outline-none read-only:cursor-default"
           />
@@ -96,14 +105,14 @@ export function RoleInspector({
           granted={granted}
           onToggle={onToggle}
           grantable={grantable}
-          readOnly={readOnly}
+          readOnly={locked}
         />
 
-        {hasLocked && !readOnly ? <Callout tone="warn" icon="lock">{LOCKED_NOTE}</Callout> : null}
+        {hasLocked && !locked ? <Callout tone="warn" icon="lock">{LOCKED_NOTE}</Callout> : null}
 
-        {role.kind === "system" ? (
+        {notice ? (
           <Callout tone="accent" icon="lock">
-            System roles are defined by migrations and cannot be edited here.
+            {notice}
           </Callout>
         ) : (
           <div className="flex gap-2 border-t border-line pt-3.5">

@@ -148,6 +148,9 @@ export function RolesPage({
               grantable={grantable}
               dirty={edited.dirty}
               saving={edited.saving}
+              // roles:read alone reaches this screen; the whole panel is a
+              // reader's view then, not just the create controls.
+              readOnly={!canManage}
               onToggle={onTogglePermission}
               onRename={onRenameRole}
               onReset={onResetRole}
