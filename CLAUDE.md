@@ -13,13 +13,16 @@ catch Docker-build failures that `make lint` cannot see): [`backend/CLAUDE.md`](
 
 ## CI
 
-Four workflows, and until 2026-09-01 there was one. `backend.yml` runs
+Five workflows, and until 2026-09-01 there was one. `backend.yml` runs
 `make -C backend check`; `frontend.yml` runs lint, both test runners, the build
-and a production-dependency audit; `desktop.yml` runs `make -C desktop check`,
-`cargo audit` and the three-platform bundle; `dependabot.yml` watches gomod,
-npm, cargo **and github-actions**. Each workflow invokes the same Makefile or
-yarn script a developer runs, never a reimplementation of it in YAML — the
-failure that shape produces is a green PR that a local commit would reject.
+and a production-dependency audit; `frontend-v2.yml` runs the same shape
+against the redesign (lint, `test:coverage` with its 90/85/90/90 thresholds
+in place of a plain test run, build, audit); `desktop.yml` runs
+`make -C desktop check`, `cargo audit` and the three-platform bundle;
+`dependabot.yml` watches gomod, npm, cargo **and github-actions**. Each
+workflow invokes the same Makefile or yarn script a developer runs, never a
+reimplementation of it in YAML — the failure that shape produces is a green
+PR that a local commit would reject.
 
 ## Two frontends
 
