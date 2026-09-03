@@ -1,4 +1,6 @@
 export { territoryPath, type Territory } from "./model/territory";
+export { deleteTerritory, listTerritories } from "./api/territories-gateway";
+export { territoriesQuery } from "./api/territories-query";
 export {
   grantAction,
   hasInheritedGrants,
