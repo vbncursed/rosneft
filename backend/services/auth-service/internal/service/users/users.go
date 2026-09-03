@@ -89,13 +89,15 @@ func isAdmin(u domain.User) bool {
 }
 
 // ownership returns the target user after enforcing the owner scope: an actor
-// without users:read_all may only touch users they created.
+// without users:read_all may only touch users they created, or themselves —
+// a Company Owner's own account is created by Root, so CreatedBy alone would
+// hide the owner from their own account.
 func (s *Service) ownership(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error) {
 	u, err := s.store.GetByID(ctx, id)
 	if err != nil {
 		return domain.User{}, err
 	}
-	if !scopeAll && (u.CreatedBy == nil || *u.CreatedBy != actorID) {
+	if !scopeAll && u.ID != actorID && (u.CreatedBy == nil || *u.CreatedBy != actorID) {
 		return domain.User{}, domain.ErrUserNotFound
 	}
 	return u, nil

@@ -28,3 +28,12 @@ func (s *UsersSuite) TestGetForeignUserHiddenFromOwner() {
 	_, err := s.svc.Get(s.ctx, "owner1", false, "u9")
 	assert.ErrorIs(s.T(), err, domain.ErrUserNotFound)
 }
+
+// The owner's own account is created by Root, not by the owner — CreatedBy
+// alone would hide it from a scoped Get exactly like a foreign user.
+func (s *UsersSuite) TestGetSelfVisibleToOwner() {
+	s.st.GetByIDMock.Expect(s.ctx, "owner1").Return(domain.User{ID: "owner1", CreatedBy: new("root")}, nil)
+	u, err := s.svc.Get(s.ctx, "owner1", false, "owner1")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), u.ID, "owner1")
+}
