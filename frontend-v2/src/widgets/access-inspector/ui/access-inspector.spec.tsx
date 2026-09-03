@@ -120,6 +120,14 @@ describe("AccessInspector", () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
+  it("shows the visibility as a sentence and always lists people when it cannot be changed", () => {
+    render(<AccessInspector {...props({ visibility: "private", onVisibilityChange: undefined, grants: [] })} />);
+    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
+    expect(screen.getByText("Owner only")).toBeInTheDocument();
+    expect(screen.getByText("Nobody can open this territory yet.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "+ add person" })).toBeInTheDocument();
+  });
+
   it("closes", async () => {
     const onClose = vi.fn();
     render(<AccessInspector {...props({ onClose })} />);
