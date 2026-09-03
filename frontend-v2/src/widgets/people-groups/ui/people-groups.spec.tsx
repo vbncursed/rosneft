@@ -14,6 +14,7 @@ const user = (id: string, username: string): User => ({
   roleSlugs: ["guest"],
   roleTitles: { guest: "guest" },
   isOwner: false,
+  totpRequired: false,
 });
 
 const person = (id: string, username: string) => ({

@@ -25,6 +25,10 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    // vitest (mode "test") loads no .env.* file, so shared/api/client.ts's
+    // `${API_BASE}${path}` would fetch "undefined/api/...". Empty string
+    // matches the real dev/prod value — this SPA is single-origin by design.
+    env: { VITE_API_URL: "" },
     setupFiles: ["./src/shared/lib/test-setup.ts"],
     include: ["src/**/*.spec.ts", "src/**/*.spec.tsx"],
     coverage: {

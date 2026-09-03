@@ -14,6 +14,8 @@ export type User = {
   status: UserStatus;
   totpEnabled: Known;
   passkeyEnabled: Known;
+  /** Policy, not fact: the account must carry a second factor. Always known. */
+  totpRequired: boolean;
   roleSlugs: string[];
   /**
    * Slug → display title. The slug is not an abbreviation of the title: the

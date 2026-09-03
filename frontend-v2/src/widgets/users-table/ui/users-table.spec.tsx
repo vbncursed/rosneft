@@ -13,6 +13,7 @@ const user = (id: string, username: string, over: Partial<User> = {}): User => (
   roleSlugs: ["guest"],
   roleTitles: { guest: "Guest" },
   isOwner: false,
+  totpRequired: false,
   ...over,
 });
 

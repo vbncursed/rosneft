@@ -24,6 +24,7 @@ const make = (
   roleSlugs: roles,
   roleTitles: Object.fromEntries(roles.map((r) => [r, r])),
   isOwner: false,
+  totpRequired: false,
   ...over,
 });
 

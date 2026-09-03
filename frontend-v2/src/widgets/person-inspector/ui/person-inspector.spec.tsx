@@ -14,6 +14,7 @@ const user = (over: Partial<User> = {}): User => ({
   roleSlugs: ["field-operator"],
   roleTitles: { "field-operator": "field-operator" },
   isOwner: false,
+  totpRequired: false,
   ...over,
 });
 
