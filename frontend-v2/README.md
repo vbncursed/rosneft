@@ -36,13 +36,13 @@ Routes are `/login` and `/console/{users,roles,content,access,audit,metrics}`.
 from the signed-in principal's permissions (`app/router/guard.ts`) and redirect
 to it.
 
-**Users and Roles are live; the other four console screens are placeholders.**
-`/console/users` and `/console/roles` fetch through a container hook in
-`pages/{users,roles}/model`, render the page beside its dialogs, and report
-every outcome as a toast — `shared/lib/notify`, whose Toaster
-`app/router/console-shell.tsx` mounts around the whole console. Content,
-Territory access, Audit and Metrics still render a one-line `<p>`; their pages
-take everything through props and own no fetching yet.
+**Users, Roles, Content and Territory access are live; Audit and Metrics are
+placeholders.** Each live screen fetches through a container hook in
+`pages/*/model`, renders the page beside its dialogs, and reports every
+outcome as a toast — `shared/lib/notify`, whose Toaster
+`app/router/console-shell.tsx` mounts around the whole console. Audit and
+Metrics still render a one-line `<p>`; their pages take everything through
+props and own no fetching yet.
 
 Three rulings a reader would otherwise trip on. **Reset password is not
 rendered** — nothing can reset one yet, and an action with no endpoint is not
@@ -65,7 +65,7 @@ column, and its spec asserts as much.
 | --- | --- |
 | `shared/ui` | icon, button, badge, detail-list, search-field, radio-card, field, text-field, password-field, checkbox, otp-input, quantity-stepper, vec3-field, dropdown, segmented, date-picker, toast, callout, progress-bar, skeleton, sparkline, line-chart, coverage-meter, modal, drawer, menu, card, section-heading, tabs, avatar, breadcrumbs, catalog-card |
 | `entities` | conversion, content, territory, model, audit, user, role, metric, placement, permission |
-| `features` | measure, snap, onboarding, recovery-codes, theme-toggle, audit-filter, role-assign, create-user, create-role, login |
+| `features` | measure, snap, onboarding, recovery-codes, theme-toggle, audit-filter, role-assign, create-user, create-role, grant-access, login |
 | `widgets` | users-table, permission-matrix, alerts-card, console-nav, console-sidebar, console-layout, page-header, viewer-panel, viewer-toolbar, viewer-skeleton, objects-panel, model-picker, people-groups, event-timeline, record-inspector, person-inspector, role-groups, role-inspector, content-groups, content-inspector, access-groups, access-inspector, service-health, metric-panels, alert-inspector, auth-steps, login-intro |
 | `pages` | users, audit, roles, content, territory-access, metrics, login |
 

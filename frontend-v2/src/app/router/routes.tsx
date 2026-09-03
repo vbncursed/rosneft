@@ -8,6 +8,7 @@ import {
 import { meQuery } from "@/entities/user";
 import { ContentScreen } from "@/pages/content";
 import { RolesScreen } from "@/pages/roles";
+import { TerritoryAccessScreen } from "@/pages/territory-access";
 import { UsersScreen } from "@/pages/users";
 import { isAuthed } from "@/shared/session";
 import { ConsoleShell } from "./console-shell";
@@ -106,7 +107,7 @@ export const consoleAccessRoute = createRoute({
   getParentRoute: () => consoleRoute,
   path: "/access",
   loader: gate("/console/access"),
-  component: () => <p>Territory access</p>,
+  component: TerritoryAccessScreen,
 });
 
 export const consoleAuditRoute = createRoute({
