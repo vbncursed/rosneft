@@ -6,11 +6,18 @@ import {
   distributionOf,
   groupRoles,
   matchesRole,
+  startableFrom,
   statsOf,
+  unsaveable,
   withUserCounts,
 } from "../model/roles-view";
 import { useRoles } from "../model/use-roles";
 import { RolesPage } from "./roles-page";
+
+// The matrix cannot offer a grant this actor lacks, but the gateway checks the
+// whole resulting set and PUT …/permissions replaces it — so a role that
+// already holds one is unsaveable however it is edited.
+const SAVE_BLOCKED = "This role holds permissions you can't grant, so it can't be saved from here.";
 
 /** Maps the container onto the page and draws the create dialog beside it. */
 export function RolesScreen() {
@@ -47,6 +54,9 @@ export function RolesScreen() {
   }
 
   const selected = s.selected && counted.find((r) => r.slug === s.selected?.slug);
+  // A reader has no Save to block, and its own notice already says why.
+  const blocked =
+    s.canManage && selected && unsaveable(selected, s.grantable).length > 0 ? SAVE_BLOCKED : undefined;
 
   return (
     <>
@@ -77,11 +87,12 @@ export function RolesScreen() {
         onSaveRole={s.save}
         onCreateRole={() => s.setCreating(true)}
         canManage={s.canManage}
+        saveBlocked={blocked}
       />
       {s.creating ? (
         <CreateRoleDialog
           open
-          startFrom={s.roles.map((r) => ({
+          startFrom={startableFrom(s.roles, s.grantable).map((r) => ({
             slug: r.slug,
             title: r.title,
             permissionSlugs: r.permissionSlugs,

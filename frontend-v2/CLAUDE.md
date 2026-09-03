@@ -70,6 +70,20 @@ trade for browsing the library. Do not switch it back on as an optimisation.
 the next one to 5101, and the browser then shows a stale build — this looked
 like a performance problem for a whole exchange.
 
+**A failed background refetch does not mean the screen is unavailable.** In
+TanStack Query v5 a refetch that trips on a query which already holds data
+flips its `status` to "error" while `data` stays exactly where it was — and
+every mutation on these screens calls `refresh()`. Deriving "unavailable" from
+`isError` therefore blanks a populated page the first time a refresh fails.
+Ask `data === undefined` instead: `shared/lib/unanswered`, which both
+container hooks use.
+
+**A Company Owner is absent from its own `/api/auth/users`.** auth-service
+filters the list on `created_by`, so the account that created the company is
+not in it — a role only owners hold counts "0 users" and its holder never
+appears among the faces. That is a backend issue, not something the console
+should paper over.
+
 **jsdom 30 has no `HTMLDialogElement.showModal`.** `Modal` and `Drawer` use the
 native `<dialog>` on purpose (that is what gives a real browser the focus trap
 and the inert background), so `shared/lib/test-setup.ts` carries a small shim.
@@ -187,8 +201,12 @@ Rulings from those two screens that a later one will meet again:
 
 - **Reset password is not rendered.** No endpoint wires it, and an action with
   no endpoint is not drawn.
-- **No owner toggle and no role delete** — the gateway has neither, so a live
-  test role stays where it was created.
+- **No owner toggle and no role delete** — neither is drawn in the mocks, so
+  neither was built. The endpoints do exist (`POST /api/auth/users/{id}/owner`,
+  `DELETE /api/auth/roles/{slug}`) and are deliberately left unwired (plan
+  ruling 5); this is not the "an action with no endpoint is not drawn" rule.
+  A live test role therefore stays where it was created until someone deletes
+  it with curl.
 - **A role's people count is unknown, not zero, without `users:read`.** The
   people query is `enabled` on that grant, so it is never requested; the card
   reads "— users" and the distribution meter "unavailable". A disabled query

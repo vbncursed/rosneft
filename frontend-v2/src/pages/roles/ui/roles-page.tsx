@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Permission } from "@/entities/permission";
 import { StatTile, type StatTileTone } from "@/entities/metric";
 import type { Role } from "@/entities/role";
@@ -50,6 +51,8 @@ export type RolesPageProps = {
 
   onCreateRole: () => void;
   canManage?: boolean;
+  /** Why the selected role cannot be saved at all; Save is off while it is set. */
+  saveBlocked?: ReactNode;
 };
 
 const FILTER_PLACEHOLDER = "filter: kind:custom grants:users.write";
@@ -73,6 +76,7 @@ export function RolesPage({
   onSaveRole,
   onCreateRole,
   canManage = true,
+  saveBlocked,
 }: RolesPageProps) {
   return (
     <>
@@ -151,6 +155,7 @@ export function RolesPage({
               // roles:read alone reaches this screen; the whole panel is a
               // reader's view then, not just the create controls.
               readOnly={!canManage}
+              saveBlocked={saveBlocked}
               onToggle={onTogglePermission}
               onRename={onRenameRole}
               onReset={onResetRole}

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { usersLabel, type Role } from "@/entities/role";
 import type { Permission } from "@/entities/permission";
 import { Button } from "@/shared/ui/button";
@@ -22,6 +23,11 @@ export type RoleInspectorProps = {
   saving?: boolean;
   /** The reader may not change roles at all — no grant, not a system role. */
   readOnly?: boolean;
+  /**
+   * Why this role cannot be saved even though it is editable — the gateway
+   * would refuse the whole set. Shown as a bad-toned callout, and Save is off.
+   */
+  saveBlocked?: ReactNode;
   /** Unsaved changes exist. */
   dirty?: boolean;
 };
@@ -43,6 +49,7 @@ export function RoleInspector({
   saving = false,
   dirty = false,
   readOnly = false,
+  saveBlocked,
 }: RoleInspectorProps) {
   // A system role is defined by migrations; its set is shown, never edited.
   const locked = readOnly || role.kind === "system" || saving;
@@ -108,7 +115,17 @@ export function RoleInspector({
           readOnly={locked}
         />
 
-        {hasLocked && !locked ? <Callout tone="warn" icon="lock">{LOCKED_NOTE}</Callout> : null}
+        {/* The blocked-save callout already says a grant is out of reach, in
+            stronger words — two notices about the same chips is one too many. */}
+        {saveBlocked ? (
+          <Callout tone="bad" icon="lock">
+            {saveBlocked}
+          </Callout>
+        ) : hasLocked && !locked ? (
+          <Callout tone="warn" icon="lock">
+            {LOCKED_NOTE}
+          </Callout>
+        ) : null}
 
         {notice ? (
           <Callout tone="accent" icon="lock">
@@ -130,7 +147,7 @@ export function RoleInspector({
               className="flex-1 justify-center"
               onClick={onSave}
               loading={saving}
-              disabled={!dirty}
+              disabled={!dirty || !!saveBlocked}
             >
               Save permissions
             </Button>

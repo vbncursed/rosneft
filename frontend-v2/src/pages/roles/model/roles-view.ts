@@ -30,6 +30,21 @@ export function withUserCounts(roles: Role[], users: User[] | null): Role[] {
   }));
 }
 
+/**
+ * The grants this role holds that the actor may not hand out.
+ *
+ * `PUT …/permissions` replaces the whole set and the gateway checks all of it,
+ * so such a role cannot be saved from here however it is edited — the matrix
+ * stops a locked chip being added, and cannot un-hold one that is already
+ * there. The same set makes it unusable as a "Start from" template.
+ */
+export const unsaveable = (role: Role, grantable: Set<string>): string[] =>
+  role.permissionSlugs.filter((slug) => !grantable.has(slug));
+
+/** The roles whose whole set this actor could actually save as a new role. */
+export const startableFrom = (roles: Role[], grantable: Set<string>): Role[] =>
+  roles.filter((role) => unsaveable(role, grantable).length === 0);
+
 const MAX_CHIPS = 3;
 const MAX_FACES = 4;
 
@@ -130,6 +145,7 @@ export function statsOf(
   users: User[] | null,
 ): RolesPageStat[] {
   const system = roles.filter((r) => r.kind === "system").length;
+  const groups = groupPermissions(permissions).length;
   const owners = users ? String(live(users).filter((u) => u.isOwner).length) : "—";
   return [
     {
@@ -140,7 +156,7 @@ export function statsOf(
     {
       label: "Permissions",
       value: String(permissions.length),
-      hint: `${groupPermissions(permissions).length} resource groups`,
+      hint: `${groups} resource ${groups === 1 ? "group" : "groups"}`,
     },
     { label: "Root holders", value: owners, hint: "unrestricted access", tone: "accent" },
   ];

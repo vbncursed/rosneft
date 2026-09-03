@@ -138,6 +138,36 @@ describe("RoleInspector", () => {
     expect(onToggle).not.toHaveBeenCalled();
   });
 
+  // The matrix stops the actor adding a grant they lack, but the gateway checks
+  // the whole resulting set and PUT replaces it — so a role that already holds
+  // one cannot be saved at all, and pressing Save would only earn a 403.
+  it("refuses the save and says why when the role holds a grant the actor lacks", () => {
+    render(
+      <RoleInspector
+        {...props({ dirty: true, saveBlocked: "This role holds permissions you can't grant." })}
+      />,
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "This role holds permissions you can't grant.",
+    );
+    expect(screen.getByRole("button", { name: "Save permissions" })).toBeDisabled();
+    // Reset still works: dropping the edits is always allowed.
+    expect(screen.getByRole("button", { name: "Reset" })).toBeEnabled();
+  });
+
+  // Two callouts saying the same thing in different words is one too many.
+  it("drops the weaker locked-chip warning while the save is blocked", () => {
+    render(
+      <RoleInspector
+        {...props({
+          grantable: new Set(["territory:read", "territory:write"]),
+          saveBlocked: "This role holds permissions you can't grant.",
+        })}
+      />,
+    );
+    expect(screen.queryByText(/Locked chips need Root/)).not.toBeInTheDocument();
+  });
+
   it("closes", async () => {
     const onClose = vi.fn();
     render(<RoleInspector {...props({ onClose })} />);

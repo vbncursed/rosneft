@@ -35,7 +35,6 @@ const USER: User = {
 };
 
 const state = (over: Partial<RolesState> = {}): RolesState => ({
-  me: null,
   status: "ready",
   error: null,
   roles: [GUEST, OPS],
@@ -199,6 +198,41 @@ describe("RolesScreen", () => {
     const dialog = within(screen.getByRole("dialog", { name: "Create role" }));
     await userEvent.type(dialog.getByLabelText("Title"), "Surveyor");
     expect(dialog.getByRole("button", { name: "Create role" })).toBeDisabled();
+  });
+
+  // The gateway checks the whole resulting set, so a role holding a grant this
+  // actor cannot hand out is unsaveable however it is edited. Say so rather
+  // than letting them press Save into a 403.
+  it("blocks the save on a role holding a grant this actor cannot hand out", () => {
+    opened({ dirty: true, grantable: new Set(["users:write"]) });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "This role holds permissions you can't grant, so it can't be saved from here.",
+    );
+    expect(screen.getByRole("button", { name: "Save permissions" })).toBeDisabled();
+  });
+
+  it("leaves the save alone when every grant the role holds is within reach", () => {
+    opened({ dirty: true });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save permissions" })).toBeEnabled();
+  });
+
+  // A reader has no Save to block; the read-only notice already says why.
+  it("says nothing about saving to someone who may not manage roles", () => {
+    opened({ canManage: false, grantable: new Set(["users:write"]) });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("offers as a starting point only the sets it could save", async () => {
+    showing({ creating: true, grantable: new Set(["users:write"]) });
+    await userEvent.click(screen.getByRole("button", { name: /Empty set/ }));
+    const list = within(screen.getByRole("listbox", { name: "Start from" }));
+    // Guest holds nothing, so it stays; Operations holds users:read, which
+    // this actor cannot grant.
+    expect(list.getAllByRole("option").map((o) => o.textContent)).toEqual([
+      expect.stringContaining("Empty set"),
+      expect.stringContaining("Guest"),
+    ]);
   });
 
   // roles:read alone gets past the screen gate, so the inspector must be
