@@ -30,6 +30,13 @@ const USERS = [
   user({ id: "u-2", username: "k.petrov", status: "frozen" }),
   user({ id: "u-3", username: "m.orlova", roleSlugs: ["guest"], roleTitles: { guest: "Guest" } }),
 ];
+const OWNER = user({
+  id: "u-5",
+  username: "n.zaytsev",
+  roleSlugs: ["admin"],
+  roleTitles: { admin: "Company Owner" },
+});
+const ROOT = user({ ...OWNER, id: "u-4", username: "admin", isOwner: true });
 const T = {
   slug: "refinery-block-c",
   title: "Refinery Block C",
@@ -91,7 +98,7 @@ describe("matchesAccess", () => {
     expect(matchesAccess(shared, grants, "person:ivanova")).toBe(true);
     expect(matchesAccess(shared, grants, "person:petrov")).toBe(false);
     expect(matchesAccess(shared, grants, "refinery block")).toBe(true);
-    expect(matchesAccess(shared, grants, "colour:blue")).toBe(true);
+    expect(matchesAccess(shared, grants, "colour:blue")).toBe(false);
   });
 });
 
@@ -119,12 +126,15 @@ describe("groupAccess, mixOf, statsOf", () => {
 });
 
 describe("drafts", () => {
-  it("compares sets regardless of order and offers only active accounts not yet in the draft", () => {
+  it("compares sets regardless of order", () => {
     expect(sameSet(["a", "b"], ["b", "a"])).toBe(true);
     expect(sameSet(["a"], ["a", "b"])).toBe(false);
-    expect(candidatesOf(USERS, ["u-1"]).map((p) => p.id)).toEqual(["u-3"]);
-    expect(candidatesOf(USERS, ["u-1"])[0]).toEqual({ id: "u-3", username: "m.orlova", hint: "Guest" });
-    const withRoot = [...USERS, user({ id: "u-4", username: "admin", isOwner: true })];
-    expect(candidatesOf(withRoot, ["u-1"]).map((p) => p.id)).toEqual(["u-3"]);
+  });
+
+  it("offers only the roles the backend self-keys, skipping the draft, the frozen and Root", () => {
+    expect(candidatesOf([...USERS, OWNER], []).map((p) => p.id)).toEqual(["u-3", "u-5"]);
+    expect(candidatesOf([...USERS, OWNER], ["u-5"]).map((p) => p.id)).toEqual(["u-3"]);
+    expect(candidatesOf(USERS, [])[0]).toEqual({ id: "u-3", username: "m.orlova", hint: "Guest" });
+    expect(candidatesOf([...USERS, ROOT], []).map((p) => p.id)).toEqual(["u-3"]);
   });
 });

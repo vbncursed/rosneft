@@ -109,6 +109,12 @@ describe("ContentScreen", () => {
     expect(within(aside).queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
   });
 
+  it("says the catalog is empty rather than blaming the filter", () => {
+    useContent.mockReturnValue(state({ items: [], storageBytes: 0 }));
+    render(<ContentScreen />);
+    expect(screen.getByText("Nothing uploaded yet — start with a territory.")).toBeInTheDocument();
+  });
+
   it("asks before deleting and hands the answer to the container", async () => {
     const s = state({ selected: T, pending: T });
     useContent.mockReturnValue(s);

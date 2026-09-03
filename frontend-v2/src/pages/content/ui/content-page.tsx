@@ -50,6 +50,8 @@ export type ContentPageProps = {
   onDelete?: () => void;
   onCancelJob?: () => void;
   canManage?: boolean;
+  /** What the list says when it is empty — a filter miss by default. */
+  emptyHint?: string;
 };
 
 const FILTER_PLACEHOLDER = "filter: kind:territory status:converting lod:2";
@@ -73,6 +75,7 @@ export function ContentPage({
   onDelete,
   onCancelJob,
   canManage = true,
+  emptyHint,
 }: ContentPageProps) {
   return (
     <>
@@ -127,6 +130,7 @@ export function ContentPage({
           onSelect={onSelect}
           renderActions={renderRowActions}
           onDropZoneClick={canManage ? onUploadTerritory : undefined}
+          {...(emptyHint ? { emptyHint } : {})}
         />
 
         {inspected ? (

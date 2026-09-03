@@ -68,6 +68,10 @@ export function useContent(): ContentState {
   ];
   const artifacts = useQueries({
     queries: refs.map((r) => artifactsQuery(r.kind, r.slug)),
+    // `combine` stays inline: it closes over `refs`, and only the array built
+    // in the same render lines up with `results`. Hoisting it into a
+    // useCallback would pair one render's results with another's refs and
+    // mis-key `bySlug`.
     combine: (results) => ({
       pending: results.some((r) => r.isPending),
       failed: results.map(unanswered).find((e) => e !== null) ?? null,

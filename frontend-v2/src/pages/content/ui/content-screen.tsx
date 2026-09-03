@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { contentPath } from "@/entities/content";
 import { leaveTo } from "@/shared/lib/leave";
 import { Callout } from "@/shared/ui/callout";
@@ -27,11 +26,6 @@ const DESCRIPTION = {
 export function ContentScreen() {
   const s = useContent();
 
-  const groups = useMemo(
-    () => (s.items ? groupContent(s.items.filter((i) => matchesContent(i, s.query))) : []),
-    [s.items, s.query],
-  );
-
   if (s.status === "loading") {
     return (
       <div
@@ -52,6 +46,9 @@ export function ContentScreen() {
 
   const selected = s.selected;
   const replace = selected ? replaceHref(selected) : null;
+  // Grouped inline, not memoised: `s.items` is rebuilt on every render of the
+  // container, so a useMemo keyed on it would never hit.
+  const groups = groupContent(s.items.filter((i) => matchesContent(i, s.query)));
 
   return (
     <>
@@ -80,6 +77,9 @@ export function ContentScreen() {
         onReplaceSource={replace ? () => leaveTo(replace) : undefined}
         onOpenInViewer={() => selected && leaveTo(contentPath(selected))}
         onDelete={selected && s.canDelete(selected.kind) ? s.ask : undefined}
+        {...(s.items.length === 0
+          ? { emptyHint: "Nothing uploaded yet — start with a territory." }
+          : {})}
       />
 
       {s.pending ? (
