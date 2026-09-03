@@ -64,4 +64,10 @@ describe("freeText", () => {
   it("keeps half-typed input, which is not a token yet", () => {
     expect(freeText("entity:")).toBe("entity:");
   });
+
+  // parseFilters reads this as grants=users:write; the two must agree on what
+  // a token is, or the value is filtered on *and* searched for as text.
+  it("drops a token whose value carries a colon of its own", () => {
+    expect(freeText("grants:users:write")).toBe("");
+  });
 });

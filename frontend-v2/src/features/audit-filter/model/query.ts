@@ -29,10 +29,16 @@ export function removeToken(query: string, token: string): string {
     .join(" ");
 }
 
-/** The free-text part — everything that is not a `key:value` token. */
+/**
+ * The free-text part — everything that is not a `key:value` token. Defers to
+ * `parseFilters` for what counts as one: when the two disagreed, a value with
+ * a colon in it ("grants:users:write") was filtered on *and* searched for as
+ * text, so nothing could match it.
+ */
 export function freeText(query: string): string {
+  const tokens = new Set(parseFilters(query).map((filter) => filter.token));
   return query
     .split(/\s+/)
-    .filter((part) => part && !/^[^:\s]+:[^:\s]+$/.test(part))
+    .filter((part) => part && !tokens.has(part))
     .join(" ");
 }

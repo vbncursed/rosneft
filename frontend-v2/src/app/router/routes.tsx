@@ -6,6 +6,7 @@ import {
   redirect,
 } from "@tanstack/react-router";
 import { meQuery } from "@/entities/user";
+import { RolesScreen } from "@/pages/roles";
 import { UsersScreen } from "@/pages/users";
 import { isAuthed } from "@/shared/session";
 import { ConsoleShell } from "./console-shell";
@@ -90,7 +91,7 @@ export const consoleRolesRoute = createRoute({
   getParentRoute: () => consoleRoute,
   path: "/roles",
   loader: gate("/console/roles"),
-  component: () => <p>Roles & Permissions</p>,
+  component: RolesScreen,
 });
 
 export const consoleContentRoute = createRoute({
