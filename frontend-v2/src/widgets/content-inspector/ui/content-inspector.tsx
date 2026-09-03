@@ -14,9 +14,11 @@ export type ContentInspectorProps = {
   conversionNote?: string;
 
   onClose: () => void;
-  onReplaceSource: () => void;
+  /** Absent for a model — there is no source-replace route for one. */
+  onReplaceSource?: () => void;
   onOpenInViewer: () => void;
-  onDelete: () => void;
+  /** Absent when the viewer may not delete this kind. */
+  onDelete?: () => void;
   /** Only a running conversion can be cancelled. */
   onCancelJob?: () => void;
   canManage?: boolean;
@@ -96,9 +98,11 @@ export function ContentInspector({
         {canManage ? (
           <div className="flex flex-col gap-2 border-t border-line pt-3.5">
             <div className="flex gap-2">
-              <Button size="sm" className="flex-1 justify-center" onClick={onReplaceSource}>
-                Replace source
-              </Button>
+              {onReplaceSource ? (
+                <Button size="sm" className="flex-1 justify-center" onClick={onReplaceSource}>
+                  Replace source
+                </Button>
+              ) : null}
               <Button
                 size="sm"
                 variant="accent"
@@ -120,14 +124,16 @@ export function ContentInspector({
                   Cancel job
                 </Button>
               ) : null}
-              <Button
-                size="sm"
-                variant="danger"
-                className="flex-1 justify-center"
-                onClick={onDelete}
-              >
-                Delete
-              </Button>
+              {onDelete ? (
+                <Button
+                  size="sm"
+                  variant="danger"
+                  className="flex-1 justify-center"
+                  onClick={onDelete}
+                >
+                  Delete
+                </Button>
+              ) : null}
             </div>
           </div>
         ) : null}

@@ -171,6 +171,21 @@ describe("ContentPage", () => {
     expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
   });
 
+  it("draws Replace source and Delete only when handed a handler", () => {
+    render(
+      <ContentPage
+        {...props({
+          selectedSlug: "terminal-yard-4",
+          inspected: inspected(),
+          onReplaceSource: undefined,
+          onDelete: undefined,
+        })}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Replace source" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+  });
+
   it("builds row actions per item", () => {
     render(
       <ContentPage

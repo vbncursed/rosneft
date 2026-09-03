@@ -16,6 +16,7 @@ export type ContentRowProps = {
 
 const RAIL: Record<ConversionStatus, string> = {
   ready: "bg-ok",
+  pending: "bg-line-2",
   converting: "bg-warn",
   failed: "bg-bad",
 };

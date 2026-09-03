@@ -43,9 +43,11 @@ export type ContentPageProps = {
 
   onUploadTerritory: () => void;
   onUploadModel: () => void;
-  onReplaceSource: () => void;
+  /** Absent for a model — there is no source-replace route for one. */
+  onReplaceSource?: () => void;
   onOpenInViewer: () => void;
-  onDelete: () => void;
+  /** Absent when the viewer may not delete this kind. */
+  onDelete?: () => void;
   onCancelJob?: () => void;
   canManage?: boolean;
 };
