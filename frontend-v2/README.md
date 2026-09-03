@@ -46,10 +46,11 @@ take everything through props and own no fetching yet.
 
 Three rulings a reader would otherwise trip on. **Reset password is not
 rendered** — nothing can reset one yet, and an action with no endpoint is not
-drawn. **There is no owner toggle and no role delete**: the gateway offers
-neither. **A role's people count is unknown, not zero, without `users:read`** —
-the people list is never requested, so the card reads "— users" and the
-distribution meter says "unavailable".
+drawn. **There is no owner toggle and no role delete**: neither is drawn in
+the mocks, and although the gateway does offer both endpoints they are
+deliberately left unwired. **A role's people count is unknown, not zero,
+without `users:read`** — the people list is never requested, so the card reads
+"— users" and the distribution meter says "unavailable".
 
 **Passkey sign-in is not wired**, deliberately: the gateway's passkey RP origin
 is pinned to `frontend/`'s port 3000, so a ceremony started on 3001 cannot

@@ -16,6 +16,7 @@ import {
 } from "@/entities/user";
 import { messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
+import { unanswered } from "@/shared/lib/unanswered";
 import { can } from "@/shared/session";
 
 export type ActionKind =
@@ -136,9 +137,15 @@ export function useUsers(): UsersState {
   // which `users:read` alone gets — every person would file under "No role"
   // and "Roles in use" would read 0: a confident wrong answer wearing a
   // loaded screen's clothes.
-  const failed = users.isError ? users.error : roles.isError ? roles.error : null;
+  // Only a query that has never answered can make the screen unavailable: every
+  // mutation calls refresh(), and a refetch that trips must not replace a
+  // working screen with an outage page.
+  const failed = unanswered(users) ?? unanswered(roles);
 
   return {
+    // Loading wins while anything is outstanding: a refusal on one query and a
+    // wait on the other is still one answer away, and flashing an outage page
+    // before the list lands says the screen is broken when it is only slow.
     status:
       users.isPending || roles.isPending ? "loading" : failed ? "unavailable" : "ready",
     error: failed ? messageOf(failed) : null,

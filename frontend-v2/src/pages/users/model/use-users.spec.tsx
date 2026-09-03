@@ -255,4 +255,35 @@ describe("useUsers", () => {
     expect(result.current.error).toBe("no");
     expect(result.current.users).toBeNull();
   });
+
+  // The screen already holds the answer; a refetch that trips — the one every
+  // mutation fires — must not replace it with an outage page.
+  it("stays ready when a refetch fails on top of people it already has", async () => {
+    const { result, rerender } = renderHook(() => useUsers(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+
+    fetchMock.mockImplementation(async () => json({ code: "internal", message: "boom" }, 500));
+    await act(async () => {
+      await client.refetchQueries({ queryKey: ["users"] });
+    });
+    // The refetch really did fail — the cache holds the error beside the data,
+    // and the hook is re-rendered so it reads that state rather than a stale one.
+    await waitFor(() => expect(client.getQueryState(["users"])?.status).toBe("error"));
+    rerender();
+    expect(result.current.status).toBe("ready");
+    expect(result.current.users?.map((u) => u.username)).toEqual(["a.ivanova"]);
+    expect(result.current.error).toBeNull();
+  });
+
+  // Loading wins over a refusal while anything is still in flight: the screen
+  // says what it is doing once, rather than flashing an outage and then a list.
+  it("keeps loading while the roles are outstanding, even after the list is refused", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === "/api/auth/roles") return new Promise<Response>(() => {});
+      return json({ code: "forbidden", message: "no people" }, 403);
+    });
+    const { result } = renderHook(() => useUsers(), { wrapper });
+    await waitFor(() => expect(client.getQueryState(["users"])?.error).not.toBeNull());
+    expect(result.current.status).toBe("loading");
+  });
 });

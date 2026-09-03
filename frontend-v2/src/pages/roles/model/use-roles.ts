@@ -11,20 +11,17 @@ import {
 import { meQuery, usersQuery, type User } from "@/entities/user";
 import { messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
-import { can, grantableSlugs, type Principal } from "@/shared/session";
+import { unanswered } from "@/shared/lib/unanswered";
+import { can, grantableSlugs } from "@/shared/session";
 
 type Draft = { title: string; granted: string[] };
 
 const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
 
-const unanswered = (query: { error: Error | null; data: unknown }) =>
-  query.data === undefined ? query.error : null;
-
 /** The role as the gateway last returned it — what an unedited draft reads as. */
 const saved = (role: Role): Draft => ({ title: role.title, granted: role.permissionSlugs });
 
 export type RolesState = {
-  me: Principal | null;
   status: "loading" | "ready" | "unavailable";
   error: string | null;
   roles: Role[];
@@ -94,6 +91,9 @@ export function useRoles(): RolesState {
     onSuccess: () => {
       notify.success("Role saved");
       void refresh();
+      // A role's title travels embedded in every person who holds it, so the
+      // Users screen keeps showing the old one until its list is refetched too.
+      void client.invalidateQueries({ queryKey: ["users"] });
     },
     onError: fail,
   });
@@ -121,7 +121,6 @@ export function useRoles(): RolesState {
   const failure = unanswered(roles) ?? unanswered(permissions) ?? unanswered(users);
 
   return {
-    me,
     status: pending ? "loading" : failure ? "unavailable" : "ready",
     error: failure ? messageOf(failure) : null,
     roles: roles.data ?? [],

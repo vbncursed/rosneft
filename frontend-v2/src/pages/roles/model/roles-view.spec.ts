@@ -7,7 +7,9 @@ import {
   groupRoles,
   matchesRole,
   roleChips,
+  startableFrom,
   statsOf,
+  unsaveable,
   withUserCounts,
 } from "./roles-view";
 
@@ -194,12 +196,42 @@ describe("statsOf", () => {
     const users = [user({ isOwner: true }), user({ id: "u-2", username: "b" })];
     expect(statsOf(roles, PERMISSIONS, users)).toEqual([
       { label: "Roles", value: "2", hint: "1 system · 1 custom" },
-      { label: "Permissions", value: "2", hint: "1 resource groups" },
+      { label: "Permissions", value: "2", hint: "1 resource group" },
       { label: "Root holders", value: "1", hint: "unrestricted access", tone: "accent" },
     ]);
   });
 
   it("prints an em dash for owners it could not count", () => {
     expect(statsOf([role()], PERMISSIONS, null)[2].value).toBe("—");
+  });
+});
+
+describe("unsaveable", () => {
+  // PUT …/permissions replaces the whole set and the gateway checks all of it,
+  // so a grant the actor does not hold sinks the save whatever they edited.
+  it("names the grants this role holds that the actor cannot hand out", () => {
+    const held = role({ permissionSlugs: ["users:read", "users:write"] });
+    expect(unsaveable(held, new Set(["users:read"]))).toEqual(["users:write"]);
+  });
+
+  it("is empty when every grant is within reach", () => {
+    const held = role({ permissionSlugs: ["users:read"] });
+    expect(unsaveable(held, new Set(["users:read", "users:write"]))).toEqual([]);
+    expect(unsaveable(role(), new Set())).toEqual([]);
+  });
+});
+
+describe("startableFrom", () => {
+  it("offers only the sets the actor could actually save", () => {
+    const roles = [
+      role({ slug: "reader", permissionSlugs: ["users:read"] }),
+      role({ slug: "admin", permissionSlugs: ["users:read", "users:write"] }),
+    ];
+    expect(startableFrom(roles, new Set(["users:read"])).map((r) => r.slug)).toEqual(["reader"]);
+  });
+
+  it("offers every role to someone who can grant everything", () => {
+    const roles = [role({ slug: "reader", permissionSlugs: ["users:read"] })];
+    expect(startableFrom(roles, new Set(["users:read", "users:write"]))).toEqual(roles);
   });
 });

@@ -215,6 +215,32 @@ describe("useRoles", () => {
     expect(JSON.parse(String((patch![1] as RequestInit).body))).toEqual({ title: "Field ops" });
   });
 
+  // roleTitles ride along in /api/auth/users, so a rename that only invalidated
+  // ["roles"] left the Users screen showing the old title until something else
+  // happened to refetch the people.
+  it("refreshes the people too, because a role's title is embedded in them", async () => {
+    const { result } = renderHook(() => ({ roles: useRoles(), notices: useNotices() }), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.roles.status).toBe("ready"));
+    act(() => result.current.roles.select("ops"));
+    act(() => result.current.roles.rename("Field ops"));
+
+    const before = fetchMock.mock.calls.filter(
+      ([u, i]) => String(u).startsWith("/api/auth/users") && !(i as RequestInit | undefined)?.method,
+    ).length;
+    act(() => result.current.roles.save());
+    await waitFor(() => expect(result.current.notices[0]?.message).toBe("Role saved"));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(
+          ([u, i]) =>
+            String(u).startsWith("/api/auth/users") && !(i as RequestInit | undefined)?.method,
+        ).length,
+      ).toBeGreaterThan(before),
+    );
+  });
+
   it("sends nothing it did not change", async () => {
     const { result } = renderHook(() => useRoles(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
@@ -319,15 +345,17 @@ describe("useRoles", () => {
   // The screen already holds the answer; a refetch that trips must not replace
   // it with an outage page.
   it("stays ready when a refetch fails on top of roles it already has", async () => {
-    const { result } = renderHook(() => useRoles(), { wrapper });
+    const { result, rerender } = renderHook(() => useRoles(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
 
     fetchMock.mockImplementation(async () => json({ code: "internal", message: "boom" }, 500));
     await act(async () => {
       await client.refetchQueries({ queryKey: ["roles"] });
     });
-    // The refetch really did fail — the cache holds the error beside the data.
-    expect(client.getQueryState(["roles"])?.error).not.toBeNull();
+    // The refetch really did fail — the cache holds the error beside the data,
+    // and the hook is re-rendered so it reads that state rather than a stale one.
+    await waitFor(() => expect(client.getQueryState(["roles"])?.status).toBe("error"));
+    rerender();
     expect(result.current.status).toBe("ready");
     expect(result.current.roles.map((r) => r.slug)).toEqual(["guest", "ops"]);
     expect(result.current.error).toBeNull();
