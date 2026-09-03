@@ -106,5 +106,20 @@ export function viewerOf(me: Principal): { username: string; roleTitle: string }
   return { username: me.username, roleTitle };
 }
 
-/** A same-app console link the shell may hand to the router instead of the browser. */
-export const isConsoleHref = (href: string): boolean => href.startsWith("/console");
+/**
+ * Whether a click on an anchor should be handed to the router instead of the
+ * browser: a same-app console link, on a plain left click. Anything else —
+ * a modified click (new tab/window, extend selection) or a non-primary
+ * button — must fall through to a real navigation.
+ */
+export const routesInApp = (
+  href: string | null | undefined,
+  e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; button: number },
+): boolean =>
+  !!href &&
+  href.startsWith("/console") &&
+  !e.metaKey &&
+  !e.ctrlKey &&
+  !e.shiftKey &&
+  !e.altKey &&
+  e.button === 0;

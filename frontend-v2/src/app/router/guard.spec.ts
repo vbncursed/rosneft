@@ -4,8 +4,8 @@ import {
   activeSection,
   consoleLanding,
   consoleNav,
-  isConsoleHref,
   redirectTarget,
+  routesInApp,
   screenAllowed,
   viewerOf,
 } from "./guard";
@@ -122,10 +122,36 @@ describe("viewerOf", () => {
   });
 });
 
-describe("isConsoleHref", () => {
-  it("claims console paths and nothing else", () => {
-    expect(isConsoleHref("/console/users")).toBe(true);
-    expect(isConsoleHref("/")).toBe(false);
-    expect(isConsoleHref("https://example.com/console")).toBe(false);
+describe("routesInApp", () => {
+  const CLICK = { metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, button: 0 };
+
+  it("routes a console href on a plain left click", () => {
+    expect(routesInApp("/console/users", CLICK)).toBe(true);
+  });
+
+  it("leaves a non-console href to the browser", () => {
+    expect(routesInApp("/", CLICK)).toBe(false);
+  });
+
+  it("leaves an absolute URL to the browser", () => {
+    expect(routesInApp("https://example.com/console", CLICK)).toBe(false);
+  });
+
+  // A modified click means "open in a new tab/window" or "extend selection" —
+  // any of the four must fall back to a real navigation.
+  it("leaves a modified click to the browser", () => {
+    expect(routesInApp("/console/users", { ...CLICK, metaKey: true })).toBe(false);
+    expect(routesInApp("/console/users", { ...CLICK, ctrlKey: true })).toBe(false);
+    expect(routesInApp("/console/users", { ...CLICK, shiftKey: true })).toBe(false);
+    expect(routesInApp("/console/users", { ...CLICK, altKey: true })).toBe(false);
+  });
+
+  it("leaves a non-primary button click to the browser", () => {
+    expect(routesInApp("/console/users", { ...CLICK, button: 1 })).toBe(false);
+  });
+
+  it("does nothing for a missing href", () => {
+    expect(routesInApp(null, CLICK)).toBe(false);
+    expect(routesInApp(undefined, CLICK)).toBe(false);
   });
 });

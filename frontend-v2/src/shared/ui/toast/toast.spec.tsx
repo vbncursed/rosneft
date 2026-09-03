@@ -36,4 +36,16 @@ describe("Toast", () => {
     await userEvent.click(screen.getByRole("button", { name: "Dismiss" }));
     expect(onDismiss).toHaveBeenCalledOnce();
   });
+
+  // Two stacked toasts must not both name their button "Dismiss" — a screen
+  // reader cannot tell them apart.
+  it("takes an explicit label for its dismiss button", () => {
+    render(
+      <Toast tone="info" onDismiss={() => {}} dismissLabel="Dismiss: Saved">
+        Saved
+      </Toast>,
+    );
+    expect(screen.getByRole("button", { name: "Dismiss: Saved" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Dismiss" })).not.toBeInTheDocument();
+  });
 });

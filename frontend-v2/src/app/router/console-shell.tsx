@@ -4,7 +4,7 @@ import type { MouseEvent } from "react";
 import { meQuery } from "@/entities/user";
 import { ConsoleLayout } from "@/widgets/console-layout";
 import { Toaster } from "@/widgets/toaster";
-import { activeSection, consoleNav, isConsoleHref, viewerOf } from "./guard";
+import { activeSection, consoleNav, routesInApp, viewerOf } from "./guard";
 
 /**
  * The chrome around every console screen, applied once here so no page draws
@@ -23,7 +23,7 @@ export function ConsoleShell() {
 
   const onClickCapture = (event: MouseEvent<HTMLDivElement>) => {
     const href = (event.target as HTMLElement).closest("a")?.getAttribute("href");
-    if (!href || !isConsoleHref(href) || event.metaKey || event.ctrlKey || event.button !== 0) return;
+    if (!href || !routesInApp(href, event)) return;
     event.preventDefault();
     void navigate({ href });
   };
