@@ -2565,6 +2565,8 @@ export interface components {
             identifier: string;
             /** Format: password */
             password: string;
+            /** @description false issues a browser-session cookie (no Max-Age) that dies when the browser closes; true or absent keeps today's persistent cookie */
+            remember?: boolean;
         };
         LoginResponse: {
             /** @description empty when twoFactorRequired */
@@ -2579,6 +2581,8 @@ export interface components {
             challengeToken: string;
             /** @description TOTP or recovery code */
             code: string;
+            /** @description the choice made at step one, repeated — the gateway keeps no state between the two calls */
+            remember?: boolean;
         };
         TokenResponse: {
             token?: string;

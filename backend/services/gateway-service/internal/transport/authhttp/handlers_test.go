@@ -101,7 +101,10 @@ type stubAuth struct {
 	authv1.UnimplementedAuthServiceServer
 }
 
-func (stubAuth) Login(context.Context, *authv1.LoginRequest) (*authv1.LoginResponse, error) {
+func (stubAuth) Login(_ context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
+	if req.GetIdentifier() == "needs-2fa" {
+		return &authv1.LoginResponse{TwoFactorRequired: true, ChallengeToken: "c"}, nil
+	}
 	return &authv1.LoginResponse{Token: "tok-login"}, nil
 }
 
@@ -178,4 +181,19 @@ func (s *HandlersSuite) TestRememberDecidesTheCookieLifetime() {
 			assert.Assert(s.T(), cookies[0].Expires.IsZero())
 		})
 	}
+}
+
+// The other half of the checkbox's contract: step one can also answer with a
+// challenge instead of a token, and that is not a completed login regardless
+// of what remember says. stubAuth.Login always returned a token before this
+// test existed, so the "no cookie" branch in login was unpinned at the route
+// level — only cookie_test.go's unit test on setSession covered it.
+func (s *HandlersSuite) TestLoginWithA2FAChallengeSetsNoCookie() {
+	h := s.signingIn()
+
+	rec := post(h.login, "/api/auth/login", `{"identifier":"needs-2fa","password":"b","remember":false}`)
+
+	assert.Equal(s.T(), rec.Code, http.StatusOK, rec.Body.String())
+	assert.Equal(s.T(), len(setCookies(rec)), 0, "a 2FA challenge is not a completed login: no cookie")
+	assert.Assert(s.T(), strings.Contains(rec.Body.String(), `"twoFactorRequired":true`), rec.Body.String())
 }
