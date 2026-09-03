@@ -17,6 +17,7 @@ const USERS: User[] = [
     roleSlugs: ["root"],
     roleTitles: { root: "Root" },
     isOwner: true,
+    totpRequired: false,
   },
   {
     id: "2",
@@ -28,6 +29,7 @@ const USERS: User[] = [
     roleSlugs: ["field-operator"],
     roleTitles: { "field-operator": "Field Operator" },
     isOwner: false,
+    totpRequired: false,
   },
   {
     id: "3",
@@ -39,6 +41,7 @@ const USERS: User[] = [
     roleSlugs: ["guest"],
     roleTitles: { guest: "Guest" },
     isOwner: false,
+    totpRequired: false,
   },
   {
     id: "4",
@@ -50,6 +53,7 @@ const USERS: User[] = [
     roleSlugs: ["guest"],
     roleTitles: { guest: "Guest" },
     isOwner: false,
+    totpRequired: false,
   },
 ];
 

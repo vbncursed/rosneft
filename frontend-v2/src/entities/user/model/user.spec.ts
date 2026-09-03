@@ -11,6 +11,7 @@ const user = (over: Partial<User> = {}): User => ({
   roleSlugs: ["admin"],
   roleTitles: { admin: "Company Owner" },
   isOwner: true,
+  totpRequired: false,
   ...over,
 });
 
