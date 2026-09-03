@@ -14,12 +14,14 @@ function Live() {
       <Button variant="primary" onClick={() => setOpen(true)}>
         + New role
       </Button>
-      <CreateRoleDialog
-        open={open}
-        startFrom={START_FROM}
-        onClose={() => setOpen(false)}
-        onCreate={() => setOpen(false)}
-      />
+      {open && (
+        <CreateRoleDialog
+          open={open}
+          startFrom={START_FROM}
+          onClose={() => setOpen(false)}
+          onCreate={() => setOpen(false)}
+        />
+      )}
     </>
   );
 }

@@ -53,7 +53,13 @@ export function Modal({
         onClose();
       }}
       className={cx(
-        "m-auto flex w-[min(28rem,calc(100vw-2rem))] flex-col gap-3.5 rounded-card border bg-panel p-5 text-fg shadow-elevation backdrop:bg-black/55",
+        // Chrome's UA stylesheet gives a modal <dialog> `overflow: auto`, which
+        // clips/scrolls an absolutely-positioned floating child (a Dropdown's
+        // open list) instead of letting it sit above the box. overflow-visible
+        // opts back out.
+        // ponytail: a dialog taller than the viewport no longer scrolls itself
+        // — move the list to a portal if that ever matters.
+        "m-auto flex w-[min(28rem,calc(100vw-2rem))] flex-col gap-3.5 overflow-visible rounded-card border bg-panel p-5 text-fg shadow-elevation backdrop:bg-black/55",
         tone === "danger" ? "border-bad" : "border-line",
         className,
       )}

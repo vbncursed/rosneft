@@ -17,9 +17,18 @@ const props = (over: Partial<AddRoleDialogProps> = {}): AddRoleDialogProps => ({
 });
 
 describe("AddRoleDialog", () => {
-  it("offers every option not yet granted and defaults to the first", () => {
+  it("offers every option not yet granted and defaults to the first", async () => {
     render(<AddRoleDialog {...props()} />);
-    expect(screen.getByRole("button", { name: /field-operator/ })).toBeInTheDocument();
+    const trigger = screen.getByRole("button", { name: /field-operator/ });
+    expect(trigger).toBeInTheDocument();
+
+    await userEvent.click(trigger);
+    expect(screen.getByRole("option", { name: "field-operator" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "guest" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "field-operator" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
   });
 
   it("adds the picked role", async () => {
@@ -42,5 +51,10 @@ describe("AddRoleDialog", () => {
     render(<AddRoleDialog {...props({ options: [] })} />);
     expect(screen.getByText("Every role is already granted.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add role" })).not.toBeInTheDocument();
+  });
+
+  it("disables Add role while busy", () => {
+    render(<AddRoleDialog {...props({ busy: true })} />);
+    expect(screen.getByRole("button", { name: "Add role" })).toBeDisabled();
   });
 });
