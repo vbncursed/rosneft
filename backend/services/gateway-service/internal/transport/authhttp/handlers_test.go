@@ -1,14 +1,23 @@
 package authhttp
 
 import (
+	"bytes"
+	"context"
+	"io"
+	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/suite"
+	"google.golang.org/grpc"
 	"gotest.tools/v3/assert"
 
+	authv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/auth/v1"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/audit"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/auth"
 )
 
@@ -81,4 +90,92 @@ func (s *HandlersSuite) TestTheErrorBodyDoesNotDiscardTheDeletion() {
 	assert.Equal(s.T(), rec.Header().Get("Content-Type"), "application/json")
 	assert.Assert(s.T(), rec.Header().Get("Set-Cookie") != "",
 		"apperr.Write must not reset headers written before it")
+}
+
+// stubAuth is an in-process auth-service that accepts any credentials and any
+// code, so the cookie a successful sign-in sets can be read. ValidateToken is
+// left unimplemented on purpose: recordLogin treats its failure as "actor
+// unknown" and records anyway, and the dead audit client below logs the record
+// failure. Neither is what these tests are about.
+type stubAuth struct {
+	authv1.UnimplementedAuthServiceServer
+}
+
+func (stubAuth) Login(context.Context, *authv1.LoginRequest) (*authv1.LoginResponse, error) {
+	return &authv1.LoginResponse{Token: "tok-login"}, nil
+}
+
+func (stubAuth) LoginVerify2FA(context.Context, *authv1.LoginVerify2FARequest) (*authv1.LoginResponse, error) {
+	return &authv1.LoginResponse{Token: "tok-2fa"}, nil
+}
+
+// signingIn builds Handlers whose auth client reaches stubAuth over loopback.
+// audit is dialled to a dead port for the same reason deadAuth exists: the
+// record is best-effort and logged, not surfaced.
+func (s *HandlersSuite) signingIn() *Handlers {
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	assert.NilError(s.T(), err)
+	srv := grpc.NewServer()
+	authv1.RegisterAuthServiceServer(srv, stubAuth{})
+	go func() { _ = srv.Serve(lis) }()
+	s.T().Cleanup(srv.Stop)
+
+	client, err := auth.Dial(lis.Addr().String())
+	assert.NilError(s.T(), err)
+	s.T().Cleanup(func() { _ = client.Close() })
+	auditClient, err := audit.Dial("127.0.0.1:1")
+	assert.NilError(s.T(), err)
+	s.T().Cleanup(func() { _ = auditClient.Close() })
+
+	return &Handlers{
+		client: client,
+		audit:  auditClient,
+		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+		cookie: CookieOptions{TTL: 720 * time.Hour},
+	}
+}
+
+func post(handle http.HandlerFunc, path, body string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest(http.MethodPost, path, bytes.NewBufferString(body))
+	r.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	handle(rec, r)
+	return rec
+}
+
+// The checkbox's contract, at the route level. cookie_test.go proves setSession
+// branches correctly; this proves the handlers hand it the request's choice —
+// the desktop shell's guard shipped a hole because a correct predicate was
+// called with the wrong input.
+func (s *HandlersSuite) TestRememberDecidesTheCookieLifetime() {
+	persistent := int((720 * time.Hour).Seconds())
+	for _, tc := range []struct {
+		name   string
+		path   string
+		body   string
+		maxAge int
+	}{
+		{"login, absent keeps today's persistent cookie", "/api/auth/login", `{"identifier":"a","password":"b"}`, persistent},
+		{"login, true is persistent", "/api/auth/login", `{"identifier":"a","password":"b","remember":true}`, persistent},
+		{"login, false is a browser-session cookie", "/api/auth/login", `{"identifier":"a","password":"b","remember":false}`, 0},
+		{"2fa, absent keeps today's persistent cookie", "/api/auth/login/2fa", `{"challengeToken":"c","code":"000000"}`, persistent},
+		{"2fa, false is a browser-session cookie", "/api/auth/login/2fa", `{"challengeToken":"c","code":"000000","remember":false}`, 0},
+	} {
+		s.Run(tc.name, func() {
+			h := s.signingIn()
+			handle := h.login
+			if strings.HasSuffix(tc.path, "/2fa") {
+				handle = h.login2FA
+			}
+
+			rec := post(handle, tc.path, tc.body)
+
+			assert.Equal(s.T(), rec.Code, http.StatusOK, rec.Body.String())
+			cookies := setCookies(rec)
+			assert.Equal(s.T(), len(cookies), 1)
+			assert.Equal(s.T(), cookies[0].Name, sessionCookieName)
+			assert.Equal(s.T(), cookies[0].MaxAge, tc.maxAge)
+			assert.Assert(s.T(), cookies[0].Expires.IsZero())
+		})
+	}
 }

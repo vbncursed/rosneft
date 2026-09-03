@@ -501,6 +501,10 @@ components:
       properties:
         identifier: { type: string, description: email or username }
         password: { type: string, format: password }
+        remember:
+          type: boolean
+          default: true
+          description: "false issues a browser-session cookie (no Max-Age) that dies when the browser closes; true or absent keeps today's persistent cookie"
     LoginResponse:
       type: object
       properties:
@@ -514,6 +518,10 @@ components:
       properties:
         challengeToken: { type: string }
         code: { type: string, description: TOTP or recovery code }
+        remember:
+          type: boolean
+          default: true
+          description: "the choice made at step one, repeated — the gateway keeps no state between the two calls"
     TokenResponse:
       type: object
       properties:

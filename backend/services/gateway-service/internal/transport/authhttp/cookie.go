@@ -27,12 +27,22 @@ type CookieOptions struct {
 // is what stands in for a CSRF token — a cross-site POST does not carry the
 // cookie, and this API changes state only through POST/PUT/PATCH/DELETE, never
 // through a GET that Lax would allow.
-func (h *Handlers) setSession(w http.ResponseWriter, token string) {
+//
+// persist is the "Keep me signed in on this device" checkbox. false issues a
+// browser-session cookie — no Max-Age, no Expires — which the browser drops
+// when it closes. The server-side session is untouched either way: its 24 h
+// idle window already retires an unused unticked login, and a shorter absolute
+// TTL would be a difference no user can observe.
+func (h *Handlers) setSession(w http.ResponseWriter, token string, persist bool) {
+	maxAge := 0
+	if persist {
+		maxAge = int(h.cookie.TTL.Seconds())
+	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    token,
 		Path:     "/",
-		MaxAge:   int(h.cookie.TTL.Seconds()),
+		MaxAge:   maxAge,
 		HttpOnly: true,
 		Secure:   h.cookie.Secure,
 		SameSite: http.SameSiteLaxMode,
