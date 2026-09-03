@@ -88,7 +88,7 @@ permission noted in the **Perm** column.
 | GET | `/api/territories/{slug}` | — | One territory |
 | PATCH | `/api/territories/{slug}` | — | Update mutable fields (no re-conversion) |
 | DELETE | `/api/territories/{slug}` | `territory:delete` | Delete territory + its placements |
-| POST | `/api/territories/{slug}/source` | — | Replace source ZIP + re-queue conversion |
+| POST | `/api/territories/{slug}/source` | `territory:write` | Replace source ZIP + re-queue conversion |
 | GET | `/api/territories/{slug}/scene` | — | **Bundle: territory + LOD0 + placements + model options + panoramas** |
 | GET | `/api/territories/{slug}/artifacts` | — | List artifacts (all LODs) |
 | GET | `/api/territories/{slug}/artifacts/{lod}` | — | Specific LOD |
