@@ -6,6 +6,7 @@ import {
   redirect,
 } from "@tanstack/react-router";
 import { meQuery } from "@/entities/user";
+import { ContentScreen } from "@/pages/content";
 import { RolesScreen } from "@/pages/roles";
 import { UsersScreen } from "@/pages/users";
 import { isAuthed } from "@/shared/session";
@@ -98,7 +99,7 @@ export const consoleContentRoute = createRoute({
   getParentRoute: () => consoleRoute,
   path: "/content",
   loader: gate("/console/content"),
-  component: () => <p>Content</p>,
+  component: ContentScreen,
 });
 
 export const consoleAccessRoute = createRoute({
