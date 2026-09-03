@@ -59,6 +59,9 @@ export function TerritoryAccessScreen() {
         onCancel={s.cancel}
         onSave={s.save}
         canManage={s.canManage}
+        {...(s.territories.length === 0
+          ? { emptyHint: "No territories yet — upload one to start." }
+          : {})}
       />
 
       {s.adding && selected ? (

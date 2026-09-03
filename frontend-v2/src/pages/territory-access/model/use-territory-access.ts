@@ -85,9 +85,13 @@ export function useTerritoryAccess(): AccessState {
 
   const saving = useMutation({
     mutationFn: ({ slug, ids }: { slug: string; ids: string[] }) => setTerritoryAdmins(slug, ids),
+    // The draft stays until the refetch lands. Dropping it here would fall
+    // back to the pre-save set for as long as the GET is in flight — the
+    // panel would lose the person just added, and an edit made in that window
+    // would build on the stale set, so the next PUT (a full replace) would
+    // silently revoke the grant that was just saved.
     onSuccess: (_, { slug }) => {
       notify.success("Access saved");
-      dropDraft(slug);
       void client.invalidateQueries({ queryKey: ["territory-admins", slug] });
     },
     onError: (err) => notify.error(messageOf(err)),

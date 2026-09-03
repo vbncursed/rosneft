@@ -124,5 +124,7 @@ describe("drafts", () => {
     expect(sameSet(["a"], ["a", "b"])).toBe(false);
     expect(candidatesOf(USERS, ["u-1"]).map((p) => p.id)).toEqual(["u-3"]);
     expect(candidatesOf(USERS, ["u-1"])[0]).toEqual({ id: "u-3", username: "m.orlova", hint: "Guest" });
+    const withRoot = [...USERS, user({ id: "u-4", username: "admin", isOwner: true })];
+    expect(candidatesOf(withRoot, ["u-1"]).map((p) => p.id)).toEqual(["u-3"]);
   });
 });
