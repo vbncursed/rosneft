@@ -13,7 +13,8 @@ import { GrantRow } from "./grant-row";
 export type AccessInspectorProps = {
   territory: TerritoryAccess;
   visibility: Visibility;
-  onVisibilityChange: (visibility: Visibility) => void;
+  /** Absent when the gateway offers no switch — the visibility is then only shown. */
+  onVisibilityChange?: (visibility: Visibility) => void;
 
   grants: AccessGrant[];
   onAddPerson: () => void;
@@ -32,7 +33,7 @@ const INHERITED_NOTE = "Role-granted access can't be revoked here — change the
 const VISIBILITY_HINT: Record<Visibility, string> = {
   assigned: "Only listed accounts can open this territory.",
   company: "Every account in the company gets read access.",
-  private: "Hidden from the catalog for everyone but you.",
+  private: "Only Root can open it until someone is assigned.",
 };
 
 export function AccessInspector({
@@ -48,8 +49,10 @@ export function AccessInspector({
   dirty = false,
   saving = false,
 }: AccessInspectorProps) {
-  // The people list only means anything when access is granted per person.
-  const listsPeople = visibility === "assigned";
+  // With a switch, the people list only means anything for per-person
+  // access. Without one, visibility is derived from the list itself, so the
+  // list is always the thing to edit.
+  const listsPeople = !onVisibilityChange || visibility === "assigned";
 
   return (
     <aside
@@ -79,16 +82,23 @@ export function AccessInspector({
           <p className="m-0 mb-2.5 font-mono text-[9px] uppercase tracking-[0.2em] text-muted">
             Visibility
           </p>
-          <RadioCards
-            label="Visibility"
-            value={visibility}
-            onChange={onVisibilityChange}
-            options={(["assigned", "company", "private"] as const).map((value) => ({
-              value,
-              title: VISIBILITY_TITLE[value],
-              hint: VISIBILITY_HINT[value],
-            }))}
-          />
+          {onVisibilityChange ? (
+            <RadioCards
+              label="Visibility"
+              value={visibility}
+              onChange={onVisibilityChange}
+              options={(["assigned", "company", "private"] as const).map((value) => ({
+                value,
+                title: VISIBILITY_TITLE[value],
+                hint: VISIBILITY_HINT[value],
+              }))}
+            />
+          ) : (
+            <p className="m-0 text-[13px] text-fg">
+              {VISIBILITY_TITLE[visibility]}
+              <span className="ml-2 text-[11px] text-muted">{VISIBILITY_HINT[visibility]}</span>
+            </p>
+          )}
         </div>
 
         {listsPeople ? (

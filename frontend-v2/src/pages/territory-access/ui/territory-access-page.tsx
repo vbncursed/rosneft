@@ -38,13 +38,13 @@ export type TerritoryAccessPageProps = {
   /** Absent while the selected territory's access is still loading. */
   managed?: ManagedTerritory | null;
 
-  onVisibilityChange: (visibility: Visibility) => void;
+  onVisibilityChange?: (visibility: Visibility) => void;
   onAddPerson: () => void;
   onRemoveGrant: (userId: string) => void;
   onCancel: () => void;
   onSave: () => void;
 
-  onBulkAssign: () => void;
+  onBulkAssign?: () => void;
   canManage?: boolean;
 };
 
@@ -76,7 +76,7 @@ export function TerritoryAccessPage({
         eyebrow="Owner only · who can open what"
         title="Territory access"
         action={
-          canManage ? (
+          canManage && onBulkAssign ? (
             <Button variant="primary" onClick={onBulkAssign}>
               Bulk assign
             </Button>

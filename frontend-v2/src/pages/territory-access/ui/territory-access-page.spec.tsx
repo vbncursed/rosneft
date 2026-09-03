@@ -174,6 +174,21 @@ describe("TerritoryAccessPage", () => {
     expect(screen.queryByRole("button", { name: "Bulk assign" })).not.toBeInTheDocument();
   });
 
+  it("hides bulk assign and the visibility switch when the gateway offers neither", () => {
+    render(
+      <TerritoryAccessPage
+        {...props({
+          onBulkAssign: undefined,
+          onVisibilityChange: undefined,
+          selectedSlug: "refinery-block-c",
+          managed: managed(),
+        })}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Bulk assign" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
+  });
+
   it("shows a chip for a key:value query", () => {
     render(<TerritoryAccessPage {...props({ query: "visibility:assigned" })} />);
     expect(
