@@ -33,7 +33,6 @@ const ROLE: Role = {
 };
 
 const state = (over: Partial<UsersState> = {}): UsersState => ({
-  me: null,
   status: "ready",
   error: null,
   users: [USER],
@@ -51,6 +50,7 @@ const state = (over: Partial<UsersState> = {}): UsersState => ({
   creating: false,
   setCreating: vi.fn(),
   create: vi.fn(),
+  createBusy: false,
   addingRole: false,
   setAddingRole: vi.fn(),
   setRoles: vi.fn(),
@@ -230,6 +230,16 @@ describe("UsersScreen", () => {
       }),
     );
     expect(open.setAddingRole).toHaveBeenCalledWith(false);
+  });
+
+  it("locks Create while the account is being posted, so a second click cannot post again", async () => {
+    showing({ creating: true, createBusy: true });
+    const dialog = within(screen.getByRole("dialog", { name: "Create user" }));
+    // A complete form: without the busy flag this button would be live.
+    await userEvent.type(dialog.getByLabelText("Email"), "n@x");
+    await userEvent.type(dialog.getByLabelText("Username"), "new.person");
+    await userEvent.type(dialog.getByLabelText("Password"), "Passw0rd!");
+    expect(dialog.getByRole("button", { name: "Create user" })).toBeDisabled();
   });
 
   it("closes the create dialog on Cancel", async () => {

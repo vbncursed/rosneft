@@ -70,7 +70,7 @@ export function UsersScreen() {
 
   if (s.status === "loading") {
     return (
-      <div aria-busy="true" aria-label="Loading people" className="flex flex-col gap-3">
+      <div role="status" aria-busy="true" aria-label="Loading people" className="flex flex-col gap-3">
         <Skeleton height="28px" width="30%" />
         <Skeleton height="96px" />
         <Skeleton height="96px" />
@@ -131,6 +131,7 @@ export function UsersScreen() {
           open
           roles={s.roles.map((r) => ({ slug: r.slug, title: r.title }))}
           onClose={() => s.setCreating(false)}
+          busy={s.createBusy}
           onCreate={s.create}
         />
       ) : null}

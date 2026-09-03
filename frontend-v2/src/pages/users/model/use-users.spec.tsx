@@ -81,6 +81,27 @@ describe("useUsers", () => {
     expect(result.current.canManage).toBe(true);
   });
 
+  it("keeps loading until the roles arrive — people with no roles yet are not people with no roles", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === "/api/auth/roles") return new Promise<Response>(() => {});
+      return json([USER]);
+    });
+    const { result } = renderHook(() => useUsers(), { wrapper });
+    await waitFor(() => expect(result.current.users).not.toBeNull());
+    expect(result.current.status).toBe("loading");
+  });
+
+  it("is unavailable when the roles cannot be read, in the gateway's words", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === "/api/auth/roles")
+        return json({ code: "forbidden", message: "You don't have permission to do this" }, 403);
+      return json([USER]);
+    });
+    const { result } = renderHook(() => useUsers(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("unavailable"));
+    expect(result.current.error).toBe("You don't have permission to do this");
+  });
+
   it("has no one selected and nothing pending until asked", async () => {
     const { result } = renderHook(() => useUsers(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
@@ -161,6 +182,34 @@ describe("useUsers", () => {
     );
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("User created"));
     expect(result.current.users.creating).toBe(false);
+  });
+
+  it("stays busy while the account is being posted, so the dialog can lock its button", async () => {
+    let finish: (r: Response) => void = () => {};
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method === "POST" && url === "/api/auth/users")
+        return new Promise<Response>((resolve) => (finish = resolve));
+      if (url === "/api/auth/roles") return json([ROLE]);
+      return json([USER]);
+    });
+    const { result } = renderHook(() => useUsers(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.createBusy).toBe(false);
+
+    act(() =>
+      result.current.create({
+        email: "n@x",
+        username: "new.person",
+        password: "Passw0rd!",
+        roleSlugs: [],
+      }),
+    );
+    await waitFor(() => expect(result.current.createBusy).toBe(true));
+
+    await act(async () => {
+      finish(json({ ...USER, id: "u-2", username: "new.person" }));
+    });
+    await waitFor(() => expect(result.current.createBusy).toBe(false));
   });
 
   it("replaces the role set of whoever is open", async () => {
