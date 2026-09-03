@@ -55,6 +55,11 @@ describe("PeopleGroups", () => {
     expect(screen.getAllByRole("article")).toHaveLength(3);
   });
 
+  it("renders a person the caller can say nothing else about", () => {
+    render(<PeopleGroups groups={[{ key: "g", label: "Guests", people: [{ user: user("u-9", "g.one") }] }]} />);
+    expect(screen.getByRole("article", { name: "g.one" })).toBeInTheDocument();
+  });
+
   it("marks the selected person", () => {
     render(<PeopleGroups groups={GROUPS} selectedId="u-2" />);
     expect(screen.getByRole("article", { name: "d.smirnov" })).toHaveAttribute(

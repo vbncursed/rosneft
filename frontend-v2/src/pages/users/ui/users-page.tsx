@@ -42,7 +42,8 @@ export type UsersPageProps = {
   inspected?: InspectedPerson | null;
 
   onCreateUser: () => void;
-  onResetPassword: () => void;
+  /** Absent while no endpoint exists for it — the inspector then omits it. */
+  onResetPassword?: () => void;
   onRequire2fa: () => void;
   onFreeze: () => void;
   onDelete: () => void;
