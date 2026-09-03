@@ -190,10 +190,11 @@ fetches for them yet — that is their own plan.
 **Passkey sign-in is unwired, deliberately.** `CredentialsForm` draws the
 button only when handed `onPasskey`, and `useLogin` does not hand it one: the
 gateway's `PASSKEY_RP_ORIGINS` is pinned to `frontend/`'s port 3000, so a
-ceremony started from 3001 cannot succeed. The same rule hides the
-"Keep me signed in" checkbox — the gateway's `LoginRequest` has no such field
-and the session cookie is a fixed 720 hours, so the control would be a lie.
-An action with no endpoint is not rendered.
+ceremony started from 3001 cannot succeed. The "Keep me signed in on this
+device" checkbox is live: unticked, `login` and `verifyTwoFactor` send
+`remember: false` and the gateway issues a browser-session cookie (spec:
+`docs/superpowers/specs/2026-09-03-keep-me-signed-in-design.md`). An action
+with no endpoint is not rendered — that rule still hides the passkey button.
 
 `Andrey Viewer Mockup.dc.html` (the 3D viewer and the remaining screens) has no
 v2 and has not been ported.

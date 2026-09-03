@@ -16,11 +16,16 @@ interface LoginResponse {
 // this response; all that is kept here is a marker so the route guard can bounce
 // an anonymous visitor without a round trip. When 2FA is required no session
 // exists yet, so nothing is marked and the challenge token goes to step two.
+//
+// `remember` is the "Keep me signed in on this device" checkbox: false asks
+// for a browser-session cookie. It is sent on both steps because the gateway
+// keeps nothing between them.
 export async function login(
   identifier: string,
   password: string,
+  remember: boolean,
 ): Promise<{ twoFactorRequired: boolean; challengeToken: string }> {
-  const r = await httpPost<LoginResponse>("/api/auth/login", { identifier, password });
+  const r = await httpPost<LoginResponse>("/api/auth/login", { identifier, password, remember });
   if (!r.twoFactorRequired) {
     markAuthed();
     setCsrfToken(r.csrfToken);
@@ -31,10 +36,14 @@ export async function login(
 // Step two: exchange the TOTP/recovery code + challenge for a session. The
 // response body still carries a token for non-browser clients; this one ignores
 // it and rides the cookie the same response set.
-export async function verifyTwoFactor(challengeToken: string, code: string): Promise<void> {
+export async function verifyTwoFactor(
+  challengeToken: string,
+  code: string,
+  remember: boolean,
+): Promise<void> {
   const r = await httpPost<{ token: string; csrfToken: string }>(
     "/api/auth/login/2fa",
-    { challengeToken, code },
+    { challengeToken, code, remember },
   );
   markAuthed();
   setCsrfToken(r.csrfToken);
