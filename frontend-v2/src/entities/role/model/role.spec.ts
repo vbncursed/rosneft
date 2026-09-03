@@ -5,6 +5,7 @@ const role = (over: Partial<Role> = {}): Role => ({
   slug: "field-operator",
   title: "Field Operator",
   kind: "custom",
+  permissionSlugs: [],
   grants: 6,
   users: 11,
   updated: "upd. 29.08",
@@ -45,5 +46,9 @@ describe("usersLabel", () => {
     expect(usersLabel(role({ users: 1 }))).toBe("1 user");
     expect(usersLabel(role({ users: 11 }))).toBe("11 users");
     expect(usersLabel(role({ users: 0 }))).toBe("0 users");
+  });
+
+  it("reads unknown when the people count could not be read", () => {
+    expect(usersLabel(role({ users: null }))).toBe("— users");
   });
 });

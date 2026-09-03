@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { can, type Principal } from "./principal";
+import { can, grantableSlugs, type Principal } from "./principal";
 
 const p = (over: Partial<Principal> = {}): Principal => ({
   id: "u-1",
@@ -34,5 +34,25 @@ describe("can", () => {
 
   it("refuses when there is no principal yet", () => {
     expect(can(null, "users:read")).toBe(false);
+  });
+});
+
+describe("grantableSlugs", () => {
+  const PERMISSIONS = [{ slug: "users:read" }, { slug: "users:write" }];
+
+  it("gives an owner every slug, even holding no permissions itself", () => {
+    expect(grantableSlugs(p({ isOwner: true }), PERMISSIONS)).toEqual(
+      new Set(["users:read", "users:write"]),
+    );
+  });
+
+  it("gives a holder only what it holds, mirroring the backend's no-escalation rule", () => {
+    expect(grantableSlugs(p({ permissions: ["users:read"] }), PERMISSIONS)).toEqual(
+      new Set(["users:read"]),
+    );
+  });
+
+  it("gives no principal an empty set", () => {
+    expect(grantableSlugs(null, PERMISSIONS)).toEqual(new Set());
   });
 });

@@ -8,6 +8,7 @@ const role = (slug: string, title: string, kind: Role["kind"] = "custom"): Role 
   slug,
   title,
   kind,
+  permissionSlugs: [],
   grants: 6,
   users: 11,
   updated: "upd. 29.08",

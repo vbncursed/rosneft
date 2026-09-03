@@ -16,6 +16,7 @@ const role = (over: Partial<Role> = {}): Role => ({
   slug: "field-operator",
   title: "Field Operator",
   kind: "custom",
+  permissionSlugs: [],
   grants: 2,
   users: 11,
   updated: "upd. 29.08",
