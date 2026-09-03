@@ -1,3 +1,4 @@
+import type { ConsoleNavItem } from "@/widgets/console-nav";
 import { can, type Principal } from "@/shared/session";
 
 type RedirectTarget = { to: "/login"; search: { next: string } };
@@ -30,18 +31,30 @@ export type ConsolePath =
   | "/console/audit"
   | "/console/metrics";
 
+type Screen = {
+  path: ConsolePath;
+  key: string;
+  label: string;
+  allowed: (p: Principal) => boolean;
+};
+
 // What each screen needs before it is worth landing on. `can` answers true for
 // anything an owner asks about, so an owner stops at the first entry and a
 // non-owner falls through to whatever they actually hold — which is how
 // Metrics, owner-only and last, is nobody's landing page and answers nobody a
 // 403. Content mirrors the production console: either write grant opens it.
-const LANDINGS: readonly (readonly [ConsolePath, (p: Principal) => boolean])[] = [
-  ["/console/users", (p) => can(p, "users:read")],
-  ["/console/roles", (p) => can(p, "roles:read")],
-  ["/console/content", (p) => can(p, "territory:write") || can(p, "model:write")],
-  ["/console/access", (p) => p.isOwner],
-  ["/console/audit", (p) => can(p, "audit:read")],
-  ["/console/metrics", (p) => p.isOwner],
+const SCREENS: readonly Screen[] = [
+  { path: "/console/users", key: "users", label: "Users", allowed: (p) => can(p, "users:read") },
+  { path: "/console/roles", key: "roles", label: "Roles & Permissions", allowed: (p) => can(p, "roles:read") },
+  {
+    path: "/console/content",
+    key: "content",
+    label: "Content",
+    allowed: (p) => can(p, "territory:write") || can(p, "model:write"),
+  },
+  { path: "/console/access", key: "access", label: "Territory access", allowed: (p) => p.isOwner },
+  { path: "/console/audit", key: "audit", label: "Audit journal", allowed: (p) => can(p, "audit:read") },
+  { path: "/console/metrics", key: "metrics", label: "Metrics", allowed: (p) => p.isOwner },
 ];
 
 /**
@@ -59,5 +72,39 @@ const LANDINGS: readonly (readonly [ConsolePath, (p: Principal) => boolean])[] =
  * subtree looking for a page that will have it.
  */
 export function consoleLanding(me: Principal): ConsolePath | null {
-  return LANDINGS.find(([, allowed]) => allowed(me))?.[0] ?? null;
+  return SCREENS.find((s) => s.allowed(me))?.path ?? null;
 }
+
+/**
+ * The per-screen gate. The console gate is an OR over several grants, so a
+ * roles-only administrator gets past it and would reach /console/users, where
+ * every request 403s. Each screen route's loader asks this and bounces to
+ * /console, whose landing logic never picks a screen that fails it.
+ */
+export function screenAllowed(me: Principal, path: ConsolePath): boolean {
+  return SCREENS.find((s) => s.path === path)?.allowed(me) ?? false;
+}
+
+/** The navigation column: every screen, the closed ones marked, never hidden. */
+export function consoleNav(me: Principal): ConsoleNavItem[] {
+  return SCREENS.map((s) => ({
+    key: s.key,
+    label: s.label,
+    href: s.path,
+    ...(s.allowed(me) ? {} : { disabled: true }),
+  }));
+}
+
+/** "/console/audit/123" → "audit"; "/console" → "". */
+export const activeSection = (pathname: string): string =>
+  SCREENS.find((s) => pathname === s.path || pathname.startsWith(`${s.path}/`))?.key ?? "";
+
+/** The identity line at the foot of the sidebar. */
+export function viewerOf(me: Principal): { username: string; roleTitle: string } {
+  const first = me.roleSlugs[0];
+  const roleTitle = first ? (me.roleTitles[first] ?? first) : me.isOwner ? "Root" : "—";
+  return { username: me.username, roleTitle };
+}
+
+/** A same-app console link the shell may hand to the router instead of the browser. */
+export const isConsoleHref = (href: string): boolean => href.startsWith("/console");

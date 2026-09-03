@@ -1,7 +1,7 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 import { login, verifyTwoFactor } from "@/entities/user";
-import { HttpError } from "@/shared/api";
+import { messageOf } from "@/shared/api";
 import type { LoginPageProps, LoginStep } from "../ui/login-page";
 import { nextTarget } from "./next-target";
 
@@ -29,10 +29,6 @@ const INTRO = {
 
 const FOOTNOTE =
   "Accounts are created by your company administrator. No access — contact your organisation owner.";
-
-const GENERIC_ERROR = "Something went wrong. Try again.";
-
-const messageOf = (err: unknown) => (err instanceof HttpError ? err.message : GENERIC_ERROR);
 
 /**
  * Container for the login screen. Owns the two-step flow and returns exactly

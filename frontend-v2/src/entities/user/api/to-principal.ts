@@ -7,7 +7,9 @@ type AuthUserDto = components["schemas"]["AuthUser"];
 // fields — an absent key means the owning service could not answer, and
 // mapping it to false would render a confident "off" for a user who has it
 // on. totpRequired is a plain boolean: it is a column on the user's own row
-// and is always known.
+// and is always known. roleSlugs/permissions default to `[]`: the schema
+// says array, but a Go nil slice marshals to JSON `null`, and the gateway
+// sends exactly that for an owner who holds no roles.
 export function toPrincipal(d: AuthUserDto): Principal {
   return {
     id: d.id,
@@ -17,9 +19,9 @@ export function toPrincipal(d: AuthUserDto): Principal {
     totpEnabled: d.totpEnabled ?? null,
     totpRequired: d.totpRequired,
     passkeyEnabled: d.passkeyEnabled ?? null,
-    roleSlugs: d.roleSlugs,
+    roleSlugs: d.roleSlugs ?? [],
     roleTitles: d.roleTitles ?? {},
-    permissions: d.permissions,
+    permissions: d.permissions ?? [],
     isOwner: d.isOwner,
     onboardingToursSeen: d.onboardingToursSeen ?? [],
   };

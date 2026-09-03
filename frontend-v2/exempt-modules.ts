@@ -23,6 +23,8 @@ export const EXEMPT_MODULES = [
   // to hold — redirectTarget, consoleLanding — lives in guard.ts with a spec.
   "src/app/router/routes.tsx",
   "src/app/router/router.tsx",
+  // wiring; every decision is in guard.ts
+  "src/app/router/console-shell.tsx",
   // Split out of routes.tsx solely so a named, hook-calling route component
   // does not sit beside route consts (rules-of-hooks wants the name,
   // only-export-components then objects to the mix). It spreads useLogin()'s
