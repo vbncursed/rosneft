@@ -17,6 +17,7 @@ export function Toaster() {
           key={notice.id}
           tone={notice.tone}
           onDismiss={() => dismiss(notice.id)}
+          dismissLabel={`Dismiss: ${notice.message}`}
           className="pointer-events-auto shadow-elevation"
         >
           {notice.message}

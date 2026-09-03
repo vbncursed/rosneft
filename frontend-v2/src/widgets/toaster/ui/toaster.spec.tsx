@@ -19,7 +19,24 @@ describe("Toaster", () => {
     });
 
     expect(screen.getByRole("alert")).toHaveTextContent("Cannot freeze the last admin.");
-    await userEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Dismiss: Cannot freeze the last admin." }),
+    );
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  // Two notices at once must not give a screen reader two identically named
+  // "Dismiss" buttons.
+  it("gives each stacked notice a uniquely named dismiss button", () => {
+    render(<Toaster />);
+    act(() => {
+      notify.success("Saved");
+      notify.error("Cannot freeze the last admin.");
+    });
+
+    expect(screen.getByRole("button", { name: "Dismiss: Saved" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Dismiss: Cannot freeze the last admin." }),
+    ).toBeInTheDocument();
   });
 });

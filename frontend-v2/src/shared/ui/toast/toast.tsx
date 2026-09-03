@@ -9,6 +9,11 @@ export type ToastProps = {
   /** Overrides the tone's default overline. */
   label?: string;
   onDismiss?: () => void;
+  /**
+   * Overrides the dismiss button's accessible name. Two stacked toasts both
+   * named "Dismiss" are indistinguishable to a screen reader.
+   */
+  dismissLabel?: string;
   className?: string;
 };
 
@@ -19,7 +24,14 @@ const TONE: Record<ToastTone, { label: string; skin: string }> = {
   success: { label: "Success", skin: "border-ok bg-ok-soft text-ok" },
 };
 
-export function Toast({ tone, children, label, onDismiss, className }: ToastProps) {
+export function Toast({
+  tone,
+  children,
+  label,
+  onDismiss,
+  dismissLabel = "Dismiss",
+  className,
+}: ToastProps) {
   const { label: fallback, skin } = TONE[tone];
 
   return (
@@ -40,7 +52,7 @@ export function Toast({ tone, children, label, onDismiss, className }: ToastProp
         <button
           type="button"
           onClick={onDismiss}
-          aria-label="Dismiss"
+          aria-label={dismissLabel}
           className="cursor-pointer border-none bg-transparent p-0 text-muted transition-colors duration-150 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           ×
