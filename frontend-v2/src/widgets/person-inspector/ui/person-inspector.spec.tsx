@@ -91,6 +91,28 @@ describe("PersonInspector", () => {
     }
   });
 
+  it("offers no password reset when the page has no way to reset one", () => {
+    const { onResetPassword, ...rest } = handlers();
+    render(<PersonInspector user={user()} {...rest} />);
+    expect(screen.queryByRole("button", { name: "Reset password" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Require 2FA" })).toBeInTheDocument();
+    expect(onResetPassword).not.toHaveBeenCalled();
+  });
+
+  it("offers to stop requiring 2FA of an account that already must carry it", () => {
+    render(<PersonInspector user={user({ totpRequired: true })} {...handlers()} />);
+    expect(screen.getByRole("button", { name: "Stop requiring 2FA" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Require 2FA" })).not.toBeInTheDocument();
+  });
+
+  it("offers to restore a deleted account, and nothing to freeze", () => {
+    render(<PersonInspector user={user({ status: "deleted" })} {...handlers()} />);
+    expect(screen.getByRole("button", { name: "Restore" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Freeze" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Unfreeze" })).not.toBeInTheDocument();
+  });
+
   it("offers to unfreeze an account that is already frozen", () => {
     render(<PersonInspector user={user({ status: "frozen" })} {...handlers()} />);
     expect(screen.getByRole("button", { name: "Unfreeze" })).toBeInTheDocument();

@@ -49,7 +49,6 @@ const props = (over: Partial<UsersPageProps> = {}): UsersPageProps => ({
   onSelect: vi.fn(),
   onCloseInspector: vi.fn(),
   onCreateUser: vi.fn(),
-  onResetPassword: vi.fn(),
   onRequire2fa: vi.fn(),
   onFreeze: vi.fn(),
   onDelete: vi.fn(),
@@ -137,6 +136,19 @@ describe("UsersPage", () => {
     render(<UsersPage {...props({ onCreateUser })} />);
     await userEvent.click(screen.getByRole("button", { name: "+ New user" }));
     expect(onCreateUser).toHaveBeenCalledOnce();
+  });
+
+  it("draws no password reset when the page was given no way to reset one", () => {
+    render(
+      <UsersPage
+        {...props({
+          selectedId: "u-2",
+          inspected: { user: user("u-2", "d.smirnov"), details: [], body: null },
+        })}
+      />,
+    );
+    expect(screen.getByRole("complementary", { name: "Person: d.smirnov" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reset password" })).not.toBeInTheDocument();
   });
 
   it("hides every management control from a reader who may not manage people", () => {

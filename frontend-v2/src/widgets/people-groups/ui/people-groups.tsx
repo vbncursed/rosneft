@@ -4,10 +4,10 @@ import { SectionHeading } from "@/shared/ui/section-heading";
 
 export type Person = {
   user: User;
-  /** e.g. "3 territories", or "—". */
-  territories: string;
-  /** e.g. "yesterday 18:02". */
-  lastSeen: string;
+  /** e.g. "3 territories", or "—". Absent when nothing can say. */
+  territories?: string;
+  /** e.g. "yesterday 18:02". Absent when nothing can say. */
+  lastSeen?: string;
 };
 
 export type PeopleGroup = {

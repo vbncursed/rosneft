@@ -11,7 +11,8 @@ export type PersonInspectorProps = {
   /** Extra rows under the status, e.g. created / last seen / sessions. */
   details?: PersonDetail[];
   onClose: () => void;
-  onResetPassword: () => void;
+  /** Absent while no endpoint exists for it — the button is then not drawn. */
+  onResetPassword?: () => void;
   onRequire2fa: () => void;
   onFreeze: () => void;
   onDelete: () => void;
@@ -68,29 +69,39 @@ export function PersonInspector({
       {canManage ? (
         <div className="flex flex-col gap-2">
           <div className="flex gap-2">
-            <Button size="sm" className="flex-1 justify-center" onClick={onResetPassword}>
-              Reset password
-            </Button>
+            {onResetPassword ? (
+              <Button size="sm" className="flex-1 justify-center" onClick={onResetPassword}>
+                Reset password
+              </Button>
+            ) : null}
             <Button
               size="sm"
               variant="accent"
               className="flex-1 justify-center"
               onClick={onRequire2fa}
             >
-              Require 2FA
+              {user.totpRequired ? "Stop requiring 2FA" : "Require 2FA"}
             </Button>
           </div>
           <div className="flex gap-2">
+            {/* A deleted account cannot be frozen; restoring it is the only way back. */}
+            {user.status === "deleted" ? null : (
+              <Button
+                size="sm"
+                variant="warning"
+                className="flex-1 justify-center"
+                onClick={onFreeze}
+              >
+                {user.status === "frozen" ? "Unfreeze" : "Freeze"}
+              </Button>
+            )}
             <Button
               size="sm"
-              variant="warning"
+              variant={user.status === "deleted" ? "primary" : "danger"}
               className="flex-1 justify-center"
-              onClick={onFreeze}
+              onClick={onDelete}
             >
-              {user.status === "frozen" ? "Unfreeze" : "Freeze"}
-            </Button>
-            <Button size="sm" variant="danger" className="flex-1 justify-center" onClick={onDelete}>
-              Delete
+              {user.status === "deleted" ? "Restore" : "Delete"}
             </Button>
           </div>
         </div>

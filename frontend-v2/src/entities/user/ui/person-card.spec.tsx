@@ -81,6 +81,19 @@ describe("PersonCard", () => {
     expect(screen.getByRole("article")).toHaveAttribute("aria-current", "true");
   });
 
+  it("has no footer when neither the territories nor a last-seen time is known", () => {
+    render(<PersonCard user={user()} />);
+    expect(screen.queryByText("3 territories")).not.toBeInTheDocument();
+    expect(screen.queryByText("yesterday 18:02")).not.toBeInTheDocument();
+    expect(document.querySelector(".border-t")).toBeNull();
+  });
+
+  it("shows the last-seen time alone when the territories are unknown", () => {
+    render(<PersonCard user={user()} lastSeen="yesterday 18:02" />);
+    expect(screen.getByText("yesterday 18:02")).toBeInTheDocument();
+    expect(screen.queryByText("3 territories")).not.toBeInTheDocument();
+  });
+
   it("selects on click", async () => {
     const onSelect = vi.fn();
     card({}, { onSelect });

@@ -7,10 +7,10 @@ export type PersonCardProps = {
   user: User;
   selected?: boolean;
   onSelect?: () => void;
-  /** e.g. "3 territories", or "—" for none. */
-  territories: string;
-  /** e.g. "today 09:14". */
-  lastSeen: string;
+  /** e.g. "3 territories", or "—" for none. Absent when nothing can say. */
+  territories?: string;
+  /** e.g. "today 09:14". Absent when nothing can say. */
+  lastSeen?: string;
 };
 
 const STATUS_DOT = {
@@ -82,10 +82,12 @@ export function PersonCard({
         )}
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-3 border-t border-line pt-2.5 font-mono text-[10px] text-dim">
-        <span>{territories}</span>
-        <span>{lastSeen}</span>
-      </div>
+      {territories || lastSeen ? (
+        <div className="mt-3 flex items-center justify-between gap-3 border-t border-line pt-2.5 font-mono text-[10px] text-dim">
+          {territories ? <span>{territories}</span> : null}
+          {lastSeen ? <span>{lastSeen}</span> : null}
+        </div>
+      ) : null}
 
       {weakAuth ? <span className="sr-only">Password only — no 2FA and no passkey.</span> : null}
     </article>
