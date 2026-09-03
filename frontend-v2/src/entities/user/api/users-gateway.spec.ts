@@ -5,8 +5,10 @@ import {
   deleteUser,
   freezeUser,
   listUsers,
+  restoreUser,
   setTwoFactorRequired,
   setUserRoles,
+  unfreezeUser,
 } from "./users-gateway";
 
 const user = { id: "u-1", email: "a@x", username: "a", status: "active", roleSlugs: [], permissions: [], isOwner: false, totpRequired: false };
@@ -47,12 +49,16 @@ describe("users gateway", () => {
 
   it("posts the state changes to their own routes", async () => {
     await freezeUser("u-1");
+    await unfreezeUser("u-1");
+    await restoreUser("u-1");
     await setTwoFactorRequired("u-1", true);
     await setTwoFactorRequired("u-1", false);
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
     await deleteUser("u-1");
     expect(fetchMock.mock.calls.map(([url, init]) => `${(init as RequestInit).method} ${url}`)).toEqual([
       "POST /api/auth/users/u-1/freeze",
+      "POST /api/auth/users/u-1/unfreeze",
+      "POST /api/auth/users/u-1/restore",
       "POST /api/auth/users/u-1/2fa/require",
       "POST /api/auth/users/u-1/2fa/unrequire",
       "DELETE /api/auth/users/u-1",
