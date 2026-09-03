@@ -4,3 +4,4 @@ export {
   type RolesPageProps,
   type RolesPageStat,
 } from "./ui/roles-page";
+export { RolesScreen } from "./ui/roles-screen";

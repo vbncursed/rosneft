@@ -175,6 +175,31 @@ header and the 401 bounce; `shared/session` holds the marker and the
 and `meQuery`; `app/router` is the route tree and the guard; `app/query` the
 query client.
 
+**Users and Roles are live.** Each is a container hook in `pages/*/model`
+(`useUsers`, `useRoles`) that owns the queries, the mutations and the UI state,
+a `*-screen.tsx` that maps it onto the props-only page and draws the dialogs
+beside it, and a pure module (`people.ts`, `roles-view.ts`) holding every
+decision. Outcomes report through `shared/lib/notify`; `ConsoleShell` mounts
+the Toaster once, around the whole console. Copy that split rather than
+re-deriving it — the remaining screens are meant to look the same.
+
+Rulings from those two screens that a later one will meet again:
+
+- **Reset password is not rendered.** No endpoint wires it, and an action with
+  no endpoint is not drawn.
+- **No owner toggle and no role delete** — the gateway has neither, so a live
+  test role stays where it was created.
+- **A role's people count is unknown, not zero, without `users:read`.** The
+  people query is `enabled` on that grant, so it is never requested; the card
+  reads "— users" and the distribution meter "unavailable". A disabled query
+  stays `isPending` forever, so `isLoading` is what "loading" asks — otherwise
+  a non-reader waits on a spinner that never resolves.
+- **The draft is the inspector's truth until saved.** `dirty` is computed
+  against the role as the gateway last returned it, so a successful save clears
+  it by the refetch alone and a refusal leaves the edits on screen to retry.
+  Saving is two calls — `PUT …/permissions`, then `PATCH …` for the title —
+  because the gateway has no single "update role"; only what changed is sent.
+
 Routes: `/login`, `/console/{users,roles,content,access,audit,metrics}`, and
 `/` and `/console` alone, both of which resolve a landing screen rather than
 rendering one. `consoleLanding` picks that screen from the principal's
@@ -183,9 +208,11 @@ users page that 403s.
 
 ## Not done yet
 
-**The console screens are placeholders.** Every `/console/*` route renders a
-one-line `<p>`; the pages exist under `pages/*` and take props, but nothing
-fetches for them yet — that is their own plan.
+**Four console screens are still placeholders** — Content, Territory access,
+Audit and Metrics each render a one-line `<p>`. The pages exist under `pages/*`
+and take props, but nothing fetches for them yet; each is its own plan, and
+each reuses the shell, the toaster, the gate and the container/pure/screen
+split that Users and Roles established.
 
 **Passkey sign-in is unwired, deliberately.** `CredentialsForm` draws the
 button only when handed `onPasskey`, and `useLogin` does not hand it one: the
