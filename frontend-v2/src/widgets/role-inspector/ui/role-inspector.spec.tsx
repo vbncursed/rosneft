@@ -82,6 +82,34 @@ describe("RoleInspector", () => {
     expect(screen.getByRole("textbox", { name: "Role name" })).toHaveAttribute("readonly");
   });
 
+  // A reader who holds roles:read but not roles:manage reaches this screen.
+  // Nothing they can press may exist: an enabled Save here only earns a 403.
+  it("shows a custom role read-only to someone who may not manage roles", async () => {
+    const onToggle = vi.fn();
+    render(<RoleInspector {...props({ readOnly: true, dirty: true, onToggle })} />);
+    expect(screen.getByText("Viewing role")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save permissions" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reset" })).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Role name" })).toHaveAttribute("readonly");
+    await userEvent.click(screen.getByRole("button", { name: "territory:write" }));
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  // Not "this role is immutable" — the role is fine, the reader lacks a grant.
+  it("says why it is read-only, and does not blame the role", () => {
+    render(<RoleInspector {...props({ readOnly: true })} />);
+    expect(
+      screen.getByText("You can view roles here, but changing one needs roles:manage."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/System roles are defined by migrations/)).not.toBeInTheDocument();
+  });
+
+  it("blames the migrations when the role really is a system one", () => {
+    render(<RoleInspector {...props({ readOnly: true, role: role({ kind: "system" }) })} />);
+    expect(screen.getByText(/System roles are defined by migrations/)).toBeInTheDocument();
+    expect(screen.queryByText(/needs roles:manage/)).not.toBeInTheDocument();
+  });
+
   it("cannot toggle a system role's permissions", async () => {
     const onToggle = vi.fn();
     render(

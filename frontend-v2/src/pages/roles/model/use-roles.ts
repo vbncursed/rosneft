@@ -17,6 +17,12 @@ type Draft = { title: string; granted: string[] };
 
 const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
 
+const unanswered = (query: { error: Error | null; data: unknown }) =>
+  query.data === undefined ? query.error : null;
+
+/** The role as the gateway last returned it — what an unedited draft reads as. */
+const saved = (role: Role): Draft => ({ title: role.title, granted: role.permissionSlugs });
+
 export type RolesState = {
   me: Principal | null;
   status: "loading" | "ready" | "unavailable";
@@ -58,22 +64,24 @@ export function useRoles(): RolesState {
   const users = useQuery({ ...usersQuery, enabled: can(me, "users:read") });
   const [query, setQuery] = useState("");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Draft | null>(null);
+  // One draft per role, so looking at a second card to compare two sets does
+  // not silently throw away the first one's unsaved edits.
+  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [creating, setCreating] = useState(false);
 
   const selected = roles.data?.find((r) => r.slug === selectedSlug) ?? null;
+  // A role with no draft of its own reads as the gateway last returned it, so
+  // the map holds only what somebody actually edited.
+  const draft = selected ? (drafts[selected.slug] ?? saved(selected)) : null;
+  const edit = (change: (d: Draft) => Draft) =>
+    selected &&
+    setDrafts((all) => ({ ...all, [selected.slug]: change(all[selected.slug] ?? saved(selected)) }));
   const dirty =
     !!selected &&
     !!draft &&
     (draft.title !== selected.title || !sameSet(draft.granted, selected.permissionSlugs));
   const refresh = () => client.invalidateQueries({ queryKey: ["roles"] });
   const fail = (err: unknown) => notify.error(messageOf(err));
-
-  const select = (slug: string | null) => {
-    setSelectedSlug(slug);
-    const role = roles.data?.find((r) => r.slug === slug);
-    setDraft(role ? { title: role.title, granted: role.permissionSlugs } : null);
-  };
 
   const saving = useMutation({
     // Two calls when both changed; the gateway has no single "update role".
@@ -97,7 +105,6 @@ export function useRoles(): RolesState {
       notify.success("Role created");
       setCreating(false);
       setSelectedSlug(role.slug);
-      setDraft({ title: role.title, granted: role.permissionSlugs });
       void refresh();
     },
     onError: fail,
@@ -108,7 +115,10 @@ export function useRoles(): RolesState {
   // answer, not a wait. A disabled query never fetches, so `isLoading` — not
   // `isPending`, which stays true forever while it is off — is what asks.
   const pending = roles.isPending || permissions.isPending || users.isLoading;
-  const failure = roles.error ?? permissions.error ?? users.error;
+  // Only a query that has never answered can make the screen unavailable. A
+  // refetch that trips on top of data we already hold — the one after a save,
+  // say — must not replace a working screen with an outage page.
+  const failure = unanswered(roles) ?? unanswered(permissions) ?? unanswered(users);
 
   return {
     me,
@@ -124,19 +134,19 @@ export function useRoles(): RolesState {
     selected,
     draft,
     dirty,
-    select,
+    select: setSelectedSlug,
     toggle: (slug) =>
-      setDraft(
-        (d) =>
-          d && {
-            ...d,
-            granted: d.granted.includes(slug)
-              ? d.granted.filter((s) => s !== slug)
-              : [...d.granted, slug],
-          },
-      ),
-    rename: (title) => setDraft((d) => d && { ...d, title }),
-    reset: () => selected && setDraft({ title: selected.title, granted: selected.permissionSlugs }),
+      edit((d) => ({
+        ...d,
+        granted: d.granted.includes(slug)
+          ? d.granted.filter((s) => s !== slug)
+          : [...d.granted, slug],
+      })),
+    rename: (title) => edit((d) => ({ ...d, title })),
+    // Forgetting this role's draft is what makes it clean again; the others
+    // are left alone.
+    reset: () =>
+      selected && setDrafts(({ [selected.slug]: _dropped, ...rest }) => rest),
     // Nothing changed, nothing to send — and nothing to report as saved.
     save: () => dirty && saving.mutate(),
     saving: saving.isPending,

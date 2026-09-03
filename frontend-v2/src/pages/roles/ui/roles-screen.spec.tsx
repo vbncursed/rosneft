@@ -201,11 +201,17 @@ describe("RolesScreen", () => {
     expect(dialog.getByRole("button", { name: "Create role" })).toBeDisabled();
   });
 
+  // roles:read alone gets past the screen gate, so the inspector must be
+  // read-only too — an enabled Save there only earns a 403.
   it("hides every way in from someone who may not manage roles", () => {
-    showing({ canManage: false });
+    opened({ canManage: false });
     expect(screen.queryByRole("button", { name: "+ New role" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Create a role/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save permissions" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reset" })).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Role name" })).toHaveAttribute("readonly");
     expect(
-      screen.queryByRole("button", { name: /Create a role/ }),
-    ).not.toBeInTheDocument();
+      screen.getByText("You can view roles here, but changing one needs roles:manage."),
+    ).toBeInTheDocument();
   });
 });

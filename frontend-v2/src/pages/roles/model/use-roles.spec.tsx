@@ -43,6 +43,7 @@ const USER = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
+let created: typeof OPS | null;
 let fetchMock: ReturnType<typeof vi.fn>;
 let client: QueryClient;
 const wrapper = ({ children }: { children: ReactNode }) => (
@@ -55,15 +56,19 @@ const seat = (principal: Partial<typeof PRINCIPAL> = {}) =>
 beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   seat();
+  created = null;
   setCsrfToken("csrf");
   clearNotices();
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? "GET";
-    if (url === "/api/auth/roles" && method === "GET") return json([GUEST, OPS]);
+    if (url === "/api/auth/roles" && method === "GET")
+      return json(created ? [GUEST, OPS, created] : [GUEST, OPS]);
     if (url === "/api/auth/permissions") return json(PERMISSIONS);
     if (url.startsWith("/api/auth/users") && method === "GET") return json([USER]);
-    if (method === "POST" && url === "/api/auth/roles")
-      return json({ ...OPS, slug: "surveyor", title: "Surveyor", permissionSlugs: [] });
+    if (method === "POST" && url === "/api/auth/roles") {
+      created = { ...OPS, slug: "surveyor", title: "Surveyor", permissionSlugs: [] };
+      return json(created);
+    }
     if (method === "PUT") return json(OPS);
     if (method === "PATCH") return json({ ...OPS, title: "Field ops" });
     return json({ code: "forbidden", message: "You don't have permission to do this" }, 403);
@@ -121,6 +126,43 @@ describe("useRoles", () => {
 
     act(() => result.current.select(null));
     expect(result.current.draft).toBeNull();
+  });
+
+  // Switching cards to compare two sets is normal; losing the edits for it is
+  // not. Each role keeps its own draft until it is saved or reset.
+  it("keeps an unsaved draft while another role is looked at", async () => {
+    const { result } = renderHook(() => useRoles(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+
+    act(() => result.current.select("ops"));
+    act(() => result.current.toggle("users:write"));
+    act(() => result.current.rename("Field ops"));
+    expect(result.current.dirty).toBe(true);
+
+    act(() => result.current.select("guest"));
+    expect(result.current.draft).toEqual({ title: "Guest", granted: [] });
+    expect(result.current.dirty).toBe(false);
+
+    act(() => result.current.select("ops"));
+    expect(result.current.draft).toEqual({
+      title: "Field ops",
+      granted: ["users:read", "users:write"],
+    });
+    expect(result.current.dirty).toBe(true);
+  });
+
+  it("forgets a draft that was reset, not every draft there is", async () => {
+    const { result } = renderHook(() => useRoles(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    act(() => result.current.select("guest"));
+    act(() => result.current.rename("Visitor"));
+    act(() => result.current.select("ops"));
+    act(() => result.current.toggle("users:write"));
+
+    act(() => result.current.reset());
+    expect(result.current.dirty).toBe(false);
+    act(() => result.current.select("guest"));
+    expect(result.current.draft?.title).toBe("Visitor");
   });
 
   it("makes the draft dirty on a toggle and clean again on the second one", async () => {
@@ -274,6 +316,23 @@ describe("useRoles", () => {
   });
 
   // Nothing went out, so nothing may claim to have been saved.
+  // The screen already holds the answer; a refetch that trips must not replace
+  // it with an outage page.
+  it("stays ready when a refetch fails on top of roles it already has", async () => {
+    const { result } = renderHook(() => useRoles(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+
+    fetchMock.mockImplementation(async () => json({ code: "internal", message: "boom" }, 500));
+    await act(async () => {
+      await client.refetchQueries({ queryKey: ["roles"] });
+    });
+    // The refetch really did fail — the cache holds the error beside the data.
+    expect(client.getQueryState(["roles"])?.error).not.toBeNull();
+    expect(result.current.status).toBe("ready");
+    expect(result.current.roles.map((r) => r.slug)).toEqual(["guest", "ops"]);
+    expect(result.current.error).toBeNull();
+  });
+
   it("has nothing to save while nothing is selected, and says nothing either", async () => {
     const { result } = renderHook(() => ({ roles: useRoles(), notices: useNotices() }), {
       wrapper,
