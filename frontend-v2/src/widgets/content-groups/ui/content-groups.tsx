@@ -21,10 +21,15 @@ export type ContentGroupsProps = {
   /** The drop target under the list; absent for a reader who may not upload. */
   onDropZoneClick?: () => void;
   dropHint?: string;
+  /** Replaces the filter-miss wording, and its "loosen the filter" advice with it. */
   emptyHint?: string;
 };
 
 const DROP_HINT = "Drop an OBJ or GLB here — conversion starts automatically";
+const FILTER_MISS = {
+  title: "Nothing matches this filter.",
+  description: "Loosen the filter to see more of the catalog.",
+};
 
 export function ContentGroups({
   groups,
@@ -33,14 +38,14 @@ export function ContentGroups({
   renderActions,
   onDropZoneClick,
   dropHint = DROP_HINT,
-  emptyHint = "Nothing matches this filter.",
+  emptyHint,
 }: ContentGroupsProps) {
   const populated = groups.filter((group) => group.items.length > 0);
 
   return (
     <div className="flex flex-col gap-4">
       {populated.length === 0 ? (
-        <EmptyState title={emptyHint} description="Loosen the filter to see more of the catalog." />
+        <EmptyState {...(emptyHint ? { title: emptyHint } : FILTER_MISS)} />
       ) : (
         populated.map((group) => (
           <section key={group.key} aria-label={group.label}>

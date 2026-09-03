@@ -25,7 +25,7 @@ export type ContentItem = {
 
 /** Where the catalog links this item. */
 export const contentPath = (item: ContentItem) =>
-  item.kind === "territory" ? `/territories/${item.slug}` : `/models/${item.slug}`;
+  `${item.kind === "territory" ? "/territories" : "/models"}/${encodeURIComponent(item.slug)}`;
 
 /** Only a finished conversion can be opened. */
 export const isOpenable = (item: ContentItem) => item.status === "ready";

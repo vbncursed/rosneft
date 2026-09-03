@@ -75,7 +75,14 @@ describe("ContentGroups", () => {
   it("says the filter matched nothing rather than showing empty headings", () => {
     render(<ContentGroups groups={[{ key: "models", label: "Models", items: [] }]} />);
     expect(screen.getByText("Nothing matches this filter.")).toBeInTheDocument();
+    expect(screen.getByText("Loosen the filter to see more of the catalog.")).toBeInTheDocument();
     expect(screen.queryByRole("region")).not.toBeInTheDocument();
+  });
+
+  it("drops the loosen-the-filter line when the caller worded the empty list itself", () => {
+    render(<ContentGroups groups={[]} emptyHint="Nothing uploaded yet — start with a territory." />);
+    expect(screen.getByText("Nothing uploaded yet — start with a territory.")).toBeInTheDocument();
+    expect(screen.queryByText(/Loosen the filter/)).not.toBeInTheDocument();
   });
 
   it("keeps the drop target available even when the filter matched nothing", async () => {

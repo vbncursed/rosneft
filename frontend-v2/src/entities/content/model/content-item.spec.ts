@@ -24,6 +24,7 @@ describe("contentPath", () => {
   it("routes each kind to its own section", () => {
     expect(contentPath(item())).toBe("/territories/north-ridge-pad");
     expect(contentPath(item({ kind: "model", slug: "pump-jack" }))).toBe("/models/pump-jack");
+    expect(contentPath(item({ slug: "north ridge" }))).toBe("/territories/north%20ridge");
   });
 });
 

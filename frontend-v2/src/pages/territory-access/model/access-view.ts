@@ -47,18 +47,22 @@ export function grantsOf(userIds: string[], users: User[]): AccessGrant[] {
   });
 }
 
-/** visibility: and person: chips plus free text on title or slug. Unknown keys are ignored. */
+/**
+ * visibility: and person: chips plus free text on title or slug. An unknown key
+ * matches nothing rather than everything: silently ignoring a typo would show
+ * the full list and look like the filter simply did not work.
+ */
 export function matchesAccess(
   item: TerritoryAccess,
   grants: AccessGrant[],
   query: string,
 ): boolean {
   for (const { key, value } of parseFilters(query)) {
-    if (key === "visibility" && item.visibility !== value) return false;
-    if (
-      key === "person" &&
-      !grants.some((g) => g.username.toLowerCase().includes(value.toLowerCase()))
-    ) {
+    if (key === "visibility") {
+      if (item.visibility !== value) return false;
+    } else if (key === "person") {
+      if (!grants.some((g) => g.username.toLowerCase().includes(value.toLowerCase()))) return false;
+    } else {
       return false;
     }
   }
@@ -106,7 +110,17 @@ export const sameSet = (a: string[], b: string[]): boolean =>
   a.length === b.length && a.every((x) => b.includes(x));
 
 /**
- * Whoever could still be added: active accounts not already in the draft.
+ * The roles whose own id keys `territory_assignments`. auth-service's
+ * `scopeOwningAdmin` returns the caller's own id only for role slug "guest";
+ * everyone else reads through `pickOwningAdmin` — the node below the first Root
+ * ancestor, i.e. the Company Owner (slug "admin", title "Company Owner").
+ */
+const SELF_KEYED = new Set(["admin", "guest"]);
+
+/**
+ * Whoever could still be added: active accounts not already in the draft that
+ * hold a self-keyed role. A grant to anyone else is written and opens nothing —
+ * that account reads its tenant admin's key, not its own.
  * An owner is left out — it already opens every territory, so granting one
  * changes no access while flipping the row to "Shared" and inflating the
  * "People with access" count.
@@ -114,7 +128,13 @@ export const sameSet = (a: string[], b: string[]): boolean =>
 export function candidatesOf(users: User[], draftIds: string[]): PersonOption[] {
   const taken = new Set(draftIds);
   return users
-    .filter((u) => u.status === "active" && !u.isOwner && !taken.has(u.id))
+    .filter(
+      (u) =>
+        u.status === "active" &&
+        !u.isOwner &&
+        !taken.has(u.id) &&
+        u.roleSlugs.some((slug) => SELF_KEYED.has(slug)),
+    )
     .map((u) => {
       const first = u.roleSlugs[0];
       return { id: u.id, username: u.username, ...(first ? { hint: roleTitle(u, first) } : {}) };

@@ -14,21 +14,25 @@ export type AccessGroupsProps = {
   groups: AccessGroup[];
   selectedSlug?: string | null;
   onManage: (territory: TerritoryAccess) => void;
+  /** Replaces the filter-miss wording, and its "loosen the filter" advice with it. */
   emptyHint?: string;
+};
+
+const FILTER_MISS = {
+  title: "No territories match this filter.",
+  description: "Loosen the filter to see more territories.",
 };
 
 export function AccessGroups({
   groups,
   selectedSlug = null,
   onManage,
-  emptyHint = "No territories match this filter.",
+  emptyHint,
 }: AccessGroupsProps) {
   const populated = groups.filter((group) => group.territories.length > 0);
 
   if (populated.length === 0) {
-    return (
-      <EmptyState title={emptyHint} description="Loosen the filter to see more territories." />
-    );
+    return <EmptyState {...(emptyHint ? { title: emptyHint } : FILTER_MISS)} />;
   }
 
   return (

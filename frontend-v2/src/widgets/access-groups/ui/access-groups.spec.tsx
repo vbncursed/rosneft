@@ -71,6 +71,15 @@ describe("AccessGroups", () => {
   it("says the filter matched nothing rather than showing empty headings", () => {
     render(<AccessGroups groups={[{ key: "x", label: "Assigned", territories: [] }]} onManage={vi.fn()} />);
     expect(screen.getByText("No territories match this filter.")).toBeInTheDocument();
+    expect(screen.getByText("Loosen the filter to see more territories.")).toBeInTheDocument();
     expect(screen.queryByRole("region")).not.toBeInTheDocument();
+  });
+
+  it("drops the loosen-the-filter line when the caller worded the empty list itself", () => {
+    render(
+      <AccessGroups groups={[]} onManage={vi.fn()} emptyHint="No territories yet — upload one to start." />,
+    );
+    expect(screen.getByText("No territories yet — upload one to start.")).toBeInTheDocument();
+    expect(screen.queryByText(/Loosen the filter/)).not.toBeInTheDocument();
   });
 });

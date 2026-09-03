@@ -37,8 +37,8 @@ const USERS = [
     email: "k@x",
     username: "k.petrov",
     status: "active",
-    roleSlugs: [],
-    roleTitles: {},
+    roleSlugs: ["guest"],
+    roleTitles: { guest: "Guest" },
     permissions: [],
     isOwner: false,
     totpRequired: false,
@@ -112,7 +112,7 @@ describe("useTerritoryAccess", () => {
     expect(result.current.dirty).toBe(false);
   });
 
-  it("offers as candidates only active accounts not in the draft", async () => {
+  it("offers as candidates only self-keyed active accounts not in the draft", async () => {
     const { result } = renderHook(() => useTerritoryAccess(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
     act(() => result.current.select("t-1"));
