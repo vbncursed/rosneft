@@ -392,6 +392,9 @@ type Login2FARequest struct {
 
 	// Code TOTP or recovery code
 	Code string `json:"code"`
+
+	// Remember the choice made at step one, repeated — the gateway keeps no state between the two calls
+	Remember *bool `json:"remember,omitempty"`
 }
 
 // LoginRequest defines model for LoginRequest.
@@ -399,6 +402,9 @@ type LoginRequest struct {
 	// Identifier email or username
 	Identifier string `json:"identifier"`
 	Password   string `json:"password"`
+
+	// Remember false issues a browser-session cookie (no Max-Age) that dies when the browser closes; true or absent keeps today's persistent cookie
+	Remember *bool `json:"remember,omitempty"`
 }
 
 // LoginResponse defines model for LoginResponse.
