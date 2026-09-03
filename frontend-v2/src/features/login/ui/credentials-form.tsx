@@ -21,10 +21,9 @@ export type CredentialsFormProps = {
   password: string;
   onPasswordChange: (value: string) => void;
   /**
-   * Absent while nothing acts on it. The gateway's LoginRequest carries no
-   * such field and the session cookie is a fixed 720 hours, so a checkbox
-   * claiming to limit exposure on a shared machine would be a lie — worse
-   * than no control at all. Optional for the same reason `onPasskey` is.
+   * "Keep me signed in on this device". Unticked, the gateway issues a
+   * browser-session cookie that dies with the browser. Optional for the same
+   * reason `onPasskey` is: a fixture may show the form without the control.
    */
   remember?: boolean;
   onRememberChange?: (value: boolean) => void;

@@ -44,7 +44,38 @@ describe("useLogin", () => {
     act(() => result.current.twoFactor!.onCodeChange("402913"));
     act(() => result.current.twoFactor!.onSubmit());
 
-    await waitFor(() => expect(verifyTwoFactor).toHaveBeenCalledWith("chal-1", "402913"));
+    await waitFor(() => expect(verifyTwoFactor).toHaveBeenCalledWith("chal-1", "402913", true));
+  });
+
+  // The mock draws the box ticked: a fresh screen keeps the user signed in
+  // unless they say otherwise.
+  it("keeps the user signed in by default", async () => {
+    vi.mocked(login).mockResolvedValue({ twoFactorRequired: false, challengeToken: "" });
+    const { result } = renderHook(() => useLogin());
+
+    expect(result.current.credentials.remember).toBe(true);
+    act(() => result.current.credentials.onSubmit());
+
+    await waitFor(() => expect(login).toHaveBeenCalledWith("", "", true));
+  });
+
+  // Unticked must travel through both steps — the cookie that matters is the
+  // one step two sets.
+  it("carries an unticked choice through the second factor", async () => {
+    vi.mocked(login).mockResolvedValue({ twoFactorRequired: true, challengeToken: "chal-1" });
+    vi.mocked(verifyTwoFactor).mockResolvedValue(undefined);
+    const { result } = renderHook(() => useLogin());
+
+    act(() => result.current.credentials.onRememberChange!(false));
+    act(() => result.current.credentials.onSubmit());
+    // Wait on the step, not on the call: login() is invoked synchronously, so
+    // waiting on it resolves before the .then() that sets `twoFactor` has run.
+    await waitFor(() => expect(result.current.step).toBe("two-factor"));
+    expect(login).toHaveBeenCalledWith("", "", false);
+
+    act(() => result.current.twoFactor!.onCodeChange("402913"));
+    act(() => result.current.twoFactor!.onSubmit());
+    await waitFor(() => expect(verifyTwoFactor).toHaveBeenCalledWith("chal-1", "402913", false));
   });
 
   it("surfaces a wrong password without leaving the step", async () => {

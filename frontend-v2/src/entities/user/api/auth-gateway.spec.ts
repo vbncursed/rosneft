@@ -25,7 +25,7 @@ describe("auth gateway", () => {
       ),
     );
 
-    const r = await login("a.ivanova", "pw");
+    const r = await login("a.ivanova", "pw", true);
 
     expect(r.twoFactorRequired).toBe(true);
     expect(r.challengeToken).toBe("chal-1");
@@ -40,7 +40,7 @@ describe("auth gateway", () => {
       ),
     );
 
-    await login("a.ivanova", "pw");
+    await login("a.ivanova", "pw", true);
 
     expect(isAuthed()).toBe(true);
   });
@@ -51,9 +51,29 @@ describe("auth gateway", () => {
       vi.fn().mockResolvedValue(jsonResponse(200, { token: "t", csrfToken: "c" })),
     );
 
-    await verifyTwoFactor("chal-1", "402913");
+    await verifyTwoFactor("chal-1", "402913", true);
 
     expect(isAuthed()).toBe(true);
+  });
+
+  // The choice must reach the gateway on both calls: it keeps no state between
+  // them, and the cookie it sets on step two is the one that has to be a
+  // browser-session cookie when the box was unticked.
+  it("sends the remember choice on both steps", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(200, { twoFactorRequired: true, challengeToken: "chal-1" }),
+      )
+      .mockResolvedValueOnce(jsonResponse(200, { token: "t", csrfToken: "c" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await login("a.ivanova", "pw", false);
+    await verifyTwoFactor("chal-1", "402913", false);
+
+    const bodies = fetchMock.mock.calls.map(([, init]) => JSON.parse(init.body as string));
+    expect(bodies[0]).toEqual({ identifier: "a.ivanova", password: "pw", remember: false });
+    expect(bodies[1]).toEqual({ challengeToken: "chal-1", code: "402913", remember: false });
   });
 
   // The server call is what actually revokes the session; dropping the marker
