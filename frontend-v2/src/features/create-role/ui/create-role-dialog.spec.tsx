@@ -51,6 +51,13 @@ describe("CreateRoleDialog", () => {
     });
   });
 
+  it("does not create a role when Enter is pressed while the title is blank", async () => {
+    const onCreate = vi.fn();
+    render(<CreateRoleDialog {...props({ onCreate })} />);
+    await userEvent.type(screen.getByLabelText("Title"), "{Enter}");
+    expect(onCreate).not.toHaveBeenCalled();
+  });
+
   it("shows the confirm button loading while busy", () => {
     render(<CreateRoleDialog {...props({ busy: true })} />);
     expect(screen.getByRole("button", { name: "Create role" }).getAttribute("aria-busy")).toBe(

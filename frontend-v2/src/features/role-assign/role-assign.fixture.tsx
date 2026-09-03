@@ -22,15 +22,17 @@ function AddRoleWithOptions() {
   return (
     <>
       <Button onClick={() => setOpen(true)}>+ add role</Button>
-      <AddRoleDialog
-        open={open}
-        options={[
-          { slug: "field-operator", title: "field-operator" },
-          { slug: "auditor", title: "auditor" },
-        ]}
-        onClose={() => setOpen(false)}
-        onAdd={() => setOpen(false)}
-      />
+      {open && (
+        <AddRoleDialog
+          open={open}
+          options={[
+            { slug: "field-operator", title: "field-operator" },
+            { slug: "auditor", title: "auditor" },
+          ]}
+          onClose={() => setOpen(false)}
+          onAdd={() => setOpen(false)}
+        />
+      )}
     </>
   );
 }
@@ -40,7 +42,9 @@ function AddRoleExhausted() {
   return (
     <>
       <Button onClick={() => setOpen(true)}>+ add role (none left)</Button>
-      <AddRoleDialog open={open} options={[]} onClose={() => setOpen(false)} onAdd={() => {}} />
+      {open && (
+        <AddRoleDialog open={open} options={[]} onClose={() => setOpen(false)} onAdd={() => {}} />
+      )}
     </>
   );
 }

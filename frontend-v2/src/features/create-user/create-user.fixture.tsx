@@ -15,12 +15,14 @@ function Live() {
       <Button variant="primary" onClick={() => setOpen(true)}>
         + New user
       </Button>
-      <CreateUserDialog
-        open={open}
-        roles={ROLES}
-        onClose={() => setOpen(false)}
-        onCreate={() => setOpen(false)}
-      />
+      {open && (
+        <CreateUserDialog
+          open={open}
+          roles={ROLES}
+          onClose={() => setOpen(false)}
+          onCreate={() => setOpen(false)}
+        />
+      )}
     </>
   );
 }

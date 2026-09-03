@@ -50,6 +50,27 @@ describe("CreateUserDialog", () => {
     });
   });
 
+  it("removes a role's slug once it is unticked again", async () => {
+    const onCreate = vi.fn();
+    render(<CreateUserDialog {...props({ onCreate })} />);
+
+    await userEvent.type(screen.getByLabelText("Email"), "a.ivanova@rosneft.test");
+    await userEvent.type(screen.getByLabelText("Username"), "a.ivanova");
+    await userEvent.type(screen.getByLabelText(/^Password/), "s3cret!");
+    const guest = screen.getByRole("checkbox", { name: "guest" });
+    await userEvent.click(guest);
+    await userEvent.click(guest);
+    await userEvent.click(screen.getByRole("button", { name: "Create user" }));
+
+    expect(onCreate).toHaveBeenCalledWith(expect.objectContaining({ roleSlugs: [] }));
+  });
+
+  it("renders no role group at all when there are no roles to grant", () => {
+    render(<CreateUserDialog {...props({ roles: [] })} />);
+    expect(screen.queryByRole("group")).not.toBeInTheDocument();
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+  });
+
   it("submits no roles when none were ticked", async () => {
     const onCreate = vi.fn();
     render(<CreateUserDialog {...props({ onCreate })} />);

@@ -86,6 +86,15 @@ describe("Modal", () => {
     expect(screen.getByRole("dialog").className).toContain("border-bad");
   });
 
+  it("does not clip a floating child such as an open Dropdown list", () => {
+    render(
+      <Modal open onClose={() => {}} title="Add role">
+        <p>body</p>
+      </Modal>,
+    );
+    expect(screen.getByRole("dialog").className).toContain("overflow-visible");
+  });
+
   it("hosts extra controls between the description and the footer", async () => {
     render(
       <Modal
