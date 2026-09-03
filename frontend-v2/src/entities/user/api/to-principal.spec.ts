@@ -43,4 +43,15 @@ describe("toPrincipal", () => {
     expect(p.roleSlugs).toEqual(["ghost"]);
     expect(p.roleTitles.ghost).toBeUndefined();
   });
+
+  // The OpenAPI schema says these are always arrays, but a Go nil slice
+  // marshals to JSON `null`, and the gateway sends exactly that for an owner
+  // who holds no roles (an empty `roleSlugs`/`permissions` column). guard.ts's
+  // viewerOf reads roleSlugs[0], so a bare pass-through here crashes the
+  // console shell for Root on login.
+  it("defaults a null roleSlugs and permissions to empty arrays", () => {
+    const p = toPrincipal(dto({ roleSlugs: null, permissions: null, isOwner: true }) as never);
+    expect(p.roleSlugs).toEqual([]);
+    expect(p.permissions).toEqual([]);
+  });
 });

@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { Principal } from "@/shared/session";
-import { consoleLanding, redirectTarget } from "./guard";
+import {
+  activeSection,
+  consoleLanding,
+  consoleNav,
+  isConsoleHref,
+  redirectTarget,
+  screenAllowed,
+  viewerOf,
+} from "./guard";
 
 describe("redirectTarget", () => {
   // Where the user was headed is carried through, query string included: a
@@ -75,5 +83,49 @@ describe("consoleLanding", () => {
   // no console screen at all. Sending it somewhere would be a lie.
   it("answers null when no console screen is open to the caller", () => {
     expect(consoleLanding(principal({ permissions: ["territory:read"] }))).toBeNull();
+  });
+});
+
+describe("screenAllowed", () => {
+  it("opens a screen to the grant that names it and to an owner", () => {
+    expect(screenAllowed(principal({ permissions: ["roles:read"] }), "/console/roles")).toBe(true);
+    expect(screenAllowed(principal({ permissions: ["roles:read"] }), "/console/users")).toBe(false);
+    expect(screenAllowed(principal({ isOwner: true, permissions: [] }), "/console/metrics")).toBe(true);
+  });
+});
+
+describe("consoleNav", () => {
+  // Every screen is listed so the reader learns what the console has; the
+  // ones they cannot open are marked rather than hidden.
+  it("lists every screen in navigation order and disables the closed ones", () => {
+    const items = consoleNav(principal({ permissions: ["audit:read"] }));
+    expect(items.map((i) => i.key)).toEqual(["users", "roles", "content", "access", "audit", "metrics"]);
+    expect(items.find((i) => i.key === "audit")?.disabled).toBeUndefined();
+    expect(items.find((i) => i.key === "users")?.disabled).toBe(true);
+    expect(items.find((i) => i.key === "users")?.href).toBe("/console/users");
+  });
+});
+
+describe("activeSection", () => {
+  it("names the section from the path, deep links included", () => {
+    expect(activeSection("/console/roles")).toBe("roles");
+    expect(activeSection("/console/audit/123")).toBe("audit");
+    expect(activeSection("/console")).toBe("");
+  });
+});
+
+describe("viewerOf", () => {
+  it("shows the first role's title, Root for an owner without roles, and a dash otherwise", () => {
+    expect(viewerOf(principal({ roleSlugs: ["admin"], roleTitles: { admin: "Company Owner" } })).roleTitle).toBe("Company Owner");
+    expect(viewerOf(principal({ isOwner: true, roleSlugs: [] })).roleTitle).toBe("Root");
+    expect(viewerOf(principal({ roleSlugs: [] })).roleTitle).toBe("—");
+  });
+});
+
+describe("isConsoleHref", () => {
+  it("claims console paths and nothing else", () => {
+    expect(isConsoleHref("/console/users")).toBe(true);
+    expect(isConsoleHref("/")).toBe(false);
+    expect(isConsoleHref("https://example.com/console")).toBe(false);
   });
 });
