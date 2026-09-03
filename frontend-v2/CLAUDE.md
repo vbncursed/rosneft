@@ -78,6 +78,11 @@ every mutation on these screens calls `refresh()`. Deriving "unavailable" from
 Ask `data === undefined` instead: `shared/lib/unanswered`, which both
 container hooks use.
 
+**`ConversionStatus` `pending` means "no artifacts", not "converting".** v2
+starts no jobs — there is no upload form here yet — so nothing on the Content
+screen ever shows `converting`; a never-converted upload and a conversion in
+flight look the same from the catalog.
+
 **A Company Owner is absent from its own `/api/auth/users`.** auth-service
 filters the list on `created_by`, so the account that created the company is
 not in it — a role only owners hold counts "0 users" and its holder never
@@ -189,13 +194,24 @@ header and the 401 bounce; `shared/session` holds the marker and the
 and `meQuery`; `app/router` is the route tree and the guard; `app/query` the
 query client.
 
-**Users and Roles are live.** Each is a container hook in `pages/*/model`
-(`useUsers`, `useRoles`) that owns the queries, the mutations and the UI state,
-a `*-screen.tsx` that maps it onto the props-only page and draws the dialogs
-beside it, and a pure module (`people.ts`, `roles-view.ts`) holding every
-decision. Outcomes report through `shared/lib/notify`; `ConsoleShell` mounts
-the Toaster once, around the whole console. Copy that split rather than
-re-deriving it — the remaining screens are meant to look the same.
+**Users, Roles, Content and Territory access are live.** Each is a container
+hook in `pages/*/model` (`useUsers`, `useRoles`, `useContent`,
+`useTerritoryAccess`) that owns the queries, the mutations and the UI state, a
+`*-screen.tsx` that maps it onto the props-only page and draws the dialogs
+beside it, and a pure module (`people.ts`, `roles-view.ts`, `catalog.ts`,
+`access-view.ts`) holding every decision. Outcomes report through
+`shared/lib/notify`; `ConsoleShell` mounts the Toaster once, around the whole
+console. Copy that split rather than re-deriving it — the remaining screens
+are meant to look the same.
+
+**Content** is two lists plus one artifacts query per row, and a row's status
+is read off its artifacts — so the screen is ready only when every one of them
+has answered; guessing would print "pending" for something merely still
+loading. **Territory access** is the territories list, the users list and one
+admins query per territory; visibility is derived (anyone assigned →
+`assigned`, nobody → `private`), every grant is `direct`, drafts are kept per
+slug so switching territories loses no edit, and Save is one PUT of the whole
+set followed by invalidating that territory's admins query alone.
 
 Rulings from those two screens that a later one will meet again:
 
@@ -212,6 +228,12 @@ Rulings from those two screens that a later one will meet again:
   reads "— users" and the distribution meter "unavailable". A disabled query
   stays `isPending` forever, so `isLoading` is what "loading" asks — otherwise
   a non-reader waits on a spinner that never resolves.
+- **Controls the mocks draw but nothing wires are not drawn.** No replace-source
+  for a model (no gateway route), no cancel-job (none either), no visibility
+  switch on the access inspector (`assigned`/`company`/`private` is derived
+  from the admins list, and the gateway has no visibility field), no bulk
+  assign (the admins PUT is per territory). Both widgets take those props
+  optionally; the screen simply passes none.
 - **The draft is the inspector's truth until saved.** `dirty` is computed
   against the role as the gateway last returned it, so a successful save clears
   it by the refetch alone and a refusal leaves the edits on screen to retry.
@@ -226,11 +248,11 @@ users page that 403s.
 
 ## Not done yet
 
-**Four console screens are still placeholders** — Content, Territory access,
-Audit and Metrics each render a one-line `<p>`. The pages exist under `pages/*`
-and take props, but nothing fetches for them yet; each is its own plan, and
-each reuses the shell, the toaster, the gate and the container/pure/screen
-split that Users and Roles established.
+**Two console screens are still placeholders** — Audit and Metrics each render
+a one-line `<p>`. The pages exist under `pages/*` and take props, but nothing
+fetches for them yet; each is its own plan, and each reuses the shell, the
+toaster, the gate and the container/pure/screen split that Users, Roles,
+Content and Territory access established.
 
 **Passkey sign-in is unwired, deliberately.** `CredentialsForm` draws the
 button only when handed `onPasskey`, and `useLogin` does not hand it one: the
