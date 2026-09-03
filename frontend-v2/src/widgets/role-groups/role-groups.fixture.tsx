@@ -9,7 +9,7 @@ const role = (
   grants: number,
   users: number,
   updated: string,
-): Role => ({ slug, title, kind, grants, users, updated });
+): Role => ({ slug, title, kind, permissionSlugs: [], grants, users, updated });
 
 const GROUPS: RoleGroup[] = [
   {

@@ -3,10 +3,12 @@ export type Role = {
   slug: string;
   title: string;
   kind: "system" | "custom";
+  /** What it grants, as the gateway names them ("users:write"). */
+  permissionSlugs: string[];
   /** How many permissions of `total` this role grants. */
   grants: number;
-  /** People holding it. */
-  users: number;
+  /** People holding it — null when the people list is not readable by this actor. */
+  users: number | null;
   /** Free-form, e.g. "upd. 29.08" or "immutable". */
   updated: string;
 };
@@ -25,5 +27,6 @@ export function grantShare(role: Role, total: number): number {
 /** "6/15" — what the meter's caption reads. */
 export const grantLabel = (role: Role, total: number) => `${role.grants}/${total}`;
 
-/** "1 user" / "11 users". */
-export const usersLabel = (role: Role) => `${role.users} ${role.users === 1 ? "user" : "users"}`;
+/** "1 user" / "11 users" / "— users" when the count could not be read. */
+export const usersLabel = (role: Role) =>
+  role.users === null ? "— users" : `${role.users} ${role.users === 1 ? "user" : "users"}`;

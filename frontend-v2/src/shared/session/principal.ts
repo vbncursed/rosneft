@@ -33,3 +33,13 @@ export type Principal = {
 /** Owners are the root of trust and may do anything, mirroring the gateway. */
 export const can = (p: Principal | null, permission: string): boolean =>
   !!p && (p.isOwner || p.permissions.includes(permission));
+
+/**
+ * Which permissions this principal may hand out. Mirrors the backend's
+ * no-escalation rule so the matrix never offers a grant the gateway would
+ * refuse: an owner may grant anything, everyone else exactly what they hold.
+ */
+export const grantableSlugs = (
+  me: Principal | null,
+  permissions: readonly { slug: string }[],
+): Set<string> => new Set(permissions.map((p) => p.slug).filter((slug) => can(me, slug)));
