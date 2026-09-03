@@ -22,10 +22,16 @@ func (s *Service) SoftDelete(ctx context.Context, actorID string, scopeAll bool,
 	return s.sessions.DeleteUser(ctx, id)
 }
 
-// Restore reactivates a soft-deleted account (owner scope).
+// Restore reactivates a soft-deleted account (owner scope). Self-target is
+// only unreachable in practice because SoftDelete evicts the actor's own
+// sessions first — that is an accident of ordering, not a guarantee, so it is
+// checked here directly too.
 func (s *Service) Restore(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error) {
 	if _, err := s.ownership(ctx, actorID, scopeAll, id); err != nil {
 		return domain.User{}, err
+	}
+	if actorID == id {
+		return domain.User{}, domain.ErrSelfTarget
 	}
 	return s.store.SetStatus(ctx, id, domain.StatusActive, nil)
 }
