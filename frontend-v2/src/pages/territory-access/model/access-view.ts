@@ -105,11 +105,16 @@ export function statsOf(
 export const sameSet = (a: string[], b: string[]): boolean =>
   a.length === b.length && a.every((x) => b.includes(x));
 
-/** Whoever could still be added: active accounts not already in the draft. */
+/**
+ * Whoever could still be added: active accounts not already in the draft.
+ * An owner is left out — it already opens every territory, so granting one
+ * changes no access while flipping the row to "Shared" and inflating the
+ * "People with access" count.
+ */
 export function candidatesOf(users: User[], draftIds: string[]): PersonOption[] {
   const taken = new Set(draftIds);
   return users
-    .filter((u) => u.status === "active" && !taken.has(u.id))
+    .filter((u) => u.status === "active" && !u.isOwner && !taken.has(u.id))
     .map((u) => {
       const first = u.roleSlugs[0];
       return { id: u.id, username: u.username, ...(first ? { hint: roleTitle(u, first) } : {}) };

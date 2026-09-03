@@ -46,6 +46,8 @@ export type TerritoryAccessPageProps = {
 
   onBulkAssign?: () => void;
   canManage?: boolean;
+  /** What the list says when it is empty — a filter miss by default. */
+  emptyHint?: string;
 };
 
 const FILTER_PLACEHOLDER = "filter: visibility:assigned person:d.smirnov";
@@ -68,6 +70,7 @@ export function TerritoryAccessPage({
   onSave,
   onBulkAssign,
   canManage = true,
+  emptyHint,
 }: TerritoryAccessPageProps) {
   return (
     <>
@@ -113,7 +116,12 @@ export function TerritoryAccessPage({
       />
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(420px,1fr)_minmax(300px,380px)]">
-        <AccessGroups groups={groups} selectedSlug={selectedSlug} onManage={onManage} />
+        <AccessGroups
+          groups={groups}
+          selectedSlug={selectedSlug}
+          onManage={onManage}
+          {...(emptyHint ? { emptyHint } : {})}
+        />
 
         {managed ? (
           // Sticky so the panel stays put while the list scrolls behind it.

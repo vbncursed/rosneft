@@ -144,6 +144,44 @@ describe("useTerritoryAccess", () => {
     ).toHaveLength(1);
   });
 
+  it("keeps the saved draft on screen until the refetch lands", async () => {
+    let release: () => void = () => {};
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const base = fetchMock.getMockImplementation() as (u: string, i?: RequestInit) => Promise<Response>;
+    let refetches = 0;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url === "/api/territories/t-1/admins" && (init?.method ?? "GET") === "GET") {
+        refetches += 1;
+        if (refetches > 1) {
+          await held;
+          return json({ userIds: ["u-1", "u-2"] });
+        }
+      }
+      return base(url, init);
+    });
+
+    const { result } = renderHook(() => ({ s: useTerritoryAccess(), notices: useNotices() }), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.s.status).toBe("ready"));
+    act(() => result.current.s.select("t-1"));
+    act(() => result.current.s.add("u-2"));
+    act(() => result.current.s.save());
+    await waitFor(() => expect(result.current.notices[0]?.message).toBe("Access saved"));
+    // The refetch is still in flight: the panel must not fall back to the
+    // pre-save set, or an edit made now would build on it and the next PUT
+    // would drop the grant just saved.
+    expect(result.current.s.draft.map((g) => g.userId)).toEqual(["u-1", "u-2"]);
+    await act(async () => {
+      release();
+      await held;
+    });
+    await waitFor(() => expect(result.current.s.dirty).toBe(false));
+    expect(result.current.s.draft.map((g) => g.userId)).toEqual(["u-1", "u-2"]);
+  });
+
   it("does nothing on save when nothing changed", async () => {
     const { result } = renderHook(() => useTerritoryAccess(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));

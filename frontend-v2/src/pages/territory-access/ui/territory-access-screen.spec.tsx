@@ -104,4 +104,10 @@ describe("TerritoryAccessScreen", () => {
     await userEvent.click(within(aside).getByRole("button", { name: "Close" }));
     expect(s.select).toHaveBeenCalledWith(null);
   });
+
+  it("says the catalog is empty rather than blaming the filter", () => {
+    useTerritoryAccess.mockReturnValue(state({ territories: [], adminsBySlug: {} }));
+    render(<TerritoryAccessScreen />);
+    expect(screen.getByText("No territories yet — upload one to start.")).toBeInTheDocument();
+  });
 });
