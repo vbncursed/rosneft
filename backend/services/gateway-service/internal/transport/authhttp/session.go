@@ -7,7 +7,12 @@ import "net/http"
 // touches it.
 
 func (h *Handlers) login(w http.ResponseWriter, r *http.Request) {
-	var req struct{ Identifier, Password string }
+	var req struct {
+		Identifier, Password string
+		// nil is "not sent": frontend/ and the desktop shell predate the field
+		// and keep their persistent cookie. Only an explicit false opts out.
+		Remember *bool
+	}
 	if !decode(w, r, &req) {
 		return
 	}
@@ -21,7 +26,7 @@ func (h *Handlers) login(w http.ResponseWriter, r *http.Request) {
 	// session token exists, which for the 2FA path happens in login2FA.
 	if token != "" {
 		h.recordLogin(r, "auth.login", token)
-		h.setSession(w, token)
+		h.setSession(w, token, persist(req.Remember))
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"token": token, "twoFactorRequired": twoFA, "challengeToken": challenge,
@@ -31,7 +36,14 @@ func (h *Handlers) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) login2FA(w http.ResponseWriter, r *http.Request) {
-	var req struct{ ChallengeToken, Code string }
+	// Remember is repeated here: the gateway keeps nothing between the two
+	// calls, and the challenge token is auth-service state carrying only a
+	// user id. The client already holds the choice; sending it twice is cheaper
+	// than teaching another service a cookie preference.
+	var req struct {
+		ChallengeToken, Code string
+		Remember             *bool
+	}
 	if !decode(w, r, &req) {
 		return
 	}
@@ -42,9 +54,13 @@ func (h *Handlers) login2FA(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.recordLogin(r, "auth.login_2fa", token)
-	h.setSession(w, token)
+	h.setSession(w, token, persist(req.Remember))
 	writeJSON(w, http.StatusOK, map[string]any{"token": token, "csrfToken": h.CSRFToken(token)})
 }
+
+// persist reads the optional remember field: absent means the persistent
+// cookie every client got before the field existed.
+func persist(remember *bool) bool { return remember == nil || *remember }
 
 func (h *Handlers) logout(w http.ResponseWriter, r *http.Request) {
 	// Cleared BEFORE the revocation call, and unconditionally.
