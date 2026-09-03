@@ -3,12 +3,14 @@ import type { ConversionStatus } from "../model/status";
 
 const TONE = {
   ready: "ok",
+  pending: "neutral",
   converting: "warn",
   failed: "bad",
 } as const;
 
 const LABEL: Record<ConversionStatus, string> = {
   ready: "ready",
+  pending: "pending",
   converting: "converting",
   failed: "failed",
 };

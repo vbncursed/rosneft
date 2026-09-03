@@ -1,5 +1,9 @@
-/** Where a source upload has got to on its way to a viewable GLB. */
-export type ConversionStatus = "ready" | "converting" | "failed";
+/**
+ * Where a source upload has got to on its way to a viewable GLB. `pending`
+ * is the honest word for "no artifacts and no job we know of": the catalog
+ * cannot tell a never-converted row from a failed one, and v2 starts no jobs.
+ */
+export type ConversionStatus = "ready" | "pending" | "converting" | "failed";
 
 export type ConversionState = {
   status: ConversionStatus;

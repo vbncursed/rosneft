@@ -73,6 +73,7 @@ export function matchesText(item: ContentItem, text: string): boolean {
 export function pipelineCounts(items: ContentItem[]) {
   return {
     ready: items.filter((i) => i.status === "ready").length,
+    pending: items.filter((i) => i.status === "pending").length,
     converting: items.filter((i) => i.status === "converting").length,
     failed: items.filter((i) => i.status === "failed").length,
   };

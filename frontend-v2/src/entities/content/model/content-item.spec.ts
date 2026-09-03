@@ -94,10 +94,15 @@ describe("pipelineCounts", () => {
   it("splits the catalog by conversion state", () => {
     expect(
       pipelineCounts([item(), item({ status: "converting" }), item({ status: "failed" }), item()]),
-    ).toEqual({ ready: 2, converting: 1, failed: 1 });
+    ).toEqual({ ready: 2, pending: 0, converting: 1, failed: 1 });
   });
 
   it("counts an empty catalog as zero everywhere", () => {
-    expect(pipelineCounts([])).toEqual({ ready: 0, converting: 0, failed: 0 });
+    expect(pipelineCounts([])).toEqual({ ready: 0, pending: 0, converting: 0, failed: 0 });
+  });
+
+  it("counts the never-converted rows apart from the converting ones", () => {
+    const counts = pipelineCounts([item({ status: "pending" }), item({ status: "ready" })]);
+    expect(counts).toEqual({ ready: 1, pending: 1, converting: 0, failed: 0 });
   });
 });

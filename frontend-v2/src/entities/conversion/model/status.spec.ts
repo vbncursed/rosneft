@@ -27,6 +27,10 @@ describe("trailingNote", () => {
   it("stays silent on failure — the badge already carries that", () => {
     expect(trailingNote({ status: "failed" })).toBeUndefined();
   });
+
+  it("says nothing before a conversion has been asked for", () => {
+    expect(trailingNote({ status: "pending" })).toBeUndefined();
+  });
 });
 
 describe("jobProgress", () => {

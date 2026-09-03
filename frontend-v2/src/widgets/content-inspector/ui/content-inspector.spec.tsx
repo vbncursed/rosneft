@@ -119,4 +119,11 @@ describe("ContentInspector", () => {
     expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
   });
+
+  it("draws Replace source and Delete only when handed a handler", () => {
+    render(<ContentInspector {...props({ onReplaceSource: undefined, onDelete: undefined })} />);
+    expect(screen.queryByRole("button", { name: "Replace source" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open in viewer" })).toBeInTheDocument();
+  });
 });

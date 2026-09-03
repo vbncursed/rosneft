@@ -24,4 +24,9 @@ describe("ConversionBadge", () => {
     rerender(<ConversionBadge status="failed" />);
     expect(screen.getByText("failed").className).toContain("text-bad");
   });
+
+  it("draws a pending badge in the neutral tone", () => {
+    render(<ConversionBadge status="pending" />);
+    expect(screen.getByText("pending")).toBeInTheDocument();
+  });
 });
