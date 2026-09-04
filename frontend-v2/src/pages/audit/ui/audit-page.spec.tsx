@@ -129,6 +129,19 @@ describe("AuditPage", () => {
     expect(notice.compareDocumentPosition(filter) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  // The slot is the live region, not the notice: a region inserted along with
+  // its own first content is announced inconsistently, so it has to be in the
+  // DOM before there is anything to say.
+  it("keeps the notice slot as a live region with nothing in it", () => {
+    render(<AuditPage {...props()} />);
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
+
+  it("puts the notice inside that same region", () => {
+    render(<AuditPage {...props()} notice={<p>Nothing here</p>} />);
+    expect(screen.getByRole("status")).toHaveTextContent("Nothing here");
+  });
+
   it("summarises the activity above the journal", () => {
     render(<AuditPage {...props()} />);
     expect(screen.getByRole("img", { name: /Events · last 24h/ })).toBeInTheDocument();
