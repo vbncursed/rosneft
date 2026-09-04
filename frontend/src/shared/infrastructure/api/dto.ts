@@ -2020,7 +2020,7 @@ export interface paths {
             parameters: {
                 query: {
                     /** @description Panel ID from the server-side registry, mirrored by the client's panel-catalog. Instant (single-value) panels return one point per series; the rest are range queries of roughly 200 points. */
-                    panel: "stat-up" | "stat-rps" | "stat-errors" | "stat-p99" | "stat-queue" | "red-rate" | "red-errors" | "red-latency" | "red-http" | "domain-conversions" | "domain-conversion-p95" | "domain-queue" | "domain-upload" | "domain-auth" | "domain-twofa" | "runtime-memory" | "runtime-goroutines" | "runtime-gc" | "runtime-fds" | "alerts";
+                    panel: "stat-up" | "stat-rps" | "stat-errors" | "stat-p99" | "stat-queue" | "services-up" | "red-rate" | "red-errors" | "red-latency" | "red-http" | "domain-conversions" | "domain-conversion-p95" | "domain-queue" | "domain-upload" | "domain-auth" | "domain-twofa" | "runtime-memory" | "runtime-goroutines" | "runtime-gc" | "runtime-fds" | "alerts";
                     /** @description Query window. Step is derived server-side (~200 points, rounded to whole 15s scrapes). */
                     range: "15m" | "1h" | "6h" | "24h" | "7d";
                 };

@@ -2245,7 +2245,7 @@ paths:
           schema:
             type: string
             enum:
-              [stat-up, stat-rps, stat-errors, stat-p99, stat-queue,
+              [stat-up, stat-rps, stat-errors, stat-p99, stat-queue, services-up,
                red-rate, red-errors, red-latency, red-http,
                domain-conversions, domain-conversion-p95, domain-queue,
                domain-upload, domain-auth, domain-twofa,
