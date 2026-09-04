@@ -1,5 +1,11 @@
 import { clsx as cx } from "clsx";
-import { StatTile, type ServiceHealth, type StatTileTone } from "@/entities/metric";
+import {
+  METRIC_RANGES,
+  StatTile,
+  type MetricsRange,
+  type ServiceHealth,
+  type StatTileTone,
+} from "@/entities/metric";
 import { FilterBar, type ExtraFilter } from "@/features/audit-filter";
 import { Badge } from "@/shared/ui/badge";
 import { CoverageMeter, type CoverageSegment } from "@/shared/ui/coverage-meter";
@@ -8,7 +14,6 @@ import { AlertInspector, type FiringAlert } from "@/widgets/alert-inspector";
 import { MetricPanels, type MetricSection } from "@/widgets/metric-panels";
 import { PageHeader } from "@/widgets/page-header";
 import { ServiceHealthList } from "@/widgets/service-health";
-import { METRIC_RANGES, type MetricsRange } from "../model/range";
 
 export type MetricsPageStat = {
   label: string;
@@ -103,7 +108,9 @@ export function MetricsPage({
       <div
         className={cx(
           "grid gap-3",
-          budget ? "lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]" : "sm:grid-cols-3",
+          budget
+            ? "lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]"
+            : "sm:grid-cols-2 lg:grid-cols-5",
         )}
       >
         {budget ? (

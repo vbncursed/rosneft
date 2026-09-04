@@ -43,6 +43,11 @@ const ORDER: SeriesTone[] = ["accent", "ok", "bad", "muted", "warn"];
 
 const toneOf = (series: Series, index: number) => series.tone ?? ORDER[index % ORDER.length];
 
+// Keys are positions, not labels: two replicas of one service scrape as two
+// series under the same label, and keying on it collapsed the pair into a
+// single line (with a React warning) on the live dashboard. Position is what
+// identifies a series here anyway — the tone is assigned by it too.
+
 /** The last reading of each series — what a reader would otherwise squint for. */
 function summarise(series: Series[], label: string, unit?: string): string {
   if (series.length === 0) return `${label}: no data`;
@@ -90,7 +95,7 @@ export function LineChart({
         {filled
           ? series.map((s, i) => (
               <path
-                key={`area-${s.label}`}
+                key={`area-${i}`}
                 d={toAreaPath(s.values, max, geo)}
                 fill={FILL[toneOf(s, i)]}
                 stroke="none"
@@ -100,7 +105,7 @@ export function LineChart({
 
         {series.map((s, i) => (
           <path
-            key={`line-${s.label}`}
+            key={`line-${i}`}
             d={toLinePath(s.values, max, geo)}
             fill="none"
             stroke={STROKE[toneOf(s, i)]}
@@ -126,7 +131,7 @@ export function ChartLegend({ series, className }: ChartLegendProps) {
     <div className={cx("flex flex-wrap gap-3", className)}>
       {series.map((s, i) => (
         <span
-          key={s.label}
+          key={i}
           className="flex items-center gap-1.5 font-mono text-[10px] text-muted"
         >
           <span

@@ -5,9 +5,11 @@ import {
   Outlet,
   redirect,
 } from "@tanstack/react-router";
+import { isRange } from "@/entities/metric";
 import { meQuery } from "@/entities/user";
 import { AuditScreen } from "@/pages/audit";
 import { ContentScreen } from "@/pages/content";
+import { MetricsScreen } from "@/pages/metrics";
 import { RolesScreen } from "@/pages/roles";
 import { TerritoryAccessScreen } from "@/pages/territory-access";
 import { UsersScreen } from "@/pages/users";
@@ -118,9 +120,15 @@ export const consoleAuditRoute = createRoute({
   component: AuditScreen,
 });
 
+// The range is a URL parameter so a dashboard can be linked to and reloaded
+// on the window it was read over. Anything else falls back to an hour rather
+// than reaching Prometheus with a window it does not offer.
 export const consoleMetricsRoute = createRoute({
   getParentRoute: () => consoleRoute,
   path: "/metrics",
+  validateSearch: (search: Record<string, unknown>) => ({
+    range: isRange(search.range) ? search.range : ("1h" as const),
+  }),
   loader: gate("/console/metrics"),
-  component: () => <p>Metrics</p>,
+  component: MetricsScreen,
 });
