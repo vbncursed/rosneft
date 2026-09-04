@@ -4,7 +4,7 @@ import {
   alertDetails,
   matchesPanel,
   matchesSection,
-  matchesService,
+  matchesServiceQuery,
   panelEntry,
   servicesHint,
   statsOf,
@@ -42,28 +42,28 @@ const alert = (over: Partial<AlertSummary> = {}): AlertSummary => ({
   ...over,
 });
 
-describe("matchesService", () => {
+describe("matchesServiceQuery", () => {
   it("matches a service:chip against part of the name", () => {
-    expect(matchesService(service(), "service:gate")).toBe(true);
-    expect(matchesService(service({ name: "mesh-worker" }), "service:gate")).toBe(false);
+    expect(matchesServiceQuery(service(), "service:gate")).toBe(true);
+    expect(matchesServiceQuery(service({ name: "mesh-worker" }), "service:gate")).toBe(false);
   });
 
   it("matches state: only against that state", () => {
-    expect(matchesService(service({ state: "down" }), "state:down")).toBe(true);
-    expect(matchesService(service({ state: "up" }), "state:down")).toBe(false);
+    expect(matchesServiceQuery(service({ state: "down" }), "state:down")).toBe(true);
+    expect(matchesServiceQuery(service({ state: "up" }), "state:down")).toBe(false);
   });
 
   it("matches nothing under a key the list cannot answer", () => {
-    expect(matchesService(service(), "entity:territory")).toBe(false);
+    expect(matchesServiceQuery(service(), "entity:territory")).toBe(false);
   });
 
   it("ignores free text — the health list is filtered by its own keys", () => {
-    expect(matchesService(service(), "latency")).toBe(true);
-    expect(matchesService(service({ name: "audit" }), "latency")).toBe(true);
+    expect(matchesServiceQuery(service(), "latency")).toBe(true);
+    expect(matchesServiceQuery(service({ name: "audit" }), "latency")).toBe(true);
   });
 
   it("leaves the whole list alone when a group: chip is all that was typed", () => {
-    expect(matchesService(service(), "group:red")).toBe(true);
+    expect(matchesServiceQuery(service(), "group:red")).toBe(true);
   });
 });
 

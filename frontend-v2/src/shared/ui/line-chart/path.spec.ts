@@ -72,8 +72,13 @@ describe("toLinePath", () => {
   });
 
   it("draws a lone reading between two gaps as a short flat dash, not nothing", () => {
-    const d = toLinePath([null, 5, null, null], 10);
-    expect(d).toMatch(/^M100\.0 \d+\.\d L\d+\.\d \d+\.\d$/);
+    const y = scaleY(5, 10, DEFAULT_GEOMETRY).toFixed(1);
+    expect(toLinePath([null, 5, null, null], 10)).toBe(`M100.0 ${y} L150.0 ${y}`);
+  });
+
+  it("draws the lone dash backwards when the isolated reading is the last value — forwards would clamp to zero length at the right edge", () => {
+    const [y1, y2, y5] = [1, 2, 5].map((v) => scaleY(v, 10, DEFAULT_GEOMETRY).toFixed(1));
+    expect(toLinePath([1, 2, null, 5], 10)).toBe(`M0.0 ${y1} L100.0 ${y2} M300.0 ${y5} L250.0 ${y5}`);
   });
 });
 

@@ -6,7 +6,7 @@ import {
   alertDetails,
   matchesPanel,
   matchesSection,
-  matchesService,
+  matchesServiceQuery,
   panelEntry,
   servicesHint,
   statsOf,
@@ -76,7 +76,7 @@ export function MetricsScreen() {
 
   return (
     <MetricsPage
-      services={s.services.filter((svc) => matchesService(svc, s.query))}
+      services={s.services.filter((svc) => matchesServiceQuery(svc, s.query))}
       sections={SECTIONS.filter((sec) => matchesSection(sec, s.query)).map((sec) => ({
         key: sec.key,
         title: sec.title,
