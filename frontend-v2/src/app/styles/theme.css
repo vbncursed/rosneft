@@ -126,3 +126,12 @@
 dialog::backdrop {
   background: rgb(0 0 0 / 0.55);
 }
+
+/* Scrollbars follow the theme: a thin thumb in the line colour on a
+   transparent track. The colours are the theme variables, so both themes
+   and the [data-theme] override are covered without a second rule. No
+   ::-webkit-scrollbar rules: in Chrome they switch scrollbar-color off. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
