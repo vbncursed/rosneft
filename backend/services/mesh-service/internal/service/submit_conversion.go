@@ -19,6 +19,11 @@ import (
 // created=false — the caller wanted a job to follow, and this is it. A held
 // claim with no live job behind it is a stale lock (a worker that died
 // between its terminal write and the unlock), so the submit goes ahead.
+//
+// The serialisation is not total: between one submitter's successful
+// TryLockTarget and its SaveJob, a concurrent submitter sees the lock held
+// and an empty index, treats it as stale and may queue a second job. The
+// window is one Redis round trip, versus the whole conversion before.
 func (m *Mesh) SubmitConversion(ctx context.Context, kind domain.Kind, slug string) (domain.Job, bool, error) {
 	if kind == domain.KindUnspecified {
 		return domain.Job{}, false, fmt.Errorf("%w: kind is required", domain.ErrInvalidInput)
@@ -57,14 +62,14 @@ func (m *Mesh) SubmitConversion(ctx context.Context, kind domain.Kind, slug stri
 	}
 	saved, err := m.queue.GetJob(ctx, job.ID)
 	if err != nil {
-		return domain.Job{}, false, err
+		return domain.Job{}, false, fmt.Errorf("service.SubmitConversion: get: %w", err)
 	}
 	return saved, true, nil
 }
 
 // liveJob is the target's latest job if it is still pending or running, else
-// nil. Read through the whole index: the contended path is rare and the
-// index is catalog-sized.
+// nil. Read through the whole index: one index read per in-flight target per
+// reconcile tick, and the index is catalog-sized.
 // ponytail: O(catalog) per contended submit; an HGET on the index field if
 // submits ever contend at scale.
 func (m *Mesh) liveJob(ctx context.Context, kind domain.Kind, slug string) (*domain.Job, error) {

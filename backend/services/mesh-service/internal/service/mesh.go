@@ -37,6 +37,10 @@ type Queue interface {
 	// UnlockTarget releases the claim. Failing to call it is not fatal — the
 	// TTL expires — but it delays the next legitimate reconcile.
 	UnlockTarget(ctx context.Context, kind domain.Kind, slug string) error
+
+	// ForgetTarget drops the target's entry from the index. The job hash
+	// stays: a subscriber holding the id must still be able to read it.
+	ForgetTarget(ctx context.Context, kind domain.Kind, slug string) error
 }
 
 // Catalog is the catalog client surface used by ProcessJob and the

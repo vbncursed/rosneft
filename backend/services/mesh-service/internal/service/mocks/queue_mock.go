@@ -27,6 +27,13 @@ type QueueMock struct {
 	beforeEnqueueJobCounter uint64
 	EnqueueJobMock          mQueueMockEnqueueJob
 
+	funcForgetTarget          func(ctx context.Context, kind domain.Kind, slug string) (err error)
+	funcForgetTargetOrigin    string
+	inspectFuncForgetTarget   func(ctx context.Context, kind domain.Kind, slug string)
+	afterForgetTargetCounter  uint64
+	beforeForgetTargetCounter uint64
+	ForgetTargetMock          mQueueMockForgetTarget
+
 	funcGetJob          func(ctx context.Context, id string) (j1 domain.Job, err error)
 	funcGetJobOrigin    string
 	inspectFuncGetJob   func(ctx context.Context, id string)
@@ -73,6 +80,9 @@ func NewQueueMock(t minimock.Tester) *QueueMock {
 
 	m.EnqueueJobMock = mQueueMockEnqueueJob{mock: m}
 	m.EnqueueJobMock.callArgs = []*QueueMockEnqueueJobParams{}
+
+	m.ForgetTargetMock = mQueueMockForgetTarget{mock: m}
+	m.ForgetTargetMock.callArgs = []*QueueMockForgetTargetParams{}
 
 	m.GetJobMock = mQueueMockGetJob{mock: m}
 	m.GetJobMock.callArgs = []*QueueMockGetJobParams{}
@@ -433,6 +443,379 @@ func (m *QueueMock) MinimockEnqueueJobInspect() {
 	if !m.EnqueueJobMock.invocationsDone() && afterEnqueueJobCounter > 0 {
 		m.t.Errorf("Expected %d calls to QueueMock.EnqueueJob at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.EnqueueJobMock.expectedInvocations), m.EnqueueJobMock.expectedInvocationsOrigin, afterEnqueueJobCounter)
+	}
+}
+
+type mQueueMockForgetTarget struct {
+	optional           bool
+	mock               *QueueMock
+	defaultExpectation *QueueMockForgetTargetExpectation
+	expectations       []*QueueMockForgetTargetExpectation
+
+	callArgs []*QueueMockForgetTargetParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// QueueMockForgetTargetExpectation specifies expectation struct of the Queue.ForgetTarget
+type QueueMockForgetTargetExpectation struct {
+	mock               *QueueMock
+	params             *QueueMockForgetTargetParams
+	paramPtrs          *QueueMockForgetTargetParamPtrs
+	expectationOrigins QueueMockForgetTargetExpectationOrigins
+	results            *QueueMockForgetTargetResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// QueueMockForgetTargetParams contains parameters of the Queue.ForgetTarget
+type QueueMockForgetTargetParams struct {
+	ctx  context.Context
+	kind domain.Kind
+	slug string
+}
+
+// QueueMockForgetTargetParamPtrs contains pointers to parameters of the Queue.ForgetTarget
+type QueueMockForgetTargetParamPtrs struct {
+	ctx  *context.Context
+	kind *domain.Kind
+	slug *string
+}
+
+// QueueMockForgetTargetResults contains results of the Queue.ForgetTarget
+type QueueMockForgetTargetResults struct {
+	err error
+}
+
+// QueueMockForgetTargetOrigins contains origins of expectations of the Queue.ForgetTarget
+type QueueMockForgetTargetExpectationOrigins struct {
+	origin     string
+	originCtx  string
+	originKind string
+	originSlug string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmForgetTarget *mQueueMockForgetTarget) Optional() *mQueueMockForgetTarget {
+	mmForgetTarget.optional = true
+	return mmForgetTarget
+}
+
+// Expect sets up expected params for Queue.ForgetTarget
+func (mmForgetTarget *mQueueMockForgetTarget) Expect(ctx context.Context, kind domain.Kind, slug string) *mQueueMockForgetTarget {
+	if mmForgetTarget.mock.funcForgetTarget != nil {
+		mmForgetTarget.mock.t.Fatalf("QueueMock.ForgetTarget mock is already set by Set")
+	}
+
+	if mmForgetTarget.defaultExpectation == nil {
+		mmForgetTarget.defaultExpectation = &QueueMockForgetTargetExpectation{}
+	}
+
+	if mmForgetTarget.defaultExpectation.paramPtrs != nil {
+		mmForgetTarget.mock.t.Fatalf("QueueMock.ForgetTarget mock is already set by ExpectParams functions")
+	}
+
+	mmForgetTarget.defaultExpectation.params = &QueueMockForgetTargetParams{ctx, kind, slug}
+	mmForgetTarget.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmForgetTarget.expectations {
+		if minimock.Equal(e.params, mmForgetTarget.defaultExpectation.params) {
+			mmForgetTarget.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmForgetTarget.defaultExpectation.params)
+		}
+	}
+
+	return mmForgetTarget
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Queue.ForgetTarget
+func (mmForgetTarget *mQueueMockForgetTarget) ExpectCtxParam1(ctx context.Context) *mQueueMockForgetTarget {
+	if mmForgetTarget.mock.funcForgetTarget != nil {
+		mmForgetTarget.mock.t.Fatalf("QueueMock.ForgetTarget mock is already set by Set")
+	}
+
+	if mmForgetTarget.defaultExpectation == nil {
+		mmForgetTarget.defaultExpectation = &QueueMockForgetTargetExpectation{}
+	}
+
+	if mmForgetTarget.defaultExpectation.params != nil {
+		mmForgetTarget.mock.t.Fatalf("QueueMock.ForgetTarget mock is already set by Expect")
+	}
+
+	if mmForgetTarget.defaultExpectation.paramPtrs == nil {
+		mmForgetTarget.defaultExpectation.paramPtrs = &QueueMockForgetTargetParamPtrs{}
+	}
+	mmForgetTarget.defaultExpectation.paramPtrs.ctx = &ctx
+	mmForgetTarget.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmForgetTarget
+}
+
+// ExpectKindParam2 sets up expected param kind for Queue.ForgetTarget
+func (mmForgetTarget *mQueueMockForgetTarget) ExpectKindParam2(kind domain.Kind) *mQueueMockForgetTarget {
+	if mmForgetTarget.mock.funcForgetTarget != nil {
+		mmForgetTarget.mock.t.Fatalf("QueueMock.ForgetTarget mock is already set by Set")
+	}
+
+	if mmForgetTarget.defaultExpectation == nil {
+		mmForgetTarget.defaultExpectation = &QueueMockForgetTargetExpectation{}
+	}
+
+	if mmForgetTarget.defaultExpectation.params != nil {
+		mmForgetTarget.mock.t.Fatalf("QueueMock.ForgetTarget mock is already set by Expect")
+	}
+
+	if mmForgetTarget.defaultExpectation.paramPtrs == nil {
+		mmForgetTarget.defaultExpectation.paramPtrs = &QueueMockForgetTargetParamPtrs{}
+	}
+	mmForgetTarget.defaultExpectation.paramPtrs.kind = &kind
+	mmForgetTarget.defaultExpectation.expectationOrigins.originKind = minimock.CallerInfo(1)
+
+	return mmForgetTarget
+}
+
+// ExpectSlugParam3 sets up expected param slug for Queue.ForgetTarget
+func (mmForgetTarget *mQueueMockForgetTarget) ExpectSlugParam3(slug string) *mQueueMockForgetTarget {
+	if mmForgetTarget.mock.funcForgetTarget != nil {
+		mmForgetTarget.mock.t.Fatalf("QueueMock.ForgetTarget mock is already set by Set")
+	}
+
+	if mmForgetTarget.defaultExpectation == nil {
+		mmForgetTarget.defaultExpectation = &QueueMockForgetTargetExpectation{}
+	}
+
+	if mmForgetTarget.defaultExpectation.params != nil {
+		mmForgetTarget.mock.t.Fatalf("QueueMock.ForgetTarget mock is already set by Expect")
+	}
+
+	if mmForgetTarget.defaultExpectation.paramPtrs == nil {
+		mmForgetTarget.defaultExpectation.paramPtrs = &QueueMockForgetTargetParamPtrs{}
+	}
+	mmForgetTarget.defaultExpectation.paramPtrs.slug = &slug
+	mmForgetTarget.defaultExpectation.expectationOrigins.originSlug = minimock.CallerInfo(1)
+
+	return mmForgetTarget
+}
+
+// Inspect accepts an inspector function that has same arguments as the Queue.ForgetTarget
+func (mmForgetTarget *mQueueMockForgetTarget) Inspect(f func(ctx context.Context, kind domain.Kind, slug string)) *mQueueMockForgetTarget {
+	if mmForgetTarget.mock.inspectFuncForgetTarget != nil {
+		mmForgetTarget.mock.t.Fatalf("Inspect function is already set for QueueMock.ForgetTarget")
+	}
+
+	mmForgetTarget.mock.inspectFuncForgetTarget = f
+
+	return mmForgetTarget
+}
+
+// Return sets up results that will be returned by Queue.ForgetTarget
+func (mmForgetTarget *mQueueMockForgetTarget) Return(err error) *QueueMock {
+	if mmForgetTarget.mock.funcForgetTarget != nil {
+		mmForgetTarget.mock.t.Fatalf("QueueMock.ForgetTarget mock is already set by Set")
+	}
+
+	if mmForgetTarget.defaultExpectation == nil {
+		mmForgetTarget.defaultExpectation = &QueueMockForgetTargetExpectation{mock: mmForgetTarget.mock}
+	}
+	mmForgetTarget.defaultExpectation.results = &QueueMockForgetTargetResults{err}
+	mmForgetTarget.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmForgetTarget.mock
+}
+
+// Set uses given function f to mock the Queue.ForgetTarget method
+func (mmForgetTarget *mQueueMockForgetTarget) Set(f func(ctx context.Context, kind domain.Kind, slug string) (err error)) *QueueMock {
+	if mmForgetTarget.defaultExpectation != nil {
+		mmForgetTarget.mock.t.Fatalf("Default expectation is already set for the Queue.ForgetTarget method")
+	}
+
+	if len(mmForgetTarget.expectations) > 0 {
+		mmForgetTarget.mock.t.Fatalf("Some expectations are already set for the Queue.ForgetTarget method")
+	}
+
+	mmForgetTarget.mock.funcForgetTarget = f
+	mmForgetTarget.mock.funcForgetTargetOrigin = minimock.CallerInfo(1)
+	return mmForgetTarget.mock
+}
+
+// When sets expectation for the Queue.ForgetTarget which will trigger the result defined by the following
+// Then helper
+func (mmForgetTarget *mQueueMockForgetTarget) When(ctx context.Context, kind domain.Kind, slug string) *QueueMockForgetTargetExpectation {
+	if mmForgetTarget.mock.funcForgetTarget != nil {
+		mmForgetTarget.mock.t.Fatalf("QueueMock.ForgetTarget mock is already set by Set")
+	}
+
+	expectation := &QueueMockForgetTargetExpectation{
+		mock:               mmForgetTarget.mock,
+		params:             &QueueMockForgetTargetParams{ctx, kind, slug},
+		expectationOrigins: QueueMockForgetTargetExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmForgetTarget.expectations = append(mmForgetTarget.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Queue.ForgetTarget return parameters for the expectation previously defined by the When method
+func (e *QueueMockForgetTargetExpectation) Then(err error) *QueueMock {
+	e.results = &QueueMockForgetTargetResults{err}
+	return e.mock
+}
+
+// Times sets number of times Queue.ForgetTarget should be invoked
+func (mmForgetTarget *mQueueMockForgetTarget) Times(n uint64) *mQueueMockForgetTarget {
+	if n == 0 {
+		mmForgetTarget.mock.t.Fatalf("Times of QueueMock.ForgetTarget mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmForgetTarget.expectedInvocations, n)
+	mmForgetTarget.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmForgetTarget
+}
+
+func (mmForgetTarget *mQueueMockForgetTarget) invocationsDone() bool {
+	if len(mmForgetTarget.expectations) == 0 && mmForgetTarget.defaultExpectation == nil && mmForgetTarget.mock.funcForgetTarget == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmForgetTarget.mock.afterForgetTargetCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmForgetTarget.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ForgetTarget implements mm_service.Queue
+func (mmForgetTarget *QueueMock) ForgetTarget(ctx context.Context, kind domain.Kind, slug string) (err error) {
+	mm_atomic.AddUint64(&mmForgetTarget.beforeForgetTargetCounter, 1)
+	defer mm_atomic.AddUint64(&mmForgetTarget.afterForgetTargetCounter, 1)
+
+	mmForgetTarget.t.Helper()
+
+	if mmForgetTarget.inspectFuncForgetTarget != nil {
+		mmForgetTarget.inspectFuncForgetTarget(ctx, kind, slug)
+	}
+
+	mm_params := QueueMockForgetTargetParams{ctx, kind, slug}
+
+	// Record call args
+	mmForgetTarget.ForgetTargetMock.mutex.Lock()
+	mmForgetTarget.ForgetTargetMock.callArgs = append(mmForgetTarget.ForgetTargetMock.callArgs, &mm_params)
+	mmForgetTarget.ForgetTargetMock.mutex.Unlock()
+
+	for _, e := range mmForgetTarget.ForgetTargetMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmForgetTarget.ForgetTargetMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmForgetTarget.ForgetTargetMock.defaultExpectation.Counter, 1)
+		mm_want := mmForgetTarget.ForgetTargetMock.defaultExpectation.params
+		mm_want_ptrs := mmForgetTarget.ForgetTargetMock.defaultExpectation.paramPtrs
+
+		mm_got := QueueMockForgetTargetParams{ctx, kind, slug}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmForgetTarget.t.Errorf("QueueMock.ForgetTarget got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmForgetTarget.ForgetTargetMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.kind != nil && !minimock.Equal(*mm_want_ptrs.kind, mm_got.kind) {
+				mmForgetTarget.t.Errorf("QueueMock.ForgetTarget got unexpected parameter kind, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmForgetTarget.ForgetTargetMock.defaultExpectation.expectationOrigins.originKind, *mm_want_ptrs.kind, mm_got.kind, minimock.Diff(*mm_want_ptrs.kind, mm_got.kind))
+			}
+
+			if mm_want_ptrs.slug != nil && !minimock.Equal(*mm_want_ptrs.slug, mm_got.slug) {
+				mmForgetTarget.t.Errorf("QueueMock.ForgetTarget got unexpected parameter slug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmForgetTarget.ForgetTargetMock.defaultExpectation.expectationOrigins.originSlug, *mm_want_ptrs.slug, mm_got.slug, minimock.Diff(*mm_want_ptrs.slug, mm_got.slug))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmForgetTarget.t.Errorf("QueueMock.ForgetTarget got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmForgetTarget.ForgetTargetMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmForgetTarget.ForgetTargetMock.defaultExpectation.results
+		if mm_results == nil {
+			mmForgetTarget.t.Fatal("No results are set for the QueueMock.ForgetTarget")
+		}
+		return (*mm_results).err
+	}
+	if mmForgetTarget.funcForgetTarget != nil {
+		return mmForgetTarget.funcForgetTarget(ctx, kind, slug)
+	}
+	mmForgetTarget.t.Fatalf("Unexpected call to QueueMock.ForgetTarget. %v %v %v", ctx, kind, slug)
+	return
+}
+
+// ForgetTargetAfterCounter returns a count of finished QueueMock.ForgetTarget invocations
+func (mmForgetTarget *QueueMock) ForgetTargetAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmForgetTarget.afterForgetTargetCounter)
+}
+
+// ForgetTargetBeforeCounter returns a count of QueueMock.ForgetTarget invocations
+func (mmForgetTarget *QueueMock) ForgetTargetBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmForgetTarget.beforeForgetTargetCounter)
+}
+
+// Calls returns a list of arguments used in each call to QueueMock.ForgetTarget.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmForgetTarget *mQueueMockForgetTarget) Calls() []*QueueMockForgetTargetParams {
+	mmForgetTarget.mutex.RLock()
+
+	argCopy := make([]*QueueMockForgetTargetParams, len(mmForgetTarget.callArgs))
+	copy(argCopy, mmForgetTarget.callArgs)
+
+	mmForgetTarget.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockForgetTargetDone returns true if the count of the ForgetTarget invocations corresponds
+// the number of defined expectations
+func (m *QueueMock) MinimockForgetTargetDone() bool {
+	if m.ForgetTargetMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ForgetTargetMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ForgetTargetMock.invocationsDone()
+}
+
+// MinimockForgetTargetInspect logs each unmet expectation
+func (m *QueueMock) MinimockForgetTargetInspect() {
+	for _, e := range m.ForgetTargetMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to QueueMock.ForgetTarget at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterForgetTargetCounter := mm_atomic.LoadUint64(&m.afterForgetTargetCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ForgetTargetMock.defaultExpectation != nil && afterForgetTargetCounter < 1 {
+		if m.ForgetTargetMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to QueueMock.ForgetTarget at\n%s", m.ForgetTargetMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to QueueMock.ForgetTarget at\n%s with params: %#v", m.ForgetTargetMock.defaultExpectation.expectationOrigins.origin, *m.ForgetTargetMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcForgetTarget != nil && afterForgetTargetCounter < 1 {
+		m.t.Errorf("Expected call to QueueMock.ForgetTarget at\n%s", m.funcForgetTargetOrigin)
+	}
+
+	if !m.ForgetTargetMock.invocationsDone() && afterForgetTargetCounter > 0 {
+		m.t.Errorf("Expected %d calls to QueueMock.ForgetTarget at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ForgetTargetMock.expectedInvocations), m.ForgetTargetMock.expectedInvocationsOrigin, afterForgetTargetCounter)
 	}
 }
 
@@ -2217,6 +2600,8 @@ func (m *QueueMock) MinimockFinish() {
 		if !m.minimockDone() {
 			m.MinimockEnqueueJobInspect()
 
+			m.MinimockForgetTargetInspect()
+
 			m.MinimockGetJobInspect()
 
 			m.MinimockListTargetJobsInspect()
@@ -2250,6 +2635,7 @@ func (m *QueueMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockEnqueueJobDone() &&
+		m.MinimockForgetTargetDone() &&
 		m.MinimockGetJobDone() &&
 		m.MinimockListTargetJobsDone() &&
 		m.MinimockSaveJobDone() &&
