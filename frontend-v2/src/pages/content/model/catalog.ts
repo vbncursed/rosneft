@@ -1,3 +1,4 @@
+import { isLive, type TargetJob } from "@/entities/conversion";
 import {
   lodLabel,
   matchesFilters,
@@ -17,15 +18,21 @@ import type { ContentPageProps, ContentPageStat } from "../ui/content-page";
 
 type Entity = { slug: string; title: string; updatedAt?: string };
 
-/** A catalog row. Ready means converted; pending means nothing to show yet. */
+/**
+ * A catalog row. A live job says "converting" whatever the artifacts hold —
+ * a replaced source keeps its old LODs on screen until the new ones land;
+ * a failed job says so; otherwise the artifacts decide between ready and
+ * pending. A succeeded job adds nothing the artifacts do not already say.
+ */
 export function toContentItem(
   kind: ContentKind,
   entity: Entity,
   artifacts: Artifact[],
+  job?: TargetJob,
 ): ContentItem {
   const date = shortDate(entity.updatedAt);
   const converted = artifacts.length > 0;
-  return {
+  const base: ContentItem = {
     kind,
     slug: entity.slug,
     title: entity.title,
@@ -34,6 +41,23 @@ export function toContentItem(
     lods: lodLabel(artifacts),
     size: converted ? formatBytes(totalSize(artifacts)) : "—",
   };
+  if (!job) return base;
+  if (job.status === "failed") return { ...base, status: "failed" };
+  if (!isLive(job)) return base;
+  return {
+    ...base,
+    status: "converting",
+    ...(job.progress === null ? {} : { progress: Math.round(job.progress * 100) }),
+    ...(job.stage === null ? {} : { stage: job.stage }),
+  };
+}
+
+/** Right of the "Conversion" overline: "62% · textures", or "queued" before the worker reports. */
+export function conversionNoteOf(job: TargetJob): string | undefined {
+  if (!isLive(job)) return undefined;
+  if (job.progress === null && job.stage === null) return "queued";
+  const parts = [job.progress === null ? null : `${Math.round(job.progress * 100)}%`, job.stage];
+  return parts.filter((p) => p !== null).join(" · ");
 }
 
 export const matchesContent = (item: ContentItem, query: string): boolean =>
@@ -91,8 +115,14 @@ export function inspectorDetails(
   item: ContentItem,
   artifacts: Artifact[],
   updatedAt: string | undefined,
+  job?: TargetJob,
 ): Detail[] {
   return [
+    // The worker's sentence comes first: it is why the row is red, and the
+    // counts below it are stale by definition.
+    ...(job?.status === "failed" && job.errorMessage
+      ? [{ label: "Error", value: job.errorMessage, tone: "bad" } as const]
+      : []),
     row("Artifacts", String(artifacts.length)),
     row("LODs", item.lods),
     row("Size", item.size),

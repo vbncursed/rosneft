@@ -78,10 +78,12 @@ every mutation on these screens calls `refresh()`. Deriving "unavailable" from
 Ask `data === undefined` instead: `shared/lib/unanswered`, which both
 container hooks use.
 
-**`ConversionStatus` `pending` means "no artifacts", not "converting".** v2
-starts no jobs — there is no upload form here yet — so nothing on the Content
-screen ever shows `converting`; a never-converted upload and a conversion in
-flight look the same from the catalog.
+**`ConversionStatus` is decided by the job first, the artifacts second.** A
+live job from `GET /api/jobs` says `converting`, a failed one `failed`;
+otherwise the artifacts decide `ready`/`pending`, and a `succeeded` job is
+ignored because they already say it. `jobsQuery` polls every 5 s only while a
+job is live (`pollInterval`), never in a hidden tab — a catalog with nothing
+converting sends no repeat request at all.
 
 **A Company Owner is absent from its own `/api/auth/users`.** auth-service
 filters the list on `created_by`, so the account that created the company is
@@ -204,10 +206,15 @@ beside it, and a pure module (`people.ts`, `roles-view.ts`, `catalog.ts`,
 console. Copy that split rather than re-deriving it — the remaining screens
 are meant to look the same.
 
-**Content** is two lists plus one artifacts query per row, and a row's status
-is read off its artifacts — so the screen is ready only when every one of them
-has answered; guessing would print "pending" for something merely still
-loading. **Territory access** is the territories list, the users list and one
+**Content** is two lists, one artifacts query per row and one `GET /api/jobs`
+over all of them, and a row's status is read off its job and its artifacts —
+so the screen is ready only when every one of them has answered; guessing
+would print "pending" for something merely still loading. A conversion is
+visible while it runs: the row turns `converting` with the worker's percentage
+and stage, the inspector draws the bar and the note, a failure puts the
+worker's message at the top of the inspector, and a row whose job just left
+the live set re-reads its own artifacts (`finishedSince`) so LODs and size
+catch up. **Territory access** is the territories list, the users list and one
 admins query per territory; visibility is derived (anyone assigned →
 `assigned`, nobody → `private`), every grant is `direct`, drafts are kept per
 slug so switching territories loses no edit, and Save is one PUT of the whole

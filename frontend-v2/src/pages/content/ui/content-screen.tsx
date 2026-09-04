@@ -4,6 +4,7 @@ import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { Skeleton } from "@/shared/ui/skeleton";
 import {
+  conversionNoteOf,
   groupContent,
   inspectorDetails,
   matchesContent,
@@ -46,6 +47,7 @@ export function ContentScreen() {
 
   const selected = s.selected;
   const replace = selected ? replaceHref(selected) : null;
+  const job = selected ? s.jobOf(selected.kind, selected.slug) : undefined;
   // Grouped inline, not memoised: `s.items` is rebuilt on every render of the
   // container, so a useMemo keyed on it would never hit.
   const groups = groupContent(s.items.filter((i) => matchesContent(i, s.query)));
@@ -68,7 +70,9 @@ export function ContentScreen() {
               selected,
               s.artifactsOf(selected.kind, selected.slug),
               s.updatedAtOf(selected.kind, selected.slug),
+              job,
             ),
+            conversionNote: job ? conversionNoteOf(job) : undefined,
           }
         }
         canManage={s.canManage}

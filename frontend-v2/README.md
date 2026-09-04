@@ -42,7 +42,9 @@ placeholders.** Each live screen fetches through a container hook in
 outcome as a toast — `shared/lib/notify`, whose Toaster
 `app/router/console-shell.tsx` mounts around the whole console. Audit and
 Metrics still render a one-line `<p>`; their pages take everything through
-props and own no fetching yet.
+props and own no fetching yet. Content also watches `GET /api/jobs`, polled
+every five seconds only while a conversion is live, so a row shows its
+progress and stage as it converts and the worker's message when it fails.
 
 Three rulings a reader would otherwise trip on. **Reset password is not
 rendered** — nothing can reset one yet, and an action with no endpoint is not

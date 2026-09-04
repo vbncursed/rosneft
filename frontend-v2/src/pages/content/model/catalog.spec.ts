@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ContentItem } from "@/entities/content";
 import {
+  conversionNoteOf,
   groupContent,
   inspectorDetails,
   matchesContent,
@@ -115,14 +116,16 @@ describe("pipelineOf and statsOf", () => {
 describe("inspectorDetails", () => {
   it("lists artifacts, LODs, size and the update date, dashes when unknown", () => {
     expect(
-      inspectorDetails(item({ lods: "LOD 0-2", size: "412 MB" }), ARTIFACTS, territory.updatedAt),
+      inspectorDetails(item({ lods: "LOD 0-2", size: "412 MB" }), ARTIFACTS, territory.updatedAt, undefined),
     ).toEqual([
       { label: "Artifacts", value: "3" },
       { label: "LODs", value: "LOD 0-2" },
       { label: "Size", value: "412 MB" },
       { label: "Updated", value: "31.08" },
     ]);
-    expect(inspectorDetails(item({ status: "pending", lods: "—", size: "—" }), [], undefined)).toEqual(
+    expect(
+      inspectorDetails(item({ status: "pending", lods: "—", size: "—" }), [], undefined, undefined),
+    ).toEqual(
       [
         { label: "Artifacts", value: "0", tone: "dim" },
         { label: "LODs", value: "—", tone: "dim" },
@@ -139,5 +142,66 @@ describe("hrefs into the old SPA", () => {
     expect(uploadHref("model")).toBe("/models/new");
     expect(replaceHref(item({ kind: "territory", slug: "t-1" }))).toBe("/territories/t-1/replace");
     expect(replaceHref(item({ kind: "model", slug: "m-1" }))).toBeNull();
+  });
+});
+
+describe("toContentItem with a job", () => {
+  const running = {
+    kind: "territory" as const,
+    slug: "north-ridge-pad",
+    status: "running" as const,
+    progress: 0.62,
+    stage: "textures",
+    errorMessage: null,
+  };
+  const failed = {
+    ...running,
+    status: "failed" as const,
+    progress: null,
+    stage: null,
+    errorMessage: "OBJ parse error at line 84120",
+  };
+
+  it("is converting with a percentage and a stage while the job runs, keeping what is already converted", () => {
+    expect(toContentItem("territory", territory, ARTIFACTS, running)).toMatchObject({
+      status: "converting",
+      progress: 62,
+      stage: "textures",
+      lods: "LOD 0-2",
+      size: "412 MB",
+    });
+    // Queued: no percentage and no stage at all, rather than a confident zero.
+    const queued = toContentItem("territory", territory, [], {
+      ...running,
+      status: "pending",
+      progress: null,
+      stage: null,
+    });
+    expect(queued).toMatchObject({ status: "converting", lods: "—", size: "—" });
+    expect(queued).not.toHaveProperty("progress");
+    expect(queued).not.toHaveProperty("stage");
+  });
+
+  it("is failed when the job failed, whatever the artifacts say", () => {
+    expect(toContentItem("territory", territory, ARTIFACTS, failed).status).toBe("failed");
+    expect(toContentItem("territory", territory, [], failed).status).toBe("failed");
+  });
+
+  it("ignores a succeeded job — the artifacts decide", () => {
+    expect(toContentItem("territory", territory, [], { ...running, status: "succeeded" }).status).toBe(
+      "pending",
+    );
+  });
+
+  it("puts the worker's message in the inspector and a note above the bar", () => {
+    expect(
+      inspectorDetails(item({ status: "failed" }), ARTIFACTS, territory.updatedAt, failed)[0],
+    ).toEqual({ label: "Error", value: "OBJ parse error at line 84120", tone: "bad" });
+    expect(inspectorDetails(item(), ARTIFACTS, territory.updatedAt, undefined)[0].label).toBe(
+      "Artifacts",
+    );
+    expect(conversionNoteOf(running)).toBe("62% · textures");
+    expect(conversionNoteOf({ ...running, progress: null, stage: null })).toBe("queued");
+    expect(conversionNoteOf(failed)).toBeUndefined();
   });
 });
