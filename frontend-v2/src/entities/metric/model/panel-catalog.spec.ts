@@ -7,11 +7,12 @@ describe("panel catalogue", () => {
     expect(ids).toEqual([
       "alerts", "domain-auth", "domain-conversion-p95", "domain-conversions", "domain-queue", "domain-twofa", "domain-upload",
       "red-errors", "red-http", "red-latency", "red-rate", "runtime-fds", "runtime-gc", "runtime-goroutines", "runtime-memory",
-      "services-up", "stat-errors", "stat-p99", "stat-queue", "stat-rps", "stat-up",
+      "services-up", "stat-errors", "stat-p99", "stat-queue", "stat-rps",
     ]);
     const inSections = SECTIONS.flatMap((s) => s.panelIds);
     expect(new Set(inSections).size).toBe(inSections.length);
-    // stat-up has left the row: the health meter counts services beside these.
+    // stat-up has left the row and the catalogue with it: the health meter
+    // counts services now, and a panel nothing reads is a query nobody wants.
     expect(STAT_IDS).toEqual(["stat-rps", "stat-errors", "stat-p99", "stat-queue"]);
   });
 
