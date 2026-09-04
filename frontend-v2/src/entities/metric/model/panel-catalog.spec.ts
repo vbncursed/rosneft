@@ -30,5 +30,7 @@ describe("panel catalogue", () => {
     expect(formatValue(6.2, "cpm")).toBe("6.2/min");
     expect(formatValue(412, "count")).toBe("412");
     expect(formatValue(null, "count")).toBe("—");
+    expect(formatValue(0.04, "rps")).toBe("<0.1/s");
+    expect(formatValue(0, "rps")).toBe("0/s");
   });
 });

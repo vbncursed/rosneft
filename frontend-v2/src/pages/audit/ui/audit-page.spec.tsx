@@ -133,7 +133,7 @@ describe("AuditPage", () => {
     render(<AuditPage {...props()} />);
     expect(screen.getByRole("img", { name: /Events · last 24h/ })).toBeInTheDocument();
     expect(screen.getByText("peak 41/h at 14:00")).toBeInTheDocument();
-    expect(screen.getByLabelText("Failed: 4").className).toContain("text-bad");
+    expect(screen.getByText("Failed: 4").parentElement!.className).toContain("text-bad");
   });
 
   it("groups the events by day", () => {

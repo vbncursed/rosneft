@@ -48,12 +48,16 @@ const round = (v: number) => (v < 10 ? Math.round(v * 10) / 10 : Math.round(v));
 // Throughput reads better with one decimal even past single digits — "25
 // MB/s" loses exactly the precision a transfer rate is read for.
 const round1 = (v: number) => Math.round(v * 10) / 10;
+// A rate that is not zero must not print as one: the health row calls a
+// service degraded on err > 0, and "0 errors/s" beside DEGRADED reads as a
+// contradiction.
+const rate = (v: number) => (v > 0 && v < 0.05 ? "<0.1" : String(round(v)));
 
 /** "—" for nothing; otherwise the unit's own shape. */
 export function formatValue(v: number | null, unit: Unit): string {
   if (v === null || !Number.isFinite(v)) return "—";
   switch (unit) {
-    case "rps": return `${round(v)}/s`;
+    case "rps": return `${rate(v)}/s`;
     case "cpm": return `${round(v)}/min`;
     case "percent": return `${round(v * 100)}%`;
     case "seconds": return v < 1 ? `${Math.round(v * 1000)}ms` : `${round(v)}s`;

@@ -1,6 +1,6 @@
 import { clsx as cx } from "clsx";
+import { formatValue, type StatTileTone, type Unit } from "@/entities/metric";
 import { ChartLegend, LineChart, type Series } from "@/shared/ui/line-chart";
-import type { StatTileTone } from "@/entities/metric";
 
 export type MetricPanelProps = {
   title: string;
@@ -10,8 +10,8 @@ export type MetricPanelProps = {
   last: string;
   lastTone?: StatTileTone;
   series: Series[];
-  /** Unit for the chart's spoken summary. */
-  unit?: string;
+  /** Unit for the chart's spoken summary — printed through the panel's own format. */
+  unit?: Unit;
   selected?: boolean;
   onSelect?: () => void;
 };
@@ -54,7 +54,12 @@ export function MetricPanel({
         <p className={cx("m-0 whitespace-nowrap font-mono text-[15px]", TONE[lastTone])}>{last}</p>
       </div>
 
-      <LineChart className="mt-3" series={series} label={title} unit={unit} />
+      <LineChart
+        className="mt-3"
+        series={series}
+        label={title}
+        format={unit ? (v) => formatValue(v, unit) : undefined}
+      />
       <ChartLegend className="mt-3" series={series} />
     </article>
   );

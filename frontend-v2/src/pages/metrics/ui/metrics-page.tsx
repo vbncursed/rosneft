@@ -120,7 +120,7 @@ export function MetricsPage({
           "grid gap-3",
           budget
             ? "lg:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]"
-            : "sm:grid-cols-2 lg:grid-cols-5",
+            : "sm:grid-cols-2 lg:grid-cols-4",
         )}
       >
         {budget ? (

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuditEntry } from "@/entities/audit";
@@ -113,6 +113,11 @@ describe("AuditScreen", () => {
     // DOCUMENT_POSITION_FOLLOWING — the pickers come after the title, in the
     // filter row, not in a block floating above the page's own header.
     expect(heading.compareDocumentPosition(from) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Pinned to the filter row itself, not merely somewhere after the
+    // heading — without coupling to the row's DOM shape.
+    expect(within(screen.getByRole("group", { name: "Filters" })).getByRole("button", { name: "From" })).toBe(
+      from,
+    );
   });
 
   it("puts an empty-result sentence below the heading, not above the page", () => {

@@ -91,11 +91,11 @@ describe("MetricsScreen", () => {
       expect(screen.getByRole("region", { name: title })).toBeInTheDocument();
     }
     for (const label of ["Requests: 2/s", "Errors: 200%", "p99: 2s", "Queue: 2"]) {
-      expect(screen.getByLabelText(label)).toBeInTheDocument();
+      expect(screen.getByText(label)).toBeInTheDocument();
     }
     // Services are counted by the meter, not by a tile: stat-up counts scrape
     // targets, and a tile printing that over service names read "12 of 11".
-    expect(screen.queryByLabelText(/^Up: /)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Up: /)).not.toBeInTheDocument();
     expect(screen.queryByText(/scraped targets/)).not.toBeInTheDocument();
   });
 
@@ -221,7 +221,7 @@ describe("MetricsScreen", () => {
     render(<MetricsScreen />);
 
     expect(screen.queryByText(/ up$/)).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Requests: loading")).toBeInTheDocument();
+    expect(screen.getByText("Requests: loading")).toBeInTheDocument();
     expect(screen.queryByText(/alert$/)).not.toBeInTheDocument();
     // The inspector's header is an unconditional red "Firing" — a pending
     // alert underneath it would be a lie, so it is not drawn.

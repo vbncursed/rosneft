@@ -106,7 +106,7 @@ describe("MetricsPage", () => {
   it("summarises the budget and the headline numbers", () => {
     render(<MetricsPage {...props()} />);
     expect(screen.getByText("64% left")).toBeInTheDocument();
-    expect(screen.getByLabelText("Error rate: 0.82%").className).toContain("text-bad");
+    expect(screen.getByText("Error rate: 0.82%").parentElement!.className).toContain("text-bad");
     expect(screen.getByText("+8%").className).toContain("text-ok");
   });
 
@@ -155,16 +155,16 @@ describe("MetricsPage", () => {
     expect(screen.getByText("Requests/sec")).toBeInTheDocument();
   });
 
-  it("lays out five tiles without a budget — the grid is not cut to three", () => {
-    const stats = ["Up", "Requests", "Errors", "p99", "Queue"].map((label) => ({
+  it("lays out four tiles without a budget — the grid has no empty fifth column", () => {
+    const stats = ["Requests", "Errors", "p99", "Queue"].map((label) => ({
       label,
       state: { kind: "value" as const, value: "1" },
       hint: "h",
     }));
     const { container } = render(<MetricsPage {...props({ budget: undefined, stats })} />);
     const grid = container.querySelector(".grid")!;
-    expect(grid.className).toContain("lg:grid-cols-5");
-    expect(grid.children).toHaveLength(5);
+    expect(grid.className).toContain("lg:grid-cols-4");
+    expect(grid.children).toHaveLength(4);
   });
 
   it("puts the meter in the wide slot with four tiles beside it", () => {
@@ -180,8 +180,8 @@ describe("MetricsPage", () => {
       { label: "Queue", state: { kind: "loading" as const }, hint: "jobs waiting" },
     ];
     render(<MetricsPage {...props({ stats })} />);
-    expect(screen.getByLabelText("Errors: unavailable")).toBeInTheDocument();
-    expect(screen.getByLabelText("Queue: loading")).toBeInTheDocument();
+    expect(screen.getByText("Errors: unavailable")).toBeInTheDocument();
+    expect(screen.getByText("Queue: loading")).toBeInTheDocument();
   });
 
   it("draws no button for a handler it was not given", () => {

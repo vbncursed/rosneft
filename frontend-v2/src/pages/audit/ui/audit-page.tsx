@@ -123,7 +123,7 @@ export function AuditPage({
 
       {notice}
 
-      <div className="flex items-center gap-3">
+      <div role="group" aria-label="Filters" className="flex items-center gap-3">
         <FilterBar
           className="flex-1 min-w-0"
           query={query}

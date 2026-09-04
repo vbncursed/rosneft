@@ -54,9 +54,13 @@ export function toLinePath(
       drawing = false;
       return;
     }
-    const x = (i * step).toFixed(1);
+    const x = i * step;
     const y = scaleY(value, max, geo).toFixed(1);
-    segments.push(`${drawing ? "L" : "M"}${x} ${y}`);
+    const alone = !drawing && (i === values.length - 1 || values[i + 1] === null);
+    segments.push(`${drawing ? "L" : "M"}${x.toFixed(1)} ${y}`);
+    // A reading with no neighbour on either side is a point nobody can see;
+    // give it the same flat dash a single-value series gets, one step wide.
+    if (alone) segments.push(`L${Math.min(x + step / 2, geo.width).toFixed(1)} ${y}`);
     drawing = true;
   });
   return segments.join(" ");

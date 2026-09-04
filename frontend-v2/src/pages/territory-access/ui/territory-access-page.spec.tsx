@@ -91,7 +91,7 @@ describe("TerritoryAccessPage", () => {
     render(<TerritoryAccessPage {...props()} />);
     expect(screen.getByRole("img", { name: /Visibility mix/ })).toBeInTheDocument();
     expect(screen.getByText("12 territories")).toBeInTheDocument();
-    expect(screen.getByLabelText("Owner-only: 2").className).toContain("text-bad");
+    expect(screen.getByText("Owner-only: 2").parentElement!.className).toContain("text-bad");
   });
 
   it("groups territories by how far they reach", () => {

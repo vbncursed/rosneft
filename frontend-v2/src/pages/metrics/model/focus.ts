@@ -1,4 +1,4 @@
-import type { MetricSeries } from "@/entities/metric";
+import { matchesService, type MetricSeries } from "@/entities/metric";
 
 /** How many services a per-service panel plots before it starts counting instead. */
 const PLOTTED = 3;
@@ -11,20 +11,6 @@ const lastValue = (s: MetricSeries) => s.points.at(-1)?.v ?? 0;
  * one chart with the longest legend unfocused.
  */
 const serviceOf = (s: MetricSeries) => s.labels.service ?? s.labels.grpc_service;
-
-/**
- * A `grpc_service` is a fully-qualified name (`rosneft.mesh.v1.MeshService`)
- * and the selection is a scrape name (`mesh-worker` or `mesh`), so the match is
- * containment either way round rather than equality. That is a convention, not
- * a guarantee: an unrelated pair sharing a substring would match. It is the
- * same convention `servicesOf` already uses to pair a latency series with a
- * service row.
- */
-const isSelected = (label: string, selected: string) => {
-  const a = label.toLowerCase();
-  const b = selected.toLowerCase();
-  return a.includes(b) || b.includes(a);
-};
 
 /**
  * What a per-service panel draws. Twelve services on one chart is a hairball,
@@ -41,7 +27,7 @@ export function focusSeries(
 
   const plain = series.filter((s) => serviceOf(s) === undefined);
   if (selected !== null) {
-    const hit = named.filter((s) => isSelected(serviceOf(s)!, selected));
+    const hit = named.filter((s) => matchesService(serviceOf(s)!, selected));
     return { series: [...plain, ...hit], hidden: 0 };
   }
   const loudest = [...named].sort((a, b) => lastValue(b) - lastValue(a)).slice(0, PLOTTED);

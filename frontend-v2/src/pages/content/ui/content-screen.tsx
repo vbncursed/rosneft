@@ -61,7 +61,7 @@ export function ContentScreen() {
     const href = replaceHref(item);
     return (
       <Menu
-        triggerLabel="Row actions"
+        triggerLabel={`Row actions for ${item.title}`}
         trigger={<Icon name="kebab" size={15} />}
         items={[
           {

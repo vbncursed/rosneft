@@ -30,10 +30,12 @@ describe("MetricPanel", () => {
     expect(screen.getByText("—").className).toContain("text-dim");
   });
 
-  it("plots the series and names every one in the legend", () => {
-    render(<MetricPanel title="Request latency" meta="ms" last="452ms" series={SERIES} unit="ms" />);
+  it("plots the series and names every one in the legend, formatted by the panel's own unit", () => {
+    render(
+      <MetricPanel title="Request latency" meta="ms" last="452ms" series={SERIES} unit="seconds" />,
+    );
     expect(
-      screen.getByRole("img", { name: "Request latency: p95 30 ms, p99 60 ms" }),
+      screen.getByRole("img", { name: "Request latency: p95 30s, p99 60s" }),
     ).toBeInTheDocument();
     expect(screen.getByText("p95")).toBeInTheDocument();
     expect(screen.getByText("p99")).toBeInTheDocument();

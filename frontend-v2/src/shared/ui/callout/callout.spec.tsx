@@ -8,12 +8,17 @@ describe("Callout", () => {
     expect(screen.getByText("No 2FA and no passkey — password only.")).toBeInTheDocument();
   });
 
-  it("announces a problem, and stays quiet otherwise", () => {
+  it("announces a problem as an alert, and everything else as a status", () => {
     const { rerender } = render(<Callout tone="bad">Weak</Callout>);
     expect(screen.getByRole("alert")).toBeInTheDocument();
 
     rerender(<Callout tone="ok">Fine</Callout>);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("gives a warn callout a live region too — a keystroke that empties a screen still gets announced", () => {
+    render(<Callout tone="warn">No actor named x.</Callout>);
+    expect(screen.getByRole("status")).toBeInTheDocument();
   });
 
   it("skins each tone", () => {

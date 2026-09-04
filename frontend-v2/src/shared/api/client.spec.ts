@@ -111,6 +111,13 @@ describe("http client", () => {
     expect((init.headers as Record<string, string>).Accept).toBe("*/*");
   });
 
+  it("resolves an empty blob on a 204, not undefined", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(204, undefined)));
+    const blob = await httpGetBlob("/api/audit.csv");
+    expect(blob).toBeInstanceOf(Blob);
+    expect(blob.size).toBe(0);
+  });
+
   it("drops the marker and bounces to login on a 401 for a blob too", async () => {
     markAuthed();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(401, {})));

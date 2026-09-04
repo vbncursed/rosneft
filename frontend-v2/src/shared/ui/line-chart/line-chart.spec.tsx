@@ -9,10 +9,21 @@ const SERIES: Series[] = [
 
 describe("LineChart", () => {
   it("summarises the latest reading of each series for a reader who cannot see it", () => {
-    render(<LineChart series={SERIES} label="Request latency" unit="ms" />);
+    render(<LineChart series={SERIES} label="Request latency" format={(v) => `${v} ms`} />);
     expect(
       screen.getByRole("img", { name: "Request latency: p95 30 ms, p99 60 ms" }),
     ).toBeInTheDocument();
+  });
+
+  it("speaks the reading the way the panel prints it, given a formatter", () => {
+    render(
+      <LineChart
+        series={[{ label: "p99", values: [0.0523] }]}
+        label="Latency"
+        format={(v) => `${Math.round(v * 1000)}ms`}
+      />,
+    );
+    expect(screen.getByRole("img", { name: "Latency: p99 52ms" })).toBeInTheDocument();
   });
 
   it("says so when there is nothing to draw", () => {

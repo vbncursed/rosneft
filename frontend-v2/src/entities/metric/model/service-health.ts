@@ -1,3 +1,4 @@
+import { matchesService } from "./match";
 import { formatValue } from "./panel-catalog";
 import type { MetricSeries } from "./series";
 import type { ServiceHealth } from "./service";
@@ -8,8 +9,8 @@ const byLabel = (series: MetricSeries[], name: string) => series.find((s) => s.l
 
 /**
  * One row per service name the up panel knows. Down comes only from up; degraded
- * from a non-zero error rate; latency is matched by the gRPC service name
- * containing the scrape name, which is a convention, so a miss reads "—".
+ * from a non-zero error rate; latency is paired by name, see matchesService —
+ * a miss reads "—".
  */
 export function servicesOf(
   up: MetricSeries[],
@@ -24,7 +25,7 @@ export function servicesOf(
     const isUp = up.filter((u) => u.label === name).some((u) => last(u) === 1);
     const rps = last(byLabel(rate, name));
     const err = last(byLabel(errors, name));
-    const lat = last(latency.find((s) => s.label.toLowerCase().includes(name.toLowerCase())));
+    const lat = last(latency.find((s) => matchesService(s.label, name)));
     const state = !isUp ? "down" : err !== null && err > 0 ? "degraded" : "up";
     return {
       name,

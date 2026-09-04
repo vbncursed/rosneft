@@ -65,7 +65,15 @@ describe("toLinePath", () => {
   it("breaks the line at a gap and never draws across it", () => {
     const g = { width: 300, height: 88, padTop: 12, padBottom: 6 };
     const [y0, y2, y3] = [1, 3, 4].map((v) => scaleY(v, 4, g).toFixed(1));
-    expect(toLinePath([1, null, 3, 4], 4, g)).toBe(`M0.0 ${y0} M200.0 ${y2} L300.0 ${y3}`);
+    // The leading 1 has no drawn neighbour either — nothing before it, a gap
+    // right after — so it gets the same short dash an isolated mid-series
+    // reading gets, and the line still never crosses the gap itself.
+    expect(toLinePath([1, null, 3, 4], 4, g)).toBe(`M0.0 ${y0} L50.0 ${y0} M200.0 ${y2} L300.0 ${y3}`);
+  });
+
+  it("draws a lone reading between two gaps as a short flat dash, not nothing", () => {
+    const d = toLinePath([null, 5, null, null], 10);
+    expect(d).toMatch(/^M100\.0 \d+\.\d L\d+\.\d \d+\.\d$/);
   });
 });
 

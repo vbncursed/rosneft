@@ -88,8 +88,8 @@ describe("RolesPage", () => {
   it("summarises the roles above the list", () => {
     render(<RolesPage {...props()} />);
     expect(screen.getByText("26 accounts")).toBeInTheDocument();
-    expect(screen.getByLabelText("Roles: 5")).toBeInTheDocument();
-    expect(screen.getByLabelText("Root holders: 1").className).toContain("text-accent");
+    expect(screen.getByText("Roles: 5")).toBeInTheDocument();
+    expect(screen.getByText("Root holders: 1").parentElement!.className).toContain("text-accent");
   });
 
   it("groups system and custom roles apart", () => {

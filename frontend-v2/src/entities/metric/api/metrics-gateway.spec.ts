@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { setCsrfToken } from "@/shared/api";
 import { fetchPanel } from "./metrics-gateway";
 
 const series = { label: "gateway", points: [{ t: 1, v: 1 }], labels: { service: "gateway" } };
@@ -10,7 +9,6 @@ let fetchMock: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   fetchMock = vi.fn(() => Promise.resolve(json([series])));
   vi.stubGlobal("fetch", fetchMock);
-  setCsrfToken("csrf");
 });
 afterEach(() => vi.unstubAllGlobals());
 
@@ -38,10 +36,10 @@ describe("metrics gateway", () => {
   });
 
   it("rejects with the status and the gateway's message on failure", async () => {
-    fetchMock.mockResolvedValueOnce(new Response("upstream down", { status: 502 }));
+    fetchMock.mockResolvedValueOnce(json({ code: "unavailable", message: "Prometheus unreachable" }, 502));
     await expect(fetchPanel("red-rate", "1h")).rejects.toMatchObject({
       status: 502,
-      message: "Request failed (502)",
+      message: "Prometheus unreachable",
     });
   });
 });

@@ -49,8 +49,9 @@ async function send<T>(path: string, init: RequestInit, parse: "json" | "blob" |
         : res.statusText || `Request failed (${res.status})`;
     throw new HttpError(res.status, body, detail || fallback);
   }
+  if (parse === "blob") return (await res.blob()) as T;
   if (parse === "none" || res.status === 204) return undefined as T;
-  return (parse === "blob" ? await res.blob() : await res.json()) as T;
+  return (await res.json()) as T;
 }
 
 export function httpGet<T>(path: string): Promise<T> {
