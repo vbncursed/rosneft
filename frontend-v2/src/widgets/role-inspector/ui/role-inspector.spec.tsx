@@ -35,6 +35,9 @@ const props = (over: Partial<RoleInspectorProps> = {}): RoleInspectorProps => ({
   ...over,
 });
 
+const custom = (over: Partial<Role> = {}): Role => role(over);
+const system = (over: Partial<Role> = {}): Role => role({ kind: "system", ...over });
+
 describe("RoleInspector", () => {
   it("is a region named after the role", () => {
     render(<RoleInspector {...props()} />);
@@ -173,5 +176,28 @@ describe("RoleInspector", () => {
     render(<RoleInspector {...props({ onClose })} />);
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("offers Delete on a custom role nobody holds, and not on a system role or to a reader", () => {
+    const onDelete = vi.fn();
+    const { rerender } = render(<RoleInspector {...props({ role: custom({ users: 0 }), onDelete })} />);
+    expect(screen.getByRole("button", { name: "Delete role" })).toBeEnabled();
+    rerender(<RoleInspector {...props({ role: system(), onDelete })} />);
+    expect(screen.queryByRole("button", { name: "Delete role" })).not.toBeInTheDocument();
+    rerender(<RoleInspector {...props({ role: custom({ users: 0 }), onDelete, readOnly: true })} />);
+    expect(screen.queryByRole("button", { name: "Delete role" })).not.toBeInTheDocument();
+  });
+
+  it("blocks Delete while people hold the role, and says how many", () => {
+    const onDelete = vi.fn();
+    render(<RoleInspector {...props({ role: custom({ users: 3 }), onDelete })} />);
+    expect(screen.getByRole("button", { name: "Delete role" })).toBeDisabled();
+    expect(screen.getByText("3 users hold this role — reassign them first")).toBeInTheDocument();
+  });
+
+  it("leaves Delete enabled when the count is unknown — the gateway is the guard then", () => {
+    const onDelete = vi.fn();
+    render(<RoleInspector {...props({ role: custom({ users: null }), onDelete })} />);
+    expect(screen.getByRole("button", { name: "Delete role" })).toBeEnabled();
   });
 });

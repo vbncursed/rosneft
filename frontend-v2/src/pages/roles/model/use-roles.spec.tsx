@@ -44,6 +44,7 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
 let created: typeof OPS | null;
+let deleteStatus: number;
 let fetchMock: ReturnType<typeof vi.fn>;
 let client: QueryClient;
 const wrapper = ({ children }: { children: ReactNode }) => (
@@ -57,6 +58,7 @@ beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   seat();
   created = null;
+  deleteStatus = 204;
   setCsrfToken("csrf");
   clearNotices();
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -71,6 +73,10 @@ beforeEach(() => {
     }
     if (method === "PUT") return json(OPS);
     if (method === "PATCH") return json({ ...OPS, title: "Field ops" });
+    if (method === "DELETE")
+      return deleteStatus === 204
+        ? new Response(null, { status: 204 })
+        : json({ code: "unprocessable", message: "role is still assigned to users" }, deleteStatus);
     return json({ code: "forbidden", message: "You don't have permission to do this" }, 403);
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -82,6 +88,7 @@ afterEach(() => {
 
 const called = (predicate: (url: string, init?: RequestInit) => boolean) =>
   fetchMock.mock.calls.some(([u, i]) => predicate(String(u), i as RequestInit | undefined));
+const urls = () => fetchMock.mock.calls.map(([u]) => String(u));
 
 describe("useRoles", () => {
   it("is loading, then ready with the roles, permissions and people counts", async () => {
@@ -396,5 +403,41 @@ describe("useRoles", () => {
     const { result } = renderHook(() => useRoles(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("unavailable"));
     expect(result.current.error).toBe("no people");
+  });
+
+  it("asks before deleting, deletes on confirm, clears the selection and says so", async () => {
+    const { result } = renderHook(() => ({ s: useRoles(), notices: useNotices() }), { wrapper });
+    await waitFor(() => expect(result.current.s.status).toBe("ready"));
+    act(() => result.current.s.select("ops")); // a custom role in the fixture
+    act(() => result.current.s.askDelete());
+    expect(result.current.s.deleting?.slug).toBe("ops");
+    act(() => result.current.s.confirmDelete());
+    await waitFor(() => expect(result.current.s.deleting).toBeNull());
+    expect(urls().at(-2)).toBe("/api/auth/roles/ops"); // the DELETE, then the roles refetch
+    expect(result.current.s.selected).toBeNull();
+    expect(result.current.notices.at(-1)?.message).toBe("Role deleted");
+  });
+
+  it("names the gateway's refusal and keeps the role selected", async () => {
+    deleteStatus = 422; // the file's fetch stub answers DELETE with
+    // {code:"unprocessable", message:"role is still assigned to users"} when set
+    const { result } = renderHook(() => ({ s: useRoles(), notices: useNotices() }), { wrapper });
+    await waitFor(() => expect(result.current.s.status).toBe("ready"));
+    act(() => result.current.s.select("ops"));
+    act(() => result.current.s.askDelete());
+    act(() => result.current.s.confirmDelete());
+    await waitFor(() => expect(result.current.s.deleting).toBeNull());
+    expect(result.current.notices.at(-1)?.message).toBe("role is still assigned to users");
+    expect(result.current.s.selected?.slug).toBe("ops");
+  });
+
+  it("dismisses the question without deleting", async () => {
+    const { result } = renderHook(() => useRoles(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    act(() => result.current.select("ops"));
+    act(() => result.current.askDelete());
+    act(() => result.current.dismissDelete());
+    expect(result.current.deleting).toBeNull();
+    expect(urls().some((u) => u === "/api/auth/roles/ops")).toBe(false);
   });
 });

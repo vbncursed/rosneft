@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { CreateRoleDialog } from "@/features/create-role";
 import { Callout } from "@/shared/ui/callout";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { Skeleton } from "@/shared/ui/skeleton";
 import {
   distributionOf,
@@ -86,6 +87,7 @@ export function RolesScreen() {
         onResetRole={s.reset}
         onSaveRole={s.save}
         onCreateRole={() => s.setCreating(true)}
+        onDeleteRole={s.canManage ? s.askDelete : undefined}
         canManage={s.canManage}
         saveBlocked={blocked}
       />
@@ -100,6 +102,18 @@ export function RolesScreen() {
           busy={s.creatingBusy}
           onClose={() => s.setCreating(false)}
           onCreate={s.create}
+        />
+      ) : null}
+      {s.deleting ? (
+        <ConfirmDialog
+          open
+          title={`Delete role "${s.deleting.title}"?`}
+          description="Its permissions are gone with it. This cannot be undone."
+          confirmLabel="Delete"
+          tone="danger"
+          busy={s.deletingBusy}
+          onConfirm={s.confirmDelete}
+          onCancel={s.dismissDelete}
         />
       ) : null}
     </>

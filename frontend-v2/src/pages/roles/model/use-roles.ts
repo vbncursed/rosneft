@@ -3,6 +3,7 @@ import { useState } from "react";
 import { permissionsQuery, type Permission } from "@/entities/permission";
 import {
   createRole,
+  deleteRole,
   renameRole,
   rolesQuery,
   setRolePermissions,
@@ -45,6 +46,11 @@ export type RolesState = {
   setCreating: (open: boolean) => void;
   create: (input: { title: string; permissionSlugs: string[] }) => void;
   creatingBusy: boolean;
+  deleting: Role | null;
+  askDelete: () => void;
+  confirmDelete: () => void;
+  dismissDelete: () => void;
+  deletingBusy: boolean;
 };
 
 /**
@@ -65,8 +71,10 @@ export function useRoles(): RolesState {
   // not silently throw away the first one's unsaved edits.
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [creating, setCreating] = useState(false);
+  const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
 
   const selected = roles.data?.find((r) => r.slug === selectedSlug) ?? null;
+  const deleting = roles.data?.find((r) => r.slug === deletingSlug) ?? null;
   // A role with no draft of its own reads as the gateway last returned it, so
   // the map holds only what somebody actually edited.
   const draft = selected ? (drafts[selected.slug] ?? saved(selected)) : null;
@@ -108,6 +116,18 @@ export function useRoles(): RolesState {
       void refresh();
     },
     onError: fail,
+  });
+
+  const deletion = useMutation({
+    mutationFn: (slug: string) => deleteRole(slug),
+    onSuccess: (_, slug) => {
+      notify.success("Role deleted");
+      if (selectedSlug === slug) setSelectedSlug(null);
+      setDrafts(({ [slug]: _dropped, ...rest }) => rest);
+      void refresh();
+    },
+    onError: fail,
+    onSettled: () => setDeletingSlug(null),
   });
 
   // The people list counts too when it was asked for: without it every role
@@ -153,5 +173,10 @@ export function useRoles(): RolesState {
     setCreating,
     create: creation.mutate,
     creatingBusy: creation.isPending,
+    deleting,
+    askDelete: () => selected && setDeletingSlug(selected.slug),
+    confirmDelete: () => deletingSlug && deletion.mutate(deletingSlug),
+    dismissDelete: () => setDeletingSlug(null),
+    deletingBusy: deletion.isPending,
   };
 }
