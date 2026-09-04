@@ -12,6 +12,7 @@ import (
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
 
 // jobEventInterval is the gateway-side poll cadence that backs the SSE
@@ -53,7 +54,32 @@ func (s *Server) WatchJobEvents(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	flusher.Flush()
 
-	streamJob(r.Context(), w, flusher, id, s.svc.GetJob)
+	streamJob(r.Context(), w, flusher, id, s.scopedJob)
+}
+
+// scopedJob is GetJob behind the tenant rule: a territory job the caller
+// cannot see reads as not found, which streamJob already turns into the
+// `error` frame an unknown id gets. Models and Root skip the catalog lookup.
+// Succeeded jobs still stream — the per-id route is how an upload that just
+// finished learns so, and it closes on its own.
+func (s *Server) scopedJob(ctx context.Context, id string) (domain.Job, error) {
+	job, err := s.svc.GetJob(ctx, id)
+	if err != nil {
+		return domain.Job{}, err
+	}
+	scopeAdminID, allAccess := authhttp.Scope(ctx)
+	if allAccess || job.Kind != domain.KindTerritory {
+		return job, nil
+	}
+	// Fail closed on an empty scope, as RequireTerritoryAccess does: "" turns
+	// the catalog's tenant filter off and would resolve any territory.
+	if scopeAdminID == "" {
+		return domain.Job{}, domain.ErrJobNotFound
+	}
+	if _, err := s.svc.GetTerritory(ctx, job.Slug, scopeAdminID); err != nil {
+		return domain.Job{}, domain.ErrJobNotFound
+	}
+	return job, nil
 }
 
 // streamJob is split out so it can be tested with a fake fetcher without

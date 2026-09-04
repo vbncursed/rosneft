@@ -58,6 +58,7 @@ type Content interface {
 type Mesh interface {
 	SubmitConversion(ctx context.Context, kind domain.Kind, slug string) (domain.Job, error)
 	GetJob(ctx context.Context, id string) (domain.Job, error)
+	ListTargetJobs(ctx context.Context) ([]domain.Job, error)
 }
 
 // Upload is the upload-service client surface this service calls.

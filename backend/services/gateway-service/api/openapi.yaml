@@ -2178,6 +2178,29 @@ paths:
         '200': { description: Headers only }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /api/jobs:
+    get:
+      tags: [jobs]
+      summary: The latest conversion job per catalog target, tenant-filtered
+      description: >
+        One entry per territory or model that has a job on record, excluding
+        succeeded ones (the artifacts already say "ready"). Territories are
+        filtered to the caller's visible set — the same rule as `GET
+        /api/territories`; models are listed for everyone. Answers
+        `Cache-Control: no-store`: the console polls it while a conversion runs.
+        Each entry is the latest job by write order; two concurrent submits for
+        one target are not serialised, so a just-superseded terminal state can
+        briefly show while a newer job runs.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Job' }
+        '500': { $ref: '#/components/responses/Internal' }
+
   /api/jobs/{id}/events:
     get:
       tags: [jobs]
@@ -2185,7 +2208,9 @@ paths:
       description: >
         Emits `event: job` whenever the job state changes; the stream closes on
         succeeded/failed. The gateway polls mesh-api under the hood. Each event's
-        `data:` payload is a Job JSON (kind + slug identify the entity).
+        `data:` payload is a Job JSON (kind + slug identify the entity). The
+        stream is tenant-scoped: a territory job the caller cannot see is
+        reported as not found.
       parameters:
         - { in: path, name: id, required: true, schema: { type: string } }
       responses:

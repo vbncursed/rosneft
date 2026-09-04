@@ -1923,6 +1923,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The latest conversion job per catalog target, tenant-filtered
+         * @description One entry per territory or model that has a job on record, excluding succeeded ones (the artifacts already say "ready"). Territories are filtered to the caller's visible set — the same rule as `GET /api/territories`; models are listed for everyone. Answers `Cache-Control: no-store`: the console polls it while a conversion runs. Each entry is the latest job by write order; two concurrent submits for one target are not serialised, so a just-superseded terminal state can briefly show while a newer job runs.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Job"][];
+                    };
+                };
+                500: components["responses"]["Internal"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs/{id}/events": {
         parameters: {
             query?: never;
@@ -1932,7 +1972,7 @@ export interface paths {
         };
         /**
          * Server-Sent Events stream for one conversion job
-         * @description Emits `event: job` whenever the job state changes; the stream closes on succeeded/failed. The gateway polls mesh-api under the hood. Each event's `data:` payload is a Job JSON (kind + slug identify the entity).
+         * @description Emits `event: job` whenever the job state changes; the stream closes on succeeded/failed. The gateway polls mesh-api under the hood. Each event's `data:` payload is a Job JSON (kind + slug identify the entity). The stream is tenant-scoped: a territory job the caller cannot see is reported as not found.
          */
         get: {
             parameters: {
