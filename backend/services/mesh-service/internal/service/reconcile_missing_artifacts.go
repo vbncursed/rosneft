@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// ReconcileLockTTL bounds how long a claimed target stays claimed if the
+// TargetLockTTL bounds how long a claimed target stays claimed if the
 // worker dies between claiming it and finishing — it is also, therefore, the
 // recovery time for a dead worker: nothing else reclaims an orphaned stream
 // message (no XAUTOCLAIM/XCLAIM anywhere in this service), so this TTL is the
@@ -22,7 +22,7 @@ import (
 // bucket, only that 60s bounds it from above. 10 minutes is still a tenfold
 // margin over that 60s bound — comfortable headroom without leaving a dead
 // worker's target stuck for half an hour.
-const ReconcileLockTTL = 10 * time.Minute
+const TargetLockTTL = 10 * time.Minute
 
 // ReconcileMissingArtifacts queues a conversion for every catalog target
 // (territory or model) that does not already have a LOD0 artifact.
@@ -49,21 +49,17 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 			continue
 		}
 		// HasLOD0 stays false for the entire conversion — the artifact is
-		// published last — so without this claim a conversion longer than the
-		// tick interval is queued again on every tick, and with two workers
-		// the duplicate runs concurrently against the same territory.
-		locked, err := m.queue.TryLockTarget(ctx, t.Kind, t.Slug, ReconcileLockTTL)
+		// published last — so without the claim SubmitConversion takes, a
+		// conversion longer than the tick interval would be queued again on
+		// every tick.
+		// SubmitConversion holds the target claim; when the target is already
+		// in flight it hands back that job and created is false.
+		_, created, err := m.SubmitConversion(ctx, t.Kind, t.Slug)
 		if err != nil {
-			return queued, fmt.Errorf("service.ReconcileMissingArtifacts: lock %s/%s: %w", t.Kind, t.Slug, err)
-		}
-		if !locked {
-			continue
-		}
-		if _, err := m.SubmitConversion(ctx, t.Kind, t.Slug); err != nil {
-			// Release rather than wait out the TTL: retrying is this loop's
-			// entire purpose.
-			_ = m.queue.UnlockTarget(ctx, t.Kind, t.Slug)
 			return queued, fmt.Errorf("service.ReconcileMissingArtifacts: submit %s/%s: %w", t.Kind, t.Slug, err)
+		}
+		if !created {
+			continue
 		}
 		slog.InfoContext(ctx, "reconcile: queued conversion", "kind", t.Kind, "slug", t.Slug)
 		queued++

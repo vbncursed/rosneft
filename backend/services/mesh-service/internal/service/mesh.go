@@ -26,11 +26,12 @@ type Queue interface {
 
 	EnqueueJob(ctx context.Context, jobID string) error
 
-	// TryLockTarget claims a target for the reconciler. Reports false when
+	// TryLockTarget claims a target for one conversion. Reports false when
 	// another attempt already holds it. The lock is what stops the reconciler
-	// re-queueing an entity whose conversion is still running: HasLOD0 only
-	// turns true at the very end of processing, so a conversion longer than
-	// the tick interval would otherwise be queued again on every tick.
+	// re-queueing an entity whose conversion is still running, and what stops
+	// a user-initiated submit racing the reconciler: HasLOD0 only turns true
+	// at the very end of processing, so a conversion longer than the tick
+	// interval would otherwise be queued again on every tick.
 	TryLockTarget(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) (bool, error)
 
 	// UnlockTarget releases the claim. Failing to call it is not fatal — the
