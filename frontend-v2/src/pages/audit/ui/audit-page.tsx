@@ -39,6 +39,9 @@ export type AuditPageProps = {
   activity: { values: number[]; label: string; detail: string; dimFrom?: number };
   counters: AuditCounter[];
 
+  /** A sentence the screen wants under the header — a refusal or an empty result. */
+  notice?: ReactNode;
+
   query: string;
   onQueryChange: (query: string) => void;
   /** Chips the query text does not own — a date-range preset, say. */
@@ -76,6 +79,7 @@ export function AuditPage({
   days,
   activity,
   counters,
+  notice,
   query,
   onQueryChange,
   extraFilters,
@@ -116,6 +120,8 @@ export function AuditPage({
           </Button>
         </div>
       </header>
+
+      {notice}
 
       <div className="flex items-center gap-3">
         <FilterBar

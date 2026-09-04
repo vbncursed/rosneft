@@ -53,8 +53,9 @@ export function useAudit(): AuditState {
   const [range, setRange] = useState<DateRange>({ from: "", to: "" });
   const [selectedId, setSelectedId] = useState<number | null>(null);
   // Rounded to the hour inside windowStart, so this is stable across renders
-  // and advances once an hour — a value captured at mount would go stale on a
-  // tab left open all day.
+  // and advances to the next hour on the next render — nothing re-renders an
+  // idle tab, and a paged tab that sits still keeps its hour, which is
+  // accepted.
   const from = windowStart();
 
   const actors = useQuery(auditActorsQuery);
@@ -105,7 +106,11 @@ export function useAudit(): AuditState {
     backwardsRange: backwards,
     selected,
     select: setSelectedId,
-    live: (journal.data?.pages.length ?? 0) <= 1 && unknownActor === null && !backwards,
+    live:
+      (journal.data?.pages.length ?? 0) <= 1 &&
+      !journal.isPlaceholderData &&
+      unknownActor === null &&
+      !backwards,
     ...(journal.hasNextPage ? { loadOlder: () => void journal.fetchNextPage() } : {}),
     loadingOlder: journal.isFetchingNextPage,
     exportCsv: () => exporting.mutate(),

@@ -125,11 +125,15 @@ describe("useAudit", () => {
     act(() => result.current.setQuery("entity:territory"));
     expect(result.current.status).toBe("ready");
     expect(result.current.entries.map((e) => e.id)).toEqual([1, 2]);
+    // The page on screen is the previous filter's — "live" would claim the
+    // journal is following events it is not showing.
+    expect(result.current.live).toBe(false);
 
     act(() => result.current.setRange({ from: "2026-09-01", to: "" }));
     expect(result.current.status).toBe("ready");
     await waitFor(() => expect(journalCalls().at(-1)).toContain("from="));
     expect(result.current.status).toBe("ready");
+    await waitFor(() => expect(result.current.live).toBe(true));
   });
 
   it("resolves an actor login into the filter and refuses an unknown one without a request", async () => {
