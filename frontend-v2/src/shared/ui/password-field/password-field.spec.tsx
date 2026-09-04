@@ -67,10 +67,9 @@ describe("PasswordField", () => {
 
   it("keeps the same line-height shown and hidden, so the field does not jump", async () => {
     render(<PasswordField label="Password" defaultValue="x" />);
-    const input = screen.getByLabelText("Password");
-    const before = input.className;
+    expect(input().className).toContain("text-sm"); // text-sm carries the same 20px line-height
+
     await userEvent.click(screen.getByRole("button", { name: "Show password" }));
-    expect(input.className).toContain("leading-5");
-    expect(before).toMatch(/text-sm/); // text-sm carries leading-5 by definition
+    expect(input().className).toContain("leading-5");
   });
 });
