@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   contentPath,
   hasArtifacts,
-  isOpenable,
   matchesFilters,
   matchesText,
   pipelineCounts,
@@ -28,12 +27,7 @@ describe("contentPath", () => {
   });
 });
 
-describe("isOpenable / hasArtifacts", () => {
-  it("opens only a finished conversion", () => {
-    expect(isOpenable(item())).toBe(true);
-    expect(isOpenable(item({ status: "converting" }))).toBe(false);
-  });
-
+describe("hasArtifacts", () => {
   it("reads an em dash as 'nothing converted yet'", () => {
     expect(hasArtifacts(item())).toBe(true);
     expect(hasArtifacts(item({ lods: "—" }))).toBe(false);

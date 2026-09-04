@@ -91,6 +91,18 @@ describe("ContentInspector", () => {
     expect(screen.getByRole("button", { name: "Open in viewer" })).toBeEnabled();
   });
 
+  it("lets `openable` decide the viewer button when the route has resolved it", () => {
+    const { rerender } = render(
+      <ContentInspector {...props({ item: item({ status: "failed" }), openable: true })} />,
+    );
+    expect(screen.getByRole("button", { name: "Open in viewer" })).toBeEnabled();
+
+    rerender(
+      <ContentInspector {...props({ item: item({ status: "pending" }), openable: false })} />,
+    );
+    expect(screen.getByRole("button", { name: "Open in viewer" })).toBeDisabled();
+  });
+
   it("offers to cancel only a job that is running", () => {
     const { rerender } = render(<ContentInspector {...props()} />);
     expect(screen.queryByRole("button", { name: "Cancel job" })).not.toBeInTheDocument();

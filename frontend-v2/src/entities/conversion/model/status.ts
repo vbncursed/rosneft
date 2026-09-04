@@ -1,7 +1,9 @@
 /**
- * Where a source upload has got to on its way to a viewable GLB. `pending`
- * is the honest word for "no artifacts and no job we know of": the catalog
- * cannot tell a never-converted row from a failed one, and v2 starts no jobs.
+ * Where a source upload has got to on its way to a viewable GLB. The job
+ * decides first: a live one from `GET /api/jobs` says `converting`, a failed
+ * one `failed`. With no job to go on the artifacts decide — some means
+ * `ready`, none means `pending`, which is now only ever "nothing has been
+ * converted yet" rather than the old catch-all that also covered failures.
  */
 export type ConversionStatus = "ready" | "pending" | "converting" | "failed";
 

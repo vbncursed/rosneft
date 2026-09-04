@@ -46,6 +46,8 @@ export type ContentPageProps = {
   /** Absent for a model — there is no source-replace route for one. */
   onReplaceSource?: () => void;
   onOpenInViewer: () => void;
+  /** Whether the inspected item has anything to open; its status if absent. */
+  openable?: boolean;
   /** Absent when the viewer may not delete this kind. */
   onDelete?: () => void;
   onCancelJob?: () => void;
@@ -72,6 +74,7 @@ export function ContentPage({
   onUploadModel,
   onReplaceSource,
   onOpenInViewer,
+  openable,
   onDelete,
   onCancelJob,
   canManage = true,
@@ -145,6 +148,7 @@ export function ContentPage({
               onClose={onCloseInspector}
               onReplaceSource={onReplaceSource}
               onOpenInViewer={onOpenInViewer}
+              openable={openable}
               onDelete={onDelete}
               onCancelJob={inspected.item.status === "converting" ? onCancelJob : undefined}
             />

@@ -27,9 +27,6 @@ export type ContentItem = {
 export const contentPath = (item: ContentItem) =>
   `${item.kind === "territory" ? "/territories" : "/models"}/${encodeURIComponent(item.slug)}`;
 
-/** Only a finished conversion can be opened. */
-export const isOpenable = (item: ContentItem) => item.status === "ready";
-
 /** Nothing converted yet — the design writes both columns as an em dash. */
 export const hasArtifacts = (item: ContentItem) => item.lods !== "—";
 

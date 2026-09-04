@@ -154,6 +154,27 @@ describe("ContentScreen", () => {
     expect(within(aside).getByText("OBJ parse error at line 84120")).toBeInTheDocument();
   });
 
+  it("keeps a converted territory openable while its re-conversion fails", async () => {
+    const broken: ContentItem = { ...T, status: "failed" };
+    useContent.mockReturnValue(state({ items: [broken, M], selected: broken }));
+    const { unmount } = render(<ContentScreen />);
+    const aside = screen.getByRole("complementary", { name: "Content: T 1" });
+    const open = within(aside).getByRole("button", { name: "Open in viewer" });
+    expect(open).toBeEnabled();
+    await userEvent.click(open);
+    expect(leaveTo).toHaveBeenCalledWith("/territories/t-1");
+
+    // ...and a row that has never converted still cannot be opened.
+    unmount();
+    useContent.mockReturnValue(state({ selected: M, artifactsOf: () => [] }));
+    render(<ContentScreen />);
+    expect(
+      within(screen.getByRole("complementary", { name: "Content: M 1" })).getByRole("button", {
+        name: "Open in viewer",
+      }),
+    ).toBeDisabled();
+  });
+
   it("says the catalog is empty rather than blaming the filter", () => {
     useContent.mockReturnValue(state({ items: [], storageBytes: 0 }));
     render(<ContentScreen />);
