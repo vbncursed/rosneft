@@ -46,8 +46,8 @@ export function useMetrics(range: MetricsRange): MetricsState {
 
   const panels = useQueries({
     queries: ALL.map((id) => panelQuery(id, range)),
-    // `combine` stays inline: its closure over ALL must match the queries
-    // array of the same render (see use-content.ts).
+    // `combine` is inline for symmetry with use-content, where it must be:
+    // ALL is a module constant here, so hoisting it would be fine too.
     combine: (rs) => ({
       pending: rs.some((r) => r.isPending),
       allFailed: rs.length > 0 && rs.every((r) => unanswered(r) !== null),
