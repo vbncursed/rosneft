@@ -13,6 +13,9 @@ describe("controlClass", () => {
     const cls = controlClass({ mono: true });
     expect(cls).toContain("font-mono");
     expect(cls).not.toContain("font-sans");
+    // Same line-height in both faces: a PasswordField toggles mono on reveal
+    // and the input must not change height under the eye button.
+    expect(cls).toContain("leading-5");
   });
 
   it("swaps the ground and border when invalid", () => {

@@ -106,4 +106,14 @@ describe("DatePicker", () => {
     await userEvent.click(field());
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
+
+  it("anchors the calendar to the trigger's left edge by default, and to its right on align=end", async () => {
+    const { unmount } = render(<Harness />);
+    await userEvent.click(field());
+    expect(screen.getByRole("dialog").className).toContain("left-0");
+    unmount();
+    render(<DatePicker label="To" value="" onChange={() => {}} align="end" />);
+    await userEvent.click(screen.getByRole("button", { name: "To" }));
+    expect(screen.getByRole("dialog").className).toContain("right-0");
+  });
 });

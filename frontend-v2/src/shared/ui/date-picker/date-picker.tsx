@@ -23,6 +23,8 @@ export type DatePickerProps = {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  /** Which trigger edge the calendar hangs from; "end" for a picker at the right edge of a row. */
+  align?: "start" | "end";
 };
 
 const realToday = (): IsoDate => {
@@ -38,6 +40,7 @@ export function DatePicker({
   placeholder = "yyyy-mm-dd",
   disabled = false,
   className,
+  align = "start",
 }: DatePickerProps) {
   const gridId = useId();
   const root = useRef<HTMLDivElement>(null);
@@ -80,7 +83,10 @@ export function DatePicker({
         <div
           role="dialog"
           aria-label={label}
-          className="absolute z-10 mt-1 w-[17.5rem] rounded-[10px] border border-line-2 bg-panel-2 p-3.5 shadow-elevation"
+          className={cx(
+            "absolute z-10 mt-1 w-[17.5rem] rounded-[10px] border border-line-2 bg-panel-2 p-3.5 shadow-elevation",
+            align === "end" ? "right-0" : "left-0",
+          )}
         >
           <div className="mb-2.5 flex items-center justify-between gap-4">
             <button
