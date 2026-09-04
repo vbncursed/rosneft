@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
-import type { NewUser } from "@/entities/user";
+import { generatePassword, validatePassword, type NewUser } from "@/entities/user";
 import type { RoleChip } from "@/features/role-assign";
+import { copyText } from "@/shared/lib/copy-text";
+import { notify } from "@/shared/lib/notify";
 import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { Modal } from "@/shared/ui/modal";
@@ -27,14 +29,17 @@ export function CreateUserDialog({ open, roles, busy = false, onClose, onCreate 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
+  const [attempted, setAttempted] = useState(false);
   const complete = email.trim() !== "" && username.trim() !== "" && password !== "";
+  const rule = validatePassword(password);
 
   const toggle = (slug: string) =>
     setPicked((p) => (p.includes(slug) ? p.filter((s) => s !== slug) : [...p, slug]));
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!complete) return;
+    setAttempted(true);
+    if (!complete || rule) return;
     onCreate({ email: email.trim(), username: username.trim(), password, roleSlugs: picked });
   };
 
@@ -79,6 +84,20 @@ export function CreateUserDialog({ open, roles, busy = false, onClose, onCreate 
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={busy}
+          error={attempted && rule ? rule : undefined}
+          action={{
+            label: "Generate",
+            onClick: (reveal) => {
+              const next = generatePassword();
+              setPassword(next);
+              reveal();
+              void copyText(next).then((ok) =>
+                ok
+                  ? notify.success("Password copied")
+                  : notify.error("Could not copy — select it and copy by hand"),
+              );
+            },
+          }}
         />
         {roles.length > 0 ? (
           <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">

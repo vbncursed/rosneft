@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { copyText } from "@/shared/lib/copy-text";
 import { Button } from "@/shared/ui/button";
 import { codesAsText, downloadText } from "../model/download";
 
@@ -16,8 +17,7 @@ export function RecoveryCodes({ codes, onConfirm }: RecoveryCodesProps) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
-    await navigator.clipboard.writeText(codesAsText(codes));
-    setCopied(true);
+    setCopied(await copyText(codesAsText(codes)));
   };
 
   return (

@@ -9,7 +9,7 @@ export type PasswordFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "id
   error?: ReactNode;
   id?: string;
   /** A control beside the label — "Generate" on an admin form, "Forgot?" on login. */
-  action?: { label: string; onClick: () => void };
+  action?: { label: string; onClick: (reveal: () => void) => void };
   fieldClassName?: string;
 };
 
@@ -37,7 +37,7 @@ export function PasswordField({
         action ? (
           <button
             type="button"
-            onClick={action.onClick}
+            onClick={() => action.onClick(() => setShown(true))}
             disabled={disabled}
             className="cursor-pointer border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.16em] text-accent hover:underline disabled:cursor-not-allowed disabled:opacity-55"
           >

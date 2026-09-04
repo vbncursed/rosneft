@@ -46,6 +46,20 @@ describe("PasswordField", () => {
     expect(onClick).toHaveBeenCalledOnce();
   });
 
+  it("hands the action a reveal callback that flips the input to text", async () => {
+    render(
+      <PasswordField
+        label="Password"
+        defaultValue="x"
+        action={{ label: "Generate", onClick: (reveal) => reveal() }}
+      />,
+    );
+    expect(input()).toHaveAttribute("type", "password");
+
+    await userEvent.click(screen.getByRole("button", { name: "Generate" }));
+    expect(input()).toHaveAttribute("type", "text");
+  });
+
   it("keeps that action out of the field's accessible name", () => {
     render(<PasswordField label="Password" action={{ label: "Forgot?", onClick: () => {} }} />);
     // Inside the <label> it would read as "Password Forgot?" and clicking it
