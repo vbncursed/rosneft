@@ -52,12 +52,20 @@ func (m *Mesh) SubmitConversion(ctx context.Context, kind domain.Kind, slug stri
 		Slug:   slug,
 		Status: domain.JobStatusPending,
 	}
+	// Release only a claim this call actually took. Falling through a stale
+	// lock means someone else holds the key: inside the TOCTOU window above
+	// that someone is a live submitter, and unlocking here would leave their
+	// job running unprotected.
 	if err := m.queue.SaveJob(ctx, job); err != nil {
-		_ = m.queue.UnlockTarget(ctx, kind, slug)
+		if locked {
+			_ = m.queue.UnlockTarget(ctx, kind, slug)
+		}
 		return domain.Job{}, false, fmt.Errorf("service.SubmitConversion: save: %w", err)
 	}
 	if err := m.queue.EnqueueJob(ctx, job.ID); err != nil {
-		_ = m.queue.UnlockTarget(ctx, kind, slug)
+		if locked {
+			_ = m.queue.UnlockTarget(ctx, kind, slug)
+		}
 		return domain.Job{}, false, fmt.Errorf("service.SubmitConversion: enqueue: %w", err)
 	}
 	saved, err := m.queue.GetJob(ctx, job.ID)

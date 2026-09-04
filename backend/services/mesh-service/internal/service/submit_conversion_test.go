@@ -74,24 +74,6 @@ func (s *SubmitConversionSuite) TestModelKindIsForwarded() {
 	assert.Equal(s.T(), got.Kind, domain.KindModel)
 }
 
-func (s *SubmitConversionSuite) TestSaveFailureSurfaces() {
-	// Save fails first → enqueue is never reached (EnqueueJobMock unmocked).
-	s.queue.TryLockTargetMock.Return(true, nil)
-	s.queue.SaveJobMock.Return(errors.New("redis down"))
-	s.queue.UnlockTargetMock.Return(nil)
-	_, _, err := s.svc.SubmitConversion(s.ctx, domain.KindTerritory, "t1")
-	assert.ErrorContains(s.T(), err, "redis down")
-}
-
-func (s *SubmitConversionSuite) TestEnqueueFailureSurfaces() {
-	s.queue.TryLockTargetMock.Return(true, nil)
-	s.queue.SaveJobMock.Return(nil)
-	s.queue.EnqueueJobMock.Return(errors.New("redis full"))
-	s.queue.UnlockTargetMock.Return(nil)
-	_, _, err := s.svc.SubmitConversion(s.ctx, domain.KindTerritory, "t1")
-	assert.ErrorContains(s.T(), err, "redis full")
-}
-
 func (s *SubmitConversionSuite) TestTakesTheTargetLockBeforeQueueing() {
 	job := domain.Job{ID: "fixed-id", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusPending}
 	s.queue.TryLockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1", service.TargetLockTTL).Return(true, nil)
@@ -172,6 +154,27 @@ func (s *SubmitConversionSuite) TestReleasesTheLockWhenEnqueueFails() {
 
 func (s *SubmitConversionSuite) TestSurfacesALockError() {
 	s.queue.TryLockTargetMock.Return(false, errors.New("redis down"))
+	_, _, err := s.svc.SubmitConversion(s.ctx, domain.KindTerritory, "t1")
+	assert.ErrorContains(s.T(), err, "redis down")
+}
+
+// A submitter that fell through a stale lock never took it, so releasing it
+// on a save failure would hand back a claim another submitter took inside the
+// TOCTOU window the doc comment bounds — leaving that submitter's job running
+// unprotected. UnlockTarget is unmocked: reaching it fails the test.
+func (s *SubmitConversionSuite) TestDoesNotReleaseALockItNeverTookWhenSaveFails() {
+	s.queue.TryLockTargetMock.Return(false, nil)
+	s.queue.ListTargetJobsMock.Return(nil, nil)
+	s.queue.SaveJobMock.Return(errors.New("redis down"))
+
+	_, _, err := s.svc.SubmitConversion(s.ctx, domain.KindTerritory, "t1")
+	assert.ErrorContains(s.T(), err, "redis down")
+}
+
+func (s *SubmitConversionSuite) TestSurfacesAnIndexReadErrorWhenTheTargetIsHeld() {
+	s.queue.TryLockTargetMock.Return(false, nil)
+	s.queue.ListTargetJobsMock.Return(nil, errors.New("redis down"))
+
 	_, _, err := s.svc.SubmitConversion(s.ctx, domain.KindTerritory, "t1")
 	assert.ErrorContains(s.T(), err, "redis down")
 }

@@ -94,7 +94,10 @@ func (s *ReconcileSuite) TestSurfaceLOD0CheckErrorOnFirstFailure() {
 	assert.ErrorContains(s.T(), err, "db blip")
 }
 
-func (s *ReconcileSuite) TestStopsOnSubmitFailure() {
+// A submit failure stops the tick with nothing counted, and releases the
+// claim: without the release a failed submit would block this target for the
+// full 10-minute TTL, and the reconciler's whole job is to retry.
+func (s *ReconcileSuite) TestStopsOnSubmitFailureAndReleasesTheLock() {
 	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1", SourceBlobHash: "h"},
 		{Kind: domain.KindTerritory, Slug: "t2", SourceBlobHash: "h"},
@@ -102,7 +105,7 @@ func (s *ReconcileSuite) TestStopsOnSubmitFailure() {
 	s.catalog.HasLOD0Mock.Return(false, nil)
 	s.queue.TryLockTargetMock.Return(true, nil)
 	s.queue.SaveJobMock.Return(errors.New("redis down"))
-	s.queue.UnlockTargetMock.Return(nil)
+	s.queue.UnlockTargetMock.Expect(s.ctx, domain.KindTerritory, "t1").Return(nil)
 
 	queued, err := s.svc.ReconcileMissingArtifacts(s.ctx)
 	assert.ErrorContains(s.T(), err, "redis down")
@@ -153,20 +156,4 @@ func (s *ReconcileSuite) TestQueuesTargetWhenLockIsFree() {
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), 1, n)
-}
-
-func (s *ReconcileSuite) TestReleasesLockWhenSubmitFails() {
-	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
-		{Kind: domain.KindTerritory, Slug: "t1"},
-	}, nil)
-	s.catalog.HasLOD0Mock.Return(false, nil)
-	s.queue.TryLockTargetMock.Return(true, nil)
-	s.queue.SaveJobMock.Return(errors.New("redis down"))
-	s.queue.UnlockTargetMock.Return(nil)
-
-	_, err := s.svc.ReconcileMissingArtifacts(s.T().Context())
-
-	assert.ErrorContains(s.T(), err, "redis down")
-	// Without the release, a failed submit would block this target for the
-	// full 10-minute TTL — the reconciler's whole job is to retry.
 }

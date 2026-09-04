@@ -50,10 +50,6 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		if has {
 			continue
 		}
-		// HasLOD0 stays false for the entire conversion — the artifact is
-		// published last — so without the claim SubmitConversion takes, a
-		// conversion longer than the tick interval would be queued again on
-		// every tick.
 		// SubmitConversion holds the target claim; when the target is already
 		// in flight it hands back that job and created is false.
 		_, created, err := m.SubmitConversion(ctx, t.Kind, t.Slug)
