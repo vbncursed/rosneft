@@ -4,9 +4,12 @@ import { describe, expect, it, vi } from "vitest";
 import { MetricPanel } from "./metric-panel";
 import type { Series } from "@/shared/ui/line-chart";
 
+// Seconds, not raw milliseconds — the panel's own "seconds" unit reads these
+// as `formatValue(v, "seconds")` does, and the spoken summary must agree with
+// the printed "· ms" meta rather than reading "30s".
 const SERIES: Series[] = [
-  { label: "p95", values: [10, 20, 30] },
-  { label: "p99", values: [40, 50, 60], tone: "bad" },
+  { label: "p95", values: [0.01, 0.02, 0.03] },
+  { label: "p99", values: [0.04, 0.05, 0.06], tone: "bad" },
 ];
 
 describe("MetricPanel", () => {
@@ -35,7 +38,7 @@ describe("MetricPanel", () => {
       <MetricPanel title="Request latency" meta="ms" last="452ms" series={SERIES} unit="seconds" />,
     );
     expect(
-      screen.getByRole("img", { name: "Request latency: p95 30s, p99 60s" }),
+      screen.getByRole("img", { name: "Request latency: p95 30ms, p99 60ms" }),
     ).toBeInTheDocument();
     expect(screen.getByText("p95")).toBeInTheDocument();
     expect(screen.getByText("p99")).toBeInTheDocument();

@@ -32,12 +32,12 @@ describe("LineChart", () => {
   });
 
   it("reads the last value a gap-ending series actually has", () => {
-    render(<LineChart series={[{ label: "p95", values: [10, 20, null] }]} label="Latency" unit="ms" />);
-    expect(screen.getByRole("img", { name: "Latency: p95 20 ms" })).toBeInTheDocument();
+    render(<LineChart series={[{ label: "p95", values: [10, 20, null] }]} label="Latency" />);
+    expect(screen.getByRole("img", { name: "Latency: p95 20" })).toBeInTheDocument();
   });
 
   it("says a series that is all gaps has no data, rather than printing a zero", () => {
-    render(<LineChart series={[{ label: "p95", values: [null, null] }]} label="Latency" unit="ms" />);
+    render(<LineChart series={[{ label: "p95", values: [null, null] }]} label="Latency" />);
     expect(screen.getByRole("img", { name: "Latency: p95 no data" })).toBeInTheDocument();
   });
 

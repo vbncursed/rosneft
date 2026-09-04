@@ -18,10 +18,12 @@ const SECTIONS: MetricSection[] = [
         last: "452ms",
         lastTone: "accent",
         unit: "seconds",
+        // Values are seconds, matching the unit above, so the chart's spoken
+        // summary ("92ms") agrees with what the eye sees ("p50 / p95 / p99 · ms").
         series: [
-          { label: "p50", values: wave(24, 92, 10, 2), tone: "muted", dashed: true },
-          { label: "p95", values: wave(24, 250, 50, 3) },
-          { label: "p99", values: wave(24, 460, 90, 4, -40), tone: "bad" },
+          { label: "p50", values: wave(24, 0.092, 0.01, 2), tone: "muted", dashed: true },
+          { label: "p95", values: wave(24, 0.25, 0.05, 3) },
+          { label: "p99", values: wave(24, 0.46, 0.09, 4, -0.04), tone: "bad" },
         ],
       },
       {

@@ -17,8 +17,6 @@ export type LineChartProps = {
   series: Series[];
   /** Names the chart for assistive tech; the summary is derived from it. */
   label: string;
-  /** Unit for the spoken summary, e.g. "ms" or "requests per second". */
-  unit?: string;
   /** How the panel prints a value; the spoken summary uses it so a reader hears "52ms", not "0.0523 seconds". */
   format?: (v: number) => string;
   height?: number;
@@ -51,13 +49,13 @@ const toneOf = (series: Series, index: number) => series.tone ?? ORDER[index % O
 // identifies a series here anyway — the tone is assigned by it too.
 
 /** The last reading of each series — what a reader would otherwise squint for. */
-function summarise(series: Series[], label: string, unit?: string, format?: (v: number) => string): string {
+function summarise(series: Series[], label: string, format?: (v: number) => string): string {
   if (series.length === 0) return `${label}: no data`;
   const parts = series.map((s) => {
     const present = s.values.filter((v): v is number => v !== null);
     const last = present.at(-1);
     if (last === undefined) return `${s.label} no data`;
-    return `${s.label} ${format ? format(last) : `${Number(last.toFixed(2))}${unit ? ` ${unit}` : ""}`}`;
+    return `${s.label} ${format ? format(last) : Number(last.toFixed(2))}`;
   });
   return `${label}: ${parts.join(", ")}`;
 }
@@ -65,7 +63,6 @@ function summarise(series: Series[], label: string, unit?: string, format?: (v: 
 export function LineChart({
   series,
   label,
-  unit,
   format,
   height = DEFAULT_GEOMETRY.height,
   className,
@@ -79,7 +76,7 @@ export function LineChart({
   return (
     <div
       role="img"
-      aria-label={summarise(series, label, unit, format)}
+      aria-label={summarise(series, label, format)}
       className={cx(
         "relative overflow-hidden rounded-[9px] border border-line bg-panel-2",
         className,

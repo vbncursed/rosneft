@@ -28,7 +28,7 @@ export type PanelResult =
  * than everything, so a typo narrows the screen instead of silently widening
  * it.
  */
-export function matchesService(service: ServiceHealth, query: string): boolean {
+export function matchesServiceQuery(service: ServiceHealth, query: string): boolean {
   for (const { key, value } of parseFilters(query)) {
     if (key === "service") {
       if (!service.name.toLowerCase().includes(value.toLowerCase())) return false;

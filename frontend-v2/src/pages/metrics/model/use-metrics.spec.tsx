@@ -132,6 +132,10 @@ describe("useMetrics", () => {
     failing.add("red-rate");
     await act(() => client.refetchQueries({ queryKey: ["metrics", "red-rate", "1h"] }));
 
+    // The refetch really happened and really failed — otherwise the
+    // assertion below would pass just as well if the query key had drifted
+    // and refetchQueries silently matched nothing.
+    expect(client.getQueryState(["metrics", "red-rate", "1h"])?.status).toBe("error");
     expect(result.current.results["red-rate"]).toEqual({
       kind: "value",
       series: [{ label: "gateway", points: points(140, 142), labels: {} }],

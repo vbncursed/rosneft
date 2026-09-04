@@ -17,7 +17,12 @@ export default (
   <div className="grid max-w-3xl gap-4 p-6 md:grid-cols-2">
     <div className="rounded-card border border-line bg-panel p-4">
       <p className="m-0 text-[13px] font-semibold">Request latency</p>
-      <LineChart className="mt-3" series={LATENCY} label="Request latency" unit="ms" />
+      <LineChart
+        className="mt-3"
+        series={LATENCY}
+        label="Request latency"
+        format={(v) => `${Math.round(v)}ms`}
+      />
       <ChartLegend className="mt-3" series={LATENCY} />
     </div>
     <div className="rounded-card border border-line bg-panel p-4">

@@ -60,7 +60,14 @@ export function toLinePath(
     segments.push(`${drawing ? "L" : "M"}${x.toFixed(1)} ${y}`);
     // A reading with no neighbour on either side is a point nobody can see;
     // give it the same flat dash a single-value series gets, one step wide.
-    if (alone) segments.push(`L${Math.min(x + step / 2, geo.width).toFixed(1)} ${y}`);
+    // At the last index there is nothing to the right to extend into — the
+    // clamp against geo.width would land back on x itself, a zero-length
+    // segment the butt linecap paints as nothing — so that one dash draws
+    // backwards instead.
+    if (alone) {
+      const dashX = i === values.length - 1 ? x - step / 2 : Math.min(x + step / 2, geo.width);
+      segments.push(`L${dashX.toFixed(1)} ${y}`);
+    }
     drawing = true;
   });
   return segments.join(" ");
