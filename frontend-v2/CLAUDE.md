@@ -130,6 +130,12 @@ Specs assert what a user can observe — roles, labels, values, focus — so a
 class rename does not break them. The exception is a variant test that
 deliberately checks a token class survived.
 
+**The 200-line file cap is hand-checked here** (skip blank lines and comments).
+`.oxlintrc.json` declares only `react/rules-of-hooks` and
+`react/only-export-components` — there is no `max-lines` rule, unlike
+`frontend/`. Nothing will tell you when a file crosses the line; count it
+yourself when a file starts to feel long.
+
 ## Design decisions that keep coming up
 
 **Source of truth.** `Design System.dc.html` defines the components. The screen

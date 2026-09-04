@@ -24,11 +24,11 @@ export function Callout({ tone, children, icon = "warning", className }: Callout
   return (
     <div
       // A problem with the account in front of you is not an interruption to
-      // announce; it is part of the panel being read. Every tone still gets a
-      // live region, so a callout that appears after a keystroke — a filter
-      // that names no such actor, a range that ends before it starts — is
-      // spoken, not just painted.
-      role={tone === "bad" ? "alert" : "status"}
+      // announce; it is part of the panel being read. A callout that appears
+      // after a keystroke is announced by the slot it lands in — the audit
+      // notice slot is a persistent live region — not by a role added here,
+      // which would only nest one region inside another.
+      role={tone === "bad" ? "alert" : undefined}
       className={cx(
         "flex items-center gap-2 rounded-[9px] border px-3 py-2.5",
         SKIN[tone],

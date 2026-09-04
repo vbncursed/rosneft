@@ -32,5 +32,9 @@ describe("panel catalogue", () => {
     expect(formatValue(null, "count")).toBe("—");
     expect(formatValue(0.04, "rps")).toBe("<0.1/s");
     expect(formatValue(0, "rps")).toBe("0/s");
+    // Same rule one branch over: stat-errors is a percent and its tone fires
+    // on last > 0, so a 0.004% 5xx share must not render a red "Errors: 0%".
+    expect(formatValue(0.00004, "percent")).toBe("<0.1%");
+    expect(formatValue(0, "percent")).toBe("0%");
   });
 });

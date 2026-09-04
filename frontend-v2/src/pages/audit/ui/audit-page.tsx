@@ -121,7 +121,16 @@ export function AuditPage({
         </div>
       </header>
 
-      {notice}
+      {/*
+        The slot is the live region, not the callout inside it. A region that
+        arrives together with its first content is announced unreliably — it
+        has to already be in the DOM when the text lands — so this div is
+        always rendered. Empty it leaves the flow (`empty:absolute`) so it
+        does not spend one of the column's gaps on nothing.
+      */}
+      <div role="status" aria-live="polite" className="empty:absolute">
+        {notice}
+      </div>
 
       <div role="group" aria-label="Filters" className="flex items-center gap-3">
         <FilterBar
