@@ -18,7 +18,7 @@ import (
 )
 
 // DeleteSuite exercises Store.Delete's user_roles FK (ON DELETE RESTRICT)
-// against a real Postgres: the 23503 -> ErrRoleInUse mapping is untestable
+// against a real Postgres: the 23001 -> ErrRoleInUse mapping is untestable
 // through a mock, since a mock has no constraint to violate.
 type DeleteSuite struct {
 	suite.Suite
@@ -77,6 +77,9 @@ func (s *DeleteSuite) TestRefusesARoleSomebodyStillHolds() {
 	err = s.pool.QueryRow(ctx, `INSERT INTO users (email, username, password_hash)
 		VALUES ('u1@x', 'u1', 'h') RETURNING id`).Scan(&userID)
 	assert.NilError(s.T(), err)
+	s.T().Cleanup(func() {
+		_, _ = s.pool.Exec(context.Background(), `DELETE FROM users WHERE id = $1`, userID)
+	})
 
 	_, err = s.pool.Exec(ctx, `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)`, userID, roleID)
 	assert.NilError(s.T(), err)

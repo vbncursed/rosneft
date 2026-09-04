@@ -61,11 +61,11 @@ func isUnique(err error) bool {
 	return ok && pgErr.Code == "23505"
 }
 
-// isFKViolation reports a DELETE blocked by an ON DELETE RESTRICT foreign key
-// (here: user_roles.role_id). Postgres raises this as restrict_violation
-// (23001), a distinct code from the foreign_key_violation (23503) raised on
-// INSERT/UPDATE — confirmed against a real Postgres in delete_integration_test.go.
-func isFKViolation(err error) bool {
+// isRestrictViolation reports a DELETE blocked by an ON DELETE RESTRICT
+// foreign key (here: user_roles.role_id). An explicit RESTRICT raises
+// restrict_violation (23001); foreign_key_violation (23503) is the NO ACTION /
+// INSERT-UPDATE code, which this table cannot produce on delete.
+func isRestrictViolation(err error) bool {
 	pgErr, ok := errors.AsType[*pgconn.PgError](err)
 	return ok && pgErr.Code == "23001"
 }

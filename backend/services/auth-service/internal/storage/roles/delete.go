@@ -26,8 +26,8 @@ func (s *Store) Delete(ctx context.Context, slug, scopeAdminID string, allAccess
 		return execErr
 	})
 	if err != nil {
-		if isFKViolation(err) {
-			return fmt.Errorf("roles.Delete: %w", domain.ErrRoleInUse)
+		if isRestrictViolation(err) {
+			return domain.ErrRoleInUse
 		}
 		return fmt.Errorf("roles.Delete: %w", err)
 	}
