@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { httpGet, httpPost } from "./client";
+import { httpGet, httpGetBlob, httpPost } from "./client";
 import { markAuthed, isAuthed } from "@/shared/session";
 import { setCsrfToken, clearCsrfToken } from "./csrf";
 
@@ -96,5 +96,28 @@ describe("http client", () => {
   it("says something useful when a 403 carries no message", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(403, {})));
     await expect(httpGet("/api/audit")).rejects.toThrow("You don't have permission to do this");
+  });
+
+  it("fetches a blob through the same base URL and 401 bounce as JSON", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockResolvedValueOnce(
+      new Response("a,b\n", { status: 200, headers: { "Content-Type": "text/csv" } }),
+    );
+    const blob = await httpGetBlob("/api/audit.csv");
+    expect(await blob.text()).toBe("a,b\n");
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${import.meta.env.VITE_API_URL}/api/audit.csv`);
+    expect((init.headers as Record<string, string>).Accept).toBe("*/*");
+  });
+
+  it("drops the marker and bounces to login on a 401 for a blob too", async () => {
+    markAuthed();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(401, {})));
+
+    await expect(httpGetBlob("/api/audit.csv")).rejects.toThrow();
+
+    expect(isAuthed()).toBe(false);
+    expect(assign).toHaveBeenCalledWith("/login?next=%2Fconsole%2Fusers");
   });
 });

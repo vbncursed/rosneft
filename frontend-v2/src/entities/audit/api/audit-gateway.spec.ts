@@ -68,8 +68,8 @@ describe("audit gateway", () => {
     });
   });
 
-  it("names the status when the refusal carries no sentence of its own", async () => {
+  it("sends the export through the shared client, so a 401 bounces like every other call", async () => {
     fetchMock.mockResolvedValueOnce(new Response("upstream down", { status: 502 }));
-    await expect(exportAuditCsv({})).rejects.toMatchObject({ status: 502, message: "Export failed (502)" });
+    await expect(exportAuditCsv({})).rejects.toMatchObject({ status: 502, message: "Request failed (502)" });
   });
 });

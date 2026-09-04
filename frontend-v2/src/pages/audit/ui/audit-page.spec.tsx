@@ -120,6 +120,15 @@ describe("AuditPage", () => {
     );
   });
 
+  it("renders a notice between the header and the filter row", () => {
+    render(<AuditPage {...props()} notice={<p>Nothing here</p>} />);
+    const heading = screen.getByRole("heading", { level: 1 });
+    const notice = screen.getByText("Nothing here");
+    expect(heading.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const filter = screen.getByRole("textbox", { name: "Filter events" });
+    expect(notice.compareDocumentPosition(filter) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("summarises the activity above the journal", () => {
     render(<AuditPage {...props()} />);
     expect(screen.getByRole("img", { name: /Events · last 24h/ })).toBeInTheDocument();

@@ -5,7 +5,7 @@ import { ensureCsrfToken } from "./csrf";
 const API_BASE = import.meta.env.VITE_API_URL;
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
-async function send<T>(path: string, init: RequestInit, parseJson: boolean): Promise<T> {
+async function send<T>(path: string, init: RequestInit, parse: "json" | "blob" | "none"): Promise<T> {
   // No Authorization header: the session is an httpOnly cookie, and the SPA is
   // single-origin with the API in both dev and prod, so the browser attaches it
   // to every request here without being asked.
@@ -49,12 +49,17 @@ async function send<T>(path: string, init: RequestInit, parseJson: boolean): Pro
         : res.statusText || `Request failed (${res.status})`;
     throw new HttpError(res.status, body, detail || fallback);
   }
-  if (!parseJson || res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+  if (parse === "none" || res.status === 204) return undefined as T;
+  return (parse === "blob" ? await res.blob() : await res.json()) as T;
 }
 
 export function httpGet<T>(path: string): Promise<T> {
-  return send<T>(path, {}, true);
+  return send<T>(path, {}, "json");
+}
+
+/** A file, not JSON: the CSV export. `Accept` is widened so the gateway's CSV route is not asked for JSON. */
+export function httpGetBlob(path: string): Promise<Blob> {
+  return send<Blob>(path, { headers: { Accept: "*/*" } }, "blob");
 }
 
 export function httpPost<T>(path: string, body?: unknown): Promise<T> {
@@ -66,7 +71,7 @@ export function httpPost<T>(path: string, body?: unknown): Promise<T> {
       headers: hasBody ? { "Content-Type": "application/json" } : undefined,
       body: hasBody ? JSON.stringify(body) : undefined,
     },
-    true,
+    "json",
   );
 }
 
@@ -74,7 +79,7 @@ export function httpPut<T>(path: string, body: unknown): Promise<T> {
   return send<T>(
     path,
     { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
-    true,
+    "json",
   );
 }
 
@@ -82,7 +87,7 @@ export function httpPatch<T>(path: string, body: unknown): Promise<T> {
   return send<T>(
     path,
     { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
-    true,
+    "json",
   );
 }
 
@@ -95,6 +100,6 @@ export function httpDelete(path: string, body?: unknown): Promise<void> {
       headers: hasBody ? { "Content-Type": "application/json" } : undefined,
       body: hasBody ? JSON.stringify(body) : undefined,
     },
-    false,
+    "none",
   );
 }

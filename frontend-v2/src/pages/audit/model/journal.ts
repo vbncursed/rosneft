@@ -113,13 +113,21 @@ export function groupByDay(entries: AuditEntry[], now = new Date()): AuditDay[] 
 /**
  * The 24-hour window's lower bound, rounded down to the running hour: a bound
  * that moved with the clock would mint a new query key on every render, and a
- * bound captured once would drift on a tab left open all day. It advances once
- * an hour, which is the resolution the strip plots anyway.
+ * bound captured once would drift on a tab left open all day. It advances to
+ * the next hour on the next render — nothing re-renders an idle tab, and a
+ * paged tab that sits still keeps its hour, which is accepted.
  */
 export const windowStart = (now = new Date()): string =>
   new Date(Math.floor(now.getTime() / HOUR_MS) * HOUR_MS - DAY_MS).toISOString();
 
 const hourOf = (now: Date, i: number) => new Date(now.getTime() - (23 - i) * HOUR_MS);
+
+/** Index of the strip bucket an entry falls in, or -1 outside the 24 drawn. */
+const bucketOf = (at: string, now: Date): number => {
+  const startOf = (d: Date) => Math.floor(d.getTime() / HOUR_MS);
+  const i = startOf(new Date(at)) - startOf(hourOf(now, 0));
+  return i >= 0 && i < 24 ? i : -1;
+};
 
 /** 24 buckets, oldest first; the last is the hour still running. */
 export function activityOf(
@@ -128,28 +136,32 @@ export function activityOf(
   capped: boolean,
 ): AuditPageProps["activity"] {
   const values = Array.from({ length: 24 }, () => 0);
-  const startOf = (d: Date) => Math.floor(d.getTime() / HOUR_MS);
-  const firstHour = startOf(hourOf(now, 0));
   for (const e of entries) {
-    const i = startOf(new Date(e.at)) - firstHour;
-    if (i >= 0 && i < 24) values[i] += 1;
+    const i = bucketOf(e.at, now);
+    if (i >= 0) values[i] += 1;
   }
   const peak = Math.max(...values);
   const at = hourOf(now, values.indexOf(peak));
   const detail = capped
     ? `from ${WINDOW_LIMIT} loaded events`
-    : `peak ${peak}/h at ${String(at.getUTCHours()).padStart(2, "0")}:00`;
+    : peak === 0
+      ? "no events in the last 24h"
+      : `peak ${peak}/h at ${String(at.getUTCHours()).padStart(2, "0")}:00`;
   return { values, label: "Events · last 24h (UTC)", detail, dimFrom: 23 };
 }
 
+// The window query is rounded down to the hour and may hold a 25th hour; the
+// strip draws 24, and the counters must agree with the strip.
 export function countersOf(
   entries: AuditEntry[],
+  now: Date,
   capped: boolean,
   actorCount: number,
 ): AuditCounter[] {
-  const failed = entries.filter((e) => e.result === "failed").length;
+  const inWindow = entries.filter((e) => bucketOf(e.at, now) >= 0);
+  const failed = inWindow.filter((e) => e.result === "failed").length;
   return [
-    { label: "Events · 24h", value: capped ? `${WINDOW_LIMIT}+` : String(entries.length) },
+    { label: "Events · 24h", value: capped ? `${WINDOW_LIMIT}+` : String(inWindow.length) },
     { label: "Failed · 24h", value: String(failed), ...(failed > 0 ? { tone: "bad" as const } : {}) },
     { label: "Actors", value: String(actorCount), tone: "accent" },
   ];

@@ -151,14 +151,31 @@ describe("activityOf and countersOf", () => {
     expect(activityOf([], NOW, true).detail).toBe(`from ${WINDOW_LIMIT} loaded events`);
   });
 
+  it("says there were no events rather than a peak of zero", () => {
+    expect(activityOf([], NOW, false).detail).toBe("no events in the last 24h");
+  });
+
   it("counts events and failures in the window and the actors the journal knows", () => {
-    expect(countersOf([entry(), entry({ result: "failed" })], false, 9)).toEqual([
+    expect(countersOf([entry(), entry({ result: "failed" })], NOW, false, 9)).toEqual([
       { label: "Events · 24h", value: "2" },
       { label: "Failed · 24h", value: "1", tone: "bad" },
       { label: "Actors", value: "9", tone: "accent" },
     ]);
-    expect(countersOf([], true, 0)[0].value).toBe(`${WINDOW_LIMIT}+`);
-    expect(countersOf([], false, 0)[1]).toEqual({ label: "Failed · 24h", value: "0" });
+    expect(countersOf([], NOW, true, 0)[0].value).toBe(`${WINDOW_LIMIT}+`);
+    expect(countersOf([], NOW, false, 0)[1]).toEqual({ label: "Failed · 24h", value: "0" });
+  });
+
+  it("counts the same 24 buckets the strip draws — not the 25th hour the query may return", () => {
+    const entries = [
+      entry({ at: "2026-09-01T10:05:00Z" }),
+      entry({ at: "2026-08-31T11:30:00Z", result: "failed" }),
+      entry({ at: "2026-08-31T10:30:00Z", result: "failed" }), // rounded-down window start: outside the strip
+    ];
+    expect(countersOf(entries, NOW, false, 9)).toEqual([
+      { label: "Events · 24h", value: "2" },
+      { label: "Failed · 24h", value: "1", tone: "bad" },
+      { label: "Actors", value: "9", tone: "accent" },
+    ]);
   });
 });
 

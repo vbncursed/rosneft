@@ -1,4 +1,4 @@
-import { HttpError, httpGet, type ApiError } from "@/shared/api";
+import { httpGet, httpGetBlob } from "@/shared/api";
 import type { components } from "@/shared/api/dto";
 import type { AuditEntry } from "../model/audit-entry";
 import type { Refs } from "../model/refs";
@@ -61,23 +61,6 @@ export const listAuditActors = async (): Promise<AuditActor[]> =>
     login: a.login ?? "",
   }));
 
-/**
- * The same journal as CSV. A raw fetch: the client helper parses JSON, and a
- * plain <a download> would surface neither a filename nor a 403. Same
- * origin, so the session cookie rides along; no header is set.
- */
-export async function exportAuditCsv(filters: AuditFilters): Promise<Blob> {
-  const res = await fetch(`/api/audit.csv${toQuery(filters, null, null)}`);
-  if (!res.ok) {
-    // The gateway names the actual refusal ("audit:read required"); a bare
-    // status code names nothing the operator can act on.
-    let body: ApiError | null = null;
-    try {
-      body = (await res.json()) as ApiError;
-    } catch {
-      // not JSON
-    }
-    throw new HttpError(res.status, body, body?.message || `Export failed (${res.status})`);
-  }
-  return res.blob();
-}
+/** The same journal as CSV. Goes through the client so it shares the base URL and the 401 bounce. */
+export const exportAuditCsv = (filters: AuditFilters): Promise<Blob> =>
+  httpGetBlob(`/api/audit.csv${toQuery(filters, null, null)}`);
