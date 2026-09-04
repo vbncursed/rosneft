@@ -85,7 +85,7 @@ afterEach(() => {
 
 describe("useAudit", () => {
   it("is loading, then ready with the flattened journal, merged refs, actors and the window", async () => {
-    const { result } = renderHook(() => useAudit(), { wrapper });
+    const { result, rerender } = renderHook(() => useAudit(), { wrapper });
     expect(result.current.status).toBe("loading");
 
     await waitFor(() => expect(result.current.status).toBe("ready"));
@@ -96,6 +96,12 @@ describe("useAudit", () => {
     expect(result.current.window?.capped).toBe(false);
     expect(result.current.live).toBe(true);
     expect(result.current.error).toBeNull();
+
+    // The window bound is derived each render; unrounded it would mint a new key
+    // and refetch on each one.
+    rerender();
+    rerender();
+    expect(urls().filter((u) => u.includes("limit=200"))).toHaveLength(1);
   });
 
   it("loads older pages through nextCursor and stops following once it has", async () => {
@@ -108,6 +114,22 @@ describe("useAudit", () => {
     expect(result.current.loadOlder).toBeUndefined();
     expect(result.current.live).toBe(false);
     expect(result.current.loadingOlder).toBe(false);
+  });
+
+  it("keeps the loaded page and stays ready while a new filter loads", async () => {
+    const { result } = renderHook(() => useAudit(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+
+    // The screen unmounts the filter bar on "loading"; flipping there would
+    // take the focus away after the first character typed.
+    act(() => result.current.setQuery("entity:territory"));
+    expect(result.current.status).toBe("ready");
+    expect(result.current.entries.map((e) => e.id)).toEqual([1, 2]);
+
+    act(() => result.current.setRange({ from: "2026-09-01", to: "" }));
+    expect(result.current.status).toBe("ready");
+    await waitFor(() => expect(journalCalls().at(-1)).toContain("from="));
+    expect(result.current.status).toBe("ready");
   });
 
   it("resolves an actor login into the filter and refuses an unknown one without a request", async () => {

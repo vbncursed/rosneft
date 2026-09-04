@@ -108,6 +108,10 @@ describe("AuditScreen", () => {
     const setRange = vi.fn();
     useAudit.mockReturnValue(state());
     const { unmount } = render(<AuditScreen />);
+    // Two empty boxes side by side say nothing; each carries its caption, and
+    // a plain <span> adds no second element with the trigger's name.
+    expect(screen.getByText("From")).toBeInTheDocument();
+    expect(screen.getByText("To")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "From" })).toHaveTextContent("yyyy-mm-dd");
     expect(screen.getByRole("button", { name: "To" })).toHaveTextContent("yyyy-mm-dd");
     unmount();
@@ -144,6 +148,8 @@ describe("AuditScreen", () => {
     render(<AuditScreen />);
     expect(screen.getByText("No actor named ghost.")).toBeInTheDocument();
     expect(screen.queryByRole("region")).not.toBeInTheDocument();
+    // The journal is empty on screen; an export would still dump all of it.
+    expect(screen.getByRole("button", { name: /Export/ })).toBeDisabled();
   });
 
   it("answers an empty journal with a sentence rather than a blank frame", () => {

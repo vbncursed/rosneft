@@ -90,6 +90,15 @@ describe("AuditPage", () => {
     expect(onExport).toHaveBeenCalledOnce();
   });
 
+  it("refuses to export what the screen is not showing", async () => {
+    const onExport = vi.fn();
+    render(<AuditPage {...props({ onExport, exportDisabled: true })} />);
+    const button = screen.getByRole("button", { name: /Export/ });
+    expect(button).toBeDisabled();
+    await userEvent.click(button);
+    expect(onExport).not.toHaveBeenCalled();
+  });
+
   it("names the five keys the gateway filters on", () => {
     render(<AuditPage {...props()} />);
     expect(screen.getByRole("textbox", { name: "Filter events" })).toHaveAttribute(

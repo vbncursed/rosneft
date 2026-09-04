@@ -54,6 +54,8 @@ export type AuditPageProps = {
   onExport: () => void;
   /** Whether an export is in flight — the button is busy and refuses a second. */
   exporting?: boolean;
+  /** Refuses the export while the journal on screen is not what it would send. */
+  exportDisabled?: boolean;
   onCopyJson: () => void;
   onOpenEntity?: () => void;
   /** Absent when the journal has reached its beginning. */
@@ -81,6 +83,7 @@ export function AuditPage({
   live = false,
   onExport,
   exporting = false,
+  exportDisabled = false,
   onCopyJson,
   onOpenEntity,
   onLoadOlder,
@@ -103,7 +106,7 @@ export function AuditPage({
               live
             </Badge>
           ) : null}
-          <Button onClick={onExport} loading={exporting}>
+          <Button onClick={onExport} loading={exporting} disabled={exportDisabled}>
             <Icon name="download" size={15} />
             Export
           </Button>

@@ -98,7 +98,14 @@ export function groupByDay(entries: AuditEntry[], now = new Date()): AuditDay[] 
   return [...days.values()];
 }
 
-export const windowStart = (now = new Date()): string => new Date(now.getTime() - DAY_MS).toISOString();
+/**
+ * The 24-hour window's lower bound, rounded down to the running hour: a bound
+ * that moved with the clock would mint a new query key on every render, and a
+ * bound captured once would drift on a tab left open all day. It advances once
+ * an hour, which is the resolution the strip plots anyway.
+ */
+export const windowStart = (now = new Date()): string =>
+  new Date(Math.floor(now.getTime() / HOUR_MS) * HOUR_MS - DAY_MS).toISOString();
 
 const hourOf = (now: Date, i: number) => new Date(now.getTime() - (23 - i) * HOUR_MS);
 
