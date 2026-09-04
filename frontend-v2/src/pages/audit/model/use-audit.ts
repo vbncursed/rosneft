@@ -8,13 +8,14 @@ import {
   type AuditActor,
   type AuditEntry,
   type AuditFilters,
+  WINDOW_LIMIT,
   type Refs,
 } from "@/entities/audit";
 import { messageOf } from "@/shared/api";
 import { saveBlob } from "@/shared/lib/download";
 import { notify } from "@/shared/lib/notify";
 import { unanswered } from "@/shared/lib/unanswered";
-import { parseAuditFilters, windowStart, type DateRange } from "./journal";
+import { backwardsRange, parseAuditFilters, windowStart, type DateRange } from "./journal";
 
 export type AuditState = {
   status: "loading" | "ready" | "unavailable";
@@ -29,6 +30,8 @@ export type AuditState = {
   setRange: (range: DateRange) => void;
   filters: AuditFilters;
   unknownActor: string | null;
+  /** The picked or typed range ends before it starts — nothing was asked for. */
+  backwardsRange: boolean;
   selected: AuditEntry | null;
   select: (id: number | null) => void;
   live: boolean;
@@ -39,8 +42,6 @@ export type AuditState = {
   exporting: boolean;
   copyJson: () => void;
 };
-
-const WINDOW_LIMIT = 200;
 
 /**
  * Everything the Audit screen decides. The journal is an infinite query keyed
@@ -61,11 +62,13 @@ export function useAudit(): AuditState {
     () => parseAuditFilters(query, actors.data ?? [], range),
     [query, actors.data, range],
   );
+  const backwards = backwardsRange(filters);
   // Disabled until the actors are in: `actor:<login>` resolves through them,
-  // and an unknown login must send nothing rather than the whole journal.
+  // and an unknown login must send nothing rather than the whole journal. A
+  // range that ends before it starts is refused the same way.
   const journal = useInfiniteQuery({
     ...auditQuery(filters),
-    enabled: unknownActor === null && !!actors.data,
+    enabled: unknownActor === null && !backwards && !!actors.data,
   });
   const window = useQuery(auditWindowQuery(from));
 
@@ -99,9 +102,10 @@ export function useAudit(): AuditState {
     setRange,
     filters,
     unknownActor,
+    backwardsRange: backwards,
     selected,
     select: setSelectedId,
-    live: (journal.data?.pages.length ?? 0) <= 1 && unknownActor === null,
+    live: (journal.data?.pages.length ?? 0) <= 1 && unknownActor === null && !backwards,
     ...(journal.hasNextPage ? { loadOlder: () => void journal.fetchNextPage() } : {}),
     loadingOlder: journal.isFetchingNextPage,
     exportCsv: () => exporting.mutate(),

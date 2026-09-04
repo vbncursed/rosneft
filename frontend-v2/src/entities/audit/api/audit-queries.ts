@@ -2,7 +2,13 @@ import { infiniteQueryOptions, keepPreviousData, queryOptions } from "@tanstack/
 import { listAudit, listAuditActors, type AuditFilters } from "./audit-gateway";
 
 const FOLLOW_MS = 30_000;
-const WINDOW_LIMIT = 200;
+
+/**
+ * How many events the 24-hour window asks for. The query's limit, the `capped`
+ * test and the two sentences that quote the number all read this one constant —
+ * three copies of it once drifted apart.
+ */
+export const WINDOW_LIMIT = 200;
 
 /** Follow only while the first page is the only one: refetching N pages every 30 s is not "live". */
 export const followInterval = (pages: number): number | false => (pages <= 1 ? FOLLOW_MS : false);

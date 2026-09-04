@@ -52,6 +52,7 @@ const PANEL_BODY: Record<string, unknown[]> = {
 let fetchMock: ReturnType<typeof vi.fn>;
 let client: QueryClient;
 let allFail = false;
+let failing = new Set<string>();
 
 const panelOf = (url: string) => new URL(url, "http://x").searchParams.get("panel") ?? "";
 const rangeOf = (url: string) => new URL(url, "http://x").searchParams.get("range") ?? "";
@@ -65,10 +66,11 @@ beforeEach(() => {
   client.setQueryData(["me"], PRINCIPAL);
   setCsrfToken("csrf");
   allFail = false;
+  failing = new Set();
   fetchMock = vi.fn(async (url: string) => {
     if (allFail) return json(UNREACHABLE, 502);
     const panel = panelOf(url);
-    if (panel === "stat-errors") return json(UNREACHABLE, 502);
+    if (panel === "stat-errors" || failing.has(panel)) return json(UNREACHABLE, 502);
     return json(PANEL_BODY[panel] ?? [dto(panel, [0.5, 1])]);
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -121,6 +123,19 @@ describe("useMetrics", () => {
       message: "Prometheus unreachable",
     });
     expect(statsOf(result.current.results, 2)[2].value).toBe("—");
+  });
+
+  it("does not count 0 firing when the alerts panel failed — it knows nothing", async () => {
+    failing.add("alerts");
+    const { result } = renderHook(() => useMetrics("1h"), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+
+    expect(result.current.results.alerts).toEqual({
+      kind: "unavailable",
+      message: "Prometheus unreachable",
+    });
+    expect(result.current.alerts).toEqual([]);
+    expect(result.current.firingCount).toBeNull();
   });
 
   it("is unavailable only when every panel failed", async () => {

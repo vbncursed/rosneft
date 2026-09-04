@@ -43,6 +43,7 @@ const state = (over: Partial<AuditState> = {}): AuditState => ({
   setRange: vi.fn(),
   filters: {},
   unknownActor: null,
+  backwardsRange: false,
   selected: null,
   select: vi.fn(),
   live: false,
@@ -149,6 +150,23 @@ describe("AuditScreen", () => {
     expect(screen.getByText("No actor named ghost.")).toBeInTheDocument();
     expect(screen.queryByRole("region")).not.toBeInTheDocument();
     // The journal is empty on screen; an export would still dump all of it.
+    expect(screen.getByRole("button", { name: /Export/ })).toBeDisabled();
+  });
+
+  it("says a range ends before it starts, and shows no journal for it", () => {
+    useAudit.mockReturnValue(
+      state({
+        backwardsRange: true,
+        entries: [],
+        range: { from: "2026-08-24", to: "2026-08-18" },
+      }),
+    );
+    render(<AuditScreen />);
+    expect(screen.getByText("That range ends before it starts.")).toBeInTheDocument();
+    expect(screen.getByText("24 Aug > 18 Aug")).toBeInTheDocument();
+    expect(screen.queryByRole("region")).not.toBeInTheDocument();
+    expect(screen.queryByText("No events match this filter.")).not.toBeInTheDocument();
+    // Nothing was asked for; an export would still dump the whole journal.
     expect(screen.getByRole("button", { name: /Export/ })).toBeDisabled();
   });
 

@@ -184,6 +184,37 @@ describe("MetricsScreen", () => {
     expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   });
 
+  it("says the alert count is unknown rather than drawing a confident zero", () => {
+    useMetrics.mockReturnValue(
+      state({
+        alerts: [],
+        firingCount: null,
+        results: { ...RESULTS, alerts: { kind: "unavailable", message: "Prometheus unreachable" } },
+      }),
+    );
+    render(<MetricsScreen />);
+    expect(screen.getByText("alerts unavailable")).toBeInTheDocument();
+    expect(screen.queryByText(/alerts$/)).not.toBeInTheDocument();
+  });
+
+  it("blames the failed services-up panel, not a filter the reader did not apply", () => {
+    useMetrics.mockReturnValue(
+      state({
+        services: [],
+        results: {
+          ...RESULTS,
+          "services-up": { kind: "unavailable", message: "Prometheus unreachable" },
+        },
+      }),
+    );
+    render(<MetricsScreen />);
+    expect(
+      screen.getByText("Service health is unavailable: Prometheus unreachable"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("No services match this filter.")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Loosen the filter/)).not.toBeInTheDocument();
+  });
+
   it("marks a failed panel unavailable instead of blanking the dashboard", () => {
     useMetrics.mockReturnValue(
       state({

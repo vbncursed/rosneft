@@ -9,9 +9,3 @@ export function labelFor(refs: Refs, field: string, value: unknown): string | nu
   if (typeof value !== "string" && typeof value !== "number") return null;
   return refs[`${field}:${String(value)}`] ?? null;
 }
-
-/** The first eight characters of a long id — enough to tell two apart. */
-export const shortId = (value: string | number): string => {
-  const s = String(value);
-  return s.length > 12 ? s.slice(0, 8) : s;
-};

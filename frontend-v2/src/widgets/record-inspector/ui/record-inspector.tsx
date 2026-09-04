@@ -10,7 +10,7 @@ export type RecordInspectorProps = {
   refs?: Refs;
   /** Short hash shown in the overline, e.g. "4f21c8". */
   recordId?: string;
-  /** actor / at / ip / result / digest — composed by the route. */
+  /** actor / at / company / territory / result — composed by the route. */
   details?: Detail[];
   onCopyJson: () => void;
   /** Absent when the panel is not dismissable — a fixture, or a detail route. */
