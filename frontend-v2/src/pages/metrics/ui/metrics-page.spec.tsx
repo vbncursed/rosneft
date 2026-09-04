@@ -148,6 +148,28 @@ describe("MetricsPage", () => {
     expect(p.onCopyPromQl).toHaveBeenCalledOnce();
   });
 
+  it("draws no coverage meter without a budget, and still shows the stat tiles", () => {
+    render(<MetricsPage {...props({ budget: undefined })} />);
+    expect(screen.queryByText("64% left")).not.toBeInTheDocument();
+    expect(screen.getByText("Requests/sec")).toBeInTheDocument();
+  });
+
+  it("draws no button for a handler it was not given", () => {
+    render(
+      <MetricsPage
+        {...props({
+          firingCount: 1,
+          alert,
+          onSilence: undefined,
+          onOpenInAudit: undefined,
+          onCopyPromQl: undefined,
+        })}
+      />,
+    );
+    expect(screen.getByRole("complementary", { name: "Alert: HighErrorRate" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Silence 1h" })).not.toBeInTheDocument();
+  });
+
   it("shows a chip for a key:value query", () => {
     render(<MetricsPage {...props({ query: "service:gateway" })} />);
     expect(

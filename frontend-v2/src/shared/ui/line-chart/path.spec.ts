@@ -61,6 +61,12 @@ describe("toLinePath", () => {
     const y = (geo.height - geo.padBottom).toFixed(1);
     expect(d).toBe(`M0.0 ${y} L150.0 ${y} L300.0 ${y}`);
   });
+
+  it("breaks the line at a gap and never draws across it", () => {
+    const g = { width: 300, height: 88, padTop: 12, padBottom: 6 };
+    const [y0, y2, y3] = [1, 3, 4].map((v) => scaleY(v, 4, g).toFixed(1));
+    expect(toLinePath([1, null, 3, 4], 4, g)).toBe(`M0.0 ${y0} M200.0 ${y2} L300.0 ${y3}`);
+  });
 });
 
 describe("toAreaPath", () => {
@@ -72,6 +78,10 @@ describe("toAreaPath", () => {
   it("returns nothing when there is no line", () => {
     expect(toAreaPath([], 1, geo)).toBe("");
   });
+
+  it("fills nothing when the series has a gap", () => {
+    expect(toAreaPath([1, null, 3], 3, geo)).toBe("");
+  });
 });
 
 describe("sharedMax", () => {
@@ -82,5 +92,9 @@ describe("sharedMax", () => {
   it("never returns zero — dividing by it would put every point at NaN", () => {
     expect(sharedMax([{ values: [0, 0] }])).toBe(1);
     expect(sharedMax([])).toBe(1);
+  });
+
+  it("shares the maximum over present values only, ignoring gaps", () => {
+    expect(sharedMax([{ values: [1, null, 5] }])).toBe(5);
   });
 });

@@ -1,3 +1,4 @@
+import { clsx as cx } from "clsx";
 import { StatTile, type ServiceHealth, type StatTileTone } from "@/entities/metric";
 import { FilterBar, type ExtraFilter } from "@/features/audit-filter";
 import { Badge } from "@/shared/ui/badge";
@@ -21,7 +22,8 @@ export type MetricsPageStat = {
 export type MetricsPageProps = {
   services: ServiceHealth[];
   sections: MetricSection[];
-  budget: { label: string; detail: string; detailTone?: StatTileTone; segments: CoverageSegment[] };
+  /** Absent while there is no budget to report — the meter is not drawn without one. */
+  budget?: { label: string; detail: string; detailTone?: StatTileTone; segments: CoverageSegment[] };
   stats: MetricsPageStat[];
 
   range: MetricsRange;
@@ -41,9 +43,10 @@ export type MetricsPageProps = {
   /** Absent when nothing is firing, or while the detail is still loading. */
   alert?: FiringAlert | null;
   onCloseAlert: () => void;
-  onSilence: () => void;
-  onOpenInAudit: () => void;
-  onCopyPromQl: () => void;
+  /** Each action reaches the inspector only when handed — no button with nothing behind it. */
+  onSilence?: () => void;
+  onOpenInAudit?: () => void;
+  onCopyPromQl?: () => void;
 };
 
 const FILTER_PLACEHOLDER = "filter: service:gateway group:red state:firing";
@@ -97,14 +100,21 @@ export function MetricsPage({
         }
       />
 
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
-        <CoverageMeter
-          label={budget.label}
-          detail={budget.detail}
-          detailTone={budget.detailTone === "warn" ? "warn" : "ok"}
-          segments={budget.segments}
-          className="rounded-[11px] border border-line bg-panel px-4.5 py-4"
-        />
+      <div
+        className={cx(
+          "grid gap-3",
+          budget ? "lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]" : "sm:grid-cols-3",
+        )}
+      >
+        {budget ? (
+          <CoverageMeter
+            label={budget.label}
+            detail={budget.detail}
+            detailTone={budget.detailTone === "warn" ? "warn" : "ok"}
+            segments={budget.segments}
+            className="rounded-[11px] border border-line bg-panel px-4.5 py-4"
+          />
+        ) : null}
         {stats.map((stat) => (
           <StatTile
             key={stat.label}

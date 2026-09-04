@@ -6,7 +6,8 @@ export type SeriesTone = "accent" | "ok" | "bad" | "warn" | "muted";
 
 export type Series = {
   label: string;
-  values: number[];
+  /** `null` marks a missed scrape; the line breaks there instead of sloping through it. */
+  values: (number | null)[];
   tone?: SeriesTone;
   /** A reference or comparison line, drawn thinner and dashed. */
   dashed?: boolean;
@@ -46,7 +47,8 @@ const toneOf = (series: Series, index: number) => series.tone ?? ORDER[index % O
 function summarise(series: Series[], label: string, unit?: string): string {
   if (series.length === 0) return `${label}: no data`;
   const parts = series.map((s) => {
-    const last = s.values.at(-1);
+    const present = s.values.filter((v): v is number => v !== null);
+    const last = present.at(-1);
     if (last === undefined) return `${s.label} no data`;
     return `${s.label} ${Number(last.toFixed(2))}${unit ? ` ${unit}` : ""}`;
   });
