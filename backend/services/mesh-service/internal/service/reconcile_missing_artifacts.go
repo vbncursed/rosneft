@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+
+	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
 // TargetLockTTL bounds how long a claimed target stays claimed if the
@@ -64,5 +66,32 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		slog.InfoContext(ctx, "reconcile: queued conversion", "kind", t.Kind, "slug", t.Slug)
 		queued++
 	}
+	m.sweepIndex(ctx, targets)
 	return queued, nil
+}
+
+// sweepIndex drops index entries for targets the catalog no longer lists —
+// a deleted territory or model otherwise keeps its last job in GET /api/jobs
+// forever. Errors are logged, not returned: the queueing half of the tick
+// already happened, and the next tick sweeps again.
+func (m *Mesh) sweepIndex(ctx context.Context, targets []domain.ConversionTarget) {
+	live := make(map[string]struct{}, len(targets))
+	for _, t := range targets {
+		live[t.Kind.String()+":"+t.Slug] = struct{}{}
+	}
+	jobs, err := m.queue.ListTargetJobs(ctx)
+	if err != nil {
+		slog.WarnContext(ctx, "reconcile: index read failed", "err", err)
+		return
+	}
+	for _, j := range jobs {
+		if _, ok := live[j.Kind.String()+":"+j.Slug]; ok {
+			continue
+		}
+		if err := m.queue.ForgetTarget(ctx, j.Kind, j.Slug); err != nil {
+			slog.WarnContext(ctx, "reconcile: forget target failed", "kind", j.Kind, "slug", j.Slug, "err", err)
+			continue
+		}
+		slog.InfoContext(ctx, "reconcile: forgot deleted target", "kind", j.Kind, "slug", j.Slug)
+	}
 }

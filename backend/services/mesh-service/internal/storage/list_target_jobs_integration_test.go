@@ -70,3 +70,21 @@ func (s *TargetIndexSuite) TestLatestJobPerTargetInKindThenSlugOrder() {
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), old.Status, domain.JobStatusFailed)
 }
+
+func (s *TargetIndexSuite) TestForgetTargetDropsTheEntryAndKeepsTheJob() {
+	ctx := s.T().Context()
+	assert.NilError(s.T(), s.store.SaveJob(ctx, domain.Job{ID: "gone-1", Kind: domain.KindTerritory, Slug: "gone", Status: domain.JobStatusFailed}))
+
+	assert.NilError(s.T(), s.store.ForgetTarget(ctx, domain.KindTerritory, "gone"))
+	// Idempotent: a second sweep, or another replica's, finds nothing to drop.
+	assert.NilError(s.T(), s.store.ForgetTarget(ctx, domain.KindTerritory, "gone"))
+
+	got, err := s.store.ListTargetJobs(ctx)
+	assert.NilError(s.T(), err)
+	for _, j := range got {
+		assert.Assert(s.T(), j.Slug != "gone", "index still lists the forgotten target")
+	}
+	old, err := s.store.GetJob(ctx, "gone-1")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), old.Status, domain.JobStatusFailed)
+}
