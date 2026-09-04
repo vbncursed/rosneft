@@ -9,10 +9,13 @@ const entry = (over: Partial<AuditEntry> = {}): AuditEntry => ({
   at: "2026-09-01T09:14:00Z",
   actorId: "u-1",
   actorLogin: "a.ivanova",
+  companyId: "",
+  companyLogin: "",
   action: "territory.update",
   entity: "territory",
   entityId: "t-1",
   entityLabel: "Refinery Block C",
+  territorySlug: "",
   oldRow: { title: "Refinery Block", legacy_slug: "block-c-old" },
   newRow: { title: "Refinery Block C", external_panorama_url: "https://tour.example.com/rbc" },
   result: "ok",
@@ -98,6 +101,16 @@ describe("RecordInspector", () => {
     rerender(<RecordInspector entry={entry()} {...props} onOpenEntity={onOpenEntity} />);
     await userEvent.click(screen.getByRole("button", { name: "Open entity" }));
     expect(onOpenEntity).toHaveBeenCalledOnce();
+  });
+  it("names an id the refs know rather than printing it raw", () => {
+    render(
+      <RecordInspector
+        entry={entry({ oldRow: null, newRow: { role_id: "1" } })}
+        refs={{ "role_id:1": "Editor" }}
+        {...props}
+      />,
+    );
+    expect(screen.getByText("+ Editor")).toBeInTheDocument();
   });
 });
 

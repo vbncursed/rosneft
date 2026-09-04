@@ -9,10 +9,13 @@ const entry = (over: Partial<AuditEntry> = {}): AuditEntry => ({
   at: "2026-09-01T09:14:22Z",
   actorId: "u-1",
   actorLogin: "a.ivanova",
+  companyId: "",
+  companyLogin: "",
   action: "territory.update",
   entity: "territory",
   entityId: "t-1",
   entityLabel: "Refinery Block C",
+  territorySlug: "",
   oldRow: null,
   newRow: null,
   result: "ok",
@@ -30,15 +33,15 @@ describe("EventCard", () => {
   });
 
   it("spells the kind out in the accessible name, not just in the glyph", () => {
-    render(<EventCard entry={entry({ action: "placement.create" })} summary="placed" />);
+    render(<EventCard entry={entry({ action: "placement.insert" })} summary="placed" />);
     expect(
-      screen.getByRole("article", { name: "placement.create, created Refinery Block C" }),
+      screen.getByRole("article", { name: "placement.insert, created Refinery Block C" }),
     ).toBeInTheDocument();
   });
 
   it("colours the rail and the ring by kind", () => {
     const { container, rerender } = render(
-      <EventCard entry={entry({ action: "placement.create" })} summary="s" />,
+      <EventCard entry={entry({ action: "placement.insert" })} summary="s" />,
     );
     expect(container.querySelector("span[aria-hidden]")!.className).toContain("bg-ok");
 
@@ -53,7 +56,7 @@ describe("EventCard", () => {
     const { rerender } = render(<EventCard entry={entry()} summary="s" />);
     expect(screen.getByText("±")).toBeInTheDocument();
 
-    rerender(<EventCard entry={entry({ action: "placement.create" })} summary="s" />);
+    rerender(<EventCard entry={entry({ action: "placement.insert" })} summary="s" />);
     expect(screen.getByText("+")).toBeInTheDocument();
 
     rerender(<EventCard entry={entry({ action: "model.delete" })} summary="s" />);

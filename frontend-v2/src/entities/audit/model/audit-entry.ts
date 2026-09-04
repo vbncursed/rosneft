@@ -8,10 +8,16 @@ export type AuditEntry = {
   actorId: string;
   /** Empty when the actor was deleted — then the id is shown instead. */
   actorLogin: string;
+  /** Empty for a Root or system change. */
+  companyId: string;
+  /** The owning user's login behind companyId; empty under the same conditions as actorLogin. */
+  companyLogin: string;
   action: string;
   entity: string;
   entityId: string;
   entityLabel: string;
+  /** The parent territory's slug for placements, panoramas, documents and assignments; empty otherwise. */
+  territorySlug: string;
   oldRow: Record<string, unknown> | null;
   newRow: Record<string, unknown> | null;
   result: "ok" | "failed";

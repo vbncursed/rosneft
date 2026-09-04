@@ -17,10 +17,13 @@ const make = (
   at: `2026-09-01T${time}:00Z`,
   actorId: actorLogin === "system" ? "" : `u-${id}`,
   actorLogin: actorLogin === "system" ? "" : actorLogin,
+  companyId: "",
+  companyLogin: "",
   action,
   entity: action.split(".")[0],
   entityId: `e-${id}`,
   entityLabel,
+  territorySlug: "",
   oldRow: { title: "Refinery Block", legacy_slug: "block-c-old" },
   newRow: { title: "Refinery Block C", external_panorama_url: "https://tour.example.com/rbc" },
   result: "ok",
@@ -38,7 +41,7 @@ const DAYS: AuditDay[] = [
         summary: "title, description and 2 more fields changed",
       },
       {
-        entry: make(2, "placement.create", "Storage Tank 500", "d.smirnov", "08:52"),
+        entry: make(2, "placement.insert", "Storage Tank 500", "d.smirnov", "08:52"),
         summary: "placed at 12.4 / 0.0 / −3.1 · scale 1×",
       },
       {
@@ -57,15 +60,15 @@ const DAYS: AuditDay[] = [
     total: 268,
     events: [
       {
-        entry: make(5, "model.upload", "Flare Stack", "system", "22:07", { result: "failed" }),
+        entry: make(5, "model.insert", "Flare Stack", "system", "22:07", { result: "failed" }),
         summary: "OBJ parse error at line 84120",
       },
       {
-        entry: make(6, "user.role_change", "guest.viewer", "a.ivanova", "16:31"),
+        entry: make(6, "user_role.update", "guest.viewer", "a.ivanova", "16:31"),
         summary: "Guest → Field Operator",
       },
       {
-        entry: make(7, "territory.create", "Terminal Yard 4", "a.ivanova", "14:02"),
+        entry: make(7, "territory.insert", "Terminal Yard 4", "a.ivanova", "14:02"),
         summary: "conversion queued · job 8f21",
       },
     ],

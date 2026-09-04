@@ -9,10 +9,13 @@ const entry = (over: Partial<AuditEntry> = {}): AuditEntry => ({
   at: "2026-08-31T14:02:11Z",
   actorId: "u-1",
   actorLogin: "a.ivanova",
-  action: "territory.create",
+  companyId: "",
+  companyLogin: "",
+  action: "territory.insert",
   entity: "territory",
   entityId: "t-1",
   entityLabel: "Refinery Block C",
+  territorySlug: "",
   oldRow: { position_x: 8.2 },
   newRow: { position_x: 12.4 },
   result: "ok",
@@ -23,7 +26,7 @@ describe("AuditRow", () => {
   it("shows when, what and who", () => {
     render(<AuditRow entry={entry()} expanded={false} onToggle={() => {}} />);
     expect(screen.getByText("2026-08-31 14:02")).toBeInTheDocument();
-    expect(screen.getByText("territory.create")).toBeInTheDocument();
+    expect(screen.getByText("territory.insert")).toBeInTheDocument();
     expect(screen.getByText(/Refinery Block C/)).toBeInTheDocument();
     expect(screen.getByText("a.ivanova")).toBeInTheDocument();
   });
