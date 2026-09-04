@@ -322,8 +322,13 @@ value does not mean "no access", it means "every territory".
 
 `/api/assets/{hash}` carries `RequireBlobAccess` rather than the territory gate —
 see **Blob scoping** below for why the two cannot be the same check.
-`/api/jobs/{id}/events` is authenticated but deliberately unscoped: a job id is
-128 random bits and its payload names a kind and a slug, not a blob.
+`/api/jobs/{id}/events` and `/api/jobs` are authenticated and tenant-scoped in
+the handler rather than by the middleware: neither path carries a `{slug}`, so
+`RequireTerritoryAccess` cannot see them. `Server.scopedJob` resolves the job
+first and then checks its slug; `visibleJob` filters the list. Both refuse in the
+404 shape ("job not found" / an absent row), both let models through — the
+library is shared — and both fail closed on an empty scope, for the reason the
+paragraph above gives.
 
 ### Blob scoping
 

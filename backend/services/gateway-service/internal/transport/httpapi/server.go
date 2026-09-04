@@ -71,6 +71,7 @@ type Service interface {
 	ResolveBlobAccess(ctx context.Context, hash, scopeAdminID string) (bool, error)
 
 	GetJob(ctx context.Context, id string) (domain.Job, error)
+	ListTargetJobs(ctx context.Context) ([]domain.Job, error)
 
 	InitiateUpload(ctx context.Context, size int64, contentType string) (domain.UploadSession, error)
 	AppendUploadChunk(ctx context.Context, id string, offset int64, body io.Reader) (int64, error)
