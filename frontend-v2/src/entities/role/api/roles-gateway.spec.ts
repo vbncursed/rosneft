@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCsrfToken } from "@/shared/api";
-import { createRole, listRoles, renameRole, setRolePermissions } from "./roles-gateway";
+import { createRole, deleteRole, listRoles, renameRole, setRolePermissions } from "./roles-gateway";
 
 const role = { slug: "field-operator", title: "Field Operator", isSystem: false, permissionSlugs: [] };
 const json = (body: unknown, status = 200) =>
@@ -54,5 +54,11 @@ describe("roles gateway", () => {
       method: "PUT",
       body: { permissionSlugs: ["territory:read", "territory:write"] },
     });
+  });
+
+  it("deletes a role on its own route, URL-encoding the slug", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await deleteRole("field ops");
+    expect(request()).toEqual({ url: "/api/auth/roles/field%20ops", method: "DELETE" });
   });
 });

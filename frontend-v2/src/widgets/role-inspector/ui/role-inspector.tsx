@@ -10,6 +10,8 @@ export type RoleInspectorProps = {
   role: Role;
   onRename: (title: string) => void;
   onClose: () => void;
+  /** Offered only on a custom role, to an actor who may manage roles. */
+  onDelete?: () => void;
 
   all: Permission[];
   granted: string[];
@@ -40,6 +42,7 @@ export function RoleInspector({
   role,
   onRename,
   onClose,
+  onDelete,
   all,
   granted,
   onToggle,
@@ -59,6 +62,11 @@ export function RoleInspector({
   const notice = role.kind === "system" ? SYSTEM_NOTE : readOnly ? NO_GRANT_NOTE : null;
   const hasLocked = grantable ? all.some((p) => !grantable.has(p.slug)) : false;
   const share = all.length === 0 ? 0 : Math.round((granted.length / all.length) * 100);
+  const holders = role.users ?? 0;
+  const deleteHint =
+    holders > 0
+      ? `${holders} ${holders === 1 ? "user holds" : "users hold"} this role — reassign them first`
+      : null;
 
   return (
     <aside
@@ -132,25 +140,39 @@ export function RoleInspector({
             {notice}
           </Callout>
         ) : (
-          <div className="flex gap-2 border-t border-line pt-3.5">
-            <Button
-              size="sm"
-              className="flex-1 justify-center"
-              onClick={onReset}
-              disabled={!dirty || saving}
-            >
-              Reset
-            </Button>
-            <Button
-              size="sm"
-              variant="primary"
-              className="flex-1 justify-center"
-              onClick={onSave}
-              loading={saving}
-              disabled={!dirty || !!saveBlocked}
-            >
-              Save permissions
-            </Button>
+          <div className="flex flex-col gap-1.5 border-t border-line pt-3.5">
+            <div className="flex gap-2">
+              {role.kind === "custom" && !readOnly && onDelete ? (
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={onDelete}
+                  disabled={saving || holders > 0}
+                  title={deleteHint ?? undefined}
+                >
+                  Delete role
+                </Button>
+              ) : null}
+              <Button
+                size="sm"
+                className="flex-1 justify-center"
+                onClick={onReset}
+                disabled={!dirty || saving}
+              >
+                Reset
+              </Button>
+              <Button
+                size="sm"
+                variant="primary"
+                className="flex-1 justify-center"
+                onClick={onSave}
+                loading={saving}
+                disabled={!dirty || !!saveBlocked}
+              >
+                Save permissions
+              </Button>
+            </div>
+            {deleteHint ? <p className="m-0 text-[11px] text-dim">{deleteHint}</p> : null}
           </div>
         )}
       </div>

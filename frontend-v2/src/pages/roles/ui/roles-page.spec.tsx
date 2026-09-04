@@ -181,4 +181,19 @@ describe("RolesPage", () => {
     expect(screen.queryByRole("button", { name: "Save permissions" })).not.toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Role name" })).toHaveAttribute("readonly");
   });
+
+  it("reaches the delete handler from the inspector", async () => {
+    const onDeleteRole = vi.fn();
+    render(
+      <RolesPage
+        {...props({
+          selectedSlug: "field-operator",
+          edited: edited({ role: { ...role("field-operator", "Field Operator"), users: 0 } }),
+          onDeleteRole,
+        })}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Delete role" }));
+    expect(onDeleteRole).toHaveBeenCalledOnce();
+  });
 });

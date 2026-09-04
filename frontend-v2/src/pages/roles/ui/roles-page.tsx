@@ -50,6 +50,7 @@ export type RolesPageProps = {
   onSaveRole: () => void;
 
   onCreateRole: () => void;
+  onDeleteRole?: () => void;
   canManage?: boolean;
   /** Why the selected role cannot be saved at all; Save is off while it is set. */
   saveBlocked?: ReactNode;
@@ -75,6 +76,7 @@ export function RolesPage({
   onResetRole,
   onSaveRole,
   onCreateRole,
+  onDeleteRole,
   canManage = true,
   saveBlocked,
 }: RolesPageProps) {
@@ -160,6 +162,7 @@ export function RolesPage({
               onRename={onRenameRole}
               onReset={onResetRole}
               onSave={onSaveRole}
+              onDelete={onDeleteRole}
               onClose={onCloseInspector}
             />
           </div>

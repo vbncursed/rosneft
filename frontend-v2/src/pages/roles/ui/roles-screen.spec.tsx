@@ -57,6 +57,11 @@ const state = (over: Partial<RolesState> = {}): RolesState => ({
   setCreating: vi.fn(),
   create: vi.fn(),
   creatingBusy: false,
+  deleting: null,
+  askDelete: vi.fn(),
+  confirmDelete: vi.fn(),
+  dismissDelete: vi.fn(),
+  deletingBusy: false,
   ...over,
 });
 
@@ -247,5 +252,26 @@ describe("RolesScreen", () => {
     expect(
       screen.getByText("You can view roles here, but changing one needs roles:manage."),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete role" })).not.toBeInTheDocument();
+  });
+
+  it("asks to delete through the container", async () => {
+    const s = opened({ users: [] });
+    await userEvent.click(screen.getByRole("button", { name: "Delete role" }));
+    expect(s.askDelete).toHaveBeenCalled();
+  });
+
+  it("confirms the delete through a dialog naming the role", async () => {
+    const s = showing({ deleting: OPS });
+    const dialog = screen.getByRole("dialog", { name: 'Delete role "Operations"?' });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+    expect(s.confirmDelete).toHaveBeenCalled();
+  });
+
+  it("dismisses the delete question through the container", async () => {
+    const s = showing({ deleting: OPS });
+    const dialog = screen.getByRole("dialog", { name: 'Delete role "Operations"?' });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    expect(s.dismissDelete).toHaveBeenCalled();
   });
 });
