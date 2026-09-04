@@ -56,9 +56,9 @@
 - Modify: `backend/services/gateway-service/api/openapi.yaml:2111`
 
 **Interfaces:**
-- Produces: `domain.ErrRoleInUse` ("role is still assigned to users"), surfaced as gRPC `FailedPrecondition` → HTTP 422 `{code: "unprocessable", message: "roles.Delete: role is still assigned to users"}` (the gateway renders `st.Message()`; the message is what Task 4's toast shows).
+- Produces: `domain.ErrRoleInUse` ("role is still assigned to users"), surfaced as gRPC `FailedPrecondition` → HTTP 422 `{code: "unprocessable", message: "role is still assigned to users"}` (the store returns the bare sentinel, as it does ErrSystemRole; the gateway renders `st.Message()`, which is what Task 4's toast shows).
 
-- [ ] **Step 1: The sentinel and the mapping**
+- [x] **Step 1: The sentinel and the mapping**
 
 `errors.go`, after `ErrSystemRole`:
 ```go
@@ -66,7 +66,7 @@
 ```
 `grpcapi/server.go` `codes.FailedPrecondition` list gains `domain.ErrRoleInUse`.
 
-- [ ] **Step 2: Write the failing integration test**
+- [x] **Step 2: Write the failing integration test**
 
 `delete_integration_test.go` — copy the suite skeleton from `internal/storage/users/list_integration_test.go` (build tag `integration`, `postgres:18.6`, `migrate.Up`, `roles.New(pool)`), then:
 
@@ -96,7 +96,7 @@ Check the real column set of `users` in `00001_init.sql` and later migrations (N
 Run: `cd backend/services/auth-service && go test -tags=integration ./internal/storage/roles/ -run DeleteSuite 2>&1 | tail -8` (Docker required; if it is down, say so in the report — do not skip silently).
 Expected: FAIL — the error wraps a `*pgconn.PgError` (23503), not `ErrRoleInUse`.
 
-- [ ] **Step 3: Map the violation**
+- [x] **Step 3: Map the violation**
 
 `store.go`, beside `isUnique`:
 ```go
@@ -113,11 +113,11 @@ func isFKViolation(err error) bool {
 ```
 and the doc comment's "surfaced wrapped" sentence becomes "surfaces as ErrRoleInUse — the admin reassigns first; nothing cascades".
 
-- [ ] **Step 4: OpenAPI wording**
+- [x] **Step 4: OpenAPI wording**
 
 `openapi.yaml:2111`: `'422': { description: System role, or a role still assigned to users }`. Regenerate nothing — frontend-v2's DTO carries only the description string and Task 4 does not read it.
 
-- [ ] **Step 5: Run, gate, commit**
+- [x] **Step 5: Run, gate, commit**
 
 Run the integration test again (PASS), then `CC=/usr/bin/clang SDKROOT=$(xcrun --show-sdk-path) make -C backend check`.
 
@@ -148,7 +148,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 **Interfaces:**
 - Produces: `DatePickerProps.align?: "start" | "end"` (default `"start"`).
 
-- [ ] **Step 1: Content row — spec then fix**
+- [x] **Step 1: Content row — spec then fix**
 
 `content-row.spec.tsx`, in `colours the rail by conversion state` or a new test:
 ```ts
@@ -162,7 +162,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 ```
 `content-row.tsx:34`: remove `overflow-hidden`; `:41`: `"absolute inset-y-0 left-0 w-[3px] rounded-l-[11px]"`. Add a comment: `// No overflow-hidden on the row: the kebab menu is absolutely positioned inside it and was being cut at the row's bottom edge.`
 
-- [ ] **Step 2: DatePicker `align` — spec then fix**
+- [x] **Step 2: DatePicker `align` — spec then fix**
 
 `date-picker.spec.tsx`:
 ```ts
@@ -180,7 +180,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 
 `audit-screen.tsx`: `align="end"` on both `<DatePicker>`s. `audit-screen.spec.tsx`: in the existing pickers test (or a new one) open the To picker and assert `screen.getByRole("dialog", { name: "To" }).className` contains `right-0`.
 
-- [ ] **Step 3: Line-height — spec then fix**
+- [x] **Step 3: Line-height — spec then fix**
 
 `control-class.spec.ts`, in `switches to mono for slugs and hashes`:
 ```ts
@@ -202,7 +202,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
   });
 ```
 
-- [ ] **Step 4: Lint, tests, live look, commit**
+- [x] **Step 4: Lint, tests, live look, commit**
 
 `yarn lint && yarn test:coverage`. Live: open `/console/content`, open a row's kebab — the whole menu is visible; `/console/audit`, open the To calendar — inside the viewport; `/console/users` → Create user, toggle the eye — no jump. Note what was seen.
 
@@ -238,7 +238,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 **Interfaces:**
 - Produces: `validatePassword(v: string): string | null`, `generatePassword(len = 16): string` from `@/entities/user`; `copyText(text: string): Promise<boolean>` from `@/shared/lib/copy-text`; `PasswordFieldProps.action: { label: string; onClick: (reveal: () => void) => void }`.
 
-- [ ] **Step 1: Port the rules — spec first**
+- [x] **Step 1: Port the rules — spec first**
 
 `password-rules.spec.ts`:
 ```ts
@@ -278,7 +278,7 @@ describe("generatePassword", () => {
 ```
 `password-rules.ts`: the `validatePassword`, constants, `randInt` and `generatePassword` from `frontend/src/auth/domain/credential-rules.ts` — verbatim (keep the `ponytail:` note on modulo bias); drop the username/email helpers. Header: `// Client-side mirror of auth-service's internal/validate (password only). The backend stays the source of truth; change both together.` Export both from `entities/user/index.ts`.
 
-- [ ] **Step 2: `copyText` — spec first**
+- [x] **Step 2: `copyText` — spec first**
 
 `copy-text.spec.ts`:
 ```ts
@@ -318,11 +318,11 @@ export async function copyText(text: string): Promise<boolean> {
 ```
 (`navigator.clipboard` undefined throws inside the `try` and lands in the `catch`.)
 
-- [ ] **Step 3: `PasswordField.action` hands out `reveal`**
+- [x] **Step 3: `PasswordField.action` hands out `reveal`**
 
 `password-field.tsx:11`: `action?: { label: string; onClick: (reveal: () => void) => void };` and the button: `onClick={() => action.onClick(() => setShown(true))}`. `password-field.spec.tsx`, in `shows a label action only when one is given`, add: clicking the action with an `onClick: (reveal) => reveal()` flips the input to `type="text"`.
 
-- [ ] **Step 4: The dialog — spec first**
+- [x] **Step 4: The dialog — spec first**
 
 `create-user-dialog.spec.tsx`, mock the clipboard helper at the top: `vi.mock("@/shared/lib/copy-text", () => ({ copyText: vi.fn(() => Promise.resolve(true)) }))` and import `copyText` to assert on. Add:
 ```ts
@@ -367,11 +367,11 @@ Update the first existing test: `"s3cret!"` → a valid password such as `"S3cre
   ```
   Imports: `generatePassword, validatePassword` from `@/entities/user`; `copyText` from `@/shared/lib/copy-text`; `notify` from `@/shared/lib/notify`. Keep the file under the cap (it is ~100 lines).
 
-- [ ] **Step 5: The two existing callers**
+- [x] **Step 5: The two existing callers**
 
 `use-audit.ts` copyJson: `void copyText(JSON.stringify(selected, null, 2)).then((ok) => (ok ? notify.success("Copied") : notify.error("Could not copy")));`. `recovery-codes.tsx`: `const copy = async () => { setCopied(await copyText(codesAsText(codes))); };` — and if the button label reads "Copied" from `copied`, a refusal now leaves it as "Copy"; add one spec case where `copyText` resolves false and the label stays.
 
-- [ ] **Step 6: Lint, tests, live, commit**
+- [x] **Step 6: Lint, tests, live, commit**
 
 `yarn lint && yarn test:coverage`. Live: Create user → Generate → the field shows a 16-char password, a toast "Password copied", paste somewhere to confirm; type `abc` → Create user → the rule message under the field.
 
@@ -408,7 +408,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 - Consumes: HTTP 422 with `message` from Task 1; `Role.users: number | null` from `withUserCounts`.
 - Produces: `deleteRole(slug): Promise<void>`; `RolesState.askDelete()`, `RolesState.confirmDelete()`, `RolesState.dismissDelete()`, `RolesState.deleting: Role | null`, `RolesState.deletingBusy: boolean`; `RoleInspectorProps.onDelete?: () => void`, `deleteBlocked?: string`; `RolesPageProps.onDeleteRole?: () => void`, `deleteBlocked?: string`.
 
-- [ ] **Step 1: Gateway — spec then code**
+- [x] **Step 1: Gateway — spec then code**
 
 `roles-gateway.spec.ts`:
 ```ts
@@ -420,7 +420,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 ```
 (match the file's `request()` helper.) `roles-gateway.ts`: `export const deleteRole = (slug: string): Promise<void> => httpDelete(at(slug));` with `httpDelete` added to the import. Export from `entities/role/index.ts`.
 
-- [ ] **Step 2: The hook — spec then code**
+- [x] **Step 2: The hook — spec then code**
 
 `use-roles.spec.tsx` (follow the file's fetch stub pattern; add a `deleteStatus` variable to the stub, reset to 204 in `beforeEach`, and check which custom role slug the fixture uses — `field-ops` here stands for it):
 ```ts
@@ -439,14 +439,14 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 
   it("names the gateway's refusal and keeps the role selected", async () => {
     deleteStatus = 422; // the file's fetch stub answers DELETE with
-    // {code:"unprocessable", message:"roles.Delete: role is still assigned to users"} when set
+    // {code:"unprocessable", message:"role is still assigned to users"} when set
     const { result } = renderHook(() => ({ s: useRoles(), notices: useNotices() }), { wrapper });
     await waitFor(() => expect(result.current.s.status).toBe("ready"));
     act(() => result.current.s.select("field-ops"));
     act(() => result.current.s.askDelete());
     act(() => result.current.s.confirmDelete());
     await waitFor(() => expect(result.current.s.deleting).toBeNull());
-    expect(result.current.notices.at(-1)?.message).toBe("roles.Delete: role is still assigned to users");
+    expect(result.current.notices.at(-1)?.message).toBe("role is still assigned to users");
     expect(result.current.s.selected?.slug).toBe("field-ops");
   });
 
@@ -476,7 +476,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 ```
 Returned: `askDelete: () => selected && setDeletingSlug(selected.slug)`, `confirmDelete: () => deletingSlug && deletion.mutate(deletingSlug)`, `dismissDelete: () => setDeletingSlug(null)`, `deleting`, `deletingBusy: deletion.isPending`. Watch the 200-line cap: `use-roles.ts` is at 157; if the additions push past it, move `deletion` and the three callbacks into `pages/roles/model/use-role-deletion.ts` (+ spec) and compose.
 
-- [ ] **Step 3: Inspector button — spec then code**
+- [x] **Step 3: Inspector button — spec then code**
 
 `role-inspector.spec.tsx`:
 ```ts
@@ -509,7 +509,7 @@ const deleteHint = holders > 0 ? `${holders} ${holders === 1 ? "user holds" : "u
 ```
 Copy rule: the plural form in Global Constraints is for N ≥ 2; use "1 user holds this role — reassign them first" for one. Keep the file under the cap; if the footer grows past it, extract `role-inspector-footer.tsx` (+ spec + fixture is not needed for a sub-component that the widget's fixture already renders — check `architecture.spec.ts`'s rule before deciding).
 
-- [ ] **Step 4: Page and screen — spec then code**
+- [x] **Step 4: Page and screen — spec then code**
 
 `roles-page.tsx`: `onDeleteRole?: () => void` passed to `<RoleInspector onDelete={onDeleteRole}>`. `roles-page.spec.tsx`: one test that the inspector's Delete reaches `onDeleteRole`.
 
@@ -530,7 +530,7 @@ Copy rule: the plural form in Global Constraints is for N ≥ 2; use "1 user hol
 ```
 `roles-screen.spec.tsx`: mock `useRoles` as the file does; Delete → `askDelete` called; with `deleting` set the dialog shows the title and Confirm calls `confirmDelete`.
 
-- [ ] **Step 5: Lint, tests, live, commit**
+- [x] **Step 5: Lint, tests, live, commit**
 
 `yarn lint && yarn test:coverage`. Live as Root: create a throwaway custom role, open it → Delete role enabled → confirm → toast, the role is gone; assign a role to a user → Delete role disabled with the hint; as a `roles:read`-only principal → no button. Note what was seen.
 

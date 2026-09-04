@@ -21,14 +21,22 @@ anywhere in the app. The Content row `<article>`
 only job is to clip the 3px status rail (`absolute inset-y-0 left-0`)
 against the row's rounded corner — and it clips the menu with it.
 
-**Fix.** Drop `overflow-hidden` from the row; give the rail its own
-`rounded-l-[11px]`. The menu opens downward as before and is no longer
-clipped. No portal, no "open upward" — the user's suggestion to raise the
-dropdown was a symptom read; the cause is the clip.
+**Fix.** Drop `overflow-hidden` from the row. No portal, no "open upward" —
+the user's suggestion to raise the dropdown was a symptom read; the cause is
+the clip.
+
+*Amended after review:* the first cut gave the 3px rail span its own
+`rounded-l-[11px]`, but CSS clamps a radius to the box's width, so the rail
+rendered a 3px corner and overhung the row's 11px one. The span is gone;
+the rail is the article's own left border (`border-l-[3px]` plus a per-status
+`border-l-*` colour, dimmed via `/50` when unselected, and the matching
+`hover:border-l-*` so the row's hover colour does not repaint it). A border
+follows `border-radius` by construction.
 
 **Test.** `content-row.spec.tsx`: the article has no `overflow-hidden`
-class, the rail has the left rounding. The screen spec that opens the row
-menu already proves the items render.
+class and no rail span, and carries the per-status `border-l-*` and
+`hover:border-l-*` classes. The screen spec that opens the row menu already
+proves the items render.
 
 ## 2. Audit — the "To" calendar runs off the right edge
 
@@ -59,10 +67,11 @@ this with a local override string (`credentials-form.tsx:13`,
 jump.
 
 **Fix.** In `control-class.ts` the mono branch becomes `font-mono
-text-[13px] leading-5`, so both branches have the same line-height. The
-login override loses `leading-[normal]!` — with the shared fix it is
-redundant, and one source of truth beats two. Every `TextField mono` and
-every `PasswordField` gets the fix at once.
+text-[13px] leading-5`, so both branches have the same line-height. Every
+`TextField mono` and every `PasswordField` gets the fix at once. The login
+override keeps its `leading-[normal]!` (ruling at planning): it also pins
+`text-[14px]!` and `py-[11px]!` for the login mock, and swapping its
+line-height would change that field's height for no gain.
 
 **Test.** `control-class.spec.ts` (or `text-field.spec.tsx`, whichever
 exists): the mono class string contains `leading-5`. `password-field.spec.tsx`:
@@ -88,13 +97,14 @@ dialog only checks the password is non-empty.
   and `generatePassword`. The header comment keeps saying it mirrors
   auth-service's validate package and must change with it.
 - `create-user-dialog.tsx` uses `PasswordField`'s existing `action` slot:
-  `{ label: "Generate", onClick }`. Generate fills the field with
+  `{ label: "Generate", onClick }`; `onClick` receives a `reveal()` callback
+  so the field can show the value without becoming controlled. Generate fills the field with
   `generatePassword()`, reveals it (a generated password the admin cannot
   see is one they cannot hand over), and copies it — see §5.
 - Submit is refused while `validatePassword(password)` returns a message;
-  the message shows as the field's `error` once the field has been touched
-  or a submit was attempted, so a hand-typed weak password is caught before
-  the 400.
+  the message shows as the field's `error` once a submit was attempted, so a
+  hand-typed weak password is caught before the 400 (not on touch — an error
+  under the first three characters typed would be noise).
 
 **Test.** `password-rules.spec.ts` ported. `create-user-dialog.spec.tsx`:
 Generate fills a value that `validatePassword` accepts and reveals it; a
@@ -135,9 +145,11 @@ surfaces as a raw pgx error → HTTP 500.
 admin reassigns first. No cascade, no auto-unassign.
 
 **Backend fix (auth-service).** `storage/roles/delete.go` maps SQLSTATE
-`23503` (foreign-key violation) to a new sentinel `domain.ErrRoleInUse`
-("role is still assigned to users"), the same shape as the existing
-`23505` check in `roles/store.go`. `grpcapi` maps it to
+`23001` (`restrict_violation` — what an explicit `ON DELETE RESTRICT` raises;
+`23503` is the NO ACTION / insert-update `foreign_key_violation`, which this
+table cannot produce on delete — found by the integration test, not assumed)
+to a new sentinel `domain.ErrRoleInUse` ("role is still assigned to users"),
+returned bare like `ErrSystemRole` so the message reaches the toast unprefixed. `grpcapi` maps it to
 `codes.FailedPrecondition` beside `ErrSystemRole`, which the gateway already
 renders as HTTP 422 with the sentinel's message. `openapi.yaml`'s 422
 description becomes "System role, or a role still assigned to users". No
