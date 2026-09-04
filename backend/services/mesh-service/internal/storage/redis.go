@@ -9,6 +9,8 @@ import (
 	"fmt"
 
 	"github.com/redis/go-redis/v9"
+
+	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
 // Stream and group names used by mesh-api (producer) and mesh-worker (consumer).
@@ -16,6 +18,11 @@ const (
 	JobsStream    = "andrey:mesh:jobs"
 	ConsumerGroup = "mesh-workers"
 	jobKeyPrefix  = "andrey:mesh:job:"
+
+	// targetsKey is one hash, field "{kind}:{slug}" -> the latest job id for
+	// that target. It is what lets the console ask "what is happening to X"
+	// without holding a job id; the job hashes themselves stay keyed by id.
+	targetsKey = "andrey:mesh:targets"
 )
 
 // Redis is the Redis-backed job store and queue.
@@ -37,4 +44,8 @@ func New(ctx context.Context, client *redis.Client) (*Redis, error) {
 
 func jobKey(id string) string {
 	return jobKeyPrefix + id
+}
+
+func targetField(kind domain.Kind, slug string) string {
+	return fmt.Sprintf("%s:%s", kind, slug)
 }

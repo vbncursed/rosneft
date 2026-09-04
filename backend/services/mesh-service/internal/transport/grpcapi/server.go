@@ -20,6 +20,7 @@ import (
 type Service interface {
 	SubmitConversion(ctx context.Context, kind domain.Kind, slug string) (domain.Job, error)
 	GetJob(ctx context.Context, id string) (domain.Job, error)
+	ListTargetJobs(ctx context.Context) ([]domain.Job, error)
 }
 
 // Server implements meshv1.MeshServiceServer over a Service.
