@@ -1,4 +1,4 @@
-import type { AuditEntry } from "@/entities/audit";
+import type { AuditEntry, Refs } from "@/entities/audit";
 import { StatTile, type StatTileTone } from "@/entities/metric";
 import { FilterBar, type ExtraFilter } from "@/features/audit-filter";
 import { Button } from "@/shared/ui/button";
@@ -29,6 +29,8 @@ export type InspectedRecord = {
   entry: AuditEntry;
   recordId: string;
   details: Detail[];
+  /** Names for the ids inside the snapshots, merged from every loaded page. */
+  refs?: Refs;
 };
 
 export type AuditPageProps = {
@@ -50,6 +52,8 @@ export type AuditPageProps = {
   /** Whether the journal is following new events as they arrive. */
   live?: boolean;
   onExport: () => void;
+  /** Whether an export is in flight — the button is busy and refuses a second. */
+  exporting?: boolean;
   onCopyJson: () => void;
   onOpenEntity?: () => void;
   /** Absent when the journal has reached its beginning. */
@@ -57,7 +61,11 @@ export type AuditPageProps = {
   loadingOlder?: boolean;
 };
 
-const FILTER_PLACEHOLDER = "filter: entity:territory actor:a.ivanova failed:true";
+// The five keys the gateway filters on. Free text is ignored, deliberately:
+// there is no text search behind this and matching what is loaded would lie
+// at page two.
+const FILTER_PLACEHOLDER =
+  "filter: entity:territory action:territory.update actor:a.ivanova from:2026-09-01 to:2026-09-02";
 
 export function AuditPage({
   days,
@@ -72,6 +80,7 @@ export function AuditPage({
   inspected,
   live = false,
   onExport,
+  exporting = false,
   onCopyJson,
   onOpenEntity,
   onLoadOlder,
@@ -94,7 +103,7 @@ export function AuditPage({
               live
             </Badge>
           ) : null}
-          <Button onClick={onExport}>
+          <Button onClick={onExport} loading={exporting}>
             <Icon name="download" size={15} />
             Export
           </Button>
@@ -159,6 +168,7 @@ export function AuditPage({
           <div className="xl:sticky xl:top-6">
             <RecordInspector
               entry={inspected.entry}
+              refs={inspected.refs}
               recordId={inspected.recordId}
               details={inspected.details}
               onCopyJson={onCopyJson}

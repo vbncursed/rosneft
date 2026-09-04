@@ -20,9 +20,14 @@ export type AuditPageResult = { entries: AuditEntry[]; nextCursor: number | null
 
 const DEFAULT_LIMIT = 50;
 
-/** Widens a calendar date to the edge of its day, in UTC, as the gateway compares instants. */
+/**
+ * Widens a calendar date to the edge of its day, in UTC, as the gateway
+ * compares instants. Idempotent: a value that is already an instant, or
+ * absent, passes through — a token and the date picker both reach this and
+ * either may have widened first.
+ */
 export const toBound = (date: string, edge: "from" | "to"): string =>
-  `${date}T${edge === "from" ? "00:00:00" : "23:59:59"}Z`;
+  !date || date.includes("T") ? date : `${date}T${edge === "from" ? "00:00:00" : "23:59:59"}Z`;
 
 function toQuery(filters: AuditFilters, cursor: number | null, limit: number | null): string {
   const q = new URLSearchParams();
