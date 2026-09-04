@@ -16,6 +16,7 @@ export {
 } from "./model/panel-catalog";
 export { alignSeries, lastOf, type MetricPoint, type MetricSeries } from "./model/series";
 export { servicesOf } from "./model/service-health";
+export { matchesService } from "./model/match";
 export { alertsOf, type AlertSummary } from "./model/alerts";
 export { isRange, METRIC_RANGES, type MetricsRange } from "./model/range";
 export { fetchPanel } from "./api/metrics-gateway";

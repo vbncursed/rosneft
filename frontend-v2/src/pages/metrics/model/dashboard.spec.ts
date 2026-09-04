@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AlertSummary, MetricSeries, ServiceHealth } from "@/entities/metric";
+import { PANELS, type AlertSummary, type MetricSeries, type ServiceHealth } from "@/entities/metric";
 import {
   alertDetails,
   matchesPanel,
@@ -148,6 +148,12 @@ describe("panelEntry", () => {
       lastTone: "dim",
       series: [],
     });
+  });
+
+  it("does not read an empty latency quantile as 'no traffic' — a missing p99 is a missing p99", () => {
+    const e = panelEntry("red-latency", { kind: "value", series: [] });
+    expect(e.meta).toBe(PANELS["red-latency"].meta);
+    expect(e.lastTone).toBeUndefined();
   });
 
   it("keeps the red wording for a gRPC panel that failed", () => {

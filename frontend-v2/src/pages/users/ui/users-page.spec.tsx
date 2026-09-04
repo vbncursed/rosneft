@@ -70,8 +70,8 @@ describe("UsersPage", () => {
   it("summarises the population above the list", () => {
     render(<UsersPage {...props()} />);
     expect(screen.getByText("18 / 26")).toBeInTheDocument();
-    expect(screen.getByLabelText("Accounts: 26")).toBeInTheDocument();
-    expect(screen.getByLabelText("Needs attention: 5").className).toContain("text-bad");
+    expect(screen.getByText("Accounts: 26")).toBeInTheDocument();
+    expect(screen.getByText("Needs attention: 5").parentElement!.className).toContain("text-bad");
   });
 
   it("groups the people it is given", () => {

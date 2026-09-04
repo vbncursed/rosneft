@@ -125,6 +125,19 @@ describe("useMetrics", () => {
     expect(statsOf(result.current.results)[1].state).toEqual({ kind: "unavailable" });
   });
 
+  it("keeps a panel's last data on screen when its refetch fails — stale beats empty", async () => {
+    const { result } = renderHook(() => useMetrics("1h"), { wrapper });
+    await waitFor(() => expect(result.current.results["red-rate"]?.kind).toBe("value"));
+
+    failing.add("red-rate");
+    await act(() => client.refetchQueries({ queryKey: ["metrics", "red-rate", "1h"] }));
+
+    expect(result.current.results["red-rate"]).toEqual({
+      kind: "value",
+      series: [{ label: "gateway", points: points(140, 142), labels: {} }],
+    });
+  });
+
   it("does not count 0 firing when the alerts panel failed — it knows nothing", async () => {
     failing.add("alerts");
     const { result } = renderHook(() => useMetrics("1h"), { wrapper });

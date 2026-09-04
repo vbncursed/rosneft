@@ -9,14 +9,14 @@ describe("servicesOf", () => {
     const out = servicesOf(
       [one("gateway", 1), one("audit", 0), one("catalog", 1), one("mesh-worker", 0), one("mesh-worker", 1)],
       [run("gateway", Array.from({ length: 30 }, (_, i) => i)), run("catalog", [3, 4])],
-      [one("gateway", 1.2), one("catalog", 0)],
+      [one("gateway", 1.2), one("catalog", 0.04), one("mesh-worker", 0)],
       [one("rosneft.catalog.v1.CatalogService", 0.024)],
     );
     expect(out.map((s) => [s.name, s.state, s.latency, s.errors])).toEqual([
       ["gateway", "degraded", "—", "1.2/s"],
       ["audit", "down", "—", "—"],
-      ["catalog", "up", "24ms", "0/s"],
-      ["mesh-worker", "up", "—", "—"],
+      ["catalog", "degraded", "24ms", "<0.1/s"],
+      ["mesh-worker", "up", "—", "0/s"],
     ]);
     expect(out[0].samples).toHaveLength(18);
     expect(out[0].samples[17]).toBe(29);

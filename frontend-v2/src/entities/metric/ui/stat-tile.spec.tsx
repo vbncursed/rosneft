@@ -11,20 +11,22 @@ describe("StatTile", () => {
 
   it("spells out a waiting tile, so the glyph is not the only cue", () => {
     render(<StatTile label="P95" state={{ kind: "loading" }} />);
-    expect(screen.getByLabelText("P95: loading")).toHaveTextContent("…");
+    expect(screen.getByText("P95: loading")).toBeInTheDocument();
+    expect(screen.getByText("…")).toBeInTheDocument();
   });
 
   it("spells out an unavailable tile, so red is not the only cue", () => {
     render(<StatTile label="Error rate" state={{ kind: "unavailable" }} />);
-    expect(screen.getByLabelText("Error rate: unavailable")).toHaveTextContent("—");
+    expect(screen.getByText("Error rate: unavailable")).toBeInTheDocument();
+    expect(screen.getByText("—")).toBeInTheDocument();
   });
 
   it("distinguishes waiting from failing — a spinner must not hide an outage", () => {
     const { rerender } = render(<StatTile label="P95" state={{ kind: "loading" }} />);
-    expect(screen.getByLabelText("P95: loading").className).toContain("text-muted");
+    expect(screen.getByText("P95: loading").parentElement!.className).toContain("text-muted");
 
     rerender(<StatTile label="P95" state={{ kind: "unavailable" }} />);
-    expect(screen.getByLabelText("P95: unavailable").className).toContain("text-bad");
+    expect(screen.getByText("P95: unavailable").parentElement!.className).toContain("text-bad");
   });
 });
 
@@ -45,26 +47,26 @@ describe("StatTile · console variant", () => {
     const { rerender } = render(
       <StatTile label="Needs attention" state={{ kind: "value", value: "5" }} tone="bad" />,
     );
-    expect(screen.getByLabelText("Needs attention: 5").className).toContain("text-bad");
+    expect(screen.getByText("Needs attention: 5").parentElement!.className).toContain("text-bad");
 
     rerender(<StatTile label="Accounts" state={{ kind: "value", value: "26" }} tone="fg" />);
-    expect(screen.getByLabelText("Accounts: 26").className).toContain("text-fg");
+    expect(screen.getByText("Accounts: 26").parentElement!.className).toContain("text-fg");
   });
 
   it("keeps the loading and failure tones whatever the caller asks for", () => {
     const { rerender } = render(<StatTile label="P95" state={{ kind: "loading" }} tone="fg" />);
-    expect(screen.getByLabelText("P95: loading").className).toContain("text-muted");
+    expect(screen.getByText("P95: loading").parentElement!.className).toContain("text-muted");
 
     rerender(<StatTile label="P95" state={{ kind: "unavailable" }} tone="fg" />);
-    expect(screen.getByLabelText("P95: unavailable").className).toContain("text-bad");
+    expect(screen.getByText("P95: unavailable").parentElement!.className).toContain("text-bad");
   });
 
   it("sets the console size larger than the dashboard one", () => {
     const { rerender } = render(<StatTile label="A" state={{ kind: "value", value: "1" }} />);
-    expect(screen.getByLabelText("A: 1").className).toContain("text-[22px]");
+    expect(screen.getByText("A: 1").parentElement!.className).toContain("text-[22px]");
 
     rerender(<StatTile label="A" state={{ kind: "value", value: "1" }} size="lg" />);
-    expect(screen.getByLabelText("A: 1").className).toContain("text-[26px]");
+    expect(screen.getByText("A: 1").parentElement!.className).toContain("text-[26px]");
   });
 });
 
@@ -80,7 +82,7 @@ describe("StatTile · bare", () => {
 
   it("still reads the same to assistive tech", () => {
     render(<StatTile bare label="Failed" state={{ kind: "value", value: "4" }} tone="bad" />);
-    expect(screen.getByLabelText("Failed: 4")).toBeInTheDocument();
+    expect(screen.getByText("Failed: 4")).toBeInTheDocument();
   });
 });
 

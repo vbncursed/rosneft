@@ -58,16 +58,10 @@ const errorTone = (id: PanelId, last: number | null) =>
     ? ("bad" as const)
     : undefined;
 
-/**
- * The panels backed by gRPC metrics. `SECTIONS` groups by dashboard row, not
- * by protocol — `red-http` sits beside these three and is HTTP — so the set is
- * spelled out rather than derived from a section key.
- */
-const GRPC_PANELS: ReadonlySet<PanelId> = new Set<PanelId>([
-  "red-rate",
-  "red-errors",
-  "red-latency",
-]);
+/** Panels whose legends carry gRPC names to shorten. */
+const GRPC_LABELLED: ReadonlySet<PanelId> = new Set<PanelId>(["red-rate", "red-errors", "red-latency"]);
+/** Rate panels where an empty answer means a quiet window; a quantile with no samples is not "no traffic". */
+const GRPC_QUIET: ReadonlySet<PanelId> = new Set<PanelId>(["red-rate", "red-errors"]);
 
 /**
  * Panels whose PromQL is a `rate()`. A rate over a window with no samples is a
@@ -106,7 +100,7 @@ export function panelEntry(
   }
   // A gRPC panel with nothing in it is a quiet window, not an outage — the red
   // "unavailable" wording above is for a panel that was actually refused.
-  if (result.series.length === 0 && GRPC_PANELS.has(id)) {
+  if (result.series.length === 0 && GRPC_QUIET.has(id)) {
     return {
       key: id,
       title,
@@ -119,7 +113,7 @@ export function panelEntry(
   }
 
   const focused = focusSeries(result.series, selected);
-  const named = GRPC_PANELS.has(id)
+  const named = GRPC_LABELLED.has(id)
     ? focused.series.map((s) => ({ ...s, label: shortGrpcLabel(s.label) }))
     : focused.series;
   const last = lastOf(focused.series);

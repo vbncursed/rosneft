@@ -107,7 +107,7 @@ describe("ContentScreen", () => {
     render(<ContentScreen />);
 
     const row = screen.getByRole("article", { name: "T 1" });
-    await userEvent.click(within(row).getByRole("button", { name: "Row actions" }));
+    await userEvent.click(within(row).getByRole("button", { name: "Row actions for T 1" }));
     expect(screen.getByRole("menuitem", { name: "Open in viewer" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Replace source" })).toBeInTheDocument();
 
@@ -120,7 +120,7 @@ describe("ContentScreen", () => {
     useContent.mockReturnValue(s);
     render(<ContentScreen />);
     const row = screen.getByRole("article", { name: "T 1" });
-    await userEvent.click(within(row).getByRole("button", { name: "Row actions" }));
+    await userEvent.click(within(row).getByRole("button", { name: "Row actions for T 1" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "Replace source" }));
     expect(leaveTo).toHaveBeenCalledWith("/territories/t-1/replace");
     // The menu sits inside the row's own click target; reaching an action must
@@ -132,7 +132,7 @@ describe("ContentScreen", () => {
     useContent.mockReturnValue(state({ artifactsOf: (_k, slug) => (slug === "t-1" ? [{ lod: 0, size: 1 }] : []) }));
     render(<ContentScreen />);
     const row = screen.getByRole("article", { name: "M 1" });
-    await userEvent.click(within(row).getByRole("button", { name: "Row actions" }));
+    await userEvent.click(within(row).getByRole("button", { name: "Row actions for M 1" }));
     expect(screen.getByRole("menuitem", { name: "Open in viewer" })).toBeDisabled();
   });
 
@@ -140,7 +140,7 @@ describe("ContentScreen", () => {
     useContent.mockReturnValue(state());
     render(<ContentScreen />);
     const row = screen.getByRole("article", { name: "M 1" });
-    await userEvent.click(within(row).getByRole("button", { name: "Row actions" }));
+    await userEvent.click(within(row).getByRole("button", { name: "Row actions for M 1" }));
     expect(screen.getByRole("menuitem", { name: "Open in viewer" })).toBeInTheDocument();
     expect(screen.queryByRole("menuitem", { name: "Replace source" })).not.toBeInTheDocument();
   });
@@ -148,7 +148,7 @@ describe("ContentScreen", () => {
   it("offers no row menu to a reader who may not manage the catalog", () => {
     useContent.mockReturnValue(state({ canManage: false }));
     render(<ContentScreen />);
-    expect(screen.queryByRole("button", { name: "Row actions" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Row actions for / })).not.toBeInTheDocument();
   });
 
   it("draws no Replace source for a model and no Delete without the grant", () => {

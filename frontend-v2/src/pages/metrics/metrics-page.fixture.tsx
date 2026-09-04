@@ -26,7 +26,7 @@ const SECTIONS: MetricSection[] = [
     key: "traffic",
     title: "Traffic & latency",
     panels: [
-      { key: "latency", title: "Request latency", meta: "p50 / p95 / p99 · ms", last: "452ms", lastTone: "accent", unit: "ms",
+      { key: "latency", title: "Request latency", meta: "p50 / p95 / p99 · ms", last: "452ms", lastTone: "accent", unit: "seconds",
         series: [
           { label: "p50", values: wave(24, 92, 10, 2), tone: "muted", dashed: true },
           { label: "p95", values: wave(24, 250, 50, 3) },

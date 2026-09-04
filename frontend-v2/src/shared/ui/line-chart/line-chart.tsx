@@ -19,6 +19,8 @@ export type LineChartProps = {
   label: string;
   /** Unit for the spoken summary, e.g. "ms" or "requests per second". */
   unit?: string;
+  /** How the panel prints a value; the spoken summary uses it so a reader hears "52ms", not "0.0523 seconds". */
+  format?: (v: number) => string;
   height?: number;
   className?: string;
 };
@@ -49,13 +51,13 @@ const toneOf = (series: Series, index: number) => series.tone ?? ORDER[index % O
 // identifies a series here anyway — the tone is assigned by it too.
 
 /** The last reading of each series — what a reader would otherwise squint for. */
-function summarise(series: Series[], label: string, unit?: string): string {
+function summarise(series: Series[], label: string, unit?: string, format?: (v: number) => string): string {
   if (series.length === 0) return `${label}: no data`;
   const parts = series.map((s) => {
     const present = s.values.filter((v): v is number => v !== null);
     const last = present.at(-1);
     if (last === undefined) return `${s.label} no data`;
-    return `${s.label} ${Number(last.toFixed(2))}${unit ? ` ${unit}` : ""}`;
+    return `${s.label} ${format ? format(last) : `${Number(last.toFixed(2))}${unit ? ` ${unit}` : ""}`}`;
   });
   return `${label}: ${parts.join(", ")}`;
 }
@@ -64,6 +66,7 @@ export function LineChart({
   series,
   label,
   unit,
+  format,
   height = DEFAULT_GEOMETRY.height,
   className,
 }: LineChartProps) {
@@ -76,7 +79,7 @@ export function LineChart({
   return (
     <div
       role="img"
-      aria-label={summarise(series, label, unit)}
+      aria-label={summarise(series, label, unit, format)}
       className={cx(
         "relative overflow-hidden rounded-[9px] border border-line bg-panel-2",
         className,

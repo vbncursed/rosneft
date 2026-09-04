@@ -62,14 +62,16 @@ export function StatTile({
         ) : null}
       </div>
       <p
-        aria-label={readoutLabel(label, state)}
         className={cx(
           "m-0 font-mono",
           size === "lg" ? "mt-2.5 text-[26px] leading-none" : "mt-1.5 text-[22px]",
           TONE[valueTone],
         )}
       >
-        {readout(state)}
+        {/* A paragraph cannot carry an accessible name, so the spoken form is
+            text: the glyph is hidden and the sentence is visually hidden. */}
+        <span aria-hidden="true">{readout(state)}</span>
+        <span className="sr-only">{readoutLabel(label, state)}</span>
       </p>
       {hint ? <p className="m-0 mt-1.5 text-[11px] text-dim">{hint}</p> : null}
     </div>

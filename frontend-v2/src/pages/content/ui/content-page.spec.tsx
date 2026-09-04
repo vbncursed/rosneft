@@ -82,7 +82,7 @@ describe("ContentPage", () => {
     render(<ContentPage {...props()} />);
     expect(screen.getByText("40 / 43 ready")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Pipeline state/ })).toBeInTheDocument();
-    expect(screen.getByLabelText("Storage: 184 GB").className).toContain("text-accent");
+    expect(screen.getByText("Storage: 184 GB").parentElement!.className).toContain("text-accent");
   });
 
   it("groups the catalog", () => {
