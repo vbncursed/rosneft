@@ -74,7 +74,19 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 // a deleted territory or model otherwise keeps its last job in GET /api/jobs
 // forever. Errors are logged, not returned: the queueing half of the tick
 // already happened, and the next tick sweeps again.
+//
+// It deletes against the targets snapshot taken at the start of this tick, so
+// a target created mid-loop whose own submit already indexed it can be
+// HDEL'd here once. That's safe: SaveJob re-HSETs the index field on every
+// write (progress and terminal alike), so the entry reappears the moment the
+// worker writes to it again.
 func (m *Mesh) sweepIndex(ctx context.Context, targets []domain.ConversionTarget) {
+	// A context cancelled between the loop finishing and here (typically
+	// shutdown racing the tick) would otherwise reach ListTargetJobs and log
+	// a Warn on every graceful shutdown; skip the sweep instead.
+	if ctx.Err() != nil {
+		return
+	}
 	live := make(map[string]struct{}, len(targets))
 	for _, t := range targets {
 		live[t.Kind.String()+":"+t.Slug] = struct{}{}
