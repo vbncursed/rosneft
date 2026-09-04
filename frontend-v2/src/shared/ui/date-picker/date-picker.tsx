@@ -23,7 +23,11 @@ export type DatePickerProps = {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
-  /** Which trigger edge the calendar hangs from; "end" for a picker at the right edge of a row. */
+  /**
+   * Which trigger edge the calendar hangs from; "end" for a picker at the
+   * right edge of a row. Defaults to "start" — unlike `Menu`, whose default
+   * is "end" — because every existing picker anchors left.
+   */
   align?: "start" | "end";
 };
 

@@ -14,11 +14,22 @@ export type ContentRowProps = {
   actions?: ReactNode;
 };
 
+// The rail is the row's own left border, not a separate span: a border
+// follows border-radius by construction, where a positioned strip needs its
+// own radius — one CSS clamps to the strip's width, painting outside the
+// row's rounded corner.
 const RAIL: Record<ConversionStatus, string> = {
-  ready: "bg-ok",
-  pending: "bg-line-2",
-  converting: "bg-warn",
-  failed: "bg-bad",
+  ready: "border-l-ok",
+  pending: "border-l-line-2",
+  converting: "border-l-warn",
+  failed: "border-l-bad",
+};
+
+const RAIL_DIM: Record<ConversionStatus, string> = {
+  ready: "border-l-ok/50",
+  pending: "border-l-line-2/50",
+  converting: "border-l-warn/50",
+  failed: "border-l-bad/50",
 };
 
 export function ContentRow({ item, selected = false, onSelect, actions }: ContentRowProps) {
@@ -33,19 +44,11 @@ export function ContentRow({ item, selected = false, onSelect, actions }: Conten
       // No overflow-hidden on the row: the kebab menu is absolutely positioned
       // inside it and was being cut at the row's bottom edge.
       className={cx(
-        "relative flex cursor-pointer items-start gap-3 rounded-[11px] border py-3.5 pl-4.5 pr-4 transition-colors duration-150",
+        "relative flex cursor-pointer items-start gap-3 rounded-[11px] border border-l-[3px] py-3.5 pl-[15px] pr-4 transition-colors duration-150",
         selected ? "border-accent bg-accent-soft" : "border-line bg-panel hover:border-line-2",
+        selected ? RAIL[item.status] : RAIL_DIM[item.status],
       )}
     >
-      <span
-        aria-hidden="true"
-        className={cx(
-          "absolute inset-y-0 left-0 w-[3px] rounded-l-[11px]",
-          RAIL[item.status],
-          !selected && "opacity-50",
-        )}
-      />
-
       <span
         aria-hidden="true"
         className={cx(

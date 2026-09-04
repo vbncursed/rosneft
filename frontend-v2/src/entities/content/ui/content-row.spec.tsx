@@ -26,14 +26,14 @@ describe("ContentRow", () => {
   });
 
   it("colours the rail by conversion state", () => {
-    const { container, rerender } = render(<ContentRow item={item()} />);
-    expect(container.querySelector("span[aria-hidden]")!.className).toContain("bg-ok");
+    const { rerender } = render(<ContentRow item={item()} />);
+    expect(screen.getByRole("article").className).toContain("border-l-ok");
 
     rerender(<ContentRow item={item({ status: "converting" })} />);
-    expect(container.querySelector("span[aria-hidden]")!.className).toContain("bg-warn");
+    expect(screen.getByRole("article").className).toContain("border-l-warn");
 
     rerender(<ContentRow item={item({ status: "failed" })} />);
-    expect(container.querySelector("span[aria-hidden]")!.className).toContain("bg-bad");
+    expect(screen.getByRole("article").className).toContain("border-l-bad");
   });
 
   it("flags a failed item in words, not only by colour", () => {
@@ -74,12 +74,13 @@ describe("ContentRow", () => {
   });
 
   it("marks the selected row as current and brightens its rail", () => {
-    const { container, rerender } = render(<ContentRow item={item()} />);
-    expect(container.querySelector("span[aria-hidden]")!.className).toContain("opacity-50");
+    const { rerender } = render(<ContentRow item={item()} />);
+    expect(screen.getByRole("article").className).toContain("border-l-ok/50");
 
     rerender(<ContentRow item={item()} selected />);
     expect(screen.getByRole("article")).toHaveAttribute("aria-current", "true");
-    expect(container.querySelector("span[aria-hidden]")!.className).not.toContain("opacity-50");
+    expect(screen.getByRole("article").className).not.toContain("border-l-ok/50");
+    expect(screen.getByRole("article").className).toContain("border-l-ok");
   });
 
   it("selects on click", async () => {
@@ -98,7 +99,9 @@ describe("ContentRow", () => {
     const { container } = render(<ContentRow item={item()} />);
     const article = container.querySelector("article")!;
     expect(article.className).not.toContain("overflow-hidden");
-    // The rail keeps the rounded corner on its own.
-    expect(container.querySelector("span[aria-hidden]")!.className).toContain("rounded-l-[11px]");
+    // No separate rail span: the colour is the row's own left border, which
+    // follows the row's rounded corner by construction. Only the icon span
+    // is left as aria-hidden.
+    expect(container.querySelectorAll("span[aria-hidden]")).toHaveLength(1);
   });
 });
