@@ -9,10 +9,13 @@ const entry = (id: number, action: string, label: string): AuditEntry => ({
   at: "2026-09-01T09:14:00Z",
   actorId: "u-1",
   actorLogin: "a.ivanova",
+  companyId: "",
+  companyLogin: "",
   action,
   entity: "territory",
   entityId: `t-${id}`,
   entityLabel: label,
+  territorySlug: "",
   oldRow: null,
   newRow: null,
   result: "ok",
@@ -20,7 +23,7 @@ const entry = (id: number, action: string, label: string): AuditEntry => ({
 
 const EVENTS = [
   { entry: entry(1, "territory.update", "Refinery Block C"), summary: "4 fields changed" },
-  { entry: entry(2, "placement.create", "Storage Tank 500"), summary: "placed at 12.4 / 0.0 / −3.1" },
+  { entry: entry(2, "placement.insert", "Storage Tank 500"), summary: "placed at 12.4 / 0.0 / −3.1" },
 ];
 
 describe("EventTimeline", () => {

@@ -1,11 +1,13 @@
 import { clsx as cx } from "clsx";
-import { diffRows, type AuditEntry, type DiffKind } from "@/entities/audit";
+import { diffRows, type AuditEntry, type DiffKind, type Refs } from "@/entities/audit";
 import { Button } from "@/shared/ui/button";
 import { DetailList, type Detail } from "@/shared/ui/detail-list";
 import { inspectorValue } from "../model/inspector-value";
 
 export type RecordInspectorProps = {
   entry: AuditEntry;
+  /** Names for the ids inside the snapshots, merged from every loaded page. */
+  refs?: Refs;
   /** Short hash shown in the overline, e.g. "4f21c8". */
   recordId?: string;
   /** actor / at / ip / result / digest — composed by the route. */
@@ -25,6 +27,7 @@ const TONE: Record<DiffKind, { border: string; text: string }> = {
 
 export function RecordInspector({
   entry,
+  refs,
   recordId,
   details = [],
   onCopyJson,
@@ -76,7 +79,7 @@ export function RecordInspector({
                     {field.field}
                   </p>
                   <p className="m-0 mt-[3px] break-all font-mono text-[11px] leading-[1.5] text-fg">
-                    {inspectorValue(field)}
+                    {inspectorValue(field, refs)}
                   </p>
                 </div>
               ))}
