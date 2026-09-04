@@ -24,8 +24,13 @@ var (
 	failedBlock   = domain.Job{ID: "j2", Kind: domain.KindTerritory, Slug: "block", Status: domain.JobStatusFailed}
 	doneBlock     = domain.Job{ID: "j3", Kind: domain.KindTerritory, Slug: "done", Status: domain.JobStatusSucceeded}
 	pendingPump   = domain.Job{ID: "j4", Kind: domain.KindModel, Slug: "pump", Status: domain.JobStatusPending}
+	unknownKind   = domain.Job{ID: "j5", Kind: "", Slug: "yard", Status: domain.JobStatusRunning}
 	allTargetJobs = []domain.Job{runningYard, failedBlock, doneBlock, pendingPump}
 )
+
+// The whole catalog, as the real ListTerritories answers an empty scope: ""
+// turns its tenant filter off and resolves every row.
+var allTerritories = []domain.Territory{{Slug: "yard"}, {Slug: "block"}, {Slug: "done"}}
 
 // The rule, on its own: succeeded never, models always, territories only when visible.
 func (s *ListJobsSuite) TestVisibleJob() {
@@ -35,6 +40,8 @@ func (s *ListJobsSuite) TestVisibleJob() {
 	assert.Assert(s.T(), visibleJob(failedBlock, visible, true), "Root sees every territory")
 	assert.Assert(s.T(), visibleJob(pendingPump, map[string]bool{}, false), "models are shared")
 	assert.Assert(s.T(), !visibleJob(doneBlock, visible, true), "succeeded is never listed")
+	assert.Assert(s.T(), !visibleJob(unknownKind, visible, false), "an unknown kind has no rule that admits it")
+	assert.Assert(s.T(), !visibleJob(unknownKind, visible, true), "and Root does not get one either")
 }
 
 // jobsServiceStub answers the two reads the handler makes and panics on
@@ -50,8 +57,8 @@ func (j jobsServiceStub) ListTargetJobs(context.Context) ([]domain.Job, error) {
 }
 
 func (j jobsServiceStub) ListTerritories(_ context.Context, scopeAdminID string) ([]domain.Territory, error) {
-	if scopeAdminID != "admin-1" {
-		return nil, nil
+	if scopeAdminID == "" {
+		return allTerritories, nil
 	}
 	return j.territories, nil
 }

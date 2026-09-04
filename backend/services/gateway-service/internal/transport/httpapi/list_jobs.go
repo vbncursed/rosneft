@@ -51,11 +51,23 @@ func (s *Server) ListJobs(w http.ResponseWriter, r *http.Request) {
 // Succeeded is never shown: the artifacts already say "ready", and a stale
 // "succeeded" would outlive a replaced source. Models are shared by decision;
 // a territory needs to be in the caller's visible set unless they are Root.
+//
+// The kinds are matched one by one rather than by "not a territory": a kind
+// this gateway does not know has no rule that admits it, so it is refused —
+// Root included. A future third kind is then invisible until someone writes
+// its rule, instead of being listed to everyone.
 func visibleJob(j domain.Job, visible map[string]bool, allAccess bool) bool {
 	if j.Status == domain.JobStatusSucceeded {
 		return false
 	}
-	return j.Kind != domain.KindTerritory || allAccess || visible[j.Slug]
+	switch j.Kind {
+	case domain.KindModel:
+		return true
+	case domain.KindTerritory:
+		return allAccess || visible[j.Slug]
+	default:
+		return false
+	}
 }
 
 func writeJobs(w http.ResponseWriter, jobs []domain.Job) {
