@@ -17,7 +17,7 @@ export {
 export { alignSeries, lastOf, type MetricPoint, type MetricSeries } from "./model/series";
 export { servicesOf } from "./model/service-health";
 export { alertsOf, type AlertSummary } from "./model/alerts";
-export { isRange, METRIC_RANGES, RANGE_SECONDS, type MetricsRange } from "./model/range";
+export { isRange, METRIC_RANGES, type MetricsRange } from "./model/range";
 export { fetchPanel } from "./api/metrics-gateway";
 export { panelQuery } from "./api/panel-query";
 export { AlertRow, type AlertRowProps } from "./ui/alert-row";

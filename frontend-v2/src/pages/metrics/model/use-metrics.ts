@@ -22,7 +22,8 @@ export type MetricsState = {
   results: Partial<Record<PanelId, PanelResult>>;
   services: ServiceHealth[];
   alerts: AlertSummary[];
-  firingCount: number;
+  /** null when the alerts panel failed: unknown is not zero. */
+  firingCount: number | null;
   query: string;
   setQuery: (q: string) => void;
   selectedService: string | null;
@@ -69,6 +70,7 @@ export function useMetrics(range: MetricsRange): MetricsState {
     const r = panels.results[id];
     return r?.kind === "value" ? r.series : [];
   };
+  const alertsResult = panels.results.alerts;
   const alerts = alertsOf(series("alerts"));
 
   return {
@@ -82,7 +84,8 @@ export function useMetrics(range: MetricsRange): MetricsState {
       series("red-latency"),
     ),
     alerts,
-    firingCount: alerts.filter((a) => a.state === "firing").length,
+    firingCount:
+      alertsResult?.kind === "value" ? alerts.filter((a) => a.state === "firing").length : null,
     query,
     setQuery,
     selectedService,

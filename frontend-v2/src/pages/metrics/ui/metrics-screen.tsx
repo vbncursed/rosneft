@@ -8,6 +8,7 @@ import {
   matchesSection,
   matchesService,
   panelEntry,
+  servicesHint,
   statsOf,
 } from "../model/dashboard";
 import { useMetrics } from "../model/use-metrics";
@@ -68,6 +69,7 @@ export function MetricsScreen() {
       selectedPanel={s.selectedPanel}
       onSelectPanel={s.selectPanel}
       firingCount={s.firingCount}
+      servicesHint={servicesHint(up)}
       alert={
         s.alertOpen && firing
           ? { name: firing.name, meta: firing.meta, details: alertDetails(firing) }

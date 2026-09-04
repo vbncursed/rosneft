@@ -7,6 +7,7 @@ export type ServiceHealthListProps = {
   selectedName?: string | null;
   onSelect?: (name: string) => void;
   title?: string;
+  /** Replaces the "no match" sentence — and its advice — when no filter is to blame. */
   emptyHint?: string;
 };
 
@@ -15,10 +16,17 @@ export function ServiceHealthList({
   selectedName = null,
   onSelect,
   title = "Service health",
-  emptyHint = "No services match this filter.",
+  emptyHint,
 }: ServiceHealthListProps) {
   if (services.length === 0) {
-    return <EmptyState title={emptyHint} description="Loosen the filter to see more services." />;
+    return emptyHint ? (
+      <EmptyState title={emptyHint} />
+    ) : (
+      <EmptyState
+        title="No services match this filter."
+        description="Loosen the filter to see more services."
+      />
+    );
   }
 
   return (

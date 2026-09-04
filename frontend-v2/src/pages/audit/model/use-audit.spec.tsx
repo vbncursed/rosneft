@@ -166,6 +166,22 @@ describe("useAudit", () => {
     await waitFor(() => expect(journalCalls().at(-1)).toContain("from=2026-08-20T00%3A00%3A00Z"));
   });
 
+  it("refuses a range that ends before it starts, without a request", async () => {
+    const { result } = renderHook(() => useAudit(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+
+    const before = journalCalls().length;
+    act(() => result.current.setRange({ from: "2026-09-02", to: "2026-08-20" }));
+    await waitFor(() => expect(result.current.backwardsRange).toBe(true));
+    expect(journalCalls()).toHaveLength(before);
+    expect(result.current.status).toBe("ready");
+    expect(result.current.live).toBe(false);
+
+    act(() => result.current.setRange({ from: "2026-08-20", to: "2026-09-02" }));
+    await waitFor(() => expect(journalCalls().length).toBeGreaterThan(before));
+    expect(result.current.backwardsRange).toBe(false);
+  });
+
   it("selects an entry and exposes it", async () => {
     const { result } = renderHook(() => useAudit(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));

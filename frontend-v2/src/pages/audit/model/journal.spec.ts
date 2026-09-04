@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { AuditEntry } from "@/entities/audit";
+import { WINDOW_LIMIT, type AuditEntry } from "@/entities/audit";
 import {
   activityOf,
+  backwardsRange,
   countersOf,
   entityHref,
   groupByDay,
@@ -69,7 +70,21 @@ describe("parseAuditFilters", () => {
   });
 });
 
+describe("backwardsRange", () => {
+  it("is a range that ends before it starts — and needs both bounds to be one", () => {
+    expect(backwardsRange({ from: "2026-09-02", to: "2026-09-01" })).toBe(true);
+    expect(backwardsRange({ from: "2026-09-01", to: "2026-09-01" })).toBe(false);
+    expect(backwardsRange({ from: "2026-09-01", to: "2026-09-02" })).toBe(false);
+    expect(backwardsRange({ from: "2026-09-02", to: "" })).toBe(false);
+    expect(backwardsRange({})).toBe(false);
+  });
+});
+
 describe("rangeChip", () => {
+  it("says a range ends before it starts rather than wording it as a span", () => {
+    expect(rangeChip({ from: "2026-08-24", to: "2026-08-18" })).toBe("24 Aug > 18 Aug");
+  });
+
   it("words the picked range, or nothing when nothing is picked", () => {
     expect(rangeChip({ from: "2026-09-01", to: "2026-09-02" })).toBe("1 Sep – 2 Sep");
     expect(rangeChip({ from: "2026-09-01", to: "" })).toBe("from 1 Sep");
@@ -131,7 +146,9 @@ describe("activityOf and countersOf", () => {
     expect(a.dimFrom).toBe(23);
     expect(a.label).toBe("Events · last 24h (UTC)");
     expect(a.detail).toBe("peak 2/h at 10:00");
-    expect(activityOf([], NOW, true).detail).toBe("from 200 loaded events");
+    // The strip, the counter and the query the window asked for must quote
+    // one number, or the journal states a limit it did not use.
+    expect(activityOf([], NOW, true).detail).toBe(`from ${WINDOW_LIMIT} loaded events`);
   });
 
   it("counts events and failures in the window and the actors the journal knows", () => {
@@ -140,7 +157,7 @@ describe("activityOf and countersOf", () => {
       { label: "Failed · 24h", value: "1", tone: "bad" },
       { label: "Actors", value: "9", tone: "accent" },
     ]);
-    expect(countersOf([], true, 0)[0].value).toBe("200+");
+    expect(countersOf([], true, 0)[0].value).toBe(`${WINDOW_LIMIT}+`);
     expect(countersOf([], false, 0)[1]).toEqual({ label: "Failed · 24h", value: "0" });
   });
 });

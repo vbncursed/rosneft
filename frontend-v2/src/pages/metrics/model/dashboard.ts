@@ -120,6 +120,17 @@ export function statsOf(
   });
 }
 
+/**
+ * What the health list says when it holds no services. A failed `services-up`
+ * panel is not an empty filter, and "No services match this filter." is a
+ * sentence about a filter the reader did not apply.
+ */
+export function servicesHint(result: PanelResult | undefined): string | undefined {
+  if (!result || result.kind === "loading") return "Service health is still loading.";
+  if (result.kind === "unavailable") return `Service health is unavailable: ${result.message}`;
+  return undefined;
+}
+
 const dash = (label: string, value: string): Detail =>
   value ? { label, value } : { label, value: "—", tone: "dim" };
 

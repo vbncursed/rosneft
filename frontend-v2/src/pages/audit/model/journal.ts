@@ -5,6 +5,7 @@ import {
   toBound,
   type AuditActor,
   type AuditEntry,
+  WINDOW_LIMIT,
   type AuditFilters,
 } from "@/entities/audit";
 import { parseFilters } from "@/features/audit-filter";
@@ -13,7 +14,6 @@ import type { AuditCounter, AuditDay, AuditPageProps } from "../ui/audit-page";
 
 const DAY_MS = 86_400_000;
 const HOUR_MS = 3_600_000;
-const WINDOW_LIMIT = 200;
 
 export type DateRange = { from: string; to: string };
 
@@ -57,9 +57,21 @@ const utc = (iso: string, options: Intl.DateTimeFormatOptions, locale = "en-GB")
 const shortDay = (iso: string) =>
   `${Number(iso.slice(8, 10))} ${utc(`${iso}T00:00:00Z`, { month: "short" }, "en-US")}`;
 
+/**
+ * A range that ends before it starts selects nothing. The screen refuses it
+ * rather than asking the gateway for an answer it already knows is empty —
+ * the same refusal an unknown actor gets. Both bounds are `yyyy-mm-dd` or the
+ * ISO instants `toBound` widens them into, and both compare as strings.
+ */
+export const backwardsRange = (range: { from?: string; to?: string }): boolean =>
+  !!range.from && !!range.to && range.from > range.to;
+
 /** The chip for a picked range; null when nothing is picked. */
 export function rangeChip(range: DateRange): string | null {
-  if (range.from && range.to) return `${shortDay(range.from)} – ${shortDay(range.to)}`;
+  if (range.from && range.to) {
+    const dash = backwardsRange(range) ? ">" : "–";
+    return `${shortDay(range.from)} ${dash} ${shortDay(range.to)}`;
+  }
   if (range.from) return `from ${shortDay(range.from)}`;
   if (range.to) return `until ${shortDay(range.to)}`;
   return null;

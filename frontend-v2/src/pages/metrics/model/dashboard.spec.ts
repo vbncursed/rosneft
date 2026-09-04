@@ -6,6 +6,7 @@ import {
   matchesSection,
   matchesService,
   panelEntry,
+  servicesHint,
   statsOf,
   type PanelResult,
 } from "./dashboard";
@@ -187,6 +188,17 @@ describe("statsOf", () => {
 
   it("prints an ellipsis for a tile whose query has not been made yet", () => {
     expect(statsOf({}, 4).map((s) => s.value)).toEqual(["…", "…", "…", "…", "…"]);
+  });
+});
+
+describe("servicesHint", () => {
+  it("blames the panel, not a filter, and says nothing when the panel answered", () => {
+    expect(servicesHint({ kind: "unavailable", message: "Prometheus unreachable" })).toBe(
+      "Service health is unavailable: Prometheus unreachable",
+    );
+    expect(servicesHint({ kind: "loading" })).toBe("Service health is still loading.");
+    expect(servicesHint(undefined)).toBe("Service health is still loading.");
+    expect(servicesHint({ kind: "value", series: [] })).toBeUndefined();
   });
 });
 

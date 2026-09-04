@@ -43,8 +43,10 @@ export type MetricsPageProps = {
   selectedPanel: string | null;
   onSelectPanel: (key: string) => void;
 
-  /** How many alerts are firing; the header stays quiet at zero. */
-  firingCount?: number;
+  /** How many alerts are firing; the header stays quiet at zero, and says so at null. */
+  firingCount?: number | null;
+  /** Replaces the health list's "no match" sentence when there is no filter to blame. */
+  servicesHint?: string;
   /** Absent when nothing is firing, or while the detail is still loading. */
   alert?: FiringAlert | null;
   onCloseAlert: () => void;
@@ -72,6 +74,7 @@ export function MetricsPage({
   selectedPanel,
   onSelectPanel,
   firingCount = 0,
+  servicesHint,
   alert,
   onCloseAlert,
   onSilence,
@@ -86,7 +89,11 @@ export function MetricsPage({
         title="Metrics"
         action={
           <div className="flex items-center gap-2.5">
-            {firingCount > 0 ? (
+            {firingCount === null ? (
+              <Badge tone="dim" fill="soft" className="tracking-[0.12em]">
+                alerts unavailable
+              </Badge>
+            ) : firingCount > 0 ? (
               <Badge tone="bad" fill="soft" className="tracking-[0.12em]">
                 <span aria-hidden="true" className="size-1.5 rounded-full bg-bad" />
                 {firingCount} {firingCount === 1 ? "alert" : "alerts"}
@@ -151,6 +158,7 @@ export function MetricsPage({
             services={services}
             selectedName={selectedService}
             onSelect={onSelectService}
+            emptyHint={servicesHint}
           />
           <MetricPanels
             sections={sections}

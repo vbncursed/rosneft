@@ -38,7 +38,8 @@ export function AuditScreen() {
   }
 
   const now = new Date();
-  const days = s.unknownActor ? [] : groupByDay(s.entries, now);
+  const refused = !!s.unknownActor || s.backwardsRange;
+  const days = refused ? [] : groupByDay(s.entries, now);
   const href = s.selected ? entityHref(s.selected) : null;
   const chip = rangeChip(s.range);
 
@@ -48,6 +49,8 @@ export function AuditScreen() {
           between the strip and the inspector when it has no days. */}
       {s.unknownActor ? (
         <Callout tone="warn">No actor named {s.unknownActor}.</Callout>
+      ) : s.backwardsRange ? (
+        <Callout tone="warn">That range ends before it starts.</Callout>
       ) : days.length === 0 ? (
         <Callout tone="accent" icon="search">
           No events match this filter.
@@ -99,7 +102,7 @@ export function AuditScreen() {
         live={s.live}
         onExport={s.exportCsv}
         exporting={s.exporting}
-        exportDisabled={!!s.unknownActor}
+        exportDisabled={refused}
         onCopyJson={s.copyJson}
         onOpenEntity={href ? () => leaveTo(href) : undefined}
         onLoadOlder={s.loadOlder}
