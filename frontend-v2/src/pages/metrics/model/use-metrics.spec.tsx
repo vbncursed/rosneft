@@ -159,7 +159,7 @@ describe("useMetrics", () => {
           .map(panelOf),
       );
     const hourly = asked("1h");
-    expect(hourly.size).toBe(21);
+    expect(hourly.size).toBe(20);
     expect(asked("6h").size).toBe(0);
 
     rerender({ range: "6h" });

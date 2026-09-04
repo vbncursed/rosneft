@@ -56,6 +56,23 @@ export function MetricsScreen() {
   const firing = s.alerts.find((a) => a.state === "firing") ?? null;
   const up = s.results["services-up"];
   const healthy = s.services.filter((svc) => svc.state === "up").length;
+  // No meter without an answer from services-up: "0 of 0 up" in green is a
+  // confident lie about an outage, and `servicesHint` already says so instead.
+  const budget =
+    up?.kind === "value"
+      ? {
+          label: "Service health",
+          // The meter counts services by name, not scrape targets: a replicated
+          // service is several targets and one row in the health list.
+          detail: `${healthy} of ${s.services.length} up`,
+          ...(healthy === s.services.length ? {} : { detailTone: "warn" as const }),
+          segments: SERVICE_SEGMENTS.map(({ state, tone, label }) => ({
+            tone,
+            label,
+            value: s.services.filter((svc) => svc.state === state).length,
+          })),
+        }
+      : undefined;
 
   return (
     <MetricsPage
@@ -67,18 +84,7 @@ export function MetricsScreen() {
           .map((id) => panelEntry(id, s.results[id] ?? { kind: "loading" }, s.selectedService))
           .filter((p) => matchesPanel(p.title, s.query)),
       }))}
-      budget={{
-        label: "Service health",
-        detail: `${healthy} of ${s.services.length} up`,
-        // The meter counts services by name, not scrape targets: a replicated
-        // service is several targets and one row in the health list.
-        ...(healthy === s.services.length ? {} : { detailTone: "warn" as const }),
-        segments: SERVICE_SEGMENTS.map(({ state, tone, label }) => ({
-          tone,
-          label,
-          value: s.services.filter((svc) => svc.state === state).length,
-        })),
-      }}
+      {...(budget ? { budget } : {})}
       stats={statsOf(s.results)}
       range={range}
       onRangeChange={(next) => void navigate({ to: ".", search: { range: next } })}

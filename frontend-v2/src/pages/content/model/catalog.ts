@@ -79,6 +79,11 @@ const note = (items: ContentItem[]) => {
 const NEEDS_ATTENTION = (item: ContentItem) =>
   item.status === "converting" || item.status === "failed";
 
+const attentionNote = (items: ContentItem[]) => {
+  const counts = pipelineCounts(items);
+  return `${counts.converting} converting · ${counts.failed} failed`;
+};
+
 /**
  * Kind groups, with whatever is converting or failed lifted out of them into a
  * group of its own at the top. A failure four rows down a list of forty is a
@@ -90,18 +95,8 @@ export function groupContent(items: ContentItem[]): ContentGroup[] {
   const rest = items.filter((i) => !NEEDS_ATTENTION(i));
   const territories = rest.filter((i) => i.kind === "territory");
   const models = rest.filter((i) => i.kind === "model");
-  const counts = pipelineCounts(attention);
   return [
-    ...(attention.length > 0
-      ? [
-          {
-            key: "attention",
-            label: "Needs attention",
-            note: `${counts.converting} converting · ${counts.failed} failed`,
-            items: attention,
-          },
-        ]
-      : []),
+    ...(attention.length > 0 ? [{ key: "attention", label: "Needs attention", note: attentionNote(attention), items: attention }] : []),
     { key: "territories", label: "Territories", note: note(territories), items: territories },
     { key: "models", label: "Models", note: note(models), items: models },
   ];

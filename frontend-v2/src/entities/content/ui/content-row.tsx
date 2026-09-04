@@ -100,7 +100,11 @@ export function ContentRow({ item, selected = false, onSelect, actions }: Conten
           {item.lods}
         </span>
         <span className="w-14 text-right font-mono text-[11px] text-dim">{item.size}</span>
-        {actions}
+        {actions ? (
+          // The row is its own click target, so an action inside it would
+          // select the row as well and swing the inspector open behind the menu.
+          <span onClick={(event) => event.stopPropagation()}>{actions}</span>
+        ) : null}
       </div>
     </article>
   );

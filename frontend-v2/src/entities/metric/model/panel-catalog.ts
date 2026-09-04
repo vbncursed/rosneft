@@ -1,15 +1,19 @@
 export type Unit = "rps" | "cpm" | "percent" | "seconds" | "bytes" | "mbps" | "count";
 
 export type PanelId =
-  | "stat-up" | "stat-rps" | "stat-errors" | "stat-p99" | "stat-queue" | "services-up"
+  | "stat-rps" | "stat-errors" | "stat-p99" | "stat-queue" | "services-up"
   | "red-rate" | "red-errors" | "red-latency" | "red-http"
   | "domain-conversions" | "domain-conversion-p95" | "domain-queue" | "domain-upload" | "domain-auth" | "domain-twofa"
   | "runtime-memory" | "runtime-goroutines" | "runtime-gc" | "runtime-fds"
   | "alerts";
 
-/** Title, subtitle and unit per panel. The PromQL lives only in the gateway's registry. */
+/**
+ * Title, subtitle and unit per panel. The PromQL lives only in the gateway's
+ * registry, which still serves `stat-up`; nothing here reads it since the
+ * health meter took over counting services, so it is not listed and never
+ * queried.
+ */
 export const PANELS: Record<PanelId, { title: string; meta: string; unit: Unit }> = {
-  "stat-up": { title: "Up", meta: "services answering", unit: "count" },
   "stat-rps": { title: "Requests", meta: "per second · all HTTP", unit: "rps" },
   "stat-errors": { title: "Errors", meta: "5xx share of HTTP", unit: "percent" },
   "stat-p99": { title: "p99", meta: "gRPC handling", unit: "seconds" },

@@ -116,12 +116,24 @@ describe("ContentScreen", () => {
   });
 
   it("replaces a source from the row, without opening the inspector first", async () => {
-    useContent.mockReturnValue(state());
+    const s = state();
+    useContent.mockReturnValue(s);
     render(<ContentScreen />);
     const row = screen.getByRole("article", { name: "T 1" });
     await userEvent.click(within(row).getByRole("button", { name: "Row actions" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "Replace source" }));
     expect(leaveTo).toHaveBeenCalledWith("/territories/t-1/replace");
+    // The menu sits inside the row's own click target; reaching an action must
+    // not also select the row and swing the inspector open behind the menu.
+    expect(s.select).not.toHaveBeenCalled();
+  });
+
+  it("offers no viewer for a row with nothing converted, as the inspector does not", async () => {
+    useContent.mockReturnValue(state({ artifactsOf: (_k, slug) => (slug === "t-1" ? [{ lod: 0, size: 1 }] : []) }));
+    render(<ContentScreen />);
+    const row = screen.getByRole("article", { name: "M 1" });
+    await userEvent.click(within(row).getByRole("button", { name: "Row actions" }));
+    expect(screen.getByRole("menuitem", { name: "Open in viewer" })).toBeDisabled();
   });
 
   it("offers a model no Replace source in its row menu — there is no route", async () => {

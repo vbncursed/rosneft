@@ -64,7 +64,13 @@ export function ContentScreen() {
         triggerLabel="Row actions"
         trigger={<Icon name="kebab" size={15} />}
         items={[
-          { label: "Open in viewer", onSelect: () => leaveTo(contentPath(item)) },
+          {
+            label: "Open in viewer",
+            onSelect: () => leaveTo(contentPath(item)),
+            // Artifacts, not status — the same question the inspector asks: a
+            // re-conversion that failed leaves the old scene viewable.
+            disabled: s.artifactsOf(item.kind, item.slug).length === 0,
+          },
           ...(href ? [{ label: "Replace source", onSelect: () => leaveTo(href) }] : []),
         ]}
       />

@@ -220,7 +220,7 @@ describe("MetricsScreen", () => {
     );
     render(<MetricsScreen />);
 
-    expect(screen.getByText("0 of 0 up")).toBeInTheDocument();
+    expect(screen.queryByText(/ up$/)).not.toBeInTheDocument();
     expect(screen.getByLabelText("Requests: loading")).toBeInTheDocument();
     expect(screen.queryByText(/alert$/)).not.toBeInTheDocument();
     // The inspector's header is an unconditional red "Firing" — a pending
@@ -255,6 +255,9 @@ describe("MetricsScreen", () => {
     expect(
       screen.getByText("Service health is unavailable: Prometheus unreachable"),
     ).toBeInTheDocument();
+    // No meter either: "0 of 0 up" in green is a confident lie about an outage,
+    // and the sentence above already says what happened.
+    expect(screen.queryByRole("img", { name: /Service health/ })).not.toBeInTheDocument();
     expect(screen.queryByText("No services match this filter.")).not.toBeInTheDocument();
     expect(screen.queryByText(/Loosen the filter/)).not.toBeInTheDocument();
   });
