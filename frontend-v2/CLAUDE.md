@@ -160,6 +160,11 @@ ground.
 so those glyphs fall through to the fallback stack. JetBrains Mono does carry
 Cyrillic. Still undecided whether to swap the display face.
 
+**Scrollbars are styled once, globally, in `theme.css`** with
+`scrollbar-width`/`scrollbar-color` on `*`; do not add `::-webkit-scrollbar`
+rules or a per-container class — Chrome disables `scrollbar-color` when the
+webkit pseudo-elements are present.
+
 ## Patterns to follow, not re-derive
 
 - **A page draws no chrome.** Console screens render inside
