@@ -36,13 +36,15 @@ Routes are `/login` and `/console/{users,roles,content,access,audit,metrics}`.
 from the signed-in principal's permissions (`app/router/guard.ts`) and redirect
 to it.
 
-**Users, Roles, Content and Territory access are live; Audit and Metrics are
-placeholders.** Each live screen fetches through a container hook in
+**Every console screen is live.** Each fetches through a container hook in
 `pages/*/model`, renders the page beside its dialogs, and reports every
 outcome as a toast — `shared/lib/notify`, whose Toaster
-`app/router/console-shell.tsx` mounts around the whole console. Audit and
-Metrics still render a one-line `<p>`; their pages take everything through
-props and own no fetching yet. Content also watches `GET /api/jobs`, polled
+`app/router/console-shell.tsx` mounts around the whole console. Audit is one
+infinite query that follows the newest page and stops following once you page
+back; Metrics is one query per panel, keyed on the range the URL holds
+(`?range=`, `1h` by default) and polled every 30 s in a visible tab, where a
+failed panel is one dark card rather than a blank dashboard. Content also
+watches `GET /api/jobs`, polled
 every five seconds only while a conversion is live, so a row shows its
 progress and stage as it converts and the worker's message when it fails.
 

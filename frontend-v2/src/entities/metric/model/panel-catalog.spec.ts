@@ -14,6 +14,10 @@ describe("panel catalogue", () => {
     expect(STAT_IDS).toEqual(["stat-up", "stat-rps", "stat-errors", "stat-p99", "stat-queue"]);
   });
 
+  it("describes what a panel plots without claiming a count it cannot know", () => {
+    expect(PANELS["services-up"].meta).toBe("per scraped target");
+  });
+
   it("formats by unit", () => {
     expect(formatValue(142.3, "rps")).toBe("142/s");
     expect(formatValue(0.0082, "percent")).toBe("0.8%");

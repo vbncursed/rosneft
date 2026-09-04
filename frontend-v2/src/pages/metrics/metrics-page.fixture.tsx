@@ -1,11 +1,10 @@
 import { useMemo, useState } from "react";
-import type { ServiceHealth } from "@/entities/metric";
+import type { MetricsRange, ServiceHealth } from "@/entities/metric";
 import { parseFilters } from "@/features/audit-filter";
 import { ConsoleLayout } from "@/widgets/console-layout";
 import type { FiringAlert } from "@/widgets/alert-inspector";
 import type { MetricSection } from "@/widgets/metric-panels";
 import { MetricsPage } from "./ui/metrics-page";
-import type { MetricsRange } from "./model/range";
 
 const noop = () => {};
 

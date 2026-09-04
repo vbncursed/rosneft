@@ -14,7 +14,7 @@ export const PANELS: Record<PanelId, { title: string; meta: string; unit: Unit }
   "stat-errors": { title: "Errors", meta: "5xx share of HTTP", unit: "percent" },
   "stat-p99": { title: "p99", meta: "gRPC handling", unit: "seconds" },
   "stat-queue": { title: "Queue", meta: "conversion jobs waiting", unit: "count" },
-  "services-up": { title: "Services", meta: "1 up · 0 down", unit: "count" },
+  "services-up": { title: "Services", meta: "per scraped target", unit: "count" },
   "red-rate": { title: "Requests by service", meta: "rps · gRPC", unit: "rps" },
   "red-errors": { title: "Errors by service", meta: "rps · non-OK gRPC", unit: "rps" },
   "red-latency": { title: "Latency p99 by service", meta: "seconds · gRPC", unit: "seconds" },

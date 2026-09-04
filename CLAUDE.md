@@ -29,9 +29,8 @@ PR that a local commit would reject.
 `frontend/` is the app in production. `frontend-v2/` is the redesign, built
 against the Claude Design project `Design System.dc.html` — Feature-Sliced, its
 own component library, a router and a working sign-in against the real
-gateway; Users, Roles, Content and Territory access are wired, Audit and
-Metrics are placeholders. **Working in it? Read
-[`frontend-v2/CLAUDE.md`](frontend-v2/CLAUDE.md) first**: it records the
+gateway; every console screen is wired against the gateway. **Working in it?
+Read [`frontend-v2/CLAUDE.md`](frontend-v2/CLAUDE.md) first**: it records the
 design decisions, the user's working rules, and the tooling traps (chief among
 them that `tsc --noEmit` type-checks nothing there, and that a parallel session
 works in `backend/` so commits must be staged by path).

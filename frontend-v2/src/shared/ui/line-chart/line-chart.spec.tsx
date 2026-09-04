@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ChartLegend, LineChart, type Series } from "./line-chart";
 
 const SERIES: Series[] = [
@@ -18,6 +18,16 @@ describe("LineChart", () => {
   it("says so when there is nothing to draw", () => {
     render(<LineChart series={[]} label="Request latency" />);
     expect(screen.getByRole("img", { name: "Request latency: no data" })).toBeInTheDocument();
+  });
+
+  it("reads the last value a gap-ending series actually has", () => {
+    render(<LineChart series={[{ label: "p95", values: [10, 20, null] }]} label="Latency" unit="ms" />);
+    expect(screen.getByRole("img", { name: "Latency: p95 20 ms" })).toBeInTheDocument();
+  });
+
+  it("says a series that is all gaps has no data, rather than printing a zero", () => {
+    render(<LineChart series={[{ label: "p95", values: [null, null] }]} label="Latency" unit="ms" />);
+    expect(screen.getByRole("img", { name: "Latency: p95 no data" })).toBeInTheDocument();
   });
 
   it("draws one line per series", () => {
@@ -43,6 +53,25 @@ describe("LineChart", () => {
     expect(second.getAttribute("d")).toContain(" 12.0");
   });
 
+  // Two replicas of one service scrape as two series under the same label, so
+  // the label cannot be the React key — that pair silently collapsed into one
+  // line on the live dashboard.
+  it("draws both series when two share a label", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { container } = render(
+      <LineChart
+        series={[
+          { label: "mesh-worker", values: [1, 2] },
+          { label: "mesh-worker", values: [3, 4] },
+        ]}
+        label="Resident memory"
+      />,
+    );
+    expect(container.querySelectorAll("path[stroke]:not([stroke='none'])")).toHaveLength(2);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
   it("dashes a reference series and draws it thinner", () => {
     const { container } = render(
       <LineChart series={[{ label: "p50", values: [1, 2], dashed: true }]} label="l" />,
@@ -66,6 +95,14 @@ describe("ChartLegend", () => {
     render(<ChartLegend series={SERIES} />);
     expect(screen.getByText("p95")).toBeInTheDocument();
     expect(screen.getByText("p99")).toBeInTheDocument();
+  });
+
+  it("names both replicas when two series share a label", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<ChartLegend series={[{ label: "mesh-worker", values: [1] }, { label: "mesh-worker", values: [2] }]} />);
+    expect(screen.getAllByText("mesh-worker")).toHaveLength(2);
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 
   it("keeps the swatches decorative — the label carries the identity", () => {

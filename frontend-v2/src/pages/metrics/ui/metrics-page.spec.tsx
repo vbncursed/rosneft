@@ -154,6 +154,18 @@ describe("MetricsPage", () => {
     expect(screen.getByText("Requests/sec")).toBeInTheDocument();
   });
 
+  it("lays out five tiles without a budget — the grid is not cut to three", () => {
+    const stats = ["Up", "Requests", "Errors", "p99", "Queue"].map((label) => ({
+      label,
+      value: "1",
+      hint: "h",
+    }));
+    const { container } = render(<MetricsPage {...props({ budget: undefined, stats })} />);
+    const grid = container.querySelector(".grid")!;
+    expect(grid.className).toContain("lg:grid-cols-5");
+    expect(grid.children).toHaveLength(5);
+  });
+
   it("draws no button for a handler it was not given", () => {
     render(
       <MetricsPage

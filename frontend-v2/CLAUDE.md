@@ -91,6 +91,12 @@ not in it — a role only owners hold counts "0 users" and its holder never
 appears among the faces. That is a backend issue, not something the console
 should paper over.
 
+**`Series.values` may hold `null` — a gap, drawn as a break.** A missed scrape
+is not a zero: `alignSeries` puts every co-plotted series on the union of
+timestamps and leaves the missing samples null so `LineChart` breaks the line
+there instead of sloping through an outage. Never fill one in, and never let a
+summary read the gap as the last value.
+
 **jsdom 30 has no `HTMLDialogElement.showModal`.** `Modal` and `Drawer` use the
 native `<dialog>` on purpose (that is what gives a real browser the focus trap
 and the inert background), so `shared/lib/test-setup.ts` carries a small shim.
@@ -196,15 +202,15 @@ header and the 401 bounce; `shared/session` holds the marker and the
 and `meQuery`; `app/router` is the route tree and the guard; `app/query` the
 query client.
 
-**Users, Roles, Content and Territory access are live.** Each is a container
-hook in `pages/*/model` (`useUsers`, `useRoles`, `useContent`,
-`useTerritoryAccess`) that owns the queries, the mutations and the UI state, a
+**Every console screen is live.** Each is a container hook in `pages/*/model`
+(`useUsers`, `useRoles`, `useContent`, `useTerritoryAccess`, `useAudit`,
+`useMetrics`) that owns the queries, the mutations and the UI state, a
 `*-screen.tsx` that maps it onto the props-only page and draws the dialogs
 beside it, and a pure module (`people.ts`, `roles-view.ts`, `catalog.ts`,
 `access-view.ts`) holding every decision. Outcomes report through
 `shared/lib/notify`; `ConsoleShell` mounts the Toaster once, around the whole
-console. Copy that split rather than re-deriving it — the remaining screens
-are meant to look the same.
+console. Copy that split rather than re-deriving it — every screen here has
+the same shape, and the next one should too.
 
 **Content** is two lists, one artifacts query per row and one `GET /api/jobs`
 over all of them, and a row's status is read off its job and its artifacts —
@@ -220,7 +226,20 @@ admins query per territory; visibility is derived (anyone assigned →
 slug so switching territories loses no edit, and Save is one PUT of the whole
 set followed by invalidating that territory's admins query alone.
 
-Rulings from those two screens that a later one will meet again:
+**Audit** is one infinite query keyed by the parsed filters, plus its own
+24-hour window query for the counters above the list — a filter narrows the
+journal and never moves them. It follows only while the first page is the only
+one: refetching N pages every 30 s is not "live", so paging older stops the
+poll, and a hidden tab sends nothing. **Metrics** is one query per panel, all
+keyed on the range the URL holds (`?range=`, validated in the route, `1h` by
+default), each polled every 30 s in a visible tab. The health list is
+synthesised from the `services-up` panel plus the RED panels rather than
+fetched; alerts are summarised from their own labels. A panel that failed is
+one dark card reading "unavailable — <message>", and only a dashboard where
+*every* panel failed is unavailable — one dead panel must not blank a working
+screen.
+
+Rulings from those screens that a later one will meet again:
 
 - **Reset password is not rendered.** No endpoint wires it, and an action with
   no endpoint is not drawn.
@@ -247,7 +266,8 @@ Rulings from those two screens that a later one will meet again:
   Saving is two calls — `PUT …/permissions`, then `PATCH …` for the title —
   because the gateway has no single "update role"; only what changed is sent.
 
-Routes: `/login`, `/console/{users,roles,content,access,audit,metrics}`, and
+Routes: `/login`, `/console/{users,roles,content,access,audit,metrics}` —
+Metrics alone carries a search param, `?range=`, validated by the route — and
 `/` and `/console` alone, both of which resolve a landing screen rather than
 rendering one. `consoleLanding` picks that screen from the principal's
 permissions — never a constant, or a roles-only administrator is sent to a
@@ -255,11 +275,15 @@ users page that 403s.
 
 ## Not done yet
 
-**Two console screens are still placeholders** — Audit and Metrics each render
-a one-line `<p>`. The pages exist under `pages/*` and take props, but nothing
-fetches for them yet; each is its own plan, and each reuses the shell, the
-toaster, the gate and the container/pure/screen split that Users, Roles,
-Content and Territory access established.
+**Metrics draws only what Prometheus and the gateway actually serve.** Not
+drawn, each for the same one reason — nothing serves it: the SLO budget meter
+(no budget anywhere), the per-tile deltas (the panel route takes no offset),
+Silence (no Alertmanager route), Copy PromQL (the expressions live in the
+gateway's registry and never reach the client), the alert's top contributors
+and its "firing for" (no `ALERTS_FOR_STATE` panel). On Audit: no request id on
+an entry (the backend does not record one), no ip/user-agent digest, no
+`failed:` filter, and the free-text part of the filter is ignored — the
+placeholder is all that says so. The backend follow-ups are filed, not built.
 
 **Passkey sign-in is unwired, deliberately.** `CredentialsForm` draws the
 button only when handed `onPasskey`, and `useLogin` does not hand it one: the
