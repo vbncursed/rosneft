@@ -47,6 +47,20 @@ describe("RecoveryCodes", () => {
     expect(await screen.findByRole("button", { name: "Copied" })).toBeInTheDocument();
   });
 
+  it("leaves the label as Copy when the clipboard refuses", async () => {
+    const user = userEvent.setup({ writeToClipboard: false });
+    vi.stubGlobal("navigator", {
+      ...navigator,
+      clipboard: { writeText: vi.fn().mockRejectedValue(new Error("denied")) },
+    });
+
+    render(<RecoveryCodes codes={CODES} onConfirm={() => {}} />);
+    await user.click(screen.getByRole("button", { name: "Copy" }));
+
+    expect(await screen.findByRole("button", { name: "Copy" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copied" })).not.toBeInTheDocument();
+  });
+
   it("hands the codes to the downloader under a named file", async () => {
     render(<RecoveryCodes codes={CODES} onConfirm={() => {}} />);
     await userEvent.click(screen.getByRole("button", { name: "Download" }));

@@ -12,6 +12,7 @@ import {
   type Refs,
 } from "@/entities/audit";
 import { messageOf } from "@/shared/api";
+import { copyText } from "@/shared/lib/copy-text";
 import { saveBlob } from "@/shared/lib/download";
 import { notify } from "@/shared/lib/notify";
 import { unanswered } from "@/shared/lib/unanswered";
@@ -117,9 +118,8 @@ export function useAudit(): AuditState {
     exporting: exporting.isPending,
     copyJson: () => {
       if (!selected) return;
-      void navigator.clipboard.writeText(JSON.stringify(selected, null, 2)).then(
-        () => notify.success("Copied"),
-        () => notify.error("Could not copy"),
+      void copyText(JSON.stringify(selected, null, 2)).then((ok) =>
+        ok ? notify.success("Copied") : notify.error("Could not copy"),
       );
     },
   };
