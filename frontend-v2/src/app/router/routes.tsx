@@ -6,6 +6,7 @@ import {
   redirect,
 } from "@tanstack/react-router";
 import { meQuery } from "@/entities/user";
+import { AuditScreen } from "@/pages/audit";
 import { ContentScreen } from "@/pages/content";
 import { RolesScreen } from "@/pages/roles";
 import { TerritoryAccessScreen } from "@/pages/territory-access";
@@ -114,7 +115,7 @@ export const consoleAuditRoute = createRoute({
   getParentRoute: () => consoleRoute,
   path: "/audit",
   loader: gate("/console/audit"),
-  component: () => <p>Audit journal</p>,
+  component: AuditScreen,
 });
 
 export const consoleMetricsRoute = createRoute({

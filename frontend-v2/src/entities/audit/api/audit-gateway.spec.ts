@@ -14,12 +14,19 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-const url = (n = 0) => fetchMock.mock.calls[n][0] as string;
+const request = (n = 0) => {
+  const [url, init] = fetchMock.mock.calls[n] as [string, RequestInit | undefined];
+  return { url, method: init?.method ?? "GET" };
+};
+const url = (n = 0) => request(n).url;
 
 describe("audit gateway", () => {
   it("builds the query from the filters and the cursor, and maps the page", async () => {
     const page = await listAudit({ actor: "u-1", entity: "territory", from: "2026-09-01T00:00:00Z" }, 40);
-    expect(url()).toBe("/api/audit?actor=u-1&entity=territory&from=2026-09-01T00%3A00%3A00Z&cursor=40&limit=50");
+    expect(request()).toEqual({
+      url: "/api/audit?actor=u-1&entity=territory&from=2026-09-01T00%3A00%3A00Z&cursor=40&limit=50",
+      method: "GET",
+    });
     expect(page.entries[0].id).toBe(7);
     expect(page.nextCursor).toBe(6);
     expect(page.refs).toEqual({ "role_id:1": "Editor" });
@@ -37,18 +44,22 @@ describe("audit gateway", () => {
   it("widens a date to the edges of its day", () => {
     expect(toBound("2026-09-01", "from")).toBe("2026-09-01T00:00:00Z");
     expect(toBound("2026-09-01", "to")).toBe("2026-09-01T23:59:59Z");
+    // Idempotent: a bound that is already an instant, or absent, is left alone
+    // — the picker and a token both reach this and one may have widened first.
+    expect(toBound("2026-09-01T00:00:00Z", "to")).toBe("2026-09-01T00:00:00Z");
+    expect(toBound("", "from")).toBe("");
   });
 
   it("lists actors with an empty login for a deleted account", async () => {
     fetchMock.mockResolvedValueOnce(json([{ id: "u-1", login: "a.ivanova" }, { id: "u-2" }]));
     await expect(listAuditActors()).resolves.toEqual([{ id: "u-1", login: "a.ivanova" }, { id: "u-2", login: "" }]);
-    expect(url()).toBe("/api/audit/actors");
+    expect(request()).toEqual({ url: "/api/audit/actors", method: "GET" });
   });
 
   it("exports the same filters as CSV, never the cursor, and refuses with the status", async () => {
     fetchMock.mockResolvedValueOnce(new Response("at,actor\n", { status: 200, headers: { "Content-Type": "text/csv" } }));
     const blob = await exportAuditCsv({ entity: "model" });
-    expect(url()).toBe("/api/audit.csv?entity=model");
+    expect(request()).toEqual({ url: "/api/audit.csv?entity=model", method: "GET" });
     expect(await blob.text()).toBe("at,actor\n");
     fetchMock.mockResolvedValueOnce(json({ code: "forbidden", message: "You don't have permission to do this" }, 403));
     await expect(exportAuditCsv({})).rejects.toMatchObject({

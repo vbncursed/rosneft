@@ -77,11 +77,25 @@ describe("AuditPage", () => {
     expect(screen.getByText("live")).toBeInTheDocument();
   });
 
-  it("exports", async () => {
+  it("exports, and blocks a second export while one is running", async () => {
     const onExport = vi.fn();
-    render(<AuditPage {...props({ onExport })} />);
+    const { rerender } = render(<AuditPage {...props({ onExport })} />);
     await userEvent.click(screen.getByRole("button", { name: /Export/ }));
     expect(onExport).toHaveBeenCalledOnce();
+
+    rerender(<AuditPage {...props({ onExport, exporting: true })} />);
+    const button = screen.getByRole("button", { name: /Export/ });
+    expect(button).toBeDisabled();
+    await userEvent.click(button);
+    expect(onExport).toHaveBeenCalledOnce();
+  });
+
+  it("names the five keys the gateway filters on", () => {
+    render(<AuditPage {...props()} />);
+    expect(screen.getByRole("textbox", { name: "Filter events" })).toHaveAttribute(
+      "placeholder",
+      "filter: entity:territory action:territory.update actor:a.ivanova from:2026-09-01 to:2026-09-02",
+    );
   });
 
   it("summarises the activity above the journal", () => {
@@ -134,6 +148,26 @@ describe("AuditPage", () => {
     expect(screen.getByText("Record · 4f21c8")).toBeInTheDocument();
     expect(screen.getByText("10.42.0.18")).toBeInTheDocument();
     expect(screen.getByText("Changed fields · 1")).toBeInTheDocument();
+  });
+
+  it("names the ids inside a diff through the refs it was handed", () => {
+    render(
+      <AuditPage
+        {...props({
+          selectedId: 1,
+          inspected: {
+            entry: entry(1, "user_role.update", "guest.viewer", {
+              oldRow: { role_id: "9b75" },
+              newRow: { role_id: "1" },
+            }),
+            recordId: "1",
+            details: [],
+            refs: { "role_id:1": "Editor" },
+          },
+        })}
+      />,
+    );
+    expect(screen.getByText('"9b75" → Editor')).toBeInTheDocument();
   });
 
   it("closes the inspector from its header", async () => {
