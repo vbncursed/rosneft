@@ -18,7 +18,7 @@ import (
 // Service is the mesh-service surface this transport calls. ProcessJob is
 // driven by the worker, not the API, so it is intentionally absent here.
 type Service interface {
-	SubmitConversion(ctx context.Context, kind domain.Kind, slug string) (domain.Job, error)
+	SubmitConversion(ctx context.Context, kind domain.Kind, slug string) (domain.Job, bool, error)
 	GetJob(ctx context.Context, id string) (domain.Job, error)
 	ListTargetJobs(ctx context.Context) ([]domain.Job, error)
 }

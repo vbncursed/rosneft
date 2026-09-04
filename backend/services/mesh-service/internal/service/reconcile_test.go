@@ -39,9 +39,8 @@ func (s *ReconcileSuite) SetupTest() {
 	s.ctx = s.T().Context()
 }
 
-// allowSubmit stubs the lock claim plus the SubmitConversion fan-out
-// (save → enqueue → get) so reconcile can queue missing targets; reconcile
-// only counts the submits.
+// allowSubmit stubs SubmitConversion's fan-out (lock → save → enqueue → get)
+// so reconcile can queue missing targets; reconcile only counts the submits.
 func (s *ReconcileSuite) allowSubmit() {
 	s.queue.TryLockTargetMock.Return(true, nil)
 	s.queue.SaveJobMock.Return(nil)
@@ -119,12 +118,15 @@ func (s *ReconcileSuite) TestRespectsCancelledContext() {
 	assert.Assert(s.T(), err != nil)
 }
 
-func (s *ReconcileSuite) TestSkipsTargetAlreadyInFlight() {
+func (s *ReconcileSuite) TestDoesNotCountATargetAlreadyInFlight() {
 	s.catalog.ListTargetsMock.Return([]domain.ConversionTarget{
 		{Kind: domain.KindTerritory, Slug: "t1"},
 	}, nil)
 	s.catalog.HasLOD0Mock.Return(false, nil)
 	s.queue.TryLockTargetMock.Return(false, nil)
+	s.queue.ListTargetJobsMock.Return([]domain.Job{
+		{ID: "j1", Kind: domain.KindTerritory, Slug: "t1", Status: domain.JobStatusRunning},
+	}, nil)
 
 	n, err := s.svc.ReconcileMissingArtifacts(s.T().Context())
 
