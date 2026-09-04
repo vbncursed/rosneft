@@ -192,6 +192,7 @@ function Live({ initialSelected }: { initialSelected: string | null }) {
         }}
         onSaveRole={() => setDirty(false)}
         onCreateRole={noop}
+        onDeleteRole={noop}
       />
     </ConsoleLayout>
   );

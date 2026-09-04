@@ -56,7 +56,7 @@ function Live() {
 
   return (
     <RoleInspector
-      role={{ ...custom, title }}
+      role={{ ...custom, title, users: 0 }}
       all={ALL}
       granted={granted}
       grantable={GRANTABLE}
@@ -72,6 +72,7 @@ function Live() {
       onReset={() => setDirty(false)}
       onSave={() => setDirty(false)}
       onClose={noop}
+      onDelete={noop}
     />
   );
 }

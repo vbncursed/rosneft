@@ -191,13 +191,27 @@ describe("RoleInspector", () => {
   it("blocks Delete while people hold the role, and says how many", () => {
     const onDelete = vi.fn();
     render(<RoleInspector {...props({ role: custom({ users: 3 }), onDelete })} />);
-    expect(screen.getByRole("button", { name: "Delete role" })).toBeDisabled();
+    const button = screen.getByRole("button", { name: "Delete role" });
+    expect(button).toBeDisabled();
     expect(screen.getByText("3 users hold this role — reassign them first")).toBeInTheDocument();
+    expect(button).toHaveAccessibleDescription("3 users hold this role — reassign them first");
+  });
+
+  it("says one user, singular, when only one holds the role", () => {
+    const onDelete = vi.fn();
+    render(<RoleInspector {...props({ role: custom({ users: 1 }), onDelete })} />);
+    expect(screen.getByText("1 user holds this role — reassign them first")).toBeInTheDocument();
   });
 
   it("leaves Delete enabled when the count is unknown — the gateway is the guard then", () => {
     const onDelete = vi.fn();
     render(<RoleInspector {...props({ role: custom({ users: null }), onDelete })} />);
     expect(screen.getByRole("button", { name: "Delete role" })).toBeEnabled();
+  });
+
+  it("shows neither the button nor the hint without a delete handler", () => {
+    render(<RoleInspector {...props({ role: custom({ users: 3 }) })} />);
+    expect(screen.queryByRole("button", { name: "Delete role" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/reassign them first/)).not.toBeInTheDocument();
   });
 });
