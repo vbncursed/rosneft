@@ -36,6 +36,7 @@ const state = (over: Partial<ContentState> = {}): ContentState => ({
   canManage: true,
   canDelete: () => true,
   artifactsOf: () => [{ lod: 0, size: 1 }],
+  jobOf: () => undefined,
   updatedAtOf: () => "2026-08-31T00:00:00Z",
   query: "",
   setQuery: vi.fn(),
@@ -107,6 +108,50 @@ describe("ContentScreen", () => {
     const aside = screen.getByRole("complementary", { name: "Content: M 1" });
     expect(within(aside).queryByRole("button", { name: "Replace source" })).not.toBeInTheDocument();
     expect(within(aside).queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+  });
+
+  it("shows the running conversion's bar and note in the inspector", () => {
+    const converting: ContentItem = { ...T, status: "converting", progress: 62, stage: "textures" };
+    useContent.mockReturnValue(
+      state({
+        items: [converting, M],
+        selected: converting,
+        jobOf: () => ({
+          kind: "territory",
+          slug: "t-1",
+          status: "running",
+          progress: 0.62,
+          stage: "textures",
+          errorMessage: null,
+        }),
+      }),
+    );
+    render(<ContentScreen />);
+    const aside = screen.getByRole("complementary", { name: "Content: T 1" });
+    expect(within(aside).getByRole("progressbar", { name: "T 1 conversion" })).toBeInTheDocument();
+    expect(within(aside).getByText("62% · textures")).toBeInTheDocument();
+  });
+
+  it("puts the worker's error at the top of a failed row's inspector", () => {
+    const broken: ContentItem = { ...T, status: "failed" };
+    useContent.mockReturnValue(
+      state({
+        items: [broken, M],
+        selected: broken,
+        jobOf: () => ({
+          kind: "territory",
+          slug: "t-1",
+          status: "failed",
+          progress: null,
+          stage: null,
+          errorMessage: "OBJ parse error at line 84120",
+        }),
+      }),
+    );
+    render(<ContentScreen />);
+    const aside = screen.getByRole("complementary", { name: "Content: T 1" });
+    expect(within(aside).getByText("Error")).toBeInTheDocument();
+    expect(within(aside).getByText("OBJ parse error at line 84120")).toBeInTheDocument();
   });
 
   it("says the catalog is empty rather than blaming the filter", () => {

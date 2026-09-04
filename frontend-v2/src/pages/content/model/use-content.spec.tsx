@@ -32,6 +32,7 @@ const json = (body: unknown, status = 200) =>
 
 let fetchMock: ReturnType<typeof vi.fn>;
 let client: QueryClient;
+let JOBS: unknown[] = [];
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={client}>{children}</QueryClientProvider>
 );
@@ -41,10 +42,12 @@ beforeEach(() => {
   client.setQueryData(["me"], PRINCIPAL);
   setCsrfToken("csrf");
   clearNotices();
+  JOBS = [];
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? "GET";
     if (url === "/api/territories" && method === "GET") return json([TERRITORY]);
     if (url === "/api/models" && method === "GET") return json([MODEL]);
+    if (url === "/api/jobs" && method === "GET") return json(JOBS);
     if (url === "/api/territories/t-1/artifacts")
       return json([{ slug: "t-1", lod: 0, hash: "h", contentType: "x", size: 1024 }]);
     if (url === "/api/models/m-1/artifacts") return json([]);
@@ -131,6 +134,48 @@ describe("useContent", () => {
     const { result } = renderHook(() => useContent(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("unavailable"));
     expect(result.current.error).toBe("You don't have permission to do this");
+  });
+
+  it("folds the live job into the row and exposes it for the inspector", async () => {
+    JOBS = [
+      { id: "j1", kind: "territory", slug: "t-1", status: "running", progress: 0.4, stage: "parsing" },
+    ];
+    const { result } = renderHook(() => useContent(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.items?.[0]).toMatchObject({
+      slug: "t-1",
+      status: "converting",
+      progress: 40,
+      stage: "parsing",
+    });
+    expect(result.current.jobOf("territory", "t-1")?.stage).toBe("parsing");
+  });
+
+  it("is unavailable when the jobs list is refused", async () => {
+    fetchMock.mockImplementation(async (url: string) =>
+      url === "/api/jobs" ? json({ code: "internal", message: "mesh is down" }, 500) : json([]),
+    );
+    const { result } = renderHook(() => useContent(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("unavailable"));
+    expect(result.current.error).toBe("mesh is down");
+  });
+
+  it("re-reads a row's artifacts once its job stops being live", async () => {
+    JOBS = [{ id: "j1", kind: "territory", slug: "t-1", status: "running" }];
+    const { result } = renderHook(() => useContent(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    const before = fetchMock.mock.calls.filter(
+      ([u]) => u === "/api/territories/t-1/artifacts",
+    ).length;
+    JOBS = [];
+    await act(async () => {
+      await client.refetchQueries({ queryKey: ["jobs"] });
+    });
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(([u]) => u === "/api/territories/t-1/artifacts").length,
+      ).toBe(before + 1),
+    );
   });
 
   it("stays ready when a refetch fails on top of rows it already has", async () => {

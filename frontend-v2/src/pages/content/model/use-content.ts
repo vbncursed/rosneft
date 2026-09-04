@@ -1,5 +1,5 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   artifactsQuery,
   totalSize,
@@ -7,6 +7,7 @@ import {
   type ContentItem,
   type ContentKind,
 } from "@/entities/content";
+import { finishedSince, jobsQuery, type TargetJob } from "@/entities/conversion";
 import { deleteModel, modelsQuery } from "@/entities/model";
 import { deleteTerritory, territoriesQuery } from "@/entities/territory";
 import { meQuery } from "@/entities/user";
@@ -27,6 +28,8 @@ export type ContentState = {
   canManage: boolean;
   canDelete: (kind: ContentKind) => boolean;
   artifactsOf: (kind: ContentKind, slug: string) => Artifact[];
+  /** The target's live or failed conversion, or undefined when it has none. */
+  jobOf: (kind: ContentKind, slug: string) => TargetJob | undefined;
   updatedAtOf: (kind: ContentKind, slug: string) => string | undefined;
   query: string;
   setQuery: (q: string) => void;
@@ -58,6 +61,7 @@ export function useContent(): ContentState {
   const me = useQuery(meQuery).data ?? null;
   const territories = useQuery(territoriesQuery);
   const models = useQuery(modelsQuery);
+  const jobs = useQuery(jobsQuery);
   const [query, setQuery] = useState("");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [pending, setPending] = useState<ContentItem | null>(null);
@@ -81,6 +85,8 @@ export function useContent(): ContentState {
 
   const artifactsOf = (kind: ContentKind, slug: string) =>
     artifacts.bySlug.get(keyOf({ kind, slug })) ?? [];
+  const jobOf = (kind: ContentKind, slug: string) =>
+    jobs.data?.find((j) => j.kind === kind && j.slug === slug);
   const entityOf = (kind: ContentKind, slug: string) =>
     kind === "territory"
       ? territories.data?.find((t) => t.slug === slug)
@@ -89,8 +95,12 @@ export function useContent(): ContentState {
   const listed = territories.data && models.data;
   const items = listed
     ? [
-        ...territories.data.map((t) => toContentItem("territory", t, artifactsOf("territory", t.slug))),
-        ...models.data.map((m) => toContentItem("model", m, artifactsOf("model", m.slug))),
+        ...territories.data.map((t) =>
+          toContentItem("territory", t, artifactsOf("territory", t.slug), jobOf("territory", t.slug)),
+        ),
+        ...models.data.map((m) =>
+          toContentItem("model", m, artifactsOf("model", m.slug), jobOf("model", m.slug)),
+        ),
       ]
     : null;
   const selected = items?.find((i) => keyOf(i) === selectedKey) ?? null;
@@ -110,8 +120,21 @@ export function useContent(): ContentState {
   // Only a query that has never answered can make the screen unavailable: a
   // delete invalidates the list, and a refetch that trips must not replace a
   // populated catalog with an outage page.
-  const failed = unanswered(territories) ?? unanswered(models) ?? artifacts.failed;
-  const loading = territories.isPending || models.isPending || artifacts.pending;
+  const failed =
+    unanswered(territories) ?? unanswered(models) ?? artifacts.failed ?? unanswered(jobs);
+  const loading =
+    territories.isPending || models.isPending || artifacts.pending || jobs.isPending;
+
+  // A row whose job just finished has new artifacts (or, after a failure, the
+  // same old ones): re-read that row's artifacts so LODs and size catch up.
+  const previousJobs = useRef<TargetJob[] | undefined>(undefined);
+  useEffect(() => {
+    if (!jobs.data) return;
+    for (const { kind, slug } of finishedSince(previousJobs.current, jobs.data)) {
+      void client.invalidateQueries({ queryKey: ["artifacts", kind, slug] });
+    }
+    previousJobs.current = jobs.data;
+  }, [jobs.data, client]);
 
   return {
     status: loading ? "loading" : failed ? "unavailable" : "ready",
@@ -121,6 +144,7 @@ export function useContent(): ContentState {
     canManage: can(me, "territory:write") || can(me, "model:write"),
     canDelete: (kind) => can(me, kind === "territory" ? "territory:delete" : "model:delete"),
     artifactsOf,
+    jobOf,
     updatedAtOf: (kind, slug) => entityOf(kind, slug)?.updatedAt,
     query,
     setQuery,
