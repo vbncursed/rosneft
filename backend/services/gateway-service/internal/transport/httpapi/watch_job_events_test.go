@@ -91,3 +91,18 @@ func (s *WatchJobEventsSuite) TestScopedFetchRefusesAPrincipalWithoutACompany() 
 	assert.Assert(s.T(), errors.Is(err, domain.ErrJobNotFound))
 	assert.Equal(s.T(), len(stub.lookedUp), 0, "an unscoped principal must be refused before the lookup")
 }
+
+// A kind this gateway has no rule for is refused before the catalog is asked
+// — Root included. The guard used to read `Kind != KindTerritory`, which
+// admitted every kind the gateway does not know as if it were a model.
+func (s *WatchJobEventsSuite) TestScopedFetchRefusesAJobOfAnUnknownKind() {
+	job := domain.Job{ID: "j1", Kind: "", Slug: "mine", Status: domain.JobStatusRunning}
+	scoped := &watchServiceStub{job: job, visible: map[string]bool{"mine": true}}
+	_, err := New(scoped).scopedJob(authhttp.NewTestContext(context.Background(), false, "admin-1"), "j1")
+	assert.Assert(s.T(), errors.Is(err, domain.ErrJobNotFound))
+	assert.Equal(s.T(), len(scoped.lookedUp), 0, "an unknown kind is refused before the lookup")
+
+	root := &watchServiceStub{job: job}
+	_, err = New(root).scopedJob(authhttp.NewTestContext(context.Background(), true, ""), "j1")
+	assert.Assert(s.T(), errors.Is(err, domain.ErrJobNotFound), "Root does not get a rule either")
+}
