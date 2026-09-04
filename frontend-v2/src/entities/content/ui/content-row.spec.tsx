@@ -73,6 +73,11 @@ describe("ContentRow", () => {
     expect(screen.getByText("model").className).toContain("text-muted");
   });
 
+  it("keeps the rail's colour on hover for an unselected row", () => {
+    render(<ContentRow item={item({ status: "failed" })} />);
+    expect(screen.getByRole("article").className).toContain("hover:border-l-bad/50");
+  });
+
   it("marks the selected row as current and brightens its rail", () => {
     const { rerender } = render(<ContentRow item={item()} />);
     expect(screen.getByRole("article").className).toContain("border-l-ok/50");

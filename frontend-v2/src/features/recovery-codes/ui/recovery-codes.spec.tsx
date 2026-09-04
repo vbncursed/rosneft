@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { clearNotices } from "@/shared/lib/notify";
+import { Toaster } from "@/widgets/toaster";
 import { downloadText } from "../model/download";
 import { RecoveryCodes } from "./recovery-codes";
 
@@ -14,6 +16,7 @@ const CODES = ["8k2fq-p1x7d", "m4wla-9zt3c", "qq08r-vb51n"];
 afterEach(() => {
   vi.restoreAllMocks();
   vi.mocked(downloadText).mockClear();
+  clearNotices();
 });
 
 describe("RecoveryCodes", () => {
@@ -47,18 +50,26 @@ describe("RecoveryCodes", () => {
     expect(await screen.findByRole("button", { name: "Copied" })).toBeInTheDocument();
   });
 
-  it("leaves the label as Copy when the clipboard refuses", async () => {
+  it("leaves the label as Copy when the clipboard refuses, and toasts the reason", async () => {
     const user = userEvent.setup({ writeToClipboard: false });
     vi.stubGlobal("navigator", {
       ...navigator,
       clipboard: { writeText: vi.fn().mockRejectedValue(new Error("denied")) },
     });
 
-    render(<RecoveryCodes codes={CODES} onConfirm={() => {}} />);
+    render(
+      <>
+        <Toaster />
+        <RecoveryCodes codes={CODES} onConfirm={() => {}} />
+      </>,
+    );
     await user.click(screen.getByRole("button", { name: "Copy" }));
 
     expect(await screen.findByRole("button", { name: "Copy" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Copied" })).not.toBeInTheDocument();
+    expect(
+      await screen.findByText("Could not copy — select it and copy by hand"),
+    ).toBeInTheDocument();
   });
 
   it("hands the codes to the downloader under a named file", async () => {

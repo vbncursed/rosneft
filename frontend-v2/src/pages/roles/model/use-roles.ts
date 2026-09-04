@@ -174,7 +174,9 @@ export function useRoles(): RolesState {
     create: creation.mutate,
     creatingBusy: creation.isPending,
     deleting,
-    askDelete: () => selected && setDeletingSlug(selected.slug),
+    askDelete: () => {
+      if (selected) setDeletingSlug(selected.slug);
+    },
     confirmDelete: () => deletingSlug && deletion.mutate(deletingSlug),
     dismissDelete: () => setDeletingSlug(null),
     deletingBusy: deletion.isPending,

@@ -2,13 +2,12 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { validatePassword } from "@/entities/user";
+import { copyText } from "@/shared/lib/copy-text";
 import { clearNotices } from "@/shared/lib/notify";
 import { Toaster } from "@/widgets/toaster";
 import { CreateUserDialog, type CreateUserDialogProps } from "./create-user-dialog";
 
 vi.mock("@/shared/lib/copy-text", () => ({ copyText: vi.fn(() => Promise.resolve(true)) }));
-
-import { copyText } from "@/shared/lib/copy-text";
 
 const ROLES = [
   { slug: "field-operator", title: "field-operator" },
@@ -113,6 +112,20 @@ describe("CreateUserDialog", () => {
     expect(validatePassword(input.value)).toBeNull();
     expect(copyText).toHaveBeenCalledWith(input.value);
     expect(await screen.findByText("Password copied")).toBeInTheDocument();
+  });
+
+  it("tells the user to copy the generated password by hand when the clipboard refuses", async () => {
+    vi.mocked(copyText).mockResolvedValueOnce(false);
+    render(
+      <>
+        <Toaster />
+        <CreateUserDialog {...props()} />
+      </>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Generate" }));
+    expect(
+      await screen.findByText("Could not copy — select it and copy by hand"),
+    ).toBeInTheDocument();
   });
 
   it("refuses a weak typed password before the gateway does", async () => {

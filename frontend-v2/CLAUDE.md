@@ -250,12 +250,15 @@ Rulings from those screens that a later one will meet again:
 
 - **Reset password is not rendered.** No endpoint wires it, and an action with
   no endpoint is not drawn.
-- **No owner toggle and no role delete** — neither is drawn in the mocks, so
-  neither was built. The endpoints do exist (`POST /api/auth/users/{id}/owner`,
-  `DELETE /api/auth/roles/{slug}`) and are deliberately left unwired (plan
-  ruling 5); this is not the "an action with no endpoint is not drawn" rule.
-  A live test role therefore stays where it was created until someone deletes
-  it with curl.
+- **No owner toggle** — not drawn in the mocks, so not built. The endpoint
+  exists (`POST /api/auth/users/{id}/owner`) and is deliberately left unwired
+  (plan ruling 5); this is not the "an action with no endpoint is not drawn"
+  rule.
+- **Role delete is wired.** The role inspector offers Delete for a custom role
+  to `roles:manage` holders, disabled with a holder-count hint
+  (`aria-describedby`) while people still hold the role, and confirmed through
+  `ConfirmDialog`. The backend answers 422 `role is still assigned to users`
+  when holders exist (SQLSTATE 23001, auth-service).
 - **A role's people count is unknown, not zero, without `users:read`.** The
   people query is `enabled` on that grant, so it is never requested; the card
   reads "— users" and the distribution meter "unavailable". A disabled query

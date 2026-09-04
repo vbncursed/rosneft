@@ -23,7 +23,7 @@ const DIGIT = "0123456789";
 const SPECIAL = "!@#$%^&*()-_=+[]{};:,.?";
 const ALL = UPPER + LOWER + DIGIT + SPECIAL;
 
-// ponytail: modulo bias is negligible for sets ≤70 over 2^32; rejection
+// ponytail: modulo bias is negligible for sets ≤256 over 2^32; rejection
 // sampling adds code for cryptographically irrelevant gain at this scale.
 const randInt = (max: number): number => {
   const buf = new Uint32Array(1);
