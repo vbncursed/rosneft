@@ -7,11 +7,13 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/vbncursed/rosneft/backend/pkg/audittx"
+	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
 // Delete removes a role. Refused for system roles and for roles outside the
 // actor's group (see assertMutable). A role still assigned to users fails on the
-// user_roles FK (RESTRICT) — surfaced wrapped.
+// user_roles FK (RESTRICT) — surfaces as ErrRoleInUse — the admin reassigns
+// first; nothing cascades.
 //
 // Wrapped in audittx.Run: the row is gone afterwards, so the journal snapshot
 // is the only remaining record of what the role granted.
@@ -24,6 +26,9 @@ func (s *Store) Delete(ctx context.Context, slug, scopeAdminID string, allAccess
 		return execErr
 	})
 	if err != nil {
+		if isFKViolation(err) {
+			return fmt.Errorf("roles.Delete: %w", domain.ErrRoleInUse)
+		}
 		return fmt.Errorf("roles.Delete: %w", err)
 	}
 	return nil

@@ -126,6 +126,7 @@ var statusByCode = map[codes.Code][]error{
 		domain.ErrLastAdmin,
 		domain.ErrSelfTarget,
 		domain.ErrSystemRole,
+		domain.ErrRoleInUse,
 	},
 }
 
