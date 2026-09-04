@@ -105,6 +105,19 @@ describe("AuditScreen", () => {
     );
   });
 
+  it("puts the pickers in the filter row, below the heading rather than above it", () => {
+    useAudit.mockReturnValue(state());
+    render(<AuditScreen />);
+    const heading = screen.getByRole("heading", { level: 1, name: "Audit journal" });
+    const from = screen.getByRole("button", { name: "From" });
+    // DOCUMENT_POSITION_FOLLOWING — the pickers come after the title, in the
+    // filter row, not in a block floating above the page's own header.
+    expect(heading.compareDocumentPosition(from) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(from.closest("div")!.parentElement).toBe(
+      screen.getByRole("textbox", { name: "Filter events" }).parentElement!.parentElement,
+    );
+  });
+
   it("offers a From and a To date field, and picks a day through either calendar", async () => {
     const setRange = vi.fn();
     useAudit.mockReturnValue(state());

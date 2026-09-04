@@ -81,7 +81,7 @@ describe("MetricsScreen", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Prometheus unreachable");
   });
 
-  it("lists every scraped service, every section and the five headline tiles", () => {
+  it("lists every scraped service, every section and the four headline tiles", () => {
     useMetrics.mockReturnValue(state());
     render(<MetricsScreen />);
 
@@ -90,18 +90,62 @@ describe("MetricsScreen", () => {
     for (const title of ["Services (RED)", "Domain", "Go runtime"]) {
       expect(screen.getByRole("region", { name: title })).toBeInTheDocument();
     }
-    for (const label of ["Up: 2", "Requests: 2/s", "Errors: 200%", "p99: 2s", "Queue: 2"]) {
+    for (const label of ["Requests: 2/s", "Errors: 200%", "p99: 2s", "Queue: 2"]) {
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     }
-    // The denominator is the services-up panel's own series count, not the
-    // number of names the health list distilled out of them.
-    expect(screen.getByText("of 1 scraped targets")).toBeInTheDocument();
+    // Services are counted by the meter, not by a tile: stat-up counts scrape
+    // targets, and a tile printing that over service names read "12 of 11".
+    expect(screen.queryByLabelText(/^Up: /)).not.toBeInTheDocument();
+    expect(screen.queryByText(/scraped targets/)).not.toBeInTheDocument();
   });
 
-  it("draws no SLO budget meter — nothing serves one", () => {
-    useMetrics.mockReturnValue(state());
+  it("meters service health in the wide slot, counting what is up", () => {
+    useMetrics.mockReturnValue(
+      state({
+        services: [
+          { name: "gateway", state: "up", meta: "", samples: [], latency: "—", errors: "—" },
+          { name: "auth", state: "up", meta: "", samples: [], latency: "—", errors: "—" },
+          { name: "audit", state: "down", meta: "", samples: [], latency: "—", errors: "—" },
+        ],
+      }),
+    );
     render(<MetricsScreen />);
-    expect(screen.queryByRole("img", { name: /budget/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /Service health/ })).toBeInTheDocument();
+    expect(screen.getByText("2 of 3 up")).toBeInTheDocument();
+    expect(screen.getByText("2 of 3 up").className).toContain("text-warn");
+  });
+
+  it("calls every service up without a warning when every service is", () => {
+    useMetrics.mockReturnValue(
+      state({
+        services: [
+          { name: "gateway", state: "up", meta: "", samples: [], latency: "—", errors: "—" },
+        ],
+      }),
+    );
+    render(<MetricsScreen />);
+    expect(screen.getByText("1 of 1 up").className).toContain("text-ok");
+  });
+
+  it("narrows a per-service panel to the selected service", () => {
+    const named = (name: string, v: number) => ({
+      label: name,
+      labels: { service: name },
+      points: [{ t: 0, v }],
+    });
+    const many = {
+      kind: "value" as const,
+      series: [named("gateway", 1), named("mesh", 2), named("auth", 3), named("audit", 4)],
+    };
+    useMetrics.mockReturnValue(
+      state({ selectedService: "mesh", results: { ...RESULTS, "runtime-memory": many } }),
+    );
+    render(<MetricsScreen />);
+    const panel = screen.getByRole("article", { name: "Resident memory" });
+    expect(panel).toHaveTextContent("mesh");
+    // Not merely the three loudest — "audit" leads on last value and is gone.
+    expect(panel).not.toHaveTextContent("audit");
+    expect(panel).not.toHaveTextContent("gateway");
   });
 
   it("counts what is firing", () => {
@@ -176,8 +220,8 @@ describe("MetricsScreen", () => {
     );
     render(<MetricsScreen />);
 
-    expect(screen.getByText("services answering")).toBeInTheDocument();
-    expect(screen.getByLabelText("Up: …")).toBeInTheDocument();
+    expect(screen.getByText("0 of 0 up")).toBeInTheDocument();
+    expect(screen.getByLabelText("Requests: loading")).toBeInTheDocument();
     expect(screen.queryByText(/alert$/)).not.toBeInTheDocument();
     // The inspector's header is an unconditional red "Firing" — a pending
     // alert underneath it would be a lie, so it is not drawn.

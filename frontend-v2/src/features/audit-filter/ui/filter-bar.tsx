@@ -1,3 +1,4 @@
+import { clsx as cx } from "clsx";
 import { useEffect, useRef } from "react";
 import { Icon } from "@/shared/ui/icon";
 import { parseFilters, removeToken } from "../model/query";
@@ -18,6 +19,7 @@ export type FilterBarProps = {
    * They read the same but are owned by the page, not the parser.
    */
   extra?: ExtraFilter[];
+  className?: string;
 };
 
 const DEFAULT_PLACEHOLDER = "filter: entity:territory actor:a.ivanova failed:true";
@@ -28,6 +30,7 @@ export function FilterBar({
   placeholder = DEFAULT_PLACEHOLDER,
   label = "Filter events",
   extra = [],
+  className,
 }: FilterBarProps) {
   const input = useRef<HTMLInputElement>(null);
   const chips = parseFilters(query);
@@ -44,7 +47,12 @@ export function FilterBar({
   }, []);
 
   return (
-    <div className="flex items-center gap-2.5 rounded-card border border-line-2 bg-panel-2 px-3.5 py-2.5 focus-within:border-accent">
+    <div
+      className={cx(
+        "flex items-center gap-2.5 rounded-card border border-line-2 bg-panel-2 px-3.5 py-2.5 focus-within:border-accent",
+        className,
+      )}
+    >
       <Icon name="search" size={16} className="shrink-0 text-accent" />
 
       <input

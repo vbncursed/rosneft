@@ -3,6 +3,7 @@ import {
   METRIC_RANGES,
   StatTile,
   type MetricsRange,
+  type MetricState,
   type ServiceHealth,
   type StatTileTone,
 } from "@/entities/metric";
@@ -17,7 +18,8 @@ import { ServiceHealthList } from "@/widgets/service-health";
 
 export type MetricsPageStat = {
   label: string;
-  value: string;
+  /** Loading and unavailable are different states, and the tile says which. */
+  state: MetricState;
   hint: string;
   tone?: StatTileTone;
   delta?: string;
@@ -117,7 +119,7 @@ export function MetricsPage({
         className={cx(
           "grid gap-3",
           budget
-            ? "lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]"
+            ? "lg:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]"
             : "sm:grid-cols-2 lg:grid-cols-5",
         )}
       >
@@ -135,7 +137,7 @@ export function MetricsPage({
             key={stat.label}
             size="lg"
             label={stat.label}
-            state={{ kind: "value", value: stat.value }}
+            state={stat.state}
             hint={stat.hint}
             tone={stat.tone ?? "fg"}
             delta={stat.delta}

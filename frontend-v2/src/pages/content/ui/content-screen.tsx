@@ -1,7 +1,9 @@
-import { contentPath } from "@/entities/content";
+import { contentPath, type ContentItem } from "@/entities/content";
 import { leaveTo } from "@/shared/lib/leave";
 import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { Icon } from "@/shared/ui/icon";
+import { Menu } from "@/shared/ui/menu";
 import { Skeleton } from "@/shared/ui/skeleton";
 import {
   conversionNoteOf,
@@ -52,6 +54,23 @@ export function ContentScreen() {
   // container, so a useMemo keyed on it would never hit.
   const groups = groupContent(s.items.filter((i) => matchesContent(i, s.query)));
 
+  // The row menu mirrors the inspector's actions for that row, so reaching one
+  // never depends on having selected the row first. Delete stays out: it is
+  // the one action that cannot be undone, and it keeps its confirmation.
+  const rowActions = (item: ContentItem) => {
+    const href = replaceHref(item);
+    return (
+      <Menu
+        triggerLabel="Row actions"
+        trigger={<Icon name="kebab" size={15} />}
+        items={[
+          { label: "Open in viewer", onSelect: () => leaveTo(contentPath(item)) },
+          ...(href ? [{ label: "Replace source", onSelect: () => leaveTo(href) }] : []),
+        ]}
+      />
+    );
+  };
+
   return (
     <>
       <ContentPage
@@ -76,6 +95,7 @@ export function ContentScreen() {
           }
         }
         canManage={s.canManage}
+        {...(s.canManage ? { renderRowActions: rowActions } : {})}
         onUploadTerritory={() => leaveTo(uploadHref("territory"))}
         onUploadModel={() => leaveTo(uploadHref("model"))}
         onReplaceSource={replace ? () => leaveTo(replace) : undefined}

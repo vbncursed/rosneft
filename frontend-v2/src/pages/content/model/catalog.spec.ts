@@ -90,6 +90,33 @@ describe("groupContent", () => {
       ["models", "Models", "0 ready · 1 pending", ["m1"]],
     ]);
   });
+
+  it("lifts whatever needs attention out of the kind groups and puts it first", () => {
+    const groups = groupContent([
+      item({ slug: "t1" }),
+      item({ slug: "t2", status: "converting" }),
+      item({ kind: "model", slug: "m1", status: "failed" }),
+    ]);
+    expect(groups.map((g) => [g.key, g.label, g.note, g.items.map((i) => i.slug)])).toEqual([
+      ["attention", "Needs attention", "1 converting · 1 failed", ["t2", "m1"]],
+      ["territories", "Territories", "1 ready", ["t1"]],
+      ["models", "Models", "0 ready", []],
+    ]);
+  });
+
+  it("draws no attention group when nothing needs any", () => {
+    const groups = groupContent([item({ slug: "t1" }), item({ kind: "model", slug: "m1" })]);
+    expect(groups.map((g) => g.key)).toEqual(["territories", "models"]);
+  });
+
+  it("drops a state the group does not hold, and always keeps ready", () => {
+    const [territories, models] = groupContent([
+      item({ slug: "t1" }),
+      item({ slug: "t2", status: "pending" }),
+    ]);
+    expect(territories.note).toBe("1 ready · 1 pending");
+    expect(models.note).toBe("0 ready");
+  });
 });
 
 describe("pipelineOf and statsOf", () => {
@@ -105,8 +132,12 @@ describe("pipelineOf and statsOf", () => {
         { tone: "bad", value: 0, label: "failed" },
       ],
     });
+    // The tiles count the whole catalog — a failed row is lifted out of its
+    // kind group on the list, but it is still a territory.
+    expect(statsOf([item(), ...Array.from({ length: 5 }, (_, i) =>
+      item({ slug: `f${i}`, status: "failed" as const }))], 0)[0].hint).toBe("1 ready · 5 failed");
     expect(statsOf(items, 184 * 1024 ** 3)).toEqual([
-      { label: "Territories", value: "1", hint: "1 ready · 0 pending" },
+      { label: "Territories", value: "1", hint: "1 ready" },
       { label: "Models", value: "1", hint: "0 ready · 1 pending" },
       { label: "Storage", value: "184 GB", hint: "GLB + KTX2 artifacts", tone: "accent" },
     ]);

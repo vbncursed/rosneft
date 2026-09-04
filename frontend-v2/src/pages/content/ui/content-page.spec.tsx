@@ -156,7 +156,7 @@ describe("ContentPage", () => {
   it("reaches the same upload from the drop target", async () => {
     const onUploadTerritory = vi.fn();
     render(<ContentPage {...props({ onUploadTerritory })} />);
-    await userEvent.click(screen.getByRole("button", { name: /Drop an OBJ or GLB/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Upload an OBJ or GLB/ }));
     expect(onUploadTerritory).toHaveBeenCalledOnce();
   });
 
@@ -167,7 +167,7 @@ describe("ContentPage", () => {
       />,
     );
     expect(screen.queryByRole("button", { name: /^\+ /})).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Drop an OBJ/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Upload an OBJ/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
   });
 

@@ -1,5 +1,5 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { SECTIONS, type MetricsRange } from "@/entities/metric";
+import { SECTIONS, type MetricsRange, type ServiceHealth } from "@/entities/metric";
 import { Callout } from "@/shared/ui/callout";
 import { Skeleton } from "@/shared/ui/skeleton";
 import {
@@ -13,6 +13,16 @@ import {
 } from "../model/dashboard";
 import { useMetrics } from "../model/use-metrics";
 import { MetricsPage } from "./metrics-page";
+
+const SERVICE_SEGMENTS: {
+  state: ServiceHealth["state"];
+  tone: "ok" | "warn" | "bad";
+  label: string;
+}[] = [
+  { state: "up", tone: "ok", label: "up" },
+  { state: "degraded", tone: "warn", label: "degraded" },
+  { state: "down", tone: "bad", label: "down" },
+];
 
 /** Maps the container onto the page; the range lives in the URL. */
 export function MetricsScreen() {
@@ -44,10 +54,8 @@ export function MetricsScreen() {
   // Only a firing alert opens the inspector: its header is an unconditional
   // red "Firing", so a pending one underneath it would be a lie.
   const firing = s.alerts.find((a) => a.state === "firing") ?? null;
-  // Both halves of the Up tile count scrape targets — the health list distils
-  // those into names, and a replicated service is several targets under one.
   const up = s.results["services-up"];
-  const targets = up?.kind === "value" ? up.series.length : null;
+  const healthy = s.services.filter((svc) => svc.state === "up").length;
 
   return (
     <MetricsPage
@@ -56,10 +64,22 @@ export function MetricsScreen() {
         key: sec.key,
         title: sec.title,
         panels: sec.panelIds
-          .map((id) => panelEntry(id, s.results[id] ?? { kind: "loading" }))
+          .map((id) => panelEntry(id, s.results[id] ?? { kind: "loading" }, s.selectedService))
           .filter((p) => matchesPanel(p.title, s.query)),
       }))}
-      stats={statsOf(s.results, targets)}
+      budget={{
+        label: "Service health",
+        detail: `${healthy} of ${s.services.length} up`,
+        // The meter counts services by name, not scrape targets: a replicated
+        // service is several targets and one row in the health list.
+        ...(healthy === s.services.length ? {} : { detailTone: "warn" as const }),
+        segments: SERVICE_SEGMENTS.map(({ state, tone, label }) => ({
+          tone,
+          label,
+          value: s.services.filter((svc) => svc.state === state).length,
+        })),
+      }}
+      stats={statsOf(s.results)}
       range={range}
       onRangeChange={(next) => void navigate({ to: ".", search: { range: next } })}
       query={s.query}

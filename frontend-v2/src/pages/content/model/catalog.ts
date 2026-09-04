@@ -63,15 +63,45 @@ export function conversionNoteOf(job: TargetJob): string | undefined {
 export const matchesContent = (item: ContentItem, query: string): boolean =>
   matchesFilters(item, parseFilters(query)) && matchesText(item, freeText(query));
 
+/**
+ * Every state the group actually holds. A count of zero says nothing worth the
+ * width, so only "ready" is unconditional — a group with no ready rows is a
+ * fact the reader wants, and dropping it would leave some notes empty.
+ */
 const note = (items: ContentItem[]) => {
   const counts = pipelineCounts(items);
-  return `${counts.ready} ready · ${counts.pending} pending`;
+  return (["ready", "pending", "converting", "failed"] as const)
+    .filter((state) => state === "ready" || counts[state] > 0)
+    .map((state) => `${counts[state]} ${state}`)
+    .join(" · ");
 };
 
+const NEEDS_ATTENTION = (item: ContentItem) =>
+  item.status === "converting" || item.status === "failed";
+
+/**
+ * Kind groups, with whatever is converting or failed lifted out of them into a
+ * group of its own at the top. A failure four rows down a list of forty is a
+ * failure nobody sees; the group is absent entirely when there is nothing in
+ * it, so it never draws an empty frame.
+ */
 export function groupContent(items: ContentItem[]): ContentGroup[] {
-  const territories = items.filter((i) => i.kind === "territory");
-  const models = items.filter((i) => i.kind === "model");
+  const attention = items.filter(NEEDS_ATTENTION);
+  const rest = items.filter((i) => !NEEDS_ATTENTION(i));
+  const territories = rest.filter((i) => i.kind === "territory");
+  const models = rest.filter((i) => i.kind === "model");
+  const counts = pipelineCounts(attention);
   return [
+    ...(attention.length > 0
+      ? [
+          {
+            key: "attention",
+            label: "Needs attention",
+            note: `${counts.converting} converting · ${counts.failed} failed`,
+            items: attention,
+          },
+        ]
+      : []),
     { key: "territories", label: "Territories", note: note(territories), items: territories },
     { key: "models", label: "Models", note: note(models), items: models },
   ];

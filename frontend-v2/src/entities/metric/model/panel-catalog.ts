@@ -32,7 +32,7 @@ export const PANELS: Record<PanelId, { title: string; meta: string; unit: Unit }
   alerts: { title: "Alerts", meta: "firing or pending", unit: "count" },
 };
 
-export const STAT_IDS = ["stat-up", "stat-rps", "stat-errors", "stat-p99", "stat-queue"] as const satisfies readonly PanelId[];
+export const STAT_IDS = ["stat-rps", "stat-errors", "stat-p99", "stat-queue"] as const satisfies readonly PanelId[];
 
 export const SECTIONS: { key: string; title: string; panelIds: PanelId[] }[] = [
   { key: "red", title: "Services (RED)", panelIds: ["red-rate", "red-errors", "red-latency", "red-http"] },

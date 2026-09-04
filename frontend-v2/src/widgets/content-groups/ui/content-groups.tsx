@@ -25,7 +25,9 @@ export type ContentGroupsProps = {
   emptyHint?: string;
 };
 
-const DROP_HINT = "Drop an OBJ or GLB here — conversion starts automatically";
+// It is a button, not a drop target: nothing here handles a dropped file, and
+// the conversion starts when the form it opens is submitted.
+const DROP_HINT = "Upload an OBJ or GLB — opens the upload form";
 const FILTER_MISS = {
   title: "Nothing matches this filter.",
   description: "Loosen the filter to see more of the catalog.",

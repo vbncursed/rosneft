@@ -85,15 +85,22 @@ describe("ContentGroups", () => {
     expect(screen.queryByText(/Loosen the filter/)).not.toBeInTheDocument();
   });
 
+  it("says what the drop target actually does — it opens a form, it takes no drop", () => {
+    render(<ContentGroups groups={GROUPS} onDropZoneClick={vi.fn()} />);
+    expect(
+      screen.getByRole("button", { name: "Upload an OBJ or GLB — opens the upload form" }),
+    ).toBeInTheDocument();
+  });
+
   it("keeps the drop target available even when the filter matched nothing", async () => {
     const onDropZoneClick = vi.fn();
     render(<ContentGroups groups={[]} onDropZoneClick={onDropZoneClick} />);
-    await userEvent.click(screen.getByRole("button", { name: /Drop an OBJ or GLB/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Upload an OBJ or GLB/ }));
     expect(onDropZoneClick).toHaveBeenCalledOnce();
   });
 
   it("offers no drop target to a reader who may not upload", () => {
     render(<ContentGroups groups={GROUPS} />);
-    expect(screen.queryByRole("button", { name: /Drop an OBJ/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Upload an OBJ/ })).not.toBeInTheDocument();
   });
 });

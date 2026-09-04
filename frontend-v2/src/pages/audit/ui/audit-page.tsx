@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { AuditEntry, Refs } from "@/entities/audit";
 import { StatTile, type StatTileTone } from "@/entities/metric";
 import { FilterBar, type ExtraFilter } from "@/features/audit-filter";
@@ -42,6 +43,8 @@ export type AuditPageProps = {
   onQueryChange: (query: string) => void;
   /** Chips the query text does not own — a date-range preset, say. */
   extraFilters?: ExtraFilter[];
+  /** Controls the screen owns, drawn right of the bar in the same row. */
+  filterTrailing?: ReactNode;
 
   selectedId: number | null;
   onSelect: (id: number) => void;
@@ -76,6 +79,7 @@ export function AuditPage({
   query,
   onQueryChange,
   extraFilters,
+  filterTrailing,
   selectedId,
   onSelect,
   onCloseInspector,
@@ -113,12 +117,16 @@ export function AuditPage({
         </div>
       </header>
 
-      <FilterBar
-        query={query}
-        onChange={onQueryChange}
-        extra={extraFilters}
-        placeholder={FILTER_PLACEHOLDER}
-      />
+      <div className="flex items-center gap-3">
+        <FilterBar
+          className="flex-1 min-w-0"
+          query={query}
+          onChange={onQueryChange}
+          extra={extraFilters}
+          placeholder={FILTER_PLACEHOLDER}
+        />
+        {filterTrailing}
+      </div>
 
       <div className="flex items-end gap-5 rounded-card border border-line bg-panel px-4.5 py-4">
         <Sparkline
