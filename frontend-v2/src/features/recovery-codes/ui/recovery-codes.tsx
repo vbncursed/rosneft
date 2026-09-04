@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { copyText } from "@/shared/lib/copy-text";
+import { notify } from "@/shared/lib/notify";
 import { Button } from "@/shared/ui/button";
 import { codesAsText, downloadText } from "../model/download";
 
@@ -17,7 +18,9 @@ export function RecoveryCodes({ codes, onConfirm }: RecoveryCodesProps) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
-    setCopied(await copyText(codesAsText(codes)));
+    const ok = await copyText(codesAsText(codes));
+    setCopied(ok);
+    if (!ok) notify.error("Could not copy — select it and copy by hand");
   };
 
   return (
