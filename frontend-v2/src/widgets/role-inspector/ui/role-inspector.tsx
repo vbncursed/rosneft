@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { usersLabel, type Role } from "@/entities/role";
 import type { Permission } from "@/entities/permission";
 import { Button } from "@/shared/ui/button";
@@ -63,10 +63,12 @@ export function RoleInspector({
   const hasLocked = grantable ? all.some((p) => !grantable.has(p.slug)) : false;
   const share = all.length === 0 ? 0 : Math.round((granted.length / all.length) * 100);
   const holders = role.users ?? 0;
+  const canDelete = role.kind === "custom" && !readOnly && !!onDelete;
   const deleteHint =
-    holders > 0
+    canDelete && holders > 0
       ? `${holders} ${holders === 1 ? "user holds" : "users hold"} this role — reassign them first`
       : null;
+  const deleteHintId = useId();
 
   return (
     <aside
@@ -142,13 +144,13 @@ export function RoleInspector({
         ) : (
           <div className="flex flex-col gap-1.5 border-t border-line pt-3.5">
             <div className="flex gap-2">
-              {role.kind === "custom" && !readOnly && onDelete ? (
+              {canDelete ? (
                 <Button
                   size="sm"
                   variant="danger"
                   onClick={onDelete}
                   disabled={saving || holders > 0}
-                  title={deleteHint ?? undefined}
+                  aria-describedby={deleteHint ? deleteHintId : undefined}
                 >
                   Delete role
                 </Button>
@@ -172,7 +174,11 @@ export function RoleInspector({
                 Save permissions
               </Button>
             </div>
-            {deleteHint ? <p className="m-0 text-[11px] text-dim">{deleteHint}</p> : null}
+            {deleteHint ? (
+              <p id={deleteHintId} className="m-0 text-[11px] text-dim">
+                {deleteHint}
+              </p>
+            ) : null}
           </div>
         )}
       </div>
