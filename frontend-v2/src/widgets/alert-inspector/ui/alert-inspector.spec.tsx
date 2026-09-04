@@ -67,6 +67,28 @@ describe("AlertInspector", () => {
     expect(screen.queryByText("Top contributors")).not.toBeInTheDocument();
   });
 
+  it("degrades honestly when only the bare facts are known — no chart, no contributors, no action with no handler", () => {
+    render(
+      <AlertInspector
+        alert={{
+          name: "QueueBacklog",
+          meta: "mesh-worker · severity: warning",
+          details: [{ label: "queue", value: "12" }],
+        }}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("complementary", { name: "Alert: QueueBacklog" })).toBeInTheDocument();
+    expect(screen.getByText("Firing")).toBeInTheDocument();
+    expect(screen.getByText("12")).toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.queryByText("Top contributors")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Silence 1h" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open in audit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copy PromQL" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+  });
+
   it("runs the three actions", async () => {
     const p = props();
     render(<AlertInspector {...p} />);

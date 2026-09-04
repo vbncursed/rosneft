@@ -49,4 +49,18 @@ export default {
       />
     </div>
   ),
+  // Only the bare facts are known: no chart, no contributors, no action with
+  // nothing behind it — an honest degradation rather than disabled buttons.
+  Reduced: (
+    <div className="max-w-sm p-6">
+      <AlertInspector
+        alert={{
+          name: "TargetDown",
+          meta: "severity: warning",
+          details: [{ label: "expr", value: "up == 0" }],
+        }}
+        onClose={noop}
+      />
+    </div>
+  ),
 };
