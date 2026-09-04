@@ -79,7 +79,7 @@
 - Consumes: `Queue.TryLockTarget(ctx, kind, slug, ttl) (bool, error)`, `Queue.UnlockTarget(ctx, kind, slug) error`, `Queue.ListTargetJobs(ctx) ([]domain.Job, error)` — all exist.
 - Produces: `func (m *Mesh) SubmitConversion(ctx, kind domain.Kind, slug string) (job domain.Job, created bool, err error)`; `const TargetLockTTL = 10 * time.Minute` (was `ReconcileLockTTL`). Task 2 relies on the reconciler no longer calling `TryLockTarget`.
 
-- [ ] **Step 1: Write the failing submit tests**
+- [x] **Step 1: Write the failing submit tests**
 
 Append to `submit_conversion_test.go` (the suite already has `s.queue`, `s.svc`, `s.ctx`, IDGen `"fixed-id"`):
 
@@ -171,7 +171,7 @@ func (s *SubmitConversionSuite) TestSurfacesALockError() {
 
 Update the five existing tests in the file to the new signature and the lock stub: `TestSavesPendingJobAndEnqueues` and `TestModelKindIsForwarded` gain `s.queue.TryLockTargetMock.Return(true, nil)` and read `got, _, err :=`; `TestSaveFailureSurfaces` and `TestEnqueueFailureSurfaces` gain `TryLockTargetMock.Return(true, nil)` and `UnlockTargetMock.Return(nil)` and read `_, _, err :=`; the two validation tests read `_, _, err :=`.
 
-- [ ] **Step 2: Rewrite the reconcile tests for the new contract**
+- [x] **Step 2: Rewrite the reconcile tests for the new contract**
 
 In `reconcile_test.go`:
 
@@ -212,12 +212,12 @@ func (s *ReconcileSuite) TestDoesNotCountATargetAlreadyInFlight() {
 
 `TestQueuesTargetWhenLockIsFree` and `TestQueuesOnlyMissingTargets` keep their assertions. `TestStopsOnSubmitFailure` and `TestReleasesLockWhenSubmitFails` keep their stubs — the unlock now happens inside `SubmitConversion`, so `UnlockTargetMock.Return(nil)` stays required.
 
-- [ ] **Step 3: Run the two suites to see them fail**
+- [x] **Step 3: Run the two suites to see them fail**
 
 Run: `cd backend/services/mesh-service && go test ./internal/service/ -run 'SubmitConversion|Reconcile' 2>&1 | head -30`
 Expected: compile errors — `service.TargetLockTTL` undefined, `SubmitConversion` returns 2 values.
 
-- [ ] **Step 4: Implement `SubmitConversion`**
+- [x] **Step 4: Implement `SubmitConversion`**
 
 Replace the body of `submit_conversion.go`:
 
@@ -311,7 +311,7 @@ func (m *Mesh) liveJob(ctx context.Context, kind domain.Kind, slug string) (*dom
 
 Note the unlock on the save/enqueue failure paths runs even when the lock was not ours (stale-lock fallthrough): releasing a stale lock early is harmless — that is what the TTL would do.
 
-- [ ] **Step 5: Update the reconciler, the constant, the comments and the gRPC contract**
+- [x] **Step 5: Update the reconciler, the constant, the comments and the gRPC contract**
 
 `reconcile_missing_artifacts.go`: rename the constant and its comment's first line to `// TargetLockTTL bounds how long a claimed target stays claimed if the worker dies between claiming it and finishing …` (keep the measurement paragraph verbatim), then replace the loop body from the `locked, err :=` line to the `queued++` line with:
 
@@ -339,12 +339,12 @@ Keep the `HasLOD0` comment above it, reworded: "HasLOD0 stays false for the enti
 
 Grep for other callers: `grep -rn 'SubmitConversion(' backend/services/mesh-service --include='*.go'` — bootstrap only mentions it in comments.
 
-- [ ] **Step 6: Run the suites**
+- [x] **Step 6: Run the suites**
 
 Run: `cd backend/services/mesh-service && go test ./internal/service/ ./internal/transport/... 2>&1 | tail -20`
 Expected: PASS.
 
-- [ ] **Step 7: Full gate and commit**
+- [x] **Step 7: Full gate and commit**
 
 Run: `CC=/usr/bin/clang SDKROOT=$(xcrun --show-sdk-path) make -C backend check`
 Expected: green.
@@ -380,7 +380,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 - Consumes: `SubmitConversion(ctx, kind, slug) (domain.Job, bool, error)` from Task 1; `Catalog.ListTargets`, `Queue.ListTargetJobs`.
 - Produces: `Queue.ForgetTarget(ctx context.Context, kind domain.Kind, slug string) error`; `(*storage.Redis).ForgetTarget`.
 
-- [ ] **Step 1: Add `ForgetTarget` to the contract and regenerate the mock**
+- [x] **Step 1: Add `ForgetTarget` to the contract and regenerate the mock**
 
 In `mesh.go`, after `UnlockTarget` in the `Queue` interface:
 
@@ -393,7 +393,7 @@ In `mesh.go`, after `UnlockTarget` in the `Queue` interface:
 Run: `cd backend/services/mesh-service/internal/service && go generate ./...`
 Expected: `mocks/queue_mock.go` gains `ForgetTargetMock`. If `go generate` reports minimock missing, it is at `~/go/bin/minimock`; put `~/go/bin` on PATH.
 
-- [ ] **Step 2: Write the failing reconcile tests**
+- [x] **Step 2: Write the failing reconcile tests**
 
 Append to `reconcile_test.go`:
 
@@ -452,12 +452,12 @@ func (s *ReconcileSuite) TestNoSweepAfterALoopError() {
 
 The sweep reads the index after every completed loop, so add `s.queue.ListTargetJobsMock.Return(nil, nil)` to `allowSubmit` and to `TestNothingToReconcileWhenAllHaveLOD0`. `TestDoesNotCountATargetAlreadyInFlight` already stubs it. Tests that return early (`TestStopsOnListTargetsError`, `TestSurfaceLOD0CheckErrorOnFirstFailure`, `TestStopsOnSubmitFailure`, `TestRespectsCancelledContext`, `TestReleasesLockWhenSubmitFails`) must not get one — minimock fails on an expectation never called.
 
-- [ ] **Step 3: Run to see them fail**
+- [x] **Step 3: Run to see them fail**
 
 Run: `cd backend/services/mesh-service && go test ./internal/service/ -run Reconcile 2>&1 | tail -20`
 Expected: the three new tests fail (`ForgetTarget` never called / `ListTargetJobs` unexpected call).
 
-- [ ] **Step 4: Implement the sweep**
+- [x] **Step 4: Implement the sweep**
 
 In `reconcile_missing_artifacts.go`, replace the final `return queued, nil` with `m.sweepIndex(ctx, targets)` followed by `return queued, nil`, and add:
 
@@ -514,7 +514,7 @@ func (r *Redis) ForgetTarget(ctx context.Context, kind domain.Kind, slug string)
 }
 ```
 
-- [ ] **Step 5: Write the integration case**
+- [x] **Step 5: Write the integration case**
 
 Append to `list_target_jobs_integration_test.go`:
 
@@ -541,7 +541,7 @@ func (s *TargetIndexSuite) TestForgetTargetDropsTheEntryAndKeepsTheJob() {
 Run: `cd backend/services/mesh-service && go test -tags=integration ./internal/storage/ -run TargetIndex 2>&1 | tail -5` (needs Docker running).
 Expected: PASS. If Docker is not running, say so in the report rather than skipping silently.
 
-- [ ] **Step 6: Run the unit suites, the gate, commit**
+- [x] **Step 6: Run the unit suites, the gate, commit**
 
 Run: `cd backend/services/mesh-service && go test ./... 2>&1 | tail -10` then `CC=/usr/bin/clang SDKROOT=$(xcrun --show-sdk-path) make -C backend check`.
 Expected: green.
@@ -580,7 +580,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 **Interfaces:**
 - Produces: `httpGetBlob(path: string): Promise<Blob>` exported from `@/shared/api`; `AuditPageProps.notice?: ReactNode`; `countersOf(entries, now, capped, actorCount)` — **new `now` parameter in second position**; `activityOf` unchanged.
 
-- [ ] **Step 1: `httpGetBlob` — failing test**
+- [x] **Step 1: `httpGetBlob` — failing test**
 
 Append to `client.spec.ts` inside `describe("http client")` (the file stubs `fetch` as `fetchMock`, and has a `location` stub used by the 401 tests — copy the setup those tests use):
 
@@ -597,7 +597,7 @@ Append to `client.spec.ts` inside `describe("http client")` (the file stubs `fet
 
 and, next to the existing 401 test, a second one that calls `httpGetBlob` and asserts the same `clearAuthed` / `location.assign` outcome that test asserts for `httpGet`. Import `httpGetBlob` from `./client`.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 `client.ts`: change `send`'s third parameter to `parse: "json" | "blob" | "none"`; the tail becomes:
 
@@ -617,7 +617,7 @@ export function httpGetBlob(path: string): Promise<Blob> {
 
 `index.ts`: add `httpGetBlob` to the client export line.
 
-- [ ] **Step 3: Export through the client — spec then code**
+- [x] **Step 3: Export through the client — spec then code**
 
 In `audit-gateway.spec.ts`, the CSV test's expectation stays as is; delete `names the status when the refusal carries no sentence of its own` (that path is now `client.ts`'s and tested there) and add:
 
@@ -640,7 +640,7 @@ export const exportAuditCsv = (filters: AuditFilters): Promise<Blob> =>
 
 and change the import to `import { httpGet, httpGetBlob } from "@/shared/api";` — `HttpError` and `ApiError` are no longer used there.
 
-- [ ] **Step 4: 24-hour counters and the empty peak — spec then code**
+- [x] **Step 4: 24-hour counters and the empty peak — spec then code**
 
 In `journal.spec.ts`, inside `describe("activityOf and countersOf")`:
 
@@ -690,7 +690,7 @@ const bucketOf = (at: string, now: Date): number => {
 
 Fix the `windowStart` doc comment (journal.ts:113-118) and the one in `use-audit.ts:55-57`: replace "It advances once an hour" / "advances once an hour" with "It advances to the next hour on the next render — nothing re-renders an idle tab, and a paged tab that sits still keeps its hour, which is accepted."
 
-- [ ] **Step 5: `live` and placeholder data — spec then code**
+- [x] **Step 5: `live` and placeholder data — spec then code**
 
 In `use-audit.spec.tsx`, inside `keeps the loaded page and stays ready while a new filter loads`, after `act(() => result.current.setQuery("entity:territory"));` add:
 
@@ -708,7 +708,7 @@ and at the end of the test, after the final `expect(result.current.status).toBe(
 
 `use-audit.ts:108`: `live: (journal.data?.pages.length ?? 0) <= 1 && !journal.isPlaceholderData && unknownActor === null && !backwards,`.
 
-- [ ] **Step 6: Callouts below the heading — spec then code**
+- [x] **Step 6: Callouts below the heading — spec then code**
 
 In `audit-screen.spec.tsx`, delete the two-line `expect(from.closest("div")!.parentElement).toBe(...)` assertion (lines 116-118) and add a test:
 
@@ -741,7 +741,7 @@ In `audit-page.spec.tsx` add:
 
 `audit-page.tsx`: add `/** A sentence the screen wants under the header — a refusal or an empty result. */ notice?: ReactNode;` to the props, destructure it, and render `{notice}` between `</header>` and the filter `<div>`. `audit-screen.tsx`: move the callout ternary out of the fragment into `notice={…}` on `<AuditPage>`; the fragment wrapper goes away.
 
-- [ ] **Step 7: Lint, tests, commit**
+- [x] **Step 7: Lint, tests, commit**
 
 Run from `frontend-v2/`: `yarn lint && yarn test:coverage 2>&1 | tail -15`
 Expected: lint silent, all tests pass, thresholds hold.
@@ -784,7 +784,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 **Interfaces:**
 - Produces: `matchesService(label: string, name: string): boolean` from `@/entities/metric` (case-insensitive containment either way); `LineChartProps.format?: (v: number) => string`; `MetricPanelProps.unit?: Unit`.
 
-- [ ] **Step 1: `<0.1/s` for a non-zero rate that rounds to nothing**
+- [x] **Step 1: `<0.1/s` for a non-zero rate that rounds to nothing**
 
 `panel-catalog.spec.ts`, in `formats by unit`: add `expect(formatValue(0.04, "rps")).toBe("<0.1/s");` and `expect(formatValue(0, "rps")).toBe("0/s");`. In `service-health.spec.ts` change the catalog fixture to `one("catalog", 0.04)` in the errors array and expect `["catalog", "degraded", "24ms", "<0.1/s"]`; keep the `0/s` case by adding `one("mesh-worker", 0)` to errors and expecting `["mesh-worker", "up", "—", "0/s"]`.
 
@@ -799,7 +799,7 @@ const rate = (v: number) => (v > 0 && v < 0.05 ? "<0.1" : String(round(v)));
 
 and `case "rps": return `${rate(v)}/s`;`. `service-health.ts:32` builds meta with `.replace("/s", "")` — `<0.1 errors/s` reads fine, leave it.
 
-- [ ] **Step 2: One `matchesService`**
+- [x] **Step 2: One `matchesService`**
 
 Create `entities/metric/model/match.spec.ts`:
 
@@ -837,7 +837,7 @@ export function matchesService(label: string, name: string): boolean {
 
 Export from `entities/metric/index.ts`: `export { matchesService } from "./model/match";`. `service-health.ts:27`: `const lat = last(latency.find((s) => matchesService(s.label, name)));` (import from `./match`; drop the doc-comment's "containing the scrape name" wording for "paired by name, see matchesService"). `focus.ts`: delete `isSelected` and its comment, import `matchesService` from `@/entities/metric`, use `matchesService(serviceOf(s)!, selected)`. Rerun `focus.spec.ts` — its containment test (line 39) already covers both directions.
 
-- [ ] **Step 3: Chart summary in the panel's own format; the lone point**
+- [x] **Step 3: Chart summary in the panel's own format; the lone point**
 
 `line-chart.spec.tsx`: change the first test to `<LineChart series={SERIES} label="Request latency" format={(v) => `${v} ms`} />` with the same expected name, and add:
 
@@ -890,11 +890,11 @@ Keep the `unit="ms"` tests as they are — `unit` stays for callers without a fo
 
 Run the whole `path.spec.ts` — the existing gap test (`breaks the line at a gap`) asserts a fresh `M` after the gap; confirm it still holds and adjust its expectation only if it counted segments.
 
-- [ ] **Step 4: Four columns without a budget**
+- [x] **Step 4: Four columns without a budget**
 
 `metrics-page.spec.tsx:158-168`: rename to `lays out four tiles without a budget — the grid has no empty fifth column`, build `["Requests", "Errors", "p99", "Queue"]`, expect `lg:grid-cols-4` and `4` children. `metrics-page.tsx:122`: `"sm:grid-cols-2 lg:grid-cols-4"`.
 
-- [ ] **Step 5: StatTile without `aria-label` on a `<p>`**
+- [x] **Step 5: StatTile without `aria-label` on a `<p>`**
 
 `stat-tile.spec.tsx`: every `screen.getByLabelText("X: y")` becomes `screen.getByText("X: y")` for the hidden span; assertions on `className` read `.parentElement!.className`; `toHaveTextContent("…")` becomes `expect(screen.getByText("…")).toBeInTheDocument()`. The `omits the hint line entirely` test counts `<p>` — still two.
 
@@ -917,7 +917,7 @@ Run the whole `path.spec.ts` — the existing gap test (`breaks the line at a ga
 
 Other specs query tiles by label and must switch to `getByText` (with `.parentElement!.className` where a class is asserted): `pages/metrics/ui/metrics-page.spec.tsx:109,183,184`, `pages/metrics/ui/metrics-screen.spec.tsx:224`, `pages/territory-access/ui/territory-access-page.spec.tsx:94`, `pages/content/ui/content-page.spec.tsx:85`, `pages/audit/ui/audit-page.spec.tsx:127`, `pages/roles/ui/roles-page.spec.tsx:91-92`. `roles-screen.spec.tsx:82` labels a skeleton, not a tile — leave it. Confirm with `grep -rn 'getByLabelText' src --include='*.spec.tsx'` before finishing.
 
-- [ ] **Step 6: `red-latency` leaves `GRPC_PANELS`**
+- [x] **Step 6: `red-latency` leaves `GRPC_PANELS`**
 
 `dashboard.spec.ts`: add next to `says a gRPC panel with no traffic is quiet, not broken`:
 
@@ -940,7 +940,7 @@ const GRPC_QUIET: ReadonlySet<PanelId> = new Set<PanelId>(["red-rate", "red-erro
 
 with the empty-panel branch on `GRPC_QUIET` and the `shortGrpcLabel` map on `GRPC_LABELLED`.
 
-- [ ] **Step 7: Spec hygiene in the metrics gateway, and the data-then-error test**
+- [x] **Step 7: Spec hygiene in the metrics gateway, and the data-then-error test**
 
 `metrics-gateway.spec.ts`: delete `setCsrfToken("csrf");` and its import; rename the last test to `rejects with the status and the gateway's message on failure` and make the body JSON: `fetchMock.mockResolvedValueOnce(json({ code: "unavailable", message: "Prometheus unreachable" }, 502));` expecting `message: "Prometheus unreachable"`.
 
@@ -963,11 +963,11 @@ with the empty-panel branch on `GRPC_QUIET` and the `shortGrpcLabel` map on `GRP
 
 `panelQuery`'s key is `["metrics", panel, range]` (`entities/metric/api/panel-query.ts:11`), so the call is `client.refetchQueries({ queryKey: ["metrics", "red-rate", "1h"] })`.
 
-- [ ] **Step 8: Row menus named for their row**
+- [x] **Step 8: Row menus named for their row**
 
 `content-screen.spec.tsx`: every `{ name: "Row actions" }` becomes `{ name: "Row actions for T 1" }` / `"Row actions for M 1"` matching the row queried; the `offers no row menu` test uses `{ name: /^Row actions for / }`. `content-screen.tsx:64`: `triggerLabel={`Row actions for ${item.title}`}` — `ContentItem.title` is a required string (`entities/content/model/content-item.ts:12`).
 
-- [ ] **Step 9: Lint, tests, live check, commit**
+- [x] **Step 9: Lint, tests, live check, commit**
 
 Run from `frontend-v2/`: `yarn lint && yarn test:coverage 2>&1 | tail -15`. Expected: silent lint, all pass, thresholds hold.
 

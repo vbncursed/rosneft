@@ -46,6 +46,23 @@ the older job — wins the index.
 say a user-initiated conversion holds no claim are rewritten — every job holds
 one now. The gRPC handler ignores `created`.
 
+**Added after the final review — a source replaced mid-conversion is
+re-queued.** Handing back the in-flight job has a cost the 409 discussion
+below did not consider: `runConversion` reads the target's
+`source_blob_hash` once, at its start, so a replace-source that lands while a
+conversion runs would be answered with a job converting the *old* bytes, and
+once its LOD0 is published the reconciler has no reason to retry. After
+`markSucceeded`, `ProcessJob` therefore re-reads the target and, when the
+hash differs from the one it converted, submits a new job through
+`SubmitConversion` (the claim is already released, so it is created). A
+target deleted mid-conversion is skipped; any other error is logged and does
+not fail the job — its outcome is already decided. Two replacements during
+one conversion converge over two conversions. `requeue_if_replaced.go`.
+
+The stale-lock fallthrough releases the claim on a save or enqueue failure
+only when this call took it — inside the one-round-trip window it could
+otherwise release another submitter's fresh claim.
+
 ### A2. The reconciler stops locking and sweeps the index
 
 `ReconcileMissingArtifacts`:
@@ -112,14 +129,14 @@ react-query's default `refetchOnWindowFocus` tests the library.
 | 5 | Empty window prints "peak 0/h at HH:00". | `peak === 0` → the summary says there were no events in the last 24 h. |
 | 14 | `live` ignores `isPlaceholderData`, so the badge stays lit over the previous filter's page. | `live` requires `!isPlaceholderData`. |
 | 15 | Comment on `windowStart` claims it advances once an hour; nothing re-renders an idle tab. | Keep the behaviour, fix the comment: it advances on the next render. |
-| 16 | The three callouts render above the `<h1>` (`audit-screen.tsx`). | `AuditPage` takes a `notice` slot rendered after its header; the screen passes the callouts there. |
+| 16 | The three callouts render above the `<h1>` (`audit-screen.tsx`). | `AuditPage` takes a `notice` slot rendered after its header; the screen passes the callouts there. The slot is a persistent `role="status"` live region, so a refusal typed into the filter is announced; `Callout` itself keeps `alert` for `bad` only. |
 | 11 | `audit-screen.spec.tsx` compares `closest("div").parentElement` chains — DatePicker's wrapper DOM. | Delete the structural assertion; the `compareDocumentPosition` one beside it already carries the intent. |
 
 ### B2. Metrics
 
 | # | Defect | Fix |
 |---|---|---|
-| 4 | A degraded row prints "0 errors/s": the state comes from `err > 0`, the label from `round(err)`. | `formatValue` for rates prints `<0.1/s` for a non-zero value that rounds to 0; the state and the label agree again. |
+| 4 | A degraded row prints "0 errors/s": the state comes from `err > 0`, the label from `round(err)`. | `formatValue` for rates prints `<0.1/s` for a non-zero value that rounds to 0; the state and the label agree again. The same guard covers `percent` (`<0.1%`), because `stat-errors` is toned on the same `> 0` rule. |
 | 7 | `LineChart`'s spoken summary reads raw `toFixed(2)` values with a bare unit ("0.0523 seconds"). | The panel passes its formatter down; the summary uses the same `formatValue` as the tile. |
 | 8 | The no-budget grid is `lg:grid-cols-5` for a fifth tile `statsOf` never returns; the spec's five-tile case cannot occur. | `lg:grid-cols-4`; the spec case becomes "four tiles, no meter". |
 | 10 | `StatTile` puts `aria-label` on a `<p>` (name-prohibited role). | Visually-hidden text inside the element instead of the attribute. |
