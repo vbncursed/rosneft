@@ -143,7 +143,7 @@ describe("statsOf", () => {
 
   it("draws the five headline tiles, each with what it counts", () => {
     expect(statsOf(results(), 4)).toEqual([
-      { label: "Up", value: "3", hint: "of 4 services" },
+      { label: "Up", value: "3", hint: "of 4 scraped targets" },
       { label: "Requests", value: "142/s", hint: "per second · all HTTP" },
       { label: "Errors", value: "0.8%", hint: "5xx share of HTTP", tone: "bad" },
       { label: "p99", value: "452ms", hint: "gRPC handling" },
@@ -151,8 +151,16 @@ describe("statsOf", () => {
     ]);
   });
 
-  it("counts nothing it does not know — no service count, no denominator", () => {
+  it("counts nothing it does not know — no target count, no denominator", () => {
     expect(statsOf(results(), null)[0].hint).toBe("services answering");
+  });
+
+  it("counts targets on both sides of the tile, not names against targets", () => {
+    // stat-up counts scrape targets and a replicated service is several of
+    // them, so a denominator of unique service names printed "12 of 11".
+    expect(statsOf(results({ "stat-up": { kind: "value", series: [series("up", 12)] } }), 12)[0]).toEqual(
+      { label: "Up", value: "12", hint: "of 12 scraped targets" },
+    );
   });
 
   it("leaves a clean error rate untoned", () => {

@@ -182,6 +182,14 @@ describe("MetricsPage", () => {
     expect(screen.queryByRole("button", { name: "Silence 1h" })).not.toBeInTheDocument();
   });
 
+  it("offers a filter example the health list can actually answer", () => {
+    render(<MetricsPage {...props()} />);
+    expect(screen.getByRole("textbox", { name: "Filter metrics" })).toHaveAttribute(
+      "placeholder",
+      "filter: service:gateway group:red state:down",
+    );
+  });
+
   it("shows a chip for a key:value query", () => {
     render(<MetricsPage {...props({ query: "service:gateway" })} />);
     expect(

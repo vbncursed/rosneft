@@ -54,7 +54,8 @@ export type MetricsPageProps = {
   onCopyPromQl?: () => void;
 };
 
-const FILTER_PLACEHOLDER = "filter: service:gateway group:red state:firing";
+// `state:` is a service state — up | degraded | down; the list has no "firing".
+const FILTER_PLACEHOLDER = "filter: service:gateway group:red state:down";
 
 export function MetricsPage({
   services,

@@ -93,6 +93,9 @@ describe("MetricsScreen", () => {
     for (const label of ["Up: 2", "Requests: 2/s", "Errors: 200%", "p99: 2s", "Queue: 2"]) {
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     }
+    // The denominator is the services-up panel's own series count, not the
+    // number of names the health list distilled out of them.
+    expect(screen.getByText("of 1 scraped targets")).toBeInTheDocument();
   });
 
   it("draws no SLO budget meter — nothing serves one", () => {
@@ -160,7 +163,7 @@ describe("MetricsScreen", () => {
     expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   });
 
-  it("counts no denominator it does not have, and still shows a pending alert", () => {
+  it("counts no denominator it does not have, and opens no inspector for a pending alert", () => {
     useMetrics.mockReturnValue(
       state({
         services: [],
@@ -176,9 +179,9 @@ describe("MetricsScreen", () => {
     expect(screen.getByText("services answering")).toBeInTheDocument();
     expect(screen.getByLabelText("Up: …")).toBeInTheDocument();
     expect(screen.queryByText(/alert$/)).not.toBeInTheDocument();
-    expect(screen.getByRole("complementary", { name: "Alert: TargetDown" })).toHaveTextContent(
-      "pending",
-    );
+    // The inspector's header is an unconditional red "Firing" — a pending
+    // alert underneath it would be a lie, so it is not drawn.
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   });
 
   it("marks a failed panel unavailable instead of blanking the dashboard", () => {

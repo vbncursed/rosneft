@@ -90,13 +90,19 @@ const stat = (id: PanelId, result: PanelResult | undefined): string => {
   return formatValue(lastOf(result.series), PANELS[id].unit);
 };
 
-/** The five headline tiles. A tile with nothing behind it says so. */
+/**
+ * The five headline tiles. A tile with nothing behind it says so.
+ *
+ * `targetCount` is scrape targets, not service names: `stat-up` counts targets
+ * and a replicated service is several of them, so counting names underneath it
+ * printed "12" over "of 11 services".
+ */
 export function statsOf(
   results: Partial<Record<PanelId, PanelResult>>,
-  serviceCount: number | null,
+  targetCount: number | null,
 ): MetricsPageStat[] {
   const hints: Record<(typeof STAT_IDS)[number], string> = {
-    "stat-up": serviceCount === null ? "services answering" : `of ${serviceCount} services`,
+    "stat-up": targetCount === null ? "services answering" : `of ${targetCount} scraped targets`,
     "stat-rps": "per second · all HTTP",
     "stat-errors": "5xx share of HTTP",
     "stat-p99": "gRPC handling",

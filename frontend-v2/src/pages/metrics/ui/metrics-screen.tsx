@@ -40,8 +40,13 @@ export function MetricsScreen() {
     return <Callout tone="bad">Metrics are unavailable: {s.error}</Callout>;
   }
 
-  const firing = s.alerts.find((a) => a.state === "firing") ?? s.alerts[0];
-  const upCount = s.services.length > 0 ? s.services.length : null;
+  // Only a firing alert opens the inspector: its header is an unconditional
+  // red "Firing", so a pending one underneath it would be a lie.
+  const firing = s.alerts.find((a) => a.state === "firing") ?? null;
+  // Both halves of the Up tile count scrape targets — the health list distils
+  // those into names, and a replicated service is several targets under one.
+  const up = s.results["services-up"];
+  const targets = up?.kind === "value" ? up.series.length : null;
 
   return (
     <MetricsPage
@@ -53,7 +58,7 @@ export function MetricsScreen() {
           .map((id) => panelEntry(id, s.results[id] ?? { kind: "loading" }))
           .filter((p) => matchesPanel(p.title, s.query)),
       }))}
-      stats={statsOf(s.results, upCount)}
+      stats={statsOf(s.results, targets)}
       range={range}
       onRangeChange={(next) => void navigate({ to: ".", search: { range: next } })}
       query={s.query}

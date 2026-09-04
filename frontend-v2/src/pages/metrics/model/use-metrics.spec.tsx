@@ -93,10 +93,10 @@ describe("useMetrics", () => {
       kind: "value",
       series: [{ label: "gateway", points: points(140, 142), labels: {} }],
     });
-    expect(statsOf(result.current.results, result.current.services.length)[0]).toEqual({
+    expect(statsOf(result.current.results, 2)[0]).toEqual({
       label: "Up",
       value: "1",
-      hint: "of 2 services",
+      hint: "of 2 scraped targets",
     });
     expect(result.current.alerts).toEqual([
       {

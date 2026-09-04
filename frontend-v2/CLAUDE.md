@@ -180,7 +180,8 @@ Cyrillic. Still undecided whether to swap the display face.
   — `null` means "we could not find out", and a confident wrong "No" is the bug
   the shape exists to prevent.
 - **A decision that needs a test goes in a pure function.** `diffRows`,
-  `grantShare`, `matchesFilters`, `toLinePath`, `isRevocable`, `parseFilters`.
+  `grantShare`, `matchesFilters`, `toLinePath`, `isRevocable`, `parseFilters`,
+  `journal.ts`, `dashboard.ts`.
   The component then reads as markup.
 - Charts: every series on one chart shares one maximum, or a flat line looks
   like a mountain beside a real one. A single reading draws as a flat segment,
