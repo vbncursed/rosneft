@@ -46,9 +46,10 @@ const props = (over: Partial<MetricsPageProps> = {}): MetricsPageProps => ({
     ],
   },
   stats: [
-    { label: "Requests/sec", value: "142/s", hint: "gateway", delta: "+8%", deltaTone: "ok" },
-    { label: "Error rate", value: "0.82%", hint: "SLO 0.5% breached", tone: "bad", delta: "+0.3", deltaTone: "bad" },
-    { label: "p99 latency", value: "452ms", hint: "SLO 600ms", tone: "accent", delta: "−12%", deltaTone: "ok" },
+    { label: "Requests/sec", state: { kind: "value", value: "142/s" }, hint: "gateway", delta: "+8%", deltaTone: "ok" },
+    { label: "Error rate", state: { kind: "value", value: "0.82%" }, hint: "SLO 0.5% breached", tone: "bad", delta: "+0.3", deltaTone: "bad" },
+    { label: "p99 latency", state: { kind: "value", value: "452ms" }, hint: "SLO 600ms", tone: "accent", delta: "−12%", deltaTone: "ok" },
+    { label: "Queue", state: { kind: "value", value: "0" }, hint: "waiting" },
   ],
   range: "6h",
   onRangeChange: vi.fn(),
@@ -157,13 +158,30 @@ describe("MetricsPage", () => {
   it("lays out five tiles without a budget — the grid is not cut to three", () => {
     const stats = ["Up", "Requests", "Errors", "p99", "Queue"].map((label) => ({
       label,
-      value: "1",
+      state: { kind: "value" as const, value: "1" },
       hint: "h",
     }));
     const { container } = render(<MetricsPage {...props({ budget: undefined, stats })} />);
     const grid = container.querySelector(".grid")!;
     expect(grid.className).toContain("lg:grid-cols-5");
     expect(grid.children).toHaveLength(5);
+  });
+
+  it("puts the meter in the wide slot with four tiles beside it", () => {
+    const { container } = render(<MetricsPage {...props()} />);
+    const grid = container.querySelector(".grid")!;
+    expect(grid.className).toContain("lg:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]");
+    expect(grid.children).toHaveLength(5);
+  });
+
+  it("says which nothing a failed tile holds, in a word rather than a glyph", () => {
+    const stats = [
+      { label: "Errors", state: { kind: "unavailable" as const }, hint: "5xx share of HTTP" },
+      { label: "Queue", state: { kind: "loading" as const }, hint: "jobs waiting" },
+    ];
+    render(<MetricsPage {...props({ stats })} />);
+    expect(screen.getByLabelText("Errors: unavailable")).toBeInTheDocument();
+    expect(screen.getByLabelText("Queue: loading")).toBeInTheDocument();
   });
 
   it("draws no button for a handler it was not given", () => {

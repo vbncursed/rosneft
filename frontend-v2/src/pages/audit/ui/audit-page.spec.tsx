@@ -99,6 +99,19 @@ describe("AuditPage", () => {
     expect(onExport).not.toHaveBeenCalled();
   });
 
+  it("keeps whatever the screen hands it in the same row as the filter", () => {
+    render(<AuditPage {...props({ filterTrailing: <button type="button">From</button> })} />);
+    const input = screen.getByRole("textbox", { name: "Filter events" });
+    const trailing = screen.getByRole("button", { name: "From" });
+    // Same row: the filter bar and the trailing block share one flex parent.
+    expect(trailing.parentElement).toBe(input.parentElement!.parentElement);
+  });
+
+  it("draws no trailing block when it was handed none", () => {
+    render(<AuditPage {...props()} />);
+    expect(screen.queryByRole("button", { name: "From" })).not.toBeInTheDocument();
+  });
+
   it("names the five keys the gateway filters on", () => {
     render(<AuditPage {...props()} />);
     expect(screen.getByRole("textbox", { name: "Filter events" })).toHaveAttribute(

@@ -138,19 +138,20 @@ function Live({ withAlert }: { withAlert: boolean }) {
         services={services}
         sections={SECTIONS}
         budget={{
-          label: "SLO budget · 30d",
-          detail: "64% left",
+          label: "Service health",
+          detail: `${services.filter((s) => s.state === "up").length} of ${services.length} up`,
           detailTone: "warn",
           segments: [
-            { tone: "warn", value: 36, label: "consumed" },
-            { tone: "ok", value: 60, label: "remaining" },
-            { tone: "bad", value: 4, label: "burning now" },
+            { tone: "ok", value: 2, label: "up" },
+            { tone: "warn", value: 2, label: "degraded" },
+            { tone: "bad", value: 1, label: "down" },
           ],
         }}
         stats={[
-          { label: "Requests/sec", value: "142/s", hint: "gateway · http + grpc", delta: "+8%", deltaTone: "ok" },
-          { label: "Error rate", value: "0.82%", hint: "SLO 0.5% breached", tone: "bad", delta: "+0.3", deltaTone: "bad" },
-          { label: "p99 latency", value: "452ms", hint: "SLO 600ms", tone: "accent", delta: "−12%", deltaTone: "ok" },
+          { label: "Requests", state: { kind: "value", value: "142/s" }, hint: "per second · all HTTP", delta: "+8%", deltaTone: "ok" },
+          { label: "Errors", state: { kind: "value", value: "0.82%" }, hint: "5xx share of HTTP", tone: "bad", delta: "+0.3", deltaTone: "bad" },
+          { label: "p99", state: { kind: "value", value: "452ms" }, hint: "gRPC handling", tone: "accent", delta: "−12%", deltaTone: "ok" },
+          { label: "Queue", state: { kind: "unavailable" }, hint: "conversion jobs waiting" },
         ]}
         range={range}
         onRangeChange={setRange}

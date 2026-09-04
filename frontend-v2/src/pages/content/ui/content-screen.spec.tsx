@@ -102,6 +102,43 @@ describe("ContentScreen", () => {
     expect(s.ask).toHaveBeenCalled();
   });
 
+  it("offers a row its own menu, mirroring the inspector's actions", async () => {
+    useContent.mockReturnValue(state());
+    render(<ContentScreen />);
+
+    const row = screen.getByRole("article", { name: "T 1" });
+    await userEvent.click(within(row).getByRole("button", { name: "Row actions" }));
+    expect(screen.getByRole("menuitem", { name: "Open in viewer" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Replace source" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("menuitem", { name: "Open in viewer" }));
+    expect(leaveTo).toHaveBeenCalledWith("/territories/t-1");
+  });
+
+  it("replaces a source from the row, without opening the inspector first", async () => {
+    useContent.mockReturnValue(state());
+    render(<ContentScreen />);
+    const row = screen.getByRole("article", { name: "T 1" });
+    await userEvent.click(within(row).getByRole("button", { name: "Row actions" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Replace source" }));
+    expect(leaveTo).toHaveBeenCalledWith("/territories/t-1/replace");
+  });
+
+  it("offers a model no Replace source in its row menu — there is no route", async () => {
+    useContent.mockReturnValue(state());
+    render(<ContentScreen />);
+    const row = screen.getByRole("article", { name: "M 1" });
+    await userEvent.click(within(row).getByRole("button", { name: "Row actions" }));
+    expect(screen.getByRole("menuitem", { name: "Open in viewer" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Replace source" })).not.toBeInTheDocument();
+  });
+
+  it("offers no row menu to a reader who may not manage the catalog", () => {
+    useContent.mockReturnValue(state({ canManage: false }));
+    render(<ContentScreen />);
+    expect(screen.queryByRole("button", { name: "Row actions" })).not.toBeInTheDocument();
+  });
+
   it("draws no Replace source for a model and no Delete without the grant", () => {
     useContent.mockReturnValue(state({ selected: M, canDelete: () => false }));
     render(<ContentScreen />);

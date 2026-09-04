@@ -27,6 +27,12 @@ const series = (label: string, ...values: number[]): MetricSeries => ({
   labels: {},
 });
 
+const gap = (label: string, ...points: [number, number][]): MetricSeries => ({
+  label,
+  points: points.map(([t, v]) => ({ t, v })),
+  labels: {},
+});
+
 const alert = (over: Partial<AlertSummary> = {}): AlertSummary => ({
   name: "TargetDown",
   meta: "audit · severity: critical",
@@ -98,9 +104,11 @@ describe("panelEntry", () => {
       unit: "rps",
       last: "1.6/s",
       lastTone: "bad",
+      // red-errors is rate-backed: a window with no errors is a zero, not a
+      // scrape the chart should break the line for.
       series: [
         { label: "gateway", values: [0.4, 1.6] },
-        { label: "mesh", values: [0.2, null] },
+        { label: "mesh", values: [0.2, 0] },
       ],
     });
   });
@@ -129,12 +137,94 @@ describe("panelEntry", () => {
     expect(entry.series).toEqual([]);
     expect(entry.meta).toBe("rps · gateway");
   });
+
+  it("says a gRPC panel with no traffic is quiet, not broken", () => {
+    expect(panelEntry("red-rate", { kind: "value", series: [] })).toEqual({
+      key: "red-rate",
+      title: "Requests by service",
+      meta: "no gRPC traffic in range",
+      unit: "rps",
+      last: "—",
+      lastTone: "dim",
+      series: [],
+    });
+  });
+
+  it("keeps the red wording for a gRPC panel that failed", () => {
+    const entry = panelEntry("red-rate", { kind: "unavailable", message: "Prometheus unreachable" });
+    expect(entry.meta).toBe("unavailable — Prometheus unreachable");
+    expect(entry.lastTone).toBe("bad");
+  });
+
+  it("leaves an empty panel outside the gRPC group saying what it always said", () => {
+    const entry = panelEntry("runtime-memory", { kind: "value", series: [] });
+    expect(entry.meta).toBe("bytes · by service");
+    expect(entry.last).toBe("—");
+    expect(entry.lastTone).toBeUndefined();
+  });
+
+  it("shortens gRPC method legends, and only in the gRPC group", () => {
+    const path = "/rosneft.catalog.v1.CatalogService/ListTerritories";
+    expect(panelEntry("red-rate", { kind: "value", series: [series(path, 3)] }).series[0].label).toBe(
+      "Catalog.ListTerritories",
+    );
+    expect(
+      panelEntry("runtime-memory", { kind: "value", series: [series(path, 3)] }).series[0].label,
+    ).toBe(path);
+  });
+
+  it("fills a rate panel's gap with zero — no traffic is a zero, not a missed scrape", () => {
+    const entry = panelEntry("red-rate", {
+      kind: "value",
+      series: [gap("gateway", [0, 1], [2, 3]), gap("mesh", [1, 5])],
+    });
+    expect(entry.series).toEqual([
+      { label: "gateway", values: [1, 0, 3] },
+      { label: "mesh", values: [0, 5, 0] },
+    ]);
+  });
+
+  it("keeps a gauge's gap as a break in the line", () => {
+    const entry = panelEntry("domain-queue", {
+      kind: "value",
+      series: [gap("depth", [0, 1], [2, 3]), gap("other", [1, 5])],
+    });
+    expect(entry.series).toEqual([
+      { label: "depth", values: [1, null, 3] },
+      { label: "other", values: [null, 5, null] },
+    ]);
+  });
+
+  it("narrows a per-service panel to the selected service", () => {
+    const named = (name: string, v: number): MetricSeries => ({
+      label: name,
+      labels: { service: name },
+      points: [{ t: 0, v }],
+    });
+    const all = [named("gateway", 1), named("mesh", 2), named("auth", 3), named("audit", 4)];
+    expect(panelEntry("runtime-memory", { kind: "value", series: all }, "mesh").series).toEqual([
+      { label: "mesh", values: [2] },
+    ]);
+  });
+
+  it("counts what it left off the chart rather than dropping it silently", () => {
+    const named = (name: string, v: number): MetricSeries => ({
+      label: name,
+      labels: { service: name },
+      points: [{ t: 0, v }],
+    });
+    const entry = panelEntry("runtime-memory", {
+      kind: "value",
+      series: [named("a", 1), named("b", 2), named("c", 3), named("d", 4), named("e", 5)],
+    });
+    expect(entry.meta).toBe("bytes · by service · +2 more");
+    expect(entry.series).toHaveLength(3);
+  });
 });
 
 describe("statsOf", () => {
   const results = (over: Partial<Record<string, PanelResult>> = {}) =>
     ({
-      "stat-up": { kind: "value", series: [series("up", 3)] },
       "stat-rps": { kind: "value", series: [series("rps", 142)] },
       "stat-errors": { kind: "value", series: [series("errors", 0.008)] },
       "stat-p99": { kind: "value", series: [series("p99", 0.452)] },
@@ -142,52 +232,52 @@ describe("statsOf", () => {
       ...over,
     }) as Parameters<typeof statsOf>[0];
 
-  it("draws the five headline tiles, each with what it counts", () => {
-    expect(statsOf(results(), 4)).toEqual([
-      { label: "Up", value: "3", hint: "of 4 scraped targets" },
-      { label: "Requests", value: "142/s", hint: "per second · all HTTP" },
-      { label: "Errors", value: "0.8%", hint: "5xx share of HTTP", tone: "bad" },
-      { label: "p99", value: "452ms", hint: "gRPC handling" },
-      { label: "Queue", value: "0", hint: "conversion jobs waiting" },
+  it("draws the four headline tiles, each with what it counts", () => {
+    expect(statsOf(results())).toEqual([
+      { label: "Requests", state: { kind: "value", value: "142/s" }, hint: "per second · all HTTP" },
+      {
+        label: "Errors",
+        state: { kind: "value", value: "0.8%" },
+        hint: "5xx share of HTTP",
+        tone: "bad",
+      },
+      { label: "p99", state: { kind: "value", value: "452ms" }, hint: "gRPC handling" },
+      { label: "Queue", state: { kind: "value", value: "0" }, hint: "conversion jobs waiting" },
     ]);
   });
 
-  it("counts nothing it does not know — no target count, no denominator", () => {
-    expect(statsOf(results(), null)[0].hint).toBe("services answering");
-  });
-
-  it("counts targets on both sides of the tile, not names against targets", () => {
-    // stat-up counts scrape targets and a replicated service is several of
-    // them, so a denominator of unique service names printed "12 of 11".
-    expect(statsOf(results({ "stat-up": { kind: "value", series: [series("up", 12)] } }), 12)[0]).toEqual(
-      { label: "Up", value: "12", hint: "of 12 scraped targets" },
-    );
+  it("counts services in the meter, not in a tile — Up has left the row", () => {
+    expect(statsOf(results()).map((s) => s.label)).not.toContain("Up");
   });
 
   it("leaves a clean error rate untoned", () => {
     const errors = { kind: "value", series: [series("errors", 0)] } satisfies PanelResult;
-    expect(statsOf(results({ "stat-errors": errors }), 4)[2]).toEqual({
+    expect(statsOf(results({ "stat-errors": errors }))[1]).toEqual({
       label: "Errors",
-      value: "0%",
+      state: { kind: "value", value: "0%" },
       hint: "5xx share of HTTP",
     });
   });
 
-  it("prints a dash for a tile that failed and an ellipsis for one still loading", () => {
+  it("says a failed tile is unavailable and a pending one is loading, in words", () => {
     const stats = statsOf(
       results({
         "stat-errors": { kind: "unavailable", message: "Prometheus unreachable" },
         "stat-queue": { kind: "loading" },
       }),
-      4,
     );
-    expect(stats[2].value).toBe("—");
-    expect(stats[2].tone).toBeUndefined();
-    expect(stats[4].value).toBe("…");
+    expect(stats[1].state).toEqual({ kind: "unavailable" });
+    expect(stats[1].tone).toBeUndefined();
+    expect(stats[3].state).toEqual({ kind: "loading" });
   });
 
-  it("prints an ellipsis for a tile whose query has not been made yet", () => {
-    expect(statsOf({}, 4).map((s) => s.value)).toEqual(["…", "…", "…", "…", "…"]);
+  it("calls a tile whose query has not been made yet loading", () => {
+    expect(statsOf({}).map((s) => s.state)).toEqual([
+      { kind: "loading" },
+      { kind: "loading" },
+      { kind: "loading" },
+      { kind: "loading" },
+    ]);
   });
 });
 

@@ -20,8 +20,14 @@ describe("MetricPanel", () => {
   });
 
   it("tones the latest reading", () => {
-    render(<MetricPanel title="Errors" meta="rps" last="1.6/s" lastTone="bad" series={SERIES} />);
+    const { rerender } = render(
+      <MetricPanel title="Errors" meta="rps" last="1.6/s" lastTone="bad" series={SERIES} />,
+    );
     expect(screen.getByText("1.6/s").className).toContain("text-bad");
+
+    // A quiet panel is dim, not red: nothing happened is not a failure.
+    rerender(<MetricPanel title="Errors" meta="no gRPC traffic in range" last="—" lastTone="dim" series={[]} />);
+    expect(screen.getByText("—").className).toContain("text-dim");
   });
 
   it("plots the series and names every one in the legend", () => {

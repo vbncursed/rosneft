@@ -23,6 +23,7 @@ const TONE: Record<StatTileTone, string> = {
   warn: "text-warn",
   bad: "text-bad",
   muted: "text-muted",
+  dim: "text-dim",
 };
 
 export function MetricPanel({

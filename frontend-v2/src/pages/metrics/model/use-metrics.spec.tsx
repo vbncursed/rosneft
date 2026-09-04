@@ -95,10 +95,10 @@ describe("useMetrics", () => {
       kind: "value",
       series: [{ label: "gateway", points: points(140, 142), labels: {} }],
     });
-    expect(statsOf(result.current.results, 2)[0]).toEqual({
-      label: "Up",
-      value: "1",
-      hint: "of 2 scraped targets",
+    expect(statsOf(result.current.results)[0]).toEqual({
+      label: "Requests",
+      state: { kind: "value", value: "1/s" },
+      hint: "per second · all HTTP",
     });
     expect(result.current.alerts).toEqual([
       {
@@ -122,7 +122,7 @@ describe("useMetrics", () => {
       kind: "unavailable",
       message: "Prometheus unreachable",
     });
-    expect(statsOf(result.current.results, 2)[2].value).toBe("—");
+    expect(statsOf(result.current.results)[1].state).toEqual({ kind: "unavailable" });
   });
 
   it("does not count 0 firing when the alerts panel failed — it knows nothing", async () => {

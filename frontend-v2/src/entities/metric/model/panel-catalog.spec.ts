@@ -11,7 +11,8 @@ describe("panel catalogue", () => {
     ]);
     const inSections = SECTIONS.flatMap((s) => s.panelIds);
     expect(new Set(inSections).size).toBe(inSections.length);
-    expect(STAT_IDS).toEqual(["stat-up", "stat-rps", "stat-errors", "stat-p99", "stat-queue"]);
+    // stat-up has left the row: the health meter counts services beside these.
+    expect(STAT_IDS).toEqual(["stat-rps", "stat-errors", "stat-p99", "stat-queue"]);
   });
 
   it("describes what a panel plots without claiming a count it cannot know", () => {
