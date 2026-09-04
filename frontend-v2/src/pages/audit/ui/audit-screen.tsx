@@ -76,12 +76,14 @@ export function AuditScreen() {
             label="From"
             value={s.range.from}
             onChange={(from) => s.setRange({ ...s.range, from })}
+            align="end"
           />
           <span className={CAPTION}>To</span>
           <DatePicker
             label="To"
             value={s.range.to}
             onChange={(to) => s.setRange({ ...s.range, to })}
+            align="end"
           />
         </>
       }

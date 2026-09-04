@@ -13,7 +13,7 @@ export function controlClass({
     "focus:border-accent focus:ring-[3px] focus:ring-accent-soft",
     "disabled:border-line disabled:text-dim disabled:opacity-60",
     spaced && "mt-[7px]",
-    mono ? "font-mono text-[13px]" : "font-sans text-sm",
+    mono ? "font-mono text-[13px] leading-5" : "font-sans text-sm",
     invalid ? "border-bad bg-bad-soft" : "border-line-2 bg-panel-2",
     className,
   );

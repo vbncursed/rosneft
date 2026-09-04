@@ -93,4 +93,12 @@ describe("ContentRow", () => {
     render(<ContentRow item={item()} actions={<button type="button">More</button>} />);
     expect(screen.getByRole("button", { name: "More" })).toBeInTheDocument();
   });
+
+  it("does not clip its own corner — the row menu must be able to hang below it", () => {
+    const { container } = render(<ContentRow item={item()} />);
+    const article = container.querySelector("article")!;
+    expect(article.className).not.toContain("overflow-hidden");
+    // The rail keeps the rounded corner on its own.
+    expect(container.querySelector("span[aria-hidden]")!.className).toContain("rounded-l-[11px]");
+  });
 });

@@ -151,6 +151,9 @@ describe("AuditScreen", () => {
     expect(setRange).toHaveBeenCalledWith({ from: "2026-08-12", to: "2026-08-18" });
 
     await userEvent.click(screen.getByRole("button", { name: "To" }));
+    // The To picker sits at the right edge of the filter row; its calendar
+    // anchors from the trigger's right edge so it cannot run off screen.
+    expect(screen.getByRole("dialog", { name: "To" }).className).toContain("right-0");
     await userEvent.click(screen.getByRole("button", { name: "20 August 2026" }));
     expect(setRange).toHaveBeenLastCalledWith({ from: "2026-08-24", to: "2026-08-20" });
   });

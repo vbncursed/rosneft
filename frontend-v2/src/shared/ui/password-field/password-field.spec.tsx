@@ -64,4 +64,13 @@ describe("PasswordField", () => {
     expect(input()).toBeDisabled();
     expect(screen.getByRole("button", { name: "Show password" })).toBeDisabled();
   });
+
+  it("keeps the same line-height shown and hidden, so the field does not jump", async () => {
+    render(<PasswordField label="Password" defaultValue="x" />);
+    const input = screen.getByLabelText("Password");
+    const before = input.className;
+    await userEvent.click(screen.getByRole("button", { name: "Show password" }));
+    expect(input.className).toContain("leading-5");
+    expect(before).toMatch(/text-sm/); // text-sm carries leading-5 by definition
+  });
 });

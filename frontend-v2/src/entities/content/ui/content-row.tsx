@@ -30,15 +30,17 @@ export function ContentRow({ item, selected = false, onSelect, actions }: Conten
       onClick={onSelect}
       aria-current={selected ? "true" : undefined}
       aria-label={item.title}
+      // No overflow-hidden on the row: the kebab menu is absolutely positioned
+      // inside it and was being cut at the row's bottom edge.
       className={cx(
-        "relative flex cursor-pointer items-start gap-3 overflow-hidden rounded-[11px] border py-3.5 pl-4.5 pr-4 transition-colors duration-150",
+        "relative flex cursor-pointer items-start gap-3 rounded-[11px] border py-3.5 pl-4.5 pr-4 transition-colors duration-150",
         selected ? "border-accent bg-accent-soft" : "border-line bg-panel hover:border-line-2",
       )}
     >
       <span
         aria-hidden="true"
         className={cx(
-          "absolute inset-y-0 left-0 w-[3px]",
+          "absolute inset-y-0 left-0 w-[3px] rounded-l-[11px]",
           RAIL[item.status],
           !selected && "opacity-50",
         )}
