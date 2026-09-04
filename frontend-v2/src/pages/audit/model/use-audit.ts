@@ -51,9 +51,10 @@ export function useAudit(): AuditState {
   const [query, setQuery] = useState("");
   const [range, setRange] = useState<DateRange>({ from: "", to: "" });
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  // Captured once per mount: a window that moved every render would refetch
-  // every render.
-  const [from] = useState(() => windowStart());
+  // Rounded to the hour inside windowStart, so this is stable across renders
+  // and advances once an hour — a value captured at mount would go stale on a
+  // tab left open all day.
+  const from = windowStart();
 
   const actors = useQuery(auditActorsQuery);
   const { filters, unknownActor } = useMemo(

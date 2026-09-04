@@ -13,6 +13,8 @@ import {
 import { useAudit } from "../model/use-audit";
 import { AuditPage } from "./audit-page";
 
+const CAPTION = "font-mono text-[10px] uppercase tracking-[0.18em] text-muted";
+
 /** Maps the container onto the page and draws the date pickers beside it. */
 export function AuditScreen() {
   const s = useAudit();
@@ -53,18 +55,27 @@ export function AuditScreen() {
       ) : null}
 
       {/* The pickers are the screen's, not the page's: the page stays
-          chrome-free and only receives the chip. */}
+          chrome-free and only receives the chip. The captions are `Field`'s
+          overline by hand — `Field` ties its <label> to a control id, and
+          `DatePicker` has no id to give it; a plain <span> also leaves the
+          trigger's accessible name the only "From" on the screen. */}
       <div className="flex flex-wrap items-end gap-3">
-        <DatePicker
-          label="From"
-          value={s.range.from}
-          onChange={(from) => s.setRange({ ...s.range, from })}
-        />
-        <DatePicker
-          label="To"
-          value={s.range.to}
-          onChange={(to) => s.setRange({ ...s.range, to })}
-        />
+        <div className="flex flex-col gap-1.5">
+          <span className={CAPTION}>From</span>
+          <DatePicker
+            label="From"
+            value={s.range.from}
+            onChange={(from) => s.setRange({ ...s.range, from })}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className={CAPTION}>To</span>
+          <DatePicker
+            label="To"
+            value={s.range.to}
+            onChange={(to) => s.setRange({ ...s.range, to })}
+          />
+        </div>
       </div>
 
       <AuditPage
@@ -88,6 +99,7 @@ export function AuditScreen() {
         live={s.live}
         onExport={s.exportCsv}
         exporting={s.exporting}
+        exportDisabled={!!s.unknownActor}
         onCopyJson={s.copyJson}
         onOpenEntity={href ? () => leaveTo(href) : undefined}
         onLoadOlder={s.loadOlder}

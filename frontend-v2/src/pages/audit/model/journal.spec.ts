@@ -84,6 +84,7 @@ describe("groupByDay", () => {
       [
         entry({ id: 3, at: "2026-09-01T09:14:00Z" }),
         entry({ id: 2, at: "2026-08-31T22:00:00Z" }),
+        entry({ id: 4, at: "2026-08-03T08:00:00Z" }),
         entry({ id: 1, at: "2025-12-24T10:00:00Z" }),
       ],
       NOW,
@@ -91,6 +92,7 @@ describe("groupByDay", () => {
     expect(days.map((d) => [d.key, d.label, d.events.map((e) => e.entry.id)])).toEqual([
       ["2026-09-01", "Today · 1 September", [3]],
       ["2026-08-31", "Yesterday · 31 August", [2]],
+      ["2026-08-03", "3 August", [4]],
       ["2025-12-24", "24 December 2025", [1]],
     ]);
     expect(days[0].total).toBeUndefined();
@@ -115,11 +117,15 @@ describe("activityOf and countersOf", () => {
         entry({ at: "2026-09-01T10:05:00Z" }),
         entry({ at: "2026-09-01T10:20:00Z" }),
         entry({ at: "2026-08-31T11:30:00Z" }),
+        // Older than the first bucket: the window query is rounded to the hour
+        // and may return a little more than the strip plots.
+        entry({ at: "2026-08-30T09:00:00Z" }),
       ],
       NOW,
       false,
     );
     expect(a.values).toHaveLength(24);
+    expect(a.values.reduce((n, v) => n + v, 0)).toBe(3);
     expect(a.values[23]).toBe(2);
     expect(a.values[0]).toBe(1);
     expect(a.dimFrom).toBe(23);
@@ -169,7 +175,8 @@ describe("inspectorDetails and entityHref", () => {
 });
 
 describe("windowStart", () => {
-  it("is 24 hours before now, as an instant", () => {
-    expect(windowStart(NOW)).toBe("2026-08-31T10:30:00.000Z");
+  it("is 24 hours before the running hour, so a long-open tab does not drift", () => {
+    expect(windowStart(NOW)).toBe("2026-08-31T10:00:00.000Z");
+    expect(windowStart(new Date("2026-09-01T10:59:59Z"))).toBe("2026-08-31T10:00:00.000Z");
   });
 });

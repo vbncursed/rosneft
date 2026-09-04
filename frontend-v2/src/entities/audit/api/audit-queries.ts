@@ -1,4 +1,4 @@
-import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
+import { infiniteQueryOptions, keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { listAudit, listAuditActors, type AuditFilters } from "./audit-gateway";
 
 const FOLLOW_MS = 30_000;
@@ -13,6 +13,10 @@ export const auditQuery = (filters: AuditFilters) =>
     initialPageParam: null as number | null,
     queryFn: ({ pageParam }) => listAudit(filters, pageParam),
     getNextPageParam: (last) => last.nextCursor,
+    // A changed filter is a new key with nothing cached, so the query would
+    // report "loading" and the screen would unmount the filter bar under the
+    // typing hand. The previous page stays on screen until the new one lands.
+    placeholderData: keepPreviousData,
     refetchInterval: (query) => followInterval(query.state.data?.pages.length ?? 0),
     refetchIntervalInBackground: false,
   });

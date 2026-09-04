@@ -1,3 +1,4 @@
+import { keepPreviousData } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("./audit-gateway", () => ({
@@ -13,6 +14,9 @@ describe("audit queries", () => {
     expect(q.getNextPageParam({ entries: [], nextCursor: 12, refs: {} }, [], null, [])).toBe(12);
     expect(q.getNextPageParam({ entries: [], nextCursor: null, refs: {} }, [], null, [])).toBeNull();
     expect(q.refetchIntervalInBackground).toBe(false);
+    // A new filter is a new key with no data; without this the screen's
+    // loading guard would unmount the filter bar on every keystroke.
+    expect(q.placeholderData).toBe(keepPreviousData);
     expect(followInterval(1)).toBe(30000);
     expect(followInterval(2)).toBe(false);
     expect(followInterval(0)).toBe(30000);
