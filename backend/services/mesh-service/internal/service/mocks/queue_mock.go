@@ -34,6 +34,13 @@ type QueueMock struct {
 	beforeGetJobCounter uint64
 	GetJobMock          mQueueMockGetJob
 
+	funcListTargetJobs          func(ctx context.Context) (ja1 []domain.Job, err error)
+	funcListTargetJobsOrigin    string
+	inspectFuncListTargetJobs   func(ctx context.Context)
+	afterListTargetJobsCounter  uint64
+	beforeListTargetJobsCounter uint64
+	ListTargetJobsMock          mQueueMockListTargetJobs
+
 	funcSaveJob          func(ctx context.Context, j domain.Job) (err error)
 	funcSaveJobOrigin    string
 	inspectFuncSaveJob   func(ctx context.Context, j domain.Job)
@@ -69,6 +76,9 @@ func NewQueueMock(t minimock.Tester) *QueueMock {
 
 	m.GetJobMock = mQueueMockGetJob{mock: m}
 	m.GetJobMock.callArgs = []*QueueMockGetJobParams{}
+
+	m.ListTargetJobsMock = mQueueMockListTargetJobs{mock: m}
+	m.ListTargetJobsMock.callArgs = []*QueueMockListTargetJobsParams{}
 
 	m.SaveJobMock = mQueueMockSaveJob{mock: m}
 	m.SaveJobMock.callArgs = []*QueueMockSaveJobParams{}
@@ -766,6 +776,318 @@ func (m *QueueMock) MinimockGetJobInspect() {
 	if !m.GetJobMock.invocationsDone() && afterGetJobCounter > 0 {
 		m.t.Errorf("Expected %d calls to QueueMock.GetJob at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.GetJobMock.expectedInvocations), m.GetJobMock.expectedInvocationsOrigin, afterGetJobCounter)
+	}
+}
+
+type mQueueMockListTargetJobs struct {
+	optional           bool
+	mock               *QueueMock
+	defaultExpectation *QueueMockListTargetJobsExpectation
+	expectations       []*QueueMockListTargetJobsExpectation
+
+	callArgs []*QueueMockListTargetJobsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// QueueMockListTargetJobsExpectation specifies expectation struct of the Queue.ListTargetJobs
+type QueueMockListTargetJobsExpectation struct {
+	mock               *QueueMock
+	params             *QueueMockListTargetJobsParams
+	paramPtrs          *QueueMockListTargetJobsParamPtrs
+	expectationOrigins QueueMockListTargetJobsExpectationOrigins
+	results            *QueueMockListTargetJobsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// QueueMockListTargetJobsParams contains parameters of the Queue.ListTargetJobs
+type QueueMockListTargetJobsParams struct {
+	ctx context.Context
+}
+
+// QueueMockListTargetJobsParamPtrs contains pointers to parameters of the Queue.ListTargetJobs
+type QueueMockListTargetJobsParamPtrs struct {
+	ctx *context.Context
+}
+
+// QueueMockListTargetJobsResults contains results of the Queue.ListTargetJobs
+type QueueMockListTargetJobsResults struct {
+	ja1 []domain.Job
+	err error
+}
+
+// QueueMockListTargetJobsOrigins contains origins of expectations of the Queue.ListTargetJobs
+type QueueMockListTargetJobsExpectationOrigins struct {
+	origin    string
+	originCtx string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmListTargetJobs *mQueueMockListTargetJobs) Optional() *mQueueMockListTargetJobs {
+	mmListTargetJobs.optional = true
+	return mmListTargetJobs
+}
+
+// Expect sets up expected params for Queue.ListTargetJobs
+func (mmListTargetJobs *mQueueMockListTargetJobs) Expect(ctx context.Context) *mQueueMockListTargetJobs {
+	if mmListTargetJobs.mock.funcListTargetJobs != nil {
+		mmListTargetJobs.mock.t.Fatalf("QueueMock.ListTargetJobs mock is already set by Set")
+	}
+
+	if mmListTargetJobs.defaultExpectation == nil {
+		mmListTargetJobs.defaultExpectation = &QueueMockListTargetJobsExpectation{}
+	}
+
+	if mmListTargetJobs.defaultExpectation.paramPtrs != nil {
+		mmListTargetJobs.mock.t.Fatalf("QueueMock.ListTargetJobs mock is already set by ExpectParams functions")
+	}
+
+	mmListTargetJobs.defaultExpectation.params = &QueueMockListTargetJobsParams{ctx}
+	mmListTargetJobs.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmListTargetJobs.expectations {
+		if minimock.Equal(e.params, mmListTargetJobs.defaultExpectation.params) {
+			mmListTargetJobs.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListTargetJobs.defaultExpectation.params)
+		}
+	}
+
+	return mmListTargetJobs
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Queue.ListTargetJobs
+func (mmListTargetJobs *mQueueMockListTargetJobs) ExpectCtxParam1(ctx context.Context) *mQueueMockListTargetJobs {
+	if mmListTargetJobs.mock.funcListTargetJobs != nil {
+		mmListTargetJobs.mock.t.Fatalf("QueueMock.ListTargetJobs mock is already set by Set")
+	}
+
+	if mmListTargetJobs.defaultExpectation == nil {
+		mmListTargetJobs.defaultExpectation = &QueueMockListTargetJobsExpectation{}
+	}
+
+	if mmListTargetJobs.defaultExpectation.params != nil {
+		mmListTargetJobs.mock.t.Fatalf("QueueMock.ListTargetJobs mock is already set by Expect")
+	}
+
+	if mmListTargetJobs.defaultExpectation.paramPtrs == nil {
+		mmListTargetJobs.defaultExpectation.paramPtrs = &QueueMockListTargetJobsParamPtrs{}
+	}
+	mmListTargetJobs.defaultExpectation.paramPtrs.ctx = &ctx
+	mmListTargetJobs.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmListTargetJobs
+}
+
+// Inspect accepts an inspector function that has same arguments as the Queue.ListTargetJobs
+func (mmListTargetJobs *mQueueMockListTargetJobs) Inspect(f func(ctx context.Context)) *mQueueMockListTargetJobs {
+	if mmListTargetJobs.mock.inspectFuncListTargetJobs != nil {
+		mmListTargetJobs.mock.t.Fatalf("Inspect function is already set for QueueMock.ListTargetJobs")
+	}
+
+	mmListTargetJobs.mock.inspectFuncListTargetJobs = f
+
+	return mmListTargetJobs
+}
+
+// Return sets up results that will be returned by Queue.ListTargetJobs
+func (mmListTargetJobs *mQueueMockListTargetJobs) Return(ja1 []domain.Job, err error) *QueueMock {
+	if mmListTargetJobs.mock.funcListTargetJobs != nil {
+		mmListTargetJobs.mock.t.Fatalf("QueueMock.ListTargetJobs mock is already set by Set")
+	}
+
+	if mmListTargetJobs.defaultExpectation == nil {
+		mmListTargetJobs.defaultExpectation = &QueueMockListTargetJobsExpectation{mock: mmListTargetJobs.mock}
+	}
+	mmListTargetJobs.defaultExpectation.results = &QueueMockListTargetJobsResults{ja1, err}
+	mmListTargetJobs.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmListTargetJobs.mock
+}
+
+// Set uses given function f to mock the Queue.ListTargetJobs method
+func (mmListTargetJobs *mQueueMockListTargetJobs) Set(f func(ctx context.Context) (ja1 []domain.Job, err error)) *QueueMock {
+	if mmListTargetJobs.defaultExpectation != nil {
+		mmListTargetJobs.mock.t.Fatalf("Default expectation is already set for the Queue.ListTargetJobs method")
+	}
+
+	if len(mmListTargetJobs.expectations) > 0 {
+		mmListTargetJobs.mock.t.Fatalf("Some expectations are already set for the Queue.ListTargetJobs method")
+	}
+
+	mmListTargetJobs.mock.funcListTargetJobs = f
+	mmListTargetJobs.mock.funcListTargetJobsOrigin = minimock.CallerInfo(1)
+	return mmListTargetJobs.mock
+}
+
+// When sets expectation for the Queue.ListTargetJobs which will trigger the result defined by the following
+// Then helper
+func (mmListTargetJobs *mQueueMockListTargetJobs) When(ctx context.Context) *QueueMockListTargetJobsExpectation {
+	if mmListTargetJobs.mock.funcListTargetJobs != nil {
+		mmListTargetJobs.mock.t.Fatalf("QueueMock.ListTargetJobs mock is already set by Set")
+	}
+
+	expectation := &QueueMockListTargetJobsExpectation{
+		mock:               mmListTargetJobs.mock,
+		params:             &QueueMockListTargetJobsParams{ctx},
+		expectationOrigins: QueueMockListTargetJobsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmListTargetJobs.expectations = append(mmListTargetJobs.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Queue.ListTargetJobs return parameters for the expectation previously defined by the When method
+func (e *QueueMockListTargetJobsExpectation) Then(ja1 []domain.Job, err error) *QueueMock {
+	e.results = &QueueMockListTargetJobsResults{ja1, err}
+	return e.mock
+}
+
+// Times sets number of times Queue.ListTargetJobs should be invoked
+func (mmListTargetJobs *mQueueMockListTargetJobs) Times(n uint64) *mQueueMockListTargetJobs {
+	if n == 0 {
+		mmListTargetJobs.mock.t.Fatalf("Times of QueueMock.ListTargetJobs mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmListTargetJobs.expectedInvocations, n)
+	mmListTargetJobs.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmListTargetJobs
+}
+
+func (mmListTargetJobs *mQueueMockListTargetJobs) invocationsDone() bool {
+	if len(mmListTargetJobs.expectations) == 0 && mmListTargetJobs.defaultExpectation == nil && mmListTargetJobs.mock.funcListTargetJobs == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmListTargetJobs.mock.afterListTargetJobsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmListTargetJobs.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ListTargetJobs implements mm_service.Queue
+func (mmListTargetJobs *QueueMock) ListTargetJobs(ctx context.Context) (ja1 []domain.Job, err error) {
+	mm_atomic.AddUint64(&mmListTargetJobs.beforeListTargetJobsCounter, 1)
+	defer mm_atomic.AddUint64(&mmListTargetJobs.afterListTargetJobsCounter, 1)
+
+	mmListTargetJobs.t.Helper()
+
+	if mmListTargetJobs.inspectFuncListTargetJobs != nil {
+		mmListTargetJobs.inspectFuncListTargetJobs(ctx)
+	}
+
+	mm_params := QueueMockListTargetJobsParams{ctx}
+
+	// Record call args
+	mmListTargetJobs.ListTargetJobsMock.mutex.Lock()
+	mmListTargetJobs.ListTargetJobsMock.callArgs = append(mmListTargetJobs.ListTargetJobsMock.callArgs, &mm_params)
+	mmListTargetJobs.ListTargetJobsMock.mutex.Unlock()
+
+	for _, e := range mmListTargetJobs.ListTargetJobsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.ja1, e.results.err
+		}
+	}
+
+	if mmListTargetJobs.ListTargetJobsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmListTargetJobs.ListTargetJobsMock.defaultExpectation.Counter, 1)
+		mm_want := mmListTargetJobs.ListTargetJobsMock.defaultExpectation.params
+		mm_want_ptrs := mmListTargetJobs.ListTargetJobsMock.defaultExpectation.paramPtrs
+
+		mm_got := QueueMockListTargetJobsParams{ctx}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmListTargetJobs.t.Errorf("QueueMock.ListTargetJobs got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListTargetJobs.ListTargetJobsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmListTargetJobs.t.Errorf("QueueMock.ListTargetJobs got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmListTargetJobs.ListTargetJobsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmListTargetJobs.ListTargetJobsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmListTargetJobs.t.Fatal("No results are set for the QueueMock.ListTargetJobs")
+		}
+		return (*mm_results).ja1, (*mm_results).err
+	}
+	if mmListTargetJobs.funcListTargetJobs != nil {
+		return mmListTargetJobs.funcListTargetJobs(ctx)
+	}
+	mmListTargetJobs.t.Fatalf("Unexpected call to QueueMock.ListTargetJobs. %v", ctx)
+	return
+}
+
+// ListTargetJobsAfterCounter returns a count of finished QueueMock.ListTargetJobs invocations
+func (mmListTargetJobs *QueueMock) ListTargetJobsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListTargetJobs.afterListTargetJobsCounter)
+}
+
+// ListTargetJobsBeforeCounter returns a count of QueueMock.ListTargetJobs invocations
+func (mmListTargetJobs *QueueMock) ListTargetJobsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListTargetJobs.beforeListTargetJobsCounter)
+}
+
+// Calls returns a list of arguments used in each call to QueueMock.ListTargetJobs.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmListTargetJobs *mQueueMockListTargetJobs) Calls() []*QueueMockListTargetJobsParams {
+	mmListTargetJobs.mutex.RLock()
+
+	argCopy := make([]*QueueMockListTargetJobsParams, len(mmListTargetJobs.callArgs))
+	copy(argCopy, mmListTargetJobs.callArgs)
+
+	mmListTargetJobs.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockListTargetJobsDone returns true if the count of the ListTargetJobs invocations corresponds
+// the number of defined expectations
+func (m *QueueMock) MinimockListTargetJobsDone() bool {
+	if m.ListTargetJobsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ListTargetJobsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ListTargetJobsMock.invocationsDone()
+}
+
+// MinimockListTargetJobsInspect logs each unmet expectation
+func (m *QueueMock) MinimockListTargetJobsInspect() {
+	for _, e := range m.ListTargetJobsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to QueueMock.ListTargetJobs at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterListTargetJobsCounter := mm_atomic.LoadUint64(&m.afterListTargetJobsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ListTargetJobsMock.defaultExpectation != nil && afterListTargetJobsCounter < 1 {
+		if m.ListTargetJobsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to QueueMock.ListTargetJobs at\n%s", m.ListTargetJobsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to QueueMock.ListTargetJobs at\n%s with params: %#v", m.ListTargetJobsMock.defaultExpectation.expectationOrigins.origin, *m.ListTargetJobsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcListTargetJobs != nil && afterListTargetJobsCounter < 1 {
+		m.t.Errorf("Expected call to QueueMock.ListTargetJobs at\n%s", m.funcListTargetJobsOrigin)
+	}
+
+	if !m.ListTargetJobsMock.invocationsDone() && afterListTargetJobsCounter > 0 {
+		m.t.Errorf("Expected %d calls to QueueMock.ListTargetJobs at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListTargetJobsMock.expectedInvocations), m.ListTargetJobsMock.expectedInvocationsOrigin, afterListTargetJobsCounter)
 	}
 }
 
@@ -1897,6 +2219,8 @@ func (m *QueueMock) MinimockFinish() {
 
 			m.MinimockGetJobInspect()
 
+			m.MinimockListTargetJobsInspect()
+
 			m.MinimockSaveJobInspect()
 
 			m.MinimockTryLockTargetInspect()
@@ -1927,6 +2251,7 @@ func (m *QueueMock) minimockDone() bool {
 	return done &&
 		m.MinimockEnqueueJobDone() &&
 		m.MinimockGetJobDone() &&
+		m.MinimockListTargetJobsDone() &&
 		m.MinimockSaveJobDone() &&
 		m.MinimockTryLockTargetDone() &&
 		m.MinimockUnlockTargetDone()

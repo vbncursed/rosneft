@@ -18,6 +18,12 @@ import (
 type Queue interface {
 	SaveJob(ctx context.Context, j domain.Job) error
 	GetJob(ctx context.Context, id string) (domain.Job, error)
+
+	// ListTargetJobs returns the latest job of every target that has one, in
+	// kind-then-slug order. Every status is included; callers decide what a
+	// succeeded job still means to them.
+	ListTargetJobs(ctx context.Context) ([]domain.Job, error)
+
 	EnqueueJob(ctx context.Context, jobID string) error
 
 	// TryLockTarget claims a target for the reconciler. Reports false when

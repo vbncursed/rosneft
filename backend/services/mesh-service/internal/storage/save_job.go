@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/redis/go-redis/v9"
+
 	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
@@ -30,8 +32,13 @@ func (r *Redis) SaveJob(ctx context.Context, j domain.Job) error {
 		"created_at":    j.CreatedAt.Format(time.RFC3339Nano),
 		"updated_at":    j.UpdatedAt.Format(time.RFC3339Nano),
 	}
-	if err := r.client.HSet(ctx, jobKey(j.ID), fields).Err(); err != nil {
-		return fmt.Errorf("storage.SaveJob: hset: %w", err)
+	_, err := r.client.TxPipelined(ctx, func(p redis.Pipeliner) error {
+		p.HSet(ctx, jobKey(j.ID), fields)
+		p.HSet(ctx, targetsKey, targetField(j.Kind, j.Slug), j.ID)
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("storage.SaveJob: pipeline: %w", err)
 	}
 	return nil
 }
