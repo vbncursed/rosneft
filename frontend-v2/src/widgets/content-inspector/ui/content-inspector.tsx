@@ -17,6 +17,13 @@ export type ContentInspectorProps = {
   /** Absent for a model — there is no source-replace route for one. */
   onReplaceSource?: () => void;
   onOpenInViewer: () => void;
+  /**
+   * Whether there is anything to open, when the route knows. A converted
+   * territory whose re-conversion is running or failed still has its old
+   * artifacts, so its status is the wrong thing to ask. Absent — a caller
+   * that resolves no artifacts — falls back to the status.
+   */
+  openable?: boolean;
   /** Absent when the viewer may not delete this kind. */
   onDelete?: () => void;
   /** Only a running conversion can be cancelled. */
@@ -32,6 +39,7 @@ export function ContentInspector({
   onClose,
   onReplaceSource,
   onOpenInViewer,
+  openable,
   onDelete,
   onCancelJob,
   canManage = true,
@@ -108,7 +116,7 @@ export function ContentInspector({
                 variant="accent"
                 className="flex-1 justify-center"
                 onClick={onOpenInViewer}
-                disabled={item.status !== "ready"}
+                disabled={!(openable ?? item.status === "ready")}
               >
                 Open in viewer
               </Button>

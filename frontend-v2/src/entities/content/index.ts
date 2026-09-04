@@ -1,7 +1,6 @@
 export {
   contentPath,
   hasArtifacts,
-  isOpenable,
   matchesFilters,
   matchesText,
   pipelineCounts,

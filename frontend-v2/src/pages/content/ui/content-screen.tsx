@@ -80,6 +80,9 @@ export function ContentScreen() {
         onUploadModel={() => leaveTo(uploadHref("model"))}
         onReplaceSource={replace ? () => leaveTo(replace) : undefined}
         onOpenInViewer={() => selected && leaveTo(contentPath(selected))}
+        // Artifacts, not status: a re-conversion that is running or failed
+        // leaves the previously converted scene on disk and viewable.
+        openable={!!selected && s.artifactsOf(selected.kind, selected.slug).length > 0}
         onDelete={selected && s.canDelete(selected.kind) ? s.ask : undefined}
         {...(s.items.length === 0
           ? { emptyHint: "Nothing uploaded yet — start with a territory." }
