@@ -33,6 +33,11 @@ describe("UploadDetails", () => {
     expect(screen.getByText("refinery-block-c")).toBeInTheDocument();
   });
 
+  it("hides the slug row until there is a preview to show — the mock draws only the filled state", () => {
+    render(<UploadDetails form={form()} onForm={vi.fn()} slug="" />);
+    expect(screen.queryByText("slug")).not.toBeInTheDocument();
+  });
+
   it("edits the description", async () => {
     const onForm = vi.fn();
     render(<UploadDetails form={form()} onForm={onForm} slug="" />);

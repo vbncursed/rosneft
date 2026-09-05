@@ -20,15 +20,15 @@ export function UploadProgressPanel({ phase, progress, canSubmit, onSubmit, onCa
   return (
     <div className="flex flex-col gap-3.5">
       {progress ? (
-        <div className="flex flex-col gap-3.5 rounded-card border border-accent-line bg-panel p-5">
+        <div className="flex flex-col gap-3.5 rounded-card border border-accent-line bg-panel px-[22px] py-5">
           <div className="flex items-center justify-between gap-3">
             <p className="m-0 text-[13px] font-semibold">Uploading</p>
             <p className="m-0 font-mono text-[11px] text-accent">{progress.header}</p>
           </div>
           <ProgressBar value={progress.value} tone="accent" ariaLabel="Upload progress" />
           <div className="flex flex-wrap gap-[18px] font-mono text-[10px] text-muted">
-            {progress.stats.map((s, i) => (
-              <span key={i}>{s}</span>
+            {progress.stats.map((s) => (
+              <span key={s}>{s}</span>
             ))}
           </div>
         </div>

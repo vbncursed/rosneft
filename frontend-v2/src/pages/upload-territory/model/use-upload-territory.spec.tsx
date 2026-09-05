@@ -192,6 +192,32 @@ describe("useUploadTerritory", () => {
     expect(result.current.notices).toHaveLength(0);
   });
 
+  it("clears the stale progress from a cancelled attempt before the retry reports its own", async () => {
+    let latestOnProgress:
+      | ((p: { bytes: number; total: number; chunk: number; chunks: number }) => void)
+      | undefined;
+    runChunkedUpload.mockImplementation(
+      (_file, opts) =>
+        new Promise((_resolve, reject) => {
+          latestOnProgress = opts.onProgress;
+          opts.signal?.addEventListener("abort", () => reject(new Error("upload aborted")));
+        }),
+    );
+    const { result } = renderHook(() => useUploadTerritory(), { wrapper });
+    act(() => result.current.onFiles([file()]));
+    act(() => result.current.onForm({ title: "T" }));
+
+    act(() => result.current.onSubmit());
+    act(() => latestOnProgress?.({ bytes: 512, total: 1024, chunk: 1, chunks: 2 }));
+    expect(result.current.progress?.value).toBe(50);
+
+    act(() => result.current.onCancel());
+    await waitFor(() => expect(result.current.phase).toBe("picked"));
+
+    act(() => result.current.onSubmit());
+    expect(result.current.progress).toBeUndefined();
+  });
+
   it("says the whole page needs territory:write when the viewer lacks the grant", () => {
     client.setQueryData(["me"], { ...PRINCIPAL, permissions: [] });
     const { result } = renderHook(() => useUploadTerritory(), { wrapper });

@@ -22,10 +22,12 @@ export function UploadDetails({ form, onForm, slug }: UploadDetailsProps) {
           value={form.title}
           onChange={(e) => onForm({ title: e.target.value })}
         />
-        <p className="mt-[7px] flex gap-[7px] font-mono text-[11px]">
-          <span className="text-dim">slug</span>
-          <span className="text-accent">{slug}</span>
-        </p>
+        {slug ? (
+          <p className="mt-[7px] flex gap-[7px] font-mono text-[11px]">
+            <span className="text-dim">slug</span>
+            <span className="text-accent">{slug}</span>
+          </p>
+        ) : null}
       </div>
 
       <Textarea
