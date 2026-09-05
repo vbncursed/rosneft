@@ -37,6 +37,9 @@ export async function runChunkedUpload(
     onProgress?.({ bytes: offset, total, chunk: Math.ceil(offset / CHUNK_SIZE), chunks });
   }
 
+  // A cancel that lands after the last chunk resolved but before this check
+  // must still be honoured — otherwise a doomed session gets finalized anyway.
+  if (signal?.aborted) throw new Error("upload aborted");
   onStage?.("finalizing");
   return finalizeUpload(session.id);
 }

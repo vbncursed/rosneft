@@ -32,5 +32,8 @@ export async function createModel(
 /** Attaches a picker thumbnail after the upload finalizes; empty clears it. */
 export const setModelThumbnail = async (slug: string, thumbnailBlobHash: string): Promise<Model> =>
   toModel(
-    await httpPatch<ModelDto>(`/api/models/${encodeURIComponent(slug)}`, { thumbnailBlobHash }),
+    await httpPatch<ModelDto>(
+      `/api/models/${encodeURIComponent(slug)}`,
+      { thumbnailBlobHash } satisfies components["schemas"]["ModelUpdate"],
+    ),
   );
