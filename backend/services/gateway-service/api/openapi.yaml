@@ -53,6 +53,10 @@ components:
         sourceBlobHash: { type: string, pattern: '^[0-9a-f]{64}$' }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+        placementCount:
+          type: integer
+          minimum: 0
+          description: Placements on this territory; filled on the list endpoint.
 
     Model:
       type: object
@@ -70,6 +74,10 @@ components:
             Fetch the image from /api/assets/{thumbnailBlobHash}.
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+        usageCount:
+          type: integer
+          minimum: 0
+          description: Distinct territories placing this model; filled on the list endpoint.
 
     LodArtifact:
       type: object

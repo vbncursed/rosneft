@@ -17,6 +17,7 @@ func territoryFromProto(t *catalogv1.Territory) domain.Territory {
 		ExternalPanoramaURL: t.GetExternalPanoramaUrl(),
 		CreatedAt:           t.GetCreatedAt().AsTime(),
 		UpdatedAt:           t.GetUpdatedAt().AsTime(),
+		PlacementCount:      int(t.GetPlacementCount()),
 	}
 }
 
@@ -27,6 +28,7 @@ func territoryToProto(t domain.Territory) *catalogv1.Territory {
 		Description:         t.Description,
 		SourceBlobHash:      t.SourceBlobHash,
 		ExternalPanoramaUrl: t.ExternalPanoramaURL,
+		PlacementCount:      uint32(t.PlacementCount),
 	}
 }
 
@@ -42,6 +44,7 @@ func modelFromProto(m *catalogv1.Model) domain.Model {
 		ThumbnailBlobHash: m.GetThumbnailBlobHash(),
 		CreatedAt:         m.GetCreatedAt().AsTime(),
 		UpdatedAt:         m.GetUpdatedAt().AsTime(),
+		UsageCount:        int(m.GetUsageCount()),
 	}
 }
 
@@ -52,6 +55,7 @@ func modelToProto(m domain.Model) *catalogv1.Model {
 		Description:       m.Description,
 		SourceBlobHash:    m.SourceBlobHash,
 		ThumbnailBlobHash: m.ThumbnailBlobHash,
+		UsageCount:        uint32(m.UsageCount),
 	}
 }
 

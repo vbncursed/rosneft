@@ -1715,7 +1715,7 @@ export interface paths {
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
-                /** @description System role cannot be deleted */
+                /** @description System role */
                 422: {
                     headers: {
                         [name: string]: unknown;
@@ -2253,6 +2253,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            /** @description Placements on this territory; filled on the list endpoint. */
+            placementCount?: number;
         };
         Model: {
             slug: string;
@@ -2268,6 +2270,8 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            /** @description Distinct territories placing this model; filled on the list endpoint. */
+            usageCount?: number;
         };
         /**
          * @description Minimal descriptor for one LOD level. Carries only size/geometry
