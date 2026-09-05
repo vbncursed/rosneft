@@ -106,20 +106,33 @@ export function viewerOf(me: Principal): { username: string; roleTitle: string }
   return { username: me.username, roleTitle };
 }
 
+/** The catalog shell's four routes — no sidebar, unlike the console. */
+export const CATALOG_PATHS = ["/territories", "/territories/new", "/models", "/models/new"] as const;
+
+/**
+ * A catalog screen href, query string included. Deliberately not
+ * `/territories/<slug>` or `/models/<slug>` — those still leave to the old
+ * SPA's viewer, so a click on one must fall through to a real navigation.
+ */
+export const isCatalogHref = (href: string): boolean =>
+  (CATALOG_PATHS as readonly string[]).includes(href.split("?")[0] ?? href);
+
+type ClickModifiers = {
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+  button: number;
+};
+
+const plainLeftClick = (e: ClickModifiers): boolean =>
+  !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && e.button === 0;
+
 /**
  * Whether a click on an anchor should be handed to the router instead of the
- * browser: a same-app console link, on a plain left click. Anything else —
- * a modified click (new tab/window, extend selection) or a non-primary
- * button — must fall through to a real navigation.
+ * browser: a same-app console or catalog link, on a plain left click.
+ * Anything else — a modified click (new tab/window, extend selection) or a
+ * non-primary button — must fall through to a real navigation.
  */
-export const routesInApp = (
-  href: string | null | undefined,
-  e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; button: number },
-): boolean =>
-  !!href &&
-  href.startsWith("/console") &&
-  !e.metaKey &&
-  !e.ctrlKey &&
-  !e.shiftKey &&
-  !e.altKey &&
-  e.button === 0;
+export const routesInApp = (href: string | null | undefined, e: ClickModifiers): boolean =>
+  !!href && (href.startsWith("/console") || isCatalogHref(href)) && plainLeftClick(e);

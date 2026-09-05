@@ -2,9 +2,9 @@ import { useState } from "react";
 import { ModelPickerCard } from "./ui/model-picker-card";
 import type { Model } from "./model/model";
 
-const tank: Model = { slug: "storage-tank-500", title: "Tank 500", sourceBlobHash: "a" };
-const pump: Model = { slug: "pump-jack", title: "Pump Jack", sourceBlobHash: "b" };
-const flare: Model = { slug: "flare-stack", title: "Flare", sourceBlobHash: "c" };
+const tank: Model = { slug: "storage-tank-500", title: "Tank 500", sourceBlobHash: "a", usageCount: 0 };
+const pump: Model = { slug: "pump-jack", title: "Pump Jack", sourceBlobHash: "b", usageCount: 0 };
+const flare: Model = { slug: "flare-stack", title: "Flare", sourceBlobHash: "c", usageCount: 0 };
 
 function Picker() {
   const [selected, setSelected] = useState("storage-tank-500");

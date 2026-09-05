@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { modelPath, thumbnailUrl, type Model } from "./model";
 
-const model: Model = { slug: "storage-tank-500", title: "Storage Tank 500", sourceBlobHash: "a" };
+const model: Model = { slug: "storage-tank-500", title: "Storage Tank 500", sourceBlobHash: "a", usageCount: 0 };
 
 describe("modelPath", () => {
   it("builds the detail route from a slug", () => {

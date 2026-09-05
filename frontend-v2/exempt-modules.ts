@@ -25,6 +25,10 @@ export const EXEMPT_MODULES = [
   "src/app/router/router.tsx",
   // wiring; every decision is in guard.ts
   "src/app/router/console-shell.tsx",
+  // Same as console-shell.tsx above: the click delegate calls routesInApp,
+  // which has its own spec. Soon is a one-line placeholder for Tasks 4-7,
+  // removed in Task 7 — nothing here to test either.
+  "src/app/router/catalog-shell-route.tsx",
   // Split out of routes.tsx solely so a named, hook-calling route component
   // does not sit beside route consts (rules-of-hooks wants the name,
   // only-export-components then objects to the mix). It spreads useLogin()'s

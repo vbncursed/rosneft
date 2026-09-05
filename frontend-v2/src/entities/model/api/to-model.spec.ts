@@ -19,6 +19,7 @@ describe("toModel", () => {
       sourceBlobHash: "b".repeat(64),
       createdAt: "2026-08-01T00:00:00Z",
       updatedAt: "2026-08-31T00:00:00Z",
+      usageCount: 0,
     });
   });
 
@@ -35,6 +36,16 @@ describe("toModel", () => {
       title: "Hauler Truck",
       sourceBlobHash: "b".repeat(64),
       thumbnailBlobHash: "c".repeat(64),
+      usageCount: 0,
     });
+  });
+
+  // Only the list endpoint fills usageCount; a Get path omits it, and 0 must
+  // read as "used nowhere", not as an unanswered field.
+  it("defaults a missing usageCount to 0, and keeps a present one", () => {
+    expect(toModel({ slug: "m", title: "M", sourceBlobHash: "a".repeat(64) }).usageCount).toBe(0);
+    expect(
+      toModel({ slug: "m", title: "M", sourceBlobHash: "a".repeat(64), usageCount: 3 }).usageCount,
+    ).toBe(3);
   });
 });

@@ -12,6 +12,8 @@ export type Model = {
   thumbnailBlobHash?: string;
   createdAt?: string;
   updatedAt?: string;
+  /** Distinct territories placing this model. Filled on the list endpoint; a Get path defaults it to 0. */
+  usageCount: number;
 };
 
 export const modelPath = (slug: string) => `/models/${slug}`;

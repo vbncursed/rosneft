@@ -12,6 +12,7 @@ export {
   type JobState,
   type StageState,
 } from "./model/status";
+export { stageLabel } from "./model/stage-label";
 export {
   finishedSince,
   isLive,
