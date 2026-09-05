@@ -97,17 +97,47 @@ describe("QueueRowCard", () => {
     expect(screen.getByText("thumbnail · attached")).toBeInTheDocument();
   });
 
-  it("names its thumbnail input after the row's own title, uniquely", () => {
+  it("names its thumbnail input after the file, uniquely — not the editable title", () => {
     render(<QueueRowCard row={row()} onTitle={() => {}} onRemove={() => {}} onThumbnail={() => {}} />);
-    expect(screen.getByLabelText("Add thumbnail for Pump Jack Unit")).toBeInTheDocument();
+    expect(screen.getByLabelText("Add thumbnail for pump-jack-unit.zip")).toBeInTheDocument();
+  });
+
+  it("renames the thumbnail control once one is attached", () => {
+    render(
+      <QueueRowCard
+        row={row({ thumbnail: file("t.png", 100) })}
+        onTitle={() => {}}
+        onRemove={() => {}}
+        onThumbnail={() => {}}
+      />,
+    );
+    expect(screen.getByLabelText("Thumbnail attached for pump-jack-unit.zip")).toBeInTheDocument();
   });
 
   it("hands the picked thumbnail up through onThumbnail", async () => {
     const onThumbnail = vi.fn();
     render(<QueueRowCard row={row()} onTitle={() => {}} onRemove={() => {}} onThumbnail={onThumbnail} />);
     const thumb = new File(["x"], "cover.png", { type: "image/png" });
-    await userEvent.upload(screen.getByLabelText("Add thumbnail for Pump Jack Unit"), thumb);
+    await userEvent.upload(screen.getByLabelText("Add thumbnail for pump-jack-unit.zip"), thumb);
     expect(onThumbnail).toHaveBeenCalledWith(thumb);
+  });
+
+  it("shows no thumbnail affordance on a done row that never got one", () => {
+    render(<QueueRowCard row={row({ status: "done" })} onTitle={() => {}} onRemove={() => {}} onThumbnail={() => {}} />);
+    expect(screen.queryByText(/add image/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/thumbnail/i)).not.toBeInTheDocument();
+  });
+
+  it("still says thumbnail attached on a done row that has one", () => {
+    render(
+      <QueueRowCard
+        row={row({ status: "done", thumbnail: file("t.png", 100) })}
+        onTitle={() => {}}
+        onRemove={() => {}}
+        onThumbnail={() => {}}
+      />,
+    );
+    expect(screen.getByText("thumbnail · attached")).toBeInTheDocument();
   });
 
   it("prints the archive size", () => {

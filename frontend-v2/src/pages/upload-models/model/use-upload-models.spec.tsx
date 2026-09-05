@@ -220,6 +220,77 @@ describe("useUploadModels", () => {
     // The loop stopped: b never started.
     expect(result.current.s.rows.find((r) => r.id === b.id)?.status).toBe("queued");
     expect(result.current.notices).toHaveLength(0);
+    // A deliberate cancel is not a parsing failure — it does not get its own callout.
+    expect(result.current.s.failedNames).toEqual([]);
+  });
+
+  it("cancelling after a row already succeeded does not redirect, and leaves the rest of the queue on screen", async () => {
+    let signal: AbortSignal | undefined;
+    let call = 0;
+    runChunkedUpload.mockImplementation((_f: File, opts: { signal?: AbortSignal }) => {
+      call += 1;
+      if (call === 1) return Promise.resolve({ hash: "hash-a", size: 1 });
+      return new Promise((_resolve, reject) => {
+        signal = opts.signal;
+        opts.signal?.addEventListener("abort", () => reject(new Error("upload aborted")));
+      });
+    });
+    createModel.mockResolvedValue({ model: { slug: "a", title: "A" }, job: { id: "job-a" } });
+
+    const { result } = renderHook(() => useUploadModels(), { wrapper });
+    act(() => result.current.onFiles([file("a.zip"), file("b.zip"), file("c.zip")]));
+    const [a, b, c] = result.current.rows;
+    act(() => result.current.onTitle(a.id, "A"));
+    act(() => result.current.onTitle(b.id, "B"));
+    act(() => result.current.onTitle(c.id, "C"));
+
+    act(() => result.current.onRun());
+    await waitFor(() => expect(result.current.rows.find((r) => r.id === a.id)?.status).toBe("done"));
+    await waitFor(() => expect(result.current.rows.find((r) => r.id === b.id)?.status).toBe("uploading"));
+
+    act(() => result.current.onCancel());
+    expect(signal?.aborted).toBe(true);
+    await waitFor(() => expect(result.current.running).toBe(false));
+
+    expect(result.current.rows.find((r) => r.id === b.id)).toMatchObject({ status: "failed", error: "cancelled" });
+    expect(result.current.rows.find((r) => r.id === c.id)?.status).toBe("queued");
+    expect(leaveTo).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("retries a failed row on a second onRun", async () => {
+    let attempt = 0;
+    runChunkedUpload.mockImplementation(() => {
+      attempt += 1;
+      return attempt === 1
+        ? Promise.reject(new HttpError(422, null, "bad archive"))
+        : Promise.resolve({ hash: "hash-a", size: 1 });
+    });
+    createModel.mockResolvedValue({ model: { slug: "a", title: "A" }, job: { id: "job-a" } });
+
+    const { result } = renderHook(() => useUploadModels(), { wrapper });
+    act(() => result.current.onFiles([file("a.zip")]));
+    act(() => result.current.onTitle(result.current.rows[0].id, "A"));
+
+    act(() => result.current.onRun());
+    await waitFor(() => expect(result.current.rows[0].status).toBe("failed"));
+
+    act(() => result.current.onRun());
+    await waitFor(() => expect(leaveTo).toHaveBeenCalled());
+    expect(result.current.rows[0].status).toBe("done");
+    expect(runChunkedUpload).toHaveBeenCalledTimes(2);
+  });
+
+  it("names the current row with 0 of its chunks right after onRun, before any progress lands", async () => {
+    runChunkedUpload.mockImplementation(() => new Promise(() => {}));
+    const { result } = renderHook(() => useUploadModels(), { wrapper });
+    act(() => result.current.onFiles([file("a.zip", 1_000_000)]));
+    act(() => result.current.onTitle(result.current.rows[0].id, "A"));
+
+    act(() => result.current.onRun());
+
+    expect(result.current.current?.row.status).toBe("uploading");
+    expect(result.current.current?.stats.chunk).toBe("0 / 1");
   });
 
   it("reports the currently processing row and its stats while running", async () => {
@@ -233,7 +304,6 @@ describe("useUploadModels", () => {
     act(() => result.current.onTitle(result.current.rows[0].id, "A"));
 
     act(() => result.current.onRun());
-    expect(result.current.current).toBeUndefined();
 
     act(() => reportProgress?.({ bytes: 500_000, total: 1_000_000, chunk: 1, chunks: 2 }));
     expect(result.current.current?.row.status).toBe("uploading");
