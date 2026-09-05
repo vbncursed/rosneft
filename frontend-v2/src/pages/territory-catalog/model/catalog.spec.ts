@@ -48,10 +48,10 @@ describe("toTerritoryCard", () => {
     });
   });
 
-  it("dashes the placement chip at zero, and draws no panorama chip without one", () => {
+  it("prints 0 placements as a fact, not a dash — only the size chip dashes when unconverted", () => {
     const card = toTerritoryCard(territory({ placementCount: 0 }), ARTIFACTS);
     expect(card.chips).toEqual([
-      { label: "—", tone: "plain" },
+      { label: "0 placements", tone: "plain" },
       { label: "412 MB", tone: "plain" },
     ]);
     expect(card.panorama).toBe(false);

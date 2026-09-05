@@ -1,7 +1,7 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { artifactsQuery } from "@/entities/content";
-import { jobsQuery } from "@/entities/conversion";
+import { finishedSince, jobsQuery, type TargetJob } from "@/entities/conversion";
 import { deleteTerritory, territoriesQuery } from "@/entities/territory";
 import { meQuery } from "@/entities/user";
 import { messageOf } from "@/shared/api";
@@ -78,6 +78,19 @@ export function useTerritoryCatalog(): TerritoryCatalogState {
   // populated catalog with an outage page.
   const failed = unanswered(territories) ?? artifacts.failed ?? unanswered(jobs);
   const loading = territories.isPending || artifacts.pending || jobs.isPending;
+
+  // A row whose job just finished has new artifacts (or, after a failure, the
+  // same old ones): re-read that row's artifacts so LODs, size and status
+  // catch up. Ported from use-content.ts — /api/jobs drops a succeeded job on
+  // its next poll and nothing else would ever refetch this row's artifacts.
+  const previousJobs = useRef<TargetJob[] | undefined>(undefined);
+  useEffect(() => {
+    if (!jobs.data) return;
+    for (const { kind, slug } of finishedSince(previousJobs.current, jobs.data)) {
+      void client.invalidateQueries({ queryKey: ["artifacts", kind, slug] });
+    }
+    previousJobs.current = jobs.data;
+  }, [jobs.data, client]);
 
   return {
     status: loading ? "loading" : failed ? "unavailable" : "ready",
