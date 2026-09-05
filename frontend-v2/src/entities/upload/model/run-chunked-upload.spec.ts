@@ -3,11 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const initiateUpload = vi.fn();
 const appendChunk = vi.fn();
 const finalizeUpload = vi.fn();
+const abortUpload = vi.fn();
 
 vi.mock("../api/upload-gateway", () => ({
   initiateUpload: (...args: unknown[]) => initiateUpload(...args),
   appendChunk: (...args: unknown[]) => appendChunk(...args),
   finalizeUpload: (...args: unknown[]) => finalizeUpload(...args),
+  abortUpload: (...args: unknown[]) => abortUpload(...args),
 }));
 
 const { runChunkedUpload } = await import("./run-chunked-upload");
@@ -29,6 +31,7 @@ beforeEach(() => {
   // The gateway answers with the new total offset after each accepted chunk.
   appendChunk.mockReset().mockImplementation((_id, _offset, slice) => (slice as { end: number }).end);
   finalizeUpload.mockReset().mockResolvedValue({ hash: "abc", size: 1 });
+  abortUpload.mockReset().mockResolvedValue(undefined);
 });
 
 describe("runChunkedUpload", () => {
@@ -57,7 +60,7 @@ describe("runChunkedUpload", () => {
     expect(appendChunk.mock.calls.map((c) => c[1])).toEqual([CHUNK, 2 * CHUNK]);
   });
 
-  it("rejects when aborted between chunks and never finalizes", async () => {
+  it("rejects when aborted between chunks, never finalizes, and cleans up the server session once", async () => {
     const ac = new AbortController();
     appendChunk.mockImplementation((_id, _offset, slice) => {
       ac.abort();
@@ -68,6 +71,14 @@ describe("runChunkedUpload", () => {
     ).rejects.toThrow("upload aborted");
     expect(appendChunk).toHaveBeenCalledTimes(1);
     expect(finalizeUpload).not.toHaveBeenCalled();
+    expect(abortUpload).toHaveBeenCalledTimes(1);
+    expect(abortUpload).toHaveBeenCalledWith("u1");
+  });
+
+  it("does not clean up the session on a non-abort failure", async () => {
+    appendChunk.mockRejectedValueOnce(new Error("network drop"));
+    await expect(runChunkedUpload(fakeFile(20 * MB))).rejects.toThrow("network drop");
+    expect(abortUpload).not.toHaveBeenCalled();
   });
 
   it("rejects immediately for a signal that is already aborted", async () => {

@@ -9,7 +9,14 @@ import { leaveTo } from "@/shared/lib/leave";
 import { notify } from "@/shared/lib/notify";
 import { can } from "@/shared/session";
 import type { ChecklistItem } from "@/shared/ui/checklist";
-import { ARCHIVE_CHECKLIST, progressFor, stagesFor, type UploadForm, type UploadPhase } from "./upload-form";
+import {
+  ARCHIVE_CHECKLIST,
+  canSubmit,
+  progressFor,
+  stagesFor,
+  type UploadForm,
+  type UploadPhase,
+} from "./upload-form";
 
 export type UploadTerritoryState = {
   phase: UploadPhase;
@@ -62,10 +69,14 @@ export function useUploadTerritory(): UploadTerritoryState {
   const onForm = (patch: Partial<UploadForm>) => setForm((prev) => ({ ...prev, ...patch }));
 
   const onSubmit = () => {
-    if (phase !== "picked" || !file || form.title.trim() === "") return;
+    if (!canSubmit(phase, file, form)) return;
     const ac = new AbortController();
     controller.current = ac;
     setSamples([{ at: Date.now(), bytes: 0 }]);
+    // A retry after a cancel/failure keeps the same phase-driven visibility
+    // rule (progressFor) but must not show the previous attempt's numbers
+    // until this run's own onProgress has something to say.
+    setProgress(null);
     setPhase("uploading");
 
     runChunkedUpload(file, {

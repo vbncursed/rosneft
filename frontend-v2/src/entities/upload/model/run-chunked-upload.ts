@@ -1,4 +1,4 @@
-import { appendChunk, finalizeUpload, initiateUpload, type FinalizedBlob } from "../api/upload-gateway";
+import { abortUpload, appendChunk, finalizeUpload, initiateUpload, type FinalizedBlob } from "../api/upload-gateway";
 
 export const CHUNK_SIZE = 8 * 1024 * 1024;
 
@@ -26,20 +26,29 @@ export async function runChunkedUpload(
   onStage?.("initiating");
   const session = await initiateUpload(file.size, file.type || "application/zip");
 
-  onStage?.("uploading");
-  const total = file.size;
-  const chunks = Math.max(1, Math.ceil(total / CHUNK_SIZE));
-  let offset = session.offset;
-  while (offset < total) {
-    if (signal?.aborted) throw new Error("upload aborted");
-    const slice = file.slice(offset, Math.min(offset + CHUNK_SIZE, total));
-    offset = await appendChunk(session.id, offset, slice, signal);
-    onProgress?.({ bytes: offset, total, chunk: Math.ceil(offset / CHUNK_SIZE), chunks });
-  }
+  try {
+    onStage?.("uploading");
+    const total = file.size;
+    const chunks = Math.max(1, Math.ceil(total / CHUNK_SIZE));
+    let offset = session.offset;
+    while (offset < total) {
+      if (signal?.aborted) throw new Error("upload aborted");
+      const slice = file.slice(offset, Math.min(offset + CHUNK_SIZE, total));
+      offset = await appendChunk(session.id, offset, slice, signal);
+      onProgress?.({ bytes: offset, total, chunk: Math.ceil(offset / CHUNK_SIZE), chunks });
+    }
 
-  // A cancel that lands after the last chunk resolved but before this check
-  // must still be honoured — otherwise a doomed session gets finalized anyway.
-  if (signal?.aborted) throw new Error("upload aborted");
-  onStage?.("finalizing");
-  return finalizeUpload(session.id);
+    // A cancel that lands after the last chunk resolved but before this check
+    // must still be honoured — otherwise a doomed session gets finalized anyway.
+    if (signal?.aborted) throw new Error("upload aborted");
+    onStage?.("finalizing");
+    return await finalizeUpload(session.id);
+  } catch (e) {
+    // A cancel leaves a session on the gateway with nobody left to finalize
+    // or resume it — clean it up here so every caller gets that for free,
+    // rather than each one remembering to call abortUpload itself. Fire-and
+    // forget: the real error is the one the caller asked for, not this one.
+    if (signal?.aborted) void abortUpload(session.id);
+    throw e;
+  }
 }

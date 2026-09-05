@@ -7,8 +7,13 @@ export type UploadPhase = "idle" | "picked" | "uploading" | "finalizing" | "crea
 
 export type UploadForm = { title: string; description: string; panoramaUrl: string };
 
-/** The Upload button is live only once a file is picked and the title is not blank. */
-export const canSubmit = (phase: UploadPhase, file: File | null, form: UploadForm): boolean =>
+/**
+ * The Upload button is live only once a file is picked and the title is not
+ * blank. A type predicate on `file` — not just a boolean — so callers that
+ * guard on it (the hook's `onSubmit`) keep `file` narrowed to `File` for the
+ * upload call that follows, instead of re-checking it a second time.
+ */
+export const canSubmit = (phase: UploadPhase, file: File | null, form: UploadForm): file is File =>
   phase === "picked" && !!file && form.title.trim() !== "";
 
 /** The file card's meta line: no hash yet (that only exists after finalize), no archive inspection. */
