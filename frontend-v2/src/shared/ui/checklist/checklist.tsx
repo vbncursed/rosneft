@@ -14,8 +14,8 @@ export type ChecklistProps = {
 export function Checklist({ items, label, className }: ChecklistProps) {
   return (
     <ul aria-label={label ?? "Checklist"} className={cx("m-0 flex list-none flex-col gap-2 p-0", className)}>
-      {items.map((item) => (
-        <li key={item.label} className="flex items-start gap-[9px]">
+      {items.map((item, index) => (
+        <li key={index} className="flex items-start gap-[9px]">
           <Icon
             name={item.ok ? "check" : "minus"}
             size={13}

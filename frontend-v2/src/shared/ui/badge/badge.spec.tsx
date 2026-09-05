@@ -45,4 +45,19 @@ describe("Badge", () => {
     rerender(<Badge tone="neutral" fill="outline">Company Owner</Badge>);
     expect(screen.getByText("Company Owner").className).toContain("text-muted");
   });
+
+  it("tracks a chip tighter than a pill — the two must never both carry a tracking-* class", () => {
+    render(<Badge shape="chip">3 placements</Badge>);
+    const cls = screen.getByText("3 placements").className;
+    expect(cls).toContain("tracking-[0.06em]");
+    expect(cls).not.toContain("tracking-[0.16em]");
+    expect(cls).not.toContain("tracking-[0.14em]");
+  });
+
+  it("keeps the pill's own tracking at the default md size", () => {
+    render(<Badge shape="pill">ready</Badge>);
+    const cls = screen.getByText("ready").className;
+    expect(cls).toContain("tracking-[0.16em]");
+    expect(cls).not.toContain("tracking-[0.06em]");
+  });
 });

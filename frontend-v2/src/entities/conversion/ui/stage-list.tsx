@@ -25,12 +25,12 @@ export function StageList({ stages, label = "Conversion stages", activeTone, cla
               aria-hidden="true"
               className={cx("size-[7px] shrink-0 rounded-full", dot, anyHint && "mt-[5px]")}
             />
-            <span className="flex-1">
+            <div className="min-w-0 flex-1">
               <span className={cx("font-mono text-[11px]", text)}>{stage.label}</span>
               {stage.hint ? (
                 <p className="mt-[3px] text-[11px] leading-[1.45] text-muted">{stage.hint}</p>
               ) : null}
-            </span>
+            </div>
             <span className="shrink-0 font-mono text-[10px] text-dim">{stage.time}</span>
           </li>
         );

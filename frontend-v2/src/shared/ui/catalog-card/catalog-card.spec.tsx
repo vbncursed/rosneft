@@ -112,6 +112,40 @@ describe("CatalogCard", () => {
     expect(screen.getByRole("heading", { name: "Pump Jack Unit" }).className).toContain("text-[14px]");
   });
 
+  it("rounds the small size to its own radius, not the default card's", () => {
+    render(
+      <CatalogCard
+        title="Pump Jack Unit"
+        slug="pump-jack-unit"
+        size="sm"
+        trailing={{ label: "in 6 territories", tone: "accent" }}
+      />,
+    );
+    const cls = screen.getByRole("article").className;
+    expect(cls).toContain("rounded-[12px]");
+    expect(cls).not.toContain("rounded-[14px]");
+  });
+
+  it("opens the card from the keyboard via the title button, exactly once despite the bubble to the article", async () => {
+    const onOpen = vi.fn();
+    render(
+      <CatalogCard
+        title="North Ridge Pad"
+        slug="north-ridge-pad"
+        trailing={{ label: "Open →", tone: "accent" }}
+        onOpen={onOpen}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "North Ridge Pad" }));
+    expect(onOpen).toHaveBeenCalledOnce();
+  });
+
+  it("renders the title as plain text, not a button, without onOpen", () => {
+    render(<CatalogCard title="T" slug="t" trailing={{ label: "unavailable", tone: "muted" }} />);
+    expect(screen.queryByRole("button", { name: "T" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "T" })).toBeInTheDocument();
+  });
+
   it("omits the description paragraph when there is none", () => {
     const { container } = render(
       <CatalogCard title="T" slug="t" trailing={{ label: "Open →", tone: "accent" }} />,
