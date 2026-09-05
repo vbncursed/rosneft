@@ -83,6 +83,7 @@ export default {
         title="Pump Jack Unit"
         slug="pump-jack-unit"
         thumbnailUrl={PLACEHOLDER_THUMB}
+        meta="38 MB"
         trailing={{ label: "in 6 territories", tone: "accent" }}
         onOpen={() => {}}
       />
@@ -93,13 +94,15 @@ export default {
         tone="bad"
         badge={{ label: "failed", tone: "bad" }}
         noImageLabel="no image"
+        meta="—"
         trailing={{ label: "unavailable", tone: "bad" }}
       />
       <CatalogCard
         size="sm"
-        title="Ladder Platform"
-        slug="ladder-platform"
+        title="Storage Tank 500"
+        slug="storage-tank-500"
         noImageLabel="no image"
+        meta="96 MB"
         trailing={{ label: "unused", tone: "muted" }}
       />
     </div>

@@ -7,7 +7,6 @@ import {
 import { type ConversionStatus, type TargetJob } from "@/entities/conversion";
 import { thumbnailUrl as urlOf, type Model } from "@/entities/model";
 import { freeText, parseFilters } from "@/features/audit-filter";
-import type { CatalogChip } from "@/shared/ui/catalog-card";
 import { formatBytes } from "@/shared/lib/format-bytes";
 
 export type ModelTab = "all" | "inUse" | "noImage";
@@ -18,7 +17,8 @@ export type ModelCardModel = {
   status: ConversionStatus;
   thumbnailUrl: string | null;
   usageCount: number;
-  chips: CatalogChip[];
+  /** The footer's plain right-hand text — "—" only while nothing is converted. */
+  size: string;
   /** LOD levels present — not drawn on the card, only matched by `lod:`. */
   lods: string;
   trailing: { label: string; tone: "accent" | "muted" | "warn" | "bad" };
@@ -46,7 +46,7 @@ export function toModelCard(model: Model, artifacts: Artifact[], job?: TargetJob
     status,
     thumbnailUrl: urlOf(model),
     usageCount: model.usageCount,
-    chips: [{ label: artifacts.length > 0 ? formatBytes(totalSize(artifacts)) : "—", tone: "plain" }],
+    size: artifacts.length > 0 ? formatBytes(totalSize(artifacts)) : "—",
     lods: lodLabel(artifacts),
     trailing: TRAILING_OVERRIDE[status] ?? usageTrailing(model.usageCount),
   };
@@ -72,7 +72,14 @@ export function matchesModel(card: ModelCardModel, tab: ModelTab, query: string)
 
   const matchesFilters = parseFilters(query).every(({ key, value }) => {
     const needle = value.toLowerCase();
-    if (key === "thumbnail") return (card.thumbnailUrl !== null) === (needle === "yes" || needle === "true");
+    if (key === "thumbnail") {
+      // Only "none" and "yes" are values this filter understands — anything
+      // else (a stray "no" or "true") matches nothing, same convention as an
+      // unknown key.
+      if (needle === "none") return card.thumbnailUrl === null;
+      if (needle === "yes") return card.thumbnailUrl !== null;
+      return false;
+    }
     if (key === "used") return card.usageCount === Number(value);
     if (key === "lod") return card.lods.toLowerCase().includes(needle);
     return false;

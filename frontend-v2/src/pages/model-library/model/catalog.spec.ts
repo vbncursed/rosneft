@@ -38,7 +38,7 @@ describe("toModelCard", () => {
       status: "ready",
       thumbnailUrl: "/api/assets/" + "b".repeat(64),
       usageCount: 6,
-      chips: [{ label: "38 MB", tone: "plain" }],
+      size: "38 MB",
       lods: "LOD 0-2",
       trailing: { label: "in 6 territories", tone: "accent" },
     });
@@ -63,11 +63,11 @@ describe("toModelCard", () => {
   });
 
   it("does not dash the size chip when artifacts exist", () => {
-    expect(toModelCard(model(), ARTIFACTS).chips).toEqual([{ label: "38 MB", tone: "plain" }]);
+    expect(toModelCard(model(), ARTIFACTS).size).toBe("38 MB");
   });
 
   it("dashes the size chip with nothing converted", () => {
-    expect(toModelCard(model(), []).chips).toEqual([{ label: "—", tone: "plain" }]);
+    expect(toModelCard(model(), []).size).toBe("—");
   });
 
   it("is converting with a queued trailing, whatever the usage count says", () => {
@@ -98,7 +98,7 @@ describe("tabCounts", () => {
     status: "ready",
     thumbnailUrl: null,
     usageCount: 0,
-    chips: [{ label: "—", tone: "plain" }],
+    size: "—",
     lods: "LOD 0",
     trailing: { label: "unused", tone: "muted" },
     ...over,
@@ -126,7 +126,7 @@ describe("matchesModel", () => {
     status: "ready",
     thumbnailUrl: "/api/assets/x",
     usageCount: 6,
-    chips: [{ label: "38 MB", tone: "plain" }],
+    size: "38 MB",
     lods: "LOD 0-2",
     trailing: { label: "in 6 territories", tone: "accent" },
     ...over,
@@ -147,6 +147,11 @@ describe("matchesModel", () => {
     expect(matchesModel(card({ thumbnailUrl: null }), "all", "thumbnail:none")).toBe(true);
     expect(matchesModel(card({ thumbnailUrl: "x" }), "all", "thumbnail:none")).toBe(false);
     expect(matchesModel(card({ thumbnailUrl: "x" }), "all", "thumbnail:yes")).toBe(true);
+  });
+
+  it("matches nothing for a thumbnail: value that is neither none nor yes", () => {
+    expect(matchesModel(card({ thumbnailUrl: null }), "all", "thumbnail:no")).toBe(false);
+    expect(matchesModel(card({ thumbnailUrl: "x" }), "all", "thumbnail:true")).toBe(false);
   });
 
   it("narrows by used:", () => {

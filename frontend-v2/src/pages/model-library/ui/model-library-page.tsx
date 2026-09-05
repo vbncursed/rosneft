@@ -114,7 +114,7 @@ export function ModelLibraryPage({
               badge={BADGE[card.status]}
               thumbnailUrl={card.thumbnailUrl ?? undefined}
               noImageLabel={card.thumbnailUrl ? undefined : "no image"}
-              chips={card.chips}
+              meta={card.size}
               trailing={card.trailing}
               onOpen={() => onOpen(card.slug)}
               actions={
@@ -123,7 +123,11 @@ export function ModelLibraryPage({
                     shape="icon"
                     size="sm"
                     variant="secondary"
-                    aria-label={`Delete ${card.title}`}
+                    aria-label={
+                      card.usageCount > 0
+                        ? `Delete ${card.title} — remove its placements first`
+                        : `Delete ${card.title}`
+                    }
                     disabled={card.usageCount > 0}
                     title={card.usageCount > 0 ? "Remove its placements first" : undefined}
                     onClick={() => onDelete(card.slug)}

@@ -10,7 +10,7 @@ const card = (slug: string, title: string, over: Partial<ModelCardModel> = {}): 
   status: "ready",
   thumbnailUrl: "/api/assets/x",
   usageCount: 6,
-  chips: [{ label: "38 MB", tone: "plain" }],
+  size: "38 MB",
   lods: "LOD 0-2",
   trailing: { label: "in 6 territories", tone: "accent" },
   ...over,
@@ -99,18 +99,38 @@ describe("ModelLibraryPage", () => {
     expect(screen.queryByRole("button", { name: /^Delete /})).not.toBeInTheDocument();
   });
 
-  it("disables Delete for a placed model, with a hint, but names it just the same", () => {
+  it("disables Delete for a placed model, folding the reason into its accessible name", () => {
     render(<ModelLibraryPage {...props()} />);
-    const button = screen.getByRole("button", { name: "Delete Pump Jack Unit" });
+    const button = screen.getByRole("button", { name: /remove its placements first/ });
     expect(button).toBeDisabled();
+    expect(button).toHaveAccessibleName("Delete Pump Jack Unit — remove its placements first");
     expect(button).toHaveAttribute("title", "Remove its placements first");
   });
 
-  it("leaves Delete enabled for an unused model", () => {
+  it("leaves Delete enabled for an unused model, with its plain name and no title", () => {
     render(<ModelLibraryPage {...props()} />);
     const button = screen.getByRole("button", { name: "Delete Separator Vessel" });
     expect(button).not.toBeDisabled();
     expect(button).not.toHaveAttribute("title");
+  });
+
+  it("shows a card's footer usage and size text together", () => {
+    render(
+      <ModelLibraryPage
+        {...props({
+          cards: [
+            card("pipe-rack-segment", "Pipe Rack Segment", {
+              usageCount: 3,
+              size: "26 MB",
+              trailing: { label: "in 3 territories", tone: "accent" },
+            }),
+          ],
+        })}
+      />,
+    );
+    const article = screen.getByRole("article", { name: "Pipe Rack Segment" });
+    expect(article).toHaveTextContent("in 3 territories");
+    expect(article).toHaveTextContent("26 MB");
   });
 
   it("hides the theme-adjacent + Upload action and the footer CTA for a reader who may not upload", () => {
