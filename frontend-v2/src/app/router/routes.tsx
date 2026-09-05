@@ -10,6 +10,7 @@ import { meQuery } from "@/entities/user";
 import { AuditScreen } from "@/pages/audit";
 import { ContentScreen } from "@/pages/content";
 import { MetricsScreen } from "@/pages/metrics";
+import { ModelLibraryScreen } from "@/pages/model-library";
 import { RolesScreen } from "@/pages/roles";
 import { TerritoryAccessScreen } from "@/pages/territory-access";
 import { TerritoryCatalogScreen } from "@/pages/territory-catalog";
@@ -167,7 +168,7 @@ export const territoryNewRoute = createRoute({
 export const modelsRoute = createRoute({
   getParentRoute: () => catalogRoute,
   path: "/models",
-  component: Soon,
+  component: ModelLibraryScreen,
 });
 
 export const modelNewRoute = createRoute({
