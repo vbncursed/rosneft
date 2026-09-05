@@ -125,25 +125,25 @@ export function CatalogCard({
           sm ? "gap-2.5 px-[15px] pb-[15px] pt-[13px]" : "gap-3 px-[18px] pb-[18px] pt-4",
         )}
       >
-        {onOpen ? (
-          <button
-            type="button"
-            onClick={(event) => {
-              // The article's own onClick handles the rest of the card; without
-              // this the click would bubble there too and fire onOpen twice.
-              event.stopPropagation();
-              onOpen();
-            }}
-            className={cx(
-              titleClass,
-              "text-left hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-            )}
-          >
-            {title}
-          </button>
-        ) : (
-          <h3 className={titleClass}>{title}</h3>
-        )}
+        <h3 className={titleClass}>
+          {onOpen ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                // The article's own onClick handles the rest of the card;
+                // without this the click would bubble there too and fire
+                // onOpen twice.
+                event.stopPropagation();
+                onOpen();
+              }}
+              className="m-0 border-0 bg-transparent p-0 text-left [font:inherit] hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              {title}
+            </button>
+          ) : (
+            title
+          )}
+        </h3>
 
         {description ? <p className="m-0 text-[13px] leading-[1.55] text-muted">{description}</p> : null}
 

@@ -54,6 +54,7 @@ describe("DropZone", () => {
     const zone = container.firstElementChild as HTMLElement;
     fireEvent.dragEnter(zone);
     expect(zone.className).toContain("border-accent");
+    expect(zone.className).not.toContain("border-line-2");
 
     const file = new File(["x"], "a.zip");
     fireEvent.drop(zone, { dataTransfer: { files: [file] } });

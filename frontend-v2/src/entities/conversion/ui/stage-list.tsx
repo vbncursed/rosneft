@@ -16,10 +16,10 @@ export function StageList({ stages, label = "Conversion stages", activeTone, cla
 
   return (
     <ul aria-label={label} className={cx("m-0 flex list-none flex-col gap-[7px] p-0", className)}>
-      {stages.map((stage) => {
+      {stages.map((stage, index) => {
         const { dot, text } = toneClasses(stage.state, activeTone);
         return (
-          <li key={stage.label} className={cx("flex gap-2.5", anyHint ? "items-start" : "items-center")}>
+          <li key={index} className={cx("flex gap-2.5", anyHint ? "items-start" : "items-center")}>
             {/* The dot repeats what the text tone already says, for a glance. */}
             <span
               aria-hidden="true"

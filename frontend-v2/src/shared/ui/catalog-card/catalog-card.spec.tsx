@@ -140,6 +140,21 @@ describe("CatalogCard", () => {
     expect(onOpen).toHaveBeenCalledOnce();
   });
 
+  it("keeps its heading even when openable — the button lives inside the h3, not instead of it", () => {
+    render(
+      <CatalogCard
+        title="North Ridge Pad"
+        slug="north-ridge-pad"
+        trailing={{ label: "Open →", tone: "accent" }}
+        onOpen={() => {}}
+      />,
+    );
+    expect(
+      screen.getByRole("heading", { level: 3, name: "North Ridge Pad" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "North Ridge Pad" })).toBeInTheDocument();
+  });
+
   it("renders the title as plain text, not a button, without onOpen", () => {
     render(<CatalogCard title="T" slug="t" trailing={{ label: "unavailable", tone: "muted" }} />);
     expect(screen.queryByRole("button", { name: "T" })).not.toBeInTheDocument();
