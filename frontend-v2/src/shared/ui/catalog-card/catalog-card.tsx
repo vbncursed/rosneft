@@ -69,16 +69,20 @@ export function CatalogCard({
   className,
 }: CatalogCardProps) {
   const sm = size === "sm";
+  const titleClass = cx(
+    "m-0 font-semibold",
+    sm ? "truncate text-[14px] tracking-[-0.01em]" : "text-[18px] tracking-[-0.015em]",
+  );
 
   return (
     <article
       aria-label={title}
       onClick={onOpen}
       className={cx(
-        "overflow-hidden rounded-[14px] border bg-panel",
+        "overflow-hidden border bg-panel",
         TONE[tone],
         onOpen && "cursor-pointer",
-        sm && "rounded-[12px]",
+        sm ? "rounded-[12px]" : "rounded-[14px]",
         className,
       )}
     >
@@ -115,15 +119,31 @@ export function CatalogCard({
         ) : null}
       </div>
 
-      <div className={cx("flex flex-col gap-3 px-[18px] pb-[18px] pt-4", sm && "gap-2.5 px-[15px] pb-[15px] pt-[13px]")}>
-        <h3
-          className={cx(
-            "m-0 font-semibold",
-            sm ? "truncate text-[14px] tracking-[-0.01em]" : "text-[18px] tracking-[-0.015em]",
-          )}
-        >
-          {title}
-        </h3>
+      <div
+        className={cx(
+          "flex flex-col",
+          sm ? "gap-2.5 px-[15px] pb-[15px] pt-[13px]" : "gap-3 px-[18px] pb-[18px] pt-4",
+        )}
+      >
+        {onOpen ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              // The article's own onClick handles the rest of the card; without
+              // this the click would bubble there too and fire onOpen twice.
+              event.stopPropagation();
+              onOpen();
+            }}
+            className={cx(
+              titleClass,
+              "text-left hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+            )}
+          >
+            {title}
+          </button>
+        ) : (
+          <h3 className={titleClass}>{title}</h3>
+        )}
 
         {description ? <p className="m-0 text-[13px] leading-[1.55] text-muted">{description}</p> : null}
 

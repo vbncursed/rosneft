@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Checklist } from "./checklist";
 
 describe("Checklist", () => {
@@ -32,5 +32,20 @@ describe("Checklist", () => {
   it("names itself Checklist by default", () => {
     render(<Checklist items={[{ label: "x", ok: true }]} />);
     expect(screen.getByRole("list", { name: "Checklist" })).toBeInTheDocument();
+  });
+
+  it("renders every row even when two items share a label, with no duplicate-key warning", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    render(
+      <Checklist
+        items={[
+          { label: "Metres as units", ok: false },
+          { label: "Metres as units", ok: true },
+        ]}
+      />,
+    );
+    expect(screen.getAllByText("Metres as units")).toHaveLength(2);
+    expect(error.mock.calls.some((call) => String(call[0]).includes("same key"))).toBe(false);
+    error.mockRestore();
   });
 });

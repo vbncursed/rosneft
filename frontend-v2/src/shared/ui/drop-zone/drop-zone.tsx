@@ -51,6 +51,11 @@ export function DropZone({
   const onDragOver = (event: DragEvent<HTMLLabelElement>) => {
     if (disabled) return;
     event.preventDefault();
+    // dragover fires continuously while the pointer is anywhere over the
+    // zone, including its children — crossing into one bubbles a dragleave
+    // from the label first, so re-asserting `over` here is what undoes that
+    // spurious leave instead of the highlight dying mid-hover.
+    setOver(true);
   };
 
   const onDragLeave = (event: DragEvent<HTMLLabelElement>) => {
@@ -84,7 +89,7 @@ export function DropZone({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       className={cx(
-        "flex cursor-pointer items-center gap-3.5 rounded-[12px] border border-dashed border-line-2 bg-panel px-5 py-[18px]",
+        "flex cursor-pointer items-center gap-3.5 rounded-[12px] border border-dashed border-line-2 bg-panel px-5 py-[18px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
         over && "border-accent bg-accent-soft",
         disabled && "cursor-not-allowed opacity-55",
         className,
@@ -102,6 +107,7 @@ export function DropZone({
         ref={inputRef}
         type="file"
         aria-label={label}
+        tabIndex={-1}
         className="sr-only"
         accept={accept}
         multiple={multiple}

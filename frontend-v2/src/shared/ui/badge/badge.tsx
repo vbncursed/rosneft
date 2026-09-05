@@ -24,8 +24,8 @@ const badge = cva(
         chip: "rounded-[6px] normal-case",
       },
       size: {
-        sm: "px-2.5 py-0.5 text-[9px] tracking-[0.14em]",
-        md: "px-2.5 py-[3px] text-[10px] tracking-[0.16em]",
+        sm: "px-2.5 py-0.5 text-[9px]",
+        md: "px-2.5 py-[3px] text-[10px]",
       },
     },
     compoundVariants: [
@@ -37,9 +37,19 @@ const badge = cva(
       { fill: "outline", tone: "neutral", class: "text-muted" },
       { fill: "soft", tone: "dim", class: "bg-panel-2" },
       { shape: "tag", size: "sm", class: "px-1.5 py-px" },
-      { shape: "tag", size: "md", class: "px-[7px] py-0.5 tracking-[0.14em]" },
-      { shape: "chip", size: "sm", class: "px-2 py-px tracking-[0.06em]" },
-      { shape: "chip", size: "md", class: "px-[9px] py-[3px] text-[10px] tracking-[0.06em]" },
+      { shape: "tag", size: "md", class: "px-[7px] py-0.5" },
+      { shape: "chip", size: "sm", class: "px-2 py-px" },
+      { shape: "chip", size: "md", class: "px-[9px] py-[3px] text-[10px]" },
+      // Tracking lives here, per shape, rather than on `size`: two variant
+      // groups both setting tracking-* collide by the compiled stylesheet's
+      // own source order, not by the className string's order, so whichever
+      // utility came last in Tailwind's output always won regardless of
+      // which one a given shape actually wanted (chip silently rendered at
+      // the pill/tag's 0.14–0.16em). One property, one variant group.
+      { shape: "pill", size: "sm", class: "tracking-[0.14em]" },
+      { shape: "pill", size: "md", class: "tracking-[0.16em]" },
+      { shape: "tag", class: "tracking-[0.14em]" },
+      { shape: "chip", class: "tracking-[0.06em]" },
     ],
     defaultVariants: { tone: "neutral", fill: "soft", shape: "pill", size: "md" },
   },

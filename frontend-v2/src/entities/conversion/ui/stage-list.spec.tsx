@@ -50,6 +50,12 @@ describe("StageList · hints and tone", () => {
     expect(screen.getByText("content hash written")).toBeInTheDocument();
   });
 
+  it("wraps the label and hint in a div, not a span — a <p> cannot nest in inline content", () => {
+    render(<StageList stages={STAGES_WITH_HINTS} />);
+    const hint = screen.getByText("8 MB chunks, resumable");
+    expect(hint.parentElement!.tagName).toBe("DIV");
+  });
+
   it("switches the active stage to accent when activeTone is accent", () => {
     render(<StageList stages={STAGES_WITH_HINTS} activeTone="accent" />);
     expect(screen.getByText("Chunked upload").className).toContain("text-accent");

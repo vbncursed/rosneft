@@ -1,3 +1,5 @@
+import { Button } from "@/shared/ui/button";
+import { Icon } from "@/shared/ui/icon";
 import { CatalogCard } from "./catalog-card";
 
 // A tiny inline placeholder — no network fetch inside a Cosmos fixture.
@@ -31,6 +33,34 @@ export default {
         ]}
         progress={{ value: 62, stage: "Compressing textures… ~4 min" }}
         trailing={{ label: "converting", tone: "warn" }}
+      />
+      <CatalogCard
+        title="Well Cluster 9"
+        slug="well-cluster-9"
+        description="Six wellheads with shared gathering manifold."
+        badge={{ label: "ready", tone: "ok" }}
+        chips={[
+          { label: "6 placements", tone: "plain" },
+          { label: "288 MB", tone: "plain" },
+          { label: "assigned to you", tone: "accent" },
+        ]}
+        trailing={{ label: "Open →", tone: "accent" }}
+        onOpen={() => {}}
+        actions={
+          <>
+            <Button
+              shape="icon"
+              size="sm"
+              variant="secondary"
+              aria-label="Replace source of Well Cluster 9"
+            >
+              <Icon name="refresh" size={14} />
+            </Button>
+            <Button shape="icon" size="sm" variant="secondary" aria-label="Delete Well Cluster 9">
+              <Icon name="trash" size={14} />
+            </Button>
+          </>
+        }
       />
       <CatalogCard
         title="Pipe Rack B7"
