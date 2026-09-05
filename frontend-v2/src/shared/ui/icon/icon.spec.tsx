@@ -25,6 +25,13 @@ describe("Icon", () => {
     expect(ruler.querySelector("svg")!.getAttribute("stroke-width")).toBe("1.6");
   });
 
+  it("renders the newly added glyphs", () => {
+    for (const name of ["minus", "grid", "list"] as const) {
+      const { container } = render(<Icon name={name} />);
+      expect(container.querySelector("svg")).toBeInTheDocument();
+    }
+  });
+
   it("renders every name in the registry with the given size", () => {
     for (const name of ICON_NAMES) {
       const { container } = render(<Icon name={name} size={26} />);

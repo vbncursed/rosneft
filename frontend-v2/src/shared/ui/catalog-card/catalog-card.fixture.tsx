@@ -1,41 +1,77 @@
-import { Badge } from "@/shared/ui/badge";
-import { Button } from "@/shared/ui/button";
 import { CatalogCard } from "./catalog-card";
 
-export default (
-  <div className="p-6 grid gap-4 md:grid-cols-3">
-    <CatalogCard
-      kind="Territory"
-      title="Refinery Block C"
-      description="Distillation towers, tank farm, and pipe racks for Block C."
-      slug="refinery-block-c"
-      href="#"
-      badge={<Badge tone="ok" fill="outline" size="sm">ready</Badge>}
-      trailing="Open →"
-    />
-    <CatalogCard
-      kind="Territory · hover"
-      title="North Ridge Pad"
-      description="Wellhead cluster and gathering lines across the northern block."
-      slug="north-ridge-pad"
-      href="#"
-      highlighted
-      trailing="Open →"
-      actions={
-        <div className="flex gap-1.5">
-          <Button size="sm" shape="pill">Replace</Button>
-          <Button size="sm" shape="pill" variant="danger">Delete</Button>
-        </div>
-      }
-    />
-    <CatalogCard
-      kind="Model"
-      title="Flare Stack"
-      description="Elevated flare with knockout drum."
-      slug="flare-stack"
-      muted
-      badge={<Badge tone="warn" fill="outline" size="sm">converting</Badge>}
-      trailing="42%"
-    />
-  </div>
-);
+// A tiny inline placeholder — no network fetch inside a Cosmos fixture.
+const PLACEHOLDER_THUMB =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='100%25' height='100%25' fill='%23888'/%3E%3C/svg%3E";
+
+export default {
+  territories: (
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3.5 p-6">
+      <CatalogCard
+        title="North Ridge Pad"
+        slug="north-ridge-pad"
+        description="Wellhead cluster and gathering lines across the northern block."
+        badge={{ label: "ready", tone: "ok" }}
+        chips={[
+          { label: "3 placements", tone: "plain" },
+          { label: "412 MB", tone: "plain" },
+          { label: "panorama", tone: "ok" },
+        ]}
+        trailing={{ label: "Open →", tone: "accent" }}
+        onOpen={() => {}}
+      />
+      <CatalogCard
+        title="Terminal Yard 4"
+        slug="terminal-yard-4"
+        tone="warn"
+        badge={{ label: "converting", tone: "warn" }}
+        chips={[
+          { label: "LOD 0-1", tone: "warn" },
+          { label: "760 MB", tone: "plain" },
+        ]}
+        progress={{ value: 62, stage: "Compressing textures… ~4 min" }}
+        trailing={{ label: "converting", tone: "warn" }}
+      />
+      <CatalogCard
+        title="Pipe Rack B7"
+        slug="pipe-rack-b7"
+        description="Source archive rejected — the OBJ references textures by absolute path."
+        tone="bad"
+        badge={{ label: "failed", tone: "bad" }}
+        chips={[
+          { label: "—", tone: "plain" },
+          { label: "1.1 GB", tone: "plain" },
+        ]}
+        trailing={{ label: "unavailable", tone: "muted" }}
+      />
+    </div>
+  ),
+  models: (
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(216px,1fr))] gap-3 p-6">
+      <CatalogCard
+        size="sm"
+        title="Pump Jack Unit"
+        slug="pump-jack-unit"
+        thumbnailUrl={PLACEHOLDER_THUMB}
+        trailing={{ label: "in 6 territories", tone: "accent" }}
+        onOpen={() => {}}
+      />
+      <CatalogCard
+        size="sm"
+        title="Flare Stack"
+        slug="flare-stack"
+        tone="bad"
+        badge={{ label: "failed", tone: "bad" }}
+        noImageLabel="no image"
+        trailing={{ label: "unavailable", tone: "bad" }}
+      />
+      <CatalogCard
+        size="sm"
+        title="Ladder Platform"
+        slug="ladder-platform"
+        noImageLabel="no image"
+        trailing={{ label: "unused", tone: "muted" }}
+      />
+    </div>
+  ),
+};

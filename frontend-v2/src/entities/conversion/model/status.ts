@@ -59,6 +59,8 @@ export type ConversionStage = {
   state: StageState;
   /** Elapsed for a finished step, or what it is doing, e.g. "running". */
   time: string;
+  /** A second, quieter line under the label — the upload pipeline's mock draws one per stage. */
+  hint?: string;
 };
 
 export const STAGE_DOT: Record<StageState, string> = {
@@ -72,3 +74,17 @@ export const STAGE_TEXT: Record<StageState, string> = {
   active: "text-warn",
   pending: "text-dim",
 };
+
+export type ActiveTone = "warn" | "accent";
+
+/**
+ * A stage's dot/text classes. Done and pending never change; the active step
+ * can switch from the conversion pipeline's warn to the upload pipeline's
+ * accent, which is the only thing `activeTone` decides.
+ */
+export function toneClasses(state: StageState, activeTone: ActiveTone = "warn") {
+  if (state !== "active") return { dot: STAGE_DOT[state], text: STAGE_TEXT[state] };
+  return activeTone === "accent"
+    ? { dot: "bg-accent", text: "text-accent" }
+    : { dot: STAGE_DOT.active, text: STAGE_TEXT.active };
+}

@@ -16,4 +16,3 @@ export {
 } from "./model/access";
 export { AccessRow, type AccessRowProps, type AccessVia } from "./ui/access-row";
 export { TerritoryAccessRow, type TerritoryAccessRowProps } from "./ui/territory-access-row";
-export { TerritoryCard, type TerritoryCardProps } from "./ui/territory-card";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isOpenable, jobProgress, trailingNote } from "./status";
+import { isOpenable, jobProgress, toneClasses, trailingNote } from "./status";
 
 describe("isOpenable", () => {
   it("opens only a finished conversion", () => {
@@ -44,5 +44,20 @@ describe("jobProgress", () => {
 
   it("stays indeterminate before the worker reports anything", () => {
     expect(jobProgress({ id: "1", slug: "t", state: "queued", stage: "…", eta: "—" })).toBeUndefined();
+  });
+});
+
+describe("toneClasses", () => {
+  it("tones a done or pending stage the same regardless of activeTone", () => {
+    expect(toneClasses("done", "accent")).toEqual({ dot: "bg-ok", text: "text-fg" });
+    expect(toneClasses("pending", "accent")).toEqual({ dot: "bg-line-2", text: "text-dim" });
+  });
+
+  it("tones the active stage warn by default", () => {
+    expect(toneClasses("active")).toEqual({ dot: "bg-warn", text: "text-warn" });
+  });
+
+  it("tones the active stage accent when asked", () => {
+    expect(toneClasses("active", "accent")).toEqual({ dot: "bg-accent", text: "text-accent" });
   });
 });

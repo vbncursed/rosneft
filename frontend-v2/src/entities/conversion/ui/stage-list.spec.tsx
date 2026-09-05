@@ -37,3 +37,26 @@ describe("StageList", () => {
     expect(screen.getByRole("list")).toBeEmptyDOMElement();
   });
 });
+
+describe("StageList · hints and tone", () => {
+  const STAGES_WITH_HINTS: ConversionStage[] = [
+    { label: "Chunked upload", state: "active", time: "running", hint: "8 MB chunks, resumable" },
+    { label: "Finalize blob", state: "pending", time: "queued", hint: "content hash written" },
+  ];
+
+  it("renders the hint under its stage's label", () => {
+    render(<StageList stages={STAGES_WITH_HINTS} />);
+    expect(screen.getByText("8 MB chunks, resumable")).toBeInTheDocument();
+    expect(screen.getByText("content hash written")).toBeInTheDocument();
+  });
+
+  it("switches the active stage to accent when activeTone is accent", () => {
+    render(<StageList stages={STAGES_WITH_HINTS} activeTone="accent" />);
+    expect(screen.getByText("Chunked upload").className).toContain("text-accent");
+  });
+
+  it("keeps the warn default when activeTone is not given", () => {
+    render(<StageList stages={STAGES_WITH_HINTS} />);
+    expect(screen.getByText("Chunked upload").className).toContain("text-warn");
+  });
+});

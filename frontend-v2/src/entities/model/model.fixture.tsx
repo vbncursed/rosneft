@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { ModelCard } from "./ui/model-card";
 import { ModelPickerCard } from "./ui/model-picker-card";
 import type { Model } from "./model/model";
 
@@ -26,15 +25,6 @@ function Picker() {
 }
 
 export default {
-  cards: (
-    <div className="p-6 grid gap-4 md:grid-cols-2">
-      <ModelCard
-        model={{ ...flare, description: "Elevated flare with knockout drum." }}
-        conversion={{ status: "ready" }}
-      />
-      <ModelCard model={tank} conversion={{ status: "converting", progress: 42 }} />
-    </div>
-  ),
   picker: (
     <div className="rounded-card border border-line bg-panel p-6">
       <Picker />

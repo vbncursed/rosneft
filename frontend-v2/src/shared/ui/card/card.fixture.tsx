@@ -28,5 +28,16 @@ export default (
         <p className="m-0 mt-2 font-mono text-[10px] text-dim">viewer skeleton</p>
       </Card>
     </div>
+    <EmptyState
+      layout="row"
+      icon="plus"
+      title="Add another territory"
+      description="ZIP with OBJ + MTL + textures — conversion starts automatically."
+      action={
+        <Button variant="accent" shape="pill" size="sm">
+          Upload territory
+        </Button>
+      }
+    />
   </div>
 );
