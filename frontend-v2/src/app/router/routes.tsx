@@ -12,6 +12,7 @@ import { ContentScreen } from "@/pages/content";
 import { MetricsScreen } from "@/pages/metrics";
 import { RolesScreen } from "@/pages/roles";
 import { TerritoryAccessScreen } from "@/pages/territory-access";
+import { TerritoryCatalogScreen } from "@/pages/territory-catalog";
 import { UsersScreen } from "@/pages/users";
 import { isAuthed } from "@/shared/session";
 import { CatalogShellRoute, Soon } from "./catalog-shell-route";
@@ -154,7 +155,7 @@ export const catalogRoute = createRoute({
 export const territoriesRoute = createRoute({
   getParentRoute: () => catalogRoute,
   path: "/territories",
-  component: Soon,
+  component: TerritoryCatalogScreen,
 });
 
 export const territoryNewRoute = createRoute({

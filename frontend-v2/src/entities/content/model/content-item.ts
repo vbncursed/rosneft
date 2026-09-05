@@ -1,4 +1,4 @@
-import type { ConversionStatus } from "@/entities/conversion";
+import { isLive, type ConversionStatus, type TargetJob } from "@/entities/conversion";
 
 export type ContentKind = "territory" | "model";
 
@@ -29,6 +29,22 @@ export const contentPath = (item: ContentItem) =>
 
 /** Nothing converted yet — the design writes both columns as an em dash. */
 export const hasArtifacts = (item: ContentItem) => item.lods !== "—";
+
+/**
+ * The status a job resolves to, ahead of whatever the artifacts alone say: a
+ * live job says "converting" (unless it failed, which wins outright,
+ * whatever is already converted); with no live job the artifacts decide
+ * ready/pending, and a succeeded job adds nothing they do not already say.
+ * Shared by every catalog that layers a conversion job onto its own
+ * artifacts (Content, Territory) — kept here rather than in `conversion`
+ * itself so that slice never has to import back from this one.
+ */
+export function conversionStatusOf(hasArtifacts: boolean, job?: TargetJob): ConversionStatus {
+  const base: ConversionStatus = hasArtifacts ? "ready" : "pending";
+  if (!job) return base;
+  if (job.status === "failed") return "failed";
+  return isLive(job) ? "converting" : base;
+}
 
 export type ContentFilter = { key: string; value: string };
 
