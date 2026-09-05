@@ -18,6 +18,8 @@ export type CatalogCardProps = {
   /** Else the cube glyph is drawn on the grid background. */
   thumbnailUrl?: string;
   noImageLabel?: string;
+  /** sm only: plain mono text at the footer's right (Model Library's byte size). */
+  meta?: string;
   /** Top-right overlay controls; clicks inside never reach onOpen. */
   actions?: ReactNode;
   chips?: CatalogChip[];
@@ -60,6 +62,7 @@ export function CatalogCard({
   badge,
   thumbnailUrl,
   noImageLabel,
+  meta,
   actions,
   chips,
   progress,
@@ -145,6 +148,9 @@ export function CatalogCard({
           )}
         </h3>
 
+        {/* sm: the slug is its own line — the footer's two slots are usage/meta. */}
+        {sm ? <p className="m-0 mt-1 truncate font-mono text-[10px] text-muted">{slug}</p> : null}
+
         {description ? <p className="m-0 text-[13px] leading-[1.55] text-muted">{description}</p> : null}
 
         {chips && chips.length > 0 ? (
@@ -173,16 +179,23 @@ export function CatalogCard({
           </div>
         ) : null}
 
-        <div className="flex items-center justify-between gap-2.5 border-t border-line pt-3">
-          <span className="truncate font-mono text-[11px] text-muted">{slug}</span>
+        <div
+          className={cx(
+            "flex items-center justify-between gap-2.5 border-t border-line",
+            sm ? "pt-2.5" : "pt-3",
+          )}
+        >
+          {sm ? null : <span className="truncate font-mono text-[11px] text-muted">{slug}</span>}
           <span
             className={cx(
-              "whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.16em]",
+              "whitespace-nowrap font-mono text-[10px]",
+              sm ? "tracking-[0.06em]" : "uppercase tracking-[0.16em]",
               TRAILING[trailing.tone],
             )}
           >
             {trailing.label}
           </span>
+          {sm && meta ? <span className="truncate font-mono text-[10px] text-muted">{meta}</span> : null}
         </div>
       </div>
     </article>

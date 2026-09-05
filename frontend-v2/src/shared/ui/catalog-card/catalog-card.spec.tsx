@@ -167,4 +167,32 @@ describe("CatalogCard", () => {
     );
     expect(container.querySelectorAll("p")).toHaveLength(0);
   });
+
+  it("moves the slug under the title and shows meta in the footer for the small size", () => {
+    const { container } = render(
+      <CatalogCard
+        title="Storage Tank 500"
+        slug="storage-tank-500"
+        size="sm"
+        meta="96 MB"
+        trailing={{ label: "in 4 territories", tone: "accent" }}
+      />,
+    );
+    expect(screen.getByText("storage-tank-500")).toBeInTheDocument();
+    const footer = container.querySelector(".border-t");
+    expect(footer).not.toHaveTextContent("storage-tank-500");
+    expect(footer).toHaveTextContent("in 4 territories");
+    expect(footer).toHaveTextContent("96 MB");
+    expect(footer?.className).toContain("pt-2.5");
+  });
+
+  it("keeps the md footer exactly as before — slug left, trailing right, pt-3", () => {
+    const { container } = render(
+      <CatalogCard title="North Ridge Pad" slug="north-ridge-pad" trailing={{ label: "Open →", tone: "accent" }} />,
+    );
+    const footer = container.querySelector(".border-t");
+    expect(footer).toHaveTextContent("north-ridge-pad");
+    expect(footer).toHaveTextContent("Open →");
+    expect(footer?.className).toContain("pt-3");
+  });
 });

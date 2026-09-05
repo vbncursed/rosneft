@@ -21,7 +21,7 @@ const M1: ModelCardModel = {
   status: "ready",
   thumbnailUrl: "/api/assets/x",
   usageCount: 6,
-  chips: [{ label: "38 MB", tone: "plain" }],
+  size: "38 MB",
   lods: "LOD 0-2",
   trailing: { label: "in 6 territories", tone: "accent" },
 };
@@ -31,7 +31,7 @@ const M2: ModelCardModel = {
   status: "ready",
   thumbnailUrl: null,
   usageCount: 0,
-  chips: [{ label: "—", tone: "plain" }],
+  size: "—",
   lods: "—",
   trailing: { label: "unused", tone: "muted" },
 };
