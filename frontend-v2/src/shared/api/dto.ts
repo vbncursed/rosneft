@@ -1715,7 +1715,7 @@ export interface paths {
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
-                /** @description System role */
+                /** @description System role, or a role still assigned to users */
                 422: {
                     headers: {
                         [name: string]: unknown;
@@ -2253,7 +2253,7 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
-            /** @description Placements on this territory; filled on the list endpoint. */
+            /** @description Placements on this territory; filled on the list endpoint, omitted when zero. */
             placementCount?: number;
         };
         Model: {
@@ -2270,7 +2270,7 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
-            /** @description Distinct territories placing this model; filled on the list endpoint. */
+            /** @description Distinct territories placing this model, across every territory; filled on the list endpoint, omitted when zero. */
             usageCount?: number;
         };
         /**

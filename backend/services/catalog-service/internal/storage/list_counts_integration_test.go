@@ -76,17 +76,10 @@ func (s *ListCountsSuite) seedTerritory(ctx context.Context, slug, srcHash, admi
 	return id
 }
 
-func (s *ListCountsSuite) seedModel(ctx context.Context, slug, src, thumb, glb string) {
-	var id int64
-	err := s.pool.QueryRow(ctx,
+func (s *ListCountsSuite) seedModel(ctx context.Context, slug, src, thumb string) {
+	_, err := s.pool.Exec(ctx,
 		`INSERT INTO models (slug, title, source_blob_hash, thumbnail_blob_hash)
-		 VALUES ($1,$1,$2,$3) RETURNING id`, slug, src, thumb).Scan(&id)
-	assert.NilError(s.T(), err)
-	_, err = s.pool.Exec(ctx,
-		`INSERT INTO model_artifacts
-		 (model_id, lod, hash, content_type, size_bytes, vertices, faces,
-		  bbox_min_x,bbox_min_y,bbox_min_z,bbox_max_x,bbox_max_y,bbox_max_z)
-		 VALUES ($1,0,$2,'model/gltf-binary',1,1,1,0,0,0,1,1,1)`, id, glb)
+		 VALUES ($1,$1,$2,$3)`, slug, src, thumb)
 	assert.NilError(s.T(), err)
 }
 
@@ -94,9 +87,9 @@ func (s *ListCountsSuite) TestListsCarryPlacementAndUsageCounts() {
 	ctx := s.T().Context()
 	s.seedTerritory(ctx, "yard", "hash-yard", s.admin)
 	s.seedTerritory(ctx, "block", "hash-block", s.admin)
-	s.seedModel(ctx, "pump", "h-pump-src", "h-pump-thumb", "h-pump-glb")
-	s.seedModel(ctx, "tank", "h-tank-src", "h-tank-thumb", "h-tank-glb")
-	s.seedModel(ctx, "ladder", "h-ladder-src", "h-ladder-thumb", "h-ladder-glb")
+	s.seedModel(ctx, "pump", "h-pump-src", "h-pump-thumb")
+	s.seedModel(ctx, "tank", "h-tank-src", "h-tank-thumb")
+	s.seedModel(ctx, "ladder", "h-ladder-src", "h-ladder-thumb")
 	place := func(t, m string) {
 		_, err := s.pg.CreatePlacement(ctx, domain.Placement{TerritorySlug: t, ModelSlug: m, Scale: domain.Vec3{X: 1, Y: 1, Z: 1}})
 		assert.NilError(s.T(), err)
