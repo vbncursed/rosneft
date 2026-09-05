@@ -115,7 +115,7 @@ export const CATALOG_PATHS = ["/territories", "/territories/new", "/models", "/m
  * SPA's viewer, so a click on one must fall through to a real navigation.
  */
 export const isCatalogHref = (href: string): boolean =>
-  (CATALOG_PATHS as readonly string[]).includes(href.split("?")[0] ?? href);
+  (CATALOG_PATHS as readonly string[]).includes(href.split("?")[0]);
 
 type ClickModifiers = {
   metaKey: boolean;

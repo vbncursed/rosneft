@@ -79,4 +79,17 @@ describe("runChunkedUpload", () => {
     expect(appendChunk).not.toHaveBeenCalled();
     expect(finalizeUpload).not.toHaveBeenCalled();
   });
+
+  it("rejects when aborted right after the last chunk resolves, before finalizing", async () => {
+    const ac = new AbortController();
+    appendChunk.mockImplementation((_id, _offset, slice) => {
+      ac.abort();
+      return (slice as { end: number }).end;
+    });
+    await expect(
+      runChunkedUpload(fakeFile(CHUNK), { signal: ac.signal }),
+    ).rejects.toThrow("upload aborted");
+    expect(appendChunk).toHaveBeenCalledTimes(1);
+    expect(finalizeUpload).not.toHaveBeenCalled();
+  });
 });

@@ -12,12 +12,10 @@ export const listTerritories = async (): Promise<Territory[]> =>
 export const deleteTerritory = (slug: string): Promise<void> =>
   httpDelete(`/api/territories/${encodeURIComponent(slug)}`);
 
-export type CreateTerritoryInput = {
-  title: string;
-  description?: string;
-  externalPanoramaUrl?: string;
-  sourceBlobHash: string;
-};
+// The gateway's body for both POST /api/territories and POST /api/models;
+// `thumbnailBlobHash` is ignored for territories, but typing against the real
+// DTO (rather than a hand-duplicated shape) is what keeps this from drifting.
+export type CreateTerritoryInput = components["schemas"]["EntityCreate"];
 
 /** Registers a territory from a finalized upload and queues its conversion. */
 export async function createTerritory(
