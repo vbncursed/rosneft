@@ -14,10 +14,11 @@ import { ModelLibraryScreen } from "@/pages/model-library";
 import { RolesScreen } from "@/pages/roles";
 import { TerritoryAccessScreen } from "@/pages/territory-access";
 import { TerritoryCatalogScreen } from "@/pages/territory-catalog";
+import { UploadModelsScreen } from "@/pages/upload-models";
 import { UploadTerritoryScreen } from "@/pages/upload-territory";
 import { UsersScreen } from "@/pages/users";
 import { isAuthed } from "@/shared/session";
-import { CatalogShellRoute, Soon } from "./catalog-shell-route";
+import { CatalogShellRoute } from "./catalog-shell-route";
 import { ConsoleShell } from "./console-shell";
 import { LoginRouteComponent } from "./login-route";
 import { NoConsoleAccess } from "./fallbacks";
@@ -152,8 +153,6 @@ export const catalogRoute = createRoute({
   component: CatalogShellRoute,
 });
 
-// Soon stands in for the real screens until Tasks 4-7 land — see
-// catalog-shell-route.tsx.
 export const territoriesRoute = createRoute({
   getParentRoute: () => catalogRoute,
   path: "/territories",
@@ -175,5 +174,5 @@ export const modelsRoute = createRoute({
 export const modelNewRoute = createRoute({
   getParentRoute: () => catalogRoute,
   path: "/models/new",
-  component: Soon,
+  component: UploadModelsScreen,
 });

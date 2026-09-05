@@ -37,6 +37,3 @@ export function CatalogShellRoute() {
     </div>
   );
 }
-
-/** Stands in for the four catalog screens until Tasks 4-7 land. Remove in Task 7. */
-export const Soon = () => <p>Soon</p>;
