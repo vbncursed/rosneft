@@ -1,5 +1,6 @@
 export {
   contentPath,
+  conversionStatusOf,
   hasArtifacts,
   matchesFilters,
   matchesText,

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import type { TargetJob } from "@/entities/conversion";
 import {
   contentPath,
+  conversionStatusOf,
   hasArtifacts,
   matchesFilters,
   matchesText,
@@ -82,6 +84,38 @@ describe("matchesText", () => {
 
   it("does not match what is not there", () => {
     expect(matchesText(item(), "refinery")).toBe(false);
+  });
+});
+
+describe("conversionStatusOf", () => {
+  const job = (over: Partial<TargetJob> = {}): TargetJob => ({
+    kind: "territory",
+    slug: "t",
+    status: "running",
+    progress: 0.4,
+    stage: "parsing",
+    errorMessage: null,
+    ...over,
+  });
+
+  it("is ready or pending on the artifacts alone with no job", () => {
+    expect(conversionStatusOf(true)).toBe("ready");
+    expect(conversionStatusOf(false)).toBe("pending");
+  });
+
+  it("is converting while a job is live, whatever the artifacts already hold", () => {
+    expect(conversionStatusOf(false, job({ status: "pending" }))).toBe("converting");
+    expect(conversionStatusOf(true, job({ status: "running" }))).toBe("converting");
+  });
+
+  it("is failed when the job failed, even with artifacts already converted", () => {
+    expect(conversionStatusOf(true, job({ status: "failed" }))).toBe("failed");
+    expect(conversionStatusOf(false, job({ status: "failed" }))).toBe("failed");
+  });
+
+  it("ignores a succeeded job — the artifacts decide", () => {
+    expect(conversionStatusOf(false, job({ status: "succeeded" }))).toBe("pending");
+    expect(conversionStatusOf(true, job({ status: "succeeded" }))).toBe("ready");
   });
 });
 
