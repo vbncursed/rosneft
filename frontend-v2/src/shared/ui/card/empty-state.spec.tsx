@@ -38,3 +38,31 @@ describe("EmptyState", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
+
+describe("EmptyState · row layout", () => {
+  it("draws a compact row with an icon, title, description and trailing action", () => {
+    render(
+      <EmptyState
+        layout="row"
+        icon="upload"
+        title="Add another territory"
+        description="ZIP with OBJ + MTL + textures — conversion starts automatically."
+        action={<button type="button">Upload territory</button>}
+      />,
+    );
+    expect(screen.getByText("Add another territory")).toBeInTheDocument();
+    expect(screen.getByText(/conversion starts automatically/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Upload territory" })).toBeInTheDocument();
+  });
+
+  it("keeps the centered layout the default", () => {
+    const { container } = render(<EmptyState title="Nothing here" />);
+    expect(container.firstElementChild!.className).toContain("text-center");
+  });
+
+  it("left-aligns the row layout instead of centering", () => {
+    const { container } = render(<EmptyState layout="row" title="Add another territory" />);
+    expect(container.firstElementChild!.className).toContain("text-left");
+    expect(container.firstElementChild!.className).not.toContain("text-center");
+  });
+});

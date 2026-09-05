@@ -1,6 +1,12 @@
 // Paths lifted verbatim from the design system's Icons section. Each entry
 // carries its own viewBox and stroke width — kebab is a 16px filled glyph, the
 // rest are 24px strokes, and normalising them would redraw the shapes.
+//
+// The catalog/upload additions live in ./glyph-extras and are spread in below
+// — this file was already near the 200-line cap, and that split keeps both
+// files well under it instead of cramming everything into one.
+import { EXTRA_GLYPHS } from "./glyph-extras";
+
 export const GLYPHS = {
   pencil: {
     box: "0 0 24 24",
@@ -193,6 +199,7 @@ export const GLYPHS = {
       </>
     ),
   },
+  ...EXTRA_GLYPHS,
 } as const;
 
 export type IconName = keyof typeof GLYPHS;

@@ -44,6 +44,28 @@ describe("PageHeader", () => {
   });
 });
 
+describe("PageHeader · sizes", () => {
+  it("scales up to the xl title the catalog pages use", () => {
+    render(<PageHeader eyebrow="Territory catalog" title="Scenes to walk through" size="xl" />);
+    expect(screen.getByRole("heading", { level: 1 }).className).toContain("text-[38px]");
+  });
+
+  it("clamps the description width by size — 56ch at lg, 52ch at xl", () => {
+    const { rerender } = render(
+      <PageHeader eyebrow="X" title="Y" size="lg" description="Something long enough to wrap." />,
+    );
+    expect(screen.getByText("Something long enough to wrap.").className).toContain("max-w-[56ch]");
+
+    rerender(<PageHeader eyebrow="X" title="Y" size="xl" description="Something long enough to wrap." />);
+    expect(screen.getByText("Something long enough to wrap.").className).toContain("max-w-[52ch]");
+  });
+
+  it("gives the back link more room before an lg/xl eyebrow than at md", () => {
+    render(<PageHeader eyebrow="X" title="Y" size="xl" back={{ label: "← Home", href: "/" }} />);
+    expect(screen.getByText("X").className).toContain("mt-4");
+  });
+});
+
 describe("PageHeader · description", () => {
   it("explains the page when it needs explaining", () => {
     render(

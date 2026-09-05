@@ -1,85 +1,169 @@
 import { clsx as cx } from "clsx";
 import type { ReactNode } from "react";
+import { Badge } from "@/shared/ui/badge";
+import { Icon } from "@/shared/ui/icon";
+import { ProgressBar } from "@/shared/ui/progress-bar";
+
+export type CatalogTone = "neutral" | "warn" | "bad";
+export type CatalogChip = { label: string; tone: "plain" | "accent" | "ok" | "warn" };
 
 export type CatalogCardProps = {
-  /** Mono overline naming what this is — "Territory", "Model". */
-  kind: string;
   title: string;
   description?: string;
-  /** Mono identifier on the footer row. */
   slug: string;
-  /** Status pill or similar, top right. */
-  badge?: ReactNode;
-  /** Row actions, top right; replaces the badge when both would collide. */
+  /** Border colour — neutral (line) / warn (converting) / bad (failed). */
+  tone?: CatalogTone;
+  /** Top-left status pill. */
+  badge?: { label: string; tone: "ok" | "warn" | "bad" };
+  /** Else the cube glyph is drawn on the grid background. */
+  thumbnailUrl?: string;
+  noImageLabel?: string;
+  /** Top-right overlay controls; clicks inside never reach onOpen. */
   actions?: ReactNode;
-  /** Footer right — "Open →" by default, or a conversion percentage. */
-  trailing?: ReactNode;
-  href?: string;
-  /** Dims the whole card: nothing to open here yet. */
-  muted?: boolean;
-  /** Draws the accent border the design uses for hover and selection. */
-  highlighted?: boolean;
+  chips?: CatalogChip[];
+  /** 0–100, drawn as a warn bar with its stage line underneath. */
+  progress?: { value: number; stage: string };
+  trailing: { label: string; tone: "accent" | "muted" | "warn" | "bad" };
+  /** Whole-card click when the target is openable. */
+  onOpen?: () => void;
+  /** md = Territory Catalog, sm = Model Library. */
+  size?: "md" | "sm";
   className?: string;
 };
 
+const TONE: Record<CatalogTone, string> = {
+  neutral: "border-line",
+  warn: "border-warn",
+  bad: "border-bad",
+};
+
+const TRAILING: Record<CatalogCardProps["trailing"]["tone"], string> = {
+  accent: "text-accent",
+  muted: "text-muted",
+  warn: "text-warn",
+  bad: "text-bad",
+};
+
+const CHIP: Record<CatalogChip["tone"], { tone: "neutral" | "accent" | "ok" | "warn"; fill: "soft" | "outline" }> = {
+  plain: { tone: "neutral", fill: "soft" },
+  accent: { tone: "accent", fill: "soft" },
+  ok: { tone: "ok", fill: "outline" },
+  warn: { tone: "warn", fill: "outline" },
+};
+
+/** How a territory or model looks in its catalog grid — the design's card, rebuilt to the v2 mock. */
 export function CatalogCard({
-  kind,
   title,
   description,
   slug,
+  tone = "neutral",
   badge,
+  thumbnailUrl,
+  noImageLabel,
   actions,
+  chips,
+  progress,
   trailing,
-  href,
-  muted = false,
-  highlighted = false,
+  onOpen,
+  size = "md",
   className,
 }: CatalogCardProps) {
+  const sm = size === "sm";
+
   return (
     <article
+      aria-label={title}
+      onClick={onOpen}
       className={cx(
-        "flex flex-col gap-3.5 rounded-card border bg-panel p-5 transition-colors duration-150",
-        highlighted ? "border-accent shadow-elevation" : "border-line",
-        muted && "opacity-70",
+        "overflow-hidden rounded-[14px] border bg-panel",
+        TONE[tone],
+        onOpen && "cursor-pointer",
+        sm && "rounded-[12px]",
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-3">
-        <span
-          className={cx(
-            "font-mono text-[10px] uppercase tracking-[0.18em]",
-            muted ? "text-muted" : "text-accent",
-          )}
-        >
-          {kind}
-        </span>
-        {actions ?? badge}
+      <div
+        className="relative flex h-[132px] items-center justify-center border-b border-line bg-panel-2"
+        style={
+          thumbnailUrl
+            ? undefined
+            : {
+                backgroundImage:
+                  "linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px)",
+                backgroundSize: sm ? "22px 22px" : "24px 24px",
+              }
+        }
+      >
+        {thumbnailUrl ? (
+          <img src={thumbnailUrl} alt="" className="size-full object-cover" />
+        ) : noImageLabel ? (
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
+            {noImageLabel}
+          </span>
+        ) : (
+          <Icon name="cube" size={sm ? 46 : 34} className="text-dim" />
+        )}
+        {badge ? (
+          <Badge tone={badge.tone} shape="pill" size="sm" className="absolute left-3 top-3">
+            {badge.label}
+          </Badge>
+        ) : null}
+        {actions ? (
+          <div className="absolute right-2.5 top-2.5 flex gap-1.5" onClick={(event) => event.stopPropagation()}>
+            {actions}
+          </div>
+        ) : null}
       </div>
 
-      <h3 className="m-0 text-[19px] font-semibold tracking-[-0.01em]">
-        {href ? (
-          // The heading carries the link, not the whole card: the card also
-          // holds buttons, and an <a> may not contain them.
-          <a href={href} className="text-fg no-underline hover:text-accent hover:underline">
-            {title}
-          </a>
-        ) : (
-          title
-        )}
-      </h3>
+      <div className={cx("flex flex-col gap-3 px-[18px] pb-[18px] pt-4", sm && "gap-2.5 px-[15px] pb-[15px] pt-[13px]")}>
+        <h3
+          className={cx(
+            "m-0 font-semibold",
+            sm ? "truncate text-[14px] tracking-[-0.01em]" : "text-[18px] tracking-[-0.015em]",
+          )}
+        >
+          {title}
+        </h3>
 
-      {description ? (
-        <p className="m-0 text-[13px] leading-[1.55] text-muted">{description}</p>
-      ) : null}
+        {description ? <p className="m-0 text-[13px] leading-[1.55] text-muted">{description}</p> : null}
 
-      <div
-        className={cx(
-          "flex items-center justify-between gap-3 border-t border-line pt-3 font-mono text-[11px]",
-          highlighted ? "text-accent" : "text-muted",
-        )}
-      >
-        <span>{slug}</span>
-        {trailing ? <span>{trailing}</span> : null}
+        {chips && chips.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {chips.map((chip, index) => {
+              const { tone: chipTone, fill } = CHIP[chip.tone];
+              return (
+                <Badge key={`${chip.label}-${index}`} tone={chipTone} fill={fill} shape="chip">
+                  {chip.label}
+                </Badge>
+              );
+            })}
+          </div>
+        ) : null}
+
+        {progress ? (
+          <div>
+            <ProgressBar
+              value={progress.value}
+              tone="warn"
+              variant="framed"
+              className="[&>div]:h-1"
+              ariaLabel={progress.stage}
+            />
+            <p className="mt-[7px] font-mono text-[10px] text-warn">{progress.stage}</p>
+          </div>
+        ) : null}
+
+        <div className="flex items-center justify-between gap-2.5 border-t border-line pt-3">
+          <span className="truncate font-mono text-[11px] text-muted">{slug}</span>
+          <span
+            className={cx(
+              "whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.16em]",
+              TRAILING[trailing.tone],
+            )}
+          >
+            {trailing.label}
+          </span>
+        </div>
       </div>
     </article>
   );
