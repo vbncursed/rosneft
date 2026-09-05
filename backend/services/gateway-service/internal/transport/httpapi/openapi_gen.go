@@ -451,6 +451,9 @@ type Model struct {
 	ThumbnailBlobHash *string    `json:"thumbnailBlobHash,omitempty"`
 	Title             string     `json:"title"`
 	UpdatedAt         *time.Time `json:"updatedAt,omitempty"`
+
+	// UsageCount Distinct territories placing this model; filled on the list endpoint.
+	UsageCount *int `json:"usageCount,omitempty"`
 }
 
 // ModelCreated defines model for ModelCreated.
@@ -633,10 +636,13 @@ type Territory struct {
 	CreatedAt           *time.Time `json:"createdAt,omitempty"`
 	Description         *string    `json:"description,omitempty"`
 	ExternalPanoramaUrl *string    `json:"externalPanoramaUrl,omitempty"`
-	Slug                string     `json:"slug"`
-	SourceBlobHash      string     `json:"sourceBlobHash"`
-	Title               string     `json:"title"`
-	UpdatedAt           *time.Time `json:"updatedAt,omitempty"`
+
+	// PlacementCount Placements on this territory; filled on the list endpoint.
+	PlacementCount *int       `json:"placementCount,omitempty"`
+	Slug           string     `json:"slug"`
+	SourceBlobHash string     `json:"sourceBlobHash"`
+	Title          string     `json:"title"`
+	UpdatedAt      *time.Time `json:"updatedAt,omitempty"`
 }
 
 // TerritoryAdmins defines model for TerritoryAdmins.

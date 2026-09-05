@@ -22,6 +22,9 @@ func territoryToAPI(t domain.Territory) Territory {
 	if !t.UpdatedAt.IsZero() {
 		out.UpdatedAt = &t.UpdatedAt
 	}
+	if t.PlacementCount != 0 {
+		out.PlacementCount = &t.PlacementCount
+	}
 	return out
 }
 
@@ -42,6 +45,9 @@ func modelToAPI(m domain.Model) Model {
 	}
 	if !m.UpdatedAt.IsZero() {
 		out.UpdatedAt = &m.UpdatedAt
+	}
+	if m.UsageCount != 0 {
+		out.UsageCount = &m.UsageCount
 	}
 	return out
 }
