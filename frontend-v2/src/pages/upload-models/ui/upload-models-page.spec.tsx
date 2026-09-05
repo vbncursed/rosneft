@@ -130,14 +130,33 @@ describe("UploadModelsPage", () => {
     expect(onTitle).toHaveBeenCalledWith(ROWS[4].id, expect.any(String));
 
     const thumb = new File(["x"], "cover.png", { type: "image/png" });
-    await userEvent.upload(screen.getByLabelText(`Add thumbnail for ${ROWS[3].title}`), thumb);
+    await userEvent.upload(screen.getByLabelText(`Add thumbnail for ${ROWS[3].file.name}`), thumb);
     expect(onThumbnail).toHaveBeenCalledWith(ROWS[3].id, thumb);
   });
 
   it("disables the upload button when nothing is runnable", () => {
     const done: QueueRow = { ...makeRow(file("a.zip")), status: "done" };
     render(<UploadModelsPage {...props({ rows: [done], mix: batchMix([done]), stats: batchStats([done]) })} />);
-    expect(screen.getByRole("button", { name: "Upload 1 models" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Upload 1 model" })).toBeDisabled();
+  });
+
+  it("reads singular copy for a one-row queue: 1 model, 1 archive", () => {
+    const queued: QueueRow = makeRow(file("a.zip"));
+    render(
+      <UploadModelsPage
+        {...props({ rows: [queued], mix: batchMix([queued]), stats: batchStats([queued]) })}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Upload 1 model" })).toBeInTheDocument();
+    expect(screen.getByText(/^1 archive ·/)).toBeInTheDocument();
+  });
+
+  it("hides the Queue heading and the run button with an empty queue, but keeps the drop zone and aside", () => {
+    render(<UploadModelsPage {...props({ rows: [], mix: batchMix([]), stats: batchStats([]) })} />);
+    expect(screen.queryByText("Queue")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Upload /i })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Drop ZIP archives here")).toBeInTheDocument();
+    expect(screen.getByText("Before you submit")).toBeInTheDocument();
   });
 
   it("carries the sequential note verbatim", () => {

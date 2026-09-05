@@ -77,8 +77,18 @@ export function currentRowStages(row: QueueRow): ConversionStage[] {
   const active = activeIndex(row);
   return STAGE_LABELS.map((label, i) => {
     const state: StageState = i < done ? "done" : i === active ? "active" : "pending";
+    // The thumbnail step never ran on a row with none — "done" would claim
+    // an upload that never happened.
     const time =
-      state === "done" ? "done" : state === "pending" ? "queued" : i === 0 ? `${Math.round(row.progress * 100)}%` : "running";
+      i === 2 && !row.thumbnail && state === "done"
+        ? "skipped"
+        : state === "done"
+          ? "done"
+          : state === "pending"
+            ? "queued"
+            : i === 0
+              ? `${Math.round(row.progress * 100)}%`
+              : "running";
     return { label, state, time };
   });
 }

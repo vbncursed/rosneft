@@ -156,15 +156,22 @@ describe("currentRowStages", () => {
     expect(stages[3].state).toBe("pending");
   });
 
-  it("skips straight to create model while creating, with no thumbnail to upload", () => {
+  it("skips straight to create model while creating, with no thumbnail to upload — and says so", () => {
     const stages = currentRowStages(row({ status: "creating" }));
     expect(stages.slice(0, 3).map((s) => s.state)).toEqual(["done", "done", "done"]);
+    expect(stages[2].time).toBe("skipped");
     expect(stages[3]).toMatchObject({ state: "active", time: "running" });
   });
 
-  it("marks every stage done once the row is done", () => {
-    const stages = currentRowStages(row({ status: "done" }));
+  it("marks every stage done once the row is done, thumbnail included when one was attached", () => {
+    const stages = currentRowStages(row({ status: "done", thumbnail: file("t.png") }));
     expect(stages.map((s) => s.state)).toEqual(["done", "done", "done", "done"]);
+    expect(stages[2].time).toBe("done");
+  });
+
+  it("says the thumbnail step was skipped, not done, on a finished row with no thumbnail", () => {
+    const stages = currentRowStages(row({ status: "done" }));
+    expect(stages[2]).toMatchObject({ state: "done", time: "skipped" });
   });
 });
 

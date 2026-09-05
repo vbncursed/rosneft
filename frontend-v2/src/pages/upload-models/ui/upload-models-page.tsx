@@ -52,6 +52,7 @@ export function UploadModelsPage({
   const doneCount = rows.filter((r) => r.status === "done").length;
   const canSubmit = canRun(rows, running);
   const currentIndex = current ? rows.findIndex((r) => r.id === current.row.id) + 1 : 0;
+  const plural = (n: number, word: string) => `${word}${n === 1 ? "" : "s"}`;
 
   return (
     <>
@@ -102,47 +103,51 @@ export function UploadModelsPage({
                 onFiles={onFiles}
               />
 
-              <div className="flex flex-col gap-2.5">
-                <div className="flex items-center gap-3">
-                  <SectionHeading
-                    title="Queue"
-                    count={`${stats.archives} archives · ${stats.total}`}
-                    className="flex-1"
-                  />
-                  <Button variant="link" shape="pill" size="sm" onClick={onClearDone}>
-                    clear done
-                  </Button>
-                </div>
-                <div className="flex flex-col gap-[9px]">
-                  {rows.map((row) => (
-                    <QueueRowCard
-                      key={row.id}
-                      row={row}
-                      onTitle={(title) => onTitle(row.id, title)}
-                      onRemove={() => onRemove(row.id)}
-                      onThumbnail={(file) => onThumbnail(row.id, file)}
-                    />
-                  ))}
-                </div>
-              </div>
+              {rows.length > 0 ? (
+                <>
+                  <div className="flex flex-col gap-2.5">
+                    <div className="flex items-center gap-3">
+                      <SectionHeading
+                        title="Queue"
+                        count={`${stats.archives} ${plural(rows.length, "archive")} · ${stats.total}`}
+                        className="flex-1"
+                      />
+                      <Button variant="link" shape="pill" size="sm" onClick={onClearDone}>
+                        clear done
+                      </Button>
+                    </div>
+                    <div className="flex flex-col gap-[9px]">
+                      {rows.map((row) => (
+                        <QueueRowCard
+                          key={row.id}
+                          row={row}
+                          onTitle={(title) => onTitle(row.id, title)}
+                          onRemove={() => onRemove(row.id)}
+                          onThumbnail={(file) => onThumbnail(row.id, file)}
+                        />
+                      ))}
+                    </div>
+                  </div>
 
-              <div className="flex flex-wrap items-center gap-2.5">
-                <Button variant="primary" loading={running} disabled={!running && !canSubmit} onClick={onRun}>
-                  {running
-                    ? current
-                      ? `Uploading ${currentIndex} of ${rows.length}…`
-                      : "Uploading…"
-                    : `Upload ${rows.length} models`}
-                </Button>
-                {running ? (
-                  <Button variant="secondary" onClick={onCancel}>
-                    Cancel batch
-                  </Button>
-                ) : null}
-                <span className="flex-1 basis-64 font-mono text-[10px] text-muted">
-                  rows upload sequentially · titles lock once a row starts
-                </span>
-              </div>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <Button variant="primary" loading={running} disabled={!running && !canSubmit} onClick={onRun}>
+                      {running
+                        ? current
+                          ? `Uploading ${currentIndex} of ${rows.length}…`
+                          : "Uploading…"
+                        : `Upload ${rows.length} ${plural(rows.length, "model")}`}
+                    </Button>
+                    {running ? (
+                      <Button variant="secondary" onClick={onCancel}>
+                        Cancel batch
+                      </Button>
+                    ) : null}
+                    <span className="flex-1 basis-64 font-mono text-[10px] text-muted">
+                      rows upload sequentially · titles lock once a row starts
+                    </span>
+                  </div>
+                </>
+              ) : null}
             </div>
 
             <UploadAside current={current} checks={checks} failedNames={failedNames} />

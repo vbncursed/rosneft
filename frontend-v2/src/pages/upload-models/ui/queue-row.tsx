@@ -101,28 +101,34 @@ export function QueueRowCard({ row, onTitle, onRemove, onThumbnail }: QueueRowPr
       ) : null}
 
       <div className="mt-2.5 flex items-center justify-between gap-3 border-t border-line pt-2.5">
-        <label className={cx("flex cursor-pointer items-center gap-1.5", locked && "pointer-events-none")}>
-          <span
-            className={cx(
-              "font-mono text-[10px] tracking-[0.06em]",
-              row.thumbnail ? "text-ok" : "text-muted",
-            )}
-          >
-            {row.thumbnail ? "thumbnail · attached" : "thumbnail (optional) · add image"}
-          </span>
-          <input
-            type="file"
-            accept="image/*"
-            aria-label={`Add thumbnail for ${row.title || row.file.name}`}
-            className="sr-only"
-            disabled={locked}
-            onChange={(e) => {
-              const file = e.target.files?.[0] ?? null;
-              e.target.value = "";
-              onThumbnail(file);
-            }}
-          />
-        </label>
+        {row.status === "done" && !row.thumbnail ? (
+          <span />
+        ) : (
+          <label className={cx("flex cursor-pointer items-center gap-1.5", locked && "pointer-events-none")}>
+            <span
+              className={cx(
+                "font-mono text-[10px] tracking-[0.06em]",
+                row.thumbnail ? "text-ok" : "text-muted",
+              )}
+            >
+              {row.thumbnail ? "thumbnail · attached" : "thumbnail (optional) · add image"}
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              aria-label={
+                row.thumbnail ? `Thumbnail attached for ${row.file.name}` : `Add thumbnail for ${row.file.name}`
+              }
+              className="sr-only"
+              disabled={locked}
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                e.target.value = "";
+                onThumbnail(file);
+              }}
+            />
+          </label>
+        )}
         <span className="shrink-0 font-mono text-[10px] text-muted">{formatBytes(row.file.size)}</span>
       </div>
     </article>

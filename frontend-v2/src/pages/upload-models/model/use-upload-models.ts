@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { createModel, modelPath } from "@/entities/model";
-import { runChunkedUpload, type UploadProgress, type UploadSample } from "@/entities/upload";
+import { CHUNK_SIZE, runChunkedUpload, type UploadProgress, type UploadSample } from "@/entities/upload";
 import { meQuery } from "@/entities/user";
 import { messageOf } from "@/shared/api";
 import { leaveTo } from "@/shared/lib/leave";
@@ -85,6 +85,9 @@ export function useUploadModels(): UploadModelsState {
       .filter((r) => r.status === "queued" || r.status === "failed")
       .map((r) => r.id);
     const created: { slug: string; jobId: string }[] = [];
+    // A cancel means "stop and leave the queue as it is" — even a row or two
+    // already created must not trigger the finish-line redirect.
+    let cancelled = false;
 
     for (const id of ids) {
       const row = rowsRef.current.find((r) => r.id === id);
@@ -92,7 +95,11 @@ export function useUploadModels(): UploadModelsState {
       const ac = new AbortController();
       controller.current = ac;
       setCurrentId(id);
-      setProgress(null);
+      // Seeded before the first byte moves — onProgress only fires after a
+      // chunk lands, and without this the current-row card and "Uploading k
+      // of n…" are both blank for that whole first chunk.
+      const chunks = Math.max(1, Math.ceil(row.file.size / CHUNK_SIZE));
+      setProgress({ bytes: 0, total: row.file.size, chunk: 0, chunks });
       setSamples([{ at: Date.now(), bytes: 0 }]);
       patchRow(id, { status: "uploading", error: undefined, progress: 0 });
 
@@ -125,10 +132,14 @@ export function useUploadModels(): UploadModelsState {
         // The batch cancel button cannot abort createModel's own request (it
         // takes no signal) — a cancel that lands during that last call still
         // finishes the row, but no further row should start after it.
-        if (ac.signal.aborted) break;
+        if (ac.signal.aborted) {
+          cancelled = true;
+          break;
+        }
       } catch (err) {
         if (ac.signal.aborted) {
           patchRow(id, { status: "failed", error: "cancelled" });
+          cancelled = true;
           break;
         }
         const message = messageOf(err);
@@ -140,6 +151,7 @@ export function useUploadModels(): UploadModelsState {
     setRunning(false);
     setCurrentId(null);
     setProgress(null);
+    if (cancelled) return;
     if (created.length === 1) leaveTo(`${modelPath(created[0].slug)}?jobId=${created[0].jobId}`);
     else if (created.length > 1) void navigate({ to: "/models" });
   }
@@ -165,6 +177,8 @@ export function useUploadModels(): UploadModelsState {
     stats: batchStats(rows),
     checks: MODEL_CHECKLIST,
     canUpload: can(me, "model:write"),
-    failedNames: rows.filter((r) => r.status === "failed").map((r) => r.file.name),
+    // A deliberate cancel is not a "fix the archive and re-add it" failure —
+    // it does not get the bad-callout treatment.
+    failedNames: rows.filter((r) => r.status === "failed" && r.error !== "cancelled").map((r) => r.file.name),
   };
 }
