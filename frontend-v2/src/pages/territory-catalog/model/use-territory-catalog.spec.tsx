@@ -152,6 +152,40 @@ describe("useTerritoryCatalog", () => {
     expect(result.current.error).toBe("mesh is down");
   });
 
+  it("re-reads a row's artifacts once its job stops being live, turning the card ready", async () => {
+    JOBS = [
+      { id: "j1", kind: "territory", slug: "t-1", status: "running", progress: 0.5, stage: "parsing" },
+    ];
+    let artifactsCalls = 0;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      const method = init?.method ?? "GET";
+      if (url === "/api/territories" && method === "GET") return json([T1, T2]);
+      if (url === "/api/jobs" && method === "GET") return json(JOBS);
+      if (url === "/api/territories/t-1/artifacts") {
+        artifactsCalls += 1;
+        return json(
+          artifactsCalls === 1 ? [] : [{ slug: "t-1", lod: 0, hash: "h", contentType: "x", size: 1024 }],
+        );
+      }
+      if (url === "/api/territories/t-2/artifacts") return json([]);
+      return json({ code: "forbidden", message: "You don't have permission to do this" }, 403);
+    });
+
+    const { result } = renderHook(() => useTerritoryCatalog(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.cards?.[0]).toMatchObject({ slug: "t-1", status: "converting" });
+    expect(artifactsCalls).toBe(1);
+
+    JOBS = [];
+    await act(async () => {
+      await client.refetchQueries({ queryKey: ["jobs"] });
+    });
+    await waitFor(() => expect(artifactsCalls).toBe(2));
+    await waitFor(() =>
+      expect(result.current.cards?.[0]).toMatchObject({ slug: "t-1", status: "ready" }),
+    );
+  });
+
   it("stays ready when a refetch fails on top of rows it already has", async () => {
     const { result } = renderHook(() => useTerritoryCatalog(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));

@@ -28,8 +28,10 @@ const TRAILING: Record<ConversionStatus, TerritoryCardModel["trailing"]> = {
   pending: { label: "pending", tone: "muted" },
 };
 
+// A count is a fact, even at zero — only the size chip dashes for "nothing
+// converted yet".
 const placementChip = (count: number): CatalogChip => ({
-  label: count > 0 ? `${count} placement${count === 1 ? "" : "s"}` : "—",
+  label: `${count} placement${count === 1 ? "" : "s"}`,
   tone: "plain",
 });
 
