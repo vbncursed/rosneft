@@ -12,5 +12,6 @@ export function toModel(d: ModelDto): Model {
     ...(d.thumbnailBlobHash ? { thumbnailBlobHash: d.thumbnailBlobHash } : {}),
     ...(d.createdAt ? { createdAt: d.createdAt } : {}),
     ...(d.updatedAt ? { updatedAt: d.updatedAt } : {}),
+    usageCount: d.usageCount ?? 0,
   };
 }

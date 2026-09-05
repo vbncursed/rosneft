@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ModelPickerCard } from "./model-picker-card";
 import type { Model } from "../model/model";
 
-const MODEL: Model = { slug: "storage-tank-500", title: "Tank 500", sourceBlobHash: "a" };
+const MODEL: Model = { slug: "storage-tank-500", title: "Tank 500", sourceBlobHash: "a", usageCount: 0 };
 
 describe("ModelPickerCard", () => {
   it("reports its selection state through aria-pressed", () => {

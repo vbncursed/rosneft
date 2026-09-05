@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { Principal } from "@/shared/session";
 import {
   activeSection,
+  CATALOG_PATHS,
   consoleLanding,
   consoleNav,
+  isCatalogHref,
   redirectTarget,
   routesInApp,
   screenAllowed,
@@ -153,5 +155,30 @@ describe("routesInApp", () => {
   it("does nothing for a missing href", () => {
     expect(routesInApp(null, CLICK)).toBe(false);
     expect(routesInApp(undefined, CLICK)).toBe(false);
+  });
+
+  // The catalog shell has no sidebar, but its four routes still stay in the
+  // SPA rather than reloading — a console screen links to /territories too.
+  it("routes a catalog href on a plain left click", () => {
+    expect(routesInApp("/territories", CLICK)).toBe(true);
+  });
+
+  it("leaves a modified click on a catalog href to the browser", () => {
+    expect(routesInApp("/territories", { ...CLICK, metaKey: true })).toBe(false);
+  });
+});
+
+describe("isCatalogHref", () => {
+  it("matches each of the four catalog paths, with or without a query", () => {
+    for (const path of CATALOG_PATHS) {
+      expect(isCatalogHref(path)).toBe(true);
+      expect(isCatalogHref(`${path}?from=console`)).toBe(true);
+    }
+  });
+
+  // A slug route leaves to the old SPA's viewer — not a catalog screen.
+  it("does not match a territory or model detail route", () => {
+    expect(isCatalogHref("/territories/north-ridge")).toBe(false);
+    expect(isCatalogHref("/models/pump")).toBe(false);
   });
 });

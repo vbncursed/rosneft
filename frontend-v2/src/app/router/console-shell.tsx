@@ -35,7 +35,7 @@ export function ConsoleShell() {
       <ConsoleLayout
         items={consoleNav(me)}
         active={activeSection(pathname)}
-        backHref="/"
+        backHref="/territories"
         viewer={viewerOf(me)}
       >
         <Outlet />

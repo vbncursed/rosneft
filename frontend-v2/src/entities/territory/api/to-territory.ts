@@ -13,5 +13,6 @@ export function toTerritory(d: TerritoryDto): Territory {
     sourceBlobHash: d.sourceBlobHash,
     ...(d.createdAt ? { createdAt: d.createdAt } : {}),
     ...(d.updatedAt ? { updatedAt: d.updatedAt } : {}),
+    placementCount: d.placementCount ?? 0,
   };
 }

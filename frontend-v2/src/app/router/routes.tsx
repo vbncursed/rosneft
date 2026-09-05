@@ -14,6 +14,7 @@ import { RolesScreen } from "@/pages/roles";
 import { TerritoryAccessScreen } from "@/pages/territory-access";
 import { UsersScreen } from "@/pages/users";
 import { isAuthed } from "@/shared/session";
+import { CatalogShellRoute, Soon } from "./catalog-shell-route";
 import { ConsoleShell } from "./console-shell";
 import { LoginRouteComponent } from "./login-route";
 import { NoConsoleAccess } from "./fallbacks";
@@ -131,4 +132,45 @@ export const consoleMetricsRoute = createRoute({
   }),
   loader: gate("/console/metrics"),
   component: MetricsScreen,
+});
+
+// The catalog shell has no sidebar-derived gate: any signed-in principal
+// reaches all four routes, and the upload/card actions are what the write
+// and delete grants narrow instead (Tasks 4-7). Gated the same way as
+// /console — redirectTarget, applied once here rather than per leaf.
+export const catalogRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: "catalog",
+  beforeLoad: ({ location }) => {
+    const target = redirectTarget(isAuthed(), location.href);
+    if (target) throw redirect(target);
+  },
+  loader: ({ context }) => context.queryClient.ensureQueryData(meQuery),
+  component: CatalogShellRoute,
+});
+
+// Soon stands in for the real screens until Tasks 4-7 land — see
+// catalog-shell-route.tsx.
+export const territoriesRoute = createRoute({
+  getParentRoute: () => catalogRoute,
+  path: "/territories",
+  component: Soon,
+});
+
+export const territoryNewRoute = createRoute({
+  getParentRoute: () => catalogRoute,
+  path: "/territories/new",
+  component: Soon,
+});
+
+export const modelsRoute = createRoute({
+  getParentRoute: () => catalogRoute,
+  path: "/models",
+  component: Soon,
+});
+
+export const modelNewRoute = createRoute({
+  getParentRoute: () => catalogRoute,
+  path: "/models/new",
+  component: Soon,
 });

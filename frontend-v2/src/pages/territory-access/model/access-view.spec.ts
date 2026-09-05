@@ -42,6 +42,7 @@ const T = {
   title: "Refinery Block C",
   sourceBlobHash: "a".repeat(64),
   updatedAt: "2026-08-29T00:00:00Z",
+  placementCount: 0,
 };
 const item = (over: Partial<TerritoryAccess> = {}): TerritoryAccess => ({
   slug: "t",

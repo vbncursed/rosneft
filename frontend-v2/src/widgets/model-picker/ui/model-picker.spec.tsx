@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ModelPicker } from "./model-picker";
 import type { Model } from "@/entities/model";
 
-const model = (slug: string, title: string): Model => ({ slug, title, sourceBlobHash: "a" });
+const model = (slug: string, title: string): Model => ({ slug, title, sourceBlobHash: "a", usageCount: 0 });
 
 const MODELS = [
   { model: model("pump-jack", "Pump Jack") },
