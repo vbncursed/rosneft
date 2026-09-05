@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { StageList } from "./stage-list";
 import type { ConversionStage } from "../model/status";
 
@@ -35,6 +35,21 @@ describe("StageList", () => {
   it("renders an empty pipeline as an empty list, not a crash", () => {
     render(<StageList stages={[]} />);
     expect(screen.getByRole("list")).toBeEmptyDOMElement();
+  });
+
+  it("renders every row even when two stages share a label, with no duplicate-key warning", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    render(
+      <StageList
+        stages={[
+          { label: "Upload chunk", state: "done", time: "1m" },
+          { label: "Upload chunk", state: "active", time: "running" },
+        ]}
+      />,
+    );
+    expect(screen.getAllByText("Upload chunk")).toHaveLength(2);
+    expect(error.mock.calls.some((call) => String(call[0]).includes("same key"))).toBe(false);
+    error.mockRestore();
   });
 });
 
