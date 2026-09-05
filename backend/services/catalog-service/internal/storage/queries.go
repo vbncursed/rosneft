@@ -11,6 +11,13 @@ import (
 // pgUniqueViolation is Postgres' SQLSTATE for a unique-constraint breach.
 const pgUniqueViolation = "23505"
 
+// pgRestrictViolation is what an explicit ON DELETE RESTRICT raises (SQLSTATE
+// 23001). 23503, foreign_key_violation, is the NO ACTION / insert-update code
+// and never fires for this delete — checking it here left a placed model's
+// delete as a raw 500 until auth-service's integration test showed which
+// code Postgres actually sends.
+const pgRestrictViolation = "23001"
+
 // isUniqueViolation reports whether err is a Postgres unique-constraint
 // violation — the signal that a slug candidate is already taken.
 func isUniqueViolation(err error) bool {

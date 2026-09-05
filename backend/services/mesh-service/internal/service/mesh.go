@@ -18,18 +18,29 @@ import (
 type Queue interface {
 	SaveJob(ctx context.Context, j domain.Job) error
 	GetJob(ctx context.Context, id string) (domain.Job, error)
+
+	// ListTargetJobs returns the latest job of every target that has one, in
+	// kind-then-slug order. Every status is included; callers decide what a
+	// succeeded job still means to them.
+	ListTargetJobs(ctx context.Context) ([]domain.Job, error)
+
 	EnqueueJob(ctx context.Context, jobID string) error
 
-	// TryLockTarget claims a target for the reconciler. Reports false when
+	// TryLockTarget claims a target for one conversion. Reports false when
 	// another attempt already holds it. The lock is what stops the reconciler
-	// re-queueing an entity whose conversion is still running: HasLOD0 only
-	// turns true at the very end of processing, so a conversion longer than
-	// the tick interval would otherwise be queued again on every tick.
+	// re-queueing an entity whose conversion is still running, and what stops
+	// a user-initiated submit racing the reconciler: HasLOD0 only turns true
+	// at the very end of processing, so a conversion longer than the tick
+	// interval would otherwise be queued again on every tick.
 	TryLockTarget(ctx context.Context, kind domain.Kind, slug string, ttl time.Duration) (bool, error)
 
 	// UnlockTarget releases the claim. Failing to call it is not fatal — the
 	// TTL expires — but it delays the next legitimate reconcile.
 	UnlockTarget(ctx context.Context, kind domain.Kind, slug string) error
+
+	// ForgetTarget drops the target's entry from the index. The job hash
+	// stays: a subscriber holding the id must still be able to read it.
+	ForgetTarget(ctx context.Context, kind domain.Kind, slug string) error
 }
 
 // Catalog is the catalog client surface used by ProcessJob and the

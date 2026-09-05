@@ -438,6 +438,12 @@ components:
     # --- auth domain ---
     AuthUser:
       type: object
+      # Only fields the JSON encoder always emits a key for (no omitempty/omitzero
+      # on userJSON in authhttp/dto.go): totpEnabled and passkeyEnabled are
+      # deliberately tri-state (absent = unknown, see their own descriptions) and
+      # roleTitles/onboardingToursSeen/csrfToken carry omitzero, so none of those
+      # five belong here even though most requests populate them.
+      required: [id, email, username, status, totpRequired, roleSlugs, permissions, isOwner]
       properties:
         id: { type: string }
         email: { type: string }
@@ -470,6 +476,11 @@ components:
             deleted between reads — fall back to showing the slug.
         permissions: { type: array, items: { type: string } }
         isOwner: { type: boolean }
+        totpRequired:
+          type: boolean
+          description: >
+            An administrator requires a second factor of this account. Distinct
+            from totpEnabled, which reports whether one is enrolled.
         onboardingToursSeen: { type: array, items: { type: string } }
         csrfToken: { type: string, description: "echo back as X-CSRF-Token on POST/PUT/PATCH/DELETE; required only for cookie sessions" }
     AuthRole:
@@ -490,6 +501,9 @@ components:
       properties:
         identifier: { type: string, description: email or username }
         password: { type: string, format: password }
+        remember:
+          type: boolean
+          description: "false issues a browser-session cookie (no Max-Age) that dies when the browser closes; true or absent keeps today's persistent cookie"
     LoginResponse:
       type: object
       properties:
@@ -503,6 +517,9 @@ components:
       properties:
         challengeToken: { type: string }
         code: { type: string, description: TOTP or recovery code }
+        remember:
+          type: boolean
+          description: "the choice made at step one, repeated — the gateway keeps no state between the two calls"
     TokenResponse:
       type: object
       properties:
@@ -740,7 +757,11 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
     Forbidden:
-      description: Authenticated but lacking the required permission
+      description: >
+        Permission denied. Code `twofa_enrollment_required` means the account is
+        required to carry a second factor and has not enrolled one: only
+        /api/auth/me, /api/auth/logout and the /api/auth/2fa enrollment endpoints
+        are reachable until it does.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -1943,6 +1964,45 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /api/auth/users/{id}/2fa/require:
+    post:
+      tags: [auth]
+      summary: Require a second factor of a user (requires users:write)
+      description: >
+        Idempotent — requiring an already-required account answers 200. The user
+        keeps signing in, but their session may reach only the enrollment
+        endpoints until a second factor is enrolled.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/auth/users/{id}/2fa/unrequire:
+    post:
+      tags: [auth]
+      summary: Stop requiring a second factor of a user (requires users:write)
+      description: Idempotent. Does not disable an enrolled second factor.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /api/auth/users/{id}/restore:
     post:
       tags: [auth]
@@ -2048,7 +2108,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '422': { description: System role cannot be deleted }
+        '422': { description: System role, or a role still assigned to users }
 
   /api/auth/roles/{slug}/permissions:
     put:
@@ -2118,6 +2178,29 @@ paths:
         '200': { description: Headers only }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /api/jobs:
+    get:
+      tags: [jobs]
+      summary: The latest conversion job per catalog target, tenant-filtered
+      description: >
+        One entry per territory or model that has a job on record, excluding
+        succeeded ones (the artifacts already say "ready"). Territories are
+        filtered to the caller's visible set — the same rule as `GET
+        /api/territories`; models are listed for everyone. Answers
+        `Cache-Control: no-store`: the console polls it while a conversion runs.
+        Each entry is the latest job by write order; two concurrent submits for
+        one target are not serialised, so a just-superseded terminal state can
+        briefly show while a newer job runs.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Job' }
+        '500': { $ref: '#/components/responses/Internal' }
+
   /api/jobs/{id}/events:
     get:
       tags: [jobs]
@@ -2125,7 +2208,9 @@ paths:
       description: >
         Emits `event: job` whenever the job state changes; the stream closes on
         succeeded/failed. The gateway polls mesh-api under the hood. Each event's
-        `data:` payload is a Job JSON (kind + slug identify the entity).
+        `data:` payload is a Job JSON (kind + slug identify the entity). The
+        stream is tenant-scoped: a territory job the caller cannot see is
+        reported as not found.
       parameters:
         - { in: path, name: id, required: true, schema: { type: string } }
       responses:
@@ -2160,7 +2245,7 @@ paths:
           schema:
             type: string
             enum:
-              [stat-up, stat-rps, stat-errors, stat-p99, stat-queue,
+              [stat-up, stat-rps, stat-errors, stat-p99, stat-queue, services-up,
                red-rate, red-errors, red-latency, red-http,
                domain-conversions, domain-conversion-p95, domain-queue,
                domain-upload, domain-auth, domain-twofa,
@@ -2170,7 +2255,7 @@ paths:
           name: range
           required: true
           description: Query window. Step is derived server-side (~200 points, rounded to whole 15s scrapes).
-          schema: { type: string, enum: [1h, 6h, 24h, 7d] }
+          schema: { type: string, enum: [15m, 1h, 6h, 24h, 7d] }
       responses:
         '200':
           description: One entry per time series

@@ -96,6 +96,13 @@ type StoreMock struct {
 	afterSetStatusCounter  uint64
 	beforeSetStatusCounter uint64
 	SetStatusMock          mStoreMockSetStatus
+
+	funcSetTOTPRequired          func(ctx context.Context, id string, required bool) (u1 domain.User, err error)
+	funcSetTOTPRequiredOrigin    string
+	inspectFuncSetTOTPRequired   func(ctx context.Context, id string, required bool)
+	afterSetTOTPRequiredCounter  uint64
+	beforeSetTOTPRequiredCounter uint64
+	SetTOTPRequiredMock          mStoreMockSetTOTPRequired
 }
 
 // NewStoreMock returns a mock for mm_users.Store
@@ -138,6 +145,9 @@ func NewStoreMock(t minimock.Tester) *StoreMock {
 
 	m.SetStatusMock = mStoreMockSetStatus{mock: m}
 	m.SetStatusMock.callArgs = []*StoreMockSetStatusParams{}
+
+	m.SetTOTPRequiredMock = mStoreMockSetTOTPRequired{mock: m}
+	m.SetTOTPRequiredMock.callArgs = []*StoreMockSetTOTPRequiredParams{}
 
 	t.Cleanup(m.MinimockFinish)
 
@@ -4163,6 +4173,380 @@ func (m *StoreMock) MinimockSetStatusInspect() {
 	}
 }
 
+type mStoreMockSetTOTPRequired struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockSetTOTPRequiredExpectation
+	expectations       []*StoreMockSetTOTPRequiredExpectation
+
+	callArgs []*StoreMockSetTOTPRequiredParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockSetTOTPRequiredExpectation specifies expectation struct of the Store.SetTOTPRequired
+type StoreMockSetTOTPRequiredExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockSetTOTPRequiredParams
+	paramPtrs          *StoreMockSetTOTPRequiredParamPtrs
+	expectationOrigins StoreMockSetTOTPRequiredExpectationOrigins
+	results            *StoreMockSetTOTPRequiredResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockSetTOTPRequiredParams contains parameters of the Store.SetTOTPRequired
+type StoreMockSetTOTPRequiredParams struct {
+	ctx      context.Context
+	id       string
+	required bool
+}
+
+// StoreMockSetTOTPRequiredParamPtrs contains pointers to parameters of the Store.SetTOTPRequired
+type StoreMockSetTOTPRequiredParamPtrs struct {
+	ctx      *context.Context
+	id       *string
+	required *bool
+}
+
+// StoreMockSetTOTPRequiredResults contains results of the Store.SetTOTPRequired
+type StoreMockSetTOTPRequiredResults struct {
+	u1  domain.User
+	err error
+}
+
+// StoreMockSetTOTPRequiredOrigins contains origins of expectations of the Store.SetTOTPRequired
+type StoreMockSetTOTPRequiredExpectationOrigins struct {
+	origin         string
+	originCtx      string
+	originId       string
+	originRequired string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmSetTOTPRequired *mStoreMockSetTOTPRequired) Optional() *mStoreMockSetTOTPRequired {
+	mmSetTOTPRequired.optional = true
+	return mmSetTOTPRequired
+}
+
+// Expect sets up expected params for Store.SetTOTPRequired
+func (mmSetTOTPRequired *mStoreMockSetTOTPRequired) Expect(ctx context.Context, id string, required bool) *mStoreMockSetTOTPRequired {
+	if mmSetTOTPRequired.mock.funcSetTOTPRequired != nil {
+		mmSetTOTPRequired.mock.t.Fatalf("StoreMock.SetTOTPRequired mock is already set by Set")
+	}
+
+	if mmSetTOTPRequired.defaultExpectation == nil {
+		mmSetTOTPRequired.defaultExpectation = &StoreMockSetTOTPRequiredExpectation{}
+	}
+
+	if mmSetTOTPRequired.defaultExpectation.paramPtrs != nil {
+		mmSetTOTPRequired.mock.t.Fatalf("StoreMock.SetTOTPRequired mock is already set by ExpectParams functions")
+	}
+
+	mmSetTOTPRequired.defaultExpectation.params = &StoreMockSetTOTPRequiredParams{ctx, id, required}
+	mmSetTOTPRequired.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmSetTOTPRequired.expectations {
+		if minimock.Equal(e.params, mmSetTOTPRequired.defaultExpectation.params) {
+			mmSetTOTPRequired.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetTOTPRequired.defaultExpectation.params)
+		}
+	}
+
+	return mmSetTOTPRequired
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.SetTOTPRequired
+func (mmSetTOTPRequired *mStoreMockSetTOTPRequired) ExpectCtxParam1(ctx context.Context) *mStoreMockSetTOTPRequired {
+	if mmSetTOTPRequired.mock.funcSetTOTPRequired != nil {
+		mmSetTOTPRequired.mock.t.Fatalf("StoreMock.SetTOTPRequired mock is already set by Set")
+	}
+
+	if mmSetTOTPRequired.defaultExpectation == nil {
+		mmSetTOTPRequired.defaultExpectation = &StoreMockSetTOTPRequiredExpectation{}
+	}
+
+	if mmSetTOTPRequired.defaultExpectation.params != nil {
+		mmSetTOTPRequired.mock.t.Fatalf("StoreMock.SetTOTPRequired mock is already set by Expect")
+	}
+
+	if mmSetTOTPRequired.defaultExpectation.paramPtrs == nil {
+		mmSetTOTPRequired.defaultExpectation.paramPtrs = &StoreMockSetTOTPRequiredParamPtrs{}
+	}
+	mmSetTOTPRequired.defaultExpectation.paramPtrs.ctx = &ctx
+	mmSetTOTPRequired.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmSetTOTPRequired
+}
+
+// ExpectIdParam2 sets up expected param id for Store.SetTOTPRequired
+func (mmSetTOTPRequired *mStoreMockSetTOTPRequired) ExpectIdParam2(id string) *mStoreMockSetTOTPRequired {
+	if mmSetTOTPRequired.mock.funcSetTOTPRequired != nil {
+		mmSetTOTPRequired.mock.t.Fatalf("StoreMock.SetTOTPRequired mock is already set by Set")
+	}
+
+	if mmSetTOTPRequired.defaultExpectation == nil {
+		mmSetTOTPRequired.defaultExpectation = &StoreMockSetTOTPRequiredExpectation{}
+	}
+
+	if mmSetTOTPRequired.defaultExpectation.params != nil {
+		mmSetTOTPRequired.mock.t.Fatalf("StoreMock.SetTOTPRequired mock is already set by Expect")
+	}
+
+	if mmSetTOTPRequired.defaultExpectation.paramPtrs == nil {
+		mmSetTOTPRequired.defaultExpectation.paramPtrs = &StoreMockSetTOTPRequiredParamPtrs{}
+	}
+	mmSetTOTPRequired.defaultExpectation.paramPtrs.id = &id
+	mmSetTOTPRequired.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmSetTOTPRequired
+}
+
+// ExpectRequiredParam3 sets up expected param required for Store.SetTOTPRequired
+func (mmSetTOTPRequired *mStoreMockSetTOTPRequired) ExpectRequiredParam3(required bool) *mStoreMockSetTOTPRequired {
+	if mmSetTOTPRequired.mock.funcSetTOTPRequired != nil {
+		mmSetTOTPRequired.mock.t.Fatalf("StoreMock.SetTOTPRequired mock is already set by Set")
+	}
+
+	if mmSetTOTPRequired.defaultExpectation == nil {
+		mmSetTOTPRequired.defaultExpectation = &StoreMockSetTOTPRequiredExpectation{}
+	}
+
+	if mmSetTOTPRequired.defaultExpectation.params != nil {
+		mmSetTOTPRequired.mock.t.Fatalf("StoreMock.SetTOTPRequired mock is already set by Expect")
+	}
+
+	if mmSetTOTPRequired.defaultExpectation.paramPtrs == nil {
+		mmSetTOTPRequired.defaultExpectation.paramPtrs = &StoreMockSetTOTPRequiredParamPtrs{}
+	}
+	mmSetTOTPRequired.defaultExpectation.paramPtrs.required = &required
+	mmSetTOTPRequired.defaultExpectation.expectationOrigins.originRequired = minimock.CallerInfo(1)
+
+	return mmSetTOTPRequired
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.SetTOTPRequired
+func (mmSetTOTPRequired *mStoreMockSetTOTPRequired) Inspect(f func(ctx context.Context, id string, required bool)) *mStoreMockSetTOTPRequired {
+	if mmSetTOTPRequired.mock.inspectFuncSetTOTPRequired != nil {
+		mmSetTOTPRequired.mock.t.Fatalf("Inspect function is already set for StoreMock.SetTOTPRequired")
+	}
+
+	mmSetTOTPRequired.mock.inspectFuncSetTOTPRequired = f
+
+	return mmSetTOTPRequired
+}
+
+// Return sets up results that will be returned by Store.SetTOTPRequired
+func (mmSetTOTPRequired *mStoreMockSetTOTPRequired) Return(u1 domain.User, err error) *StoreMock {
+	if mmSetTOTPRequired.mock.funcSetTOTPRequired != nil {
+		mmSetTOTPRequired.mock.t.Fatalf("StoreMock.SetTOTPRequired mock is already set by Set")
+	}
+
+	if mmSetTOTPRequired.defaultExpectation == nil {
+		mmSetTOTPRequired.defaultExpectation = &StoreMockSetTOTPRequiredExpectation{mock: mmSetTOTPRequired.mock}
+	}
+	mmSetTOTPRequired.defaultExpectation.results = &StoreMockSetTOTPRequiredResults{u1, err}
+	mmSetTOTPRequired.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmSetTOTPRequired.mock
+}
+
+// Set uses given function f to mock the Store.SetTOTPRequired method
+func (mmSetTOTPRequired *mStoreMockSetTOTPRequired) Set(f func(ctx context.Context, id string, required bool) (u1 domain.User, err error)) *StoreMock {
+	if mmSetTOTPRequired.defaultExpectation != nil {
+		mmSetTOTPRequired.mock.t.Fatalf("Default expectation is already set for the Store.SetTOTPRequired method")
+	}
+
+	if len(mmSetTOTPRequired.expectations) > 0 {
+		mmSetTOTPRequired.mock.t.Fatalf("Some expectations are already set for the Store.SetTOTPRequired method")
+	}
+
+	mmSetTOTPRequired.mock.funcSetTOTPRequired = f
+	mmSetTOTPRequired.mock.funcSetTOTPRequiredOrigin = minimock.CallerInfo(1)
+	return mmSetTOTPRequired.mock
+}
+
+// When sets expectation for the Store.SetTOTPRequired which will trigger the result defined by the following
+// Then helper
+func (mmSetTOTPRequired *mStoreMockSetTOTPRequired) When(ctx context.Context, id string, required bool) *StoreMockSetTOTPRequiredExpectation {
+	if mmSetTOTPRequired.mock.funcSetTOTPRequired != nil {
+		mmSetTOTPRequired.mock.t.Fatalf("StoreMock.SetTOTPRequired mock is already set by Set")
+	}
+
+	expectation := &StoreMockSetTOTPRequiredExpectation{
+		mock:               mmSetTOTPRequired.mock,
+		params:             &StoreMockSetTOTPRequiredParams{ctx, id, required},
+		expectationOrigins: StoreMockSetTOTPRequiredExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmSetTOTPRequired.expectations = append(mmSetTOTPRequired.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.SetTOTPRequired return parameters for the expectation previously defined by the When method
+func (e *StoreMockSetTOTPRequiredExpectation) Then(u1 domain.User, err error) *StoreMock {
+	e.results = &StoreMockSetTOTPRequiredResults{u1, err}
+	return e.mock
+}
+
+// Times sets number of times Store.SetTOTPRequired should be invoked
+func (mmSetTOTPRequired *mStoreMockSetTOTPRequired) Times(n uint64) *mStoreMockSetTOTPRequired {
+	if n == 0 {
+		mmSetTOTPRequired.mock.t.Fatalf("Times of StoreMock.SetTOTPRequired mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmSetTOTPRequired.expectedInvocations, n)
+	mmSetTOTPRequired.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmSetTOTPRequired
+}
+
+func (mmSetTOTPRequired *mStoreMockSetTOTPRequired) invocationsDone() bool {
+	if len(mmSetTOTPRequired.expectations) == 0 && mmSetTOTPRequired.defaultExpectation == nil && mmSetTOTPRequired.mock.funcSetTOTPRequired == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmSetTOTPRequired.mock.afterSetTOTPRequiredCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmSetTOTPRequired.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// SetTOTPRequired implements mm_users.Store
+func (mmSetTOTPRequired *StoreMock) SetTOTPRequired(ctx context.Context, id string, required bool) (u1 domain.User, err error) {
+	mm_atomic.AddUint64(&mmSetTOTPRequired.beforeSetTOTPRequiredCounter, 1)
+	defer mm_atomic.AddUint64(&mmSetTOTPRequired.afterSetTOTPRequiredCounter, 1)
+
+	mmSetTOTPRequired.t.Helper()
+
+	if mmSetTOTPRequired.inspectFuncSetTOTPRequired != nil {
+		mmSetTOTPRequired.inspectFuncSetTOTPRequired(ctx, id, required)
+	}
+
+	mm_params := StoreMockSetTOTPRequiredParams{ctx, id, required}
+
+	// Record call args
+	mmSetTOTPRequired.SetTOTPRequiredMock.mutex.Lock()
+	mmSetTOTPRequired.SetTOTPRequiredMock.callArgs = append(mmSetTOTPRequired.SetTOTPRequiredMock.callArgs, &mm_params)
+	mmSetTOTPRequired.SetTOTPRequiredMock.mutex.Unlock()
+
+	for _, e := range mmSetTOTPRequired.SetTOTPRequiredMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.u1, e.results.err
+		}
+	}
+
+	if mmSetTOTPRequired.SetTOTPRequiredMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSetTOTPRequired.SetTOTPRequiredMock.defaultExpectation.Counter, 1)
+		mm_want := mmSetTOTPRequired.SetTOTPRequiredMock.defaultExpectation.params
+		mm_want_ptrs := mmSetTOTPRequired.SetTOTPRequiredMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockSetTOTPRequiredParams{ctx, id, required}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmSetTOTPRequired.t.Errorf("StoreMock.SetTOTPRequired got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetTOTPRequired.SetTOTPRequiredMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmSetTOTPRequired.t.Errorf("StoreMock.SetTOTPRequired got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetTOTPRequired.SetTOTPRequiredMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+			if mm_want_ptrs.required != nil && !minimock.Equal(*mm_want_ptrs.required, mm_got.required) {
+				mmSetTOTPRequired.t.Errorf("StoreMock.SetTOTPRequired got unexpected parameter required, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetTOTPRequired.SetTOTPRequiredMock.defaultExpectation.expectationOrigins.originRequired, *mm_want_ptrs.required, mm_got.required, minimock.Diff(*mm_want_ptrs.required, mm_got.required))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetTOTPRequired.t.Errorf("StoreMock.SetTOTPRequired got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmSetTOTPRequired.SetTOTPRequiredMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmSetTOTPRequired.SetTOTPRequiredMock.defaultExpectation.results
+		if mm_results == nil {
+			mmSetTOTPRequired.t.Fatal("No results are set for the StoreMock.SetTOTPRequired")
+		}
+		return (*mm_results).u1, (*mm_results).err
+	}
+	if mmSetTOTPRequired.funcSetTOTPRequired != nil {
+		return mmSetTOTPRequired.funcSetTOTPRequired(ctx, id, required)
+	}
+	mmSetTOTPRequired.t.Fatalf("Unexpected call to StoreMock.SetTOTPRequired. %v %v %v", ctx, id, required)
+	return
+}
+
+// SetTOTPRequiredAfterCounter returns a count of finished StoreMock.SetTOTPRequired invocations
+func (mmSetTOTPRequired *StoreMock) SetTOTPRequiredAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetTOTPRequired.afterSetTOTPRequiredCounter)
+}
+
+// SetTOTPRequiredBeforeCounter returns a count of StoreMock.SetTOTPRequired invocations
+func (mmSetTOTPRequired *StoreMock) SetTOTPRequiredBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetTOTPRequired.beforeSetTOTPRequiredCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.SetTOTPRequired.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSetTOTPRequired *mStoreMockSetTOTPRequired) Calls() []*StoreMockSetTOTPRequiredParams {
+	mmSetTOTPRequired.mutex.RLock()
+
+	argCopy := make([]*StoreMockSetTOTPRequiredParams, len(mmSetTOTPRequired.callArgs))
+	copy(argCopy, mmSetTOTPRequired.callArgs)
+
+	mmSetTOTPRequired.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSetTOTPRequiredDone returns true if the count of the SetTOTPRequired invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockSetTOTPRequiredDone() bool {
+	if m.SetTOTPRequiredMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.SetTOTPRequiredMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.SetTOTPRequiredMock.invocationsDone()
+}
+
+// MinimockSetTOTPRequiredInspect logs each unmet expectation
+func (m *StoreMock) MinimockSetTOTPRequiredInspect() {
+	for _, e := range m.SetTOTPRequiredMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.SetTOTPRequired at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterSetTOTPRequiredCounter := mm_atomic.LoadUint64(&m.afterSetTOTPRequiredCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SetTOTPRequiredMock.defaultExpectation != nil && afterSetTOTPRequiredCounter < 1 {
+		if m.SetTOTPRequiredMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.SetTOTPRequired at\n%s", m.SetTOTPRequiredMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.SetTOTPRequired at\n%s with params: %#v", m.SetTOTPRequiredMock.defaultExpectation.expectationOrigins.origin, *m.SetTOTPRequiredMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSetTOTPRequired != nil && afterSetTOTPRequiredCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.SetTOTPRequired at\n%s", m.funcSetTOTPRequiredOrigin)
+	}
+
+	if !m.SetTOTPRequiredMock.invocationsDone() && afterSetTOTPRequiredCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.SetTOTPRequired at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.SetTOTPRequiredMock.expectedInvocations), m.SetTOTPRequiredMock.expectedInvocationsOrigin, afterSetTOTPRequiredCounter)
+	}
+}
+
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *StoreMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
@@ -4188,6 +4572,8 @@ func (m *StoreMock) MinimockFinish() {
 			m.MinimockSetRolesInspect()
 
 			m.MinimockSetStatusInspect()
+
+			m.MinimockSetTOTPRequiredInspect()
 		}
 	})
 }
@@ -4221,5 +4607,6 @@ func (m *StoreMock) minimockDone() bool {
 		m.MinimockResolveLoginsDone() &&
 		m.MinimockSetOwnerDone() &&
 		m.MinimockSetRolesDone() &&
-		m.MinimockSetStatusDone()
+		m.MinimockSetStatusDone() &&
+		m.MinimockSetTOTPRequiredDone()
 }

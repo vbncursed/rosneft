@@ -24,6 +24,7 @@ func userToProto(u domain.User) *authv1.User {
 		UpdatedAt:           timestamppb.New(u.UpdatedAt),
 		IsOwner:             u.IsOwner,
 		OnboardingToursSeen: u.OnboardingToursSeen,
+		TotpRequired:        u.TOTPRequired,
 	}
 }
 

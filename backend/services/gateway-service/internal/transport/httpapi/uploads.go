@@ -8,7 +8,7 @@ import (
 
 func (s *Server) InitiateUpload(ctx context.Context, req InitiateUploadRequestObject) (InitiateUploadResponseObject, error) {
 	if req.Body == nil {
-		return InitiateUpload400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
+		return InitiateUpload400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
 	body := *req.Body
 	contentType := ""
@@ -35,7 +35,7 @@ func (s *Server) InitiateUpload(ctx context.Context, req InitiateUploadRequestOb
 
 func (s *Server) AppendUploadChunk(ctx context.Context, req AppendUploadChunkRequestObject) (AppendUploadChunkResponseObject, error) {
 	if req.Body == nil {
-		return AppendUploadChunk400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "empty body"}}, nil
+		return AppendUploadChunk400JSONResponse{Code: apperr.SlugInvalidInput, Message: "empty body"}, nil
 	}
 	newOffset, err := s.svc.AppendUploadChunk(ctx, req.Id, req.Params.UploadOffset, req.Body)
 	switch {
@@ -57,9 +57,7 @@ func (s *Server) GetUploadStatus(ctx context.Context, req GetUploadStatusRequest
 	case err != nil:
 		return GetUploadStatus500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
 	}
-	offset := out.Offset
-	size := out.Size
-	return GetUploadStatus200Response{Headers: GetUploadStatus200ResponseHeaders{UploadOffset: &offset, UploadLength: &size}}, nil
+	return GetUploadStatus200Response{Headers: GetUploadStatus200ResponseHeaders{UploadOffset: new(out.Offset), UploadLength: new(out.Size)}}, nil
 }
 
 func (s *Server) FinalizeUpload(ctx context.Context, req FinalizeUploadRequestObject) (FinalizeUploadResponseObject, error) {

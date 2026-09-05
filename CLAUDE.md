@@ -13,13 +13,29 @@ catch Docker-build failures that `make lint` cannot see): [`backend/CLAUDE.md`](
 
 ## CI
 
-Four workflows, and until 2026-09-01 there was one. `backend.yml` runs
+Five workflows, and until 2026-09-01 there was one. `backend.yml` runs
 `make -C backend check`; `frontend.yml` runs lint, both test runners, the build
-and a production-dependency audit; `desktop.yml` runs `make -C desktop check`,
-`cargo audit` and the three-platform bundle; `dependabot.yml` watches gomod,
-npm, cargo **and github-actions**. Each workflow invokes the same Makefile or
-yarn script a developer runs, never a reimplementation of it in YAML — the
-failure that shape produces is a green PR that a local commit would reject.
+and a production-dependency audit; `frontend-v2.yml` runs the same shape
+against the redesign (lint, `test:coverage` with its 90/85/90/90 thresholds
+in place of a plain test run, build, audit); `desktop.yml` runs
+`make -C desktop check`, `cargo audit` and the three-platform bundle;
+`dependabot.yml` watches gomod, npm, cargo **and github-actions**. Each
+workflow invokes the same Makefile or yarn script a developer runs, never a
+reimplementation of it in YAML — the failure that shape produces is a green
+PR that a local commit would reject.
+
+## Two frontends
+
+`frontend/` is the app in production. `frontend-v2/` is the redesign, built
+against the Claude Design project `Design System.dc.html` — Feature-Sliced, its
+own component library, a router and a working sign-in against the real
+gateway; every console screen is wired against the gateway. **Working in it?
+Read [`frontend-v2/CLAUDE.md`](frontend-v2/CLAUDE.md) first**: it records the
+design decisions, the user's working rules, and the tooling traps (chief among
+them that `tsc --noEmit` type-checks nothing there, and that a parallel session
+works in `backend/` so commits must be staged by path).
+
+Everything below this line describes `frontend/`.
 
 # Frontend is a Vite + React SPA (no Next.js)
 
@@ -376,10 +392,11 @@ The gateway exposes a small REST surface defined in `backend/services/gateway-se
 - `GET /api/audit/mine` — the caller's **own** actions, behind `audit:read_own` or `audit:read`. It declares no `actor` parameter, so there is nothing to merge and nothing to forget to overwrite: the actor comes from the session and no query string can widen it. Root is pinned to its own actions here too. `/account` reads this route and only this route; `/admin/audit` reads `/api/audit`. Keeping them separate is the boundary — when both grants opened one route and the scope resolver preferred the wider one, a Company Owner (who holds both) saw the whole company under a "My activity" heading.
 - `GET /api/audit.csv` — the same query streamed as CSV. Stays behind `audit:read` alone: it is the whole company's history in one file, which is not what `audit:read_own` opens. Lives on the root router, outside the ETag/compression chain, because ETag hashes the whole body and would buffer the export. The client fetches and blobs it rather than using a plain `<a download>` — not for auth reasons any more (the session cookie rides on a same-origin link too) but because it wants a filename and an error it can surface, and an `<a>` gives neither.
 - `GET /api/jobs/{id}/events` — Server-Sent Events for one conversion job. Emits `event: job` whenever the job state changes; closes on `succeeded`/`failed`. Job payload carries `kind` and `slug` so the client knows which entity is being converted.
+- `GET /api/jobs` — the latest conversion job per territory/model, succeeded ones excluded, territories filtered to the caller's visible set. `Cache-Control: no-store`; the v2 console polls it every 5 s while anything is running. Each row is the latest job by write order — two concurrent submits for one target are not serialised, so a superseded terminal state can briefly show while a newer job runs. The per-id SSE applies the same rule: a territory job the caller cannot see is "job not found".
 - **Every route under `/api/territories/{slug}` is gated by `RequireTerritoryAccess`**, a middleware keyed on the route-pattern prefix. A new child resource inherits the gate the moment it is registered — do not add a per-handler scope check instead, that is the shape that failed. It answers 404, never 403: a 403 confirms the territory exists, and to another tenant it must not.
 - `GET /api/assets/{hash}` **requires a session and is scoped to the tenant**: `RequireBlobAccess` asks the catalog whether any row this caller can see holds that hash. A blob hash addresses content and is deduplicated across territories and models, so it has no single territory and `RequireTerritoryAccess` cannot cover it. Model blobs pass for everyone — the library is shared by decision. Refusal is 404 (403 would confirm the blob exists); a catalog failure is 503, because that is neither "yours" nor "missing".
 - **Added a table with a hash column?** Add a branch to `ResolveBlobAccess` and a case to its integration test, or the new asset type is reachable by nobody or by everybody, and nothing else will notice.
-- `GET /api/jobs/{id}/events` **requires a session** but is deliberately not tenant-scoped: a job id is 128 random bits and the payload names a kind and a slug, not a blob.
+- `GET /api/jobs/{id}/events` **requires a session and is now tenant-scoped**: `Server.scopedJob` resolves the job, and a territory job the caller cannot see is refused as `job not found` — the same 404-shaped answer the territory routes give, never a 403 that would confirm the territory exists. Models and Root skip the catalog lookup. A job id is still 128 random bits; the scope check is the second lock, not the only one.
 - **Mutations on a cookie session require `X-CSRF-Token`** (`HMAC(GATEWAY_CSRF_SECRET, sessionToken)`, handed out at login and in `/api/auth/me`). Bearer callers are exempt by construction — a browser cannot attach an `Authorization` header cross-site — so curl, the tests and integrations are unaffected.
 - **CORS is off by default.** An empty `GATEWAY_ALLOWED_ORIGINS` means the handler is not mounted at all. Do not "disable" it by blanking the list in code: go-chi/cors reads an empty list as *all* origins.
 - All JSON GETs carry strong ETags and answer `If-None-Match` with 304. Browsers cache automatically — no client-side work required.

@@ -28,15 +28,17 @@ func (c *Client) Logout(ctx context.Context, token string) error {
 }
 
 // ValidateToken returns the caller's user id, permissions, owner flag,
-// territory scope, and audit company. The last two differ for a guest: the
-// territory scope is keyed to self, the audit company to the real tenant.
-func (c *Client) ValidateToken(ctx context.Context, token string) (string, []string, bool, string, string, error) {
+// territory scope, audit company, and whether the session must enroll a
+// second factor before doing anything else. The middle two differ for a
+// guest: the territory scope is keyed to self, the audit company to the real
+// tenant.
+func (c *Client) ValidateToken(ctx context.Context, token string) (string, []string, bool, string, string, bool, error) {
 	resp, err := c.cc.ValidateToken(ctx, &authv1.ValidateTokenRequest{Token: token})
 	if err != nil {
-		return "", nil, false, "", "", err
+		return "", nil, false, "", "", false, err
 	}
 	return resp.GetUserId(), resp.GetPermissions(), resp.GetIsOwner(),
-		resp.GetOwningAdminId(), resp.GetAuditCompanyId(), nil
+		resp.GetOwningAdminId(), resp.GetAuditCompanyId(), resp.GetMustEnrollTwoFactor(), nil
 }
 
 func (c *Client) GetMe(ctx context.Context, token string) (*authv1.User, error) {

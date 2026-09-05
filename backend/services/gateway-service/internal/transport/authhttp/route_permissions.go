@@ -27,10 +27,13 @@ var routePerms = map[string][]string{
 	"GET /api/audit/actors": {"audit:read"},
 	// Either grant opens the own-journal: a Company Owner carries only the
 	// wider one in some deployments and must not lose their own account page.
-	"GET /api/audit/mine":                            {"audit:read_own", "audit:read"},
-	"POST /api/territories":                          {"territory:create"},
-	"PATCH /api/territories/{slug}":                  {"territory:write"},
-	"DELETE /api/territories/{slug}":                 {"territory:delete"},
+	"GET /api/audit/mine":            {"audit:read_own", "audit:read"},
+	"POST /api/territories":          {"territory:create"},
+	"PATCH /api/territories/{slug}":  {"territory:write"},
+	"DELETE /api/territories/{slug}": {"territory:delete"},
+	// Replacing the source model is a write on the territory: it feeds a
+	// reconversion, same grant as PATCH.
+	"POST /api/territories/{slug}/source":            {"territory:write"},
 	"POST /api/models":                               {"model:write"},
 	"PATCH /api/models/{slug}":                       {"model:write"},
 	"DELETE /api/models/{slug}":                      {"model:delete"},

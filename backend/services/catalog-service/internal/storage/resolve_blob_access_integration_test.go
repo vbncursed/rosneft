@@ -36,7 +36,7 @@ func TestBlobAccessSuite(t *testing.T) { suite.Run(t, new(BlobAccessSuite)) }
 
 func (s *BlobAccessSuite) SetupSuite() {
 	ctx := context.Background()
-	ctr, err := tcpostgres.Run(ctx, "postgres:17-alpine",
+	ctr, err := tcpostgres.Run(ctx, "postgres:18.6",
 		tcpostgres.WithDatabase("andrey"),
 		tcpostgres.WithUsername("andrey"),
 		tcpostgres.WithPassword("andrey"),

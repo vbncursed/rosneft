@@ -38,6 +38,14 @@ func (c *Client) UnfreezeUser(ctx context.Context, token, id string) (*authv1.Us
 	return c.cc.UnfreezeUser(ctx, &authv1.UnfreezeUserRequest{Token: token, Id: id})
 }
 
+// SetUserTOTPRequired passes the actor's session token; the auth-service
+// resolves the acting user from it.
+func (c *Client) SetUserTOTPRequired(ctx context.Context, token, id string, required bool) (*authv1.User, error) {
+	return c.cc.SetUserTOTPRequired(ctx, &authv1.SetUserTOTPRequiredRequest{
+		Token: token, Id: id, Required: required,
+	})
+}
+
 func (c *Client) SoftDeleteUser(ctx context.Context, token, id string) error {
 	_, err := c.cc.SoftDeleteUser(ctx, &authv1.SoftDeleteUserRequest{Token: token, Id: id})
 	return err

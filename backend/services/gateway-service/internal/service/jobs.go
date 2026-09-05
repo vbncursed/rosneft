@@ -14,3 +14,9 @@ func (g *Gateway) GetJob(ctx context.Context, id string) (domain.Job, error) {
 	}
 	return g.mesh.GetJob(ctx, id)
 }
+
+// ListTargetJobs is the raw read; the handler applies the tenant filter,
+// because visibility is a property of the caller, not of the job.
+func (g *Gateway) ListTargetJobs(ctx context.Context) ([]domain.Job, error) {
+	return g.mesh.ListTargetJobs(ctx)
+}

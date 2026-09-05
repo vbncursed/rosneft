@@ -28,8 +28,8 @@ func init() { Registry.MustRegister(grpcHandled, grpcDuration) }
 // splitMethod turns "/pkg.Service/Method" into ("pkg.Service", "Method").
 func splitMethod(full string) (svc, method string) {
 	full = strings.TrimPrefix(full, "/")
-	if i := strings.LastIndex(full, "/"); i >= 0 {
-		return full[:i], full[i+1:]
+	if svc, method, ok := strings.CutLast(full, "/"); ok {
+		return svc, method
 	}
 	return "unknown", full
 }

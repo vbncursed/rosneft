@@ -43,6 +43,7 @@ service AuthService {
   rpc SoftDeleteUser(SoftDeleteUserRequest) returns (SoftDeleteUserResponse);
   rpc RestoreUser(RestoreUserRequest) returns (User);
   rpc SetUserOwner(SetUserOwnerRequest) returns (User);
+  rpc SetUserTOTPRequired(SetUserTOTPRequiredRequest) returns (User);
 
   // --- roles / permissions ---
   rpc ListRoles(ListRolesRequest) returns (ListRolesResponse);
@@ -82,6 +83,9 @@ message User {
   // nothing. Note the slug is NOT an abbreviation of the title: slug "admin" is
   // titled "Company Owner", while a different role is slugged "owner".
   map<string, string> role_titles = 12;
+  // Policy: an administrator requires a second factor of this account.
+  // totp_enabled (field 5) is the separate question of whether one is enrolled.
+  bool totp_required = 13;
 }
 
 message Role {
@@ -141,6 +145,9 @@ message ValidateTokenResponse {
   // Unmangled ResolveOwningAdmin result — the audit log's company key. Differs
   // from owning_admin_id for guests, whose territory scope is keyed to self.
   string audit_company_id = 5;
+  // The account is required to carry a second factor and has not enrolled one.
+  // The gateway restricts such a session to the enrollment endpoints.
+  bool must_enroll_two_factor = 6;
 }
 
 message GetMeRequest {
@@ -240,6 +247,14 @@ message SetUserOwnerRequest {
   string token = 1; // actor; must already be an owner
   string id = 2;
   bool is_owner = 3;
+}
+
+// SetUserTOTPRequiredRequest sets or clears the second-factor policy on one
+// account. Owner-scoped like the other per-account admin actions.
+message SetUserTOTPRequiredRequest {
+  string token = 1; // actor resolved server-side from the session
+  string id = 2;
+  bool required = 3;
 }
 
 message ListRolesRequest {

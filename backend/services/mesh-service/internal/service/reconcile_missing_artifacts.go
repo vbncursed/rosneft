@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+
+	"github.com/vbncursed/rosneft/backend/services/mesh-service/internal/domain"
 )
 
-// ReconcileLockTTL bounds how long a claimed target stays claimed if the
+// TargetLockTTL bounds how long a claimed target stays claimed if the
 // worker dies between claiming it and finishing — it is also, therefore, the
 // recovery time for a dead worker: nothing else reclaims an orphaned stream
 // message (no XAUTOCLAIM/XCLAIM anywhere in this service), so this TTL is the
@@ -22,7 +24,7 @@ import (
 // bucket, only that 60s bounds it from above. 10 minutes is still a tenfold
 // margin over that 60s bound — comfortable headroom without leaving a dead
 // worker's target stuck for half an hour.
-const ReconcileLockTTL = 10 * time.Minute
+const TargetLockTTL = 10 * time.Minute
 
 // ReconcileMissingArtifacts queues a conversion for every catalog target
 // (territory or model) that does not already have a LOD0 artifact.
@@ -48,25 +50,56 @@ func (m *Mesh) ReconcileMissingArtifacts(ctx context.Context) (int, error) {
 		if has {
 			continue
 		}
-		// HasLOD0 stays false for the entire conversion — the artifact is
-		// published last — so without this claim a conversion longer than the
-		// tick interval is queued again on every tick, and with two workers
-		// the duplicate runs concurrently against the same territory.
-		locked, err := m.queue.TryLockTarget(ctx, t.Kind, t.Slug, ReconcileLockTTL)
+		// SubmitConversion holds the target claim; when the target is already
+		// in flight it hands back that job and created is false.
+		_, created, err := m.SubmitConversion(ctx, t.Kind, t.Slug)
 		if err != nil {
-			return queued, fmt.Errorf("service.ReconcileMissingArtifacts: lock %s/%s: %w", t.Kind, t.Slug, err)
-		}
-		if !locked {
-			continue
-		}
-		if _, err := m.SubmitConversion(ctx, t.Kind, t.Slug); err != nil {
-			// Release rather than wait out the TTL: retrying is this loop's
-			// entire purpose.
-			_ = m.queue.UnlockTarget(ctx, t.Kind, t.Slug)
 			return queued, fmt.Errorf("service.ReconcileMissingArtifacts: submit %s/%s: %w", t.Kind, t.Slug, err)
+		}
+		if !created {
+			continue
 		}
 		slog.InfoContext(ctx, "reconcile: queued conversion", "kind", t.Kind, "slug", t.Slug)
 		queued++
 	}
+	m.sweepIndex(ctx, targets)
 	return queued, nil
+}
+
+// sweepIndex drops index entries for targets the catalog no longer lists —
+// a deleted territory or model otherwise keeps its last job in GET /api/jobs
+// forever. Errors are logged, not returned: the queueing half of the tick
+// already happened, and the next tick sweeps again.
+//
+// It deletes against the targets snapshot taken at the start of this tick, so
+// a target created mid-loop whose own submit already indexed it can be
+// HDEL'd here once. That's safe: SaveJob re-HSETs the index field on every
+// write (progress and terminal alike), so the entry reappears the moment the
+// worker writes to it again.
+func (m *Mesh) sweepIndex(ctx context.Context, targets []domain.ConversionTarget) {
+	// A context cancelled between the loop finishing and here (typically
+	// shutdown racing the tick) would otherwise reach ListTargetJobs and log
+	// a Warn on every graceful shutdown; skip the sweep instead.
+	if ctx.Err() != nil {
+		return
+	}
+	live := make(map[string]struct{}, len(targets))
+	for _, t := range targets {
+		live[t.Kind.String()+":"+t.Slug] = struct{}{}
+	}
+	jobs, err := m.queue.ListTargetJobs(ctx)
+	if err != nil {
+		slog.WarnContext(ctx, "reconcile: index read failed", "err", err)
+		return
+	}
+	for _, j := range jobs {
+		if _, ok := live[j.Kind.String()+":"+j.Slug]; ok {
+			continue
+		}
+		if err := m.queue.ForgetTarget(ctx, j.Kind, j.Slug); err != nil {
+			slog.WarnContext(ctx, "reconcile: forget target failed", "kind", j.Kind, "slug", j.Slug, "err", err)
+			continue
+		}
+		slog.InfoContext(ctx, "reconcile: forgot deleted target", "kind", j.Kind, "slug", j.Slug)
+	}
 }

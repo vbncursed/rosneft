@@ -5,7 +5,7 @@ Guidance for Claude Code when working in `backend/`.
 ## Stack
 
 - **Go 1.27.0**, `go.work` workspace with one module per service (`services/*`) plus `pkg/` and `proto/` — 11 modules, all pinning `go 1.27.0`; every build stage is `golang:1.27.0-alpine`. Dependency matrix and bump procedure: [`README.md#toolchain--dependencies`](README.md#toolchain--dependencies).
-- **Postgres 17** (catalog), **Redis 8 Streams** (mesh job queue), filesystem `BlobStore` (asset).
+- **Postgres 18.6** (catalog), **Redis 8 Streams** (mesh job queue), filesystem `BlobStore` (asset).
 - **gRPC** for service-to-service, **HTTP/JSON** for the gateway, OpenAPI spec served by gateway with Scalar UI.
 - **Docker Compose** orchestrates the containers: `postgres`, `redis`, `gateway`, `catalog`, `auth`, `twofa`, `passkey`, `content`, `mesh-api`, `mesh-worker`, `asset`, `upload`, `prometheus`. The compose file lives at the repo root (`docker-compose.yml`); `make compose-up` from `backend/` works via `-f ../docker-compose.yml`. The frontend is **not** a compose service — it runs locally (`yarn dev --port 3000`; port 3000, not Vite's 5173, because `PASSKEY_RP_ORIGINS` is pinned to it).
 
@@ -24,6 +24,12 @@ Guidance for Claude Code when working in `backend/`.
 | asset | `services/asset-service` | `asset` | Internal HTTP serving content-addressed GLB blobs with immutable cache headers + ETag. |
 | audit | `services/audit-service` | `audit` | gRPC `:9009`. Owns the append-only `audit_log` plus the generic `audit_capture()` trigger attached to every audited table. Shares the `andrey` DB, isolated by `audit_goose_db_version`. Re-attaches its triggers idempotently on every boot via `ensure_audit_triggers()`, so it needs no ordering against the other services' migrations. Also seals periodic checkpoint digests and witnesses them to a volume outside the database (`audit verify`, `audit export`). |
 | upload | `services/upload-service` | `upload` | Internal gRPC accepting resumable chunked uploads (`Initiate` / `WriteChunk(stream)` / `GetStatus` / `Finalize` / `Abort`). On Finalize the bytes are SHA-256 hashed and moved into BlobStore; the gateway forwards the resulting hash into `createTerritory` / `createModel`. |
+
+There is a request-path call cycle: `twofa.Setup → auth.GetMe → ValidateToken →
+twofa.IsEnabled`. It terminates at depth 2 and is not a deadlock today — no
+gRPC server here caps `MaxConcurrentStreams` — but whoever adds that cap later
+needs to know the cycle exists, since a cap tight enough to starve one call in
+the loop would starve the whole chain.
 
 ## Architecture conventions
 
@@ -127,7 +133,8 @@ Each entity has its own artifact family (`territory_artifacts` / `model_artifact
 ## Mesh conversion pipeline
 
 1. Frontend uploads a ZIP via `POST /api/uploads` (chunked) → `POST /api/uploads/{id}/finalize` returns a `blobHash`.
-2. Frontend `POST /api/territories` (or `/api/models`) with `{slug, title, description, sourceBlobHash}` → gateway upserts in catalog and queues `mesh-api.SubmitConversion(kind=TERRITORY|MODEL, slug)` → Redis Stream + Postgres job row. Response carries the `Job` so the client can subscribe to SSE.
+2. Frontend `POST /api/territories` (or `/api/models`) with `{slug, title, description, sourceBlobHash}` → gateway upserts in catalog and calls `mesh-api.SubmitConversion(kind=TERRITORY|MODEL, slug)`. That either queues a conversion (Redis Stream + Postgres job row) **or**, when the target claim is already held, hands back the job already in flight for that target — the caller wanted a job to follow, and that is it. Response carries the `Job` either way, so the client can subscribe to SSE.
+   - **A source replaced mid-conversion is re-queued when the running job finishes.** The in-flight job read `source_blob_hash` once, at its start, so it publishes artifacts built from the *old* bytes; `ProcessJob` re-reads the target after marking the job succeeded and submits again when the hash moved (`requeue_if_replaced.go`). Without that, the replacement never converted and nothing errored: `HasLOD0` was true, so the reconciler never retried.
 3. `mesh-worker` consumes the stream, calls catalog for `ConversionTarget` (kind+slug → source_blob_hash), fetches the ZIP from BlobStore by hash, extracts to a tmp dir, recursively finds the first `.obj`, and runs the converter.
 4. Converter: streaming OBJ parser (positions, UVs, faces, fan-triangulation, Z-up→Y-up, V-flip, `usemtl` grouping) → dedup `(v_idx, vt_idx)` pairs → MTL parser (`Kd`, `d`/`Tr`, `map_Kd`) → per-material glTF primitive sharing one position/UV buffer; PBR baseColorFactor (always) + baseColorTexture (when `map_Kd` exists). Texture cache deduplicates images shared across materials. Normalize (center, scale to maxDim=2). Emit GLB.
 5. Optional `gltfpack` post-processing pass — flag set chosen by config:
@@ -137,7 +144,7 @@ Each entity has its own artifact family (`territory_artifacts` / `model_artifact
      - **`-ts` takes the same ratio as `-si`, and the input must be the raw GLB.** gltfpack cannot decode Basis Universal, so a pass fed the already-compressed LOD0 silently ignores `-ts` and every LOD ships full-resolution textures. That is why `ConvertLODs` calls `convertRaw` and hands `raw.content` to `Simplify` rather than reusing `base.Content` — see `converter/raw.go`.
      - Measured on `dji-wp-46-cut` (1.8M triangles): adding `-ts` took LOD2 from 37.8% to **23.3%** of LOD0's bytes. Textures turned out to be only ~17% of the file, not the majority — Draco already does most of the work — but they were a fixed floor the coarse LOD could not get under.
 6. Worker writes each LOD GLB to BlobStore (content-addressed, SHA-256 filename, 2-char prefix sharding) and calls `RegisterTerritoryArtifact` or `RegisterModelArtifact` (selected by Job.Kind) in catalog.
-7. Reconciler runs in-process every minute: lists every territory + model via the catalog client, queues `SubmitConversion` for any without a LOD0 artifact — auto-recovers stuck conversions without manual trigger.
+7. Reconciler runs in-process every 5 minutes (`reconcileTickInterval`): lists every territory + model via the catalog client, queues `SubmitConversion` for any without a LOD0 artifact — auto-recovers stuck conversions without manual trigger. The same tick also **sweeps the target index** (`andrey:mesh:targets`), forgetting entries for targets the catalog no longer lists, so a deleted territory or model drops out of `GET /api/jobs` within one tick instead of sitting there forever. The job hash itself is kept, so an SSE subscriber holding the id can still read it.
 
 ### gltfpack binary
 
@@ -284,9 +291,12 @@ in `gateway-service/internal/transport/authhttp/audit.go`. Only events that
 change no table belong in that map: user and role mutations are already caught
 by the triggers, and listing them would double-write.
 
-The trigger logic is SQL, so it is covered by the repo's only integration tests:
+The trigger logic is SQL, so it is covered by integration tests:
 `services/audit-service/internal/migrate/*_integration_test.go`, behind the
-`integration` build tag. Run with `go test -tags=integration ./...` from
+`integration` build tag. They are not the only ones in the repo —
+`catalog-service/internal/storage/resolve_blob_access_integration_test.go` and
+`auth-service/internal/storage/users/set_totp_required_integration_test.go`
+cover SQL logic the same way, in their own services. Run with `go test -tags=integration ./...` from
 `services/audit-service`; needs Docker. `make test` stays Docker-free.
 
 ## Tenant isolation
@@ -313,8 +323,13 @@ value does not mean "no access", it means "every territory".
 
 `/api/assets/{hash}` carries `RequireBlobAccess` rather than the territory gate —
 see **Blob scoping** below for why the two cannot be the same check.
-`/api/jobs/{id}/events` is authenticated but deliberately unscoped: a job id is
-128 random bits and its payload names a kind and a slug, not a blob.
+`/api/jobs/{id}/events` and `/api/jobs` are authenticated and tenant-scoped in
+the handler rather than by the middleware: neither path carries a `{slug}`, so
+`RequireTerritoryAccess` cannot see them. `Server.scopedJob` resolves the job
+first and then checks its slug; `visibleJob` filters the list. Both refuse in the
+404 shape ("job not found" / an absent row), both let models through — the
+library is shared — and both fail closed on an empty scope, for the reason the
+paragraph above gives.
 
 ### Blob scoping
 

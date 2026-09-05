@@ -22,7 +22,9 @@ binds to the internal Compose network only.
   follow up with `getArtifact` to pick a specific LOD — every level is already
   in the bundle.
 - **SSE conversion stream**: `GET /api/jobs/{id}/events` pushes job state
-  changes in real time, replacing client-side polling.
+  changes in real time, replacing client-side polling. `GET /api/jobs` is the
+  catalog-wide companion: the latest non-succeeded job per territory/model,
+  tenant-filtered, for a console that has to show what is converting right now.
 - **Chunked upload protocol**: `POST /api/uploads` → `PATCH` (raw bytes,
   `Upload-Offset` header) → `POST .../finalize`, with `HEAD` for resumable
   offset reporting and `DELETE` to abort. Each operation translates to a gRPC
@@ -88,7 +90,7 @@ permission noted in the **Perm** column.
 | GET | `/api/territories/{slug}` | — | One territory |
 | PATCH | `/api/territories/{slug}` | — | Update mutable fields (no re-conversion) |
 | DELETE | `/api/territories/{slug}` | `territory:delete` | Delete territory + its placements |
-| POST | `/api/territories/{slug}/source` | — | Replace source ZIP + re-queue conversion |
+| POST | `/api/territories/{slug}/source` | `territory:write` | Replace source ZIP + re-queue conversion |
 | GET | `/api/territories/{slug}/scene` | — | **Bundle: territory + LOD0 + placements + model options + panoramas** |
 | GET | `/api/territories/{slug}/artifacts` | — | List artifacts (all LODs) |
 | GET | `/api/territories/{slug}/artifacts/{lod}` | — | Specific LOD |
@@ -137,7 +139,8 @@ permission noted in the **Perm** column.
 
 | Method | Path | Perm | Description |
 | --- | --- | --- | --- |
-| GET | `/api/jobs/{id}/events` | session | **SSE stream of job state changes** (root router, bypasses the JSON chain but not `Authenticate`) |
+| GET | `/api/jobs` | session | **Latest conversion job per catalog target**, succeeded ones excluded, territories filtered to the caller's visible set and models listed for everyone. `Cache-Control: no-store` (root router, bypasses the JSON chain but not `Authenticate`) |
+| GET | `/api/jobs/{id}/events` | session | **SSE stream of job state changes**, tenant-scoped: a territory job the caller cannot see reads as "job not found" (root router, bypasses the JSON chain but not `Authenticate`) |
 | GET, HEAD | `/api/assets/{hash}` | session + tenant | Binary GLB / panorama image (reverse-proxied to asset-service). Scoped by `RequireBlobAccess`, not by the territory gate: a blob hash addresses content and is deduplicated, so it has no single territory. Model blobs pass for everyone — shared library. 404 on refusal, 503 if the catalog is unreachable. |
 | GET | `/api/metrics/query` | **owner only** | Prometheus panel query — `?panel=<id>&range=1h\|6h\|24h\|7d` → `[MetricSeries]`. The panel id resolves to server-side PromQL, so no caller expression reaches Prometheus. |
 | GET | `/docs` | public | Scalar API reference UI |
@@ -183,6 +186,7 @@ client → CORS → RequestID → Recoverer → slog-chi               ← root 
   ├── /healthz, /readyz, /docs, /openapi.json
   ├── /api/assets/{hash}    → Authenticate → RequireBlobAccess → asset proxy
   ├── /api/jobs/{id}/events → Authenticate → SSE handler           ← bypass JSON mw
+  ├── /api/jobs             → Authenticate → tenant-filtered job list ← bypass JSON mw
   ├── /api/metrics/query    → Authenticate → owner check → Prometheus proxy
   ├── /api/auth/*           → authhttp (login public; self/admin gated)
   └── /api/* group → Authenticate → RequirePermissionForRoute
