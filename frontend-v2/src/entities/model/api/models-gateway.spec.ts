@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCsrfToken } from "@/shared/api";
-import { createModel, deleteModel, listModels, setModelThumbnail } from "./models-gateway";
+import { createModel, deleteModel, listModels } from "./models-gateway";
 
 const model = { slug: "m-1", title: "M 1", sourceBlobHash: "b".repeat(64), thumbnailBlobHash: "" };
 const json = (body: unknown, status = 200) =>
@@ -48,24 +48,6 @@ describe("models gateway", () => {
     expect(out).toEqual({
       model: { slug: "m-2", title: "M 2", sourceBlobHash: "c".repeat(64), usageCount: 0 },
       job: { id: "j-2" },
-    });
-  });
-
-  it("sets a model's thumbnail with a PATCH and maps the response back", async () => {
-    fetchMock.mockResolvedValueOnce(
-      json({ slug: "m-2", title: "M 2", sourceBlobHash: "c".repeat(64), thumbnailBlobHash: "d".repeat(64) }),
-    );
-    const out = await setModelThumbnail("m 2", "d".repeat(64));
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("/api/models/m%202");
-    expect(init.method).toBe("PATCH");
-    expect(JSON.parse(init.body as string)).toEqual({ thumbnailBlobHash: "d".repeat(64) });
-    expect(out).toEqual({
-      slug: "m-2",
-      title: "M 2",
-      sourceBlobHash: "c".repeat(64),
-      thumbnailBlobHash: "d".repeat(64),
-      usageCount: 0,
     });
   });
 });

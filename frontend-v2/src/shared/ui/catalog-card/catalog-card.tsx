@@ -28,6 +28,11 @@ export type CatalogCardProps = {
   trailing: { label: string; tone: "accent" | "muted" | "warn" | "bad" };
   /** Whole-card click when the target is openable. */
   onOpen?: () => void;
+  /**
+   * Where the title points. An `<a href>` is what makes the card openable in a
+   * new tab, middle-clickable and copyable; `onOpen` alone gives none of that.
+   */
+  href?: string;
   /** md = Territory Catalog, sm = Model Library. */
   size?: "md" | "sm";
   className?: string;
@@ -68,10 +73,16 @@ export function CatalogCard({
   progress,
   trailing,
   onOpen,
+  href,
   size = "md",
   className,
 }: CatalogCardProps) {
   const sm = size === "sm";
+  // The article's own onClick handles the rest of the card; without stopping
+  // here the click would bubble there too and fire onOpen a second time.
+  const stop = (event: { stopPropagation: () => void }) => event.stopPropagation();
+  const interactive =
+    "m-0 border-0 bg-transparent p-0 text-left text-inherit no-underline [font:inherit] hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
   const titleClass = cx(
     "m-0 font-semibold",
     sm ? "truncate text-[14px] tracking-[-0.01em]" : "text-[18px] tracking-[-0.015em]",
@@ -129,17 +140,18 @@ export function CatalogCard({
         )}
       >
         <h3 className={titleClass}>
-          {onOpen ? (
+          {href ? (
+            <a href={href} onClick={stop} className={interactive}>
+              {title}
+            </a>
+          ) : onOpen ? (
             <button
               type="button"
               onClick={(event) => {
-                // The article's own onClick handles the rest of the card;
-                // without this the click would bubble there too and fire
-                // onOpen twice.
-                event.stopPropagation();
+                stop(event);
                 onOpen();
               }}
-              className="m-0 border-0 bg-transparent p-0 text-left [font:inherit] hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className={interactive}
             >
               {title}
             </button>

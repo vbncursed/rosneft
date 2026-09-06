@@ -1,6 +1,5 @@
 import { ConversionBadge } from "./ui/conversion-badge";
 import { StageList } from "./ui/stage-list";
-import { trailingNote } from "./model/status";
 
 const STATES = [
   { status: "ready" as const },
@@ -23,7 +22,6 @@ export default {
       {STATES.map((state, i) => (
         <div key={i} className="flex items-center gap-3">
           <ConversionBadge status={state.status} />
-          <span className="font-mono text-[11px] text-muted">{trailingNote(state) ?? "—"}</span>
         </div>
       ))}
     </div>

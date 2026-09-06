@@ -1,4 +1,5 @@
 import type { ConversionStatus } from "@/entities/conversion";
+import { territoryPath } from "@/entities/territory";
 import { ThemeToggle } from "@/features/theme-toggle";
 import { FilterBar } from "@/features/audit-filter";
 import { EmptyState } from "@/shared/ui/card";
@@ -63,7 +64,6 @@ export function TerritoryCatalogPage({
         eyebrow="Territory catalog"
         title="Scenes to walk through"
         description="Sites you have access to. Open one to inspect it in 3D, measure distances and place models."
-        back={{ label: "← Home", href: "/territories" }}
         action={
           <div className="flex items-center gap-[9px]">
             <ThemeToggle variant="compact" />
@@ -119,6 +119,7 @@ export function TerritoryCatalogPage({
               progress={card.progress}
               trailing={card.trailing}
               onOpen={card.openable ? () => onOpen(card.slug) : undefined}
+              {...(card.openable ? { href: territoryPath(card.slug) } : {})}
               actions={
                 canReplace || canDelete ? (
                   <>

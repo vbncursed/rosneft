@@ -9,7 +9,6 @@ import {
   replaceHref,
   statsOf,
   toContentItem,
-  uploadHref,
 } from "./catalog";
 
 const territory = {
@@ -168,9 +167,7 @@ describe("inspectorDetails", () => {
 });
 
 describe("hrefs into the old SPA", () => {
-  it("names the upload forms and the territory's replace route", () => {
-    expect(uploadHref("territory")).toBe("/territories/new");
-    expect(uploadHref("model")).toBe("/models/new");
+  it("names the territory's replace route, and only a territory's", () => {
     expect(replaceHref(item({ kind: "territory", slug: "t-1" }))).toBe("/territories/t-1/replace");
     expect(replaceHref(item({ kind: "model", slug: "m-1" }))).toBeNull();
   });

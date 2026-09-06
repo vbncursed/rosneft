@@ -5,9 +5,15 @@ import type { ContentItem } from "@/entities/content";
 import type { ContentState } from "../model/use-content";
 import { ContentScreen } from "./content-screen";
 
-const { useContent, leaveTo } = vi.hoisted(() => ({ useContent: vi.fn(), leaveTo: vi.fn() }));
+const { useContent, leaveTo, navigate } = vi.hoisted(() => ({
+  useContent: vi.fn(),
+  leaveTo: vi.fn(),
+  navigate: vi.fn(),
+}));
 vi.mock("../model/use-content", () => ({ useContent }));
 vi.mock("@/shared/lib/leave", () => ({ leaveTo }));
+// A stand-in for the router context: the screen is rendered on its own.
+vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 
 const T: ContentItem = {
   kind: "territory",
@@ -80,13 +86,15 @@ describe("ContentScreen", () => {
     expect(screen.getByRole("article", { name: "M 1" })).toBeInTheDocument();
   });
 
-  it("sends the upload buttons into the old SPA", async () => {
+  it("routes the upload buttons to the v2 upload pages", async () => {
     useContent.mockReturnValue(state());
     render(<ContentScreen />);
     await userEvent.click(screen.getByRole("button", { name: "+ Territory" }));
-    expect(leaveTo).toHaveBeenCalledWith("/territories/new");
+    expect(navigate).toHaveBeenCalledWith({ to: "/territories/new" });
     await userEvent.click(screen.getByRole("button", { name: "+ Model" }));
-    expect(leaveTo).toHaveBeenCalledWith("/models/new");
+    expect(navigate).toHaveBeenCalledWith({ to: "/models/new" });
+    // Both are v2 routes now; a full navigation would throw the query cache away.
+    expect(leaveTo).not.toHaveBeenCalled();
   });
 
   it("opens the inspector for a territory with replace, open and delete", async () => {

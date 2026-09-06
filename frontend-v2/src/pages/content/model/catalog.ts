@@ -155,10 +155,6 @@ export function inspectorDetails(
   ];
 }
 
-/** The old SPA's upload forms; v2 has none. */
-export const uploadHref = (kind: ContentKind): string =>
-  kind === "territory" ? "/territories/new" : "/models/new";
-
 /** Only a territory has a source-replace route. */
 export const replaceHref = (item: ContentItem): string | null =>
   item.kind === "territory" ? `/territories/${encodeURIComponent(item.slug)}/replace` : null;

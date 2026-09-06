@@ -3,7 +3,7 @@ import { formatEta, uploadStats, type UploadProgress, type UploadSample } from "
 import { formatBytes } from "@/shared/lib/format-bytes";
 import type { ChecklistItem } from "@/shared/ui/checklist";
 
-export type UploadPhase = "idle" | "picked" | "uploading" | "finalizing" | "creating" | "failed";
+export type UploadPhase = "idle" | "picked" | "uploading" | "finalizing" | "creating";
 
 export type UploadForm = { title: string; description: string; panoramaUrl: string };
 

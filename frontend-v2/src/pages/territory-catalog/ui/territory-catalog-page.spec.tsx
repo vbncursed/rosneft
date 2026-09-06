@@ -51,7 +51,8 @@ describe("TerritoryCatalogPage", () => {
         "Sites you have access to. Open one to inspect it in 3D, measure distances and place models.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "← Home" })).toHaveAttribute("href", "/territories");
+    // No back link: this page *is* /territories, and v2 has no Home above it.
+    expect(screen.queryByRole("link", { name: "← Home" })).not.toBeInTheDocument();
   });
 
   it("draws no chrome of its own — the shell owns the layout", () => {
@@ -83,6 +84,15 @@ describe("TerritoryCatalogPage", () => {
     expect(onOpen).toHaveBeenCalledWith("north-ridge-pad");
     expect(screen.queryByRole("button", { name: "Terminal Yard 4" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Terminal Yard 4" })).toBeInTheDocument();
+  });
+
+  it("gives an openable card's title a real href, and an unopenable one none", () => {
+    render(<TerritoryCatalogPage {...props()} />);
+    expect(screen.getByRole("link", { name: "North Ridge Pad" })).toHaveAttribute(
+      "href",
+      "/territories/north-ridge-pad",
+    );
+    expect(screen.queryByRole("link", { name: "Terminal Yard 4" })).not.toBeInTheDocument();
   });
 
   it("draws the running progress bar and its stage for the converting card", () => {

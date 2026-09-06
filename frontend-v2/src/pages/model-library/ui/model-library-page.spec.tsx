@@ -52,6 +52,14 @@ describe("ModelLibraryPage", () => {
     expect(screen.getByRole("link", { name: "← Home" })).toHaveAttribute("href", "/territories");
   });
 
+  it("gives each card's title a real href into the model's page", () => {
+    render(<ModelLibraryPage {...props()} />);
+    expect(screen.getByRole("link", { name: "Pump Jack Unit" })).toHaveAttribute(
+      "href",
+      "/models/pump-jack-unit",
+    );
+  });
+
   it("draws no chrome of its own — the shell owns the layout", () => {
     render(<ModelLibraryPage {...props()} />);
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();

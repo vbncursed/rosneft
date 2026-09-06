@@ -8,7 +8,7 @@ const button = cva(
     variants: {
       variant: {
         primary: "border-accent bg-accent text-accent-fg hover:bg-accent/90",
-        secondary: "border-line-2 bg-panel-2 text-fg hover:border-accent-line",
+        secondary: "border-line-2 text-fg hover:border-accent-line",
         ghost: "border-transparent bg-transparent text-fg hover:bg-panel-2",
         danger: "border-bad bg-bad-soft text-bad hover:bg-bad/20",
         accent: "border-accent-line bg-accent-soft text-accent hover:bg-accent/20",
@@ -40,8 +40,14 @@ const button = cva(
       { shape: "control", size: "md", variant: "danger", class: "font-semibold" },
       { shape: "control", size: "md", variant: "accent", class: "font-semibold" },
       { shape: "pill", variant: "link", class: "px-0 tracking-[0.2em]" },
-      // A pill sits on a panel and shows it through; only the control-shaped
-      // secondary takes the raised panel-2 ground.
+      // A pill sits on a panel and shows it through; the control and icon
+      // shapes take the raised panel-2 ground. The ground is set per shape
+      // rather than on `variant` with a compound overriding it: two background
+      // utilities on one element are resolved by the compiled stylesheet's own
+      // source order, not by the className string's, so the override only
+      // looked right by accident. One property, one variant group.
+      { shape: "control", variant: "secondary", class: "bg-panel-2" },
+      { shape: "icon", variant: "secondary", class: "bg-panel-2" },
       { shape: "pill", variant: "secondary", class: "bg-transparent hover:bg-panel-2" },
     ],
     defaultVariants: { variant: "secondary", shape: "control", size: "md" },

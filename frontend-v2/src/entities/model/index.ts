@@ -3,7 +3,6 @@ export {
   createModel,
   deleteModel,
   listModels,
-  setModelThumbnail,
   type CreateModelInput,
 } from "./api/models-gateway";
 export { modelsQuery } from "./api/models-query";
