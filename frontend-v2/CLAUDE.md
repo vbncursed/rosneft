@@ -214,11 +214,12 @@ header and the 401 bounce; `shared/session` holds the marker and the
 and `meQuery`; `app/router` is the route tree and the guard; `app/query` the
 query client.
 
-**Every console screen and all four catalog screens are live.** Each is a
+**Every console screen and all six catalog screens are live.** Each is a
 container hook in `pages/*/model` (`useUsers`, `useRoles`, `useContent`,
 `useTerritoryAccess`, `useAudit`, `useMetrics`, `useTerritoryCatalog`,
-`useModelLibrary`, `useUploadTerritory`, `useUploadModels`) that owns the
-queries, the mutations and the UI state, a `*-screen.tsx` that maps it onto
+`useModelLibrary`, `useUploadTerritory`, `useUploadModels`, `useModelDetail`,
+`useReplaceSource`) that owns the queries, the mutations and the UI state,
+a `*-screen.tsx` that maps it onto
 the props-only page and draws the dialogs
 beside it, and a pure module (`people.ts`, `roles-view.ts`, `catalog.ts`,
 `access-view.ts`) holding every decision. Outcomes report through
@@ -250,7 +251,23 @@ protocol through `entities/upload`'s `runChunkedUpload` — 8 MB chunks from the
 session's own offset, `X-CSRF-Token` on every PATCH, and one `abortUpload` in
 the function's own catch so no caller has to remember it. The batch page runs
 one row at a time; a throw fails that row and the loop continues, a cancel
-fails the row and stops.
+fails the row and stops. `UploadProgressPanel` (with `progressFor`/
+`progressLine`) lives in `entities/upload` too, shared by Upload Territory
+and Replace Source; each page keeps its own `UploadPhase` (their last phase
+differs) and hands the panel a plain `busy: boolean` instead.
+
+**Model Detail** (`/models/{slug}`) shows the thumbnail as the viewport, full
+size — frontend-v2 has no three.js, and the old SPA's model page never
+rendered 3D either, so the mock's viewer overlays (tool rail, LOD switcher,
+stats strip, …) wait for the territory-viewer port. `Download GLB` and the
+per-LOD artifact rows are `<a download>` on `/api/assets/{hash}`; Delete is
+gated on `usageCount`, read off the models list because
+`GET /api/models/{slug}` never carries it. **Replace Source**
+(`/territories/{slug}/replace`) is territories only:
+`POST /api/territories/{slug}/source` exists, no model counterpart does, and
+the model page draws no Replace control. The current source's size comes
+from `HEAD /api/assets/{hash}`; a successful replace leaves to the old SPA's
+`/territories/{slug}?jobId={job.id}`, exactly like Upload Territory.
 
 **Territory access** is the territories list, the users list and one
 admins query per territory; visibility is derived (anyone assigned →
@@ -303,15 +320,17 @@ Rulings from those screens that a later one will meet again:
 
 Routes: `/login`; `/console/{users,roles,content,access,audit,metrics}` under
 `ConsoleShell` — Metrics alone carries a search param, `?range=`, validated by
-the route; `/territories`, `/territories/new`, `/models`, `/models/new` under
-the sidebar-free `CatalogShell`; and `/` and `/console` alone, both of which
-resolve a landing screen rather than rendering one. Both shells run the same
-click delegate (`routesInApp`), so a link from a console screen into the
-catalog — or back — stays in the SPA. `isCatalogHref` matches those four paths
-*exactly*: `/territories/<slug>` and `/models/<slug>` are the old SPA's viewer
-and must fall through to a real navigation. `consoleLanding` picks that screen
-from the principal's permissions — never a constant, or a roles-only
-administrator is sent to a users page that 403s.
+the route; `/territories`, `/territories/new`, `/territories/$slug/replace`,
+`/models`, `/models/new`, `/models/$slug` under the sidebar-free
+`CatalogShell`; and `/` and `/console` alone, both of which resolve a landing
+screen rather than rendering one. Both shells run the same click delegate
+(`routesInApp`), so a link from a console screen into the catalog — or back —
+stays in the SPA. `isCatalogHref` matches the four list/upload paths exactly,
+plus `/models/<slug>` and `/territories/<slug>/replace` by pattern;
+`/territories/<slug>` alone still leaves — the territory viewer stays in the
+old SPA. `consoleLanding` picks that screen from the principal's permissions
+— never a constant, or a roles-only administrator is sent to a users page
+that 403s.
 
 ## Not done yet
 

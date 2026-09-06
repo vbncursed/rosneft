@@ -249,12 +249,12 @@ overlays; editing title/description (the PATCH does not take them); a
 
 ## 8. Order of work
 
-1. `shared/ui/artifact-row`, `PageHeader` props, `--grid` token.
+1. `shared/ui/artifact-row`, `PageHeader` props, `--grid` token. — done
 2. Entities: model/territory getters and mutations, `Artifact` widening,
-   `assetSize`/`assetUrl`, `UploadProgressPanel` + `progressFor` lifted.
+   `assetSize`/`assetUrl`, `UploadProgressPanel` + `progressFor` lifted. — done
 3. Guard + the `catalog-routes.tsx` split + in-app links from the two
    catalogs. The two new route entries land with tasks 4 and 5, so no
-   placeholder screen is ever committed.
-4. Model Detail.
-5. Replace Source.
-6. Docs: `frontend-v2/CLAUDE.md`, root `CLAUDE.md` screen list, spec tick.
+   placeholder screen is ever committed. — done
+4. Model Detail. — done
+5. Replace Source. — done
+6. Docs: `frontend-v2/CLAUDE.md`, root `CLAUDE.md` screen list, spec tick. — done

@@ -69,7 +69,7 @@
   meta?: string;           // mono 11px muted line 8px under the title
   ```
 
-- [ ] **Step 1: Write the failing ArtifactRow spec**
+- [x] **Step 1: Write the failing ArtifactRow spec**
 
 `frontend-v2/src/shared/ui/artifact-row/artifact-row.spec.tsx`:
 ```tsx
@@ -103,11 +103,11 @@ describe("ArtifactRow", () => {
 });
 ```
 
-- [ ] **Step 2: Run it — expect FAIL (module not found)**
+- [x] **Step 2: Run it — expect FAIL (module not found)**
 
 `cd frontend-v2 && yarn vitest run src/shared/ui/artifact-row`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `artifact-row.tsx`:
 ```tsx
@@ -180,9 +180,9 @@ export default (
 );
 ```
 
-- [ ] **Step 4: Run the spec — expect PASS**
+- [x] **Step 4: Run the spec — expect PASS**
 
-- [ ] **Step 5: Write the failing PageHeader spec additions**
+- [x] **Step 5: Write the failing PageHeader spec additions**
 
 Append to `page-header.spec.tsx`:
 ```tsx
@@ -201,9 +201,9 @@ Append to `page-header.spec.tsx`:
   });
 ```
 
-- [ ] **Step 6: Run it — expect FAIL (badge/meta not rendered)**
+- [x] **Step 6: Run it — expect FAIL (badge/meta not rendered)**
 
-- [ ] **Step 7: Implement in `page-header.tsx`**
+- [x] **Step 7: Implement in `page-header.tsx`**
 
 Add to `PageHeaderProps`:
 ```ts
@@ -237,12 +237,12 @@ Replace the `<h1 …>{title}</h1>` line with:
 ```
 (import `Badge` from `@/shared/ui/badge`).
 
-- [ ] **Step 8: Run all page-header specs, then Cosmos check**
+- [x] **Step 8: Run all page-header specs, then Cosmos check**
 
 `yarn vitest run src/widgets/page-header src/shared/ui/artifact-row src/fixtures.spec.tsx src/architecture.spec.ts` — PASS.
 Start Cosmos (`yarn cosmos`, port 5100, already `lazy:false`), open the artifact-row fixture with Playwright (`--hide-scrollbars`) and assert computed style of the first row: `border-radius: 9px`, `padding: 10px 12px`, the tag `font-size: 9px`, the file `font-size: 11px`, the size `font-size: 10px`; screenshot both themes into `.superpowers/sdd/2026-09-06-model-detail-and-replace-source/shots-task1/`.
 
-- [ ] **Step 9: Lint, coverage, commit**
+- [x] **Step 9: Lint, coverage, commit**
 
 ```bash
 cd frontend-v2 && yarn lint && yarn test:coverage
@@ -293,7 +293,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
   ```
   `progressFor`'s first argument is `busy` (true while uploading/finalizing) — the page decides which phases count, the entity no longer knows the phase union.
 
-- [ ] **Step 1: `httpHead` — failing spec in `client.spec.ts`**
+- [x] **Step 1: `httpHead` — failing spec in `client.spec.ts`**
 
 ```ts
   it("HEADs a path and hands back the response headers", async () => {
@@ -308,7 +308,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 ```
 (Use the file's existing `fetchMock` fixture and import `httpHead` from `./client`.)
 
-- [ ] **Step 2: Implement `httpHead` in `client.ts`**
+- [x] **Step 2: Implement `httpHead` in `client.ts`**
 
 ```ts
 /** The response headers of a HEAD — a blob's `Content-Length` without its bytes. */
@@ -320,7 +320,7 @@ export async function httpHead(path: string): Promise<Headers> {
 ```
 Export it from `shared/api/index.ts`. (Not through `send`: there is no body to parse, and a 401 on an asset HEAD must not bounce the page — `assetSize` swallows it.)
 
-- [ ] **Step 3: Model gateway — failing specs**
+- [x] **Step 3: Model gateway — failing specs**
 
 Append to `models-gateway.spec.ts`:
 ```ts
@@ -342,7 +342,7 @@ Append to `models-gateway.spec.ts`:
   });
 ```
 
-- [ ] **Step 4: Implement in `models-gateway.ts`**
+- [x] **Step 4: Implement in `models-gateway.ts`**
 
 ```ts
 export const getModel = async (slug: string): Promise<Model> =>
@@ -364,7 +364,7 @@ export const modelQuery = (slug: string) =>
 ```
 Spec `model-query.spec.ts`: key is `["model", "x"]` and `queryFn` calls `getModel("x")` (mock the gateway with `vi.mock("./models-gateway")`). Export `getModel, updateModel, type ModelPatch` and `modelQuery` from `entities/model/index.ts`.
 
-- [ ] **Step 5: Territory gateway — failing specs, then implement**
+- [x] **Step 5: Territory gateway — failing specs, then implement**
 
 Spec additions (`territories-gateway.spec.ts`, same fixture shape as the models spec):
 ```ts
@@ -405,7 +405,7 @@ export async function replaceTerritorySource(
 ```
 `territory-query.ts` mirrors `model-query.ts` (key `["territory", slug]`). Export from the barrel.
 
-- [ ] **Step 6: Artifact widening — failing spec, then implement**
+- [x] **Step 6: Artifact widening — failing spec, then implement**
 
 Replace the artifacts gateway spec's expectation:
 ```ts
@@ -437,7 +437,7 @@ export type Artifact = {
 ```
 `lodLabel`/`totalSize` unchanged. Fix any fixture/spec that builds an `Artifact` literal (`grep -rn "lod: 0, size" src`) — add the new fields there.
 
-- [ ] **Step 7: `assets.ts` — failing spec, then implement**
+- [x] **Step 7: `assets.ts` — failing spec, then implement**
 
 `assets.spec.ts`:
 ```ts
@@ -493,11 +493,11 @@ export async function assetSize(hash: string): Promise<number | null> {
 ```
 Export `assetSize, assetUrl` and `type Vec3` from `entities/content/index.ts`.
 
-- [ ] **Step 8: Lift `progressLine`/`progressFor` into `entities/upload/model/progress-line.ts`**
+- [x] **Step 8: Lift `progressLine`/`progressFor` into `entities/upload/model/progress-line.ts`**
 
 Move the two functions out of `pages/upload-territory/model/upload-form.ts` verbatim, except `progressFor`'s signature becomes `(busy: boolean, progress, samples)` with `if (!progress || !busy) return undefined;`. Move their tests from `upload-form.spec.ts` into `progress-line.spec.ts` (adjust the first argument: `true`/`false` instead of a phase). `upload-form.ts` keeps `canSubmit`, `fileMeta`, `stagesFor`, `ARCHIVE_CHECKLIST`, `UploadPhase`, `UploadForm`. Export `progressFor, progressLine, type UploadProgressView` from `entities/upload/index.ts`.
 
-- [ ] **Step 9: Lift the panel into `entities/upload/ui/upload-progress-panel.tsx`**
+- [x] **Step 9: Lift the panel into `entities/upload/ui/upload-progress-panel.tsx`**
 
 ```tsx
 import { Button } from "@/shared/ui/button";
@@ -547,11 +547,11 @@ export function UploadProgressPanel({
 ```
 Move `pages/upload-territory/ui/upload-progress.spec.tsx` beside it as `upload-progress-panel.spec.tsx` (rewrite `phase="uploading"` → `busy`, add one case: `cancelLabel="Cancel upload"` renders that button name). Add `entities/upload/upload.fixture.tsx` (the slice now renders JSX, so architecture.spec demands a fixture): the panel idle with `submitLabel="Replace source"`, and busy at 41 % with the mock's stats `["chunk 71 / 175", "8 MB chunks", "24.6 MB/s", "~4 min left"]`. Export `UploadProgressPanel, type UploadProgressPanelProps` from the barrel. Delete the old panel files.
 
-- [ ] **Step 10: Re-point Upload Territory**
+- [x] **Step 10: Re-point Upload Territory**
 
 `upload-territory-page.tsx`: import `UploadProgressPanel` from `@/entities/upload`, pass `busy={phase === "uploading" || phase === "finalizing" || phase === "creating"}` and `submitLabel="Upload territory"`. `use-upload-territory.ts`: `progressFor(phase === "uploading" || phase === "finalizing", progress, samples)` imported from `@/entities/upload`. Run the whole `pages/upload-territory` suite — PASS unchanged.
 
-- [ ] **Step 11: Lint, coverage, commit**
+- [x] **Step 11: Lint, coverage, commit**
 
 ```bash
 cd frontend-v2 && yarn lint && yarn test:coverage
@@ -575,7 +575,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 **Interfaces:**
 - Produces: `isCatalogHref` true for `/models/<slug>` (slug ≠ `new`) and `/territories/<slug>/replace`; `catalogRoute`, `territoriesRoute`, `territoryNewRoute`, `modelsRoute`, `modelNewRoute` exported from `catalog-routes.tsx` (Tasks 4 and 5 add `modelDetailRoute` and `territoryReplaceRoute` there and to the tree in `router.tsx`).
 
-- [ ] **Step 1: Failing guard spec**
+- [x] **Step 1: Failing guard spec**
 
 Replace the "does not match a territory or model detail route" test with:
 ```ts
@@ -590,7 +590,7 @@ Replace the "does not match a territory or model detail route" test with:
   });
 ```
 
-- [ ] **Step 2: Implement in `guard.ts`**
+- [x] **Step 2: Implement in `guard.ts`**
 
 ```ts
 /** The catalog shell's exact routes — no sidebar, unlike the console. */
@@ -612,19 +612,19 @@ export const isCatalogHref = (href: string): boolean => {
 ```
 (`/models/new` is caught by the exact list first; the regex would match it too, which is harmless.) Run `guard.spec.ts` — PASS.
 
-- [ ] **Step 3: Split the catalog routes**
+- [x] **Step 3: Split the catalog routes**
 
 Create `app/router/catalog-routes.tsx` and move `catalogRoute`, `territoriesRoute`, `territoryNewRoute`, `modelsRoute`, `modelNewRoute` there verbatim (imports: `createRoute`, `redirect`, `meQuery`, `isAuthed`, the four screens, `CatalogShellRoute`, `redirectTarget`, and `rootRoute` from `./routes`). Update `router.tsx`'s tree imports to the new module. Add `"src/app/router/catalog-routes.tsx"` to `EXEMPT_MODULES` with the comment `// Wiring: the catalog subtree, split from routes.tsx at the 200-line cap; its decisions are in guard.ts.` Check `routes.tsx` no longer imports the four catalog screens.
 
-- [ ] **Step 4: In-app navigation from the two catalogs — failing specs**
+- [x] **Step 4: In-app navigation from the two catalogs — failing specs**
 
 `model-library-screen.spec.tsx`: find the test that expects `leaveTo("/models/…")` on open (grep `leaveTo`) and rewrite it to expect the mocked `useNavigate` to be called with `{ to: "/models/$slug", params: { slug: "pump-jack-unit" } }`; the spec already mocks `@tanstack/react-router` for `onUpload` — reuse that mock. `territory-catalog-screen.spec.tsx`: the replace test expects `navigate({ to: "/territories/$slug/replace", params: { slug } })`; `onOpen` keeps `leaveTo(territoryPath(slug))`.
 
-- [ ] **Step 5: Implement**
+- [x] **Step 5: Implement**
 
 `model-library-screen.tsx`: `onOpen={(slug) => void navigate({ to: "/models/$slug", params: { slug } })}`; drop the `leaveTo`/`modelPath` imports if now unused. `territory-catalog-screen.tsx`: `onReplace={(slug) => void navigate({ to: "/territories/$slug/replace", params: { slug } })}`. Typed routes: until Tasks 4/5 register them the `to` literal is not in the route tree — TanStack's `navigate` typing then rejects it. Use `navigate({ href: \`/models/${encodeURIComponent(slug)}\` })` in both screens instead (the same shape `CatalogShellRoute` uses); spec expectations match on `href`.
 
-- [ ] **Step 6: Lint, coverage, commit**
+- [x] **Step 6: Lint, coverage, commit**
 
 ```bash
 cd frontend-v2 && yarn lint && yarn test:coverage
@@ -666,7 +666,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
   };
   ```
 
-- [ ] **Step 1: `detail.ts` — failing spec**
+- [x] **Step 1: `detail.ts` — failing spec**
 
 `detail.spec.ts` (representative cases; write all of them):
 ```ts
@@ -713,7 +713,7 @@ describe("model detail facts", () => {
 ```
 `DetailTone` has no accent, so the slug row's value is a `<span className="text-accent">` (a `Detail.value` is a ReactNode) — assert its `label` only. `usageCount: 1` prints `in 1 territory`; add a test line for it. The module contains JSX: name it `detail.tsx` / `detail.spec.tsx`.
 
-- [ ] **Step 2: Implement `detail.ts`**
+- [x] **Step 2: Implement `detail.ts`**
 
 ```ts
 import { assetUrl, totalSize, type Artifact } from "@/entities/content";
@@ -768,7 +768,7 @@ export function artifactRows(slug: string, artifacts: Artifact[]): ArtifactRowPr
 ```
 (Bounds print `"1 / 2 / 1"` because `formatSize` rounds — the same helper the territory inspector uses.)
 
-- [ ] **Step 3: Hook — failing spec**
+- [x] **Step 3: Hook — failing spec**
 
 `use-model-detail.spec.tsx` (mock pattern from `pages/upload-territory/model/use-upload-territory.spec.tsx`; `vi.mock` `@/entities/model` for `getModel/updateModel/deleteModel`, `@/entities/content` for `listArtifacts`, `@/entities/conversion` for `listJobs`, `@/entities/upload` for `runChunkedUpload`, `@tanstack/react-router` for `useNavigate`). Cases:
 1. resolves `status: "ready"`, `model`, `artifacts`, `conversion: "ready"` once the three queries answer;
@@ -780,7 +780,7 @@ export function artifactRows(slug: string, artifacts: Artifact[]): ArtifactRowPr
 7. a rejected `updateModel` toasts (`useNotices` shows an error) and clears `thumbnailBusy`;
 8. `canDelete`/`canWrite` follow `model:delete`/`model:write` on the principal.
 
-- [ ] **Step 4: Implement `use-model-detail.ts`**
+- [x] **Step 4: Implement `use-model-detail.ts`**
 
 ```ts
 export type ModelDetailState =
@@ -795,14 +795,14 @@ export function useModelDetail(slug: string): ModelDetailState
 ```
 Body: `meQuery`, `modelQuery(slug)`, `artifactsQuery("model", slug)`, `jobsQuery`; `job = jobs.data?.find(j => j.kind === "model" && j.slug === slug)`; `conversion = conversionStatusOf(artifacts.length > 0, job)`; the `finishedSince` effect from `use-model-library.ts` copied (invalidate `["artifacts", kind, slug]`); `missing` when `unanswered(model)` is an `HttpError` with `status === 404`; `unavailable` on any other unanswered error; `useMutation`s for delete (`onSuccess`: `notify.success("Model deleted")`, invalidate `["models"]`, `navigate({ to: "/models" })`) and thumbnail (`mutationFn: async (file: File | null) => updateModel(slug, { thumbnailBlobHash: file ? (await runChunkedUpload(file, {})).hash : "" })`, `onSuccess`: invalidate `["model", slug]` and `["models"]`, `onError`: `notify.error(messageOf(err))`); `pending` is a `useState<boolean>` for the confirm dialog. Keep under 200 lines; if it grows, move the two mutations into `model/use-model-mutations.ts` (+ spec).
 
-- [ ] **Step 5: Page and parts — failing specs**
+- [x] **Step 5: Page and parts — failing specs**
 
 `model-viewport.spec.tsx`: with `thumbnailUrl` renders `<img alt={title}>`; without renders the text `no image`.
 `model-aside.spec.tsx`: About shows the description or `No description.`; the `DetailList` rows by label; Artifacts heading `Artifacts` with `3 LODs` and three links named by file; no artifacts + `conversion: "pending"` → `Not converted yet`; `"failed"` → `Conversion failed` and the job error text; Thumbnail card: `replace`/`remove` buttons only with `canWrite` and a thumbnail, `upload` when none, `uploading…` disabled while busy; `remove` calls `onRemoveThumbnail`; choosing a file through the hidden input calls `onThumbnail(file)`.
 `model-detail-page.spec.tsx`: h1 = title; badge text = status; meta line; `← Model library` link → `/models`; `Download GLB` link `href="/api/assets/h0"` + `download="valve-lod0.glb"`, absent without LOD 0; `Delete model` button present only with `canDelete`, disabled with `title="In use on 2 territories"` when `usageCount > 0`, calls `onDelete`.
 `model-detail-screen.spec.tsx`: loading → `role="status"` skeleton; `missing` → `Model not found` + link `← Model library`; `unavailable` → bad Callout; ready → the page + `ConfirmDialog` when `pending`.
 
-- [ ] **Step 6: Implement the UI**
+- [x] **Step 6: Implement the UI**
 
 `model-viewport.tsx`:
 ```tsx
@@ -879,7 +879,7 @@ with `BADGE_TONE: Record<ConversionStatus, "ok" | "warn" | "bad" | "dim"> = { re
 
 `model-detail-page.fixture.tsx`: export a map `{ ready, converting, noImage }` with an inline data-URI thumbnail (copy `PLACEHOLDER_THUMB` from the catalog-card fixture) and the mock's numbers (Valve Assembly, 18 412 / 6 140 / 1 320 tris, 9.8 MB / 2.1 MB / 412 KB, `usageCount: 2`).
 
-- [ ] **Step 7: Route leaf**
+- [x] **Step 7: Route leaf**
 
 In `catalog-routes.tsx`:
 ```ts
@@ -891,7 +891,7 @@ export const modelDetailRoute = createRoute({
 ```
 Add it to the tree in `router.tsx` beside `modelNewRoute`. `pages/model-detail/index.ts` exports `ModelDetailScreen`, `ModelDetailPage`, `type ModelDetailPageProps`.
 
-- [ ] **Step 8: Run everything, live check, commit**
+- [x] **Step 8: Run everything, live check, commit**
 
 `yarn lint && yarn test:coverage`. Live (dev stack): open `/models/<a ready slug>` from the library by click (no reload — watch the Network panel for a document request), both themes, screenshot beside `mocks/model-detail-v2.md`; Download GLB saves `<slug>-lod0.glb`; upload a thumbnail (any PNG), see the viewport and the library card update, remove it; open a converting model if one exists (or upload a throwaway via `/models/new` and open it while it converts — its badge must flip to `ready` without a reload); delete the throwaway from its page and land on `/models`. Screenshots to `.superpowers/sdd/2026-09-06-model-detail-and-replace-source/shots-task4/`.
 
@@ -931,7 +931,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
   };
   ```
 
-- [ ] **Step 1: `replace-form.ts` — failing spec**
+- [x] **Step 1: `replace-form.ts` — failing spec**
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -971,11 +971,11 @@ describe("replace form", () => {
 });
 ```
 
-- [ ] **Step 2: Implement `replace-form.ts`**
+- [x] **Step 2: Implement `replace-form.ts`**
 
 Stages (labels/hints verbatim): `Chunked upload / 8 MB chunks, resumable`, `Finalize blob / content hash written`, `Parse OBJ + MTL / geometry and materials`, `Rebuild LOD 0-2 / replaces the old artifacts`, `Swap in viewer / territory returns to ready`; pending times `["queued", "queued", "~1 min", "~3 min", "~10 s"]`; active upload time `${percent}%` (or `running` when null), active finalize `running`, done `done`. `PRESERVED`: `Slug, title and description`, `Territory access assignments`, `Placed models and their coordinates`, `Panorama tour link` (ok) and `Old LOD artifacts — replaced by the new build` (not ok). Delta sign: `+` / `−` (U+2212) with `formatBytes(Math.abs(d))`; `0` → `±0 B`. `currentRows` uses `tone: "muted"`-free plain values; the hash is the card's bold line, not a row.
 
-- [ ] **Step 3: Hook — failing spec**
+- [x] **Step 3: Hook — failing spec**
 
 `use-replace-source.spec.tsx` (mock `@/entities/territory` `getTerritory`/`replaceTerritorySource`, `@/entities/content` `assetSize`, `@/entities/upload` `runChunkedUpload`, `@/shared/lib/leave`). Cases:
 1. loading until `getTerritory` and `assetSize` answer; then `status: "ready"`, `territory`, `currentSize: 1024`, `phase: "idle"`;
@@ -986,11 +986,11 @@ Stages (labels/hints verbatim): `Chunked upload / 8 MB chunks, resumable`, `Fina
 6. a 404 → `status: "missing"`; `canReplace` follows `territory:write`;
 7. `progress` is defined only while uploading/finalizing, and a retry starts with `progress` undefined.
 
-- [ ] **Step 4: Implement `use-replace-source.ts`**
+- [x] **Step 4: Implement `use-replace-source.ts`**
 
 Follow `use-upload-territory.ts` line by line, with: `useQuery(territoryQuery(slug))`, `useQuery({ queryKey: ["asset-size", hash], queryFn: () => assetSize(hash), enabled: !!hash })` (`hash = territory.data?.sourceBlobHash`), `onSubmit` guarded by `phase === "picked" && file`, `.then((finalized) => { setPhase("replacing"); return replaceTerritorySource(slug, finalized.hash); }).then(async ({ territory, job }) => { await Promise.all([client.invalidateQueries({ queryKey: ["jobs"] }), client.invalidateQueries({ queryKey: ["territories"] })]); leaveTo(\`/territories/${territory.slug}?jobId=${job.id}\`); })`, `progress: progressFor(phase === "uploading" || phase === "finalizing", progress, samples)`, `stages: stagesFor(phase, progressPercent)`. State union: `loading | missing | unavailable(error) | (ready & ReplaceSourcePageProps)`.
 
-- [ ] **Step 5: UI — failing specs, then implement**
+- [x] **Step 5: UI — failing specs, then implement**
 
 `source-pair.spec.tsx`: Current card shows `Current source`, the short hash bold, `size`/`uploaded` rows; New card idle shows `New source` and `No file chosen yet.`; with a file shows its name and the `delta` row.
 `replace-aside.spec.tsx`: `After the upload` / `Re-convert in place`; five stage labels; `What is preserved` with the five items.
@@ -1005,7 +1005,7 @@ Follow `use-upload-territory.ts` line by line, with: `useQuery(territoryQuery(sl
 
 `replace-source-page.fixture.tsx`: map `{ idle, picked, uploading }` with Refinery Block C, `currentSize: 1.2 GB`, a 1.4 GB fake `File` (construct with `new File([], "refinery-block-c-rev4.zip")` and override `size` via `Object.defineProperty` — no 1.4 GB buffer), progress at 41 % with the mock's stats.
 
-- [ ] **Step 6: Route leaf**
+- [x] **Step 6: Route leaf**
 
 ```ts
 export const territoryReplaceRoute = createRoute({
@@ -1016,7 +1016,7 @@ export const territoryReplaceRoute = createRoute({
 ```
 Add to the tree in `router.tsx`. `index.ts` exports the screen, the page and its props type.
 
-- [ ] **Step 7: Run everything, live check, commit**
+- [x] **Step 7: Run everything, live check, commit**
 
 `yarn lint && yarn test:coverage`. Live: create a throwaway territory through `/territories/new` with a real ≥ 8 MB ZIP, wait for `ready` (or not — replace works on a converting one too, but wait so the artifact swap is observable); from `/territories` click its Replace icon (no document reload); both themes, screenshot beside `mocks/replace-source-v2.md`; the Current card shows the HEAD size; pick a second ZIP, see the delta; Cancel upload mid-way (phase returns to picked, no toast, the server session is dropped — check the gateway log or a subsequent `HEAD /api/uploads/{id}` 404); run it through to the redirect `/territories/<slug>?jobId=…` in the old SPA; confirm `GET /api/jobs` lists the new job; as `cotest` without `territory:write` (if that account lacks it — check `/api/auth/me`) the callout shows; delete the throwaway. Screenshots to `shots-task5/`.
 
@@ -1036,8 +1036,8 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 **Files:**
 - Modify: `frontend-v2/CLAUDE.md` (the screen list / "what is live" section, the guard's href rule, the `UploadProgressPanel` home), root `CLAUDE.md` (the "Two frontends" paragraph: six catalog screens now), the spec's §8 ticks.
 
-- [ ] **Step 1:** In `frontend-v2/CLAUDE.md` add `/models/{slug}` and `/territories/{slug}/replace` to the catalog-shell route list; note that `isCatalogHref` matches them by pattern and that `/territories/{slug}` still leaves; note the thumbnail-as-viewport decision and that the viewer overlays wait for the territory-viewer port; note the model replace-source has no backend route. In the root `CLAUDE.md` "Two frontends" paragraph change "the four catalog screens" to name six. Tick §8 in the spec.
-- [ ] **Step 2:** Commit:
+- [x] **Step 1:** In `frontend-v2/CLAUDE.md` add `/models/{slug}` and `/territories/{slug}/replace` to the catalog-shell route list; note that `isCatalogHref` matches them by pattern and that `/territories/{slug}` still leaves; note the thumbnail-as-viewport decision and that the viewer overlays wait for the territory-viewer port; note the model replace-source has no backend route. In the root `CLAUDE.md` "Two frontends" paragraph change "the four catalog screens" to name six. Tick §8 in the spec.
+- [x] **Step 2:** Commit:
 ```bash
 git add frontend-v2/CLAUDE.md CLAUDE.md docs/superpowers/specs/2026-09-06-model-detail-and-replace-source-design.md docs/superpowers/plans/2026-09-06-model-detail-and-replace-source.md
 git commit --no-verify -m "docs: the model page and the replace form are v2 screens; the plan's tasks ticked
