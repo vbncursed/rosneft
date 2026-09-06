@@ -2,6 +2,7 @@ import { createRoute, redirect } from "@tanstack/react-router";
 import { meQuery } from "@/entities/user";
 import { ModelDetailScreen } from "@/pages/model-detail";
 import { ModelLibraryScreen } from "@/pages/model-library";
+import { ReplaceSourceScreen } from "@/pages/replace-source";
 import { TerritoryCatalogScreen } from "@/pages/territory-catalog";
 import { UploadModelsScreen } from "@/pages/upload-models";
 import { UploadTerritoryScreen } from "@/pages/upload-territory";
@@ -53,4 +54,10 @@ export const modelDetailRoute = createRoute({
   getParentRoute: () => catalogRoute,
   path: "/models/$slug",
   component: ModelDetailScreen,
+});
+
+export const territoryReplaceRoute = createRoute({
+  getParentRoute: () => catalogRoute,
+  path: "/territories/$slug/replace",
+  component: ReplaceSourceScreen,
 });
