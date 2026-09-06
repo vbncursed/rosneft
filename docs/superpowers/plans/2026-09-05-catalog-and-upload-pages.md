@@ -54,7 +54,7 @@
 **Interfaces:**
 - Produces: proto `Territory.placement_count = 8` (uint32), `Model.usage_count = 8`; JSON `placementCount?: number` on `Territory`, `usageCount?: number` on `Model` (present on the list endpoints; 0/absent on single GETs); v2 DTO regenerated so Task 3 can map them.
 
-- [ ] **Step 1: Proto**
+- [x] **Step 1: Proto**
 
 Add after `external_panorama_url` / `thumbnail_blob_hash`:
 ```proto
@@ -67,7 +67,7 @@ Add after `external_panorama_url` / `thumbnail_blob_hash`:
 ```
 Run `make -C backend proto`.
 
-- [ ] **Step 2: Failing integration test**
+- [x] **Step 2: Failing integration test**
 
 `list_counts_integration_test.go` (tag `integration`; copy the suite skeleton and the `seedTerritory`/`seedModel` helpers from `delete_model_integration_test.go`):
 ```go
@@ -107,7 +107,7 @@ func (s *ListCountsSuite) TestListsCarryPlacementAndUsageCounts() {
 ```
 Run `cd backend/services/catalog-service && go test -tags=integration ./internal/storage/ -run ListCounts` → FAIL (fields undefined).
 
-- [ ] **Step 3: Domain, SQL, scanners**
+- [x] **Step 3: Domain, SQL, scanners**
 
 `types.go`: `PlacementCount int \`yaml:"-"\`` on Territory, `UsageCount int \`yaml:"-"\`` on Model.
 
@@ -141,13 +141,13 @@ FROM models m ORDER BY m.slug
 ```
 Both loops call the `*Listed` scanner. Run the integration test → PASS.
 
-- [ ] **Step 4: gRPC and gateway**
+- [x] **Step 4: gRPC and gateway**
 
 `grpcapi/converters.go`: `PlacementCount: uint32(t.PlacementCount)` in `territoryToProto`, `UsageCount: uint32(m.UsageCount)` in `modelToProto`; the proto→domain direction reads `int(GetPlacementCount())` / `int(GetUsageCount())`.
 
 Gateway: `domain.Territory.PlacementCount int`, `domain.Model.UsageCount int`; `clients/catalog/converters.go` maps them both ways (add a case to its existing test); the httpapi JSON writer for territories/models emits `placementCount` / `usageCount` (find the function that emits `externalPanoramaUrl`; if the response struct is generated from `openapi.yaml`, edit the yaml first and regenerate). `openapi.yaml`: under `Territory.properties` add `placementCount: { type: integer, minimum: 0, description: "Placements on this territory; filled on the list endpoint." }`, under `Model.properties` add `usageCount: { type: integer, minimum: 0, description: "Distinct territories placing this model; filled on the list endpoint." }`. A route test (`list_territories`/`list_models` handler tests, whichever exist) asserts the JSON key with a stubbed catalog returning a count.
 
-- [ ] **Step 5: DTO, gate, commit**
+- [x] **Step 5: DTO, gate, commit**
 
 `cd frontend-v2 && yarn openapi:generate`, then `yarn lint` (the generated file must still type-check with the existing mappers). `CC=/usr/bin/clang SDKROOT=$(xcrun --show-sdk-path) make -C backend check`.
 
@@ -219,9 +219,9 @@ export type CatalogCardProps = {
 // StageList: stages: (ConversionStage & { hint?: string })[]; activeTone?: "warn" | "accent"
 ```
 
-- [ ] **Step 1: Icons** — add to `GLYPHS`: `minus` (box 24, width 2.2, `<path d="M6 12h12" />`), `grid` (width 1.8, four `<rect>` 7×7 rx 1 at (3,3) (14,3) (3,14) (14,14)), `list` (width 1.8, `<path d="M4 6h16M4 12h16M4 18h16" />`). Spec: the three names render an `svg`.
+- [x] **Step 1: Icons** — add to `GLYPHS`: `minus` (box 24, width 2.2, `<path d="M6 12h12" />`), `grid` (width 1.8, four `<rect>` 7×7 rx 1 at (3,3) (14,3) (3,14) (14,14)), `list` (width 1.8, `<path d="M4 6h16M4 12h16M4 18h16" />`). Spec: the three names render an `svg`.
 
-- [ ] **Step 2: DropZone — spec first**
+- [x] **Step 2: DropZone — spec first**
 
 ```tsx
 it("hands the picked files to onFiles and labels the hidden input", async () => {
@@ -239,11 +239,11 @@ it("does nothing while disabled", () => {});
 ```
 Implementation: a `<label>` wrapping the whole panel (so the label text names the input), `className="flex cursor-pointer items-center gap-3.5 rounded-[12px] border border-dashed border-line-2 bg-panel px-5 py-[18px]"` + `border-accent bg-accent-soft` while `over`; `<Icon name="upload" size={24} className="text-muted" />`; title `text-[13px] font-semibold`, hint `mt-1 text-xs text-muted`; right `<span>` styled as the accent outline pill (`rounded-full border border-accent bg-accent-soft px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-accent`); `<input type="file" className="sr-only" accept multiple disabled onChange={(e) => onFiles([...(e.target.files ?? [])])} />` — reset `e.target.value = ""` after so the same file can be picked again. `onDragOver` preventDefault + `over=true`, `onDragLeave` false, `onDrop` preventDefault + files from `dataTransfer.files` (filter by `accept` extension when `accept` names extensions). `tabIndex={0}` + `onKeyDown` Enter/Space → `inputRef.current?.click()`.
 
-- [ ] **Step 3: FileCard — spec then code.** Renders `name` (14px/600), `meta` (mono 11px muted), and a `Replace` button (`Button shape="pill" size="sm"`) calling `onReplace`; container `relative flex items-center gap-3.5 rounded-[12px] border border-accent border-l-[3px] border-l-accent bg-accent-soft py-[18px] pl-[23px] pr-5` with `<Icon name="upload" size={26} className="text-accent" />`.
+- [x] **Step 3: FileCard — spec then code.** Renders `name` (14px/600), `meta` (mono 11px muted), and a `Replace` button (`Button shape="pill" size="sm"`) calling `onReplace`; container `relative flex items-center gap-3.5 rounded-[12px] border border-accent border-l-[3px] border-l-accent bg-accent-soft py-[18px] pl-[23px] pr-5` with `<Icon name="upload" size={26} className="text-accent" />`.
 
-- [ ] **Step 4: Checklist — spec then code.** `<ul aria-label={label ?? "Checklist"}>`, each `<li className="flex items-start gap-[9px]">` with `<Icon name={ok ? "check" : "minus"} size={13} className={ok ? "text-ok" : "text-muted"} />` and `<span className={cx("text-xs leading-[1.45]", ok ? "text-fg" : "text-muted")}>`. Spec: two items, the ok one has the check icon (query by `data-icon` or the path `d`) and fg text.
+- [x] **Step 4: Checklist — spec then code.** `<ul aria-label={label ?? "Checklist"}>`, each `<li className="flex items-start gap-[9px]">` with `<Icon name={ok ? "check" : "minus"} size={13} className={ok ? "text-ok" : "text-muted"} />` and `<span className={cx("text-xs leading-[1.45]", ok ? "text-fg" : "text-muted")}>`. Spec: two items, the ok one has the check icon (query by `data-icon` or the path `d`) and fg text.
 
-- [ ] **Step 5: CatalogCard rewrite — spec first** (replace the existing spec; keep its "heading carries the link" idea as `onOpen` on a button-styled title instead):
+- [x] **Step 5: CatalogCard rewrite — spec first** (replace the existing spec; keep its "heading carries the link" idea as `onOpen` on a button-styled title instead):
 
 ```tsx
 it("draws the badge, chips, slug and trailing note", () => {
@@ -263,12 +263,12 @@ Implementation notes: `<article aria-label={title} className={cx("overflow-hidde
 
 Then update `TerritoryCard` / `ModelCard` in entities to the new props (they map an entity to `CatalogCardProps`; keep their fixtures rendering) — or, if nothing outside the fixtures uses them any more, delete both and their fixtures/specs and the barrel exports (check `grep -rn 'TerritoryCard\|ModelCard' src`).
 
-- [ ] **Step 6: PageHeader xl, EmptyState row, StageList hint/tone** — spec first for each:
+- [x] **Step 6: PageHeader xl, EmptyState row, StageList hint/tone** — spec first for each:
   - PageHeader: `size="xl"` → h1 `text-[38px] tracking-[-0.03em] leading-[1.05]`; description wrapper `max-w-[52ch] leading-relaxed` (xl) / `max-w-[56ch]` (lg); back link gap `mt-4` before the eyebrow (mock: 16px) for lg/xl.
   - EmptyState `layout="row"`: `flex items-center gap-3.5 rounded-[14px] border border-dashed border-line-2 p-[26px] text-left`, `<Icon name={icon} size={22} className="text-muted" />`, title 14px/600, description 12px muted, action on the right. Default `layout="center"` unchanged.
   - StageList: `hint` renders `<p className="mt-[3px] text-[11px] leading-[1.45] text-muted">` under the label, rows become `items-start` when any hint exists; `activeTone="accent"` swaps the active dot/text to `bg-accent`/`text-accent` (keep `STAGE_DOT`/`STAGE_TEXT` as the warn defaults; add `ACCENT_DOT`/`ACCENT_TEXT` maps or a `toneClasses(state, activeTone)` helper in `status.ts` with a spec).
 
-- [ ] **Step 7: Lint, tests, commit**
+- [x] **Step 7: Lint, tests, commit**
 
 `yarn lint && yarn test:coverage`. Open Cosmos (`yarn cosmos`, port 5100) and look at the new fixtures in both themes; note what you saw.
 
@@ -330,9 +330,9 @@ export function setModelThumbnail(slug: string, thumbnailBlobHash: string): Prom
 export function stageLabel(token: string | null): string  // "compressing" → "Compressing textures", "lod-1" → "Building LOD 1", null → "Queued", unknown → token
 ```
 
-- [ ] **Step 1: guard — spec then code.** `guard.spec.ts` gains: `isCatalogHref` true for the four paths (with or without a query), false for `/territories/north-ridge` and `/models/pump`; `routesInApp` true for `/territories` on a plain click, false with metaKey. Implement.
+- [x] **Step 1: guard — spec then code.** `guard.spec.ts` gains: `isCatalogHref` true for the four paths (with or without a query), false for `/territories/north-ridge` and `/models/pump`; `routesInApp` true for `/territories` on a plain click, false with metaKey. Implement.
 
-- [ ] **Step 2: shell + routes.** `CatalogShell` (spec: renders children inside a `main`; fixture). `catalog-shell-route.tsx` mirrors `console-shell.tsx`: `useQuery(meQuery)`, the same `onClickCapture` delegate, `<CatalogShell><Outlet /></CatalogShell><Toaster />`. `routes.tsx`: 
+- [x] **Step 2: shell + routes.** `CatalogShell` (spec: renders children inside a `main`; fixture). `catalog-shell-route.tsx` mirrors `console-shell.tsx`: `useQuery(meQuery)`, the same `onClickCapture` delegate, `<CatalogShell><Outlet /></CatalogShell><Toaster />`. `routes.tsx`: 
 ```ts
 export const catalogRoute = createRoute({ getParentRoute: () => rootRoute, id: "catalog", beforeLoad: ({ location }) => { const t = redirectTarget(isAuthed(), location.href); if (t) throw redirect(t); }, loader: ({ context }) => context.queryClient.ensureQueryData(meQuery), component: CatalogShellRoute });
 export const territoriesRoute = createRoute({ getParentRoute: () => catalogRoute, path: "/territories", component: TerritoryCatalogScreen });
@@ -342,13 +342,13 @@ export const modelNewRoute = createRoute({ getParentRoute: () => catalogRoute, p
 ```
 Until Tasks 4–7 land, point the four leaves at a one-line placeholder component exported from the shell route file (`const Soon = () => <p>Soon</p>`) so the router compiles — remove it in Task 7. `router.tsx`: `catalogRoute.addChildren([...])`. `console-shell.tsx`: `backHref="/territories"`. Add the new wiring file to `exempt-modules.ts`. **Layering:** `app` importing `pages` is inward — fine.
 
-- [ ] **Step 3: entities/upload — spec first.** `upload-gateway.spec.ts` stubs `fetch` (the file pattern from `audit-gateway.spec.ts`) and `setCsrfToken("csrf")`: `initiateUpload(10, "application/zip")` POSTs `/api/uploads` with the JSON body; `appendChunk("u1", 0, blob)` PATCHes `/api/uploads/u1` with `Upload-Offset: 0`, `Content-Type: application/octet-stream`, `X-CSRF-Token: csrf`, and returns the response's `Upload-Offset` (or offset+size when absent); a non-2xx PATCH rejects with the status; `finalizeUpload` POSTs `/finalize`; `abortUpload` DELETEs. `run-chunked-upload.spec.ts` with mocked gateway functions: a 20 MiB `File` (use `new File([new Uint8Array(0)], …)` and override `size`/`slice` via a small fake object typed as `File`) yields three chunks, `onProgress` reports `{chunk: 1, chunks: 3, bytes: 8 MiB, total}` then 2/3, 3/3, and finalize is called once; a session that starts at `offset = 8 MiB` skips the first chunk; an aborted signal between chunks rejects with `"upload aborted"` and never calls finalize. `title.spec.ts`: `deriveTitle("MyBuilding-v2.zip") === "MyBuilding-v2"`, `deriveTitle("  pump jack .ZIP ") === "pump jack"`; `slugPreview("Refinery Block C") === "refinery-block-c"`, `slugPreview("Ünïcode & co!") === "unicode-co"`. `upload-stats.spec.ts`: two samples 1 s apart with 8 MiB delta → `bytesPerSecond ≈ 8 MiB`, eta = remaining / rate; fewer than two samples → both null; `formatEta(30) === "<1 min"`, `formatEta(190) === "~3 min"`. Implement (`upload-gateway.ts` ports the old one onto `httpPost` + raw `fetch` with `ensureCsrfToken` from `@/shared/api`; `run-chunked-upload.ts` ports the loop with the richer progress payload).
+- [x] **Step 3: entities/upload — spec first.** `upload-gateway.spec.ts` stubs `fetch` (the file pattern from `audit-gateway.spec.ts`) and `setCsrfToken("csrf")`: `initiateUpload(10, "application/zip")` POSTs `/api/uploads` with the JSON body; `appendChunk("u1", 0, blob)` PATCHes `/api/uploads/u1` with `Upload-Offset: 0`, `Content-Type: application/octet-stream`, `X-CSRF-Token: csrf`, and returns the response's `Upload-Offset` (or offset+size when absent); a non-2xx PATCH rejects with the status; `finalizeUpload` POSTs `/finalize`; `abortUpload` DELETEs. `run-chunked-upload.spec.ts` with mocked gateway functions: a 20 MiB `File` (use `new File([new Uint8Array(0)], …)` and override `size`/`slice` via a small fake object typed as `File`) yields three chunks, `onProgress` reports `{chunk: 1, chunks: 3, bytes: 8 MiB, total}` then 2/3, 3/3, and finalize is called once; a session that starts at `offset = 8 MiB` skips the first chunk; an aborted signal between chunks rejects with `"upload aborted"` and never calls finalize. `title.spec.ts`: `deriveTitle("MyBuilding-v2.zip") === "MyBuilding-v2"`, `deriveTitle("  pump jack .ZIP ") === "pump jack"`; `slugPreview("Refinery Block C") === "refinery-block-c"`, `slugPreview("Ünïcode & co!") === "unicode-co"`. `upload-stats.spec.ts`: two samples 1 s apart with 8 MiB delta → `bytesPerSecond ≈ 8 MiB`, eta = remaining / rate; fewer than two samples → both null; `formatEta(30) === "<1 min"`, `formatEta(190) === "~3 min"`. Implement (`upload-gateway.ts` ports the old one onto `httpPost` + raw `fetch` with `ensureCsrfToken` from `@/shared/api`; `run-chunked-upload.ts` ports the loop with the richer progress payload).
 
-- [ ] **Step 4: create/thumbnail gateways and the counts.** `to-territory.ts`: `placementCount: d.placementCount ?? 0`; `to-model.ts`: `usageCount: d.usageCount ?? 0` (specs). `territories-gateway.ts`: `createTerritory` → `httpPost<components["schemas"]["TerritoryCreated"]>("/api/territories", input)` mapped to `{ territory: toTerritory(r.territory), job: { id: r.job.id } }`; `models-gateway.ts`: `createModel` likewise (`ModelCreated`), `setModelThumbnail` → `httpPatch("/api/models/{slug}", { thumbnailBlobHash })`. Specs assert URL, method, body and the mapped shape. Export from the barrels. Fix any fixture/spec that builds a `Territory`/`Model` literal without the new field (grep `sourceBlobHash:` in specs and fixtures).
+- [x] **Step 4: create/thumbnail gateways and the counts.** `to-territory.ts`: `placementCount: d.placementCount ?? 0`; `to-model.ts`: `usageCount: d.usageCount ?? 0` (specs). `territories-gateway.ts`: `createTerritory` → `httpPost<components["schemas"]["TerritoryCreated"]>("/api/territories", input)` mapped to `{ territory: toTerritory(r.territory), job: { id: r.job.id } }`; `models-gateway.ts`: `createModel` likewise (`ModelCreated`), `setModelThumbnail` → `httpPatch("/api/models/{slug}", { thumbnailBlobHash })`. Specs assert URL, method, body and the mapped shape. Export from the barrels. Fix any fixture/spec that builds a `Territory`/`Model` literal without the new field (grep `sourceBlobHash:` in specs and fixtures).
 
-- [ ] **Step 5: `stageLabel`** — spec with the table from the spec §4; implement as a `Record` + regex for `lod-N`.
+- [x] **Step 5: `stageLabel`** — spec with the table from the spec §4; implement as a `Record` + regex for `lod-N`.
 
-- [ ] **Step 6: Lint, tests, live smoke, commit.** `yarn lint && yarn test:coverage`. Live: sign in, open `/territories` — the shell renders (placeholder), `/console` back link goes to `/territories`, a `/console/content` link click stays in-app. 
+- [x] **Step 6: Lint, tests, live smoke, commit.** `yarn lint && yarn test:coverage`. Live: sign in, open `/territories` — the shell renders (placeholder), `/console` back link goes to `/territories`, a `/console/content` link click stays in-app. 
 
 ```bash
 git add frontend-v2

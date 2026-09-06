@@ -29,9 +29,10 @@ does not serve are added to the backend.
 
 ## Rulings (controller, recorded here so the plan does not re-ask)
 
-- "← Home" on the catalogs and the console's `backHref` point to
-  `/territories`: v2 has no Home and none is mocked. `/` keeps redirecting to
-  `/console`.
+- "← Home" on the Model Library and the console's `backHref` point to
+  `/territories`: v2 has no Home and none is mocked. The Territory Catalog
+  draws no back link — a "← Home" pointing at itself is a dead control
+  (amended after the final review). `/` keeps redirecting to `/console`.
 - The file card shows `name · size · ZIP`, not `sha256:…` nor
   `OBJ + MTL + N textures`: the hash exists only after finalize and nothing
   inspects the archive client-side.
@@ -80,7 +81,7 @@ regenerates `dto.ts`.
 | `DropZone` | `{ label, hint, buttonLabel, accept, multiple?, disabled?, onFiles(files: File[]) }`. Dashed `border-line-2` panel, upload icon, title 13px/600, hint 12px muted, accent outline pill on the right, a visually-hidden `<input type="file">` the whole panel labels; drag-over sets the accent border; Enter/Space on the focused panel opens the picker. Emits the `File[]` and nothing else. |
 | `FileCard` | The chosen-file state of the territory form: accent-soft panel with a 3px accent left border (the `border-l` pattern from `ContentRow`), upload icon, name 14px/600, meta mono 11px, a `Replace` outline pill (`onReplace`). |
 | `Checklist` | `{ items: { label, ok }[] }` — `check` in ok / `minus` in muted, text 12px fg or muted. |
-| `CatalogCard` (rewrite) | `{ title, description?, slug, tone: "neutral"\|"warn"\|"bad", badge?: { label, tone }, thumbnailUrl?, noImageLabel?, actions?: ReactNode (overlay squares), chips?: { label, tone }[], progress?: { value, stage }, trailing: { label, tone } , href?/onOpen?, size: "md"\|"sm" }`. 132px thumb with the grid background and the cube glyph, or the image; the badge top-left; the overlay top-right; body; optional progress+stage; footer `slug … trailing`. `size="sm"` is the Model Library variant (12px radius, 14px title, denser body). The existing `TerritoryCard`/`ModelCard` wrappers move to the new props; their fixtures and specs follow. |
+| `CatalogCard` (rewrite) | `{ title, description?, slug, tone: "neutral"\|"warn"\|"bad", badge?: { label, tone }, thumbnailUrl?, noImageLabel?, actions?: ReactNode (overlay squares), chips?: { label, tone }[], progress?: { value, stage }, trailing: { label, tone }, meta?: string (sm footer right), href?, onOpen?, size: "md"\|"sm" }`. The title is an `<h3>`; with `href` it wraps an `<a>` (keyboard, new tab, copy link), with only `onOpen` a `<button>`; `onOpen` on the article gives the pointer-anywhere click. Under `sm` the slug sits under the title and the footer is `trailing … meta`. 132px thumb with the grid background and the cube glyph, or the image; the badge top-left; the overlay top-right; body; optional progress+stage; footer `slug … trailing`. `size="sm"` is the Model Library variant (12px radius, 14px title, denser body). The `TerritoryCard`/`ModelCard` entity wrappers had no consumer and were deleted; each page builds its card model itself. |
 | `PageHeader` | `size="xl"` (38px, tracking -0.03em, leading 1.05); `description` capped at `max-w-[52ch]` for `xl`, `[56ch]` for `lg`, with `leading-relaxed`. |
 | `EmptyState` | Horizontal variant: `icon`, left-aligned title/description, action on the right (the two footer CTAs). Existing centered usage keeps working via a `layout` prop defaulting to the current look. |
 | `StageList` (entities/conversion) | Optional `hint` per stage; `activeTone` prop (`warn` default for the existing console use, `accent` for the upload aside). |
@@ -116,8 +117,10 @@ console's click delegation (`guard.ts`) also intercepts `/territories` and
   externalPanoramaUrl?, sourceBlobHash })` → `{ territory, job }`;
   `Territory.placementCount`.
 - `entities/model`: `createModel({ title, description?, sourceBlobHash,
-  thumbnailBlobHash? })` → `{ model, job }`; `Model.usageCount`;
-  `setModelThumbnail(slug, hash)` → `PATCH /api/models/{slug}`.
+  thumbnailBlobHash? })` → `{ model, job }`; `Model.usageCount`. (A
+  `setModelThumbnail` PATCH was planned and dropped: the batch passes the
+  thumbnail hash into `createModel`, and nothing on this branch changes a
+  thumbnail afterwards.)
 - `entities/conversion`: `stageLabel(token)` — `fetching → Fetching source`,
   `extracting → Extracting archive`, `parsing → Parsing OBJ + MTL`,
   `encoding → Encoding geometry`, `compressing → Compressing textures`,
@@ -141,7 +144,7 @@ placement`), total size, `panorama` (ok) when `externalPanoramaUrl` is set,
 converting; trailing `Open →` (accent) / `converting` / `unavailable`.
 Tabs `All · N`, `Ready · N`, `Converting · N` (Segmented, soft, mono);
 FilterBar keys `state:` (`ready|converting|failed|pending`), `panorama:`
-(`yes|no`), free text on title/slug. Header: `← Home` → `/territories`,
+(`yes|no`), free text on title/slug. Header: no back link (see Rulings),
 overline `Territory catalog`, h1 `Scenes to walk through`, lede as mocked,
 primary pill `+ Upload` → `/territories/new` (only with `territory:write`).
 Card overlay: Replace (→ old SPA `/territories/{slug}/replace`,
