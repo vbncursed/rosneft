@@ -6,7 +6,7 @@ import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import { PageHeader } from "@/widgets/page-header";
-import { artifactFile, headerMeta, lod0, type ModelDetailPageProps } from "../model/detail";
+import { artifactFile, headerMeta, lod0, placedIn, type ModelDetailPageProps } from "../model/detail";
 import { ModelAside } from "./model-aside";
 import { ModelViewport } from "./model-viewport";
 
@@ -65,7 +65,7 @@ export function ModelDetailPage({
                 variant="danger"
                 aria-label="Delete model"
                 disabled={model.usageCount > 0}
-                title={model.usageCount > 0 ? `In use on ${model.usageCount} territories` : undefined}
+                title={model.usageCount > 0 ? `In use on ${placedIn(model.usageCount)}` : undefined}
                 onClick={onDelete}
               >
                 <Icon name="trash" size={14} />

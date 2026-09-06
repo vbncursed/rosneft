@@ -73,7 +73,7 @@ export function ReplaceSourcePage({
               />
             </div>
 
-            <Callout tone="warn" icon="warning" className="items-start rounded-card px-4 py-3.5">
+            <Callout tone="warn" icon="warning" size="lg">
               <>
                 <strong className="block text-[13px] font-semibold">
                   The territory goes back to converting

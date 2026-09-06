@@ -1,3 +1,4 @@
+import { clsx as cx } from "clsx";
 import { useRef } from "react";
 import type { ConversionStatus } from "@/entities/conversion";
 import type { Artifact } from "@/entities/content";
@@ -122,7 +123,9 @@ export function ModelAside({
     <div className="flex flex-col gap-3.5">
       <div className={`${CARD} gap-3.5`}>
         <p className={`m-0 ${OVERLINE}`}>About</p>
-        <p className="m-0 text-[13px] leading-[1.6]">{model.description ?? "No description."}</p>
+        <p className={cx("m-0 text-[13px] leading-[1.6]", model.description ? "text-fg" : "text-muted")}>
+          {model.description || "No description."}
+        </p>
         <DetailList items={aboutRows(model, artifacts)} />
       </div>
       <ArtifactsCard model={model} status={status} artifacts={artifacts} jobError={jobError} />

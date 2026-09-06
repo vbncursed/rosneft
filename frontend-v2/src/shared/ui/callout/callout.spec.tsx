@@ -40,4 +40,18 @@ describe("Callout", () => {
     const { container } = render(<Callout tone="bad">w</Callout>);
     expect(container.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
   });
+
+  it("defaults to md and switches to the start-aligned lg block on request", () => {
+    const { container, rerender } = render(<Callout tone="warn">Small notice.</Callout>);
+    expect(screen.getByText("Small notice.")).toBeInTheDocument();
+    expect(container.firstElementChild!.className).toContain("items-center");
+
+    rerender(
+      <Callout tone="warn" size="lg">
+        Bigger notice.
+      </Callout>,
+    );
+    expect(screen.getByText("Bigger notice.")).toBeInTheDocument();
+    expect(container.firstElementChild!.className).toContain("rounded-card");
+  });
 });

@@ -69,6 +69,12 @@ describe("ModelDetailPage", () => {
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("title", "In use on 2 territories");
 
+    rerender(<ModelDetailPage {...props({ canDelete: true, onDelete, model: { ...MODEL, usageCount: 1 } })} />);
+    expect(screen.getByRole("button", { name: "Delete model" })).toHaveAttribute(
+      "title",
+      "In use on 1 territory",
+    );
+
     rerender(<ModelDetailPage {...props({ canDelete: true, onDelete, model: { ...MODEL, usageCount: 0 } })} />);
     const enabled = screen.getByRole("button", { name: "Delete model" });
     expect(enabled).not.toBeDisabled();
