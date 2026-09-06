@@ -1,8 +1,8 @@
 import { createRouter } from "@tanstack/react-router";
 import { queryClient } from "@/app/query/query-client";
+import { catalogRoute, modelNewRoute, modelsRoute, territoriesRoute, territoryNewRoute } from "./catalog-routes";
 import { NotFound, RouteError } from "./fallbacks";
 import {
-  catalogRoute,
   consoleAccessRoute,
   consoleAuditRoute,
   consoleContentRoute,
@@ -13,11 +13,7 @@ import {
   consoleUsersRoute,
   indexRoute,
   loginRoute,
-  modelNewRoute,
-  modelsRoute,
   rootRoute,
-  territoriesRoute,
-  territoryNewRoute,
 } from "./routes";
 
 const routeTree = rootRoute.addChildren([

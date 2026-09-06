@@ -176,9 +176,13 @@ describe("isCatalogHref", () => {
     }
   });
 
-  // A slug route leaves to the old SPA's viewer — not a catalog screen.
-  it("does not match a territory or model detail route", () => {
+  // A model page and a replace form are v2 now; a territory's viewer still leaves.
+  it("matches a model page and a territory's replace form, not the viewer", () => {
+    expect(isCatalogHref("/models/pump")).toBe(true);
+    expect(isCatalogHref("/models/pump?from=library")).toBe(true);
+    expect(isCatalogHref("/territories/north-ridge/replace")).toBe(true);
     expect(isCatalogHref("/territories/north-ridge")).toBe(false);
-    expect(isCatalogHref("/models/pump")).toBe(false);
+    expect(isCatalogHref("/territories/north-ridge/other")).toBe(false);
+    expect(isCatalogHref("/models/pump/extra")).toBe(false);
   });
 });
