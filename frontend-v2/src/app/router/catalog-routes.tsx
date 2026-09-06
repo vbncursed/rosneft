@@ -12,9 +12,9 @@ import { redirectTarget } from "./guard";
 import { rootRoute } from "./routes";
 
 // The catalog shell has no sidebar-derived gate: any signed-in principal
-// reaches all four routes, and the upload/card actions are what the write
-// and delete grants narrow instead (Tasks 4-7). Gated the same way as
-// /console — redirectTarget, applied once here rather than per leaf.
+// reaches all six routes, and the upload/card/page actions are what the
+// write and delete grants narrow instead. Gated the same way as /console —
+// redirectTarget, applied once here rather than per leaf.
 export const catalogRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "catalog",

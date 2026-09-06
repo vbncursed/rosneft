@@ -25,6 +25,7 @@ export const shortHash = (hash: string) => `sha256:${hash.slice(0, 4)}…${hash.
 export const lod0 = (artifacts: Artifact[]) => artifacts.find((a) => a.lod === 0);
 export const artifactFile = (slug: string, lod: number) => `${slug}-lod${lod}.glb`;
 export const lodRange = (lod: number) => (lod === 0 ? "full detail" : lod === 1 ? "mid range" : "far range");
+export const placedIn = (n: number) => `${n} ${n === 1 ? "territory" : "territories"}`;
 
 /** "valve-assembly · 3 LODs · 12 MB · created 02.09" — only the segments that exist. */
 export function headerMeta(model: Model, artifacts: Artifact[]): string {
@@ -51,11 +52,7 @@ export function aboutRows(model: Model, artifacts: Artifact[]): Detail[] {
       : []),
     { label: "hash", value: shortHash(model.sourceBlobHash), tone: "muted" as const },
     model.usageCount > 0
-      ? {
-          label: "placed",
-          value: `in ${model.usageCount} ${model.usageCount === 1 ? "territory" : "territories"}`,
-          tone: "fg" as const,
-        }
+      ? { label: "placed", value: `in ${placedIn(model.usageCount)}`, tone: "fg" as const }
       : { label: "placed", value: "unused", tone: "muted" as const },
   ];
 }
@@ -66,7 +63,7 @@ export function artifactRows(slug: string, artifacts: Artifact[]): ArtifactRowPr
     .map((a) => ({
       tag: `LOD ${a.lod}`,
       file: artifactFile(slug, a.lod),
-      meta: `${groupDigits(a.faces)} tris · ${lodRange(a.lod)}`,
+      meta: [a.faces ? `${groupDigits(a.faces)} tris` : null, lodRange(a.lod)].filter(Boolean).join(" · "),
       size: formatBytes(a.size),
       href: assetUrl(a.hash),
     }));

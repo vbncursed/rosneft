@@ -59,4 +59,9 @@ describe("model detail facts", () => {
       href: "/api/assets/h0",
     });
   });
+
+  it("omits the triangle count for an unmeasured LOD", () => {
+    const rows = artifactRows("valve", [art(1, 0)]);
+    expect(rows[0]!.meta).toBe("mid range");
+  });
 });

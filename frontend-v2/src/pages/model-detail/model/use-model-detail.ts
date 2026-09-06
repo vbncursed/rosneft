@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { conversionStatusOf, listArtifacts } from "@/entities/content";
-import { finishedSince, listJobs, pollInterval, type TargetJob } from "@/entities/conversion";
-import { deleteModel, getModel, listModels, updateModel } from "@/entities/model";
+import { artifactsQuery, conversionStatusOf, listArtifacts } from "@/entities/content";
+import { finishedSince, jobsQuery, listJobs, type TargetJob } from "@/entities/conversion";
+import { deleteModel, getModel, listModels, modelQuery, modelsQuery, updateModel } from "@/entities/model";
 import { runChunkedUpload } from "@/entities/upload";
 import { meQuery } from "@/entities/user";
 import { HttpError, messageOf } from "@/shared/api";
@@ -35,23 +35,17 @@ export function useModelDetail(slug: string): ModelDetailState {
   const client = useQueryClient();
   const navigate = useNavigate();
   const me = useQuery(meQuery).data ?? null;
-  // Called directly (not through modelQuery/artifactsQuery/jobsQuery) so a
-  // spec's vi.mock of the entity barrel actually reaches the fetch — those
+  // Spread each factory for its key and options, but keep queryFn a direct
+  // import so a spec's vi.mock of the entity barrel reaches the fetch — the
   // factories close over the gateway via a relative import the mock cannot
-  // see. The keys match the shared factories exactly, so cache invalidation
-  // elsewhere (the library screen's finishedSince effect) still lands here.
-  const model = useQuery({ queryKey: ["model", slug], queryFn: () => getModel(slug) });
+  // see.
+  const model = useQuery({ ...modelQuery(slug), queryFn: () => getModel(slug) });
   // GET /api/models/{slug} defaults usageCount to 0 (see entities/model's own
   // doc comment) — only the list endpoint carries the real count, so the
   // page's Delete guard needs this query too.
-  const models = useQuery({ queryKey: ["models"], queryFn: listModels });
-  const artifacts = useQuery({ queryKey: ["artifacts", "model", slug], queryFn: () => listArtifacts("model", slug) });
-  const jobs = useQuery({
-    queryKey: ["jobs"],
-    queryFn: listJobs,
-    refetchInterval: (query) => pollInterval(query.state.data),
-    refetchIntervalInBackground: false,
-  });
+  const models = useQuery({ ...modelsQuery, queryFn: listModels });
+  const artifacts = useQuery({ ...artifactsQuery("model", slug), queryFn: () => listArtifacts("model", slug) });
+  const jobs = useQuery({ ...jobsQuery, queryFn: listJobs });
   const [pending, setPending] = useState(false);
 
   // A row whose job just finished has new artifacts (or, after a failure, the

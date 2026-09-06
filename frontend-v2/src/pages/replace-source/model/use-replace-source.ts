@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { assetSize } from "@/entities/content";
-import { getTerritory, replaceTerritorySource } from "@/entities/territory";
+import { getTerritory, replaceTerritorySource, territoryQuery } from "@/entities/territory";
 import { progressFor, runChunkedUpload, type UploadProgress, type UploadSample } from "@/entities/upload";
 import { meQuery } from "@/entities/user";
 import { HttpError, messageOf } from "@/shared/api";
@@ -25,12 +25,9 @@ export type ReplaceSourceState =
 export function useReplaceSource(slug: string): ReplaceSourceState {
   const client = useQueryClient();
   const me = useQuery(meQuery).data ?? null;
-  // Same key `territoryQuery(slug)` would use, but calling `getTerritory`
-  // here directly (rather than through that queryOptions helper) is what
-  // lets a spec mock it: `territoryQuery`'s own module binds `getTerritory`
-  // through a relative import that a mock of the `@/entities/territory`
-  // barrel does not reach.
-  const territory = useQuery({ queryKey: ["territory", slug], queryFn: () => getTerritory(slug) });
+  // queryFn stays a direct import (rather than territoryQuery's own bound
+  // one) so a spec's vi.mock of the entity barrel reaches the fetch.
+  const territory = useQuery({ ...territoryQuery(slug), queryFn: () => getTerritory(slug) });
   const hash = territory.data?.sourceBlobHash;
   // Disabled until the territory answers with a hash — `isLoading`, not
   // `isPending`, is what "loading" asks: a disabled query never fetches, so
