@@ -6,22 +6,23 @@ import { HttpError } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useModelDetail } from "./use-model-detail";
 
-const { getModel, updateModel, deleteModel, listArtifacts, listJobs, runChunkedUpload, navigate } = vi.hoisted(
-  () => ({
+const { getModel, updateModel, deleteModel, listModels, listArtifacts, listJobs, runChunkedUpload, navigate } =
+  vi.hoisted(() => ({
     getModel: vi.fn(),
     updateModel: vi.fn(),
     deleteModel: vi.fn(),
+    listModels: vi.fn(),
     listArtifacts: vi.fn(),
     listJobs: vi.fn(),
     runChunkedUpload: vi.fn(),
     navigate: vi.fn(),
-  }),
-);
+  }));
 vi.mock("@/entities/model", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getModel,
   updateModel,
   deleteModel,
+  listModels,
 }));
 vi.mock("@/entities/content", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -74,6 +75,7 @@ beforeEach(() => {
   getModel.mockReset().mockResolvedValue(MODEL);
   updateModel.mockReset().mockResolvedValue(MODEL);
   deleteModel.mockReset().mockResolvedValue(undefined);
+  listModels.mockReset().mockResolvedValue([MODEL]);
   listArtifacts.mockReset().mockResolvedValue([ARTIFACT]);
   listJobs.mockReset().mockResolvedValue([]);
   runChunkedUpload.mockReset();
@@ -111,6 +113,15 @@ describe("useModelDetail", () => {
     if (result.current.phase !== "ready") throw new Error("unreachable");
     expect(result.current.status).toBe("failed");
     expect(result.current.jobError).toBe("bad zip");
+  });
+
+  it("takes usageCount from the models list, not the single-model fetch", async () => {
+    getModel.mockResolvedValue({ ...MODEL, usageCount: 0 });
+    listModels.mockResolvedValue([{ ...MODEL, usageCount: 2 }]);
+    const { result } = renderHook(() => useModelDetail("valve"), { wrapper });
+    await waitFor(() => expect(result.current.phase).toBe("ready"));
+    if (result.current.phase !== "ready") throw new Error("unreachable");
+    expect(result.current.model.usageCount).toBe(2);
   });
 
   it("reports missing on a 404", async () => {

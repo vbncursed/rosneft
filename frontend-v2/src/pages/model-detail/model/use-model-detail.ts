@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { conversionStatusOf, listArtifacts } from "@/entities/content";
 import { finishedSince, listJobs, pollInterval, type TargetJob } from "@/entities/conversion";
-import { deleteModel, getModel, updateModel } from "@/entities/model";
+import { deleteModel, getModel, listModels, updateModel } from "@/entities/model";
 import { runChunkedUpload } from "@/entities/upload";
 import { meQuery } from "@/entities/user";
 import { HttpError, messageOf } from "@/shared/api";
@@ -41,6 +41,10 @@ export function useModelDetail(slug: string): ModelDetailState {
   // see. The keys match the shared factories exactly, so cache invalidation
   // elsewhere (the library screen's finishedSince effect) still lands here.
   const model = useQuery({ queryKey: ["model", slug], queryFn: () => getModel(slug) });
+  // GET /api/models/{slug} defaults usageCount to 0 (see entities/model's own
+  // doc comment) — only the list endpoint carries the real count, so the
+  // page's Delete guard needs this query too.
+  const models = useQuery({ queryKey: ["models"], queryFn: listModels });
   const artifacts = useQuery({ queryKey: ["artifacts", "model", slug], queryFn: () => listArtifacts("model", slug) });
   const jobs = useQuery({
     queryKey: ["jobs"],
@@ -82,19 +86,20 @@ export function useModelDetail(slug: string): ModelDetailState {
     onError: (err) => notify.error(messageOf(err)),
   });
 
-  const loading = model.isPending || artifacts.isPending || jobs.isPending;
+  const loading = model.isPending || models.isPending || artifacts.isPending || jobs.isPending;
   const modelError = unanswered(model);
   if (loading) return { phase: "loading" };
   if (modelError instanceof HttpError && modelError.status === 404) return { phase: "missing" };
-  const otherError = modelError ?? unanswered(artifacts) ?? unanswered(jobs);
+  const otherError = modelError ?? unanswered(models) ?? unanswered(artifacts) ?? unanswered(jobs);
   if (otherError) return { phase: "unavailable", error: messageOf(otherError) };
 
   const job = jobs.data?.find((j) => j.kind === "model" && j.slug === slug);
   const status = conversionStatusOf(artifacts.data!.length > 0, job);
+  const usageCount = models.data?.find((m) => m.slug === slug)?.usageCount ?? model.data!.usageCount;
 
   return {
     phase: "ready",
-    model: model.data!,
+    model: { ...model.data!, usageCount },
     status,
     artifacts: artifacts.data!,
     jobError: job?.errorMessage ?? null,
