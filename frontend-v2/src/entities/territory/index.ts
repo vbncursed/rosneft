@@ -2,10 +2,13 @@ export { territoryPath, type Territory } from "./model/territory";
 export {
   createTerritory,
   deleteTerritory,
+  getTerritory,
   listTerritories,
+  replaceTerritorySource,
   type CreateTerritoryInput,
 } from "./api/territories-gateway";
 export { territoriesQuery } from "./api/territories-query";
+export { territoryQuery } from "./api/territory-query";
 export { getTerritoryAdmins, setTerritoryAdmins } from "./api/admins-gateway";
 export { adminsQuery } from "./api/admins-query";
 export {

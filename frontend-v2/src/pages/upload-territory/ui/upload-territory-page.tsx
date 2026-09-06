@@ -1,4 +1,5 @@
 import type { ConversionStage } from "@/entities/conversion";
+import { UploadProgressPanel } from "@/entities/upload";
 import { ThemeToggle } from "@/features/theme-toggle";
 import { Callout } from "@/shared/ui/callout";
 import type { ChecklistItem } from "@/shared/ui/checklist";
@@ -8,7 +9,6 @@ import { PageHeader } from "@/widgets/page-header";
 import { canSubmit, fileMeta, type UploadForm, type UploadPhase } from "../model/upload-form";
 import { UploadAside } from "./upload-aside";
 import { UploadDetails } from "./upload-details";
-import { UploadProgressPanel } from "./upload-progress";
 
 export type UploadTerritoryPageProps = {
   phase: UploadPhase;
@@ -75,9 +75,10 @@ export function UploadTerritoryPage({
             <UploadDetails form={form} onForm={onForm} slug={slug} />
 
             <UploadProgressPanel
-              phase={phase}
+              busy={phase === "uploading" || phase === "finalizing" || phase === "creating"}
               progress={progress}
               canSubmit={canSubmit(phase, file, form)}
+              submitLabel="Upload territory"
               onSubmit={onSubmit}
               onCancel={onCancel}
             />

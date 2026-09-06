@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { httpGet, httpGetBlob, httpPost } from "./client";
+import { httpGet, httpGetBlob, httpHead, httpPost } from "./client";
 import { markAuthed, isAuthed } from "@/shared/session";
 import { setCsrfToken, clearCsrfToken } from "./csrf";
 
@@ -126,5 +126,20 @@ describe("http client", () => {
 
     expect(isAuthed()).toBe(false);
     expect(assign).toHaveBeenCalledWith("/login?next=%2Fconsole%2Fusers");
+  });
+
+  it("HEADs a path and hands back the response headers", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      new Response(null, { status: 200, headers: { "Content-Length": "1234" } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const headers = await httpHead("/api/assets/abc");
+
+    expect(headers.get("Content-Length")).toBe("1234");
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`${import.meta.env.VITE_API_URL}/api/assets/abc`);
+    expect(init.method).toBe("HEAD");
+    expect(new Headers(init.headers)).not.toHaveProperty("X-CSRF-Token");
   });
 });

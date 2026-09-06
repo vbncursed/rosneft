@@ -1,5 +1,4 @@
 import type { ConversionStage, StageState } from "@/entities/conversion";
-import { formatEta, uploadStats, type UploadProgress, type UploadSample } from "@/entities/upload";
 import { formatBytes } from "@/shared/lib/format-bytes";
 import type { ChecklistItem } from "@/shared/ui/checklist";
 
@@ -47,38 +46,6 @@ function stageAt(index: number, phase: UploadPhase): { state: StageState; time: 
 /** The five mocked stages, toned against the upload's own phase. */
 export function stagesFor(phase: UploadPhase): Stage[] {
   return BASE.map((stage, i) => ({ ...stage, ...stageAt(i, phase) }));
-}
-
-/**
- * The upload progress panel's two text lines. `stats` is `uploadStats`'s
- * output — speed and ETA read null until two byte samples exist.
- */
-export function progressLine(
-  p: UploadProgress,
-  stats: { bytesPerSecond: number | null; etaSeconds: number | null },
-): { header: string; stats: string[] } {
-  const pct = Math.round((p.bytes / p.total) * 100);
-  const eta = formatEta(stats.etaSeconds);
-  const speed = stats.bytesPerSecond !== null ? `${formatBytes(stats.bytesPerSecond)}/s` : "—";
-  return {
-    header: `${pct}% · ${formatBytes(p.bytes)} / ${formatBytes(p.total)}${eta ? ` · ${eta}` : ""}`,
-    stats: [`chunk ${p.chunk} / ${p.chunks}`, "8 MB chunks", speed, "resumable"],
-  };
-}
-
-/**
- * Whether the progress panel shows, and what it says: only while the upload's
- * own bytes are moving (uploading/finalizing) — the conversion job runs after
- * the redirect and has nothing to report here yet.
- */
-export function progressFor(
-  phase: UploadPhase,
-  progress: UploadProgress | null,
-  samples: UploadSample[],
-): { value: number; header: string; stats: string[] } | undefined {
-  if (!progress || (phase !== "uploading" && phase !== "finalizing")) return undefined;
-  const value = Math.round((progress.bytes / progress.total) * 100);
-  return { value, ...progressLine(progress, uploadStats(samples, progress.total)) };
 }
 
 /** The aside's "before you submit" card — static, unaffected by phase or file. */

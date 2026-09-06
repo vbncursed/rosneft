@@ -89,7 +89,9 @@ describe("useContent", () => {
     await waitFor(() => expect(result.current.status).toBe("ready"));
     act(() => result.current.select("territory", "t-1"));
     expect(result.current.selected?.slug).toBe("t-1");
-    expect(result.current.artifactsOf("territory", "t-1")).toEqual([{ lod: 0, size: 1024 }]);
+    expect(result.current.artifactsOf("territory", "t-1")).toEqual([
+      { lod: 0, hash: "h", size: 1024, vertices: 0, faces: 0, bboxMin: { x: 0, y: 0, z: 0 }, bboxMax: { x: 0, y: 0, z: 0 } },
+    ]);
     expect(result.current.updatedAtOf("territory", "t-1")).toBe("2026-08-31T00:00:00Z");
   });
 

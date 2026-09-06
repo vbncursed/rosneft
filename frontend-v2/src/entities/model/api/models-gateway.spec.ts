@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCsrfToken } from "@/shared/api";
-import { createModel, deleteModel, listModels } from "./models-gateway";
+import { createModel, deleteModel, getModel, listModels, updateModel } from "./models-gateway";
 
 const model = { slug: "m-1", title: "M 1", sourceBlobHash: "b".repeat(64), thumbnailBlobHash: "" };
 const json = (body: unknown, status = 200) =>
@@ -49,5 +49,22 @@ describe("models gateway", () => {
       model: { slug: "m-2", title: "M 2", sourceBlobHash: "c".repeat(64), usageCount: 0 },
       job: { id: "j-2" },
     });
+  });
+
+  it("gets one model by slug, encoded", async () => {
+    fetchMock.mockResolvedValueOnce(json(model));
+    const out = await getModel("m 1");
+    expect(request()).toEqual({ url: "/api/models/m%201", method: "GET" });
+    expect(out.slug).toBe("m-1");
+  });
+
+  it("patches the thumbnail hash and maps the answer", async () => {
+    fetchMock.mockResolvedValueOnce(json({ ...model, thumbnailBlobHash: "t".repeat(64) }));
+    const out = await updateModel("m-1", { thumbnailBlobHash: "t".repeat(64) });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/models/m-1");
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body as string)).toEqual({ thumbnailBlobHash: "t".repeat(64) });
+    expect(out.thumbnailBlobHash).toBe("t".repeat(64));
   });
 });

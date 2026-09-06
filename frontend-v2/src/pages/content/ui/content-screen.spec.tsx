@@ -1,9 +1,19 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ContentItem } from "@/entities/content";
+import type { Artifact, ContentItem } from "@/entities/content";
 import type { ContentState } from "../model/use-content";
 import { ContentScreen } from "./content-screen";
+
+const artifact = (): Artifact => ({
+  lod: 0,
+  size: 1,
+  hash: "h",
+  vertices: 0,
+  faces: 0,
+  bboxMin: { x: 0, y: 0, z: 0 },
+  bboxMax: { x: 0, y: 0, z: 0 },
+});
 
 const { useContent, leaveTo, navigate } = vi.hoisted(() => ({
   useContent: vi.fn(),
@@ -41,7 +51,7 @@ const state = (over: Partial<ContentState> = {}): ContentState => ({
   storageBytes: 412 * 1024 * 1024,
   canManage: true,
   canDelete: () => true,
-  artifactsOf: () => [{ lod: 0, size: 1 }],
+  artifactsOf: () => [artifact()],
   jobOf: () => undefined,
   updatedAtOf: () => "2026-08-31T00:00:00Z",
   query: "",
@@ -137,7 +147,7 @@ describe("ContentScreen", () => {
   });
 
   it("offers no viewer for a row with nothing converted, as the inspector does not", async () => {
-    useContent.mockReturnValue(state({ artifactsOf: (_k, slug) => (slug === "t-1" ? [{ lod: 0, size: 1 }] : []) }));
+    useContent.mockReturnValue(state({ artifactsOf: (_k, slug) => (slug === "t-1" ? [artifact()] : []) }));
     render(<ContentScreen />);
     const row = screen.getByRole("article", { name: "M 1" });
     await userEvent.click(within(row).getByRole("button", { name: "Row actions for M 1" }));
