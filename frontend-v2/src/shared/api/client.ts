@@ -92,6 +92,13 @@ export function httpPatch<T>(path: string, body: unknown): Promise<T> {
   );
 }
 
+/** The response headers of a HEAD — a blob's `Content-Length` without its bytes. */
+export async function httpHead(path: string): Promise<Headers> {
+  const res = await fetch(`${API_BASE}${path}`, { method: "HEAD" });
+  if (!res.ok) throw new HttpError(res.status, null, res.statusText || `Request failed (${res.status})`);
+  return res.headers;
+}
+
 export function httpDelete(path: string, body?: unknown): Promise<void> {
   const hasBody = body !== undefined;
   return send<void>(

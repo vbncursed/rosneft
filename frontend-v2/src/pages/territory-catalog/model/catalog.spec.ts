@@ -12,10 +12,11 @@ const territory = (over: Partial<Territory> = {}): Territory => ({
   ...over,
 });
 
+const ZERO = { x: 0, y: 0, z: 0 };
 const ARTIFACTS: Artifact[] = [
-  { lod: 0, size: 300 * 1024 * 1024 },
-  { lod: 1, size: 100 * 1024 * 1024 },
-  { lod: 2, size: 12 * 1024 * 1024 },
+  { lod: 0, size: 300 * 1024 * 1024, hash: "h0", vertices: 0, faces: 0, bboxMin: ZERO, bboxMax: ZERO },
+  { lod: 1, size: 100 * 1024 * 1024, hash: "h1", vertices: 0, faces: 0, bboxMin: ZERO, bboxMax: ZERO },
+  { lod: 2, size: 12 * 1024 * 1024, hash: "h2", vertices: 0, faces: 0, bboxMin: ZERO, bboxMax: ZERO },
 ];
 
 const job = (over: Partial<TargetJob> = {}): TargetJob => ({

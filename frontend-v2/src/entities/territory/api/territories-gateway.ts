@@ -9,6 +9,20 @@ type TerritoryCreatedDto = components["schemas"]["TerritoryCreated"];
 export const listTerritories = async (): Promise<Territory[]> =>
   (await httpGet<TerritoryDto[]>("/api/territories")).map(toTerritory);
 
+export const getTerritory = async (slug: string): Promise<Territory> =>
+  toTerritory(await httpGet<TerritoryDto>(`/api/territories/${encodeURIComponent(slug)}`));
+
+/** Swaps the source archive; the territory keeps its slug and placements, and a new conversion job starts. */
+export async function replaceTerritorySource(
+  slug: string,
+  sourceBlobHash: string,
+): Promise<{ territory: Territory; job: { id: string } }> {
+  const r = await httpPost<TerritoryCreatedDto>(`/api/territories/${encodeURIComponent(slug)}/source`, {
+    sourceBlobHash,
+  });
+  return { territory: toTerritory(r.territory), job: { id: r.job.id } };
+}
+
 export const deleteTerritory = (slug: string): Promise<void> =>
   httpDelete(`/api/territories/${encodeURIComponent(slug)}`);
 

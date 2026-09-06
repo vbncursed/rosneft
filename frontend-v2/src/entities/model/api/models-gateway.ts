@@ -1,4 +1,4 @@
-import { httpDelete, httpGet, httpPost } from "@/shared/api";
+import { httpDelete, httpGet, httpPatch, httpPost } from "@/shared/api";
 import type { components } from "@/shared/api/dto";
 import type { Model } from "../model/model";
 import { toModel } from "./to-model";
@@ -8,6 +8,15 @@ type ModelCreatedDto = components["schemas"]["ModelCreated"];
 
 export const listModels = async (): Promise<Model[]> =>
   (await httpGet<ModelDto[]>("/api/models")).map(toModel);
+
+export const getModel = async (slug: string): Promise<Model> =>
+  toModel(await httpGet<ModelDto>(`/api/models/${encodeURIComponent(slug)}`));
+
+export type ModelPatch = components["schemas"]["ModelUpdate"];
+
+/** The only mutable field the gateway takes: the thumbnail; `""` removes it. */
+export const updateModel = async (slug: string, patch: ModelPatch): Promise<Model> =>
+  toModel(await httpPatch<ModelDto>(`/api/models/${encodeURIComponent(slug)}`, patch));
 
 // The gateway answers 400 when placements still reference the model; the
 // message names them and reaches the operator as a toast.

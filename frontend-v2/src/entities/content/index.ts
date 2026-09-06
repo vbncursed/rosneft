@@ -10,6 +10,7 @@ export {
   type ContentKind,
 } from "./model/content-item";
 export { ContentRow, type ContentRowProps } from "./ui/content-row";
-export { lodLabel, totalSize, type Artifact } from "./model/artifact";
+export { lodLabel, totalSize, type Artifact, type Vec3 } from "./model/artifact";
 export { listArtifacts } from "./api/artifacts-gateway";
 export { artifactsQuery } from "./api/artifacts-query";
+export { assetSize, assetUrl } from "./api/assets";

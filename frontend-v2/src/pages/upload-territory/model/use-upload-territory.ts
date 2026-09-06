@@ -2,21 +2,20 @@ import { useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import type { ConversionStage } from "@/entities/conversion";
 import { createTerritory } from "@/entities/territory";
-import { runChunkedUpload, slugPreview, type UploadProgress, type UploadSample } from "@/entities/upload";
+import {
+  progressFor,
+  runChunkedUpload,
+  slugPreview,
+  type UploadProgress,
+  type UploadSample,
+} from "@/entities/upload";
 import { meQuery } from "@/entities/user";
 import { messageOf } from "@/shared/api";
 import { leaveTo } from "@/shared/lib/leave";
 import { notify } from "@/shared/lib/notify";
 import { can } from "@/shared/session";
 import type { ChecklistItem } from "@/shared/ui/checklist";
-import {
-  ARCHIVE_CHECKLIST,
-  canSubmit,
-  progressFor,
-  stagesFor,
-  type UploadForm,
-  type UploadPhase,
-} from "./upload-form";
+import { ARCHIVE_CHECKLIST, canSubmit, stagesFor, type UploadForm, type UploadPhase } from "./upload-form";
 
 export type UploadTerritoryState = {
   phase: UploadPhase;
@@ -118,7 +117,7 @@ export function useUploadTerritory(): UploadTerritoryState {
     onFiles,
     onReplace,
     slug: slugPreview(form.title),
-    progress: progressFor(phase, progress, samples),
+    progress: progressFor(phase === "uploading" || phase === "finalizing", progress, samples),
     onSubmit,
     onCancel,
     canUpload: can(me, "territory:write"),

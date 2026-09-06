@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCsrfToken } from "@/shared/api";
-import { createTerritory, deleteTerritory, listTerritories } from "./territories-gateway";
+import {
+  createTerritory,
+  deleteTerritory,
+  getTerritory,
+  listTerritories,
+  replaceTerritorySource,
+} from "./territories-gateway";
 
 const territory = { slug: "t-1", title: "T 1", sourceBlobHash: "a".repeat(64) };
 const json = (body: unknown, status = 200) =>
@@ -49,5 +55,24 @@ describe("territories gateway", () => {
       territory: { slug: "t-2", title: "T 2", sourceBlobHash: "b".repeat(64), placementCount: 0 },
       job: { id: "j-1" },
     });
+  });
+
+  it("gets one territory by slug, encoded", async () => {
+    fetchMock.mockResolvedValueOnce(json(territory));
+    const out = await getTerritory("t 1");
+    expect(request()).toEqual({ url: "/api/territories/t%201", method: "GET" });
+    expect(out.slug).toBe("t-1");
+  });
+
+  it("replaces the source and maps the territory and the job id", async () => {
+    fetchMock.mockResolvedValueOnce(
+      json({ territory, job: { id: "j-9", kind: "territory", slug: "t-1", status: "queued" } }, 202),
+    );
+    const out = await replaceTerritorySource("t-1", "d".repeat(64));
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/territories/t-1/source");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({ sourceBlobHash: "d".repeat(64) });
+    expect(out).toEqual({ territory: expect.objectContaining({ slug: "t-1" }), job: { id: "j-9" } });
   });
 });
