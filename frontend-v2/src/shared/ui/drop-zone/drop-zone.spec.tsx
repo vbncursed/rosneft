@@ -170,4 +170,20 @@ describe("DropZone", () => {
     fireEvent.keyDown(zone, { key: "Enter" });
     expect(clickSpy).not.toHaveBeenCalled();
   });
+
+  it("shows the not-allowed cursor while disabled — clsx cannot beat the stylesheet's own order", () => {
+    const { container } = render(
+      <DropZone
+        label="Drop ZIP archives here"
+        hint="hint"
+        buttonLabel="Choose files"
+        accept=".zip"
+        onFiles={vi.fn()}
+        disabled
+      />,
+    );
+    const cls = (container.firstElementChild as HTMLElement).className.split(/\s+/);
+    expect(cls).toContain("cursor-not-allowed");
+    expect(cls).not.toContain("cursor-pointer");
+  });
 });

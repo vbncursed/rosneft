@@ -83,6 +83,11 @@ describe("OtpInput", () => {
     await userEvent.click(cell(6));
     await userEvent.keyboard("7");
     expect(cell(1).className).toContain("border-accent");
+    const cls = cell(1).className.split(/\s+/);
+    expect(cls).toContain("bg-accent-soft");
+    // The resting ground has to go, not merely be joined: two backgrounds on
+    // one element are decided by the stylesheet's order, not by clsx.
+    expect(cls).not.toContain("bg-panel-2");
   });
 
   it("accepts nothing while disabled", async () => {

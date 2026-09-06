@@ -1,4 +1,5 @@
 import type { ConversionStatus } from "@/entities/conversion";
+import { modelPath } from "@/entities/model";
 import { ThemeToggle } from "@/features/theme-toggle";
 import { FilterBar } from "@/features/audit-filter";
 import { EmptyState } from "@/shared/ui/card";
@@ -117,6 +118,7 @@ export function ModelLibraryPage({
               meta={card.size}
               trailing={card.trailing}
               onOpen={() => onOpen(card.slug)}
+              href={modelPath(card.slug)}
               actions={
                 canDelete ? (
                   <Button

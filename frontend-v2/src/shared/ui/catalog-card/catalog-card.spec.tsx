@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { CatalogCard } from "./catalog-card";
@@ -153,6 +153,41 @@ describe("CatalogCard", () => {
       screen.getByRole("heading", { level: 3, name: "North Ridge Pad" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "North Ridge Pad" })).toBeInTheDocument();
+  });
+
+  it("renders the title as a real link when href is given, so it can be opened in a new tab", () => {
+    const onOpen = vi.fn();
+    render(
+      <CatalogCard
+        title="North Ridge Pad"
+        slug="north-ridge-pad"
+        trailing={{ label: "Open →", tone: "accent" }}
+        href="/territories/north-ridge-pad"
+        onOpen={onOpen}
+      />,
+    );
+    const link = screen.getByRole("link", { name: "North Ridge Pad" });
+    expect(link).toHaveAttribute("href", "/territories/north-ridge-pad");
+    expect(screen.getByRole("heading", { level: 3, name: "North Ridge Pad" })).toContainElement(link);
+    // The anchor is the navigation; the article's onOpen must not fire as well.
+    expect(screen.queryByRole("button", { name: "North Ridge Pad" })).not.toBeInTheDocument();
+    fireEvent.click(link);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("keeps the pointer-anywhere click on the article even with an href", async () => {
+    const onOpen = vi.fn();
+    render(
+      <CatalogCard
+        title="North Ridge Pad"
+        slug="north-ridge-pad"
+        trailing={{ label: "Open →", tone: "accent" }}
+        href="/territories/north-ridge-pad"
+        onOpen={onOpen}
+      />,
+    );
+    await userEvent.click(screen.getByRole("article", { name: "North Ridge Pad" }));
+    expect(onOpen).toHaveBeenCalledOnce();
   });
 
   it("renders the title as plain text, not a button, without onOpen", () => {

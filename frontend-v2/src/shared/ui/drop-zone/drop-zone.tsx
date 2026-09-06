@@ -89,9 +89,12 @@ export function DropZone({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       className={cx(
-        "flex cursor-pointer items-center gap-3.5 rounded-[12px] border border-dashed px-5 py-[18px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+        "flex items-center gap-3.5 rounded-[12px] border border-dashed px-5 py-[18px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
         over ? "border-accent bg-accent-soft" : "border-line-2 bg-panel",
-        disabled && "cursor-not-allowed opacity-55",
+        // One property, one branch: clsx cannot resolve two cursor utilities —
+        // only the compiled stylesheet's own source order can, and it picks
+        // the wrong one.
+        disabled ? "cursor-not-allowed opacity-55" : "cursor-pointer",
         className,
       )}
     >

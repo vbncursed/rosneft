@@ -3,6 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { Button } from "./button";
 
+/** The class list as tokens — `hover:bg-panel-2` must not read as `bg-panel-2`. */
+const classes = (el: HTMLElement) => el.className.split(/\s+/);
+
 describe("Button", () => {
   it("defaults to type=button so it never submits a surrounding form by accident", () => {
     render(<Button>Save</Button>);
@@ -47,10 +50,24 @@ describe("Button", () => {
 
   it("keeps a secondary pill transparent — only the control shape is raised", () => {
     const { rerender } = render(<Button shape="pill">+ Upload</Button>);
-    expect(screen.getByRole("button", { name: "+ Upload" }).className).toContain("bg-transparent");
+    const pill = classes(screen.getByRole("button", { name: "+ Upload" }));
+    expect(pill).toContain("bg-transparent");
+    // Not merely "transparent is also present": two background utilities on
+    // one element are resolved by the compiled stylesheet's own source order,
+    // not by clsx, so the resting ground has to be absent.
+    expect(pill).not.toContain("bg-panel-2");
 
     rerender(<Button>+ Upload</Button>);
-    expect(screen.getByRole("button", { name: "+ Upload" }).className).toContain("bg-panel-2");
+    expect(classes(screen.getByRole("button", { name: "+ Upload" }))).toContain("bg-panel-2");
+  });
+
+  it("keeps the raised ground on a secondary icon button too", () => {
+    render(
+      <Button shape="icon" aria-label="Delete">
+        x
+      </Button>,
+    );
+    expect(classes(screen.getByRole("button", { name: "Delete" }))).toContain("bg-panel-2");
   });
 
   it("offers a success variant for a confirming action", () => {

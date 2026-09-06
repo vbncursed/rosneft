@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { contentPath, type ContentItem } from "@/entities/content";
 import { leaveTo } from "@/shared/lib/leave";
 import { Callout } from "@/shared/ui/callout";
@@ -13,7 +14,6 @@ import {
   pipelineOf,
   replaceHref,
   statsOf,
-  uploadHref,
 } from "../model/catalog";
 import { useContent } from "../model/use-content";
 import { ContentPage } from "./content-page";
@@ -28,6 +28,7 @@ const DESCRIPTION = {
 /** Maps the container onto the page and draws the confirm dialog beside it. */
 export function ContentScreen() {
   const s = useContent();
+  const navigate = useNavigate();
 
   if (s.status === "loading") {
     return (
@@ -102,8 +103,9 @@ export function ContentScreen() {
         }
         canManage={s.canManage}
         {...(s.canManage ? { renderRowActions: rowActions } : {})}
-        onUploadTerritory={() => leaveTo(uploadHref("territory"))}
-        onUploadModel={() => leaveTo(uploadHref("model"))}
+        // v2 owns both upload routes; leaveTo would reload the whole app.
+        onUploadTerritory={() => void navigate({ to: "/territories/new" })}
+        onUploadModel={() => void navigate({ to: "/models/new" })}
         onReplaceSource={replace ? () => leaveTo(replace) : undefined}
         onOpenInViewer={() => selected && leaveTo(contentPath(selected))}
         // Artifacts, not status: a re-conversion that is running or failed

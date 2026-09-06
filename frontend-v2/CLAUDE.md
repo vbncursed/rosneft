@@ -214,10 +214,12 @@ header and the 401 bounce; `shared/session` holds the marker and the
 and `meQuery`; `app/router` is the route tree and the guard; `app/query` the
 query client.
 
-**Every console screen is live.** Each is a container hook in `pages/*/model`
-(`useUsers`, `useRoles`, `useContent`, `useTerritoryAccess`, `useAudit`,
-`useMetrics`) that owns the queries, the mutations and the UI state, a
-`*-screen.tsx` that maps it onto the props-only page and draws the dialogs
+**Every console screen and all four catalog screens are live.** Each is a
+container hook in `pages/*/model` (`useUsers`, `useRoles`, `useContent`,
+`useTerritoryAccess`, `useAudit`, `useMetrics`, `useTerritoryCatalog`,
+`useModelLibrary`, `useUploadTerritory`, `useUploadModels`) that owns the
+queries, the mutations and the UI state, a `*-screen.tsx` that maps it onto
+the props-only page and draws the dialogs
 beside it, and a pure module (`people.ts`, `roles-view.ts`, `catalog.ts`,
 `access-view.ts`) holding every decision. Outcomes report through
 `shared/lib/notify`; `ConsoleShell` mounts the Toaster once, around the whole
@@ -232,7 +234,25 @@ visible while it runs: the row turns `converting` with the worker's percentage
 and stage, the inspector draws the bar and the note, a failure puts the
 worker's message at the top of the inspector, and a row whose job just left
 the live set re-reads its own artifacts (`finishedSince`) so LODs and size
-catch up. **Territory access** is the territories list, the users list and one
+catch up.
+
+**The catalogs** (`/territories`, `/models`) share Content's shape — the list
+plus one artifacts query per row plus one `GET /api/jobs` — and layer them
+through the one shared rule, `conversionStatusOf` in `entities/content`: a
+failed job wins outright, a live job reads `converting`, otherwise the
+artifacts decide ready/pending. Both carry the `finishedSince` effect, without
+which a conversion finishing on screen flips the card backwards to "pending".
+`placementCount` and `usageCount` come from the list endpoints (added on this
+branch); `usageCount` counts *distinct territories*, not placements, and is a
+global aggregate because the model library is shared by decision. **The
+uploads** (`/territories/new`, `/models/new`) drive the gateway's resumable
+protocol through `entities/upload`'s `runChunkedUpload` — 8 MB chunks from the
+session's own offset, `X-CSRF-Token` on every PATCH, and one `abortUpload` in
+the function's own catch so no caller has to remember it. The batch page runs
+one row at a time; a throw fails that row and the loop continues, a cancel
+fails the row and stops.
+
+**Territory access** is the territories list, the users list and one
 admins query per territory; visibility is derived (anyone assigned →
 `assigned`, nobody → `private`), every grant is `direct`, drafts are kept per
 slug so switching territories loses no edit, and Save is one PUT of the whole
@@ -281,12 +301,17 @@ Rulings from those screens that a later one will meet again:
   Saving is two calls — `PUT …/permissions`, then `PATCH …` for the title —
   because the gateway has no single "update role"; only what changed is sent.
 
-Routes: `/login`, `/console/{users,roles,content,access,audit,metrics}` —
-Metrics alone carries a search param, `?range=`, validated by the route — and
-`/` and `/console` alone, both of which resolve a landing screen rather than
-rendering one. `consoleLanding` picks that screen from the principal's
-permissions — never a constant, or a roles-only administrator is sent to a
-users page that 403s.
+Routes: `/login`; `/console/{users,roles,content,access,audit,metrics}` under
+`ConsoleShell` — Metrics alone carries a search param, `?range=`, validated by
+the route; `/territories`, `/territories/new`, `/models`, `/models/new` under
+the sidebar-free `CatalogShell`; and `/` and `/console` alone, both of which
+resolve a landing screen rather than rendering one. Both shells run the same
+click delegate (`routesInApp`), so a link from a console screen into the
+catalog — or back — stays in the SPA. `isCatalogHref` matches those four paths
+*exactly*: `/territories/<slug>` and `/models/<slug>` are the old SPA's viewer
+and must fall through to a real navigation. `consoleLanding` picks that screen
+from the principal's permissions — never a constant, or a roles-only
+administrator is sent to a users page that 403s.
 
 ## Not done yet
 
