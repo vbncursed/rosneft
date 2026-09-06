@@ -66,6 +66,22 @@ describe("PageHeader · sizes", () => {
   });
 });
 
+describe("PageHeader · badge and meta", () => {
+  it("draws a badge beside the title and a meta line under it", () => {
+    render(
+      <PageHeader
+        eyebrow="Model"
+        title="Valve Assembly"
+        titleBadge={<span>ready</span>}
+        meta="valve-assembly · 3 LODs · 12 MB"
+      />,
+    );
+    expect(screen.getByRole("heading", { level: 1, name: "Valve Assembly" })).toBeInTheDocument();
+    expect(screen.getByText("ready")).toBeInTheDocument();
+    expect(screen.getByText("valve-assembly · 3 LODs · 12 MB")).toBeInTheDocument();
+  });
+});
+
 describe("PageHeader · description", () => {
   it("explains the page when it needs explaining", () => {
     render(
