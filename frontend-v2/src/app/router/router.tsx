@@ -1,6 +1,13 @@
 import { createRouter } from "@tanstack/react-router";
 import { queryClient } from "@/app/query/query-client";
-import { catalogRoute, modelNewRoute, modelsRoute, territoriesRoute, territoryNewRoute } from "./catalog-routes";
+import {
+  catalogRoute,
+  modelDetailRoute,
+  modelNewRoute,
+  modelsRoute,
+  territoriesRoute,
+  territoryNewRoute,
+} from "./catalog-routes";
 import { NotFound, RouteError } from "./fallbacks";
 import {
   consoleAccessRoute,
@@ -28,7 +35,7 @@ const routeTree = rootRoute.addChildren([
     consoleAuditRoute,
     consoleMetricsRoute,
   ]),
-  catalogRoute.addChildren([territoriesRoute, territoryNewRoute, modelsRoute, modelNewRoute]),
+  catalogRoute.addChildren([territoriesRoute, territoryNewRoute, modelsRoute, modelNewRoute, modelDetailRoute]),
 ]);
 
 export const router = createRouter({
