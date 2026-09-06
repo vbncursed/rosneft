@@ -11,6 +11,10 @@ export type PageHeaderProps = {
   description?: ReactNode;
   /** The way back up, e.g. { label: "← Home", href: "/" }. */
   back?: { label: string; href: string };
+  /** A status pill beside the title, e.g. the model page's ready/converting/failed. */
+  titleBadge?: ReactNode;
+  /** The mono line under the title: slug, counts, dates. */
+  meta?: string;
   /** The page's primary action. */
   action?: ReactNode;
 };
@@ -33,6 +37,8 @@ export function PageHeader({
   size = "md",
   description,
   back,
+  titleBadge,
+  meta,
   action,
 }: PageHeaderProps) {
   return (
@@ -55,7 +61,15 @@ export function PageHeader({
         >
           {eyebrow}
         </p>
-        <h1 className={cx("m-0 font-bold", TITLE[size])}>{title}</h1>
+        {titleBadge ? (
+          <div className="flex flex-wrap items-center gap-[11px]">
+            <h1 className={cx("m-0 font-bold", TITLE[size])}>{title}</h1>
+            {titleBadge}
+          </div>
+        ) : (
+          <h1 className={cx("m-0 font-bold", TITLE[size])}>{title}</h1>
+        )}
+        {meta ? <p className="m-0 mt-2 font-mono text-[11px] text-muted">{meta}</p> : null}
         {description ? (
           <p className={cx("m-0 mt-2 text-[13px] text-muted", DESCRIPTION_WIDTH[size])}>
             {description}
