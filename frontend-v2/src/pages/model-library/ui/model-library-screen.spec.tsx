@@ -87,11 +87,12 @@ describe("ModelLibraryScreen", () => {
     expect(screen.queryByRole("heading", { name: "M 2" })).not.toBeInTheDocument();
   });
 
-  it("sends Open into the old SPA via modelPath", async () => {
+  it("navigates to the model page rather than leaving the SPA", async () => {
     useModelLibrary.mockReturnValue(state());
     render(<ModelLibraryScreen />);
     await userEvent.click(screen.getByRole("article", { name: "M 1" }));
-    expect(leaveTo).toHaveBeenCalledWith("/models/m-1");
+    expect(navigate).toHaveBeenCalledWith({ href: "/models/m-1" });
+    expect(leaveTo).not.toHaveBeenCalled();
   });
 
   it("navigates to the v2 upload route rather than leaving the SPA", async () => {

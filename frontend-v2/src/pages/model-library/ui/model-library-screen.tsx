@@ -1,6 +1,4 @@
 import { useNavigate } from "@tanstack/react-router";
-import { modelPath } from "@/entities/model";
-import { leaveTo } from "@/shared/lib/leave";
 import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -42,7 +40,7 @@ export function ModelLibraryScreen() {
         canUpload={s.canUpload}
         canDelete={s.canDelete}
         onUpload={() => void navigate({ to: "/models/new" })}
-        onOpen={(slug) => leaveTo(modelPath(slug))}
+        onOpen={(slug) => void navigate({ href: `/models/${encodeURIComponent(slug)}` })}
         onDelete={s.ask}
         {...(s.cards.length === 0
           ? { emptyHint: "No models yet — upload one to get started." }

@@ -93,11 +93,12 @@ describe("TerritoryCatalogScreen", () => {
     expect(leaveTo).toHaveBeenCalledWith("/territories/t-1");
   });
 
-  it("sends Replace source into the old SPA's replace route", async () => {
+  it("navigates to the replace form rather than leaving the SPA", async () => {
     useTerritoryCatalog.mockReturnValue(state());
     render(<TerritoryCatalogScreen />);
     await userEvent.click(screen.getByRole("button", { name: "Replace source of T 1" }));
-    expect(leaveTo).toHaveBeenCalledWith("/territories/t-1/replace");
+    expect(navigate).toHaveBeenCalledWith({ href: "/territories/t-1/replace" });
+    expect(leaveTo).not.toHaveBeenCalled();
   });
 
   it("navigates to the v2 upload route rather than leaving the SPA", async () => {

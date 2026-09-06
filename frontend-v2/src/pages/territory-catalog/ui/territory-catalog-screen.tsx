@@ -49,7 +49,7 @@ export function TerritoryCatalogScreen() {
         canReplace={s.canReplace}
         onUpload={() => void navigate({ to: "/territories/new" })}
         onOpen={(slug) => leaveTo(territoryPath(slug))}
-        onReplace={(slug) => leaveTo(`/territories/${encodeURIComponent(slug)}/replace`)}
+        onReplace={(slug) => void navigate({ href: `/territories/${encodeURIComponent(slug)}/replace` })}
         onDelete={s.ask}
         {...(s.cards.length === 0
           ? { emptyHint: "No territories yet — upload one to get started." }

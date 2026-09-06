@@ -106,16 +106,22 @@ export function viewerOf(me: Principal): { username: string; roleTitle: string }
   return { username: me.username, roleTitle };
 }
 
-/** The catalog shell's four routes — no sidebar, unlike the console. */
+/** The catalog shell's exact routes — no sidebar, unlike the console. */
 export const CATALOG_PATHS = ["/territories", "/territories/new", "/models", "/models/new"] as const;
 
+const MODEL_PAGE = /^\/models\/[^/]+$/;
+const REPLACE_FORM = /^\/territories\/[^/]+\/replace$/;
+
 /**
- * A catalog screen href, query string included. Deliberately not
- * `/territories/<slug>` or `/models/<slug>` — those still leave to the old
- * SPA's viewer, so a click on one must fall through to a real navigation.
+ * A catalog screen href, query string included: the four list/upload routes,
+ * a model's page and a territory's replace form. Deliberately not
+ * `/territories/<slug>` — the viewer still leaves to the old SPA, so a click
+ * on one must fall through to a real navigation.
  */
-export const isCatalogHref = (href: string): boolean =>
-  (CATALOG_PATHS as readonly string[]).includes(href.split("?")[0]);
+export const isCatalogHref = (href: string): boolean => {
+  const path = href.split("?")[0];
+  return (CATALOG_PATHS as readonly string[]).includes(path) || MODEL_PAGE.test(path) || REPLACE_FORM.test(path);
+};
 
 type ClickModifiers = {
   metaKey: boolean;
