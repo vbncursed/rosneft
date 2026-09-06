@@ -5,6 +5,7 @@ import { toTerritory } from "./to-territory";
 
 type TerritoryDto = components["schemas"]["Territory"];
 type TerritoryCreatedDto = components["schemas"]["TerritoryCreated"];
+type TerritorySourceReplace = components["schemas"]["TerritorySourceReplace"];
 
 export const listTerritories = async (): Promise<Territory[]> =>
   (await httpGet<TerritoryDto[]>("/api/territories")).map(toTerritory);
@@ -17,9 +18,8 @@ export async function replaceTerritorySource(
   slug: string,
   sourceBlobHash: string,
 ): Promise<{ territory: Territory; job: { id: string } }> {
-  const r = await httpPost<TerritoryCreatedDto>(`/api/territories/${encodeURIComponent(slug)}/source`, {
-    sourceBlobHash,
-  });
+  const body: TerritorySourceReplace = { sourceBlobHash };
+  const r = await httpPost<TerritoryCreatedDto>(`/api/territories/${encodeURIComponent(slug)}/source`, body);
   return { territory: toTerritory(r.territory), job: { id: r.job.id } };
 }
 

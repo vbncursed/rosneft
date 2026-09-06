@@ -140,6 +140,6 @@ describe("http client", () => {
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe(`${import.meta.env.VITE_API_URL}/api/assets/abc`);
     expect(init.method).toBe("HEAD");
-    expect(new Headers(init.headers)).not.toHaveProperty("X-CSRF-Token");
+    expect(new Headers(init.headers).has("X-CSRF-Token")).toBe(false);
   });
 });
