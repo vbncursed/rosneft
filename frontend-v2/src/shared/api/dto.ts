@@ -822,7 +822,7 @@ export interface paths {
                 };
                 401: components["responses"]["Unauthorized"];
                 /** @description 2FA already enabled */
-                409: {
+                422: {
                     headers: {
                         [name: string]: unknown;
                     };
