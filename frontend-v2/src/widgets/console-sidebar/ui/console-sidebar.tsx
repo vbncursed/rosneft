@@ -54,7 +54,8 @@ export function ConsoleSidebar({
           <ThemeToggle />
           <a
             href="/account"
-            className="flex items-center gap-2.5 rounded-control-sm border border-transparent p-1 no-underline hover:border-line-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            aria-label={`Account settings for ${viewer.username}`}
+            className="flex items-center gap-2.5 rounded-control-sm border border-transparent p-1 no-underline hover:border-line-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <Avatar name={viewer.username} size={32} />
             <div className="min-w-0 flex-1">

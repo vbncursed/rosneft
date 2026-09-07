@@ -7,7 +7,8 @@ import { SectionHeading } from "@/shared/ui/section-heading";
 
 export type PasswordSectionProps = {
   busy: boolean;
-  onSubmit: (current: string, next: string) => void;
+  /** Resolves only on success — the fields clear off this, never unconditionally. */
+  onSubmit: (current: string, next: string) => Promise<void>;
 };
 
 /** The password-change form: current + new, Generate on the new field, one submit button. */
@@ -17,12 +18,18 @@ export function PasswordSection({ busy, onSubmit }: PasswordSectionProps) {
   const error = next ? validatePassword(next) : null;
   const disabled = !current || !next || !!error || busy;
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (disabled) return;
-    onSubmit(current, next);
-    setCurrent("");
-    setNext("");
+    try {
+      await onSubmit(current, next);
+      setCurrent("");
+      setNext("");
+    } catch {
+      // A wrong current password, a 422 or a dropped connection — the
+      // mutation's own onError already toasted. Leave both fields exactly as
+      // typed so the user is not made to retype either one.
+    }
   };
 
   return (
@@ -43,7 +50,7 @@ export function PasswordSection({ busy, onSubmit }: PasswordSectionProps) {
           />
           <PasswordField
             label="New password"
-            hint="At least 12 characters"
+            hint="8+ characters with an upper, a lower, a digit and a special character"
             error={error ?? undefined}
             autoComplete="new-password"
             value={next}

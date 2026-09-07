@@ -25,7 +25,11 @@ export async function login(
   password: string,
   remember: boolean,
 ): Promise<{ twoFactorRequired: boolean; challengeToken: string }> {
-  const r = await httpPost<LoginResponse>("/api/auth/login", { identifier, password, remember });
+  const r = await httpPost<LoginResponse>(
+    "/api/auth/login",
+    { identifier, password, remember },
+    { credentialed: true },
+  );
   if (!r.twoFactorRequired) {
     markAuthed();
     setCsrfToken(r.csrfToken);
@@ -44,6 +48,7 @@ export async function verifyTwoFactor(
   const r = await httpPost<{ token: string; csrfToken: string }>(
     "/api/auth/login/2fa",
     { challengeToken, code, remember },
+    { credentialed: true },
   );
   markAuthed();
   setCsrfToken(r.csrfToken);

@@ -13,7 +13,10 @@ export function controlClass({
     "focus:border-accent focus:ring-[3px] focus:ring-accent-soft",
     "disabled:border-line disabled:text-dim disabled:opacity-60",
     spaced && "mt-[7px]",
-    mono ? "font-mono text-[13px] leading-5" : "font-sans text-sm",
+    // Same size in both faces, not just the same line-height: a revealed
+    // password switches font-family only, or two PasswordFields side by side
+    // (current + new) visibly change size the instant one is revealed.
+    mono ? "font-mono text-sm leading-5" : "font-sans text-sm",
     invalid ? "border-bad bg-bad-soft" : "border-line-2 bg-panel-2",
     className,
   );

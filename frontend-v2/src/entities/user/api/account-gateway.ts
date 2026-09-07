@@ -9,7 +9,9 @@ export type TwoFactorStatus = {
 };
 
 export function changePassword(oldPassword: string, newPassword: string): Promise<void> {
-  return httpPost("/api/auth/me/password", { oldPassword, newPassword });
+  // credentialed: a wrong current password answers this request, not the
+  // session — a 401 here must surface as a toast, not sign the user out.
+  return httpPost("/api/auth/me/password", { oldPassword, newPassword }, { credentialed: true });
 }
 
 export async function twoFactorStatus(): Promise<TwoFactorStatus> {

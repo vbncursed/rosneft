@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { validatePassword } from "@/entities/user";
@@ -22,6 +22,16 @@ describe("PasswordSection", () => {
     expect(submit()).toBeDisabled();
   });
 
+  // The hint shown must be the rule actually enforced — the mock's "At least
+  // 12 characters" is stale copy; validatePassword enforces 8-256 plus four
+  // character classes.
+  it("states the password rule it actually enforces", () => {
+    render(<PasswordSection busy={false} onSubmit={vi.fn()} />);
+    expect(
+      screen.getByText("8+ characters with an upper, a lower, a digit and a special character"),
+    ).toBeInTheDocument();
+  });
+
   it("fills the new field with Generate, which passes validation and is revealed", async () => {
     render(<PasswordSection busy={false} onSubmit={vi.fn()} />);
     await userEvent.click(screen.getByRole("button", { name: "Generate" }));
@@ -38,6 +48,15 @@ describe("PasswordSection", () => {
     expect(submit()).toBeEnabled();
   });
 
+  // The only case that exercises the `!current` clause on its own: a filled,
+  // valid new password with no current password typed yet. Without the
+  // guard the form would POST ("", generated).
+  it("keeps submit disabled when only the new password is filled", async () => {
+    render(<PasswordSection busy={false} onSubmit={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Generate" }));
+    expect(submit()).toBeDisabled();
+  });
+
   it("disables submit while busy", async () => {
     render(<PasswordSection busy onSubmit={vi.fn()} />);
     await userEvent.type(currentField(), "old-pass");
@@ -45,8 +64,8 @@ describe("PasswordSection", () => {
     expect(submit()).toBeDisabled();
   });
 
-  it("submits current and next, then clears both fields", async () => {
-    const onSubmit = vi.fn();
+  it("submits current and next, then clears both fields only once the submit succeeds", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<PasswordSection busy={false} onSubmit={onSubmit} />);
     await userEvent.type(currentField(), "old-pass");
     await userEvent.click(screen.getByRole("button", { name: "Generate" }));
@@ -54,7 +73,22 @@ describe("PasswordSection", () => {
     await userEvent.click(submit());
 
     expect(onSubmit).toHaveBeenCalledWith("old-pass", generated);
-    expect(currentField().value).toBe("");
+    await waitFor(() => expect(currentField().value).toBe(""));
     expect(newField().value).toBe("");
+  });
+
+  // A wrong current password, a 422, a dropped connection — none of those
+  // may wipe the fields and make the user retype both.
+  it("keeps both fields when the submit is rejected", async () => {
+    const onSubmit = vi.fn().mockRejectedValue(new Error("wrong current password"));
+    render(<PasswordSection busy={false} onSubmit={onSubmit} />);
+    await userEvent.type(currentField(), "wrong-current");
+    await userEvent.click(screen.getByRole("button", { name: "Generate" }));
+    const generated = newField().value;
+    await userEvent.click(submit());
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(currentField().value).toBe("wrong-current");
+    expect(newField().value).toBe(generated);
   });
 });

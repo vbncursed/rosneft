@@ -5,7 +5,17 @@ import { ensureCsrfToken } from "./csrf";
 const API_BASE = import.meta.env.VITE_API_URL;
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
-async function send<T>(path: string, init: RequestInit, parse: "json" | "blob" | "none"): Promise<T> {
+/** `credentialed`: this request is itself submitting a credential (a login,
+ * a password change) — a 401 answers whether that credential was right, not
+ * whether the session is still alive, so it must not bounce the app. */
+export type SendOpts = { credentialed?: boolean };
+
+async function send<T>(
+  path: string,
+  init: RequestInit,
+  parse: "json" | "blob" | "none",
+  opts?: SendOpts,
+): Promise<T> {
   // No Authorization header: the session is an httpOnly cookie, and the SPA is
   // single-origin with the API in both dev and prod, so the browser attaches it
   // to every request here without being asked.
@@ -30,9 +40,11 @@ async function send<T>(path: string, init: RequestInit, parse: "json" | "blob" |
   });
   if (!res.ok) {
     // 401 = session expired or revoked. Drop the marker and bounce to /login —
-    // unless we're already on /login (a bad-credentials login also 401s; let it
-    // surface).
-    if (res.status === 401 && !location.pathname.startsWith("/login")) {
+    // unless this call is itself submitting a credential (a login, a password
+    // change): there the 401 answers the credential, not the session, and a
+    // bounce would replace the error the caller needs with a reload of
+    // wherever they were.
+    if (res.status === 401 && !opts?.credentialed) {
       clearAuthed();
       location.assign(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
     }
@@ -63,7 +75,7 @@ export function httpGetBlob(path: string): Promise<Blob> {
   return send<Blob>(path, { headers: { Accept: "*/*" } }, "blob");
 }
 
-export function httpPost<T>(path: string, body?: unknown): Promise<T> {
+export function httpPost<T>(path: string, body?: unknown, opts?: SendOpts): Promise<T> {
   const hasBody = body !== undefined;
   return send<T>(
     path,
@@ -73,6 +85,7 @@ export function httpPost<T>(path: string, body?: unknown): Promise<T> {
       body: hasBody ? JSON.stringify(body) : undefined,
     },
     "json",
+    opts,
   );
 }
 

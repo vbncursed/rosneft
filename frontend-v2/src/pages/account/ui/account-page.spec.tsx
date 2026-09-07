@@ -22,8 +22,10 @@ const props = (over: Partial<AccountPageProps> = {}): AccountPageProps => ({
   me: ME,
   twoFactor: { enabled: true, enabledAt: "2026-08-12T09:20:00Z", recoveryRemaining: 7, recoveryTotal: 10 },
   passkeys: [{ id: "p-1", name: "MacBook Pro", createdAt: "2026-08-12T09:20:00Z", lastUsedAt: null }],
+  twoFactorLoading: false,
+  passkeysLoading: false,
   passwordBusy: false,
-  onChangePassword: vi.fn(),
+  onChangePassword: vi.fn().mockResolvedValue(undefined),
   ...over,
 });
 
@@ -51,5 +53,12 @@ describe("AccountPage", () => {
   it("reads an unknown passkey count as unknown, not zero", () => {
     render(<AccountPage {...props({ passkeys: null })} />);
     expect(screen.getByText("—")).toBeInTheDocument();
+  });
+
+  it("forwards each side query's loading state to its own card", () => {
+    render(<AccountPage {...props({ twoFactorLoading: true })} />);
+    expect(screen.queryByText("TOTP")).not.toBeInTheDocument();
+    // Passkeys is not loading — its value still prints.
+    expect(screen.getByText("1")).toBeInTheDocument();
   });
 });

@@ -52,6 +52,11 @@ export function NoConsoleAccess() {
   return (
     <Panel title="No console access">
       Your account has no console permissions. Ask your organisation owner for the access you need.
+      You can still{" "}
+      <a href="/account" className="text-accent">
+        manage your account
+      </a>
+      .
     </Panel>
   );
 }

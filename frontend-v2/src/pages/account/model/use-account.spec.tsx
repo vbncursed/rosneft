@@ -78,6 +78,49 @@ describe("useAccount", () => {
     expect(result.current.me).toEqual(PRINCIPAL);
     expect(result.current.passkeys).toEqual(PASSKEYS);
     expect(result.current.passwordBusy).toBe(false);
+    expect(result.current.twoFactorLoading).toBe(false);
+    expect(result.current.passkeysLoading).toBe(false);
+  });
+
+  // `catalogRoute`'s loader awaits `me`, so it is never actually pending on
+  // mount in production — phase flips to "ready" while the two side queries
+  // are typically still in flight. That window must read as "still loading"
+  // on each card, not a confident null.
+  it("is ready with both side queries still pending when they resolve after me does", async () => {
+    let resolveTwoFactor: (() => void) | undefined;
+    let resolvePasskeys: (() => void) | undefined;
+    fetchMock.mockImplementation(async (url: string) => {
+      const path = new URL(url, "http://x").pathname;
+      if (path === "/api/auth/me") return json(PRINCIPAL);
+      if (path === "/api/auth/2fa") {
+        await new Promise<void>((resolve) => (resolveTwoFactor = resolve));
+        return json(TWO_FACTOR);
+      }
+      if (path === "/api/auth/passkey/credentials") {
+        await new Promise<void>((resolve) => (resolvePasskeys = resolve));
+        return json({ credentials: PASSKEYS });
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    });
+
+    const { result } = renderHook(() => useAccount(), { wrapper });
+    await waitFor(() => expect(result.current.phase).toBe("ready"));
+    if (result.current.phase !== "ready") throw new Error("unreachable");
+    expect(result.current.twoFactorLoading).toBe(true);
+    expect(result.current.passkeysLoading).toBe(true);
+    // Not a confident answer while still in flight.
+    expect(result.current.twoFactor).toBeNull();
+    expect(result.current.passkeys).toBeNull();
+
+    await act(async () => {
+      resolveTwoFactor?.();
+      resolvePasskeys?.();
+    });
+    await waitFor(() => {
+      if (result.current.phase !== "ready") throw new Error("not ready");
+      expect(result.current.twoFactorLoading).toBe(false);
+      expect(result.current.passkeysLoading).toBe(false);
+    });
   });
 
   // Not "off" — a 500 on the 2FA status must never be read as a factor being
@@ -122,12 +165,12 @@ describe("useAccount", () => {
     const ready = result.current.s;
     if (ready.phase !== "ready") throw new Error("unreachable");
 
-    act(() => ready.onChangePassword("old-pass", "new-pass"));
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining("/api/auth/me/password"),
-        expect.objectContaining({ method: "POST" }),
-      ),
+    await act(async () => {
+      await ready.onChangePassword("old-pass", "new-pass");
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/auth/me/password"),
+      expect.objectContaining({ method: "POST" }),
     );
     await waitFor(() => expect(result.current.notices).toHaveLength(1));
     expect(result.current.notices[0]?.tone).toBe("success");
@@ -147,9 +190,39 @@ describe("useAccount", () => {
     const ready = result.current.s;
     if (ready.phase !== "ready") throw new Error("unreachable");
 
-    act(() => ready.onChangePassword("wrong", "new-pass"));
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    await act(async () => {
+      await ready.onChangePassword("wrong", "new-pass").catch(() => {});
+    });
     await waitFor(() => expect(result.current.notices).toHaveLength(1));
     expect(result.current.notices[0]?.tone).toBe("error");
     expect(result.current.notices[0]?.message).toBe("wrong current password");
+    // Self-correcting: a dead session 401s here exactly like a wrong password
+    // does, so `me` is re-asked either way — a genuinely dead session then
+    // takes the ordinary 401 path on its own within one round trip.
+    expect(invalidate).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["me"] }));
+  });
+
+  // The reviewer's trap: swapping `unanswered(me)` for `me.isError` leaves
+  // every other test green, because none of them cover a refetch that fails
+  // on top of a principal the hook already has.
+  it("stays ready when a refetch fails on top of the principal it already has", async () => {
+    const { result, rerender } = renderHook(() => useAccount(), { wrapper });
+    await waitFor(() => expect(result.current.phase).toBe("ready"));
+
+    fetchMock.mockImplementation(async (url: string) => {
+      const path = new URL(url, "http://x").pathname;
+      if (path === "/api/auth/me") return json({ message: "boom" }, 500);
+      return json({});
+    });
+    await act(async () => {
+      await client.refetchQueries({ queryKey: ["me"] });
+    });
+    // The refetch really did fail — the cache holds the error beside the
+    // data, and the hook is re-rendered so it reads that state rather than a
+    // stale one.
+    await waitFor(() => expect(client.getQueryState(["me"])?.status).toBe("error"));
+    rerender();
+    expect(result.current.phase).toBe("ready");
   });
 });

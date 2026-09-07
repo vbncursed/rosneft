@@ -77,15 +77,28 @@ describe("http client", () => {
     expect(assign).toHaveBeenCalledWith("/login?next=%2Fconsole%2Fusers");
   });
 
-  // On /login a 401 is a wrong password, not a dead session. Redirecting there
-  // would replace the error message with a reload of the same screen.
-  it("leaves a 401 alone when the user is already on /login", async () => {
-    vi.stubGlobal("location", { pathname: "/login", search: "", assign });
+  // A credentialed request's 401 answers the credential (a wrong login
+  // password, a wrong current password), not the session. Bouncing would
+  // replace the error the caller needs with a reload of wherever they were —
+  // and for an already-live session, would sign the user out over a typo.
+  it("does not bounce a credentialed request on a 401", async () => {
+    markAuthed();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(401, { message: "bad" })));
 
-    await expect(httpPost("/api/auth/login", {})).rejects.toThrow("bad");
+    await expect(httpPost("/api/auth/login", {}, { credentialed: true })).rejects.toThrow("bad");
 
     expect(assign).not.toHaveBeenCalled();
+    expect(isAuthed()).toBe(true);
+  });
+
+  it("still bounces a plain (non-credentialed) request on a 401", async () => {
+    markAuthed();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(401, { message: "bad" })));
+
+    await expect(httpPost("/api/x", {})).rejects.toThrow("bad");
+
+    expect(assign).toHaveBeenCalledWith("/login?next=%2Fconsole%2Fusers");
+    expect(isAuthed()).toBe(false);
   });
 
   it("carries the gateway's own message on a failure", async () => {
