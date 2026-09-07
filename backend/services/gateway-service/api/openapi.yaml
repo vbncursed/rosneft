@@ -1736,7 +1736,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Setup2FAResponse' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '409': { description: 2FA already enabled }
+        '422': { description: 2FA already enabled }
 
   /api/auth/2fa/enable:
     post:
