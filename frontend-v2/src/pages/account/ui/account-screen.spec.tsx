@@ -34,10 +34,25 @@ describe("AccountScreen", () => {
       passkeys: null,
       twoFactorLoading: false,
       passkeysLoading: false,
+      activity: [],
+      activityHasMore: false,
+      activityBusy: false,
       passwordBusy: false,
+      disableBusy: false,
+      removalBusy: false,
       onChangePassword: vi.fn().mockResolvedValue(undefined),
+      onDisable2FA: vi.fn().mockResolvedValue(undefined),
+      onRemovePasskey: vi.fn().mockResolvedValue(undefined),
+      onPasskeyAdded: vi.fn(),
+      onLoadMore: vi.fn(),
     });
     render(<AccountScreen />);
     expect(screen.getByRole("heading", { level: 1, name: "a.ivanova" })).toBeInTheDocument();
+    // Every section the ready phase owns, not only the header — a prop the
+    // screen forgets to forward is otherwise invisible here.
+    expect(screen.getByRole("heading", { level: 2, name: "Two-factor authentication" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Passkeys" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "My activity" })).toBeInTheDocument();
+    expect(screen.getByText("Nothing recorded yet")).toBeInTheDocument();
   });
 });

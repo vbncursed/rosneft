@@ -55,6 +55,21 @@ export async function listAudit(
   };
 }
 
+/**
+ * One page of the caller's own actions. There is no `actor` parameter on this
+ * route by design — the scope comes from the session and no query string can
+ * widen it, which is what keeps a Company Owner's "My activity" from turning
+ * into the whole company's journal.
+ */
+export async function listMyAudit(cursor: number | null, limit = DEFAULT_LIMIT): Promise<AuditPageResult> {
+  const page = await httpGet<AuditPageDto>(`/api/audit/mine${toQuery({}, cursor, limit)}`);
+  return {
+    entries: (page.entries ?? []).map(toAuditEntry),
+    nextCursor: page.nextCursor && page.nextCursor > 0 ? page.nextCursor : null,
+    refs: page.refs ?? {},
+  };
+}
+
 export const listAuditActors = async (): Promise<AuditActor[]> =>
   ((await httpGet<AuditActorDto[] | null>("/api/audit/actors")) ?? []).map((a) => ({
     id: a.id,
