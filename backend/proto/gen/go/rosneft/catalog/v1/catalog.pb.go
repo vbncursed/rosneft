@@ -97,7 +97,7 @@ type Territory struct {
 	UpdatedAt      *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// Optional link to an externally-hosted panorama tour. Empty = unset.
 	ExternalPanoramaUrl string `protobuf:"bytes,7,opt,name=external_panorama_url,json=externalPanoramaUrl,proto3" json:"external_panorama_url,omitempty"`
-	// How many placements sit on this territory. Filled by ListTerritories only.
+	// How many placements sit on this territory.
 	PlacementCount uint32 `protobuf:"varint,8,opt,name=placement_count,json=placementCount,proto3" json:"placement_count,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -200,7 +200,7 @@ type Model struct {
 	UpdatedAt      *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// Optional thumbnail image blob hash (” = none), served via /api/assets.
 	ThumbnailBlobHash string `protobuf:"bytes,7,opt,name=thumbnail_blob_hash,json=thumbnailBlobHash,proto3" json:"thumbnail_blob_hash,omitempty"`
-	// How many distinct territories place this model. Filled by ListModels only.
+	// How many distinct territories place this model.
 	UsageCount    uint32 `protobuf:"varint,8,opt,name=usage_count,json=usageCount,proto3" json:"usage_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

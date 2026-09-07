@@ -452,7 +452,7 @@ type Model struct {
 	Title             string     `json:"title"`
 	UpdatedAt         *time.Time `json:"updatedAt,omitempty"`
 
-	// UsageCount Distinct territories placing this model, across every territory; filled on the list endpoint, omitted when zero.
+	// UsageCount Distinct territories placing this model, across every territory. Omitted when zero.
 	UsageCount *int `json:"usageCount,omitempty"`
 }
 
@@ -637,7 +637,7 @@ type Territory struct {
 	Description         *string    `json:"description,omitempty"`
 	ExternalPanoramaUrl *string    `json:"externalPanoramaUrl,omitempty"`
 
-	// PlacementCount Placements on this territory; filled on the list endpoint, omitted when zero.
+	// PlacementCount Placements on this territory. Omitted when zero.
 	PlacementCount *int       `json:"placementCount,omitempty"`
 	Slug           string     `json:"slug"`
 	SourceBlobHash string     `json:"sourceBlobHash"`

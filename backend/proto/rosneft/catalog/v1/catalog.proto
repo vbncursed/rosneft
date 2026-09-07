@@ -81,7 +81,7 @@ message Territory {
   google.protobuf.Timestamp updated_at = 6;
   // Optional link to an externally-hosted panorama tour. Empty = unset.
   string external_panorama_url = 7;
-  // How many placements sit on this territory. Filled by ListTerritories only.
+  // How many placements sit on this territory.
   uint32 placement_count = 8;
 }
 
@@ -95,7 +95,7 @@ message Model {
   google.protobuf.Timestamp updated_at = 6;
   // Optional thumbnail image blob hash ('' = none), served via /api/assets.
   string thumbnail_blob_hash = 7;
-  // How many distinct territories place this model. Filled by ListModels only.
+  // How many distinct territories place this model.
   uint32 usage_count = 8;
 }
 

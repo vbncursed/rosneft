@@ -68,15 +68,16 @@ func scanModel(r rowScanner) (domain.Model, error) {
 }
 
 // scanTerritoryListed scans a territory row plus its trailing
-// placement_count, used only by ListTerritories' correlated-count query.
+// placement_count, used by both ListTerritories' and GetTerritory's
+// correlated-count query.
 func scanTerritoryListed(r rowScanner) (domain.Territory, error) {
 	var t domain.Territory
 	err := r.Scan(&t.Slug, &t.Title, &t.Description, &t.SourceBlobHash, &t.ExternalPanoramaURL, &t.CreatedAt, &t.UpdatedAt, &t.PlacementCount)
 	return t, err
 }
 
-// scanModelListed scans a model row plus its trailing usage_count, used only
-// by ListModels' correlated-count query.
+// scanModelListed scans a model row plus its trailing usage_count, used by
+// both ListModels' and GetModel's correlated-count query.
 func scanModelListed(r rowScanner) (domain.Model, error) {
 	var m domain.Model
 	err := r.Scan(&m.Slug, &m.Title, &m.Description, &m.SourceBlobHash, &m.ThumbnailBlobHash, &m.CreatedAt, &m.UpdatedAt, &m.UsageCount)
