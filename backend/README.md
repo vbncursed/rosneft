@@ -1,7 +1,7 @@
 # Andrey Backend
 
 Microservices backend for the Andrey 3D viewer. Heavy work (OBJ parsing,
-glTF/GLB conversion, Draco compression, KTX2 textures, LOD generation, blob
+glTF/GLB conversion, meshopt compression, KTX2 textures, LOD generation, blob
 storage) lives here so the frontend can fetch compact binary assets instead
 of 100+ MB ASCII files.
 
@@ -15,7 +15,7 @@ of 100+ MB ASCII files.
 - **Auth** — argon2id passwords, TOTP 2FA, WebAuthn passkeys, multi-role RBAC, opaque Redis sessions (`auth-service` + `twofa-service` + `passkey-service`)
 - **Local FS** — blob storage behind `BlobStore` interface (S3-ready)
 - **Cobra + Viper** — CLI / config (flag > env > file > default)
-- **gltfpack** (built from `zeux/meshoptimizer` in the worker image) — Draco / KTX2 / LOD encoder
+- **gltfpack** (built from `zeux/meshoptimizer` in the worker image) — meshopt / KTX2 / LOD encoder
 
 Every module pins `go 1.27.0` and every service image builds from
 `golang:1.27.0-alpine`. See [Toolchain & dependencies](#toolchain--dependencies)
@@ -31,7 +31,7 @@ for the full pinned-version matrix.
 | `auth-service`    | Users, multi-role RBAC, sessions, freeze/soft-delete (2FA → twofa) | gRPC `:9004`   | —                  | gRPC          |
 | `twofa-service`   | TOTP 2FA: secrets, recovery codes, verify + lockout              | gRPC `:9006`   | —                  | 6 gRPC        |
 | `passkey-service` | WebAuthn passkeys: credentials, ceremonies, assertion verify     | gRPC `:9008`   | —                  | 6 gRPC        |
-| `mesh-service`    | OBJ → GLB + Draco + KTX2 + LOD (`mesh-api` + `mesh-worker`)      | gRPC `:9002`   | —                  | 2 gRPC        |
+| `mesh-service`    | OBJ → GLB + meshopt + KTX2 + LOD (`mesh-api` + `mesh-worker`)    | gRPC `:9002`   | —                  | 2 gRPC        |
 | `upload-service`  | Resumable chunked uploads (gRPC streaming)                       | gRPC `:9003`   | —                  | 5 gRPC        |
 | `asset-service`   | Binary artifact server (Range / ETag / immutable cache)          | HTTP `:8081`   | (via gw proxy)     | 2 HTTP + health |
 
@@ -68,7 +68,7 @@ frontend tasks listed in `documentation/`:
   middleware that authenticates the Bearer token via `auth-service` and gates
   every mutating `/api/*` route on a per-route permission.
 - **ETag + 304** on JSON endpoints; **Brotli/gzip** content negotiation.
-- **Draco** mesh compression (default on), **KTX2** textures (opt-in),
+- **Meshopt** mesh compression (default on), **KTX2** textures (opt-in),
   **LOD** generation (opt-in via `MESH_LOD_RATIOS`) — see
   [`services/mesh-service/README.md`](services/mesh-service/README.md).
 - **Cache-Control: immutable** + ETag on `/api/assets/{hash}` blobs.

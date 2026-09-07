@@ -12,7 +12,7 @@ import (
 var _ service.Converter = (*converter.Converter)(nil)
 
 // InitConverter constructs the OBJ→GLB converter with optional GLB
-// post-processor (Draco/KTX2 via gltfpack) and optional LOD simplification
+// post-processor (meshopt/KTX2 via gltfpack) and optional LOD simplification
 // ratios. Pass nil compressor to skip post-processing; pass empty cfg.LODRatios
 // to skip LOD generation.
 //

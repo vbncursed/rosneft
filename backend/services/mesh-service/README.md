@@ -8,7 +8,7 @@ from the same module:
 - **`mesh-worker`** — long-running consumer that reads the stream, fetches the
   source ZIP archive from BlobStore by hash, extracts it, parses OBJ + MTL +
   textures, builds a glTF, then runs an optional `gltfpack` post-process pass:
-  - **Draco mesh compression** (`KHR_draco_mesh_compression`) — default on
+  - **Meshopt mesh compression** (`EXT_meshopt_compression`) — default on
   - **KTX2 / Basis Universal textures** (`KHR_texture_basisu`) — default on
   - **LOD generation** — default on via `MESH_LOD_RATIOS`
   Persists each LOD GLB to the shared BlobStore and registers each as an
@@ -51,8 +51,8 @@ internal/
                   # compress_step.go, convert_lods.go (LOD fan-out)
   compression/    # gltfpack-backed Optimizer
                   # compression.go: Compressor interface + Optimizer struct +
-                  #   functional options (WithDraco, WithKTX2)
-                  # compress.go: Compress(ctx, glb) — Draco + KTX2 pass
+                  #   functional options (WithMeshopt, WithKTX2)
+                  # compress.go: Compress(ctx, glb) — meshopt + KTX2 pass
                   # simplify.go: Simplify(ctx, glb, ratio) — LOD pass
                   # available.go: startup preflight against gltfpack binary
 ```
@@ -78,7 +78,7 @@ internal/
      one position/UV buffer; PBR baseColorFactor + optional baseColorTexture.
    - Texture cache deduplicates images shared across materials.
    - Normalize (center, scale to maxDim=2). Emit GLB.
-   - **Draco compression** + **KTX2** via `gltfpack -cc -tc` (when enabled;
+   - **Meshopt compression** + **KTX2** via `gltfpack -cc -tc` (when enabled;
      always with `-noq -kn -km -ke`).
    - **LOD fan-out** — for each ratio in `MESH_LOD_RATIOS`, run
      `gltfpack -si <ratio>` on the LOD0 GLB to produce LOD1, LOD2, …. A failed
@@ -107,13 +107,13 @@ conversions that were never queued or that crashed mid-flight.
 
 ## Optional optimisations
 
-All three default **on** and are individually toggleable via env vars. The
-frontend must have the matching loader/decoder configured for each enabled
-optimisation.
+All three default **on** and are individually toggleable via env vars. Only
+KTX2 needs frontend wiring — meshopt decodes automatically, and a frontend
+without LOD support just keeps using LOD0.
 
 | Optimisation | Flag | Frontend requirement |
 | --- | --- | --- |
-| Draco | `MESH_DRACO_ENABLED=true` (default) | `DRACOLoader` registered (already wired in viewer) |
+| Meshopt | `MESH_MESHOPT_ENABLED=true` (default) | none — drei's `useGLTF` auto-registers `MeshoptDecoder` |
 | KTX2 / Basis | `MESH_KTX2_ENABLED=true` (default) | `KTX2Loader` registered explicitly via `useGLTF.setKTX2Loader(...)` — drei does NOT auto-register it |
 | LOD | `MESH_LOD_RATIOS=0.5,0.25` (default) | Use `getArtifact(slug, lod)` per level, or drei `<Detailed>`. Frontend without LOD support keeps using LOD0 — additional LODs are simply unused. |
 
@@ -134,9 +134,9 @@ All env vars are prefixed `MESH_`. Defaults shown.
 | `MESH_WORKER_NAME` | `mesh-worker-1` | Consumer-group instance | `mesh-worker` |
 | `MESH_BLOCK_TIMEOUT` | `5s` | XREADGROUP block | `mesh-worker` |
 | `MESH_MAX_CONCURRENT_JOBS` | `0` | `0` → `GOMAXPROCS` | `mesh-worker` |
-| `MESH_DRACO_ENABLED` | `true` | KHR_draco_mesh_compression | `mesh-worker` |
+| `MESH_MESHOPT_ENABLED` | `true` | EXT_meshopt_compression (`MESH_DRACO_ENABLED` still read for one release, with a deprecation warning) | `mesh-worker` |
 | `MESH_KTX2_ENABLED` | `true` | KHR_texture_basisu (frontend KTX2Loader required) | `mesh-worker` |
-| `MESH_DRACO_BIN` | `gltfpack` | Path/name of gltfpack binary | `mesh-worker` |
+| `MESH_GLTFPACK_BIN` | `gltfpack` | Path/name of gltfpack binary (`MESH_DRACO_BIN` still read for one release, with a deprecation warning) | `mesh-worker` |
 | `MESH_LOD_RATIOS` | `0.5,0.25` | Comma-separated ratios for extra LODs; each drives both `-si` (triangles) and `-ts` (texture side). LOD0 always = full quality. Requires `MESH_KTX2_ENABLED` for `-ts` to bite | `mesh-worker` |
 | `MESH_LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error` | both |
 | `MESH_LOG_FORMAT` | `json` | `json` / `text` | both |
@@ -161,7 +161,6 @@ make build
   --redis-addr localhost:6379 \
   --catalog-grpc-addr localhost:9001 \
   --blob-dir $(pwd)/data/blob \
-  --draco-enabled=true \
   --ktx2-enabled=true \
   --lod-ratios=0.5,0.25
 ```
@@ -169,11 +168,12 @@ make build
 Source files arrive as content-addressed ZIP blobs in the same `--blob-dir`
 (written by upload-service); there is no host-mounted source directory.
 
-For local Draco/KTX2/LOD encoding install gltfpack: build it from
+For local meshopt/KTX2/LOD encoding install gltfpack: build it from
 `zeux/meshoptimizer` (CMake target `gltfpack`) or grab a release binary
 from <https://github.com/zeux/meshoptimizer/releases>. The Compose image
 builds it from source. To skip post-processing locally, run with
-`--draco-enabled=false --ktx2-enabled=false` and an empty `--lod-ratios`.
+`--ktx2-enabled=false` and an empty `--lod-ratios` (meshopt compression has
+no CLI flag — set `MESH_MESHOPT_ENABLED=false` in the environment instead).
 
 ## Tests / benchmarks
 

@@ -2,7 +2,7 @@
 // converter. It shells out to `gltfpack` (zeux/meshoptimizer) and applies a
 // configurable set of optimisations:
 //
-//   - Draco mesh compression (KHR_draco_mesh_compression)
+//   - Meshopt mesh compression (EXT_meshopt_compression)
 //   - KTX2 / Basis Universal textures (KHR_texture_basisu)
 //
 // Each is opt-in via a functional option so frontends can enable features
@@ -24,17 +24,17 @@ type Compressor interface {
 // construction.
 type Optimizer struct {
 	binPath string
-	draco   bool
+	meshopt bool
 	ktx2    bool
 }
 
 // Option mutates an Optimizer at construction.
 type Option func(*Optimizer)
 
-// WithDraco enables KHR_draco_mesh_compression. The frontend must register
-// a DRACOLoader to decode the output.
-func WithDraco() Option {
-	return func(o *Optimizer) { o.draco = true }
+// WithMeshopt enables EXT_meshopt_compression. Decoded automatically by
+// drei's MeshoptDecoder — no frontend wiring required.
+func WithMeshopt() Option {
+	return func(o *Optimizer) { o.meshopt = true }
 }
 
 // WithKTX2 enables KHR_texture_basisu (KTX2 / Basis Universal). The
@@ -63,5 +63,5 @@ func New(binPath string, opts ...Option) *Optimizer {
 // enabled. Bootstrap uses this to decide whether to wire the optimiser
 // into the converter at all.
 func (o *Optimizer) HasOptimisations() bool {
-	return o.draco || o.ktx2
+	return o.meshopt || o.ktx2
 }

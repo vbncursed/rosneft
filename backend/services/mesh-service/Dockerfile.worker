@@ -1,4 +1,4 @@
-# ---------- gltfpack: Draco encoder used by the converter ----------
+# ---------- gltfpack: meshopt/KTX2 encoder used by the converter ----------
 # We build gltfpack from zeux/meshoptimizer source so the resulting binary
 # has predictable provenance (vs. fetching pre-built artefacts) and is
 # pinned to a known release.
