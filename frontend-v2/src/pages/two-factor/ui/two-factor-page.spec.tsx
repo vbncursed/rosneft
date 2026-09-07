@@ -1,7 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import type { TwoFactorState } from "../model/use-two-factor";
+import { ALREADY_ON, type TwoFactorState } from "../model/use-two-factor";
 import { TwoFactorPage } from "./two-factor-page";
 
 const CODES = Array.from({ length: 10 }, (_, i) => `code-${i}`);
@@ -14,10 +14,12 @@ const base: TwoFactorState = {
   code: "",
   codes: [],
   error: null,
+  setupError: null,
   busy: false,
   username: "t.throwaway",
   onCode: () => {},
   onConfirm: () => {},
+  onRetry: () => {},
   onDone: () => {},
   onCancel: () => {},
 };
@@ -53,6 +55,19 @@ describe("TwoFactorPage", () => {
 
     render(<TwoFactorPage {...base} flow="regenerate" />);
     expect(screen.getByRole("list", { name: "Two-factor progress" }).children).toHaveLength(2);
+  });
+
+  // steps() is tested on its own; this is the wiring. Pinning the chips to
+  // "confirm" leaves the codes screen showing "3 · save codes" as pending
+  // while the codes are being read off it.
+  it("feeds the chips the stage that is on screen", () => {
+    render(<TwoFactorPage {...base} stage="codes" codes={CODES} />);
+    const chips = within(screen.getByRole("list", { name: "Two-factor progress" })).getAllByRole(
+      "listitem",
+    );
+    expect(chips.map((c) => c.getAttribute("aria-current"))).toEqual([null, null, "step"]);
+    expect(chips[2]).toHaveTextContent("3 · save codes");
+    expect(chips[0]).toHaveTextContent("completed");
   });
 
   it("hands the ten issued codes over, under the name they belong to", () => {
@@ -93,21 +108,42 @@ describe("TwoFactorPage", () => {
   // A wizard that cannot proceed must say so where it stands. A toast would
   // vanish and leave two panes that answer 409 to everything.
   it("replaces the panes when 2FA is already on, and offers the way out", () => {
-    render(<TwoFactorPage {...base} error="Two-factor is already on for this account." />);
-    expect(screen.getByText("Two-factor is already on for this account.")).toBeInTheDocument();
+    render(<TwoFactorPage {...base} setupError={{ message: ALREADY_ON, retryable: false }} />);
+    expect(screen.getByText(ALREADY_ON)).toBeInTheDocument();
     expect(screen.queryByText("Step 1 · scan")).not.toBeInTheDocument();
     expect(screen.queryByText("Step 2 · confirm")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Back to your account" })).toHaveAttribute(
       "href",
       "/account",
     );
+    expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+  });
+
+  // Without this the QR is a permanent skeleton, the gateway's message sits
+  // under the OTP field, and Confirm happily POSTs a code against a secret
+  // that was never provisioned.
+  it("replaces the panes when setup itself failed, and offers a retry", async () => {
+    const onRetry = vi.fn();
+    render(
+      <TwoFactorPage
+        {...base}
+        setupError={{ message: "provisioning is down", retryable: true }}
+        onRetry={onRetry}
+      />,
+    );
+    expect(screen.getByText("provisioning is down")).toBeInTheDocument();
+    expect(screen.queryByText("Step 1 · scan")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Enter 6 digits" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetry).toHaveBeenCalledOnce();
   });
 
   // The chips describe a sequence this screen can no longer walk: "1 · scan"
   // in the accent tone would be inviting the reader into a step that does not
   // exist for them.
   it("drops the step chips when the wizard is blocked", () => {
-    render(<TwoFactorPage {...base} error="Two-factor is already on for this account." />);
+    render(<TwoFactorPage {...base} setupError={{ message: ALREADY_ON, retryable: false }} />);
     expect(screen.queryByRole("list", { name: "Two-factor progress" })).not.toBeInTheDocument();
   });
 

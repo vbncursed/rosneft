@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { QRCodeSVG } from "qrcode.react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { clearNotices } from "@/shared/lib/notify";
@@ -25,6 +26,21 @@ describe("ScanPane", () => {
     render(<ScanPane secret={SECRET} otpauthUrl={URL} />);
     expect(screen.getByRole("img", { name: "Two-factor pairing QR code" })).toBeInTheDocument();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  // `setup2FA` hands back two strings and only one of them pairs an app: a QR
+  // holding the bare base32 secret is one no authenticator can parse, and it
+  // looks exactly as correct on screen. Pinned against the encoder itself.
+  it("encodes the pairing URL the gateway issued, not the bare secret", () => {
+    const paths = (root: HTMLElement) =>
+      [...root.querySelectorAll("svg[role=img] path")].map((p) => p.getAttribute("d"));
+
+    const pane = render(<ScanPane secret={SECRET} otpauthUrl={URL} />).container;
+    const asUrl = render(<QRCodeSVG value={URL} size={148} marginSize={2} role="img" />).container;
+    const asSecret = render(<QRCodeSVG value={SECRET} size={148} marginSize={2} role="img" />).container;
+
+    expect(paths(pane)).toEqual(paths(asUrl));
+    expect(paths(pane)).not.toEqual(paths(asSecret));
   });
 
   // The key is a credential: it stays folded away until someone asks, and the

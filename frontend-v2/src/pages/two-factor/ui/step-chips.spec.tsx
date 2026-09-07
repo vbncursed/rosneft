@@ -41,6 +41,9 @@ describe("StepChips", () => {
     expect(scan).toHaveTextContent("completed");
     expect(codes).not.toHaveTextContent("completed");
     expect(codes).not.toHaveAttribute("aria-current");
+    // A finished step is not the step you are on. Announcing it as current is
+    // the false announcement that kept this off widgets/auth-steps.
+    expect(scan).not.toHaveAttribute("aria-current");
   });
 
   it("dresses the three tones as the design does", () => {

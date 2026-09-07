@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { enable2FA, meQuery, regenerateRecoveryCodes, setup2FA } from "@/entities/user";
 import { HttpError, messageOf } from "@/shared/api";
 import type { Flow, Stage } from "./steps";
+
+/** Why the enrolment could not start, and whether pressing again could help. */
+export type SetupFailure = { message: string; retryable: boolean };
 
 export type TwoFactorState = {
   flow: Flow;
@@ -13,11 +16,14 @@ export type TwoFactorState = {
   otpauthUrl: string;
   code: string;
   codes: string[];
+  /** A refused code. Setup's own failure is `setupError` — a different place. */
   error: string | null;
+  setupError: SetupFailure | null;
   busy: boolean;
   username: string;
   onCode: (code: string) => void;
   onConfirm: () => void;
+  onRetry: () => void;
   onDone: () => void;
   onCancel: () => void;
 };
@@ -48,18 +54,30 @@ export function useTwoFactor(flow: Flow): TwoFactorState {
   const [code, setCode] = useState("");
   const [codes, setCodes] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [setupError, setSetupError] = useState<SetupFailure | null>(null);
   const provisioned = useRef(false);
 
-  useEffect(() => {
-    // Setup writes — it persists the pending secret — so it runs once per
-    // entry, not once per render. React 19's strict-mode double-invoke would
-    // otherwise provision two secrets and leave the first one orphaned.
-    if (flow !== "enable" || provisioned.current) return;
+  // Setup writes — it persists the pending secret — so it runs once per entry,
+  // not once per render. React 19's strict-mode double-invoke (main.tsx wraps
+  // the app in it) would otherwise provision two secrets and orphan the first.
+  const provision = useCallback(() => {
+    if (provisioned.current) return;
     provisioned.current = true;
+    setSetupError(null);
     setup2FA()
       .then(setSecret)
-      .catch((err: unknown) => setError(alreadyOn(err) ? ALREADY_ON : messageOf(err)));
-  }, [flow]);
+      .catch((err: unknown) =>
+        setSetupError(
+          alreadyOn(err)
+            ? { message: ALREADY_ON, retryable: false }
+            : { message: messageOf(err), retryable: true },
+        ),
+      );
+  }, []);
+
+  useEffect(() => {
+    if (flow === "enable") provision();
+  }, [flow, provision]);
 
   const confirm = useMutation({
     mutationFn: (value: string) =>
@@ -85,12 +103,17 @@ export function useTwoFactor(flow: Flow): TwoFactorState {
     code,
     codes,
     error,
+    setupError,
     secret: secret.secret,
     otpauthUrl: secret.otpauthUrl,
     busy: confirm.isPending,
     username: me?.username ?? "",
     onCode: setCode,
     onConfirm: () => confirm.mutate(code),
+    onRetry: () => {
+      provisioned.current = false;
+      provision();
+    },
     onDone: leave,
     onCancel: leave,
   };

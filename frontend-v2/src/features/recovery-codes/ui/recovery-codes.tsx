@@ -11,8 +11,9 @@ export type RecoveryCodesProps = {
 };
 
 /**
- * Shown once, right after 2FA is enabled. These codes are the only way back in
- * if the authenticator is lost, so the panel does not close on its own.
+ * The codes themselves and what can be done with them. Shown once, right after
+ * 2FA is enabled or regenerated: they are the only way back in if the
+ * authenticator is lost, so nothing here dismisses itself.
  */
 export function RecoveryCodes({ codes, onConfirm }: RecoveryCodesProps) {
   const [copied, setCopied] = useState(false);
@@ -24,16 +25,15 @@ export function RecoveryCodes({ codes, onConfirm }: RecoveryCodesProps) {
   };
 
   return (
-    <div className="rounded-[10px] border border-ok bg-ok-soft p-4">
-      <p className="m-0 font-mono text-[10px] uppercase tracking-[0.18em] text-ok">
-        Save these recovery codes
-      </p>
-
-      <ul className="m-0 mt-3 grid list-none grid-cols-2 gap-1.5 p-0">
+    // No card, no heading: the screen that shows these draws the green panel
+    // and names the step. Drawing them again duplicated the sentence and
+    // nested two ok grounds.
+    <div>
+      <ul className="m-0 grid list-none [grid-template-columns:repeat(auto-fit,minmax(128px,1fr))] gap-[7px] p-0">
         {codes.map((code) => (
           <li
             key={code}
-            className="rounded-control-sm bg-panel py-1.5 text-center font-mono text-xs tracking-[0.08em] text-fg"
+            className="rounded-control-sm border border-line-2 bg-panel-2 px-1 py-[9px] text-center font-mono text-xs tracking-[0.06em] text-fg"
           >
             {code}
           </li>
@@ -42,14 +42,14 @@ export function RecoveryCodes({ codes, onConfirm }: RecoveryCodesProps) {
 
       <div className="mt-3.5 flex flex-wrap gap-2">
         <Button shape="pill" size="sm" onClick={copy}>
-          {copied ? "Copied" : "Copy"}
+          {copied ? "Copied" : "Copy all"}
         </Button>
         <Button
           shape="pill"
           size="sm"
           onClick={() => downloadText("recovery-codes.txt", codesAsText(codes))}
         >
-          Download
+          Download .txt
         </Button>
         <Button shape="pill" size="sm" variant="success" onClick={onConfirm}>
           I saved them

@@ -32,7 +32,7 @@ describe("RecoveryCodes", () => {
     vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
 
     render(<RecoveryCodes codes={CODES} onConfirm={() => {}} />);
-    await user.click(screen.getByRole("button", { name: "Copy" }));
+    await user.click(screen.getByRole("button", { name: "Copy all" }));
 
     expect(writeText).toHaveBeenCalledWith("8k2fq-p1x7d\nm4wla-9zt3c\nqq08r-vb51n\n");
   });
@@ -45,7 +45,7 @@ describe("RecoveryCodes", () => {
     });
 
     render(<RecoveryCodes codes={CODES} onConfirm={() => {}} />);
-    await user.click(screen.getByRole("button", { name: "Copy" }));
+    await user.click(screen.getByRole("button", { name: "Copy all" }));
 
     expect(await screen.findByRole("button", { name: "Copied" })).toBeInTheDocument();
   });
@@ -63,9 +63,9 @@ describe("RecoveryCodes", () => {
         <RecoveryCodes codes={CODES} onConfirm={() => {}} />
       </>,
     );
-    await user.click(screen.getByRole("button", { name: "Copy" }));
+    await user.click(screen.getByRole("button", { name: "Copy all" }));
 
-    expect(await screen.findByRole("button", { name: "Copy" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Copy all" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Copied" })).not.toBeInTheDocument();
     expect(
       await screen.findByText("Could not copy — select it and copy by hand"),
@@ -74,7 +74,7 @@ describe("RecoveryCodes", () => {
 
   it("hands the codes to the downloader under a named file", async () => {
     render(<RecoveryCodes codes={CODES} onConfirm={() => {}} />);
-    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+    await userEvent.click(screen.getByRole("button", { name: "Download .txt" }));
 
     // What the download does with them is download.spec.ts's business; this
     // asserts the button reaches it with the right file.
@@ -84,9 +84,27 @@ describe("RecoveryCodes", () => {
     );
   });
 
+  // The host draws the green card and the "Step N · save these recovery codes"
+  // heading. This drew both again, so the sentence appeared twice and two ok
+  // grounds nested. It is the grid and the actions, nothing around them.
+  it("draws no card and no heading of its own", () => {
+    const { container } = render(<RecoveryCodes codes={CODES} onConfirm={() => {}} />);
+    expect(screen.queryByText(/save these recovery codes/i)).not.toBeInTheDocument();
+    // The green pill on "I saved them" is the design; a green card around the
+    // whole block is the duplicate.
+    expect(container.firstElementChild!.className).not.toMatch(/border-ok|bg-ok-soft/);
+  });
+
+  it("lays the codes out as the design does: an auto-fit grid, not two fixed columns", () => {
+    render(<RecoveryCodes codes={CODES} onConfirm={() => {}} />);
+    const grid = screen.getAllByRole("listitem")[0]!.parentElement!;
+    expect(grid.className).toContain("minmax(128px,1fr)");
+    expect(grid.className).toContain("gap-[7px]");
+  });
+
   it("dresses the three actions as the design does: two plain pills, one green", () => {
     render(<RecoveryCodes codes={CODES} onConfirm={() => {}} />);
-    for (const name of ["Copy", "Download"]) {
+    for (const name of ["Copy all", "Download .txt"]) {
       expect(screen.getByRole("button", { name }).className).toContain("bg-transparent");
     }
     expect(screen.getByRole("button", { name: "I saved them" }).className).toContain("bg-ok-soft");

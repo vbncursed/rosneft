@@ -1,3 +1,4 @@
+import { CatalogShell } from "@/widgets/catalog-shell";
 import type { TwoFactorState } from "../model/use-two-factor";
 import { TwoFactorPage } from "./two-factor-page";
 
@@ -14,27 +15,37 @@ const base: TwoFactorState = {
   code: "",
   codes: [],
   error: null,
+  setupError: null,
   busy: false,
   username: "a.ivanova",
   onCode: () => {},
   onConfirm: () => {},
+  onRetry: () => {},
   onDone: () => {},
   onCancel: () => {},
 };
 
+// Inside the shell its route mounts, like every other page fixture: the
+// padding around the column is CatalogShell's <main>, not the page's, so a
+// bare fixture sits flush against the viewport and misrepresents the screen.
+const wizard = (props: Partial<TwoFactorState>) => (
+  <CatalogShell>
+    <TwoFactorPage {...base} {...props} />
+  </CatalogShell>
+);
+
 export default {
-  "enable · confirm": <TwoFactorPage {...base} />,
-  "enable · confirm · error": (
-    <TwoFactorPage
-      {...base}
-      code=""
-      error="Invalid code — check your device clock and try the next one."
-    />
-  ),
-  "enable · codes": <TwoFactorPage {...base} stage="codes" codes={CODES} />,
-  "regenerate · confirm": <TwoFactorPage {...base} flow="regenerate" code="4821" />,
-  "regenerate · codes": <TwoFactorPage {...base} flow="regenerate" stage="codes" codes={CODES} />,
-  "enable · already on": (
-    <TwoFactorPage {...base} error="Two-factor is already on for this account." />
-  ),
+  "enable · confirm": wizard({}),
+  "enable · confirm · error": wizard({
+    error: "Invalid code — check your device clock and try the next one.",
+  }),
+  "enable · codes": wizard({ stage: "codes", codes: CODES }),
+  "regenerate · confirm": wizard({ flow: "regenerate", code: "4821" }),
+  "regenerate · codes": wizard({ flow: "regenerate", stage: "codes", codes: CODES }),
+  "enable · already on": wizard({
+    setupError: { message: "Two-factor is already on for this account.", retryable: false },
+  }),
+  "enable · setup failed": wizard({
+    setupError: { message: "twofa-service is unreachable", retryable: true },
+  }),
 };
