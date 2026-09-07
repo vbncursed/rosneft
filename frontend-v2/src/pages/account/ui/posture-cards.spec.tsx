@@ -43,4 +43,20 @@ describe("PostureCards", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByText("Set")).toBeInTheDocument();
   });
+
+  // The badge is a confident answer ("unknown", "off", "on") derived from
+  // data the query hasn't returned yet — showing it beside a pulsing bar
+  // contradicts the very state the skeleton is announcing.
+  it("suppresses the badge on a loading card, but not on the others", () => {
+    render(<PostureCards cards={CARDS} twoFactorLoading passkeysLoading={false} />);
+    expect(screen.queryByText("on")).not.toBeInTheDocument();
+    expect(screen.getByText("ok")).toBeInTheDocument();
+    expect(screen.getByText("fallback")).toBeInTheDocument();
+  });
+
+  it("marks only the loading card busy for assistive tech", () => {
+    render(<PostureCards cards={CARDS} twoFactorLoading passkeysLoading={false} />);
+    expect(screen.getByText("Two-factor").closest("div[aria-busy]")).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByText("Passkeys").closest("[aria-busy]")).not.toBeInTheDocument();
+  });
 });

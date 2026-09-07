@@ -30,7 +30,11 @@ export async function finishRegistration(flowId: string, credentialJson: string,
  * The caller picks which field to fill from removalFactor(); the server
  * re-derives the required factor from live 2FA state and refuses a mismatch,
  * so sending the wrong one fails closed rather than removing anything.
+ * credentialed: a wrong code/password answers this request, not the session
+ * — a 401 here must surface as an error, not sign the user out.
  */
 export function removePasskey(id: string, credential: { code?: string; password?: string }): Promise<void> {
-  return httpDelete(`/api/auth/passkey/credentials/${encodeURIComponent(id)}`, credential);
+  return httpDelete(`/api/auth/passkey/credentials/${encodeURIComponent(id)}`, credential, {
+    credentialed: true,
+  });
 }

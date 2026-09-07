@@ -15,10 +15,14 @@ export type AccountState =
 
 /**
  * The account screen's data: the principal, the 2FA posture and the passkey
- * count, plus the password-change mutation. Only `me` gates the page — the
- * password form and (in a later task) the activity feed work without the
- * other two, so a failed side query degrades to "unknown" rather than
- * blanking the screen.
+ * count, plus the password-change mutation. `me.isPending` is provably
+ * false by the time this ever renders in production — `catalogRoute`'s
+ * loader awaits `ensureQueryData(meQuery)` before the route mounts — but the
+ * "loading" branch stays: it is what that phase's own tests exercise, and
+ * it is still correct if that loader guarantee ever changes. The two side
+ * queries carry no such guarantee, which is why they get their own
+ * `twoFactorLoading`/`passkeysLoading` flags instead of gating the whole
+ * page — a failed side query degrades to "unknown" rather than blanking it.
  */
 export function useAccount(): AccountState {
   const client = useQueryClient();

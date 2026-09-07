@@ -36,18 +36,31 @@ export async function setup2FA(): Promise<{ secret: string; otpauthUrl: string }
   return { secret: d.secret ?? "", otpauthUrl: d.otpauthUrl ?? "" };
 }
 
-/** Confirms the pending secret. The recovery codes come back once, here. */
+/**
+ * Confirms the pending secret. The recovery codes come back once, here.
+ * credentialed: a mistyped code answers this request, not the session — a
+ * 401 here must surface as an error, not sign the user out.
+ */
 export async function enable2FA(code: string): Promise<string[]> {
-  const d = await httpPost<{ recoveryCodes?: string[] }>("/api/auth/2fa/enable", { code });
+  const d = await httpPost<{ recoveryCodes?: string[] }>(
+    "/api/auth/2fa/enable",
+    { code },
+    { credentialed: true },
+  );
   return d.recoveryCodes ?? [];
 }
 
-/** Takes a current authenticator code — not a recovery code, not the password. */
+/** Takes a current authenticator code — not a recovery code, not the password. credentialed: see enable2FA. */
 export function disable2FA(code: string): Promise<void> {
-  return httpPost("/api/auth/2fa/disable", { code });
+  return httpPost("/api/auth/2fa/disable", { code }, { credentialed: true });
 }
 
+/** credentialed: see enable2FA. */
 export async function regenerateRecoveryCodes(code: string): Promise<string[]> {
-  const d = await httpPost<{ recoveryCodes?: string[] }>("/api/auth/2fa/recovery/regenerate", { code });
+  const d = await httpPost<{ recoveryCodes?: string[] }>(
+    "/api/auth/2fa/recovery/regenerate",
+    { code },
+    { credentialed: true },
+  );
   return d.recoveryCodes ?? [];
 }

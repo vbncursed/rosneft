@@ -50,7 +50,7 @@ export function PasswordSection({ busy, onSubmit }: PasswordSectionProps) {
           />
           <PasswordField
             label="New password"
-            hint="8+ characters with an upper, a lower, a digit and a special character"
+            hint="8+ chars · upper, lower, digit, symbol"
             error={error ?? undefined}
             autoComplete="new-password"
             value={next}

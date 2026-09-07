@@ -112,7 +112,7 @@ export async function httpHead(path: string): Promise<Headers> {
   return res.headers;
 }
 
-export function httpDelete(path: string, body?: unknown): Promise<void> {
+export function httpDelete(path: string, body?: unknown, opts?: SendOpts): Promise<void> {
   const hasBody = body !== undefined;
   return send<void>(
     path,
@@ -122,5 +122,6 @@ export function httpDelete(path: string, body?: unknown): Promise<void> {
       body: hasBody ? JSON.stringify(body) : undefined,
     },
     "none",
+    opts,
   );
 }

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { isAuthed, markAuthed } from "@/shared/session";
 import { login, logout, verifyTwoFactor } from "./auth-gateway";
 
@@ -7,6 +7,13 @@ const jsonResponse = (status: number, body: unknown) =>
     status,
     headers: { "Content-Type": "application/json" },
   });
+
+let assign: ReturnType<typeof vi.fn>;
+
+beforeEach(() => {
+  assign = vi.fn();
+  vi.stubGlobal("location", { pathname: "/login", search: "", assign });
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -86,5 +93,25 @@ describe("auth gateway", () => {
     await logout();
 
     expect(isAuthed()).toBe(false);
+  });
+
+  // credentialed: a wrong password answers this request, not the session —
+  // it must surface as the error the login screen shows, not a bounce.
+  it("does not bounce a wrong-password 401 on login", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(401, { message: "invalid credentials" })));
+
+    await expect(login("a.ivanova", "wrong", true)).rejects.toThrow("invalid credentials");
+
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  // credentialed: a wrong TOTP/recovery code answers this request, not the
+  // session.
+  it("does not bounce a wrong-code 401 on verifyTwoFactor", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(401, { message: "invalid code" })));
+
+    await expect(verifyTwoFactor("chal-1", "000000", true)).rejects.toThrow("invalid code");
+
+    expect(assign).not.toHaveBeenCalled();
   });
 });

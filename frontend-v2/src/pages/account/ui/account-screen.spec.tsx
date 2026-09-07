@@ -35,7 +35,7 @@ describe("AccountScreen", () => {
       twoFactorLoading: false,
       passkeysLoading: false,
       passwordBusy: false,
-      onChangePassword: vi.fn(),
+      onChangePassword: vi.fn().mockResolvedValue(undefined),
     });
     render(<AccountScreen />);
     expect(screen.getByRole("heading", { level: 1, name: "a.ivanova" })).toBeInTheDocument();

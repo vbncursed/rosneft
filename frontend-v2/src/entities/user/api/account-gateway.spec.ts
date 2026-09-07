@@ -13,11 +13,14 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
 let fetchMock: ReturnType<typeof vi.fn>;
+let assign: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   // A factory, not mockResolvedValue: a real Response body can be read only
   // once, and this default answers more than one call per test.
   fetchMock = vi.fn(() => Promise.resolve(json({})));
   vi.stubGlobal("fetch", fetchMock);
+  assign = vi.fn();
+  vi.stubGlobal("location", { pathname: "/account", search: "", assign });
   setCsrfToken("csrf");
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -76,5 +79,32 @@ describe("account gateway", () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
     await disable2FA("402913");
     expect(request()).toEqual({ url: "/api/auth/2fa/disable", method: "POST", body: { code: "402913" } });
+  });
+
+  // Every call here submits a credential (a password, a TOTP/recovery code):
+  // a 401 answers whether it was right, not whether the session is alive, so
+  // none of them may sign the user out over a typo.
+  it("does not bounce a wrong current password 401 on changePassword", async () => {
+    fetchMock.mockResolvedValueOnce(json({ message: "invalid credentials" }, 401));
+    await expect(changePassword("wrong", "New1234!x")).rejects.toThrow("invalid credentials");
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it("does not bounce a wrong-code 401 on enable2FA", async () => {
+    fetchMock.mockResolvedValueOnce(json({ message: "invalid code" }, 401));
+    await expect(enable2FA("000000")).rejects.toThrow("invalid code");
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it("does not bounce a wrong-code 401 on regenerateRecoveryCodes", async () => {
+    fetchMock.mockResolvedValueOnce(json({ message: "invalid code" }, 401));
+    await expect(regenerateRecoveryCodes("000000")).rejects.toThrow("invalid code");
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it("does not bounce a wrong-code 401 on disable2FA", async () => {
+    fetchMock.mockResolvedValueOnce(json({ message: "invalid code" }, 401));
+    await expect(disable2FA("000000")).rejects.toThrow("invalid code");
+    expect(assign).not.toHaveBeenCalled();
   });
 });
