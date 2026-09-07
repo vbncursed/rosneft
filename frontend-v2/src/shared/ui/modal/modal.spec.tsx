@@ -145,3 +145,14 @@ describe("Modal · native cancel", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
+
+describe("Modal · warning tone", () => {
+  it("paints the warning tone on the box and the overline", async () => {
+    render(
+      <Modal open onClose={() => {}} tone="warning" overline="Remove passkey · blocked" title="Two-factor status unavailable" />,
+    );
+    const dialog = screen.getByRole("dialog", { hidden: true });
+    expect(dialog.className).toContain("border-warn");
+    expect(screen.getByText("Remove passkey · blocked").className).toContain("text-warn");
+  });
+});

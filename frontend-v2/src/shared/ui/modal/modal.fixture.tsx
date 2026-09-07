@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/shared/ui/button";
+import { Callout } from "@/shared/ui/callout";
 import { OtpInput } from "@/shared/ui/otp-input";
 import { PasswordField } from "@/shared/ui/password-field";
 import { Modal } from "./modal";
@@ -92,10 +93,34 @@ function Otp() {
   );
 }
 
+function Unavailable() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Remove (2FA unknown)</Button>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        tone="warning"
+        overline="Remove passkey · blocked"
+        title="Two-factor status unavailable"
+        description="Passkeys cannot be removed right now. Try again shortly."
+        footer={<Button onClick={() => setOpen(false)}>Close</Button>}
+      >
+        <Callout tone="warn">
+          The gateway derives the required factor server-side, so removal would be refused whichever
+          field we collected. Nothing was sent.
+        </Callout>
+      </Modal>
+    </>
+  );
+}
+
 export default (
   <div className="flex flex-wrap gap-3 rounded-card border border-line bg-panel p-6">
     <Confirm />
     <Danger />
     <Otp />
+    <Unavailable />
   </div>
 );

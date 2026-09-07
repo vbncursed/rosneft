@@ -24,3 +24,8 @@ export {
   type NewUser,
 } from "./api/users-gateway";
 export { usersQuery } from "./api/users-query";
+export {
+  changePassword, disable2FA, enable2FA, regenerateRecoveryCodes, setup2FA,
+  twoFactorStatus, type TwoFactorStatus,
+} from "./api/account-gateway";
+export { twoFactorQuery } from "./api/two-factor-query";
