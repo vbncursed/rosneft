@@ -48,7 +48,7 @@ export function RemovePasskeyModal({
         description="Passkeys cannot be removed right now. Try again shortly."
         footer={<Button onClick={onClose}>Close</Button>}
       >
-        <Callout tone="warn">
+        <Callout tone="warn" size="lg">
           The gateway derives the required factor server-side, so removal would be refused whichever
           field we collected. Nothing was sent.
         </Callout>

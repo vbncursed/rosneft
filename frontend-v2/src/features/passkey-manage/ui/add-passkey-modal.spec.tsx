@@ -60,6 +60,19 @@ describe("AddPasskeyModal", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("trims leading and trailing whitespace off the typed name before sending it", async () => {
+    beginRegistration.mockResolvedValue({ optionsJson: "{}", flowId: "flow-1" });
+    createCredential.mockResolvedValue("{}");
+    finishRegistration.mockResolvedValue(CREDENTIAL);
+
+    render(<AddPasskeyModal {...props()} />);
+    await userEvent.type(screen.getByLabelText("Passkey name"), "  MacBook Pro  ");
+    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    await waitFor(() => expect(finishRegistration).toHaveBeenCalled());
+    expect(finishRegistration).toHaveBeenCalledWith("flow-1", "{}", "MacBook Pro");
+  });
+
   it("closes with no toast when the system prompt is dismissed", async () => {
     const dismissed = new DOMException("dismissed", "NotAllowedError");
     beginRegistration.mockResolvedValue({ optionsJson: "{}", flowId: "flow-1" });
