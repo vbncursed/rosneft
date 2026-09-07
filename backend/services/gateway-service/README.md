@@ -217,8 +217,9 @@ client → CORS → RequestID → Recoverer → slog-chi               ← root 
 - The `/api/auth/*` group is mounted separately on the root router and runs its
   own `Authenticate` + per-route `require(perm)`, so login can stay public.
 - The **asset proxy** is excluded from compression so binary GLBs / panorama
-  images aren't re-compressed (already Draco/KTX2-compressed), and the **SSE
-  handler** is excluded so the body isn't buffered or transformed mid-stream.
+  images aren't re-compressed (already meshopt/KTX2-compressed), and the
+  **SSE handler** is excluded so the body isn't buffered or transformed
+  mid-stream.
 
 ## Downstream gRPC dependencies
 
