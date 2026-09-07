@@ -54,7 +54,7 @@
 - Consumes: nothing new.
 - Produces: `GET /api/models/{slug}` returns `usageCount` (omitted when zero, as on the list); `GET /api/territories/{slug}` returns `placementCount` the same way. Task 3 relies on this.
 
-- [ ] **Step 1: Invert the gateway's two contract tests**
+- [x] **Step 1: Invert the gateway's two contract tests**
 
 In `list_counts_test.go`, the stubs currently return zero-count entities and the tests assert the key is absent. Give the stubs counts and assert the JSON carries them:
 
@@ -87,14 +87,14 @@ func (s *ListCountsSuite) TestGetModelCarriesUsageCount() {
 
 (Keep the file's existing helper names and assertion style — read the file and match it; the two list tests above them do not change. Update the suite's doc comment at the top: the counts are on both the list and the single GET, and the JSON key is still omitted when the count is zero.)
 
-- [ ] **Step 2: Run them — expect FAIL**
+- [x] **Step 2: Run them — expect FAIL**
 
 ```bash
 cd backend/services/gateway-service && GOWORK=off go test ./internal/transport/httpapi/ -run ListCounts -v
 ```
 Expected: the two new tests fail (`PlacementCount` / `UsageCount` nil) because the gateway's stub is exercised through the real handler and the httpapi converters only set the pointer when non-zero — which they do, so in fact these two pass immediately once the stub carries a count. **If they pass at this step, that is correct**: the gateway needs no production change, and the test now pins the contract catalog-service is about to start honouring. Record that in the report; the real red/green is Step 4.
 
-- [ ] **Step 3: Add the integration assertions — expect FAIL**
+- [x] **Step 3: Add the integration assertions — expect FAIL**
 
 In `list_counts_integration_test.go`, at the end of `TestListsCarryPlacementAndUsageCounts` (or as a sibling test on the same fixture), add:
 
@@ -113,7 +113,7 @@ In `list_counts_integration_test.go`, at the end of `TestListsCarryPlacementAndU
 Run: `cd backend/services/catalog-service && go test -tags=integration ./internal/storage/ -run ListsCarry -v` (needs Docker).
 Expected: FAIL — both counts read 0.
 
-- [ ] **Step 4: Rewrite the two SELECTs**
+- [x] **Step 4: Rewrite the two SELECTs**
 
 `get_model.go`:
 ```go
@@ -153,14 +153,14 @@ WHERE t.slug = $1 AND ($2 = '' OR EXISTS (
 
 `entityColumns` and `territoryColumns` stay — the four INSERT…RETURNING callers still use them. In `queries.go`, `scanTerritoryListed`'s and `scanModelListed`'s doc comments drop "used only by ListTerritories'/ListModels' correlated-count query" and say instead that both the list and the single GET use them.
 
-- [ ] **Step 5: Run both suites — expect PASS**
+- [x] **Step 5: Run both suites — expect PASS**
 
 ```bash
 cd backend/services/catalog-service && go test -tags=integration ./internal/storage/ -run ListsCarry -v
 cd backend/services/gateway-service && GOWORK=off go test ./internal/transport/httpapi/ -run ListCounts -v
 ```
 
-- [ ] **Step 6: The comments that are now wrong**
+- [x] **Step 6: The comments that are now wrong**
 
 - `catalog-service/internal/domain/types.go`: `PlacementCount` / `UsageCount` — replace "Filled by ListTerritories only; zero on a single GetTerritory." with a line saying both the list and the single Get fill it.
 - `gateway-service/internal/domain/types.go`: same edit on its two fields.
@@ -185,7 +185,7 @@ cd backend/services/gateway-service && GOWORK=off go test ./internal/transport/h
   ```
   Both generated gateway files change; `dto.ts` changes only in the two doc comments.
 
-- [ ] **Step 7: The gate**
+- [x] **Step 7: The gate**
 
 ```bash
 CC=/usr/bin/clang SDKROOT=$(xcrun --show-sdk-path) make -C backend check
@@ -193,7 +193,7 @@ cd frontend-v2 && yarn lint && yarn test:coverage
 ```
 (The frontend run is because `dto.ts` moved.)
 
-- [ ] **Step 8: Live check**
+- [x] **Step 8: Live check**
 
 ```bash
 docker compose -f docker-compose.yml up --build -d catalog gateway mesh-worker
@@ -205,7 +205,7 @@ curl -s -b cookies.txt localhost:8080/api/territories/<slug> | jq .placementCoun
 ```
 Both must be non-zero, and an unplaced model must still omit the key entirely.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add backend/proto backend/services/catalog-service backend/services/gateway-service frontend-v2/src/shared/api/dto.ts
@@ -229,7 +229,7 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 - Consumes: `domain.ConversionResult{ArtifactHash, Content, ContentType, Size, Vertices, Faces, BBoxMin, BBoxMax}`; the package-private `rawGLB{content, vertices, faces, bboxMin, bboxMax}` and `(*Converter).convertRaw`.
 - Produces: `glbStats(body []byte) (vertices, faces uint64, err error)` — package-private, used only by the LOD loop.
 
-- [ ] **Step 1: Write the failing stats test**
+- [x] **Step 1: Write the failing stats test**
 
 `glb_stats_test.go`:
 ```go
@@ -273,13 +273,13 @@ func TestGLBStatsRejectsGarbage(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run it — expect FAIL (undefined: glbStats)**
+- [x] **Step 2: Run it — expect FAIL (undefined: glbStats)**
 
 ```bash
 cd backend/services/mesh-service && GOWORK=off go test ./internal/converter/ -run GLBStats -v
 ```
 
-- [ ] **Step 3: Implement `glb_stats.go`**
+- [x] **Step 3: Implement `glb_stats.go`**
 
 ```go
 package converter
@@ -330,9 +330,9 @@ func glbStats(body []byte) (vertices, faces uint64, err error) {
 
 Check the installed `qmuntal/gltf` v0.29's API before writing: the decoder constructor may be `gltf.NewDecoder(r).Decode()` returning `(*gltf.Document, error)` or `gltf.Decode(r)`; `Primitive.Attributes` may be `map[string]int` (index) rather than a typed handle, and `Primitive.Indices` may be `*int`. Adapt the field access to what the vendored version actually exposes — the shape above is the intent, not a promise about the API.
 
-- [ ] **Step 4: Run — expect PASS**
+- [x] **Step 4: Run — expect PASS**
 
-- [ ] **Step 5: Write the failing LOD-loop test**
+- [x] **Step 5: Write the failing LOD-loop test**
 
 Append to `convert_lods_test.go` (it already has `fakePostprocessor` and a one-triangle OBJ in `SetupTest`):
 
@@ -378,13 +378,13 @@ func (s *ConvertLODsSuite) TestLODWithUnreadableBytesKeepsZeroCounts() {
 
 (Check the suite's existing `Converter` construction — if the zero-value struct needs more fields for `ConvertLODs` to reach the LOD loop, copy what `TestAppendsForEachRatio` builds.)
 
-- [ ] **Step 6: Run — expect FAIL (counts 0, bbox zero)**
+- [x] **Step 6: Run — expect FAIL (counts 0, bbox zero)**
 
 ```bash
 cd backend/services/mesh-service && GOWORK=off go test ./internal/converter/ -run ConvertLODs -v
 ```
 
-- [ ] **Step 7: Wire it into the loop**
+- [x] **Step 7: Wire it into the loop**
 
 `simplifyLOD` takes the raw conversion so it can copy the bbox and fall back on nothing:
 
@@ -423,13 +423,13 @@ func (c *Converter) simplifyLOD(ctx context.Context, raw rawGLB, ratio float64) 
 
 The call site becomes `c.simplifyLOD(ctx, raw, ratio)`. In `ConvertLODs`'s doc comment, delete the paragraph beginning "LOD>0 artifacts skip vertex/face accounting" and say instead that every LOD carries its own counts and LOD 0's source-unit bounding box.
 
-- [ ] **Step 8: Run the package — expect PASS**
+- [x] **Step 8: Run the package — expect PASS**
 
 ```bash
 cd backend/services/mesh-service && GOWORK=off go test ./internal/converter/ -v
 ```
 
-- [ ] **Step 9: The gate, then commit**
+- [x] **Step 9: The gate, then commit**
 
 ```bash
 CC=/usr/bin/clang SDKROOT=$(xcrun --show-sdk-path) make -C backend check
@@ -440,7 +440,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 ```
 
-- [ ] **Step 10: Live check**
+- [x] **Step 10: Live check**
 
 Rebuild the worker (`docker compose -f docker-compose.yml up --build -d mesh-worker` — this is the slow image, it builds gltfpack), upload a throwaway model through `/models/new` with a real OBJ-bearing ZIP, wait for conversion, then:
 ```bash
@@ -464,7 +464,7 @@ LOD 1 and LOD 2 must carry non-zero `faces`/`vertices`, monotonically below LOD 
 - Consumes: Task 1's `usageCount` on `GET /api/models/{slug}`.
 - Produces: `UploadProgressPanelProps.onCancel?: () => void` (optional); `modelPath` / `territoryPath` encode their slug.
 
-- [ ] **Step 1: Invert the model-detail hook spec**
+- [x] **Step 1: Invert the model-detail hook spec**
 
 `use-model-detail.spec.tsx` currently holds `it("takes usageCount from the models list, not the single-model fetch")`. Replace it with:
 
@@ -480,19 +480,19 @@ LOD 1 and LOD 2 must carry non-zero `faces`/`vertices`, monotonically below LOD 
 
 (Match the file's own mock names and helpers. Any other case in the file that seeds `listModels` only to feed the merge loses that seeding; do not delete cases that test something else.)
 
-- [ ] **Step 2: Run — expect FAIL or a stale mock error**
+- [x] **Step 2: Run — expect FAIL or a stale mock error**
 
 ```bash
 cd frontend-v2 && yarn vitest run src/pages/model-detail/model/use-model-detail.spec.tsx
 ```
 
-- [ ] **Step 3: Drop the merge**
+- [x] **Step 3: Drop the merge**
 
 In `use-model-detail.ts`: delete the `models` query, its `isPending` entry in the `loading` gate, its `unanswered(...)` entry in the error gate, the `usageCount` const, and the spread in the ready state (`model: model.data!`). Delete the doc comment that explained why the extra query existed. Remove `modelsQuery` / `listModels` from the imports if nothing else uses them.
 
-- [ ] **Step 4: Run — expect PASS**
+- [x] **Step 4: Run — expect PASS**
 
-- [ ] **Step 5: Encode the two catalog paths**
+- [x] **Step 5: Encode the two catalog paths**
 
 `entities/model/model/model.ts`:
 ```ts
@@ -513,7 +513,7 @@ leaveTo(`/territories/${encodeURIComponent(territory.slug)}?jobId=${job.id}`);
 ```
 Also correct the two stale comments: `model.ts`'s `usageCount` and `territory.ts`'s `placementCount` no longer say "a Get path defaults it to 0" — both endpoints fill them, and the `?? 0` in the mappers is for the omitted-when-zero key. Same wording fix in `to-model.spec.ts` / `to-territory.spec.ts` where a comment repeats the old claim; their assertions stay.
 
-- [ ] **Step 6: Make Cancel optional**
+- [x] **Step 6: Make Cancel optional**
 
 `entities/upload/ui/upload-progress-panel.tsx`:
 ```tsx
@@ -539,13 +539,13 @@ onCancel={phase === "uploading" || phase === "finalizing" ? onCancel : undefined
 ```
 `isBusy` and the `busy` prop are untouched. Each page's spec gains a case: in the final phase (`replacing` / `creating`) the panel shows the busy submit and no Cancel.
 
-- [ ] **Step 7: Run the suites — expect PASS**
+- [x] **Step 7: Run the suites — expect PASS**
 
 ```bash
 cd frontend-v2 && yarn vitest run src/pages/model-detail src/pages/replace-source src/pages/upload-territory src/entities/upload src/entities/model src/entities/territory
 ```
 
-- [ ] **Step 8: Lint, coverage, live check, commit**
+- [x] **Step 8: Lint, coverage, live check, commit**
 
 ```bash
 cd frontend-v2 && yarn lint && yarn test:coverage
@@ -569,8 +569,8 @@ Claude-Session: https://claude.ai/code/session_01RrHyq7RySJQ9mQLKCc9sef"
 **Files:**
 - Modify: `CLAUDE.md` (the gateway-endpoints section, where the counts' scope is described), `frontend-v2/CLAUDE.md` (any line saying the model page reads the library for its usage count), the spec's §7
 
-- [ ] **Step 1:** In the root `CLAUDE.md`, find the `GET /api/models` / `GET /api/territories` bullets and the sentence about `placementCount`/`usageCount` being list-only; say both the list and the single GET carry them, omitted when zero. Add one line to the mesh/LOD paragraph: every LOD now records its own triangle and vertex counts, and shares LOD 0's source-unit bounding box. In `frontend-v2/CLAUDE.md`, correct anything that says the model page merges the count from the library. Tick §7 in the spec.
-- [ ] **Step 2:** Commit:
+- [x] **Step 1:** In the root `CLAUDE.md`, find the `GET /api/models` / `GET /api/territories` bullets and the sentence about `placementCount`/`usageCount` being list-only; say both the list and the single GET carry them, omitted when zero. Add one line to the mesh/LOD paragraph: every LOD now records its own triangle and vertex counts, and shares LOD 0's source-unit bounding box. In `frontend-v2/CLAUDE.md`, correct anything that says the model page merges the count from the library. Tick §7 in the spec.
+- [x] **Step 2:** Commit:
 ```bash
 git add CLAUDE.md frontend-v2/CLAUDE.md docs/superpowers/specs/2026-09-07-single-get-counts-and-lod-metadata-design.md docs/superpowers/plans/2026-09-07-single-get-counts-and-lod-metadata.md
 git commit --no-verify -m "docs: the single GETs carry their counts and every LOD carries its stats

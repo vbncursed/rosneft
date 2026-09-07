@@ -173,8 +173,8 @@ one is a larger change than this package).
 ## 7. Order of work
 
 1. Catalog + gateway: the two SQL statements, the comments, the two codegen
-   passes, the inverted gateway tests, the integration assertions.
-2. Mesh-service: `glbStats`, the LOD loop, the tests.
+   passes, the inverted gateway tests, the integration assertions. — done
+2. Mesh-service: `glbStats`, the LOD loop, the tests. — done
 3. Frontend-v2: the `usageCount` merge removed, the path encoding, the
-   optional `onCancel`.
-4. Docs: the two CLAUDE.md files where the old behaviour is written down.
+   optional `onCancel`. — done
+4. Docs: the two CLAUDE.md files where the old behaviour is written down. — done

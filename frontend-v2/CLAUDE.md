@@ -243,9 +243,10 @@ through the one shared rule, `conversionStatusOf` in `entities/content`: a
 failed job wins outright, a live job reads `converting`, otherwise the
 artifacts decide ready/pending. Both carry the `finishedSince` effect, without
 which a conversion finishing on screen flips the card backwards to "pending".
-`placementCount` and `usageCount` come from the list endpoints (added on this
-branch); `usageCount` counts *distinct territories*, not placements, and is a
-global aggregate because the model library is shared by decision. **The
+`placementCount` and `usageCount` are on the list and single-entity GETs
+alike (added on this branch); `usageCount` counts *distinct territories*, not
+placements, and is a global aggregate because the model library is shared by
+decision. **The
 uploads** (`/territories/new`, `/models/new`) drive the gateway's resumable
 protocol through `entities/upload`'s `runChunkedUpload` — 8 MB chunks from the
 session's own offset, `X-CSRF-Token` on every PATCH, and one `abortUpload` in
@@ -261,8 +262,9 @@ size — frontend-v2 has no three.js, and the old SPA's model page never
 rendered 3D either, so the mock's viewer overlays (tool rail, LOD switcher,
 stats strip, …) wait for the territory-viewer port. `Download GLB` and the
 per-LOD artifact rows are `<a download>` on `/api/assets/{hash}`; Delete is
-gated on `usageCount`, read off the models list because
-`GET /api/models/{slug}` never carries it. **Replace Source**
+gated on `usageCount`, read straight off the single-model fetch —
+`GET /api/models/{slug}` carries it now, so the page no longer fetches the
+whole library for one number. **Replace Source**
 (`/territories/{slug}/replace`) is territories only:
 `POST /api/territories/{slug}/source` exists, no model counterpart does, and
 the model page draws no Replace control. The current source's size comes
