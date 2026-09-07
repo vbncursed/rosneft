@@ -89,4 +89,28 @@ describe("Button", () => {
     expect(cls).toContain("rounded-full");
     expect(cls).toContain("font-mono");
   });
+
+  // jsdom computes no styles, so a class-token check is the sanctioned way to
+  // pin this: a small pill (10px, padding 6×14 — every status/action pill at
+  // this size) matches the design system's own Badge sm pill at 0.14em; a
+  // base utility here would collide with a same-property compound elsewhere
+  // and the winner would be the compiled stylesheet's source order, not this
+  // test — so tracking has to live on the size compound alone.
+  it("tightens tracking on a small pill to match Badge's sm pill, and leaves other sizes alone", () => {
+    const { rerender } = render(
+      <Button shape="pill" size="sm">
+        Remove
+      </Button>,
+    );
+    expect(classes(screen.getByRole("button", { name: "Remove" }))).toContain("tracking-[0.14em]");
+
+    rerender(
+      <Button shape="pill" size="md">
+        Remove
+      </Button>,
+    );
+    const md = classes(screen.getByRole("button", { name: "Remove" }));
+    expect(md).toContain("tracking-[0.18em]");
+    expect(md).not.toContain("tracking-[0.14em]");
+  });
 });
