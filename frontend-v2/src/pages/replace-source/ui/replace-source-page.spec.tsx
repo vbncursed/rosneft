@@ -91,6 +91,13 @@ describe("ReplaceSourcePage", () => {
     expect(screen.getByRole("button", { name: "Cancel upload" })).toBeInTheDocument();
   });
 
+  it("hides Cancel once the bytes are done and the final POST is running", () => {
+    const file = new File(["x"], "rev4.zip");
+    render(<ReplaceSourcePage {...props({ phase: "replacing", file })} />);
+    expect(screen.getByRole("button", { name: "Uploading…" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancel upload" })).not.toBeInTheDocument();
+  });
+
   it("warns that the territory goes back to converting", () => {
     render(<ReplaceSourcePage {...props()} />);
     expect(screen.getByText("The territory goes back to converting")).toBeInTheDocument();

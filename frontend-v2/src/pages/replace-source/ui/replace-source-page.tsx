@@ -69,7 +69,7 @@ export function ReplaceSourcePage({
                 submitLabel="Replace source"
                 cancelLabel="Cancel upload"
                 onSubmit={onSubmit}
-                onCancel={onCancel}
+                onCancel={phase === "uploading" || phase === "finalizing" ? onCancel : undefined}
               />
             </div>
 

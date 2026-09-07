@@ -80,7 +80,7 @@ export function UploadTerritoryPage({
               canSubmit={canSubmit(phase, file, form)}
               submitLabel="Upload territory"
               onSubmit={onSubmit}
-              onCancel={onCancel}
+              onCancel={phase === "uploading" || phase === "finalizing" ? onCancel : undefined}
             />
           </div>
 

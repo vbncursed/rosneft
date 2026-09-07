@@ -11,8 +11,8 @@ export type Territory = {
   sourceBlobHash: string;
   createdAt?: string;
   updatedAt?: string;
-  /** Placements on this territory. Filled on the list endpoint; a Get path defaults it to 0. */
+  /** Placements on this territory. Both the list and the Get endpoint fill it. */
   placementCount: number;
 };
 
-export const territoryPath = (slug: string) => `/territories/${slug}`;
+export const territoryPath = (slug: string) => `/territories/${encodeURIComponent(slug)}`;

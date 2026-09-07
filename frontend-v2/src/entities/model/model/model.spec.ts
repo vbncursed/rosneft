@@ -7,6 +7,10 @@ describe("modelPath", () => {
   it("builds the detail route from a slug", () => {
     expect(modelPath("storage-tank-500")).toBe("/models/storage-tank-500");
   });
+
+  it("encodes a slug that needs it", () => {
+    expect(modelPath("a b")).toBe("/models/a%20b");
+  });
 });
 
 describe("thumbnailUrl", () => {

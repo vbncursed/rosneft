@@ -12,7 +12,8 @@ export type UploadProgressPanelProps = {
   busyLabel?: string;
   cancelLabel?: string;
   onSubmit: () => void;
-  onCancel: () => void;
+  /** Omitted once the bytes are done: the final POST takes no abort signal, so a Cancel there would do nothing. */
+  onCancel?: () => void;
 };
 
 /** The bar-and-stats panel while bytes are moving, plus the submit/cancel row underneath. */
@@ -37,7 +38,7 @@ export function UploadProgressPanel({
         <Button variant="primary" loading={busy} disabled={!busy && !canSubmit} onClick={onSubmit}>
           {busy ? busyLabel : submitLabel}
         </Button>
-        {busy ? <Button variant="secondary" onClick={onCancel}>{cancelLabel}</Button> : null}
+        {busy && onCancel ? <Button variant="secondary" onClick={onCancel}>{cancelLabel}</Button> : null}
       </div>
     </div>
   );

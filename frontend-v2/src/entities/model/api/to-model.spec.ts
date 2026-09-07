@@ -40,8 +40,8 @@ describe("toModel", () => {
     });
   });
 
-  // Only the list endpoint fills usageCount; a Get path omits it, and 0 must
-  // read as "used nowhere", not as an unanswered field.
+  // Both the list and the Get endpoint fill usageCount; a genuinely omitted
+  // key must default to 0, read as "used nowhere", not as an unanswered field.
   it("defaults a missing usageCount to 0, and keeps a present one", () => {
     expect(toModel({ slug: "m", title: "M", sourceBlobHash: "a".repeat(64) }).usageCount).toBe(0);
     expect(

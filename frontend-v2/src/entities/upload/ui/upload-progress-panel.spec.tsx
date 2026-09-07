@@ -79,6 +79,14 @@ describe("UploadProgressPanel", () => {
     expect(onSubmit).toHaveBeenCalledOnce();
   });
 
+  it("renders no Cancel button when onCancel is omitted, even while busy", () => {
+    render(
+      <UploadProgressPanel busy canSubmit={false} submitLabel="Upload territory" onSubmit={vi.fn()} />,
+    );
+    expect(screen.getByRole("button", { name: "Uploading…" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+  });
+
   it("takes its own busy/cancel labels", async () => {
     const onCancel = vi.fn();
     render(
