@@ -157,13 +157,15 @@ make build
 
 ./bin/mesh-api  --grpc-addr :9002 --redis-addr localhost:6379
 
-./bin/mesh-worker \
+MESH_KTX2_ENABLED=true MESH_LOD_RATIOS=0.5,0.25 ./bin/mesh-worker \
   --redis-addr localhost:6379 \
   --catalog-grpc-addr localhost:9001 \
-  --blob-dir $(pwd)/data/blob \
-  --ktx2-enabled=true \
-  --lod-ratios=0.5,0.25
+  --blob-dir $(pwd)/data/blob
 ```
+
+The encoder settings are environment-only: `meshopt-enabled`, `ktx2-enabled`,
+`gltfpack-bin` and `lod-ratios` have no Cobra flag, so `--ktx2-enabled=…` and
+`--lod-ratios=…` are rejected as unknown flags.
 
 Source files arrive as content-addressed ZIP blobs in the same `--blob-dir`
 (written by upload-service); there is no host-mounted source directory.
@@ -171,9 +173,9 @@ Source files arrive as content-addressed ZIP blobs in the same `--blob-dir`
 For local meshopt/KTX2/LOD encoding install gltfpack: build it from
 `zeux/meshoptimizer` (CMake target `gltfpack`) or grab a release binary
 from <https://github.com/zeux/meshoptimizer/releases>. The Compose image
-builds it from source. To skip post-processing locally, run with
-`--ktx2-enabled=false` and an empty `--lod-ratios` (meshopt compression has
-no CLI flag — set `MESH_MESHOPT_ENABLED=false` in the environment instead).
+builds it from source. To skip post-processing locally, set
+`MESH_MESHOPT_ENABLED=false MESH_KTX2_ENABLED=false MESH_LOD_RATIOS=` in the
+environment.
 
 ## Tests / benchmarks
 
