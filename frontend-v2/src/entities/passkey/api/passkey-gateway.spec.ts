@@ -48,11 +48,18 @@ describe("passkey gateway", () => {
     });
   });
 
-  // credentialed: a wrong code/password answers this request, not the
-  // session — it must surface as an error, not sign the user out.
-  it("does not bounce a wrong-code 401 on removePasskey", async () => {
-    fetchMock.mockResolvedValueOnce(json({ message: "invalid code" }, 401));
-    await expect(removePasskey("k1", { code: "000000" })).rejects.toThrow("invalid code");
+  // A wrong code or password here is `403 re-authentication failed` — measured
+  // against the gateway. A 401 can only be the session, so it bounces like any
+  // other; `credentialed` on this call suppressed a bounce that has to happen.
+  it("bounces a 401 on removePasskey — a wrong factor is a 403, so a 401 is the session", async () => {
+    fetchMock.mockResolvedValueOnce(json({ message: "session expired" }, 401));
+    await expect(removePasskey("k1", { code: "000000" })).rejects.toThrow("session expired");
+    expect(assign).toHaveBeenCalledOnce();
+  });
+
+  it("surfaces the gateway's 403 for a wrong factor without touching the session", async () => {
+    fetchMock.mockResolvedValueOnce(json({ code: "forbidden", message: "re-authentication failed" }, 403));
+    await expect(removePasskey("k1", { password: "wrong" })).rejects.toThrow("re-authentication failed");
     expect(assign).not.toHaveBeenCalled();
   });
 

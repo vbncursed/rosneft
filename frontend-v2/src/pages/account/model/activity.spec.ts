@@ -51,8 +51,44 @@ describe("summaryOf", () => {
     ).toBe("Storage Tank 500 · refinery-block-c");
   });
 
-  it("falls back to the entity when nothing was labelled", () => {
-    expect(summaryOf(entry({ action: "auth.login", entity: "session", entityLabel: "" }))).toBe("session");
+  // Real rows, copied off a live GET /api/audit/mine: every auth.* entry the
+  // gateway writes carries entity "session" with an empty entityId,
+  // entityLabel and territorySlug. Falling back to `entity` printed the table
+  // name at fifty rows of "auth.login · session" — a word the reader cannot
+  // use and did not ask for. Nothing usable means no second line at all.
+  it("says nothing when the row carries nothing a person can use", () => {
+    expect(
+      summaryOf(entry({ action: "auth.login", entity: "session", entityId: "", entityLabel: "" })),
+    ).toBe("");
+    expect(
+      summaryOf(
+        entry({ action: "auth.passkey_register", entity: "session", entityId: "", entityLabel: "" }),
+      ),
+    ).toBe("");
+    // Not only auth rows: a user_role insert is written the same way.
+    expect(
+      summaryOf(entry({ action: "user_role.insert", entity: "user_role", entityId: "", entityLabel: "" })),
+    ).toBe("");
+  });
+
+  // Still worth a line when it failed — that is the one thing the row says
+  // beyond its action, and the console prints it too.
+  it("still says a bare row failed", () => {
+    expect(
+      summaryOf(
+        entry({ action: "auth.password_change", entity: "session", entityLabel: "", result: "failed" }),
+      ),
+    ).toBe("failed");
+  });
+
+  // The catalog rows do label themselves — territory.insert carries the slug
+  // in entityLabel, model.insert the model's slug.
+  it("names a labelled row as the gateway labelled it", () => {
+    expect(
+      summaryOf(
+        entry({ action: "territory.insert", entity: "territory", entityLabel: "dji-wp-46-cut" }),
+      ),
+    ).toBe("dji-wp-46-cut");
   });
 
   it("says a failed action failed, because the row is otherwise identical to a successful one", () => {

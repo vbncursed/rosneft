@@ -73,8 +73,11 @@ describe("useTwoFactor", () => {
     expect(result.current.secret).toBe("");
   });
 
-  it("names the 409 rather than reporting a generic failure, and offers no retry", async () => {
-    setup2FA.mockRejectedValue(new HttpError(409, null, "two-factor already enabled"));
+  // What the live gateway answers: twofa-service returns FailedPrecondition
+  // for "2fa already enabled", and apperr.HTTPStatus maps that to 422 —
+  // re-measured against the running gateway on an account with 2FA on.
+  it("names the 422 rather than reporting a generic failure, and offers no retry", async () => {
+    setup2FA.mockRejectedValue(new HttpError(422, null, "2fa already enabled"));
     const { result } = renderHook(() => useTwoFactor("enable"), { wrapper });
     await waitFor(() =>
       expect(result.current.setupError).toEqual({
@@ -84,15 +87,15 @@ describe("useTwoFactor", () => {
     );
   });
 
-  // What the live gateway actually answers: twofa-service returns
-  // FailedPrecondition for "2fa already enabled", and apperr.HTTPStatus maps
-  // that to 422. Reading only 409 put the raw sentinel on screen and left the
-  // panes up.
-  it("names the 422 the same way — that is the status this gateway sends", async () => {
-    setup2FA.mockRejectedValue(new HttpError(422, null, "2fa already enabled"));
+  // 409 was in the openapi spec and in no server answer; the spec was
+  // corrected in 89e6517. Reading it as "already on" invented a terminal
+  // state for a status nobody sends, and hid a real 409 behind a dead end
+  // with no retry.
+  it("treats a 409 as any other failure — nothing sends it", async () => {
+    setup2FA.mockRejectedValue(new HttpError(409, null, "conflict"));
     const { result } = renderHook(() => useTwoFactor("enable"), { wrapper });
     await waitFor(() =>
-      expect(result.current.setupError?.message).toBe("Two-factor is already on for this account."),
+      expect(result.current.setupError).toEqual({ message: "conflict", retryable: true }),
     );
   });
 
@@ -180,14 +183,13 @@ describe("useTwoFactor", () => {
     expect(result.current.code).toBe("");
   });
 
-  // enable2FA and regenerateRecoveryCodes are `credentialed`, so a 401 from
-  // them answers the code, not the session — nothing bounces on its own any
-  // more. Without this the wizard tells someone whose session died to check
-  // their device clock, forever. Asking `me` either confirms the session was
-  // fine (just a wrong code) or takes the ordinary 401 path and bounces.
-  it("revalidates the session on a refusal, rather than blaming the code forever", async () => {
+  // enable2FA and regenerateRecoveryCodes answer 400 for a wrong code, so
+  // they no longer carry `credentialed` and a 401 from them bounces inside
+  // the client itself. Nothing here has to revalidate the session: the
+  // refusal on screen can only be about the code.
+  it("leaves the session alone on a refusal — a 400 is the code, and a 401 already bounced", async () => {
     const invalidate = vi.spyOn(client, "invalidateQueries");
-    enable2FA.mockRejectedValue(new HttpError(401, null, "invalid code"));
+    enable2FA.mockRejectedValue(new HttpError(400, null, "invalid 2fa code"));
     const { result } = renderHook(() => useTwoFactor("enable"), { wrapper });
     await waitFor(() => expect(result.current.secret).toBe(SECRET.secret));
 
@@ -195,7 +197,7 @@ describe("useTwoFactor", () => {
     act(() => result.current.onConfirm());
 
     await waitFor(() => expect(result.current.error).not.toBeNull());
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["me"] });
+    expect(invalidate).not.toHaveBeenCalledWith({ queryKey: ["me"] });
     expect(result.current.stage).toBe("confirm");
   });
 

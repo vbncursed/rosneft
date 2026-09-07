@@ -106,7 +106,7 @@ describe("TwoFactorPage", () => {
   });
 
   // A wizard that cannot proceed must say so where it stands. A toast would
-  // vanish and leave two panes that answer 409 to everything.
+  // vanish and leave two panes that answer 422 to everything.
   it("replaces the panes when 2FA is already on, and offers the way out", () => {
     render(<TwoFactorPage {...base} setupError={{ message: ALREADY_ON, retryable: false }} />);
     expect(screen.getByText(ALREADY_ON)).toBeInTheDocument();
@@ -117,6 +117,42 @@ describe("TwoFactorPage", () => {
       "/account",
     );
     expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+  });
+
+  // Reloading the codes stage lands here: stage is component state, so the
+  // reload re-enters `enable`, setup answers "already on" — and the header
+  // used to offer to enable what the callout said was already enabled, to a
+  // reader who had just lost their recovery codes.
+  it("says two-factor is already on in the header, not below a contradicting one", () => {
+    render(<TwoFactorPage {...base} setupError={{ message: ALREADY_ON, retryable: false }} />);
+    expect(screen.getByRole("heading", { level: 1, name: "Two-factor is already on" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 1, name: "Enable two-factor" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Pair an authenticator app/)).not.toBeInTheDocument();
+  });
+
+  // The only thing that reader can still do — and the reason they are here.
+  it("points the reader at regenerating, which is the way to get codes back", () => {
+    render(<TwoFactorPage {...base} setupError={{ message: ALREADY_ON, retryable: false }} />);
+    expect(screen.getByRole("link", { name: "Replace your recovery codes" })).toHaveAttribute(
+      "href",
+      "/account/two-factor?mode=regenerate",
+    );
+  });
+
+  // A retryable failure is not "already on": the header still describes the
+  // enrolment the reader came for, and there is nothing to regenerate.
+  it("keeps the enrolment header when setup failed for any other reason", () => {
+    render(<TwoFactorPage {...base} setupError={{ message: "provisioning is down", retryable: true }} />);
+    expect(screen.getByRole("heading", { level: 1, name: "Enable two-factor" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Replace your recovery codes" })).not.toBeInTheDocument();
+  });
+
+  // Rendered asynchronously, after the reader has already moved on from the
+  // press. Without a live region a screen reader is never told the wizard
+  // failed — the sibling error line in ConfirmPane has had one all along.
+  it("announces a setup failure", () => {
+    render(<TwoFactorPage {...base} setupError={{ message: "provisioning is down", retryable: true }} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("provisioning is down");
   });
 
   // Without this the QR is a permanent skeleton, the gateway's message sits

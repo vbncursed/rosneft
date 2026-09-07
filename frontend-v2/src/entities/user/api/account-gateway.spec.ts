@@ -81,30 +81,44 @@ describe("account gateway", () => {
     expect(request()).toEqual({ url: "/api/auth/2fa/disable", method: "POST", body: { code: "402913" } });
   });
 
-  // Every call here submits a credential (a password, a TOTP/recovery code):
-  // a 401 answers whether it was right, not whether the session is alive, so
-  // none of them may sign the user out over a typo.
+  // changePassword is the only call in this file that answers 401 for a wrong
+  // credential — measured against the gateway: a wrong `oldPassword` gets
+  // `401 unauthenticated`. So it alone carries `credentialed`, and a typo here
+  // must not sign the user out.
   it("does not bounce a wrong current password 401 on changePassword", async () => {
     fetchMock.mockResolvedValueOnce(json({ message: "invalid credentials" }, 401));
     await expect(changePassword("wrong", "New1234!x")).rejects.toThrow("invalid credentials");
     expect(assign).not.toHaveBeenCalled();
   });
 
-  it("does not bounce a wrong-code 401 on enable2FA", async () => {
-    fetchMock.mockResolvedValueOnce(json({ message: "invalid code" }, 401));
-    await expect(enable2FA("000000")).rejects.toThrow("invalid code");
-    expect(assign).not.toHaveBeenCalled();
+  // The three 2FA calls answer `400 invalid_input` for a wrong code — measured
+  // against the gateway, on an account with 2FA on and one with it off alike.
+  // A 401 from them therefore cannot be about the code; it can only be the
+  // session, and the bounce is the right answer. `credentialed` here would
+  // strand a signed-out user on a page that quietly rejects everything.
+  it("bounces a 401 on enable2FA — a wrong code is a 400, so a 401 is the session", async () => {
+    fetchMock.mockResolvedValueOnce(json({ message: "session expired" }, 401));
+    await expect(enable2FA("000000")).rejects.toThrow("session expired");
+    expect(assign).toHaveBeenCalledOnce();
   });
 
-  it("does not bounce a wrong-code 401 on regenerateRecoveryCodes", async () => {
-    fetchMock.mockResolvedValueOnce(json({ message: "invalid code" }, 401));
-    await expect(regenerateRecoveryCodes("000000")).rejects.toThrow("invalid code");
-    expect(assign).not.toHaveBeenCalled();
+  it("bounces a 401 on regenerateRecoveryCodes", async () => {
+    fetchMock.mockResolvedValueOnce(json({ message: "session expired" }, 401));
+    await expect(regenerateRecoveryCodes("000000")).rejects.toThrow("session expired");
+    expect(assign).toHaveBeenCalledOnce();
   });
 
-  it("does not bounce a wrong-code 401 on disable2FA", async () => {
-    fetchMock.mockResolvedValueOnce(json({ message: "invalid code" }, 401));
-    await expect(disable2FA("000000")).rejects.toThrow("invalid code");
+  it("bounces a 401 on disable2FA", async () => {
+    fetchMock.mockResolvedValueOnce(json({ message: "session expired" }, 401));
+    await expect(disable2FA("000000")).rejects.toThrow("session expired");
+    expect(assign).toHaveBeenCalledOnce();
+  });
+
+  // The refusal each of the three actually sends, surfaced as a thrown error
+  // and nothing else — no bounce, because 400 is not 401.
+  it("surfaces the gateway's 400 for a wrong code without touching the session", async () => {
+    fetchMock.mockResolvedValueOnce(json({ code: "invalid_input", message: "invalid 2fa code" }, 400));
+    await expect(disable2FA("000000")).rejects.toThrow("invalid 2fa code");
     expect(assign).not.toHaveBeenCalled();
   });
 });

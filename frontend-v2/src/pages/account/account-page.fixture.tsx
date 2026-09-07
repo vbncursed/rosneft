@@ -31,11 +31,19 @@ const event = (id: number, action: string, at: string, over: Partial<AuditEntry>
   at,
   actorId: "u-1",
   actorLogin: "a.ivanova",
-  companyId: "",
-  companyLogin: "",
+  // A Company Owner's own rows carry its own id and login here, as the live
+  // journal returns them.
+  companyId: "u-1",
+  companyLogin: "a.ivanova",
   action,
+  // The shape every auth.* row really has: entity "session", and entityId,
+  // entityLabel and territorySlug all empty. Copied off a live
+  // GET /api/audit/mine rather than invented — the previous set gave passkey
+  // rows an entityLabel of "YubiKey 5C", a value the gateway never writes for
+  // them, which is what hid the second line printing "session" for nine
+  // reviews.
   entity: "session",
-  entityId: `e-${id}`,
+  entityId: "",
   entityLabel: "",
   territorySlug: "",
   oldRow: null,
@@ -50,22 +58,32 @@ const event = (id: number, action: string, at: string, over: Partial<AuditEntry>
 // older than the mock — that is the function working, not sample data rotting.
 const ACTIVITY: AuditEntry[] = [
   event(9, "auth.login", "2026-09-07T09:14:00Z"),
-  event(8, "auth.2fa_regenerate", "2026-09-07T08:41:00Z"),
-  event(7, "territory.replace_source", "2026-09-06T18:20:00Z", {
+  event(8, "auth.2fa_recovery_regenerate", "2026-09-07T08:41:00Z"),
+  // A refused change is journalled too, with result "failed" and nothing else
+  // to say — the one auth row that still draws a second line.
+  event(7, "auth.password_change", "2026-09-07T08:02:00Z", { result: "failed" }),
+  event(6, "auth.passkey_register", "2026-09-06T18:20:00Z"),
+  // The catalog rows do label themselves: territory.insert carries the slug in
+  // entityLabel, model.insert the model's slug, and the id is the row's.
+  event(5, "territory.insert", "2026-09-06T16:02:00Z", {
     entity: "territory",
-    entityLabel: "Refinery Block C",
-    territorySlug: "refinery-block-c",
+    entityId: "39",
+    entityLabel: "refinery-block-c",
   }),
-  event(6, "model.create", "2026-09-06T16:02:00Z", { entity: "model", entityLabel: "valve-assembly" }),
-  event(5, "placement.update", "2026-09-05T11:37:00Z", {
+  event(4, "model.insert", "2026-09-05T11:37:00Z", {
+    entity: "model",
+    entityId: "61",
+    entityLabel: "valve-assembly",
+  }),
+  // territorySlug is filled for the entities whose row carries a parent —
+  // placement, panorama, document, territory_assignment — and resolved on
+  // read (openapi AuditEntry.territorySlug). Nothing on this box has placed a
+  // model, so this row is built from that contract rather than observed.
+  event(3, "placement.update", "2026-09-05T09:10:00Z", {
     entity: "placement",
+    entityId: "118",
     entityLabel: "Storage Tank 500",
     territorySlug: "refinery-block-c",
-  }),
-  event(4, "auth.passkey_delete", "2026-07-03T09:20:00Z", {
-    entity: "credential",
-    entityLabel: "YubiKey 5C",
-    result: "failed",
   }),
 ];
 
@@ -104,6 +122,8 @@ export default {
   "no passkeys": shell({ passkeys: [] }),
   "passkeys unavailable": shell({ passkeys: null }),
   "empty activity": shell({ activity: [], activityHasMore: false }),
+  // What a Guest sees: no audit:read_own, so the feed 403s.
+  "activity unavailable": shell({ activity: null, activityHasMore: false }),
   loading: shell({
     twoFactor: null,
     passkeys: null,

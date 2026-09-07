@@ -4,10 +4,15 @@ import type { AuditEntry } from "@/entities/audit";
  * The second line of an activity row: what the action touched, and whether it
  * failed. The journal has no human-readable labels — the console prints the
  * action verbatim too — so this states facts rather than inventing prose.
+ *
+ * Empty when the row holds none of those three, and the row then draws no
+ * second line. It used to fall back to `entity`, which is a table name: every
+ * auth.* row the gateway writes carries entity "session" with an empty
+ * entityId, entityLabel and territorySlug, so this feed printed fifty lines of
+ * "session" under actions the reader could already see.
  */
 export function summaryOf(entry: AuditEntry): string {
-  const parts = [entry.entityLabel || entry.entity];
-  if (entry.territorySlug) parts.push(entry.territorySlug);
+  const parts = [entry.entityLabel, entry.territorySlug];
   if (entry.result === "failed") parts.push("failed");
   return parts.filter(Boolean).join(" · ");
 }
