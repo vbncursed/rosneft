@@ -180,6 +180,25 @@ describe("useTwoFactor", () => {
     expect(result.current.code).toBe("");
   });
 
+  // enable2FA and regenerateRecoveryCodes are `credentialed`, so a 401 from
+  // them answers the code, not the session — nothing bounces on its own any
+  // more. Without this the wizard tells someone whose session died to check
+  // their device clock, forever. Asking `me` either confirms the session was
+  // fine (just a wrong code) or takes the ordinary 401 path and bounces.
+  it("revalidates the session on a refusal, rather than blaming the code forever", async () => {
+    const invalidate = vi.spyOn(client, "invalidateQueries");
+    enable2FA.mockRejectedValue(new HttpError(401, null, "invalid code"));
+    const { result } = renderHook(() => useTwoFactor("enable"), { wrapper });
+    await waitFor(() => expect(result.current.secret).toBe(SECRET.secret));
+
+    act(() => result.current.onCode("000000"));
+    act(() => result.current.onConfirm());
+
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["me"] });
+    expect(result.current.stage).toBe("confirm");
+  });
+
   it("reports the confirm as busy while it is in flight", async () => {
     let release: (codes: string[]) => void = () => {};
     enable2FA.mockReturnValue(new Promise<string[]>((resolve) => (release = resolve)));

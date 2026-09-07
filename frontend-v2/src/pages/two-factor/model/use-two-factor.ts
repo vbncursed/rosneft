@@ -92,6 +92,12 @@ export function useTwoFactor(flow: Flow): TwoFactorState {
     onError: () => {
       setCode("");
       setError(REFUSED);
+      // enable2FA and regenerateRecoveryCodes are `credentialed`: a 401 from
+      // them answers the code, not the session, so nothing bounces on its own.
+      // Without this a session that died mid-wizard reads as a wrong code and
+      // the person retypes at a dead session forever. Asking `me` either
+      // confirms the session is fine or takes the ordinary 401 path itself.
+      void client.invalidateQueries({ queryKey: ["me"] });
     },
   });
 
