@@ -169,7 +169,7 @@ describe("routesInApp", () => {
 });
 
 describe("isCatalogHref", () => {
-  it("matches each of the four catalog paths, with or without a query", () => {
+  it("matches each catalog path, with or without a query", () => {
     for (const path of CATALOG_PATHS) {
       expect(isCatalogHref(path)).toBe(true);
       expect(isCatalogHref(`${path}?from=console`)).toBe(true);
@@ -184,5 +184,9 @@ describe("isCatalogHref", () => {
     expect(isCatalogHref("/territories/north-ridge")).toBe(false);
     expect(isCatalogHref("/territories/north-ridge/other")).toBe(false);
     expect(isCatalogHref("/models/pump/extra")).toBe(false);
+  });
+
+  it("routes the account page in-app rather than reloading the document", () => {
+    expect(isCatalogHref("/account")).toBe(true);
   });
 });
