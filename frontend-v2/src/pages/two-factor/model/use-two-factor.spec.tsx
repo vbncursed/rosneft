@@ -51,6 +51,21 @@ describe("useTwoFactor", () => {
     expect(result.current.otpauthUrl).toBe(SECRET.otpauthUrl);
   });
 
+  // What the ref guard is actually for. React 19 double-invokes an effect on
+  // mount under StrictMode, and main.tsx wraps the whole app in it; setup
+  // writes, so a second run persists a second pending secret and orphans the
+  // first. RTL's own `reactStrictMode` option drives that — hand-wrapping the
+  // JSX in <StrictMode> does not, under this react/RTL/vitest combination.
+  it("provisions once under StrictMode's double-invoke, which is how it ships", async () => {
+    const { result } = renderHook(() => useTwoFactor("enable"), {
+      wrapper,
+      reactStrictMode: true,
+    });
+    await waitFor(() => expect(result.current.secret).toBe(SECRET.secret));
+
+    expect(setup2FA).toHaveBeenCalledTimes(1);
+  });
+
   it("provisions nothing in the regenerate flow — the app is already paired", async () => {
     const { result } = renderHook(() => useTwoFactor("regenerate"), { wrapper });
     await waitFor(() => expect(result.current.stage).toBe("confirm"));
