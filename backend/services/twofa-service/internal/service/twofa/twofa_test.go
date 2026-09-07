@@ -176,3 +176,18 @@ func (s *TwoFASuite) TestStatusOfAnUnenrolledUserIsOffWithNoCodes() {
 	assert.NilError(s.T(), err)
 	assert.DeepEqual(s.T(), got, domain.Status{})
 }
+
+func (s *TwoFASuite) TestStatusOfADisabledCredentialIsOffWithNoCodes() {
+	mc := minimock.NewController(s.T())
+	// Counts is deliberately not stubbed: a found-but-disabled credential must
+	// not cost a second query. minimock fails the test if an unstubbed method
+	// is called.
+	store := mocks.NewStoreMock(mc).GetMock.Return(domain.Credential{UserID: "u1", Enabled: false}, nil)
+	svc := twofa.New(store, mocks.NewRecoveryMock(mc), mocks.NewCipherMock(mc),
+		mocks.NewRateLimiterMock(mc), "Andrey")
+
+	got, err := svc.Status(context.Background(), "u1")
+
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), got, domain.Status{})
+}
