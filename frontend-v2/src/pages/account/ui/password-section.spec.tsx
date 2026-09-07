@@ -24,12 +24,11 @@ describe("PasswordSection", () => {
 
   // The hint shown must be the rule actually enforced — the mock's "At least
   // 12 characters" is stale copy; validatePassword enforces 8-256 plus four
-  // character classes.
+  // character classes. Kept short (not the full sentence) so it cannot wrap
+  // to two lines beside the current-password hint at a narrow column width.
   it("states the password rule it actually enforces", () => {
     render(<PasswordSection busy={false} onSubmit={vi.fn()} />);
-    expect(
-      screen.getByText("8+ characters with an upper, a lower, a digit and a special character"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("8+ chars · upper, lower, digit, symbol")).toBeInTheDocument();
   });
 
   it("fills the new field with Generate, which passes validation and is revealed", async () => {

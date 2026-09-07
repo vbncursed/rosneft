@@ -1,6 +1,6 @@
 import type { Principal } from "@/shared/session";
 import { CatalogShell } from "@/widgets/catalog-shell";
-import { AccountPage } from "./account-page";
+import { AccountPage } from "./ui/account-page";
 
 const ME: Principal = {
   id: "u-1",

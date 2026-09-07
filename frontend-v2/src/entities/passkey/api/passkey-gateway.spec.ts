@@ -6,9 +6,12 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
 let fetchMock: ReturnType<typeof vi.fn>;
+let assign: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   fetchMock = vi.fn(() => Promise.resolve(json({})));
   vi.stubGlobal("fetch", fetchMock);
+  assign = vi.fn();
+  vi.stubGlobal("location", { pathname: "/account", search: "", assign });
   setCsrfToken("csrf");
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -43,6 +46,14 @@ describe("passkey gateway", () => {
       method: "DELETE",
       body: { code: "402913" },
     });
+  });
+
+  // credentialed: a wrong code/password answers this request, not the
+  // session — it must surface as an error, not sign the user out.
+  it("does not bounce a wrong-code 401 on removePasskey", async () => {
+    fetchMock.mockResolvedValueOnce(json({ message: "invalid code" }, 401));
+    await expect(removePasskey("k1", { code: "000000" })).rejects.toThrow("invalid code");
+    expect(assign).not.toHaveBeenCalled();
   });
 
   it("begins registration and defaults missing fields to empty strings", async () => {
