@@ -2253,7 +2253,7 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
-            /** @description Placements on this territory; filled on the list endpoint, omitted when zero. */
+            /** @description Placements on this territory. Omitted when zero. */
             placementCount?: number;
         };
         Model: {
@@ -2270,7 +2270,7 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
-            /** @description Distinct territories placing this model, across every territory; filled on the list endpoint, omitted when zero. */
+            /** @description Distinct territories placing this model, across every territory. Omitted when zero. */
             usageCount?: number;
         };
         /**

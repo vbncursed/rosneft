@@ -15,7 +15,7 @@ type Territory struct {
 	CreatedAt           time.Time `yaml:"-"`
 	UpdatedAt           time.Time `yaml:"-"`
 	// PlacementCount is how many placements sit on this territory. Filled by
-	// ListTerritories only; zero on a single GetTerritory.
+	// both ListTerritories and GetTerritory.
 	PlacementCount int `yaml:"-"`
 }
 
@@ -29,7 +29,7 @@ type Model struct {
 	CreatedAt         time.Time `yaml:"-"`
 	UpdatedAt         time.Time `yaml:"-"`
 	// UsageCount is how many distinct territories place this model. Filled by
-	// ListModels only; zero on a single GetModel.
+	// both ListModels and GetModel.
 	UsageCount int `yaml:"-"`
 }
 

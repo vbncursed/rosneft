@@ -115,4 +115,12 @@ func (s *ListCountsSuite) TestListsCarryPlacementAndUsageCounts() {
 	}
 	// pump is placed twice on yard and once on block: two territories, not three placements.
 	assert.DeepEqual(s.T(), usage, map[string]int{"pump": 2, "tank": 1, "ladder": 0})
+
+	t, err := s.pg.GetTerritory(ctx, "yard", "")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), t.PlacementCount, 3)
+
+	m, err := s.pg.GetModel(ctx, "pump")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), m.UsageCount, 2)
 }

@@ -38,7 +38,7 @@ type Territory struct {
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
 	// PlacementCount is how many placements sit on this territory. Filled on
-	// the list endpoint only; zero on a single-territory GET.
+	// both the list endpoint and a single-territory GET.
 	PlacementCount int
 }
 
@@ -65,7 +65,7 @@ type Model struct {
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 	// UsageCount is how many distinct territories place this model. Filled on
-	// the list endpoint only; zero on a single-model GET.
+	// both the list endpoint and a single-model GET.
 	UsageCount int
 }
 

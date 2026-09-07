@@ -11,9 +11,9 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
 
-// ListCountsSuite checks that the list endpoints' JSON carries the
-// placement/usage counts a stubbed catalog reports, and that GetTerritory/
-// GetModel — which never populate the domain count — leave the key absent.
+// ListCountsSuite checks that both the list endpoints and the single-entity
+// GETs carry the placement/usage counts a stubbed catalog reports, and that
+// the JSON key stays omitted when the count is zero.
 type ListCountsSuite struct{ suite.Suite }
 
 func TestListCountsSuite(t *testing.T) { suite.Run(t, new(ListCountsSuite)) }
@@ -31,7 +31,7 @@ func (c countsServiceStub) ListTerritories(context.Context, string) ([]domain.Te
 }
 
 func (c countsServiceStub) GetTerritory(context.Context, string, string) (domain.Territory, error) {
-	return domain.Territory{Slug: "yard"}, nil
+	return domain.Territory{Slug: "yard", PlacementCount: 3}, nil
 }
 
 func (c countsServiceStub) ListModels(context.Context) ([]domain.Model, error) {
@@ -39,7 +39,7 @@ func (c countsServiceStub) ListModels(context.Context) ([]domain.Model, error) {
 }
 
 func (c countsServiceStub) GetModel(context.Context, string) (domain.Model, error) {
-	return domain.Model{Slug: "pump"}, nil
+	return domain.Model{Slug: "pump", UsageCount: 2}, nil
 }
 
 func (s *ListCountsSuite) TestListTerritoriesCarriesPlacementCount() {
@@ -54,13 +54,14 @@ func (s *ListCountsSuite) TestListTerritoriesCarriesPlacementCount() {
 	assert.Equal(s.T(), *list[0].PlacementCount, 3)
 }
 
-func (s *ListCountsSuite) TestGetTerritoryLeavesPlacementCountAbsent() {
+func (s *ListCountsSuite) TestGetTerritoryCarriesPlacementCount() {
 	ctx := authhttp.NewTestContext(context.Background(), true, "")
 	resp, err := New(countsServiceStub{}).GetTerritory(ctx, GetTerritoryRequestObject{Slug: "yard"})
 	assert.NilError(s.T(), err)
 	territory, ok := resp.(GetTerritory200JSONResponse)
 	assert.Assert(s.T(), ok)
-	assert.Assert(s.T(), territory.PlacementCount == nil)
+	assert.Assert(s.T(), territory.PlacementCount != nil)
+	assert.Equal(s.T(), *territory.PlacementCount, 3)
 }
 
 func (s *ListCountsSuite) TestListModelsCarriesUsageCount() {
@@ -74,10 +75,11 @@ func (s *ListCountsSuite) TestListModelsCarriesUsageCount() {
 	assert.Equal(s.T(), *list[0].UsageCount, 2)
 }
 
-func (s *ListCountsSuite) TestGetModelLeavesUsageCountAbsent() {
+func (s *ListCountsSuite) TestGetModelCarriesUsageCount() {
 	resp, err := New(countsServiceStub{}).GetModel(context.Background(), GetModelRequestObject{Slug: "pump"})
 	assert.NilError(s.T(), err)
 	model, ok := resp.(GetModel200JSONResponse)
 	assert.Assert(s.T(), ok)
-	assert.Assert(s.T(), model.UsageCount == nil)
+	assert.Assert(s.T(), model.UsageCount != nil)
+	assert.Equal(s.T(), *model.UsageCount, 2)
 }
