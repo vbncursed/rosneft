@@ -87,7 +87,7 @@ export function useReplaceSource(slug: string): ReplaceSourceState {
           client.invalidateQueries({ queryKey: ["jobs"] }),
           client.invalidateQueries({ queryKey: ["territories"] }),
         ]);
-        leaveTo(`/territories/${replaced.slug}?jobId=${job.id}`);
+        leaveTo(`/territories/${encodeURIComponent(replaced.slug)}?jobId=${job.id}`);
       })
       .catch((err: unknown) => {
         setPhase("picked");

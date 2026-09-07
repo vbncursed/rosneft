@@ -97,7 +97,7 @@ export function useUploadTerritory(): UploadTerritoryState {
           sourceBlobHash: finalized.hash,
         });
       })
-      .then(({ territory, job }) => leaveTo(`/territories/${territory.slug}?jobId=${job.id}`))
+      .then(({ territory, job }) => leaveTo(`/territories/${encodeURIComponent(territory.slug)}?jobId=${job.id}`))
       .catch((err: unknown) => {
         setPhase("picked");
         // A deliberate cancel is not a failure to report — only a genuine

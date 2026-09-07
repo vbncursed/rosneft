@@ -12,11 +12,11 @@ export type Model = {
   thumbnailBlobHash?: string;
   createdAt?: string;
   updatedAt?: string;
-  /** Distinct territories placing this model. Filled on the list endpoint; a Get path defaults it to 0. */
+  /** Distinct territories placing this model. Both the list and the Get endpoint fill it. */
   usageCount: number;
 };
 
-export const modelPath = (slug: string) => `/models/${slug}`;
+export const modelPath = (slug: string) => `/models/${encodeURIComponent(slug)}`;
 
 /** The asset URL for a model's thumbnail, or null when it has none. */
 export function thumbnailUrl(model: Model): string | null {

@@ -23,8 +23,9 @@ describe("toTerritory", () => {
     });
   });
 
-  // Only the list endpoint fills placementCount; a Get path omits it, and 0
-  // must read as "no placements", not as an unanswered field.
+  // Both the list and the Get endpoint fill placementCount; a genuinely
+  // omitted key must default to 0, read as "no placements", not as an
+  // unanswered field.
   it("defaults a missing placementCount to 0, and keeps a present one", () => {
     expect(toTerritory({ slug: "t", title: "T", sourceBlobHash: "a".repeat(64) }).placementCount).toBe(0);
     expect(

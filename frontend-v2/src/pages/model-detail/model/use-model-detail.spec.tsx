@@ -115,10 +115,10 @@ describe("useModelDetail", () => {
     expect(result.current.jobError).toBe("bad zip");
   });
 
-  it("takes usageCount from the models list, not the single-model fetch", async () => {
-    getModel.mockResolvedValue({ ...MODEL, usageCount: 0 });
-    listModels.mockResolvedValue([{ ...MODEL, usageCount: 2 }]);
+  it("reads usageCount off the model itself — the gateway sends it now", async () => {
+    getModel.mockResolvedValue({ ...MODEL, usageCount: 2 });
     const { result } = renderHook(() => useModelDetail("valve"), { wrapper });
+
     await waitFor(() => expect(result.current.phase).toBe("ready"));
     if (result.current.phase !== "ready") throw new Error("unreachable");
     expect(result.current.model.usageCount).toBe(2);

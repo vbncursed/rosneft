@@ -95,6 +95,12 @@ describe("UploadTerritoryPage", () => {
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "64");
   });
 
+  it("hides Cancel once the bytes are done and the final POST is running", () => {
+    render(<UploadTerritoryPage {...props({ phase: "creating", file: new File(["x"], "a.zip") })} />);
+    expect(screen.getByRole("button", { name: "Uploading…" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+  });
+
   it("draws the stage list and the archive checklist in the aside", () => {
     render(<UploadTerritoryPage {...props()} />);
     expect(screen.getByText("What happens next")).toBeInTheDocument();
