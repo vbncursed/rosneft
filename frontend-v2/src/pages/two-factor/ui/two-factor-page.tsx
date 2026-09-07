@@ -1,8 +1,9 @@
 import { RecoveryCodes } from "@/features/recovery-codes";
 import { ThemeToggle } from "@/features/theme-toggle";
+import { Button } from "@/shared/ui/button";
 import { Callout } from "@/shared/ui/callout";
 import { steps, type Flow, type Stage } from "../model/steps";
-import { ALREADY_ON, type TwoFactorState } from "../model/use-two-factor";
+import type { TwoFactorState } from "../model/use-two-factor";
 import { ConfirmPane } from "./confirm-pane";
 import { ScanPane } from "./scan-pane";
 import { StepChips } from "./step-chips";
@@ -33,7 +34,6 @@ const titleFor = (flow: Flow, stage: Stage) =>
 /** The wizard, props only: both flows, both stages, and the dead end at 409. */
 export function TwoFactorPage(s: TwoFactorPageProps) {
   const { h1, lede } = titleFor(s.flow, s.stage);
-  const blocked = s.error === ALREADY_ON;
 
   return (
     <div className="mx-auto flex w-full max-w-[760px] flex-col gap-5">
@@ -54,19 +54,28 @@ export function TwoFactorPage(s: TwoFactorPageProps) {
         <ThemeToggle variant="compact" />
       </div>
 
-      {blocked ? null : <StepChips steps={steps(s.flow, s.stage)} />}
+      {s.setupError ? null : <StepChips steps={steps(s.flow, s.stage)} />}
 
-      {blocked ? (
+      {s.setupError ? (
+        // Setup failed, so there is no secret and no pane that could succeed
+        // against one. The message belongs here, not under the code field.
         <div className="flex flex-col items-start gap-3">
           <Callout tone="warn" size="lg">
-            {ALREADY_ON}
+            {s.setupError.message}
           </Callout>
-          <a
-            href="/account"
-            className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent no-underline hover:underline"
-          >
-            Back to your account
-          </a>
+          <div className="flex flex-wrap items-center gap-4">
+            {s.setupError.retryable ? (
+              <Button shape="pill" size="sm" variant="primary" onClick={s.onRetry}>
+                Try again
+              </Button>
+            ) : null}
+            <a
+              href="/account"
+              className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent no-underline hover:underline"
+            >
+              Back to your account
+            </a>
+          </div>
         </div>
       ) : s.stage === "codes" ? (
         <section className="overflow-hidden rounded-[14px] border border-ok bg-panel shadow-elevation">

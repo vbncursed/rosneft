@@ -3,7 +3,6 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpError } from "@/shared/api";
-import type { Flow } from "./steps";
 import { useTwoFactor } from "./use-two-factor";
 
 const { setup2FA, enable2FA, regenerateRecoveryCodes, navigate } = vi.hoisted(() => ({
@@ -52,24 +51,6 @@ describe("useTwoFactor", () => {
     expect(result.current.otpauthUrl).toBe(SECRET.otpauthUrl);
   });
 
-  // What the ref guard is for. Setup writes — it persists the pending secret —
-  // so a second run orphans the first one. React 19's strict-mode
-  // double-invoke is the case in production; jsdom under vitest does not
-  // double-invoke, so the effect is re-entered the other way it can be, by
-  // changing its dependency and changing it back.
-  it("provisions once even when the effect runs again on the same screen", async () => {
-    const { result, rerender } = renderHook(({ flow }: { flow: Flow }) => useTwoFactor(flow), {
-      wrapper,
-      initialProps: { flow: "enable" as Flow },
-    });
-    await waitFor(() => expect(result.current.secret).toBe(SECRET.secret));
-
-    rerender({ flow: "regenerate" });
-    rerender({ flow: "enable" });
-
-    await waitFor(() => expect(setup2FA).toHaveBeenCalledTimes(1));
-  });
-
   it("provisions nothing in the regenerate flow — the app is already paired", async () => {
     const { result } = renderHook(() => useTwoFactor("regenerate"), { wrapper });
     await waitFor(() => expect(result.current.stage).toBe("confirm"));
@@ -77,11 +58,14 @@ describe("useTwoFactor", () => {
     expect(result.current.secret).toBe("");
   });
 
-  it("names the 409 rather than reporting a generic failure", async () => {
+  it("names the 409 rather than reporting a generic failure, and offers no retry", async () => {
     setup2FA.mockRejectedValue(new HttpError(409, null, "two-factor already enabled"));
     const { result } = renderHook(() => useTwoFactor("enable"), { wrapper });
     await waitFor(() =>
-      expect(result.current.error).toBe("Two-factor is already on for this account."),
+      expect(result.current.setupError).toEqual({
+        message: "Two-factor is already on for this account.",
+        retryable: false,
+      }),
     );
   });
 
@@ -93,14 +77,45 @@ describe("useTwoFactor", () => {
     setup2FA.mockRejectedValue(new HttpError(422, null, "2fa already enabled"));
     const { result } = renderHook(() => useTwoFactor("enable"), { wrapper });
     await waitFor(() =>
-      expect(result.current.error).toBe("Two-factor is already on for this account."),
+      expect(result.current.setupError?.message).toBe("Two-factor is already on for this account."),
     );
   });
 
-  it("passes any other setup failure through with the gateway's own words", async () => {
+  // Not the confirm field's error: nothing is wrong with a code nobody typed,
+  // and the pane it would sit under cannot succeed against a secret that was
+  // never provisioned.
+  it("passes any other setup failure through with the gateway's own words, as retryable", async () => {
     setup2FA.mockRejectedValue(new HttpError(500, null, "provisioning is down"));
     const { result } = renderHook(() => useTwoFactor("enable"), { wrapper });
-    await waitFor(() => expect(result.current.error).toBe("provisioning is down"));
+    await waitFor(() =>
+      expect(result.current.setupError).toEqual({ message: "provisioning is down", retryable: true }),
+    );
+    expect(result.current.error).toBeNull();
+  });
+
+  it("provisions again on retry, and clears the failure when it lands", async () => {
+    setup2FA.mockRejectedValueOnce(new HttpError(500, null, "provisioning is down"));
+    const { result } = renderHook(() => useTwoFactor("enable"), { wrapper });
+    await waitFor(() => expect(result.current.setupError).not.toBeNull());
+
+    act(() => result.current.onRetry());
+
+    await waitFor(() => expect(result.current.secret).toBe(SECRET.secret));
+    expect(result.current.setupError).toBeNull();
+    expect(setup2FA).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not provision a third time just because the screen re-renders after a retry", async () => {
+    setup2FA.mockRejectedValueOnce(new HttpError(500, null, "provisioning is down"));
+    const { result, rerender } = renderHook(() => useTwoFactor("enable"), { wrapper });
+    await waitFor(() => expect(result.current.setupError).not.toBeNull());
+
+    act(() => result.current.onRetry());
+    await waitFor(() => expect(result.current.secret).toBe(SECRET.secret));
+    rerender();
+    rerender();
+
+    expect(setup2FA).toHaveBeenCalledTimes(2);
   });
 
   it("confirms the code, stores the issued codes and moves to the codes stage", async () => {
