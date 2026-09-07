@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { AuditEntry } from "@/entities/audit";
 import { dayOf, relativeAt, summaryOf } from "./activity";
 
@@ -8,13 +8,12 @@ import { dayOf, relativeAt, summaryOf } from "./activity";
 // the file pins one: UTC, which is what the ISO instants in the fixtures are
 // already written in. Without this the whole block passes only on a UTC box
 // (this repo's dev machine is UTC+5) — a green CI and a red laptop.
-const TZ = process.env.TZ;
-beforeAll(() => {
-  process.env.TZ = "UTC";
-});
-afterAll(() => {
-  process.env.TZ = TZ;
-});
+// stubEnv, not a hand-rolled save/restore: TZ is unset on this box and in CI,
+// and `process.env.TZ = undefined` writes the *string* "undefined", which is
+// not a valid zone and silently leaves the process on UTC for every spec that
+// runs after this one. Only vitest's file isolation was hiding that.
+beforeAll(() => vi.stubEnv("TZ", "UTC"));
+afterAll(() => vi.unstubAllEnvs());
 
 const entry = (over: Partial<AuditEntry> = {}): AuditEntry => ({
   id: 1,

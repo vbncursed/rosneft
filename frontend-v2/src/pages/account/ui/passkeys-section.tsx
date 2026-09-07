@@ -56,21 +56,29 @@ export function PasskeysSection({
         <SectionHeading
           className="flex-1"
           title="Passkeys"
-          count={supported && passkeys && !loading ? `${passkeys.length} registered` : undefined}
+          // `loading` is not a term here: TanStack reports isPending only
+          // while data is undefined, so `passkeys` is already null then.
+          count={passkeys ? `${passkeys.length} registered` : undefined}
         />
         {add}
       </div>
 
-      {!supported ? (
-        // The desktop shell and any browser without WebAuthn: a ceremony
-        // started here cannot succeed, so none is offered.
+      {/* Only *registering* needs WebAuthn — the desktop shell and any
+          browser without it can still see and remove the account's keys, and
+          the posture card above counts them either way. So this is a banner
+          over the list, not a shape that replaces it: hiding the rows would
+          put two contradictory answers on one screen and take away a removal
+          that still works. */}
+      {supported ? null : (
         <EmptyState
           layout="row"
           icon="lock"
-          title="This browser cannot hold passkeys"
-          description="Sign in from a browser with WebAuthn support to register one."
+          title="This browser cannot register a passkey"
+          description="Your account's existing passkeys are listed below and can still be removed. Sign in from a browser with WebAuthn support to add one."
         />
-      ) : loading ? (
+      )}
+
+      {loading ? (
         <div role="status" aria-busy="true" aria-label="Loading passkeys">
           <Skeleton height="60px" />
         </div>
