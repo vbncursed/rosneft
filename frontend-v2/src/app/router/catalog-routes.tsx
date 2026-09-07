@@ -5,6 +5,7 @@ import { ModelDetailScreen } from "@/pages/model-detail";
 import { ModelLibraryScreen } from "@/pages/model-library";
 import { ReplaceSourceScreen } from "@/pages/replace-source";
 import { TerritoryCatalogScreen } from "@/pages/territory-catalog";
+import { TwoFactorScreen } from "@/pages/two-factor";
 import { UploadModelsScreen } from "@/pages/upload-models";
 import { UploadTerritoryScreen } from "@/pages/upload-territory";
 import { isAuthed } from "@/shared/session";
@@ -67,4 +68,19 @@ export const accountRoute = createRoute({
   getParentRoute: () => catalogRoute,
   path: "/account",
   component: AccountScreen,
+});
+
+// The flow is in the URL; the stage is not. The gateway issues the recovery
+// codes exactly once, in the body of the call that created them, so a link
+// promising them could not keep the promise after a reload — a reload lands
+// back on the confirm step, honestly.
+export const twoFactorRoute = createRoute({
+  getParentRoute: () => catalogRoute,
+  path: "/account/two-factor",
+  // Anything but "regenerate" is the enable flow — a hand-typed mode must land
+  // somewhere real rather than throwing on the way in.
+  validateSearch: (search: Record<string, unknown>): { mode: "setup" | "regenerate" } => ({
+    mode: search.mode === "regenerate" ? "regenerate" : "setup",
+  }),
+  component: TwoFactorScreen,
 });

@@ -113,6 +113,7 @@ export const CATALOG_PATHS = [
   "/models",
   "/models/new",
   "/account",
+  "/account/two-factor",
 ] as const;
 
 const MODEL_PAGE = /^\/models\/[^/]+$/;
@@ -120,7 +121,8 @@ const REPLACE_FORM = /^\/territories\/[^/]+\/replace$/;
 
 /**
  * A catalog screen href, query string included: the four list/upload routes,
- * the account page, a model's page and a territory's replace form.
+ * the account page and its two-factor wizard, a model's page and a
+ * territory's replace form.
  * Deliberately not `/territories/<slug>` — the viewer still leaves to the old
  * SPA, so a click on one must fall through to a real navigation.
  */
