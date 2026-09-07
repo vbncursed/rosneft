@@ -114,6 +114,29 @@ nothing today — the build and tests stay green — it only fails the next
 person who runs the generator, which may be months later. `frontend/` carries
 the identical pin for the identical reason.
 
+**A missing `credentialed` flag signs the user out on a typo.** `shared/api`'s
+`SendOpts` carries `credentialed?: boolean`: it means "a 401 from this
+request answers the credential just submitted, not the session", and it
+replaced a `location.pathname.startsWith("/login")` sniff that could not tell
+the two apart anywhere else. Every credential-submitting call must pass it —
+`login`, `verifyTwoFactor`, `changePassword`, `enable2FA`, `disable2FA`,
+`regenerateRecoveryCodes`, `removePasskey`, seven in total — and each has its
+own test, because the flag is a property of the *caller*, not of the client,
+and one shared test cannot cover them all. Forget it on a new one and a
+mistyped current password or TOTP code signs the user out instead of showing
+the toast the mistake deserves.
+
+**A page fixture must wrap in the shell its route provides, or Cosmos
+misrepresents the page.** `CatalogShell`'s `<main>` carries every bit of the
+page padding (`px-9 pb-[72px] pt-8`), so a bare fixture sits flush against
+the viewport edge — not a smaller gap, none at all. Ten of the twelve page
+fixtures wrap in their shell (`CatalogShell` or `ConsoleLayout`); `login` is
+legitimately exempt. This one cost a real round-trip with the user, who
+was reading the account page's spacing off a bare Cosmos fixture while
+everyone else was measuring the live, correctly-wrapped app — same numbers,
+different surfaces, and neither side thought to ask which one the other was
+looking at.
+
 ## The per-module contract
 
 Every module gets its **own** `*.spec.ts(x)` beside it — not "covered by a
@@ -155,6 +178,26 @@ Known unresolved disagreements:
 carries `text-fg`, not `text-muted` — the outlined one is muted. A secondary
 *pill* is transparent; only the control shape takes the raised `panel-2`
 ground.
+
+**`clsx` does not merge, and this has bitten the same property three times.**
+Two Tailwind utilities for the same property on one element are resolved by
+the compiled stylesheet's *source order*, never by the className string's —
+so a base string and a variant branch that both set it is not an override, it
+is a coin flip decided at build time. Found in `Button`'s pill tracking (a
+base `tracking-[0.18em]` and a per-size compound both reached the DOM; fixed
+by moving tracking off the base onto each size compound, nowhere else), in
+the `{shape:"pill", variant:"link"}` compound that lost to a size compound
+declared earlier in the array and has therefore never applied, and in
+`ThemeToggle`'s ground (`bg-panel` on the base string, `bg-panel-2` on the
+`compact` branch, both landing on the DOM). The rule: one property, one
+place; decide per variant, never override with a second utility for the
+same property.
+
+**`Modal` has three tones** — `default`, `danger`, `warning` — read off the
+`tone` prop and applied to the border and the overline colour alike. The
+passkey removal mock's tinted head band, its own close `×`, and a footer
+rule are deliberately not reproduced: every dialog in the app wears this one
+component, and its chrome is the same everywhere on purpose.
 
 **Archivo ships no Cyrillic subset.** Territory and model names may be Russian,
 so those glyphs fall through to the fallback stack. JetBrains Mono does carry
@@ -323,16 +366,49 @@ Rulings from those screens that a later one will meet again:
 Routes: `/login`; `/console/{users,roles,content,access,audit,metrics}` under
 `ConsoleShell` — Metrics alone carries a search param, `?range=`, validated by
 the route; `/territories`, `/territories/new`, `/territories/$slug/replace`,
-`/models`, `/models/new`, `/models/$slug` under the sidebar-free
-`CatalogShell`; and `/` and `/console` alone, both of which resolve a landing
-screen rather than rendering one. Both shells run the same click delegate
-(`routesInApp`), so a link from a console screen into the catalog — or back —
-stays in the SPA. `isCatalogHref` matches the four list/upload paths exactly,
-plus `/models/<slug>` and `/territories/<slug>/replace` by pattern;
-`/territories/<slug>` alone still leaves — the territory viewer stays in the
-old SPA. `consoleLanding` picks that screen from the principal's permissions
-— never a constant, or a roles-only administrator is sent to a users page
-that 403s.
+`/models`, `/models/new`, `/models/$slug`, `/account`, `/account/two-factor`
+under the sidebar-free `CatalogShell`; and `/` and `/console` alone, both of
+which resolve a landing screen rather than rendering one. Both shells run the
+same click delegate (`routesInApp`), so a link from a console screen into the
+catalog — or back — stays in the SPA. `isCatalogHref` matches the six
+list/upload/account paths exactly, plus `/models/<slug>` and
+`/territories/<slug>/replace` by pattern; `/territories/<slug>` alone still
+leaves — the territory viewer stays in the old SPA. `consoleLanding` picks
+that screen from the principal's permissions — never a constant, or a
+roles-only administrator is sent to a users page that 403s.
+
+The console's only doorway into this pair is the identity block at the foot
+of `ConsoleSidebar` (the avatar + username link,
+`aria-label="Account settings for {username}"`), which opens `/account`; the
+wizard is one step further, reached only from the Enable/Regenerate actions
+on that page, never linked directly. A principal with no console screen at
+all — a Viewer holds only `territory:read` and its siblings, and the sidebar
+never renders for it — gets in through the link on `NoConsoleAccess` instead.
+
+**Every mutation on `/account` invalidates what another surface reads.**
+Disabling 2FA invalidates `["two-factor"]`, `["me"]` and `["audit","mine"]`;
+adding or removing a passkey invalidates `["passkeys"]` and
+`["audit","mine"]`. `["me"]` is the load-bearing one: `me.totpEnabled` is
+what decides which factor a passkey removal asks for (a code or a password),
+and a stale value asks for the wrong one — exactly the bug the old screen
+shipped.
+
+**The recovery-codes stage is component state, never a URL.** The gateway
+issues those codes exactly once, in the body of the call that created or
+regenerated them (`enable2FA`/`regenerateRecoveryCodes`), so a link
+promising to show them again cannot keep that promise after a reload — there
+is nothing left on the server to answer it with. The wizard's `stage` lives
+in a plain `useState`, not the route's search.
+
+**The timezone split between `/account`'s feed and `/console/audit` is
+deliberate, not a mismatch to fix.** `/account`'s activity feed prints the
+reader's local clock (`relativeAt`) because it only ever shows a relative
+label — "5 minutes ago" must not read as yesterday because UTC rolled over.
+`/console/audit` prints UTC (`formatAt`) because it shows the raw instant,
+and grouping by the reader's local date would file an event under a heading
+its neighbours in the same UTC day do not share. Each side's comment already
+names the other; do not "fix" one to match — that would put a genuine bug in
+front of a person comparing two screens for one event.
 
 ## Not done yet
 
@@ -346,14 +422,32 @@ an entry (the backend does not record one), no ip/user-agent digest, no
 `failed:` filter, and the free-text part of the filter is ignored — the
 placeholder is all that says so. The backend follow-ups are filed, not built.
 
-**Passkey sign-in is unwired, deliberately.** `CredentialsForm` draws the
-button only when handed `onPasskey`, and `useLogin` does not hand it one: the
-gateway's `PASSKEY_RP_ORIGINS` is pinned to `frontend/`'s port 3000, so a
-ceremony started from 3001 cannot succeed. The "Keep me signed in on this
-device" checkbox is live: unticked, `login` and `verifyTwoFactor` send
-`remember: false` and the gateway issues a browser-session cookie (spec:
+**Passkey sign-in is unwired, by decision, not by origin.** `CredentialsForm`
+draws the button only when handed `onPasskey`, and `useLogin` does not hand
+it one. This used to be because the gateway's `PASSKEY_RP_ORIGINS` was
+pinned to `frontend/`'s port 3000 alone, so a ceremony started from 3001
+could not succeed — that origin now lists **both** 3000 and 3001, so the
+stated reason is gone even though the conclusion still stands: login
+passkeys are out of scope for v2 by the spec, not by any remaining
+technical block. The "Keep me signed in on this device" checkbox is live:
+unticked, `login` and `verifyTwoFactor` send `remember: false` and the
+gateway issues a browser-session cookie (spec:
 `docs/superpowers/specs/2026-09-03-keep-me-signed-in-design.md`). An action
 with no endpoint is not rendered — that rule still hides the passkey button.
+
+**`isPasskeySupported()` is the single gate on the passkey *management*
+surface** (`/account`'s Add/Remove, unrelated to the login button above —
+that one is unwired outright). One check, not two, because a second one
+elsewhere is how the two drift apart; it is `@github/webauthn-json`'s own
+`supported()` plus `!window.__DESKTOP__`. The desktop term is not about
+capability — the Tauri webview implements WebAuthn — its origin is a
+loopback port `PASSKEY_RP_ORIGINS` will never list, so a ceremony started
+there fails with
+an opaque client-side error and nothing in any server log, the exact failure
+`frontend/CLAUDE.md` documents. It is pre-wiring: the desktop shell embeds
+`frontend/`, not this SPA, so `__DESKTOP__` is set by no code in v2 today —
+no end-to-end test can reach this term from here, only the unit test that
+pins it.
 
 `Andrey Viewer Mockup.dc.html` (the 3D viewer and the remaining screens) has no
 v2 and has not been ported.
