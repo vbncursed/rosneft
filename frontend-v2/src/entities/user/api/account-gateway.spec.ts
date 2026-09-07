@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCsrfToken } from "@/shared/api";
-import { changePassword, disable2FA, enable2FA, regenerateRecoveryCodes, twoFactorStatus } from "./account-gateway";
+import {
+  changePassword,
+  disable2FA,
+  enable2FA,
+  regenerateRecoveryCodes,
+  setup2FA,
+  twoFactorStatus,
+} from "./account-gateway";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -38,11 +45,31 @@ describe("account gateway", () => {
     });
   });
 
+  it("defaults every field when the status response omits all of them", async () => {
+    fetchMock.mockResolvedValueOnce(json({}));
+    expect(await twoFactorStatus()).toEqual({
+      enabled: false, enabledAt: null, recoveryRemaining: 0, recoveryTotal: 0,
+    });
+  });
+
+  it("sets up 2FA with no body, mapping a response missing both fields", async () => {
+    fetchMock.mockResolvedValueOnce(json({}));
+    expect(await setup2FA()).toEqual({ secret: "", otpauthUrl: "" });
+    expect(request()).toEqual({ url: "/api/auth/2fa/setup", method: "POST", body: undefined });
+  });
+
   it("returns the recovery codes enable answers with, and an empty set when it sends none", async () => {
     fetchMock.mockResolvedValueOnce(json({ recoveryCodes: ["a", "b"] }));
     expect(await enable2FA("402913")).toEqual(["a", "b"]);
+    expect(request()).toEqual({ url: "/api/auth/2fa/enable", method: "POST", body: { code: "402913" } });
+
     fetchMock.mockResolvedValueOnce(json({}));
     expect(await regenerateRecoveryCodes("402913")).toEqual([]);
+    expect(request(1)).toEqual({
+      url: "/api/auth/2fa/recovery/regenerate",
+      method: "POST",
+      body: { code: "402913" },
+    });
   });
 
   it("sends the code as the only field disable takes", async () => {
