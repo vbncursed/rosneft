@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { httpGet, httpGetBlob, httpHead, httpPost } from "./client";
+import { httpDelete, httpGet, httpGetBlob, httpHead, httpPost } from "./client";
 import { markAuthed, isAuthed } from "@/shared/session";
 import { setCsrfToken, clearCsrfToken } from "./csrf";
 
@@ -96,6 +96,21 @@ describe("http client", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(401, { message: "bad" })));
 
     await expect(httpPost("/api/x", {})).rejects.toThrow("bad");
+
+    expect(assign).toHaveBeenCalledWith("/login?next=%2Fconsole%2Fusers");
+    expect(isAuthed()).toBe(false);
+  });
+
+  // httpDelete is the one verb widened for `removePasskey`'s sake, so it is
+  // the one most likely to acquire a wrong default later. Every other verb's
+  // negative direction is covered above (httpGet, httpPost, httpGetBlob) —
+  // this closes the gap a default-credentialed slip in httpDelete itself
+  // would leave invisible.
+  it("bounces a plain (non-credentialed) httpDelete on a 401", async () => {
+    markAuthed();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(401, { message: "bad" })));
+
+    await expect(httpDelete("/api/x")).rejects.toThrow("bad");
 
     expect(assign).toHaveBeenCalledWith("/login?next=%2Fconsole%2Fusers");
     expect(isAuthed()).toBe(false);
