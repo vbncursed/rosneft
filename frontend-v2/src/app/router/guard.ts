@@ -107,16 +107,22 @@ export function viewerOf(me: Principal): { username: string; roleTitle: string }
 }
 
 /** The catalog shell's exact routes — no sidebar, unlike the console. */
-export const CATALOG_PATHS = ["/territories", "/territories/new", "/models", "/models/new"] as const;
+export const CATALOG_PATHS = [
+  "/territories",
+  "/territories/new",
+  "/models",
+  "/models/new",
+  "/account",
+] as const;
 
 const MODEL_PAGE = /^\/models\/[^/]+$/;
 const REPLACE_FORM = /^\/territories\/[^/]+\/replace$/;
 
 /**
  * A catalog screen href, query string included: the four list/upload routes,
- * a model's page and a territory's replace form. Deliberately not
- * `/territories/<slug>` — the viewer still leaves to the old SPA, so a click
- * on one must fall through to a real navigation.
+ * the account page, a model's page and a territory's replace form.
+ * Deliberately not `/territories/<slug>` — the viewer still leaves to the old
+ * SPA, so a click on one must fall through to a real navigation.
  */
 export const isCatalogHref = (href: string): boolean => {
   const path = href.split("?")[0];

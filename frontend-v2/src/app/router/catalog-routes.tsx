@@ -1,5 +1,6 @@
 import { createRoute, redirect } from "@tanstack/react-router";
 import { meQuery } from "@/entities/user";
+import { AccountScreen } from "@/pages/account";
 import { ModelDetailScreen } from "@/pages/model-detail";
 import { ModelLibraryScreen } from "@/pages/model-library";
 import { ReplaceSourceScreen } from "@/pages/replace-source";
@@ -60,4 +61,10 @@ export const territoryReplaceRoute = createRoute({
   getParentRoute: () => catalogRoute,
   path: "/territories/$slug/replace",
   component: ReplaceSourceScreen,
+});
+
+export const accountRoute = createRoute({
+  getParentRoute: () => catalogRoute,
+  path: "/account",
+  component: AccountScreen,
 });

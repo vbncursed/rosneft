@@ -1,6 +1,7 @@
 import { createRouter } from "@tanstack/react-router";
 import { queryClient } from "@/app/query/query-client";
 import {
+  accountRoute,
   catalogRoute,
   modelDetailRoute,
   modelNewRoute,
@@ -43,6 +44,7 @@ const routeTree = rootRoute.addChildren([
     modelNewRoute,
     modelDetailRoute,
     territoryReplaceRoute,
+    accountRoute,
   ]),
 ]);
 

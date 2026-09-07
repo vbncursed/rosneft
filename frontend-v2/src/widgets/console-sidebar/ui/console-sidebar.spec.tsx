@@ -46,6 +46,14 @@ describe("ConsoleSidebar", () => {
     expect(screen.getByRole("img", { name: "a.ivanova" })).toBeInTheDocument();
   });
 
+  it("links the identity block to the account page — the only way into it", () => {
+    sidebar();
+    const link = screen.getByRole("link", { name: /a\.ivanova/ });
+    expect(link).toHaveAttribute("href", "/account");
+    expect(link).toHaveTextContent("a.ivanova");
+    expect(link).toHaveTextContent("Company Owner");
+  });
+
   it("hosts the theme control", () => {
     sidebar();
     expect(screen.getByRole("button", { name: /^Theme:/ })).toBeInTheDocument();
