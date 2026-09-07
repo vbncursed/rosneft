@@ -678,6 +678,20 @@ type TokenResponse struct {
 	Token     *string `json:"token,omitempty"`
 }
 
+// TwoFactorStatus defines model for TwoFactorStatus.
+type TwoFactorStatus struct {
+	Enabled bool `json:"enabled"`
+
+	// EnabledAt When two-factor went on. Absent when it is off, and absent for enrolments made before the server recorded the moment — never guessed.
+	EnabledAt *time.Time `json:"enabledAt,omitempty"`
+
+	// RecoveryRemaining Recovery codes not yet used
+	RecoveryRemaining int `json:"recoveryRemaining"`
+
+	// RecoveryTotal Codes issued in the current set
+	RecoveryTotal int `json:"recoveryTotal"`
+}
+
 // UpdateRoleRequest defines model for UpdateRoleRequest.
 type UpdateRoleRequest struct {
 	Title string `json:"title"`

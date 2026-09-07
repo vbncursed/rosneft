@@ -755,6 +755,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/2fa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own 2FA posture */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Whether 2FA is on, when it went on, and how many recovery codes are left */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TwoFactorStatus"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/2fa/setup": {
         parameters: {
             query?: never;
@@ -2638,6 +2675,18 @@ export interface components {
             oldPassword: string;
             /** Format: password */
             newPassword: string;
+        };
+        TwoFactorStatus: {
+            enabled: boolean;
+            /**
+             * Format: date-time
+             * @description When two-factor went on. Absent when it is off, and absent for enrolments made before the server recorded the moment — never guessed.
+             */
+            enabledAt?: string;
+            /** @description Recovery codes not yet used */
+            recoveryRemaining: number;
+            /** @description Codes issued in the current set */
+            recoveryTotal: number;
         };
         Setup2FAResponse: {
             secret?: string;

@@ -29,6 +29,7 @@ func (h *Handlers) Mount(r chi.Router) {
 			pr.Get("/me", h.me)
 			pr.Post("/me/password", h.changePassword)
 			pr.Post("/me/onboarding/{tour}", h.markTourSeen)
+			pr.Get("/2fa", h.twoFactorStatus)
 			pr.Post("/2fa/setup", h.setup2FA)
 			pr.Post("/2fa/enable", h.enable2FA)
 			pr.Post("/2fa/disable", h.disable2FA)
