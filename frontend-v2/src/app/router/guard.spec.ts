@@ -189,4 +189,9 @@ describe("isCatalogHref", () => {
   it("routes the account page in-app rather than reloading the document", () => {
     expect(isCatalogHref("/account")).toBe(true);
   });
+
+  it("routes the wizard in-app, query string and all", () => {
+    expect(isCatalogHref("/account/two-factor")).toBe(true);
+    expect(isCatalogHref("/account/two-factor?mode=regenerate")).toBe(true);
+  });
 });

@@ -9,6 +9,7 @@ import {
   territoriesRoute,
   territoryNewRoute,
   territoryReplaceRoute,
+  twoFactorRoute,
 } from "./catalog-routes";
 import { NotFound, RouteError } from "./fallbacks";
 import {
@@ -45,6 +46,7 @@ const routeTree = rootRoute.addChildren([
     modelDetailRoute,
     territoryReplaceRoute,
     accountRoute,
+    twoFactorRoute,
   ]),
 ]);
 
