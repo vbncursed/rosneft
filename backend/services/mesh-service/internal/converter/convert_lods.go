@@ -20,9 +20,9 @@ import (
 // textures, so simplifying the compressed artifact would leave every LOD
 // carrying full-resolution textures.
 //
-// LOD>0 artifacts skip vertex/face accounting (they are reported as 0)
-// because parsing the simplified GLB to count faces is expensive and the
-// frontend only surfaces stats for LOD0 anyway.
+// Every LOD carries its own vertex/face counts, read back from its own
+// produced GLB, and LOD 0's source-unit bounding box (simplification never
+// moves the mesh, so every LOD shares it).
 func (c *Converter) ConvertLODs(ctx context.Context, sourcePath string) ([]domain.ConversionResult, error) {
 	raw, err := c.convertRaw(ctx, sourcePath)
 	if err != nil {
@@ -45,7 +45,7 @@ func (c *Converter) ConvertLODs(ctx context.Context, sourcePath string) ([]domai
 	per := lodSpan / float32(len(c.lodRatios))
 	for i, ratio := range c.lodRatios {
 		report(ctx, fmt.Sprintf("lod-%d", i+1), lodStart+per*float32(i))
-		lod, err := c.simplifyLOD(ctx, raw.content, ratio)
+		lod, err := c.simplifyLOD(ctx, raw, ratio)
 		if err != nil {
 			// Per-LOD failures shouldn't fail the whole job — LOD0 is still
 			// usable. Log and move on so the worker can register what it has.
@@ -61,12 +61,22 @@ func (c *Converter) ConvertLODs(ctx context.Context, sourcePath string) ([]domai
 }
 
 // simplifyLOD runs one simplification pass and packages the result with a
-// fresh content hash. Vertex/face counts are zeroed because the simplified
-// GLB hasn't been re-parsed.
-func (c *Converter) simplifyLOD(ctx context.Context, base []byte, ratio float64) (domain.ConversionResult, error) {
-	body, err := c.compressor.Simplify(ctx, base, ratio)
+// fresh content hash. Vertex and face counts are read back from the produced
+// GLB's glTF header; the bounding box is copied from the raw conversion,
+// because simplification never moves the mesh and the box LOD0 records is in
+// source units, not the normalized ones the GLB itself carries.
+//
+// Unreadable bytes leave the counts at zero rather than failing the LOD: the
+// artifact is complete, only its statistics are missing.
+func (c *Converter) simplifyLOD(ctx context.Context, raw rawGLB, ratio float64) (domain.ConversionResult, error) {
+	body, err := c.compressor.Simplify(ctx, raw.content, ratio)
 	if err != nil {
 		return domain.ConversionResult{}, fmt.Errorf("simplify ratio=%v: %w", ratio, err)
+	}
+	vertices, faces, err := glbStats(body)
+	if err != nil {
+		slog.WarnContext(ctx, "converter: LOD stats unavailable",
+			slog.Float64("ratio", ratio), slog.Any("error", err))
 	}
 	sum := sha256.Sum256(body)
 	return domain.ConversionResult{
@@ -74,5 +84,9 @@ func (c *Converter) simplifyLOD(ctx context.Context, base []byte, ratio float64)
 		Content:      body,
 		ContentType:  "model/gltf-binary",
 		Size:         int64(len(body)),
+		Vertices:     vertices,
+		Faces:        faces,
+		BBoxMin:      raw.bboxMin,
+		BBoxMax:      raw.bboxMax,
 	}, nil
 }
