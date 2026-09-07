@@ -56,3 +56,26 @@ func (s *Server) RegenerateRecoveryCodes(ctx context.Context, req *twofav1.Regen
 	}
 	return &twofav1.RegenerateResponse{RecoveryCodes: codes}, nil
 }
+
+// Status reports the caller's own 2FA posture for the account screen.
+func (s *Server) Status(ctx context.Context, req *twofav1.StatusRequest) (*twofav1.StatusResponse, error) {
+	uid, _, err := s.identity.Resolve(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	st, err := s.svc.Status(ctx, uid)
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	resp := &twofav1.StatusResponse{
+		Enabled:           st.Enabled,
+		RecoveryRemaining: int64(st.RecoveryRemaining),
+		RecoveryTotal:     int64(st.RecoveryTotal),
+	}
+	// Zero stays zero when the moment is unknown; the gateway omits the field
+	// rather than sending an epoch date.
+	if !st.EnabledAt.IsZero() {
+		resp.EnabledAt = st.EnabledAt.Unix()
+	}
+	return resp, nil
+}

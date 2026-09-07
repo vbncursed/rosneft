@@ -539,6 +539,19 @@ components:
       properties:
         oldPassword: { type: string, format: password }
         newPassword: { type: string, format: password }
+    TwoFactorStatus:
+      type: object
+      required: [enabled, recoveryRemaining, recoveryTotal]
+      properties:
+        enabled: { type: boolean }
+        enabledAt:
+          type: string
+          format: date-time
+          description: >-
+            When two-factor went on. Absent when it is off, and absent for
+            enrolments made before the server recorded the moment — never guessed.
+        recoveryRemaining: { type: integer, description: Recovery codes not yet used }
+        recoveryTotal: { type: integer, description: Codes issued in the current set }
     Setup2FAResponse:
       type: object
       properties:
@@ -1696,6 +1709,19 @@ paths:
       responses:
         '204': { description: Marked }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/auth/2fa:
+    get:
+      tags: [auth]
+      summary: The caller's own 2FA posture
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Whether 2FA is on, when it went on, and how many recovery codes are left
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TwoFactorStatus' }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
   /api/auth/2fa/setup:

@@ -146,3 +146,33 @@ func (s *TwoFASuite) TestEnabledForPropagatesTheStoreError() {
 
 	assert.ErrorContains(s.T(), err, "db down")
 }
+
+func (s *TwoFASuite) TestStatusReportsEnrolmentAndRemainingCodes() {
+	mc := minimock.NewController(s.T())
+	at := time.Date(2026, 8, 12, 9, 20, 11, 0, time.UTC)
+	store := mocks.NewStoreMock(mc).GetMock.Return(
+		domain.Credential{UserID: "u1", Secret: []byte("ct"), Enabled: true, EnabledAt: at}, nil)
+	recovery := mocks.NewRecoveryMock(mc).CountsMock.Return(7, 10, nil)
+	svc := twofa.New(store, recovery, mocks.NewCipherMock(mc), mocks.NewRateLimiterMock(mc), "Andrey")
+
+	got, err := svc.Status(context.Background(), "u1")
+
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), got, domain.Status{
+		Enabled: true, EnabledAt: at, RecoveryRemaining: 7, RecoveryTotal: 10,
+	})
+}
+
+func (s *TwoFASuite) TestStatusOfAnUnenrolledUserIsOffWithNoCodes() {
+	mc := minimock.NewController(s.T())
+	// Counts is deliberately not stubbed: an unenrolled user must not cost a
+	// second query. minimock fails the test if an unstubbed method is called.
+	store := mocks.NewStoreMock(mc).GetMock.Return(domain.Credential{}, domain.ErrNotFound)
+	svc := twofa.New(store, mocks.NewRecoveryMock(mc), mocks.NewCipherMock(mc),
+		mocks.NewRateLimiterMock(mc), "Andrey")
+
+	got, err := svc.Status(context.Background(), "nobody")
+
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), got, domain.Status{})
+}
