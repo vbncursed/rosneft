@@ -19,7 +19,17 @@ export function PasskeyRow({ passkey, onRemove, busy = false }: PasskeyRowProps)
         <p className="m-0 truncate text-[13px] font-medium">{passkey.name}</p>
         <p className="m-0 mt-1 font-mono text-[10px] text-muted">{passkeyMeta(passkey)}</p>
       </div>
-      <Button variant="danger" shape="pill" size="sm" disabled={busy} onClick={onRemove}>
+      {/* Named after its key: a list of these otherwise offers a screen
+          reader several controls all called "Remove". The visible label
+          stays the design's bare word. */}
+      <Button
+        variant="danger"
+        shape="pill"
+        size="sm"
+        aria-label={`Remove ${passkey.name}`}
+        disabled={busy}
+        onClick={onRemove}
+      >
         Remove
       </Button>
     </article>

@@ -37,8 +37,17 @@ export function AccountScreen() {
       passkeys={s.passkeys}
       twoFactorLoading={s.twoFactorLoading}
       passkeysLoading={s.passkeysLoading}
+      activity={s.activity}
+      activityHasMore={s.activityHasMore}
+      activityBusy={s.activityBusy}
       passwordBusy={s.passwordBusy}
+      disableBusy={s.disableBusy}
+      removalBusy={s.removalBusy}
       onChangePassword={s.onChangePassword}
+      onDisable2FA={s.onDisable2FA}
+      onRemovePasskey={s.onRemovePasskey}
+      onPasskeyAdded={s.onPasskeyAdded}
+      onLoadMore={s.onLoadMore}
     />
   );
 }

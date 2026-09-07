@@ -1,6 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { changePassword, meQuery, twoFactorQuery } from "@/entities/user";
-import { passkeysQuery } from "@/entities/passkey";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { myAuditQuery } from "@/entities/audit";
+import { changePassword, disable2FA, meQuery, twoFactorQuery } from "@/entities/user";
+import { passkeysQuery, removePasskey } from "@/entities/passkey";
 import { messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
 import { unanswered } from "@/shared/lib/unanswered";
@@ -29,6 +30,7 @@ export function useAccount(): AccountState {
   const me = useQuery(meQuery);
   const twoFactor = useQuery(twoFactorQuery);
   const passkeys = useQuery(passkeysQuery);
+  const activity = useInfiniteQuery(myAuditQuery);
 
   const password = useMutation({
     mutationFn: ({ current, next }: { current: string; next: string }) => changePassword(current, next),
@@ -42,6 +44,41 @@ export function useAccount(): AccountState {
       // itself and bounces within one round trip.
       void client.invalidateQueries(meQuery);
     },
+  });
+
+  // Every mutation invalidates what another surface reads. The journal is one
+  // of those surfaces: this screen prints it three sections lower, so a change
+  // that the gateway records must also re-ask for the feed, or the user is
+  // shown a history missing the event they just caused.
+  const afterJournalledChange = () => void client.invalidateQueries({ queryKey: ["audit", "mine"] });
+
+  // Two-factor changes also move `me.totpEnabled`, which is what decides
+  // whether a passkey removal asks for a code or a password — leaving it stale
+  // is how the old screen ended up asking for the wrong one.
+  const afterTwoFactorChange = () => {
+    void client.invalidateQueries({ queryKey: ["two-factor"] });
+    void client.invalidateQueries({ queryKey: ["me"] });
+    afterJournalledChange();
+  };
+
+  const disable = useMutation({
+    mutationFn: (code: string) => disable2FA(code),
+    onSuccess: () => {
+      notify.success("Two-factor disabled");
+      afterTwoFactorChange();
+    },
+    onError: (err) => notify.error(messageOf(err)),
+  });
+
+  const removal = useMutation({
+    mutationFn: ({ id, credential }: { id: string; credential: { code?: string; password?: string } }) =>
+      removePasskey(id, credential),
+    onSuccess: () => {
+      notify.success("Passkey removed");
+      void client.invalidateQueries({ queryKey: ["passkeys"] });
+      afterJournalledChange();
+    },
+    onError: (err) => notify.error(messageOf(err)),
   });
 
   if (me.isPending) return { phase: "loading" };
@@ -59,10 +96,26 @@ export function useAccount(): AccountState {
     // card draws a skeleton rather than a confident "—".
     twoFactorLoading: twoFactor.isPending,
     passkeysLoading: passkeys.isPending,
+    // Flattened here rather than in the page: the page is props-only, and the
+    // page shape of an infinite query is this hook's business.
+    activity: (activity.data?.pages ?? []).flatMap((page) => page.entries),
+    activityHasMore: activity.hasNextPage,
+    activityBusy: activity.isFetching,
     passwordBusy: password.isPending,
+    disableBusy: disable.isPending,
+    removalBusy: removal.isPending,
     // mutateAsync, not mutate: the form only clears on a resolved promise —
     // a wrong current password or a dropped connection must leave both
     // fields as the user typed them.
     onChangePassword: (current, next) => password.mutateAsync({ current, next }),
+    // mutateAsync for the same reason: each modal closes on a resolved
+    // promise, so a refused code leaves the dialog open with the digits in it.
+    onDisable2FA: (code) => disable.mutateAsync(code),
+    onRemovePasskey: (id, credential) => removal.mutateAsync({ id, credential }),
+    onPasskeyAdded: () => {
+      void client.invalidateQueries({ queryKey: ["passkeys"] });
+      afterJournalledChange();
+    },
+    onLoadMore: () => void activity.fetchNextPage(),
   };
 }

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCsrfToken } from "@/shared/api";
-import { exportAuditCsv, listAudit, listAuditActors, toBound } from "./audit-gateway";
+import { exportAuditCsv, listAudit, listAuditActors, listMyAudit, toBound } from "./audit-gateway";
 
 const entry = { id: 7, at: "2026-09-01T09:14:00Z", action: "territory.update", entity: "territory", result: "ok" };
 const json = (body: unknown, status = 200) =>
@@ -66,6 +66,25 @@ describe("audit gateway", () => {
       status: 403,
       message: "You don't have permission to do this",
     });
+  });
+
+  // The scope of /api/audit/mine comes from the session. A stray `actor` here
+  // would be the whole bug the separate route exists to prevent: one route
+  // taking both grants, and a Company Owner reading the company's journal
+  // under a "My activity" heading.
+  it("asks for its own page with no actor parameter at all", async () => {
+    fetchMock.mockResolvedValueOnce(json({ entries: [], nextCursor: 0 }));
+    await listMyAudit(null);
+    expect(request()).toEqual({ url: "/api/audit/mine?limit=50", method: "GET" });
+  });
+
+  it("pages its own journal by cursor and maps the entries", async () => {
+    fetchMock.mockResolvedValueOnce(json({ entries: [entry], nextCursor: 6, refs: { "role_id:1": "Editor" } }));
+    const page = await listMyAudit(40);
+    expect(url()).toBe("/api/audit/mine?cursor=40&limit=50");
+    expect(page.entries[0].id).toBe(7);
+    expect(page.nextCursor).toBe(6);
+    expect(page.refs).toEqual({ "role_id:1": "Editor" });
   });
 
   it("surfaces the shared client's message rather than one of its own", async () => {
