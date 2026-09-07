@@ -38,29 +38,23 @@ export async function setup2FA(): Promise<{ secret: string; otpauthUrl: string }
 
 /**
  * Confirms the pending secret. The recovery codes come back once, here.
- * credentialed: a mistyped code answers this request, not the session — a
- * 401 here must surface as an error, not sign the user out.
+ *
+ * No `credentialed`: the gateway answers `400 invalid_input` ("invalid 2fa
+ * code") for a wrong code, measured live — this route cannot 401 about the
+ * credential, so a 401 from it is the session and must bounce. Same for
+ * disable2FA and regenerateRecoveryCodes below.
  */
 export async function enable2FA(code: string): Promise<string[]> {
-  const d = await httpPost<{ recoveryCodes?: string[] }>(
-    "/api/auth/2fa/enable",
-    { code },
-    { credentialed: true },
-  );
+  const d = await httpPost<{ recoveryCodes?: string[] }>("/api/auth/2fa/enable", { code });
   return d.recoveryCodes ?? [];
 }
 
-/** Takes a current authenticator code — not a recovery code, not the password. credentialed: see enable2FA. */
+/** Takes a current authenticator code — not a recovery code, not the password. */
 export function disable2FA(code: string): Promise<void> {
-  return httpPost("/api/auth/2fa/disable", { code }, { credentialed: true });
+  return httpPost("/api/auth/2fa/disable", { code });
 }
 
-/** credentialed: see enable2FA. */
 export async function regenerateRecoveryCodes(code: string): Promise<string[]> {
-  const d = await httpPost<{ recoveryCodes?: string[] }>(
-    "/api/auth/2fa/recovery/regenerate",
-    { code },
-    { credentialed: true },
-  );
+  const d = await httpPost<{ recoveryCodes?: string[] }>("/api/auth/2fa/recovery/regenerate", { code });
   return d.recoveryCodes ?? [];
 }

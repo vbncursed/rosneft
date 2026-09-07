@@ -4,7 +4,9 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCsrfToken } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
-import { useAccount } from "./use-account";
+import { useAccount, type AccountState } from "./use-account";
+
+type Ready = Extract<AccountState, { phase: "ready" }>;
 
 const PRINCIPAL = {
   id: "u-1",
@@ -239,6 +241,31 @@ describe("useAccount", () => {
     expect(result.current.phase).toBe("ready");
   });
 
+  // Every Guest lacks audit:read_own (auth-service migration 00013), so the
+  // feed 403s for them. Reporting that as an empty list told the reader
+  // nothing had ever happened under their own account. Both sibling sections
+  // already distinguish "we could not find out" from "none".
+  it("reports a feed that never answered as unknown, not as an empty history", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      const path = new URL(url, "http://x").pathname;
+      if (path === "/api/auth/me") return json(PRINCIPAL);
+      if (path === "/api/auth/2fa") return json(TWO_FACTOR);
+      if (path === "/api/auth/passkey/credentials") return json({ credentials: PASSKEYS });
+      if (path === "/api/audit/mine") return json({ message: "You don't have permission" }, 403);
+      throw new Error(`unexpected fetch ${url}`);
+    });
+
+    const { result } = renderHook(() => useAccount(), { wrapper });
+    await waitFor(() => {
+      if (result.current.phase !== "ready") throw new Error("not ready");
+      expect(result.current.activity).toBeNull();
+    });
+    if (result.current.phase !== "ready") throw new Error("unreachable");
+    // A dead feed is not a dead page — everything else still renders.
+    expect(result.current.me).toEqual(PRINCIPAL);
+    expect(result.current.activityHasMore).toBe(false);
+  });
+
   it("flattens the activity pages and asks for the next one on demand", async () => {
     const { result } = renderHook(() => useAccount(), { wrapper });
     await waitFor(() => {
@@ -246,7 +273,7 @@ describe("useAccount", () => {
       expect(result.current.activity).toHaveLength(1);
     });
     if (result.current.phase !== "ready") throw new Error("unreachable");
-    expect(result.current.activity[0].action).toBe("auth.login");
+    expect(result.current.activity![0]!.action).toBe("auth.login");
     expect(result.current.activityHasMore).toBe(true);
 
     act(() => {
@@ -254,7 +281,7 @@ describe("useAccount", () => {
     });
     await waitFor(() => {
       if (result.current.phase !== "ready") throw new Error("not ready");
-      expect(result.current.activity.map((e) => e.id)).toEqual([9, 4]);
+      expect(result.current.activity!.map((e) => e.id)).toEqual([9, 4]);
       // The second page reported cursor 0 — the last page, so no more.
       expect(result.current.activityHasMore).toBe(false);
     });
@@ -287,20 +314,58 @@ describe("useAccount", () => {
     await waitFor(() => expect(result.current.notices[0]?.tone).toBe("success"));
   });
 
+  // 400 is what the gateway really answers for a wrong code here — measured.
   it("leaves both caches alone and toasts the gateway's message when the disable is refused", async () => {
     const { result } = renderHook(() => ({ s: useAccount(), notices: useNotices() }), { wrapper });
     await waitFor(() => expect(result.current.s.phase).toBe("ready"));
     const ready = result.current.s;
     if (ready.phase !== "ready") throw new Error("unreachable");
 
-    fetchMock.mockImplementationOnce(async () => json({ message: "invalid code" }, 401));
+    fetchMock.mockImplementationOnce(async () => json({ message: "invalid 2fa code" }, 400));
     const invalidate = vi.spyOn(client, "invalidateQueries");
     await act(async () => {
       await ready.onDisable2FA("000000").catch(() => {});
     });
     const keys = invalidate.mock.calls.map(([arg]) => (arg as { queryKey: unknown }).queryKey);
     expect(keys).not.toContainEqual(["two-factor"]);
-    await waitFor(() => expect(result.current.notices[0]?.message).toBe("invalid code"));
+    await waitFor(() => expect(result.current.notices[0]?.message).toBe("invalid 2fa code"));
+  });
+
+  // authhttp/audit.go journals the password change, and journals a refusal
+  // too (result="failed") — which summaryOf then prints. Every mutation on
+  // this screen therefore has to re-ask for the feed on both paths, or the
+  // list three sections lower is missing the event the reader just caused.
+  describe.each([
+    ["a password change", (s: Ready) => s.onChangePassword("old-pass", "New1234!x")],
+    ["a 2FA disable", (s: Ready) => s.onDisable2FA("123456")],
+    ["a passkey removal", (s: Ready) => s.onRemovePasskey("p-1", { code: "123456" })],
+  ])("%s", (_name, run) => {
+    it("re-asks for the journal when it succeeds", async () => {
+      const { result } = renderHook(() => useAccount(), { wrapper });
+      await waitFor(() => expect(result.current.phase).toBe("ready"));
+      const ready = result.current as Ready;
+
+      const invalidate = vi.spyOn(client, "invalidateQueries");
+      await act(async () => {
+        await run(ready).catch(() => {});
+      });
+      const keys = invalidate.mock.calls.map(([arg]) => (arg as { queryKey: unknown }).queryKey);
+      expect(keys).toContainEqual(["audit", "mine"]);
+    });
+
+    it("re-asks for the journal when it is refused, because the refusal is journalled too", async () => {
+      const { result } = renderHook(() => useAccount(), { wrapper });
+      await waitFor(() => expect(result.current.phase).toBe("ready"));
+      const ready = result.current as Ready;
+
+      fetchMock.mockImplementationOnce(async () => json({ message: "refused" }, 400));
+      const invalidate = vi.spyOn(client, "invalidateQueries");
+      await act(async () => {
+        await run(ready).catch(() => {});
+      });
+      const keys = invalidate.mock.calls.map(([arg]) => (arg as { queryKey: unknown }).queryKey);
+      expect(keys).toContainEqual(["audit", "mine"]);
+    });
   });
 
   it("removes a passkey with the credential it was handed and refreshes the list", async () => {

@@ -32,25 +32,31 @@ export function useAccount(): AccountState {
   const passkeys = useQuery(passkeysQuery);
   const activity = useInfiniteQuery(myAuditQuery);
 
+  // Every mutation invalidates what another surface reads. The journal is one
+  // of those surfaces: this screen prints it three sections lower, so a change
+  // the gateway records must also re-ask for the feed, or the reader is shown
+  // a history missing the event they just caused.
+  //
+  // It hangs off `onSettled`, not `onSuccess`, and every mutation here carries
+  // that one line: authhttp/audit.go journals refusals as well (result
+  // "failed", which `summaryOf` prints), so a failed change is an event too.
+  // Naming the keys once is what keeps the next mutation from omitting them.
+  const afterJournalledChange = () => void client.invalidateQueries({ queryKey: ["audit", "mine"] });
+
   const password = useMutation({
     mutationFn: ({ current, next }: { current: string; next: string }) => changePassword(current, next),
     onSuccess: () => notify.success("Password changed"),
     onError: (err) => {
       notify.error(messageOf(err));
-      // A dead session 401s here exactly the same as a wrong current
-      // password does (both are now `credentialed`, so neither bounced on
-      // its own). Asking `me` again either confirms the session is fine —
-      // it was just a wrong password — or takes the ordinary 401 path
-      // itself and bounces within one round trip.
+      // changePassword is `credentialed` — the gateway answers 401 for a
+      // wrong current password, so nothing bounced on its own. Asking `me`
+      // again either confirms the session is fine (it was just a wrong
+      // password) or takes the ordinary 401 path and bounces within one
+      // round trip.
       void client.invalidateQueries(meQuery);
     },
+    onSettled: afterJournalledChange,
   });
-
-  // Every mutation invalidates what another surface reads. The journal is one
-  // of those surfaces: this screen prints it three sections lower, so a change
-  // that the gateway records must also re-ask for the feed, or the user is
-  // shown a history missing the event they just caused.
-  const afterJournalledChange = () => void client.invalidateQueries({ queryKey: ["audit", "mine"] });
 
   // Two-factor changes also move `me.totpEnabled`, which is what decides
   // whether a passkey removal asks for a code or a password — leaving it stale
@@ -58,7 +64,6 @@ export function useAccount(): AccountState {
   const afterTwoFactorChange = () => {
     void client.invalidateQueries({ queryKey: ["two-factor"] });
     void client.invalidateQueries({ queryKey: ["me"] });
-    afterJournalledChange();
   };
 
   const disable = useMutation({
@@ -68,6 +73,7 @@ export function useAccount(): AccountState {
       afterTwoFactorChange();
     },
     onError: (err) => notify.error(messageOf(err)),
+    onSettled: afterJournalledChange,
   });
 
   const removal = useMutation({
@@ -76,9 +82,9 @@ export function useAccount(): AccountState {
     onSuccess: () => {
       notify.success("Passkey removed");
       void client.invalidateQueries({ queryKey: ["passkeys"] });
-      afterJournalledChange();
     },
     onError: (err) => notify.error(messageOf(err)),
+    onSettled: afterJournalledChange,
   });
 
   if (me.isPending) return { phase: "loading" };
@@ -98,7 +104,13 @@ export function useAccount(): AccountState {
     passkeysLoading: passkeys.isPending,
     // Flattened here rather than in the page: the page is props-only, and the
     // page shape of an infinite query is this hook's business.
-    activity: (activity.data?.pages ?? []).flatMap((page) => page.entries),
+    //
+    // null when the feed never answered — every Guest lacks `audit:read_own`
+    // (auth-service migration 00013) and takes a 403 here, and an empty list
+    // would tell them nothing had ever happened under their own account.
+    // `unanswered`, not `isError`: a failed *load more* leaves the pages
+    // already on screen alone.
+    activity: unanswered(activity) ? null : (activity.data?.pages ?? []).flatMap((page) => page.entries),
     activityHasMore: activity.hasNextPage,
     activityBusy: activity.isFetching,
     passwordBusy: password.isPending,

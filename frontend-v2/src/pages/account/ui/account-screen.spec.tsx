@@ -53,6 +53,6 @@ describe("AccountScreen", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Two-factor authentication" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Passkeys" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "My activity" })).toBeInTheDocument();
-    expect(screen.getByText("Nothing recorded yet")).toBeInTheDocument();
+    expect(screen.getByText("Nothing to show yet")).toBeInTheDocument();
   });
 });

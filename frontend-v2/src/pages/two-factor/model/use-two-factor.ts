@@ -31,12 +31,11 @@ export type TwoFactorState = {
 export const ALREADY_ON = "Two-factor is already on for this account.";
 
 // twofa-service answers FailedPrecondition for "2fa already enabled" and
-// apperr.HTTPStatus maps that to 422 — the only precondition setup can fail.
-// 409 is kept because it is the status the endpoint is specified with, and a
-// gateway that starts sending it must not regress this screen into printing
-// the raw sentinel beside two panes that can no longer do anything.
-const alreadyOn = (err: unknown) =>
-  err instanceof HttpError && (err.status === 409 || err.status === 422);
+// apperr.HTTPStatus maps that to 422 — the only precondition setup can fail,
+// and re-measured against the running gateway. 409 was the status openapi.yaml
+// documented and no server ever sent; the spec was corrected in 89e6517, and
+// reading it here invented a terminal dead end for a status nobody sends.
+const alreadyOn = (err: unknown) => err instanceof HttpError && err.status === 422;
 const REFUSED = "Invalid code — check your device clock and try the next one.";
 
 /**
@@ -89,15 +88,12 @@ export function useTwoFactor(flow: Flow): TwoFactorState {
       void client.invalidateQueries({ queryKey: ["two-factor"] });
       void client.invalidateQueries({ queryKey: ["me"] });
     },
+    // A wrong code is `400 invalid_input` here, so neither call carries
+    // `credentialed` and a 401 bounces inside the client itself. Nothing to
+    // revalidate: whatever lands here is about the code.
     onError: () => {
       setCode("");
       setError(REFUSED);
-      // enable2FA and regenerateRecoveryCodes are `credentialed`: a 401 from
-      // them answers the code, not the session, so nothing bounces on its own.
-      // Without this a session that died mid-wizard reads as a wrong code and
-      // the person retypes at a dead session forever. Asking `me` either
-      // confirms the session is fine or takes the ordinary 401 path itself.
-      void client.invalidateQueries({ queryKey: ["me"] });
     },
   });
 

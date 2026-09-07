@@ -19,8 +19,12 @@ export type AccountPageProps = {
   /** Still in flight — distinct from "answered null": the card draws a skeleton. */
   twoFactorLoading: boolean;
   passkeysLoading: boolean;
-  /** The caller's own journal, newest first, flattened across the pages fetched so far. */
-  activity: AuditEntry[];
+  /**
+   * The caller's own journal, newest first, flattened across the pages fetched
+   * so far. null is "we could not find out" — a Guest's 403, not an empty
+   * history.
+   */
+  activity: AuditEntry[] | null;
   /** The feed reports another page — the only thing that draws "Show more". */
   activityHasMore: boolean;
   activityBusy: boolean;

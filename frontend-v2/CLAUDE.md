@@ -114,17 +114,32 @@ nothing today — the build and tests stay green — it only fails the next
 person who runs the generator, which may be months later. `frontend/` carries
 the identical pin for the identical reason.
 
-**A missing `credentialed` flag signs the user out on a typo.** `shared/api`'s
+**`credentialed` belongs only on the calls that actually answer 401 for a
+wrong credential — three of the seven, not all seven.** `shared/api`'s
 `SendOpts` carries `credentialed?: boolean`: it means "a 401 from this
 request answers the credential just submitted, not the session", and it
-replaced a `location.pathname.startsWith("/login")` sniff that could not tell
-the two apart anywhere else. Every credential-submitting call must pass it —
-`login`, `verifyTwoFactor`, `changePassword`, `enable2FA`, `disable2FA`,
-`regenerateRecoveryCodes`, `removePasskey`, seven in total — and each has its
-own test, because the flag is a property of the *caller*, not of the client,
-and one shared test cannot cover them all. Forget it on a new one and a
-mistyped current password or TOTP code signs the user out instead of showing
-the toast the mistake deserves.
+suppresses the bounce to `/login`. It replaced a
+`location.pathname.startsWith("/login")` sniff that could not tell the two
+apart anywhere else. What each call answers for a wrong credential, measured
+against the running gateway on 2026-09-07:
+
+| call | wrong credential |
+|---|---|
+| `login`, `verifyTwoFactor`, `changePassword` | **401** `unauthenticated` |
+| `enable2FA`, `disable2FA`, `regenerateRecoveryCodes` | **400** `invalid_input` ("invalid 2fa code") |
+| `removePasskey` | **403** `forbidden` ("re-authentication failed") |
+
+So the flag sits on the first three and nowhere else. On the other four a 401
+cannot be about the credential — it can only be the session — and suppressing
+the bounce there strands a signed-out reader on a page that quietly refuses
+everything. The flag went on all seven once, on a symmetry argument nobody
+checked against the server; the four were removed on 2026-09-07. Each of the
+seven still carries its own test, because the flag is a property of the
+*caller*, not of the client, and one shared test cannot cover them all: three
+assert a 401 does **not** bounce, four assert it **does**. A mistyped TOTP
+code does not sign anyone out — that is a 400, and it never reached the
+bounce in the first place. Before putting the flag on a new call, curl the
+route with a wrong credential and read the status.
 
 **A page fixture must wrap in the shell its route provides, or Cosmos
 misrepresents the page.** `CatalogShell`'s `<main>` carries every bit of the
@@ -385,13 +400,36 @@ on that page, never linked directly. A principal with no console screen at
 all — a Viewer holds only `territory:read` and its siblings, and the sidebar
 never renders for it — gets in through the link on `NoConsoleAccess` instead.
 
-**Every mutation on `/account` invalidates what another surface reads.**
-Disabling 2FA invalidates `["two-factor"]`, `["me"]` and `["audit","mine"]`;
-adding or removing a passkey invalidates `["passkeys"]` and
-`["audit","mine"]`. `["me"]` is the load-bearing one: `me.totpEnabled` is
+**Every mutation on `/account` invalidates what another surface reads, and the
+journal is invalidated on both paths.** All three mutations in `use-account`
+— the password change, the 2FA disable, the passkey removal — hang
+`afterJournalledChange` off **`onSettled`**, never `onSuccess`: the gateway
+journals refusals as well (`authhttp/audit.go` writes `result="failed"`, and
+`summaryOf` prints it), so a refused change is an event the feed three
+sections lower would otherwise be missing. The password change is journalled
+as `auth.password_change` and is the one that omitted the key until
+2026-09-07. `["audit","mine"]` is named in exactly one place for that reason;
+add a mutation here and give it `onSettled: afterJournalledChange` rather
+than repeating the key. On top of that: disabling 2FA invalidates
+`["two-factor"]` and `["me"]`; adding or removing a passkey invalidates
+`["passkeys"]`. `["me"]` is the load-bearing one: `me.totpEnabled` is
 what decides which factor a passkey removal asks for (a code or a password),
 and a stale value asks for the wrong one — exactly the bug the old screen
 shipped.
+
+**The activity feed answers three states, not two.** `activity` is
+`AuditEntry[] | null` and null is "we could not find out", exactly like
+`twoFactor` and `passkeys` beside it — every Guest lacks `audit:read_own`
+(auth-service migration `00013`) and takes a 403 here, and rendering that as
+an empty list told the reader nothing had ever happened under their own
+account. `unanswered`, not `isError`: a failed *load more* must leave the
+pages already on screen alone. A row's second line is `summaryOf`, which is
+**empty for most rows** — every `auth.*` entry the gateway writes carries
+entity `session` with an empty `entityId`, `entityLabel` and
+`territorySlug`, so the line is dropped rather than filled with a table
+name. Take fixture rows from a live `GET /api/audit/mine`, not from
+imagination: the invented `entityLabel: "YubiKey 5C"` on a passkey row hid
+that defect through nine reviews.
 
 **The recovery-codes stage is component state, never a URL.** The gateway
 issues those codes exactly once, in the body of the call that created or

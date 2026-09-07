@@ -70,10 +70,31 @@ describe("ActivitySection", () => {
     render(<ActivitySection {...props()} />);
     const rows = screen.getAllByRole("listitem");
     expect(within(rows[0]).getByText("auth.login")).toBeInTheDocument();
-    expect(within(rows[0]).getByText("session")).toBeInTheDocument();
     expect(within(rows[0]).getByText("09:14")).toBeInTheDocument();
     expect(within(rows[1]).getByText("Storage Tank 500 · refinery-block-c")).toBeInTheDocument();
     expect(within(rows[1]).getByText("yesterday 18:20")).toBeInTheDocument();
+  });
+
+  // The shape every auth.* row really has: entity "session", nothing else
+  // filled in. A second line reading "session" is a table name, and the feed
+  // is mostly these rows.
+  it("draws no second line for a row that carries nothing to say", () => {
+    render(<ActivitySection {...props({ entries: [entry({ id: 9 })] })} />);
+    const [row] = screen.getAllByRole("listitem");
+    expect(within(row!).getByText("auth.login")).toBeInTheDocument();
+    expect(within(row!).queryByText("session")).not.toBeInTheDocument();
+    expect(within(row!).getAllByText(/./, { selector: "p" })).toHaveLength(1);
+  });
+
+  it("keeps the second line when the row failed", () => {
+    render(
+      <ActivitySection
+        {...props({
+          entries: [entry({ id: 9, action: "auth.password_change", result: "failed" })],
+        })}
+      />,
+    );
+    expect(screen.getByText("failed")).toBeInTheDocument();
   });
 
   it("keeps the order it was handed — the gateway already sorted it newest first", () => {
@@ -107,9 +128,27 @@ describe("ActivitySection", () => {
 
   it("says nothing was recorded, and offers no footer to page through", () => {
     render(<ActivitySection {...props({ entries: [], hasMore: false })} />);
-    expect(screen.getByText("Nothing recorded yet")).toBeInTheDocument();
+    expect(screen.getByText("Nothing to show yet")).toBeInTheDocument();
     expect(screen.queryByRole("listitem")).not.toBeInTheDocument();
     expect(screen.queryByText(/showing/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Show more" })).not.toBeInTheDocument();
+  });
+
+  // The reader has just signed in and auth.login is journalled, so an empty
+  // state promising that signing in "shows up here" contradicts itself in
+  // front of the person reading it.
+  it("does not promise the reader an event the feed has already failed to show", () => {
+    render(<ActivitySection {...props({ entries: [], hasMore: false })} />);
+    expect(screen.queryByText(/Signing in/)).not.toBeInTheDocument();
+  });
+
+  // A 403 — which is what every Guest gets — must not read as "nothing ever
+  // happened". Both sibling sections on this page carry the same callout.
+  it("says the feed could not be loaded rather than reporting an empty history", () => {
+    render(<ActivitySection {...props({ entries: null, hasMore: false })} />);
+    expect(screen.getByText("Your activity could not be loaded.")).toBeInTheDocument();
+    expect(screen.queryByText("Nothing to show yet")).not.toBeInTheDocument();
+    expect(screen.queryByRole("listitem")).not.toBeInTheDocument();
+    expect(screen.queryByText(/showing/)).not.toBeInTheDocument();
   });
 });

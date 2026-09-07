@@ -30,11 +30,11 @@ export async function finishRegistration(flowId: string, credentialJson: string,
  * The caller picks which field to fill from removalFactor(); the server
  * re-derives the required factor from live 2FA state and refuses a mismatch,
  * so sending the wrong one fails closed rather than removing anything.
- * credentialed: a wrong code/password answers this request, not the session
- * — a 401 here must surface as an error, not sign the user out.
+ *
+ * No `credentialed`: the gateway answers `403 forbidden` ("re-authentication
+ * failed") for a wrong code or password, measured live. A 401 from this route
+ * is therefore the session, not the factor, and must bounce.
  */
 export function removePasskey(id: string, credential: { code?: string; password?: string }): Promise<void> {
-  return httpDelete(`/api/auth/passkey/credentials/${encodeURIComponent(id)}`, credential, {
-    credentialed: true,
-  });
+  return httpDelete(`/api/auth/passkey/credentials/${encodeURIComponent(id)}`, credential);
 }
