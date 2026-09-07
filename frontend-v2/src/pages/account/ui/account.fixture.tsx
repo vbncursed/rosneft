@@ -1,4 +1,5 @@
 import type { Principal } from "@/shared/session";
+import { CatalogShell } from "@/widgets/catalog-shell";
 import { AccountPage } from "./account-page";
 
 const ME: Principal = {
@@ -27,47 +28,55 @@ const noop = async () => {};
 
 export default {
   ready: (
-    <AccountPage
-      me={ME}
-      twoFactor={TWO_FACTOR}
-      passkeys={PASSKEYS}
-      twoFactorLoading={false}
-      passkeysLoading={false}
-      passwordBusy={false}
-      onChangePassword={noop}
-    />
+    <CatalogShell>
+      <AccountPage
+        me={ME}
+        twoFactor={TWO_FACTOR}
+        passkeys={PASSKEYS}
+        twoFactorLoading={false}
+        passkeysLoading={false}
+        passwordBusy={false}
+        onChangePassword={noop}
+      />
+    </CatalogShell>
   ),
   "2fa unknown": (
-    <AccountPage
-      me={ME}
-      twoFactor={null}
-      passkeys={PASSKEYS}
-      twoFactorLoading={false}
-      passkeysLoading={false}
-      passwordBusy={false}
-      onChangePassword={noop}
-    />
+    <CatalogShell>
+      <AccountPage
+        me={ME}
+        twoFactor={null}
+        passkeys={PASSKEYS}
+        twoFactorLoading={false}
+        passkeysLoading={false}
+        passwordBusy={false}
+        onChangePassword={noop}
+      />
+    </CatalogShell>
   ),
   "no passkeys": (
-    <AccountPage
-      me={ME}
-      twoFactor={TWO_FACTOR}
-      passkeys={[]}
-      twoFactorLoading={false}
-      passkeysLoading={false}
-      passwordBusy={false}
-      onChangePassword={noop}
-    />
+    <CatalogShell>
+      <AccountPage
+        me={ME}
+        twoFactor={TWO_FACTOR}
+        passkeys={[]}
+        twoFactorLoading={false}
+        passkeysLoading={false}
+        passwordBusy={false}
+        onChangePassword={noop}
+      />
+    </CatalogShell>
   ),
   loading: (
-    <AccountPage
-      me={ME}
-      twoFactor={null}
-      passkeys={null}
-      twoFactorLoading
-      passkeysLoading
-      passwordBusy={false}
-      onChangePassword={noop}
-    />
+    <CatalogShell>
+      <AccountPage
+        me={ME}
+        twoFactor={null}
+        passkeys={null}
+        twoFactorLoading
+        passkeysLoading
+        passwordBusy={false}
+        onChangePassword={noop}
+      />
+    </CatalogShell>
   ),
 };
