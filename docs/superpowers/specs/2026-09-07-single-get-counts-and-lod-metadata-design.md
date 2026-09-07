@@ -100,12 +100,20 @@ placements and `GetModel("pump")` reports 2 distinct territories — the same
 ## 3. Mesh-service — per-LOD metadata
 
 New `internal/converter/glb_stats.go`: `glbStats(body []byte) (vertices, faces uint64, err error)`
-decodes the GLB with `gltf.Decode` (a `bytes.Reader`), sums each mesh
-primitive's POSITION accessor `Count` for vertices, and its indices accessor
-`Count / 3` for faces; a primitive drawn without indices counts
-`POSITION.Count / 3`. The JSON header carries these counts even when the
-payload is Draco-compressed or the textures are KTX2, so nothing is
-decompressed.
+reads the GLB container's JSON chunk by hand and `json.Unmarshal`s it into a
+`gltf.Document`, then sums each mesh primitive's POSITION accessor `Count`
+for vertices, and its indices accessor `Count / 3` for faces; a primitive
+drawn without indices counts `POSITION.Count / 3`. The JSON header carries
+these counts however the payload is compressed, so nothing is decompressed.
+
+The library's own `gltf.Decode` is deliberately **not** used: it walks every
+declared buffer after parsing the JSON, and gltfpack's `-cc` output declares
+an `EXT_meshopt_compression` fallback buffer that has a length but no URI and
+no data — a buffer a reader is meant to skip. `Decode` rejects it with
+`gltf: buffer without URI`, which is exactly how this shipped zeros on the
+first pass and was caught by the live check. Unmarshalling the JSON chunk
+still runs the library's own per-type validators, so only the buffer-reading
+phase is skipped.
 
 `convert_lods.go`'s `simplifyLOD` gains the raw LOD-0 result as an argument
 (or the loop passes `raw`'s bbox and the fallback counts). Each simplified
