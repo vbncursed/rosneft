@@ -26,11 +26,13 @@ describe("passkey gateway", () => {
     expect(await listPasskeys()).toEqual([
       { id: "k1", name: "YubiKey 5C", createdAt: "2026-07-03T09:20:00Z", lastUsedAt: null },
     ]);
+    expect(request()).toEqual({ url: "/api/auth/passkey/credentials", method: "GET", body: undefined });
   });
 
   it("reads an empty list when the server sends no credentials key", async () => {
     fetchMock.mockResolvedValueOnce(json({}));
     expect(await listPasskeys()).toEqual([]);
+    expect(request()).toEqual({ url: "/api/auth/passkey/credentials", method: "GET", body: undefined });
   });
 
   it("encodes the id into the delete path and sends only the factor given", async () => {
@@ -46,6 +48,11 @@ describe("passkey gateway", () => {
   it("begins registration and defaults missing fields to empty strings", async () => {
     fetchMock.mockResolvedValueOnce(json({}));
     expect(await beginRegistration()).toEqual({ optionsJson: "", flowId: "" });
+    expect(request()).toEqual({
+      url: "/api/auth/passkey/register/begin",
+      method: "POST",
+      body: undefined,
+    });
   });
 
   it("finishes registration by posting the flow, the credential and the chosen name", async () => {

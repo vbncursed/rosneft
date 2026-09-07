@@ -19,7 +19,7 @@ const button = cva(
       },
       shape: {
         control: "font-sans",
-        pill: "rounded-full font-mono uppercase tracking-[0.18em]",
+        pill: "rounded-full font-mono uppercase",
         icon: "shrink-0 p-0 font-sans",
       },
       size: { sm: "", md: "", lg: "" },
@@ -28,9 +28,14 @@ const button = cva(
       { shape: "control", size: "sm", class: "rounded-control-sm px-3 py-1.5 text-xs font-semibold" },
       { shape: "control", size: "md", class: "rounded-control px-[18px] py-2.5 text-[13px] font-medium" },
       { shape: "control", size: "lg", class: "rounded-control-lg px-[26px] py-3.5 text-[15px] font-semibold" },
-      { shape: "pill", size: "sm", class: "px-3.5 py-1.5 text-[10px]" },
-      { shape: "pill", size: "md", class: "px-[18px] py-2.5 text-[11px]" },
-      { shape: "pill", size: "lg", class: "px-6 py-3 text-xs" },
+      // Tracking lives here, per size, not on the base pill string: a base
+      // utility and a compound one both setting letter-spacing collide, and
+      // the winner is the compiled stylesheet's own source order, not the
+      // className string's — the same trap the ground-colour comment below
+      // already names. One property, one variant group.
+      { shape: "pill", size: "sm", class: "px-3.5 py-1.5 text-[10px] tracking-[0.14em]" },
+      { shape: "pill", size: "md", class: "px-[18px] py-2.5 text-[11px] tracking-[0.18em]" },
+      { shape: "pill", size: "lg", class: "px-6 py-3 text-xs tracking-[0.18em]" },
       { shape: "icon", size: "sm", class: "size-8 rounded-control text-[13px]" },
       { shape: "icon", size: "md", class: "size-9 rounded-control text-[15px]" },
       { shape: "icon", size: "lg", class: "size-11 rounded-control-lg text-base" },
