@@ -37,4 +37,12 @@ describe("router fallbacks", () => {
     expect(screen.getByRole("heading", { level: 1, name: "No console access" })).toBeInTheDocument();
     expect(screen.getByText(/organisation owner/)).toBeInTheDocument();
   });
+
+  // The sidebar identity block is the only entry point to /account, and the
+  // sidebar lives in ConsoleShell alone — a Viewer (territory:read only)
+  // never sees it. This panel is the one thing such an account does see.
+  it("still offers a way to the account page — the sidebar link never reaches this account", () => {
+    render(<NoConsoleAccess />);
+    expect(screen.getByRole("link", { name: /account/i })).toHaveAttribute("href", "/account");
+  });
 });

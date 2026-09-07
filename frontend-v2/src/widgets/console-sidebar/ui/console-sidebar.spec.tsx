@@ -48,10 +48,25 @@ describe("ConsoleSidebar", () => {
 
   it("links the identity block to the account page — the only way into it", () => {
     sidebar();
-    const link = screen.getByRole("link", { name: /a\.ivanova/ });
+    const link = screen.getByRole("link", { name: "Account settings for a.ivanova" });
     expect(link).toHaveAttribute("href", "/account");
     expect(link).toHaveTextContent("a.ivanova");
     expect(link).toHaveTextContent("Company Owner");
+  });
+
+  // Without an explicit name, the avatar's own aria-label leaks into the
+  // link's accessible name and doubles the username: "a.ivanova a.ivanova
+  // Company Owner". Measured, not guessed.
+  it("names the link once, not the avatar's label doubled with the visible text", () => {
+    sidebar();
+    const link = screen.getByRole("link", { name: "Account settings for a.ivanova" });
+    expect(link).toHaveAccessibleName("Account settings for a.ivanova");
+  });
+
+  it("carries a visible focus ring with room to breathe", () => {
+    sidebar();
+    const link = screen.getByRole("link", { name: "Account settings for a.ivanova" });
+    expect(link.className).toContain("outline-offset-2");
   });
 
   it("hosts the theme control", () => {

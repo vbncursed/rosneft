@@ -35,6 +35,8 @@ export function AccountScreen() {
       me={s.me}
       twoFactor={s.twoFactor}
       passkeys={s.passkeys}
+      twoFactorLoading={s.twoFactorLoading}
+      passkeysLoading={s.passkeysLoading}
       passwordBusy={s.passwordBusy}
       onChangePassword={s.onChangePassword}
     />

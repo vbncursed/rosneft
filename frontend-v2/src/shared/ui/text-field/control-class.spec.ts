@@ -18,6 +18,16 @@ describe("controlClass", () => {
     expect(cls).toContain("leading-5");
   });
 
+  // Same font *size* too, not just line-height — a PasswordField that reveals
+  // on Generate switches only the mono flag, so two fields side by side
+  // (current + new password) must not visibly change size the instant one
+  // is revealed.
+  it("keeps the same text size in both faces — only the family changes", () => {
+    expect(controlClass({ mono: true })).toContain("text-sm");
+    expect(controlClass({ mono: false })).toContain("text-sm");
+    expect(controlClass({ mono: true })).not.toContain("text-[13px]");
+  });
+
   it("swaps the ground and border when invalid", () => {
     const cls = controlClass({ invalid: true });
     expect(cls).toContain("border-bad");

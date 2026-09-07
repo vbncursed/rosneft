@@ -23,7 +23,7 @@ const PASSKEYS = [
   { id: "p-2", name: "iPhone 15", createdAt: "2026-07-03T09:20:00Z", lastUsedAt: "2026-09-06T09:20:00Z" },
 ];
 
-const noop = () => {};
+const noop = async () => {};
 
 export default {
   ready: (
@@ -31,6 +31,8 @@ export default {
       me={ME}
       twoFactor={TWO_FACTOR}
       passkeys={PASSKEYS}
+      twoFactorLoading={false}
+      passkeysLoading={false}
       passwordBusy={false}
       onChangePassword={noop}
     />
@@ -40,6 +42,8 @@ export default {
       me={ME}
       twoFactor={null}
       passkeys={PASSKEYS}
+      twoFactorLoading={false}
+      passkeysLoading={false}
       passwordBusy={false}
       onChangePassword={noop}
     />
@@ -49,6 +53,19 @@ export default {
       me={ME}
       twoFactor={TWO_FACTOR}
       passkeys={[]}
+      twoFactorLoading={false}
+      passkeysLoading={false}
+      passwordBusy={false}
+      onChangePassword={noop}
+    />
+  ),
+  loading: (
+    <AccountPage
+      me={ME}
+      twoFactor={null}
+      passkeys={null}
+      twoFactorLoading
+      passkeysLoading
       passwordBusy={false}
       onChangePassword={noop}
     />

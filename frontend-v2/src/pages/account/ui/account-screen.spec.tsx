@@ -32,6 +32,8 @@ describe("AccountScreen", () => {
       },
       twoFactor: null,
       passkeys: null,
+      twoFactorLoading: false,
+      passkeysLoading: false,
       passwordBusy: false,
       onChangePassword: vi.fn(),
     });

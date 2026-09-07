@@ -25,4 +25,22 @@ describe("PostureCards", () => {
     expect(screen.getByText("on").className).toContain("text-ok");
     expect(screen.getByText("fallback").className).toContain("border-line-2");
   });
+
+  // CLAUDE.md, "Colours that were got wrong once": the fallback badge is
+  // muted border+colour over a transparent ground, not the tinted fill the
+  // other two use.
+  it("draws the neutral Password badge outlined, not tinted like the others", () => {
+    render(<PostureCards cards={CARDS} />);
+    expect(screen.getByText("on").className).toContain("bg-ok-soft");
+    expect(screen.getByText("fallback").className).toContain("bg-transparent");
+    expect(screen.getByText("fallback").className).not.toContain("bg-panel-2");
+  });
+
+  it("draws a skeleton in place of the value while that card's own query is still in flight", () => {
+    render(<PostureCards cards={CARDS} twoFactorLoading passkeysLoading={false} />);
+    expect(screen.queryByText("TOTP")).not.toBeInTheDocument();
+    // Passkeys and Password are not loading — their values still print.
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("Set")).toBeInTheDocument();
+  });
 });
