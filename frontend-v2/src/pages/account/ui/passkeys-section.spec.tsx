@@ -161,12 +161,46 @@ describe("PasskeysSection · loading", () => {
   });
 });
 
-describe("PasskeysSection · browser cannot hold passkeys", () => {
-  it("explains why and offers no way to start a ceremony that would fail", () => {
+describe("PasskeysSection · browser cannot register a passkey", () => {
+  // Only *creating* one needs WebAuthn. The account's keys still exist, the
+  // posture card two blocks up still counts them, and removal is a DELETE
+  // with a code or a password. Hiding the list would put two contradictory
+  // answers on one screen and take away a capability that still works.
+  it("still counts and lists the account's keys", () => {
     isPasskeySupported.mockReturnValue(false);
     render(<PasskeysSection {...props()} />);
-    expect(screen.getByText("This browser cannot hold passkeys")).toBeInTheDocument();
+    expect(screen.getByText("2 registered")).toBeInTheDocument();
+    expect(screen.getByText("MacBook Pro")).toBeInTheDocument();
+    expect(screen.getByText("iPhone 15")).toBeInTheDocument();
+  });
+
+  it("says registering is what this browser cannot do, and offers no Add control", () => {
+    isPasskeySupported.mockReturnValue(false);
+    render(<PasskeysSection {...props()} />);
+    expect(screen.getByText("This browser cannot register a passkey")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "+ Add passkey" })).not.toBeInTheDocument();
-    expect(screen.queryByText("MacBook Pro")).not.toBeInTheDocument();
+  });
+
+  it("still lets an existing key be removed — that needs no ceremony", async () => {
+    isPasskeySupported.mockReturnValue(false);
+    const onRemove = vi.fn().mockResolvedValue(undefined);
+    render(<PasskeysSection {...props({ totpEnabled: false, onRemove })} />);
+    await userEvent.click(screen.getByRole("button", { name: "Remove iPhone 15" }));
+    await userEvent.type(screen.getByLabelText("Account password"), "hunter2");
+    await userEvent.click(screen.getByRole("button", { name: /^Remove$/ }));
+    expect(onRemove).toHaveBeenCalledExactlyOnceWith("p-2", { password: "hunter2" });
+  });
+
+  it("keeps the empty list's own sentence rather than stacking two", () => {
+    isPasskeySupported.mockReturnValue(false);
+    render(<PasskeysSection {...props({ passkeys: [] })} />);
+    expect(screen.getByText("This browser cannot register a passkey")).toBeInTheDocument();
+    expect(screen.getByText("No passkeys yet")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "+ Add passkey" })).not.toBeInTheDocument();
+  });
+
+  it("says nothing about registering when the browser can do it", () => {
+    render(<PasskeysSection {...props()} />);
+    expect(screen.queryByText("This browser cannot register a passkey")).not.toBeInTheDocument();
   });
 });

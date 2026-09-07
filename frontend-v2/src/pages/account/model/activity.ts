@@ -19,6 +19,12 @@ const DAY_MS = 86_400_000;
  * "09:14" today, "yesterday 18:20", "05.09 11:37" further back, in the
  * reader's own timezone.
  *
+ * Local, not UTC — the console journal (`formatAt`, `entities/audit`) prints
+ * the stored instant in UTC on purpose, because it shows that instant. This
+ * shows only a relative label, so it follows the reader instead: an event ten
+ * minutes ago must not read as yesterday because UTC rolled over. The two
+ * screens differ deliberately; do not align one to the other.
+ *
  * The day comparison is on the calendar date, not on elapsed milliseconds:
  * 23:50 and 00:10 are twenty minutes apart and still two different days, and a
  * month boundary must not turn yesterday into "older".

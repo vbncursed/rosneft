@@ -1,5 +1,12 @@
 import { supported } from "@github/webauthn-json";
 
+declare global {
+  interface Window {
+    /** Set by the Tauri shell's initialization script. Absent in a browser. */
+    __DESKTOP__?: boolean;
+  }
+}
+
 /** One registered credential, as the account screen lists it. */
 export type Passkey = {
   id: string;
@@ -12,8 +19,16 @@ export type Passkey = {
 /**
  * The single gate on the whole passkey surface. One check, not two: a second
  * one somewhere else is how the two drift apart.
+ *
+ * The desktop term is not about capability — the Tauri webview implements
+ * WebAuthn perfectly well. Its origin is a loopback port that
+ * `PASSKEY_RP_ORIGINS` will never list, so a ceremony started there fails with
+ * an opaque client-side error and nothing in any server log. Pre-wiring: the
+ * shell embeds `frontend/`, not this SPA, so `__DESKTOP__` is never set today
+ * — it is here so the gate is already right on the day it is.
  */
-export const isPasskeySupported = (): boolean => supported();
+export const isPasskeySupported = (): boolean =>
+  typeof window !== "undefined" && !window.__DESKTOP__ && supported();
 
 const dmy = (iso: string): string => {
   const d = new Date(iso);

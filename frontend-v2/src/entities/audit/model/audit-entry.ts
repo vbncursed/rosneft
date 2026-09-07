@@ -32,5 +32,16 @@ export function actorName(entry: AuditEntry): string {
   return entry.actorLogin || entry.actorId;
 }
 
-/** Trims the ISO instant to the minute the journal displays. */
+/**
+ * Trims the ISO instant to the minute the journal displays — in **UTC**, as
+ * stored, which is the console journal's deliberate choice: it prints raw
+ * instants and groups by them, so grouping locally would file an event under a
+ * heading its own printed timestamp contradicts.
+ *
+ * `/account`'s feed makes the opposite choice for the opposite reason — see
+ * `relativeAt` in `pages/account/model/activity.ts`. It prints only a relative
+ * label ("yesterday 18:20") with no raw instant beside it, so it uses the
+ * reader's clock; an event ten minutes ago must not read as yesterday because
+ * UTC has rolled over. Neither is a bug to "fix" into the other.
+ */
 export const formatAt = (at: string) => at.replace("T", " ").slice(0, 16);

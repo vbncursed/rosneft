@@ -7,15 +7,17 @@ import { ActivitySection } from "./activity-section";
 // relativeAt reads the local clock, so both the timezone and "now" are pinned
 // — otherwise "today" turns into "yesterday" overnight and the suite goes red
 // on its own. See activity.spec.ts for the same pin.
-const TZ = process.env.TZ;
+// stubEnv rather than a hand-rolled save/restore — see activity.spec.ts:
+// TZ is unset here, and writing `undefined` back leaves the literal string
+// "undefined", which pins every later spec in the process to UTC.
 beforeAll(() => {
-  process.env.TZ = "UTC";
+  vi.stubEnv("TZ", "UTC");
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.setSystemTime(new Date("2026-09-07T12:00:00Z"));
 });
 afterAll(() => {
   vi.useRealTimers();
-  process.env.TZ = TZ;
+  vi.unstubAllEnvs();
 });
 afterEach(() => vi.setSystemTime(new Date("2026-09-07T12:00:00Z")));
 
