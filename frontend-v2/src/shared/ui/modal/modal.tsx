@@ -11,7 +11,7 @@ export type ModalProps = {
   description?: ReactNode;
   /** Buttons; the design right-aligns them under the body. */
   footer?: ReactNode;
-  tone?: "default" | "danger";
+  tone?: "default" | "danger" | "warning";
   children?: ReactNode;
   className?: string;
 };
@@ -60,7 +60,7 @@ export function Modal({
         // ponytail: a dialog taller than the viewport no longer scrolls itself
         // — move the list to a portal if that ever matters.
         "m-auto flex w-[min(28rem,calc(100vw-2rem))] flex-col gap-3.5 overflow-visible rounded-card border bg-panel p-5 text-fg shadow-elevation backdrop:bg-black/55",
-        tone === "danger" ? "border-bad" : "border-line",
+        tone === "danger" ? "border-bad" : tone === "warning" ? "border-warn" : "border-line",
         className,
       )}
     >
@@ -68,7 +68,7 @@ export function Modal({
         <p
           className={cx(
             "m-0 font-mono text-[10px] uppercase tracking-[0.2em]",
-            tone === "danger" ? "text-bad" : "text-muted",
+            tone === "danger" ? "text-bad" : tone === "warning" ? "text-warn" : "text-muted",
           )}
         >
           {overline}
