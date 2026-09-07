@@ -48,6 +48,37 @@ describe("ThemeToggle", () => {
   });
 });
 
+// A variant test on token classes, which this codebase sanctions as the
+// exception to "assert what a user can observe": jsdom computes no colour, so
+// the class is the only place the ground can be pinned. Two background
+// utilities on one element are resolved by the compiled stylesheet's own
+// source order, not by the className string's — the same trap that already
+// bit Button's tracking twice — so this asserts there is exactly one.
+describe("ThemeToggle · the ground is decided once", () => {
+  const ground = (className: string) => className.match(/\bbg-[a-z0-9-]+/g) ?? [];
+
+  it("gives the compact pill the design system's panel ground, and only one ground", () => {
+    render(<ThemeToggle variant="compact" />);
+    expect(ground(screen.getByRole("button", { name: /^Theme:/ }).className)).toEqual(["bg-panel"]);
+  });
+
+  // Our own extension, not in the design system: the row sits in a panel-2
+  // wrapper, so the button keeps the panel ground to stand off it. Making
+  // this panel-2 to match its container would flatten the row.
+  it("keeps the labelled button on panel so it reads against the panel-2 row", () => {
+    const { container } = render(<ThemeToggle />);
+    expect(ground(screen.getByRole("button", { name: /^Theme:/ }).className)).toEqual(["bg-panel"]);
+    expect(container.firstElementChild!.className).toContain("bg-panel-2");
+  });
+
+  it("pads the compact pill to the design system's 6px, not 5", () => {
+    render(<ThemeToggle variant="compact" />);
+    const cls = screen.getByRole("button", { name: /^Theme:/ }).className;
+    expect(cls).toContain("py-1.5");
+    expect(cls).not.toContain("py-[5px]");
+  });
+});
+
 describe("ThemeToggle · compact", () => {
   it("drops the label and rounds the button", () => {
     render(<ThemeToggle variant="compact" />);

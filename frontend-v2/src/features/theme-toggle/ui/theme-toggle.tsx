@@ -19,9 +19,17 @@ export function ThemeToggle({ label = "Appearance", variant = "labelled" }: Them
       onClick={toggle}
       aria-label={`Theme: ${theme}. Switch to ${theme === "dark" ? "light" : "dark"}`}
       className={cx(
+        // The ground is set here and nowhere else. Both variants want
+        // `panel` — the design system draws the pill on it, and the labelled
+        // row needs it to stand off its own `panel-2` wrapper — so a second
+        // background utility in the variant branch would not be an override
+        // at all: two of them on one element are resolved by the compiled
+        // stylesheet's source order, not by the className string's, which is
+        // the trap that already bit Button's tracking twice. One property,
+        // one place.
         "flex cursor-pointer items-center gap-1.5 border bg-panel font-mono text-[9px] uppercase tracking-[0.16em] text-fg transition-colors duration-150 hover:border-accent-line focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
         variant === "compact"
-          ? "rounded-full border-line-2 bg-panel-2 px-3 py-[5px]"
+          ? "rounded-full border-line-2 px-3 py-1.5"
           : "rounded-[7px] border-line-2 px-[9px] py-1",
       )}
     >
