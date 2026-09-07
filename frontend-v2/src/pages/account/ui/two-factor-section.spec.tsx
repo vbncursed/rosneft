@@ -84,6 +84,18 @@ describe("TwoFactorSection · off", () => {
     const { container } = render(<TwoFactorSection {...props({ status: OFF })} />);
     expect(container.firstElementChild!.className).not.toContain("border-ok");
   });
+
+  // Same badge, same state, same screen as the posture card's off/unknown one:
+  // `dim` at this size measures 3.35:1 dark / 3.09:1 light on its own ground,
+  // under the 4.5:1 floor. The outlined `neutral` chrome is text-muted over
+  // the panel — 6.82:1 / 5.69:1 — and is exactly what the posture card wears.
+  it("reports off in a tone a person can actually read", () => {
+    render(<TwoFactorSection {...props({ status: OFF })} />);
+    const badge = screen.getByText("off");
+    expect(badge.className).not.toContain("text-dim");
+    expect(badge.className).toContain("text-muted");
+    expect(badge.className).toContain("bg-transparent");
+  });
 });
 
 describe("TwoFactorSection · unknown", () => {
@@ -97,6 +109,13 @@ describe("TwoFactorSection · unknown", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(screen.queryByText("Authenticator")).not.toBeInTheDocument();
+  });
+
+  it("reports unknown in a tone a person can actually read", () => {
+    render(<TwoFactorSection {...props({ status: null })} />);
+    const badge = screen.getByText("unknown");
+    expect(badge.className).not.toContain("text-dim");
+    expect(badge.className).toContain("text-muted");
   });
 });
 
