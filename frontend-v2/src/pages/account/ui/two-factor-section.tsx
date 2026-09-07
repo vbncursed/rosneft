@@ -60,7 +60,14 @@ export function TwoFactorSection({ status, loading, onDisable }: TwoFactorSectio
         title="Two-factor authentication"
         count={
           loading ? undefined : (
-            <Badge tone={on ? "ok" : "dim"} size="sm">
+            // Not `dim`: at this size it is 3.35:1 dark / 3.09:1 light on its
+            // own ground, under the 4.5:1 floor, and off/unknown is exactly
+            // the state a reader must be able to read. `neutral` outlined is
+            // text-muted over the panel — 6.82:1 / 5.69:1 — the same chrome
+            // the posture card's off/unknown badge wears. The fill follows the
+            // tone, as it does there: a filled neutral chip carries text-fg
+            // and would print "off" louder than "enabled".
+            <Badge tone={on ? "ok" : "neutral"} fill={on ? "soft" : "outline"} size="sm">
               {status === null ? "unknown" : on ? "enabled" : "off"}
             </Badge>
           )
