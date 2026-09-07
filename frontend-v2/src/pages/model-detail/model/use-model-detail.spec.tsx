@@ -6,12 +6,11 @@ import { HttpError } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useModelDetail } from "./use-model-detail";
 
-const { getModel, updateModel, deleteModel, listModels, listArtifacts, listJobs, runChunkedUpload, navigate } =
+const { getModel, updateModel, deleteModel, listArtifacts, listJobs, runChunkedUpload, navigate } =
   vi.hoisted(() => ({
     getModel: vi.fn(),
     updateModel: vi.fn(),
     deleteModel: vi.fn(),
-    listModels: vi.fn(),
     listArtifacts: vi.fn(),
     listJobs: vi.fn(),
     runChunkedUpload: vi.fn(),
@@ -22,7 +21,6 @@ vi.mock("@/entities/model", async (importOriginal) => ({
   getModel,
   updateModel,
   deleteModel,
-  listModels,
 }));
 vi.mock("@/entities/content", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -75,7 +73,6 @@ beforeEach(() => {
   getModel.mockReset().mockResolvedValue(MODEL);
   updateModel.mockReset().mockResolvedValue(MODEL);
   deleteModel.mockReset().mockResolvedValue(undefined);
-  listModels.mockReset().mockResolvedValue([MODEL]);
   listArtifacts.mockReset().mockResolvedValue([ARTIFACT]);
   listJobs.mockReset().mockResolvedValue([]);
   runChunkedUpload.mockReset();
@@ -116,12 +113,15 @@ describe("useModelDetail", () => {
   });
 
   it("reads usageCount off the model itself — the gateway sends it now", async () => {
-    getModel.mockResolvedValue({ ...MODEL, usageCount: 2 });
+    // 5 is distinct from MODEL's own usageCount (2) and from anything a list
+    // endpoint could supply — a merge that fell back to (or preferred) a list
+    // value would read 2 here, not 5.
+    getModel.mockResolvedValue({ ...MODEL, usageCount: 5 });
     const { result } = renderHook(() => useModelDetail("valve"), { wrapper });
 
     await waitFor(() => expect(result.current.phase).toBe("ready"));
     if (result.current.phase !== "ready") throw new Error("unreachable");
-    expect(result.current.model.usageCount).toBe(2);
+    expect(result.current.model.usageCount).toBe(5);
   });
 
   it("reports missing on a 404", async () => {
