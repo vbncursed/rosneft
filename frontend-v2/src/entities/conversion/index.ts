@@ -11,6 +11,14 @@ export {
 } from "./model/status";
 export { stageLabel } from "./model/stage-label";
 export {
+  jobPhrase,
+  sortJobs,
+  toJobCard,
+  type JobCardModel,
+  type JobCardStatus,
+  type TitleOf,
+} from "./model/job-card";
+export {
   PIPELINE,
   pipelineMeta,
   pipelineSteps,
@@ -33,3 +41,4 @@ export { useJobStream } from "./model/use-job-stream";
 export { ConversionBadge } from "./ui/conversion-badge";
 export { StageList, type StageListProps } from "./ui/stage-list";
 export { Pipeline, type PipelineProps } from "./ui/pipeline";
+export { JobCard, type JobCardProps } from "./ui/job-card";
