@@ -10,13 +10,14 @@ import {
   type AuditFilters,
   WINDOW_LIMIT,
   type Refs,
+  windowStart,
 } from "@/entities/audit";
 import { messageOf } from "@/shared/api";
 import { copyText } from "@/shared/lib/copy-text";
 import { saveBlob } from "@/shared/lib/download";
 import { notify } from "@/shared/lib/notify";
 import { unanswered } from "@/shared/lib/unanswered";
-import { backwardsRange, parseAuditFilters, windowStart, type DateRange } from "./journal";
+import { backwardsRange, parseAuditFilters, type DateRange } from "./journal";
 
 export type AuditState = {
   status: "loading" | "ready" | "unavailable";

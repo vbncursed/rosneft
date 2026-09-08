@@ -10,7 +10,6 @@ import {
   parseAuditFilters,
   rangeChip,
   summaryOf,
-  windowStart,
 } from "./journal";
 
 const NOW = new Date("2026-09-01T10:30:00Z");
@@ -205,12 +204,5 @@ describe("inspectorDetails and entityHref", () => {
     expect(entityHref(entry({ action: "territory.delete" }))).toBeNull();
     expect(entityHref(entry({ entity: "placement" }))).toBeNull();
     expect(entityHref(entry({ entityLabel: "" }))).toBeNull();
-  });
-});
-
-describe("windowStart", () => {
-  it("is 24 hours before the running hour, so a long-open tab does not drift", () => {
-    expect(windowStart(NOW)).toBe("2026-08-31T10:00:00.000Z");
-    expect(windowStart(new Date("2026-09-01T10:59:59Z"))).toBe("2026-08-31T10:00:00.000Z");
   });
 });

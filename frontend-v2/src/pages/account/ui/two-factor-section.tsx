@@ -1,4 +1,5 @@
 import { clsx as cx } from "clsx";
+import { dayOf } from "@/entities/audit";
 import type { TwoFactorStatus } from "@/entities/user";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
@@ -6,7 +7,6 @@ import { Callout } from "@/shared/ui/callout";
 import { DetailList } from "@/shared/ui/detail-list";
 import { SectionHeading } from "@/shared/ui/section-heading";
 import { Skeleton } from "@/shared/ui/skeleton";
-import { dayOf } from "../model/activity";
 
 export type TwoFactorSectionProps = {
   /** null is "we could not find out" — never "off". */

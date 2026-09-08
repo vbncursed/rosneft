@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import type { AuditEntry } from "@/entities/audit";
-import { dayOf, relativeAt, summaryOf } from "./activity";
+import type { AuditEntry } from "./audit-entry";
+import { dayOf, relativeAt, summaryOf } from "./relative-at";
 
 // relativeAt prints the reader's *local* clock — an event that happened ten
 // minutes ago must not read as yesterday because UTC has already rolled over.

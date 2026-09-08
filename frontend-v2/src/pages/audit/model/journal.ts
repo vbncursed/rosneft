@@ -1,7 +1,9 @@
 import {
   actorName,
+  bucketOf,
   diffRows,
   formatAt,
+  hourOf,
   toBound,
   type AuditActor,
   type AuditEntry,
@@ -13,7 +15,6 @@ import type { Detail } from "@/shared/ui/detail-list";
 import type { AuditCounter, AuditDay, AuditPageProps } from "../ui/audit-page";
 
 const DAY_MS = 86_400_000;
-const HOUR_MS = 3_600_000;
 
 export type DateRange = { from: string; to: string };
 
@@ -109,25 +110,6 @@ export function groupByDay(entries: AuditEntry[], now = new Date()): AuditDay[] 
   }
   return [...days.values()];
 }
-
-/**
- * The 24-hour window's lower bound, rounded down to the running hour: a bound
- * that moved with the clock would mint a new query key on every render, and a
- * bound captured once would drift on a tab left open all day. It advances to
- * the next hour on the next render — nothing re-renders an idle tab, and a
- * paged tab that sits still keeps its hour, which is accepted.
- */
-export const windowStart = (now = new Date()): string =>
-  new Date(Math.floor(now.getTime() / HOUR_MS) * HOUR_MS - DAY_MS).toISOString();
-
-const hourOf = (now: Date, i: number) => new Date(now.getTime() - (23 - i) * HOUR_MS);
-
-/** Index of the strip bucket an entry falls in, or -1 outside the 24 drawn. */
-const bucketOf = (at: string, now: Date): number => {
-  const startOf = (d: Date) => Math.floor(d.getTime() / HOUR_MS);
-  const i = startOf(new Date(at)) - startOf(hourOf(now, 0));
-  return i >= 0 && i < 24 ? i : -1;
-};
 
 /** 24 buckets, oldest first; the last is the hour still running. */
 export function activityOf(
