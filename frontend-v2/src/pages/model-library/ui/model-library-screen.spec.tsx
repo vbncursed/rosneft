@@ -5,13 +5,11 @@ import type { ModelCardModel } from "../model/catalog";
 import type { ModelLibraryState } from "../model/use-model-library";
 import { ModelLibraryScreen } from "./model-library-screen";
 
-const { useModelLibrary, leaveTo, navigate } = vi.hoisted(() => ({
+const { useModelLibrary, navigate } = vi.hoisted(() => ({
   useModelLibrary: vi.fn(),
-  leaveTo: vi.fn(),
   navigate: vi.fn(),
 }));
 vi.mock("../model/use-model-library", () => ({ useModelLibrary }));
-vi.mock("@/shared/lib/leave", () => ({ leaveTo }));
 // A stand-in for the router context: the screen is rendered on its own.
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 
@@ -56,7 +54,6 @@ const state = (over: Partial<ModelLibraryState> = {}): ModelLibraryState => ({
 
 beforeEach(() => {
   useModelLibrary.mockReset();
-  leaveTo.mockReset();
   navigate.mockReset();
 });
 
@@ -92,7 +89,6 @@ describe("ModelLibraryScreen", () => {
     render(<ModelLibraryScreen />);
     await userEvent.click(screen.getByRole("article", { name: "M 1" }));
     expect(navigate).toHaveBeenCalledWith({ href: "/models/m-1" });
-    expect(leaveTo).not.toHaveBeenCalled();
   });
 
   it("navigates to the v2 upload route rather than leaving the SPA", async () => {
@@ -100,7 +96,6 @@ describe("ModelLibraryScreen", () => {
     render(<ModelLibraryScreen />);
     await userEvent.click(screen.getByRole("button", { name: "+ Upload" }));
     expect(navigate).toHaveBeenCalledWith({ to: "/models/new" });
-    expect(leaveTo).not.toHaveBeenCalled();
   });
 
   it("asks before deleting and hands the slug to the container", async () => {

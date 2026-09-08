@@ -5,7 +5,6 @@ import { createModel, modelPath } from "@/entities/model";
 import { CHUNK_SIZE, runChunkedUpload, type UploadProgress, type UploadSample } from "@/entities/upload";
 import { meQuery } from "@/entities/user";
 import { messageOf } from "@/shared/api";
-import { leaveTo } from "@/shared/lib/leave";
 import { notify } from "@/shared/lib/notify";
 import { can } from "@/shared/session";
 import type { ChecklistItem } from "@/shared/ui/checklist";
@@ -152,7 +151,7 @@ export function useUploadModels(): UploadModelsState {
     setCurrentId(null);
     setProgress(null);
     if (cancelled) return;
-    if (created.length === 1) leaveTo(`${modelPath(created[0].slug)}?jobId=${created[0].jobId}`);
+    if (created.length === 1) void navigate({ href: `${modelPath(created[0].slug)}?jobId=${created[0].jobId}` });
     else if (created.length > 1) void navigate({ to: "/models" });
   }
 

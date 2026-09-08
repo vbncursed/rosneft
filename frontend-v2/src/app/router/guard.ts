@@ -124,7 +124,8 @@ const REPLACE_FORM = /^\/territories\/[^/]+\/replace$/;
  * A catalog screen href, query string included: the four list/upload routes,
  * the account page and its two-factor wizard, a model's page, a territory's
  * replace form and a territory's own page — the conversion screen; a ready
- * territory's viewer is still the old SPA, and that page leaves for it itself.
+ * territory's viewer is still the old SPA, and that page leaves for it only on
+ * a finish it watched, or through its own button.
  */
 export const isCatalogHref = (href: string): boolean => {
   const path = href.split("?")[0];

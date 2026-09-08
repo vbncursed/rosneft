@@ -5,9 +5,10 @@ import type { AuditEntry } from "@/entities/audit";
 import type { AuditState } from "../model/use-audit";
 import { AuditScreen } from "./audit-screen";
 
-const { useAudit, leaveTo } = vi.hoisted(() => ({ useAudit: vi.fn(), leaveTo: vi.fn() }));
+const { useAudit, navigate } = vi.hoisted(() => ({ useAudit: vi.fn(), navigate: vi.fn() }));
 vi.mock("../model/use-audit", () => ({ useAudit }));
-vi.mock("@/shared/lib/leave", () => ({ leaveTo }));
+// A stand-in for the router context: the screen is rendered on its own.
+vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 
 const entry = (id: number, over: Partial<AuditEntry> = {}): AuditEntry => ({
   id,
@@ -56,7 +57,7 @@ const state = (over: Partial<AuditState> = {}): AuditState => ({
 
 beforeEach(() => {
   useAudit.mockReset();
-  leaveTo.mockReset();
+  navigate.mockReset();
 });
 
 describe("AuditScreen", () => {
@@ -219,11 +220,11 @@ describe("AuditScreen", () => {
     expect(select).toHaveBeenCalledWith(null);
   });
 
-  it("leaves for the entity the record names", async () => {
+  it("navigates to the entity the record names, staying in the SPA", async () => {
     useAudit.mockReturnValue(state({ selected: E1 }));
     render(<AuditScreen />);
     await userEvent.click(screen.getByRole("button", { name: "Open entity" }));
-    expect(leaveTo).toHaveBeenCalledWith("/territories/refinery");
+    expect(navigate).toHaveBeenCalledWith({ href: "/territories/refinery" });
   });
 
   it("offers nowhere to open for a deleted entity", () => {
