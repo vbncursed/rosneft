@@ -23,7 +23,7 @@ export function JobCard({ card }: JobCardProps) {
   const skin = SKIN[card.status];
   return (
     <article
-      aria-label={card.title}
+      aria-label={`Conversion of ${card.title}`}
       className={cx(
         "relative overflow-hidden rounded-[12px] border py-[15px] pl-5 pr-[17px]",
         skin.card,
@@ -57,7 +57,7 @@ export function JobCard({ card }: JobCardProps) {
             size="lg"
             tone="warn"
             value={card.percent}
-            ariaLabel={`Conversion of ${card.title}`}
+            ariaLabel={`${card.title} progress`}
             className="flex-1"
           />
           <span className="whitespace-nowrap font-mono text-[11px] text-warn">{card.percent}%</span>

@@ -162,6 +162,25 @@ describe("HomePage", () => {
     expect(screen.getByText("auth.login")).toBeInTheDocument();
   });
 
+  it("names every article apart when a converting territory is also a card", () => {
+    page({
+      jobs: [job(), job({ kind: "model", slug: "valve", title: "Valve", href: "/models/valve" })],
+      jobsMeta: "2 jobs · updates by itself",
+      territories: {
+        cards: [
+          { ...territory("refinery-block-c"), title: "Refinery Block C" },
+          territory("north-ridge-pad"),
+        ],
+        total: 2,
+        meta: "showing 2 of 2",
+        viewerEmpty: false,
+      },
+    });
+    const names = screen.getAllByRole("article").map((a) => a.getAttribute("aria-label"));
+    expect(names).toHaveLength(5);
+    expect(new Set(names).size).toBe(names.length);
+  });
+
   it("draws no chrome of its own", () => {
     const { container } = page();
     expect(container.querySelector("main")).toBeNull();

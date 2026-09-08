@@ -20,6 +20,46 @@ describe("recent", () => {
     expect(recent(items, 3).map((i) => i.slug)).toEqual(["c", "a", "b"]);
     expect(recent(items, 10).map((i) => i.slug)).toEqual(["c", "a", "b", "d"]);
   });
+  it("orders by the instant, not the string — Go trims trailing zeros off RFC3339Nano", () => {
+    // ".5Z" and ".50001Z" are the same millisecond, so slug breaks the tie;
+    // as strings the trimmed one sorts after the longer and reads as older.
+    expect(
+      recent(
+        [
+          { slug: "a", updatedAt: "2026-09-01T10:00:53.50001Z" },
+          { slug: "b", updatedAt: "2026-09-01T10:00:53.5Z" },
+        ],
+        2,
+      ).map((i) => i.slug),
+    ).toEqual(["a", "b"]);
+    expect(
+      recent(
+        [
+          { slug: "trimmed", updatedAt: "2026-09-01T10:00:00Z" },
+          { slug: "later", updatedAt: "2026-09-01T10:00:00.5Z" },
+        ],
+        2,
+      ).map((i) => i.slug),
+    ).toEqual(["later", "trimmed"]);
+  });
+
+  it("puts an unparseable date last, beside the undefined ones", () => {
+    expect(
+      recent(
+        [
+          { slug: "bad", updatedAt: "not a date" },
+          { slug: "none" },
+          { slug: "dated", updatedAt: "2026-09-01T00:00:00Z" },
+        ],
+        3,
+      ).map((i) => i.slug),
+    ).toEqual(["dated", "bad", "none"]);
+  });
+
+  it("orders two undated entries by slug", () => {
+    expect(recent([{ slug: "b" }, { slug: "a" }], 2).map((i) => i.slug)).toEqual(["a", "b"]);
+  });
+
   it("does not mutate its input", () => {
     const items = [{ slug: "b" }, { slug: "a" }];
     recent(items, 2);

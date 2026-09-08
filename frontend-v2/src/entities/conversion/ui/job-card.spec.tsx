@@ -17,9 +17,9 @@ const card = (over: Partial<JobCardModel> = {}): JobCardModel => ({
 describe("JobCard", () => {
   it("names the job, prints its status word, meta and a uniquely named link", () => {
     render(<JobCard card={card()} />);
-    const article = screen.getByRole("article", { name: "Refinery Block C" });
-    // "Refinery Block C" is both the title and part of the link's text, so the
-    // title is read off the title row rather than the whole card.
+    // Named for the conversion, not the entity: a territory can be both in this
+    // strip and among the cards below, and two articles must not share a name.
+    const article = screen.getByRole("article", { name: "Conversion of Refinery Block C" });
     expect(within(article).getByText("converting")).toBeInTheDocument();
     expect(
       within(article).getByText("territory · refinery-block-c · building LOD 1"),
@@ -32,7 +32,7 @@ describe("JobCard", () => {
   it("draws the bar and the percent while converting", () => {
     render(<JobCard card={card()} />);
     expect(
-      screen.getByRole("progressbar", { name: "Conversion of Refinery Block C" }),
+      screen.getByRole("progressbar", { name: "Refinery Block C progress" }),
     ).toHaveAttribute("aria-valuenow", "58");
     expect(screen.getByText("58%")).toBeInTheDocument();
   });

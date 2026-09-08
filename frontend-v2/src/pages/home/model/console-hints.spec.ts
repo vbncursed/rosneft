@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AuditEntry } from "@/entities/audit";
-import { accessHint, auditHint, contentHint, hintOf, metricsHint, rolesHint, STATIC_HINTS, usersHint } from "./console-hints";
+import { accessHint, auditHint, contentHint, hintOf, metricsHint, rolesHint, usersHint } from "./console-hints";
 
 const user = (status: "active" | "frozen" | "deleted") => ({
   id: status, username: status, email: "", status, totpEnabled: null, passkeyEnabled: null, totpRequired: false,
@@ -29,19 +29,26 @@ describe("console hints", () => {
     expect(accessHint(6)).toBe("6 grants");
     expect(accessHint(1)).toBe("1 grant");
     expect(metricsHint([])).toBe("no alerts firing");
-    expect(metricsHint([{ name: "a", meta: "", state: "firing", service: "", severity: "" }, { name: "b", meta: "", state: "pending", service: "", severity: "" }])).toBe("1 alert firing");
+    const alert = (state: "firing" | "pending") => ({ name: state, meta: "", state, service: "", severity: "" });
+    expect(metricsHint([alert("firing"), alert("pending")])).toBe("1 alert firing");
+    expect(metricsHint([alert("firing"), alert("firing")])).toBe("2 alerts firing");
   });
   it("counts the events inside the 24 drawn hours, and caps at the window limit", () => {
     // 13:59 lands in bucketOf's oldest bucket (starts 13:00, 23h before NOW's
-    // running hour); 11:59 falls an hour short of it and is dropped. Verified
+    // running hour); 12:59 is the hour below it and is dropped. Verified
     // against the real bucketOf in entities/audit/model/window.spec.ts.
-    expect(auditHint([entry("2026-09-08T12:01:00Z"), entry("2026-09-07T13:59:00Z"), entry("2026-09-07T11:59:00Z")], NOW)).toBe("2 events · 24h");
+    expect(auditHint([entry("2026-09-08T12:01:00Z"), entry("2026-09-07T13:59:00Z"), entry("2026-09-07T12:59:00Z")], NOW)).toBe("2 events · 24h");
+    expect(auditHint([entry("2026-09-08T12:01:00Z")], NOW)).toBe("1 event · 24h");
     expect(auditHint(Array.from({ length: 200 }, () => entry("2026-09-08T12:01:00Z")), NOW)).toBe("200+ events · 24h");
   });
   it("answers static while locked or loading, unavailable when failed, and the count otherwise", () => {
-    expect(hintOf("users", { locked: true, loading: false, failed: false }, "12 users")).toEqual({ kind: "static", text: STATIC_HINTS.users });
-    expect(hintOf("users", { locked: false, loading: true, failed: false }, null)).toEqual({ kind: "static", text: STATIC_HINTS.users });
+    expect(hintOf("users", { locked: true, loading: false, failed: false }, "12 users")).toEqual({ kind: "static", text: "people and roles" });
+    expect(hintOf("users", { locked: false, loading: true, failed: false }, null)).toEqual({ kind: "static", text: "people and roles" });
     expect(hintOf("users", { locked: false, loading: false, failed: true }, null)).toEqual({ kind: "unavailable", text: "count unavailable" });
     expect(hintOf("users", { locked: false, loading: false, failed: false }, "12 users")).toEqual({ kind: "count", text: "12 users" });
+    // An answered query that still could not be counted is unavailable, not blank.
+    expect(hintOf("users", { locked: false, loading: false, failed: false }, null)).toEqual({ kind: "unavailable", text: "count unavailable" });
+    // A key Home has no static line for says nothing rather than "undefined".
+    expect(hintOf("tasks", { locked: true, loading: false, failed: false }, null)).toEqual({ kind: "static", text: "" });
   });
 });

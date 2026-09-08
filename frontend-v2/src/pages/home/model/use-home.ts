@@ -62,6 +62,8 @@ export function useHome(): HomeState {
   const shown = recent(territories.data ?? [], TERRITORY_CARDS);
   const artifacts = useQueries({
     queries: shown.map((t) => artifactsQuery("territory", t.slug)),
+    // Inline, not hoisted: it closes over `shown`, and only the array built in
+    // the same render lines up with `results` (see use-territory-catalog.ts).
     combine: (results) => ({
       pending: results.some((r) => r.isPending),
       failed: results.map(unanswered).find((e) => e !== null) ?? null,
@@ -95,6 +97,7 @@ export function useHome(): HomeState {
   const modelCards = recent(allModels, MODEL_CARDS).map((m) =>
     toModelCard(m, [], jobOf("model", m.slug)),
   );
+  const title = titleOf(allTerritories, allModels);
 
   return {
     status: loading ? "loading" : failed ? "unavailable" : "ready",
@@ -102,7 +105,7 @@ export function useHome(): HomeState {
     meta: headerMeta(allTerritories.length, allModels.length, allJobs, empty),
     canUploadTerritory,
     canUploadModel,
-    jobs: sortJobs(allJobs).map((j) => toJobCard(j, titleOf(allTerritories, allModels))),
+    jobs: sortJobs(allJobs).map((j) => toJobCard(j, title)),
     jobsMeta: jobsMeta(allJobs),
     territories: {
       cards: shown.map((t) =>

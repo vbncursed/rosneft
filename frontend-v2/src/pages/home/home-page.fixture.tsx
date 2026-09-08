@@ -3,7 +3,7 @@ import type { JobCardModel } from "@/entities/conversion";
 import type { ModelCardModel } from "@/entities/model";
 import type { TerritoryCardModel } from "@/entities/territory";
 import { CatalogShell } from "@/widgets/catalog-shell";
-import { STATIC_HINTS } from "./model/console-hints";
+import { STATIC_HINTS, type ConsoleKey } from "./model/console-hints";
 import type { ConsoleCardProps } from "./ui/console-card";
 import { HomePage, type HomePageProps } from "./ui/home-page";
 
@@ -75,7 +75,7 @@ const open = (key: string, label: string, text: string): ConsoleCardProps => ({
   locked: false,
 });
 
-const locked = (key: string, label: string): ConsoleCardProps => ({
+const locked = (key: ConsoleKey, label: string): ConsoleCardProps => ({
   label,
   href: `/console/${key}`,
   hint: { kind: "static", text: STATIC_HINTS[key] },
@@ -119,11 +119,14 @@ const JOBS: JobCardModel[] = [
 ];
 
 // Live shapes from GET /api/audit/mine: auth rows carry no label and no territory.
+// Three rows follow the clock so the "HH:MM" and "yesterday" forms are always
+// on screen; the oldest is a fixed instant, because "dd.mm HH:MM" is the one
+// form a relative offset cannot pin — it would read differently every day.
 const ACTIVITY = [
   entry(4, "auth.login", ago(3)),
   entry(3, "territory.replace_source", ago(18), "", "refinery-block-c"),
   entry(2, "model.create", ago(20), "Valve Assembly"),
-  entry(1, "placement.update", ago(75), "Pump Jack Unit", "north-ridge-pad"),
+  entry(1, "placement.update", "2026-06-14T11:37:00Z", "Pump Jack Unit", "north-ridge-pad"),
 ];
 
 const CONSOLE_OPEN = [

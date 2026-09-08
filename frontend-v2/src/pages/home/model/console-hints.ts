@@ -8,14 +8,17 @@ import { plural } from "./home-view";
 export type ConsoleHint = { kind: "static" | "count" | "unavailable"; text: string };
 
 /** What a locked or still-loading card says about its screen. */
-export const STATIC_HINTS: Record<string, string> = {
+export const STATIC_HINTS = {
   users: "people and roles",
   roles: "who may do what",
   content: "territories and models",
   access: "who sees which territory",
   audit: "every change, newest first",
   metrics: "conversion health and alerts",
-};
+} as const;
+
+/** The six console screens Home counts for — the keys `SCREENS` hands down. */
+export type ConsoleKey = keyof typeof STATIC_HINTS;
 
 // The list is fetched with includeDeleted — a deleted account is not a user.
 export const usersHint = (users: User[]): string => {
@@ -41,7 +44,7 @@ export const auditHint = (entries: AuditEntry[], now: Date): string => {
 
 export const metricsHint = (alerts: AlertSummary[]): string => {
   const firing = alerts.filter((a) => a.state === "firing").length;
-  return firing === 0 ? "no alerts firing" : `${firing} ${firing === 1 ? "alert" : "alerts"} firing`;
+  return firing === 0 ? "no alerts firing" : `${plural(firing, "alert", "alerts")} firing`;
 };
 
 export function hintOf(
@@ -49,7 +52,8 @@ export function hintOf(
   state: { locked: boolean; loading: boolean; failed: boolean },
   count: string | null,
 ): ConsoleHint {
-  if (state.locked || state.loading) return { kind: "static", text: STATIC_HINTS[key] ?? "" };
+  if (state.locked || state.loading)
+    return { kind: "static", text: STATIC_HINTS[key as ConsoleKey] ?? "" };
   if (state.failed || count === null) return { kind: "unavailable", text: "count unavailable" };
   return { kind: "count", text: count };
 }

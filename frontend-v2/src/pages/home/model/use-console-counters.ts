@@ -17,6 +17,7 @@ import {
   rolesHint,
   usersHint,
   type ConsoleHint,
+  type ConsoleKey,
 } from "./console-hints";
 
 type Q = { isLoading: boolean; data: unknown; error: unknown };
@@ -26,7 +27,7 @@ type Q = { isLoading: boolean; data: unknown; error: unknown };
  * A locked card asks nothing (`enabled: false`) — and a disabled query stays
  * `isPending` forever, so `isLoading` is what "loading" reads here.
  */
-export function useConsoleCounters(items: ConsoleNavItem[]): Record<string, ConsoleHint> {
+export function useConsoleCounters(items: ConsoleNavItem[]): Record<ConsoleKey, ConsoleHint> {
   const open = (key: string) => items.some((i) => i.key === key && !i.disabled);
 
   const users = useQuery({ ...usersQuery, enabled: open("users") });
@@ -42,12 +43,14 @@ export function useConsoleCounters(items: ConsoleNavItem[]): Record<string, Cons
     // No territories is no grants, not an unknown count — `rs.length === 0`
     // would otherwise leave an owner with an empty catalog reading
     // "count unavailable". The card still waits on `territories` itself.
+    // Readiness is `data !== undefined`, the same gate `hint()` uses below:
+    // an empty answer is an answer.
     combine: (rs) => ({
       isLoading: rs.some((r) => r.isLoading),
       data:
         rs.length === 0
           ? 0
-          : rs.every((r) => r.data)
+          : rs.every((r) => r.data !== undefined)
             ? rs.reduce((n, r) => n + (r.data?.length ?? 0), 0)
             : undefined,
       error: rs.map(unanswered).find((e) => e !== null) ?? null,
