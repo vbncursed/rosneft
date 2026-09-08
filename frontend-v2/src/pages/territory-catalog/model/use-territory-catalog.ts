@@ -2,13 +2,13 @@ import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/rea
 import { useEffect, useRef, useState } from "react";
 import { artifactsQuery } from "@/entities/content";
 import { finishedSince, jobsQuery, type TargetJob } from "@/entities/conversion";
-import { deleteTerritory, territoriesQuery } from "@/entities/territory";
+import { deleteTerritory, territoriesQuery, toTerritoryCard, type TerritoryCardModel } from "@/entities/territory";
 import { meQuery } from "@/entities/user";
 import { messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
 import { unanswered } from "@/shared/lib/unanswered";
 import { can } from "@/shared/session";
-import { toTerritoryCard, type TerritoryCardModel, type TerritoryTab } from "./catalog";
+import type { TerritoryTab } from "./catalog";
 
 export type TerritoryCatalogState = {
   status: "loading" | "ready" | "unavailable";

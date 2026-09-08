@@ -1,4 +1,6 @@
 export { territoryPath, type Territory } from "./model/territory";
+export { toTerritoryCard, type TerritoryCardModel } from "./model/territory-card";
+export { TerritoryCard, type TerritoryCardProps } from "./ui/territory-card";
 export {
   createTerritory,
   deleteTerritory,

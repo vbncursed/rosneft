@@ -1,14 +1,12 @@
-import type { ConversionStatus } from "@/entities/conversion";
-import { territoryPath } from "@/entities/territory";
+import { TerritoryCard, territoryPath, type TerritoryCardModel } from "@/entities/territory";
 import { ThemeToggle } from "@/features/theme-toggle";
 import { FilterBar } from "@/features/audit-filter";
 import { EmptyState } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
-import { CatalogCard, type CatalogTone } from "@/shared/ui/catalog-card";
 import { Icon } from "@/shared/ui/icon";
 import { Segmented } from "@/shared/ui/segmented";
 import { PageHeader } from "@/widgets/page-header";
-import type { TerritoryCardModel, TerritoryTab } from "../model/catalog";
+import type { TerritoryTab } from "../model/catalog";
 
 export type TerritoryCatalogPageProps = {
   cards: TerritoryCardModel[];
@@ -26,19 +24,6 @@ export type TerritoryCatalogPageProps = {
   onDelete: (slug: string) => void;
   /** What the list says when it is empty — a filter miss by default. */
   emptyHint?: string;
-};
-
-const TONE: Record<ConversionStatus, CatalogTone> = {
-  ready: "neutral",
-  pending: "neutral",
-  converting: "warn",
-  failed: "bad",
-};
-
-const BADGE: Partial<Record<ConversionStatus, { label: string; tone: "ok" | "warn" | "bad" }>> = {
-  ready: { label: "ready", tone: "ok" },
-  converting: { label: "converting", tone: "warn" },
-  failed: { label: "failed", tone: "bad" },
 };
 
 export function TerritoryCatalogPage({
@@ -108,18 +93,11 @@ export function TerritoryCatalogPage({
       ) : (
         <div className="grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))]">
           {cards.map((card) => (
-            <CatalogCard
+            <TerritoryCard
               key={card.slug}
-              title={card.title}
-              description={card.description}
-              slug={card.slug}
-              tone={TONE[card.status]}
-              badge={BADGE[card.status]}
-              chips={card.chips}
-              progress={card.progress}
-              trailing={card.trailing}
-              onOpen={() => onOpen(card.slug)}
+              card={card}
               href={territoryPath(card.slug)}
+              onOpen={() => onOpen(card.slug)}
               actions={
                 canReplace || canDelete ? (
                   <>

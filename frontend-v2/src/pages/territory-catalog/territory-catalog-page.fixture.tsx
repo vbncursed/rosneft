@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { CatalogShell } from "@/widgets/catalog-shell";
-import { matchesTerritory, tabCounts, type TerritoryCardModel, type TerritoryTab } from "./model/catalog";
+import type { TerritoryCardModel } from "@/entities/territory";
+import { matchesTerritory, tabCounts, type TerritoryTab } from "./model/catalog";
 import { TerritoryCatalogPage } from "./ui/territory-catalog-page";
 
 const CARDS: TerritoryCardModel[] = [
