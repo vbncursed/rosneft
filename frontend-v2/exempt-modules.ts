@@ -26,6 +26,9 @@ export const EXEMPT_MODULES = [
   // Wiring: the catalog subtree, split from routes.tsx at the 200-line cap;
   // its decisions are in guard.ts.
   "src/app/router/catalog-routes.tsx",
+  // wiring: reads the cached principal and hands consoleNav's items to the
+  // screen; consoleNav has the spec
+  "src/app/router/home-route.tsx",
   // wiring; every decision is in guard.ts
   "src/app/router/console-shell.tsx",
   // Same as console-shell.tsx above: the click delegate calls routesInApp,

@@ -12,6 +12,7 @@ import { UploadTerritoryScreen } from "@/pages/upload-territory";
 import { isAuthed } from "@/shared/session";
 import { CatalogShellRoute } from "./catalog-shell-route";
 import { redirectTarget } from "./guard";
+import { HomeRoute } from "./home-route";
 import { rootRoute } from "./routes";
 
 // The catalog shell has no sidebar-derived gate: any signed-in principal
@@ -27,6 +28,14 @@ export const catalogRoute = createRoute({
   },
   loader: ({ context }) => context.queryClient.ensureQueryData(meQuery),
   component: CatalogShellRoute,
+});
+
+// Home replaced the redirect to /console on 2026-09-08: the app is no longer
+// "the console", and a Viewer with no console screen has a page of its own.
+export const homeRoute = createRoute({
+  getParentRoute: () => catalogRoute,
+  path: "/",
+  component: HomeRoute,
 });
 
 export const territoriesRoute = createRoute({

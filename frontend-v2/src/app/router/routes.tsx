@@ -38,17 +38,6 @@ export const rootRoute = createRootRouteWithContext<{ queryClient: QueryClient }
   component: Outlet,
 });
 
-// Nothing lives at the root: the app is the console. Not an auth check of its
-// own — /console has one, and duplicating it here would be a second thing to
-// keep in step.
-export const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/",
-  beforeLoad: () => {
-    throw redirect({ to: "/console" });
-  },
-});
-
 export const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
