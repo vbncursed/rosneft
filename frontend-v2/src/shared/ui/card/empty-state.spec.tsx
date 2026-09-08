@@ -66,3 +66,25 @@ describe("EmptyState · row layout", () => {
     expect(container.firstElementChild!.className).not.toContain("text-center");
   });
 });
+
+describe("EmptyState · start layout", () => {
+  it("left-aligns a dashed card with the title and a wrapped sentence", () => {
+    const { container } = render(
+      <EmptyState
+        layout="start"
+        title="No territories are assigned to you yet"
+        description="Access is granted per territory. Ask your company owner to assign one — it will appear here as soon as they do."
+      />,
+    );
+    const root = container.firstElementChild!;
+    expect(root.className).toContain("text-left");
+    expect(root.className).toContain("border-dashed");
+    expect(screen.getByText("No territories are assigned to you yet")).toBeInTheDocument();
+    expect(screen.getByText(/Access is granted per territory/)).toBeInTheDocument();
+  });
+
+  it("draws the action under the sentence when given", () => {
+    render(<EmptyState layout="start" title="Nothing" action={<button type="button">Go</button>} />);
+    expect(screen.getByRole("button", { name: "Go" })).toBeInTheDocument();
+  });
+});

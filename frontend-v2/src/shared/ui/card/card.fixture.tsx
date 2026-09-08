@@ -39,5 +39,10 @@ export default (
         </Button>
       }
     />
+    <EmptyState
+      layout="start"
+      title="No territories are assigned to you yet"
+      description="Access is granted per territory. Ask your company owner to assign one — it will appear here as soon as they do."
+    />
   </div>
 );
