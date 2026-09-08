@@ -329,8 +329,9 @@ Empty, viewer-empty: `<EmptyState layout="start" title="No territories are
 assigned to you yet" description="Access is granted per territory. Ask your
 company owner to assign one — it will appear here as soon as they do." />`,
 no trailing. Empty, uploader (the mock does not draw it): the same
-component, `No territories yet` / `Upload a source archive and the first
-one will appear here.` — the header already offers the upload.
+component, `No territories yet` / `Upload a source archive from the
+territory catalog and the first one will appear here.` **(round two —
+Home draws no upload button, so the sentence names where one is.)**
 
 ### 3.3 Models
 
