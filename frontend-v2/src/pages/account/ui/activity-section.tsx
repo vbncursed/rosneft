@@ -1,8 +1,7 @@
-import type { AuditEntry } from "@/entities/audit";
+import { ActivityRow, type AuditEntry } from "@/entities/audit";
 import { Button } from "@/shared/ui/button";
 import { Callout } from "@/shared/ui/callout";
 import { EmptyState } from "@/shared/ui/card";
-import { relativeAt, summaryOf } from "../model/activity";
 
 export type ActivitySectionProps = {
   /**
@@ -56,30 +55,14 @@ export function ActivitySection({
       ) : (
         <>
           <ul className="m-0 list-none p-0">
-            {entries.map((entry) => {
-              // Empty for most auth rows, which carry no label, no territory
-              // and no failure — the line is dropped rather than filled with
-              // the entity's table name.
-              const summary = summaryOf(entry);
-              return (
-                <li
-                  key={entry.id}
-                  className="flex items-start gap-3 border-b border-line px-[22px] py-3.5"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="m-0 font-mono text-xs">{entry.action}</p>
-                    {summary ? (
-                      <p className="m-0 mt-1 font-mono text-[10px] text-muted">
-                        {summary}
-                      </p>
-                    ) : null}
-                  </div>
-                  <span className="whitespace-nowrap font-mono text-[10px] text-muted">
-                    {relativeAt(entry.at, now)}
-                  </span>
-                </li>
-              );
-            })}
+            {entries.map((entry) => (
+              <ActivityRow
+                key={entry.id}
+                entry={entry}
+                now={now}
+                className="px-[22px] py-3.5"
+              />
+            ))}
           </ul>
           <div className="flex flex-wrap items-center justify-between gap-3 px-[22px] py-3.5">
             <span className="font-mono text-[10px] text-muted">

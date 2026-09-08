@@ -1,4 +1,4 @@
-import type { AuditEntry } from "@/entities/audit";
+import type { AuditEntry } from "./audit-entry";
 
 /**
  * The second line of an activity row: what the action touched, and whether it
