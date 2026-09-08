@@ -37,7 +37,11 @@ and drive the real chunked-upload protocol. `/account` and
 `/account/two-factor` — password change, 2FA enrolment/disable, passkey
 management, the caller's own activity feed — live in the same shell.
 `/territories/{slug}` is the conversion-pending page (SSE by `jobId`, the
-jobs poll as the fallback); the 3D viewer at that URL is still `frontend/`.
+jobs poll as the fallback). **Home is v2 now**: `/` (`frontend-v2/src/pages/home`)
+is the landing page — the conversions in flight, the four most recently
+updated territories, five models, the console doorways with counts, and the
+reader's own activity. Only the 3D viewer, at `/territories/{slug}` for a
+ready territory, remains in `frontend/`; sign-in with no `?next=` lands on `/`.
 **Working in it? Read [`frontend-v2/CLAUDE.md`](frontend-v2/CLAUDE.md)
 first**: it records the design decisions, the user's working rules, and the
 tooling traps (chief among them that `tsc --noEmit` type-checks nothing there, and that a parallel session

@@ -229,6 +229,17 @@ Cyrillic. Still undecided whether to swap the display face.
 rules or a per-container class — Chrome disables `scrollbar-color` when the
 webkit pseudo-elements are present.
 
+**Home's recorded deviations from `Home v2.dc.html`**: the console table
+uses `Roles & Permissions`, the mock's `Roles` — one `SCREENS` label,
+already shared with the sidebar; the section count reads `text-dim`, not the
+mock's `--muted`, same carried follow-up as everywhere else; the catalogs'
+own card geometry stands (132 px thumbnail band, `Open →` trailing, `no
+image` in place of the mock's cube), not the mock's 126/104 px bands and
+`Open {title} →`; the Users console hint has no "invited" state (the
+gateway's only statuses are `active`/`frozen`/`deleted`) and the Audit hint
+carries `· 24h`; six console cards wrap at 1280 px on the mock's own
+`minmax(220px,1fr)` — not a bug, the mock itself does.
+
 ## Patterns to follow, not re-derive
 
 - **A page draws no chrome.** Console screens render inside
@@ -261,6 +272,16 @@ webkit pseudo-elements are present.
 - Charts: every series on one chart shares one maximum, or a flat line looks
   like a mountain beside a real one. A single reading draws as a flat segment,
   a flat-zero series sits on the baseline rather than dividing by zero.
+- **A card an entity owns lives in that entity, not in the page that first
+  drew it.** `TerritoryCard`/`toTerritoryCard` (`entities/territory`),
+  `ModelCard`/`toModelCard` (`entities/model`), `JobCard`/`toJobCard`/
+  `jobPhrase` (`entities/conversion`), `ActivityRow`/`relativeAt`/
+  `summaryOf`/`windowStart`/`bucketOf` (`entities/audit`) — the catalogs, the
+  account feed and the audit page all import them from there, not from each
+  other. `ActivityRow` takes a `className` and sets no padding of its own;
+  the caller spaces its own rows. `SectionHeading` has a `trailing` slot
+  after the rule, and `EmptyState` has a `layout="start"` variant, both
+  reused rather than re-derived per page.
 
 ## Where things live
 
@@ -359,6 +380,28 @@ that meta line and the failure box, never by the steps themselves. Upload
 Territory and Replace Source navigate here instead of leaving; `leaveTo` has
 one caller left, this page.
 
+**Home** (`/`, `pages/home`) is the landing screen. `useHome` owns three
+lists (territories, models, jobs), the jobs poll, one artifacts query per
+*shown* territory — the four most recently updated, `recent(...)` in
+`home-view.ts`, never the rest — and the first page of `myAuditQuery`
+sliced to `ACTIVITY_ROWS` (4). The feed never blocks the page: `activity` is
+`null` when unanswered (a Guest's 403), exactly the tri-state `/account`
+already reads. `finishedSince` invalidates a *shown* territory's artifacts
+when its job leaves the live set, same as Content and the catalogs.
+`useConsoleCounters` counts only the cards the reader can open — each query
+is `enabled: !item.disabled`, and reads `isLoading` rather than `isPending`
+because a disabled query stays pending forever (the Roles lesson); a locked
+or still-loading card reads `STATIC_HINTS[key]`, an open query that never
+answered reads "count unavailable", and Access fans out one `adminsQuery`
+per territory — the same shape `/console/access` already uses. `viewerEmpty`
+(no territories, no upload right of either kind) hides Models and switches
+the header and territories meta lines. The console items come **down from
+the route**: `app/router/home-route.tsx` hands `consoleNav(me)` to
+`HomeScreen` as a prop because `SCREENS` lives in `app/router/guard.ts` and
+a page may not import it. A Company Owner answers `isOwner: false`, so its
+Territory access and Metrics cards are locked on Home exactly as they are in
+the console sidebar.
+
 **Territory access** is the territories list, the users list and one
 admins query per territory; visibility is derived (anyone assigned →
 `assigned`, nobody → `private`), every grant is `direct`, drafts are kept per
@@ -410,14 +453,18 @@ Rulings from those screens that a later one will meet again:
 
 Routes: `/login`; `/console/{users,roles,content,access,audit,metrics}` under
 `ConsoleShell` — Metrics alone carries a search param, `?range=`, validated by
-the route; `/territories`, `/territories/new`, `/territories/$slug`
+the route; `/` (`homeRoute` in `app/router/catalog-routes.tsx`, component
+`HomeRoute`), `/territories`, `/territories/new`, `/territories/$slug`
 (search `?jobId=`, validated by the route), `/territories/$slug/replace`,
 `/models`, `/models/new`, `/models/$slug`, `/account`, `/account/two-factor`
-under the sidebar-free `CatalogShell`; and `/` and `/console` alone, both of
-which resolve a landing screen rather than rendering one. Both shells run the
-same click delegate (`routesInApp`), so a link from a console screen into the
-catalog — or back — stays in the SPA. `isCatalogHref` matches the six
-list/upload/account paths exactly, plus `/models/<slug>`, `/territories/<slug>`
+under the sidebar-free `CatalogShell`; and `/console` alone, which still
+resolves a landing screen rather than rendering one — the old
+`redirect({ to: "/console" })` on `/` is gone, `"/"` is in `CATALOG_PATHS`,
+and sign-in with no `?next=` lands on `/` (`nextTarget`'s `FALLBACK`). Both
+shells run the same click delegate (`routesInApp`), so a link from a console
+screen into the catalog — or back — stays in the SPA. `isCatalogHref` matches the
+seven `CATALOG_PATHS` exactly — Home plus the six list/upload/account paths —
+plus `/models/<slug>`, `/territories/<slug>`
 and `/territories/<slug>/replace` by pattern. `/territories/<slug>` is the
 conversion page now; a ready territory's viewer is still the old SPA, and
 only that page leaves for it, through `leaveTo`, on a finish it watched or on
