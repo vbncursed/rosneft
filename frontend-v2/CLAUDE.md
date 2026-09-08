@@ -408,6 +408,22 @@ a page may not import it. A Company Owner answers `isOwner: false`, so its
 Territory access and Metrics cards are locked on Home exactly as they are in
 the console sidebar.
 
+**Home draws no upload button** (round two, 2026-09-09). Uploading belongs
+on the catalog that owns the thing uploaded, and both catalogs offer it, so
+`HomePageProps` carries no `canUpload*`/`onUpload*` and `home-page.tsx`
+imports no `Button` — `useHome` still computes the two grants as locals
+because `viewerEmpty` means "nothing assigned and nothing you may upload".
+The header carries `widgets/account-pill` instead: a link to `/account`
+with the avatar, username and role title, fed by `viewerOf(me)`. **`viewerOf`
+has exactly one definition, `shared/session/principal.ts`** — it used to sit
+in `app/router/guard.ts`, which a page may not import, so `/account`'s
+header kept a hand-copied `roleTitleOf` beside it; the console shell, the
+account header and `useHome` all read the one copy now. Both See-all links
+draw whenever their list is non-empty (`total > 0`, not `total > cards.length`
+— the mock's own four-of-four catalog had no way out), the Console heading
+carries a `Console →` trailing link, and `/territories` has the `← Home`
+back link `/models` already had.
+
 **Territory access** is the territories list, the users list and one
 admins query per territory; visibility is derived (anyone assigned →
 `assigned`, nobody → `private`), every grant is `direct`, drafts are kept per

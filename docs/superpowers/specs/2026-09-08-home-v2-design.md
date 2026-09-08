@@ -265,12 +265,10 @@ blocks). Unavailable: `<Callout tone="bad">Home is unavailable: {error}</Callout
 
 **Header** — `PageHeader size="xl"`, `eyebrow="Andrey Viewer"`,
 `title="Territories and models"`, `meta`, no description. `action` =
-`<div className="flex items-center gap-[9px]">`: `ThemeToggle
-variant="compact"`, then `Upload model` (`Button variant="secondary"
-shape="control"`) when `canUploadModel`, then `Upload territory`
-(`variant="primary" shape="control"`) when `canUploadTerritory`. Absent,
-never disabled. Clicks navigate to `/models/new` / `/territories/new`
-through the screen.
+`<div className="flex flex-wrap items-center gap-[9px]">`: `ThemeToggle
+variant="compact"`, then `<AccountPill {...viewer} />` **(round two)** —
+the two upload buttons that stood here were removed, the catalogs carry
+them (§8 R4).
 
 Every section header is `SectionHeading` (13 px / 600 title, mono 10 px
 count, hairline, new `trailing` slot). Trailing links are `<a href>` in
@@ -319,7 +317,9 @@ alone: the badge prints the word.
 ### 3.2 Territories
 
 `SectionHeading title="Territories" count={territories.meta}` with trailing
-`See all {total} territories →` (`/territories`) when `total > cards.length`.
+`See all {total} territories →` (`/territories`) when `total > 0`
+**(round two — was `total > cards.length`; the mock draws the link at 4 of
+4, §8 R1)**.
 Grid `grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]`
 of `TerritoryCard` (`entities/territory/ui`), each with `href` =
 `territoryPath(slug)` and `onOpen` navigating there (the conversion page
@@ -336,7 +336,7 @@ one will appear here.` — the header already offers the upload.
 
 Hidden when `viewerEmpty`. `SectionHeading title="Models"
 count={models.meta}` with trailing `See all {total} models →` (`/models`)
-when `total > cards.length`. Grid `grid gap-3
+when `total > 0` **(round two, §8 R1)**. Grid `grid gap-3
 [grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]` of `ModelCard`
 (`entities/model/ui`, `CatalogCard size="sm"`), `href` = `modelPath(slug)`.
 Empty library: `EmptyState layout="start"` `The library is empty` / `Models
@@ -345,7 +345,8 @@ uploaded here can be placed on any territory.`, meta `none yet`.
 ### 3.4 Console
 
 Rendered when any item is open. `SectionHeading title="Console"
-count="company administration"`, no trailing. Grid `grid gap-2.5
+count="company administration"`, trailing `Console →` (`/console`)
+**(round two, §8 R5)**. Grid `grid gap-2.5
 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]` of
 `ConsoleCard` (`pages/home/ui/console-card.tsx`):
 
@@ -520,6 +521,66 @@ title), `console-card` (open with count, open static, locked, unavailable),
   viewer-empty page — dashed card, no Models, no Console, the warn callout
   for the 403; `editor1` (role `editor`) sees no uploads, no Console, and
   activity rows. Clicks on the links stay in the SPA (0 document loads).
+
+## 8. Round two (2026-09-09)
+
+The user read the shipped page live and asked for five changes. They are
+user decisions, not mock readings, except the account pill — `Home
+v2.dc.html`, re-read 2026-09-09, gained one in the header. §3, §3.2, §3.3
+and §3.4 above are amended in place with a "(round two)" note.
+
+**R1 — See all draws whenever there is anything to see.** The gate was
+`total > cards.length`, so the four-of-four catalog the mock itself draws
+had no link out. It is `total > 0` in both sections: a non-empty list
+always offers its catalog, an empty one offers nothing (there is nothing
+to see, and the empty state already says what to do).
+
+**R2 — the territory catalog gets a way back to Home.** `PageHeader
+back={{ label: "← Home", href: "/" }}`, matching the model library, which
+has carried it since Home landed. The spec used to say the catalog *is*
+the top of the tree; Home is above it now, and both catalogs read the
+same.
+
+**R3 — `viewerOf` moves to `shared/session`, and the header gains an
+account pill.**
+
+`viewerOf(me): { username, roleTitle }` lived in `app/router/guard.ts`,
+which a page may not import — so `pages/account/ui/account-header.tsx`
+carried a hand-copied `roleTitleOf` beside it, and Home would have needed
+a third. It is one pure function over `Principal` in
+`shared/session/principal.ts` now, exported from the barrel and read by
+`app/router/console-shell.tsx`, `account-header.tsx` and
+`pages/home/model/use-home.ts`. Its cases moved to `principal.spec.ts`.
+
+`widgets/account-pill` is a widget with no domain knowledge: it takes
+`{ username, roleTitle }` and imports `shared/ui/avatar` alone. Geometry
+from the mock: pill `border --border2`, `bg --panel`, radius 999,
+`padding 5px 13px 5px 5px`, gap 9; avatar 28×28 with `border --accent`,
+`bg --accent-soft`, `color --accent`; username Archivo 12 px / 500; role
+mono 9 px / 0.1em / `--muted`; `aria-label="Open account for {username}"`.
+
+**Deviation:** the mock sets the avatar's initials at 11 px / 600. The
+shared `Avatar` is 12 px / 600 for every caller and stays that way — a
+per-caller font size would be the first crack in a component the whole app
+shares. Measured 12 px in both themes.
+
+`HomeState` and `HomePageProps` gain `viewer`. `me` is cache-warm by the
+time Home renders (the route's loader awaited it), so `me === null` is a
+stale-cache edge, not a loading state: the pill renders with empty
+strings rather than disappearing and moving the header.
+
+**R4 — no upload buttons on Home.** `canUploadTerritory`,
+`canUploadModel`, `onUploadTerritory` and `onUploadModel` are gone from
+`HomePageProps`, `HomePage`, `HomeScreen` and `HomeState`; `home-page.tsx`
+imports no `Button`. Uploading belongs on the catalog that owns the thing
+being uploaded, and both catalogs already offer it. `useHome` still
+computes the two grants as locals — `viewerEmpty` is "nothing assigned and
+nothing you may upload", and that answer has not changed.
+
+**R5 — `Console →` after the Console heading's rule.** The same
+`TrailingLink` the two catalogs use, pointing at `/console`, which
+resolves the reader's own landing screen (`consoleLanding`) rather than a
+constant.
 
 ## Recorded deviations (as built)
 
