@@ -41,12 +41,24 @@ describe("shouldLeave", () => {
 
 describe("ledeOf", () => {
   it("has a sentence for each of the six rows", () => {
-    expect(ledeOf("queued", { hasJob: true, hasLod0: false })).toMatch(/in the queue/);
-    expect(ledeOf("queued", { hasJob: false, hasLod0: false })).toMatch(/no job has been recorded/);
-    expect(ledeOf("running", { hasJob: true, hasLod0: false })).toMatch(/Heavy work happens on the server/);
-    expect(ledeOf("failed", { hasJob: true, hasLod0: false })).toBe("Conversion stopped, so the viewer has nothing to open.");
-    expect(ledeOf("failed", { hasJob: true, hasLod0: true })).toMatch(/previous revision of this territory stays live/);
-    expect(ledeOf("ready", { hasJob: false, hasLod0: true })).toMatch(/leaves this page/);
+    expect(ledeOf("queued", { hasJob: true, hasLod0: false })).toBe(
+      "The archive is uploaded and the job is in the queue. Nothing has been reported yet, so there is no progress to show.",
+    );
+    expect(ledeOf("queued", { hasJob: false, hasLod0: false })).toBe(
+      "The archive is uploaded, but no job has been recorded for it yet. The worker picks such territories up on its own within a few minutes.",
+    );
+    expect(ledeOf("running", { hasJob: true, hasLod0: false })).toBe(
+      "The worker is turning your archive into the compact format the viewer loads. Heavy work happens on the server, not in this tab.",
+    );
+    expect(ledeOf("failed", { hasJob: true, hasLod0: false })).toBe(
+      "Conversion stopped, so the viewer has nothing to open.",
+    );
+    expect(ledeOf("failed", { hasJob: true, hasLod0: true })).toBe(
+      "Conversion stopped, so the viewer has nothing new to open. The previous revision of this territory stays live.",
+    );
+    expect(ledeOf("ready", { hasJob: false, hasLod0: true })).toBe(
+      "The artifacts are in place. The viewer is still the previous app, so opening it leaves this page.",
+    );
   });
 });
 
@@ -62,6 +74,8 @@ describe("STATUS_PILL", () => {
 describe("progressCard", () => {
   it("names the stage and the percent while running", () => {
     expect(progressCard("running", job())).toEqual({ title: "Building LOD 1", detail: "58%", value: 58 });
+    expect(progressCard("running", job({ progress: 0 }))).toEqual({ title: "Building LOD 1", detail: "0%", value: 0 });
+    expect(progressCard("running", job({ progress: 1 }))).toEqual({ title: "Building LOD 1", detail: "100%", value: 100 });
   });
 
   it("keeps the stage but drops the bar when progress is unreported", () => {
