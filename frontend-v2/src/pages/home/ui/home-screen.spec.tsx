@@ -43,8 +43,7 @@ const state = (over: Partial<HomeState> = {}): HomeState => ({
   status: "ready",
   error: null,
   meta: "1 territory · 0 models · nothing converting",
-  canUploadTerritory: true,
-  canUploadModel: true,
+  viewer: { username: "a.ivanova", roleTitle: "Company Owner" },
   jobs: [],
   jobsMeta: "0 jobs",
   territories: { cards: [card], total: 1, meta: "showing 1 of 1", viewerEmpty: false },
@@ -84,13 +83,13 @@ describe("HomeScreen", () => {
     ).toBeInTheDocument();
   });
 
-  it("navigates to the v2 upload routes rather than leaving the SPA", async () => {
+  it("hands the page the signed-in reader for its account pill", () => {
     useHome.mockReturnValue(state());
     render(<HomeScreen consoleItems={items(true)} />);
-    await userEvent.click(screen.getByRole("button", { name: "Upload territory" }));
-    expect(navigate).toHaveBeenCalledWith({ to: "/territories/new" });
-    await userEvent.click(screen.getByRole("button", { name: "Upload model" }));
-    expect(navigate).toHaveBeenCalledWith({ to: "/models/new" });
+    expect(screen.getByRole("link", { name: "Open account for a.ivanova" })).toHaveAttribute(
+      "href",
+      "/account",
+    );
   });
 
   it("navigates to a card's own href when it is opened", async () => {

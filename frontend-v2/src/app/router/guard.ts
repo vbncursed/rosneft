@@ -99,13 +99,6 @@ export function consoleNav(me: Principal): ConsoleNavItem[] {
 export const activeSection = (pathname: string): string =>
   SCREENS.find((s) => pathname === s.path || pathname.startsWith(`${s.path}/`))?.key ?? "";
 
-/** The identity line at the foot of the sidebar. */
-export function viewerOf(me: Principal): { username: string; roleTitle: string } {
-  const first = me.roleSlugs[0];
-  const roleTitle = first ? (me.roleTitles[first] ?? first) : me.isOwner ? "Root" : "—";
-  return { username: me.username, roleTitle };
-}
-
 /** The catalog shell's exact routes — no sidebar, unlike the console. */
 export const CATALOG_PATHS = [
   "/",

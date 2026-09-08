@@ -15,31 +15,31 @@ const card = (slug: string): TerritoryCardModel => ({
 });
 
 describe("TerritoriesSection", () => {
-  it("draws the see-all link only when more exist", () => {
+  it("draws the see-all link whenever the list is non-empty", () => {
     const { rerender } = render(
       <TerritoriesSection
-        cards={[card("a")]}
-        total={1}
-        meta="showing 1 of 1"
+        cards={[card("a"), card("b"), card("c"), card("d")]}
+        total={4}
+        meta="showing 4 of 4"
+        viewerEmpty={false}
+        onOpen={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "See all 4 territories →" })).toHaveAttribute(
+      "href",
+      "/territories",
+    );
+
+    rerender(
+      <TerritoriesSection
+        cards={[]}
+        total={0}
+        meta="none yet"
         viewerEmpty={false}
         onOpen={vi.fn()}
       />,
     );
     expect(screen.queryByRole("link", { name: /See all/ })).not.toBeInTheDocument();
-
-    rerender(
-      <TerritoriesSection
-        cards={[card("a")]}
-        total={12}
-        meta="showing 1 of 12"
-        viewerEmpty={false}
-        onOpen={vi.fn()}
-      />,
-    );
-    expect(screen.getByRole("link", { name: "See all 12 territories →" })).toHaveAttribute(
-      "href",
-      "/territories",
-    );
   });
 
   it("links every card to its territory page and opens on a card click", async () => {

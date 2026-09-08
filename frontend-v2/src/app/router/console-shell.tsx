@@ -2,9 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import type { MouseEvent } from "react";
 import { meQuery } from "@/entities/user";
+import { viewerOf } from "@/shared/session";
 import { ConsoleLayout } from "@/widgets/console-layout";
 import { Toaster } from "@/widgets/toaster";
-import { activeSection, consoleNav, routesInApp, viewerOf } from "./guard";
+import { activeSection, consoleNav, routesInApp } from "./guard";
 
 /**
  * The chrome around every console screen, applied once here so no page draws

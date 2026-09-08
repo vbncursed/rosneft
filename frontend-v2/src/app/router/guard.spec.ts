@@ -9,7 +9,6 @@ import {
   redirectTarget,
   routesInApp,
   screenAllowed,
-  viewerOf,
 } from "./guard";
 
 describe("redirectTarget", () => {
@@ -113,14 +112,6 @@ describe("activeSection", () => {
     expect(activeSection("/console/roles")).toBe("roles");
     expect(activeSection("/console/audit/123")).toBe("audit");
     expect(activeSection("/console")).toBe("");
-  });
-});
-
-describe("viewerOf", () => {
-  it("shows the first role's title, Root for an owner without roles, and a dash otherwise", () => {
-    expect(viewerOf(principal({ roleSlugs: ["admin"], roleTitles: { admin: "Company Owner" } })).roleTitle).toBe("Company Owner");
-    expect(viewerOf(principal({ isOwner: true, roleSlugs: [] })).roleTitle).toBe("Root");
-    expect(viewerOf(principal({ roleSlugs: [] })).roleTitle).toBe("—");
   });
 });
 

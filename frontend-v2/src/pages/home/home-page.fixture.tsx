@@ -151,10 +151,7 @@ const noop = () => {};
 
 const base: HomePageProps = {
   meta: "4 territories · 57 models · 1 converting · 1 failed",
-  canUploadTerritory: true,
-  canUploadModel: true,
-  onUploadTerritory: noop,
-  onUploadModel: noop,
+  viewer: { username: "a.ivanova", roleTitle: "Company Owner" },
   jobs: JOBS,
   jobsMeta: "2 jobs · updates by itself",
   territories: { cards: TERRITORIES, total: 4, meta: "showing 4 of 4", viewerEmpty: false },
@@ -179,8 +176,7 @@ export default {
   editor: page({ ...QUIET, console: CONSOLE_EDITOR }),
   viewerEmpty: page({
     meta: "0 territories assigned · read-only access",
-    canUploadTerritory: false,
-    canUploadModel: false,
+    viewer: { username: "guest.viewer", roleTitle: "Guest" },
     jobs: [],
     territories: { cards: [], total: 0, meta: "assigned to you", viewerEmpty: true },
     models: null,

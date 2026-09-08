@@ -49,6 +49,7 @@ export function TerritoryCatalogPage({
         eyebrow="Territory catalog"
         title="Scenes to walk through"
         description="Sites you have access to. Open one to inspect it in 3D, measure distances and place models."
+        back={{ label: "← Home", href: "/" }}
         action={
           <div className="flex items-center gap-[9px]">
             <ThemeToggle variant="compact" />

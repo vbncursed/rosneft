@@ -19,7 +19,7 @@ export function ModelsSection({ cards, total, meta, onOpen }: ModelsSectionProps
         count={meta}
         className="pb-3 pt-0.5"
         trailing={
-          total > cards.length ? (
+          total > 0 ? (
             <TrailingLink href="/models">{seeAll("models", total)}</TrailingLink>
           ) : undefined
         }

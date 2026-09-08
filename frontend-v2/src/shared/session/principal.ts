@@ -43,3 +43,15 @@ export const grantableSlugs = (
   me: Principal | null,
   permissions: readonly { slug: string }[],
 ): Set<string> => new Set(permissions.map((p) => p.slug).filter((slug) => can(me, slug)));
+
+/**
+ * The identity a screen shows for the signed-in reader: the console sidebar's
+ * foot, the account header's meta line and Home's account pill all read it
+ * from here, so the fallbacks ("Root" for an ownerless owner, "—" otherwise)
+ * are decided once.
+ */
+export function viewerOf(me: Principal): { username: string; roleTitle: string } {
+  const first = me.roleSlugs[0];
+  const roleTitle = first ? (me.roleTitles[first] ?? first) : me.isOwner ? "Root" : "—";
+  return { username: me.username, roleTitle };
+}

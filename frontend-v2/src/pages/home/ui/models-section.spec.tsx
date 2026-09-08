@@ -16,17 +16,17 @@ const card = (slug: string): ModelCardModel => ({
 });
 
 describe("ModelsSection", () => {
-  it("draws the see-all link only when more exist", () => {
+  it("draws the see-all link whenever the list is non-empty", () => {
     const { rerender } = render(
       <ModelsSection cards={[card("a")]} total={1} meta="1 in the library" onOpen={vi.fn()} />,
     );
-    expect(screen.queryByRole("link", { name: /See all/ })).not.toBeInTheDocument();
-
-    rerender(<ModelsSection cards={[card("a")]} total={8} meta="8 in the library" onOpen={vi.fn()} />);
-    expect(screen.getByRole("link", { name: "See all 8 models →" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "See all 1 models →" })).toHaveAttribute(
       "href",
       "/models",
     );
+
+    rerender(<ModelsSection cards={[]} total={0} meta="none yet" onOpen={vi.fn()} />);
+    expect(screen.queryByRole("link", { name: /See all/ })).not.toBeInTheDocument();
   });
 
   it("links every card to its model page, without the library's size text, and opens on a click", async () => {
