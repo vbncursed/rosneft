@@ -510,13 +510,49 @@ title), `console-card` (open with count, open static, locked, unavailable),
 - Live, on :3001 against the local gateway: `admin` uploads `live-cube`
   and watches the strip go running → gone while the card turns ready
   without a reload (`finishedSince`); `cotest` (Company Owner) sees
-  `tenant-a-scene` failed in the strip with the real worker message, all
-  six console cards open with counts (`2 users`, `N roles · M permissions`,
-  `1 grant`, `N events · 24h`, the alert count), activity rows;
+  `tenant-a-scene` failed in the strip with the real worker message, four
+  console cards open (Users, Roles, Content, Audit) with counts (`2 users`,
+  `N roles · M permissions`, `4 territories · 57 models`, `N events · 24h`)
+  and Territory access and Metrics locked — a Company Owner answers
+  `isOwner: false`, so those two are shut to it on Home exactly as they are
+  in the console sidebar — activity rows;
   `guest1` (role `guest`, created for this, no territory) sees the
   viewer-empty page — dashed card, no Models, no Console, the warn callout
   for the 403; `editor1` (role `editor`) sees no uploads, no Console, and
   activity rows. Clicks on the links stay in the SPA (0 document loads).
+
+## Recorded deviations (as built)
+
+The ones the mock or this spec names and the code does otherwise, each with
+its reason. They are decisions, not defects; a later reader meeting one
+should not "fix" it back.
+
+- **§3.5 — the activity skeleton is two 16 px lines with widths (40 % / 55 %),
+  not two 48 px blocks.** A 48 px block is a card's placeholder; these rows are
+  one line of mono text each, and two full-height blocks promised a heavier
+  section than the one that arrives.
+- **§5 — there is no `loading`, `unavailable` or `activityLoading` page
+  fixture.** Those three are `HomeScreen`'s states, not `HomePage`'s: the page
+  takes `activity`/`activityLoading` as props and the other two never reach it
+  at all, so a fixture for them would draw a screen the route cannot produce.
+  `guestActivity` and `activityEmpty` cover what the page itself decides.
+- **§5 — there is no `console-card` component fixture.** The `editor` page
+  state draws three of the four hint kinds (open-with-count, locked-static,
+  and the open card's arrow) in the geometry they ship in; the fourth,
+  `count unavailable`, is covered by `console-hints.spec.ts` and
+  `use-console-counters.spec.tsx` alone.
+- **§2 — `useConsoleCounters(items)` takes the items and nothing else.** The
+  spec's signature threaded `territories` and `models` through from `useHome`;
+  the hook reads both from the query cache itself (`territoriesQuery`,
+  `modelsQuery` are the same keys `useHome` already primes), so no list is
+  passed twice and the Content card cannot disagree with the Territories
+  section about how many there are.
+- **`headerMeta`'s viewer-empty line stays the mock's string for every
+  reader.** `0 territories assigned · read-only access` is printed to a Scene
+  Editor with nothing assigned as well as to a Viewer, even though that
+  principal holds a write grant somewhere: with nothing to edit, the access it
+  has is read-only in effect, and inventing a second sentence for a state the
+  mock draws once would be a string nobody designed.
 
 ## Out of scope
 

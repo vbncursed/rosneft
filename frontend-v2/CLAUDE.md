@@ -393,7 +393,13 @@ is `enabled: !item.disabled`, and reads `isLoading` rather than `isPending`
 because a disabled query stays pending forever (the Roles lesson); a locked
 or still-loading card reads `STATIC_HINTS[key]`, an open query that never
 answered reads "count unavailable", and Access fans out one `adminsQuery`
-per territory — the same shape `/console/access` already uses. `viewerEmpty`
+per territory — the same shape `/console/access` already uses, so an owner's
+Access card costs one `adminsQuery` per territory on every mount, exactly what
+that screen costs. A background territories refetch that brings a *new*
+territory into the four mounts a new artifacts query, and the page drops to the
+skeleton for that one round-trip — the catalog's own trade-off, because a
+screen that is ready only when every artifacts query has answered is the one
+that never prints "pending" for something merely still loading. `viewerEmpty`
 (no territories, no upload right of either kind) hides Models and switches
 the header and territories meta lines. The console items come **down from
 the route**: `app/router/home-route.tsx` hands `consoleNav(me)` to
