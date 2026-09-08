@@ -4,6 +4,7 @@ import { ThemeToggle } from "@/features/theme-toggle";
 import { Badge } from "@/shared/ui/badge";
 import { Callout } from "@/shared/ui/callout";
 import { ProgressBar } from "@/shared/ui/progress-bar";
+import { SectionHeading } from "@/shared/ui/section-heading";
 import { PageHeader } from "@/widgets/page-header";
 import { ledeOf, progressCard, STATUS_PILL, type TerritoryConversionPageProps } from "../model/conversion-view";
 import { ConversionActions } from "./conversion-actions";
@@ -67,11 +68,7 @@ export function TerritoryConversionPage({ territory, phase, job, hasLod0, onOpen
       {/* Spelled out rather than reusing `waiting`: this is what narrows the prop. */}
       {phase === "queued" || phase === "running" ? <ProgressPanel phase={phase} job={job} /> : null}
       <section aria-label="Pipeline">
-        <div className="flex items-center gap-3 pt-0.5 pb-3">
-          <h2 className="m-0 text-[13px] font-semibold">Pipeline</h2>
-          <span className="font-mono text-[10px] text-muted">{pipelineMeta(stage, phase)}</span>
-          <span aria-hidden="true" className="h-px flex-1 bg-line" />
-        </div>
+        <SectionHeading title="Pipeline" count={pipelineMeta(stage, phase)} className="pb-3 pt-0.5" />
         <Pipeline steps={pipelineSteps(stage, phase)} />
       </section>
       <ConversionActions phase={phase} slug={territory.slug} hasLod0={hasLod0} onOpenViewer={onOpenViewer} />
