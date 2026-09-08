@@ -70,6 +70,12 @@ trade for browsing the library. Do not switch it back on as an optimisation.
 the next one to 5101, and the browser then shows a stale build — this looked
 like a performance problem for a whole exchange.
 
+**A brand-new fixture file needs a Cosmos restart; editing an existing one
+does not.** With `lazy: false` the server enumerates fixtures once at
+startup, so a path created after that answers "Fixture path not found" until
+the process is killed (`pkill -f 'node_modules/.bin/cosmos'`) and started
+again — `yarn cosmos` picks up the new file on that next boot.
+
 **A failed background refetch does not mean the screen is unavailable.** In
 TanStack Query v5 a refetch that trips on a query which already holds data
 flips its `status` to "error" while `data` stays exactly where it was — and
@@ -301,6 +307,9 @@ through the one shared rule, `conversionStatusOf` in `entities/content`: a
 failed job wins outright, a live job reads `converting`, otherwise the
 artifacts decide ready/pending. Both carry the `finishedSince` effect, without
 which a conversion finishing on screen flips the card backwards to "pending".
+Every territory card is openable now (`toTerritoryCard`'s `openable: true`,
+unconditional) — the conversion page is where a pending, converting or failed
+one lands, so there is no longer a state a card has to refuse to open into.
 `placementCount` and `usageCount` are on the list and single-entity GETs
 alike (added on this branch); `usageCount` counts *distinct territories*, not
 placements, and is a global aggregate because the model library is shared by
@@ -326,8 +335,29 @@ whole library for one number. **Replace Source**
 (`/territories/{slug}/replace`) is territories only:
 `POST /api/territories/{slug}/source` exists, no model counterpart does, and
 the model page draws no Replace control. The current source's size comes
-from `HEAD /api/assets/{hash}`; a successful replace leaves to the old SPA's
-`/territories/{slug}?jobId={job.id}`, exactly like Upload Territory.
+from `HEAD /api/assets/{hash}`; a successful replace navigates to this page's
+own `/territories/{slug}?jobId={job.id}`, exactly like Upload Territory —
+neither leaves the SPA any more.
+
+**Territory conversion** (`/territories/{slug}`) is three queries plus one
+stream: the territory, its artifacts, `GET /api/jobs`, and — with `?jobId=` —
+the job's SSE channel (`openJobStream`/`useJobStream` in `entities/conversion`).
+The stream, once it has answered, outranks the polled row; when the channel
+is lost (the gateway's `event: error` for an unknown or foreign id, or a
+dropped connection) the hook forgets its frame so the poll wins again.
+**A page that mounts already ready does not leave** — `shouldLeave(prev, next)`
+fires only on `queued|running → ready` watched on this page, because in dev a
+`location.assign` to the same URL reloads v2 and would loop. The pipeline's
+`<ol>` and the failure box are the mock's; the step order is the worker's real
+one (`entities/conversion/model/pipeline.ts`), not the mock's: `lod-N` comes
+after encoding and compressing and arrives twice, and `registering` only with
+`succeeded`. **A failed job may carry no stage and no progress** —
+`tenant-a-scene`'s live row is exactly that — so the meta line has a
+`stopped before the first report` form and no step is marked; its pipeline is
+exactly as blank as a freshly-queued job's, so the two are told apart only by
+that meta line and the failure box, never by the steps themselves. Upload
+Territory and Replace Source navigate here instead of leaving; `leaveTo` has
+one caller left, this page.
 
 **Territory access** is the territories list, the users list and one
 admins query per territory; visibility is derived (anyone assigned →
@@ -380,17 +410,20 @@ Rulings from those screens that a later one will meet again:
 
 Routes: `/login`; `/console/{users,roles,content,access,audit,metrics}` under
 `ConsoleShell` — Metrics alone carries a search param, `?range=`, validated by
-the route; `/territories`, `/territories/new`, `/territories/$slug/replace`,
+the route; `/territories`, `/territories/new`, `/territories/$slug`
+(search `?jobId=`, validated by the route), `/territories/$slug/replace`,
 `/models`, `/models/new`, `/models/$slug`, `/account`, `/account/two-factor`
 under the sidebar-free `CatalogShell`; and `/` and `/console` alone, both of
 which resolve a landing screen rather than rendering one. Both shells run the
 same click delegate (`routesInApp`), so a link from a console screen into the
 catalog — or back — stays in the SPA. `isCatalogHref` matches the six
-list/upload/account paths exactly, plus `/models/<slug>` and
-`/territories/<slug>/replace` by pattern; `/territories/<slug>` alone still
-leaves — the territory viewer stays in the old SPA. `consoleLanding` picks
-that screen from the principal's permissions — never a constant, or a
-roles-only administrator is sent to a users page that 403s.
+list/upload/account paths exactly, plus `/models/<slug>`, `/territories/<slug>`
+and `/territories/<slug>/replace` by pattern. `/territories/<slug>` is the
+conversion page now; a ready territory's viewer is still the old SPA, and
+only that page leaves for it, through `leaveTo`, on a finish it watched or on
+its own button. `consoleLanding` picks that screen from the principal's
+permissions — never a constant, or a roles-only administrator is sent to a
+users page that 403s.
 
 The console's only doorway into this pair is the identity block at the foot
 of `ConsoleSidebar` (the avatar + username link,
@@ -486,6 +519,11 @@ an opaque client-side error and nothing in any server log, the exact failure
 `frontend/`, not this SPA, so `__DESKTOP__` is set by no code in v2 today —
 no end-to-end test can reach this term from here, only the unit test that
 pins it.
+
+`useJobStream` (territory conversion) is the only `EventSource` consumer in
+v2, and jsdom has none: `openJobStream` detects a missing `EventSource` and
+hands back a no-op closer instead of throwing, so the hook's tests drive it
+through a fake rather than exercising the real network path.
 
 `Andrey Viewer Mockup.dc.html` (the 3D viewer and the remaining screens) has no
 v2 and has not been ported.
