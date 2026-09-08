@@ -56,10 +56,7 @@ const entry = (id: number, action: string): AuditEntry => ({
 
 const base: HomePageProps = {
   meta: "4 territories · 57 models · 1 converting",
-  canUploadTerritory: true,
-  canUploadModel: true,
-  onUploadTerritory: vi.fn(),
-  onUploadModel: vi.fn(),
+  viewer: { username: "a.ivanova", roleTitle: "Company Owner" },
   jobs: [],
   jobsMeta: "0 jobs",
   territories: { cards: [territory("north-ridge-pad")], total: 1, meta: "showing 1 of 1", viewerEmpty: false },
@@ -89,14 +86,13 @@ describe("HomePage", () => {
     expect(screen.getByText("4 territories · 57 models · 1 converting")).toBeInTheDocument();
   });
 
-  it("offers each upload only to a reader who may do it", () => {
-    const { rerender } = page();
-    expect(screen.getByRole("button", { name: "Upload territory" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Upload model" })).toBeInTheDocument();
-
-    rerender(<HomePage {...base} canUploadTerritory={false} canUploadModel={false} />);
-    expect(screen.queryByRole("button", { name: "Upload territory" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Upload model" })).not.toBeInTheDocument();
+  it("puts the reader's account pill in the header", () => {
+    page();
+    expect(screen.getByRole("link", { name: "Open account for a.ivanova" })).toHaveAttribute(
+      "href",
+      "/account",
+    );
+    expect(screen.getByText("Company Owner")).toBeInTheDocument();
   });
 
   it("hides the strip with no jobs and names each job's link apart with two", () => {
@@ -115,31 +111,36 @@ describe("HomePage", () => {
     expect(screen.getByRole("link", { name: "Open model valve" })).toBeInTheDocument();
   });
 
-  it("offers See all only where more exist than are shown", () => {
+  it("offers See all wherever a section has anything to see", () => {
     const { rerender } = page();
-    expect(screen.queryByRole("link", { name: /See all/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "See all 1 territories →" })).toHaveAttribute(
+      "href",
+      "/territories",
+    );
+    expect(screen.getByRole("link", { name: "See all 1 models →" })).toHaveAttribute(
+      "href",
+      "/models",
+    );
 
     rerender(
       <HomePage
         {...base}
-        territories={{ ...base.territories, total: 12 }}
-        models={{ ...base.models!, total: 8 }}
+        territories={{ cards: [], total: 0, meta: "none yet", viewerEmpty: false }}
+        models={{ cards: [], total: 0, meta: "none yet" }}
       />,
     );
-    expect(screen.getByRole("link", { name: "See all 12 territories →" })).toHaveAttribute(
-      "href",
-      "/territories",
-    );
-    expect(screen.getByRole("link", { name: "See all 8 models →" })).toHaveAttribute(
-      "href",
-      "/models",
-    );
+    expect(screen.queryByRole("link", { name: /See all/ })).not.toBeInTheDocument();
   });
 
   it("drops the models and console sections when there are none to show", () => {
     page({ models: null, console: null });
     expect(screen.queryByRole("heading", { name: "Models" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Console" })).not.toBeInTheDocument();
+  });
+
+  it("offers the console itself beside the section heading", () => {
+    page();
+    expect(screen.getByRole("link", { name: "Console →" })).toHaveAttribute("href", "/console");
   });
 
   it("draws a locked console card as no link at all", () => {

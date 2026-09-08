@@ -3,7 +3,7 @@ import type { JobCardModel } from "@/entities/conversion";
 import type { ModelCardModel } from "@/entities/model";
 import type { TerritoryCardModel } from "@/entities/territory";
 import { ThemeToggle } from "@/features/theme-toggle";
-import { Button } from "@/shared/ui/button";
+import { AccountPill } from "@/widgets/account-pill";
 import { PageHeader } from "@/widgets/page-header";
 import { ActivitySection } from "./activity-section";
 import type { ConsoleCardProps } from "./console-card";
@@ -14,10 +14,7 @@ import { TerritoriesSection } from "./territories-section";
 
 export type HomePageProps = {
   meta: string;
-  canUploadTerritory: boolean;
-  canUploadModel: boolean;
-  onUploadTerritory: () => void;
-  onUploadModel: () => void;
+  viewer: { username: string; roleTitle: string };
   jobs: JobCardModel[];
   jobsMeta: string;
   territories: { cards: TerritoryCardModel[]; total: number; meta: string; viewerEmpty: boolean };
@@ -43,16 +40,7 @@ export function HomePage(p: HomePageProps) {
         action={
           <div className="flex flex-wrap items-center gap-[9px]">
             <ThemeToggle variant="compact" />
-            {p.canUploadModel ? (
-              <Button variant="secondary" onClick={p.onUploadModel}>
-                Upload model
-              </Button>
-            ) : null}
-            {p.canUploadTerritory ? (
-              <Button variant="primary" onClick={p.onUploadTerritory}>
-                Upload territory
-              </Button>
-            ) : null}
+            <AccountPill {...p.viewer} />
           </div>
         }
       />

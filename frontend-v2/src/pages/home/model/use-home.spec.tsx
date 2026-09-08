@@ -86,13 +86,12 @@ describe("useHome", () => {
     expect(fetchMock.mock.calls.some(([u]) => u === "/api/territories/t3/artifacts")).toBe(false);
   });
 
-  it("slices the feed to four rows and knows the reader's grants", async () => {
+  it("slices the feed to four rows and names the signed-in reader", async () => {
     const { result } = renderHook(() => useHome(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
     await waitFor(() => expect(result.current.activityLoading).toBe(false));
     expect(result.current.activity).toHaveLength(4);
-    expect(result.current.canUploadTerritory).toBe(true);
-    expect(result.current.canUploadModel).toBe(false);
+    expect(result.current.viewer).toEqual({ username: "me", roleTitle: "Editor" });
     expect(result.current.meta).toBe("5 territories · 1 model · nothing converting");
   });
 

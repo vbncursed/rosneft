@@ -15,7 +15,7 @@ import { territoriesQuery, toTerritoryCard, type TerritoryCardModel } from "@/en
 import { meQuery } from "@/entities/user";
 import { messageOf } from "@/shared/api";
 import { unanswered } from "@/shared/lib/unanswered";
-import { can } from "@/shared/session";
+import { can, viewerOf } from "@/shared/session";
 import {
   ACTIVITY_ROWS,
   bareCard,
@@ -34,8 +34,8 @@ export type HomeState = {
   status: "loading" | "ready" | "unavailable";
   error: string | null;
   meta: string;
-  canUploadTerritory: boolean;
-  canUploadModel: boolean;
+  /** Who is signed in, for the header pill. Empty strings while the cache is cold. */
+  viewer: { username: string; roleTitle: string };
   /** [] hides the strip. */
   jobs: JobCardModel[];
   jobsMeta: string;
@@ -103,8 +103,7 @@ export function useHome(): HomeState {
     status: loading ? "loading" : failed ? "unavailable" : "ready",
     error: failed ? messageOf(failed) : null,
     meta: headerMeta(allTerritories.length, allModels.length, allJobs, empty),
-    canUploadTerritory,
-    canUploadModel,
+    viewer: me ? viewerOf(me) : { username: "", roleTitle: "" },
     jobs: sortJobs(allJobs).map((j) => toJobCard(j, title)),
     jobsMeta: jobsMeta(allJobs),
     territories: {

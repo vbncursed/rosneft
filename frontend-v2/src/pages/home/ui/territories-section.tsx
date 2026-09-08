@@ -27,7 +27,7 @@ export function TerritoriesSection({
         count={meta}
         className="pb-3 pt-0.5"
         trailing={
-          total > cards.length ? (
+          total > 0 ? (
             <TrailingLink href="/territories">{seeAll("territories", total)}</TrailingLink>
           ) : undefined
         }

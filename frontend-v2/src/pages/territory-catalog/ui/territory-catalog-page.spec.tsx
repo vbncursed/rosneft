@@ -49,8 +49,8 @@ describe("TerritoryCatalogPage", () => {
         "Sites you have access to. Open one to inspect it in 3D, measure distances and place models.",
       ),
     ).toBeInTheDocument();
-    // No back link: this page *is* /territories, and v2 has no Home above it.
-    expect(screen.queryByRole("link", { name: "← Home" })).not.toBeInTheDocument();
+    // Home is above the catalog now, and every catalog page offers the way back.
+    expect(screen.getByRole("link", { name: "← Home" })).toHaveAttribute("href", "/");
   });
 
   it("draws no chrome of its own — the shell owns the layout", () => {

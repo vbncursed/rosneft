@@ -40,10 +40,7 @@ export function HomeScreen({ consoleItems }: HomeScreenProps) {
   return (
     <HomePage
       meta={s.meta}
-      canUploadTerritory={s.canUploadTerritory}
-      canUploadModel={s.canUploadModel}
-      onUploadTerritory={() => void navigate({ to: "/territories/new" })}
-      onUploadModel={() => void navigate({ to: "/models/new" })}
+      viewer={s.viewer}
       jobs={s.jobs}
       jobsMeta={s.jobsMeta}
       territories={s.territories}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { can, grantableSlugs, type Principal } from "./principal";
+import { can, grantableSlugs, viewerOf, type Principal } from "./principal";
 
 const p = (over: Partial<Principal> = {}): Principal => ({
   id: "u-1",
@@ -54,5 +54,17 @@ describe("grantableSlugs", () => {
 
   it("gives no principal an empty set", () => {
     expect(grantableSlugs(null, PERMISSIONS)).toEqual(new Set());
+  });
+});
+
+describe("viewerOf", () => {
+  it("shows the first role's title, Root for an owner without roles, and a dash otherwise", () => {
+    expect(viewerOf(p({ roleSlugs: ["admin"], roleTitles: { admin: "Company Owner" } })).roleTitle).toBe("Company Owner");
+    expect(viewerOf(p({ isOwner: true, roleSlugs: [] })).roleTitle).toBe("Root");
+    expect(viewerOf(p({ roleSlugs: [] })).roleTitle).toBe("—");
+  });
+
+  it("carries the username through", () => {
+    expect(viewerOf(p({ username: "a.ivanova" })).username).toBe("a.ivanova");
   });
 });

@@ -25,7 +25,12 @@ describe("ConsoleSection", () => {
     );
     expect(screen.getByRole("heading", { level: 2, name: "Console" })).toBeInTheDocument();
     expect(screen.getByText("company administration")).toBeInTheDocument();
-    expect(screen.getAllByRole("link")).toHaveLength(1);
+    expect(screen.getByRole("link", { name: /^Users/ })).toBeInTheDocument();
     expect(screen.getByText("Metrics").closest("[aria-disabled]")).toBeInTheDocument();
+  });
+
+  it("offers the console itself after the heading's rule", () => {
+    render(<ConsoleSection cards={[open("Users", "/console/users", "12 users")]} />);
+    expect(screen.getByRole("link", { name: "Console →" })).toHaveAttribute("href", "/console");
   });
 });
