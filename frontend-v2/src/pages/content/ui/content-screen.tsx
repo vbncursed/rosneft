@@ -67,9 +67,6 @@ export function ContentScreen() {
           {
             label: "Open in viewer",
             onSelect: () => void navigate({ href: contentPath(item) }),
-            // Artifacts, not status — the same question the inspector asks: a
-            // re-conversion that failed leaves the old scene viewable.
-            disabled: s.artifactsOf(item.kind, item.slug).length === 0,
           },
           ...(href ? [{ label: "Replace source", onSelect: () => void navigate({ href }) }] : []),
         ]}
@@ -108,9 +105,9 @@ export function ContentScreen() {
         onUploadModel={() => void navigate({ to: "/models/new" })}
         onReplaceSource={replace ? () => void navigate({ href: replace }) : undefined}
         onOpenInViewer={() => selected && void navigate({ href: contentPath(selected) })}
-        // Artifacts, not status: a re-conversion that is running or failed
-        // leaves the previously converted scene on disk and viewable.
-        openable={!!selected && s.artifactsOf(selected.kind, selected.slug).length > 0}
+        // Both target pages render every state — Model Detail its own, a
+        // territory the conversion screen — so there is nothing to refuse.
+        openable
         onDelete={selected && s.canDelete(selected.kind) ? s.ask : undefined}
         {...(s.items.length === 0
           ? { emptyHint: "Nothing uploaded yet — start with a territory." }

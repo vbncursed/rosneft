@@ -46,6 +46,9 @@ export const territoryNewRoute = createRoute({
 export const territoryRoute = createRoute({
   getParentRoute: () => catalogRoute,
   path: "/territories/$slug",
+  // The search parser may hand back an all-digit id as a number, which this
+  // guard then drops; a 32-char hex id is all digits with probability ~3e-7,
+  // and the cost is the poll instead of the stream.
   validateSearch: (search: Record<string, unknown>): { jobId?: string } =>
     typeof search.jobId === "string" && search.jobId !== "" ? { jobId: search.jobId } : {},
   component: TerritoryConversionScreen,

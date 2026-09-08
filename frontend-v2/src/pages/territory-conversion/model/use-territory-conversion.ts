@@ -1,14 +1,19 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { artifactsQuery, listArtifacts } from "@/entities/content";
-import { finishedSince, jobsQuery, listJobs, useJobStream, type TargetJob } from "@/entities/conversion";
+import {
+  finishedSince,
+  jobsQuery,
+  listJobs,
+  pollInterval,
+  useJobStream,
+  type TargetJob,
+} from "@/entities/conversion";
 import { getTerritory, territoryPath, territoryQuery } from "@/entities/territory";
 import { HttpError, messageOf } from "@/shared/api";
 import { leaveTo } from "@/shared/lib/leave";
 import { unanswered } from "@/shared/lib/unanswered";
 import { phaseOf, shouldLeave, type Phase, type TerritoryConversionPageProps } from "./conversion-view";
-
-export type { TerritoryConversionPageProps };
 
 export type TerritoryConversionState =
   | { status: "loading" }
@@ -28,7 +33,17 @@ export function useTerritoryConversion(slug: string, jobId: string | null): Terr
   // queryFn stays a direct import so a spec's vi.mock of the barrel reaches the fetch.
   const territory = useQuery({ ...territoryQuery(slug), queryFn: () => getTerritory(slug) });
   const artifacts = useQuery({ ...artifactsQuery("territory", slug), queryFn: () => listArtifacts("territory", slug) });
-  const jobs = useQuery({ ...jobsQuery, queryFn: listJobs });
+  const hasLod0 = artifacts.data?.some((a) => a.lod === 0) ?? false;
+  const jobs = useQuery({
+    ...jobsQuery,
+    queryFn: listJobs,
+    // The catalog polls only while something converts; this page also waits for
+    // a job that does not exist yet (the reconciler queues one within five
+    // minutes), and nothing else would ever bring that row into view.
+    refetchInterval: (q) =>
+      pollInterval(q.state.data) ||
+      (!hasLod0 && !q.state.data?.some((j) => j.kind === "territory" && j.slug === slug) ? 5000 : false),
+  });
   const streamed = useJobStream(jobId, slug);
 
   // A target whose job just left the list has new artifacts (or, after a
@@ -45,7 +60,6 @@ export function useTerritoryConversion(slug: string, jobId: string | null): Terr
   const polled = jobs.data?.find((j) => j.kind === "territory" && j.slug === slug);
   // The stream, once it has answered, is up to four seconds fresher than the poll.
   const job = streamed ?? polled;
-  const hasLod0 = artifacts.data?.some((a) => a.lod === 0) ?? false;
   const phase: Phase | null = artifacts.data && jobs.data ? phaseOf(hasLod0, job) : null;
 
   const previousPhase = useRef<Phase | null>(null);

@@ -142,12 +142,12 @@ describe("ContentScreen", () => {
     expect(s.select).not.toHaveBeenCalled();
   });
 
-  it("offers no viewer for a row with nothing converted, as the inspector does not", async () => {
+  it("offers the viewer for a row with nothing converted too, as the inspector does", async () => {
     useContent.mockReturnValue(state({ artifactsOf: (_k, slug) => (slug === "t-1" ? [artifact()] : []) }));
     render(<ContentScreen />);
     const row = screen.getByRole("article", { name: "M 1" });
     await userEvent.click(within(row).getByRole("button", { name: "Row actions for M 1" }));
-    expect(screen.getByRole("menuitem", { name: "Open in viewer" })).toBeDisabled();
+    expect(screen.getByRole("menuitem", { name: "Open in viewer" })).toBeEnabled();
   });
 
   it("offers a model no Replace source in its row menu — there is no route", async () => {
@@ -217,7 +217,7 @@ describe("ContentScreen", () => {
     expect(within(aside).getByText("OBJ parse error at line 84120")).toBeInTheDocument();
   });
 
-  it("keeps a converted territory openable while its re-conversion fails", async () => {
+  it("opens every row, converted or not — both target pages render every state", async () => {
     const broken: ContentItem = { ...T, status: "failed" };
     useContent.mockReturnValue(state({ items: [broken, M], selected: broken }));
     const { unmount } = render(<ContentScreen />);
@@ -227,7 +227,7 @@ describe("ContentScreen", () => {
     await userEvent.click(open);
     expect(navigate).toHaveBeenCalledWith({ href: "/territories/t-1" });
 
-    // ...and a row that has never converted still cannot be opened.
+    // ...and so does a row that has never converted.
     unmount();
     useContent.mockReturnValue(state({ selected: M, artifactsOf: () => [] }));
     render(<ContentScreen />);
@@ -235,7 +235,7 @@ describe("ContentScreen", () => {
       within(screen.getByRole("complementary", { name: "Content: M 1" })).getByRole("button", {
         name: "Open in viewer",
       }),
-    ).toBeDisabled();
+    ).toBeEnabled();
   });
 
   it("says the catalog is empty rather than blaming the filter", () => {

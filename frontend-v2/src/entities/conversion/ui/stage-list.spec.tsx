@@ -22,7 +22,8 @@ describe("StageList", () => {
 
   it("is a labelled list", () => {
     render(<StageList stages={STAGES} />);
-    expect(screen.getByRole("list", { name: "Conversion stages" })).toBeInTheDocument();
+    // list-none drops the implicit role in WebKit; the attribute is what keeps it.
+    expect(screen.getByRole("list", { name: "Conversion stages" })).toHaveAttribute("role", "list");
   });
 
   it("tones each stage by where the pipeline has got to", () => {

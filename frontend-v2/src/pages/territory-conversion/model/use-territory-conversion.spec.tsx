@@ -98,6 +98,11 @@ describe("useTerritoryConversion", () => {
     const s = await ready(render("j1"));
     expect(useJobStream).toHaveBeenCalledWith("j1", "t");
     expect(s.job?.progress).toBe(0.9);
+
+    // The terminal frame lands a round trip before the artifacts do; the page
+    // must draw the last step rather than flash back to "queued".
+    useJobStream.mockReturnValue({ ...RUNNING, status: "succeeded", stage: "registering", progress: 1 });
+    expect((await ready(render("j1"))).phase).toBe("running");
   });
 
   it("does not leave on a mount that is already ready", async () => {
@@ -119,6 +124,31 @@ describe("useTerritoryConversion", () => {
     await client.refetchQueries({ queryKey: ["jobs"] });
     await waitFor(() => expect(leaveTo).toHaveBeenCalledWith("/territories/t"));
     expect(listArtifacts).toHaveBeenCalledTimes(2); // finishedSince re-read the artifacts
+  });
+
+  // A territory with no job row and no LOD0 is waiting for the reconciler to
+  // queue one; the catalog's pollInterval has nothing live to poll on, so the
+  // page overrides it or the promise "this page opens the viewer by itself"
+  // is never kept.
+  const jobsRefetchInterval = () => {
+    const q = client.getQueryCache().find({ queryKey: ["jobs"] })!;
+    // refetchInterval lives on the observer's options, which QueryOptions does not declare.
+    const interval = (q.options as { refetchInterval?: unknown }).refetchInterval;
+    return typeof interval === "function" ? (interval(q) as number | false) : interval;
+  };
+
+  it("polls while it waits for a job that does not exist yet, and stops once a LOD0 lands", async () => {
+    await ready(render());
+    expect(jobsRefetchInterval()).toBe(5000);
+
+    listArtifacts.mockResolvedValue([LOD0]);
+    await ready(render());
+    expect(jobsRefetchInterval()).toBe(false);
+
+    listArtifacts.mockResolvedValue([]);
+    listJobs.mockResolvedValue([RUNNING]);
+    await ready(render());
+    expect(jobsRefetchInterval()).toBe(5000);
   });
 
   it("keeps the page when a background refetch fails", async () => {

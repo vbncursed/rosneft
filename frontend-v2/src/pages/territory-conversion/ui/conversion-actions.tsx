@@ -10,9 +10,14 @@ export type ConversionActionsProps = {
 export const FAILED_NOTE =
   "A failed job cannot be restarted on its own — conversion begins again when a new archive is uploaded for this territory.";
 
-const CONTROL = "inline-flex cursor-pointer items-center rounded-control border px-[18px] py-2.5 text-[13px] no-underline";
-const PRIMARY = `${CONTROL} border-accent bg-accent font-semibold text-accent-fg`;
-const SECONDARY = `${CONTROL} border-line-2 bg-panel-2 font-medium text-fg`;
+// The same focus ring and hover pairs shared/ui/button uses: these are links
+// and buttons the user tabs to, and a mixed set that behaves two ways is worse
+// than either. One property per state, so the hovers do not collide with the
+// resting border/background above.
+const CONTROL =
+  "inline-flex cursor-pointer items-center rounded-control border px-[18px] py-2.5 text-[13px] no-underline transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+const PRIMARY = `${CONTROL} border-accent bg-accent font-semibold text-accent-fg hover:bg-accent/90`;
+const SECONDARY = `${CONTROL} border-line-2 bg-panel-2 font-medium text-fg hover:border-accent-line`;
 
 /** The way forward after a failure or a finish; nothing while the job is still going. */
 export function ConversionActions({ phase, slug, hasLod0, onOpenViewer }: ConversionActionsProps) {

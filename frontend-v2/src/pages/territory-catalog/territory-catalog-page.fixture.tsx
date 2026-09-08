@@ -15,7 +15,6 @@ const CARDS: TerritoryCardModel[] = [
       { label: "panorama", tone: "ok" },
     ],
     trailing: { label: "Open →", tone: "accent" },
-    openable: true,
     panorama: true,
   },
   {
@@ -28,7 +27,6 @@ const CARDS: TerritoryCardModel[] = [
     ],
     progress: { value: 62, stage: "Compressing textures" },
     trailing: { label: "converting", tone: "muted" },
-    openable: false,
     panorama: false,
   },
   {
@@ -41,7 +39,6 @@ const CARDS: TerritoryCardModel[] = [
       { label: "288 MB", tone: "plain" },
     ],
     trailing: { label: "Open →", tone: "accent" },
-    openable: true,
     panorama: false,
   },
   {
@@ -54,7 +51,6 @@ const CARDS: TerritoryCardModel[] = [
       { label: "—", tone: "plain" },
     ],
     trailing: { label: "unavailable", tone: "muted" },
-    openable: false,
     panorama: false,
   },
 ];

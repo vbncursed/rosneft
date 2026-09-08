@@ -19,7 +19,6 @@ const T1: TerritoryCardModel = {
   status: "ready",
   chips: [{ label: "3 placements", tone: "plain" }],
   trailing: { label: "Open →", tone: "accent" },
-  openable: true,
   panorama: false,
 };
 const T2: TerritoryCardModel = {
@@ -28,8 +27,6 @@ const T2: TerritoryCardModel = {
   status: "pending",
   chips: [{ label: "—", tone: "plain" }, { label: "—", tone: "plain" }],
   trailing: { label: "pending", tone: "muted" },
-  // Openable like every card: toTerritoryCard cannot produce false any more.
-  openable: true,
   panorama: false,
 };
 

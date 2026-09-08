@@ -44,6 +44,21 @@ describe("TerritoryConversionScreen", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Territory unavailable: gateway down");
   });
 
+  it("remounts the body on a slug change, so no ref survives into the next territory", () => {
+    // The router keeps this component across a $slug change; without the key the
+    // hook's previousPhase/previousJobs refs and the stream's frame carry over.
+    useSearch.mockReturnValue({});
+    useTerritoryConversion.mockReturnValue(READY);
+    useParams.mockReturnValue({ slug: "a" });
+    const { rerender, container } = render(<TerritoryConversionScreen />);
+    const before = container.firstElementChild;
+
+    useParams.mockReturnValue({ slug: "b" });
+    rerender(<TerritoryConversionScreen />);
+    expect(useTerritoryConversion).toHaveBeenLastCalledWith("b", null);
+    expect(container.firstElementChild).not.toBe(before);
+  });
+
   it("renders the page once ready", () => {
     useParams.mockReturnValue({ slug: "t" });
     useSearch.mockReturnValue({});

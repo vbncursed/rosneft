@@ -15,7 +15,8 @@ export function StageList({ stages, label = "Conversion stages", activeTone, cla
   const anyHint = stages.some((stage) => stage.hint);
 
   return (
-    <ul aria-label={label} className={cx("m-0 flex list-none flex-col gap-[7px] p-0", className)}>
+    // `list-none` drops the implicit list role in WebKit; the explicit one keeps it.
+    <ul role="list" aria-label={label} className={cx("m-0 flex list-none flex-col gap-[7px] p-0", className)}>
       {stages.map((stage, index) => {
         const { dot, text } = toneClasses(stage.state, activeTone);
         return (

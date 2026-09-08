@@ -44,7 +44,6 @@ describe("toTerritoryCard", () => {
         { label: "panorama", tone: "ok" },
       ],
       trailing: { label: "Open →", tone: "accent" },
-      openable: true,
       panorama: true,
     });
   });
@@ -73,9 +72,6 @@ describe("toTerritoryCard", () => {
       { label: "—", tone: "plain" },
     ]);
     expect(card.trailing).toEqual({ label: "pending", tone: "muted" });
-    // Openable whatever the status: the card leads to the territory's own
-    // page, which is the conversion screen until the artifacts land.
-    expect(card.openable).toBe(true);
   });
 
   it("is converting with a LOD chip, a size chip and a humanised progress stage", () => {
@@ -87,7 +83,6 @@ describe("toTerritoryCard", () => {
     ]);
     expect(card.progress).toEqual({ value: 62, stage: "Compressing textures" });
     expect(card.trailing).toEqual({ label: "converting", tone: "muted" });
-    expect(card.openable).toBe(true);
   });
 
   it("reads a queued job (no progress reported yet) as 0%, stage Queued", () => {
@@ -104,8 +99,6 @@ describe("toTerritoryCard", () => {
     expect(card.status).toBe("failed");
     expect(card.trailing).toEqual({ label: "unavailable", tone: "muted" });
     expect(card.progress).toBeUndefined();
-    // The state the conversion page exists to show must be reachable.
-    expect(card.openable).toBe(true);
   });
 
   it("carries the description through untouched", () => {
@@ -122,7 +115,6 @@ describe("tabCounts", () => {
     status: "ready",
     chips: [],
     trailing: { label: "Open →", tone: "accent" },
-    openable: true,
     panorama: false,
     ...over,
   });
@@ -145,7 +137,6 @@ describe("matchesTerritory", () => {
     status: "ready",
     chips: [],
     trailing: { label: "Open →", tone: "accent" },
-    openable: true,
     panorama: true,
     ...over,
   });

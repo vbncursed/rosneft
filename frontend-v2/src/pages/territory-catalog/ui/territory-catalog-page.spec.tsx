@@ -10,7 +10,6 @@ const card = (slug: string, title: string, over: Partial<TerritoryCardModel> = {
   status: "ready",
   chips: [{ label: "3 placements", tone: "plain" }],
   trailing: { label: "Open →", tone: "accent" },
-  openable: true,
   panorama: false,
   ...over,
 });
@@ -23,7 +22,6 @@ const props = (over: Partial<TerritoryCatalogPageProps> = {}): TerritoryCatalogP
       chips: [{ label: "LOD 0-1", tone: "warn" }],
       progress: { value: 62, stage: "Compressing textures" },
       trailing: { label: "converting", tone: "muted" },
-      openable: false,
     }),
   ],
   tab: "all",
@@ -77,22 +75,25 @@ describe("TerritoryCatalogPage", () => {
     expect(onQueryChange).toHaveBeenCalled();
   });
 
-  it("opens a ready card and leaves a converting one unopenable", async () => {
+  it("opens every card, whatever it is converting — the territory page shows the state", async () => {
     const onOpen = vi.fn();
     render(<TerritoryCatalogPage {...props({ onOpen })} />);
     await userEvent.click(screen.getByRole("article", { name: "North Ridge Pad" }));
     expect(onOpen).toHaveBeenCalledWith("north-ridge-pad");
-    expect(screen.queryByRole("button", { name: "Terminal Yard 4" })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Terminal Yard 4" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("article", { name: "Terminal Yard 4" }));
+    expect(onOpen).toHaveBeenLastCalledWith("terminal-yard-4");
   });
 
-  it("gives an openable card's title a real href, and an unopenable one none", () => {
+  it("gives every card's title a real href", () => {
     render(<TerritoryCatalogPage {...props()} />);
     expect(screen.getByRole("link", { name: "North Ridge Pad" })).toHaveAttribute(
       "href",
       "/territories/north-ridge-pad",
     );
-    expect(screen.queryByRole("link", { name: "Terminal Yard 4" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Terminal Yard 4" })).toHaveAttribute(
+      "href",
+      "/territories/terminal-yard-4",
+    );
   });
 
   it("draws the running progress bar and its stage for the converting card", () => {
