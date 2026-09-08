@@ -1,0 +1,81 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import type { TerritoryCardModel } from "@/entities/territory";
+import { TerritoriesSection } from "./territories-section";
+
+const card = (slug: string): TerritoryCardModel => ({
+  slug,
+  title: slug,
+  description: "Wellhead cluster and gathering lines.",
+  status: "ready",
+  chips: [],
+  trailing: { label: "Open →", tone: "accent" },
+  panorama: false,
+});
+
+describe("TerritoriesSection", () => {
+  it("draws the see-all link only when more exist", () => {
+    const { rerender } = render(
+      <TerritoriesSection
+        cards={[card("a")]}
+        total={1}
+        meta="showing 1 of 1"
+        viewerEmpty={false}
+        onOpen={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("link", { name: /See all/ })).not.toBeInTheDocument();
+
+    rerender(
+      <TerritoriesSection
+        cards={[card("a")]}
+        total={12}
+        meta="showing 1 of 12"
+        viewerEmpty={false}
+        onOpen={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "See all 12 territories →" })).toHaveAttribute(
+      "href",
+      "/territories",
+    );
+  });
+
+  it("links every card to its territory page and opens on a card click", async () => {
+    const onOpen = vi.fn();
+    render(
+      <TerritoriesSection
+        cards={[card("north-ridge-pad")]}
+        total={1}
+        meta="showing 1 of 1"
+        viewerEmpty={false}
+        onOpen={onOpen}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "north-ridge-pad" })).toHaveAttribute(
+      "href",
+      "/territories/north-ridge-pad",
+    );
+    await userEvent.click(screen.getByRole("article"));
+    expect(onOpen).toHaveBeenCalledWith("/territories/north-ridge-pad");
+  });
+
+  it("tells a viewer with nothing assigned, and an uploader with nothing yet, different things", () => {
+    const { rerender } = render(
+      <TerritoriesSection cards={[]} total={0} meta="assigned to you" viewerEmpty onOpen={vi.fn()} />,
+    );
+    expect(screen.getByText("No territories are assigned to you yet")).toBeInTheDocument();
+
+    rerender(
+      <TerritoriesSection
+        cards={[]}
+        total={0}
+        meta="none yet"
+        viewerEmpty={false}
+        onOpen={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("No territories yet")).toBeInTheDocument();
+  });
+});
