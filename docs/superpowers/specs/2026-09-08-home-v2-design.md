@@ -196,9 +196,10 @@ roles `who may do what`, content `territories and models`, access
 `count unavailable`. Singulars: `1 user`, `1 role`, `1 permission`,
 `1 grant`, `1 event`, `1 alert firing`.
 
-`windowStart` moves from `pages/audit/model/journal.ts` to
-`entities/audit/model/relative-at.ts` (a page may not import a page); the
-audit page imports it from the entity.
+`windowStart`, `bucketOf` and `hourOf` move from `pages/audit/model/journal.ts`
+to `entities/audit/model/window.ts` (a page may not import a page); the audit
+page imports them from the entity, and Home's audit count uses the same 24
+buckets the audit page counts, so the two screens agree.
 
 ### `home-view.ts` — the decisions
 
@@ -421,9 +422,10 @@ the moved code's spec moves with it):
   Home passes none (the mock's footer has no size). A converting or failed
   model on Home therefore wears the library's warn/bad border and badge —
   the mock's data has no such model; one card, one reading.
-- `entities/audit/model/relative-at.ts`: `relativeAt`, `summaryOf`,
-  `dayOf`, `windowStart` — from `pages/account/model/activity.ts` and
-  `pages/audit/model/journal.ts`; both pages import from the entity.
+- `entities/audit/model/relative-at.ts`: `relativeAt`, `summaryOf`, `dayOf`
+  — `pages/account/model/activity.ts` moved whole; `entities/audit/model/window.ts`:
+  `windowStart`, `bucketOf`, `hourOf` from `pages/audit/model/journal.ts`;
+  both pages import from the entity.
   `entities/audit/ui/activity-row.tsx`: the `<li>` from
   `pages/account/ui/activity-section.tsx`; that section renders it.
 - `entities/conversion/model/job-card.ts`: `JobCardModel`, `jobPhrase`,
@@ -484,9 +486,10 @@ title), `console-card` (open with count, open static, locked, unavailable),
 - `console-card.spec.tsx`, `job-card.spec.tsx`, `activity-row.spec.tsx`,
   `section-heading.spec.tsx` (trailing), `empty-state.spec.tsx` (start),
   `glyph-extras.spec.tsx` (arrow-right).
-- Routing: `routes.spec` / `catalog-routes.spec` — `/` resolves under the
-  catalog shell; `guard.spec.ts` — `isCatalogHref("/")`; `next-target.spec`
-  — fallback `/`; `model-library-page.spec` — back href `/`.
+- Routing: the route files are exempt wiring (`exempt-modules.ts`), so `/`
+  under the catalog shell is proven by the live smoke, not a spec;
+  `guard.spec.ts` — `isCatalogHref("/")`; `next-target.spec` — fallback
+  `/`; `model-library-page.spec` — back href `/`.
 - The lifted modules keep their specs, moved beside them; the source pages'
   specs are unchanged and stay green — that is the proof the lift changed
   nothing.
