@@ -52,7 +52,7 @@ export function ProgressBar({
         {label || detail ? (
           <p
             className={cx(
-              "m-0 flex flex-wrap items-baseline justify-between gap-3",
+              "flex flex-wrap items-baseline justify-between gap-3",
               // The mock's queued card is the caption alone — nothing to space from.
               indeterminate ? undefined : "mb-3.5",
             )}
