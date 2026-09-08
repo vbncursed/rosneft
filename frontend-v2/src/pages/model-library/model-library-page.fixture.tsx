@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { CatalogShell } from "@/widgets/catalog-shell";
-import { matchesModel, tabCounts, type ModelCardModel, type ModelTab } from "./model/catalog";
+import type { ModelCardModel } from "@/entities/model";
+import { matchesModel, tabCounts, type ModelTab } from "./model/catalog";
 import { ModelLibraryPage } from "./ui/model-library-page";
 
 // A tiny inline placeholder — no network fetch inside a Cosmos fixture.

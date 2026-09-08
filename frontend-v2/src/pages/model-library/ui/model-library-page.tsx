@@ -1,14 +1,12 @@
-import type { ConversionStatus } from "@/entities/conversion";
-import { modelPath } from "@/entities/model";
+import { ModelCard, modelPath, type ModelCardModel } from "@/entities/model";
 import { ThemeToggle } from "@/features/theme-toggle";
 import { FilterBar } from "@/features/audit-filter";
 import { EmptyState } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
-import { CatalogCard, type CatalogTone } from "@/shared/ui/catalog-card";
 import { Icon } from "@/shared/ui/icon";
 import { Segmented } from "@/shared/ui/segmented";
 import { PageHeader } from "@/widgets/page-header";
-import type { ModelCardModel, ModelTab } from "../model/catalog";
+import type { ModelTab } from "../model/catalog";
 
 export type ModelLibraryPageProps = {
   cards: ModelCardModel[];
@@ -24,20 +22,6 @@ export type ModelLibraryPageProps = {
   onDelete: (slug: string) => void;
   /** What the list says when it is empty — a filter miss by default. */
   emptyHint?: string;
-};
-
-const TONE: Record<ConversionStatus, CatalogTone> = {
-  ready: "neutral",
-  pending: "neutral",
-  converting: "warn",
-  failed: "bad",
-};
-
-// Only a live or stopped conversion earns a badge — a ready or pending model
-// already says everything it needs to through its trailing note.
-const BADGE: Partial<Record<ConversionStatus, { label: string; tone: "warn" | "bad" }>> = {
-  converting: { label: "converting", tone: "warn" },
-  failed: { label: "failed", tone: "bad" },
 };
 
 export function ModelLibraryPage({
@@ -106,19 +90,12 @@ export function ModelLibraryPage({
       ) : (
         <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(216px,1fr))]">
           {cards.map((card) => (
-            <CatalogCard
+            <ModelCard
               key={card.slug}
-              size="sm"
-              title={card.title}
-              slug={card.slug}
-              tone={TONE[card.status]}
-              badge={BADGE[card.status]}
-              thumbnailUrl={card.thumbnailUrl ?? undefined}
-              noImageLabel={card.thumbnailUrl ? undefined : "no image"}
-              meta={card.size}
-              trailing={card.trailing}
-              onOpen={() => onOpen(card.slug)}
+              card={card}
               href={modelPath(card.slug)}
+              onOpen={() => onOpen(card.slug)}
+              meta={card.size}
               actions={
                 canDelete ? (
                   <Button
