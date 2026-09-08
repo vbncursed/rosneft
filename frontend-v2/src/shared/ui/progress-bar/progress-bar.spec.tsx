@@ -82,6 +82,12 @@ describe("ProgressBar · lg", () => {
     expect(screen.getByText("Waiting for a worker")).toBeInTheDocument();
   });
 
+  it("draws the bare track with neither label nor detail", () => {
+    const { container } = render(<ProgressBar size="lg" value={58} ariaLabel="Conversion" />);
+    expect(container.querySelector("p")).toBeNull();
+    expect(screen.getByRole("progressbar", { name: "Conversion" }).className).toContain("h-2");
+  });
+
   it("leaves md exactly as it was", () => {
     render(<ProgressBar value={64} label="Uploading chunks" detail="64%" />);
     expect(screen.getByRole("progressbar").className).toContain("h-1.5");
