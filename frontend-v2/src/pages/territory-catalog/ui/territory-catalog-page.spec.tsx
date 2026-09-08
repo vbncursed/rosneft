@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import type { TerritoryCardModel } from "../model/catalog";
+import type { TerritoryCardModel } from "@/entities/territory";
 import { TerritoryCatalogPage, type TerritoryCatalogPageProps } from "./territory-catalog-page";
 
 const card = (slug: string, title: string, over: Partial<TerritoryCardModel> = {}): TerritoryCardModel => ({
