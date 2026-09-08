@@ -1,4 +1,4 @@
-const FALLBACK = "/console";
+const FALLBACK = "/";
 
 /**
  * Validates the `?next=` search param a bounced visitor carries back to
@@ -7,7 +7,7 @@ const FALLBACK = "/console";
  * so it is attacker-controlled: only a same-origin absolute path — a single
  * leading `/`, not `//` and not `/\` — is accepted. Anything else (a
  * protocol-relative or absolute URL, a relative path, nothing at all) falls
- * back to `/console`.
+ * back to `/`.
  *
  * The backslash is not a second guess at the same case: browsers normalise it
  * to a forward slash in the authority position, so `/\evil.com` is

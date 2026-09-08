@@ -3,6 +3,7 @@ import { queryClient } from "@/app/query/query-client";
 import {
   accountRoute,
   catalogRoute,
+  homeRoute,
   modelDetailRoute,
   modelNewRoute,
   modelsRoute,
@@ -22,13 +23,11 @@ import {
   consoleRolesRoute,
   consoleRoute,
   consoleUsersRoute,
-  indexRoute,
   loginRoute,
   rootRoute,
 } from "./routes";
 
 const routeTree = rootRoute.addChildren([
-  indexRoute,
   loginRoute,
   consoleRoute.addChildren([
     consoleIndexRoute,
@@ -40,6 +39,7 @@ const routeTree = rootRoute.addChildren([
     consoleMetricsRoute,
   ]),
   catalogRoute.addChildren([
+    homeRoute,
     territoriesRoute,
     territoryNewRoute,
     territoryRoute,

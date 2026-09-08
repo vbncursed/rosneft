@@ -49,7 +49,7 @@ describe("ModelLibraryPage", () => {
         "Reusable equipment you can drop onto any territory. Thumbnails come from the model detail page.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "← Home" })).toHaveAttribute("href", "/territories");
+    expect(screen.getByRole("link", { name: "← Home" })).toHaveAttribute("href", "/");
   });
 
   it("gives each card's title a real href into the model's page", () => {

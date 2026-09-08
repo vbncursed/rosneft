@@ -114,16 +114,16 @@ describe("useLogin", () => {
     expect(login).toHaveBeenCalledTimes(1);
   });
 
-  it("lands on /console with no pending redirect", async () => {
+  it("lands on Home with no pending redirect", async () => {
     vi.mocked(login).mockResolvedValue({ twoFactorRequired: false, challengeToken: "" });
     const { result } = renderHook(() => useLogin());
 
     act(() => result.current.credentials.onSubmit());
 
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ href: "/console" }));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ href: "/" }));
   });
 
-  // A visitor bounced out of a deep link comes back to it, not to /console —
+  // A visitor bounced out of a deep link comes back to it, not to Home —
   // the whole point of guard.ts carrying `next` through in the first place.
   it("returns to the page a bounced visit was headed to", async () => {
     search = { next: "/console/audit?actor=a.ivanova" };

@@ -132,7 +132,7 @@ describe("routesInApp", () => {
   });
 
   it("leaves a non-console href to the browser", () => {
-    expect(routesInApp("/", CLICK)).toBe(false);
+    expect(routesInApp("/old-viewer", CLICK)).toBe(false);
   });
 
   it("leaves an absolute URL to the browser", () => {
@@ -174,6 +174,12 @@ describe("isCatalogHref", () => {
       expect(isCatalogHref(path)).toBe(true);
       expect(isCatalogHref(`${path}?from=console`)).toBe(true);
     }
+  });
+
+  it("matches Home itself, and still refuses login", () => {
+    expect(isCatalogHref("/")).toBe(true);
+    expect(isCatalogHref("/?x=1")).toBe(true);
+    expect(isCatalogHref("/login")).toBe(false);
   });
 
   // A model page, a territory's replace form and the territory's own conversion page are all v2.

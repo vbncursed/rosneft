@@ -45,7 +45,7 @@ export function ModelLibraryPage({
         eyebrow="Model catalog"
         title="Models for placement"
         description="Reusable equipment you can drop onto any territory. Thumbnails come from the model detail page."
-        back={{ label: "← Home", href: "/territories" }}
+        back={{ label: "← Home", href: "/" }}
         action={
           <div className="flex items-center gap-[9px]">
             <ThemeToggle variant="compact" />

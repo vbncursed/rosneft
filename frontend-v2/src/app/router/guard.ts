@@ -108,6 +108,7 @@ export function viewerOf(me: Principal): { username: string; roleTitle: string }
 
 /** The catalog shell's exact routes — no sidebar, unlike the console. */
 export const CATALOG_PATHS = [
+  "/",
   "/territories",
   "/territories/new",
   "/models",
@@ -121,8 +122,8 @@ const TERRITORY_PAGE = /^\/territories\/[^/]+$/;
 const REPLACE_FORM = /^\/territories\/[^/]+\/replace$/;
 
 /**
- * A catalog screen href, query string included: the four list/upload routes,
- * the account page and its two-factor wizard, a model's page, a territory's
+ * A catalog screen href, query string included: Home, the four list/upload
+ * routes, the account page and its two-factor wizard, a model's page, a territory's
  * replace form and a territory's own page — the conversion screen; a ready
  * territory's viewer is still the old SPA, and that page leaves for it only on
  * a finish it watched, or through its own button.
