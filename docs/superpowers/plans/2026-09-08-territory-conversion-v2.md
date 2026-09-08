@@ -23,7 +23,7 @@ TanStack Router/Query, Vitest + jsdom + Testing Library, react-cosmos 7
 **Spec:** `docs/superpowers/specs/2026-09-08-territory-conversion-v2-design.md`
 — read it first; every ruling this plan leans on is argued there.
 
-**Mock digest:** `.superpowers/sdd/2026-09-08-conversion-pending-v2/mock-digest.md`
+**Mock digest:** `.superpowers/sdd/2026-09-08-territory-conversion-v2/mock-digest.md`
 — every measurement, token and string. Build from it, not from memory.
 
 ## Global Constraints

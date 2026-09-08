@@ -3,7 +3,7 @@
 Date: 2026-09-08. Branch: `feat/frontend-v2-design-system` (PR #38, dev ←
 branch). Mock: Claude Design project `b5fa4afe-…`, file
 `Conversion Pending v2.dc.html` (every measurement, token and string in
-`.superpowers/sdd/2026-09-08-conversion-pending-v2/mock-digest.md`; the
+`.superpowers/sdd/2026-09-08-territory-conversion-v2/mock-digest.md`; the
 ledger directory is git-ignored, the digest is the working copy).
 
 ## Goal
