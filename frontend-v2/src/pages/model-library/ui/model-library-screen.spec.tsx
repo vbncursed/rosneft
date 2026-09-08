@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ModelCardModel } from "../model/catalog";
+import type { ModelCardModel } from "@/entities/model";
 import type { ModelLibraryState } from "../model/use-model-library";
 import { ModelLibraryScreen } from "./model-library-screen";
 

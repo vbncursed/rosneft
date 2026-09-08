@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import type { ModelCardModel } from "../model/catalog";
+import type { ModelCardModel } from "@/entities/model";
 import { ModelLibraryPage, type ModelLibraryPageProps } from "./model-library-page";
 
 const card = (slug: string, title: string, over: Partial<ModelCardModel> = {}): ModelCardModel => ({
