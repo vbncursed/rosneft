@@ -1,6 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
 import { territoryPath } from "@/entities/territory";
-import { leaveTo } from "@/shared/lib/leave";
 import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -48,7 +47,7 @@ export function TerritoryCatalogScreen() {
         canDelete={s.canDelete}
         canReplace={s.canReplace}
         onUpload={() => void navigate({ to: "/territories/new" })}
-        onOpen={(slug) => leaveTo(territoryPath(slug))}
+        onOpen={(slug) => void navigate({ href: territoryPath(slug) })}
         onReplace={(slug) => void navigate({ href: `/territories/${encodeURIComponent(slug)}/replace` })}
         onDelete={s.ask}
         {...(s.cards.length === 0

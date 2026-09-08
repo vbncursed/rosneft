@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import type { ConversionStage } from "@/entities/conversion";
 import { createTerritory } from "@/entities/territory";
@@ -11,7 +12,6 @@ import {
 } from "@/entities/upload";
 import { meQuery } from "@/entities/user";
 import { messageOf } from "@/shared/api";
-import { leaveTo } from "@/shared/lib/leave";
 import { notify } from "@/shared/lib/notify";
 import { can } from "@/shared/session";
 import type { ChecklistItem } from "@/shared/ui/checklist";
@@ -37,11 +37,12 @@ const EMPTY_FORM: UploadForm = { title: "", description: "", panoramaUrl: "" };
 
 /**
  * The upload state machine: idle -> picked -> uploading -> finalizing ->
- * creating -> (leaves for the old SPA's conversion screen) | picked (on a
+ * creating -> (navigates to the territory's conversion page) | picked (on a
  * throw, toasted, or a cancel, silent — the file is kept either way).
  */
 export function useUploadTerritory(): UploadTerritoryState {
   const me = useQuery(meQuery).data ?? null;
+  const navigate = useNavigate();
   const [phase, setPhase] = useState<UploadPhase>("idle");
   const [file, setFile] = useState<File | null>(null);
   const [form, setForm] = useState<UploadForm>(EMPTY_FORM);
@@ -97,7 +98,9 @@ export function useUploadTerritory(): UploadTerritoryState {
           sourceBlobHash: finalized.hash,
         });
       })
-      .then(({ territory, job }) => leaveTo(`/territories/${encodeURIComponent(territory.slug)}?jobId=${job.id}`))
+      .then(({ territory, job }) =>
+        navigate({ href: `/territories/${encodeURIComponent(territory.slug)}?jobId=${job.id}` }),
+      )
       .catch((err: unknown) => {
         setPhase("picked");
         // A deliberate cancel is not a failure to report — only a genuine

@@ -117,18 +117,23 @@ export const CATALOG_PATHS = [
 ] as const;
 
 const MODEL_PAGE = /^\/models\/[^/]+$/;
+const TERRITORY_PAGE = /^\/territories\/[^/]+$/;
 const REPLACE_FORM = /^\/territories\/[^/]+\/replace$/;
 
 /**
  * A catalog screen href, query string included: the four list/upload routes,
- * the account page and its two-factor wizard, a model's page and a
- * territory's replace form.
- * Deliberately not `/territories/<slug>` — the viewer still leaves to the old
- * SPA, so a click on one must fall through to a real navigation.
+ * the account page and its two-factor wizard, a model's page, a territory's
+ * replace form and a territory's own page — the conversion screen; a ready
+ * territory's viewer is still the old SPA, and that page leaves for it itself.
  */
 export const isCatalogHref = (href: string): boolean => {
   const path = href.split("?")[0];
-  return (CATALOG_PATHS as readonly string[]).includes(path) || MODEL_PAGE.test(path) || REPLACE_FORM.test(path);
+  return (
+    (CATALOG_PATHS as readonly string[]).includes(path) ||
+    MODEL_PAGE.test(path) ||
+    TERRITORY_PAGE.test(path) ||
+    REPLACE_FORM.test(path)
+  );
 };
 
 type ClickModifiers = {

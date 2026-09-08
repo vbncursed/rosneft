@@ -5,10 +5,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useUploadTerritory } from "./use-upload-territory";
 
-const { runChunkedUpload, createTerritory, leaveTo } = vi.hoisted(() => ({
+const { runChunkedUpload, createTerritory, leaveTo, navigate } = vi.hoisted(() => ({
   runChunkedUpload: vi.fn(),
   createTerritory: vi.fn(),
   leaveTo: vi.fn(),
+  navigate: vi.fn(),
 }));
 vi.mock("@/entities/upload", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -19,6 +20,8 @@ vi.mock("@/entities/territory", async (importOriginal) => ({
   createTerritory,
 }));
 vi.mock("@/shared/lib/leave", () => ({ leaveTo }));
+// A stand-in for the router context: the hook is rendered on its own.
+vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 
 const PRINCIPAL = {
   id: "me",
@@ -48,6 +51,7 @@ beforeEach(() => {
   runChunkedUpload.mockReset();
   createTerritory.mockReset();
   leaveTo.mockReset();
+  navigate.mockReset();
   clearNotices();
 });
 
@@ -77,7 +81,7 @@ describe("useUploadTerritory", () => {
     expect(result.current.phase).toBe("idle");
   });
 
-  it("runs picked -> uploading -> creating -> leaves for the old SPA with the job id", async () => {
+  it("runs picked -> uploading -> creating -> navigates to the territory's conversion page with the job id", async () => {
     let reportProgress: ((p: { bytes: number; total: number; chunk: number; chunks: number }) => void) | undefined;
     runChunkedUpload.mockImplementation((_file, opts) => {
       reportProgress = opts.onProgress;
@@ -99,7 +103,10 @@ describe("useUploadTerritory", () => {
     });
     expect(result.current.phase).toBe("finalizing");
 
-    await waitFor(() => expect(leaveTo).toHaveBeenCalledWith("/territories/refinery-block-c?jobId=job-1"));
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith({ href: "/territories/refinery-block-c?jobId=job-1" }),
+    );
+    expect(leaveTo).not.toHaveBeenCalled();
     expect(createTerritory).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Refinery Block C", sourceBlobHash: "h".repeat(64) }),
     );
@@ -151,7 +158,8 @@ describe("useUploadTerritory", () => {
       result.current.onForm({ title: "T", description: " a scene ", panoramaUrl: " https://x/y " }),
     );
     act(() => result.current.onSubmit());
-    await waitFor(() => expect(leaveTo).toHaveBeenCalled());
+    await waitFor(() => expect(navigate).toHaveBeenCalled());
+    expect(leaveTo).not.toHaveBeenCalled();
     expect(createTerritory).toHaveBeenCalledWith(
       expect.objectContaining({ description: "a scene", externalPanoramaUrl: "https://x/y" }),
     );
@@ -167,6 +175,7 @@ describe("useUploadTerritory", () => {
     await waitFor(() => expect(result.current.s.phase).toBe("picked"));
     expect(result.current.s.file).not.toBeNull();
     expect(result.current.notices[0]?.tone).toBe("error");
+    expect(navigate).not.toHaveBeenCalled();
     expect(leaveTo).not.toHaveBeenCalled();
   });
 

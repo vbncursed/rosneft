@@ -86,11 +86,12 @@ describe("TerritoryCatalogScreen", () => {
     expect(screen.queryByRole("heading", { name: "T 2" })).not.toBeInTheDocument();
   });
 
-  it("sends Open into the old SPA via territoryPath", async () => {
+  it("navigates to the territory's own page rather than leaving the SPA", async () => {
     useTerritoryCatalog.mockReturnValue(state());
     render(<TerritoryCatalogScreen />);
     await userEvent.click(screen.getByRole("article", { name: "T 1" }));
-    expect(leaveTo).toHaveBeenCalledWith("/territories/t-1");
+    expect(navigate).toHaveBeenCalledWith({ href: "/territories/t-1" });
+    expect(leaveTo).not.toHaveBeenCalled();
   });
 
   it("navigates to the replace form rather than leaving the SPA", async () => {

@@ -5,6 +5,7 @@ import { ModelDetailScreen } from "@/pages/model-detail";
 import { ModelLibraryScreen } from "@/pages/model-library";
 import { ReplaceSourceScreen } from "@/pages/replace-source";
 import { TerritoryCatalogScreen } from "@/pages/territory-catalog";
+import { TerritoryConversionScreen } from "@/pages/territory-conversion";
 import { TwoFactorScreen } from "@/pages/two-factor";
 import { UploadModelsScreen } from "@/pages/upload-models";
 import { UploadTerritoryScreen } from "@/pages/upload-territory";
@@ -38,6 +39,16 @@ export const territoryNewRoute = createRoute({
   getParentRoute: () => catalogRoute,
   path: "/territories/new",
   component: UploadTerritoryScreen,
+});
+
+// The upload and replace flows arrive with the job they just created, so the
+// page can open its SSE channel at once; without one it reads the poll.
+export const territoryRoute = createRoute({
+  getParentRoute: () => catalogRoute,
+  path: "/territories/$slug",
+  validateSearch: (search: Record<string, unknown>): { jobId?: string } =>
+    typeof search.jobId === "string" && search.jobId !== "" ? { jobId: search.jobId } : {},
+  component: TerritoryConversionScreen,
 });
 
 export const modelsRoute = createRoute({

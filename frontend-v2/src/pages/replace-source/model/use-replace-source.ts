@@ -1,11 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { assetSize } from "@/entities/content";
 import { getTerritory, replaceTerritorySource, territoryQuery } from "@/entities/territory";
 import { progressFor, runChunkedUpload, type UploadProgress, type UploadSample } from "@/entities/upload";
 import { meQuery } from "@/entities/user";
 import { HttpError, messageOf } from "@/shared/api";
-import { leaveTo } from "@/shared/lib/leave";
 import { notify } from "@/shared/lib/notify";
 import { unanswered } from "@/shared/lib/unanswered";
 import { can } from "@/shared/session";
@@ -19,11 +19,12 @@ export type ReplaceSourceState =
 
 /**
  * The replace-source state machine: idle -> picked -> uploading -> finalizing
- * -> replacing -> (leaves for the old SPA's conversion screen) | picked (on a
- * throw, toasted, or a cancel, silent — the file is kept either way).
+ * -> replacing -> (navigates to the territory's conversion page) | picked (on
+ * a throw, toasted, or a cancel, silent — the file is kept either way).
  */
 export function useReplaceSource(slug: string): ReplaceSourceState {
   const client = useQueryClient();
+  const navigate = useNavigate();
   const me = useQuery(meQuery).data ?? null;
   // queryFn stays a direct import (rather than territoryQuery's own bound
   // one) so a spec's vi.mock of the entity barrel reaches the fetch.
@@ -87,7 +88,7 @@ export function useReplaceSource(slug: string): ReplaceSourceState {
           client.invalidateQueries({ queryKey: ["jobs"] }),
           client.invalidateQueries({ queryKey: ["territories"] }),
         ]);
-        leaveTo(`/territories/${encodeURIComponent(replaced.slug)}?jobId=${job.id}`);
+        void navigate({ href: `/territories/${encodeURIComponent(replaced.slug)}?jobId=${job.id}` });
       })
       .catch((err: unknown) => {
         setPhase("picked");
