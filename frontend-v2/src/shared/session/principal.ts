@@ -50,7 +50,10 @@ export const grantableSlugs = (
  * from here, so the fallbacks ("Root" for an ownerless owner, "—" otherwise)
  * are decided once.
  */
-export function viewerOf(me: Principal): { username: string; roleTitle: string } {
+/** Who is signed in, as every surface that shows an identity draws it. */
+export type Viewer = { username: string; roleTitle: string };
+
+export function viewerOf(me: Principal): Viewer {
   const first = me.roleSlugs[0];
   const roleTitle = first ? (me.roleTitles[first] ?? first) : me.isOwner ? "Root" : "—";
   return { username: me.username, roleTitle };

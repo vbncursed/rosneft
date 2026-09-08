@@ -77,5 +77,11 @@ describe("TerritoriesSection", () => {
       />,
     );
     expect(screen.getByText("No territories yet")).toBeInTheDocument();
+    // Home draws no upload button any more, so the sentence names where one is.
+    expect(
+      screen.getByText(
+        "Upload a source archive from the territory catalog and the first one will appear here.",
+      ),
+    ).toBeInTheDocument();
   });
 });

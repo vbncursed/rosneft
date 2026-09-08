@@ -15,7 +15,7 @@ import { territoriesQuery, toTerritoryCard, type TerritoryCardModel } from "@/en
 import { meQuery } from "@/entities/user";
 import { messageOf } from "@/shared/api";
 import { unanswered } from "@/shared/lib/unanswered";
-import { can, viewerOf } from "@/shared/session";
+import { can, viewerOf, type Viewer } from "@/shared/session";
 import {
   ACTIVITY_ROWS,
   bareCard,
@@ -35,7 +35,7 @@ export type HomeState = {
   error: string | null;
   meta: string;
   /** Who is signed in, for the header pill. Empty strings while the cache is cold. */
-  viewer: { username: string; roleTitle: string };
+  viewer: Viewer;
   /** [] hides the strip. */
   jobs: JobCardModel[];
   jobsMeta: string;

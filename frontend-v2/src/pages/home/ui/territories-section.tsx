@@ -43,7 +43,7 @@ export function TerritoriesSection({
           <EmptyState
             layout="start"
             title="No territories yet"
-            description="Upload a source archive and the first one will appear here."
+            description="Upload a source archive from the territory catalog and the first one will appear here."
           />
         )
       ) : (

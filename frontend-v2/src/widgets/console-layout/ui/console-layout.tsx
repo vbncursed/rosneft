@@ -2,12 +2,13 @@ import type { ReactNode } from "react";
 import { ConsoleSidebar } from "@/widgets/console-sidebar";
 import type { ConsoleNavItem } from "@/widgets/console-nav";
 
+import type { Viewer } from "@/shared/session";
 export type ConsoleLayoutProps = {
   items: ConsoleNavItem[];
   /** Key of the section the current route belongs to. */
   active: string;
   backHref: string;
-  viewer: { username: string; roleTitle: string };
+  viewer: Viewer;
   children: ReactNode;
 };
 
