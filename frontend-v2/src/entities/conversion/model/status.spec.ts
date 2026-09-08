@@ -28,4 +28,8 @@ describe("toneClasses", () => {
   it("tones the active stage accent when asked", () => {
     expect(toneClasses("active", "accent")).toEqual({ dot: "bg-accent", text: "text-accent" });
   });
+
+  it("tones a failed stage bad, dot and text alike", () => {
+    expect(toneClasses("failed")).toEqual({ dot: "bg-bad", text: "text-bad" });
+  });
 });
