@@ -9,6 +9,7 @@ describe("the glyph registry", () => {
 
   it("carries the glyphs the design system draws", () => {
     expect([...ICON_NAMES].sort()).toEqual([
+      "arrow-right",
       "calendar",
       "check",
       "cube",

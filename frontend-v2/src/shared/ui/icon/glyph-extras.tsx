@@ -26,4 +26,9 @@ export const EXTRA_GLYPHS = {
     width: 1.8,
     body: <path d="M4 6h16M4 12h16M4 18h16" />,
   },
+  "arrow-right": {
+    box: "0 0 24 24",
+    width: 2,
+    body: <path d="M5 12h14M13 6l6 6-6 6" />,
+  },
 } as const;

@@ -6,8 +6,8 @@ export type EmptyStateProps = {
   title: ReactNode;
   description?: ReactNode;
   action?: ReactNode;
-  /** row draws icon | title+description | action, in a single dashed strip. */
-  layout?: "center" | "row";
+  /** row draws icon | title+description | action, in a single dashed strip; start is the mock's left-aligned card. */
+  layout?: "center" | "row" | "start";
   icon?: IconName;
   className?: string;
 };
@@ -33,6 +33,23 @@ export function EmptyState({
           <p className="m-0 text-sm font-semibold">{title}</p>
           {description ? <p className="m-0 mt-1 text-xs text-muted">{description}</p> : null}
         </div>
+        {action}
+      </div>
+    );
+  }
+
+  if (layout === "start") {
+    return (
+      <div
+        className={cx(
+          "flex flex-col gap-2.5 rounded-[14px] border border-dashed border-line-2 bg-panel p-7 text-left text-fg",
+          className,
+        )}
+      >
+        <p className="m-0 text-[15px] font-semibold">{title}</p>
+        {description ? (
+          <p className="m-0 max-w-[56ch] text-[13px] leading-[1.6] text-muted">{description}</p>
+        ) : null}
         {action}
       </div>
     );
