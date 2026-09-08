@@ -70,6 +70,7 @@ const state = (over: Partial<ContentState> = {}): ContentState => ({
 beforeEach(() => {
   useContent.mockReset();
   leaveTo.mockReset();
+  navigate.mockReset();
 });
 
 describe("ContentScreen", () => {
@@ -113,9 +114,10 @@ describe("ContentScreen", () => {
     render(<ContentScreen />);
     const aside = screen.getByRole("complementary", { name: "Content: T 1" });
     await userEvent.click(within(aside).getByRole("button", { name: "Replace source" }));
-    expect(leaveTo).toHaveBeenCalledWith("/territories/t-1/replace");
+    expect(navigate).toHaveBeenCalledWith({ href: "/territories/t-1/replace" });
     await userEvent.click(within(aside).getByRole("button", { name: "Open in viewer" }));
-    expect(leaveTo).toHaveBeenCalledWith("/territories/t-1");
+    expect(navigate).toHaveBeenCalledWith({ href: "/territories/t-1" });
+    expect(leaveTo).not.toHaveBeenCalled();
     await userEvent.click(within(aside).getByRole("button", { name: "Delete" }));
     expect(s.ask).toHaveBeenCalled();
   });
@@ -130,7 +132,8 @@ describe("ContentScreen", () => {
     expect(screen.getByRole("menuitem", { name: "Replace source" })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("menuitem", { name: "Open in viewer" }));
-    expect(leaveTo).toHaveBeenCalledWith("/territories/t-1");
+    expect(navigate).toHaveBeenCalledWith({ href: "/territories/t-1" });
+    expect(leaveTo).not.toHaveBeenCalled();
   });
 
   it("replaces a source from the row, without opening the inspector first", async () => {
@@ -140,7 +143,8 @@ describe("ContentScreen", () => {
     const row = screen.getByRole("article", { name: "T 1" });
     await userEvent.click(within(row).getByRole("button", { name: "Row actions for T 1" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "Replace source" }));
-    expect(leaveTo).toHaveBeenCalledWith("/territories/t-1/replace");
+    expect(navigate).toHaveBeenCalledWith({ href: "/territories/t-1/replace" });
+    expect(leaveTo).not.toHaveBeenCalled();
     // The menu sits inside the row's own click target; reaching an action must
     // not also select the row and swing the inspector open behind the menu.
     expect(s.select).not.toHaveBeenCalled();
@@ -229,7 +233,8 @@ describe("ContentScreen", () => {
     const open = within(aside).getByRole("button", { name: "Open in viewer" });
     expect(open).toBeEnabled();
     await userEvent.click(open);
-    expect(leaveTo).toHaveBeenCalledWith("/territories/t-1");
+    expect(navigate).toHaveBeenCalledWith({ href: "/territories/t-1" });
+    expect(leaveTo).not.toHaveBeenCalled();
 
     // ...and a row that has never converted still cannot be opened.
     unmount();

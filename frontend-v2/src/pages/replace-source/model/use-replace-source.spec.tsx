@@ -5,13 +5,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useReplaceSource, type ReplaceSourceState } from "./use-replace-source";
 
-const { getTerritory, replaceTerritorySource, assetSize, runChunkedUpload, leaveTo } = vi.hoisted(() => ({
-  getTerritory: vi.fn(),
-  replaceTerritorySource: vi.fn(),
-  assetSize: vi.fn(),
-  runChunkedUpload: vi.fn(),
-  leaveTo: vi.fn(),
-}));
+const { getTerritory, replaceTerritorySource, assetSize, runChunkedUpload, leaveTo, navigate } = vi.hoisted(
+  () => ({
+    getTerritory: vi.fn(),
+    replaceTerritorySource: vi.fn(),
+    assetSize: vi.fn(),
+    runChunkedUpload: vi.fn(),
+    leaveTo: vi.fn(),
+    navigate: vi.fn(),
+  }),
+);
 vi.mock("@/entities/territory", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getTerritory,
@@ -26,6 +29,8 @@ vi.mock("@/entities/upload", async (importOriginal) => ({
   runChunkedUpload,
 }));
 vi.mock("@/shared/lib/leave", () => ({ leaveTo }));
+// A stand-in for the router context: the hook is rendered on its own.
+vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 
 const PRINCIPAL = {
   id: "me",
@@ -71,6 +76,7 @@ beforeEach(() => {
   assetSize.mockReset().mockResolvedValue(1024);
   runChunkedUpload.mockReset();
   leaveTo.mockReset();
+  navigate.mockReset();
   clearNotices();
 });
 
@@ -97,7 +103,7 @@ describe("useReplaceSource", () => {
     expect(ready(result.current).phase).toBe("idle");
   });
 
-  it("runs picked -> uploading -> finalizing -> replacing -> leaves for the old SPA, invalidating jobs and territories", async () => {
+  it("runs picked -> uploading -> finalizing -> replacing -> navigates to the conversion page, invalidating jobs and territories", async () => {
     runChunkedUpload.mockImplementation((_file, opts) => {
       opts.onStage?.("finalizing");
       return Promise.resolve({ hash: "n".repeat(64), size: 2048 });
@@ -111,7 +117,8 @@ describe("useReplaceSource", () => {
     const invalidate = vi.spyOn(client, "invalidateQueries");
     act(() => ready(result.current).onSubmit());
 
-    await waitFor(() => expect(leaveTo).toHaveBeenCalledWith("/territories/t?jobId=j-9"));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ href: "/territories/t?jobId=j-9" }));
+    expect(leaveTo).not.toHaveBeenCalled();
     expect(replaceTerritorySource).toHaveBeenCalledWith("t", "n".repeat(64));
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["jobs"] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["territories"] });
@@ -128,6 +135,7 @@ describe("useReplaceSource", () => {
 
     await waitFor(() => expect(ready(result.current.s).phase).toBe("picked"));
     expect(result.current.notices[0]?.tone).toBe("error");
+    expect(navigate).not.toHaveBeenCalled();
     expect(leaveTo).not.toHaveBeenCalled();
   });
 

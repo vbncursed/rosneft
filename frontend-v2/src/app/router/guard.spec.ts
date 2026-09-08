@@ -176,12 +176,13 @@ describe("isCatalogHref", () => {
     }
   });
 
-  // A model page and a replace form are v2 now; a territory's viewer still leaves.
-  it("matches a model page and a territory's replace form, not the viewer", () => {
+  // A model page, a territory's replace form and the territory's own conversion page are all v2.
+  it("matches a model page, a territory's replace form and a territory page", () => {
     expect(isCatalogHref("/models/pump")).toBe(true);
     expect(isCatalogHref("/models/pump?from=library")).toBe(true);
     expect(isCatalogHref("/territories/north-ridge/replace")).toBe(true);
-    expect(isCatalogHref("/territories/north-ridge")).toBe(false);
+    expect(isCatalogHref("/territories/north-ridge")).toBe(true);
+    expect(isCatalogHref("/territories/north-ridge?jobId=abc")).toBe(true);
     expect(isCatalogHref("/territories/north-ridge/other")).toBe(false);
     expect(isCatalogHref("/models/pump/extra")).toBe(false);
   });

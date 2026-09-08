@@ -1,6 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
 import { contentPath, type ContentItem } from "@/entities/content";
-import { leaveTo } from "@/shared/lib/leave";
 import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { Icon } from "@/shared/ui/icon";
@@ -67,12 +66,12 @@ export function ContentScreen() {
         items={[
           {
             label: "Open in viewer",
-            onSelect: () => leaveTo(contentPath(item)),
+            onSelect: () => void navigate({ href: contentPath(item) }),
             // Artifacts, not status — the same question the inspector asks: a
             // re-conversion that failed leaves the old scene viewable.
             disabled: s.artifactsOf(item.kind, item.slug).length === 0,
           },
-          ...(href ? [{ label: "Replace source", onSelect: () => leaveTo(href) }] : []),
+          ...(href ? [{ label: "Replace source", onSelect: () => void navigate({ href }) }] : []),
         ]}
       />
     );
@@ -103,11 +102,12 @@ export function ContentScreen() {
         }
         canManage={s.canManage}
         {...(s.canManage ? { renderRowActions: rowActions } : {})}
-        // v2 owns both upload routes; leaveTo would reload the whole app.
+        // v2 owns every href this screen builds; a full navigation would
+        // reload the app and throw the query cache away.
         onUploadTerritory={() => void navigate({ to: "/territories/new" })}
         onUploadModel={() => void navigate({ to: "/models/new" })}
-        onReplaceSource={replace ? () => leaveTo(replace) : undefined}
-        onOpenInViewer={() => selected && leaveTo(contentPath(selected))}
+        onReplaceSource={replace ? () => void navigate({ href: replace }) : undefined}
+        onOpenInViewer={() => selected && void navigate({ href: contentPath(selected) })}
         // Artifacts, not status: a re-conversion that is running or failed
         // leaves the previously converted scene on disk and viewable.
         openable={!!selected && s.artifactsOf(selected.kind, selected.slug).length > 0}
