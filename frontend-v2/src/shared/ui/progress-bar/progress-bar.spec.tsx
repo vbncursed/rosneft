@@ -58,3 +58,33 @@ describe("ProgressBar · thin", () => {
     );
   });
 });
+
+describe("ProgressBar · lg", () => {
+  it("draws the mock's 8px framed track with the caption above it", () => {
+    const { container } = render(
+      <ProgressBar size="lg" value={58} label="Building LOD 1" detail="58%" />,
+    );
+    const track = screen.getByRole("progressbar", { name: "Building LOD 1" });
+    expect(track).toHaveAttribute("aria-valuenow", "58");
+    expect(track.className).toContain("h-2");
+    expect(track.className).toContain("border-line");
+    const caption = container.querySelector("p")!;
+    // The caption precedes the track in the DOM — the mock's row sits above the bar.
+    expect(caption.compareDocumentPosition(track) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText("58%").className).toContain("text-accent");
+    expect(screen.getByText("Building LOD 1").className).toContain("font-semibold");
+  });
+
+  it("draws the caption alone, muted, when there is no value to show", () => {
+    render(<ProgressBar size="lg" label="Waiting for a worker" detail="no progress reported" />);
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(screen.getByText("no progress reported").className).toContain("text-muted");
+    expect(screen.getByText("Waiting for a worker")).toBeInTheDocument();
+  });
+
+  it("leaves md exactly as it was", () => {
+    render(<ProgressBar value={64} label="Uploading chunks" detail="64%" />);
+    expect(screen.getByRole("progressbar").className).toContain("h-1.5");
+    expect(screen.getByText("64%").parentElement!.className).toContain("mt-[7px]");
+  });
+});
