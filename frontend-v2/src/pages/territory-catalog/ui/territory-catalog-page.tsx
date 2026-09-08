@@ -118,8 +118,8 @@ export function TerritoryCatalogPage({
               chips={card.chips}
               progress={card.progress}
               trailing={card.trailing}
-              onOpen={card.openable ? () => onOpen(card.slug) : undefined}
-              {...(card.openable ? { href: territoryPath(card.slug) } : {})}
+              onOpen={() => onOpen(card.slug)}
+              href={territoryPath(card.slug)}
               actions={
                 canReplace || canDelete ? (
                   <>

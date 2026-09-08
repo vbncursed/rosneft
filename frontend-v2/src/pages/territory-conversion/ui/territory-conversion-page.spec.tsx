@@ -69,8 +69,29 @@ describe("TerritoryConversionPage", () => {
     expect(screen.getByText("stopped before the first report")).toBeInTheDocument();
   });
 
+  it("falls back for an empty worker message, as the gateway's *string can serialise it", () => {
+    render(
+      <TerritoryConversionPage
+        {...props({ phase: "failed", job: job({ status: "failed", stage: null, progress: null, errorMessage: "" }) })}
+      />,
+    );
+    expect(screen.getByText("The worker reported no message.")).toBeInTheDocument();
+  });
+
+  it("titles the pipeline section with a real heading", () => {
+    render(<TerritoryConversionPage {...props()} />);
+    expect(screen.getByRole("heading", { level: 2, name: "Pipeline" })).toBeInTheDocument();
+  });
+
+  it("draws a zero-percent bar rather than dropping it", () => {
+    render(<TerritoryConversionPage {...props({ job: job({ progress: 0 }) })} />);
+    expect(screen.getByRole("progressbar", { name: "Conversion progress" })).toHaveAttribute("aria-valuenow", "0");
+  });
+
   it("ready: the ok pill, a finished pipeline, the viewer button", () => {
     render(<TerritoryConversionPage {...props({ phase: "ready", job: null, hasLod0: true })} />);
+    // The eyebrow answers the state; "Converting" over a finished page is a lie.
+    expect(screen.getByText("Converted")).toBeInTheDocument();
     expect(screen.getByText("ready")).toBeInTheDocument();
     expect(screen.getByText("7 steps · finished")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open the viewer" })).toBeInTheDocument();

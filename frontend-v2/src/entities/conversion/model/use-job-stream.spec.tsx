@@ -45,6 +45,22 @@ describe("useJobStream", () => {
     expect(close).toHaveBeenCalled();
   });
 
+  it("does not subscribe to an empty id, and drops the previous id's frame", () => {
+    const { result, rerender } = renderHook(({ id }) => useJobStream(id, "t"), {
+      wrapper,
+      initialProps: { id: "" as string },
+    });
+    // "" would open /api/jobs//events — a route the gateway does not have.
+    expect(openJobStream).not.toHaveBeenCalled();
+
+    rerender({ id: "j1" });
+    act(() => handlers.onJob(job()));
+    expect(result.current).not.toBeNull();
+    // A frame from the old channel must not paint the new one's first render.
+    rerender({ id: "j2" });
+    expect(result.current).toBeNull();
+  });
+
   it("hands back the latest frame for this territory and drops another's", () => {
     const { result } = renderHook(() => useJobStream("j1", "t"), { wrapper });
     act(() => handlers.onJob(job({ slug: "other" })));

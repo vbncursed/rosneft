@@ -87,5 +87,13 @@ describe("Callout · title and mono", () => {
     );
     expect(container.firstElementChild!.className).toContain("rounded-control-lg");
     expect(container.querySelector("svg")).toHaveAttribute("width", "14");
+    // The mock sets this body at 18px over 12px text; text-xs alone gives 16.
+    // leading-* writes --tw-leading, which text-xs reads — a composition, not a collision.
+    expect(screen.getByText("Closing the tab does not stop the job.").className).toContain("leading-[1.5]");
+  });
+
+  it("leaves every other size on the type scale's own line-height", () => {
+    render(<Callout tone="warn">Inline.</Callout>);
+    expect(screen.getByText("Inline.").className).not.toContain("leading-[1.5]");
   });
 });

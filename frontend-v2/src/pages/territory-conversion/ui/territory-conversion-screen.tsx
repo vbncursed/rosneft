@@ -6,10 +6,8 @@ import { useTerritoryConversion } from "../model/use-territory-conversion";
 import { TerritoryConversionPage } from "./territory-conversion-page";
 
 /** Maps the container onto the page — loading skeleton, not-found, unavailable, or the page. */
-export function TerritoryConversionScreen() {
-  const { slug } = useParams({ strict: false }) as { slug: string };
-  const { jobId } = useSearch({ strict: false }) as { jobId?: string };
-  const s = useTerritoryConversion(slug, jobId ?? null);
+function TerritoryConversionBody({ slug, jobId }: { slug: string; jobId: string | null }) {
+  const s = useTerritoryConversion(slug, jobId);
 
   if (s.status === "loading") {
     return (
@@ -46,4 +44,16 @@ export function TerritoryConversionScreen() {
       onOpenViewer={s.onOpenViewer}
     />
   );
+}
+
+/**
+ * The route component. The router keeps one instance across a `$slug` change,
+ * so the body is keyed on the slug: the container's refs (previous phase,
+ * previous jobs) and the stream's frame belong to one territory and must not
+ * carry into the next.
+ */
+export function TerritoryConversionScreen() {
+  const { slug } = useParams({ strict: false }) as { slug: string };
+  const { jobId } = useSearch({ strict: false }) as { jobId?: string };
+  return <TerritoryConversionBody key={slug} slug={slug} jobId={jobId ?? null} />;
 }

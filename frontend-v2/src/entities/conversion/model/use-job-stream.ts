@@ -14,8 +14,9 @@ export function useJobStream(jobId: string | null, slug: string): TargetJob | nu
   const [job, setJob] = useState<TargetJob | null>(null);
 
   useEffect(() => {
-    if (jobId === null) return;
-    return openJobStream(jobId, {
+    // "" would subscribe to /api/jobs//events, a route that does not exist.
+    if (!jobId) return;
+    const close = openJobStream(jobId, {
       onJob: (next) => {
         if (next.kind !== "territory" || next.slug !== slug) return;
         setJob(next);
@@ -29,6 +30,12 @@ export function useJobStream(jobId: string | null, slug: string): TargetJob | nu
         if (why === "lost") setJob(null);
       },
     });
+    // A frame belongs to the channel it arrived on: carrying it into the next
+    // subscription would paint the new job's first render with the old one's.
+    return () => {
+      close();
+      setJob(null);
+    };
   }, [jobId, slug, client]);
 
   return job;

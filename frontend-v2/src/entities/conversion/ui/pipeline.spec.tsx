@@ -7,6 +7,8 @@ describe("Pipeline", () => {
   it("is a labelled ordered list of every step, label and token", () => {
     render(<Pipeline steps={pipelineSteps("compressing", "running")} />);
     const list = screen.getByRole("list", { name: "Conversion pipeline" });
+    // list-none drops the implicit role in WebKit; the attribute is what keeps it.
+    expect(list).toHaveAttribute("role", "list");
     expect(list.tagName).toBe("OL");
     const items = within(list).getAllByRole("listitem");
     expect(items).toHaveLength(7);

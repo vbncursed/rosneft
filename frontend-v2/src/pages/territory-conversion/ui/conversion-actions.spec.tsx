@@ -26,6 +26,17 @@ describe("ConversionActions", () => {
     expect(screen.queryByText(FAILED_NOTE)).not.toBeInTheDocument();
   });
 
+  it("gives every hand-built control the focus ring and hover Button carries", () => {
+    render(<ConversionActions phase="ready" slug="t" hasLod0 onOpenViewer={vi.fn()} />);
+    const primary = screen.getByRole("button", { name: "Open the viewer" });
+    const secondary = screen.getByRole("link", { name: "Back to catalog" });
+    for (const el of [primary, secondary]) {
+      expect(el.className).toContain("focus-visible:outline-accent");
+    }
+    expect(primary.className).toContain("hover:bg-accent/90");
+    expect(secondary.className).toContain("hover:border-accent-line");
+  });
+
   it("draws nothing while waiting", () => {
     const { container } = render(<ConversionActions phase="running" slug="t" hasLod0={false} onOpenViewer={vi.fn()} />);
     expect(container).toBeEmptyDOMElement();

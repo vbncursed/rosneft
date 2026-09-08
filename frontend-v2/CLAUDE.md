@@ -307,9 +307,9 @@ through the one shared rule, `conversionStatusOf` in `entities/content`: a
 failed job wins outright, a live job reads `converting`, otherwise the
 artifacts decide ready/pending. Both carry the `finishedSince` effect, without
 which a conversion finishing on screen flips the card backwards to "pending".
-Every territory card is openable now (`toTerritoryCard`'s `openable: true`,
-unconditional) — the conversion page is where a pending, converting or failed
-one lands, so there is no longer a state a card has to refuse to open into.
+Every card is a link to its page — the conversion page is where a pending,
+converting or failed territory lands, so there is no longer a state a card has
+to refuse to open into, and no `openable` field to carry the answer.
 `placementCount` and `usageCount` are on the list and single-entity GETs
 alike (added on this branch); `usageCount` counts *distinct territories*, not
 placements, and is a global aggregate because the model library is shared by

@@ -1,8 +1,9 @@
 import { conversionStatusOf } from "@/entities/content";
-import { stageLabel, type TargetJob } from "@/entities/conversion";
+import { stageLabel, type PipelinePhase, type TargetJob } from "@/entities/conversion";
 import type { Territory } from "@/entities/territory";
 
-export type Phase = "queued" | "running" | "failed" | "ready";
+/** One union, named at its source: the pipeline draws exactly these four. */
+export type Phase = PipelinePhase;
 
 /** What the page needs, whatever loaded it — the hook's ready state, or a fixture. */
 export type TerritoryConversionPageProps = {
@@ -17,6 +18,9 @@ export type TerritoryConversionPageProps = {
 
 /** The catalogs' rule, then queued/running read off the job itself. */
 export function phaseOf(hasLod0: boolean, job: TargetJob | undefined): Phase {
+  // The terminal frame arrives before the artifacts are re-read: the job says
+  // done, the cache still says nothing converted. Draw the last step, not a reset.
+  if (job?.status === "succeeded" && !hasLod0) return "running";
   const status = conversionStatusOf(hasLod0, job);
   if (status === "failed") return "failed";
   if (status === "converting") return job?.status === "running" ? "running" : "queued";

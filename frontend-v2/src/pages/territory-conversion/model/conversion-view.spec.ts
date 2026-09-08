@@ -24,7 +24,12 @@ describe("phaseOf", () => {
     expect(phaseOf(true, undefined)).toBe("ready");
     expect(phaseOf(false, undefined)).toBe("queued");
     expect(phaseOf(true, job({ status: "succeeded" }))).toBe("ready");
-    expect(phaseOf(false, job({ status: "succeeded" }))).toBe("queued");
+  });
+
+  it("holds the last step on a succeeded frame the artifacts have not caught up with", () => {
+    // The terminal frame beats the artifacts refetch by a round trip; resetting
+    // to "queued" flashes the whole page backwards for that one frame.
+    expect(phaseOf(false, job({ status: "succeeded" }))).toBe("running");
   });
 });
 

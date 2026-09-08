@@ -44,7 +44,7 @@ export function TerritoryConversionPage({ territory, phase, job, hasLod0, onOpen
     <div className="mx-auto flex w-full max-w-[760px] flex-col gap-5">
       <PageHeader
         size="lg"
-        eyebrow="Converting"
+        eyebrow={phase === "ready" ? "Converted" : "Converting"}
         title={territory.title}
         back={{ label: "← Territory catalog", href: "/territories" }}
         titleBadge={
@@ -58,15 +58,17 @@ export function TerritoryConversionPage({ territory, phase, job, hasLod0, onOpen
       <p className="m-0 max-w-[60ch] text-[13px] leading-[1.6] text-muted">
         {ledeOf(phase, { hasJob: job !== null, hasLod0 })}
       </p>
+      {/* The gateway's *string serialises an absent message as "", not null. */}
       {phase === "failed" ? (
         <Callout tone="bad" size="lg" title="Worker message" mono>
-          {job?.errorMessage ?? "The worker reported no message."}
+          {job?.errorMessage || "The worker reported no message."}
         </Callout>
       ) : null}
+      {/* Spelled out rather than reusing `waiting`: this is what narrows the prop. */}
       {phase === "queued" || phase === "running" ? <ProgressPanel phase={phase} job={job} /> : null}
       <section aria-label="Pipeline">
         <div className="flex items-center gap-3 pt-0.5 pb-3">
-          <span className="text-[13px] font-semibold">Pipeline</span>
+          <h2 className="m-0 text-[13px] font-semibold">Pipeline</h2>
           <span className="font-mono text-[10px] text-muted">{pipelineMeta(stage, phase)}</span>
           <span aria-hidden="true" className="h-px flex-1 bg-line" />
         </div>

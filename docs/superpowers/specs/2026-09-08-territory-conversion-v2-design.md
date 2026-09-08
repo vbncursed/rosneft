@@ -148,7 +148,11 @@ The automatic leave fires only on a **transition observed on this page** —
 - `type Phase = "queued" | "running" | "failed" | "ready"`.
 - `phaseOf(hasLod0, job): Phase` — over `conversionStatusOf`: `failed` →
   `failed`; `converting` → `job.status === "running" ? "running" : "queued"`;
-  `pending` → `queued`; `ready` → `ready`.
+  `pending` → `queued`; `ready` → `ready`. Ahead of all of that, a `succeeded`
+  job with no LOD0 yet reads `running`: the terminal frame arrives a round trip
+  before the artifacts are re-read, and letting the stale cache decide would
+  reset the pill, the lede, the pipeline and the card to `queued` for one frame
+  before the page leaves.
 - `ledeOf(phase, { hasJob, hasLod0 }): string` — the table in §4.
 - `shouldLeave(prev: Phase | null, next: Phase): boolean` — §1.
 - `progressCard(job): { title, detail, value? }` — running: `title =
@@ -291,8 +295,10 @@ renders a column `mx-auto flex w-full max-w-[760px] flex-col gap-5`
 (the mock's 760 / 20). In order:
 
 1. `PageHeader size="lg"`, `back={{ label: "← Territory catalog", href:
-   "/territories" }}`, `eyebrow="Converting"` (all phases — the badge carries
-   the state), `title={territory.title}`, `titleBadge=<Badge …>`,
+   "/territories" }}`, `eyebrow={phase === "ready" ? "Converted" : "Converting"}`
+   (the badge carries the fine grain, but "Converting" over a finished page
+   states the wrong thing outright; the mock's one static word covered only its
+   own three in-flight states), `title={territory.title}`, `titleBadge=<Badge …>`,
    `meta={`territory · ${slug}`}`, `action=<ThemeToggle variant="compact" />`.
 2. Lede `<p class="m-0 max-w-[60ch] text-[13px] leading-[1.6] text-muted">`.
 3. failed: `Callout tone="bad" size="lg" title="Worker message" mono` with
@@ -351,9 +357,9 @@ again when a new archive is uploaded for this territory.`
 Waiting callout: `This page opens the viewer by itself once the artifacts
 land — no need to reload. Closing the tab does not stop the job.`
 
-Header: back `← Territory catalog`; eyebrow `Converting`; meta `territory ·
-{slug}`. Missing: `Territory not found`. Unavailable: `Territory
-unavailable: {message}`.
+Header: back `← Territory catalog`; eyebrow `Converting`, or `Converted` once
+the phase is `ready`; meta `territory · {slug}`. Missing: `Territory not
+found`. Unavailable: `Territory unavailable: {message}`.
 
 ## 5. Out of scope
 
