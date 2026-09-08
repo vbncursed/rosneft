@@ -28,6 +28,8 @@ export {
 } from "./model/target-job";
 export { listJobs } from "./api/jobs-gateway";
 export { jobsQuery } from "./api/jobs-query";
+export { openJobStream, type JobStreamHandlers, type StreamEnd } from "./api/job-stream";
+export { useJobStream } from "./model/use-job-stream";
 export { ConversionBadge } from "./ui/conversion-badge";
 export { StageList, type StageListProps } from "./ui/stage-list";
 export { Pipeline, type PipelineProps } from "./ui/pipeline";
