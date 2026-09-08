@@ -16,5 +16,12 @@ export default (
         </span>
       </>
     </Callout>
+    <Callout tone="bad" size="lg" title="Worker message" mono>
+      ktx2: unsupported pixel format in tank_albedo_04.tga
+    </Callout>
+    <Callout tone="warn" icon="info" size="note">
+      This page opens the viewer by itself once the artifacts land — no need to reload. Closing the tab does not stop
+      the job.
+    </Callout>
   </div>
 );
