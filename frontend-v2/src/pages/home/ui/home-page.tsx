@@ -3,6 +3,7 @@ import type { JobCardModel } from "@/entities/conversion";
 import type { ModelCardModel } from "@/entities/model";
 import type { TerritoryCardModel } from "@/entities/territory";
 import { ThemeToggle } from "@/features/theme-toggle";
+import type { Viewer } from "@/shared/session";
 import { AccountPill } from "@/widgets/account-pill";
 import { PageHeader } from "@/widgets/page-header";
 import { ActivitySection } from "./activity-section";
@@ -14,7 +15,7 @@ import { TerritoriesSection } from "./territories-section";
 
 export type HomePageProps = {
   meta: string;
-  viewer: { username: string; roleTitle: string };
+  viewer: Viewer;
   jobs: JobCardModel[];
   jobsMeta: string;
   territories: { cards: TerritoryCardModel[]; total: number; meta: string; viewerEmpty: boolean };

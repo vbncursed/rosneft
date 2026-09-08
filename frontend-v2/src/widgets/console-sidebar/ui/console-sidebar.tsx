@@ -2,13 +2,14 @@ import { ThemeToggle } from "@/features/theme-toggle";
 import { Avatar } from "@/shared/ui/avatar";
 import { ConsoleNav, type ConsoleNavItem } from "@/widgets/console-nav";
 
+import type { Viewer } from "@/shared/session";
 export type ConsoleSidebarProps = {
   items: ConsoleNavItem[];
   /** Key of the section currently open. */
   active: string;
   backHref: string;
   /** Signed-in identity, shown at the foot of the column. */
-  viewer: { username: string; roleTitle: string };
+  viewer: Viewer;
   /** Single letter in the brand mark. */
   mark?: string;
 };
