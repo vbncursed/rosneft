@@ -55,3 +55,37 @@ describe("Callout", () => {
     expect(container.firstElementChild!.className).toContain("rounded-card");
   });
 });
+
+describe("Callout · title and mono", () => {
+  it("prints an overline above a mono body, both in the tone", () => {
+    render(
+      <Callout tone="bad" size="lg" title="Worker message" mono>
+        ktx2: unsupported pixel format
+      </Callout>,
+    );
+    const overline = screen.getByText("Worker message");
+    const body = screen.getByText("ktx2: unsupported pixel format");
+    expect(overline.tagName).toBe("P");
+    expect(body.tagName).toBe("P");
+    expect(overline.compareDocumentPosition(body) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(overline.className).toContain("uppercase");
+    expect(body.className).toContain("font-mono");
+    expect(screen.getByRole("alert").className).toContain("text-bad");
+  });
+
+  it("keeps a plain callout one paragraph in the sans face", () => {
+    const { container } = render(<Callout tone="warn">Only this.</Callout>);
+    expect(container.querySelectorAll("p")).toHaveLength(1);
+    expect(screen.getByText("Only this.").className).not.toContain("font-mono");
+  });
+
+  it("has a note size with the smaller glyph", () => {
+    const { container } = render(
+      <Callout tone="warn" icon="info" size="note">
+        Closing the tab does not stop the job.
+      </Callout>,
+    );
+    expect(container.firstElementChild!.className).toContain("rounded-control-lg");
+    expect(container.querySelector("svg")).toHaveAttribute("width", "14");
+  });
+});
