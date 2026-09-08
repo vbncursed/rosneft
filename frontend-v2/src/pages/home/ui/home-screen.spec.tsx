@@ -62,14 +62,18 @@ beforeEach(() => {
 });
 
 describe("HomeScreen", () => {
-  it("shows skeletons while loading and the gateway's sentence when unavailable", () => {
+  it("shows skeletons while loading", () => {
     useHome.mockReturnValue(state({ status: "loading" }));
-    const { unmount } = render(<HomeScreen consoleItems={items(true)} />);
+    render(<HomeScreen consoleItems={items(true)} />);
     expect(screen.getByRole("status", { name: "Loading home" })).toBeInTheDocument();
-    unmount();
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+  });
+
+  it("prints the gateway's sentence when unavailable", () => {
     useHome.mockReturnValue(state({ status: "unavailable", error: "down" }));
     render(<HomeScreen consoleItems={items(true)} />);
     expect(screen.getByRole("alert")).toHaveTextContent("Home is unavailable: down");
+    expect(screen.queryByRole("status", { name: "Loading home" })).not.toBeInTheDocument();
   });
 
   it("renders the page when ready", () => {
@@ -106,10 +110,35 @@ describe("HomeScreen", () => {
     );
   });
 
+  it("draws the one open screen as a link and the five closed ones disabled", () => {
+    useHome.mockReturnValue(state());
+    const mixed = items(false).map((i) => (i.key === "content" ? { ...i, disabled: false } : i));
+    render(<HomeScreen consoleItems={mixed} />);
+    expect(screen.getByRole("link", { name: /^content/ })).toHaveAttribute(
+      "href",
+      "/console/content",
+    );
+    expect(screen.queryByRole("link", { name: /^audit/ })).not.toBeInTheDocument();
+    expect(screen.getByText("audit").closest("[aria-disabled]")).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+  });
+
   it("hides the console section when every screen is closed to the reader", () => {
     useHome.mockReturnValue(state());
     render(<HomeScreen consoleItems={items(false)} />);
     expect(screen.queryByRole("heading", { name: "Console" })).not.toBeInTheDocument();
+  });
+
+  it("survives a console key the counters do not know", () => {
+    useHome.mockReturnValue(state());
+    render(
+      <HomeScreen
+        consoleItems={[{ key: "tasks", label: "Tasks", href: "/console/tasks" }]}
+      />,
+    );
+    expect(screen.getByRole("link", { name: /^Tasks/ })).toBeInTheDocument();
   });
 
   it("hides the models section in the viewer-empty state", () => {

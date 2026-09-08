@@ -131,6 +131,22 @@ describe("useConsoleCounters", () => {
     await waitFor(() => expect(result.current.audit.text).toBe("200+ events · 24h"));
   });
 
+  it("reads a zero-length admins answer as no grants, not as not-yet", async () => {
+    fetchMock.mockImplementation(async (url: string) =>
+      url === "/api/territories"
+        ? json([
+            { slug: "t1", title: "T1", sourceBlobHash: "x" },
+            { slug: "t2", title: "T2", sourceBlobHash: "x" },
+          ])
+        : json({ userIds: [] }),
+    );
+    const { result } = renderHook(
+      () => useConsoleCounters(ITEMS.filter((i) => i.key === "access")),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.access).toEqual({ kind: "count", text: "0 grants" }));
+  });
+
   it("reads no grants at all, not an unavailable count, when there are no territories", async () => {
     fetchMock.mockImplementation(async () => json([]));
     const { result } = renderHook(

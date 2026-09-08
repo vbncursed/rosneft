@@ -10,10 +10,20 @@ export const ACTIVITY_ROWS = 4;
 
 export const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-/** The n most recently updated; entries without a date last, slug within a tie. */
+/**
+ * The n most recently updated; entries without a usable date last, slug within
+ * a tie. Compared as instants, never as strings: Go writes RFC3339Nano with
+ * the trailing zeros trimmed, so `…00Z` and `…00.5Z` are half a second apart
+ * and sort backwards under `localeCompare`.
+ */
+const instant = (at?: string): number => {
+  const ms = at === undefined ? Number.NaN : Date.parse(at);
+  return Number.isNaN(ms) ? -Infinity : ms;
+};
+
 export function recent<T extends { slug: string; updatedAt?: string }>(items: T[], n: number): T[] {
   return [...items]
-    .sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "") || a.slug.localeCompare(b.slug))
+    .sort((a, b) => instant(b.updatedAt) - instant(a.updatedAt) || a.slug.localeCompare(b.slug))
     .slice(0, n);
 }
 

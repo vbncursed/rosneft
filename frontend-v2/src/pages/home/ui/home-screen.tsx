@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Callout } from "@/shared/ui/callout";
 import { Skeleton } from "@/shared/ui/skeleton";
 import type { ConsoleNavItem } from "@/widgets/console-nav";
+import type { ConsoleKey } from "../model/console-hints";
 import { showConsole } from "../model/home-view";
 import { useConsoleCounters } from "../model/use-console-counters";
 import { useHome } from "../model/use-home";
@@ -46,13 +47,16 @@ export function HomeScreen({ consoleItems }: HomeScreenProps) {
       jobs={s.jobs}
       jobsMeta={s.jobsMeta}
       territories={s.territories}
-      models={s.models.shown ? s.models : null}
+      models={
+        s.models.shown ? { cards: s.models.cards, total: s.models.total, meta: s.models.meta } : null
+      }
       console={
         showConsole(consoleItems)
           ? consoleItems.map((i) => ({
               label: i.label,
               href: i.href,
-              hint: hints[i.key],
+              // A key outside the six Home counts for gets no hint, not a crash.
+              hint: hints[i.key as ConsoleKey] ?? { kind: "static", text: "" },
               locked: !!i.disabled,
             }))
           : null

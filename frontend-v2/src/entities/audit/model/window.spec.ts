@@ -16,5 +16,8 @@ describe("bucketOf", () => {
     expect(bucketOf("2026-09-01T10:05:00Z", now)).toBe(23);
     expect(bucketOf("2026-08-31T11:10:00Z", now)).toBe(0);
     expect(bucketOf("2026-08-31T10:59:00Z", now)).toBe(-1);
+    // The upper bound too: an entry stamped in the hour after `now` is outside
+    // the 24 drawn, not bucket 24 and not the last one.
+    expect(bucketOf("2026-09-01T11:10:00Z", now)).toBe(-1);
   });
 });
