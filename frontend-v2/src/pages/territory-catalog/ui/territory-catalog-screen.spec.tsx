@@ -5,13 +5,11 @@ import type { TerritoryCardModel } from "../model/catalog";
 import type { TerritoryCatalogState } from "../model/use-territory-catalog";
 import { TerritoryCatalogScreen } from "./territory-catalog-screen";
 
-const { useTerritoryCatalog, leaveTo, navigate } = vi.hoisted(() => ({
+const { useTerritoryCatalog, navigate } = vi.hoisted(() => ({
   useTerritoryCatalog: vi.fn(),
-  leaveTo: vi.fn(),
   navigate: vi.fn(),
 }));
 vi.mock("../model/use-territory-catalog", () => ({ useTerritoryCatalog }));
-vi.mock("@/shared/lib/leave", () => ({ leaveTo }));
 // A stand-in for the router context: the screen is rendered on its own.
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 
@@ -30,7 +28,8 @@ const T2: TerritoryCardModel = {
   status: "pending",
   chips: [{ label: "—", tone: "plain" }, { label: "—", tone: "plain" }],
   trailing: { label: "pending", tone: "muted" },
-  openable: false,
+  // Openable like every card: toTerritoryCard cannot produce false any more.
+  openable: true,
   panorama: false,
 };
 
@@ -55,7 +54,6 @@ const state = (over: Partial<TerritoryCatalogState> = {}): TerritoryCatalogState
 
 beforeEach(() => {
   useTerritoryCatalog.mockReset();
-  leaveTo.mockReset();
   navigate.mockReset();
 });
 
@@ -91,7 +89,6 @@ describe("TerritoryCatalogScreen", () => {
     render(<TerritoryCatalogScreen />);
     await userEvent.click(screen.getByRole("article", { name: "T 1" }));
     expect(navigate).toHaveBeenCalledWith({ href: "/territories/t-1" });
-    expect(leaveTo).not.toHaveBeenCalled();
   });
 
   it("navigates to the replace form rather than leaving the SPA", async () => {
@@ -99,7 +96,6 @@ describe("TerritoryCatalogScreen", () => {
     render(<TerritoryCatalogScreen />);
     await userEvent.click(screen.getByRole("button", { name: "Replace source of T 1" }));
     expect(navigate).toHaveBeenCalledWith({ href: "/territories/t-1/replace" });
-    expect(leaveTo).not.toHaveBeenCalled();
   });
 
   it("navigates to the v2 upload route rather than leaving the SPA", async () => {
@@ -107,7 +103,6 @@ describe("TerritoryCatalogScreen", () => {
     render(<TerritoryCatalogScreen />);
     await userEvent.click(screen.getByRole("button", { name: "+ Upload" }));
     expect(navigate).toHaveBeenCalledWith({ to: "/territories/new" });
-    expect(leaveTo).not.toHaveBeenCalled();
   });
 
   it("asks before deleting and hands the slug to the container", async () => {

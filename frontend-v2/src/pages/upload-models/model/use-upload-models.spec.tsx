@@ -6,10 +6,9 @@ import { HttpError } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useUploadModels } from "./use-upload-models";
 
-const { runChunkedUpload, createModel, leaveTo, navigate } = vi.hoisted(() => ({
+const { runChunkedUpload, createModel, navigate } = vi.hoisted(() => ({
   runChunkedUpload: vi.fn(),
   createModel: vi.fn(),
-  leaveTo: vi.fn(),
   navigate: vi.fn(),
 }));
 vi.mock("@/entities/upload", async (importOriginal) => ({
@@ -20,7 +19,6 @@ vi.mock("@/entities/model", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   createModel,
 }));
-vi.mock("@/shared/lib/leave", () => ({ leaveTo }));
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   useNavigate: () => navigate,
@@ -57,7 +55,6 @@ beforeEach(() => {
   client.setQueryData(["me"], PRINCIPAL);
   runChunkedUpload.mockReset();
   createModel.mockReset();
-  leaveTo.mockReset();
   navigate.mockReset();
   clearNotices();
 });
@@ -127,7 +124,7 @@ describe("useUploadModels", () => {
     expect(result.current.s.rows.find((r) => r.id === b.id)?.status).toBe("failed");
     expect(result.current.notices[0]?.message).toBe("b.zip: bad archive");
     expect(createModel).toHaveBeenCalledTimes(2);
-    await waitFor(() => expect(leaveTo).toHaveBeenCalledWith("/models/a?jobId=job-a"));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ href: "/models/a?jobId=job-a" }));
   });
 
   it("uploads the thumbnail before creating the model", async () => {
@@ -141,7 +138,7 @@ describe("useUploadModels", () => {
     act(() => result.current.onThumbnail(id, file("thumb.png", 512)));
 
     act(() => result.current.onRun());
-    await waitFor(() => expect(leaveTo).toHaveBeenCalled());
+    await waitFor(() => expect(navigate).toHaveBeenCalled());
 
     expect(runChunkedUpload).toHaveBeenCalledWith(expect.objectContaining({ name: "thumb.png" }), expect.anything());
     expect(createModel).toHaveBeenCalledWith(
@@ -165,7 +162,6 @@ describe("useUploadModels", () => {
 
     act(() => result.current.onRun());
     await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: "/models" }));
-    expect(leaveTo).not.toHaveBeenCalled();
   });
 
   it("stays put when nothing is created", async () => {
@@ -176,7 +172,6 @@ describe("useUploadModels", () => {
 
     act(() => result.current.onRun());
     await waitFor(() => expect(result.current.running).toBe(false));
-    expect(leaveTo).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
     expect(result.current.rows[0].status).toBe("failed");
   });
@@ -254,7 +249,6 @@ describe("useUploadModels", () => {
 
     expect(result.current.rows.find((r) => r.id === b.id)).toMatchObject({ status: "failed", error: "cancelled" });
     expect(result.current.rows.find((r) => r.id === c.id)?.status).toBe("queued");
-    expect(leaveTo).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
   });
 
@@ -276,7 +270,7 @@ describe("useUploadModels", () => {
     await waitFor(() => expect(result.current.rows[0].status).toBe("failed"));
 
     act(() => result.current.onRun());
-    await waitFor(() => expect(leaveTo).toHaveBeenCalled());
+    await waitFor(() => expect(navigate).toHaveBeenCalled());
     expect(result.current.rows[0].status).toBe("done");
     expect(runChunkedUpload).toHaveBeenCalledTimes(2);
   });

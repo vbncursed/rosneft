@@ -1,4 +1,4 @@
-import { leaveTo } from "@/shared/lib/leave";
+import { useNavigate } from "@tanstack/react-router";
 import { Callout } from "@/shared/ui/callout";
 import { DatePicker } from "@/shared/ui/date-picker";
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -18,6 +18,7 @@ const CAPTION = "shrink-0 font-mono text-[9px] uppercase tracking-[0.18em] text-
 /** Maps the container onto the page and draws the date pickers beside it. */
 export function AuditScreen() {
   const s = useAudit();
+  const navigate = useNavigate();
 
   if (s.status === "loading") {
     return (
@@ -103,7 +104,7 @@ export function AuditScreen() {
       exporting={s.exporting}
       exportDisabled={refused}
       onCopyJson={s.copyJson}
-      onOpenEntity={href ? () => leaveTo(href) : undefined}
+      onOpenEntity={href ? () => void navigate({ href }) : undefined}
       onLoadOlder={s.loadOlder}
       loadingOlder={s.loadingOlder}
     />

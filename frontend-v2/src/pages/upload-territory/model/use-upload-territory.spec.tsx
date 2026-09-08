@@ -5,10 +5,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useUploadTerritory } from "./use-upload-territory";
 
-const { runChunkedUpload, createTerritory, leaveTo, navigate } = vi.hoisted(() => ({
+const { runChunkedUpload, createTerritory, navigate } = vi.hoisted(() => ({
   runChunkedUpload: vi.fn(),
   createTerritory: vi.fn(),
-  leaveTo: vi.fn(),
   navigate: vi.fn(),
 }));
 vi.mock("@/entities/upload", async (importOriginal) => ({
@@ -19,7 +18,6 @@ vi.mock("@/entities/territory", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   createTerritory,
 }));
-vi.mock("@/shared/lib/leave", () => ({ leaveTo }));
 // A stand-in for the router context: the hook is rendered on its own.
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 
@@ -50,7 +48,6 @@ beforeEach(() => {
   client.setQueryData(["me"], PRINCIPAL);
   runChunkedUpload.mockReset();
   createTerritory.mockReset();
-  leaveTo.mockReset();
   navigate.mockReset();
   clearNotices();
 });
@@ -106,7 +103,6 @@ describe("useUploadTerritory", () => {
     await waitFor(() =>
       expect(navigate).toHaveBeenCalledWith({ href: "/territories/refinery-block-c?jobId=job-1" }),
     );
-    expect(leaveTo).not.toHaveBeenCalled();
     expect(createTerritory).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Refinery Block C", sourceBlobHash: "h".repeat(64) }),
     );
@@ -159,7 +155,6 @@ describe("useUploadTerritory", () => {
     );
     act(() => result.current.onSubmit());
     await waitFor(() => expect(navigate).toHaveBeenCalled());
-    expect(leaveTo).not.toHaveBeenCalled();
     expect(createTerritory).toHaveBeenCalledWith(
       expect.objectContaining({ description: "a scene", externalPanoramaUrl: "https://x/y" }),
     );
@@ -176,7 +171,6 @@ describe("useUploadTerritory", () => {
     expect(result.current.s.file).not.toBeNull();
     expect(result.current.notices[0]?.tone).toBe("error");
     expect(navigate).not.toHaveBeenCalled();
-    expect(leaveTo).not.toHaveBeenCalled();
   });
 
   it("cancels the upload without a toast, returning to picked with the file kept", async () => {

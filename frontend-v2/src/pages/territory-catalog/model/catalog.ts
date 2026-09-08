@@ -15,7 +15,12 @@ export type TerritoryCardModel = {
   chips: CatalogChip[];
   progress?: { value: number; stage: string };
   trailing: { label: string; tone: "accent" | "muted" | "warn" | "bad" };
-  /** Only a ready territory can be opened in the viewer. */
+  /**
+   * Whether the card links anywhere. Always true today — every territory has
+   * its own page, and for a pending, converting or failed one that page is
+   * the conversion screen, the exact state a card used to refuse to open.
+   * Kept as a field because the page reads it to decide the href.
+   */
   openable: boolean;
   /** Whether this territory has an external panorama tour — also filterable via `panorama:`. */
   panorama: boolean;
@@ -70,7 +75,7 @@ export function toTerritoryCard(
       ? { progress: { value: Math.round((job.progress ?? 0) * 100), stage: stageLabel(job.stage) } }
       : {}),
     trailing: TRAILING[status],
-    openable: status === "ready",
+    openable: true,
     panorama,
   };
 }
