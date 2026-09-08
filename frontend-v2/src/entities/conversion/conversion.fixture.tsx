@@ -1,4 +1,6 @@
+import { pipelineSteps, type PipelinePhase } from "./model/pipeline";
 import { ConversionBadge } from "./ui/conversion-badge";
+import { Pipeline } from "./ui/pipeline";
 import { StageList } from "./ui/stage-list";
 
 const STATES = [
@@ -16,6 +18,12 @@ const UPLOAD_STAGES = [
   { label: "Parse OBJ + MTL", state: "pending" as const, time: "~1 min", hint: "geometry and materials" },
 ];
 
+const pipeline = (stage: string | null, phase: PipelinePhase) => (
+  <div className="max-w-[760px] p-6">
+    <Pipeline steps={pipelineSteps(stage, phase)} />
+  </div>
+);
+
 export default {
   badges: (
     <div className="flex flex-col gap-3 rounded-card border border-line bg-panel p-6">
@@ -31,4 +39,8 @@ export default {
       <StageList stages={UPLOAD_STAGES} activeTone="accent" />
     </div>
   ),
+  "pipeline queued": pipeline(null, "queued"),
+  "pipeline running": pipeline("encoding", "running"),
+  "pipeline failed": pipeline("compressing", "failed"),
+  "pipeline failed, no stage": pipeline(null, "failed"),
 };

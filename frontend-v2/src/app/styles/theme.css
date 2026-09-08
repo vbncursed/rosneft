@@ -111,6 +111,9 @@
 
   /* The conversion bar before a job reports any progress. */
   --animate-indeterminate: indeterminate 1.4s ease-in-out infinite;
+
+  /* The pipeline's active dot, per the mock's om-breathe. */
+  --animate-breathe: breathe 1.8s ease-in-out infinite;
 }
 
 @keyframes indeterminate {
@@ -119,6 +122,16 @@
   }
   to {
     transform: translateX(350%);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
   }
 }
 

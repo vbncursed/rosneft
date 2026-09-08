@@ -11,6 +11,14 @@ export {
 } from "./model/status";
 export { stageLabel } from "./model/stage-label";
 export {
+  PIPELINE,
+  pipelineMeta,
+  pipelineSteps,
+  stepIndexOf,
+  type PipelinePhase,
+  type PipelineStep,
+} from "./model/pipeline";
+export {
   finishedSince,
   isLive,
   pollInterval,
@@ -22,3 +30,4 @@ export { listJobs } from "./api/jobs-gateway";
 export { jobsQuery } from "./api/jobs-query";
 export { ConversionBadge } from "./ui/conversion-badge";
 export { StageList, type StageListProps } from "./ui/stage-list";
+export { Pipeline, type PipelineProps } from "./ui/pipeline";
