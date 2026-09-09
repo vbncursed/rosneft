@@ -29,9 +29,11 @@ func (s *Server) ListMyAudit(ctx context.Context, req ListMyAuditRequestObject) 
 	}
 
 	q := myAuditQuery(req.Params)
-	// The one surface that pages by number: it needs the count, and it is
-	// read once per visit rather than polled. GET /api/audit is polled and
-	// therefore leaves the flag off — this is the only place it goes on.
+	// The one surface that pages by number: it needs the count. The count is
+	// paid on every request of this route — each cursor page, each refetch —
+	// but the index is on the actor, so it is a cheap one. The company
+	// journal is the one that is polled, and it therefore leaves the flag
+	// off; this is the only place it goes on.
 	q.IncludeTotal = true
 	res, refs, err := s.svc.ListAudit(ctx, q, sc, authhttp.Token(ctx), true)
 	switch {

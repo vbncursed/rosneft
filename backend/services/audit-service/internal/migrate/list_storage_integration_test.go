@@ -20,6 +20,13 @@ import (
 const (
 	actorA = "11111111-1111-4111-8111-111111111111"
 	actorB = "22222222-2222-4222-8222-222222222222"
+	// This suite's own actor, written by nobody else, so the row below cannot
+	// move a count another case asserts whatever order the suite runs in.
+	actorC = "55555555-5555-4555-8555-555555555555"
+	// The one company any row in this suite carries; every SetupSuite row
+	// leaves it NULL, so the scoped count has exactly this row to find.
+	companyA = "44444444-4444-4444-8444-444444444444"
+	companyB = "33333333-3333-4333-8333-333333333333"
 )
 
 type ListStorageSuite struct {
@@ -83,9 +90,21 @@ func (s *ListStorageSuite) TestCountIgnoresPagingAndHonoursTheActor() {
 	assert.Equal(s.T(), nB, int64(2))
 }
 
-// A scoped count with a company nobody wrote answers 0, not the NULL-company rows.
+// A scoped count sees its own company's rows and only those: 0 for a company
+// nobody wrote — the NULL-company rows of SetupSuite are not it — and 1 for the
+// company that has exactly one. Without the positive half a Count that always
+// answered 0 would pass.
 func (s *ListStorageSuite) TestScopedCountSeesOnlyItsCompany() {
-	n, err := s.store.Count(s.T().Context(), domain.Filter{CompanyID: "33333333-3333-4333-8333-333333333333"})
+	_, err := s.store.Record(s.T().Context(), domain.Entry{
+		ActorID: actorC, CompanyID: companyA, Action: "auth.login", Entity: "session", Result: "ok",
+	})
+	assert.NilError(s.T(), err)
+
+	n, err := s.store.Count(s.T().Context(), domain.Filter{CompanyID: companyA})
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), n, int64(1))
+
+	n, err = s.store.Count(s.T().Context(), domain.Filter{CompanyID: companyB})
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), n, int64(0))
 }
