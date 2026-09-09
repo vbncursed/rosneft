@@ -47,5 +47,6 @@ func filterFromProto(req *auditv1.ListEntriesRequest) domain.Filter {
 		To:           asTime(req.GetTo()),
 		Cursor:       req.GetCursor(),
 		Limit:        req.GetLimit(),
+		IncludeTotal: req.GetIncludeTotal(),
 	}
 }

@@ -43,4 +43,16 @@ type Filter struct {
 	To           time.Time
 	Cursor       int64 // exclusive upper bound on id; 0 = newest page
 	Limit        int32
+	// IncludeTotal asks for the count of every row the other fields match,
+	// Cursor and Limit aside. Off by default; see Service.List.
+	IncludeTotal bool
+}
+
+// Page is one read of the journal: the rows, the cursor for the next page
+// (0 when there is none) and, when asked for, the count of every row the
+// filters match.
+type Page struct {
+	Entries    []Entry
+	NextCursor int64
+	Total      int64
 }
