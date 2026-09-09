@@ -142,7 +142,14 @@ gateway does not know the total today; it learns to count.
   `rowsNeeded(page) > loaded && hasNextPage && !isFetching &&
   !isFetchNextPageError` — without the last clause a refused cursor page
   loops (960 requests in 50 ms measured), because the effect keeps seeing the
-  rows it still needs and asking again. `activityBusy` is
+  rows it still needs and asking again. That guard is query-wide, so it stops
+  every *later* walk too, and the walk resumes on the next click past the
+  failure: `onPage(n)` calls `fetchNextPage` when
+  `isFetchNextPageError && rowsNeeded(n) > loaded.length` — a chip asking for
+  rows nobody has is the retry; a chip inside the rows already loaded asks
+  for nothing. Without it every chip past a failure drew the stalled callout
+  with zero requests behind it until the tab lost focus, a callout claiming
+  an attempt that was never made. `activityBusy` is
   `activity.isPending || activity.isFetchingNextPage || walking`, not bare
   `isFetching`: `walking` is the effect's own guard, read a second time here
   so the frame between a chip click and the effect's fetch reads busy, never

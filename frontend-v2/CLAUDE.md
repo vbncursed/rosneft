@@ -565,7 +565,14 @@ by the query, `busy` would flash "this page could not be loaded" for the one
 frame between a chip click and the effect actually firing. The walk itself
 stops on `!activity.isFetchNextPageError` — without that guard a refused
 cursor page loops (960 requests in 50 ms, measured) because the effect keeps
-seeing the rows it still needs and asking again. `activity-section.tsx`
+seeing the rows it still needs and asking again. That flag is query-wide,
+so it stops every later walk too, and **the walk resumes on the next click
+past the failure**: `onPage(n)` calls `fetchNextPage` itself when
+`activity.isFetchNextPageError && rowsNeeded(n) > loaded.length`. Both
+clauses earn their place — without the retry every chip past a failure drew
+the stalled callout with nothing on the wire behind it until the tab lost
+focus, and without `rowsNeeded(n) > loaded.length` a click back onto rows
+already in hand asked the gateway for a page nobody needed. `activity-section.tsx`
 turns an empty slice into one of three readings via `busy` and `pageCount`:
 `waiting` (busy) draws six skeleton lines, not two, so the footer does not
 jump ~120px as the walk lands its rows; `stalled` (`!busy && pageCount > 1`)
