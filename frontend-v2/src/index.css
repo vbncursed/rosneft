@@ -9,3 +9,10 @@ body {
   color: var(--fg);
   font-family: var(--font-sans);
 }
+
+/* A modal <dialog> makes the page inert but not scroll-locked: the wheel
+   over ::backdrop still scrolls the document behind it. The Modal and the
+   Drawer both open through showModal(), so one rule covers every overlay. */
+body:has(dialog:modal) {
+  overflow: hidden;
+}
