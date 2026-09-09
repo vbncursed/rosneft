@@ -424,6 +424,17 @@ draw whenever their list is non-empty (`total > 0`, not `total > cards.length`
 carries a `Console →` trailing link, and `/territories` has the `← Home`
 back link `/models` already had.
 
+**Round three (2026-09-09): the account page's way back is Home, and the
+sidebar says Console once.** `pages/account/ui/account-header.tsx`'s back
+link read `← Back to console` → `/console`; the console has its own way in
+now (the sidebar's identity link), so it is `← Home` → `/`, same wording as
+the catalogs above. `widgets/console-nav/ui/console-nav.tsx` also drew an
+accent overline reading `Console` between the back link and the first item
+— dropped, because the `<nav aria-label="Console">` landmark already names
+the region and `console-sidebar.tsx`'s brand-row `Console` label is the one
+visible instance the user keeps. Only one "Console" text now shows inside
+the console sidebar.
+
 **Territory access** is the territories list, the users list and one
 admins query per territory; visibility is derived (anyone assigned →
 `assigned`, nobody → `private`), every grant is `direct`, drafts are kept per

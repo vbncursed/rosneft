@@ -583,6 +583,21 @@ nothing you may upload", and that answer has not changed.
 resolves the reader's own landing screen (`consoleLanding`) rather than a
 constant.
 
+## 9. Round three (2026-09-09)
+
+The user, looking at the live app, asked for two more one-line fixes.
+
+**R6 — the account page's way back is Home.** `pages/account/ui/
+account-header.tsx`'s back link was `← Back to console` → `/console`; the
+console has its own way in (the sidebar's identity link) and Home is the
+landing page now, so it is `← Home` → `/`, matching both catalogs.
+
+**R7 — one "Console" in the sidebar, not two.** `widgets/console-nav/ui/
+console-nav.tsx` drew an accent overline reading `Console` between the back
+link and the first item. Deleted: the `<nav aria-label="Console">` landmark
+already names the region, and `console-sidebar.tsx`'s brand-row `Console`
+label is the one the user keeps.
+
 ## Recorded deviations (as built)
 
 The ones the mock or this spec names and the code does otherwise, each with
