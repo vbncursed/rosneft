@@ -34,4 +34,12 @@ describe("Pager", () => {
     render(<Pager page={2} pageCount={3} onPage={vi.fn()} busy />);
     for (const b of screen.getAllByRole("button")) expect(b).toBeDisabled();
   });
+
+  // The deliberate variant check: a disabled chip has to *read* disabled, and
+  // `disabled:` is a class, not something a role or a value can report. The
+  // same 55% Prev and Next take from Button.
+  it("dims the page chips while busy, as Prev and Next do", () => {
+    render(<Pager page={2} pageCount={3} onPage={vi.fn()} busy />);
+    expect(screen.getByRole("button", { name: "Page 3" })).toHaveClass("disabled:opacity-55");
+  });
 });
