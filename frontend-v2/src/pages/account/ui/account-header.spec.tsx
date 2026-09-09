@@ -20,9 +20,9 @@ const me = (over: Partial<Principal> = {}): Principal => ({
 });
 
 describe("AccountHeader", () => {
-  it("links back to the console", () => {
+  it("links back to Home", () => {
     render(<AccountHeader me={me()} />);
-    expect(screen.getByRole("link", { name: "← Back to console" })).toHaveAttribute("href", "/console");
+    expect(screen.getByRole("link", { name: "← Home" })).toHaveAttribute("href", "/");
   });
 
   it("names the section", () => {

@@ -35,9 +35,6 @@ export function ConsoleNav({
       >
         {backLabel}
       </a>
-      <p className="m-0 mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-accent">
-        Console
-      </p>
 
       {items.map((item) =>
         item.disabled ? (
