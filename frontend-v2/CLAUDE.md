@@ -544,6 +544,39 @@ name. Take fixture rows from a live `GET /api/audit/mine`, not from
 imagination: the invented `entityLabel: "YubiKey 5C"` on a passkey row hid
 that defect through nine reviews.
 
+**The activity feed pages by six, over the one cursor query the feed already
+holds.** `pages/account/model/paging.ts` is the pure page arithmetic —
+`PAGE_SIZE = 6`, `pageCount(total)` (never fewer than one page), `pageSlice`,
+`pageSummary` ("1–6 of 184 events", the range form even for a single event),
+`rowsNeeded(page)`. `use-account.ts`'s `useAccount` keeps `page` as
+component state and derives everything else: `total` is the first page's
+`total` (`GET /api/audit/mine`'s `include_total` flag, the one surface that
+sets it — `GET /api/audit` is polled and would pay for a `COUNT` on every
+tick), `shownPage` clamps `page` to `pageCount(total)` on render so a feed
+that shrank under an invalidation lands on its new last page rather than an
+empty slice. A page past what is already loaded is not a fresh request —
+the gateway only pages forward by cursor — so an effect walks the cursor
+pages in between (`rowsNeeded(shownPage) > loaded.length`), one in flight at
+a time, until enough rows are in. That walk's predicate is computed once, as
+`walking`, and reused by both the effect and `activityBusy`
+(`activity.isPending || activity.isFetchingNextPage || walking`): read only
+by the query, `busy` would flash "this page could not be loaded" for the one
+frame between a chip click and the effect actually firing. The walk itself
+stops on `!activity.isFetchNextPageError` — without that guard a refused
+cursor page loops (960 requests in 50 ms, measured) because the effect keeps
+seeing the rows it still needs and asking again. `activity-section.tsx`
+turns an empty slice into one of three readings via `busy` and `pageCount`:
+`waiting` (busy) draws six skeleton lines, not two, so the footer does not
+jump ~120px as the walk lands its rows; `stalled` (`!busy && pageCount > 1`)
+means the journal holds more than this one page but the walk to it failed —
+it draws the warn callout "This page could not be loaded." and **keeps the
+footer**, so a chip can get the reader back to a page that did load; `empty`
+(`!busy && pageCount <= 1`) is the true zero-row case, the only one with no
+footer. The footer's own summary is `pageSummary`; its pager is `Pager` from
+`shared/ui/pager`, whose chip layout (first, last two, current ± 1, one gap
+between non-neighbours) is `pageList`'s rule, unit-tested against the
+mock's own digit sequence.
+
 **The recovery-codes stage is component state, never a URL.** The gateway
 issues those codes exactly once, in the body of the call that created or
 regenerated them (`enable2FA`/`regenerateRecoveryCodes`), so a link

@@ -138,6 +138,18 @@ gateway does not know the total today; it learns to count.
   page's slice, `null` when unanswered), `activityTotal: number | null`,
   `activityPage`, `activityPageCount`, `activityBusy: isFetching`,
   `onPage(n)`. `activityHasMore` and `onLoadMore` go away.
+  **(as built)** The effect's guard is
+  `rowsNeeded(page) > loaded && hasNextPage && !isFetching &&
+  !isFetchNextPageError` — without the last clause a refused cursor page
+  loops (960 requests in 50 ms measured), because the effect keeps seeing the
+  rows it still needs and asking again. `activityBusy` is
+  `activity.isPending || activity.isFetchingNextPage`, not bare `isFetching`:
+  a background refetch (the feed is invalidated on every account change)
+  must not disable a pager whose rows are already on screen, and the very
+  first load draws the skeleton instead of flashing the empty state. Walking
+  to a far page costs one cursor request per `defaultLimit` (50) rows in
+  between, in order — `rowsNeeded(page)` divided by the store's page size,
+  not by `PAGE_SIZE`.
 - `ActivitySection` props: `entries: AuditEntry[] | null`, `page`,
   `pageCount`, `summary: string`, `busy`, `onPage`. Header meta `newest first
   · 6 per page`. Rows: `ActivityRow` with `px-[22px] py-3.5` (the mock's
@@ -147,6 +159,16 @@ gateway does not know the total today; it learns to count.
   state, no footer. A page whose rows are still on the wire (`busy` and the
   slice is empty) draws two skeleton lines where the rows go and the pager
   disabled.
+  **(as built)** An empty slice is told apart by `busy` and `pageCount`
+  into three, not two, states: `waiting` (`busy && nothing`) draws six
+  skeleton lines, not two — so the footer does not jump ~120px while the walk
+  lands its rows; `stalled` (`!busy && nothing && pageCount > 1`) is a fourth
+  section state, not covered above — the journal demonstrably holds more
+  pages than this one but the cursor walk to it failed, so it draws the warn
+  callout "This page could not be loaded." and **keeps the footer**, so a
+  pager chip can get the reader back to a page that did load; `empty`
+  narrows to `!busy && nothing && pageCount <= 1`, the true zero-row case,
+  which alone draws the empty state with no footer.
 - Page props: `activity`, `activityTotal`, `activityPage`,
   `activityPageCount`, `activityBusy`, `onPage`; the page computes
   `pageSummary` and hands the section its props. Fixture states: `ready`
