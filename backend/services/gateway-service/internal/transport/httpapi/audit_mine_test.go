@@ -27,12 +27,13 @@ func TestListMyAuditSuite(t *testing.T) { suite.Run(t, new(ListMyAuditSuite)) }
 type mineServiceStub struct {
 	Service
 	seen domain.AuditQuery
+	page domain.AuditPage
 	err  error
 }
 
 func (m *mineServiceStub) ListAudit(
 	_ context.Context, q domain.AuditQuery, sc domain.AuditScope, _ string, _ bool,
-) ([]domain.AuditEntry, int64, map[string]string, error) {
+) (domain.AuditPage, map[string]string, error) {
 	// The handler is expected to hand the scope straight through; recording the
 	// merged result is what lets a test assert on the actor that survived.
 	q.AllCompanies, q.CompanyID = sc.All, sc.Company
@@ -40,7 +41,7 @@ func (m *mineServiceStub) ListAudit(
 		q.ActorID = sc.Actor
 	}
 	m.seen = q
-	return nil, 0, nil, m.err
+	return m.page, nil, m.err
 }
 
 func (s *ListMyAuditSuite) ctxFor(p authhttp.TestPrincipal) context.Context {
@@ -121,4 +122,23 @@ func (s *ListMyAuditSuite) TestGrantlessPrincipalIsRefused() {
 	_, ok := resp.(ListMyAudit403JSONResponse)
 	assert.Assert(s.T(), ok, "expected 403, got %T", resp)
 	assert.Equal(s.T(), svc.seen.ActorID, "", "a refused caller must not reach the service at all")
+}
+
+// The own-actions page is the one surface that pages by number, so it is the
+// one that asks the journal to count.
+func (s *ListMyAuditSuite) TestAsksForTheTotalAndPrintsIt() {
+	svc := &mineServiceStub{page: domain.AuditPage{Total: 184}}
+	ctx := s.ctxFor(authhttp.TestPrincipal{
+		UserID: "me", Perms: []string{"audit:read_own"},
+		OwningAdmin: "company-1", AuditCompany: "company-1",
+	})
+
+	resp, err := New(svc).ListMyAudit(ctx, ListMyAuditRequestObject{})
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), svc.seen.IncludeTotal, true)
+	page, ok := resp.(ListMyAudit200JSONResponse)
+	assert.Assert(s.T(), ok, "expected 200, got %T", resp)
+	assert.Assert(s.T(), page.Total != nil)
+	assert.Equal(s.T(), *page.Total, int64(184))
 }

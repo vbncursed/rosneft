@@ -86,7 +86,7 @@ func (s *Server) ListAudit(ctx context.Context, req ListAuditRequestObject) (Lis
 		// when the truth was something else.
 		return ListAudit500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
 	}
-	entries, next, refs, err := s.svc.ListAudit(ctx,
+	res, refs, err := s.svc.ListAudit(ctx,
 		auditQueryFromParams(req.Params), sc, authhttp.Token(ctx), true)
 	switch {
 	case isForbidden(err):
@@ -100,12 +100,12 @@ func (s *Server) ListAudit(ctx context.Context, req ListAuditRequestObject) (Lis
 		return ListAudit500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
 	}
 
-	page := AuditPage{Entries: make([]AuditEntry, len(entries))}
-	for i, e := range entries {
+	page := AuditPage{Entries: make([]AuditEntry, len(res.Entries))}
+	for i, e := range res.Entries {
 		page.Entries[i] = auditEntryToAPI(e)
 	}
-	if next > 0 {
-		page.NextCursor = &next
+	if res.NextCursor > 0 {
+		page.NextCursor = &res.NextCursor
 	}
 	// Пустой словарь не отдаётся: страница без ссылок в снимках — обычное дело
 	// (сессионные события, правки заголовков), и пустой объект в каждом таком

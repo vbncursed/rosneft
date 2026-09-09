@@ -51,10 +51,11 @@ func (s *AuditLabelsSuite) SetupTest() {
 // listAsRoot drives the real entry point, since the labelling is only reachable
 // through it.
 func (s *AuditLabelsSuite) list() ([]domain.AuditEntry, error) {
-	s.aud.ListEntriesMock.Return(s.page, 0, nil)
+	s.aud.ListEntriesMock.Return(domain.AuditPage{Entries: s.page}, nil)
 	// wantRefs=false: подписи внутри снимков — предмет audit_refs_test.go, а
 	// здесь проверяются подписи уровня записи.
-	out, _, _, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", false)
+	page, _, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", false)
+	out := page.Entries
 	return out, err
 }
 

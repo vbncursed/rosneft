@@ -52,10 +52,10 @@ func (s *AuditRefsSuite) entry() domain.AuditEntry {
 }
 
 func (s *AuditRefsSuite) TestLabelsAreKeyedByFieldAndValue() {
-	s.audit.ListEntriesMock.Return([]domain.AuditEntry{s.entry()}, 0, nil)
+	s.audit.ListEntriesMock.Return(domain.AuditPage{Entries: []domain.AuditEntry{s.entry()}}, nil)
 	s.auth.ResolveLabelsMock.Return(map[string]string{"role:r-1": "Редактор"}, nil)
 
-	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", true)
+	_, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", true)
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), refs["role_id:r-1"], "Редактор")
@@ -64,11 +64,11 @@ func (s *AuditRefsSuite) TestLabelsAreKeyedByFieldAndValue() {
 func (s *AuditRefsSuite) TestUserIdIsNamedByTheLoginResolver() {
 	// Регрессия: user — третья корзина, а не «всё, что не роль, — каталогу».
 	// Логины разрешает ResolveUserLogins, у auth.ResolveLabels такого вида нет.
-	s.audit.ListEntriesMock.Return([]domain.AuditEntry{s.entry()}, 0, nil)
+	s.audit.ListEntriesMock.Return(domain.AuditPage{Entries: []domain.AuditEntry{s.entry()}}, nil)
 	s.auth.ResolveUserLoginsMock.Return(map[string]string{"u-1": "ivan.petrov"}, nil)
 	s.auth.ResolveLabelsMock.Return(map[string]string{}, nil)
 
-	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", true)
+	_, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", true)
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), refs["user_id:u-1"], "ivan.petrov")
@@ -77,10 +77,10 @@ func (s *AuditRefsSuite) TestUserIdIsNamedByTheLoginResolver() {
 func (s *AuditRefsSuite) TestUnresolvedIdIsAbsentRatherThanBlank() {
 	// Пустая подпись перезаписала бы id пустотой; отсутствие ключа откатывает
 	// клиента к показу самого id — ровно то, что он показывал раньше.
-	s.audit.ListEntriesMock.Return([]domain.AuditEntry{s.entry()}, 0, nil)
+	s.audit.ListEntriesMock.Return(domain.AuditPage{Entries: []domain.AuditEntry{s.entry()}}, nil)
 	s.auth.ResolveLabelsMock.Return(map[string]string{}, nil)
 
-	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", true)
+	_, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", true)
 
 	assert.NilError(s.T(), err)
 	_, ok := refs["role_id:r-1"]
@@ -89,10 +89,11 @@ func (s *AuditRefsSuite) TestUnresolvedIdIsAbsentRatherThanBlank() {
 
 func (s *AuditRefsSuite) TestResolverFailureDoesNotFailThePage() {
 	// Журнал, отвечающий 500 из-за перезапуска auth, хуже журнала с uuid.
-	s.audit.ListEntriesMock.Return([]domain.AuditEntry{s.entry()}, 0, nil)
+	s.audit.ListEntriesMock.Return(domain.AuditPage{Entries: []domain.AuditEntry{s.entry()}}, nil)
 	s.auth.ResolveLabelsMock.Return(nil, errors.New("auth is restarting"))
 
-	entries, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", true)
+	page, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", true)
+	entries := page.Entries
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(entries), 1)
@@ -102,17 +103,17 @@ func (s *AuditRefsSuite) TestResolverFailureDoesNotFailThePage() {
 func (s *AuditRefsSuite) TestOneResolverFailingKeepsTheOther() {
 	// Роли не разрешились — модели всё равно должны быть подписаны. errgroup
 	// отменил бы соседа по первой ошибке, поэтому его здесь и нет.
-	s.audit.ListEntriesMock.Return([]domain.AuditEntry{{
+	s.audit.ListEntriesMock.Return(domain.AuditPage{Entries: []domain.AuditEntry{{
 		Entity: "role_permission",
 		NewRow: `{"role_id":"r-1","permission_id":"p-1"}`,
 	}, {
 		Entity: "placement",
 		NewRow: `{"model_id":7}`,
-	}}, 0, nil)
+	}}}, nil)
 	s.auth.ResolveLabelsMock.Return(nil, errors.New("auth is restarting"))
 	s.catalog.ResolveLabelsMock.Return(map[string]string{"model:7": "pump-01"}, nil)
 
-	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", true)
+	_, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", true)
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), refs["model_id:7"], "pump-01")
@@ -128,10 +129,10 @@ func (s *AuditRefsSuite) TestRefsBeyondTheResolverCapAreStillResolved() {
 	for i := range ids {
 		ids[i] = strconv.Itoa(i + 1)
 	}
-	s.audit.ListEntriesMock.Return([]domain.AuditEntry{{
+	s.audit.ListEntriesMock.Return(domain.AuditPage{Entries: []domain.AuditEntry{{
 		Entity: "placement",
 		NewRow: `{"visible_panorama_ids":[` + strings.Join(ids, ",") + `]}`,
-	}}, 0, nil)
+	}}}, nil)
 
 	var calls, seen int
 	s.catalog.ResolveLabelsMock.Set(
@@ -145,7 +146,7 @@ func (s *AuditRefsSuite) TestRefsBeyondTheResolverCapAreStillResolved() {
 			return out, nil
 		})
 
-	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", true)
+	_, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", true)
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), calls, 2) // 600 ссылок = 500 + 100
@@ -158,9 +159,9 @@ func (s *AuditRefsSuite) TestRefsBeyondTheResolverCapAreStillResolved() {
 func (s *AuditRefsSuite) TestWantRefsFalseSkipsBothResolvers() {
 	// Экспорт CSV снимков не печатает; моки без ожиданий провалят тест, если
 	// резолверы всё же позовут.
-	s.audit.ListEntriesMock.Return([]domain.AuditEntry{s.entry()}, 0, nil)
+	s.audit.ListEntriesMock.Return(domain.AuditPage{Entries: []domain.AuditEntry{s.entry()}}, nil)
 
-	_, _, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", false)
+	_, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", false)
 
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), refs == nil)
