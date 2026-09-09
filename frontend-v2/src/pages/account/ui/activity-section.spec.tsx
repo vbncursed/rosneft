@@ -53,9 +53,11 @@ const ENTRIES = [
 
 const props = (over: Partial<Parameters<typeof ActivitySection>[0]> = {}) => ({
   entries: ENTRIES,
-  hasMore: false,
+  page: 1,
+  pageCount: 1,
+  summary: "1–2 of 2 events",
   busy: false,
-  onLoadMore: vi.fn(),
+  onPage: vi.fn(),
   ...over,
 });
 
@@ -63,7 +65,7 @@ describe("ActivitySection", () => {
   it("heads the feed and says what it holds", () => {
     render(<ActivitySection {...props()} />);
     expect(screen.getByRole("heading", { level: 2, name: "My activity" })).toBeInTheDocument();
-    expect(screen.getByText("everything recorded under your account, newest first")).toBeInTheDocument();
+    expect(screen.getByText("newest first · 6 per page")).toBeInTheDocument();
   });
 
   it("prints the action verbatim, the summary beneath it and a bare clock for today", () => {
@@ -104,51 +106,52 @@ describe("ActivitySection", () => {
     expect(within(rows[1]).getByText("placement.update")).toBeInTheDocument();
   });
 
-  it("counts what is on screen", () => {
-    render(<ActivitySection {...props()} />);
-    expect(screen.getByText("showing 2 events")).toBeInTheDocument();
+  it("prints the summary and the pager under the rows", () => {
+    render(<ActivitySection {...props({ page: 1, pageCount: 31, summary: "1–6 of 184 events" })} />);
+    expect(screen.getByText("1–6 of 184 events")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Pages" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Page 1" })).toHaveAttribute("aria-current", "page");
   });
 
-  // Show more is drawn off the query's own answer, never off a page-size
-  // guess: a full last page would otherwise offer a page that does not exist.
-  it("offers another page only when the feed reports one", async () => {
-    const onLoadMore = vi.fn();
-    const { rerender } = render(<ActivitySection {...props({ hasMore: false })} />);
-    expect(screen.queryByRole("button", { name: "Show more" })).not.toBeInTheDocument();
-
-    rerender(<ActivitySection {...props({ hasMore: true, onLoadMore })} />);
-    await userEvent.click(screen.getByRole("button", { name: "Show more" }));
-    expect(onLoadMore).toHaveBeenCalledOnce();
+  it("hands a page click up", async () => {
+    const onPage = vi.fn();
+    render(<ActivitySection {...props({ pageCount: 3, onPage })} />);
+    await userEvent.click(screen.getByRole("button", { name: "Page 2" }));
+    expect(onPage).toHaveBeenCalledWith(2);
   });
 
-  it("blocks a second request while one is in flight", () => {
-    render(<ActivitySection {...props({ hasMore: true, busy: true })} />);
-    expect(screen.getByRole("button", { name: "Show more" })).toBeDisabled();
+  // A page still on the wire is not an empty history: the rows it will fill
+  // are drawn as skeletons and the pager waits rather than taking a second
+  // click for a page already on its way.
+  it("waits with the pager disabled and skeleton rows while a page is on its way", () => {
+    render(<ActivitySection {...props({ entries: [], busy: true, pageCount: 3, page: 3 })} />);
+    expect(screen.getByRole("status", { name: "Loading page 3" })).toBeInTheDocument();
+    expect(screen.queryByText("Nothing to show yet")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
   });
 
-  it("says nothing was recorded, and offers no footer to page through", () => {
-    render(<ActivitySection {...props({ entries: [], hasMore: false })} />);
+  it("says nothing was recorded, and draws no pager", () => {
+    render(<ActivitySection {...props({ entries: [], busy: false, pageCount: 1 })} />);
     expect(screen.getByText("Nothing to show yet")).toBeInTheDocument();
     expect(screen.queryByRole("listitem")).not.toBeInTheDocument();
-    expect(screen.queryByText(/showing/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Show more" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Pages" })).not.toBeInTheDocument();
   });
 
   // The reader has just signed in and auth.login is journalled, so an empty
   // state promising that signing in "shows up here" contradicts itself in
   // front of the person reading it.
   it("does not promise the reader an event the feed has already failed to show", () => {
-    render(<ActivitySection {...props({ entries: [], hasMore: false })} />);
+    render(<ActivitySection {...props({ entries: [] })} />);
     expect(screen.queryByText(/Signing in/)).not.toBeInTheDocument();
   });
 
   // A 403 — which is what every Guest gets — must not read as "nothing ever
   // happened". Both sibling sections on this page carry the same callout.
   it("says the feed could not be loaded rather than reporting an empty history", () => {
-    render(<ActivitySection {...props({ entries: null, hasMore: false })} />);
+    render(<ActivitySection {...props({ entries: null })} />);
     expect(screen.getByText("Your activity could not be loaded.")).toBeInTheDocument();
     expect(screen.queryByText("Nothing to show yet")).not.toBeInTheDocument();
     expect(screen.queryByRole("listitem")).not.toBeInTheDocument();
-    expect(screen.queryByText(/showing/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Pages" })).not.toBeInTheDocument();
   });
 });

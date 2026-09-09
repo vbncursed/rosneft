@@ -85,6 +85,10 @@ const ACTIVITY: AuditEntry[] = [
     entityLabel: "Storage Tank 500",
     territorySlug: "refinery-block-c",
   }),
+  // Nine rows: two pages of six, the second one short — which is what the
+  // summary's last-page arithmetic and the pager's edge both need to show.
+  event(2, "auth.2fa_enable", "2026-07-03T09:20:00Z"),
+  event(1, "auth.login", "2026-07-03T09:18:00Z"),
 ];
 
 const noop = async () => {};
@@ -95,8 +99,10 @@ const base: AccountPageProps = {
   passkeys: PASSKEYS,
   twoFactorLoading: false,
   passkeysLoading: false,
-  activity: ACTIVITY,
-  activityHasMore: true,
+  activity: ACTIVITY.slice(0, 6),
+  activityTotal: ACTIVITY.length,
+  activityPage: 1,
+  activityPageCount: 2,
   activityBusy: false,
   passwordBusy: false,
   disableBusy: false,
@@ -105,7 +111,7 @@ const base: AccountPageProps = {
   onDisable2FA: noop,
   onRemovePasskey: noop,
   onPasskeyAdded: () => {},
-  onLoadMore: () => {},
+  onPage: () => {},
 };
 
 const shell = (over: Partial<AccountPageProps>) => (
@@ -121,15 +127,19 @@ export default {
   "2fa unknown": shell({ twoFactor: null }),
   "no passkeys": shell({ passkeys: [] }),
   "passkeys unavailable": shell({ passkeys: null }),
-  "empty activity": shell({ activity: [], activityHasMore: false }),
+  // The short last page — six rows loaded, three drawn, the summary reading
+  // the remainder rather than the count on screen.
+  "page 2": shell({ activity: ACTIVITY.slice(6), activityPage: 2 }),
+  "empty activity": shell({ activity: [], activityTotal: 0, activityPageCount: 1 }),
   // What a Guest sees: no audit:read_own, so the feed 403s.
-  "activity unavailable": shell({ activity: null, activityHasMore: false }),
+  "activity unavailable": shell({ activity: null, activityTotal: null }),
   loading: shell({
     twoFactor: null,
     passkeys: null,
     twoFactorLoading: true,
     passkeysLoading: true,
+    // A page on its way: skeleton rows where the six go, the pager waiting.
     activity: [],
-    activityHasMore: false,
+    activityBusy: true,
   }),
 };

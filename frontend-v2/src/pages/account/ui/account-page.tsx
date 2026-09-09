@@ -3,6 +3,7 @@ import type { Passkey } from "@/entities/passkey";
 import type { TwoFactorStatus } from "@/entities/user";
 import type { Principal } from "@/shared/session";
 import { useState } from "react";
+import { pageSummary } from "../model/paging";
 import { postureCards } from "../model/posture";
 import { AccountHeader } from "./account-header";
 import { ActivitySection } from "./activity-section";
@@ -20,13 +21,15 @@ export type AccountPageProps = {
   twoFactorLoading: boolean;
   passkeysLoading: boolean;
   /**
-   * The caller's own journal, newest first, flattened across the pages fetched
-   * so far. null is "we could not find out" — a Guest's 403, not an empty
-   * history.
+   * The current page of the caller's own journal, newest first. null is "we
+   * could not find out" — a Guest's 403, not an empty history.
    */
   activity: AuditEntry[] | null;
-  /** The feed reports another page — the only thing that draws "Show more". */
-  activityHasMore: boolean;
+  /** Every event the feed holds, which is what the summary counts. null when it never answered. */
+  activityTotal: number | null;
+  activityPage: number;
+  activityPageCount: number;
+  /** A page is on its way — distinct from a background refetch, which leaves the pager live. */
   activityBusy: boolean;
   passwordBusy: boolean;
   disableBusy: boolean;
@@ -37,7 +40,7 @@ export type AccountPageProps = {
   onDisable2FA: (code: string) => Promise<void>;
   onRemovePasskey: (id: string, credential: { code?: string; password?: string }) => Promise<void>;
   onPasskeyAdded: () => void;
-  onLoadMore: () => void;
+  onPage: (page: number) => void;
 };
 
 /** The account screen's content: identity, posture, password, 2FA, passkeys, activity. Draws no chrome. */
@@ -81,9 +84,13 @@ export function AccountPage(props: AccountPageProps) {
       />
       <ActivitySection
         entries={props.activity}
-        hasMore={props.activityHasMore}
+        page={props.activityPage}
+        pageCount={props.activityPageCount}
+        // Nothing to count when the feed never answered — the section draws
+        // its callout there and never reaches the footer.
+        summary={props.activityTotal === null ? "" : pageSummary(props.activityPage, props.activityTotal)}
         busy={props.activityBusy}
-        onLoadMore={props.onLoadMore}
+        onPage={props.onPage}
       />
       <DisableTwoFactorModal
         open={disabling}

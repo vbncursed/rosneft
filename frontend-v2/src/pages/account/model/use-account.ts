@@ -1,10 +1,12 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { myAuditQuery } from "@/entities/audit";
 import { changePassword, disable2FA, meQuery, twoFactorQuery } from "@/entities/user";
 import { passkeysQuery, removePasskey } from "@/entities/passkey";
 import { messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
 import { unanswered } from "@/shared/lib/unanswered";
+import { pageCount, pageSlice, rowsNeeded } from "./paging";
 import type { AccountPageProps } from "../ui/account-page";
 
 export type { AccountPageProps };
@@ -31,6 +33,29 @@ export function useAccount(): AccountState {
   const twoFactor = useQuery(twoFactorQuery);
   const passkeys = useQuery(passkeysQuery);
   const activity = useInfiniteQuery(myAuditQuery);
+
+  // The pager may ask for a page the cache does not hold yet. The gateway
+  // pages by cursor and only forwards, so the pages in between are fetched in
+  // order until the asked-for one is in — one request in flight at a time.
+  // `isFetchNextPageError` stops the walk on a refusal: without it the effect
+  // sees the rows it still needs, asks again, fails again, and loops against
+  // the gateway with nothing on screen to show for it.
+  const [page, setPage] = useState(1);
+  const loaded = (activity.data?.pages ?? []).flatMap((p) => p.entries);
+  const total = activity.data?.pages[0]?.total ?? null;
+  // Clamped on render, not in the setter: a feed that shrank under an
+  // invalidation lands on its new last page rather than an empty slice.
+  const shownPage = Math.min(page, pageCount(total ?? 0));
+  useEffect(() => {
+    if (
+      rowsNeeded(shownPage) > loaded.length &&
+      activity.hasNextPage &&
+      !activity.isFetching &&
+      !activity.isFetchNextPageError
+    ) {
+      void activity.fetchNextPage();
+    }
+  }, [shownPage, loaded.length, activity]);
 
   // Every mutation invalidates what another surface reads. The journal is one
   // of those surfaces: this screen prints it three sections lower, so a change
@@ -110,9 +135,14 @@ export function useAccount(): AccountState {
     // would tell them nothing had ever happened under their own account.
     // `unanswered`, not `isError`: a failed *load more* leaves the pages
     // already on screen alone.
-    activity: unanswered(activity) ? null : (activity.data?.pages ?? []).flatMap((page) => page.entries),
-    activityHasMore: activity.hasNextPage,
-    activityBusy: activity.isFetching,
+    activity: unanswered(activity) ? null : pageSlice(loaded, shownPage),
+    activityTotal: unanswered(activity) ? null : total,
+    activityPage: shownPage,
+    activityPageCount: pageCount(total ?? 0),
+    // isFetchingNextPage, not isFetching: every mutation here invalidates the
+    // feed, and a background refetch must not disable a pager whose rows are
+    // on screen. Only a page actually on its way makes the reader wait.
+    activityBusy: activity.isFetchingNextPage,
     passwordBusy: password.isPending,
     disableBusy: disable.isPending,
     removalBusy: removal.isPending,
@@ -128,6 +158,6 @@ export function useAccount(): AccountState {
       void client.invalidateQueries({ queryKey: ["passkeys"] });
       afterJournalledChange();
     },
-    onLoadMore: () => void activity.fetchNextPage(),
+    onPage: setPage,
   };
 }

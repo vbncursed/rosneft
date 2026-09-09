@@ -50,7 +50,9 @@ const props = (over: Partial<AccountPageProps> = {}): AccountPageProps => ({
   twoFactorLoading: false,
   passkeysLoading: false,
   activity: [ENTRY],
-  activityHasMore: false,
+  activityTotal: 1,
+  activityPage: 1,
+  activityPageCount: 1,
   activityBusy: false,
   passwordBusy: false,
   disableBusy: false,
@@ -59,14 +61,16 @@ const props = (over: Partial<AccountPageProps> = {}): AccountPageProps => ({
   onDisable2FA: vi.fn().mockResolvedValue(undefined),
   onRemovePasskey: vi.fn().mockResolvedValue(undefined),
   onPasskeyAdded: vi.fn(),
-  onLoadMore: vi.fn(),
+  onPage: vi.fn(),
   ...over,
 });
 
 describe("AccountPage", () => {
   it("draws no chrome of its own — the shell owns the layout", () => {
     render(<AccountPage {...props()} />);
-    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+    // The feed's pager is a navigation landmark, and it is content: it moves
+    // within this page rather than around the app. Nothing else may be one.
+    expect(screen.getAllByRole("navigation").map((n) => n.getAttribute("aria-label"))).toEqual(["Pages"]);
     expect(screen.queryByRole("main")).not.toBeInTheDocument();
   });
 
@@ -82,7 +86,7 @@ describe("AccountPage", () => {
 
   it("counts the passkeys array it was handed, not a raw number", () => {
     render(<AccountPage {...props({ passkeys: [] })} />);
-    expect(screen.getByText("0")).toBeInTheDocument();
+    expect(screen.getByText("0", { selector: "p" })).toBeInTheDocument();
   });
 
   it("reads an unknown passkey count as unknown, not zero", () => {
@@ -93,8 +97,9 @@ describe("AccountPage", () => {
   it("forwards each side query's loading state to its own card", () => {
     render(<AccountPage {...props({ twoFactorLoading: true })} />);
     expect(screen.queryByText("TOTP")).not.toBeInTheDocument();
-    // Passkeys is not loading — its value still prints.
-    expect(screen.getByText("1")).toBeInTheDocument();
+    // Passkeys is not loading — its value still prints. Scoped to the card's
+    // own element: the pager's "Page 1" chip carries the same text.
+    expect(screen.getByText("1", { selector: "p" })).toBeInTheDocument();
   });
 
   it("shows all five sections", () => {
@@ -103,6 +108,13 @@ describe("AccountPage", () => {
       expect(screen.getByRole("heading", { level: 2, name })).toBeInTheDocument();
     }
     expect(screen.getByText("auth.login")).toBeInTheDocument();
+  });
+
+  // The summary is the page's own arithmetic over the props it was handed —
+  // the section is told the string, it does not count the rows it drew.
+  it("computes the feed's summary from the page and the total", () => {
+    render(<AccountPage {...props()} />);
+    expect(screen.getByText("1–1 of 1 events")).toBeInTheDocument();
   });
 
   it("opens the disable dialog from the two-factor card and submits a code through it", async () => {
