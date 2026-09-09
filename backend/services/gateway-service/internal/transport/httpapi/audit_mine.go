@@ -28,8 +28,12 @@ func (s *Server) ListMyAudit(ctx context.Context, req ListMyAuditRequestObject) 
 		return ListMyAudit500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
 	}
 
-	entries, next, refs, err := s.svc.ListAudit(ctx,
-		myAuditQuery(req.Params), sc, authhttp.Token(ctx), true)
+	q := myAuditQuery(req.Params)
+	// The one surface that pages by number: it needs the count, and it is
+	// read once per visit rather than polled. GET /api/audit is polled and
+	// therefore leaves the flag off — this is the only place it goes on.
+	q.IncludeTotal = true
+	res, refs, err := s.svc.ListAudit(ctx, q, sc, authhttp.Token(ctx), true)
 	switch {
 	case isForbidden(err):
 		return ListMyAudit403JSONResponse{
@@ -42,12 +46,12 @@ func (s *Server) ListMyAudit(ctx context.Context, req ListMyAuditRequestObject) 
 		return ListMyAudit500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
 	}
 
-	page := AuditPage{Entries: make([]AuditEntry, len(entries))}
-	for i, e := range entries {
+	page := AuditPage{Entries: make([]AuditEntry, len(res.Entries)), Total: &res.Total}
+	for i, e := range res.Entries {
 		page.Entries[i] = auditEntryToAPI(e)
 	}
-	if next > 0 {
-		page.NextCursor = &next
+	if res.NextCursor > 0 {
+		page.NextCursor = &res.NextCursor
 	}
 	// Пустой словарь не отдаётся — см. ListAudit.
 	if len(refs) > 0 {

@@ -737,6 +737,14 @@ components:
           type: integer
           format: int64
           description: Pass back as `cursor` for the next page. Absent or 0 means this was the last page.
+        total:
+          type: integer
+          format: int64
+          minimum: 0
+          description: >
+            How many entries the same filters match in all, paging aside —
+            what a numbered pager needs. Present on GET /api/audit/mine; the
+            company journal is polled and does not pay for the count.
         refs:
           type: object
           additionalProperties:

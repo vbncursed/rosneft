@@ -62,7 +62,7 @@ type Service interface {
 	//
 	// Neither derives the tenant from a request parameter — that comes from the
 	// session, or one Company Owner could read another's history.
-	ListAudit(ctx context.Context, q domain.AuditQuery, sc domain.AuditScope, token string, wantRefs bool) ([]domain.AuditEntry, int64, map[string]string, error)
+	ListAudit(ctx context.Context, q domain.AuditQuery, sc domain.AuditScope, token string, wantRefs bool) (domain.AuditPage, map[string]string, error)
 	ListAuditActors(ctx context.Context, p domain.AuditPrincipal, token string) ([]domain.AuditActor, error)
 
 	// ResolveBlobAccess backs RequireBlobAccess. A blob hash addresses content
