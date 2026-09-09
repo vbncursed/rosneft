@@ -222,6 +222,8 @@ describe("useTwoFactor", () => {
 
   it("leaves for the account screen from both exits", async () => {
     const { result } = renderHook(() => useTwoFactor("enable"), { wrapper });
+    // Entry provisions a secret; let it land or it lands after the test.
+    await waitFor(() => expect(result.current.secret).toBe(SECRET.secret));
     act(() => result.current.onDone());
     expect(navigate).toHaveBeenCalledWith({ to: "/account" });
 

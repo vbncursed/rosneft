@@ -32,10 +32,14 @@ export function dismiss(id: number): void {
   emit();
 }
 
-/** Test seam: a spec that pushed notices must not leak them into the next. */
+/**
+ * Test seam: a spec that pushed notices must not leak them into the next.
+ * Deliberately no emit — specs call this from afterEach, which vitest runs
+ * before the setup file's RTL cleanup, so a reader is still mounted and an
+ * emit here is a React update outside act.
+ */
 export function clearNotices(): void {
   notices = [];
-  emit();
 }
 
 function subscribe(listener: () => void): () => void {

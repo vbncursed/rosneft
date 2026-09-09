@@ -35,4 +35,18 @@ describe("notify", () => {
 
     expect(result.current.map((n) => n.message)).toEqual(["Second"]);
   });
+
+  // Specs call this from afterEach, which vitest runs before the setup file's
+  // RTL cleanup — so whatever read the notices is still mounted, and a store
+  // emit here is a React update outside act.
+  it("clears without waking a still-mounted reader", () => {
+    renderHook(() => useNotices());
+    act(() => notify.info("Leftover"));
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    clearNotices();
+
+    expect(error).not.toHaveBeenCalled();
+    error.mockRestore();
+  });
 });

@@ -108,6 +108,20 @@ native `<dialog>` on purpose (that is what gives a real browser the focus trap
 and the inert background), so `shared/lib/test-setup.ts` carries a small shim.
 Do not hand-roll a focus trap to make tests easier.
 
+**vitest runs `afterEach` hooks in reverse registration order, so a spec's
+own `afterEach` runs *before* the setup file's RTL `cleanup`** — whatever
+the test rendered is still mounted. A store reset that emits from there
+(`clearNotices` did) is a React update outside `act`, and vitest prints
+stderr from a hook only sometimes, so the warning looked like a flake on one
+machine while firing in 29 tests on every run. `clearNotices` no longer
+emits; a `notify.spec.ts` case guards it. To see hook-time warnings, write
+them to a file from a temporary `console.error` shim — the reporter will not
+show them. The reporter's "jsdom was created 325 times, try `vmThreads`"
+hint is informational: `--pool=vmThreads` cut the suite from 44 s to 11 s but
+failed 7 files (times rendered in UTC inside the VM context, and the fetch
+mocks in `client.spec`/gateway specs do not cross the realm), so the default
+pool stays until that is worth a day.
+
 **`yarn openapi:generate` crashes under `typescript@7.0.2`.**
 `openapi-typescript` builds its output through `ts.factory`, which the
 TypeScript 7 native port does not expose — its `peerDependencies` say `^5.x`,
