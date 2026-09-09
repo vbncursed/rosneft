@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-const listMyAudit = vi.fn(async () => ({ entries: [], nextCursor: null, refs: {} }));
+const listMyAudit = vi.fn(async () => ({ entries: [], nextCursor: null, refs: {}, total: null }));
 vi.mock("./audit-gateway", () => ({ listMyAudit }));
 const { myAuditQuery } = await import("./my-audit-query");
 
@@ -13,8 +13,8 @@ describe("myAuditQuery", () => {
 
   it("starts with no cursor and pages by the one the last page reported", () => {
     expect(myAuditQuery.initialPageParam).toBeNull();
-    expect(myAuditQuery.getNextPageParam({ entries: [], nextCursor: 12, refs: {} }, [], null, [])).toBe(12);
-    expect(myAuditQuery.getNextPageParam({ entries: [], nextCursor: null, refs: {} }, [], null, [])).toBeNull();
+    expect(myAuditQuery.getNextPageParam({ entries: [], nextCursor: 12, refs: {}, total: null }, [], null, [])).toBe(12);
+    expect(myAuditQuery.getNextPageParam({ entries: [], nextCursor: null, refs: {}, total: null }, [], null, [])).toBeNull();
   });
 
   it("fetches its own route with the page's cursor", async () => {

@@ -36,7 +36,7 @@ describe("audit gateway", () => {
     fetchMock.mockResolvedValueOnce(json({ entries: [] }));
     const page = await listAudit({}, null, 200);
     expect(url()).toBe("/api/audit?limit=200");
-    expect(page).toEqual({ entries: [], nextCursor: null, refs: {} });
+    expect(page).toEqual({ entries: [], nextCursor: null, refs: {}, total: null });
     fetchMock.mockResolvedValueOnce(json({ entries: [], nextCursor: 0 }));
     expect((await listAudit({}, null)).nextCursor).toBeNull();
   });
@@ -85,6 +85,13 @@ describe("audit gateway", () => {
     expect(page.entries[0].id).toBe(7);
     expect(page.nextCursor).toBe(6);
     expect(page.refs).toEqual({ "role_id:1": "Editor" });
+  });
+
+  it("carries the journal's total, and null when the route sends none", async () => {
+    fetchMock.mockResolvedValueOnce(json({ entries: [], nextCursor: 0, total: 184 }));
+    expect((await listMyAudit(null)).total).toBe(184);
+    fetchMock.mockResolvedValueOnce(json({ entries: [], nextCursor: 0 }));
+    expect((await listMyAudit(null)).total).toBeNull();
   });
 
   it("surfaces the shared client's message rather than one of its own", async () => {
