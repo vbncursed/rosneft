@@ -159,15 +159,19 @@ type ListEntriesRequest struct {
 	// all_companies is an explicit flag rather than "empty company_id means all",
 	// so an accidentally blank tenant id can never widen a Company Owner's view
 	// to the whole platform. The gateway sets exactly one of the two.
-	AllCompanies  bool                   `protobuf:"varint,1,opt,name=all_companies,json=allCompanies,proto3" json:"all_companies,omitempty"`
-	CompanyId     string                 `protobuf:"bytes,2,opt,name=company_id,json=companyId,proto3" json:"company_id,omitempty"`
-	ActorId       string                 `protobuf:"bytes,3,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
-	Action        string                 `protobuf:"bytes,4,opt,name=action,proto3" json:"action,omitempty"`
-	Entity        string                 `protobuf:"bytes,5,opt,name=entity,proto3" json:"entity,omitempty"`
-	From          *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=from,proto3" json:"from,omitempty"`
-	To            *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=to,proto3" json:"to,omitempty"`
-	Cursor        int64                  `protobuf:"varint,8,opt,name=cursor,proto3" json:"cursor,omitempty"` // exclusive upper bound on id; 0 = newest page
-	Limit         int32                  `protobuf:"varint,9,opt,name=limit,proto3" json:"limit,omitempty"`
+	AllCompanies bool                   `protobuf:"varint,1,opt,name=all_companies,json=allCompanies,proto3" json:"all_companies,omitempty"`
+	CompanyId    string                 `protobuf:"bytes,2,opt,name=company_id,json=companyId,proto3" json:"company_id,omitempty"`
+	ActorId      string                 `protobuf:"bytes,3,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	Action       string                 `protobuf:"bytes,4,opt,name=action,proto3" json:"action,omitempty"`
+	Entity       string                 `protobuf:"bytes,5,opt,name=entity,proto3" json:"entity,omitempty"`
+	From         *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=from,proto3" json:"from,omitempty"`
+	To           *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=to,proto3" json:"to,omitempty"`
+	Cursor       int64                  `protobuf:"varint,8,opt,name=cursor,proto3" json:"cursor,omitempty"` // exclusive upper bound on id; 0 = newest page
+	Limit        int32                  `protobuf:"varint,9,opt,name=limit,proto3" json:"limit,omitempty"`
+	// include_total asks for the count of every row the other filters match,
+	// cursor aside. Off by default: the company journal is polled and must not
+	// pay for a COUNT on every tick; the own-actions page asks for it once.
+	IncludeTotal  bool `protobuf:"varint,10,opt,name=include_total,json=includeTotal,proto3" json:"include_total,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -265,10 +269,18 @@ func (x *ListEntriesRequest) GetLimit() int32 {
 	return 0
 }
 
+func (x *ListEntriesRequest) GetIncludeTotal() bool {
+	if x != nil {
+		return x.IncludeTotal
+	}
+	return false
+}
+
 type ListEntriesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Entries       []*Entry               `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	NextCursor    int64                  `protobuf:"varint,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"` // 0 = no further pages
+	Total         int64                  `protobuf:"varint,3,opt,name=total,proto3" json:"total,omitempty"`                             // rows matched by the filters, paging aside; 0 unless include_total
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -313,6 +325,13 @@ func (x *ListEntriesResponse) GetEntries() []*Entry {
 func (x *ListEntriesResponse) GetNextCursor() int64 {
 	if x != nil {
 		return x.NextCursor
+	}
+	return 0
+}
+
+func (x *ListEntriesResponse) GetTotal() int64 {
+	if x != nil {
+		return x.Total
 	}
 	return 0
 }
@@ -579,7 +598,7 @@ const file_rosneft_audit_v1_audit_proto_rawDesc = "" +
 	" \x01(\tR\x06newRow\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\v \x01(\tR\trequestId\x12\x16\n" +
-	"\x06result\x18\f \x01(\tR\x06result\"\xad\x02\n" +
+	"\x06result\x18\f \x01(\tR\x06result\"\xd2\x02\n" +
 	"\x12ListEntriesRequest\x12#\n" +
 	"\rall_companies\x18\x01 \x01(\bR\fallCompanies\x12\x1d\n" +
 	"\n" +
@@ -590,11 +609,14 @@ const file_rosneft_audit_v1_audit_proto_rawDesc = "" +
 	"\x04from\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
 	"\x02to\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12\x16\n" +
 	"\x06cursor\x18\b \x01(\x03R\x06cursor\x12\x14\n" +
-	"\x05limit\x18\t \x01(\x05R\x05limit\"i\n" +
+	"\x05limit\x18\t \x01(\x05R\x05limit\x12#\n" +
+	"\rinclude_total\x18\n" +
+	" \x01(\bR\fincludeTotal\"\x7f\n" +
 	"\x13ListEntriesResponse\x121\n" +
 	"\aentries\x18\x01 \x03(\v2\x17.rosneft.audit.v1.EntryR\aentries\x12\x1f\n" +
 	"\vnext_cursor\x18\x02 \x01(\x03R\n" +
-	"nextCursor\"\xf0\x01\n" +
+	"nextCursor\x12\x14\n" +
+	"\x05total\x18\x03 \x01(\x03R\x05total\"\xf0\x01\n" +
 	"\rRecordRequest\x12\x19\n" +
 	"\bactor_id\x18\x01 \x01(\tR\aactorId\x12\x1d\n" +
 	"\n" +
