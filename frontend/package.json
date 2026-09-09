@@ -44,5 +44,8 @@
     "typescript": "7.0.2",
     "vite": "^8",
     "vitest": "^4"
+  },
+  "resolutions": {
+    "openapi-typescript/typescript": "5.9.3"
   }
 }

@@ -26,6 +26,12 @@ type User struct {
 	DeletedAt    *time.Time
 	CreatedBy    *string // who created this account; nil for bootstrap admin
 	IsOwner      bool    // root of trust: manages admin accounts, grants owner, bypasses grant limits
+	// TOTPRequired is policy, not fact: it says an administrator has decided
+	// this account must carry a second factor. Whether one is enrolled is
+	// twofa-service's answer, and the two are deliberately kept apart — folded
+	// together, a twofa-service outage would be indistinguishable from a user
+	// who has simply not enrolled yet.
+	TOTPRequired bool
 	// OnboardingToursSeen lists the first-run tours this user has finished or
 	// skipped, by id. Empty until they complete their first one.
 	OnboardingToursSeen []string

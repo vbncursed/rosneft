@@ -18,6 +18,9 @@ type uv [2]float32
 // triangle is three vertex indices (0-based, matching GLB SCALAR UNSIGNED_INT).
 type triangle [3]uint32
 
+// faceSep separates v/vt/vn inside one OBJ face token.
+var faceSep = []byte{'/'}
+
 // parsedSource is the geometry + UV + material-grouping payload pulled from an
 // OBJ file. positions and uvs are aligned by index — when hasUVs is true,
 // len(uvs) == len(positions). When hasUVs is false, uvs is nil and the GLB
@@ -206,17 +209,10 @@ func (p *parser) parseFace(line []byte) error {
 		token := line[:end]
 		line = line[end:]
 
-		var vTok, vtTok []byte
-		if i := bytes.IndexByte(token, '/'); i >= 0 {
-			vTok = token[:i]
-			rest := token[i+1:]
-			if j := bytes.IndexByte(rest, '/'); j >= 0 {
-				vtTok = rest[:j]
-			} else {
-				vtTok = rest
-			}
-		} else {
-			vTok = token
+		vTok, rest, hasUV := bytes.Cut(token, faceSep)
+		var vtTok []byte
+		if hasUV {
+			vtTok, _, _ = bytes.Cut(rest, faceSep)
 		}
 
 		vIdx, err := atoiBytes(vTok)

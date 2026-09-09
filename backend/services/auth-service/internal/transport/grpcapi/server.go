@@ -23,8 +23,10 @@ type AuthFlow interface {
 	PasskeyLoginFinish(ctx context.Context, flowID, assertionJSON string) (string, error)
 	VerifyPassword(ctx context.Context, token, password string) (bool, error)
 	Logout(ctx context.Context, token string) error
-	// Returns: user id, permissions, is-owner, territory scope, audit company.
-	ValidateToken(ctx context.Context, token string) (string, []string, bool, string, string, error)
+	// Returns: user id, permissions, is-owner, territory scope, audit company,
+	// and whether the session must enroll a second factor before doing anything
+	// else.
+	ValidateToken(ctx context.Context, token string) (string, []string, bool, string, string, bool, error)
 }
 
 // UsersSvc is the user surface (self + admin). The admin methods take the
@@ -41,6 +43,7 @@ type UsersSvc interface {
 	SoftDelete(ctx context.Context, actorID string, scopeAll bool, id string) error
 	Restore(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
 	SetOwner(ctx context.Context, actorID, id string, isOwner bool) (domain.User, error)
+	SetTOTPRequired(ctx context.Context, actorID string, scopeAll bool, id string, required bool) (domain.User, error)
 	ChangePassword(ctx context.Context, userID, oldPlain, newPlain string) error
 	MarkTourSeen(ctx context.Context, userID, tour string) error
 }
@@ -75,7 +78,7 @@ func (s *Server) Register(srv *grpc.Server) { authv1.RegisterAuthServiceServer(s
 
 // userIDFromToken resolves a session token to a user id (self endpoints).
 func (s *Server) userIDFromToken(ctx context.Context, token string) (string, error) {
-	uid, _, _, _, _, err := s.auth.ValidateToken(ctx, token)
+	uid, _, _, _, _, _, err := s.auth.ValidateToken(ctx, token)
 	return uid, err
 }
 
@@ -83,7 +86,7 @@ func (s *Server) userIDFromToken(ctx context.Context, token string) (string, err
 // (the group key roles are scoped to), and whether it is Root (sees/manages
 // every group). owningAdmin is "" for Root, making Root-created roles global.
 func (s *Server) roleActor(ctx context.Context, token string) (actorID, owningAdmin string, allAccess bool, err error) {
-	uid, _, isOwner, oa, _, e := s.auth.ValidateToken(ctx, token)
+	uid, _, isOwner, oa, _, _, e := s.auth.ValidateToken(ctx, token)
 	if e != nil {
 		return "", "", false, e
 	}
@@ -94,7 +97,7 @@ func (s *Server) roleActor(ctx context.Context, token string) (actorID, owningAd
 // the caller holds users:read_all or is an owner — i.e. may see/manage every
 // user. Owners get scopeAll even after the admin role loses users:read_all.
 func (s *Server) actor(ctx context.Context, token string) (string, bool, error) {
-	uid, perms, isOwner, _, _, err := s.auth.ValidateToken(ctx, token)
+	uid, perms, isOwner, _, _, _, err := s.auth.ValidateToken(ctx, token)
 	if err != nil {
 		return "", false, err
 	}
@@ -123,6 +126,7 @@ var statusByCode = map[codes.Code][]error{
 		domain.ErrLastAdmin,
 		domain.ErrSelfTarget,
 		domain.ErrSystemRole,
+		domain.ErrRoleInUse,
 	},
 }
 

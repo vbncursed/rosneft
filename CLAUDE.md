@@ -13,13 +13,41 @@ catch Docker-build failures that `make lint` cannot see): [`backend/CLAUDE.md`](
 
 ## CI
 
-Four workflows, and until 2026-09-01 there was one. `backend.yml` runs
+Five workflows, and until 2026-09-01 there was one. `backend.yml` runs
 `make -C backend check`; `frontend.yml` runs lint, both test runners, the build
-and a production-dependency audit; `desktop.yml` runs `make -C desktop check`,
-`cargo audit` and the three-platform bundle; `dependabot.yml` watches gomod,
-npm, cargo **and github-actions**. Each workflow invokes the same Makefile or
-yarn script a developer runs, never a reimplementation of it in YAML — the
-failure that shape produces is a green PR that a local commit would reject.
+and a production-dependency audit; `frontend-v2.yml` runs the same shape
+against the redesign (lint, `test:coverage` with its 90/85/90/90 thresholds
+in place of a plain test run, build, audit); `desktop.yml` runs
+`make -C desktop check`, `cargo audit` and the three-platform bundle;
+`dependabot.yml` watches gomod, npm, cargo **and github-actions**. Each
+workflow invokes the same Makefile or yarn script a developer runs, never a
+reimplementation of it in YAML — the failure that shape produces is a green
+PR that a local commit would reject.
+
+## Two frontends
+
+`frontend/` is the app in production. `frontend-v2/` is the redesign, built
+against the Claude Design project `Design System.dc.html` — Feature-Sliced, its
+own component library, a router and a working sign-in against the real
+gateway; every console screen is wired against the gateway, and so are the six
+catalog screens — `/territories`, `/models`, both upload forms, the model
+page (`/models/{slug}`) and the territory replace-source form
+(`/territories/{slug}/replace`) — which live in their own sidebar-free shell
+and drive the real chunked-upload protocol. `/account` and
+`/account/two-factor` — password change, 2FA enrolment/disable, passkey
+management, the caller's own activity feed — live in the same shell.
+`/territories/{slug}` is the conversion-pending page (SSE by `jobId`, the
+jobs poll as the fallback). **Home is v2 now**: `/` (`frontend-v2/src/pages/home`)
+is the landing page — the conversions in flight, the four most recently
+updated territories, five models, the console doorways with counts, and the
+reader's own activity. Only the 3D viewer, at `/territories/{slug}` for a
+ready territory, remains in `frontend/`; sign-in with no `?next=` lands on `/`.
+**Working in it? Read [`frontend-v2/CLAUDE.md`](frontend-v2/CLAUDE.md)
+first**: it records the design decisions, the user's working rules, and the
+tooling traps (chief among them that `tsc --noEmit` type-checks nothing there, and that a parallel session
+works in `backend/` so commits must be staged by path).
+
+Everything below this line describes `frontend/`.
 
 # Frontend is a Vite + React SPA (no Next.js)
 
@@ -152,7 +180,7 @@ frontend/
 - oxlint config is `.oxlintrc.json` (comments allowed). There is no `eslint.config.mjs` any more — do not add one back.
 - Every route sets its own `<title>` through TanStack's `head` option plus `titleMeta()` (`shared/presentation/page-title.ts`); `<HeadContent />` lives in `routes/root.tsx`. Deepest match wins. **Open-Graph/Twitter tags are static in `index.html` and cannot be per-route** — no unfurler runs JavaScript, so they read the one shell this SPA serves for every URL. Setting `og:` from a route's `head` looks right in the browser and changes nothing in any preview.
 - Two test runners: pure domain logic → `node --test` (`*.test.ts`); jsdom/React → vitest (`*.spec.ts[x]`). Globs don't overlap.
-- Client env is `VITE_API_URL` — **empty in both dev and prod**. nginx serves the SPA and proxies `/api` in production; Vite's dev server proxies `/api` by default in development. Single origin is not a convenience: it is what lets the httpOnly session cookie ride on `<img>`, the pdf.js `<iframe>` and three.js loader requests, none of which can carry an Authorization header. `VITE_DEV_PROXY` overrides the dev target. Dev runs on port **3000** — `PASSKEY_RP_ORIGINS` is pinned to it.
+- Client env is `VITE_API_URL` — **empty in both dev and prod**. nginx serves the SPA and proxies `/api` in production; Vite's dev server proxies `/api` by default in development. Single origin is not a convenience: it is what lets the httpOnly session cookie ride on `<img>`, the pdf.js `<iframe>` and three.js loader requests, none of which can carry an Authorization header. `VITE_DEV_PROXY` overrides the dev target. Dev runs on port **3000** — `PASSKEY_RP_ORIGINS` lists it, and now also `frontend-v2`'s dev port **3001**, so both SPAs can run a passkey ceremony locally.
 
 ## Desktop shell (`desktop/`)
 
@@ -353,7 +381,7 @@ const ktx2Loader = new KTX2Loader().setTranscoderPath('/basis/').detectSupport(r
 useGLTF.setKTX2Loader(ktx2Loader);
 ```
 
-LOD generation is on by default with `MESH_LOD_RATIOS=0.5,0.25` — every conversion produces three artifacts: LOD0 (full quality, never simplified), LOD1 (~50% triangles), LOD2 (~25% triangles). Lower LODs also carry textures scaled by the same ratio (`gltfpack -ts`), so they are lighter on the wire and not merely lighter in triangles: on `dji-wp-46-cut`, LOD2 is 23% of LOD0's bytes.
+LOD generation is on by default with `MESH_LOD_RATIOS=0.5,0.25` — every conversion produces three artifacts: LOD0 (full quality, never simplified), LOD1 (~50% triangles), LOD2 (~25% triangles). Lower LODs also carry textures scaled by the same ratio (`gltfpack -ts`), so they are lighter on the wire and not merely lighter in triangles: on `dji-wp-46-cut`, LOD2 is 23% of LOD0's bytes. Every LOD also records its own `vertices`/`faces`, read back from the produced GLB's glTF header, and copies LOD0's source-unit bounding box (simplification doesn't move the mesh); a decode failure leaves that LOD's counts at zero without failing the job, and artifacts converted before this landed aren't backfilled, so their LOD1/2 counts stay zero.
 
 **Loading is progressive, and both the territory and every placement use the same mechanism.** `useProgressiveLod(chain, targetLod)` (`viewer/application/`) shows the coarsest available level immediately and returns a `warmUrl`; `<LodWarmer>` downloads the target inside its own `<Suspense>` and calls back, at which point the hook swaps `url` to the target. `gltf-model.tsx` and `placement-instance.tsx` both do exactly this with `targetLod: 0`. The pure decision lives in `selectProgressive` (`shared/domain/lod-artifact.ts`) and is unit-tested; the hook is spec-tested with `renderHook`.
 
@@ -367,19 +395,21 @@ The hook also owns the fallback ladder — a level that fails to load drops out 
 
 The gateway exposes a small REST surface defined in `backend/services/gateway-service/api/openapi.yaml`. The frontend talks to it through `openapi-typescript` generated DTOs.
 
-- `GET /api/territories` — list every territory.
+- `GET /api/territories` — list every territory. Both this and the single `GET /api/territories/{slug}` carry `placementCount`, omitted when it's zero.
 - `GET /api/territories/{slug}/scene` — single-shot bundle (territory + LOD0 artifact + placements + model options). Use this instead of four parallel calls.
 - `POST /api/territories` — create a territory from `{slug, title, description, sourceBlobHash}`. Response is `{territory, job}`; redirect to `/territories/{slug}?jobId={job.id}` so the conversion-pending screen can subscribe to SSE.
-- `GET /api/models` / `POST /api/models` / `GET /api/models/{slug}/artifacts` — same shape as territory, model side.
+- `GET /api/models` / `POST /api/models` / `GET /api/models/{slug}/artifacts` — same shape as territory, model side. `GET /api/models` and the single `GET /api/models/{slug}` both carry `usageCount` (distinct territories placing the model), omitted when it's zero.
 - `POST /api/uploads` → `PATCH /api/uploads/{id}` (raw bytes + `Upload-Offset` header) → `POST /api/uploads/{id}/finalize` — chunked upload protocol. `useChunkedUpload` slices files into 8 MB chunks and drives the loop; the resulting `blobHash` feeds into create-territory / create-model. Resumable: `HEAD /api/uploads/{id}` reports the current offset so a re-attempted client can pick up where it left off.
-- `GET /api/audit` — the **company's** change journal, cursor-paged over descending `id` (`nextCursor` in the body, `X-Next-Cursor` on the response). Filters: `actor`, `action`, `entity`, `from`, `to`, `limit` (default 50, capped at 200). Behind `audit:read` alone; Root passes via the owner bypass. **The company scope comes from the session and is not a parameter** — there is no way to ask for another company's history.
-- `GET /api/audit/mine` — the caller's **own** actions, behind `audit:read_own` or `audit:read`. It declares no `actor` parameter, so there is nothing to merge and nothing to forget to overwrite: the actor comes from the session and no query string can widen it. Root is pinned to its own actions here too. `/account` reads this route and only this route; `/admin/audit` reads `/api/audit`. Keeping them separate is the boundary — when both grants opened one route and the scope resolver preferred the wider one, a Company Owner (who holds both) saw the whole company under a "My activity" heading.
+- `GET /api/auth/2fa` — the caller's own 2FA posture: whether it's on, when it went on, and how many recovery codes remain. `enabledAt` is **omitted**, never guessed, when the enrolment predates the column or 2FA is off. Disabling 2FA and regenerating recovery codes (`POST /api/auth/2fa/disable` / `.../recovery/regenerate`) both take a **current TOTP code** — not a recovery code, and not the password; an earlier mock said "password" and it cost a design round to correct.
+- `GET /api/audit` — the **company's** change journal, cursor-paged over descending `id` (`nextCursor` in the body, and only there — no response header carries it). Filters: `actor`, `action`, `entity`, `from`, `to`, `limit` (default 50, capped at 200). Behind `audit:read` alone; Root passes via the owner bypass. **The company scope comes from the session and is not a parameter** — there is no way to ask for another company's history.
+- `GET /api/audit/mine` — the caller's **own** actions, behind `audit:read_own` or `audit:read`. It declares no `actor` parameter, so there is nothing to merge and nothing to forget to overwrite: the actor comes from the session and no query string can widen it. Root is pinned to its own actions here too. `/account` reads this route and only this route; `/admin/audit` reads `/api/audit`. Keeping them separate is the boundary — when both grants opened one route and the scope resolver preferred the wider one, a Company Owner (who holds both) saw the whole company under a "My activity" heading. It also carries `total` — how many rows the same filters match, paging aside — because the account page pages by number; `GET /api/audit` does not (`include_total` is set only by the `/mine` handler), it is polled and would pay for the count on every tick.
 - `GET /api/audit.csv` — the same query streamed as CSV. Stays behind `audit:read` alone: it is the whole company's history in one file, which is not what `audit:read_own` opens. Lives on the root router, outside the ETag/compression chain, because ETag hashes the whole body and would buffer the export. The client fetches and blobs it rather than using a plain `<a download>` — not for auth reasons any more (the session cookie rides on a same-origin link too) but because it wants a filename and an error it can surface, and an `<a>` gives neither.
-- `GET /api/jobs/{id}/events` — Server-Sent Events for one conversion job. Emits `event: job` whenever the job state changes; closes on `succeeded`/`failed`. Job payload carries `kind` and `slug` so the client knows which entity is being converted.
+- `GET /api/jobs/{id}/events` — Server-Sent Events for one conversion job. Emits `event: job` whenever the job state changes; closes on `succeeded`/`failed`. Job payload carries `kind` and `slug` so the client knows which entity is being converted. An unknown or foreign id answers one `event: error` frame and closes; v2 treats it as "use the poll".
+- `GET /api/jobs` — the latest conversion job per territory/model, succeeded ones excluded, territories filtered to the caller's visible set. `Cache-Control: no-store`; the v2 console polls it every 5 s while anything is running. Each row is the latest job by write order — two concurrent submits for one target are not serialised, so a superseded terminal state can briefly show while a newer job runs. The per-id SSE applies the same rule: a territory job the caller cannot see is "job not found".
 - **Every route under `/api/territories/{slug}` is gated by `RequireTerritoryAccess`**, a middleware keyed on the route-pattern prefix. A new child resource inherits the gate the moment it is registered — do not add a per-handler scope check instead, that is the shape that failed. It answers 404, never 403: a 403 confirms the territory exists, and to another tenant it must not.
 - `GET /api/assets/{hash}` **requires a session and is scoped to the tenant**: `RequireBlobAccess` asks the catalog whether any row this caller can see holds that hash. A blob hash addresses content and is deduplicated across territories and models, so it has no single territory and `RequireTerritoryAccess` cannot cover it. Model blobs pass for everyone — the library is shared by decision. Refusal is 404 (403 would confirm the blob exists); a catalog failure is 503, because that is neither "yours" nor "missing".
 - **Added a table with a hash column?** Add a branch to `ResolveBlobAccess` and a case to its integration test, or the new asset type is reachable by nobody or by everybody, and nothing else will notice.
-- `GET /api/jobs/{id}/events` **requires a session** but is deliberately not tenant-scoped: a job id is 128 random bits and the payload names a kind and a slug, not a blob.
+- `GET /api/jobs/{id}/events` **requires a session and is now tenant-scoped**: `Server.scopedJob` resolves the job, and a territory job the caller cannot see is refused as `job not found` — the same 404-shaped answer the territory routes give, never a 403 that would confirm the territory exists. Models and Root skip the catalog lookup. A job id is still 128 random bits; the scope check is the second lock, not the only one.
 - **Mutations on a cookie session require `X-CSRF-Token`** (`HMAC(GATEWAY_CSRF_SECRET, sessionToken)`, handed out at login and in `/api/auth/me`). Bearer callers are exempt by construction — a browser cannot attach an `Authorization` header cross-site — so curl, the tests and integrations are unaffected.
 - **CORS is off by default.** An empty `GATEWAY_ALLOWED_ORIGINS` means the handler is not mounted at all. Do not "disable" it by blanking the list in code: go-chi/cors reads an empty list as *all* origins.
 - All JSON GETs carry strong ETags and answer `If-None-Match` with 304. Browsers cache automatically — no client-side work required.

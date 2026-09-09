@@ -31,7 +31,7 @@ func TestEnsureTriggersSuite(t *testing.T) {
 
 func (s *EnsureTriggersSuite) SetupSuite() {
 	ctx := context.Background()
-	ctr, err := tcpostgres.Run(ctx, "postgres:17-alpine",
+	ctr, err := tcpostgres.Run(ctx, "postgres:18.6",
 		tcpostgres.WithDatabase("andrey"),
 		tcpostgres.WithUsername("andrey"),
 		tcpostgres.WithPassword("andrey"),

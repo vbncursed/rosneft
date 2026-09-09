@@ -5,7 +5,7 @@
 # custom root-router handlers are excluded from stub generation:
 #   - auth    → plain-chi authhttp package (login must be public)
 #   - assets  → asset-service reverse proxy
-#   - jobs    → SSE stream handler (WatchJobEvents)
+#   - jobs    → SSE stream + jobs list (WatchJobEvents, ListJobs)
 #   - audit-export → streaming CSV handler (ServeAuditCSV); the JSON
 #     GET /api/audit keeps its generated stub under the plain `audit` tag
 #   - metrics → owner-gated Prometheus proxy (InitMetricsHandler)

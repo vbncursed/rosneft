@@ -13,6 +13,9 @@ import (
 // Store is the persistence contract.
 type Store interface {
 	List(ctx context.Context, f domain.Filter) ([]domain.Entry, error)
+	// Count answers how many rows f matches, paging aside — the Cursor and
+	// Limit fields are ignored.
+	Count(ctx context.Context, f domain.Filter) (int64, error)
 	DistinctActors(ctx context.Context, f domain.Filter) ([]string, error)
 	Record(ctx context.Context, e domain.Entry) (int64, error)
 

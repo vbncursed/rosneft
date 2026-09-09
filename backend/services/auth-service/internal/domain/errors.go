@@ -22,6 +22,7 @@ var (
 	ErrSessionInvalid   = errors.New("session invalid or expired")
 	ErrTwoFAInvalidCode = errors.New("invalid 2fa code")
 	ErrSystemRole       = errors.New("system role cannot be modified this way")
+	ErrRoleInUse        = errors.New("role is still assigned to users")
 	ErrLastAdmin        = errors.New("cannot remove the last admin")
 	ErrSelfTarget       = errors.New("cannot perform this action on yourself")
 	ErrAdminOwnerOnly   = errors.New("only the owner can manage admin accounts")

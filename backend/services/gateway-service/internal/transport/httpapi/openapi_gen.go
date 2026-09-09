@@ -211,6 +211,9 @@ type AuditPage struct {
 
 	// Refs Human-readable names for the ids inside oldRow/newRow, keyed "<field>:<value>" — e.g. "role_id:9b75ebfc-…": "Редактор". Keyed by value because a changed field needs a name on both sides of the arrow; the field name alone carries the kind, so no client-side table of field kinds is needed. An id nobody could name is absent, and the client falls back to showing the id. Absent entirely on the CSV export, which prints no snapshots.
 	Refs *map[string]string `json:"refs,omitempty"`
+
+	// Total How many entries the same filters match in all, paging aside — what a numbered pager needs. Present on GET /api/audit/mine; the company journal is polled and does not pay for the count.
+	Total *int64 `json:"total,omitempty"`
 }
 
 // AuthPermission defines model for AuthPermission.
@@ -231,23 +234,26 @@ type AuthRole struct {
 type AuthUser struct {
 	// CsrfToken echo back as X-CSRF-Token on POST/PUT/PATCH/DELETE; required only for cookie sessions
 	CsrfToken           *string   `json:"csrfToken,omitempty"`
-	Email               *string   `json:"email,omitempty"`
-	Id                  *string   `json:"id,omitempty"`
-	IsOwner             *bool     `json:"isOwner,omitempty"`
+	Email               string    `json:"email"`
+	Id                  string    `json:"id"`
+	IsOwner             bool      `json:"isOwner"`
 	OnboardingToursSeen *[]string `json:"onboardingToursSeen,omitempty"`
 
 	// PasskeyEnabled Whether the user has at least one passkey registered. Absent means unknown, exactly as for totpEnabled. Always absent on /api/auth/me — that route runs on every page load and deliberately does not pay for the lookup, since nothing there consumes it.
-	PasskeyEnabled *bool     `json:"passkeyEnabled,omitempty"`
-	Permissions    *[]string `json:"permissions,omitempty"`
-	RoleSlugs      *[]string `json:"roleSlugs,omitempty"`
+	PasskeyEnabled *bool    `json:"passkeyEnabled,omitempty"`
+	Permissions    []string `json:"permissions"`
+	RoleSlugs      []string `json:"roleSlugs"`
 
 	// RoleTitles Slug → display title for each entry in roleSlugs. The slug is not an abbreviation of the title: slug "admin" is titled "Company Owner" while a different role is slugged "owner", so a UI printing the slug names the wrong role. A slug absent from the map means the role was deleted between reads — fall back to showing the slug.
 	RoleTitles *map[string]string `json:"roleTitles,omitempty"`
-	Status     *AuthUserStatus    `json:"status,omitempty"`
+	Status     AuthUserStatus     `json:"status"`
 
 	// TotpEnabled Whether TOTP two-factor auth is on. ABSENT MEANS UNKNOWN — the owning service (twofa) could not be reached. Render an absent value as "unknown", never as "off": auth-service does not own this flag and the gateway overlays it, so a missing key is a failed lookup and not a disabled factor.
-	TotpEnabled *bool   `json:"totpEnabled,omitempty"`
-	Username    *string `json:"username,omitempty"`
+	TotpEnabled *bool `json:"totpEnabled,omitempty"`
+
+	// TotpRequired An administrator requires a second factor of this account. Distinct from totpEnabled, which reports whether one is enrolled.
+	TotpRequired bool   `json:"totpRequired"`
+	Username     string `json:"username"`
 }
 
 // AuthUserStatus defines model for AuthUser.Status.
@@ -389,6 +395,9 @@ type Login2FARequest struct {
 
 	// Code TOTP or recovery code
 	Code string `json:"code"`
+
+	// Remember the choice made at step one, repeated — the gateway keeps no state between the two calls
+	Remember *bool `json:"remember,omitempty"`
 }
 
 // LoginRequest defines model for LoginRequest.
@@ -396,6 +405,9 @@ type LoginRequest struct {
 	// Identifier email or username
 	Identifier string `json:"identifier"`
 	Password   string `json:"password"`
+
+	// Remember false issues a browser-session cookie (no Max-Age) that dies when the browser closes; true or absent keeps today's persistent cookie
+	Remember *bool `json:"remember,omitempty"`
 }
 
 // LoginResponse defines model for LoginResponse.
@@ -442,6 +454,9 @@ type Model struct {
 	ThumbnailBlobHash *string    `json:"thumbnailBlobHash,omitempty"`
 	Title             string     `json:"title"`
 	UpdatedAt         *time.Time `json:"updatedAt,omitempty"`
+
+	// UsageCount Distinct territories placing this model, across every territory. Omitted when zero.
+	UsageCount *int `json:"usageCount,omitempty"`
 }
 
 // ModelCreated defines model for ModelCreated.
@@ -624,10 +639,13 @@ type Territory struct {
 	CreatedAt           *time.Time `json:"createdAt,omitempty"`
 	Description         *string    `json:"description,omitempty"`
 	ExternalPanoramaUrl *string    `json:"externalPanoramaUrl,omitempty"`
-	Slug                string     `json:"slug"`
-	SourceBlobHash      string     `json:"sourceBlobHash"`
-	Title               string     `json:"title"`
-	UpdatedAt           *time.Time `json:"updatedAt,omitempty"`
+
+	// PlacementCount Placements on this territory. Omitted when zero.
+	PlacementCount *int       `json:"placementCount,omitempty"`
+	Slug           string     `json:"slug"`
+	SourceBlobHash string     `json:"sourceBlobHash"`
+	Title          string     `json:"title"`
+	UpdatedAt      *time.Time `json:"updatedAt,omitempty"`
 }
 
 // TerritoryAdmins defines model for TerritoryAdmins.
@@ -661,6 +679,20 @@ type TokenResponse struct {
 	// CsrfToken echo back as X-CSRF-Token on POST/PUT/PATCH/DELETE; required only for cookie sessions
 	CsrfToken *string `json:"csrfToken,omitempty"`
 	Token     *string `json:"token,omitempty"`
+}
+
+// TwoFactorStatus defines model for TwoFactorStatus.
+type TwoFactorStatus struct {
+	Enabled bool `json:"enabled"`
+
+	// EnabledAt When two-factor went on. Absent when it is off, and absent for enrolments made before the server recorded the moment — never guessed.
+	EnabledAt *time.Time `json:"enabledAt,omitempty"`
+
+	// RecoveryRemaining Recovery codes not yet used
+	RecoveryRemaining int `json:"recoveryRemaining"`
+
+	// RecoveryTotal Codes issued in the current set
+	RecoveryTotal int `json:"recoveryTotal"`
 }
 
 // UpdateRoleRequest defines model for UpdateRoleRequest.

@@ -33,7 +33,8 @@ var (
 //	[metrics, (CORS), RequestID, Recoverer, slog-chi]        ← root
 //	  /healthz, /readyz, /docs, /openapi.json
 //	  /api/assets/{hash}   → Authenticate → RequireBlobAccess → binary proxy
-//	  /api/jobs/{id}/events→ Authenticate → SSE
+//	  /api/jobs/{id}/events→ Authenticate → SSE (tenant-scoped per job)
+//	  /api/jobs           → Authenticate → tenant-filtered job list
 //	  /api/metrics/query   → Authenticate → owner check → Prometheus proxy
 //	  /api/audit.csv       → Authenticate → Require("audit:read") → CSV stream
 //	  /api/auth/*          → authhttp (login public; self/admin gated)
@@ -48,7 +49,8 @@ var (
 // Asset proxy and SSE sit on the root router so they bypass the JSON
 // middleware chain — GLB binaries already carry asset-service ETag and
 // would only waste CPU if compressed; SSE must not be buffered. Bypassing that
-// chain is not bypassing authentication, and for assets not the tenant either.
+// chain is not bypassing authentication, nor — for assets and for both jobs
+// routes — the tenant.
 func InitRouter(
 	svc *service.Gateway,
 	assetProxy http.Handler,
@@ -107,11 +109,12 @@ func InitRouter(
 	// everyone, the library being shared by decision.
 	r.With(authH.Authenticate, apiServer.RequireBlobAccess).Get("/api/assets/{hash}", assetProxy.ServeHTTP)
 	r.With(authH.Authenticate, apiServer.RequireBlobAccess).Head("/api/assets/{hash}", assetProxy.ServeHTTP)
-	// SSE stays authenticated but unscoped: a job id is 128 random bits and the
-	// payload names a kind and a slug, not a blob. Scoping the stream is a
-	// different question — about a job, not about content — and is deliberately
-	// left out here.
+	// SSE and the jobs list — outside the JSON middleware chain (the stream
+	// cannot be buffered, the list must not be cached), but inside the tenant:
+	// both apply the territory rule through Server.scopedJob / visibleJob, and
+	// a territory the caller cannot see reads as "job not found".
 	r.With(authH.Authenticate).Get("/api/jobs/{id}/events", apiServer.WatchJobEvents)
+	r.With(authH.Authenticate).Get("/api/jobs", apiServer.ListJobs)
 
 	// Owner-only Prometheus proxy. Authenticated (for the owner check) but
 	// outside the openapi strict handlers — it resolves a panel ID to

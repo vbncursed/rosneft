@@ -17,7 +17,7 @@ import (
 
 // Service is the audit surface this transport calls.
 type Service interface {
-	List(ctx context.Context, f domain.Filter) ([]domain.Entry, int64, error)
+	List(ctx context.Context, f domain.Filter) (domain.Page, error)
 	Actors(ctx context.Context, f domain.Filter) ([]string, error)
 	Record(ctx context.Context, e domain.Entry) (int64, error)
 }

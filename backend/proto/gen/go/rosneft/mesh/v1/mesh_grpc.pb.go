@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	MeshService_SubmitConversion_FullMethodName = "/rosneft.mesh.v1.MeshService/SubmitConversion"
 	MeshService_GetJob_FullMethodName           = "/rosneft.mesh.v1.MeshService/GetJob"
+	MeshService_ListTargetJobs_FullMethodName   = "/rosneft.mesh.v1.MeshService/ListTargetJobs"
 )
 
 // MeshServiceClient is the client API for MeshService service.
@@ -38,6 +39,10 @@ type MeshServiceClient interface {
 	SubmitConversion(ctx context.Context, in *SubmitConversionRequest, opts ...grpc.CallOption) (*SubmitConversionResponse, error)
 	// GetJob returns the current state of a conversion job.
 	GetJob(ctx context.Context, in *GetJobRequest, opts ...grpc.CallOption) (*GetJobResponse, error)
+	// ListTargetJobs returns the latest job of every catalog target that has
+	// one — the read behind the console's "what is converting" view. Every
+	// status is included.
+	ListTargetJobs(ctx context.Context, in *ListTargetJobsRequest, opts ...grpc.CallOption) (*ListTargetJobsResponse, error)
 }
 
 type meshServiceClient struct {
@@ -68,6 +73,16 @@ func (c *meshServiceClient) GetJob(ctx context.Context, in *GetJobRequest, opts 
 	return out, nil
 }
 
+func (c *meshServiceClient) ListTargetJobs(ctx context.Context, in *ListTargetJobsRequest, opts ...grpc.CallOption) (*ListTargetJobsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListTargetJobsResponse)
+	err := c.cc.Invoke(ctx, MeshService_ListTargetJobs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MeshServiceServer is the server API for MeshService service.
 // All implementations must embed UnimplementedMeshServiceServer
 // for forward compatibility.
@@ -83,6 +98,10 @@ type MeshServiceServer interface {
 	SubmitConversion(context.Context, *SubmitConversionRequest) (*SubmitConversionResponse, error)
 	// GetJob returns the current state of a conversion job.
 	GetJob(context.Context, *GetJobRequest) (*GetJobResponse, error)
+	// ListTargetJobs returns the latest job of every catalog target that has
+	// one — the read behind the console's "what is converting" view. Every
+	// status is included.
+	ListTargetJobs(context.Context, *ListTargetJobsRequest) (*ListTargetJobsResponse, error)
 	mustEmbedUnimplementedMeshServiceServer()
 }
 
@@ -98,6 +117,9 @@ func (UnimplementedMeshServiceServer) SubmitConversion(context.Context, *SubmitC
 }
 func (UnimplementedMeshServiceServer) GetJob(context.Context, *GetJobRequest) (*GetJobResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetJob not implemented")
+}
+func (UnimplementedMeshServiceServer) ListTargetJobs(context.Context, *ListTargetJobsRequest) (*ListTargetJobsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTargetJobs not implemented")
 }
 func (UnimplementedMeshServiceServer) mustEmbedUnimplementedMeshServiceServer() {}
 func (UnimplementedMeshServiceServer) testEmbeddedByValue()                     {}
@@ -156,6 +178,24 @@ func _MeshService_GetJob_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MeshService_ListTargetJobs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTargetJobsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MeshServiceServer).ListTargetJobs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MeshService_ListTargetJobs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MeshServiceServer).ListTargetJobs(ctx, req.(*ListTargetJobsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MeshService_ServiceDesc is the grpc.ServiceDesc for MeshService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -170,6 +210,10 @@ var MeshService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetJob",
 			Handler:    _MeshService_GetJob_Handler,
+		},
+		{
+			MethodName: "ListTargetJobs",
+			Handler:    _MeshService_ListTargetJobs_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

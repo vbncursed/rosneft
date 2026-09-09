@@ -1,6 +1,6 @@
 // Package converter turns source meshes (OBJ today, more later) into binary
 // glTF (GLB) artifacts. The Convert pipeline is parse → normalize → write
-// GLB → optional Draco/KTX2 post-processing → optional LOD generation.
+// GLB → optional meshopt/KTX2 post-processing → optional LOD generation.
 //
 // Compression and LOD simplification are injected so unit tests run without
 // an external `gltfpack` binary on the test host.
@@ -10,7 +10,7 @@ import (
 	"context"
 )
 
-// Compressor post-processes a GLB blob (typically gltfpack-driven Draco +
+// Compressor post-processes a GLB blob (typically gltfpack-driven meshopt +
 // KTX2 + LOD simplification). Optional — when nil or omitted, Convert
 // returns the raw GLB and ConvertLODs returns just LOD0.
 type Compressor interface {

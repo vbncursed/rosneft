@@ -58,6 +58,7 @@ type Content interface {
 type Mesh interface {
 	SubmitConversion(ctx context.Context, kind domain.Kind, slug string) (domain.Job, error)
 	GetJob(ctx context.Context, id string) (domain.Job, error)
+	ListTargetJobs(ctx context.Context) ([]domain.Job, error)
 }
 
 // Upload is the upload-service client surface this service calls.
@@ -71,7 +72,7 @@ type Upload interface {
 
 // Audit is the audit-service client surface this service calls.
 type Audit interface {
-	ListEntries(ctx context.Context, q domain.AuditQuery) ([]domain.AuditEntry, int64, error)
+	ListEntries(ctx context.Context, q domain.AuditQuery) (domain.AuditPage, error)
 	ListActors(ctx context.Context, q domain.AuditQuery) ([]string, error)
 	Record(ctx context.Context, e domain.AuditEvent) error
 }

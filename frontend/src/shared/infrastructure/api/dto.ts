@@ -1422,6 +1422,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/users/{id}/2fa/require": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Require a second factor of a user (requires users:write)
+         * @description Idempotent — requiring an already-required account answers 200. The user keeps signing in, but their session may reach only the enrollment endpoints until a second factor is enrolled.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Updated user */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuthUser"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/users/{id}/2fa/unrequire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop requiring a second factor of a user (requires users:write)
+         * @description Idempotent. Does not disable an enrolled second factor.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Updated user */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuthUser"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/users/{id}/restore": {
         parameters: {
             query?: never;
@@ -1835,6 +1923,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The latest conversion job per catalog target, tenant-filtered
+         * @description One entry per territory or model that has a job on record, excluding succeeded ones (the artifacts already say "ready"). Territories are filtered to the caller's visible set — the same rule as `GET /api/territories`; models are listed for everyone. Answers `Cache-Control: no-store`: the console polls it while a conversion runs. Each entry is the latest job by write order; two concurrent submits for one target are not serialised, so a just-superseded terminal state can briefly show while a newer job runs.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Job"][];
+                    };
+                };
+                500: components["responses"]["Internal"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs/{id}/events": {
         parameters: {
             query?: never;
@@ -1844,7 +1972,7 @@ export interface paths {
         };
         /**
          * Server-Sent Events stream for one conversion job
-         * @description Emits `event: job` whenever the job state changes; the stream closes on succeeded/failed. The gateway polls mesh-api under the hood. Each event's `data:` payload is a Job JSON (kind + slug identify the entity).
+         * @description Emits `event: job` whenever the job state changes; the stream closes on succeeded/failed. The gateway polls mesh-api under the hood. Each event's `data:` payload is a Job JSON (kind + slug identify the entity). The stream is tenant-scoped: a territory job the caller cannot see is reported as not found.
          */
         get: {
             parameters: {
@@ -1892,9 +2020,9 @@ export interface paths {
             parameters: {
                 query: {
                     /** @description Panel ID from the server-side registry, mirrored by the client's panel-catalog. Instant (single-value) panels return one point per series; the rest are range queries of roughly 200 points. */
-                    panel: "stat-up" | "stat-rps" | "stat-errors" | "stat-p99" | "stat-queue" | "red-rate" | "red-errors" | "red-latency" | "red-http" | "domain-conversions" | "domain-conversion-p95" | "domain-queue" | "domain-upload" | "domain-auth" | "domain-twofa" | "runtime-memory" | "runtime-goroutines" | "runtime-gc" | "runtime-fds" | "alerts";
+                    panel: "stat-up" | "stat-rps" | "stat-errors" | "stat-p99" | "stat-queue" | "services-up" | "red-rate" | "red-errors" | "red-latency" | "red-http" | "domain-conversions" | "domain-conversion-p95" | "domain-queue" | "domain-upload" | "domain-auth" | "domain-twofa" | "runtime-memory" | "runtime-goroutines" | "runtime-gc" | "runtime-fds" | "alerts";
                     /** @description Query window. Step is derived server-side (~200 points, rounded to whole 15s scrapes). */
-                    range: "1h" | "6h" | "24h" | "7d";
+                    range: "15m" | "1h" | "6h" | "24h" | "7d";
                 };
                 header?: never;
                 path?: never;
@@ -2440,22 +2568,24 @@ export interface components {
             message: string;
         };
         AuthUser: {
-            id?: string;
-            email?: string;
-            username?: string;
+            id: string;
+            email: string;
+            username: string;
             /** @enum {string} */
-            status?: "active" | "frozen" | "deleted";
+            status: "active" | "frozen" | "deleted";
             /** @description Whether TOTP two-factor auth is on. ABSENT MEANS UNKNOWN — the owning service (twofa) could not be reached. Render an absent value as "unknown", never as "off": auth-service does not own this flag and the gateway overlays it, so a missing key is a failed lookup and not a disabled factor. */
             totpEnabled?: boolean;
             /** @description Whether the user has at least one passkey registered. Absent means unknown, exactly as for totpEnabled. Always absent on /api/auth/me — that route runs on every page load and deliberately does not pay for the lookup, since nothing there consumes it. */
             passkeyEnabled?: boolean;
-            roleSlugs?: string[];
+            roleSlugs: string[];
             /** @description Slug → display title for each entry in roleSlugs. The slug is not an abbreviation of the title: slug "admin" is titled "Company Owner" while a different role is slugged "owner", so a UI printing the slug names the wrong role. A slug absent from the map means the role was deleted between reads — fall back to showing the slug. */
             roleTitles?: {
                 [key: string]: string;
             };
-            permissions?: string[];
-            isOwner?: boolean;
+            permissions: string[];
+            isOwner: boolean;
+            /** @description An administrator requires a second factor of this account. Distinct from totpEnabled, which reports whether one is enrolled. */
+            totpRequired: boolean;
             onboardingToursSeen?: string[];
             /** @description echo back as X-CSRF-Token on POST/PUT/PATCH/DELETE; required only for cookie sessions */
             csrfToken?: string;
@@ -2475,6 +2605,8 @@ export interface components {
             identifier: string;
             /** Format: password */
             password: string;
+            /** @description false issues a browser-session cookie (no Max-Age) that dies when the browser closes; true or absent keeps today's persistent cookie */
+            remember?: boolean;
         };
         LoginResponse: {
             /** @description empty when twoFactorRequired */
@@ -2489,6 +2621,8 @@ export interface components {
             challengeToken: string;
             /** @description TOTP or recovery code */
             code: string;
+            /** @description the choice made at step one, repeated — the gateway keeps no state between the two calls */
+            remember?: boolean;
         };
         TokenResponse: {
             token?: string;
@@ -2688,7 +2822,7 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
-        /** @description Authenticated but lacking the required permission */
+        /** @description Permission denied. Code `twofa_enrollment_required` means the account is required to carry a second factor and has not enrolled one: only /api/auth/me, /api/auth/logout and the /api/auth/2fa enrollment endpoints are reachable until it does. */
         Forbidden: {
             headers: {
                 [name: string]: unknown;

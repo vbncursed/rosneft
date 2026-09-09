@@ -88,7 +88,7 @@ func (h *Handlers) recordLogin(r *http.Request, action, token string) {
 		return
 	}
 	actorID, companyID := "", ""
-	if uid, _, _, _, company, err := h.client.ValidateToken(r.Context(), token); err == nil {
+	if uid, _, _, _, company, _, err := h.client.ValidateToken(r.Context(), token); err == nil {
 		actorID, companyID = uid, company
 	}
 	h.recordAuth(r, action, actorID, companyID, "ok")

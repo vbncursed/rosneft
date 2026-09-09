@@ -29,6 +29,7 @@ func (h *Handlers) Mount(r chi.Router) {
 			pr.Get("/me", h.me)
 			pr.Post("/me/password", h.changePassword)
 			pr.Post("/me/onboarding/{tour}", h.markTourSeen)
+			pr.Get("/2fa", h.twoFactorStatus)
 			pr.Post("/2fa/setup", h.setup2FA)
 			pr.Post("/2fa/enable", h.enable2FA)
 			pr.Post("/2fa/disable", h.disable2FA)
@@ -45,6 +46,8 @@ func (h *Handlers) Mount(r chi.Router) {
 			pr.With(h.Require("users:write")).Patch("/users/{id}", h.updateUser)
 			pr.With(h.Require("users:freeze")).Post("/users/{id}/freeze", h.freezeUser)
 			pr.With(h.Require("users:freeze")).Post("/users/{id}/unfreeze", h.unfreezeUser)
+			pr.With(h.Require("users:write")).Post("/users/{id}/2fa/require", h.requireUser2FA)
+			pr.With(h.Require("users:write")).Post("/users/{id}/2fa/unrequire", h.unrequireUser2FA)
 			pr.With(h.Require("users:delete")).Delete("/users/{id}", h.softDeleteUser)
 			pr.With(h.Require("users:delete")).Post("/users/{id}/restore", h.restoreUser)
 			// The owner flag is granted owner-to-owner; this route gate is coarse,

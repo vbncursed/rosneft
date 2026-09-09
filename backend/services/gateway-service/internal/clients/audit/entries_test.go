@@ -46,7 +46,7 @@ func TestEntriesSuite(t *testing.T) {
 func (s *EntriesSuite) TestInvalidArgumentBecomesTheGatewaySentinel() {
 	c := &Client{cc: stubCC{err: status.Error(codes.InvalidArgument, "actor id must be a uuid")}}
 
-	_, _, err := c.ListEntries(s.T().Context(), domain.AuditQuery{})
+	_, err := c.ListEntries(s.T().Context(), domain.AuditQuery{})
 
 	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
 }
@@ -56,7 +56,7 @@ func (s *EntriesSuite) TestInvalidArgumentBecomesTheGatewaySentinel() {
 func (s *EntriesSuite) TestOtherCodesAreNotInvalidInput() {
 	c := &Client{cc: stubCC{err: status.Error(codes.Unavailable, "audit service is down")}}
 
-	_, _, err := c.ListEntries(s.T().Context(), domain.AuditQuery{})
+	_, err := c.ListEntries(s.T().Context(), domain.AuditQuery{})
 
 	assert.Assert(s.T(), err != nil)
 	assert.Assert(s.T(), !errors.Is(err, domain.ErrInvalidInput))

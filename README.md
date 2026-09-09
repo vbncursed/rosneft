@@ -1,7 +1,7 @@
 # Andrey 3D Viewer
 
 Browser-native 3D viewer for very large OBJ models. Heavy work — OBJ parsing,
-multi-material GLB conversion (with Draco compression, KTX2 textures, and
+multi-material GLB conversion (with meshopt compression, KTX2 textures, and
 LOD generation), texture optimisation, blob storage — happens server-side so
 the browser fetches compact binary artifacts instead of 100+ MB ASCII files.
 
@@ -48,14 +48,14 @@ Go **1.27.0** multi-module workspace (`go.work`, 12 modules). Services:
 | [`auth-service`](backend/services/auth-service/README.md)       | Users, multi-role RBAC, sessions                              | gRPC `:9004` (internal)   |
 | [`twofa-service`](backend/services/twofa-service/README.md)     | TOTP 2FA: secrets, recovery codes, verify                     | gRPC `:9006` (internal)   |
 | [`passkey-service`](backend/services/passkey-service/README.md) | WebAuthn passkeys: credentials, ceremonies, assertion verify  | gRPC `:9008` (internal)   |
-| [`mesh-service`](backend/services/mesh-service/README.md)       | OBJ → GLB + Draco + KTX2 + LOD (`mesh-api` + `mesh-worker`)   | gRPC `:9002` (internal)   |
+| [`mesh-service`](backend/services/mesh-service/README.md)       | OBJ → GLB + meshopt + KTX2 + LOD (`mesh-api` + `mesh-worker`) | gRPC `:9002` (internal)   |
 | [`upload-service`](backend/services/upload-service/README.md)   | Resumable chunked uploads (gRPC streaming)                    | gRPC `:9003` (internal)   |
 | [`asset-service`](backend/services/asset-service/README.md)     | Binary artifact server (Range / ETag / immutable cache)       | `:8081` (via gw)          |
 | [`audit-service`](backend/services/audit-service/README.md)     | Append-only journal + capture triggers + checkpoint digests    | gRPC `:9009` (internal)   |
 
 Persistence: PostgreSQL 17 + Redis 8 Streams + local FS blob store
 (S3-ready behind `BlobStore`). The mesh-worker container ships `gltfpack`
-(built from `zeux/meshoptimizer`) for Draco / KTX2 / LOD encoding.
+(built from `zeux/meshoptimizer`) for meshopt / KTX2 / LOD encoding.
 
 See [`backend/README.md`](backend/README.md).
 
@@ -83,7 +83,7 @@ Implemented across both sides; some are opt-in until both halves are wired:
 | ETag + 304 on JSON | always-on middleware | nothing — browsers handle automatically |
 | Brotli/gzip JSON | always-on middleware | nothing — browsers handle automatically |
 | Asset immutable cache | always-on middleware | nothing — browsers handle automatically |
-| Draco mesh compression | `MESH_DRACO_ENABLED=true` (default) | `useGLTF.setDecoderPath("/draco/")` ✅ wired |
+| Meshopt mesh compression | `MESH_MESHOPT_ENABLED=true` (default) | nothing — drei's `useGLTF` auto-registers `MeshoptDecoder` ✅ wired |
 | KTX2 / Basis textures | `MESH_KTX2_ENABLED=true` (default) | Register `KTX2Loader` explicitly (drei does NOT auto-register) |
 | LOD generation | `MESH_LOD_RATIOS=0.5,0.25` (default) | Use `getArtifact(slug, lod)` per level (LOD0 always = full quality) |
 
