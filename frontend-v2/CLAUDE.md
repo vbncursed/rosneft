@@ -535,8 +535,9 @@ shipped.
 `twoFactor` and `passkeys` beside it — every Guest lacks `audit:read_own`
 (auth-service migration `00013`) and takes a 403 here, and rendering that as
 an empty list told the reader nothing had ever happened under their own
-account. `unanswered`, not `isError`: a failed *load more* must leave the
-pages already on screen alone. A row's second line is `summaryOf`, which is
+account. `unanswered`, not `isError`: a failed cursor page must leave the
+pages already on screen alone — the section reads `stalled` and keeps its
+pager. A row's second line is `summaryOf`, which is
 **empty for most rows** — every `auth.*` entry the gateway writes carries
 entity `session` with an empty `entityId`, `entityLabel` and
 `territorySlug`, so the line is dropped rather than filled with a table

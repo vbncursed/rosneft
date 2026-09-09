@@ -143,10 +143,12 @@ gateway does not know the total today; it learns to count.
   !isFetchNextPageError` — without the last clause a refused cursor page
   loops (960 requests in 50 ms measured), because the effect keeps seeing the
   rows it still needs and asking again. `activityBusy` is
-  `activity.isPending || activity.isFetchingNextPage`, not bare `isFetching`:
-  a background refetch (the feed is invalidated on every account change)
-  must not disable a pager whose rows are already on screen, and the very
-  first load draws the skeleton instead of flashing the empty state. Walking
+  `activity.isPending || activity.isFetchingNextPage || walking`, not bare
+  `isFetching`: `walking` is the effect's own guard, read a second time here
+  so the frame between a chip click and the effect's fetch reads busy, never
+  `stalled` — a background refetch (the feed is invalidated on every account
+  change) still leaves the pager live, and the very first load draws the
+  skeleton instead of flashing the empty state. Walking
   to a far page costs one cursor request per `defaultLimit` (50) rows in
   between, in order — `rowsNeeded(page)` divided by the store's page size,
   not by `PAGE_SIZE`.
