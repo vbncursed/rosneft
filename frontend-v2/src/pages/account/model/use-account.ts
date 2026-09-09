@@ -46,16 +46,15 @@ export function useAccount(): AccountState {
   // Clamped on render, not in the setter: a feed that shrank under an
   // invalidation lands on its new last page rather than an empty slice.
   const shownPage = Math.min(page, pageCount(total ?? 0));
+  // Read once and used twice: the effect starts the request, and `activityBusy`
+  // reports it. They have to agree — the frame between the click and the effect
+  // holds an empty slice with no request in flight yet, and a `busy` that only
+  // watched the query flashed "this page could not be loaded" on every jump.
+  const walking =
+    rowsNeeded(shownPage) > loaded.length && activity.hasNextPage && !activity.isFetchNextPageError;
   useEffect(() => {
-    if (
-      rowsNeeded(shownPage) > loaded.length &&
-      activity.hasNextPage &&
-      !activity.isFetching &&
-      !activity.isFetchNextPageError
-    ) {
-      void activity.fetchNextPage();
-    }
-  }, [shownPage, loaded.length, activity]);
+    if (walking && !activity.isFetching) void activity.fetchNextPage();
+  }, [walking, activity]);
 
   // Every mutation invalidates what another surface reads. The journal is one
   // of those surfaces: this screen prints it three sections lower, so a change
@@ -139,10 +138,12 @@ export function useAccount(): AccountState {
     activityTotal: unanswered(activity) ? null : total,
     activityPage: shownPage,
     activityPageCount: pageCount(total ?? 0),
-    // isFetchingNextPage, not isFetching: every mutation here invalidates the
+    // isPending covers the first load, which has neither rows nor an error and
+    // would otherwise read as "nothing recorded"; isFetchingNextPage covers the
+    // walk to a far page. Not isFetching: every mutation here invalidates the
     // feed, and a background refetch must not disable a pager whose rows are
-    // on screen. Only a page actually on its way makes the reader wait.
-    activityBusy: activity.isFetchingNextPage,
+    // already on screen.
+    activityBusy: activity.isPending || activity.isFetchingNextPage || walking,
     passwordBusy: password.isPending,
     disableBusy: disable.isPending,
     removalBusy: removal.isPending,

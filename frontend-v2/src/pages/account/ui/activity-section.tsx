@@ -27,10 +27,13 @@ export function ActivitySection({ entries, page, pageCount, summary, busy, onPag
   // One reading for the whole render, so two rows a millisecond apart cannot
   // land on different sides of midnight.
   const now = new Date();
-  // An empty slice means two different things, and only the clock tells them
-  // apart: a page still on the wire, or a feed with nothing in it.
-  const waiting = busy && entries !== null && entries.length === 0;
-  const empty = !busy && entries !== null && entries.length === 0;
+  // An empty slice means three different things, and only `busy` and the page
+  // count tell them apart: a page still on the wire, a page whose fetch failed
+  // over a journal that demonstrably holds more, or a feed with nothing in it.
+  const nothing = entries !== null && entries.length === 0;
+  const waiting = busy && nothing;
+  const stalled = !busy && nothing && pageCount > 1;
+  const empty = !busy && nothing && pageCount <= 1;
 
   return (
     <section className="overflow-hidden rounded-card border border-line bg-panel">
@@ -57,14 +60,24 @@ export function ActivitySection({ entries, page, pageCount, summary, busy, onPag
       ) : (
         <>
           {waiting ? (
+            // One line per row the page will hold, so the footer keeps its
+            // place while the rows land under it mid-walk.
             <div
               role="status"
               aria-busy="true"
               aria-label={`Loading page ${page}`}
               className="flex flex-col gap-3 px-[22px] py-3.5"
             >
-              <Skeleton height="16px" width="40%" />
-              <Skeleton height="16px" width="55%" />
+              {["40%", "55%", "35%", "60%", "45%", "50%"].map((width) => (
+                <Skeleton key={width} height="16px" width={width} />
+              ))}
+            </div>
+          ) : stalled ? (
+            // Never "nothing recorded": the journal holds more pages than this
+            // one, and the footer stays so a chip gets the reader back to a
+            // page that did load.
+            <div className="p-[22px]">
+              <Callout tone="warn">This page could not be loaded.</Callout>
             </div>
           ) : (
             <ul className="m-0 list-none p-0">

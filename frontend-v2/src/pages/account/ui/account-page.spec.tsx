@@ -117,6 +117,12 @@ describe("AccountPage", () => {
     expect(screen.getByText("1–1 of 1 events")).toBeInTheDocument();
   });
 
+  it("says a page of the feed failed without claiming the journal is empty", () => {
+    render(<AccountPage {...props({ activity: [], activityTotal: 59, activityPage: 4, activityPageCount: 10 })} />);
+    expect(screen.getByText("This page could not be loaded.")).toBeInTheDocument();
+    expect(screen.getByText("19–24 of 59 events")).toBeInTheDocument();
+  });
+
   it("opens the disable dialog from the two-factor card and submits a code through it", async () => {
     const onDisable2FA = vi.fn().mockResolvedValue(undefined);
     render(<AccountPage {...props({ onDisable2FA })} />);

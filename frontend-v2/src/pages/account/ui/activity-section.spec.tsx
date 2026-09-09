@@ -125,9 +125,24 @@ describe("ActivitySection", () => {
   // click for a page already on its way.
   it("waits with the pager disabled and skeleton rows while a page is on its way", () => {
     render(<ActivitySection {...props({ entries: [], busy: true, pageCount: 3, page: 3 })} />);
-    expect(screen.getByRole("status", { name: "Loading page 3" })).toBeInTheDocument();
+    const waiting = screen.getByRole("status", { name: "Loading page 3" });
+    // One line per row the page will hold, so the footer does not jump when
+    // the rows land under it mid-walk.
+    expect(waiting.querySelectorAll("span[aria-hidden='true']")).toHaveLength(6);
     expect(screen.queryByText("Nothing to show yet")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+  });
+
+  // A cursor page that never arrived leaves an empty slice over a journal that
+  // is demonstrably not empty — "Nothing to show yet" is a wrong answer about
+  // the reader's own history, and without the footer there is no way back to
+  // the page that did load.
+  it("says the page failed rather than reporting an empty journal, and keeps the pager", () => {
+    render(<ActivitySection {...props({ entries: [], busy: false, page: 4, pageCount: 10 })} />);
+    expect(screen.getByText("This page could not be loaded.")).toBeInTheDocument();
+    expect(screen.queryByText("Nothing to show yet")).not.toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Pages" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Prev" })).toBeEnabled();
   });
 
   it("says nothing was recorded, and draws no pager", () => {

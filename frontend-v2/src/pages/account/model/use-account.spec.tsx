@@ -339,6 +339,29 @@ describe("useAccount", () => {
     expect(ready(result).activityPage).toBe(2);
   });
 
+  // The first load has nothing to show and no error either, so an empty slice
+  // there would print "Nothing to show yet" about a journal nobody has asked
+  // for yet. The section needs to hear "wait", not "none".
+  it("waits on the first load rather than reporting an empty feed", async () => {
+    let release: (() => void) | undefined;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    auditPage = async () => {
+      await held;
+      return AUDIT_NINE;
+    };
+    const { result } = renderHook(() => useAccount(), { wrapper });
+    await waitFor(() => expect(result.current.phase).toBe("ready"));
+    expect(ready(result).activityBusy).toBe(true);
+    expect(ready(result).activity).toEqual([]);
+
+    await act(async () => {
+      release?.();
+      await held;
+    });
+    await waitFor(() => expect(ready(result).activity).toHaveLength(6));
+    expect(ready(result).activityBusy).toBe(false);
+  });
+
   // Every mutation on this screen invalidates the feed, so a background
   // refetch runs with the rows still on screen. `isFetching` would disable the
   // pager under the reader's cursor for it; only a page actually on its way
@@ -364,6 +387,28 @@ describe("useAccount", () => {
       release?.();
       await held;
     });
+  });
+
+  // The frame between the click and the effect: the slice is already empty and
+  // no request has started yet. Measured on the live page — it rendered "This
+  // page could not be loaded." for one frame on every jump, which is the
+  // stalled state lying about a page that was merely about to be fetched.
+  it("never reports an empty page between the click and the request it triggers", async () => {
+    auditPage = auditCursorPage;
+    const frames: { busy: boolean; rows: number }[] = [];
+    const { result } = renderHook(
+      () => {
+        const s = useAccount();
+        if (s.phase === "ready") frames.push({ busy: s.activityBusy, rows: s.activity?.length ?? -1 });
+        return s;
+      },
+      { wrapper },
+    );
+    await waitFor(() => expect(ready(result).activity).toHaveLength(6));
+
+    act(() => ready(result).onPage(4));
+    await waitFor(() => expect(ready(result).activity).toHaveLength(6));
+    expect(frames.filter((f) => f.rows === 0 && !f.busy)).toEqual([]);
   });
 
   // Without a guard on the failed page, the effect sees the rows it still
