@@ -42,4 +42,9 @@ describe("ConsoleNav", () => {
     render(<ConsoleNav items={ITEMS} active="users" backHref="/" backLabel="← Home" />);
     expect(screen.getByRole("link", { name: "← Home" })).toBeInTheDocument();
   });
+
+  it("draws no accent overline — the landmark's own name already says Console", () => {
+    render(<ConsoleNav items={ITEMS} active="users" backHref="/" />);
+    expect(screen.queryByText("Console")).not.toBeInTheDocument();
+  });
 });
