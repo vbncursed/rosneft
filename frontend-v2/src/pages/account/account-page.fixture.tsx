@@ -130,6 +130,9 @@ export default {
   // The short last page — six rows loaded, three drawn, the summary reading
   // the remainder rather than the count on screen.
   "page 2": shell({ activity: ACTIVITY.slice(6), activityPage: 2 }),
+  // A cursor page that never arrived: the journal holds nine events, this page
+  // holds none, and the pager stays so the reader can get back.
+  "activity page failed": shell({ activity: [], activityPage: 2 }),
   "empty activity": shell({ activity: [], activityTotal: 0, activityPageCount: 1 }),
   // What a Guest sees: no audit:read_own, so the feed 403s.
   "activity unavailable": shell({ activity: null, activityTotal: null }),
