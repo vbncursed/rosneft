@@ -2,7 +2,7 @@ import { keepPreviousData } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("./audit-gateway", () => ({
-  listAudit: vi.fn(async () => ({ entries: [], nextCursor: null, refs: {} })),
+  listAudit: vi.fn(async () => ({ entries: [], nextCursor: null, refs: {}, total: null })),
   listAuditActors: vi.fn(async () => []),
 }));
 const { auditActorsQuery, auditQuery, auditWindowQuery, followInterval } = await import("./audit-queries");
@@ -11,8 +11,8 @@ describe("audit queries", () => {
   it("keys the journal by its filters, pages by nextCursor, and follows only the first page", () => {
     const q = auditQuery({ entity: "territory" });
     expect(q.queryKey).toEqual(["audit", { entity: "territory" }]);
-    expect(q.getNextPageParam({ entries: [], nextCursor: 12, refs: {} }, [], null, [])).toBe(12);
-    expect(q.getNextPageParam({ entries: [], nextCursor: null, refs: {} }, [], null, [])).toBeNull();
+    expect(q.getNextPageParam({ entries: [], nextCursor: 12, refs: {}, total: null }, [], null, [])).toBe(12);
+    expect(q.getNextPageParam({ entries: [], nextCursor: null, refs: {}, total: null }, [], null, [])).toBeNull();
     expect(q.refetchIntervalInBackground).toBe(false);
     // A new filter is a new key with no data; without this the screen's
     // loading guard would unmount the filter bar on every keystroke.

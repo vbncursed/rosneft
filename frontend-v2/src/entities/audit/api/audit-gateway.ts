@@ -16,7 +16,7 @@ export type AuditFilters = {
   to?: string;
 };
 export type AuditActor = { id: string; login: string };
-export type AuditPageResult = { entries: AuditEntry[]; nextCursor: number | null; refs: Refs };
+export type AuditPageResult = { entries: AuditEntry[]; nextCursor: number | null; refs: Refs; total: number | null };
 
 const DEFAULT_LIMIT = 50;
 
@@ -52,6 +52,7 @@ export async function listAudit(
     entries: (page.entries ?? []).map(toAuditEntry),
     nextCursor: page.nextCursor && page.nextCursor > 0 ? page.nextCursor : null,
     refs: page.refs ?? {},
+    total: page.total ?? null,
   };
 }
 
@@ -67,6 +68,7 @@ export async function listMyAudit(cursor: number | null, limit = DEFAULT_LIMIT):
     entries: (page.entries ?? []).map(toAuditEntry),
     nextCursor: page.nextCursor && page.nextCursor > 0 ? page.nextCursor : null,
     refs: page.refs ?? {},
+    total: page.total ?? null,
   };
 }
 
