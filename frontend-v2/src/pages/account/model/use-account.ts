@@ -159,6 +159,16 @@ export function useAccount(): AccountState {
       void client.invalidateQueries({ queryKey: ["passkeys"] });
       afterJournalledChange();
     },
-    onPage: setPage,
+    // `isFetchNextPageError` is query-wide, so the guard that stops the walk
+    // on a refusal also stops every later walk: without this the chips past a
+    // failure all draw the stalled callout with nothing on the wire behind
+    // them. A click asking for rows nobody has is the retry — `fetchNextPage`
+    // in the error status keeps the pages already loaded, reads busy while it
+    // runs, and on success flips the status back so the effect finishes the
+    // walk. One extra request per click on a gateway that is still down.
+    onPage: (n) => {
+      setPage(n);
+      if (activity.isFetchNextPageError && rowsNeeded(n) > loaded.length) void activity.fetchNextPage();
+    },
   };
 }

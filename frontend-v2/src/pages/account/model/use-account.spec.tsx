@@ -409,6 +409,10 @@ describe("useAccount", () => {
     act(() => ready(result).onPage(4));
     await waitFor(() => expect(ready(result).activity).toHaveLength(6));
     expect(frames.filter((f) => f.rows === 0 && !f.busy)).toEqual([]);
+    // ...and the guarantee is not vacuous: the empty frames really did happen,
+    // they were just all busy. Without this an `onPage` that never moved the
+    // page would satisfy the line above by rendering no empty frame at all.
+    expect(frames.some((f) => f.rows === 0)).toBe(true);
   });
 
   // Without a guard on the failed page, the effect sees the rows it still
@@ -426,6 +430,51 @@ describe("useAccount", () => {
     await waitFor(() => expect(cursorsAsked().length).toBeGreaterThan(1));
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(cursorsAsked()).toEqual([null, 55]);
+  });
+
+  // ...and it used to stop for good. `isFetchNextPageError` is query-wide, so
+  // every later chip past the failure drew the stalled callout with zero
+  // requests behind it — a callout claiming an attempt that was never made.
+  // The click asking for rows past the failure is the retry.
+  it("resumes the walk on the next click past the failure", async () => {
+    let down = true;
+    auditPage = (cursor) => {
+      if (cursor !== null && down) throw new Error("page is down");
+      return auditCursorPage(cursor);
+    };
+    const { result } = renderHook(() => useAccount(), { wrapper });
+    await waitFor(() => expect(ready(result).activity).toHaveLength(6));
+
+    act(() => ready(result).onPage(3));
+    await waitFor(() => expect(cursorsAsked()).toEqual([null, 55]));
+    await waitFor(() => expect(ready(result).activityBusy).toBe(false));
+    expect(ready(result).activity).toEqual([]);
+
+    down = false;
+    act(() => ready(result).onPage(2));
+    await waitFor(() => expect(ready(result).activity!.map((e) => e.id)).toEqual([54, 53, 52, 51, 50, 49]));
+    // Exactly one more: the retry, not a second walk on top of it.
+    expect(cursorsAsked()).toEqual([null, 55, 55]);
+  });
+
+  // The other half of that guard: the retry is for a click that needs rows
+  // nobody has, not for every click after a failure. A chip inside what is
+  // already loaded asks the gateway for nothing.
+  it("makes no request when a click after a failure lands on rows already loaded", async () => {
+    auditPage = (cursor) => {
+      if (cursor !== null) throw new Error("page is down");
+      return auditCursorPage(null);
+    };
+    const { result } = renderHook(() => useAccount(), { wrapper });
+    await waitFor(() => expect(ready(result).activity).toHaveLength(6));
+
+    act(() => ready(result).onPage(3));
+    await waitFor(() => expect(cursorsAsked()).toEqual([null, 55]));
+
+    act(() => ready(result).onPage(1));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(cursorsAsked()).toEqual([null, 55]);
+    expect(ready(result).activity).toHaveLength(6);
   });
 
   // The bug the old SPA shipped: 2FA changed, `me` stayed stale, and the next

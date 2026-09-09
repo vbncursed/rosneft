@@ -36,7 +36,7 @@ export function Pager({ page, pageCount, onPage, busy = false, label = "Pages" }
             onClick={() => onPage(item)}
             className={cx(
               CHIP,
-              "cursor-pointer border transition-colors duration-150 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+              "cursor-pointer border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
               item === page
                 ? "border-accent bg-accent-soft font-semibold text-accent"
                 : "border-line-2 bg-panel-2 text-fg hover:border-accent-line",
