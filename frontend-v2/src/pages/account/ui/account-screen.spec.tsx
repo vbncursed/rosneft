@@ -35,7 +35,9 @@ describe("AccountScreen", () => {
       twoFactorLoading: false,
       passkeysLoading: false,
       activity: [],
-      activityHasMore: false,
+      activityTotal: 0,
+      activityPage: 1,
+      activityPageCount: 1,
       activityBusy: false,
       passwordBusy: false,
       disableBusy: false,
@@ -44,7 +46,7 @@ describe("AccountScreen", () => {
       onDisable2FA: vi.fn().mockResolvedValue(undefined),
       onRemovePasskey: vi.fn().mockResolvedValue(undefined),
       onPasskeyAdded: vi.fn(),
-      onLoadMore: vi.fn(),
+      onPage: vi.fn(),
     });
     render(<AccountScreen />);
     expect(screen.getByRole("heading", { level: 1, name: "a.ivanova" })).toBeInTheDocument();

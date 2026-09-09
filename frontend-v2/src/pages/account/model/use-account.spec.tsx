@@ -25,13 +25,29 @@ const PRINCIPAL = {
 
 const TWO_FACTOR = { enabled: true, enabledAt: "2026-08-12T09:20:00Z", recoveryRemaining: 7, recoveryTotal: 10 };
 const PASSKEYS = [{ id: "p-1", name: "MacBook Pro", createdAt: "2026-08-12T09:20:00Z", lastUsedAt: null }];
-const AUDIT_PAGE_1 = {
-  entries: [{ id: 9, at: "2026-09-07T09:14:00Z", action: "auth.login", entity: "session", result: "ok" }],
-  nextCursor: 9,
-};
-const AUDIT_PAGE_2 = {
-  entries: [{ id: 4, at: "2026-09-06T18:20:00Z", action: "auth.passkey_register", entity: "credential", result: "ok" }],
+const auditEntry = (id: number) => ({
+  id,
+  at: "2026-09-07T09:14:00Z",
+  action: "auth.login",
+  entity: "session",
+  result: "ok",
+});
+
+/** Nine events in one gateway page (limit 50) — two pages of six on screen. */
+const AUDIT_NINE = {
+  entries: Array.from({ length: 9 }, (_, i) => auditEntry(9 - i)),
   nextCursor: 0,
+  total: 9,
+};
+
+/** Six-row cursor pages, as a feed longer than one gateway page really arrives. */
+const auditCursorPage = (cursor: number | null) => {
+  const first = cursor === null ? 60 : cursor - 1;
+  return {
+    entries: Array.from({ length: 6 }, (_, i) => auditEntry(first - i)),
+    nextCursor: first - 6 > 36 ? first - 5 : 0,
+    total: 24,
+  };
 };
 
 const json = (body: unknown, status = 200) =>
@@ -41,16 +57,35 @@ let fetchMock: ReturnType<typeof vi.fn>;
 let client: QueryClient;
 let twoFactorStatus = 200;
 let passkeysStatus = 200;
+/** What /api/audit/mine answers for a cursor. Reassigned by the paging cases. */
+let auditPage: (cursor: number | null) => unknown | Promise<unknown>;
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={client}>{children}</QueryClientProvider>
 );
+
+/** Narrows the union — every paging case reads the ready phase. */
+const ready = (result: { current: AccountState }): Ready => {
+  if (result.current.phase !== "ready") throw new Error(`not ready: ${result.current.phase}`);
+  return result.current;
+};
+
+const fetchCalls = (path: string) =>
+  fetchMock.mock.calls.filter(([url]) => new URL(url as string, "http://x").pathname === path);
+
+/** The cursor of every /api/audit/mine call, in order — null for the first page. */
+const cursorsAsked = () =>
+  fetchCalls("/api/audit/mine").map(([url]) => {
+    const raw = new URL(url as string, "http://x").searchParams.get("cursor");
+    return raw === null ? null : Number(raw);
+  });
 
 beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   setCsrfToken("csrf");
   twoFactorStatus = 200;
   passkeysStatus = 200;
+  auditPage = () => AUDIT_NINE;
   fetchMock = vi.fn(async (url: string) => {
     const path = new URL(url, "http://x").pathname;
     if (path === "/api/auth/me") return json(PRINCIPAL);
@@ -64,7 +99,8 @@ beforeEach(() => {
     }
     if (path === "/api/auth/me/password") return json(undefined, 204);
     if (path === "/api/audit/mine") {
-      return json(new URL(url, "http://x").searchParams.has("cursor") ? AUDIT_PAGE_2 : AUDIT_PAGE_1);
+      const raw = new URL(url, "http://x").searchParams.get("cursor");
+      return json(await auditPage(raw === null ? null : Number(raw)));
     }
     if (path === "/api/auth/2fa/disable") return json(undefined, 204);
     if (path.startsWith("/api/auth/passkey/credentials/")) return json(undefined, 204);
@@ -263,28 +299,88 @@ describe("useAccount", () => {
     if (result.current.phase !== "ready") throw new Error("unreachable");
     // A dead feed is not a dead page — everything else still renders.
     expect(result.current.me).toEqual(PRINCIPAL);
-    expect(result.current.activityHasMore).toBe(false);
+    expect(result.current.activityTotal).toBeNull();
   });
 
-  it("flattens the activity pages and asks for the next one on demand", async () => {
+  it("shows the first six of what is loaded and reads the total off the first page", async () => {
     const { result } = renderHook(() => useAccount(), { wrapper });
-    await waitFor(() => {
-      if (result.current.phase !== "ready") throw new Error("not ready");
-      expect(result.current.activity).toHaveLength(1);
-    });
-    if (result.current.phase !== "ready") throw new Error("unreachable");
-    expect(result.current.activity![0]!.action).toBe("auth.login");
-    expect(result.current.activityHasMore).toBe(true);
+    await waitFor(() => expect(ready(result).activity).toHaveLength(6));
+    expect(ready(result).activityTotal).toBe(9);
+    expect(ready(result).activityPage).toBe(1);
+    expect(ready(result).activityPageCount).toBe(2);
 
-    act(() => {
-      (result.current as { onLoadMore: () => void }).onLoadMore();
+    act(() => ready(result).onPage(2));
+    // The short last page comes out of the rows already loaded — no request.
+    expect(ready(result).activity!.map((e) => e.id)).toEqual([3, 2, 1]);
+    expect(fetchCalls("/api/audit/mine")).toHaveLength(1);
+  });
+
+  // The API pages by cursor and only forwards, so a jump to page 4 has to walk
+  // the pages in between. One request in flight at a time, in order.
+  it("fetches the cursor pages a far page needs, in order, then shows it", async () => {
+    auditPage = auditCursorPage;
+    const { result } = renderHook(() => useAccount(), { wrapper });
+    await waitFor(() => expect(ready(result).activity).toHaveLength(6));
+
+    act(() => ready(result).onPage(4));
+    await waitFor(() =>
+      expect(ready(result).activity!.map((e) => e.id)).toEqual([42, 41, 40, 39, 38, 37]),
+    );
+    expect(cursorsAsked()).toEqual([null, 55, 49, 43]);
+    expect(ready(result).activityBusy).toBe(false);
+  });
+
+  // A feed that shrank under an invalidation must land on its new last page,
+  // not on an empty slice past the end.
+  it("clamps a page past the count", async () => {
+    const { result } = renderHook(() => useAccount(), { wrapper });
+    await waitFor(() => expect(ready(result).activity).toHaveLength(6));
+    act(() => ready(result).onPage(9));
+    expect(ready(result).activityPage).toBe(2);
+  });
+
+  // Every mutation on this screen invalidates the feed, so a background
+  // refetch runs with the rows still on screen. `isFetching` would disable the
+  // pager under the reader's cursor for it; only a page actually on its way
+  // waits, which is `isFetchingNextPage`.
+  it("leaves the pager live while a refetch of the page on screen is in flight", async () => {
+    const { result } = renderHook(() => useAccount(), { wrapper });
+    await waitFor(() => expect(ready(result).activity).toHaveLength(6));
+
+    let release: (() => void) | undefined;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    auditPage = async () => {
+      await held;
+      return AUDIT_NINE;
+    };
+    await act(async () => {
+      void client.refetchQueries({ queryKey: ["audit", "mine"] });
     });
-    await waitFor(() => {
-      if (result.current.phase !== "ready") throw new Error("not ready");
-      expect(result.current.activity!.map((e) => e.id)).toEqual([9, 4]);
-      // The second page reported cursor 0 — the last page, so no more.
-      expect(result.current.activityHasMore).toBe(false);
+    await waitFor(() => expect(client.getQueryState(["audit", "mine"])?.fetchStatus).toBe("fetching"));
+    expect(ready(result).activityBusy).toBe(false);
+    expect(ready(result).activity).toHaveLength(6);
+
+    await act(async () => {
+      release?.();
+      await held;
     });
+  });
+
+  // Without a guard on the failed page, the effect sees the rows it still
+  // needs, asks again, fails again — a loop against the gateway that nothing
+  // on screen would show.
+  it("stops asking after a page fetch fails", async () => {
+    auditPage = (cursor) => {
+      if (cursor !== null) throw new Error("page is down");
+      return { entries: Array.from({ length: 6 }, (_, i) => auditEntry(60 - i)), nextCursor: 55, total: 24 };
+    };
+    const { result } = renderHook(() => useAccount(), { wrapper });
+    await waitFor(() => expect(ready(result).activity).toHaveLength(6));
+
+    act(() => ready(result).onPage(4));
+    await waitFor(() => expect(cursorsAsked().length).toBeGreaterThan(1));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(cursorsAsked()).toEqual([null, 55]);
   });
 
   // The bug the old SPA shipped: 2FA changed, `me` stayed stale, and the next
