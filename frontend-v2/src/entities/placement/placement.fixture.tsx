@@ -1,49 +1,100 @@
 import { useState } from "react";
-import { ObjectRow } from "./ui/object-row";
-import type { Placement } from "./model/placement";
+import { groupByModel, type PlacementGroup } from "./model/groups";
+import { IDENTITY_TRANSFORM, type Placement } from "./model/placement";
+import { GroupRow } from "./ui/group-row";
+import { InstanceRow } from "./ui/instance-row";
 
-const make = (id: number, label: string): Placement => ({
+const make = (id: number, modelSlug: string, label = ""): Placement => ({
   id,
   territorySlug: "refinery-block-c",
-  modelSlug: "pump-jack",
+  modelSlug,
   label,
   updatedAt: "2026-08-31T14:02:00Z",
-  position: { x: 0, y: 0, z: 0 },
-  rotation: { x: 0, y: 0, z: 0 },
-  scale: { x: 1, y: 1, z: 1 },
   visiblePanoramaIds: [4],
+  ...IDENTITY_TRANSFORM,
 });
 
-const PLACEMENTS = [make(1, "Pump Jack Unit"), make(2, "Storage Tank 500"), make(3, "Flare Stack A")];
+const OPTIONS = [
+  { slug: "tank", title: "storage-tank-500" },
+  { slug: "pump", title: "Насос НМ-1250" },
+];
 
-function List() {
+const PLACEMENTS = [
+  make(1, "tank"),
+  make(2, "tank", "Tank 4, north row"),
+  make(3, "tank"),
+  make(7, "pump", "Pump house"),
+];
+
+const [TANKS, PUMPS] = groupByModel(PLACEMENTS, OPTIONS);
+
+const noop = () => {};
+const handlers = { onSelect: noop, onRename: noop, onDelete: noop, onFocus: noop };
+
+const instance = (
+  group: PlacementGroup,
+  index: number,
+  props: { selected: boolean; pending: boolean; canWrite: boolean; canDelete: boolean },
+) => <InstanceRow group={group} instance={group.instances[index]} {...props} {...handlers} />;
+
+const Frame = ({ children }: { children: React.ReactNode }) => (
+  <div className="p-6">
+    <div className="flex max-w-sm flex-col gap-2 rounded-card border border-line bg-panel p-4">{children}</div>
+  </div>
+);
+
+function Panel() {
+  const [open, setOpen] = useState<string | null>("tank");
   const [selected, setSelected] = useState<number | null>(2);
-  const [labels, setLabels] = useState<Record<number, string>>({});
-  const [visible, setVisible] = useState<Record<number, boolean>>({ 1: false, 2: true, 3: false });
-
   return (
-    <div className="p-6 flex max-w-sm flex-col gap-3">
-      {PLACEMENTS.map((placement) => (
-        <ObjectRow
-          key={placement.id}
-          placement={{ ...placement, label: labels[placement.id] ?? placement.label }}
-          selected={selected === placement.id}
-          onSelect={setSelected}
-          onRename={(id, label) => setLabels((l) => ({ ...l, [id]: label }))}
-          onDelete={() => {}}
-          visibleInPanorama={visible[placement.id]}
-          onToggleVisible={(id, on) => setVisible((v) => ({ ...v, [id]: on }))}
-        />
+    <Frame>
+      {[TANKS, PUMPS].map((group) => (
+        <div key={group.model.slug} className="flex flex-col gap-2">
+          <GroupRow
+            group={group}
+            expanded={open === group.model.slug}
+            selectedId={selected}
+            onToggle={() => setOpen((s) => (s === group.model.slug ? null : group.model.slug))}
+          />
+          {open === group.model.slug
+            ? group.instances.map((i) => (
+                <InstanceRow
+                  key={i.id}
+                  group={group}
+                  instance={i}
+                  selected={selected === i.id}
+                  pending={false}
+                  canWrite
+                  canDelete
+                  onSelect={setSelected}
+                  onRename={noop}
+                  onDelete={noop}
+                  onFocus={noop}
+                />
+              ))
+            : null}
+        </div>
       ))}
-      <p className="m-0 rounded-control border border-dashed border-line-2 px-3 py-[9px] text-[11px] text-muted">
-        No objects on this territory yet.
-      </p>
-    </div>
+    </Frame>
   );
 }
 
-export default (
-  <div className="rounded-card border border-line bg-panel p-6">
-    <List />
-  </div>
-);
+export default {
+  panel: <Panel />,
+  "group rows": (
+    <Frame>
+      <GroupRow group={TANKS} expanded={false} selectedId={null} onToggle={noop} />
+      <GroupRow group={TANKS} expanded selectedId={2} onToggle={noop} />
+      <GroupRow group={PUMPS} expanded={false} selectedId={null} onToggle={noop} />
+    </Frame>
+  ),
+  "instance rows": (
+    <Frame>
+      {instance(TANKS, 1, { selected: true, pending: false, canWrite: true, canDelete: true })}
+      {instance(TANKS, 0, { selected: false, pending: false, canWrite: true, canDelete: true })}
+      {instance(TANKS, 2, { selected: false, pending: false, canWrite: true, canDelete: false })}
+      {instance(TANKS, 0, { selected: false, pending: false, canWrite: false, canDelete: false })}
+      {instance(TANKS, 1, { selected: true, pending: true, canWrite: true, canDelete: true })}
+    </Frame>
+  ),
+};

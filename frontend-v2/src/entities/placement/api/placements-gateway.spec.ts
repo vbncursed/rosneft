@@ -1,0 +1,59 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { setCsrfToken } from "@/shared/api";
+import { createPlacement, deletePlacement, updatePlacement } from "./placements-gateway";
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+
+const DTO = {
+  id: 7,
+  territorySlug: "north",
+  modelSlug: "tank",
+  position: { x: 1, y: 2, z: 3 },
+  rotation: { x: 0, y: 1.57, z: 0 },
+  scale: { x: 1, y: 1, z: 1 },
+  label: "Tank A",
+  updatedAt: "t1",
+  visiblePanoramaIds: [4, 5],
+};
+const BODY = { modelSlug: "tank", label: "Tank A", position: DTO.position, rotation: DTO.rotation, scale: DTO.scale };
+
+let fetchMock: ReturnType<typeof vi.fn>;
+beforeEach(() => {
+  fetchMock = vi.fn(() => Promise.resolve(json(DTO)));
+  vi.stubGlobal("fetch", fetchMock);
+  setCsrfToken("csrf");
+});
+afterEach(() => vi.unstubAllGlobals());
+
+const request = (n = 0) => {
+  const [url, init] = fetchMock.mock.calls[n] as [string, RequestInit];
+  return { url, method: init.method ?? "GET", body: init.body ? JSON.parse(init.body as string) : undefined };
+};
+
+describe("placements gateway", () => {
+  it("POSTs the body under the territory and maps the answer", async () => {
+    await expect(createPlacement("north", BODY)).resolves.toMatchObject({ id: 7, label: "Tank A" });
+    expect(request()).toEqual({ url: "/api/territories/north/placements", method: "POST", body: BODY });
+  });
+
+  it("PUTs to the id-scoped route and returns the server's updatedAt so the form re-keys", async () => {
+    fetchMock.mockResolvedValueOnce(json({ ...DTO, updatedAt: "t2" }));
+    await expect(updatePlacement("north", 7, BODY)).resolves.toMatchObject({ updatedAt: "t2" });
+    expect(request()).toEqual({ url: "/api/territories/north/placements/7", method: "PUT", body: BODY });
+  });
+
+  it("DELETEs the id-scoped route and resolves on 204", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await expect(deletePlacement("north", 7)).resolves.toBeUndefined();
+    expect(request()).toMatchObject({ url: "/api/territories/north/placements/7", method: "DELETE" });
+  });
+
+  it("percent-encodes the territory slug in every route", async () => {
+    await createPlacement("a b/c", BODY);
+    await updatePlacement("a b/c", 7, BODY);
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await deletePlacement("a b/c", 7);
+    for (const n of [0, 1, 2]) expect(request(n).url).toContain("a%20b%2Fc");
+  });
+});

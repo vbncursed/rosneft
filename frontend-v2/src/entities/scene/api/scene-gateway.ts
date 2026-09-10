@@ -1,12 +1,11 @@
 import { httpGet } from "@/shared/api";
 import type { components } from "@/shared/api/dto";
-import type { Placement, Vec3 } from "@/entities/placement";
+import { toPlacement, type Placement, type Vec3 } from "@/entities/placement";
 import { toTerritory, type Territory } from "@/entities/territory";
 import type { LodArtifact } from "../model/lod";
 
 type BundleDto = components["schemas"]["SceneBundle"];
 type ArtifactDto = components["schemas"]["Artifact"];
-type PlacementDto = components["schemas"]["Placement"];
 type OptionDto = components["schemas"]["AssetOption"];
 
 export type SceneArtifact = {
@@ -51,18 +50,6 @@ const toArtifact = (a: ArtifactDto): SceneArtifact => ({
   chain: a.artifacts ?? [
     { lod: a.lod, hash: a.hash, size: a.size, vertices: a.vertices, faces: a.faces },
   ],
-});
-
-const toPlacement = (d: PlacementDto): Placement => ({
-  id: d.id,
-  territorySlug: d.territorySlug,
-  modelSlug: d.modelSlug,
-  position: d.position,
-  rotation: d.rotation,
-  scale: d.scale,
-  label: d.label ?? "",
-  updatedAt: d.updatedAt ?? "",
-  visiblePanoramaIds: d.visiblePanoramaIds ?? [],
 });
 
 const toOption = (o: OptionDto): ModelOption => ({

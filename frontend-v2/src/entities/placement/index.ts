@@ -10,4 +10,26 @@ export {
   type ResolvedPlacement,
   type Vec3,
 } from "./model/placement";
-export { ObjectRow, type ObjectRowProps } from "./ui/object-row";
+export { toPlacement } from "./api/to-placement";
+export { createPlacement, deletePlacement, updatePlacement } from "./api/placements-gateway";
+export {
+  creating,
+  idle,
+  isCreating,
+  isMutatingId,
+  mutating,
+  type MutationState,
+} from "./model/mutation-state";
+export {
+  DEFAULT_SCALE,
+  groupByModel,
+  groupLine,
+  instanceLine,
+  instanceName,
+  matchesObjects,
+  realWorldScale,
+  type PlacementGroup,
+  type PlacementInstance,
+} from "./model/groups";
+export { GroupRow, type GroupRowProps } from "./ui/group-row";
+export { InstanceRow, type InstanceRowProps } from "./ui/instance-row";
