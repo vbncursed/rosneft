@@ -88,3 +88,24 @@ describe("EmptyState · start layout", () => {
     expect(screen.getByRole("button", { name: "Go" })).toBeInTheDocument();
   });
 });
+
+describe("EmptyState · panel layout", () => {
+  it("drops the dashed frame and stands the icon in a tile above a narrow sentence", () => {
+    const { container } = render(
+      <EmptyState
+        layout="panel"
+        icon="cube"
+        title="No objects placed yet"
+        description="Pick models from the library and drop them onto the territory."
+        action={<button type="button">Add objects to territory</button>}
+      />,
+    );
+    const root = container.firstElementChild!;
+    expect(root.className).not.toContain("border-dashed");
+    expect(root.className).toContain("gap-[13px]");
+    expect(root.querySelector(".size-11")).not.toBeNull();
+    expect(screen.getByText("No objects placed yet")).toBeInTheDocument();
+    expect(screen.getByText(/Pick models from the library/).className).toContain("max-w-[30ch]");
+    expect(screen.getByRole("button", { name: "Add objects to territory" })).toBeInTheDocument();
+  });
+});
