@@ -17,7 +17,7 @@ describe("TourTooltip", () => {
   it("says where in the tour the reader is", () => {
     render(<TourTooltip {...props} />);
     expect(screen.getByRole("dialog", { name: "Tour step 2 of 5" })).toBeInTheDocument();
-    expect(screen.getByText("Step 2 of 5")).toBeInTheDocument();
+    expect(screen.getByText("Step 2 / 5")).toBeInTheDocument();
   });
 
   it("shows the step's title and body", () => {

@@ -10,6 +10,8 @@ export type TourTooltipProps = {
   onSkip: () => void;
 };
 
+// The tour's card, to the mock's own geometry: 320 wide, radius 12, panel
+// ground, 16 of padding, 10 between blocks.
 export function TourTooltip({
   step,
   total,
@@ -26,15 +28,17 @@ export function TourTooltip({
     <div
       role="dialog"
       aria-label={`Tour step ${step} of ${total}`}
-      className="max-w-80 rounded-[10px] border border-accent-line bg-panel-2 p-4 shadow-elevation"
+      className="flex w-80 flex-col gap-2.5 rounded-card border border-line-2 bg-panel p-4 shadow-elevation"
     >
-      <p className="m-0 font-mono text-[10px] uppercase tracking-[0.18em] text-accent">
-        Step {step} of {total}
+      <p className="m-0 font-mono text-[9px] uppercase tracking-[0.2em] text-accent">
+        Step {step} / {total}
       </p>
-      <p className="m-0 mt-2 text-sm font-semibold text-fg">{title}</p>
-      <p className="m-0 mt-1.5 text-xs leading-[1.55] text-muted">{body}</p>
+      <div className="flex flex-col gap-1.5">
+        <p className="m-0 text-sm font-semibold text-fg">{title}</p>
+        <p className="m-0 text-xs leading-[1.6] text-muted">{body}</p>
+      </div>
 
-      <div className="mt-3.5 flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 pt-0.5">
         <button
           type="button"
           onClick={onSkip}
