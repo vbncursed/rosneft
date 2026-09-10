@@ -64,3 +64,42 @@ describe("Tabs", () => {
     expect(screen.getByTestId("readout")).toHaveTextContent("overview");
   });
 });
+
+describe("Tabs, segments variant", () => {
+  function Segments() {
+    const [value, setValue] = useState<Section>("overview");
+    return (
+      <Tabs
+        tabs={TABS.slice(0, 2)}
+        value={value}
+        onChange={setValue}
+        ariaLabel="Overlays sections"
+        variant="segments"
+      />
+    );
+  }
+
+  it("fills the active segment and drops the underline rule", () => {
+    render(<Segments />);
+    const active = screen.getByRole("tab", { name: "Overview" });
+    expect(active).toHaveClass("bg-accent-soft", "text-accent");
+    // clsx concatenates: a leftover bg-transparent in the base string would
+    // still be in the class list, and source order — not class order — decides
+    // which one paints. The fill would silently not appear.
+    expect(active.className).not.toContain("bg-transparent");
+    expect(active.className).not.toContain("border-b-2");
+    expect(screen.getByRole("tablist", { name: "Overlays sections" }).className).not.toContain(
+      "border-b",
+    );
+  });
+
+  it("keeps the tab roles and the arrow-key walk", async () => {
+    render(<Segments />);
+    screen.getByRole("tab", { name: "Overview" }).focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(screen.getByRole("tab", { name: "Placements" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+});
