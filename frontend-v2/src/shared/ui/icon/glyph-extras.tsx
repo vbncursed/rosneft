@@ -31,4 +31,14 @@ export const EXTRA_GLYPHS = {
     width: 2,
     body: <path d="M5 12h14M13 6l6 6-6 6" />,
   },
+  "chevron-left": {
+    box: "0 0 24 24",
+    width: 2,
+    body: <path d="m14 6-6 6 6 6" />,
+  },
+  "chevron-right": {
+    box: "0 0 24 24",
+    width: 2,
+    body: <path d="m10 6 6 6-6 6" />,
+  },
 } as const;
