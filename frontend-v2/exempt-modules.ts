@@ -40,4 +40,11 @@ export const EXEMPT_MODULES = [
   // only-export-components then objects to the mix). It spreads useLogin()'s
   // return into LoginPage and decides nothing itself — useLogin has the spec.
   "src/app/router/login-route.tsx",
+  // three.js setup that only runs against a real WebGL context or a Worker:
+  // the Draco/KTX2/BVH prototype patches, the render-time detectSupport
+  // probe, and drei's cache warmer. Their behaviour is checked by the live
+  // pass (a KTX2-textured territory renders textured, not white).
+  "src/widgets/viewer-canvas/three/gltf-loader-setup.ts",
+  "src/widgets/viewer-canvas/three/ktx2-init.tsx",
+  "src/widgets/viewer-canvas/three/glb-preloader.tsx",
 ];
