@@ -34,6 +34,7 @@ export default {
       <Vec3Field
         layout="row"
         readOnly
+        tone="muted"
         label="Rot"
         value={{ x: 0, y: Math.PI / 2, z: 0 }}
         onChange={() => {}}
@@ -42,6 +43,7 @@ export default {
       <Vec3Field
         layout="row"
         readOnly
+        tone="muted"
         label="Scl"
         value={{ x: 1, y: 1, z: 1 }}
         onChange={() => {}}

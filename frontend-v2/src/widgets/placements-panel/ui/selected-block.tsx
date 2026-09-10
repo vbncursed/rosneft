@@ -80,15 +80,9 @@ export function SelectedBlock({
         <Segmented
           ariaLabel="Gizmo mode"
           tone="soft"
-          mono
+          size="xs"
           value={gizmo}
           onChange={onGizmo}
-          // The gizmo control fills the panel, so its items stretch and need no
-          // side padding of their own; Segmented's mono padding is sized for
-          // the range picker, which hugs its labels. A child selector rather
-          // than a second px utility: two of those on one element are resolved
-          // by the stylesheet's source order, not the className string's.
-          className="[&>button]:px-0"
           items={MODES.map(({ value, word, key }) => ({
             value,
             label: compact ? `${word} ${key}` : `${word} (${key})`,
@@ -119,6 +113,7 @@ export function SelectedBlock({
           layout="row"
           label="Rot"
           readOnly={!editing}
+          tone="muted"
           format={degreesWithSign}
           value={editing ? toDegreeVec(shown.rotation) : shown.rotation}
           onChange={(rotation) => form?.onTransform({ ...shown, rotation: toRadianVec(rotation) })}
@@ -127,6 +122,7 @@ export function SelectedBlock({
           layout="row"
           label="Scl"
           readOnly={!editing}
+          tone="muted"
           format={dp3}
           value={shown.scale}
           onChange={(scale) => form?.onTransform({ ...shown, scale })}
