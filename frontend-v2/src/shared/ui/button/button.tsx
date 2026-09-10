@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ComponentPropsWithRef, ReactNode } from "react";
 import { clsx as cx } from "clsx";
 
 const button = cva(
@@ -61,7 +61,10 @@ const button = cva(
 
 type Variants = VariantProps<typeof button>;
 
-type BaseProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> &
+// ComponentPropsWithRef, not ButtonHTMLAttributes: React 19 takes `ref` as a
+// plain prop, and the props type has to admit it or `{...rest}` never carries
+// it to the element. The guided tour focuses its own Next button through it.
+type BaseProps = Omit<ComponentPropsWithRef<"button">, "children"> &
   Variants & {
     /** Swaps the label for a spinner and blocks further clicks. */
     loading?: boolean;
