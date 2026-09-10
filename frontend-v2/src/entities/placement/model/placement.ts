@@ -1,3 +1,5 @@
+import type { LodArtifact } from "@/entities/scene";
+
 export type Vec3 = { x: number; y: number; z: number };
 
 /**
@@ -42,3 +44,18 @@ const DEGREES = 180 / Math.PI;
 /** Radians are what the scene stores; degrees are what a person types. */
 export const toDegrees = (radians: number) => Number((radians * DEGREES).toFixed(2));
 export const toRadians = (degrees: number) => degrees / DEGREES;
+
+/** A placement with its model's LOD chain; empty when the model is not converted. */
+export type ResolvedPlacement = Placement & { chain: LodArtifact[] };
+
+/** The POST body: everything but the transform defaults the server fills in. */
+export type PlacementCreate = {
+  modelSlug: string;
+  position?: Vec3;
+  rotation?: Vec3;
+  scale?: Vec3;
+  label?: string;
+};
+
+/** The PUT body: the whole transform, plus the label, every time. */
+export type PlacementUpdate = PlacementTransform & { label: string };
