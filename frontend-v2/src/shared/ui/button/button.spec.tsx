@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { createRef } from "react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { Button } from "./button";
@@ -10,6 +11,15 @@ describe("Button", () => {
   it("defaults to type=button so it never submits a surrounding form by accident", () => {
     render(<Button>Save</Button>);
     expect(screen.getByRole("button", { name: "Save" }).getAttribute("type")).toBe("button");
+  });
+
+  // The guided tour focuses its Next button on every step, so a caller has to
+  // be able to reach the DOM node. React 19 takes `ref` as a plain prop; the
+  // props type has to say so or it never reaches the element.
+  it("forwards a ref to the underlying button element", () => {
+    const ref = createRef<HTMLButtonElement>();
+    render(<Button ref={ref}>Next</Button>);
+    expect(ref.current).toBe(screen.getByRole("button", { name: "Next" }));
   });
 
   it("fires onClick", async () => {
