@@ -32,7 +32,7 @@ export function CollapsedRail({ label, badge, expandName, onExpand, className }:
       </button>
       <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-muted [writing-mode:vertical-rl]">{label}</span>
       {badge ? (
-        <span className="rounded-full border border-line-2 bg-panel-2 px-[3px] py-[7px] font-mono text-[9px] text-fg [writing-mode:vertical-rl]">
+        <span className="rounded-full border border-line-2 bg-panel-2 px-[7px] py-[3px] font-mono text-[9px] text-fg [writing-mode:vertical-rl]">
           {badge}
         </span>
       ) : null}

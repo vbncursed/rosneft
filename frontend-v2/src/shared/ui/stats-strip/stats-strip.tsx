@@ -22,14 +22,21 @@ export function StatsStrip({ items, tone = "neutral", accentLast = false, label 
         className,
       )}
     >
-      {items.map((item, i) => (
-        <span
-          key={`${i}-${item}`}
-          className={cx(i === 0 && (tone === "bad" ? "text-bad" : "text-fg"), i === last && accentLast && "text-accent")}
-        >
-          {item}
-        </span>
-      ))}
+      {items.map((item, i) => {
+        const tint =
+          i === last && accentLast
+            ? "text-accent"
+            : i === 0
+              ? tone === "bad"
+                ? "text-bad"
+                : "text-fg"
+              : undefined;
+        return (
+          <span key={`${i}-${item}`} className={tint}>
+            {item}
+          </span>
+        );
+      })}
     </div>
   );
 }
