@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { overlaysWidthClass } from "../model/overlays-width";
 import { OverlaysPanel } from "./overlays-panel";
 
 describe("OverlaysPanel", () => {
@@ -89,8 +90,7 @@ describe("OverlaysPanel", () => {
       />,
     );
     const open = container.firstElementChild as HTMLElement;
-    expect(open.className).toContain("[--overlays-w:320px]");
-    expect(open.style.getPropertyValue("--overlays-w")).toBe("");
+    expect(open.className).toBe(overlaysWidthClass(false));
 
     rerender(
       <OverlaysPanel
@@ -103,8 +103,6 @@ describe("OverlaysPanel", () => {
         placements={null}
       />,
     );
-    expect((container.firstElementChild as HTMLElement).style.getPropertyValue("--overlays-w")).toBe(
-      "44px",
-    );
+    expect((container.firstElementChild as HTMLElement).className).toBe(overlaysWidthClass(true));
   });
 });
