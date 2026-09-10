@@ -3,6 +3,7 @@ import type { Color, Scene } from "three";
 import { describe, expect, it, vi } from "vitest";
 import type { ViewerCanvasProps } from "../ui/props";
 import SceneCanvas from "./scene-canvas";
+import { boundsStub, fakePlacement, lineColors } from "./testing";
 
 vi.mock("@react-three/drei", async (orig) => (await import("./testing")).mockDrei(orig));
 
@@ -114,6 +115,36 @@ describe("SceneCanvas", () => {
     await r.fireEvent(wrapper, "click", event);
     await r.fireEvent(wrapper, "click", { ...event, stopPropagation: vi.fn() });
     expect(onMeasurePoint).toHaveBeenCalledTimes(1);
+  });
+
+  it("frames the requested placements — which sit outside the Bounds group", async () => {
+    // The territory mounts inside drei's own <group>; the placements are its
+    // siblings under the scene wrapper. A frame resolved from the territory's
+    // parent reaches only the Bounds group and never a placement.
+    boundsStub.refresh.mockClear();
+    boundsStub.fit.mockClear();
+    await mount({ placements: [fakePlacement(1)], focusRequest: [1] });
+    expect(boundsStub.refresh).toHaveBeenCalledWith(
+      expect.objectContaining({ min: expect.anything(), max: expect.anything() }),
+    );
+    expect(boundsStub.fit).toHaveBeenCalledTimes(1);
+  });
+
+  it("hands the measurement lines the accent the tokens hold", async () => {
+    lineColors.length = 0;
+    await mount({
+      chains: [
+        {
+          id: 1,
+          points: [
+            { x: 0, y: 0, z: 0 },
+            { x: 1, y: 0, z: 0 },
+          ],
+          closed: false,
+        },
+      ],
+    });
+    expect(lineColors).toEqual(["#f97316"]);
   });
 
   it("picks no points at all while orbiting", async () => {

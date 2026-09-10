@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { applyTheme, type Theme } from "@/shared/lib/theme";
 
 const KEY = "andrey.theme";
@@ -18,17 +18,41 @@ const stored = (): Theme | null => {
 export const systemTheme = (): Theme =>
   globalThis.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark";
 
-export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(() => stored() ?? systemTheme());
+// One theme for the whole app, held outside React.
+//
+// It was component state, and that made every consumer its own island: the
+// sidebar's toggle restyled <html> and told nobody, so the 3D canvas — which
+// reads the tokens into three.js, because a WebGL clear colour cannot be a CSS
+// variable — kept painting the old ground until something remounted it.
+let current: Theme = stored() ?? systemTheme();
+const listeners = new Set<() => void>();
 
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+};
+
+const getSnapshot = () => current;
+
+function toggle() {
+  current = current === "dark" ? "light" : "dark";
+  applyTheme(current);
+  try {
+    localStorage.setItem(KEY, current);
+  } catch {
+    // A remembered theme is a convenience, not something to fail over.
+  }
+  for (const listener of [...listeners]) listener();
+}
+
+export function useTheme() {
+  const theme = useSyncExternalStore(subscribe, getSnapshot);
+  // Also on mount, so the first consumer stamps the remembered choice on the
+  // document rather than waiting for someone to press the toggle.
   useEffect(() => {
     applyTheme(theme);
-    try {
-      localStorage.setItem(KEY, theme);
-    } catch {
-      // A remembered theme is a convenience, not something to fail over.
-    }
   }, [theme]);
-
-  return { theme, toggle: () => setTheme((t) => (t === "dark" ? "light" : "dark")) };
+  return { theme, toggle };
 }

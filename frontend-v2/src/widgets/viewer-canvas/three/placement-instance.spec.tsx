@@ -46,6 +46,44 @@ describe("PlacementInstance", () => {
     expect(urls).toContain("/api/assets/fine");
   });
 
+  it("drops a level that throws and shows the next one, with no error card", async () => {
+    // The old ladder, and the right answer for a placement: one broken asset
+    // among many must not blank the scene the way a broken territory does.
+    // Not mockImplementationOnce — React retries a failed render synchronously
+    // and, if the retry succeeds, never reaches the boundary at all.
+    const drei = await import("@react-three/drei");
+    const { fakeScene } = await import("./testing");
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    const swallow = (e: ErrorEvent) => e.preventDefault();
+    window.addEventListener("error", swallow);
+    vi.mocked(drei.useGLTF).mockImplementation((url) => {
+      if (String(url).includes("coarse")) throw new Error("bad glb");
+      return { scene: fakeScene() } as never;
+    });
+
+    const r = await ReactThreeTestRenderer.create(
+      <PlacementInstance
+        placement={withChain([
+          { lod: 0, hash: "fine", size: 90 },
+          { lod: 2, hash: "coarse", size: 10 },
+        ])}
+        measureMode={false}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    // The coarse level went; LOD 0 is what mounted, and the instance is on
+    // screen rather than gone.
+    await vi.waitFor(() =>
+      expect(vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0])).toContain("/api/assets/fine"),
+    );
+    expect(r.scene.findAll((n) => n.instance.userData?.placementId === 7)).toHaveLength(1);
+
+    window.removeEventListener("error", swallow);
+    quiet.mockRestore();
+    vi.mocked(drei.useGLTF).mockReset();
+  });
+
   it("renders nothing for a model that has not been converted", async () => {
     const r = await ReactThreeTestRenderer.create(
       <PlacementInstance

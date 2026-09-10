@@ -80,10 +80,13 @@ export default function SceneCanvas({
   // (stopPropagation alone is not enough — separate intersection events
   // start with fresh `stopped` state and can still reach the wrapper.)
   const lastNativeRef = useRef<Event | null>(null);
-  // Shared ref to the territory's outer group. PlacementsLayer points its
-  // surface-snap raycaster at it and FocusOn reads its parent to frame a
-  // selection; GltfModel forwards through to <group>.
+  // Shared ref to the territory's outer group: PlacementsLayer points its
+  // surface-snap raycaster at it, and GltfModel forwards through to <group>.
   const territoryRef = useRef<Group>(null);
+  // The scene wrapper, and what FocusOn frames from. It has to be this and not
+  // the territory: <Bounds> renders a group of its own, so the territory's
+  // parent is that group, and every placement hangs off the wrapper beside it.
+  const wrapperRef = useRef<Group>(null);
 
   // Wrapper-group click is the catch-all for in-scene points. Use the first
   // intersection's world point — that's the surface the user actually
@@ -128,7 +131,7 @@ export default function SceneCanvas({
           the canvas is not picking points. Toggling between defined/undefined
           would force the group to re-attach DOM listeners on every mode
           change. */}
-      <group onClick={handleSceneClick}>
+      <group ref={wrapperRef} onClick={handleSceneClick}>
         {/* `observe` would re-fit the camera every time an LOD swap changed
             the bbox, which fights OrbitControls during a wheel zoom and reads
             as a freeze. We fit once on mount via `fit`, route explicit resets
@@ -143,7 +146,7 @@ export default function SceneCanvas({
             groupRef={territoryRef}
             onReport={onLod}
           />
-          <FocusOn root={territoryRef} request={focusRequest} />
+          <FocusOn root={wrapperRef} request={focusRequest} />
         </Bounds>
 
         <Suspense fallback={null}>
