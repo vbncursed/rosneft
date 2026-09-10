@@ -25,6 +25,15 @@ function Picker() {
 }
 
 export default {
+  "picker band + meta": (
+    <div className="rounded-card border border-line bg-panel p-6">
+      <div className="grid max-w-lg grid-cols-4 gap-2.5">
+        <ModelPickerCard model={pump} selected={false} onSelect={() => {}} thumb="band" meta="2 LODs · 3.8 MB" />
+        <ModelPickerCard model={tank} selected onSelect={() => {}} thumb="band" meta="3 LODs · 10.9 MB" />
+        <ModelPickerCard model={flare} selected={false} onSelect={() => {}} thumb="band" unavailable />
+      </div>
+    </div>
+  ),
   picker: (
     <div className="rounded-card border border-line bg-panel p-6">
       <Picker />

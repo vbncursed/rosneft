@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { ModelOption } from "@/entities/scene";
 import { PlaceObjectsModal } from "./place-objects-modal";
@@ -131,6 +132,76 @@ describe("PlaceObjectsModal", () => {
     const place = screen.getByRole("button", { name: "Place" });
     expect(place).toBeDisabled();
     expect(screen.queryByText(/Place 1 ×/)).not.toBeInTheDocument();
+  });
+
+  it("forgets the query, the selection and the count on a reopen", async () => {
+    function Harness() {
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>
+            Reopen
+          </button>
+          <PlaceObjectsModal
+            open={open}
+            onClose={() => setOpen(false)}
+            territoryTitle="T"
+            options={options}
+            placing={null}
+            onPlace={vi.fn()}
+          />
+        </>
+      );
+    }
+    render(<Harness />);
+
+    await userEvent.type(screen.getByLabelText("Search the model library"), "tank");
+    await userEvent.click(screen.getByRole("button", { name: /storage-tank-500/ }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Increase storage-tank-500 quantity" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await userEvent.click(screen.getByRole("button", { name: "Reopen" }));
+
+    expect(screen.getByLabelText("Search the model library")).toHaveValue("");
+    expect(screen.getByRole("button", { name: /storage-tank-500/ })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(screen.getByRole("button", { name: /not-yet/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Place" })).toBeDisabled();
+  });
+
+  it("says a query matching nothing found nothing, not that the library is empty", async () => {
+    render(
+      <PlaceObjectsModal
+        open
+        onClose={vi.fn()}
+        territoryTitle="T"
+        options={options}
+        placing={null}
+        onPlace={vi.fn()}
+      />,
+    );
+
+    await userEvent.type(screen.getByLabelText("Search the model library"), "zzz");
+
+    expect(screen.getByText("Nothing matches your search.")).toBeInTheDocument();
+    expect(screen.queryByText("No models in the library yet.")).not.toBeInTheDocument();
+  });
+
+  it("counts one LOD in the singular", () => {
+    render(
+      <PlaceObjectsModal
+        open
+        onClose={vi.fn()}
+        territoryTitle="T"
+        options={[{ slug: "one", title: "single", chain: [{ lod: 0, hash: "a", size: 1_048_576 }] }]}
+        placing={null}
+        onPlace={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("1 LOD · 1.0 MB")).toBeInTheDocument();
   });
 
   it("closes without placing anything", async () => {

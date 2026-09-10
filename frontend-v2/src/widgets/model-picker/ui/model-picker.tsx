@@ -20,6 +20,8 @@ export type ModelPickerProps = {
   columns?: 3 | 4;
   /** Passed to every card: band is the viewer picker's 74px strip. */
   thumb?: "square" | "band";
+  /** What an empty list says. A filtered caller answers for its own filter. */
+  emptyCopy?: string;
 };
 
 export function ModelPicker({
@@ -30,11 +32,12 @@ export function ModelPicker({
   onQuantityChange,
   columns = 3,
   thumb,
+  emptyCopy = "No models in the library yet.",
 }: ModelPickerProps) {
   if (models.length === 0) {
     return (
       <p className="m-0 rounded-control border border-dashed border-line-2 px-3 py-[9px] text-[11px] text-muted">
-        No models in the library yet.
+        {emptyCopy}
       </p>
     );
   }
