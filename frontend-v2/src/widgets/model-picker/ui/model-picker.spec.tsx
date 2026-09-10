@@ -75,6 +75,13 @@ describe("ModelPicker", () => {
     expect(screen.getByText("3 LODs · 8.0 MB")).toBeInTheDocument();
   });
 
+  it("passes the thumb shape through to its cards", () => {
+    render(
+      <ModelPicker models={MODELS} selectedSlug={null} onSelect={() => {}} thumb="band" />,
+    );
+    expect(document.querySelector("button > span")!.className).toContain("h-[74px]");
+  });
+
   it("draws four columns when the caller asks for them", () => {
     const { rerender } = render(
       <ModelPicker models={MODELS} selectedSlug={null} onSelect={() => {}} />,

@@ -78,6 +78,20 @@ describe("ModelPickerCard", () => {
     expect(screen.getByText("3 LODs · 8.0 MB")).toBeInTheDocument();
   });
 
+  it("keeps the square thumb by default and takes the 74px band on request", () => {
+    const thumb = () => document.querySelector("button > span")!;
+
+    const { rerender } = render(
+      <ModelPickerCard model={MODEL} selected={false} onSelect={() => {}} />,
+    );
+    expect(thumb().className).toContain("aspect-square");
+    expect(thumb().className).not.toContain("h-[74px]");
+
+    rerender(<ModelPickerCard model={MODEL} selected={false} onSelect={() => {}} thumb="band" />);
+    expect(thumb().className).toContain("h-[74px]");
+    expect(thumb().className).not.toContain("aspect-square");
+  });
+
   it("renders the thumbnail when the model has one", () => {
     render(
       <ModelPickerCard
