@@ -24,3 +24,26 @@ describe("CatalogShell", () => {
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
   });
 });
+
+describe("CatalogShell · viewport layout", () => {
+  it("drops the page padding and fills the viewport height", () => {
+    render(
+      <CatalogShell layout="viewport">
+        <p>scene</p>
+      </CatalogShell>,
+    );
+    const main = screen.getByRole("main");
+    expect(main.className).toContain("h-dvh");
+    expect(main.className).not.toContain("px-9");
+    expect(main.className).not.toContain("pt-8");
+  });
+
+  it("keeps the page layout by default", () => {
+    render(
+      <CatalogShell>
+        <p>page</p>
+      </CatalogShell>,
+    );
+    expect(screen.getByRole("main").className).toContain("px-9");
+  });
+});
