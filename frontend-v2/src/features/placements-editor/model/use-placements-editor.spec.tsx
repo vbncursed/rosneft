@@ -128,6 +128,26 @@ describe("usePlacementsEditor", () => {
     expect(onChanged).not.toHaveBeenCalled();
   });
 
+  it("a batch that fails half-way keeps the rows that landed", async () => {
+    // The first POST succeeded server-side; hiding that row would show a list
+    // the gateway disagrees with until something remounts the editor.
+    vi.mocked(createPlacement)
+      .mockResolvedValueOnce(placement(11))
+      .mockRejectedValue(new HttpError(403, null, "You don't have permission to do this"));
+    const { result } = editor();
+
+    let out: number | null = 7;
+    await act(async () => {
+      out = await result.current.s.create("tank", 3);
+    });
+
+    expect(out).toBeNull();
+    expect(result.current.s.placements.map((p) => p.id)).toEqual([11]);
+    expect(result.current.notices).toHaveLength(1);
+    expect(onChanged).toHaveBeenCalledOnce();
+    expect(result.current.s.placing).toBeNull();
+  });
+
   it("commitTransform keeps the label; rename keeps the transform", async () => {
     vi.mocked(updatePlacement).mockImplementation(async (_slug, id, body) => ({ ...placement(id), ...body }));
     const { result } = editor([placement(1, { label: "Tank 4" })]);

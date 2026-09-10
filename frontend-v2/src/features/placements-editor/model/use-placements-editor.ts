@@ -61,6 +61,7 @@ export function usePlacementsEditor({
   const create = useCallback(
     async (modelSlug: string, count: number): Promise<number | null> => {
       const total = Math.max(1, Math.floor(count));
+      const created: ResolvedPlacement[] = [];
       setMutation(creating);
       setPlacing({ done: 0, total });
       try {
@@ -73,7 +74,6 @@ export function usePlacementsEditor({
           territoryMaxDim,
         );
         const step = 2 * scale * 1.1;
-        const created: ResolvedPlacement[] = [];
         for (let i = 0; i < total; i++) {
           // ponytail: N sequential POSTs; add a batch endpoint if N grows large.
           const placement = await createPlacement(slug, {
@@ -84,15 +84,21 @@ export function usePlacementsEditor({
           created.push(resolve(placement));
           setPlacing({ done: i + 1, total });
         }
-        startTransition(() => setPlacements((prev) => [...prev, ...created]));
-        onChanged();
         return created[created.length - 1].id;
       } catch (err) {
-        // Nothing is appended on a refusal: a half-placed batch on screen that
-        // the next refetch would take away is worse than none.
+        // A refusal part-way through a batch leaves the POSTs before it
+        // standing on the server. The rows that landed are shown, and the
+        // refetch reconciles the rest; the answer is still null, because
+        // there is no last id to select.
         notify.error(messageOf(err));
         return null;
       } finally {
+        // Both paths: whatever the loop got through exists, so it belongs on
+        // screen, and onChanged tells the page to refetch the bundle.
+        if (created.length > 0) {
+          startTransition(() => setPlacements((prev) => [...prev, ...created]));
+          onChanged();
+        }
         setPlacing(null);
         setMutation(idle);
       }
@@ -125,8 +131,10 @@ export function usePlacementsEditor({
       } catch (err) {
         notify.error(messageOf(err));
       } finally {
-        // Both ways: on a refusal the row on screen may be stale for another
-        // reason, and only a refetch can say.
+        // Both ways: a refused delete may mean the row is already gone for
+        // another reason, and only the gateway can say. The page re-keys the
+        // editor on the bundle it refetches — this hook does not adopt a
+        // changed `initial` on its own.
         onChanged();
         setMutation(idle);
       }
