@@ -64,6 +64,11 @@ export default {
       onPlace={() => {}}
     />
   ),
+  "picker band thumbs": (
+    <div className="max-w-sm rounded-card border border-line bg-panel p-6">
+      <ModelPicker models={MODELS} selectedSlug="storage-tank-500" onSelect={() => {}} thumb="band" />
+    </div>
+  ),
   empty: (
     <div className="max-w-sm rounded-card border border-line bg-panel p-6">
       <ModelPicker models={[]} selectedSlug={null} onSelect={() => {}} />

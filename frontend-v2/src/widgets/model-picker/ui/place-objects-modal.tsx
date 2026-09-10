@@ -22,6 +22,9 @@ const MAX = 99;
  * The card's sub line: "3 LODs · 8.0 MB", and nothing at all for a chain that
  * does not exist yet — that card already says "· n/a".
  *
+ * Binary MB, one decimal: the brief's "8.4 MB" for 8_400_002 bytes was a
+ * decimal-megabyte literal, and every other size in this app is binary.
+ *
  * `formatBytes` is the app's size helper everywhere else, but it rounds below
  * a gigabyte — every model in a realistic library would read "8 MB", and the
  * mock's line exists to tell two chains apart. One decimal, binary MB (the
@@ -116,6 +119,7 @@ export function PlaceObjectsModal({
       <ModelPicker
         models={models}
         columns={4}
+        thumb="band"
         selectedSlug={selectedSlug}
         onSelect={setSelectedSlug}
       />

@@ -14,6 +14,8 @@ export type ModelPickerCardProps = {
   unavailable?: boolean;
   /** Sub line under the title, e.g. "3 LODs · 8.0 MB". */
   meta?: string;
+  /** band is the viewer picker's 74px strip; square is the library default. */
+  thumb?: "square" | "band";
 };
 
 export function ModelPickerCard({
@@ -24,8 +26,9 @@ export function ModelPickerCard({
   onQuantityChange,
   unavailable = false,
   meta,
+  thumb = "square",
 }: ModelPickerCardProps) {
-  const thumb = thumbnailUrl(model);
+  const thumbUrl = thumbnailUrl(model);
 
   return (
     <div
@@ -47,14 +50,16 @@ export function ModelPickerCard({
       >
         <span
           className={cx(
-            // 74, per the viewer's picker mock: a square band four-across in a
-            // 720 modal would be 162 tall and push the grid off the screen.
-            "flex h-[74px] items-center justify-center",
+            "flex items-center justify-center",
+            // The height is set once per value: a square four-across in the
+            // viewer's 720 modal would be 162 tall and push the grid off the
+            // screen, which is what the mock's 74px band is for.
+            thumb === "band" ? "h-[74px]" : "aspect-square",
             selected ? "text-accent" : "text-dim",
           )}
         >
-          {thumb ? (
-            <img src={thumb} alt="" className="size-full object-cover" />
+          {thumbUrl ? (
+            <img src={thumbUrl} alt="" className="size-full object-cover" />
           ) : (
             <Icon name="cube" size={26} />
           )}

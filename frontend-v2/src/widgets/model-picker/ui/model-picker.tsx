@@ -18,6 +18,8 @@ export type ModelPickerProps = {
   onQuantityChange?: (slug: string, quantity: number) => void;
   /** The viewer's picker modal is 720 wide and draws four; the default is three. */
   columns?: 3 | 4;
+  /** Passed to every card: band is the viewer picker's 74px strip. */
+  thumb?: "square" | "band";
 };
 
 export function ModelPicker({
@@ -27,6 +29,7 @@ export function ModelPicker({
   quantities,
   onQuantityChange,
   columns = 3,
+  thumb,
 }: ModelPickerProps) {
   if (models.length === 0) {
     return (
@@ -54,6 +57,7 @@ export function ModelPicker({
             onSelect={() => onSelect(model.slug)}
             unavailable={unavailable}
             meta={meta}
+            thumb={thumb}
             quantity={quantities?.[model.slug]}
             onQuantityChange={
               onQuantityChange ? (quantity) => onQuantityChange(model.slug, quantity) : undefined
