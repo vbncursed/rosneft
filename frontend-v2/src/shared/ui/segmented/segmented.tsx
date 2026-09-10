@@ -19,8 +19,10 @@ export type SegmentedProps<T extends string> = {
   tone?: "solid" | "soft";
   /** Gizmo mode fills its panel; the range picker hugs its content. */
   fill?: boolean;
-  /** The metrics range picker sets its labels in mono. */
+  /** The metrics range picker sets its labels in mono. Ignored by `xs`, which is mono by design. */
   mono?: boolean;
+  /** xs is the viewer panel's gizmo toggle: no side padding, mono 10, a 3px tray. */
+  size?: "sm" | "xs";
   className?: string;
 };
 
@@ -32,6 +34,7 @@ export function Segmented<T extends string>({
   tone = "solid",
   fill = true,
   mono = false,
+  size = "sm",
   className,
 }: SegmentedProps<T>) {
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
@@ -50,7 +53,8 @@ export function Segmented<T extends string>({
       role="radiogroup"
       aria-label={ariaLabel}
       className={cx(
-        "flex gap-1 rounded-[9px] border border-line-2 bg-panel-2 p-1",
+        "flex gap-1 rounded-[9px] border border-line-2 bg-panel-2",
+        size === "xs" ? "p-[3px]" : "p-1",
         fill ? "w-full" : "w-fit",
         className,
       )}
@@ -71,8 +75,15 @@ export function Segmented<T extends string>({
             onClick={() => onChange(item.value)}
             onKeyDown={(e) => onKeyDown(index, e)}
             className={cx(
-              "flex items-center justify-center gap-1.5 rounded-control-sm border-none py-1.5 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45",
-              mono ? "px-2.5 font-mono text-[11px]" : "px-2 text-xs",
+              "flex items-center justify-center gap-1.5 rounded-control-sm border-none transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45",
+              // Padding and type are set once, per size — never a base utility
+              // plus a variant one, which the stylesheet's source order, not
+              // this string's, would decide between.
+              size === "xs"
+                ? "px-0 py-1.5 font-mono text-[10px]"
+                : mono
+                  ? "px-2.5 py-1.5 font-mono text-[11px]"
+                  : "px-2 py-1.5 text-xs",
               fill && "flex-1",
               item.disabled
                 ? "bg-transparent text-dim"

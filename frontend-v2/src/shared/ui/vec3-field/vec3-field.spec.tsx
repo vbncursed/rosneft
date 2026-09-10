@@ -98,4 +98,23 @@ describe("Vec3Field · row layout", () => {
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(screen.queryByLabelText("Rot y")).toBeNull();
   });
+
+  it("prints a read-only cell in fg unless the caller asks for muted", () => {
+    const { rerender } = render(
+      <Vec3Field layout="row" readOnly label="Pos" value={{ x: 1, y: 2, z: 3 }} onChange={() => {}} />,
+    );
+    expect(screen.getByText("1").className).toContain("text-fg");
+
+    rerender(
+      <Vec3Field
+        layout="row"
+        readOnly
+        tone="muted"
+        label="Pos"
+        value={{ x: 1, y: 2, z: 3 }}
+        onChange={() => {}}
+      />,
+    );
+    expect(screen.getByText("1").className).toContain("text-muted");
+  });
 });

@@ -36,9 +36,35 @@ function Range() {
   );
 }
 
-export default (
-  <div className="flex max-w-sm flex-col gap-4 rounded-card border border-line bg-panel p-6">
-    <Gizmo />
-    <Range />
-  </div>
-);
+/** The viewer panel's gizmo toggle: mono 10, no side padding, a 300px panel. */
+function GizmoCompact() {
+  const [mode, setMode] = useState<"translate" | "rotate" | "scale">("translate");
+  return (
+    <Segmented
+      ariaLabel="Gizmo mode"
+      size="xs"
+      tone="soft"
+      value={mode}
+      onChange={setMode}
+      items={[
+        { value: "translate", label: "Translate T" },
+        { value: "rotate", label: "Rotate R" },
+        { value: "scale", label: "Scale S" },
+      ]}
+    />
+  );
+}
+
+export default {
+  default: (
+    <div className="flex max-w-sm flex-col gap-4 rounded-card border border-line bg-panel p-6">
+      <Gizmo />
+      <Range />
+    </div>
+  ),
+  xs: (
+    <div className="w-[272px] rounded-card border border-line bg-panel p-6">
+      <GizmoCompact />
+    </div>
+  ),
+};

@@ -96,3 +96,53 @@ describe("Segmented · mono", () => {
     expect(screen.getByRole("radio", { name: "6h" }).className).not.toContain("font-mono");
   });
 });
+
+describe("Segmented · xs", () => {
+  it("drops the item side padding for a control that fills a 300px panel", () => {
+    const { container } = render(
+      <Segmented
+        ariaLabel="Gizmo mode"
+        size="xs"
+        tone="soft"
+        value="translate"
+        onChange={() => {}}
+        items={[
+          { value: "translate", label: "Translate T" },
+          { value: "rotate", label: "Rotate R" },
+        ]}
+      />,
+    );
+    const item = screen.getByRole("radio", { name: "Translate T" });
+    expect(item.className).toContain("px-0");
+    expect(item.className).toContain("text-[10px]");
+    expect(item.className).toContain("font-mono");
+    // One padding per axis: no second px/py utility left over from the sm size.
+    expect(item.className).not.toContain("px-2");
+    expect(item.className).not.toContain("text-[11px]");
+    expect(container.firstElementChild!.className).toContain("p-[3px]");
+    // "gap-1" contains "p-1" as a substring, so match the whole class.
+    expect(container.firstElementChild!.className.split(" ")).not.toContain("p-1");
+  });
+
+  it("keeps the roles, the roving keys and the fill of the default size", async () => {
+    const onChange = vi.fn();
+    render(
+      <Segmented
+        ariaLabel="Gizmo mode"
+        size="xs"
+        value="translate"
+        onChange={onChange}
+        items={[
+          { value: "translate", label: "Translate T" },
+          { value: "rotate", label: "Rotate R" },
+        ]}
+      />,
+    );
+    const item = screen.getByRole("radio", { name: "Translate T" });
+    expect(item).toHaveAttribute("aria-checked", "true");
+    expect(item.className).toContain("flex-1");
+    item.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(onChange).toHaveBeenCalledWith("rotate");
+  });
+});

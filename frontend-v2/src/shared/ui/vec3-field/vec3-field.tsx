@@ -18,6 +18,8 @@ export type Vec3FieldProps = {
   readOnly?: boolean;
   /** `row` only: how a read-only cell prints its number (`12.400`, `90°`). */
   format?: (value: number) => string;
+  /** `readOnly` only: the mock draws Pos as data and Rot/Scl as context. */
+  tone?: "fg" | "muted";
   className?: string;
 };
 
@@ -34,6 +36,7 @@ export function Vec3Field({
   layout = "stack",
   readOnly = false,
   format = String,
+  tone = "fg",
   className,
 }: Vec3FieldProps) {
   const groupId = useId();
@@ -71,7 +74,10 @@ export function Vec3Field({
         </span>
         {AXES.map((axis) =>
           readOnly ? (
-            <span key={axis} className={cx(ROW_CELL, "min-w-0 truncate text-muted")}>
+            <span
+              key={axis}
+              className={cx(ROW_CELL, "min-w-0 truncate", tone === "muted" ? "text-muted" : "text-fg")}
+            >
               {format(value[axis])}
             </span>
           ) : (
