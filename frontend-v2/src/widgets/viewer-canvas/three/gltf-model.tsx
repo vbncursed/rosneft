@@ -102,26 +102,35 @@ export default function GltfModel({
   groupRef,
   onReport,
 }: GltfModelProps) {
-  const target = pickLod(lods, targetLod);
-  const download = useLodDownload(target && lods.length > 1 ? target : null);
+  // The raw target is what gets downloaded by hand; `lod.target` is the same
+  // level until one drops out of the chain, and from then on it is the next
+  // one down. The report reads `lod.target`, the download keys on the raw one.
+  //
+  // ponytail: a dropped target is never re-downloaded through a blob — drei
+  // fetches it itself, so its bytes carry no progress and the chip's percent
+  // stays where the refused download left it. Give useLodDownload the level
+  // useProgressiveLod actually wants if that ever matters on screen.
+  const wanted = pickLod(lods, targetLod);
+  const download = useLodDownload(wanted && lods.length > 1 ? wanted : null);
   const urlOf = (a: LodArtifact) =>
-    a.hash === target?.hash && download.blobUrl ? download.blobUrl : lodUrl(a);
+    a.hash === wanted?.hash && download.blobUrl ? download.blobUrl : lodUrl(a);
   const lod = useProgressiveLod(lods, targetLod, urlOf);
   // The warm level's download is what LodWarmer parses; until the blob exists
   // there is nothing to warm.
   const warmUrl = lod.warmUrl && download.blobUrl ? download.blobUrl : null;
 
   // `lod`'s callbacks are fresh closures on every render by design (see
-  // use-progressive-lod), so an effect that named one would fire on every
-  // render instead of on the fact it cares about. Held in a ref, the same way
-  // LodWarmer holds its onReady, so each effect keys on its trigger alone.
-  const latest = useRef(lod);
+  // use-progressive-lod), and a page that forgot a useCallback would hand us a
+  // fresh onReport too. Both are held in a ref, the same way LodWarmer holds
+  // its onReady, so each effect below keys on its trigger alone and fires once
+  // per fact rather than once per render of whatever is above us.
+  const latest = useRef({ lod, onReport });
   useEffect(() => {
-    latest.current = lod;
+    latest.current = { lod, onReport };
   });
 
   useEffect(() => {
-    if (download.failed) latest.current.onWarmFailed();
+    if (download.failed) latest.current.lod.onWarmFailed();
   }, [download.failed]);
 
   // The page's Retry bumps retryVersion; that clears the failure and the
@@ -133,12 +142,14 @@ export default function GltfModel({
   useEffect(() => {
     if (armed.current === retryVersion) return;
     armed.current = retryVersion;
-    latest.current.retry();
+    latest.current.lod.retry();
   }, [retryVersion]);
 
-  // drei's useGLTF cache is keyed by URL string, and a revoked blob URL is
-  // never re-requested — so the entry has to go before useLodDownload revokes
-  // the blob it names. This cleanup runs on the same unmount/level change.
+  // drei caches the parsed GLTF by URL string. useLodDownload revokes the blob
+  // URL when the level changes or we unmount — and its cleanup runs first,
+  // this hook being declared after it — so without this the parsed scene would
+  // sit in that cache forever under a URL no one can ever request again.
+  // Nothing evicts it; the entry has to be dropped by hand.
   useEffect(() => {
     const url = download.blobUrl;
     if (!url) return;
@@ -147,17 +158,17 @@ export default function GltfModel({
 
   useEffect(() => {
     const p =
-      target && lod.shown && lod.shown.hash !== target.hash
-        ? lodProgress(download.received, target.size)
+      lod.target && lod.shown && lod.shown.hash !== lod.target.hash
+        ? lodProgress(download.received, lod.target.size)
         : null;
-    onReport({
+    latest.current.onReport({
       shown: lod.shown?.lod ?? null,
-      target: target?.lod ?? null,
+      target: lod.target?.lod ?? null,
       percent: p?.percent ?? null,
       progressText: p?.text ?? null,
       failure: lod.failure,
     });
-  }, [lod.shown, target, download.received, lod.failure, onReport]);
+  }, [lod.shown, lod.target, download.received, lod.failure]);
 
   if (!lod.url) return null;
   return (

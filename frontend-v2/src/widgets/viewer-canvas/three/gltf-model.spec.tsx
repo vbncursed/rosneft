@@ -83,16 +83,21 @@ describe("GltfModel", () => {
     });
   });
 
-  it("stays on the coarse level when the target's download is refused", async () => {
+  it("stays on the coarse level when the target's download is refused, and stops counting", async () => {
     stubDownload(502);
     const onReport = vi.fn();
     await ReactThreeTestRenderer.create(model({ onReport }));
     await vi.waitFor(() => {
       const last = onReport.mock.lastCall![0] as LodReport;
-      // The target dropped out of the chain: nothing is warming, and the level
-      // on screen is still the coarse one — no error card for that.
+      // The refused level dropped out of the chain: nothing is warming, and
+      // the level on screen is still the coarse one — no error card for that.
       expect(last.shown).toBe(2);
       expect(last.failure).toBeNull();
+      // And the target moved with it. Read from the raw pick instead, the chip
+      // would sit at "0 %, LOD 0" forever against a level nobody is fetching.
+      expect(last.target).toBe(2);
+      expect(last.percent).toBeNull();
+      expect(last.progressText).toBeNull();
     });
   });
 
@@ -129,6 +134,23 @@ describe("GltfModel", () => {
     vi.mocked(drei.useGLTF).mockReset();
   });
 
+  it("reports once per fact, not once per render of the page above it", async () => {
+    // A page that forgot its useCallback hands down a fresh arrow every render.
+    // Keyed on the callback, the effect would re-report on each one — and the
+    // page setting state from the report would then never stop.
+    stubDownload();
+    const calls: LodReport[] = [];
+    const r = await ReactThreeTestRenderer.create(
+      model({ onReport: (report) => calls.push(report) }),
+    );
+    await vi.waitFor(() => expect(calls.at(-1)!.shown).toBe(0));
+    const settled = calls.length;
+
+    await r.update(model({ onReport: (report) => calls.push(report) }));
+    await r.update(model({ onReport: (report) => calls.push(report) }));
+    expect(calls.length).toBe(settled);
+  });
+
   it("renders nothing for a territory that has not been converted", async () => {
     stubDownload();
     const r = await ReactThreeTestRenderer.create(
@@ -137,9 +159,11 @@ describe("GltfModel", () => {
     expect(r.scene.children).toHaveLength(0);
   });
 
-  it("drops the blob's cache entry before the download revokes it", async () => {
-    // drei keys its parsed cache by url, and a revoked blob url is never
-    // re-requested — so the entry has to go with the blob.
+  it("drops the blob's cache entry, which nothing else can ever reclaim", async () => {
+    // drei keys its parsed cache by url and evicts nothing. The download
+    // revokes the blob url first (its cleanup is declared first), so the
+    // parsed scene would sit there for the life of the tab under a url no one
+    // can request again.
     stubDownload();
     const drei = await import("@react-three/drei");
     vi.mocked(drei.useGLTF.clear).mockClear();

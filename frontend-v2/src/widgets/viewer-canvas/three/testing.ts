@@ -25,6 +25,9 @@ export const fakePlacement = (id: number) => ({
 
 export const boundsStub = { refresh: vi.fn().mockReturnThis(), fit: vi.fn() };
 
+/** Every colour drei's <Line> was handed, in mount order. */
+export const lineColors: string[] = [];
+
 /**
  * drei without the network and without the DOM portals.
  *
@@ -37,6 +40,10 @@ export const boundsStub = { refresh: vi.fn().mockReturnThis(), fit: vi.fn() };
  * real one mounts under the test renderer but exposes no findable node — its
  * instance type is not "TransformControls" — so the group is what a spec can
  * assert on.
+ *
+ * Bounds interposes a real <group>, because the drei component does: a
+ * passthrough here hid a Focus that could never reach a placement, since the
+ * territory's parent is the Bounds group and not the scene wrapper.
  */
 export async function mockDrei(orig: () => Promise<unknown>) {
   const real = (await orig()) as Record<string, unknown>;
@@ -49,9 +56,13 @@ export async function mockDrei(orig: () => Promise<unknown>) {
     ...real,
     useGLTF,
     Html: () => null,
-    Line: () => null,
+    Line: ({ color }: { color: string }) => {
+      lineColors.push(color);
+      return null;
+    },
     AdaptiveDpr: () => null,
-    Bounds: ({ children }: { children: ReactNode }) => children,
+    Bounds: ({ children }: { children: ReactNode }) =>
+      createElement("group", { name: "Bounds" }, children),
     useBounds: () => boundsStub,
     TransformControls: ({ mode }: { mode: string }) =>
       createElement("group", { name: "TransformControls", userData: { gizmoMode: mode } }),

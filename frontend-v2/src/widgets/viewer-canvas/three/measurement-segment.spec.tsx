@@ -1,15 +1,19 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { encodeSegmentId } from "@/entities/measurement";
 import MeasurementSegment from "./measurement-segment";
 
 // The label is a DOM overlay drei portals out of the canvas; rendered here
 // under react-dom, `<group>` is an unknown element and the chip is readable.
 // drei's own Html portal is a no-op outside a live R3F root.
+const lineColors: string[] = [];
 vi.mock("@react-three/drei", () => ({
   Html: ({ children }: { children: ReactNode }) => children,
-  Line: () => null,
+  Line: ({ color }: { color: string }) => {
+    lineColors.push(color);
+    return null;
+  },
 }));
 
 const segment = { id: encodeSegmentId(4, 2), a: { x: 0, y: 0, z: 0 }, b: { x: 1, y: 0, z: 0 } };
@@ -25,7 +29,18 @@ const draw = (props: { onRemoveSegment?: () => void; onRemoveChain?: () => void 
     />,
   );
 
+beforeEach(() => {
+  lineColors.length = 0;
+});
+
 describe("MeasurementSegment", () => {
+  it("draws the line in the colour the theme handed down, once", () => {
+    // three takes no CSS variables, so the accent arrives as a prop; a
+    // hard-coded viewer colour here is what the port replaced.
+    draw();
+    expect(lineColors).toEqual(["#f97316"]);
+  });
+
   it("labels the segment in source units, not scene units", () => {
     draw();
     // 1 scene unit × unitRatio 10 = 10 m.

@@ -1,12 +1,8 @@
-import { render } from "@testing-library/react";
+import { render, renderHook, act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useTheme } from "@/features/theme-toggle";
 import { ViewerCanvas } from "./viewer-canvas";
 import type { ViewerCanvasProps } from "./props";
-
-const theme = vi.hoisted(() => ({ value: "dark" as "dark" | "light" }));
-vi.mock("@/features/theme-toggle", () => ({
-  useTheme: () => ({ theme: theme.value, toggle: vi.fn() }),
-}));
 
 const seen = vi.hoisted(() => ({ colors: [] as { background: string }[] }));
 vi.mock("../three/scene-canvas", () => ({
@@ -41,12 +37,15 @@ const props = {
   onLod: vi.fn(),
 } as ViewerCanvasProps;
 
-beforeEach(() => {
-  seen.colors = [];
-  theme.value = "dark";
-  document.documentElement.style.setProperty("--panel", "#16181b");
+const setTokens = (panel: string) => {
+  document.documentElement.style.setProperty("--panel", panel);
   document.documentElement.style.setProperty("--line", "#282c31");
   document.documentElement.style.setProperty("--accent", "#f97316");
+};
+
+beforeEach(() => {
+  seen.colors = [];
+  setTokens("#16181b");
 });
 
 describe("ViewerCanvas", () => {
@@ -59,11 +58,17 @@ describe("ViewerCanvas", () => {
     });
   });
 
-  it("re-reads them when the theme flips", () => {
-    const { rerender } = render(<ViewerCanvas {...props} />);
-    document.documentElement.style.setProperty("--panel", "#ffffff");
-    theme.value = "light";
-    rerender(<ViewerCanvas {...props} />);
+  it("re-reads them when someone else flips the theme", () => {
+    // The real hook, and the toggle a different component would press: the
+    // sidebar's ThemeToggle and this canvas are never rendered together, so a
+    // theme that lived in component state would leave the scene on the old
+    // ground for as long as it stayed mounted.
+    render(<ViewerCanvas {...props} />);
+    const elsewhere = renderHook(() => useTheme());
+
+    setTokens("#ffffff");
+    act(() => elsewhere.result.current.toggle());
+
     expect(seen.colors.at(-1)!.background).toBe("#ffffff");
   });
 });
