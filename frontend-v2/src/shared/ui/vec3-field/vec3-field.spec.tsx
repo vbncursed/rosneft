@@ -71,3 +71,31 @@ describe("Vec3Field", () => {
     expect(screen.getByLabelText("Position x")).toBeDisabled();
   });
 });
+
+describe("Vec3Field · row layout", () => {
+  it("draws one grid row: the label cell, then three bare boxes still named per axis", () => {
+    render(<Vec3Field layout="row" label="Pos" value={{ x: 12.4, y: 0, z: -8.25 }} onChange={() => {}} />);
+    const group = screen.getByRole("group", { name: "Pos" });
+    expect(group.className).toContain("grid-cols-[auto_repeat(3,1fr)]");
+    expect(screen.getByLabelText("Pos x")).toHaveValue("12.4");
+    // No axis prefix in this layout — the row label carries the meaning.
+    expect(group).not.toHaveTextContent("x");
+  });
+
+  it("renders read-only cells as text, formatted by the caller", () => {
+    render(
+      <Vec3Field
+        layout="row"
+        readOnly
+        label="Rot"
+        value={{ x: 0, y: Math.PI / 2, z: 0 }}
+        onChange={() => {}}
+        format={(n) => `${Math.round((n * 180) / Math.PI)}°`}
+      />,
+    );
+    const group = screen.getByRole("group", { name: "Rot" });
+    expect(group).toHaveTextContent("90°");
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(screen.queryByLabelText("Rot y")).toBeNull();
+  });
+});

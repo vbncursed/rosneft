@@ -6,8 +6,12 @@ export type EmptyStateProps = {
   title: ReactNode;
   description?: ReactNode;
   action?: ReactNode;
-  /** row draws icon | title+description | action, in a single dashed strip; start is the mock's left-aligned card. */
-  layout?: "center" | "row" | "start";
+  /**
+   * row draws icon | title+description | action, in a single dashed strip;
+   * start is the mock's left-aligned card; panel is the frameless column that
+   * sits *inside* a panel body, which already draws the frame around it.
+   */
+  layout?: "center" | "row" | "start" | "panel";
   icon?: IconName;
   className?: string;
 };
@@ -49,6 +53,23 @@ export function EmptyState({
         <p className="m-0 text-[15px] font-semibold">{title}</p>
         {description ? (
           <p className="m-0 max-w-[56ch] text-[13px] leading-[1.6] text-muted">{description}</p>
+        ) : null}
+        {action}
+      </div>
+    );
+  }
+
+  if (layout === "panel") {
+    return (
+      <div className={cx("flex flex-col items-center gap-[13px] text-center text-fg", className)}>
+        {icon ? (
+          <span className="flex size-11 items-center justify-center rounded-card border border-line-2 bg-panel-2 text-dim">
+            <Icon name={icon} size={21} />
+          </span>
+        ) : null}
+        <p className="m-0 text-sm font-semibold">{title}</p>
+        {description ? (
+          <p className="m-0 max-w-[30ch] text-xs leading-[1.55] text-muted">{description}</p>
         ) : null}
         {action}
       </div>
