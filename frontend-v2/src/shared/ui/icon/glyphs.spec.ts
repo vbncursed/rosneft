@@ -12,6 +12,8 @@ describe("the glyph registry", () => {
       "arrow-right",
       "calendar",
       "check",
+      "chevron-left",
+      "chevron-right",
       "cube",
       "download",
       "eye",
