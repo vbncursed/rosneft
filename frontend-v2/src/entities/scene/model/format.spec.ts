@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatSize, groupDigits } from "./format";
+import { formatDims, formatSize, groupDigits } from "./format";
 
 describe("groupDigits", () => {
   it("groups thousands", () => {
@@ -32,5 +32,11 @@ describe("formatSize", () => {
 
   it("handles a flat model", () => {
     expect(formatSize({ x: 10, y: 0, z: 10 })).toBe("10 / 0 / 10");
+  });
+});
+
+describe("formatDims", () => {
+  it("formats dimensions to one decimal in metres", () => {
+    expect(formatDims({ x: 36, y: 8.5, z: 24 })).toBe("36.0 × 8.5 × 24.0 m");
   });
 });

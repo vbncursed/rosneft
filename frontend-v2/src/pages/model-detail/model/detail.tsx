@@ -1,11 +1,11 @@
 import type { ConversionStatus } from "@/entities/conversion";
 import { assetUrl, totalSize, type Artifact } from "@/entities/content";
 import type { Model } from "@/entities/model";
+import { formatSize, groupDigits } from "@/entities/scene";
 import { formatBytes } from "@/shared/lib/format-bytes";
 import { shortDate } from "@/shared/lib/short-date";
 import type { ArtifactRowProps } from "@/shared/ui/artifact-row";
 import type { Detail } from "@/shared/ui/detail-list";
-import { formatSize, groupDigits } from "@/widgets/viewer-panel";
 
 /** What the page and its aside need, whatever loaded them — the hook's ready state, or a fixture. */
 export type ModelDetailPageProps = {

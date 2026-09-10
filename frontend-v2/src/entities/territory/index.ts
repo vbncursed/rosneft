@@ -9,6 +9,7 @@ export {
   replaceTerritorySource,
   type CreateTerritoryInput,
 } from "./api/territories-gateway";
+export { toTerritory } from "./api/to-territory";
 export { territoriesQuery } from "./api/territories-query";
 export { territoryQuery } from "./api/territory-query";
 export { getTerritoryAdmins, setTerritoryAdmins } from "./api/admins-gateway";
