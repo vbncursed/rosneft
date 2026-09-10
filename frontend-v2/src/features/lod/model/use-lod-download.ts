@@ -57,6 +57,13 @@ export function useLodDownload(artifact: LodArtifact | null): LodDownload {
           setState({ hash, blobUrl: null, received, failed: null });
         }
         url = URL.createObjectURL(new Blob(chunks, { type: "model/gltf-binary" }));
+        // The cleanup can fire between the last read() and this line, and it
+        // sees `url` still null — so nothing but this branch would ever revoke
+        // the blob it just minted.
+        if (controller.signal.aborted) {
+          URL.revokeObjectURL(url);
+          return;
+        }
         setState({ hash, blobUrl: url, received, failed: null });
       } catch (err) {
         if ((err as { name?: string }).name !== "AbortError") {

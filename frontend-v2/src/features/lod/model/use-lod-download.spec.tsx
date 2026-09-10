@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useLodDownload } from "./use-lod-download";
 
@@ -30,6 +30,78 @@ describe("useLodDownload", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 502 })));
     const { result } = renderHook(() => useLodDownload({ lod: 0, hash: "a", size: 5 }));
     await waitFor(() => expect(result.current.failed).toEqual({ status: 502 }));
+  });
+
+  it("a level change drops the previous level's progress, and its late bytes cannot come back", async () => {
+    // A stream we hold the controller of: artifact A reports a chunk and then
+    // stalls, so the swap to B happens mid-download.
+    let stalled!: ReadableStreamDefaultController<Uint8Array>;
+    const a = { lod: 0, hash: "a", size: 9 };
+    const b = { lod: 1, hash: "b", size: 7 };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url.endsWith("/a")
+          ? new Response(
+              new ReadableStream<Uint8Array>({
+                start(c) {
+                  stalled = c;
+                },
+              }),
+              { status: 200 },
+            )
+          : new Response(streamOf([new Uint8Array(7)]), { status: 200 }),
+      ),
+    );
+    vi.stubGlobal("URL", { createObjectURL: vi.fn(() => "blob:b"), revokeObjectURL: vi.fn() });
+
+    const { result, rerender } = renderHook(({ art }) => useLodDownload(art), {
+      initialProps: { art: a },
+    });
+    await act(async () => {
+      stalled.enqueue(new Uint8Array(3));
+    });
+    expect(result.current.received).toBe(3);
+
+    rerender({ art: b });
+    // The state still describes A on this render; the hash guard is what makes
+    // it read as idle rather than as B at 3 bytes.
+    expect(result.current).toEqual({ blobUrl: null, received: 0, failed: null });
+
+    await act(async () => {
+      try {
+        stalled.enqueue(new Uint8Array(6));
+        stalled.close();
+      } catch {
+        // The abort already tore the stream down — either way A must not write.
+      }
+    });
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:b"));
+    expect(result.current.received).toBe(7);
+    expect(result.current.failed).toBeNull();
+  });
+
+  it("revokes a blob that was minted after the cleanup fired", async () => {
+    const revoke = vi.fn();
+    let stop: (() => void) | null = null;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(streamOf([new Uint8Array(4)]), { status: 200 })),
+    );
+    vi.stubGlobal("URL", {
+      // Unmounting from inside createObjectURL reproduces the one window the
+      // cleanup cannot see: it ran while `url` was still null, so nothing but
+      // the download itself can revoke what it just minted.
+      createObjectURL: vi.fn(() => {
+        stop?.();
+        return "blob:late";
+      }),
+      revokeObjectURL: revoke,
+    });
+    const { result, unmount } = renderHook(() => useLodDownload({ lod: 0, hash: "a", size: 4 }));
+    stop = unmount;
+    await waitFor(() => expect(revoke).toHaveBeenCalledWith("blob:late"));
+    expect(result.current.blobUrl).toBeNull();
   });
 
   it("does nothing for null", () => {

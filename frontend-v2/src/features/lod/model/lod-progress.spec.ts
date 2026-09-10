@@ -32,6 +32,25 @@ describe("viewerError", () => {
     });
   });
 
+  it("names the level that actually failed, not the one being warmed", () => {
+    // Before the swap the coarse level is what is on screen, so a failure
+    // carries its hash while the target is still LOD 0.
+    expect(viewerError({ hash: "c", status: 503 }, chain, chain[0], "slug")).toEqual({
+      lod: 2,
+      status: 503,
+      file: "slug-lod2.glb",
+      coarser: null,
+    });
+  });
+
+  it("offers the level coarser than the failed one, whatever the target is", () => {
+    expect(viewerError({ hash: "b", status: 500 }, chain, chain[0], "slug")).toMatchObject({
+      lod: 1,
+      file: "slug-lod1.glb",
+      coarser: chain[2],
+    });
+  });
+
   it("offers no coarser level when the failed one is the coarsest", () => {
     expect(viewerError({ hash: "c", status: null }, chain, chain[2], "t")?.coarser).toBeNull();
   });

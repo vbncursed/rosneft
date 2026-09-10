@@ -25,7 +25,15 @@ export type ViewerError = {
   coarser: LodArtifact | null;
 };
 
-/** What the error card says when the level on screen failed. */
+/**
+ * What the error card says when the level on screen failed.
+ *
+ * Every fact comes from the level the failure names, not from the target.
+ * Before the swap those are different levels — the coarse one is on screen
+ * while LOD 0 warms behind it — so reading the target would name the wrong
+ * level, print the wrong file, and offer the level that just failed as the way
+ * out of its own failure.
+ */
 export function viewerError(
   failure: LodFailure | null,
   chain: LodArtifact[],
@@ -33,6 +41,7 @@ export function viewerError(
   slug: string,
 ): ViewerError | null {
   if (!failure || !target) return null;
-  const coarser = chain.filter((a) => a.lod > target.lod).sort((a, b) => b.lod - a.lod)[0] ?? null;
-  return { lod: target.lod, status: failure.status, file: `${slug}-lod${target.lod}.glb`, coarser };
+  const failed = chain.find((a) => a.hash === failure.hash) ?? target;
+  const coarser = chain.filter((a) => a.lod > failed.lod).sort((a, b) => b.lod - a.lod)[0] ?? null;
+  return { lod: failed.lod, status: failure.status, file: `${slug}-lod${failed.lod}.glb`, coarser };
 }
