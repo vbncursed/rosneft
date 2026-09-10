@@ -64,6 +64,29 @@ describe("ModelPicker", () => {
     expect(onQuantityChange).toHaveBeenCalledWith("storage-tank-500", 4);
   });
 
+  it("passes each model's meta line through to its card", () => {
+    render(
+      <ModelPicker
+        models={[{ model: model("pump-jack", "Pump Jack"), meta: "3 LODs · 8.0 MB" }]}
+        selectedSlug={null}
+        onSelect={() => {}}
+      />,
+    );
+    expect(screen.getByText("3 LODs · 8.0 MB")).toBeInTheDocument();
+  });
+
+  it("draws four columns when the caller asks for them", () => {
+    const { rerender } = render(
+      <ModelPicker models={MODELS} selectedSlug={null} onSelect={() => {}} />,
+    );
+    expect(screen.getByRole("list", { name: "Models" }).className).toContain("grid-cols-3");
+
+    rerender(<ModelPicker models={MODELS} selectedSlug={null} onSelect={() => {}} columns={4} />);
+    const grid = screen.getByRole("list", { name: "Models" });
+    expect(grid.className).toContain("grid-cols-4");
+    expect(grid.className).not.toContain("grid-cols-3");
+  });
+
   it("is a plain single choice when no quantities are given", () => {
     render(<ModelPicker models={MODELS} selectedSlug="pump-jack" onSelect={() => {}} />);
     expect(screen.queryByRole("group", { name: /quantity/i })).not.toBeInTheDocument();

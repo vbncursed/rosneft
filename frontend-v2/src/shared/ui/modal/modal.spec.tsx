@@ -86,6 +86,24 @@ describe("Modal", () => {
     expect(screen.getByRole("dialog").className).toContain("border-bad");
   });
 
+  it("widens to the large size the model picker needs", () => {
+    const { rerender } = render(
+      <Modal open onClose={() => {}} title="Add objects">
+        <p>body</p>
+      </Modal>,
+    );
+    expect(screen.getByRole("dialog").className).toContain("w-[min(28rem,calc(100vw-2rem))]");
+
+    rerender(
+      <Modal open onClose={() => {}} title="Add objects" size="lg">
+        <p>body</p>
+      </Modal>,
+    );
+    const wide = screen.getByRole("dialog");
+    expect(wide.className).toContain("w-[min(45rem,calc(100vw-2rem))]");
+    expect(wide.className).not.toContain("w-[min(28rem,calc(100vw-2rem))]");
+  });
+
   it("does not clip a floating child such as an open Dropdown list", () => {
     render(
       <Modal open onClose={() => {}} title="Add role">

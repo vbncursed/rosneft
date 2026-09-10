@@ -116,9 +116,36 @@ function Unavailable() {
   );
 }
 
+function Wide() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Add objects (lg)</Button>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        size="lg"
+        title="Add objects to Refinery Block C"
+        description="The large box: 720 wide, for a grid that needs the room."
+        footer={
+          <>
+            <Button onClick={() => setOpen(false)}>Cancel</Button>
+            <Button variant="primary" onClick={() => setOpen(false)}>
+              Place
+            </Button>
+          </>
+        }
+      >
+        <Callout tone="accent">Four columns of picker cards fit across this width.</Callout>
+      </Modal>
+    </>
+  );
+}
+
 export default (
   <div className="flex flex-wrap gap-3 rounded-card border border-line bg-panel p-6">
     <Confirm />
+    <Wide />
     <Danger />
     <Otp />
     <Unavailable />

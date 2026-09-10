@@ -12,6 +12,8 @@ export type ModelPickerCardProps = {
   onQuantityChange?: (quantity: number) => void;
   /** A model whose conversion has not finished cannot be placed. */
   unavailable?: boolean;
+  /** Sub line under the title, e.g. "3 LODs · 8.0 MB". */
+  meta?: string;
 };
 
 export function ModelPickerCard({
@@ -21,6 +23,7 @@ export function ModelPickerCard({
   quantity,
   onQuantityChange,
   unavailable = false,
+  meta,
 }: ModelPickerCardProps) {
   const thumb = thumbnailUrl(model);
 
@@ -44,7 +47,9 @@ export function ModelPickerCard({
       >
         <span
           className={cx(
-            "flex aspect-square items-center justify-center",
+            // 74, per the viewer's picker mock: a square band four-across in a
+            // 720 modal would be 162 tall and push the grid off the screen.
+            "flex h-[74px] items-center justify-center",
             selected ? "text-accent" : "text-dim",
           )}
         >
@@ -62,6 +67,7 @@ export function ModelPickerCard({
         >
           {model.title}
           {unavailable ? " · n/a" : null}
+          {meta ? <span className="block font-mono text-[9px] text-muted">{meta}</span> : null}
         </span>
       </button>
 
