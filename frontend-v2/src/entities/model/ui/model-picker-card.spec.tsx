@@ -66,6 +66,18 @@ describe("ModelPickerCard", () => {
     expect(onQuantityChange).toHaveBeenCalledWith(4);
   });
 
+  it("prints the meta line under the title when it is given", () => {
+    const { rerender } = render(
+      <ModelPickerCard model={MODEL} selected={false} onSelect={() => {}} />,
+    );
+    expect(screen.queryByText("3 LODs · 8.0 MB")).not.toBeInTheDocument();
+
+    rerender(
+      <ModelPickerCard model={MODEL} selected={false} onSelect={() => {}} meta="3 LODs · 8.0 MB" />,
+    );
+    expect(screen.getByText("3 LODs · 8.0 MB")).toBeInTheDocument();
+  });
+
   it("renders the thumbnail when the model has one", () => {
     render(
       <ModelPickerCard
