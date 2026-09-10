@@ -25,6 +25,18 @@ describe("ModelPicker", () => {
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
   });
 
+  it("takes the caller's wording for an empty list", () => {
+    render(
+      <ModelPicker
+        models={[]}
+        selectedSlug={null}
+        onSelect={() => {}}
+        emptyCopy="Nothing matches your search."
+      />,
+    );
+    expect(screen.getByText("Nothing matches your search.")).toBeInTheDocument();
+  });
+
   it("selects by slug", async () => {
     const onSelect = vi.fn();
     render(<ModelPicker models={MODELS} selectedSlug={null} onSelect={onSelect} />);

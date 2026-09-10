@@ -31,19 +31,30 @@ const MAX = 99;
  * divisor `formatBytes` itself uses), so the two never disagree by more than
  * the rounding.
  */
-const modelMeta = (option: ModelOption) =>
-  option.chain.length === 0
-    ? undefined
-    : `${option.chain.length} LODs · ${(option.chain.reduce((sum, a) => sum + a.size, 0) / 1_048_576).toFixed(1)} MB`;
+const modelMeta = (option: ModelOption) => {
+  const levels = option.chain.length;
+  if (levels === 0) return undefined;
+  const mb = (option.chain.reduce((sum, a) => sum + a.size, 0) / 1_048_576).toFixed(1);
+  return `${levels} ${levels === 1 ? "LOD" : "LODs"} · ${mb} MB`;
+};
 
-export function PlaceObjectsModal({
-  open,
+/**
+ * The dialog's state — the query, the selection and the count — lives one
+ * level down, so closing it unmounts the lot and a reopen starts clean. Kept
+ * here rather than reset in an effect: an effect races the frame the reader
+ * sees, and the previous "Place 2 × storage-tank-500" was on screen for it.
+ */
+export function PlaceObjectsModal({ open, ...rest }: PlaceObjectsModalProps) {
+  return open ? <PlaceObjectsBody {...rest} /> : null;
+}
+
+function PlaceObjectsBody({
   onClose,
   territoryTitle,
   options,
   placing,
   onPlace,
-}: PlaceObjectsModalProps) {
+}: Omit<PlaceObjectsModalProps, "open">) {
   const [query, setQuery] = useState("");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [count, setCount] = useState(1);
@@ -69,7 +80,7 @@ export function PlaceObjectsModal({
 
   return (
     <Modal
-      open={open}
+      open
       onClose={onClose}
       size="lg"
       title={`Add objects to ${territoryTitle}`}
@@ -120,6 +131,7 @@ export function PlaceObjectsModal({
         models={models}
         columns={4}
         thumb="band"
+        emptyCopy="Nothing matches your search."
         selectedSlug={selectedSlug}
         onSelect={setSelectedSlug}
       />
