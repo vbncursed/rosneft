@@ -383,9 +383,15 @@ the job's SSE channel (`openJobStream`/`useJobStream` in `entities/conversion`).
 The stream, once it has answered, outranks the polled row; when the channel
 is lost (the gateway's `event: error` for an unknown or foreign id, or a
 dropped connection) the hook forgets its frame so the poll wins again.
-**A page that mounts already ready does not leave** — `shouldLeave(prev, next)`
-fires only on `queued|running → ready` watched on this page, because in dev a
-`location.assign` to the same URL reloads v2 and would loop. The pipeline's
+**A finish watched on this page opens the viewer in-app, never by reloading
+the document.** `shouldOpenViewer(prev, next)`
+(`pages/territory-conversion/model/conversion-view.ts`) fires only on
+`queued|running → ready` — not for a page that mounts already ready, and not
+for `failed → ready` — and `use-territory-conversion.ts` calls `navigate({ to:
+territoryPath(slug) })` on it: a router navigation to the bare path (no
+`?jobId=`), which is exactly what makes `viewerRoute` re-branch into the
+viewer, in place of the old `window.location.assign` this package removed.
+The pipeline's
 `<ol>` and the failure box are the mock's; the step order is the worker's real
 one (`entities/conversion/model/pipeline.ts`), not the mock's: `lod-N` comes
 after encoding and compressing and arrives twice, and `registering` only with
