@@ -12,6 +12,14 @@ export type OverlaysPanelProps = {
   onCollapsedChange: (collapsed: boolean) => void;
   /** Drives the tab's count and the collapsed rail's badge. */
   placementsCount: number;
+  /**
+   * The onboarding tour's anchor for the tabs strip, emitted as `data-tour`.
+   * It has to land on the strip itself: the overlay measures the element it
+   * finds and draws its halo around that rect, and this component's own root
+   * is a static block holding an absolutely-positioned aside — zero height, so
+   * a wrapper around it would light nothing at all.
+   */
+  tourId?: string;
   view: ReactNode;
   placements: ReactNode;
 };
@@ -37,6 +45,7 @@ export function OverlaysPanel({
   collapsed,
   onCollapsedChange,
   placementsCount,
+  tourId,
   view,
   placements,
 }: OverlaysPanelProps) {
@@ -70,17 +79,19 @@ export function OverlaysPanel({
               <Icon name="chevron-right" size={13} />
             </button>
           </div>
-          <Tabs
-            variant="segments"
-            ariaLabel="Overlays sections"
-            className="border-b border-line bg-panel-2 px-2.5 py-2"
-            value={tab}
-            onChange={onTabChange}
-            tabs={[
-              { value: "view", label: "View" },
-              { value: "placements", label: `Placements (${placementsCount})` },
-            ]}
-          />
+          <div data-tour={tourId}>
+            <Tabs
+              variant="segments"
+              ariaLabel="Overlays sections"
+              className="border-b border-line bg-panel-2 px-2.5 py-2"
+              value={tab}
+              onChange={onTabChange}
+              tabs={[
+                { value: "view", label: "View" },
+                { value: "placements", label: `Placements (${placementsCount})` },
+              ]}
+            />
+          </div>
           <div className="flex-1 overflow-auto p-3.5">{tab === "view" ? view : placements}</div>
         </aside>
       )}

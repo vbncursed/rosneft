@@ -128,7 +128,7 @@ export function ViewerOverlays({
           className="absolute bottom-3.5 right-[74px] flex items-center gap-1.5"
         >
           <KeycapHint keyLabel="M">measure</KeycapHint>
-          <KeycapHint keyLabel="Esc">Esc exit / deselect</KeycapHint>
+          <KeycapHint keyLabel="Esc">exit / deselect</KeycapHint>
         </div>
       ) : null}
 

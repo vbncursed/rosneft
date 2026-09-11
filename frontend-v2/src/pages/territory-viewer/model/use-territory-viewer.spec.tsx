@@ -327,6 +327,23 @@ describe("useTerritoryViewer", () => {
       expect(now(r).canvas.targetLod).toBe(2);
     });
 
+    it("stamps the last attempt once — a later render does not move the clock", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        vi.setSystemTime(new Date(2026, 8, 9, 14, 22));
+        const r = mount();
+        fail(await ready(r));
+        const stamped = now(r).overlays.error!.copy.footer;
+        expect(stamped).toContain("last attempt 14:22");
+
+        vi.setSystemTime(new Date(2026, 8, 9, 15, 30));
+        act(() => now(r).overlays.onReset());
+        expect(now(r).overlays.error!.copy.footer).toBe(stamped);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it("re-arms the canvas on Try again", async () => {
       const r = mount();
       fail(await ready(r));

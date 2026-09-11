@@ -181,9 +181,13 @@ describe("ViewerOverlays · the strip, the switcher and the hints", () => {
     const { rerender } = render(<ViewerOverlays {...props()} />);
     expect(screen.queryByRole("note", { name: "Keyboard hints" })).not.toBeInTheDocument();
     rerender(<ViewerOverlays {...props({ hints: true })} />);
+    // Exact text: a substring match passed while the Esc keycap and its label
+    // both said "Esc", so the chip read "Esc Esc exit / deselect".
     const hints = screen.getByRole("note", { name: "Keyboard hints" });
-    expect(hints).toHaveTextContent("measure");
-    expect(hints).toHaveTextContent("Esc exit / deselect");
+    expect([...hints.children].map((c) => c.textContent)).toEqual([
+      "Mmeasure",
+      "Escexit / deselect",
+    ]);
   });
 });
 
