@@ -1,4 +1,4 @@
-import { createRoute, notFound, redirect } from "@tanstack/react-router";
+import { createRoute, redirect } from "@tanstack/react-router";
 import { sceneQuery } from "@/entities/scene";
 import { meQuery } from "@/entities/user";
 import { AccountScreen } from "@/pages/account";
@@ -9,13 +9,12 @@ import { TerritoryCatalogScreen } from "@/pages/territory-catalog";
 import { TwoFactorScreen } from "@/pages/two-factor";
 import { UploadModelsScreen } from "@/pages/upload-models";
 import { UploadTerritoryScreen } from "@/pages/upload-territory";
-import { HttpError } from "@/shared/api";
 import { isAuthed } from "@/shared/session";
 import { CatalogShellRoute } from "./catalog-shell-route";
 import { redirectTarget } from "./guard";
 import { HomeRoute } from "./home-route";
-import { TerritoryRoute } from "./territory-route";
 import { rootRoute } from "./routes";
+import { TerritoryRoute } from "./territory-route";
 
 // The catalog shell has no sidebar-derived gate: any signed-in principal
 // reaches all six routes, and the upload/card/page actions are what the
@@ -52,10 +51,16 @@ export const territoryNewRoute = createRoute({
   component: UploadTerritoryScreen,
 });
 
-// One URL for both faces of a territory. The loader fetches the bundle the
-// branch reads, so the first paint is already the right screen rather than the
-// conversion page flashing in front of a ready viewer; a 404 here is the
-// route's notFound for both faces, and any other failure is the route error.
+// One URL for both faces of a territory: the viewer once a LOD0 is converted
+// and nobody is watching a job, the conversion page otherwise. The loader
+// warms the bundle the branch reads, so the first paint is already the right
+// screen rather than the conversion page flashing in front of a ready viewer.
+//
+// It swallows every failure and never throws. A 404 and a 503 both have a
+// designed screen already — "Territory not found" with the way back, and
+// "Territory unavailable: {message}" — and both live behind the conversion
+// screen, which is where `!data` falls through to. Throwing here would replace
+// those with the router's global panels.
 //
 // The upload and replace flows arrive with the job they just created, so the
 // page can open its SSE channel at once; without one it reads the poll.
@@ -68,10 +73,7 @@ export const territoryRoute = createRoute({
   validateSearch: (search: Record<string, unknown>): { jobId?: string } =>
     typeof search.jobId === "string" && search.jobId !== "" ? { jobId: search.jobId } : {},
   loader: ({ context, params }) =>
-    context.queryClient.ensureQueryData(sceneQuery(params.slug)).catch((error: unknown) => {
-      if (error instanceof HttpError && error.status === 404) throw notFound();
-      throw error;
-    }),
+    context.queryClient.ensureQueryData(sceneQuery(params.slug)).catch(() => undefined),
   component: TerritoryRoute,
 });
 

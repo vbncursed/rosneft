@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TargetJob } from "@/entities/conversion";
-import { ledeOf, phaseOf, progressCard, STATUS_PILL } from "./conversion-view";
+import { ledeOf, phaseOf, progressCard, shouldOpenViewer, STATUS_PILL } from "./conversion-view";
 
 const job = (over: Partial<TargetJob> = {}): TargetJob => ({
   kind: "territory",
@@ -30,6 +30,20 @@ describe("phaseOf", () => {
     // The terminal frame beats the artifacts refetch by a round trip; resetting
     // to "queued" flashes the whole page backwards for that one frame.
     expect(phaseOf(false, job({ status: "succeeded" }))).toBe("running");
+  });
+});
+
+describe("shouldOpenViewer", () => {
+  // Only a finish watched from this page opens the viewer. A mount that is
+  // already ready must stay put — the reader asked for this URL, and the route
+  // is what decides which face it wears.
+  it("opens only on a finish watched from this page", () => {
+    expect(shouldOpenViewer("running", "ready")).toBe(true);
+    expect(shouldOpenViewer("queued", "ready")).toBe(true);
+    expect(shouldOpenViewer(null, "ready")).toBe(false);
+    expect(shouldOpenViewer("failed", "ready")).toBe(false);
+    expect(shouldOpenViewer("ready", "ready")).toBe(false);
+    expect(shouldOpenViewer("running", "failed")).toBe(false);
   });
 });
 

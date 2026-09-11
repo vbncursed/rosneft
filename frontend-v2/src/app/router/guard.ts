@@ -1,7 +1,21 @@
+import { sceneReady, type SceneBundle } from "@/entities/scene";
 import type { ConsoleNavItem } from "@/widgets/console-nav";
 import { can, type Principal } from "@/shared/session";
 
 type RedirectTarget = { to: "/login"; search: { next: string } };
+
+/**
+ * Which face `/territories/{slug}` wears: the viewer, or the conversion page.
+ *
+ * A LOD0 alone is not enough. Replace Source leaves the *previous* LOD0 in
+ * place while the new archive converts, so the bundle reads "ready" for a
+ * territory that is mid-run — and a reader who just uploaded would land on last
+ * week's scene with no pipeline anywhere. A `jobId` in the URL is someone
+ * saying "I am watching a run", and it keeps the conversion page until the run
+ * finishes and the page navigates to the bare path.
+ */
+export const viewerRoute = (data: SceneBundle | undefined, jobId: string | undefined): boolean =>
+  !!data && sceneReady(data) && !jobId;
 
 /**
  * The decision behind the console guard, kept pure so it can be tested
