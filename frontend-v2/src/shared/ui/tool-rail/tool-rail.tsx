@@ -10,6 +10,12 @@ export type ToolRailItem = {
   /** inert: drawn dim and unclickable, kept in place so the rail never shifts. */
   state?: "active" | "idle" | "inert";
   onClick?: () => void;
+  /**
+   * The onboarding tour's anchor, emitted as `data-tour` on the tile. It has to
+   * sit on the button itself — the overlay measures the element it finds and
+   * draws its halo around that rect, so a wrapper would light the whole rail.
+   */
+  dataTour?: string;
 };
 
 export type ToolRailProps = { tools: ToolRailItem[]; label: string; className?: string };
@@ -28,10 +34,11 @@ export function ToolRail({ tools, label, className }: ToolRailProps) {
       aria-label={label}
       className={cx("flex gap-1 rounded-[10px] border border-line-2 bg-panel p-1 shadow-elevation", className)}
     >
-      {tools.map(({ key, glyph, name, state = "idle", onClick }) => (
+      {tools.map(({ key, glyph, name, state = "idle", onClick, dataTour }) => (
         <button
           key={key}
           type="button"
+          data-tour={dataTour}
           title={name}
           aria-label={name}
           aria-pressed={state === "active"}
