@@ -2,7 +2,9 @@
 
 Guidance for Claude Code working in `frontend-v2/`. The redesign SPA, built
 against the Claude Design project **Design System.dc.html**. `frontend/` is the
-old app and is not being changed.
+old app and is not being changed — except that the 3D viewer for a ready
+territory has moved out of it: `/territories/{slug}` now renders here, in
+`pages/territory-viewer` (see "The territory viewer" below).
 
 `README.md` describes the layout and the commands. This file records the
 decisions and the traps — the things that cost a session to find.
@@ -360,9 +362,10 @@ and Replace Source; each page keeps its own `UploadPhase` (their last phase
 differs) and hands the panel a plain `busy: boolean` instead.
 
 **Model Detail** (`/models/{slug}`) shows the thumbnail as the viewport, full
-size — frontend-v2 has no three.js, and the old SPA's model page never
-rendered 3D either, so the mock's viewer overlays (tool rail, LOD switcher,
-stats strip, …) wait for the territory-viewer port. `Download GLB` and the
+size — the old SPA's model page never rendered 3D either, and the mock's
+viewer overlays (`ToolRail`, `LodSwitcher`, `StatsStrip`, `ModeChip`,
+`KeycapHint` — now built in `shared/ui` for the territory viewer, see below)
+are not wired up here yet. `Download GLB` and the
 per-LOD artifact rows are `<a download>` on `/api/assets/{hash}`; Delete is
 gated on `usageCount`, read straight off the single-model fetch —
 `GET /api/models/{slug}` carries it now, so the page no longer fetches the
@@ -391,8 +394,9 @@ after encoding and compressing and arrives twice, and `registering` only with
 `stopped before the first report` form and no step is marked; its pipeline is
 exactly as blank as a freshly-queued job's, so the two are told apart only by
 that meta line and the failure box, never by the steps themselves. Upload
-Territory and Replace Source navigate here instead of leaving; `leaveTo` has
-one caller left, this page.
+Territory and Replace Source navigate here instead of leaving; `leaveTo`
+(`shared/lib/leave.ts`) is gone — the territory viewer's own port retired its
+last caller.
 
 **Home** (`/`, `pages/home`) is the landing screen. `useHome` owns three
 lists (territories, models, jobs), the jobs poll, one artifacts query per
@@ -512,10 +516,21 @@ shells run the same click delegate (`routesInApp`), so a link from a console
 screen into the catalog — or back — stays in the SPA. `isCatalogHref` matches the
 seven `CATALOG_PATHS` exactly — Home plus the six list/upload/account paths —
 plus `/models/<slug>`, `/territories/<slug>`
-and `/territories/<slug>/replace` by pattern. `/territories/<slug>` is the
-conversion page now; a ready territory's viewer is still the old SPA, and
-only that page leaves for it, through `leaveTo`, on a finish it watched or on
-its own button. `consoleLanding` picks that screen from the principal's
+and `/territories/<slug>/replace` by pattern. `/territories/<slug>` is one
+route for both faces of a territory: its loader warms `sceneQuery(slug)` and
+swallows every failure rather than throwing (a 404 and a 503 each have a
+designed screen — "Territory not found" and "Territory unavailable: {message}"
+— owned by whichever of the two screens below renders, not by the router's
+global panels; this amends spec §1, which had the loader 404 through
+`notFound()`). `viewerRoute(data, jobId)` (`app/router/guard.ts`) then picks
+the screen: the viewer when the bundle has a LOD0 artifact **and** no
+`?jobId=` is present, the conversion page otherwise. The upload and replace
+flows redirect here with the job they just created (`?jobId=`), so the
+conversion page opens its SSE channel at once; when a conversion it is
+watching reaches `succeeded`, `shouldOpenViewer`
+(`pages/territory-conversion/model/conversion-view.ts`) fires a router
+navigation to the bare path (no `?jobId=`) rather than a document load, and
+`viewerRoute` re-branches into the viewer on the next render. `consoleLanding` picks that screen from the principal's
 permissions — never a constant, or a roles-only administrator is sent to a
 users page that 403s.
 
@@ -660,5 +675,79 @@ v2, and jsdom has none: `openJobStream` detects a missing `EventSource` and
 hands back a no-op closer instead of throwing, so the hook's tests drive it
 through a fake rather than exercising the real network path.
 
-`Andrey Viewer Mockup.dc.html` (the 3D viewer and the remaining screens) has no
-v2 and has not been ported.
+`Andrey Viewer Mockup.dc.html` is superseded: the territory viewer for a ready
+territory is v2 now (`pages/territory-viewer`, built to `Territory Viewer
+v2.dc.html` instead — see "The territory viewer" below). Panoramas and
+documents stay in `frontend/` until package B ports them.
+
+## The territory viewer
+
+`/territories/{slug}` for a converted territory (`pages/territory-viewer`;
+spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
+
+- **The Canvas is a context boundary**: nothing under
+  `widgets/viewer-canvas/three/` reads `can`, the query client or the theme —
+  everything crosses as a prop. `readSceneColors`
+  (`widgets/viewer-canvas/model/scene-colors.ts`) reads `--panel`/`--line`/
+  `--accent` on mount and on theme change (`viewer-canvas.tsx`); the theme is
+  a module store behind `useSyncExternalStore`
+  (`features/theme-toggle/model/use-theme.ts`) so the canvas hears the
+  sidebar's toggle.
+- **Three exempt files** — `gltf-loader-setup.ts`, `ktx2-init.tsx`,
+  `glb-preloader.tsx` (`widgets/viewer-canvas/three/`, listed in
+  `frontend-v2/exempt-modules.ts`) — need real WebGL/a Worker. Everything else
+  is spec'd with `@react-three/test-renderer` (`TransformControls` mocked as a
+  named group, `three/testing.ts`); drei's `Html` does not portal there, so a
+  label spec (`point-marker.spec.tsx`) instead runs under react-dom with
+  `Html` a passthrough.
+- `gltf-loader-setup.ts` uses three's own `KTX2Loader`, cast at
+  `setKTX2Loader` — three-stdlib's loader lags the bundled Basis transcoder
+  and renders KTX2 white with no error. `public/basis`/`public/draco` are
+  copied from the installed `three`. Never import drei's `<Stats>`.
+- **LOD** (`features/lod`): coarsest shown first, the target warmed
+  off-screen; `useLodDownload` streams the target through `fetch` into a blob
+  URL so `lodProgress` shows a real percent. A WARM failure (`onWarmFailed`)
+  drops the level silently (the old ladder); a SHOWN failure
+  (`onShownFailed`) holds `failure` until `retry()` — the error card. `Try
+  again` bumps `retryVersion` (re-keys `LodErrorBoundary`'s `resetKey`);
+  `Load coarse LOD n instead` sets `targetLod`. `useGLTF.clear` runs after
+  the revoke because drei's cache evicts nothing; StrictMode double-fetches
+  once per level in dev, harmlessly.
+- **`FocusOn` frames from the scene wrapper group, not the territory**
+  (`three/focus-on.tsx`): drei's `<Bounds>` interposes its own group — a plan
+  deviation, found in review.
+- **Placements**: `groupByModel` (`entities/placement/model/groups.ts`) →
+  rows per model with 1-based instances; `#N` is positional; a batch create
+  is N sequential `POST`s (`use-placements-editor.ts`), `Placing k of N…`
+  (`widgets/model-picker/ui/place-objects-modal.tsx`), a partial failure
+  keeps the rows that landed; the editor seeds from the bundle once and the
+  page remounts it via `use-scene-seeded` (one-shot) so a cold page is not
+  empty.
+- **The Overlays panel owns `--overlays-w`** through
+  `overlaysWidthClass(collapsed)`; the page applies the same string to the
+  viewport container so the LOD switcher (a sibling) reads it. Tailwind v4
+  traps: `max-[N]` is exclusive (`max-[1281px]` for the mock's 1280 state);
+  `px-`/`py-` are logical, so a `[writing-mode:vertical-rl]` element needs
+  them swapped (`collapsed-rail.tsx`'s vertical pill).
+- **`CatalogShell layout="viewport"`** is chosen by `isTerritoryPage(pathname)`
+  (which subtracts `CATALOG_PATHS`, so `/territories/new` stays a page); the
+  conversion page keeps its `max-w-[760px]` column under it.
+- **Tour**: `features/onboarding`'s `VIEWER_TOUR_STEPS` is eight A steps; the
+  page feeds `tour.step?.tab` to `useOverlaysPanel` so the panel steps find
+  their anchors; the dialog is `aria-modal` with a Tab trap;
+  `POST /api/auth/me/onboarding/viewer` once when it ends.
+- **Recorded deviations** (spec §6, plus those found in execution): no
+  `Share`; `uploaded` date only; default LOD 0; groups expand into instances;
+  guest sentence "You can look and measure."; h1 at the mock's `h2` size
+  (`viewer-header.tsx`); `Placing N × model` is N `POST`s
+  (`use-placements-editor.ts`); binary MB one decimal (`lod-progress.ts`);
+  the LOD switcher offset is one formula, `calc(var(--overlays-w) + 28px)`
+  (`viewer-overlays.tsx`), and lands 2 px off the mock at two widths;
+  loading-state rail tiles read `idle`, not a dim treatment (`viewer-view.ts`'s
+  `railTools`); `Placing 0 of 2…` on the first line
+  (`place-objects-modal.tsx`); the failed conversion eyebrow still reads
+  `Converting` (`territory-conversion-page.tsx:48`); Vec3Field cell padding
+  is `6/7` at 300, the mock's `6/6` (`vec3-field.tsx`'s `ROW_CELL`).
+- **`WAITING_NOTE` copy caveat** (`territory-conversion-page.tsx`): "opens the
+  viewer by itself" is true for a finish watched on that page
+  (`shouldOpenViewer`, `conversion-view.ts`).

@@ -36,12 +36,15 @@ page (`/models/{slug}`) and the territory replace-source form
 and drive the real chunked-upload protocol. `/account` and
 `/account/two-factor` — password change, 2FA enrolment/disable, passkey
 management, the caller's own activity feed — live in the same shell.
-`/territories/{slug}` is the conversion-pending page (SSE by `jobId`, the
-jobs poll as the fallback). **Home is v2 now**: `/` (`frontend-v2/src/pages/home`)
+`/territories/{slug}` is the v2 viewer (three.js, `widgets/viewer-canvas`, its
+own `lazy()`-loaded code-split chunk) once a territory's LOD0 has converted;
+until then, or while a `?jobId=` is being watched, the same route renders the
+conversion-pending page (SSE by `jobId`, the jobs poll as the fallback).
+**Home is v2 now**: `/` (`frontend-v2/src/pages/home`)
 is the landing page — the conversions in flight, the four most recently
 updated territories, five models, the console doorways with counts, and the
-reader's own activity. Only the 3D viewer, at `/territories/{slug}` for a
-ready territory, remains in `frontend/`; sign-in with no `?next=` lands on `/`.
+reader's own activity. Only panoramas and documents remain in `frontend/`,
+until package B; sign-in with no `?next=` lands on `/`.
 **Working in it? Read [`frontend-v2/CLAUDE.md`](frontend-v2/CLAUDE.md)
 first**: it records the design decisions, the user's working rules, and the
 tooling traps (chief among them that `tsc --noEmit` type-checks nothing there, and that a parallel session
