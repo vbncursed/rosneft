@@ -31,6 +31,11 @@ describe("DetailList", () => {
     expect(screen.getByText("ok").className).toContain("text-ok");
   });
 
+  it("tones the viewer's own slug in the accent, as the View tab draws it", () => {
+    render(<DetailList items={[{ label: "slug", value: "refinery-block-c", tone: "accent" }]} />);
+    expect(screen.getByText("refinery-block-c").className).toContain("text-accent");
+  });
+
   it("defaults a value to the foreground ink", () => {
     render(<DetailList items={[{ label: "ip", value: "10.42.0.18" }]} />);
     expect(screen.getByText("10.42.0.18").className).toContain("text-fg");

@@ -1,0 +1,357 @@
+import { computeUnitRatio, type Chain, type MeasurePoint } from "@/entities/measurement";
+import {
+  groupByModel,
+  instanceName,
+  type PlacementTransform,
+  type ResolvedPlacement,
+} from "@/entities/placement";
+import { groupDigits, type ModelOption, type SceneViewModel } from "@/entities/scene";
+import type { ViewerError } from "@/features/lod";
+import type { Tour } from "@/features/onboarding";
+import type { GizmoMode, ViewerModeState } from "@/features/viewer-mode";
+import type { Detail } from "@/shared/ui/detail-list";
+import type { PlaceObjectsModalProps } from "@/widgets/model-picker";
+import type { OverlaysTab } from "@/widgets/overlays-panel";
+import type { PlacementsPanelProps, SelectedBlockProps } from "@/widgets/placements-panel";
+import type { LodReport, ViewerCanvasProps } from "@/widgets/viewer-canvas";
+import { loadingChip, modeChip, stripItems } from "./strip-and-chips";
+import type { PlacementFormView } from "./use-placement-form";
+import {
+  errorCopy,
+  headerMeta,
+  headerPills,
+  railTools,
+  uploadedLine,
+  type ErrorCopy,
+  type Grants,
+  type HeaderPill,
+  type RailToolState,
+} from "./viewer-view";
+
+export type ViewerHeaderProps = {
+  slug: string;
+  title: string;
+  pills: HeaderPill[];
+  /** Null where the mock gives the room to something else: measuring, a guest, a failure. */
+  meta: string | null;
+  guest: boolean;
+  canReplace: boolean;
+};
+
+export type ViewerErrorProps = {
+  copy: ErrorCopy;
+  onRetry: () => void;
+  /** Null exactly when `copy.coarseLabel` is: there is no coarser level to fall back to. */
+  onCoarse: (() => void) | null;
+};
+
+export type StripView = { items: string[]; tone: "neutral" | "bad"; accentLast: boolean };
+export type SwitcherView = {
+  levels: number[];
+  target: number;
+  shown: number | null;
+  onChange: (lod: number) => void;
+};
+export type MeasuringView = {
+  onClear: () => void;
+  onCloseChain: () => void;
+  canClear: boolean;
+  canClose: boolean;
+};
+
+export type ViewerOverlaysProps = {
+  tools: RailToolState[];
+  onReset: () => void;
+  onMeasure: () => void;
+  onAdd: () => void;
+  onReplayTour: () => void;
+  /** Null while the loading chips stand in for it, and on a failure. */
+  chip: { text: string; kbd?: string } | null;
+  loading: { chip: string; percent: number } | null;
+  measuring: MeasuringView | null;
+  switcher: SwitcherView | null;
+  strip: StripView;
+  hints: boolean;
+  error: ViewerErrorProps | null;
+};
+
+export type ViewerPanelProps = {
+  tab: OverlaysTab;
+  onTabChange: (tab: OverlaysTab) => void;
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
+  placementsCount: number;
+  details: Detail[];
+  placements: PlacementsPanelProps;
+};
+
+export type TerritoryViewerPageProps = {
+  header: ViewerHeaderProps;
+  canvas: ViewerCanvasProps;
+  overlays: ViewerOverlaysProps;
+  /** Null on a failure: the mock draws the error card over an otherwise bare viewport. */
+  panel: ViewerPanelProps | null;
+  picker: PlaceObjectsModalProps;
+  tour: Tour;
+  /** Nothing on screen yet and nothing failed — the skeleton card stands in. */
+  loadingScene: boolean;
+};
+
+/** Every callback the page hands out. The container memoizes each one. */
+export type PageHandlers = {
+  onPick: (id: number | null) => void;
+  onTransformCommit: (id: number, transform: PlacementTransform) => void;
+  onMeasurePoint: (point: MeasurePoint) => void;
+  onCloseActiveChain: () => void;
+  onRemoveSegment: (chainId: number, index: number) => void;
+  onRemoveChain: (chainId: number) => void;
+  onLod: (report: LodReport) => void;
+  onReset: () => void;
+  onMeasure: () => void;
+  onAdd: () => void;
+  onReplayTour: () => void;
+  /** The switcher and the error card's way out share one setter. */
+  onTargetLod: (lod: number) => void;
+  onRetry: () => void;
+  onClearMeasurements: () => void;
+  onTab: (tab: OverlaysTab) => void;
+  onCollapsed: (collapsed: boolean) => void;
+  onQuery: (query: string) => void;
+  onToggleGroup: (slug: string) => void;
+  onSelect: (id: number | null) => void;
+  onRename: (id: number) => void;
+  onDelete: (id: number) => void;
+  onFocus: (id: number) => void;
+  onGizmo: (gizmo: GizmoMode) => void;
+  onSnap: (on: boolean) => void;
+  onPlace: (slug: string, count: number) => void;
+  onClosePicker: () => void;
+};
+
+/** The page's own state, everything the hooks do not already own. */
+export type PageViewState = {
+  report: LodReport;
+  targetLod: number;
+  retryVersion: number;
+  resetVersion: number;
+  focusRequest: number[] | null;
+  pickerOpen: boolean;
+  query: string;
+  expandedModel: string | null;
+  compact: boolean;
+  error: ViewerError | null;
+  /** Passed in rather than read here, so the error card's clock is testable. */
+  now: Date;
+};
+
+export type PageParts = {
+  slug: string;
+  title: string;
+  grants: Grants;
+  vm: SceneViewModel;
+  options: ModelOption[];
+  mode: ViewerModeState;
+  measure: {
+    chains: Chain[];
+    activeChainId: number | null;
+    summary: { segments: number; total: string };
+  };
+  placements: ResolvedPlacement[];
+  pendingIds: number[];
+  placing: { done: number; total: number } | null;
+  form: PlacementFormView | null;
+  tour: Tour;
+  panel: { tab: OverlaysTab; collapsed: boolean };
+  view: PageViewState;
+  on: PageHandlers;
+};
+
+/**
+ * Every prop the viewer page draws, assembled from the container's pieces.
+ *
+ * Pure and exhaustive on purpose: the page holds no hooks and takes no
+ * decisions, so each of the mock's seventeen states is one call to this
+ * function — which is what lets the fixtures show them without a gateway.
+ */
+export function pageProps(p: PageParts): TerritoryViewerPageProps {
+  const { slug, title, grants, vm, options, mode, measure, view, on } = p;
+  const { report, targetLod, error } = view;
+  const failed = error !== null;
+  const guest = !grants.create && !grants.write && !grants.delete;
+
+  // A level is on screen, so the tools that need one may be used. A failure
+  // says otherwise even if a coarse level is still drawn behind the card.
+  const geometry = !failed && report.shown !== null;
+
+  const loadingLevel =
+    !failed &&
+    report.shown !== null &&
+    report.target !== null &&
+    report.shown !== report.target &&
+    report.percent !== null &&
+    report.progressText !== null
+      ? { shown: report.shown, target: report.target, percent: report.percent, text: report.progressText }
+      : null;
+
+  const levels = vm.parentLods.map((a) => a.lod).sort((a, b) => a - b);
+  const groups = groupByModel(p.placements, options);
+  const selected = p.placements.find((x) => x.id === mode.selectedId) ?? null;
+
+  return {
+    header: {
+      slug,
+      title,
+      pills: headerPills({
+        ready: true,
+        grants,
+        mode: mode.mode,
+        tourActive: p.tour.active,
+        failed,
+      }),
+      meta:
+        failed || guest || mode.mode === "measure"
+          ? null
+          : headerMeta(slug, vm.parentLods.length, vm.metadata.units),
+      guest,
+      canReplace: grants.replace,
+    },
+
+    canvas: {
+      slug,
+      parentLods: vm.parentLods,
+      targetLod,
+      placements: p.placements,
+      mode: mode.mode,
+      selectedId: mode.selectedId,
+      gizmo: mode.gizmo,
+      snap: mode.snap,
+      canWrite: grants.write,
+      chains: measure.chains,
+      activeChainId: measure.activeChainId,
+      unitRatio: computeUnitRatio(vm.metadata.dims),
+      resetVersion: view.resetVersion,
+      retryVersion: view.retryVersion,
+      focusRequest: view.focusRequest,
+      onPick: on.onPick,
+      onTransformCommit: on.onTransformCommit,
+      onMeasurePoint: on.onMeasurePoint,
+      onCloseActiveChain: on.onCloseActiveChain,
+      onRemoveSegment: on.onRemoveSegment,
+      onRemoveChain: on.onRemoveChain,
+      onLod: on.onLod,
+    },
+
+    overlays: {
+      tools: railTools({ grants, mode: mode.mode, geometry }),
+      onReset: on.onReset,
+      onMeasure: on.onMeasure,
+      onAdd: on.onAdd,
+      onReplayTour: on.onReplayTour,
+      chip: failed || loadingLevel ? null : modeChip({ mode: mode.mode, measure: measure.summary }),
+      loading: loadingLevel ? { chip: loadingChip(loadingLevel), percent: loadingLevel.percent } : null,
+      measuring:
+        mode.mode === "measure"
+          ? {
+              onClear: on.onClearMeasurements,
+              onCloseChain: on.onCloseActiveChain,
+              canClear: measure.chains.length > 0,
+              canClose: measure.activeChainId !== null,
+            }
+          : null,
+      switcher:
+        failed || levels.length < 2
+          ? null
+          : { levels, target: targetLod, shown: report.shown, onChange: on.onTargetLod },
+      strip: stripItems({
+        metadata: vm.metadata,
+        shown: report.shown,
+        target: failed ? error.lod : report.target,
+        failed,
+      }),
+      hints: !failed && p.panel.collapsed && mode.mode === "orbit",
+      error: error
+        ? {
+            copy: errorCopy(error, view.now),
+            onRetry: on.onRetry,
+            onCoarse: error.coarser ? () => on.onTargetLod(error.coarser!.lod) : null,
+          }
+        : null,
+    },
+
+    panel: failed
+      ? null
+      : {
+          tab: p.panel.tab,
+          onTabChange: on.onTab,
+          collapsed: p.panel.collapsed,
+          onCollapsedChange: on.onCollapsed,
+          placementsCount: p.placements.length,
+          details: detailsOf(slug, vm),
+          placements: {
+            groups,
+            query: view.query,
+            onQuery: on.onQuery,
+            expandedModel: view.expandedModel,
+            onToggleGroup: on.onToggleGroup,
+            selectedId: mode.selectedId,
+            onSelect: on.onSelect,
+            pendingIds: p.pendingIds,
+            grants: { create: grants.create, write: grants.write, delete: grants.delete },
+            onAdd: on.onAdd,
+            onRename: on.onRename,
+            onDelete: on.onDelete,
+            onFocus: on.onFocus,
+            selected: selectedBlock(p, groups, selected),
+          },
+        },
+
+    picker: {
+      open: view.pickerOpen,
+      onClose: on.onClosePicker,
+      territoryTitle: title,
+      options,
+      placing: p.placing,
+      onPlace: on.onPlace,
+    },
+
+    tour: p.tour,
+    loadingScene: !failed && report.shown === null,
+  };
+}
+
+/** The View tab's key/value block: what this territory is, in the mock's order. */
+const detailsOf = (slug: string, vm: SceneViewModel): Detail[] => [
+  { label: "slug", value: slug, tone: "accent" },
+  { label: "units", value: vm.metadata.units },
+  { label: "vertices", value: groupDigits(vm.metadata.vertices) },
+  { label: "faces", value: groupDigits(vm.metadata.faces) },
+  { label: "uploaded", value: uploadedLine(vm.metadata.uploadedAt), tone: "muted" },
+];
+
+/**
+ * The block under the object list. Its name comes from the grouped list rather
+ * than the placement's own label, so the scene and the panel call the same
+ * instance the same thing — `storage-tank-500 #1`, numbered by creation order.
+ */
+function selectedBlock(
+  p: PageParts,
+  groups: ReturnType<typeof groupByModel>,
+  selected: ResolvedPlacement | null,
+): SelectedBlockProps | null {
+  if (!selected) return null;
+  const group = groups.find((g) => g.model.slug === selected.modelSlug);
+  const instance = group?.instances.find((i) => i.id === selected.id);
+  if (!group || !instance) return null;
+
+  return {
+    name: instanceName(group, instance),
+    gizmo: p.mode.gizmo,
+    onGizmo: p.on.onGizmo,
+    transform: { position: selected.position, rotation: selected.rotation, scale: selected.scale },
+    snap: p.mode.snap,
+    onSnap: p.on.onSnap,
+    canWrite: p.grants.write,
+    form: p.form,
+    compact: p.view.compact,
+  };
+}

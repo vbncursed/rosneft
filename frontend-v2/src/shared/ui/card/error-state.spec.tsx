@@ -39,4 +39,47 @@ describe("ErrorState", () => {
     render(<ErrorState title="Something broke" />);
     expect(screen.getByRole("alert").querySelectorAll("p")).toHaveLength(1);
   });
+
+  describe("size lg — the centred card a failed viewport draws", () => {
+    const card = () =>
+      render(
+        <ErrorState
+          size="lg"
+          icon="warning"
+          title="The territory mesh could not be loaded"
+          detail="Storage returned 502 for the LOD 1 mesh."
+          footer="refinery-block-c-lod1.glb · last attempt 14:22"
+          action={
+            <button type="button">Try again</button>
+          }
+        />,
+      );
+
+    it("keeps the alert role, so a failure still announces itself", () => {
+      card();
+      expect(screen.getByRole("alert")).toHaveTextContent("The territory mesh could not be loaded");
+    });
+
+    it("draws the icon tile", () => {
+      const { container } = card();
+      expect(container.querySelector("svg")).not.toBeNull();
+    });
+
+    it("prints the footer line under the actions", () => {
+      card();
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "refinery-block-c-lod1.glb · last attempt 14:22",
+      );
+    });
+
+    it("keeps the action reachable", () => {
+      card();
+      expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    });
+
+    it("draws no footer slot when nothing was given", () => {
+      render(<ErrorState size="lg" title="Broken" />);
+      expect(screen.getByRole("alert").querySelectorAll("p")).toHaveLength(1);
+    });
+  });
 });
