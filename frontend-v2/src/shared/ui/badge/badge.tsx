@@ -26,6 +26,9 @@ const badge = cva(
       size: {
         sm: "px-2.5 py-0.5 text-[9px]",
         md: "px-2.5 py-[3px] text-[10px]",
+        // The territory viewer's status pill: 9px type in a roomier box than
+        // `sm`, which is what the header mock draws beside the title.
+        status: "px-[11px] py-[3px] text-[9px]",
       },
     },
     compoundVariants: [
@@ -47,6 +50,7 @@ const badge = cva(
       // which one a given shape actually wanted (chip silently rendered at
       // the pill/tag's 0.14–0.16em). One property, one variant group.
       { shape: "pill", size: "sm", class: "tracking-[0.14em]" },
+      { shape: "pill", size: "status", class: "tracking-[0.14em]" },
       { shape: "pill", size: "md", class: "tracking-[0.16em]" },
       { shape: "tag", class: "tracking-[0.14em]" },
       { shape: "chip", class: "tracking-[0.06em]" },

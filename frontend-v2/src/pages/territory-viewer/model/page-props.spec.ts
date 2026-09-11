@@ -225,6 +225,7 @@ describe("pageProps · overlays", () => {
     expect(overlays.loading).toEqual({
       chip: "coarse LOD 2 shown · LOD 0 62% · 6.1 / 9.8 MB",
       percent: 62,
+      target: 0,
     });
     expect(overlays.strip.accentLast).toBe(true);
   });

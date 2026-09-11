@@ -16,6 +16,8 @@ export default (
       <Badge tone="bad" shape="tag">failed</Badge>
       <Badge tone="neutral" shape="tag" className="tracking-normal">system</Badge>
       <Badge tone="neutral" fill="outline" shape="tag" size="sm" className="tracking-normal">G</Badge>
+      <Badge tone="ok" size="status">ready</Badge>
+      <Badge tone="neutral" fill="outline" size="status">viewer · read-only</Badge>
     </div>
   </div>
 );

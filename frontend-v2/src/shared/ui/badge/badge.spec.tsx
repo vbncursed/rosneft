@@ -60,4 +60,19 @@ describe("Badge", () => {
     expect(cls).toContain("tracking-[0.16em]");
     expect(cls).not.toContain("tracking-[0.06em]");
   });
+
+  // The viewer's status pill is the one place the design draws a 9px pill with
+  // the roomier 3/11 padding; sm is tighter and md is set a point larger.
+  it("gives the status pill the viewer header's own geometry", () => {
+    render(
+      <Badge tone="ok" size="status">
+        ready
+      </Badge>,
+    );
+    const cls = screen.getByText("ready").className;
+    expect(cls).toContain("px-[11px]");
+    expect(cls).toContain("py-[3px]");
+    expect(cls).toContain("text-[9px]");
+    expect(cls).toContain("tracking-[0.14em]");
+  });
 });

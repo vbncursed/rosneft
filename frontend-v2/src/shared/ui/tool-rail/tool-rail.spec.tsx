@@ -33,4 +33,16 @@ describe("ToolRail", () => {
     await userEvent.click(screen.getByRole("button", { name: "Measure (M)" }));
     expect(onMeasure).toHaveBeenCalledOnce();
   });
+
+  it("carries an onboarding anchor onto the tile itself, not a wrapper", () => {
+    const { container } = render(
+      <ToolRail
+        label="Viewer tools"
+        tools={[{ key: "measure", glyph: "↔", name: "Measure (M)", dataTour: "measure" }]}
+      />,
+    );
+    expect(container.querySelector('[data-tour="measure"]')).toBe(
+      screen.getByRole("button", { name: "Measure (M)" }),
+    );
+  });
 });

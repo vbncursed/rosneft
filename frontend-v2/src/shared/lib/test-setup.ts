@@ -20,3 +20,17 @@ if (!HTMLDialogElement.prototype.showModal) {
     this.dispatchEvent(new Event("close"));
   };
 }
+
+// jsdom has no ResizeObserver, and react-three-fiber's <Canvas> refuses to
+// mount without one. It used to go unnoticed: the viewer fixture wraps a lazy
+// ViewerCanvas in <Suspense>, so a synchronous render only ever produced the
+// fallback — until a second fixture in the same run had already resolved that
+// chunk, at which point the real canvas mounted and threw. A no-op observer is
+// enough: nothing in jsdom ever changes size.
+if (!("ResizeObserver" in globalThis)) {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}
