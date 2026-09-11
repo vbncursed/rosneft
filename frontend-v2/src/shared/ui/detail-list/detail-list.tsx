@@ -1,7 +1,7 @@
 import { clsx as cx } from "clsx";
 import { Fragment, type ReactNode } from "react";
 
-export type DetailTone = "fg" | "ok" | "warn" | "bad" | "dim" | "muted";
+export type DetailTone = "fg" | "ok" | "warn" | "bad" | "dim" | "muted" | "accent";
 
 export type Detail = {
   label: string;
@@ -21,6 +21,7 @@ const TONE: Record<DetailTone, string> = {
   bad: "text-bad",
   dim: "text-dim",
   muted: "text-muted",
+  accent: "text-accent",
 };
 
 /** The mono key/value block both inspectors use for a record's facts. */

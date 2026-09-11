@@ -21,6 +21,14 @@ describe("ViewerSkeleton", () => {
     expect(screen.getByRole("progressbar")).not.toHaveAttribute("aria-valuenow");
   });
 
+  // Structural, and deliberately so: the two grey lines are the mock's whole
+  // point — a card with only an overline and a bar reads as an error, not as
+  // an interface still assembling itself.
+  it("stands in for the interface with two placeholder lines", () => {
+    const { container } = render(<ViewerSkeleton progress={34} />);
+    expect(container.querySelectorAll("span[aria-hidden='true'].animate-pulse")).toHaveLength(2);
+  });
+
   it("takes a caller's label, for the bar as well as the text", () => {
     render(<ViewerSkeleton progress={10} label="Downloading LOD0…" />);
     expect(screen.getByText("Downloading LOD0…")).toBeInTheDocument();

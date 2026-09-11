@@ -39,6 +39,19 @@ export default (
         </Button>
       }
     />
+    <ErrorState
+      size="lg"
+      icon="warning"
+      title="The territory mesh could not be loaded"
+      detail="Storage returned 502 for the LOD 1 mesh. The scene, placements and documents are intact — only the artifact download failed."
+      footer="refinery-block-c-lod1.glb · last attempt 14:22"
+      action={
+        <>
+          <Button variant="primary" size="sm">Try again</Button>
+          <Button size="sm">Load coarse LOD 2 instead</Button>
+        </>
+      }
+    />
     <EmptyState
       layout="start"
       title="No territories are assigned to you yet"
