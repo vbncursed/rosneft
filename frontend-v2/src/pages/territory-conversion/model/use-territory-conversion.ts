@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { artifactsQuery, listArtifacts } from "@/entities/content";
 import {
@@ -9,10 +10,10 @@ import {
   useJobStream,
   type TargetJob,
 } from "@/entities/conversion";
-import { getTerritory, territoryQuery } from "@/entities/territory";
+import { getTerritory, territoryPath, territoryQuery } from "@/entities/territory";
 import { HttpError, messageOf } from "@/shared/api";
 import { unanswered } from "@/shared/lib/unanswered";
-import { phaseOf, type Phase, type TerritoryConversionPageProps } from "./conversion-view";
+import { phaseOf, shouldOpenViewer, type Phase, type TerritoryConversionPageProps } from "./conversion-view";
 
 export type TerritoryConversionState =
   | { status: "loading" }
@@ -29,6 +30,7 @@ export type TerritoryConversionState =
  */
 export function useTerritoryConversion(slug: string, jobId: string | null): TerritoryConversionState {
   const client = useQueryClient();
+  const navigate = useNavigate();
   // queryFn stays a direct import so a spec's vi.mock of the barrel reaches the fetch.
   const territory = useQuery({ ...territoryQuery(slug), queryFn: () => getTerritory(slug) });
   const artifacts = useQuery({ ...artifactsQuery("territory", slug), queryFn: () => listArtifacts("territory", slug) });
@@ -64,6 +66,17 @@ export function useTerritoryConversion(slug: string, jobId: string | null): Terr
   // The stream, once it has answered, is up to four seconds fresher than the poll.
   const job = streamed ?? polled;
   const phase: Phase | null = artifacts.data && jobs.data ? phaseOf(hasLod0, job) : null;
+
+  // A finish watched here opens the viewer, in-app. The target is the bare
+  // path: dropping the `?jobId` is exactly what makes the route re-branch, and
+  // a `navigate` keeps the document — the old `window.location.assign` into the
+  // previous SPA is what this package removed.
+  const previousPhase = useRef<Phase | null>(null);
+  useEffect(() => {
+    if (phase === null) return;
+    if (shouldOpenViewer(previousPhase.current, phase)) void navigate({ to: territoryPath(slug) });
+    previousPhase.current = phase;
+  }, [phase, slug, navigate]);
 
   const loading = territory.isPending || artifacts.isPending || jobs.isPending;
   const territoryError = unanswered(territory);

@@ -5,12 +5,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpError } from "@/shared/api";
 import { useTerritoryConversion } from "./use-territory-conversion";
 
-const { getTerritory, listArtifacts, listJobs, useJobStream } = vi.hoisted(() => ({
+const { getTerritory, listArtifacts, listJobs, useJobStream, navigate } = vi.hoisted(() => ({
   getTerritory: vi.fn(),
   listArtifacts: vi.fn(),
   listJobs: vi.fn(),
   useJobStream: vi.fn(),
+  navigate: vi.fn(),
 }));
+vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
 vi.mock("@/entities/territory", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getTerritory,
@@ -53,6 +55,7 @@ describe("useTerritoryConversion", () => {
     listArtifacts.mockReset().mockResolvedValue([]);
     listJobs.mockReset().mockResolvedValue([]);
     useJobStream.mockReset().mockReturnValue(null);
+    navigate.mockReset();
   });
 
   it("is loading until all three have answered, then queued with no record and no artifacts", async () => {
@@ -102,12 +105,13 @@ describe("useTerritoryConversion", () => {
     expect((await ready(render("j1"))).phase).toBe("running");
   });
 
-  it("reads a mount that is already ready without touching the scene cache", async () => {
+  it("reads a mount that is already ready without navigating or touching the scene cache", async () => {
     listArtifacts.mockResolvedValue([LOD0]);
     const r = render();
     client.setQueryData(["scene", "t"], { artifact: null });
     expect((await ready(r)).phase).toBe("ready");
     expect(client.getQueryState(["scene", "t"])?.isInvalidated).toBe(false);
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   // The handoff to the old SPA is gone: the route reads ["scene", slug] and
@@ -124,6 +128,22 @@ describe("useTerritoryConversion", () => {
     await client.refetchQueries({ queryKey: ["jobs"] });
     await waitFor(() => expect(client.getQueryState(["scene", "t"])?.isInvalidated).toBe(true));
     expect(listArtifacts).toHaveBeenCalledTimes(2); // finishedSince re-read the artifacts
+  });
+
+  // A finish watched on this page opens the viewer, in-app and exactly once.
+  // The jobId is dropped with the query: the route branches on its absence, so
+  // navigating to the bare path is what turns this page into the viewer.
+  it("navigates to the territory path once when a watched conversion finishes", async () => {
+    listJobs.mockResolvedValue([RUNNING]);
+    const r = render("j1");
+    expect((await ready(r)).phase).toBe("running");
+    expect(navigate).not.toHaveBeenCalled();
+
+    listJobs.mockResolvedValue([]);
+    listArtifacts.mockResolvedValue([LOD0]);
+    await client.refetchQueries({ queryKey: ["jobs"] });
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: "/territories/t" }));
+    expect(navigate).toHaveBeenCalledTimes(1);
   });
 
   // A territory with no job row and no LOD0 is waiting for the reconciler to

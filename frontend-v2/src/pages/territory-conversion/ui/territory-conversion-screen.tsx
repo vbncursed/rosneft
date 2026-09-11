@@ -50,12 +50,15 @@ function TerritoryConversionBody({ slug, jobId }: { slug: string; jobId: string 
  * column this page is written for lives here instead, around all four states
  * rather than only the ready one: a skeleton flush against the window edge is
  * as wrong as a page one.
+ *
+ * 832 = the 760 the design draws plus its own 2×36 of padding: `px-9` is on
+ * the same element as the cap, so it eats into it rather than sitting outside.
  */
 export function TerritoryConversionScreen() {
   const { slug } = useParams({ strict: false }) as { slug: string };
   const { jobId } = useSearch({ strict: false }) as { jobId?: string };
   return (
-    <div className="mx-auto min-h-0 w-full max-w-[760px] overflow-auto px-9 pb-[72px] pt-8">
+    <div className="mx-auto min-h-0 w-full max-w-[832px] overflow-auto px-9 pb-[72px] pt-8">
       <TerritoryConversionBody key={slug} slug={slug} jobId={jobId ?? null} />
     </div>
   );

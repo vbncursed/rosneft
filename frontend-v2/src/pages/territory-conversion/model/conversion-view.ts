@@ -25,6 +25,14 @@ export function phaseOf(hasLod0: boolean, job: TargetJob | undefined): Phase {
   return status === "ready" ? "ready" : "queued";
 }
 
+/**
+ * Only a finish watched from this page opens the viewer — never a mount that
+ * is already ready, which is a reader who asked for this URL and whose route
+ * has already branched.
+ */
+export const shouldOpenViewer = (prev: Phase | null, next: Phase): boolean =>
+  next === "ready" && (prev === "queued" || prev === "running");
+
 export function ledeOf(phase: Phase, { hasJob, hasLod0 }: { hasJob: boolean; hasLod0: boolean }): string {
   switch (phase) {
     case "queued":

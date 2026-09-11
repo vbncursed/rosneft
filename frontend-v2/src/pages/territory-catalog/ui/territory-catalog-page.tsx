@@ -12,7 +12,10 @@ import type { TerritoryTab } from "../model/catalog";
 // Hover-to-warm, and only from a card whose click reaches the viewer: a
 // converting territory opens a progress bar, and pulling three.js for it is a
 // megabyte spent on a page that never draws a scene.
-const warmViewer = () => void preloadViewer();
+// The catch matters: after a deploy the hashed chunk this bundle names is
+// gone, and a hover must not raise an unhandled rejection for a fetch nobody
+// awaited. The click that follows re-imports and surfaces a real error.
+const warmViewer = () => void preloadViewer().catch(() => {});
 
 export type TerritoryCatalogPageProps = {
   cards: TerritoryCardModel[];

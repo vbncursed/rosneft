@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { SceneBundle } from "@/entities/scene";
 import type { Principal } from "@/shared/session";
 import {
   activeSection,
@@ -10,6 +11,7 @@ import {
   redirectTarget,
   routesInApp,
   screenAllowed,
+  viewerRoute,
 } from "./guard";
 
 describe("redirectTarget", () => {
@@ -211,5 +213,27 @@ describe("isTerritoryPage", () => {
     expect(isTerritoryPage("/territories")).toBe(false);
     expect(isTerritoryPage("/territories/new")).toBe(false);
     expect(isTerritoryPage("/models/pump")).toBe(false);
+  });
+});
+
+describe("viewerRoute", () => {
+  const lod0 = { lod: 0, hash: "a", size: 1 };
+  const bundle = (chain: { lod: number; hash: string; size: number }[]) =>
+    ({ artifact: chain.length ? { chain } : null }) as unknown as SceneBundle;
+
+  it("opens the viewer only for a converted territory nobody is watching a job on", () => {
+    expect(viewerRoute(bundle([lod0]), undefined)).toBe(true);
+  });
+
+  // Replace Source keeps the old LOD0 while the new archive converts, so the
+  // bundle says "ready" and the reader would land on last week's scene with no
+  // pipeline in sight. A jobId in the URL means someone is watching a run.
+  it("keeps the conversion page while a job is being watched, LOD0 or not", () => {
+    expect(viewerRoute(bundle([lod0]), "job-1")).toBe(false);
+  });
+
+  it("keeps the conversion page when nothing is converted, and before the bundle lands", () => {
+    expect(viewerRoute(bundle([]), undefined)).toBe(false);
+    expect(viewerRoute(undefined, undefined)).toBe(false);
   });
 });

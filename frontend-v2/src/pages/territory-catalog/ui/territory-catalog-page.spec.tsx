@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { TerritoryCardModel } from "@/entities/territory";
 import { TerritoryCatalogPage, type TerritoryCatalogPageProps } from "./territory-catalog-page";
 
-const { preloadViewer } = vi.hoisted(() => ({ preloadViewer: vi.fn() }));
+const { preloadViewer } = vi.hoisted(() => ({ preloadViewer: vi.fn(() => Promise.resolve()) }));
 vi.mock("@/widgets/viewer-canvas", () => ({ preloadViewer }));
 
 const card = (slug: string, title: string, over: Partial<TerritoryCardModel> = {}): TerritoryCardModel => ({
@@ -167,7 +167,7 @@ describe("TerritoryCatalogPage preload", () => {
   // Only a ready card opens the viewer; hovering a converting one would pull a
   // megabyte of three.js for a page that draws a progress bar.
   it("warms the viewer chunk from a ready card and never from a converting one", async () => {
-    preloadViewer.mockClear();
+    preloadViewer.mockClear().mockResolvedValue(undefined);
     render(<TerritoryCatalogPage {...props()} />);
     await userEvent.hover(screen.getByRole("article", { name: "Terminal Yard 4" }));
     expect(preloadViewer).not.toHaveBeenCalled();
