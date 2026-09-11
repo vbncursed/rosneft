@@ -12,7 +12,7 @@ vi.mock("../model/use-territory-conversion", () => ({ useTerritoryConversion }))
 vi.mock("@tanstack/react-router", () => ({ useParams: () => useParams(), useSearch: () => useSearch() }));
 
 const TERRITORY = { slug: "t", title: "Tenant A", sourceBlobHash: "a".repeat(64), placementCount: 0 };
-const READY: TerritoryConversionState = { status: "ready", territory: TERRITORY, phase: "queued", job: null, hasLod0: false, onOpenViewer: vi.fn() };
+const READY: TerritoryConversionState = { status: "ready", territory: TERRITORY, phase: "queued", job: null, hasLod0: false };
 
 describe("TerritoryConversionScreen", () => {
   it("hands the slug and the jobId from the URL to the hook", () => {
@@ -46,17 +46,19 @@ describe("TerritoryConversionScreen", () => {
 
   it("remounts the body on a slug change, so no ref survives into the next territory", () => {
     // The router keeps this component across a $slug change; without the key the
-    // hook's previousPhase/previousJobs refs and the stream's frame carry over.
+    // hook's previousJobs ref and the stream's frame carry over. The keyed body
+    // is the layout wrapper's child, not the container's — the wrapper is the
+    // page column and is deliberately stable.
     useSearch.mockReturnValue({});
     useTerritoryConversion.mockReturnValue(READY);
     useParams.mockReturnValue({ slug: "a" });
     const { rerender, container } = render(<TerritoryConversionScreen />);
-    const before = container.firstElementChild;
+    const before = container.firstElementChild?.firstElementChild;
 
     useParams.mockReturnValue({ slug: "b" });
     rerender(<TerritoryConversionScreen />);
     expect(useTerritoryConversion).toHaveBeenLastCalledWith("b", null);
-    expect(container.firstElementChild).not.toBe(before);
+    expect(container.firstElementChild?.firstElementChild).not.toBe(before);
   });
 
   it("renders the page once ready", () => {

@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { Outlet, useNavigate } from "@tanstack/react-router";
+import { Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { MouseEvent } from "react";
 import { meQuery } from "@/entities/user";
 import { CatalogShell } from "@/widgets/catalog-shell";
 import { Toaster } from "@/widgets/toaster";
-import { routesInApp } from "./guard";
+import { isTerritoryPage, routesInApp } from "./guard";
 
 /**
  * The chrome around the four catalog routes (/territories, /territories/new,
@@ -13,9 +13,14 @@ import { routesInApp } from "./guard";
  * rather than reloading — but there is no sidebar, so nothing here reads the
  * principal beyond the same stale-cache-edge guard: catalogRoute's loader
  * already awaited it.
+ *
+ * The layout is read off the pathname rather than the matched route: the leaf
+ * that wants `viewport` lives in catalog-routes, which imports this file, so
+ * `useMatch({ from: territoryRoute.id })` would close the cycle.
  */
 export function CatalogShellRoute() {
   const { data: me } = useQuery(meQuery);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   if (!me) return null;
 
@@ -30,7 +35,7 @@ export function CatalogShellRoute() {
     // role="presentation": the wrapper exists for the click delegate only and
     // adds nothing to the accessibility tree.
     <div role="presentation" onClickCapture={onClickCapture}>
-      <CatalogShell>
+      <CatalogShell layout={isTerritoryPage(pathname) ? "viewport" : "page"}>
         <Outlet />
       </CatalogShell>
       <Toaster />

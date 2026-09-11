@@ -16,11 +16,9 @@ const failed: TargetJob = { kind: "territory", slug: TERRITORY.slug, status: "fa
 // GET /api/jobs for cotest on 2026-09-07 — no stage, no progress, only the message.
 const failedLive: TargetJob = { kind: "territory", slug: TERRITORY.slug, status: "failed", progress: null, stage: null, errorMessage: "fetch/extract source: blob get: blobstore: blob not found" };
 
-const noop = () => {};
-
 const page = (phase: Phase, job: TargetJob | null, hasLod0 = false) => (
   <CatalogShell>
-    <TerritoryConversionPage territory={TERRITORY} phase={phase} job={job} hasLod0={hasLod0} onOpenViewer={noop} />
+    <TerritoryConversionPage territory={TERRITORY} phase={phase} job={job} hasLod0={hasLod0} />
   </CatalogShell>
 );
 

@@ -6,6 +6,7 @@ import {
   consoleLanding,
   consoleNav,
   isCatalogHref,
+  isTerritoryPage,
   redirectTarget,
   routesInApp,
   screenAllowed,
@@ -173,7 +174,8 @@ describe("isCatalogHref", () => {
     expect(isCatalogHref("/login")).toBe(false);
   });
 
-  // A model page, a territory's replace form and the territory's own conversion page are all v2.
+  // A model page, a territory's replace form and the territory's own page — the
+  // conversion screen while it converts, the viewer once it is ready — are all v2.
   it("matches a model page, a territory's replace form and a territory page", () => {
     expect(isCatalogHref("/models/pump")).toBe(true);
     expect(isCatalogHref("/models/pump?from=library")).toBe(true);
@@ -191,5 +193,23 @@ describe("isCatalogHref", () => {
   it("routes the wizard in-app, query string and all", () => {
     expect(isCatalogHref("/account/two-factor")).toBe(true);
     expect(isCatalogHref("/account/two-factor?mode=regenerate")).toBe(true);
+  });
+});
+
+describe("isTerritoryPage", () => {
+  // The shell reads the pathname to pick its layout: a territory's own page is
+  // the viewport viewer, every sibling path stays a padded document column.
+  it("matches a territory's own page and nothing beside it", () => {
+    expect(isTerritoryPage("/territories/north-ridge")).toBe(true);
+    expect(isTerritoryPage("/territories/north-ridge/replace")).toBe(false);
+  });
+
+  // /territories/new is slug-shaped and the bare TERRITORY_PAGE regex matches
+  // it — the upload form under `viewport` is h-dvh with no padding, so the
+  // layout predicate has to say no to the one path the route tree claims first.
+  it("refuses the list, the upload form and a model page", () => {
+    expect(isTerritoryPage("/territories")).toBe(false);
+    expect(isTerritoryPage("/territories/new")).toBe(false);
+    expect(isTerritoryPage("/models/pump")).toBe(false);
   });
 });

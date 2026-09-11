@@ -36,7 +36,7 @@ function ProgressPanel({ phase, job }: { phase: "queued" | "running"; job: Targe
 }
 
 /** The conversion page: header, lede, the failure box or the progress card, the pipeline, the way forward. */
-export function TerritoryConversionPage({ territory, phase, job, hasLod0, onOpenViewer }: TerritoryConversionPageProps) {
+export function TerritoryConversionPage({ territory, phase, job, hasLod0 }: TerritoryConversionPageProps) {
   const pill = STATUS_PILL[phase];
   const waiting = phase === "queued" || phase === "running";
   const stage = job?.stage ?? null;
@@ -71,7 +71,7 @@ export function TerritoryConversionPage({ territory, phase, job, hasLod0, onOpen
         <SectionHeading title="Pipeline" count={pipelineMeta(stage, phase)} className="pb-3 pt-0.5" />
         <Pipeline steps={pipelineSteps(stage, phase)} />
       </section>
-      <ConversionActions phase={phase} slug={territory.slug} hasLod0={hasLod0} onOpenViewer={onOpenViewer} />
+      <ConversionActions phase={phase} slug={territory.slug} hasLod0={hasLod0} />
       {waiting ? (
         <Callout tone="warn" icon="info" size="note">
           {WAITING_NOTE}

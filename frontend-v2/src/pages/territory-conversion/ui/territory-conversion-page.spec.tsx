@@ -1,5 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { TargetJob } from "@/entities/conversion";
 import type { TerritoryConversionPageProps } from "../model/conversion-view";
 import { TerritoryConversionPage, WAITING_NOTE } from "./territory-conversion-page";
@@ -9,7 +9,7 @@ const job = (over: Partial<TargetJob> = {}): TargetJob => ({
   kind: "territory", slug: "refinery-block-c", status: "running", progress: 0.58, stage: "lod-1", errorMessage: null, ...over,
 });
 const props = (over: Partial<TerritoryConversionPageProps> = {}): TerritoryConversionPageProps => ({
-  territory: TERRITORY, phase: "running", job: job(), hasLod0: false, onOpenViewer: vi.fn(), ...over,
+  territory: TERRITORY, phase: "running", job: job(), hasLod0: false, ...over,
 });
 
 describe("TerritoryConversionPage", () => {
@@ -94,7 +94,7 @@ describe("TerritoryConversionPage", () => {
     expect(screen.getByText("Converted")).toBeInTheDocument();
     expect(screen.getByText("ready")).toBeInTheDocument();
     expect(screen.getByText("7 steps · finished")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open the viewer" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open the viewer" })).toHaveAttribute("href", "/territories/refinery-block-c");
     expect(screen.queryByText(WAITING_NOTE)).not.toBeInTheDocument();
   });
 });

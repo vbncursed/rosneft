@@ -1,3 +1,4 @@
+import { territoryPath } from "@/entities/territory";
 import { linkButtonClass } from "@/shared/ui/button";
 import type { Phase } from "../model/conversion-view";
 
@@ -5,7 +6,6 @@ export type ConversionActionsProps = {
   phase: Phase;
   slug: string;
   hasLod0: boolean;
-  onOpenViewer: () => void;
 };
 
 export const FAILED_NOTE =
@@ -17,8 +17,14 @@ export const FAILED_NOTE =
 const PRIMARY = linkButtonClass("primary");
 const SECONDARY = linkButtonClass("secondary");
 
-/** The way forward after a failure or a finish; nothing while the job is still going. */
-export function ConversionActions({ phase, slug, hasLod0, onOpenViewer }: ConversionActionsProps) {
+/**
+ * The way forward after a failure or a finish; nothing while the job is still
+ * going. The viewer is this same URL: the shell's click delegate turns the
+ * link into a router navigation, the route re-reads the scene bundle and
+ * branches — no document load, and the link is still copyable and
+ * middle-clickable, which the button it replaced was not.
+ */
+export function ConversionActions({ phase, slug, hasLod0 }: ConversionActionsProps) {
   if (phase === "failed") {
     return (
       <>
@@ -30,9 +36,9 @@ export function ConversionActions({ phase, slug, hasLod0, onOpenViewer }: Conver
             Back to catalog
           </a>
           {hasLod0 ? (
-            <button type="button" onClick={onOpenViewer} className={SECONDARY}>
+            <a href={territoryPath(slug)} className={SECONDARY}>
               Open the current viewer
-            </button>
+            </a>
           ) : null}
         </div>
         <p className="m-0 max-w-[60ch] text-[11px] leading-[1.55] text-muted">{FAILED_NOTE}</p>
@@ -42,9 +48,9 @@ export function ConversionActions({ phase, slug, hasLod0, onOpenViewer }: Conver
   if (phase === "ready") {
     return (
       <div className="flex flex-wrap gap-[9px]">
-        <button type="button" onClick={onOpenViewer} className={PRIMARY}>
+        <a href={territoryPath(slug)} className={PRIMARY}>
           Open the viewer
-        </button>
+        </a>
         <a href="/territories" className={SECONDARY}>
           Back to catalog
         </a>

@@ -12,8 +12,6 @@ export type TerritoryConversionPageProps = {
   /** The job on record, or null when nothing has been recorded for this territory. */
   job: TargetJob | null;
   hasLod0: boolean;
-  /** Leaves for the viewer — the old app, for now. */
-  onOpenViewer: () => void;
 };
 
 /** The catalogs' rule, then queued/running read off the job itself. */
@@ -26,10 +24,6 @@ export function phaseOf(hasLod0: boolean, job: TargetJob | undefined): Phase {
   if (status === "converting") return job?.status === "running" ? "running" : "queued";
   return status === "ready" ? "ready" : "queued";
 }
-
-/** Only a finish watched from this page leaves for the viewer — never a mount that is already ready. */
-export const shouldLeave = (prev: Phase | null, next: Phase): boolean =>
-  next === "ready" && (prev === "queued" || prev === "running");
 
 export function ledeOf(phase: Phase, { hasJob, hasLod0 }: { hasJob: boolean; hasLod0: boolean }): string {
   switch (phase) {
@@ -44,7 +38,7 @@ export function ledeOf(phase: Phase, { hasJob, hasLod0 }: { hasJob: boolean; has
         ? "Conversion stopped, so the viewer has nothing new to open. The previous revision of this territory stays live."
         : "Conversion stopped, so the viewer has nothing to open.";
     case "ready":
-      return "The artifacts are in place. The viewer is still the previous app, so opening it leaves this page.";
+      return "The artifacts are in place. The viewer opens on this page.";
   }
 }
 

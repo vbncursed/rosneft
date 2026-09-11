@@ -1,18 +1,20 @@
-import { createRoute, redirect } from "@tanstack/react-router";
+import { createRoute, notFound, redirect } from "@tanstack/react-router";
+import { sceneQuery } from "@/entities/scene";
 import { meQuery } from "@/entities/user";
 import { AccountScreen } from "@/pages/account";
 import { ModelDetailScreen } from "@/pages/model-detail";
 import { ModelLibraryScreen } from "@/pages/model-library";
 import { ReplaceSourceScreen } from "@/pages/replace-source";
 import { TerritoryCatalogScreen } from "@/pages/territory-catalog";
-import { TerritoryConversionScreen } from "@/pages/territory-conversion";
 import { TwoFactorScreen } from "@/pages/two-factor";
 import { UploadModelsScreen } from "@/pages/upload-models";
 import { UploadTerritoryScreen } from "@/pages/upload-territory";
+import { HttpError } from "@/shared/api";
 import { isAuthed } from "@/shared/session";
 import { CatalogShellRoute } from "./catalog-shell-route";
 import { redirectTarget } from "./guard";
 import { HomeRoute } from "./home-route";
+import { TerritoryRoute } from "./territory-route";
 import { rootRoute } from "./routes";
 
 // The catalog shell has no sidebar-derived gate: any signed-in principal
@@ -50,6 +52,11 @@ export const territoryNewRoute = createRoute({
   component: UploadTerritoryScreen,
 });
 
+// One URL for both faces of a territory. The loader fetches the bundle the
+// branch reads, so the first paint is already the right screen rather than the
+// conversion page flashing in front of a ready viewer; a 404 here is the
+// route's notFound for both faces, and any other failure is the route error.
+//
 // The upload and replace flows arrive with the job they just created, so the
 // page can open its SSE channel at once; without one it reads the poll.
 export const territoryRoute = createRoute({
@@ -60,7 +67,12 @@ export const territoryRoute = createRoute({
   // and the cost is the poll instead of the stream.
   validateSearch: (search: Record<string, unknown>): { jobId?: string } =>
     typeof search.jobId === "string" && search.jobId !== "" ? { jobId: search.jobId } : {},
-  component: TerritoryConversionScreen,
+  loader: ({ context, params }) =>
+    context.queryClient.ensureQueryData(sceneQuery(params.slug)).catch((error: unknown) => {
+      if (error instanceof HttpError && error.status === 404) throw notFound();
+      throw error;
+    }),
+  component: TerritoryRoute,
 });
 
 export const modelsRoute = createRoute({

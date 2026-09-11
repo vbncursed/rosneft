@@ -36,24 +36,27 @@ function TerritoryConversionBody({ slug, jobId }: { slug: string; jobId: string 
   }
 
   return (
-    <TerritoryConversionPage
-      territory={s.territory}
-      phase={s.phase}
-      job={s.job}
-      hasLod0={s.hasLod0}
-      onOpenViewer={s.onOpenViewer}
-    />
+    <TerritoryConversionPage territory={s.territory} phase={s.phase} job={s.job} hasLod0={s.hasLod0} />
   );
 }
 
 /**
  * The route component. The router keeps one instance across a `$slug` change,
- * so the body is keyed on the slug: the container's refs (previous phase,
- * previous jobs) and the stream's frame belong to one territory and must not
- * carry into the next.
+ * so the body is keyed on the slug: the container's refs (previous jobs) and
+ * the stream's frame belong to one territory and must not carry into the next.
+ *
+ * This route shares its URL with the viewer, so the shell hands it the
+ * `viewport` layout — a padding-free `h-dvh overflow-hidden` column. The
+ * column this page is written for lives here instead, around all four states
+ * rather than only the ready one: a skeleton flush against the window edge is
+ * as wrong as a page one.
  */
 export function TerritoryConversionScreen() {
   const { slug } = useParams({ strict: false }) as { slug: string };
   const { jobId } = useSearch({ strict: false }) as { jobId?: string };
-  return <TerritoryConversionBody key={slug} slug={slug} jobId={jobId ?? null} />;
+  return (
+    <div className="mx-auto min-h-0 w-full max-w-[760px] overflow-auto px-9 pb-[72px] pt-8">
+      <TerritoryConversionBody key={slug} slug={slug} jobId={jobId ?? null} />
+    </div>
+  );
 }

@@ -29,6 +29,12 @@ export type CatalogCardProps = {
   /** Whole-card click when the target is openable. */
   onOpen?: () => void;
   /**
+   * Hover or focus anywhere on the card — the moment to warm what the click
+   * will need. Focus as well as hover, or a keyboard reader pays the download
+   * a mouse reader never sees.
+   */
+  onPreload?: () => void;
+  /**
    * Where the title points. An `<a href>` is what makes the card openable in a
    * new tab, middle-clickable and copyable; `onOpen` alone gives none of that.
    */
@@ -73,6 +79,7 @@ export function CatalogCard({
   progress,
   trailing,
   onOpen,
+  onPreload,
   href,
   size = "md",
   className,
@@ -92,6 +99,8 @@ export function CatalogCard({
     <article
       aria-label={title}
       onClick={onOpen}
+      onMouseEnter={onPreload}
+      onFocus={onPreload}
       className={cx(
         "overflow-hidden border bg-panel",
         TONE[tone],
