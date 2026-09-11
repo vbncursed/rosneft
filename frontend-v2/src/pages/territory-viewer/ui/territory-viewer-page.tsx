@@ -53,24 +53,23 @@ export function TerritoryViewerPage({
         <ViewerOverlays {...overlays} />
 
         {panel ? (
-          // The tour's `overlays-tabs` step points at the panel as a whole:
-          // its body names both tabs, and the halo is measured off whatever
-          // carries the attribute.
-          <div data-tour="overlays-tabs">
-            <OverlaysPanel
-              tab={panel.tab}
-              onTabChange={panel.onTabChange}
-              collapsed={panel.collapsed}
-              onCollapsedChange={panel.onCollapsedChange}
-              placementsCount={panel.placementsCount}
-              view={<DetailList items={panel.details} />}
-              placements={
-                <div data-tour="objects-list">
-                  <PlacementsPanel {...panel.placements} />
-                </div>
-              }
-            />
-          </div>
+          <OverlaysPanel
+            tab={panel.tab}
+            onTabChange={panel.onTabChange}
+            collapsed={panel.collapsed}
+            onCollapsedChange={panel.onCollapsedChange}
+            placementsCount={panel.placementsCount}
+            // The step explains the two tabs, so the panel puts the anchor on
+            // the strip itself — this component's own box is the viewport, and
+            // the panel's root is a zero-height static block.
+            tourId="overlays-tabs"
+            view={<DetailList items={panel.details} />}
+            placements={
+              <div data-tour="objects-list">
+                <PlacementsPanel {...panel.placements} />
+              </div>
+            }
+          />
         ) : null}
 
         {loadingScene ? (

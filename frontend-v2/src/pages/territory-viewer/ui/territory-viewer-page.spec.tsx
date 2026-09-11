@@ -36,8 +36,21 @@ describe("TerritoryViewerPage", () => {
   it("lists the placements on the Placements tab, anchored for the tour", () => {
     const { container } = page();
     expect(screen.getByRole("list", { name: "Objects" })).toBeInTheDocument();
-    expect(container.querySelector('[data-tour="objects-list"]')).not.toBeNull();
-    expect(container.querySelector('[data-tour="overlays-tabs"]')).not.toBeNull();
+    expect(container.querySelector('[data-tour="objects-list"]')).toContainElement(
+      screen.getByRole("list", { name: "Objects" }),
+    );
+  });
+
+  // Both anchors have to be *inside* the aside: the panel's own root is a
+  // static, zero-height block, so an attribute on it measures nothing and the
+  // tour's halo lights empty space at the bottom of the window.
+  it("anchors the Overlays step on the tabs strip, inside the panel", () => {
+    const { container } = page();
+    const anchor = container.querySelector('[data-tour="overlays-tabs"]');
+    expect(anchor).toContainElement(screen.getByRole("tablist"));
+    expect(screen.getByRole("complementary", { name: "Overlays" })).toContainElement(
+      anchor as HTMLElement,
+    );
   });
 
   it("prints the territory's facts on the View tab", () => {

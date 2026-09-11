@@ -105,4 +105,43 @@ describe("OverlaysPanel", () => {
     );
     expect((container.firstElementChild as HTMLElement).className).toBe(overlaysWidthClass(true));
   });
+
+  // The onboarding step explains the two tabs, and the overlay measures the
+  // halo off whatever carries the attribute — so it has to be the strip inside
+  // the aside, not a wrapper around a panel whose own box is zero-height.
+  it("anchors a tour step on the tabs strip itself", () => {
+    const { container } = render(
+      <OverlaysPanel
+        tab="view"
+        onTabChange={vi.fn()}
+        collapsed={false}
+        onCollapsedChange={vi.fn()}
+        placementsCount={0}
+        tourId="overlays-tabs"
+        view={<p>view body</p>}
+        placements={<p>placements body</p>}
+      />,
+    );
+    const anchor = container.querySelector('[data-tour="overlays-tabs"]');
+    expect(anchor).not.toBeNull();
+    expect(anchor).toContainElement(screen.getByRole("tablist"));
+    expect(screen.getByRole("complementary", { name: "Overlays" })).toContainElement(
+      anchor as HTMLElement,
+    );
+  });
+
+  it("emits no anchor attribute when no tour step points here", () => {
+    const { container } = render(
+      <OverlaysPanel
+        tab="view"
+        onTabChange={vi.fn()}
+        collapsed={false}
+        onCollapsedChange={vi.fn()}
+        placementsCount={0}
+        view={<p>view body</p>}
+        placements={<p>placements body</p>}
+      />,
+    );
+    expect(container.querySelector("[data-tour]")).toBeNull();
+  });
 });

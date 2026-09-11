@@ -31,6 +31,21 @@ const NO_REPORT: LodReport = {
   failure: null,
 };
 
+/**
+ * The canvas's last report, with the moment its failure arrived.
+ *
+ * The error card's footer answers "when did this last try", so the clock is
+ * stamped when the failure lands rather than read while the card is being
+ * drawn — otherwise every re-render behind it (a reset, a panel fold, a
+ * refetch) moved "last attempt" forward to now.
+ */
+type LodState = { report: LodReport; failedAt: Date | null };
+
+const NO_LOD: LodState = { report: NO_REPORT, failedAt: null };
+
+/** Never read — `error` is non-null only when `failedAt` is. */
+const UNSTAMPED = new Date(0);
+
 /** Under this the panel is 300 wide and the gizmo keys lose their brackets. */
 const COMPACT = "(max-width: 1280px)";
 
@@ -77,7 +92,8 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   const [retryVersion, setRetryVersion] = useState(0);
   const [resetVersion, setResetVersion] = useState(0);
   const [focusRequest, setFocusRequest] = useState<number[] | null>(null);
-  const [report, setReport] = useState<LodReport>(NO_REPORT);
+  const [lod, setLod] = useState<LodState>(NO_LOD);
+  const report = lod.report;
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [expandedModel, setExpandedModel] = useState<string | null>(null);
@@ -118,7 +134,20 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
 
   // Canvas-bound callbacks are memoized: each is a prop on a tree that mounts
   // WebGL, and a fresh identity re-runs the effects that attach to the scene.
-  const onLod = useCallback((next: LodReport) => setReport(next), []);
+  const onLod = useCallback(
+    (next: LodReport) =>
+      setLod((prev) => ({
+        report: next,
+        // A second failure of the same level is the same attempt still being
+        // reported; a different hash is a new one and gets a new stamp.
+        failedAt: next.failure
+          ? prev.report.failure?.hash === next.failure.hash
+            ? prev.failedAt
+            : new Date()
+          : null,
+      })),
+    [],
+  );
   const onReset = useCallback(() => setResetVersion((v) => v + 1), []);
   const onRetry = useCallback(() => setRetryVersion((v) => v + 1), []);
   const onFocus = useCallback((id: number) => setFocusRequest([id]), []);
@@ -184,7 +213,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
         expandedModel,
         compact,
         error: viewerError(report.failure, vm.parentLods, pickLod(vm.parentLods, targetLod), slug),
-        now: new Date(),
+        now: lod.failedAt ?? UNSTAMPED,
       },
       on: {
         onPick: mode.select,
