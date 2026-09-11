@@ -6,7 +6,13 @@ import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import { Segmented } from "@/shared/ui/segmented";
 import { PageHeader } from "@/widgets/page-header";
+import { preloadViewer } from "@/widgets/viewer-canvas";
 import type { TerritoryTab } from "../model/catalog";
+
+// Hover-to-warm, and only from a card whose click reaches the viewer: a
+// converting territory opens a progress bar, and pulling three.js for it is a
+// megabyte spent on a page that never draws a scene.
+const warmViewer = () => void preloadViewer();
 
 export type TerritoryCatalogPageProps = {
   cards: TerritoryCardModel[];
@@ -99,6 +105,7 @@ export function TerritoryCatalogPage({
               card={card}
               href={territoryPath(card.slug)}
               onOpen={() => onOpen(card.slug)}
+              onPreload={card.status === "ready" ? warmViewer : undefined}
               actions={
                 canReplace || canDelete ? (
                   <>

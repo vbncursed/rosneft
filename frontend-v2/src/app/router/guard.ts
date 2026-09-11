@@ -115,11 +115,23 @@ const TERRITORY_PAGE = /^\/territories\/[^/]+$/;
 const REPLACE_FORM = /^\/territories\/[^/]+\/replace$/;
 
 /**
+ * A territory's own page, by pathname alone — what the catalog shell reads to
+ * pick its layout: that one route is the viewport-filling viewer, every
+ * sibling is a padded document column.
+ *
+ * The regex is slug-shaped, so `/territories/new` matches it and the upload
+ * form would lose its padding to `h-dvh overflow-hidden`. CATALOG_PATHS is
+ * already the list of paths the route tree claims ahead of `$slug`; subtracting
+ * it is the whole fix.
+ */
+export const isTerritoryPage = (pathname: string): boolean =>
+  TERRITORY_PAGE.test(pathname) && !(CATALOG_PATHS as readonly string[]).includes(pathname);
+
+/**
  * A catalog screen href, query string included: Home, the four list/upload
  * routes, the account page and its two-factor wizard, a model's page, a territory's
- * replace form and a territory's own page — the conversion screen; a ready
- * territory's viewer is still the old SPA, and that page leaves for it only on
- * a finish it watched, or through its own button.
+ * replace form and a territory's own page — the conversion screen while it
+ * converts, the viewer once it is ready.
  */
 export const isCatalogHref = (href: string): boolean => {
   const path = href.split("?")[0];

@@ -5,12 +5,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpError } from "@/shared/api";
 import { useTerritoryConversion } from "./use-territory-conversion";
 
-const { getTerritory, listArtifacts, listJobs, useJobStream, leaveTo } = vi.hoisted(() => ({
+const { getTerritory, listArtifacts, listJobs, useJobStream } = vi.hoisted(() => ({
   getTerritory: vi.fn(),
   listArtifacts: vi.fn(),
   listJobs: vi.fn(),
   useJobStream: vi.fn(),
-  leaveTo: vi.fn(),
 }));
 vi.mock("@/entities/territory", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -25,7 +24,6 @@ vi.mock("@/entities/conversion", async (importOriginal) => ({
   listJobs,
   useJobStream,
 }));
-vi.mock("@/shared/lib/leave", () => ({ leaveTo }));
 
 const TERRITORY = { slug: "t", title: "Tenant A", sourceBlobHash: "a".repeat(64), placementCount: 0 };
 const LOD0 = { lod: 0, hash: "h0", size: 1, faces: 1, vertices: 1, bboxMin: { x: 0, y: 0, z: 0 }, bboxMax: { x: 1, y: 1, z: 1 } };
@@ -55,7 +53,6 @@ describe("useTerritoryConversion", () => {
     listArtifacts.mockReset().mockResolvedValue([]);
     listJobs.mockReset().mockResolvedValue([]);
     useJobStream.mockReset().mockReturnValue(null);
-    leaveTo.mockReset();
   });
 
   it("is loading until all three have answered, then queued with no record and no artifacts", async () => {
@@ -105,24 +102,27 @@ describe("useTerritoryConversion", () => {
     expect((await ready(render("j1"))).phase).toBe("running");
   });
 
-  it("does not leave on a mount that is already ready", async () => {
+  it("reads a mount that is already ready without touching the scene cache", async () => {
     listArtifacts.mockResolvedValue([LOD0]);
-    const s = await ready(render());
-    expect(s.phase).toBe("ready");
-    expect(leaveTo).not.toHaveBeenCalled();
-    s.onOpenViewer();
-    expect(leaveTo).toHaveBeenCalledWith("/territories/t");
+    const r = render();
+    client.setQueryData(["scene", "t"], { artifact: null });
+    expect((await ready(r)).phase).toBe("ready");
+    expect(client.getQueryState(["scene", "t"])?.isInvalidated).toBe(false);
   });
 
-  it("leaves for the viewer when a running conversion finishes on this page", async () => {
+  // The handoff to the old SPA is gone: the route reads ["scene", slug] and
+  // branches on it, so a finish watched from this page has to stale that key
+  // or the reader sits on a "ready" conversion page forever.
+  it("invalidates the scene bundle when a running conversion finishes on this page", async () => {
     listJobs.mockResolvedValue([RUNNING]);
     const r = render();
+    client.setQueryData(["scene", "t"], { artifact: null });
     expect((await ready(r)).phase).toBe("running");
 
     listJobs.mockResolvedValue([]);
     listArtifacts.mockResolvedValue([LOD0]);
     await client.refetchQueries({ queryKey: ["jobs"] });
-    await waitFor(() => expect(leaveTo).toHaveBeenCalledWith("/territories/t"));
+    await waitFor(() => expect(client.getQueryState(["scene", "t"])?.isInvalidated).toBe(true));
     expect(listArtifacts).toHaveBeenCalledTimes(2); // finishedSince re-read the artifacts
   });
 

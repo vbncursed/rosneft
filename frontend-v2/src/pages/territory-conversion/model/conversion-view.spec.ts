@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TargetJob } from "@/entities/conversion";
-import { ledeOf, phaseOf, progressCard, shouldLeave, STATUS_PILL } from "./conversion-view";
+import { ledeOf, phaseOf, progressCard, STATUS_PILL } from "./conversion-view";
 
 const job = (over: Partial<TargetJob> = {}): TargetJob => ({
   kind: "territory",
@@ -33,17 +33,6 @@ describe("phaseOf", () => {
   });
 });
 
-describe("shouldLeave", () => {
-  it("leaves only on a finish watched from this page", () => {
-    expect(shouldLeave("running", "ready")).toBe(true);
-    expect(shouldLeave("queued", "ready")).toBe(true);
-    expect(shouldLeave(null, "ready")).toBe(false);
-    expect(shouldLeave("failed", "ready")).toBe(false);
-    expect(shouldLeave("ready", "ready")).toBe(false);
-    expect(shouldLeave("running", "failed")).toBe(false);
-  });
-});
-
 describe("ledeOf", () => {
   it("has a sentence for each of the six rows", () => {
     expect(ledeOf("queued", { hasJob: true, hasLod0: false })).toBe(
@@ -62,7 +51,7 @@ describe("ledeOf", () => {
       "Conversion stopped, so the viewer has nothing new to open. The previous revision of this territory stays live.",
     );
     expect(ledeOf("ready", { hasJob: false, hasLod0: true })).toBe(
-      "The artifacts are in place. The viewer is still the previous app, so opening it leaves this page.",
+      "The artifacts are in place. The viewer opens on this page.",
     );
   });
 });

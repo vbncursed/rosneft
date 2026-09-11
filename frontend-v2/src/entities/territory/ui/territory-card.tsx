@@ -9,6 +9,8 @@ export type TerritoryCardProps = {
   href: string;
   /** Whole-card click. */
   onOpen?: () => void;
+  /** Hover or focus — the catalog warms the viewer chunk here. */
+  onPreload?: () => void;
   /** Top-right overlay controls — the catalog's replace/delete buttons. */
   actions?: ReactNode;
 };
@@ -27,7 +29,7 @@ const BADGE: Partial<Record<ConversionStatus, { label: string; tone: "ok" | "war
 };
 
 /** How a territory looks in a grid — the catalog's card, one geometry everywhere. */
-export function TerritoryCard({ card, href, onOpen, actions }: TerritoryCardProps) {
+export function TerritoryCard({ card, href, onOpen, onPreload, actions }: TerritoryCardProps) {
   return (
     <CatalogCard
       title={card.title}
@@ -39,6 +41,7 @@ export function TerritoryCard({ card, href, onOpen, actions }: TerritoryCardProp
       progress={card.progress}
       trailing={card.trailing}
       onOpen={onOpen}
+      onPreload={onPreload}
       href={href}
       actions={actions}
     />

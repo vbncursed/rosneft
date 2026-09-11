@@ -26,6 +26,9 @@ export const EXEMPT_MODULES = [
   // Wiring: the catalog subtree, split from routes.tsx at the 200-line cap;
   // its decisions are in guard.ts.
   "src/app/router/catalog-routes.tsx",
+  // Wiring: one `useQuery` and one `if`. The decision it branches on is
+  // `sceneReady`, which lives in entities/scene with its own spec.
+  "src/app/router/territory-route.tsx",
   // wiring: reads the cached principal and hands consoleNav's items to the
   // screen; consoleNav has the spec
   "src/app/router/home-route.tsx",

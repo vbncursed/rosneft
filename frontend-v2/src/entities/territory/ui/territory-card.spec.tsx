@@ -47,6 +47,19 @@ describe("TerritoryCard", () => {
     expect(onOpen).toHaveBeenCalledOnce();
   });
 
+  // The viewer chunk is ~1 MB of three.js; the hover before the click is the
+  // whole budget for fetching it, and a keyboard reader gets the same warning
+  // through focus.
+  it("warms the viewer on hover and on focus", async () => {
+    const onPreload = vi.fn();
+    render(<TerritoryCard card={card()} href="#" onPreload={onPreload} />);
+    await userEvent.hover(screen.getByRole("article"));
+    expect(onPreload).toHaveBeenCalled();
+    onPreload.mockClear();
+    screen.getByRole("link", { name: "North Ridge Pad" }).focus();
+    expect(onPreload).toHaveBeenCalled();
+  });
+
   it("draws the progress bar and stage while converting", () => {
     render(<TerritoryCard card={card({ status: "converting", progress: { value: 62, stage: "Compressing textures" }, trailing: { label: "converting", tone: "muted" } })} href="#" />);
     expect(screen.getByRole("progressbar", { name: "Compressing textures" })).toHaveAttribute("aria-valuenow", "62");
