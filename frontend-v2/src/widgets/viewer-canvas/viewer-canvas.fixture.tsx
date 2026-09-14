@@ -24,7 +24,22 @@ export default (
         resetVersion={0}
         retryVersion={0}
         focusRequest={null}
+        activePanorama={null}
+        panoramaTexture={null}
+        panoramaStatus="idle"
+        panoramaProgress={null}
+        panoramaOpacity={1}
+        panoramas={[]}
+        showMarkers
+        markerLabels={{}}
+        move={{ active: false, draggingId: null, livePos: null }}
+        cameraPositionRef={{ current: null }}
+        cameraYawRef={{ current: null }}
         onPick={noop}
+        onActivatePanorama={noop}
+        onMarkerGrab={noop}
+        onMarkerMove={noop}
+        onMarkerDrop={noop}
         onTransformCommit={noop}
         onMeasurePoint={noop}
         onCloseActiveChain={noop}

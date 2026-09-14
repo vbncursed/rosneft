@@ -1,6 +1,8 @@
 import ReactThreeTestRenderer from "@react-three/test-renderer";
-import type { Color, Scene } from "three";
-import { describe, expect, it, vi } from "vitest";
+import { createElement, type ComponentType } from "react";
+import { Texture, type BufferGeometry, type Color, type Mesh, type Scene } from "three";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Panorama } from "@/entities/panorama";
 import type { ViewerCanvasProps } from "../ui/props";
 import SceneCanvas from "./scene-canvas";
 import { boundsStub, fakePlacement, lineColors } from "./testing";
@@ -29,7 +31,47 @@ vi.mock("@react-three/fiber", async (orig) => {
   };
 });
 
+// Recorded-and-forwarded: these two carry props that decide behaviour but
+// leave no trace in the scene graph (a raycast flag, a snap flag), and both
+// have to keep rendering for real — the Bounds/FocusOn case depends on it.
+const seen = vi.hoisted(() => ({
+  gltf: {} as Record<string, unknown>,
+  layer: {} as Record<string, unknown>,
+}));
+vi.mock("./gltf-model", async (orig) => {
+  const real = ((await orig()) as { default: ComponentType<Record<string, unknown>> }).default;
+  return {
+    default: (p: Record<string, unknown>) => {
+      seen.gltf = p;
+      return createElement(real, p);
+    },
+  };
+});
+vi.mock("./placements-layer", async (orig) => {
+  const real = ((await orig()) as { default: ComponentType<Record<string, unknown>> }).default;
+  return {
+    default: (p: Record<string, unknown>) => {
+      seen.layer = p;
+      return createElement(real, p);
+    },
+  };
+});
+
 const COLORS = { background: "#16181b", grid: "#282c31", accent: "#f97316" };
+
+const PANO: Panorama = {
+  id: 7,
+  territorySlug: "t",
+  slug: "control-room",
+  title: "Control room",
+  sourceBlobHash: "h",
+  position: { x: 0, y: 0, z: 0 },
+  yawOffset: 0,
+  defaultYaw: 0,
+  updatedAt: "",
+};
+
+const STILL = { active: false, draggingId: null, livePos: null };
 
 const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   slug: "t",
@@ -47,7 +89,22 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   resetVersion: 0,
   retryVersion: 0,
   focusRequest: null,
+  activePanorama: null,
+  panoramaTexture: null,
+  panoramaStatus: "idle",
+  panoramaProgress: null,
+  panoramaOpacity: 1,
+  panoramas: [PANO],
+  showMarkers: true,
+  markerLabels: {},
+  move: STILL,
+  cameraPositionRef: { current: null },
+  cameraYawRef: { current: null },
   onPick: vi.fn(),
+  onActivatePanorama: vi.fn(),
+  onMarkerGrab: vi.fn(),
+  onMarkerMove: vi.fn(),
+  onMarkerDrop: vi.fn(),
   onTransformCommit: vi.fn(),
   onMeasurePoint: vi.fn(),
   onCloseActiveChain: vi.fn(),
@@ -60,6 +117,21 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
 const mount = (over: Partial<ViewerCanvasProps> = {}, colors = COLORS) =>
   ReactThreeTestRenderer.create(<SceneCanvas {...props(over)} colors={colors} />);
 
+const grids = (r: Awaited<ReturnType<typeof mount>>) =>
+  r.scene.findAll((n) => n.instance.type === "GridHelper");
+
+const spheres = (r: Awaited<ReturnType<typeof mount>>) =>
+  r.scene.findAll(
+    (n) => ((n.instance as Mesh).geometry as BufferGeometry | undefined)?.type === "SphereGeometry",
+  );
+
+/** A panorama that has finished decoding, as the page hands it over. */
+const inside = () => ({
+  activePanorama: PANO,
+  panoramaTexture: new Texture(),
+  panoramaStatus: "ready" as const,
+});
+
 const ground = (r: Awaited<ReturnType<typeof mount>>) =>
   (r.scene.instance as unknown as Scene).background as Color;
 
@@ -68,6 +140,11 @@ const clickEvent = (point: { x: number; y: number; z: number }) => ({
   intersections: [{ point }],
   point,
   stopPropagation: vi.fn(),
+});
+
+beforeEach(() => {
+  seen.gltf = {};
+  seen.layer = {};
 });
 
 describe("SceneCanvas", () => {
@@ -153,5 +230,60 @@ describe("SceneCanvas", () => {
     const wrapper = r.scene.findAll((n) => n.props.onClick !== undefined)[0];
     await r.fireEvent(wrapper, "click", clickEvent({ x: 1, y: 2, z: 3 }));
     expect(onMeasurePoint).not.toHaveBeenCalled();
+  });
+});
+
+describe("SceneCanvas inside a panorama", () => {
+  it("puts the reader inside the equirect and takes the grid away with the 3D view", async () => {
+    const r = await mount(inside());
+    expect(spheres(r)).toHaveLength(1);
+    expect(grids(r)).toHaveLength(0);
+  });
+
+  it("keeps the grid while the 3D view is the thing being looked at", async () => {
+    expect(grids(await mount())).toHaveLength(1);
+  });
+
+  it("refuses to snap a placement to a territory nobody can see", async () => {
+    const r = await mount({ ...inside(), snap: true });
+    expect(seen.layer.snapEnabled).toBe(false);
+    expect(seen.layer.activePanoramaId).toBe(7);
+    expect(grids(r)).toHaveLength(0);
+  });
+
+  it("snaps in the 3D view, where the surface is on screen", async () => {
+    await mount({ snap: true });
+    expect(seen.layer.snapEnabled).toBe(true);
+    expect(seen.layer.activePanoramaId).toBeNull();
+  });
+
+  it("does not chase a focus request while a panorama holds the camera", async () => {
+    boundsStub.fit.mockClear();
+    await mount({ ...inside(), placements: [fakePlacement(1)], focusRequest: [1] });
+    expect(boundsStub.fit).not.toHaveBeenCalled();
+  });
+});
+
+describe("SceneCanvas while a marker is being moved", () => {
+  it("makes the territory hittable so the cursor can be projected onto it", async () => {
+    expect((await mount()) && seen.gltf.raycastable).toBe(false);
+    await mount({ move: { active: true, draggingId: null, livePos: null } });
+    expect(seen.gltf.raycastable).toBe(true);
+  });
+
+  it("makes the territory hittable while points are being picked, as before", async () => {
+    await mount({ mode: "measure" });
+    expect(seen.gltf.raycastable).toBe(true);
+  });
+});
+
+describe("SceneCanvas camera tracking", () => {
+  it("mirrors the live camera out to the panel, which sits outside the Canvas", async () => {
+    const cameraPositionRef = { current: null };
+    const cameraYawRef = { current: null };
+    await mount({ cameraPositionRef, cameraYawRef });
+    const at = cameraPositionRef.current as unknown as { x: number; y: number; z: number };
+    expect([at.x, at.y, at.z].map(Math.round)).toEqual([0, 0, 5]);
+    expect(Math.abs(cameraYawRef.current as unknown as number)).toBeCloseTo(Math.PI);
   });
 });
