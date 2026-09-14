@@ -712,7 +712,12 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   copied from the installed `three`. Never import drei's `<Stats>`.
 - **LOD** (`features/lod`): coarsest shown first, the target warmed
   off-screen; `useLodDownload` streams the target through `fetch` into a blob
-  URL so `lodProgress` shows a real percent. A WARM failure (`onWarmFailed`)
+  URL so `lodProgress` shows a real percent. **Never gate that percent on the
+  blob url**: the blob is minted only after the reader loop ends, so a gate on
+  it silences every chunk and leaves one 100 % flash after the bytes are in —
+  with the loading chip, the 2 px progress line and the dimmed rail tiles gone
+  with it. Gate on the target being the level `useLodDownload` is fetching
+  (`gltf-model.tsx`'s `counting`). A WARM failure (`onWarmFailed`)
   drops the level silently (the old ladder); a SHOWN failure
   (`onShownFailed`) holds `failure` until `retry()` — the error card. `Try
   again` bumps `retryVersion` (re-keys `LodErrorBoundary`'s `resetKey`);
