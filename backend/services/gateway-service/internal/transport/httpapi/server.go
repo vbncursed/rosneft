@@ -62,7 +62,7 @@ type Service interface {
 	//
 	// Neither derives the tenant from a request parameter — that comes from the
 	// session, or one Company Owner could read another's history.
-	ListAudit(ctx context.Context, q domain.AuditQuery, sc domain.AuditScope, token string, wantRefs bool) ([]domain.AuditEntry, int64, map[string]string, error)
+	ListAudit(ctx context.Context, q domain.AuditQuery, sc domain.AuditScope, token string, wantRefs bool) (domain.AuditPage, map[string]string, error)
 	ListAuditActors(ctx context.Context, p domain.AuditPrincipal, token string) ([]domain.AuditActor, error)
 
 	// ResolveBlobAccess backs RequireBlobAccess. A blob hash addresses content
@@ -71,6 +71,7 @@ type Service interface {
 	ResolveBlobAccess(ctx context.Context, hash, scopeAdminID string) (bool, error)
 
 	GetJob(ctx context.Context, id string) (domain.Job, error)
+	ListTargetJobs(ctx context.Context) ([]domain.Job, error)
 
 	InitiateUpload(ctx context.Context, size int64, contentType string) (domain.UploadSession, error)
 	AppendUploadChunk(ctx context.Context, id string, offset int64, body io.Reader) (int64, error)

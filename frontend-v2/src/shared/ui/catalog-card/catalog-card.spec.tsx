@@ -1,0 +1,233 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import { CatalogCard } from "./catalog-card";
+
+describe("CatalogCard", () => {
+  it("draws the badge, chips, slug and trailing note", () => {
+    render(
+      <CatalogCard
+        title="North Ridge Pad"
+        slug="north-ridge-pad"
+        description="Wellhead cluster."
+        badge={{ label: "ready", tone: "ok" }}
+        chips={[
+          { label: "3 placements", tone: "plain" },
+          { label: "panorama", tone: "ok" },
+        ]}
+        trailing={{ label: "Open →", tone: "accent" }}
+      />,
+    );
+    expect(screen.getByRole("article", { name: "North Ridge Pad" })).toBeInTheDocument();
+    expect(screen.getByText("ready")).toBeInTheDocument();
+    expect(screen.getByText("3 placements")).toBeInTheDocument();
+    expect(screen.getByText("north-ridge-pad")).toBeInTheDocument();
+    expect(screen.getByText("Open →")).toBeInTheDocument();
+  });
+
+  it("shows the progress bar and stage only while converting", () => {
+    const { rerender } = render(
+      <CatalogCard
+        title="Terminal Yard 4"
+        slug="terminal-yard-4"
+        trailing={{ label: "converting", tone: "warn" }}
+        progress={{ value: 62, stage: "Compressing textures… ~4 min" }}
+      />,
+    );
+    const bar = screen.getByRole("progressbar");
+    expect(bar).toHaveAttribute("aria-valuenow", "62");
+    expect(screen.getByText("Compressing textures… ~4 min")).toBeInTheDocument();
+
+    rerender(
+      <CatalogCard
+        title="Terminal Yard 4"
+        slug="terminal-yard-4"
+        trailing={{ label: "Open →", tone: "accent" }}
+      />,
+    );
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+  });
+
+  it("renders the thumbnail when given and the no-image label otherwise", () => {
+    const { container, rerender } = render(
+      <CatalogCard
+        title="Pump Jack Unit"
+        slug="pump-jack-unit"
+        thumbnailUrl="/api/assets/abc"
+        trailing={{ label: "in 6 territories", tone: "accent" }}
+      />,
+    );
+    expect(container.querySelector("img")).toHaveAttribute("src", "/api/assets/abc");
+
+    rerender(
+      <CatalogCard
+        title="Flare Stack"
+        slug="flare-stack"
+        noImageLabel="no image"
+        trailing={{ label: "unavailable", tone: "muted" }}
+      />,
+    );
+    expect(container.querySelector("img")).not.toBeInTheDocument();
+    expect(screen.getByText("no image")).toBeInTheDocument();
+  });
+
+  it("opens on click only when onOpen is given, and never from the overlay actions", async () => {
+    const onOpen = vi.fn();
+    const onDelete = vi.fn();
+    render(
+      <CatalogCard
+        title="Refinery Block C"
+        slug="refinery-block-c"
+        trailing={{ label: "Open →", tone: "accent" }}
+        onOpen={onOpen}
+        actions={
+          <button type="button" onClick={onDelete}>
+            Delete
+          </button>
+        }
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(onDelete).toHaveBeenCalledOnce();
+    expect(onOpen).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("article", { name: "Refinery Block C" }));
+    expect(onOpen).toHaveBeenCalledOnce();
+  });
+
+  it("renders no click affordance without onOpen", () => {
+    render(<CatalogCard title="T" slug="t" trailing={{ label: "unavailable", tone: "muted" }} />);
+    expect(screen.getByRole("article").className).not.toContain("cursor-pointer");
+  });
+
+  it("fits the small size", () => {
+    render(
+      <CatalogCard
+        title="Pump Jack Unit"
+        slug="pump-jack-unit"
+        size="sm"
+        trailing={{ label: "in 6 territories", tone: "accent" }}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "Pump Jack Unit" }).className).toContain("text-[14px]");
+  });
+
+  it("rounds the small size to its own radius, not the default card's", () => {
+    render(
+      <CatalogCard
+        title="Pump Jack Unit"
+        slug="pump-jack-unit"
+        size="sm"
+        trailing={{ label: "in 6 territories", tone: "accent" }}
+      />,
+    );
+    const cls = screen.getByRole("article").className;
+    expect(cls).toContain("rounded-[12px]");
+    expect(cls).not.toContain("rounded-[14px]");
+  });
+
+  it("opens the card from the keyboard via the title button, exactly once despite the bubble to the article", async () => {
+    const onOpen = vi.fn();
+    render(
+      <CatalogCard
+        title="North Ridge Pad"
+        slug="north-ridge-pad"
+        trailing={{ label: "Open →", tone: "accent" }}
+        onOpen={onOpen}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "North Ridge Pad" }));
+    expect(onOpen).toHaveBeenCalledOnce();
+  });
+
+  it("keeps its heading even when openable — the button lives inside the h3, not instead of it", () => {
+    render(
+      <CatalogCard
+        title="North Ridge Pad"
+        slug="north-ridge-pad"
+        trailing={{ label: "Open →", tone: "accent" }}
+        onOpen={() => {}}
+      />,
+    );
+    expect(
+      screen.getByRole("heading", { level: 3, name: "North Ridge Pad" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "North Ridge Pad" })).toBeInTheDocument();
+  });
+
+  it("renders the title as a real link when href is given, so it can be opened in a new tab", () => {
+    const onOpen = vi.fn();
+    render(
+      <CatalogCard
+        title="North Ridge Pad"
+        slug="north-ridge-pad"
+        trailing={{ label: "Open →", tone: "accent" }}
+        href="/territories/north-ridge-pad"
+        onOpen={onOpen}
+      />,
+    );
+    const link = screen.getByRole("link", { name: "North Ridge Pad" });
+    expect(link).toHaveAttribute("href", "/territories/north-ridge-pad");
+    expect(screen.getByRole("heading", { level: 3, name: "North Ridge Pad" })).toContainElement(link);
+    // The anchor is the navigation; the article's onOpen must not fire as well.
+    expect(screen.queryByRole("button", { name: "North Ridge Pad" })).not.toBeInTheDocument();
+    fireEvent.click(link);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("keeps the pointer-anywhere click on the article even with an href", async () => {
+    const onOpen = vi.fn();
+    render(
+      <CatalogCard
+        title="North Ridge Pad"
+        slug="north-ridge-pad"
+        trailing={{ label: "Open →", tone: "accent" }}
+        href="/territories/north-ridge-pad"
+        onOpen={onOpen}
+      />,
+    );
+    await userEvent.click(screen.getByRole("article", { name: "North Ridge Pad" }));
+    expect(onOpen).toHaveBeenCalledOnce();
+  });
+
+  it("renders the title as plain text, not a button, without onOpen", () => {
+    render(<CatalogCard title="T" slug="t" trailing={{ label: "unavailable", tone: "muted" }} />);
+    expect(screen.queryByRole("button", { name: "T" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "T" })).toBeInTheDocument();
+  });
+
+  it("omits the description paragraph when there is none", () => {
+    const { container } = render(
+      <CatalogCard title="T" slug="t" trailing={{ label: "Open →", tone: "accent" }} />,
+    );
+    expect(container.querySelectorAll("p")).toHaveLength(0);
+  });
+
+  it("moves the slug under the title and shows meta in the footer for the small size", () => {
+    const { container } = render(
+      <CatalogCard
+        title="Storage Tank 500"
+        slug="storage-tank-500"
+        size="sm"
+        meta="96 MB"
+        trailing={{ label: "in 4 territories", tone: "accent" }}
+      />,
+    );
+    expect(screen.getByText("storage-tank-500")).toBeInTheDocument();
+    const footer = container.querySelector(".border-t");
+    expect(footer).not.toHaveTextContent("storage-tank-500");
+    expect(footer).toHaveTextContent("in 4 territories");
+    expect(footer).toHaveTextContent("96 MB");
+    expect(footer?.className).toContain("pt-2.5");
+  });
+
+  it("keeps the md footer exactly as before — slug left, trailing right, pt-3", () => {
+    const { container } = render(
+      <CatalogCard title="North Ridge Pad" slug="north-ridge-pad" trailing={{ label: "Open →", tone: "accent" }} />,
+    );
+    const footer = container.querySelector(".border-t");
+    expect(footer).toHaveTextContent("north-ridge-pad");
+    expect(footer).toHaveTextContent("Open →");
+    expect(footer?.className).toContain("pt-3");
+  });
+});

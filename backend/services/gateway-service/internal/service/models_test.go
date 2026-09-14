@@ -73,8 +73,7 @@ func (s *ModelsSuite) TestUpdateSetsThumbnailViaReadModifyWrite() {
 	merged.ThumbnailBlobHash = "thumb-hash"
 	s.cat.UpsertModelMock.Expect(s.ctx, merged).Return(merged, nil)
 
-	hash := "thumb-hash"
-	saved, err := s.svc.UpdateModel(s.ctx, "m1", domain.ModelUpdate{ThumbnailBlobHash: &hash})
+	saved, err := s.svc.UpdateModel(s.ctx, "m1", domain.ModelUpdate{ThumbnailBlobHash: new("thumb-hash")})
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), saved.ThumbnailBlobHash, "thumb-hash")
 }

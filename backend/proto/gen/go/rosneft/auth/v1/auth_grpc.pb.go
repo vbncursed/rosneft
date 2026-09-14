@@ -19,33 +19,34 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthService_Login_FullMethodName              = "/rosneft.auth.v1.AuthService/Login"
-	AuthService_LoginVerify2FA_FullMethodName     = "/rosneft.auth.v1.AuthService/LoginVerify2FA"
-	AuthService_PasskeyLoginBegin_FullMethodName  = "/rosneft.auth.v1.AuthService/PasskeyLoginBegin"
-	AuthService_PasskeyLoginFinish_FullMethodName = "/rosneft.auth.v1.AuthService/PasskeyLoginFinish"
-	AuthService_Logout_FullMethodName             = "/rosneft.auth.v1.AuthService/Logout"
-	AuthService_ValidateToken_FullMethodName      = "/rosneft.auth.v1.AuthService/ValidateToken"
-	AuthService_GetMe_FullMethodName              = "/rosneft.auth.v1.AuthService/GetMe"
-	AuthService_ChangePassword_FullMethodName     = "/rosneft.auth.v1.AuthService/ChangePassword"
-	AuthService_VerifyPassword_FullMethodName     = "/rosneft.auth.v1.AuthService/VerifyPassword"
-	AuthService_MarkTourSeen_FullMethodName       = "/rosneft.auth.v1.AuthService/MarkTourSeen"
-	AuthService_CreateUser_FullMethodName         = "/rosneft.auth.v1.AuthService/CreateUser"
-	AuthService_ListUsers_FullMethodName          = "/rosneft.auth.v1.AuthService/ListUsers"
-	AuthService_ResolveUserLogins_FullMethodName  = "/rosneft.auth.v1.AuthService/ResolveUserLogins"
-	AuthService_GetUser_FullMethodName            = "/rosneft.auth.v1.AuthService/GetUser"
-	AuthService_UpdateUser_FullMethodName         = "/rosneft.auth.v1.AuthService/UpdateUser"
-	AuthService_FreezeUser_FullMethodName         = "/rosneft.auth.v1.AuthService/FreezeUser"
-	AuthService_UnfreezeUser_FullMethodName       = "/rosneft.auth.v1.AuthService/UnfreezeUser"
-	AuthService_SoftDeleteUser_FullMethodName     = "/rosneft.auth.v1.AuthService/SoftDeleteUser"
-	AuthService_RestoreUser_FullMethodName        = "/rosneft.auth.v1.AuthService/RestoreUser"
-	AuthService_SetUserOwner_FullMethodName       = "/rosneft.auth.v1.AuthService/SetUserOwner"
-	AuthService_ListRoles_FullMethodName          = "/rosneft.auth.v1.AuthService/ListRoles"
-	AuthService_CreateRole_FullMethodName         = "/rosneft.auth.v1.AuthService/CreateRole"
-	AuthService_UpdateRole_FullMethodName         = "/rosneft.auth.v1.AuthService/UpdateRole"
-	AuthService_DeleteRole_FullMethodName         = "/rosneft.auth.v1.AuthService/DeleteRole"
-	AuthService_SetRolePermissions_FullMethodName = "/rosneft.auth.v1.AuthService/SetRolePermissions"
-	AuthService_ListPermissions_FullMethodName    = "/rosneft.auth.v1.AuthService/ListPermissions"
-	AuthService_ResolveLabels_FullMethodName      = "/rosneft.auth.v1.AuthService/ResolveLabels"
+	AuthService_Login_FullMethodName               = "/rosneft.auth.v1.AuthService/Login"
+	AuthService_LoginVerify2FA_FullMethodName      = "/rosneft.auth.v1.AuthService/LoginVerify2FA"
+	AuthService_PasskeyLoginBegin_FullMethodName   = "/rosneft.auth.v1.AuthService/PasskeyLoginBegin"
+	AuthService_PasskeyLoginFinish_FullMethodName  = "/rosneft.auth.v1.AuthService/PasskeyLoginFinish"
+	AuthService_Logout_FullMethodName              = "/rosneft.auth.v1.AuthService/Logout"
+	AuthService_ValidateToken_FullMethodName       = "/rosneft.auth.v1.AuthService/ValidateToken"
+	AuthService_GetMe_FullMethodName               = "/rosneft.auth.v1.AuthService/GetMe"
+	AuthService_ChangePassword_FullMethodName      = "/rosneft.auth.v1.AuthService/ChangePassword"
+	AuthService_VerifyPassword_FullMethodName      = "/rosneft.auth.v1.AuthService/VerifyPassword"
+	AuthService_MarkTourSeen_FullMethodName        = "/rosneft.auth.v1.AuthService/MarkTourSeen"
+	AuthService_CreateUser_FullMethodName          = "/rosneft.auth.v1.AuthService/CreateUser"
+	AuthService_ListUsers_FullMethodName           = "/rosneft.auth.v1.AuthService/ListUsers"
+	AuthService_ResolveUserLogins_FullMethodName   = "/rosneft.auth.v1.AuthService/ResolveUserLogins"
+	AuthService_GetUser_FullMethodName             = "/rosneft.auth.v1.AuthService/GetUser"
+	AuthService_UpdateUser_FullMethodName          = "/rosneft.auth.v1.AuthService/UpdateUser"
+	AuthService_FreezeUser_FullMethodName          = "/rosneft.auth.v1.AuthService/FreezeUser"
+	AuthService_UnfreezeUser_FullMethodName        = "/rosneft.auth.v1.AuthService/UnfreezeUser"
+	AuthService_SoftDeleteUser_FullMethodName      = "/rosneft.auth.v1.AuthService/SoftDeleteUser"
+	AuthService_RestoreUser_FullMethodName         = "/rosneft.auth.v1.AuthService/RestoreUser"
+	AuthService_SetUserOwner_FullMethodName        = "/rosneft.auth.v1.AuthService/SetUserOwner"
+	AuthService_SetUserTOTPRequired_FullMethodName = "/rosneft.auth.v1.AuthService/SetUserTOTPRequired"
+	AuthService_ListRoles_FullMethodName           = "/rosneft.auth.v1.AuthService/ListRoles"
+	AuthService_CreateRole_FullMethodName          = "/rosneft.auth.v1.AuthService/CreateRole"
+	AuthService_UpdateRole_FullMethodName          = "/rosneft.auth.v1.AuthService/UpdateRole"
+	AuthService_DeleteRole_FullMethodName          = "/rosneft.auth.v1.AuthService/DeleteRole"
+	AuthService_SetRolePermissions_FullMethodName  = "/rosneft.auth.v1.AuthService/SetRolePermissions"
+	AuthService_ListPermissions_FullMethodName     = "/rosneft.auth.v1.AuthService/ListPermissions"
+	AuthService_ResolveLabels_FullMethodName       = "/rosneft.auth.v1.AuthService/ResolveLabels"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -87,6 +88,7 @@ type AuthServiceClient interface {
 	SoftDeleteUser(ctx context.Context, in *SoftDeleteUserRequest, opts ...grpc.CallOption) (*SoftDeleteUserResponse, error)
 	RestoreUser(ctx context.Context, in *RestoreUserRequest, opts ...grpc.CallOption) (*User, error)
 	SetUserOwner(ctx context.Context, in *SetUserOwnerRequest, opts ...grpc.CallOption) (*User, error)
+	SetUserTOTPRequired(ctx context.Context, in *SetUserTOTPRequiredRequest, opts ...grpc.CallOption) (*User, error)
 	// --- roles / permissions ---
 	ListRoles(ctx context.Context, in *ListRolesRequest, opts ...grpc.CallOption) (*ListRolesResponse, error)
 	CreateRole(ctx context.Context, in *CreateRoleRequest, opts ...grpc.CallOption) (*Role, error)
@@ -311,6 +313,16 @@ func (c *authServiceClient) SetUserOwner(ctx context.Context, in *SetUserOwnerRe
 	return out, nil
 }
 
+func (c *authServiceClient) SetUserTOTPRequired(ctx context.Context, in *SetUserTOTPRequiredRequest, opts ...grpc.CallOption) (*User, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(User)
+	err := c.cc.Invoke(ctx, AuthService_SetUserTOTPRequired_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *authServiceClient) ListRoles(ctx context.Context, in *ListRolesRequest, opts ...grpc.CallOption) (*ListRolesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListRolesResponse)
@@ -420,6 +432,7 @@ type AuthServiceServer interface {
 	SoftDeleteUser(context.Context, *SoftDeleteUserRequest) (*SoftDeleteUserResponse, error)
 	RestoreUser(context.Context, *RestoreUserRequest) (*User, error)
 	SetUserOwner(context.Context, *SetUserOwnerRequest) (*User, error)
+	SetUserTOTPRequired(context.Context, *SetUserTOTPRequiredRequest) (*User, error)
 	// --- roles / permissions ---
 	ListRoles(context.Context, *ListRolesRequest) (*ListRolesResponse, error)
 	CreateRole(context.Context, *CreateRoleRequest) (*Role, error)
@@ -503,6 +516,9 @@ func (UnimplementedAuthServiceServer) RestoreUser(context.Context, *RestoreUserR
 }
 func (UnimplementedAuthServiceServer) SetUserOwner(context.Context, *SetUserOwnerRequest) (*User, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetUserOwner not implemented")
+}
+func (UnimplementedAuthServiceServer) SetUserTOTPRequired(context.Context, *SetUserTOTPRequiredRequest) (*User, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetUserTOTPRequired not implemented")
 }
 func (UnimplementedAuthServiceServer) ListRoles(context.Context, *ListRolesRequest) (*ListRolesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRoles not implemented")
@@ -906,6 +922,24 @@ func _AuthService_SetUserOwner_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_SetUserTOTPRequired_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetUserTOTPRequiredRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).SetUserTOTPRequired(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_SetUserTOTPRequired_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).SetUserTOTPRequired(ctx, req.(*SetUserTOTPRequiredRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AuthService_ListRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListRolesRequest)
 	if err := dec(in); err != nil {
@@ -1118,6 +1152,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetUserOwner",
 			Handler:    _AuthService_SetUserOwner_Handler,
+		},
+		{
+			MethodName: "SetUserTOTPRequired",
+			Handler:    _AuthService_SetUserTOTPRequired_Handler,
 		},
 		{
 			MethodName: "ListRoles",

@@ -11,6 +11,13 @@ import (
 // pgUniqueViolation is Postgres' SQLSTATE for a unique-constraint breach.
 const pgUniqueViolation = "23505"
 
+// pgRestrictViolation is what an explicit ON DELETE RESTRICT raises (SQLSTATE
+// 23001). 23503, foreign_key_violation, is the NO ACTION / insert-update code
+// and never fires for this delete — checking it here left a placed model's
+// delete as a raw 500 until auth-service's integration test showed which
+// code Postgres actually sends.
+const pgRestrictViolation = "23001"
+
 // isUniqueViolation reports whether err is a Postgres unique-constraint
 // violation — the signal that a slug candidate is already taken.
 func isUniqueViolation(err error) bool {
@@ -57,6 +64,23 @@ func scanTerritory(r rowScanner) (domain.Territory, error) {
 func scanModel(r rowScanner) (domain.Model, error) {
 	var m domain.Model
 	err := r.Scan(&m.Slug, &m.Title, &m.Description, &m.SourceBlobHash, &m.ThumbnailBlobHash, &m.CreatedAt, &m.UpdatedAt)
+	return m, err
+}
+
+// scanTerritoryListed scans a territory row plus its trailing
+// placement_count, used by both ListTerritories' and GetTerritory's
+// correlated-count query.
+func scanTerritoryListed(r rowScanner) (domain.Territory, error) {
+	var t domain.Territory
+	err := r.Scan(&t.Slug, &t.Title, &t.Description, &t.SourceBlobHash, &t.ExternalPanoramaURL, &t.CreatedAt, &t.UpdatedAt, &t.PlacementCount)
+	return t, err
+}
+
+// scanModelListed scans a model row plus its trailing usage_count, used by
+// both ListModels' and GetModel's correlated-count query.
+func scanModelListed(r rowScanner) (domain.Model, error) {
+	var m domain.Model
+	err := r.Scan(&m.Slug, &m.Title, &m.Description, &m.SourceBlobHash, &m.ThumbnailBlobHash, &m.CreatedAt, &m.UpdatedAt, &m.UsageCount)
 	return m, err
 }
 

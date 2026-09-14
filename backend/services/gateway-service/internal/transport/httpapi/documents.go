@@ -24,7 +24,7 @@ func (s *Server) ListDocuments(ctx context.Context, req ListDocumentsRequestObje
 
 func (s *Server) CreateDocument(ctx context.Context, req CreateDocumentRequestObject) (CreateDocumentResponseObject, error) {
 	if req.Body == nil {
-		return CreateDocument400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
+		return CreateDocument400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
 	body := *req.Body
 	d, err := s.svc.CreateDocument(ctx, domain.Document{

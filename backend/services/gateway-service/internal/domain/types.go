@@ -37,6 +37,9 @@ type Territory struct {
 	SourceBlobHash      string
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
+	// PlacementCount is how many placements sit on this territory. Filled on
+	// both the list endpoint and a single-territory GET.
+	PlacementCount int
 }
 
 // TerritoryUpdate carries the mutable fields of PATCH /api/territories/{slug}.
@@ -61,6 +64,9 @@ type Model struct {
 	ThumbnailBlobHash string
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
+	// UsageCount is how many distinct territories place this model. Filled on
+	// both the list endpoint and a single-model GET.
+	UsageCount int
 }
 
 // LodArtifact is the minimal descriptor for one LOD level.

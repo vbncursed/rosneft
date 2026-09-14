@@ -4,6 +4,7 @@ package authhttp
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,20 +21,39 @@ func (s *CookieSuite) handlers(secure bool) *Handlers {
 }
 
 func (s *CookieSuite) TestSetSessionCarriesTheHardeningAttributes() {
-	rec := httptest.NewRecorder()
+	for _, tc := range []struct {
+		name    string
+		persist bool
+		maxAge  int
+	}{
+		{"persistent", true, int((720 * time.Hour).Seconds())},
+		// A browser-session cookie is one with neither Max-Age nor Expires;
+		// the browser drops it when it closes. That, and nothing server-side,
+		// is what "Keep me signed in" unticked promises.
+		{"browser-session", false, 0},
+	} {
+		s.Run(tc.name, func() {
+			rec := httptest.NewRecorder()
 
-	s.handlers(true).setSession(rec, "tok-1")
+			s.handlers(true).setSession(rec, "tok-1", tc.persist)
 
-	c := rec.Result().Cookies()[0]
-	assert.Equal(s.T(), c.Name, sessionCookieName)
-	assert.Equal(s.T(), c.Value, "tok-1")
-	assert.Equal(s.T(), c.HttpOnly, true, "a readable cookie is the localStorage problem again")
-	assert.Equal(s.T(), c.Secure, true)
-	assert.Equal(s.T(), c.Path, "/")
-	// Lax is what stands in for a CSRF token: a cross-site POST does not carry
-	// it, and this API changes state only through POST/PUT/PATCH/DELETE.
-	assert.Equal(s.T(), c.SameSite, http.SameSiteLaxMode)
-	assert.Equal(s.T(), c.MaxAge, int((720 * time.Hour).Seconds()))
+			c := rec.Result().Cookies()[0]
+			assert.Equal(s.T(), c.Name, sessionCookieName)
+			assert.Equal(s.T(), c.Value, "tok-1")
+			assert.Equal(s.T(), c.HttpOnly, true, "a readable cookie is the localStorage problem again")
+			assert.Equal(s.T(), c.Secure, true)
+			assert.Equal(s.T(), c.Path, "/")
+			// Lax is what stands in for a CSRF token: a cross-site POST does not carry
+			// it, and this API changes state only through POST/PUT/PATCH/DELETE.
+			assert.Equal(s.T(), c.SameSite, http.SameSiteLaxMode)
+			assert.Equal(s.T(), c.MaxAge, tc.maxAge)
+			assert.Assert(s.T(), c.Expires.IsZero(), "Expires must never be set; Max-Age alone decides")
+			if !tc.persist {
+				assert.Assert(s.T(), !strings.Contains(rec.Header().Get("Set-Cookie"), "Max-Age"),
+					"a session cookie carries no Max-Age at all")
+			}
+		})
+	}
 }
 
 // Local dev runs over plain http, where a Secure cookie is simply never sent —
@@ -41,7 +61,7 @@ func (s *CookieSuite) TestSetSessionCarriesTheHardeningAttributes() {
 func (s *CookieSuite) TestSecureFollowsConfig() {
 	rec := httptest.NewRecorder()
 
-	s.handlers(false).setSession(rec, "tok-1")
+	s.handlers(false).setSession(rec, "tok-1", true)
 
 	assert.Equal(s.T(), rec.Result().Cookies()[0].Secure, false)
 }

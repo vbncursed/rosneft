@@ -26,7 +26,7 @@ func (s *Server) ListPanoramas(ctx context.Context, req ListPanoramasRequestObje
 
 func (s *Server) CreatePanorama(ctx context.Context, req CreatePanoramaRequestObject) (CreatePanoramaResponseObject, error) {
 	if req.Body == nil {
-		return CreatePanorama400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
+		return CreatePanorama400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
 	body := *req.Body
 	var yawOffset float64
@@ -54,7 +54,7 @@ func (s *Server) CreatePanorama(ctx context.Context, req CreatePanoramaRequestOb
 
 func (s *Server) UpdatePanorama(ctx context.Context, req UpdatePanoramaRequestObject) (UpdatePanoramaResponseObject, error) {
 	if req.Body == nil {
-		return UpdatePanorama400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
+		return UpdatePanorama400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
 	body := *req.Body
 	title := ""
