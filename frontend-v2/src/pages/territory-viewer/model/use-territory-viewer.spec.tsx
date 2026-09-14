@@ -323,8 +323,13 @@ describe("useTerritoryViewer", () => {
     it("asks for the coarser level when the reader takes the way out", async () => {
       const r = mount();
       fail(await ready(r));
+      const before = now(r).canvas.retryVersion;
       act(() => now(r).overlays.error!.onCoarse!());
       expect(now(r).canvas.targetLod).toBe(2);
+      // And re-arms: the failure is held until a retry, and while it is held
+      // nothing is drawn — a new target on its own changed the number and left
+      // the card exactly where it was.
+      expect(now(r).canvas.retryVersion).toBe(before + 1);
     });
 
     it("stamps the last attempt once — a later render does not move the clock", async () => {

@@ -279,12 +279,16 @@ describe("pageProps · a failed mesh", () => {
     expect(error?.copy.footer).toBe("refinery-block-c-lod1.glb · last attempt 14:22");
   });
 
-  it("asks for the coarser level when the reader takes the way out", () => {
+  it("asks for the coarser level when the reader takes the way out, and retries with it", () => {
     const onTargetLod = vi.fn();
+    const onRetry = vi.fn();
     const p = parts(FAILURE);
-    const { error } = pageProps({ ...p, on: { ...HANDLERS, onTargetLod } }).overlays;
+    const { error } = pageProps({ ...p, on: { ...HANDLERS, onTargetLod, onRetry } }).overlays;
     error?.onCoarse?.();
     expect(onTargetLod).toHaveBeenCalledWith(2);
+    // The failure is cleared by the retry alone; without this the target moved
+    // and the card stayed, which is a drawn button that answers nothing.
+    expect(onRetry).toHaveBeenCalledOnce();
   });
 
   it("offers no way out when there is no coarser level, and says so in the copy", () => {

@@ -134,7 +134,15 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
         ? {
             copy: errorCopy(error, view.now),
             onRetry: on.onRetry,
-            onCoarse: error.coarser ? () => on.onTargetLod(error.coarser!.lod) : null,
+            // Both, always: `failure` is cleared by the retry and by nothing
+            // else, and while it is held no level is drawn — so a new target
+            // on its own left the card exactly as it was.
+            onCoarse: error.coarser
+              ? () => {
+                  on.onTargetLod(error.coarser!.lod);
+                  on.onRetry();
+                }
+              : null,
           }
         : null,
     },
