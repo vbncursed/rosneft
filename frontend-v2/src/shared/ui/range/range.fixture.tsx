@@ -27,22 +27,26 @@ function Yaw() {
   );
 }
 
-function Disabled() {
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="m-0 flex justify-between text-[13px] text-fg">
-        <span>Yaw</span>
-        <span className="font-mono text-[10px] text-muted">0°</span>
-      </p>
-      <Range label="Yaw" value={0} min={0} max={360} step={0.5} onChange={() => {}} disabled />
+export default {
+  opacity: (
+    <div className="max-w-md rounded-card border border-line bg-panel p-6">
+      <Opacity />
     </div>
-  );
-}
-
-export default (
-  <div className="flex max-w-md flex-col gap-5 rounded-card border border-line bg-panel p-6">
-    <Opacity />
-    <Yaw />
-    <Disabled />
-  </div>
-);
+  ),
+  yaw: (
+    <div className="max-w-md rounded-card border border-line bg-panel p-6">
+      <Yaw />
+    </div>
+  ),
+  disabled: (
+    <div className="max-w-md rounded-card border border-line bg-panel p-6">
+      <div className="flex flex-col gap-2">
+        <p className="m-0 flex justify-between text-[13px] text-fg">
+          <span>Yaw</span>
+          <span className="font-mono text-[10px] text-muted">0°</span>
+        </p>
+        <Range label="Yaw" value={0} min={0} max={360} step={0.5} onChange={() => {}} disabled />
+      </div>
+    </div>
+  ),
+};
