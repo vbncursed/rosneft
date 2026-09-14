@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boundsStub, fakePlacement, fakeScene, mockDrei } from "./testing";
+import { boundsStub, fakeControls, fakePlacement, fakeScene, mockDrei } from "./testing";
 
 describe("the drei test doubles", () => {
   it("builds a parsable scene and a one-level placement", () => {
@@ -14,5 +14,19 @@ describe("the drei test doubles", () => {
     expect(drei.useGLTF()).toEqual({ scene: expect.anything() });
     expect(drei.useGLTF.preload).toBeTypeOf("function");
     expect(drei.useBounds()).toBe(boundsStub);
+  });
+
+  it("fires a controls listener until it is removed again", () => {
+    const controls = fakeControls();
+    let fired = 0;
+    const listener = () => (fired += 1);
+    controls.addEventListener("change", listener);
+    controls.fire("change");
+    controls.fire("other");
+    expect(fired).toBe(1);
+
+    controls.removeEventListener("change", listener);
+    controls.fire("change");
+    expect(fired).toBe(1);
   });
 });
