@@ -32,8 +32,19 @@ const dto = {
     },
   ],
   modelOptions: [{ slug: "m", title: "M", artifacts: [] }],
-  panoramas: [{ id: 9 }],
-  documents: [{ id: 8 }],
+  panoramas: [
+    {
+      id: 9,
+      territorySlug: "t",
+      slug: "north",
+      title: "North yard",
+      sourceBlobHash: "p",
+      position: { x: 0, y: 0, z: 0 },
+      yawOffset: 0,
+      defaultYaw: 0,
+    },
+  ],
+  documents: [{ id: 8, territorySlug: "t", title: "Plot plan.pdf", sourceBlobHash: "d" }],
 };
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -44,14 +55,23 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("getSceneBundle", () => {
-  it("maps the bundle and ignores the panoramas and documents for now", async () => {
+  it("maps the bundle, including panoramas and documents through their own mappers", async () => {
     const bundle = await getSceneBundle("t");
     expect(fetchMock.mock.calls[0][0]).toBe("/api/territories/t/scene");
     expect(bundle.artifact?.chain.map((a) => a.lod)).toEqual([0, 2]);
     expect(bundle.artifact?.bboxMax).toEqual({ x: 2, y: 1, z: 2 });
     expect(bundle.placements[0]).toMatchObject({ id: 1, label: "", updatedAt: "", visiblePanoramaIds: [] });
     expect(bundle.modelOptions[0].chain).toEqual([]);
-    expect("panoramas" in bundle).toBe(false);
+    expect(bundle.panoramas).toEqual([{ ...dto.panoramas[0], updatedAt: "" }]);
+    expect(bundle.documents).toEqual([{ ...dto.documents[0], createdAt: "" }]);
+  });
+
+  it("defaults panoramas and documents to [] when the DTO omits them", async () => {
+    const { panoramas: _p, documents: _d, ...withoutOverlays } = dto;
+    fetchMock.mockResolvedValueOnce(json(withoutOverlays));
+    const bundle = await getSceneBundle("t");
+    expect(bundle.panoramas).toEqual([]);
+    expect(bundle.documents).toEqual([]);
   });
 
   it("falls back to a one-entry chain when /scene carries no artifacts[]", async () => {

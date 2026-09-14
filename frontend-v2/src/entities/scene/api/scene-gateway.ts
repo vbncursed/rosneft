@@ -2,6 +2,8 @@ import { httpGet } from "@/shared/api";
 import type { components } from "@/shared/api/dto";
 import { toPlacement, type Placement, type Vec3 } from "@/entities/placement";
 import { toTerritory, type Territory } from "@/entities/territory";
+import { toPanorama, type Panorama } from "@/entities/panorama";
+import { toDocument, type Document } from "@/entities/document";
 import type { LodArtifact } from "../model/lod";
 
 type BundleDto = components["schemas"]["SceneBundle"];
@@ -34,6 +36,8 @@ export type SceneBundle = {
   artifact: SceneArtifact | null;
   placements: Placement[];
   modelOptions: ModelOption[];
+  panoramas: Panorama[];
+  documents: Document[];
 };
 
 const ZERO: Vec3 = { x: 0, y: 0, z: 0 };
@@ -69,5 +73,7 @@ export async function getSceneBundle(slug: string): Promise<SceneBundle> {
     artifact: d.artifact ? toArtifact(d.artifact) : null,
     placements: d.placements.map(toPlacement),
     modelOptions: d.modelOptions.map(toOption),
+    panoramas: (d.panoramas ?? []).map(toPanorama),
+    documents: (d.documents ?? []).map(toDocument),
   };
 }

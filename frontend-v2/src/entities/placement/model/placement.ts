@@ -55,6 +55,8 @@ export type PlacementCreate = {
   rotation?: Vec3;
   scale?: Vec3;
   label?: string;
+  /** Initial panorama allowlist (e.g. the active panorama). */
+  visiblePanoramaIds?: number[];
 };
 
 /** The PUT body: the whole transform, plus the label, every time. */

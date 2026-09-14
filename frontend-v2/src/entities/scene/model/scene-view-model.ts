@@ -1,4 +1,6 @@
 import type { ResolvedPlacement, Vec3 } from "@/entities/placement";
+import type { Panorama, SourceBbox } from "@/entities/panorama";
+import type { Document } from "@/entities/document";
 import type { SceneBundle } from "../api/scene-gateway";
 import type { LodArtifact } from "./lod";
 
@@ -16,6 +18,10 @@ export type SceneViewModel = {
   parentLods: LodArtifact[];
   metadata: SceneMetadata;
   placements: ResolvedPlacement[];
+  panoramas: Panorama[];
+  documents: Document[];
+  /** Source-unit LOD0 bbox for EXIF anchoring; null when the artifact carries the zero fallback on both ends. */
+  sourceBbox: SourceBbox | null;
 };
 
 /** The route's branch: the viewer needs a LOD0; anything else is the conversion page. */
@@ -24,9 +30,11 @@ export const sceneReady = (bundle: SceneBundle): boolean =>
 
 const axis = (min: number, max: number) => Number((max - min).toFixed(2));
 
+const isZero = (v: Vec3) => v.x === 0 && v.y === 0 && v.z === 0;
+
 /** Pure bundle → what the viewer renders. Null when nothing is converted. */
 export function toSceneViewModel(bundle: SceneBundle): SceneViewModel | null {
-  const { territory, artifact, placements, modelOptions } = bundle;
+  const { territory, artifact, placements, modelOptions, panoramas, documents } = bundle;
   if (!artifact) return null;
   const chainBySlug = new Map(modelOptions.map((o) => [o.slug, o.chain]));
   return {
@@ -43,5 +51,11 @@ export function toSceneViewModel(bundle: SceneBundle): SceneViewModel | null {
       uploadedAt: territory.createdAt ?? null,
     },
     placements: placements.map((p) => ({ ...p, chain: chainBySlug.get(p.modelSlug) ?? [] })),
+    panoramas,
+    documents,
+    sourceBbox:
+      isZero(artifact.bboxMin) && isZero(artifact.bboxMax)
+        ? null
+        : { min: artifact.bboxMin, max: artifact.bboxMax },
   };
 }

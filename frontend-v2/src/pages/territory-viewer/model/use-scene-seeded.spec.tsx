@@ -10,7 +10,7 @@ vi.mock("@/entities/scene", async (importOriginal) => ({
   getSceneBundle,
 }));
 
-const BUNDLE = { territory: {}, artifact: null, placements: [], modelOptions: [] };
+const BUNDLE = { territory: {}, artifact: null, placements: [], modelOptions: [], panoramas: [], documents: [] };
 
 let client: QueryClient;
 const wrapper = ({ children }: { children: ReactNode }) => (

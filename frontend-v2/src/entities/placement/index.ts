@@ -11,7 +11,12 @@ export {
   type Vec3,
 } from "./model/placement";
 export { toPlacement } from "./api/to-placement";
-export { createPlacement, deletePlacement, updatePlacement } from "./api/placements-gateway";
+export {
+  createPlacement,
+  deletePlacement,
+  setPlacementVisibility,
+  updatePlacement,
+} from "./api/placements-gateway";
 export {
   creating,
   idle,

@@ -6,6 +6,7 @@ import {
   getTerritory,
   listTerritories,
   replaceTerritorySource,
+  updateTerritory,
 } from "./territories-gateway";
 
 const territory = { slug: "t-1", title: "T 1", sourceBlobHash: "a".repeat(64) };
@@ -74,5 +75,15 @@ describe("territories gateway", () => {
     expect(init.method).toBe("POST");
     expect(JSON.parse(init.body as string)).toEqual({ sourceBlobHash: "d".repeat(64) });
     expect(out).toEqual({ territory: expect.objectContaining({ slug: "t-1" }), job: { id: "j-9" } });
+  });
+
+  it("PATCHes the territory and maps the answer", async () => {
+    fetchMock.mockResolvedValueOnce(json({ ...territory, externalPanoramaUrl: "https://tour.example" }));
+    const out = await updateTerritory("t", { externalPanoramaUrl: "https://tour.example" });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/territories/t");
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body as string)).toEqual({ externalPanoramaUrl: "https://tour.example" });
+    expect(out.externalPanoramaUrl).toBe("https://tour.example");
   });
 });
