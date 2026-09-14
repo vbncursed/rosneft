@@ -83,6 +83,8 @@ const BUNDLE: SceneBundle = {
       chain: [{ lod: 0, hash: "m0", size: 1 }],
     },
   ],
+  panoramas: [],
+  documents: [],
 };
 
 const principal = (over: Partial<Principal> = {}): Principal => ({

@@ -26,3 +26,14 @@ export async function updatePlacement(
 export function deletePlacement(territorySlug: string, id: number): Promise<void> {
   return httpDelete(`${base(territorySlug)}/${id}`);
 }
+
+/** Replaces the allowlist in full; the answer carries a fresh updatedAt so an open form re-keys. */
+export async function setPlacementVisibility(
+  territorySlug: string,
+  id: number,
+  panoramaIds: number[],
+): Promise<Placement> {
+  return toPlacement(
+    await httpPut<PlacementDto>(`${base(territorySlug)}/${id}/visibility`, { panoramaIds }),
+  );
+}

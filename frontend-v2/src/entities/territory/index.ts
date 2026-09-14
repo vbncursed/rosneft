@@ -7,6 +7,7 @@ export {
   getTerritory,
   listTerritories,
   replaceTerritorySource,
+  updateTerritory,
   type CreateTerritoryInput,
 } from "./api/territories-gateway";
 export { toTerritory } from "./api/to-territory";

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCsrfToken } from "@/shared/api";
-import { createPlacement, deletePlacement, updatePlacement } from "./placements-gateway";
+import { createPlacement, deletePlacement, setPlacementVisibility, updatePlacement } from "./placements-gateway";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -47,6 +47,16 @@ describe("placements gateway", () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
     await expect(deletePlacement("north", 7)).resolves.toBeUndefined();
     expect(request()).toMatchObject({ url: "/api/territories/north/placements/7", method: "DELETE" });
+  });
+
+  it("PUTs the panorama allowlist to the visibility route and maps the answer", async () => {
+    fetchMock.mockResolvedValueOnce(json({ ...DTO, visiblePanoramaIds: [1, 2], updatedAt: "t3" }));
+    await expect(setPlacementVisibility("north", 5, [1, 2])).resolves.toMatchObject({ visiblePanoramaIds: [1, 2] });
+    expect(request()).toEqual({
+      url: "/api/territories/north/placements/5/visibility",
+      method: "PUT",
+      body: { panoramaIds: [1, 2] },
+    });
   });
 
   it("percent-encodes the territory slug in every route", async () => {

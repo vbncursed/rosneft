@@ -1,4 +1,4 @@
-import { httpDelete, httpGet, httpPost } from "@/shared/api";
+import { httpDelete, httpGet, httpPatch, httpPost } from "@/shared/api";
 import type { components } from "@/shared/api/dto";
 import type { Territory } from "../model/territory";
 import { toTerritory } from "./to-territory";
@@ -6,6 +6,7 @@ import { toTerritory } from "./to-territory";
 type TerritoryDto = components["schemas"]["Territory"];
 type TerritoryCreatedDto = components["schemas"]["TerritoryCreated"];
 type TerritorySourceReplace = components["schemas"]["TerritorySourceReplace"];
+type TerritoryUpdate = components["schemas"]["TerritoryUpdate"];
 
 export const listTerritories = async (): Promise<Territory[]> =>
   (await httpGet<TerritoryDto[]>("/api/territories")).map(toTerritory);
@@ -25,6 +26,10 @@ export async function replaceTerritorySource(
 
 export const deleteTerritory = (slug: string): Promise<void> =>
   httpDelete(`/api/territories/${encodeURIComponent(slug)}`);
+
+/** Updates mutable fields only (no re-conversion) — today just the external panorama link. */
+export const updateTerritory = async (slug: string, body: TerritoryUpdate): Promise<Territory> =>
+  toTerritory(await httpPatch<TerritoryDto>(`/api/territories/${encodeURIComponent(slug)}`, body));
 
 // The gateway's body for both POST /api/territories and POST /api/models;
 // `thumbnailBlobHash` is ignored for territories, but typing against the real

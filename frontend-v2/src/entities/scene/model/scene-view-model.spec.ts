@@ -34,11 +34,25 @@ const placement = {
   rotation: { x: 0, y: 0, z: 0 },
   scale: { x: 1, y: 1, z: 1 },
 };
+const panorama = {
+  id: 9,
+  territorySlug: "t",
+  slug: "north",
+  title: "North yard",
+  sourceBlobHash: "p",
+  position: { x: 0, y: 0, z: 0 },
+  yawOffset: 0,
+  defaultYaw: 0,
+  updatedAt: "",
+};
+const document = { id: 8, territorySlug: "t", title: "Plot plan.pdf", sourceBlobHash: "d", createdAt: "" };
 const bundle: SceneBundle = {
   territory,
   artifact,
   placements: [placement],
   modelOptions: [{ slug: "tank", title: "storage-tank-500", chain: [{ lod: 0, hash: "m0", size: 5 }] }],
+  panoramas: [panorama],
+  documents: [document],
 };
 
 describe("sceneReady", () => {
@@ -75,5 +89,24 @@ describe("toSceneViewModel", () => {
   it("reads the uploaded date as null when the territory has none", () => {
     const vm = toSceneViewModel({ ...bundle, territory: { ...territory, createdAt: undefined } })!;
     expect(vm.metadata.uploadedAt).toBeNull();
+  });
+
+  it("passes panoramas and documents through untouched", () => {
+    const vm = toSceneViewModel(bundle)!;
+    expect(vm.panoramas).toBe(bundle.panoramas);
+    expect(vm.documents).toBe(bundle.documents);
+  });
+
+  describe("sourceBbox", () => {
+    it("carries the LOD0 bbox as min/max", () => {
+      const vm = toSceneViewModel(bundle)!;
+      expect(vm.sourceBbox).toEqual({ min: { x: 0, y: 0, z: 0 }, max: { x: 36, y: 8.5, z: 24 } });
+    });
+
+    it("is null when both ends of the bbox are the zero fallback", () => {
+      const zeroed = { ...artifact, bboxMin: { x: 0, y: 0, z: 0 }, bboxMax: { x: 0, y: 0, z: 0 } };
+      const vm = toSceneViewModel({ ...bundle, artifact: zeroed })!;
+      expect(vm.sourceBbox).toBeNull();
+    });
   });
 });

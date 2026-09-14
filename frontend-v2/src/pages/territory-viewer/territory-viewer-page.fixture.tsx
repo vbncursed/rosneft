@@ -57,6 +57,9 @@ const VM: SceneViewModel = {
     uploadedAt: "2026-09-04T09:00:00Z",
   },
   placements: PLACEMENTS,
+  panoramas: [],
+  documents: [],
+  sourceBbox: null,
 };
 
 const CHAINS: Chain[] = [
