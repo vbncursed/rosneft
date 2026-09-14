@@ -115,7 +115,10 @@ function PlaceObjectsBody({
               disabled={selected === null}
               onClick={() => selected && onPlace(selected.slug, count)}
             >
-              {selected ? `Place ${count} × ${selected.title}` : "Place"}
+              {/* Just `Place`: the count is in the stepper to its left and the
+                  model on the card above, and spelling both out again resized
+                  the footer's primary every time the reader picked. */}
+              Place
             </Button>
           </div>
         </div>
