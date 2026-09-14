@@ -388,6 +388,10 @@ padding 6/6. Verified in Cosmos at 1280 and 1440, both themes.
 7. The page heading is an `<h1>` at the mock's `h2` size.
 8. `Placing N × model` is N requests; the footer line is the honest
    progress of that loop.
+9. The Selected block is a live form for any selection a writer may touch —
+   label, cells and Save always on, the snap row never hidden by one. The
+   mock's state 2 drew a read-only block with no Save (user request
+   2026-09-14).
 
 ## 7. Not in this package
 

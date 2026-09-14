@@ -16,9 +16,9 @@ export type SelectedBlockProps = {
   snap: boolean;
   onSnap: (on: boolean) => void;
   canWrite: boolean;
-  /** The create/rename form. Absent, the grid only reports. */
+  /** The live draft. Absent — no write grant, nothing selected — the grid only reports. */
   form: null | {
-    kind: "new" | "rename";
+    kind: "new" | "edit";
     label: string;
     onLabel: (label: string) => void;
     transform: PlacementTransform;
@@ -42,20 +42,29 @@ const degreesWithSign = (n: number) => `${toDegrees(n)}°`;
 const toDegreeVec = (v: Vec3): Vec3 => ({ x: toDegrees(v.x), y: toDegrees(v.y), z: toDegrees(v.z) });
 const toRadianVec = (v: Vec3): Vec3 => ({ x: toRadians(v.x), y: toRadians(v.y), z: toRadians(v.z) });
 
-/** What the overline says: which object, and what is happening to it. */
-const overlineFor = (form: SelectedBlockProps["form"]) =>
-  form ? (form.saving ? "Selected · saving" : `Selected · ${form.kind}`) : "Selected";
+/**
+ * What the overline says: which object, and what is happening to it. Editing
+ * is the block's resting state and goes unremarked; being newly placed or
+ * mid-PUT does not.
+ */
+const overlineFor = (form: SelectedBlockProps["form"]) => {
+  if (!form) return "Selected";
+  if (form.saving) return "Selected · saving";
+  return form.kind === "new" ? "Selected · new" : "Selected";
+};
 
 /**
  * The block under the object list: which instance is selected, how the gizmo
- * moves it, where it stands, and — while a form is open — what to call it.
+ * moves it, where it stands, and what to call it.
  *
- * The numbers take typing on a create form and nowhere else: read-only with no
- * form, read-only while one saves (a cell that accepts typing during a PUT
- * invites an edit the response is about to overwrite), and read-only on a
- * rename, which sends the label alone — those cells accepted numbers that Save
- * then discarded. `typing` also picks the unit: the boxes carry bare degrees
- * and report radians, a printed cell converts as it prints.
+ * An open form means a writer has something selected, so the label, the cells
+ * and Save are all live; without one the grid only reports. The exception is a
+ * save in flight — a cell that accepts typing during a PUT invites an edit the
+ * response is about to overwrite. `typing` also picks the unit: the boxes
+ * carry bare degrees and report radians, a printed cell converts as it prints.
+ *
+ * The snap switch belongs to the gizmo, not to the form, so it stays put
+ * whatever the draft is doing.
  */
 export function SelectedBlock({
   name,
@@ -68,7 +77,7 @@ export function SelectedBlock({
   form,
   compact,
 }: SelectedBlockProps) {
-  const typing = form !== null && !form.saving && form.kind === "new";
+  const typing = form !== null && !form.saving;
   const snapId = useId();
   const shown = form ? form.transform : transform;
 
@@ -134,7 +143,7 @@ export function SelectedBlock({
         />
       </div>
 
-      {canWrite && !form ? (
+      {canWrite ? (
         <div className="flex items-center justify-between gap-2.5 rounded-[8px] border border-line bg-panel-2 px-[11px] py-2">
           <span className="font-mono text-[10px] text-fg">
             {/* The id sits on the words alone — the key hint is not part of the

@@ -100,24 +100,52 @@ const EDITOR = { create: true, write: true, delete: true };
 const GUEST = { create: false, write: false, delete: false };
 const NO_DELETE = { create: true, write: true, delete: false };
 
-function Form({ saving }: { saving: boolean }) {
-  const [label, setLabel] = useState("Tank 4, north row");
-  const [transform, setTransform] = useState<PlacementTransform>({
-    position: { x: 18.2, y: 0, z: -4.05 },
-    rotation: { x: 0, y: Math.PI / 4, z: 0 },
-    scale: { x: 1, y: 1, z: 1 },
-  });
+const NEW_TRANSFORM: PlacementTransform = {
+  position: { x: 18.2, y: 0, z: -4.05 },
+  rotation: { x: 0, y: Math.PI / 4, z: 0 },
+  scale: { x: 1, y: 1, z: 1 },
+};
+
+/**
+ * Every writable selection is a draft — `edit` is the block's resting state,
+ * `new` the one the picker opens — so all four writer states below are this.
+ */
+function Form({
+  kind,
+  saving = false,
+  name = "storage-tank-500 #4",
+  selectedId = 3,
+  start = NEW_TRANSFORM,
+  initialLabel = "Tank 4, north row",
+  groups,
+  width,
+  compact = false,
+}: {
+  kind: "new" | "edit";
+  saving?: boolean;
+  name?: string;
+  selectedId?: number;
+  start?: PlacementTransform;
+  initialLabel?: string;
+  groups?: PlacementGroup[];
+  width?: number;
+  compact?: boolean;
+}) {
+  const [label, setLabel] = useState(kind === "new" ? "" : initialLabel);
+  const [transform, setTransform] = useState<PlacementTransform>(start);
   return (
     <Live
       grants={EDITOR}
-      selectedId={3}
+      groups={groups}
+      width={width}
+      selectedId={selectedId}
       selected={{
-        name: "storage-tank-500 #4",
+        name,
         transform,
         canWrite: true,
-        compact: false,
+        compact,
         form: {
-          kind: "new",
+          kind,
           label,
           onLabel: setLabel,
           transform,
@@ -133,17 +161,7 @@ function Form({ saving }: { saving: boolean }) {
 
 export default {
   editor: (
-    <Live
-      grants={EDITOR}
-      selectedId={2}
-      selected={{
-        name: "storage-tank-500 #2",
-        transform: TRANSFORM,
-        canWrite: true,
-        compact: false,
-        form: null,
-      }}
-    />
+    <Form kind="edit" name="storage-tank-500 #2" selectedId={2} start={TRANSFORM} initialLabel="north row" />
   ),
   guest: (
     <Live
@@ -160,21 +178,18 @@ export default {
   ),
   "no-delete": <Live grants={NO_DELETE} />,
   empty: <Live grants={EDITOR} groups={[]} />,
-  form: <Form saving={false} />,
-  saving: <Form saving />,
+  form: <Form kind="new" />,
+  saving: <Form kind="new" saving />,
   compact: (
-    <Live
-      width={300}
-      grants={EDITOR}
-      groups={RU_GROUPS}
+    <Form
+      kind="edit"
+      name="Насос НМ-1250 #1"
       selectedId={4}
-      selected={{
-        name: "Насос НМ-1250 #1",
-        transform: COMPACT_TRANSFORM,
-        canWrite: true,
-        compact: true,
-        form: null,
-      }}
+      start={COMPACT_TRANSFORM}
+      initialLabel=""
+      groups={RU_GROUPS}
+      width={300}
+      compact
     />
   ),
 };

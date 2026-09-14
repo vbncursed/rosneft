@@ -741,6 +741,23 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   keeps the rows that landed; the editor seeds from the bundle once and the
   page remounts it via `use-scene-seeded` (one-shot) so a cold page is not
   empty.
+- **The Selected block is a form whenever a writer has something selected**
+  (user request, 2026-09-14 — the mock's state 2 drew a read-only block). The
+  label field, the Pos/Rot/Scl cells and Save are live for any selection
+  `placement:write` can touch; `usePlacementForm` takes the page's
+  `selectedId` (null without the grant, the one state that only reports) and
+  derives an implicit `edit` draft from it, so there is no "open the form"
+  step and Rename is only a way in. Draft kinds are `new | edit`: `new` is the
+  picker's, cancelling one deletes the object it already POSTed; cancelling an
+  `edit` resets the fields and calls nothing. Save sends `update` when a cell
+  was typed into and `rename` otherwise — an untouched draft must not push its
+  opening copy over a gizmo drag that landed meanwhile, which is also why the
+  cells show the *live* transform until `touched`. Saving re-seeds the draft
+  rather than closing it. The overline reads `Selected · new` /
+  `Selected · saving` / plain `Selected`. **The snap row is the gizmo's, not
+  the form's**, so it stays on screen under an open and a saving form alike;
+  only the cells go read-only mid-PUT, where typing would invite an edit the
+  response is about to overwrite.
 - **The Overlays panel owns `--overlays-w`** through
   `overlaysWidthClass(collapsed)`; the page applies the same string to the
   viewport container so the LOD switcher (a sibling) reads it. Tailwind v4

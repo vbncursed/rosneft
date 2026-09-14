@@ -117,7 +117,9 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     territoryMaxDim: Math.max(dims.x, dims.y, dims.z),
     onChanged,
   });
-  const form = usePlacementForm(editor, mode.select);
+  // The selection is what opens the form, and a reader without `placement:write`
+  // is handed none: that is the one state where the block only reports.
+  const form = usePlacementForm(editor, mode.select, grants.write ? mode.state.selectedId : null);
 
   const seen = me.data?.onboardingToursSeen.includes(VIEWER_TOUR) ?? true;
   // Ready waits for the principal as well as the scene. `useTour` reads `seen`

@@ -91,18 +91,27 @@ describe("SelectedBlock", () => {
     );
   });
 
-  it("the rename form edits the label alone — the numbers only report", () => {
-    // `save` sends a rename for this kind, so a typed number was accepted and
-    // then discarded. The cells print, they do not take.
-    render(<SelectedBlock {...base} form={{ ...form, kind: "rename", label: "Tank 4" }} />);
-    expect(screen.getByText("Selected · rename")).toBeInTheDocument();
+  it("an edit form takes the numbers too, under a plain overline", async () => {
+    // Save sends what was typed here, so the cells take typing exactly as the
+    // create form's do; only the word for what is happening differs.
+    const onTransform = vi.fn();
+    render(
+      <SelectedBlock {...base} form={{ ...form, kind: "edit", label: "Tank 4", onTransform }} />,
+    );
+    expect(screen.getByText("Selected")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Label" })).toHaveValue("Tank 4");
-    expect(screen.queryByLabelText("Pos x")).toBeNull();
-    expect(screen.queryByLabelText("Rot y")).toBeNull();
-    expect(screen.queryByLabelText("Scl x")).toBeNull();
-    expect(screen.getByRole("group", { name: "Pos" })).toHaveTextContent("12.400");
-    // Still degrees, as everywhere else the numbers are printed.
-    expect(screen.getByRole("group", { name: "Rot" })).toHaveTextContent("90°");
+    await userEvent.type(screen.getByLabelText("Pos y"), "5");
+    expect(onTransform).toHaveBeenLastCalledWith(
+      expect.objectContaining({ position: { x: 12.4, y: 5, z: -8.25 } }),
+    );
+    expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+  });
+
+  it("keeps the snap switch on screen under an open form, and under a saving one", () => {
+    const { rerender } = render(<SelectedBlock {...base} form={form} />);
+    expect(screen.getByRole("switch", { name: "Snap to surface" })).toBeInTheDocument();
+    rerender(<SelectedBlock {...base} form={{ ...form, saving: true }} />);
+    expect(screen.getByRole("switch", { name: "Snap to surface" })).toBeInTheDocument();
   });
 
   it("the saving form is busy and its fields wait", () => {
@@ -111,6 +120,10 @@ describe("SelectedBlock", () => {
     expect(screen.getByRole("button", { name: /Saving/ })).toHaveAttribute("aria-busy", "true");
     expect(screen.getByRole("textbox", { name: "Label" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();
+    // A cell that takes typing during a PUT invites an edit the response is
+    // about to overwrite: they report while one is in flight.
+    expect(screen.queryByLabelText("Pos x")).toBeNull();
+    expect(screen.getByRole("group", { name: "Pos" })).toHaveTextContent("12.400");
   });
 
   it("cancels the form", async () => {
