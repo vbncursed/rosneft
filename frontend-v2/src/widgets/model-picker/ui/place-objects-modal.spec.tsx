@@ -40,7 +40,7 @@ describe("PlaceObjectsModal", () => {
     expect(screen.getByRole("button", { name: /not-yet/ })).toBeDisabled();
   });
 
-  it("prints no size line for a model that has not been converted", () => {
+  it("says so in words for a model that has not been converted", () => {
     render(
       <PlaceObjectsModal
         open
@@ -51,8 +51,10 @@ describe("PlaceObjectsModal", () => {
         onPlace={vi.fn()}
       />,
     );
-    // "0 LODs · 0.0 MB" under a card already marked "· n/a" says nothing.
+    // "0 LODs · 0.0 MB" says nothing; no line at all left that one card ~14px
+    // short of its neighbours in a grid whose tiles must match.
     expect(screen.queryByText(/0 LODs/)).not.toBeInTheDocument();
+    expect(screen.getByText("Not converted yet")).toBeInTheDocument();
   });
 
   it("places N of the chosen model", async () => {

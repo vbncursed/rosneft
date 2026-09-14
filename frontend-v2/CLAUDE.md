@@ -782,8 +782,11 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   `railTools`); `Placing 0 of 2…` on the first line
   (`place-objects-modal.tsx`); the Add-objects primary reads a bare `Place`,
   not the mock's `Place N × model`, because the count is in the stepper beside
-  it and the model on the card above (user request 2026-09-14); the failed
-  conversion eyebrow still reads
+  it and the model on the card above (user request 2026-09-14); an unconverted
+  model's card reads `Not converted yet` rather than the mock's blank, so
+  `modelMeta` gives every card a sub line and the grid's tiles match — the fix
+  is in the data, never a min-height on the card (user request 2026-09-14);
+  the failed conversion eyebrow still reads
   `Converting` (`territory-conversion-page.tsx:48`); Vec3Field cell padding
   is `6/7` at 300, the mock's `6/6` (`vec3-field.tsx`'s `ROW_CELL`).
 - **`WAITING_NOTE` copy caveat** (`territory-conversion-page.tsx`): "opens the

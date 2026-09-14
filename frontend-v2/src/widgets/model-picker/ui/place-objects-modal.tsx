@@ -19,8 +19,12 @@ export type PlaceObjectsModalProps = {
 const MAX = 99;
 
 /**
- * The card's sub line: "3 LODs · 8.0 MB", and nothing at all for a chain that
- * does not exist yet — that card already says "· n/a".
+ * The card's sub line: "3 LODs · 8.0 MB", or why there is no chain to measure.
+ *
+ * Every card carries one, and that is what keeps the grid's tiles the same
+ * height — an unconverted model used to draw no line at all and sat ~14 px
+ * short of its neighbours. The fix belongs here rather than in a min-height on
+ * the card: "0 LODs · 0.0 MB" would have been a line saying nothing.
  *
  * Binary MB, one decimal: the brief's "8.4 MB" for 8_400_002 bytes was a
  * decimal-megabyte literal, and every other size in this app is binary.
@@ -33,7 +37,7 @@ const MAX = 99;
  */
 const modelMeta = (option: ModelOption) => {
   const levels = option.chain.length;
-  if (levels === 0) return undefined;
+  if (levels === 0) return "Not converted yet";
   const mb = (option.chain.reduce((sum, a) => sum + a.size, 0) / 1_048_576).toFixed(1);
   return `${levels} ${levels === 1 ? "LOD" : "LODs"} · ${mb} MB`;
 };
