@@ -66,6 +66,14 @@ describe("ModelPickerCard", () => {
     expect(onQuantityChange).toHaveBeenCalledWith(4);
   });
 
+  it("keeps the title on one line — a long name must not make its card taller than its row", () => {
+    const long = { ...MODEL, title: "500 BBL Oil Storage Tank_Frac Tank" };
+    render(<ModelPickerCard model={long} selected={false} onSelect={() => {}} />);
+    const title = screen.getByText("500 BBL Oil Storage Tank_Frac Tank");
+    expect(title).toHaveClass("truncate");
+    expect(title).toHaveAttribute("title", "500 BBL Oil Storage Tank_Frac Tank");
+  });
+
   it("prints the meta line under the title when it is given", () => {
     const { rerender } = render(
       <ModelPickerCard model={MODEL} selected={false} onSelect={() => {}} />,

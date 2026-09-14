@@ -70,8 +70,13 @@ export function ModelPickerCard({
             unavailable ? "text-muted" : selected ? "text-accent" : "text-fg",
           )}
         >
-          {model.title}
-          {unavailable ? " · n/a" : null}
+          {/* One line, always: a wrapped name made its card taller than the
+              row beside it, and the grid stopped reading as a grid. The full
+              name rides on `title` for the hover. */}
+          <span className="block truncate" title={model.title}>
+            {model.title}
+            {unavailable ? " · n/a" : null}
+          </span>
           {meta ? <span className="block font-mono text-[9px] text-muted">{meta}</span> : null}
         </span>
       </button>
