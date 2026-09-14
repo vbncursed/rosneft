@@ -10,10 +10,16 @@ const CHAIN = [
   { lod: 2, hash: "coarse", size: 2 },
 ];
 
+// One chunk per macrotask. React batches every update that lands in the same
+// tick, so a stream that enqueues both chunks at once renders once — and a
+// mid-download percent could not be observed even when the code reports it.
 const streamOf = (chunks: Uint8Array[]) =>
   new ReadableStream({
-    start(c) {
-      for (const ch of chunks) c.enqueue(ch);
+    async start(c) {
+      for (const ch of chunks) {
+        c.enqueue(ch);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
       c.close();
     },
   });
@@ -89,6 +95,13 @@ describe("GltfModel", () => {
       expect(withText.at(-1)!.percent).toBe(100);
       expect(withText.at(-1)!.progressText).toBe("0.0 / 0.0 MB");
     });
+    // *While* the bytes are on the wire, not only once they are in. The stub
+    // streams 4 then 6 of the target's 10, so a mid-download report has to say
+    // 40 % — the blob url does not exist yet at that point, and the page's
+    // whole loading state (chip, percent, progress line, dimmed tiles) hangs
+    // off this percent being non-null.
+    const percents = onReport.mock.calls.map((c) => (c[0] as LodReport).percent);
+    expect(percents).toContain(40);
   });
 
   it("stays on the coarse level when the target's download is refused, and stops counting", async () => {

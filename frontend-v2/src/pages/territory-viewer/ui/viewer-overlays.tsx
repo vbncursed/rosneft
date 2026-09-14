@@ -100,9 +100,12 @@ export function ViewerOverlays({
             <ModeChip label="Loading" spinning icon="refresh">
               Loading model
             </ModeChip>
-            {/* Unnamed on purpose: it changes with every chunk, and the
-                progressbar above already carries the percent. */}
-            <ModeChip tone="neutral">{loading.chip}</ModeChip>
+            {/* Named, so the download is announced: this chip and the
+                progressbar above it are the only things that say a better level
+                is on its way. */}
+            <ModeChip label="Loading progress" tone="neutral">
+              {loading.chip}
+            </ModeChip>
           </>
         ) : chip ? (
           <ModeChip label="Pointer mode" kbd={chip.kbd}>

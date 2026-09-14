@@ -169,13 +169,20 @@ export default function GltfModel({
     return () => useGLTF.clear(url);
   }, [download.blobUrl]);
 
+  // The percent describes the level `useLodDownload` is streaming by hand, and
+  // only that one: a refused download, or a fallback level drei fetches itself,
+  // has no bytes to count and `0 %` against it reads as progress that is not
+  // happening.
+  //
+  // Never gate this on the blob url. `useLodDownload` mints the blob only after
+  // its reader loop ends, so `warmUrl` is null for the whole download — that
+  // gate silenced every chunk and left one 100 % flash after the bytes were in,
+  // taking the loading chip, the progress line and the dimmed tiles with it.
+  const counting = lod.target !== null && lod.target.hash === wanted?.hash && !download.failed;
+
   useEffect(() => {
-    // No warm url means nothing is on the wire for the target — a refused
-    // download, or drei fetching the fallback itself — and a percent then reads
-    // as progress that is not happening. `0 %` against a level nobody is
-    // fetching is worse than no chip at all.
     const p =
-      warmUrl && lod.target && lod.shown && lod.shown.hash !== lod.target.hash
+      counting && lod.target && lod.shown && lod.shown.hash !== lod.target.hash
         ? lodProgress(download.received, lod.target.size)
         : null;
     latest.current.onReport({
@@ -185,7 +192,7 @@ export default function GltfModel({
       progressText: p?.text ?? null,
       failure: lod.failure,
     });
-  }, [lod.shown, lod.target, download.received, lod.failure, warmUrl]);
+  }, [lod.shown, lod.target, download.received, lod.failure, counting]);
 
   if (!lod.url) return null;
   return (
