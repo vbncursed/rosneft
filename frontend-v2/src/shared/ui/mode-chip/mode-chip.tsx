@@ -8,6 +8,12 @@ export type ModeChipProps = {
   icon?: IconName;
   /** The loading chip: uppercase, wider tracking, the icon turning, aria-busy. */
   spinning?: boolean;
+  /**
+   * The accessible name, and what makes the chip a live region: named, it is a
+   * `role="status"` the reader can tell apart; unnamed it is plain text, which
+   * is what a second chip beside a named one should be.
+   */
+  label?: string;
   kbd?: string;
   className?: string;
 };
@@ -18,10 +24,11 @@ const TONE = {
 } as const;
 
 /** The line under the tool rail that says what the pointer does right now. */
-export function ModeChip({ children, tone = "accent", icon, spinning = false, kbd, className }: ModeChipProps) {
+export function ModeChip({ children, tone = "accent", icon, spinning = false, label, kbd, className }: ModeChipProps) {
   return (
     <span
-      role="status"
+      role={label ? "status" : undefined}
+      aria-label={label}
       aria-busy={spinning || undefined}
       className={cx(
         "inline-flex items-center gap-2 rounded-[8px] border font-mono text-[10px] shadow-elevation",

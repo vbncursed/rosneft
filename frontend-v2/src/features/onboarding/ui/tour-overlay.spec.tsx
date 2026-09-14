@@ -47,7 +47,13 @@ describe("TourOverlay", () => {
 
     expect(screen.getByRole("dialog", { name: "Tour step 3 of 8" })).toBeInTheDocument();
     expect(screen.getByText("Reset the camera")).toBeInTheDocument();
-    expect(screen.getByTestId("tour-dim")).toBeInTheDocument();
+    // The dim is cut open over the anchor, so the control it lights is lit
+    // rather than veiled at 60 % — the mock redraws it above the dim, and the
+    // hole is what makes `elementFromPoint` answer the control.
+    expect(screen.getByTestId("tour-dim").style.clipPath).toBe(
+      "polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, " +
+        "20px 20px, 20px 50px, 50px 50px, 50px 20px, 20px 20px)",
+    );
     // The halo is the anchor's own box grown by the 6 px ring.
     expect(screen.getByTestId("tour-halo")).toHaveStyle({
       top: "14px",
@@ -91,6 +97,12 @@ describe("TourOverlay", () => {
     render(<TourOverlay tour={tour({ next })} />);
     await userEvent.click(screen.getByTestId("tour-dim"));
     expect(next).toHaveBeenCalledOnce();
+  });
+
+  it("leaves the dim whole for a centred step — there is no control to light", () => {
+    render(<TourOverlay tour={tour({ step: { ...VIEWER_TOUR_STEPS[0], center: true } })} />);
+    expect(screen.getByTestId("tour-dim").style.clipPath).toBe("");
+    expect(screen.queryByTestId("tour-halo")).toBeNull();
   });
 
   // The dim is not `inert` and the page under it stays in the tab order, so the

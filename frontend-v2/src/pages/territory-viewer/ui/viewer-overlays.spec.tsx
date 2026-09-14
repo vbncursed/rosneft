@@ -156,13 +156,15 @@ describe("ViewerOverlays · the strip, the switcher and the hints", () => {
     expect(strip).toHaveTextContent("LOD 1 active");
   });
 
-  it("alerts rather than reports when the strip states an absence", () => {
+  it("reports rather than alerts when the strip states an absence", () => {
     render(
       <ViewerOverlays
         {...props({ strip: { items: ["no geometry loaded"], tone: "bad", accentLast: false } })}
       />,
     );
-    expect(screen.getByRole("alert", { name: "Scene stats" })).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Scene stats" })).toBeInTheDocument();
+    // The error card is the page's one alert; the strip is context for it.
+    expect(screen.queryAllByRole("alert")).toHaveLength(0);
   });
 
   it("offers every converted level and marks the one asked for", () => {
@@ -213,5 +215,7 @@ describe("ViewerOverlays · the error card", () => {
     );
     expect(screen.getByText("The territory mesh could not be loaded")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    // Exactly one: the strip beside it reports, so nothing is announced twice.
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
   });
 });
