@@ -1,6 +1,6 @@
 import type { ViewerError } from "@/features/lod";
 import type { ViewerMode } from "@/features/viewer-mode";
-import { shortDate } from "@/shared/lib/short-date";
+import { longDate } from "@/shared/lib/short-date";
 
 /**
  * Every string the viewer's chrome prints, in one place: the fixtures, the
@@ -73,21 +73,33 @@ export type RailToolState = { key: RailTool; state: "active" | "idle" | "inert" 
  * pointing at a mesh that never loaded would be worse than no tour at all.
  * `add` is absent rather than disabled for a reader who cannot create: the
  * mock's rule is that missing grants remove controls, they do not grey them.
+ *
+ * `loading` is state 3 — the coarse level is up, the target is not — where the
+ * mock draws "reset; others dim". `tourActive` lights nothing at all: the tour
+ * is explaining these controls, and a lit tile inside a dimmed page reads as
+ * the step's own anchor.
  */
 export function railTools(a: {
   grants: Grants;
   mode: ViewerMode;
   geometry: boolean;
+  loading: boolean;
+  tourActive: boolean;
 }): RailToolState[] {
   const keys: RailTool[] = a.grants.create
     ? ["reset", "measure", "add", "tour"]
     : ["reset", "measure", "tour"];
-  const activeKey: RailTool | null =
-    a.mode === "orbit" ? "reset" : a.mode === "measure" ? "measure" : "add";
+  const activeKey: RailTool | null = a.tourActive
+    ? null
+    : a.mode === "orbit"
+      ? "reset"
+      : a.mode === "measure"
+        ? "measure"
+        : "add";
 
   return keys.map((key) => ({
     key,
-    state: !a.geometry ? "inert" : key === activeKey ? "active" : "idle",
+    state: !a.geometry ? "inert" : key === activeKey ? "active" : a.loading ? "inert" : "idle",
   }));
 }
 
@@ -121,5 +133,10 @@ export function errorCopy(e: ViewerError, at: Date): ErrorCopy {
   };
 }
 
-/** The View tab's `uploaded` row. Nothing recorded, and nothing guessed. */
-export const uploadedLine = (iso: string | null): string => shortDate(iso ?? undefined) ?? "—";
+/**
+ * The View tab's `uploaded` row. Nothing recorded, and nothing guessed.
+ *
+ * The catalog's `dd.mm` helper was reused here at first, which lost the year on
+ * the one row whose whole job is the date; the mock spells it `4 Sep 2026`.
+ */
+export const uploadedLine = (iso: string | null): string => longDate(iso ?? undefined) ?? "—";

@@ -270,6 +270,22 @@ describe("useTerritoryViewer", () => {
     });
   });
 
+  describe("measuring", () => {
+    it("drops an unfinished chain when the reader leaves measure mode", async () => {
+      const r = mount();
+      const state = await ready(r);
+      act(() => state.overlays.onMeasure());
+      act(() => now(r).canvas.onMeasurePoint({ x: 0, y: 0, z: 0 }));
+      expect(now(r).canvas.activeChainId).not.toBeNull();
+
+      act(() => now(r).overlays.onMeasure());
+      expect(now(r).canvas.mode).toBe("orbit");
+      // Left open, the next measure click would append a segment from the
+      // stale point and the first Esc in orbit would be spent on it.
+      expect(now(r).canvas.activeChainId).toBeNull();
+    });
+  });
+
   describe("placing objects", () => {
     it("writes one placement per instance, opens the form on the last and closes the picker", async () => {
       createPlacement

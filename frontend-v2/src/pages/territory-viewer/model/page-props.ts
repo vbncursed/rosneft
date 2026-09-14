@@ -67,8 +67,10 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
         tourActive: p.tour.active,
         failed,
       }),
+      // The tour's pill replaces the meta line rather than joining it (spec §4),
+      // and a guest's right cluster carries the sentence instead.
       meta:
-        failed || guest || mode.mode === "measure"
+        failed || guest || p.tour.active || mode.mode === "measure"
           ? null
           : headerMeta(slug, vm.parentLods.length, vm.metadata.units),
       guest,
@@ -101,7 +103,13 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
     },
 
     overlays: {
-      tools: railTools({ grants, mode: mode.mode, geometry }),
+      tools: railTools({
+        grants,
+        mode: mode.mode,
+        geometry,
+        loading: loadingLevel !== null,
+        tourActive: p.tour.active,
+      }),
       onReset: on.onReset,
       onMeasure: on.onMeasure,
       onAdd: on.onAdd,

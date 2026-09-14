@@ -14,12 +14,38 @@ export type UseViewerModeParams = {
 export function useViewerMode({ canWrite, chainOpen, onCancelChain }: UseViewerModeParams) {
   const [state, dispatch] = useReducer(viewerModeReducer, INITIAL_VIEWER_MODE);
 
-  const select = useCallback((id: number | null) => dispatch({ type: "select", id }), []);
+  // Every way out of measure breaks an unfinished chain, not just Escape. A
+  // lone marker used to survive M and Add objects: the next measure click
+  // appended a segment from the stale point, and the first Escape back in orbit
+  // was spent cancelling it with nothing visible happening. A chain can only be
+  // opened in measure mode, so `chainOpen` alone says whether there is one.
+  const leaveMeasure = useCallback(() => {
+    if (chainOpen) onCancelChain();
+  }, [chainOpen, onCancelChain]);
+
+  const select = useCallback(
+    (id: number | null) => {
+      // Selecting an object leaves measure (the reducer says so); a deselect
+      // stays where it is, and a click on empty space must not eat the chain.
+      if (id !== null) leaveMeasure();
+      dispatch({ type: "select", id });
+    },
+    [leaveMeasure],
+  );
   const setGizmo = useCallback((gizmo: GizmoMode) => dispatch({ type: "setGizmo", gizmo }), []);
   const toggleSnap = useCallback(() => dispatch({ type: "toggleSnap" }), []);
-  const toggleMeasure = useCallback(() => dispatch({ type: "toggleMeasure" }), []);
-  const exitMeasure = useCallback(() => dispatch({ type: "exitMeasure" }), []);
-  const enterPlace = useCallback(() => dispatch({ type: "enterPlace" }), []);
+  const toggleMeasure = useCallback(() => {
+    leaveMeasure();
+    dispatch({ type: "toggleMeasure" });
+  }, [leaveMeasure]);
+  const exitMeasure = useCallback(() => {
+    leaveMeasure();
+    dispatch({ type: "exitMeasure" });
+  }, [leaveMeasure]);
+  const enterPlace = useCallback(() => {
+    leaveMeasure();
+    dispatch({ type: "enterPlace" });
+  }, [leaveMeasure]);
   const exitPlace = useCallback(() => dispatch({ type: "exitPlace" }), []);
   const escape = useCallback(() => {
     if (chainOpen) onCancelChain();

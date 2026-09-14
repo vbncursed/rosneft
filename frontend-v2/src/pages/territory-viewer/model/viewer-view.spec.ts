@@ -82,7 +82,7 @@ describe("GUEST_SENTENCE", () => {
 
 describe("railTools", () => {
   const tools = (over: Partial<Parameters<typeof railTools>[0]> = {}) =>
-    railTools({ grants: OWNER, mode: "orbit", geometry: true, ...over });
+    railTools({ grants: OWNER, mode: "orbit", geometry: true, loading: false, tourActive: false, ...over });
 
   it("lights Reset while the pointer orbits a loaded scene", () => {
     expect(tools()).toEqual([
@@ -111,6 +111,26 @@ describe("railTools", () => {
 
   it("drops Add entirely for a reader who cannot create placements", () => {
     expect(tools({ grants: GUEST }).map((t) => t.key)).toEqual(["reset", "measure", "tour"]);
+  });
+
+  it("dims everything but the live tile while a level is still downloading", () => {
+    // Mock state 3: "reset; others dim" — the scene is on screen but the target
+    // is not, and a tool that needs the final mesh is not ready to be pressed.
+    expect(tools({ loading: true })).toEqual([
+      { key: "reset", state: "active" },
+      { key: "measure", state: "inert" },
+      { key: "add", state: "inert" },
+      { key: "tour", state: "inert" },
+    ]);
+  });
+
+  it("leaves every tile idle while the tour runs — the mock lights none of them", () => {
+    expect(tools({ tourActive: true })).toEqual([
+      { key: "reset", state: "idle" },
+      { key: "measure", state: "idle" },
+      { key: "add", state: "idle" },
+      { key: "tour", state: "idle" },
+    ]);
   });
 
   it("makes every tile inert without geometry — the tour included, per the mock's error state", () => {
@@ -159,8 +179,8 @@ describe("errorCopy", () => {
 });
 
 describe("uploadedLine", () => {
-  it("prints the short date", () => {
-    expect(uploadedLine("2026-09-04T09:00:00Z")).toBe("04.09");
+  it("prints the mock's date, year and all — this row is the date", () => {
+    expect(uploadedLine("2026-09-04T09:00:00Z")).toBe("4 Sep 2026");
   });
 
   it("prints an em-dash rather than guessing when nothing was recorded", () => {
