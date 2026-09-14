@@ -45,7 +45,15 @@ const model = (over: { onReport?: (r: LodReport) => void; retryVersion?: number 
 );
 
 describe("GltfModel", () => {
-  afterEach(() => vi.unstubAllGlobals());
+  // The loader double is shared module state, so it is restored here rather
+  // than at the end of each test: a failing assertion returns before its own
+  // cleanup would run, and the next test then inherits the double.
+  afterEach(async () => {
+    vi.unstubAllGlobals();
+    const drei = await import("@react-three/drei");
+    vi.mocked(drei.useGLTF).mockReset();
+    vi.mocked(drei.useGLTF.clear).mockReset();
+  });
 
   it("puts the coarsest level on screen first, and downloads the target behind it", async () => {
     stubDownload();
@@ -107,12 +115,29 @@ describe("GltfModel", () => {
     const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
     const swallow = (e: ErrorEvent) => e.preventDefault();
     window.addEventListener("error", swallow);
-    // Not mockImplementationOnce: React retries a failed render synchronously
-    // and, if the retry succeeds, never reaches the boundary at all.
     const { fakeScene } = await import("./testing");
+    // drei's useGLTF runs through suspend-react, which *caches* a rejected load
+    // and re-throws it on the next suspend of the same key until someone calls
+    // clear. A double that forgets its rejections cannot fail on that, and that
+    // is exactly the bug that shipped: a remount threw the cached rejection
+    // before a frame was drawn, so Try again could never recover.
+    //
+    // `refused` is the server; `cached` is suspend-react. Not
+    // mockImplementationOnce: React retries a failed render synchronously and,
+    // if the retry succeeds, never reaches the boundary at all.
+    const refused = new Set(["/api/assets/coarse"]);
+    const cached = new Set<string>();
     vi.mocked(drei.useGLTF).mockImplementation((url) => {
-      if (String(url).includes("coarse")) throw { response: { status: 404 } };
+      const u = String(url);
+      if (cached.has(u)) throw { response: { status: 404 } };
+      if (refused.has(u)) {
+        cached.add(u);
+        throw { response: { status: 404 } };
+      }
       return { scene: fakeScene() } as never;
+    });
+    vi.mocked(drei.useGLTF.clear).mockImplementation((url) => {
+      for (const u of Array.isArray(url) ? url : [url]) cached.delete(String(u));
     });
 
     const onReport = vi.fn();
@@ -124,14 +149,14 @@ describe("GltfModel", () => {
       }),
     );
 
-    // The asset came back; Retry is what re-arms the boundary.
-    vi.mocked(drei.useGLTF).mockImplementation(() => ({ scene: fakeScene() }) as never);
+    // The asset came back; Retry is what re-arms the boundary — and it has to
+    // evict the cached rejection on the way, or the fresh subtree throws it.
+    refused.clear();
     await r.update(model({ onReport, retryVersion: 1 }));
     await vi.waitFor(() => expect((onReport.mock.lastCall![0] as LodReport).failure).toBeNull());
 
     window.removeEventListener("error", swallow);
     quiet.mockRestore();
-    vi.mocked(drei.useGLTF).mockReset();
   });
 
   it("reports once per fact, not once per render of the page above it", async () => {

@@ -124,9 +124,11 @@ export default function GltfModel({
   // fresh onReport too. Both are held in a ref, the same way LodWarmer holds
   // its onReady, so each effect below keys on its trigger alone and fires once
   // per fact rather than once per render of whatever is above us.
-  const latest = useRef({ lod, onReport });
+  // Every url this component may have handed drei, so a retry can evict them.
+  const urls = [...lods.map(lodUrl), ...(download.blobUrl ? [download.blobUrl] : [])];
+  const latest = useRef({ lod, onReport, urls });
   useEffect(() => {
-    latest.current = { lod, onReport };
+    latest.current = { lod, onReport, urls };
   });
 
   useEffect(() => {
@@ -138,10 +140,20 @@ export default function GltfModel({
   // Never on mount: a level that throws during the very first render has its
   // failure set before any effect runs, and an unguarded call here wiped it
   // again — the error card never appeared and the scene stayed empty.
+  //
+  // The eviction is not housekeeping, it is the retry. drei's useGLTF goes
+  // through suspend-react, which keeps a rejected load under its key and
+  // re-throws it on the next suspend of the same url — so a remount alone
+  // threw the *cached* rejection before a frame was drawn, and Try again could
+  // never recover however healthy the asset had become. Clearing the whole
+  // chain rather than the failed hash alone costs one map lookup per level and
+  // needs no bookkeeping about which url the throw came from (the blob, or the
+  // asset route behind it).
   const armed = useRef(retryVersion);
   useEffect(() => {
     if (armed.current === retryVersion) return;
     armed.current = retryVersion;
+    for (const url of latest.current.urls) useGLTF.clear(url);
     latest.current.lod.retry();
   }, [retryVersion]);
 
