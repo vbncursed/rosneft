@@ -99,5 +99,34 @@ describe("PanoramaRig", () => {
     expect(controls.target.toArray()).toEqual([0, 0, 0]);
     expect(controls.enableZoom).toBe(true);
     expect(controls.enablePan).toBe(true);
+    // The rig clamps the orbit radius to LOOK_RADIUS while it holds the
+    // camera; left behind, the 3D view could no longer be zoomed at all.
+    expect(controls.minDistance).toBe(0.01);
+    expect(controls.maxDistance).toBe(100);
+  });
+
+  it("a switch and then an unmount leaves nothing of either panorama behind", async () => {
+    const controls = fakeControls();
+    const probe: { camera?: Camera } = {};
+    const bare = <WithControls controls={controls} probe={probe} />;
+    const r = await ReactThreeTestRenderer.create(bare);
+    const start = probe.camera!.position.clone();
+
+    await r.update(tree(controls, probe));
+    await r.update(tree(controls, probe, { ...PANO, id: 2, position: { x: 0, y: 0, z: 0 }, defaultYaw: 0 }));
+    await r.update(bare);
+
+    // Re-entering restores the first panorama before it saves its own state,
+    // so the last restore is the one taken before the first panorama opened.
+    expect(controls.enableZoom).toBe(true);
+    expect(controls.enablePan).toBe(true);
+    expect(controls.target.toArray()).toEqual([0, 0, 0]);
+    expect(probe.camera!.position.toArray()).toEqual(start.toArray());
+
+    // And the first panorama's listener is gone with it — otherwise every
+    // orbit in the 3D view would still be snapped back to a closed anchor.
+    probe.camera!.position.set(9, 9, 9);
+    controls.fire("change");
+    expect(probe.camera!.position.toArray()).toEqual([9, 9, 9]);
   });
 });

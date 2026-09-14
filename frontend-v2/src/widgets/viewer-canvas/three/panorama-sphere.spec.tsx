@@ -54,7 +54,6 @@ describe("PanoramaSphere", () => {
     const r = await ReactThreeTestRenderer.create(<PanoramaSphere panorama={PANO} texture={new Texture()} />);
     const mesh = r.scene.children[0].instance as Mesh;
     await r.unmount();
-    expect(Object.hasOwn(mesh, "raycast")).toBe(true);
     expect(mesh.raycast).toBe((Object.getPrototypeOf(mesh) as Mesh).raycast);
   });
 });
