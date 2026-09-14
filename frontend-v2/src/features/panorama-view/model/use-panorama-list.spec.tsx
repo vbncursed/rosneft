@@ -126,6 +126,9 @@ describe("usePanoramaList", () => {
       tone: "error",
       message: "Failed to delete panorama: Still referenced.",
     });
+    // Both ways: a refusal may mean the row is already gone for another reason,
+    // and only the gateway can say. The page re-keys on the bundle it refetches.
+    expect(onChanged).toHaveBeenCalledTimes(1);
   });
 
   it("appends what the upload created, and marks nothing pending in between", async () => {
