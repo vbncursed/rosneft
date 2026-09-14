@@ -50,4 +50,9 @@ export const EXEMPT_MODULES = [
   "src/widgets/viewer-canvas/three/gltf-loader-setup.ts",
   "src/widgets/viewer-canvas/three/ktx2-init.tsx",
   "src/widgets/viewer-canvas/three/glb-preloader.tsx",
+  // The one line jsdom cannot run: createImageBitmap with imageOrientation.
+  // It is the default TextureDecoder the panorama texture hook takes as a
+  // parameter, so the decision of when to decode is spec'd there and this file
+  // holds only the call. Checked by the live pass (the equirect is upright).
+  "src/widgets/viewer-canvas/three/image-bitmap.ts",
 ];
