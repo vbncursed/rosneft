@@ -40,4 +40,12 @@ describe("Icon", () => {
       expect(svg.childElementCount).toBeGreaterThan(0);
     }
   });
+
+  it.each(["panorama", "file", "maximize", "minimize", "grip", "arrow-up", "close"] as const)(
+    "draws the %s glyph",
+    (name) => {
+      const { container } = render(<Icon name={name} />);
+      expect(container.querySelector("svg")).not.toBeNull();
+    },
+  );
 });
