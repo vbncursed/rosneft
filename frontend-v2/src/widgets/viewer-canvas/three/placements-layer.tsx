@@ -3,8 +3,9 @@ import type { Object3D } from "three";
 import { TransformControls } from "@react-three/drei";
 import type { TransformControls as TransformControlsImpl } from "three-stdlib";
 import type { GizmoMode } from "@/features/viewer-mode";
-import type { PlacementTransform, ResolvedPlacement } from "@/entities/placement";
+import { isVisibleIn, type PlacementTransform, type ResolvedPlacement } from "@/entities/placement";
 import PlacementInstance from "./placement-instance";
+import PlacementMarkers from "./placement-markers";
 import { useGizmoEvents } from "./use-gizmo-events";
 import { patchScaleGizmo } from "./scale-gizmo-patch";
 
@@ -23,6 +24,14 @@ interface PlacementsLayerProps {
   // or use it as a floor (snap off — prevents burying the model).
   territoryRef: RefObject<Object3D | null>;
   snapEnabled: boolean;
+  // The panorama being looked at, or null for the 3D view. Inside a panorama a
+  // placement renders only if its allowlist names that panorama — equipment
+  // dropped for one panorama must not leak into the others. The 3D view always
+  // shows every placement, so the editor can never lose one.
+  activePanoramaId: number | null;
+  /** `storage-tank-500 #1` by id, for the labels inside a panorama. */
+  markerLabels: Record<number, string>;
+  showMarkers: boolean;
   onSelect: (id: number | null) => void;
   onCommit: (id: number, transform: PlacementTransform) => void;
 }
@@ -39,6 +48,9 @@ export default function PlacementsLayer({
   canEdit,
   territoryRef,
   snapEnabled,
+  activePanoramaId,
+  markerLabels,
+  showMarkers,
   onSelect,
   onCommit,
 }: PlacementsLayerProps) {
@@ -56,9 +68,11 @@ export default function PlacementsLayer({
     return patchScaleGizmo(tc);
   }, [target]);
 
+  const visible = placements.filter((p) => isVisibleIn(p, activePanoramaId));
+
   return (
     <>
-      {placements.map((p) => (
+      {visible.map((p) => (
         <PlacementInstance
           key={p.id}
           // Only the selected instance forwards its ref to the gizmo —
@@ -75,6 +89,12 @@ export default function PlacementsLayer({
           so coming back to translate/rotate/scale finds the same target. */}
       {canEdit && !measureMode && selectedId != null && target ? (
         <TransformControls ref={tcRef} object={target} mode={mode} size={0.85} />
+      ) : null}
+      {/* A panorama has no panel and no gizmo, so the ring and its name are
+          the whole affordance. The 3D view names nothing — the labels would
+          crowd a scene that already has the object list beside it. */}
+      {activePanoramaId !== null && showMarkers ? (
+        <PlacementMarkers placements={visible} labels={markerLabels} />
       ) : null}
     </>
   );

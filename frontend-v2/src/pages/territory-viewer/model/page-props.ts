@@ -9,6 +9,7 @@ import type { Detail } from "@/shared/ui/detail-list";
 import type { SelectedBlockProps } from "@/widgets/placements-panel";
 import { loadingChip, modeChip, stripItems } from "./strip-and-chips";
 import { errorCopy, headerMeta, headerPills, railTools, uploadedLine } from "./viewer-view";
+import type { ViewerCanvasProps } from "@/widgets/viewer-canvas";
 import type { PageParts, TerritoryViewerPageProps } from "./viewer-props";
 
 export type {
@@ -24,6 +25,30 @@ export type {
   ViewerOverlaysProps,
   ViewerPanelProps,
 } from "./viewer-props";
+
+/**
+ * Task 15 wires the panorama half of the canvas; until then every territory
+ * opens in the 3D view with no panoramas to show. Module-level so the refs and
+ * the callbacks keep one identity across renders — a fresh object here would
+ * re-run CameraTracker's effect on every keystroke in the panel.
+ */
+const NO_PANORAMA = {
+  activePanorama: null,
+  panoramaTexture: null,
+  panoramaStatus: "idle",
+  panoramaProgress: null,
+  panoramaOpacity: 1,
+  panoramas: [],
+  showMarkers: true,
+  markerLabels: {},
+  move: { active: false, draggingId: null, livePos: null },
+  cameraPositionRef: { current: null },
+  cameraYawRef: { current: null },
+  onActivatePanorama: () => {},
+  onMarkerGrab: () => {},
+  onMarkerMove: () => {},
+  onMarkerDrop: () => {},
+} satisfies Partial<ViewerCanvasProps>;
 
 /**
  * Every prop the viewer page draws, assembled from the container's pieces.
@@ -93,6 +118,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       resetVersion: view.resetVersion,
       retryVersion: view.retryVersion,
       focusRequest: view.focusRequest,
+      ...NO_PANORAMA,
       onPick: on.onPick,
       onTransformCommit: on.onTransformCommit,
       onMeasurePoint: on.onMeasurePoint,

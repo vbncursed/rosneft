@@ -5,12 +5,14 @@ import type { Group } from "three";
 import type { SceneColors } from "../model/scene-colors";
 import type { ViewerCanvasProps } from "../ui/props";
 import CameraRig from "./camera-rig";
+import CameraTracker from "./camera-tracker";
 import FocusOn from "./focus-on";
 import GlbPreloader from "./glb-preloader";
 import GltfModel from "./gltf-model";
 import Ktx2Init from "./ktx2-init";
 import Lighting from "./lighting";
 import MeasurementLayer from "./measurement-layer";
+import PanoramaScene from "./panorama-scene";
 import PlacementsLayer from "./placements-layer";
 
 // Stable literal references so react-three-fiber doesn't tear down and
@@ -49,8 +51,23 @@ export default function SceneCanvas({
   activeChainId,
   unitRatio,
   focusRequest,
+  activePanorama,
+  panoramaTexture,
+  panoramaStatus,
+  panoramaProgress,
+  panoramaOpacity,
+  panoramas,
+  showMarkers,
+  markerLabels,
+  move,
+  cameraPositionRef,
+  cameraYawRef,
   colors,
   onPick,
+  onActivatePanorama,
+  onMarkerGrab,
+  onMarkerMove,
+  onMarkerDrop,
   onTransformCommit,
   onMeasurePoint,
   onCloseActiveChain,
@@ -142,11 +159,15 @@ export default function SceneCanvas({
             lods={parentLods}
             targetLod={targetLod}
             retryVersion={retryVersion}
-            raycastable={pointMode}
+            // A marker drag projects the cursor onto the territory, which
+            // needs the meshes hittable for the same reason point-picking does.
+            raycastable={pointMode || move.active}
             groupRef={territoryRef}
             onReport={onLod}
           />
-          <FocusOn root={wrapperRef} request={focusRequest} />
+          {/* A panorama pins the camera at its anchor; framing a placement
+              from there would fight the rig and land nowhere useful. */}
+          <FocusOn root={wrapperRef} request={activePanorama ? null : focusRequest} />
         </Bounds>
 
         <Suspense fallback={null}>
@@ -157,7 +178,12 @@ export default function SceneCanvas({
             measureMode={pointMode}
             canEdit={canWrite}
             territoryRef={territoryRef}
-            snapEnabled={snap}
+            // Nothing to snap to inside a panorama: the territory is behind
+            // the equirect and the reader cannot see where a drop landed.
+            snapEnabled={snap && activePanorama === null}
+            activePanoramaId={activePanorama?.id ?? null}
+            markerLabels={markerLabels}
+            showMarkers={showMarkers}
             onSelect={onPick}
             onCommit={onTransformCommit}
           />
@@ -174,8 +200,33 @@ export default function SceneCanvas({
         onRemoveChain={onRemoveChain}
       />
 
+      {/* Above CameraRig on purpose: React runs sibling cleanups in tree
+          order, and PanoramaRig has to put the controls back before CameraRig
+          disposes them. Outside <Bounds> too — a radius-50 sphere would
+          swallow the auto-fit. */}
+      <PanoramaScene
+        activePanorama={activePanorama}
+        texture={panoramaTexture}
+        status={panoramaStatus}
+        progress={panoramaProgress}
+        opacity={panoramaOpacity}
+        panoramas={panoramas}
+        showMarkers={showMarkers}
+        pointMode={pointMode}
+        move={move}
+        territoryRef={territoryRef}
+        onActivate={onActivatePanorama}
+        onGrab={onMarkerGrab}
+        onMove={onMarkerMove}
+        onDrop={onMarkerDrop}
+      />
+      {/* The panorama edit panel lives outside the Canvas and reads the live
+          view through these refs when the operator captures one. */}
+      <CameraTracker positionRef={cameraPositionRef} yawRef={cameraYawRef} />
       <CameraRig resetVersion={resetVersion} />
-      <gridHelper args={gridArgs} position={GRID_POSITION} />
+      {/* Inside a panorama the floor is the photograph; a grid drawn over it
+          reads as a bug. */}
+      {activePanorama ? null : <gridHelper args={gridArgs} position={GRID_POSITION} />}
       {/* Drop DPR while the user is interacting (camera drag, gizmo drag)
           and restore it on idle — keeps frame rate up on weaker GPUs. */}
       <AdaptiveDpr pixelated />

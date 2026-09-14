@@ -1,5 +1,8 @@
+import type { RefObject } from "react";
+import type { Texture } from "three";
 import type { Chain, MeasurePoint } from "@/entities/measurement";
-import type { PlacementTransform, ResolvedPlacement } from "@/entities/placement";
+import type { Panorama } from "@/entities/panorama";
+import type { PlacementTransform, ResolvedPlacement, Vec3 } from "@/entities/placement";
 import type { LodArtifact } from "@/entities/scene";
 import type { LodFailure } from "@/features/lod";
 import type { GizmoMode, ViewerMode } from "@/features/viewer-mode";
@@ -31,7 +34,25 @@ export type ViewerCanvasProps = {
   retryVersion: number;
   /** Instance ids to frame; a new array reference triggers a refit. */
   focusRequest: number[] | null;
+  /** The active panorama, calibration draft already applied; null in the 3D view. */
+  activePanorama: Panorama | null;
+  panoramaTexture: Texture | null;
+  panoramaStatus: "idle" | "loading" | "ready" | "error";
+  panoramaProgress: number | null;
+  /** < 1 ghosts the sphere for calibration. */
+  panoramaOpacity: number;
+  panoramas: Panorama[];
+  showMarkers: boolean;
+  /** Labels for the viewport markers inside a panorama, by placement id (`storage-tank-500 #1`). */
+  markerLabels: Record<number, string>;
+  move: { active: boolean; draggingId: number | null; livePos: Vec3 | null };
+  cameraPositionRef: RefObject<Vec3 | null>;
+  cameraYawRef: RefObject<number | null>;
   onPick: (id: number | null) => void;
+  onActivatePanorama: (id: number) => void;
+  onMarkerGrab: (id: number) => void;
+  onMarkerMove: (point: Vec3) => void;
+  onMarkerDrop: () => void;
   onTransformCommit: (id: number, t: PlacementTransform) => void;
   onMeasurePoint: (p: MeasurePoint) => void;
   onCloseActiveChain: () => void;
