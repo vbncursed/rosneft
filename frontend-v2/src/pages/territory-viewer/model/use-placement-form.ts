@@ -82,8 +82,14 @@ export function usePlacementForm(
       setDraft({ kind: "new", id: arrived.id, label: "", transform: transformOf(arrived), touched: false });
     }
   } else if ((draft?.id ?? null) !== selectedId) {
-    const picked = placements.find((p) => p.id === selectedId);
-    setDraft(picked ? editDraft(picked) : null);
+    const picked = placements.find((p) => p.id === selectedId) ?? null;
+    // The write has to *change* something. React re-renders a render-phase
+    // update rather than bailing out on an equal value, and the condition that
+    // asked for it would still be true on the way round — so a selected id the
+    // list does not hold (an object deleted under the selection) wrote null
+    // over null until React gave up at 25 renders and threw, taking the route
+    // with it. Nothing below the canvas has an error boundary.
+    if (draft !== null || picked !== null) setDraft(picked && editDraft(picked));
   }
 
   const openNew = useCallback(
@@ -95,12 +101,15 @@ export function usePlacementForm(
   );
 
   // Rename is now only a way *in* — the draft it seeds is the same one the
-  // selection would have produced, with the label field worth looking at.
+  // selection would have produced, with the label field worth looking at. The
+  // exception is the object's own "new" draft: cancelling one deletes the
+  // object the picker already POSTed, and downgrading it to an edit left that
+  // object in the scene, unnamed, with nothing left to undo it.
   const openRename = useCallback(
     (id: number) => {
       const placement = placements.find((p) => p.id === id);
       if (!placement) return;
-      setDraft(editDraft(placement));
+      setDraft((d) => (d?.id === id && d.kind === "new" ? d : editDraft(placement)));
       select(id);
     },
     [placements, select],

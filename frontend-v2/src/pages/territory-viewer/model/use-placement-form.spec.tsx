@@ -106,6 +106,26 @@ describe("usePlacementForm", () => {
     expect(result.current.form).toMatchObject({ kind: "edit", label: "West valve" });
   });
 
+  it("renders once, with no form, for a selection the editor's list does not hold", () => {
+    // A render-phase reset that writes null over null is re-rendered rather
+    // than bailed out of, and the condition that asked for it is still true:
+    // this used to throw "Too many re-renders" and take the whole route with it.
+    const { result } = mount(999);
+    expect(result.current.form).toBeNull();
+  });
+
+  it("keeps a create form a create when Rename is clicked on the object it belongs to", async () => {
+    // Cancelling a create deletes the object the picker already POSTed. A
+    // pencil click that quietly downgraded the draft to an edit left that
+    // object in the scene, unnamed, with nothing to undo it.
+    const { result } = mount();
+    act(() => result.current.openNew(4));
+    act(() => result.current.openRename(4));
+    expect(result.current.form?.kind).toBe("new");
+    await act(async () => result.current.form?.onCancel());
+    expect(remove).toHaveBeenCalledWith(4);
+  });
+
   it("opens nothing for an id the editor does not hold", () => {
     const { result } = mount();
     act(() => result.current.openNew(999));
