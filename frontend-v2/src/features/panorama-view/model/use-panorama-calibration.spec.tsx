@@ -112,9 +112,13 @@ describe("usePanoramaCalibration", () => {
     expect(result.current.opacity).toBe(0.4);
   });
 
-  it("ignores a nudge when nothing is being calibrated", () => {
+  it("ignores every adjustment while nothing is being calibrated", () => {
     const { result } = setup(panorama(1));
     act(() => result.current.nudge("z", 0.1));
+    act(() => result.current.setYaw(2));
+    act(() => result.current.setPosition({ x: 9, y: 9, z: 9 }));
+
     expect(result.current.draft).toBeNull();
+    expect(result.current.effective).toBeNull();
   });
 });
