@@ -76,17 +76,57 @@ describe("usePlacementForm", () => {
     expect(result.current.form?.transform.position).toEqual({ x: 1, y: 2, z: 3 });
   });
 
-  it("saves a create as the whole placement — transform and label together", async () => {
+  it("saves the numbers the reader typed, transform and label together", async () => {
     const { result } = mount();
     act(() => result.current.openNew(4));
     act(() => result.current.form?.onLabel("Tank 4"));
+    act(() =>
+      result.current.form?.onTransform({
+        position: { x: 1, y: 2, z: 3 },
+        rotation: TANK.rotation,
+        scale: TANK.scale,
+      }),
+    );
     await act(async () => result.current.form?.onSave());
     expect(update).toHaveBeenCalledWith(4, {
-      position: TANK.position,
+      position: { x: 1, y: 2, z: 3 },
       rotation: TANK.rotation,
       scale: TANK.scale,
       label: "Tank 4",
     });
+  });
+
+  it("saves an untouched create against the transform the scene committed meanwhile", async () => {
+    // The gizmo stays live while the form is open, and a drag PUTs its own
+    // transform: place, drag into position, name it, is the flow the picker
+    // exists for. The draft was copied when the form opened, so Save used to
+    // push that pre-drag copy back over the drag.
+    const sent: unknown[] = [];
+    let list = [TANK, VALVE];
+    rename.mockImplementation(async (id, label) => {
+      const p = list.find((x) => x.id === id)!;
+      sent.push({ position: p.position, rotation: p.rotation, scale: p.scale, label });
+    });
+    const { result, rerender } = renderHook(() =>
+      usePlacementForm({ placements: list, mutation, update, rename, remove }, select),
+    );
+
+    act(() => result.current.openNew(4));
+    // The drag landed: the editor now holds the moved placement.
+    list = [{ ...TANK, position: { x: 0.749, y: 0, z: 0 } }, VALVE];
+    rerender();
+    act(() => result.current.form?.onLabel("Tank 4"));
+    await act(async () => result.current.form?.onSave());
+
+    expect(update).not.toHaveBeenCalled();
+    expect(sent).toEqual([
+      {
+        position: { x: 0.749, y: 0, z: 0 },
+        rotation: TANK.rotation,
+        scale: TANK.scale,
+        label: "Tank 4",
+      },
+    ]);
   });
 
   it("saves a rename as a rename — the numbers were never editable there", async () => {

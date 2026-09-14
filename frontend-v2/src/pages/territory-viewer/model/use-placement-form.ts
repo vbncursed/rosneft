@@ -19,7 +19,14 @@ export type FormEditor = {
 /** Exactly what `SelectedBlock` draws; reused rather than re-declared. */
 export type PlacementFormView = NonNullable<SelectedBlockProps["form"]>;
 
-type Draft = { kind: "new" | "rename"; id: number; label: string; transform: PlacementTransform };
+type Draft = {
+  kind: "new" | "rename";
+  id: number;
+  label: string;
+  transform: PlacementTransform;
+  /** The reader typed into a number cell, so the draft's copy is theirs to keep. */
+  touched: boolean;
+};
 
 const transformOf = (p: ResolvedPlacement): PlacementTransform => ({
   position: p.position,
@@ -52,7 +59,13 @@ export function usePlacementForm(editor: FormEditor, select: (id: number | null)
     const arrived = placements.find((p) => p.id === awaited);
     if (arrived) {
       setAwaited(null);
-      setDraft({ kind: "new", id: arrived.id, label: "", transform: transformOf(arrived) });
+      setDraft({
+        kind: "new",
+        id: arrived.id,
+        label: "",
+        transform: transformOf(arrived),
+        touched: false,
+      });
     }
   }
 
@@ -70,7 +83,13 @@ export function usePlacementForm(editor: FormEditor, select: (id: number | null)
       if (!placement) return;
       // A create form starts blank; a rename starts on what the object is
       // called now, because that is the string being corrected.
-      setDraft({ kind: "rename", id, label: placement.label, transform: transformOf(placement) });
+      setDraft({
+        kind: "rename",
+        id,
+        label: placement.label,
+        transform: transformOf(placement),
+        touched: false,
+      });
       select(id);
     },
     [placements, select],
@@ -81,9 +100,15 @@ export function usePlacementForm(editor: FormEditor, select: (id: number | null)
     setDraft(null);
   }, []);
 
+  // An untouched transform is not this form's to send. The gizmo stays live
+  // while the form is open, and a drag commits its own PUT — so the copy taken
+  // when the form opened is stale the moment the reader positions the object,
+  // which is exactly the flow the picker sets up. `rename` reads the editor's
+  // own list, i.e. the last committed transform, and sends that back with the
+  // label. The draft's numbers go out only when someone typed them.
   const save = useCallback(async () => {
     if (!draft) return;
-    if (draft.kind === "rename") await rename(draft.id, draft.label);
+    if (draft.kind === "rename" || !draft.touched) await rename(draft.id, draft.label);
     else await update(draft.id, { ...draft.transform, label: draft.label });
     setDraft(null);
   }, [draft, rename, update]);
@@ -101,7 +126,7 @@ export function usePlacementForm(editor: FormEditor, select: (id: number | null)
     label: draft.label,
     onLabel: (label) => setDraft((d) => d && { ...d, label }),
     transform: draft.transform,
-    onTransform: (transform) => setDraft((d) => d && { ...d, transform }),
+    onTransform: (transform) => setDraft((d) => d && { ...d, transform, touched: true }),
     saving: isMutatingId(mutation, draft.id),
     onSave: () => void save(),
     onCancel: () => void cancel(),
