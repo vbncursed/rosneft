@@ -1,4 +1,4 @@
-export { type Panorama, type PanoramaCreate, type PanoramaUpdate } from "./model/panorama";
+export { isCalibrated, type Panorama, type PanoramaCreate, type PanoramaUpdate } from "./model/panorama";
 export { toPanorama } from "./api/to-panorama";
 export { listPanoramas, createPanorama, updatePanorama, deletePanorama } from "./api/panoramas-gateway";
 export { clampOpacity, nudgePosition, applyCalibration, type CalibrationDraft } from "./model/calibration";
