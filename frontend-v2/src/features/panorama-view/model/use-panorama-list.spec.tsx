@@ -64,13 +64,14 @@ describe("usePanoramaList", () => {
 
   it("rolls the row back and says why when the update is refused", async () => {
     vi.mocked(updatePanorama).mockRejectedValue(new HttpError(422, null, "Yaw out of range."));
-    const { result } = list([panorama(1)]);
+    const { result } = list([panorama(1), panorama(2)]);
 
     await act(async () => {
       await result.current.s.update(1, { yawOffset: 9 });
     });
 
     expect(result.current.s.panoramas[0].yawOffset).toBe(0);
+    expect(result.current.s.panoramas[1]).toEqual(panorama(2));
     expect(result.current.notices[0]).toMatchObject({
       tone: "error",
       message: "Failed to update panorama: Yaw out of range.",
