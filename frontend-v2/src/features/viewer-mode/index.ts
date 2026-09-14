@@ -7,4 +7,5 @@ export {
   type ViewerMode,
   type ViewerModeAction,
   type ViewerModeState,
+  type ViewerView,
 } from "./model/viewer-mode";
