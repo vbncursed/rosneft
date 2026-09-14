@@ -30,6 +30,19 @@ describe("useViewerMode", () => {
     expect(result.current.state.gizmo).toBe("scale");
   });
 
+  it("binds T and R to their own gizmo, not to each other's", () => {
+    // The keys were only tested through S: a swapped argument would have
+    // shipped green.
+    const { result } = renderHook(() =>
+      useViewerMode({ canWrite: true, chainOpen: false, onCancelChain: vi.fn() }),
+    );
+    act(() => result.current.select(4));
+    press("r");
+    expect(result.current.state.gizmo).toBe("rotate");
+    press("t");
+    expect(result.current.state.gizmo).toBe("translate");
+  });
+
   it("G toggles snap", () => {
     const { result } = renderHook(() => useViewerMode({ canWrite: true, chainOpen: false, onCancelChain: vi.fn() }));
     press("g");

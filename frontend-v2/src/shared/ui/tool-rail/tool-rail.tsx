@@ -9,6 +9,13 @@ export type ToolRailItem = {
   name: string;
   /** inert: drawn dim and unclickable, kept in place so the rail never shifts. */
   state?: "active" | "idle" | "inert";
+  /**
+   * A mode tile: `active` means "this mode is on", so it carries `aria-pressed`.
+   * A momentary action (Reset camera, Replay tour) is lit while it is the live
+   * one, which is not a pressed state — announcing it as a toggle says the
+   * camera stays reset.
+   */
+  toggle?: boolean;
   onClick?: () => void;
   /**
    * The onboarding tour's anchor, emitted as `data-tour` on the tile. It has to
@@ -21,7 +28,7 @@ export type ToolRailItem = {
 export type ToolRailProps = { tools: ToolRailItem[]; label: string; className?: string };
 
 const TILE: Record<NonNullable<ToolRailItem["state"]>, string> = {
-  active: "bg-accent-soft text-accent",
+  active: "cursor-pointer bg-accent-soft text-accent",
   idle: "cursor-pointer bg-transparent text-muted hover:text-fg",
   inert: "cursor-default bg-transparent text-dim",
 };
@@ -32,16 +39,18 @@ export function ToolRail({ tools, label, className }: ToolRailProps) {
     <div
       role="toolbar"
       aria-label={label}
-      className={cx("flex gap-1 rounded-[10px] border border-line-2 bg-panel p-1 shadow-elevation", className)}
+      // inline-flex: the rail is as wide as its tiles. As a block it spanned
+      // its container, and only its parent being a flex column hid that.
+      className={cx("inline-flex gap-1 rounded-[10px] border border-line-2 bg-panel p-1 shadow-elevation", className)}
     >
-      {tools.map(({ key, glyph, name, state = "idle", onClick, dataTour }) => (
+      {tools.map(({ key, glyph, name, state = "idle", toggle, onClick, dataTour }) => (
         <button
           key={key}
           type="button"
           data-tour={dataTour}
           title={name}
           aria-label={name}
-          aria-pressed={state === "active"}
+          aria-pressed={toggle ? state === "active" : undefined}
           aria-disabled={state === "inert" || undefined}
           onClick={state === "inert" ? undefined : onClick}
           className={cx(

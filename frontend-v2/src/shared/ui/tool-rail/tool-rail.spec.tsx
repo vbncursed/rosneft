@@ -5,7 +5,7 @@ import { ToolRail } from "./tool-rail";
 
 const tools = (onReset = vi.fn(), onMeasure = vi.fn()) => [
   { key: "reset", glyph: "↺", name: "Reset camera", state: "active" as const, onClick: onReset },
-  { key: "measure", glyph: "↔", name: "Measure (M)", onClick: onMeasure },
+  { key: "measure", glyph: "↔", name: "Measure (M)", toggle: true, onClick: onMeasure },
   { key: "tour", glyph: "▶", name: "Replay guided tour", state: "inert" as const, onClick: vi.fn() },
 ];
 
@@ -14,7 +14,9 @@ describe("ToolRail", () => {
     render(<ToolRail label="Viewer tools" tools={tools()} />);
     const bar = screen.getByRole("toolbar", { name: "Viewer tools" });
     expect(bar.querySelectorAll("button")).toHaveLength(3);
-    expect(screen.getByRole("button", { name: "Reset camera" })).toHaveAttribute("aria-pressed", "true");
+    // aria-pressed on the mode tile only: Reset camera happens once when
+    // pressed, and a toggle that stays on says the camera is still being reset.
+    expect(screen.getByRole("button", { name: "Reset camera" })).not.toHaveAttribute("aria-pressed");
     expect(screen.getByRole("button", { name: "Measure (M)" })).toHaveAttribute("aria-pressed", "false");
   });
 

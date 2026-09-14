@@ -103,11 +103,13 @@ describe("PlaceObjectsModal", () => {
         onClose={vi.fn()}
         territoryTitle="T"
         options={options}
-        placing={{ done: 1, total: 2 }}
+        placing={{ done: 0, total: 2 }}
         onPlace={vi.fn()}
       />,
     );
 
+    // Nothing has landed yet and the first POST is in flight: the line names
+    // the object being placed, never "0 of 2".
     expect(screen.getByText("Placing 1 of 2…")).toBeInTheDocument();
     expect(screen.getByRole("progressbar", { name: "Placing" })).toHaveAttribute(
       "aria-valuenow",

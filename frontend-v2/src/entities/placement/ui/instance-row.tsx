@@ -33,6 +33,12 @@ export function InstanceRow({
   onFocus,
 }: InstanceRowProps) {
   const name = instanceName(group, instance);
+  // WCAG 2.5.3: the accessible name has to contain the visible text. The row
+  // prints `#2 · Tank 2` and the scene calls the object `storage-tank-500 #2`,
+  // so the name is both — the model, the number, then the label the reader gave
+  // it. Only the select button prints a label; the icon actions name the
+  // instance alone.
+  const selectName = instance.label ? `${name} · ${instance.label}` : name;
   const editor = canWrite || canDelete;
   return (
     <div
@@ -45,7 +51,7 @@ export function InstanceRow({
         type="button"
         onClick={() => onSelect(instance.id)}
         aria-pressed={selected}
-        aria-label={name}
+        aria-label={selectName}
         className={cx(
           "min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent p-0 text-left font-mono text-[10px] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
           selected ? "text-accent" : "text-fg",

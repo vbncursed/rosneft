@@ -41,9 +41,11 @@ describe("ViewerOverlays · the tool rail", () => {
       "Add objects",
       "Replay guided tour",
     ]);
-    expect(screen.getByRole("button", { name: "Reset camera" })).toHaveAttribute(
+    // The lit tile is not a pressed toggle unless it names a mode.
+    expect(screen.getByRole("button", { name: "Reset camera" })).not.toHaveAttribute("aria-pressed");
+    expect(screen.getByRole("button", { name: "Measure (M)" })).toHaveAttribute(
       "aria-pressed",
-      "true",
+      "false",
     );
   });
 

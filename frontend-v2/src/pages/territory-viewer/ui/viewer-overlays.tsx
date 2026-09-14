@@ -8,11 +8,16 @@ import type { ViewerOverlaysProps } from "../model/page-props";
 import type { RailTool } from "../model/viewer-view";
 import { ViewerError } from "./viewer-error";
 
-/** The mock's glyph, name and tour anchor per tile. The page decides the state. */
-const TILES: Record<RailTool, { glyph: string; name: string; dataTour?: string }> = {
+/**
+ * The mock's glyph, name and tour anchor per tile. The page decides the state.
+ *
+ * `toggle` marks the two that are modes; Reset camera and Replay tour happen
+ * once when pressed, and `aria-pressed` on those reads as a toggle that stays on.
+ */
+const TILES: Record<RailTool, { glyph: string; name: string; toggle?: boolean; dataTour?: string }> = {
   reset: { glyph: "↺", name: "Reset camera", dataTour: "reset-camera" },
-  measure: { glyph: "↔", name: "Measure (M)", dataTour: "measure" },
-  add: { glyph: "＋", name: "Add objects", dataTour: "add-object" },
+  measure: { glyph: "↔", name: "Measure (M)", toggle: true, dataTour: "measure" },
+  add: { glyph: "＋", name: "Add objects", toggle: true, dataTour: "add-object" },
   tour: { glyph: "▶", name: "Replay guided tour" },
 };
 

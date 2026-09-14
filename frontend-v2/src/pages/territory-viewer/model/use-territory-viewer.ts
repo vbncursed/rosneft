@@ -175,8 +175,12 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   );
 
   if (me.isPending || scene.isPending) return { status: "loading" };
-  const err = unanswered(scene) ?? unanswered(me);
-  if (err instanceof HttpError && err.status === 404) return { status: "missing" };
+  // Only the *scene's* 404 means "no such territory, or not this reader's". A
+  // 404 from /me is a broken session route, and answering "Territory not found"
+  // there would name the wrong thing.
+  const sceneErr = unanswered(scene);
+  const err = sceneErr ?? unanswered(me);
+  if (sceneErr instanceof HttpError && sceneErr.status === 404) return { status: "missing" };
   if (err) return { status: "unavailable", error: messageOf(err) };
   // A converted territory always maps; an unconverted one is the conversion
   // page's, and the route never sends it here.

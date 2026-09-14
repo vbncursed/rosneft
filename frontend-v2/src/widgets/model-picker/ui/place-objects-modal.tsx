@@ -140,7 +140,12 @@ function PlaceObjectsBody({
 }
 
 function PlacingLine({ done, total }: { done: number; total: number }) {
-  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+  // `done` counts the POSTs that landed, and one is always in flight while this
+  // line is drawn — so the object being placed is `done + 1`, and the first
+  // frame read "Placing 0 of 2…". The bar fills with it: the mock draws
+  // "Placing 1 of 2…" at half, which is the first object of two underway.
+  const current = Math.min(done + 1, Math.max(total, 1));
+  const pct = total === 0 ? 0 : Math.round((current / total) * 100);
 
   return (
     <p className="m-0 flex items-center gap-2">
@@ -159,7 +164,7 @@ function PlacingLine({ done, total }: { done: number; total: number }) {
           style={{ width: `${pct}%` }}
         />
       </span>
-      <span className="font-mono text-[10px] text-accent">{`Placing ${done} of ${total}…`}</span>
+      <span className="font-mono text-[10px] text-accent">{`Placing ${current} of ${total}…`}</span>
     </p>
   );
 }

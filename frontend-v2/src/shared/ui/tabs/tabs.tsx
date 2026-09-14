@@ -16,6 +16,12 @@ export type TabsProps<T extends string> = {
   value: T;
   onChange: (value: T) => void;
   ariaLabel: string;
+  /**
+   * The id of the tabpanel these tabs drive. Only the active panel is rendered,
+   * so `aria-controls` goes on the active tab alone; every tab gets its own id
+   * (`${panelId}-${value}`) so the panel can point back with `aria-labelledby`.
+   */
+  panelId?: string;
   variant?: TabsVariant;
   className?: string;
 };
@@ -47,6 +53,7 @@ export function Tabs<T extends string>({
   value,
   onChange,
   ariaLabel,
+  panelId,
   variant = "underline",
   className,
 }: TabsProps<T>) {
@@ -84,6 +91,8 @@ export function Tabs<T extends string>({
             }}
             type="button"
             role="tab"
+            id={panelId ? `${panelId}-${tab.value}` : undefined}
+            aria-controls={panelId && active ? panelId : undefined}
             aria-selected={active}
             disabled={tab.disabled}
             tabIndex={active ? 0 : -1}
