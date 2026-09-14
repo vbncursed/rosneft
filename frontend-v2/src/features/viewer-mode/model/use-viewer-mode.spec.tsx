@@ -3,10 +3,13 @@ import { describe, expect, it, vi } from "vitest";
 import { useViewerMode } from "./use-viewer-mode";
 
 const press = (key: string) => act(() => { window.dispatchEvent(new KeyboardEvent("keydown", { key })); });
+const noop = () => {};
 
 describe("useViewerMode", () => {
   it("M toggles measure and drops the selection", () => {
-    const { result } = renderHook(() => useViewerMode({ canWrite: true, chainOpen: false, onCancelChain: vi.fn() }));
+    const { result } = renderHook(() =>
+      useViewerMode({ canWrite: true, canMovePoints: false, chainOpen: false, onCancelChain: vi.fn(), onCycle: noop }),
+    );
     act(() => result.current.select(4));
     press("m");
     expect(result.current.state).toMatchObject({ mode: "measure", selectedId: null });
@@ -16,7 +19,8 @@ describe("useViewerMode", () => {
 
   it("T/R/S change the gizmo only with a selection and the write grant", () => {
     const { result, rerender } = renderHook(
-      ({ canWrite }) => useViewerMode({ canWrite, chainOpen: false, onCancelChain: vi.fn() }),
+      ({ canWrite }) =>
+        useViewerMode({ canWrite, canMovePoints: false, chainOpen: false, onCancelChain: vi.fn(), onCycle: noop }),
       { initialProps: { canWrite: false } },
     );
     act(() => result.current.select(4));
@@ -34,7 +38,7 @@ describe("useViewerMode", () => {
     // The keys were only tested through S: a swapped argument would have
     // shipped green.
     const { result } = renderHook(() =>
-      useViewerMode({ canWrite: true, chainOpen: false, onCancelChain: vi.fn() }),
+      useViewerMode({ canWrite: true, canMovePoints: false, chainOpen: false, onCancelChain: vi.fn(), onCycle: noop }),
     );
     act(() => result.current.select(4));
     press("r");
@@ -44,7 +48,9 @@ describe("useViewerMode", () => {
   });
 
   it("G toggles snap", () => {
-    const { result } = renderHook(() => useViewerMode({ canWrite: true, chainOpen: false, onCancelChain: vi.fn() }));
+    const { result } = renderHook(() =>
+      useViewerMode({ canWrite: true, canMovePoints: false, chainOpen: false, onCancelChain: vi.fn(), onCycle: noop }),
+    );
     press("g");
     expect(result.current.state.snap).toBe(true);
   });
@@ -52,7 +58,8 @@ describe("useViewerMode", () => {
   it("Escape cancels an open chain first, and only then peels the state", () => {
     const onCancelChain = vi.fn();
     const { result, rerender } = renderHook(
-      ({ chainOpen }) => useViewerMode({ canWrite: true, chainOpen, onCancelChain }),
+      ({ chainOpen }) =>
+        useViewerMode({ canWrite: true, canMovePoints: false, chainOpen, onCancelChain, onCycle: noop }),
       { initialProps: { chainOpen: true } },
     );
     // Measure is entered before the chain is opened, or leaving it would
@@ -69,7 +76,9 @@ describe("useViewerMode", () => {
   });
 
   it("exposes the rest of the reducer as callbacks: place mode, the gizmo and leaving measure", () => {
-    const { result } = renderHook(() => useViewerMode({ canWrite: true, chainOpen: false, onCancelChain: vi.fn() }));
+    const { result } = renderHook(() =>
+      useViewerMode({ canWrite: true, canMovePoints: false, chainOpen: false, onCancelChain: vi.fn(), onCycle: noop }),
+    );
     act(() => result.current.enterPlace());
     expect(result.current.state.mode).toBe("place");
     act(() => result.current.exitPlace());
@@ -87,7 +96,8 @@ describe("useViewerMode", () => {
     // the chain with nothing visible happening.
     const onCancelChain = vi.fn();
     const { result, rerender } = renderHook(
-      ({ chainOpen }) => useViewerMode({ canWrite: true, chainOpen, onCancelChain }),
+      ({ chainOpen }) =>
+        useViewerMode({ canWrite: true, canMovePoints: false, chainOpen, onCancelChain, onCycle: noop }),
       { initialProps: { chainOpen: false } },
     );
 
@@ -110,11 +120,60 @@ describe("useViewerMode", () => {
   });
 
   it("ignores keys typed into a field", () => {
-    const { result } = renderHook(() => useViewerMode({ canWrite: true, chainOpen: false, onCancelChain: vi.fn() }));
+    const { result } = renderHook(() =>
+      useViewerMode({ canWrite: true, canMovePoints: false, chainOpen: false, onCancelChain: vi.fn(), onCycle: noop }),
+    );
     const input = document.createElement("input");
     document.body.append(input);
     act(() => { input.dispatchEvent(new KeyboardEvent("keydown", { key: "m", bubbles: true })); });
     expect(result.current.state.mode).toBe("orbit");
     input.remove();
+  });
+
+  it("P asks the owner of the list to cycle; V toggles move only with the grant", () => {
+    const onCycle = vi.fn();
+    const { result } = renderHook(() =>
+      useViewerMode({ canWrite: true, canMovePoints: false, chainOpen: false, onCancelChain: noop, onCycle }),
+    );
+    press("p");
+    expect(onCycle).toHaveBeenCalledOnce();
+    press("v");
+    expect(result.current.state.move).toBe(false);
+  });
+
+  it("V toggles move with panorama:write", () => {
+    const { result } = renderHook(() =>
+      useViewerMode({ canWrite: true, canMovePoints: true, chainOpen: false, onCancelChain: noop, onCycle: noop }),
+    );
+    press("v");
+    expect(result.current.state.move).toBe(true);
+  });
+
+  it("beforeEscape claims the key and the reducer is not asked", () => {
+    const { result } = renderHook(() =>
+      useViewerMode({
+        canWrite: true,
+        canMovePoints: true,
+        chainOpen: false,
+        onCancelChain: noop,
+        onCycle: noop,
+        beforeEscape: () => true,
+      }),
+    );
+    act(() => result.current.enterPanorama(3));
+    press("Escape");
+    expect(result.current.state.view).toEqual({ kind: "panorama", id: 3 });
+  });
+
+  it("gizmo keys still work inside a panorama on a selected object (B-5)", () => {
+    const { result } = renderHook(() =>
+      useViewerMode({ canWrite: true, canMovePoints: true, chainOpen: false, onCancelChain: noop, onCycle: noop }),
+    );
+    act(() => {
+      result.current.enterPanorama(3);
+      result.current.select(1);
+    });
+    press("r");
+    expect(result.current.state.gizmo).toBe("rotate");
   });
 });

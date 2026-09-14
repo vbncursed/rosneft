@@ -93,7 +93,15 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
   grants: OWNER,
   vm: VM,
   options: OPTIONS,
-  mode: { mode: "orbit", selectedId: null, gizmo: "translate", snap: false },
+  mode: {
+    mode: "orbit",
+    selectedId: null,
+    gizmo: "translate",
+    snap: false,
+    view: { kind: "scene" },
+    move: false,
+    editingPanoramaId: null,
+  },
   measure: { chains: [], activeChainId: null, summary: { segments: 0, total: "0.00 m" } },
   placements: [TANK],
   pendingIds: [],
@@ -168,7 +176,17 @@ describe("pageProps · canvas", () => {
   });
 
   it("passes the selection, the gizmo and the versions straight through", () => {
-    const p = parts({ mode: { mode: "orbit", selectedId: 4, gizmo: "rotate", snap: true } });
+    const p = parts({
+      mode: {
+        mode: "orbit",
+        selectedId: 4,
+        gizmo: "rotate",
+        snap: true,
+        view: { kind: "scene" },
+        move: false,
+        editingPanoramaId: null,
+      },
+    });
     const { canvas } = pageProps({ ...p, view: { ...p.view, retryVersion: 3, focusRequest: [4] } });
     expect(canvas.selectedId).toBe(4);
     expect(canvas.gizmo).toBe("rotate");
@@ -339,7 +357,17 @@ describe("pageProps · panel", () => {
   });
 
   it("names the selected instance the way the list does", () => {
-    const p = parts({ mode: { mode: "orbit", selectedId: 4, gizmo: "translate", snap: false } });
+    const p = parts({
+      mode: {
+        mode: "orbit",
+        selectedId: 4,
+        gizmo: "translate",
+        snap: false,
+        view: { kind: "scene" },
+        move: false,
+        editingPanoramaId: null,
+      },
+    });
     expect(pageProps(p).panel?.placements.selected).toMatchObject({
       name: "storage-tank-500 #1",
       transform: { position: TANK.position },
@@ -349,7 +377,17 @@ describe("pageProps · panel", () => {
   });
 
   it("passes the compact flag down so the gizmo keys lose their brackets at 1280", () => {
-    const p = parts({ mode: { mode: "orbit", selectedId: 4, gizmo: "translate", snap: false } });
+    const p = parts({
+      mode: {
+        mode: "orbit",
+        selectedId: 4,
+        gizmo: "translate",
+        snap: false,
+        view: { kind: "scene" },
+        move: false,
+        editingPanoramaId: null,
+      },
+    });
     const compact = pageProps({ ...p, view: { ...p.view, compact: true } });
     expect(compact.panel?.placements.selected?.compact).toBe(true);
   });
@@ -365,7 +403,18 @@ describe("pageProps · panel", () => {
       onSave: noop,
       onCancel: noop,
     };
-    const p = parts({ form, mode: { mode: "orbit", selectedId: 4, gizmo: "translate", snap: false } });
+    const p = parts({
+      form,
+      mode: {
+        mode: "orbit",
+        selectedId: 4,
+        gizmo: "translate",
+        snap: false,
+        view: { kind: "scene" },
+        move: false,
+        editingPanoramaId: null,
+      },
+    });
     expect(pageProps(p).panel?.placements.selected?.form).toBe(form);
   });
 

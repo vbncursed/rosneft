@@ -102,8 +102,11 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   const measure = useMeasurementTool();
   const mode = useViewerMode({
     canWrite: grants.write,
+    // Task 15 wires the real values once panoramas land on this page.
+    canMovePoints: false,
     chainOpen: measure.activeChainId !== null,
     onCancelChain: measure.cancelChain,
+    onCycle: () => {},
   });
 
   const dims = vm?.metadata.dims ?? { x: 0, y: 0, z: 0 };

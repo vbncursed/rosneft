@@ -5,13 +5,26 @@ import { INITIAL_VIEWER_MODE, viewerModeReducer, type GizmoMode } from "./viewer
 export type UseViewerModeParams = {
   /** placement:write — without it the gizmo keys do nothing. */
   canWrite: boolean;
+  /** panorama:write — without it V does nothing. */
+  canMovePoints: boolean;
   /** The measure tool has an unfinished chain; Escape breaks it before anything else. */
   chainOpen: boolean;
   onCancelChain: () => void;
+  /** P: ask the owner of the panorama list to cycle to the next one. */
+  onCycle: () => void;
+  /** Runs before the reducer sees Escape; returning true claims the key. */
+  beforeEscape?: () => boolean;
 };
 
 /** The reducer behind a stable API, with the viewer's keys bound. */
-export function useViewerMode({ canWrite, chainOpen, onCancelChain }: UseViewerModeParams) {
+export function useViewerMode({
+  canWrite,
+  canMovePoints,
+  chainOpen,
+  onCancelChain,
+  onCycle,
+  beforeEscape,
+}: UseViewerModeParams) {
   const [state, dispatch] = useReducer(viewerModeReducer, INITIAL_VIEWER_MODE);
 
   // Every way out of measure breaks an unfinished chain, not just Escape. A
@@ -47,10 +60,20 @@ export function useViewerMode({ canWrite, chainOpen, onCancelChain }: UseViewerM
     dispatch({ type: "enterPlace" });
   }, [leaveMeasure]);
   const exitPlace = useCallback(() => dispatch({ type: "exitPlace" }), []);
+  const enterPanorama = useCallback((id: number) => dispatch({ type: "enterPanorama", id }), []);
+  const exitPanorama = useCallback(() => dispatch({ type: "exitPanorama" }), []);
+  const toggleMove = useCallback(() => {
+    leaveMeasure();
+    dispatch({ type: "toggleMove" });
+  }, [leaveMeasure]);
+  const exitMove = useCallback(() => dispatch({ type: "exitMove" }), []);
+  const startEdit = useCallback((id: number) => dispatch({ type: "startEdit", id }), []);
+  const closeEdit = useCallback(() => dispatch({ type: "closeEdit" }), []);
   const escape = useCallback(() => {
+    if (beforeEscape?.()) return;
     if (chainOpen) onCancelChain();
     dispatch({ type: "escape", chainOpen });
-  }, [chainOpen, onCancelChain]);
+  }, [beforeEscape, chainOpen, onCancelChain]);
 
   const gizmoKey = (gizmo: GizmoMode) => () => {
     if (canWrite && state.selectedId !== null) setGizmo(gizmo);
@@ -62,8 +85,28 @@ export function useViewerMode({ canWrite, chainOpen, onCancelChain }: UseViewerM
     r: gizmoKey("rotate"),
     s: gizmoKey("scale"),
     g: toggleSnap,
+    p: onCycle,
+    v: () => {
+      if (canMovePoints) toggleMove();
+    },
     Escape: escape,
   });
 
-  return { state, select, setGizmo, toggleSnap, toggleMeasure, exitMeasure, enterPlace, exitPlace, escape };
+  return {
+    state,
+    select,
+    setGizmo,
+    toggleSnap,
+    toggleMeasure,
+    exitMeasure,
+    enterPlace,
+    exitPlace,
+    escape,
+    enterPanorama,
+    exitPanorama,
+    toggleMove,
+    exitMove,
+    startEdit,
+    closeEdit,
+  };
 }
