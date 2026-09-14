@@ -149,6 +149,16 @@ describe("useViewerMode", () => {
     expect(result.current.state.move).toBe(true);
   });
 
+  it("toggling move breaks an open chain, just like leaving measure any other way", () => {
+    const onCancelChain = vi.fn();
+    const { result } = renderHook(() =>
+      useViewerMode({ canWrite: true, canMovePoints: true, chainOpen: true, onCancelChain, onCycle: noop }),
+    );
+    press("v");
+    expect(onCancelChain).toHaveBeenCalledOnce();
+    expect(result.current.state).toMatchObject({ move: true, mode: "orbit" });
+  });
+
   it("beforeEscape claims the key and the reducer is not asked", () => {
     const { result } = renderHook(() =>
       useViewerMode({
