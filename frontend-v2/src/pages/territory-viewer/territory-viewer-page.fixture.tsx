@@ -116,9 +116,29 @@ const page = (edit?: (p: PageParts) => PageParts) => (
   </CatalogShell>
 );
 
+const DRAFT = {
+  position: { x: 18.2, y: 0, z: -4.05 },
+  rotation: { x: 0, y: Math.PI / 4, z: 0 },
+  scale: { x: 1, y: 1, z: 1 },
+};
+
+/**
+ * A selection a writer made, which is also a live draft: the block is a form
+ * for as long as something is selected and the reader may write.
+ */
 const selected = (p: PageParts): PageParts => ({
   ...p,
   mode: { ...p.mode, selectedId: 2 },
+  form: {
+    kind: "edit",
+    label: "north row",
+    onLabel: noop,
+    transform: DRAFT,
+    onTransform: noop,
+    saving: false,
+    onSave: noop,
+    onCancel: noop,
+  },
 });
 
 export default {
@@ -158,19 +178,10 @@ export default {
 
   "13 write, no delete": page((p) => ({ ...selected(p), grants: NO_DELETE })),
 
-  "14 create form, saving": page((p) => ({
-    ...selected(p),
-    form: {
-      kind: "new",
-      label: "Tank 4, north row",
-      onLabel: noop,
-      transform: { position: { x: 18.2, y: 0, z: -4.05 }, rotation: { x: 0, y: Math.PI / 4, z: 0 }, scale: { x: 1, y: 1, z: 1 } },
-      onTransform: noop,
-      saving: true,
-      onSave: noop,
-      onCancel: noop,
-    },
-  })),
+  "14 create form, saving": page((p) => {
+    const q = selected(p);
+    return { ...q, form: { ...q.form!, kind: "new", label: "Tank 4, north row", saving: true } };
+  }),
 
   "15 tour step 3": page((p) => ({
     ...p,
