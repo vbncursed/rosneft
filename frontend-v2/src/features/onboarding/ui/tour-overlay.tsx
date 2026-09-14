@@ -32,6 +32,29 @@ function cardStyle(rect: Rect | null): CSSProperties {
   return CENTRED;
 }
 
+// The dim covers everything, and the mock redraws the anchored control *above*
+// it — lit, not veiled at 60 %. An evenodd hole in the dim's own clip-path is
+// the whole of that: no page element changes z-index (a control inside its own
+// stacking context could not be raised above a fixed overlay anyway), and
+// hit-testing follows the clip, so the lit control is what
+// `document.elementFromPoint` answers at its centre. Losing the dim's click
+// there is the point: the mock draws a live control, not a picture of one.
+function dimStyle(rect: Rect | null): CSSProperties {
+  if (!rect) return {};
+  const right = rect.left + rect.width;
+  const bottom = rect.top + rect.height;
+  const hole = [
+    `${rect.left}px ${rect.top}px`,
+    `${rect.left}px ${bottom}px`,
+    `${right}px ${bottom}px`,
+    `${right}px ${rect.top}px`,
+    `${rect.left}px ${rect.top}px`,
+  ].join(", ");
+  return {
+    clipPath: `polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, ${hole})`,
+  };
+}
+
 function haloStyle(rect: Rect): CSSProperties {
   return {
     top: rect.top - HALO,
@@ -145,6 +168,7 @@ export function TourOverlay({ tour }: { tour: Tour }) {
         aria-hidden="true"
         data-testid="tour-dim"
         onClick={next}
+        style={dimStyle(rect)}
         className="fixed inset-0 z-[1200] bg-bg/60"
       />
 

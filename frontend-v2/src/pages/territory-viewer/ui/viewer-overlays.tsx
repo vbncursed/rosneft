@@ -92,13 +92,17 @@ export function ViewerOverlays({
         <ToolRail label="Viewer tools" tools={items} />
         {loading ? (
           <>
-            <ModeChip spinning icon="refresh">
+            <ModeChip label="Loading" spinning icon="refresh">
               Loading model
             </ModeChip>
+            {/* Unnamed on purpose: it changes with every chunk, and the
+                progressbar above already carries the percent. */}
             <ModeChip tone="neutral">{loading.chip}</ModeChip>
           </>
         ) : chip ? (
-          <ModeChip kbd={chip.kbd}>{chip.text}</ModeChip>
+          <ModeChip label="Pointer mode" kbd={chip.kbd}>
+            {chip.text}
+          </ModeChip>
         ) : null}
         {measuring ? (
           <div className="flex items-center gap-1.5">

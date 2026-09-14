@@ -11,9 +11,11 @@ describe("StatsStrip", () => {
     expect(strip.querySelectorAll("span")).toHaveLength(3);
   });
 
-  it("marks the bad tone as an alert", () => {
+  it("reports the bad tone too — the card beside it is the page's one alert", () => {
     render(<StatsStrip tone="bad" items={["no geometry loaded", "vertices —"]} />);
-    expect(screen.getByRole("alert")).toHaveTextContent("no geometry loaded");
+    // status, not alert, even here: the error card is the page's one alert.
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent("no geometry loaded");
   });
 
   it("colours a lone item text-accent only, never fg as well, when it is also the last", () => {

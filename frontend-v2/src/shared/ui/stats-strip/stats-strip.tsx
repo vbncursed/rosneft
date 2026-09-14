@@ -9,12 +9,19 @@ export type StatsStripProps = {
   className?: string;
 };
 
-/** The bottom-left line of facts about the scene: dimensions, counts, the level on screen. */
+/**
+ * The bottom-left line of facts about the scene: dimensions, counts, the level
+ * on screen.
+ *
+ * `role="status"` in every tone, the bad one included. The error card beside it
+ * is the `alert`, and two alerts meant a screen reader read the strip and the
+ * card back to back; the strip is context for the card, not a second warning.
+ */
 export function StatsStrip({ items, tone = "neutral", accentLast = false, label = "Scene stats", className }: StatsStripProps) {
   const last = items.length - 1;
   return (
     <div
-      role={tone === "bad" ? "alert" : "status"}
+      role="status"
       aria-label={label}
       className={cx(
         "flex flex-wrap items-center gap-3.5 rounded-[10px] border bg-panel px-3.5 py-[9px] font-mono text-[10px] text-muted shadow-elevation",
