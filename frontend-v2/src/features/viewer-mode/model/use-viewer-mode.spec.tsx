@@ -42,7 +42,11 @@ describe("useViewerMode", () => {
       ({ chainOpen }) => useViewerMode({ canWrite: true, chainOpen, onCancelChain }),
       { initialProps: { chainOpen: true } },
     );
+    // Measure is entered before the chain is opened, or leaving it would
+    // cancel a chain nobody has started yet.
+    rerender({ chainOpen: false });
     act(() => result.current.toggleMeasure());
+    rerender({ chainOpen: true });
     press("Escape");
     expect(onCancelChain).toHaveBeenCalledOnce();
     expect(result.current.state.mode).toBe("measure");
@@ -62,6 +66,34 @@ describe("useViewerMode", () => {
     act(() => result.current.toggleMeasure());
     act(() => result.current.exitMeasure());
     expect(result.current.state.mode).toBe("orbit");
+  });
+
+  it("cancels an unfinished chain on every way out of measure", () => {
+    // A lone marker survived M / Add objects: the next measure click appended a
+    // segment from a stale point, and the first Esc back in orbit was spent on
+    // the chain with nothing visible happening.
+    const onCancelChain = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ chainOpen }) => useViewerMode({ canWrite: true, chainOpen, onCancelChain }),
+      { initialProps: { chainOpen: false } },
+    );
+
+    // Enter measure, open a chain (the tool's state, passed back in), then take
+    // each way out in turn.
+    act(() => result.current.toggleMeasure());
+    rerender({ chainOpen: true });
+    act(() => result.current.toggleMeasure());
+    expect(onCancelChain).toHaveBeenCalledTimes(1);
+
+    act(() => result.current.enterPlace());
+    expect(onCancelChain).toHaveBeenCalledTimes(2);
+
+    act(() => result.current.select(4));
+    expect(onCancelChain).toHaveBeenCalledTimes(3);
+
+    // A deselect does not leave measure, so it is not a way out.
+    act(() => result.current.select(null));
+    expect(onCancelChain).toHaveBeenCalledTimes(3);
   });
 
   it("ignores keys typed into a field", () => {

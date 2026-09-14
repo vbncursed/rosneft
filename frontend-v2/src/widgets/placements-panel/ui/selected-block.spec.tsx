@@ -91,6 +91,20 @@ describe("SelectedBlock", () => {
     );
   });
 
+  it("the rename form edits the label alone — the numbers only report", () => {
+    // `save` sends a rename for this kind, so a typed number was accepted and
+    // then discarded. The cells print, they do not take.
+    render(<SelectedBlock {...base} form={{ ...form, kind: "rename", label: "Tank 4" }} />);
+    expect(screen.getByText("Selected · rename")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Label" })).toHaveValue("Tank 4");
+    expect(screen.queryByLabelText("Pos x")).toBeNull();
+    expect(screen.queryByLabelText("Rot y")).toBeNull();
+    expect(screen.queryByLabelText("Scl x")).toBeNull();
+    expect(screen.getByRole("group", { name: "Pos" })).toHaveTextContent("12.400");
+    // Still degrees, as everywhere else the numbers are printed.
+    expect(screen.getByRole("group", { name: "Rot" })).toHaveTextContent("90°");
+  });
+
   it("the saving form is busy and its fields wait", () => {
     render(<SelectedBlock {...base} form={{ ...form, saving: true }} />);
     expect(screen.getByText("Selected · saving")).toBeInTheDocument();

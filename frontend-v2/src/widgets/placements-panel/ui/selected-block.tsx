@@ -49,9 +49,12 @@ const overlineFor = (form: SelectedBlockProps["form"]) =>
  * The block under the object list: which instance is selected, how the gizmo
  * moves it, where it stands, and — while a form is open — what to call it.
  *
- * The numbers are read-only until a form opens, and read-only again while that
- * form saves: a cell that still accepts typing during a PUT invites an edit
- * the response is about to overwrite.
+ * The numbers take typing on a create form and nowhere else: read-only with no
+ * form, read-only while one saves (a cell that accepts typing during a PUT
+ * invites an edit the response is about to overwrite), and read-only on a
+ * rename, which sends the label alone — those cells accepted numbers that Save
+ * then discarded. `typing` also picks the unit: the boxes carry bare degrees
+ * and report radians, a printed cell converts as it prints.
  */
 export function SelectedBlock({
   name,
@@ -64,7 +67,7 @@ export function SelectedBlock({
   form,
   compact,
 }: SelectedBlockProps) {
-  const editing = form !== null && !form.saving;
+  const typing = form !== null && !form.saving && form.kind === "new";
   const shown = form ? form.transform : transform;
 
   return (
@@ -104,7 +107,7 @@ export function SelectedBlock({
         <Vec3Field
           layout="row"
           label="Pos"
-          readOnly={!editing}
+          readOnly={!typing}
           format={dp3}
           value={shown.position}
           onChange={(position) => form?.onTransform({ ...shown, position })}
@@ -112,16 +115,16 @@ export function SelectedBlock({
         <Vec3Field
           layout="row"
           label="Rot"
-          readOnly={!editing}
+          readOnly={!typing}
           tone="muted"
           format={degreesWithSign}
-          value={editing ? toDegreeVec(shown.rotation) : shown.rotation}
+          value={typing ? toDegreeVec(shown.rotation) : shown.rotation}
           onChange={(rotation) => form?.onTransform({ ...shown, rotation: toRadianVec(rotation) })}
         />
         <Vec3Field
           layout="row"
           label="Scl"
-          readOnly={!editing}
+          readOnly={!typing}
           tone="muted"
           format={dp3}
           value={shown.scale}

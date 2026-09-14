@@ -185,6 +185,15 @@ describe("pageProps · overlays", () => {
     ]);
   });
 
+  it("hides the meta and lights no tile while the tour runs", () => {
+    // Spec §4: `guided tour` (accent) replaces the meta, and the mock draws the
+    // whole rail idle — the tour is explaining the controls, not using them.
+    const props = pageProps(parts({ tour: { ...TOUR, active: true } }));
+    expect(props.header.meta).toBeNull();
+    expect(props.header.pills).toContainEqual({ tone: "accent", label: "guided tour" });
+    expect(props.overlays.tools.every((t) => t.state === "idle")).toBe(true);
+  });
+
   it("says what the pointer does", () => {
     expect(pageProps(parts()).overlays.chip).toEqual({ text: "orbit · drag to rotate" });
   });
@@ -318,7 +327,7 @@ describe("pageProps · panel", () => {
       { label: "units", value: "metres" },
       { label: "vertices", value: "1 284 210" },
       { label: "faces", value: "612 480" },
-      { label: "uploaded", value: "04.09", tone: "muted" },
+      { label: "uploaded", value: "4 Sep 2026", tone: "muted" },
     ]);
   });
 
