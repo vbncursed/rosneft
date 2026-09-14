@@ -104,6 +104,15 @@ describe("Modal", () => {
     expect(wide.className).not.toContain("w-[min(28rem,calc(100vw-2rem))]");
   });
 
+  it("narrows to the 520px size the upload modal needs", () => {
+    render(
+      <Modal open onClose={() => {}} title="Upload progress" size="sm">
+        <p>body</p>
+      </Modal>,
+    );
+    expect(screen.getByRole("dialog").className).toContain("w-[min(32.5rem,calc(100vw-2rem))]");
+  });
+
   it("does not clip a floating child such as an open Dropdown list", () => {
     render(
       <Modal open onClose={() => {}} title="Add role">

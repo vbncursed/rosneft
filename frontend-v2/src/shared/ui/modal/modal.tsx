@@ -12,8 +12,8 @@ export type ModalProps = {
   /** Buttons; the design right-aligns them under the body. */
   footer?: ReactNode;
   tone?: "default" | "danger" | "warning";
-  /** lg is the 720px box the model picker's four-column grid needs. */
-  size?: "md" | "lg";
+  /** lg is the 720px box the model picker's four-column grid needs; sm is the 520px upload modal. */
+  size?: "sm" | "md" | "lg";
   children?: ReactNode;
   className?: string;
 };
@@ -65,7 +65,11 @@ export function Modal({
         // The width lives here, once per size: a base utility plus a variant
         // one for the same property is resolved by the stylesheet's source
         // order, not by the className string's.
-        size === "lg" ? "w-[min(45rem,calc(100vw-2rem))]" : "w-[min(28rem,calc(100vw-2rem))]",
+        size === "lg"
+          ? "w-[min(45rem,calc(100vw-2rem))]"
+          : size === "sm"
+            ? "w-[min(32.5rem,calc(100vw-2rem))]"
+            : "w-[min(28rem,calc(100vw-2rem))]",
         "m-auto flex flex-col gap-3.5 overflow-visible rounded-card border bg-panel p-5 text-fg shadow-elevation backdrop:bg-black/55",
         tone === "danger" ? "border-bad" : tone === "warning" ? "border-warn" : "border-line",
         className,

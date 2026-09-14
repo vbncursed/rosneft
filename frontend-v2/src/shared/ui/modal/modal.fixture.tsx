@@ -116,6 +116,25 @@ function Unavailable() {
   );
 }
 
+function Small() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Upload progress (sm)</Button>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        size="sm"
+        title="Uploading Refinery Block C.zip"
+        description="The small box: 520 wide, for the upload progress panel."
+        footer={<Button onClick={() => setOpen(false)}>Hide</Button>}
+      >
+        <Callout tone="accent">One row per file, no grid to fit.</Callout>
+      </Modal>
+    </>
+  );
+}
+
 function Wide() {
   const [open, setOpen] = useState(false);
   return (
@@ -145,6 +164,7 @@ function Wide() {
 export default (
   <div className="flex flex-wrap gap-3 rounded-card border border-line bg-panel p-6">
     <Confirm />
+    <Small />
     <Wide />
     <Danger />
     <Otp />
