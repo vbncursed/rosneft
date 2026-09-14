@@ -716,9 +716,16 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   drops the level silently (the old ladder); a SHOWN failure
   (`onShownFailed`) holds `failure` until `retry()` — the error card. `Try
   again` bumps `retryVersion` (re-keys `LodErrorBoundary`'s `resetKey`);
-  `Load coarse LOD n instead` sets `targetLod`. `useGLTF.clear` runs after
-  the revoke because drei's cache evicts nothing; StrictMode double-fetches
-  once per level in dev, harmlessly.
+  `Load coarse LOD n instead` sets `targetLod` **and** bumps `retryVersion`,
+  because `failure` is cleared by the retry alone and no level is drawn while
+  it is held — setting the target on its own changed a number and left the card
+  where it was. **A retry clears drei's cached rejection for the failed url
+  first** (`useGLTF.clear` for every level in the chain, the blob included):
+  drei loads through suspend-react, which keeps a rejected load under its key
+  and re-throws it on the next suspend, so remounting the subtree threw the
+  cached rejection before a frame was drawn and `Try again` could never
+  recover. `useGLTF.clear` also runs after the blob revoke because drei's cache
+  evicts nothing; StrictMode double-fetches once per level in dev, harmlessly.
 - **`FocusOn` frames from the scene wrapper group, not the territory**
   (`three/focus-on.tsx`): drei's `<Bounds>` interposes its own group — a plan
   deviation, found in review.

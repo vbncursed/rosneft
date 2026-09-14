@@ -126,10 +126,16 @@ through `fetch` with a streamed body into a blob URL — the mock's `LOD 0
 62% · 6.1 / 9.8 MB` and the 2 px progress line need real numbers, and drei's
 loader exposes none; the denominator is `artifacts[].size`, the blob URL
 goes to `useGLTF` (drei caches by URL, so one download per level). Pure:
-`lodProgress(received, total)` → `{ percent, mb }`. Error card actions:
-**Try again** resets the error boundary for the failed hash; **Load coarse
-LOD 2 instead** sets `target` to `pickCoarsest(chain)`; both are one line
-over existing state.
+`lodProgress(received, total)` → `{ percent, mb }`. Error card actions, corrected in the final fix wave — neither is "one line
+over existing state", which the plan and two task reviews carried unchallenged:
+**Try again** bumps `retryVersion`, and the effect that reads it must first
+call `useGLTF.clear` for every url in the chain (drei loads through
+suspend-react, which caches a rejected load and re-throws it on the next
+suspend of the same key, so a bare remount threw the cached rejection before a
+frame was drawn); **Load coarse LOD n instead** sets `target` **and** bumps
+`retryVersion`, because `failure` is cleared by the retry and by nothing else,
+and while it is held no level is drawn — on its own it moved a number and left
+the card exactly as it was.
 
 ### `features/viewer-mode`
 `viewerModeReducer(state, action)` — pure, table-tested. State
