@@ -72,7 +72,10 @@ describe("PlaceObjectsModal", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Increase storage-tank-500 quantity" }),
     );
-    await userEvent.click(screen.getByRole("button", { name: "Place 2 × storage-tank-500" }));
+    // The button reads `Place` whatever is picked: the count is in the stepper
+    // beside it and the model on the card above, so the long name only made the
+    // footer jump as the reader chose.
+    await userEvent.click(screen.getByRole("button", { name: "Place" }));
 
     expect(onPlace).toHaveBeenCalledWith("tank", 2);
   });
@@ -134,6 +137,23 @@ describe("PlaceObjectsModal", () => {
     const place = screen.getByRole("button", { name: "Place" });
     expect(place).toBeDisabled();
     expect(screen.queryByText(/Place 1 ×/)).not.toBeInTheDocument();
+  });
+
+  it("keeps the primary reading `Place` once a model is picked", async () => {
+    render(
+      <PlaceObjectsModal
+        open
+        onClose={vi.fn()}
+        territoryTitle="T"
+        options={options}
+        placing={null}
+        onPlace={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /storage-tank-500/ }));
+    expect(screen.getByRole("button", { name: "Place" })).toBeEnabled();
+    expect(screen.queryByText(/× storage-tank-500/)).not.toBeInTheDocument();
   });
 
   it("forgets the query, the selection and the count on a reopen", async () => {

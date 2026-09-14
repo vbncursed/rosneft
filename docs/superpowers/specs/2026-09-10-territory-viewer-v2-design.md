@@ -392,6 +392,8 @@ padding 6/6. Verified in Cosmos at 1280 and 1440, both themes.
    label, cells and Save always on, the snap row never hidden by one. The
    mock's state 2 drew a read-only block with no Save (user request
    2026-09-14).
+10. The Add-objects primary reads `Place` whatever is picked; the mock drew
+    `Place N × model` (user request 2026-09-14).
 
 ## 7. Not in this package
 
