@@ -82,11 +82,15 @@ export function usePanoramaList({ slug, initial, onChanged }: PanoramaListParams
       try {
         await deletePanorama(slug, id);
         notify.success("Panorama deleted");
-        onChanged();
       } catch (err) {
         setPanoramas(prev);
         notify.error(`Failed to delete panorama: ${messageOf(err)}`);
       } finally {
+        // Both ways: a refused delete may mean the row is already gone for
+        // another reason, and only the gateway can say. The page re-keys this
+        // hook on the bundle it refetches — nothing here adopts a changed
+        // `initial` on its own.
+        onChanged();
         setPendingId(null);
       }
     },
