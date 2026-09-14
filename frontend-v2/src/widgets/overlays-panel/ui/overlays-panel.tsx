@@ -26,6 +26,9 @@ export type OverlaysPanelProps = {
 
 const EDGES = "absolute right-3.5 top-3.5 bottom-3.5";
 
+/** One panel for both tabs — only the active one is rendered. */
+const PANEL_ID = "overlays-panel-body";
+
 /**
  * The viewer's right-hand Overlays panel: the scene's own controls on one tab,
  * its placements on the other, folded away to a rail when the model needs the
@@ -83,6 +86,7 @@ export function OverlaysPanel({
             <Tabs
               variant="segments"
               ariaLabel="Overlays sections"
+              panelId={PANEL_ID}
               className="border-b border-line bg-panel-2 px-2.5 py-2"
               value={tab}
               onChange={onTabChange}
@@ -92,7 +96,17 @@ export function OverlaysPanel({
               ]}
             />
           </div>
-          <div className="flex-1 overflow-auto p-3.5">{tab === "view" ? view : placements}</div>
+          {/* tabIndex 0: the body scrolls, and a keyboard reader cannot reach a
+              long placements list without a focusable scroll container. */}
+          <div
+            id={PANEL_ID}
+            role="tabpanel"
+            aria-labelledby={`${PANEL_ID}-${tab}`}
+            tabIndex={0}
+            className="flex-1 overflow-auto p-3.5"
+          >
+            {tab === "view" ? view : placements}
+          </div>
         </aside>
       )}
     </div>

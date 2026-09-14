@@ -161,6 +161,16 @@ describe("useTerritoryViewer", () => {
       await waitFor(() => expect(r.result.current.status).toBe("missing"));
     });
 
+    it("does not call a 404 from the principal a missing territory", async () => {
+      // Only the scene's 404 says "not there, or not yours"; /me answering 404
+      // is a broken session route, and "Territory not found" would be a lie
+      // about a territory the reader may well be able to see.
+      getMe.mockRejectedValue(new HttpError(404, null, "route not found"));
+      const r = cold();
+      await waitFor(() => expect(r.result.current.status).toBe("unavailable"));
+      expect(r.result.current).toMatchObject({ error: "route not found" });
+    });
+
     it("is unavailable, with the reason, on any other refusal", async () => {
       getSceneBundle.mockRejectedValue(new HttpError(503, null, "catalog is down"));
       const r = cold();

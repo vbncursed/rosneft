@@ -61,7 +61,7 @@ describe("PlacementsPanel", () => {
       "false",
     );
     expect(screen.getByRole("button", { name: "storage-tank-500" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "storage-tank-500 #2" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /storage-tank-500 #2/ })).toBeNull();
   });
 
   it("reports a toggle and shows the instances of the expanded model", async () => {
@@ -72,17 +72,19 @@ describe("PlacementsPanel", () => {
 
     rerender(<PlacementsPanel {...base} expandedModel="storage-tank-500" />);
     expect(screen.getByRole("button", { name: "storage-tank-500 #1" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "storage-tank-500 #2" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "pipe-rack-12 #1" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "storage-tank-500 #2 · north row" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /pipe-rack-12 #1/ })).toBeNull();
   });
 
   it("keeps the group holding the selection open even when another model is the expanded one", () => {
     render(<PlacementsPanel {...base} expandedModel="pipe-rack-12" selectedId={2} />);
-    expect(screen.getByRole("button", { name: "storage-tank-500 #2" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "storage-tank-500 #2 · north row" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
-    expect(screen.getByRole("button", { name: "pipe-rack-12 #1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "pipe-rack-12 #1 · west run" })).toBeInTheDocument();
   });
 
   it("offers the add button only with the create grant", async () => {

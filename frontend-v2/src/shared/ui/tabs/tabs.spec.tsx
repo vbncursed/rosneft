@@ -74,6 +74,7 @@ describe("Tabs, segments variant", () => {
         value={value}
         onChange={setValue}
         ariaLabel="Overlays sections"
+        panelId="body"
         variant="segments"
       />
     );
@@ -91,6 +92,18 @@ describe("Tabs, segments variant", () => {
     expect(screen.getByRole("tablist", { name: "Overlays sections" }).className).not.toContain(
       "border-b",
     );
+  });
+
+  it("points the active tab at the panel it drives, and names itself for it", () => {
+    render(<Segments />);
+    const active = screen.getByRole("tab", { name: "Overview" });
+    expect(active).toHaveAttribute("aria-controls", "body");
+    expect(active).toHaveAttribute("id", "body-overview");
+    // Only the active panel is rendered, so an idle tab controls nothing — but
+    // it still carries an id the panel can point back to.
+    const idle = screen.getByRole("tab", { name: "Placements" });
+    expect(idle).not.toHaveAttribute("aria-controls");
+    expect(idle).toHaveAttribute("id", "body-placements");
   });
 
   it("keeps the tab roles and the arrow-key walk", async () => {

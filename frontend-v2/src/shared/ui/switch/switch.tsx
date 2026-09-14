@@ -5,18 +5,24 @@ export type SwitchProps = {
   onChange: (next: boolean) => void;
   /** The accessible name; the visible text sits beside the control in the caller. */
   label: string;
+  /**
+   * The id of that visible text. Given, it names the control instead of `label`,
+   * so the two cannot drift and a reader is not told the same words twice.
+   */
+  labelledBy?: string;
   disabled?: boolean;
   className?: string;
 };
 
 /** The 34×18 toggle: a button with role switch, so Space and Enter flip it for free. */
-export function Switch({ checked, onChange, label, disabled = false, className }: SwitchProps) {
+export function Switch({ checked, onChange, label, labelledBy, disabled = false, className }: SwitchProps) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
-      aria-label={label}
+      aria-label={labelledBy ? undefined : label}
+      aria-labelledby={labelledBy}
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cx(

@@ -60,7 +60,7 @@ export default {
       onClose={() => {}}
       territoryTitle="Refinery Block C"
       options={OPTIONS}
-      placing={{ done: 1, total: 2 }}
+      placing={{ done: 0, total: 2 }}
       onPlace={() => {}}
     />
   ),

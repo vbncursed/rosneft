@@ -23,7 +23,6 @@ interface GltfModelProps {
   // Forwarded so other layers (placement snap-to-surface) can call the
   // mesh's original raycast directly without flipping the public flag.
   groupRef?: Ref<Group>;
-  /** Reference-stable (useCallback) from the page, or the report effect loops. */
   onReport: (report: LodReport) => void;
 }
 
@@ -106,10 +105,12 @@ export default function GltfModel({
   // level until one drops out of the chain, and from then on it is the next
   // one down. The report reads `lod.target`, the download keys on the raw one.
   //
-  // ponytail: a dropped target is never re-downloaded through a blob — drei
-  // fetches it itself, so its bytes carry no progress and the chip's percent
-  // stays where the refused download left it. Give useLodDownload the level
-  // useProgressiveLod actually wants if that ever matters on screen.
+  // ponytail: only the *wanted* level is ever downloaded through a blob. When
+  // that one is refused, `useProgressiveLod` drops it and targets the next level
+  // down, which drei then fetches itself — no blob, so no warmer mounts and no
+  // bytes are counted. The chip therefore shows no percent at all rather than a
+  // stale or zero one (see the report below). Hand useLodDownload the level
+  // useProgressiveLod actually wants if a percent for that case matters.
   const wanted = pickLod(lods, targetLod);
   const download = useLodDownload(wanted && lods.length > 1 ? wanted : null);
   const urlOf = (a: LodArtifact) =>
@@ -169,8 +170,12 @@ export default function GltfModel({
   }, [download.blobUrl]);
 
   useEffect(() => {
+    // No warm url means nothing is on the wire for the target — a refused
+    // download, or drei fetching the fallback itself — and a percent then reads
+    // as progress that is not happening. `0 %` against a level nobody is
+    // fetching is worse than no chip at all.
     const p =
-      lod.target && lod.shown && lod.shown.hash !== lod.target.hash
+      warmUrl && lod.target && lod.shown && lod.shown.hash !== lod.target.hash
         ? lodProgress(download.received, lod.target.size)
         : null;
     latest.current.onReport({
@@ -180,7 +185,7 @@ export default function GltfModel({
       progressText: p?.text ?? null,
       failure: lod.failure,
     });
-  }, [lod.shown, lod.target, download.received, lod.failure]);
+  }, [lod.shown, lod.target, download.received, lod.failure, warmUrl]);
 
   if (!lod.url) return null;
   return (

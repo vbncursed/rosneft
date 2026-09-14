@@ -109,6 +109,34 @@ describe("GltfModel", () => {
     });
   });
 
+  it("counts nothing for a level drei is fetching itself", async () => {
+    // Three levels, and the one the blob download wants is refused: the chain
+    // drops it and targets the middle level, which drei loads on its own — no
+    // blob, so no warmer and no bytes. A percent there is progress that is not
+    // happening.
+    stubDownload(502);
+    const onReport = vi.fn();
+    await ReactThreeTestRenderer.create(
+      <GltfModel
+        lods={[
+          { lod: 0, hash: "fine", size: 10 },
+          { lod: 1, hash: "mid", size: 5 },
+          { lod: 2, hash: "coarse", size: 2 },
+        ]}
+        targetLod={0}
+        retryVersion={0}
+        raycastable={false}
+        onReport={onReport}
+      />,
+    );
+    await vi.waitFor(() => {
+      const last = onReport.mock.lastCall![0] as LodReport;
+      expect(last).toMatchObject({ shown: 2, target: 1 });
+      expect(last.percent).toBeNull();
+      expect(last.progressText).toBeNull();
+    });
+  });
+
   it("holds the failure when the level on screen throws, and clears it on a retry", async () => {
     stubDownload();
     const drei = await import("@react-three/drei");

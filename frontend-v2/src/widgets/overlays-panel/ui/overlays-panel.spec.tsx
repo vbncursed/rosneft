@@ -45,6 +45,29 @@ describe("OverlaysPanel", () => {
     );
   });
 
+  it("is a tabpanel the active tab controls, and it can be scrolled from the keyboard", () => {
+    render(
+      <OverlaysPanel
+        tab="placements"
+        onTabChange={vi.fn()}
+        collapsed={false}
+        onCollapsedChange={vi.fn()}
+        placementsCount={4}
+        view={<p>view body</p>}
+        placements={<p>placements body</p>}
+      />,
+    );
+    const body = screen.getByRole("tabpanel", { name: "Placements (4)" });
+    expect(body).toContainElement(screen.getByText("placements body"));
+    // The body scrolls; without a tabindex a keyboard reader cannot reach a
+    // long placements list at all.
+    expect(body).toHaveAttribute("tabindex", "0");
+    expect(screen.getByRole("tab", { name: "Placements (4)" })).toHaveAttribute(
+      "aria-controls",
+      body.id,
+    );
+  });
+
   it("collapses into the rail and back", async () => {
     const onCollapsedChange = vi.fn();
     const { rerender } = render(

@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { toDegrees, toRadians, type PlacementTransform, type Vec3 } from "@/entities/placement";
 import type { GizmoMode } from "@/features/viewer-mode";
 import { Button } from "@/shared/ui/button";
@@ -68,6 +69,7 @@ export function SelectedBlock({
   compact,
 }: SelectedBlockProps) {
   const typing = form !== null && !form.saving && form.kind === "new";
+  const snapId = useId();
   const shown = form ? form.transform : transform;
 
   return (
@@ -135,12 +137,16 @@ export function SelectedBlock({
       {canWrite && !form ? (
         <div className="flex items-center justify-between gap-2.5 rounded-[8px] border border-line bg-panel-2 px-[11px] py-2">
           <span className="font-mono text-[10px] text-fg">
-            Snap to surface{" "}
+            {/* The id sits on the words alone — the key hint is not part of the
+                control's name. */}
+            <span id={snapId}>Snap to surface</span>{" "}
             <kbd className="rounded-[3px] border border-line-2 px-1 font-mono text-[9px] text-muted">
               G
             </kbd>
           </span>
-          <Switch checked={snap} onChange={onSnap} label="Snap to surface" />
+          {/* Named by the visible text rather than repeating it: the label and
+              the aria-label could otherwise drift apart. */}
+          <Switch checked={snap} onChange={onSnap} label="Snap to surface" labelledBy={snapId} />
         </div>
       ) : null}
 

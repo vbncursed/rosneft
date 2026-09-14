@@ -11,9 +11,11 @@ describe("InstanceRow", () => {
   it("selects by its name and reports the pressed state", async () => {
     const h = handlers();
     render(<InstanceRow group={group} instance={instance} selected={false} pending={false} canWrite canDelete {...h} />);
-    await userEvent.click(screen.getByRole("button", { name: "storage-tank-500 #2" }));
+    // The name carries the visible text (WCAG 2.5.3): `#2 · Tank 2` is in it.
+    const select = screen.getByRole("button", { name: "storage-tank-500 #2 · Tank 2" });
+    await userEvent.click(select);
     expect(h.onSelect).toHaveBeenCalledWith(2);
-    expect(screen.getByRole("button", { name: "storage-tank-500 #2" })).toHaveAttribute("aria-pressed", "false");
+    expect(select).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText("#2 · Tank 2")).toBeInTheDocument();
   });
   it("offers Rename and Delete by grant, named after the instance", async () => {
