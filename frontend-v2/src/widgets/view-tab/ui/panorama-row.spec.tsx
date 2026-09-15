@@ -1,0 +1,79 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import { EXIT_PANORAMA, NOT_CALIBRATED, SHOW_IN } from "../model/copy";
+import { PanoramaRow, type PanoramaRowView } from "./panorama-row";
+
+const ROW: PanoramaRowView = {
+  id: 7,
+  title: "Control room, north door",
+  thumbUrl: "/api/assets/abc",
+  active: false,
+  calibrated: true,
+  canEdit: false,
+  editing: false,
+};
+
+const row = (over: Partial<PanoramaRowView> = {}, handlers: Partial<Parameters<typeof PanoramaRow>[0]> = {}) =>
+  render(
+    <PanoramaRow
+      row={{ ...ROW, ...over }}
+      onEnter={vi.fn()}
+      onExit={vi.fn()}
+      onEdit={vi.fn()}
+      {...handlers}
+    />,
+  );
+
+describe("PanoramaRow", () => {
+  it("shows the photo when there is one", () => {
+    const { container } = row();
+    expect(container.querySelector("img")).toHaveAttribute("src", "/api/assets/abc");
+  });
+
+  it("falls back to the panorama glyph when the thumbnail is missing", () => {
+    const { container } = row({ thumbUrl: null });
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector("svg")).not.toBeNull();
+  });
+
+  it("says an uncalibrated panorama cannot be entered yet", () => {
+    row({ calibrated: false });
+    expect(screen.getByText(NOT_CALIBRATED)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Show in this panorama/ })).not.toBeInTheDocument();
+  });
+
+  it("enters a calibrated panorama by id", async () => {
+    const onEnter = vi.fn();
+    row({}, { onEnter });
+    await userEvent.click(screen.getByRole("button", { name: /Show in this panorama/ }));
+    expect(onEnter).toHaveBeenCalledWith(7);
+  });
+
+  it("names the enter button after its panorama, so two rows differ to a reader", () => {
+    row();
+    expect(
+      screen.getByRole("button", { name: `${SHOW_IN}: Control room, north door` }),
+    ).toBeInTheDocument();
+  });
+
+  it("offers the way out of the active row, on the accent ground", async () => {
+    const onExit = vi.fn();
+    const { container } = row({ active: true }, { onExit });
+    await userEvent.click(screen.getByRole("button", { name: `${EXIT_PANORAMA}: Control room, north door` }));
+    expect(onExit).toHaveBeenCalled();
+    expect(container.firstElementChild?.className).toContain("bg-accent-soft");
+  });
+
+  it("draws the pencil only for a writer, and marks the row being edited", async () => {
+    const onEdit = vi.fn();
+    const { container } = row({ canEdit: false });
+    expect(screen.queryByRole("button", { name: /^Edit / })).not.toBeInTheDocument();
+    expect(container.firstElementChild).not.toHaveAttribute("aria-current");
+
+    const edit = row({ canEdit: true, editing: true }, { onEdit });
+    await userEvent.click(screen.getByRole("button", { name: "Edit Control room, north door" }));
+    expect(onEdit).toHaveBeenCalledWith(7);
+    expect(edit.container.firstElementChild).toHaveAttribute("aria-current", "true");
+  });
+});
