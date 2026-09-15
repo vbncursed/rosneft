@@ -30,6 +30,9 @@ export function useDocumentUpload({ slug, onCreated }: DocumentUploadParams) {
     await upload.run(async (blob) => {
       const document = await createDocument(slug, { title: trimmed, sourceBlobHash: blob.hash });
       notify.success("Document uploaded");
+      // Emptied on success only — the hook lives on the page, so the next
+      // upload would otherwise inherit this title; a refusal keeps it to retry.
+      setTitle("");
       onCreated(document);
     });
   };
