@@ -219,7 +219,13 @@ describe("useTerritoryViewer", () => {
       getMe.mockResolvedValue(principal({ permissions: ["territory:read"] }));
       const state = await ready(mount());
       expect(state.header.guest).toBe(true);
-      expect(state.overlays.tools.map((t) => t.key)).toEqual(["reset", "measure", "tour"]);
+      expect(state.overlays.tools.map((t) => t.key)).toEqual([
+        "reset",
+        "measure",
+        "panoramas",
+        "documents",
+        "tour",
+      ]);
     });
   });
 

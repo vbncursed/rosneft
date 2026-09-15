@@ -55,6 +55,9 @@ export type ViewerOverlaysProps = {
   onReset: () => void;
   onMeasure: () => void;
   onAdd: () => void;
+  /** The two overlay tiles: reveal that section of the View tab (Task 15's `revealSection`). */
+  onPanoramas: () => void;
+  onDocuments: () => void;
   onReplayTour: () => void;
   /** Null while the loading chips stand in for it, and on a failure. */
   chip: { text: string; kbd?: string } | null;
@@ -100,6 +103,8 @@ export type PageHandlers = {
   onReset: () => void;
   onMeasure: () => void;
   onAdd: () => void;
+  onPanoramas: () => void;
+  onDocuments: () => void;
   onReplayTour: () => void;
   /** The switcher and the error card's way out share one setter. */
   onTargetLod: (lod: number) => void;

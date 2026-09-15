@@ -20,6 +20,8 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
   onReset: vi.fn(),
   onMeasure: vi.fn(),
   onAdd: vi.fn(),
+  onPanoramas: vi.fn(),
+  onDocuments: vi.fn(),
   onReplayTour: vi.fn(),
   chip: { text: "orbit · drag to rotate" },
   loading: null,

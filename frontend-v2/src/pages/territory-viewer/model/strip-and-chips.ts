@@ -1,10 +1,13 @@
 import { formatDims, groupDigits, type SceneMetadata } from "@/entities/scene";
-import type { ViewerMode } from "@/features/viewer-mode";
+import type { ViewerMode, ViewerView } from "@/features/viewer-mode";
 
 /** What the mode chip says, per mode. Measure's tail is counted below. */
 const ORBIT_CHIP = "orbit · drag to rotate";
 const PLACE_CHIP = "place objects · click the ground";
 const MEASURE_CHIP = "measure";
+const PANORAMA_CHIP = "panorama · drag to look around";
+const MOVE_CHIP = "move points · drag a marker";
+const calibratingChip = (title: string) => `calibrating · ${title}`;
 
 /** The strip's spans when nothing rendered, in the mock's order. */
 const NO_GEOMETRY = ["no geometry loaded", "dimensions unavailable", "vertices —", "faces —"];
@@ -18,13 +21,23 @@ const level = (n: number | null) => (n === null ? "—" : `${n}`);
  * — "0 segments · 0.00 m total" is a readout of nothing, and the chip's job
  * before the first click is to say what mode you are in.
  *
- * `kbd` is the chip's optional keycap slot (`ModeChip`'s own prop). No mode in
- * this package sets one; the panorama chip in package B is what it is for.
+ * The order is the pointer's, not the panel's: inside the sphere a drag looks
+ * around whatever the anchor card is doing, so the panorama line wins over
+ * calibration. `kbd` is the chip's keycap slot (`ModeChip`'s own prop) and
+ * names the key that leaves the sub-mode it describes.
  */
 export function modeChip(a: {
   mode: ViewerMode;
   measure: { segments: number; total: string };
+  view: ViewerView;
+  /** The scene-only sub-mode for dragging panorama anchors (V). */
+  move: boolean;
+  /** The title of the panorama being calibrated, or null. */
+  calibrating: string | null;
 }): { text: string; kbd?: string } {
+  if (a.view.kind === "panorama") return { text: PANORAMA_CHIP, kbd: "P" };
+  if (a.calibrating !== null) return { text: calibratingChip(a.calibrating) };
+  if (a.move) return { text: MOVE_CHIP, kbd: "V" };
   if (a.mode === "orbit") return { text: ORBIT_CHIP };
   if (a.mode === "place") return { text: PLACE_CHIP };
   const { segments, total } = a.measure;
