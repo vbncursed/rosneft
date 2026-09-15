@@ -82,18 +82,21 @@ describe("PanoramaSphere", () => {
     expect(mesh.raycast).toBe((Object.getPrototypeOf(mesh) as Mesh).raycast);
   });
 
-  it("frees the texture and the bitmap behind it when the panorama closes — nothing else holds either", async () => {
+  it("frees the GL texture when the panorama closes, and leaves the bitmap to the hook that downloaded it", async () => {
+    // This cleanup also runs on StrictMode's dev remount, and a closed
+    // ImageBitmap cannot be uploaded again: closing it here rendered the
+    // sphere black in dev and nowhere else. `usePanoramaTexture` owns it.
     const first = bitmap();
     const dispose = vi.spyOn(Texture.prototype, "dispose");
     const r = await mount({ bitmap: first });
     await r.unmount();
 
     expect(dispose).toHaveBeenCalledTimes(1);
-    expect(first.close).toHaveBeenCalledTimes(1);
+    expect(first.close).not.toHaveBeenCalled();
     dispose.mockRestore();
   });
 
-  it("frees the previous capture's texture and bitmap when the reader moves to the next one", async () => {
+  it("frees the previous capture's texture when the reader moves to the next one", async () => {
     const first = bitmap();
     const second = bitmap();
     const dispose = vi.spyOn(Texture.prototype, "dispose");
@@ -102,8 +105,7 @@ describe("PanoramaSphere", () => {
     await r.update(<PanoramaSphere panorama={PANO} bitmap={second} />);
 
     expect(dispose).toHaveBeenCalledTimes(1);
-    expect(first.close).toHaveBeenCalledTimes(1);
-    expect(second.close).not.toHaveBeenCalled();
+    expect(first.close).not.toHaveBeenCalled();
     dispose.mockRestore();
   });
 });

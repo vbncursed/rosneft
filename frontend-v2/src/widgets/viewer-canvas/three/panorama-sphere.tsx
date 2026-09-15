@@ -49,16 +49,12 @@ export default function PanoramaSphere({ panorama, bitmap, opacity = 1 }: Panora
     return t;
   }, [bitmap]);
 
-  // Both are this mesh's to free: the hook that downloaded the capture hands
-  // the bitmap over and keeps no reference, and an ImageBitmap is not
-  // garbage-collected bytes.
-  useEffect(
-    () => () => {
-      texture.dispose();
-      bitmap.close();
-    },
-    [texture, bitmap],
-  );
+  // The GL texture is this mesh's to free. The ImageBitmap behind it is NOT:
+  // this cleanup also runs on StrictMode's dev remount, and a closed bitmap
+  // cannot be uploaded again — the sphere came back black, in dev only, which
+  // is the worst place to hide it. `usePanoramaTexture` closes the bitmap it
+  // downloaded, where "the capture changed or the reader left" is knowable.
+  useEffect(() => () => texture.dispose(), [texture]);
 
   useEffect(() => {
     const mesh = meshRef.current;
