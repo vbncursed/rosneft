@@ -31,13 +31,21 @@ const TILES: Record<RailTool, { glyph: string; name: string; toggle?: boolean; d
 const PANEL_EDGE = "right-[calc(var(--overlays-w)+28px)]";
 
 /**
- * The document layer is lifted 44px off the viewport's floor so a window docked
- * at the hook's 14 inset clears the stats strip (the mock's bottom 58). The
- * pill belongs *beside* that strip, so it drops the same 44 − 14 back down and
- * starts right of the widest strip the scene can print.
+ * Two layers, because the window is placed two different ways.
+ *
+ * Floating (pip, and collapsed behind its pill): `usePipWindow` measures the
+ * *browser window*, so the layer has to be that window — an absolute layer
+ * inside the viewport container would put the docked window a header's height
+ * below the fold. It is then lifted 44px so the docked corner clears the stats
+ * strip, which is the mock's bottom 58.
+ *
+ * Expanded: the window fills the viewport container at the 14 inset, which is
+ * the container itself.
  */
-const DOC_LAYER = "absolute inset-0 bottom-11";
-const DOC_PILL = "absolute -bottom-[30px] left-[392px] max-w-[260px]";
+const DOC_FLOATING = "fixed inset-x-0 bottom-0 -top-11";
+const DOC_EXPANDED = "absolute inset-0";
+/** Beside the strip: 14 + the widest strip the scene prints + the same gap. */
+const DOC_PILL = "absolute bottom-3.5 left-[472px] max-w-[260px]";
 
 const HINT_BAR =
   "absolute left-3.5 bottom-3.5 flex items-center justify-center gap-[9px] rounded-[10px] border border-accent-line bg-panel px-3.5 py-[9px] font-mono text-[10px] text-fg shadow-elevation";
@@ -183,7 +191,7 @@ export function ViewerOverlays({
       ) : null}
 
       {document ? (
-        <div className={DOC_LAYER}>
+        <div className={document.window === "expanded" ? DOC_EXPANDED : DOC_FLOATING}>
           <DocumentWindow {...document} pillClassName={DOC_PILL} />
         </div>
       ) : null}

@@ -81,12 +81,21 @@ describe("visibilityBlock", () => {
     },
   };
 
-  it("asks nothing in the 3D view, where everything is visible by definition", () => {
+  it("asks nothing while the territory has no captures to be visible in", () => {
     expect(visibilityBlock(p, first)).toBeNull();
   });
 
   it("asks nothing while nothing is selected", () => {
     expect(visibilityBlock(inside, null)).toBeNull();
+  });
+
+  // Mock state 13 draws the block in the 3D scene, and its own footer says why:
+  // "Hidden objects stay in the 3D scene; only the panorama markers are
+  // dropped." The question is which captures mark this object, and it is asked
+  // where the object is selected — which is the scene.
+  it("offers the captures from the 3D view too, where the choice is made", () => {
+    const scene = { ...inside, mode: { ...inside.mode, view: { kind: "scene" as const } } };
+    expect(visibilityBlock(scene, first)?.panoramas).toEqual([{ id: 3, title: "Control room" }]);
   });
 
   it("offers every capture, and ticks the ones this placement already shows in", () => {
