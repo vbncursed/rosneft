@@ -118,6 +118,8 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     initial: vm?.placements ?? [],
     options: bundle?.modelOptions ?? [],
     territoryMaxDim: Math.max(dims.x, dims.y, dims.z),
+    // Task 15 wires the real panorama ids once panoramas land on this page.
+    panoramaIds: [],
     onChanged,
   });
   // The selection is what opens the form, and a reader without `placement:write`

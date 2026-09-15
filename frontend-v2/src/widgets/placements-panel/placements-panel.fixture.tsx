@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import type { PlacementGroup, PlacementTransform } from "@/entities/placement";
 import type { GizmoMode } from "@/features/viewer-mode";
-import { PlacementsPanel } from "./ui/placements-panel";
+import { PlacementsPanel, type PlacementVisibility } from "./ui/placements-panel";
 import type { SelectedBlockProps } from "./ui/selected-block";
 
 const GROUPS: PlacementGroup[] = [
@@ -61,18 +61,22 @@ function Live({
   selectedId = null,
   selected,
   width,
+  visibility,
 }: {
   groups?: PlacementGroup[];
   grants: { create: boolean; write: boolean; delete: boolean };
   selectedId?: number | null;
   selected?: Omit<SelectedBlockProps, "gizmo" | "onGizmo" | "snap" | "onSnap"> | null;
   width?: number;
+  /** Panorama mode only: the checkbox list under the selected row, live-editable. */
+  visibility?: Pick<PlacementVisibility, "panoramas" | "visiblePanoramaIds">;
 }) {
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<string | null>(groups[0]?.model.slug ?? null);
   const [id, setId] = useState<number | null>(selectedId);
   const [gizmo, setGizmo] = useState<GizmoMode>("translate");
   const [snap, setSnap] = useState(true);
+  const [visibleIds, setVisibleIds] = useState<number[]>(visibility?.visiblePanoramaIds ?? []);
 
   return (
     <Body width={width}>
@@ -91,6 +95,18 @@ function Live({
         onDelete={() => {}}
         onFocus={() => {}}
         selected={selected ? { ...selected, gizmo, onGizmo: setGizmo, snap, onSnap: setSnap } : null}
+        visibility={
+          visibility
+            ? {
+                panoramas: visibility.panoramas,
+                visiblePanoramaIds: visibleIds,
+                onToggle: (_placementId, panoramaId, next) =>
+                  setVisibleIds((prev) =>
+                    next ? [...prev, panoramaId] : prev.filter((existing) => existing !== panoramaId),
+                  ),
+              }
+            : null
+        }
       />
     </Body>
   );
@@ -99,6 +115,12 @@ function Live({
 const EDITOR = { create: true, write: true, delete: true };
 const GUEST = { create: false, write: false, delete: false };
 const NO_DELETE = { create: true, write: true, delete: false };
+
+// Mock state 13: two panoramas, the selected instance visible in the first only.
+const PANORAMAS = [
+  { id: 1, title: "Control room, north door" },
+  { id: 2, title: "Tank yard, west gate" },
+];
 
 const NEW_TRANSFORM: PlacementTransform = {
   position: { x: 18.2, y: 0, z: -4.05 },
@@ -177,6 +199,13 @@ export default {
     />
   ),
   "no-delete": <Live grants={NO_DELETE} />,
+  "visible-in": (
+    <Live
+      grants={NO_DELETE}
+      selectedId={2}
+      visibility={{ panoramas: PANORAMAS, visiblePanoramaIds: [1] }}
+    />
+  ),
   empty: <Live grants={EDITOR} groups={[]} />,
   form: <Form kind="new" />,
   saving: <Form kind="new" saving />,

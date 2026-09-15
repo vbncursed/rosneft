@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createPlacement,
   deletePlacement,
+  setPlacementVisibility,
   updatePlacement,
   IDENTITY_TRANSFORM,
   type Placement,
@@ -17,6 +18,7 @@ vi.mock("@/entities/placement", async (importOriginal) => ({
   createPlacement: vi.fn(),
   updatePlacement: vi.fn(),
   deletePlacement: vi.fn(),
+  setPlacementVisibility: vi.fn(),
 }));
 
 const CHAIN = [{ lod: 0, hash: "h0", size: 30 }];
@@ -45,9 +47,16 @@ const placement = (id: number, over: Partial<Placement> = {}): Placement => ({
 const resolved = (p: Placement) => ({ ...p, chain: CHAIN });
 
 let onChanged: ReturnType<typeof vi.fn<() => void>>;
-const editor = (initial: Placement[] = []) =>
+const editor = (initial: Placement[] = [], panoramaIds: number[] = []) =>
   renderHook(() => ({
-    s: usePlacementsEditor({ slug: "t", initial: initial.map(resolved), options, territoryMaxDim: 40, onChanged }),
+    s: usePlacementsEditor({
+      slug: "t",
+      initial: initial.map(resolved),
+      options,
+      territoryMaxDim: 40,
+      panoramaIds,
+      onChanged,
+    }),
     notices: useNotices(),
   }));
 
@@ -55,6 +64,7 @@ beforeEach(() => {
   vi.mocked(createPlacement).mockReset();
   vi.mocked(updatePlacement).mockReset();
   vi.mocked(deletePlacement).mockReset();
+  vi.mocked(setPlacementVisibility).mockReset();
   onChanged = vi.fn();
   clearNotices();
 });
@@ -161,6 +171,80 @@ describe("usePlacementsEditor", () => {
     expect(vi.mocked(updatePlacement).mock.calls[1][2]).toEqual({ ...moved, label: "Tank 5" });
     expect(result.current.s.placements[0].label).toBe("Tank 5");
     expect(onChanged).toHaveBeenCalledTimes(2);
+  });
+
+  it("create sends visiblePanoramaIds from the editor's panoramaIds param", async () => {
+    vi.mocked(createPlacement).mockImplementation(async (_slug, body) => ({
+      ...placement(1),
+      ...body,
+    }) as Placement);
+    const { result } = editor([], [1, 2]);
+
+    await act(async () => {
+      await result.current.s.create("tank", 1);
+    });
+
+    expect(vi.mocked(createPlacement).mock.calls[0][1].visiblePanoramaIds).toEqual([1, 2]);
+  });
+
+  it("create sends an empty visiblePanoramaIds when none are given", async () => {
+    vi.mocked(createPlacement).mockImplementation(async (_slug, body) => ({
+      ...placement(1),
+      ...body,
+    }) as Placement);
+    const { result } = editor([], []);
+
+    await act(async () => {
+      await result.current.s.create("tank", 1);
+    });
+
+    expect(vi.mocked(createPlacement).mock.calls[0][1].visiblePanoramaIds).toEqual([]);
+  });
+
+  it("setVisibility PUTs the allowlist, swaps the row in and calls onChanged", async () => {
+    vi.mocked(setPlacementVisibility).mockResolvedValue({
+      ...placement(5),
+      visiblePanoramaIds: [1],
+    });
+    const { result } = editor([placement(5)]);
+
+    await act(async () => await result.current.s.setVisibility(5, [1]));
+
+    expect(setPlacementVisibility).toHaveBeenCalledWith("t", 5, [1]);
+    expect(result.current.s.placements[0].visiblePanoramaIds).toEqual([1]);
+    expect(onChanged).toHaveBeenCalledOnce();
+  });
+
+  it("marks the placement pending while setVisibility is in flight", async () => {
+    let release!: () => void;
+    vi.mocked(setPlacementVisibility).mockImplementation(
+      () => new Promise((res) => (release = () => res(placement(5)))),
+    );
+    const { result } = editor([placement(5)]);
+
+    let done!: Promise<void>;
+    act(() => {
+      done = result.current.s.setVisibility(5, [1]);
+    });
+    await waitFor(() => expect(result.current.s.pendingIds).toEqual([5]));
+
+    await act(async () => {
+      release();
+      await done;
+    });
+    expect(result.current.s.pendingIds).toEqual([]);
+  });
+
+  it("a refused setVisibility toasts and leaves the row", async () => {
+    vi.mocked(setPlacementVisibility).mockRejectedValue(
+      new HttpError(403, null, "You don't have permission to do this"),
+    );
+    const { result } = editor([placement(5)]);
+
+    await act(async () => await result.current.s.setVisibility(5, [1]));
+
+    expect(result.current.s.placements[0].visiblePanoramaIds).toEqual([]);
+    expect(result.current.notices[0]?.message).toBe("You don't have permission to do this");
   });
 
   it("remove drops the row and clears its pending mark", async () => {

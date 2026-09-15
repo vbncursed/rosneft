@@ -159,4 +159,85 @@ describe("PlacementsPanel", () => {
     render(<PlacementsPanel {...base} expandedModel="pipe-rack-12" pendingIds={[7]} />);
     expect(screen.getByRole("button", { name: "Rename pipe-rack-12 #1" })).toBeDisabled();
   });
+
+  describe("visibility", () => {
+    const VISIBILITY = {
+      panoramas: [
+        { id: 10, title: "Control room, north door" },
+        { id: 11, title: "Tank yard, west gate" },
+      ],
+      visiblePanoramaIds: [10],
+      onToggle: vi.fn(),
+    };
+
+    it("hangs the Visible in block under the selected instance's row, inside its group", () => {
+      render(
+        <PlacementsPanel
+          {...base}
+          expandedModel="storage-tank-500"
+          selectedId={2}
+          visibility={VISIBILITY}
+        />,
+      );
+      expect(screen.getByText("Visible in")).toBeInTheDocument();
+      expect(screen.getByRole("checkbox", { name: "Control room, north door" })).toBeChecked();
+      expect(screen.getByRole("checkbox", { name: "Tank yard, west gate" })).not.toBeChecked();
+    });
+
+    it("draws nothing extra when visibility is null", () => {
+      render(<PlacementsPanel {...base} expandedModel="storage-tank-500" selectedId={2} />);
+      expect(screen.queryByText("Visible in")).toBeNull();
+    });
+
+    it("draws nothing under a row that is not the selection", () => {
+      render(
+        <PlacementsPanel
+          {...base}
+          expandedModel="storage-tank-500"
+          selectedId={null}
+          visibility={VISIBILITY}
+        />,
+      );
+      expect(screen.queryByText("Visible in")).toBeNull();
+    });
+
+    it("reports a toggle with the placement id, the panorama id and the next state", async () => {
+      const onToggle = vi.fn();
+      render(
+        <PlacementsPanel
+          {...base}
+          expandedModel="storage-tank-500"
+          selectedId={2}
+          visibility={{ ...VISIBILITY, onToggle }}
+        />,
+      );
+      await userEvent.click(screen.getByRole("checkbox", { name: "Tank yard, west gate" }));
+      expect(onToggle).toHaveBeenCalledWith(2, 11, true);
+    });
+
+    it("waits the checkboxes while the selected instance has a mutation in flight", () => {
+      render(
+        <PlacementsPanel
+          {...base}
+          expandedModel="storage-tank-500"
+          selectedId={2}
+          pendingIds={[2]}
+          visibility={VISIBILITY}
+        />,
+      );
+      expect(screen.getByRole("checkbox", { name: "Control room, north door" })).toBeDisabled();
+    });
+  });
+
+  describe("canAdd", () => {
+    it("keeps the Add button off even with the create grant", () => {
+      render(<PlacementsPanel {...base} canAdd={false} />);
+      expect(screen.queryByRole("button", { name: /Add objects to territory/ })).toBeNull();
+    });
+
+    it("keeps the empty state's own action off too", () => {
+      render(<PlacementsPanel {...base} groups={[]} canAdd={false} />);
+      expect(screen.queryByRole("button", { name: /Add objects to territory/ })).toBeNull();
+    });
+  });
 });
