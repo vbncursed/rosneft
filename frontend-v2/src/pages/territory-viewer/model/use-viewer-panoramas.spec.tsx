@@ -12,7 +12,7 @@ const { list, usePanoramaList, usePanoramaTexture, usePanoramaUpload, useTerrito
       // A fresh object each render, exactly as the real hook returns one: the
       // composite must depend on its stable members, not on the object.
       usePanoramaList: vi.fn(() => ({ ...list })),
-      usePanoramaTexture: vi.fn(() => ({ texture: null, progress: null, status: "idle" })),
+      usePanoramaTexture: vi.fn(() => ({ bitmap: null, progress: null, status: "idle" })),
       usePanoramaUpload: vi.fn((params: { onCreated: (p: never) => void }) => ({
         params,
         canSubmit: false,
@@ -171,6 +171,26 @@ describe("useViewerPanoramas", () => {
     act(() => result.current.onDelete());
     expect(list.remove).toHaveBeenCalledWith(2);
     expect(mode.closeEdit).toHaveBeenCalled();
+  });
+
+  it("leaves a panorama the reader is standing in when it is deleted", () => {
+    // The sphere and the rig unmount by themselves (the lookup finds nothing),
+    // but the reducer's view stayed { kind: "panorama" }: the header pill, the
+    // rail and the footer all kept describing a capture that no longer exists,
+    // over a 3D scene, until the reader pressed Escape.
+    const mode = modeStub({ view: { kind: "panorama", id: 2 }, editingPanoramaId: 2 });
+    const { result } = mount(mode);
+    act(() => result.current.onDelete());
+    expect(mode.exitPanorama).toHaveBeenCalled();
+    expect(list.remove).toHaveBeenCalledWith(2);
+  });
+
+  it("stays in the panorama when a different capture's card is the one deleted", () => {
+    const mode = modeStub({ view: { kind: "panorama", id: 1 }, editingPanoramaId: 2 });
+    const { result } = mount(mode);
+    act(() => result.current.onDelete());
+    expect(mode.exitPanorama).not.toHaveBeenCalled();
+    expect(list.remove).toHaveBeenCalledWith(2);
   });
 
   it("appends an uploaded capture and shuts the dialog behind it", () => {

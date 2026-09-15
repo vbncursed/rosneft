@@ -14,6 +14,12 @@ const TYPING_TAGS = new Set(["INPUT", "SELECT", "TEXTAREA"]);
 // a ref so callers can pass a fresh object each render without re-binding
 // the listener. Targets that are typing controls are skipped so number
 // entry doesn't fight the shortcuts.
+//
+// An open <dialog> takes every key, because it is on top: Esc cancelling a
+// confirm dialog used to run the viewer's escape ladder underneath it as
+// well, and walk the reader out of the panorama they were standing in.
+// `Modal` and `ConfirmDialog` are both native dialogs; `ViewportWindow` is a
+// <section role="dialog"> on purpose, so the PDF window keeps its keys.
 export function useKeyboardShortcuts(shortcuts: KeyboardShortcuts): void {
   const latest = useRef(shortcuts);
 
@@ -25,6 +31,7 @@ export function useKeyboardShortcuts(shortcuts: KeyboardShortcuts): void {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (target && TYPING_TAGS.has(target.tagName)) return;
+      if (document.querySelector("dialog[open]")) return;
       const map = latest.current;
       const handler = map[event.key] ?? map[event.key.toLowerCase()];
       if (handler) handler();
