@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { documentsCount, insideFooter } from "./copy";
+import {
+  anchorCounter,
+  defaultLook,
+  deletePanoramaTitle,
+  documentsCount,
+  insideFooter,
+  nudgeLabel,
+  opacityPercent,
+} from "./copy";
+import { degToRad } from "./degrees";
 
 describe("documentsCount", () => {
   it("prints the mock's count line", () => {
@@ -31,5 +40,39 @@ describe("insideFooter", () => {
     expect(insideFooter(10)).toBe(
       "10 placements fall inside this panorama and are marked on the photo.",
     );
+  });
+});
+
+describe("anchorCounter", () => {
+  it("says which panorama of how many is open", () => {
+    expect(anchorCounter(1, 2)).toBe("1 of 2");
+  });
+});
+
+describe("defaultLook", () => {
+  it("prints the mock's default look", () => {
+    expect(defaultLook(degToRad(137.5))).toBe("Default look: 137.5°");
+  });
+});
+
+describe("deletePanoramaTitle", () => {
+  it("names the panorama it is about to delete", () => {
+    expect(deletePanoramaTitle("Control room, north door")).toBe(
+      "Delete panorama Control room, north door?",
+    );
+  });
+});
+
+describe("nudgeLabel", () => {
+  it("names the axis and what pressing it does", () => {
+    expect(nudgeLabel("x", false)).toBe("Decrease X");
+    expect(nudgeLabel("z", true)).toBe("Increase Z");
+  });
+});
+
+describe("opacityPercent", () => {
+  it("prints the mock's spaced percent", () => {
+    expect(opacityPercent(0.65)).toBe("65 %");
+    expect(opacityPercent(1)).toBe("100 %");
   });
 });
