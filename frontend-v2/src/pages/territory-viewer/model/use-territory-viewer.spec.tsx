@@ -562,4 +562,33 @@ describe("useTerritoryViewer", () => {
       expect(now(r).panel?.tab).toBe("placements");
     });
   });
+
+  describe("the panorama tour", () => {
+    it("starts the first time the reader steps inside a panorama", async () => {
+      const r = mount();
+      const state = await ready(r);
+      expect(state.panoramaTour.active).toBe(false);
+      act(() => state.panel!.viewTab.panoramas.onEnter(1));
+      expect(now(r).panoramaTour.active).toBe(true);
+    });
+
+    it("stays shut for a reader who has already seen it", async () => {
+      getMe.mockResolvedValue(
+        principal({ isOwner: true, onboardingToursSeen: ["viewer", "panorama"] }),
+      );
+      const r = mount();
+      const state = await ready(r);
+      act(() => state.panel!.viewTab.panoramas.onEnter(1));
+      expect(now(r).panoramaTour.active).toBe(false);
+    });
+
+    it("does not start while the viewer tour is still running", async () => {
+      getMe.mockResolvedValue(principal({ isOwner: true, onboardingToursSeen: [] }));
+      const r = mount();
+      const state = await ready(r);
+      expect(state.tour.active).toBe(true);
+      act(() => state.panel!.viewTab.panoramas.onEnter(1));
+      expect(now(r).panoramaTour.active).toBe(false);
+    });
+  });
 });

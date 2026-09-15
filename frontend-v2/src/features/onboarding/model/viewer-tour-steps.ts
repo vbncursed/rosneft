@@ -1,4 +1,5 @@
 import type { TourStep } from "./tour-step";
+import { VIEWER_TOUR_STEPS_B } from "./viewer-tour-steps-b";
 
 // Tour ids are persisted per user (`onboardingToursSeen`), so they are part of
 // the stored data — renaming one replays that tour for everyone who saw it.
@@ -7,19 +8,22 @@ export const VIEWER_TOUR = "viewer";
 
 // The first-run tour for the territory viewer, in visiting order.
 //
-// Steps whose target is absent are skipped at runtime, which covers both
-// reasons a control may not render: the user lacks the permission, or the
-// control only appears after a selection. So this list is the superset — it
-// never needs a permission check.
+// Steps whose target is absent are skipped at runtime, which covers every
+// reason a control may not render: the user lacks the permission, the
+// territory has no panoramas or documents, or the control only appears after
+// a selection. So this list is the superset — it never needs a permission
+// check.
 //
 // Clear, the gizmo mode toggle and the snap toggle get no step of their own:
-// none of them can exist on a first run, since nothing is measured or selected
-// yet. The Measure and Objects steps describe them instead.
+// none of them can exist on a first run, since nothing is measured or
+// selected yet. The Measure and Objects steps describe them instead.
 //
-// The old app's panorama, document and user-menu steps are gone with the B
-// scope — a body that promises a control this viewer does not draw sends the
-// reader hunting for it.
-export const VIEWER_TOUR_STEPS: TourStep[] = [
+// The user-menu step is gone — the account link moved out of this shell in an
+// earlier task. The package B panorama and document steps
+// (`viewer-tour-steps-b.ts`) splice in between `overlays-tabs` and
+// `add-object`, split into their own file so this one stays under the
+// 200-line cap.
+const HEAD: TourStep[] = [
   {
     id: "intro",
     center: true,
@@ -44,8 +48,11 @@ export const VIEWER_TOUR_STEPS: TourStep[] = [
   {
     id: "overlays-tabs",
     title: "Overlays",
-    body: "Everything you can add to the scene lives here. View holds the territory's facts; Placements holds the models placed on it.",
+    body: "Everything you can add to the scene lives here. View holds panoramas and documents; Placements holds the models placed on it.",
   },
+];
+
+const TAIL: TourStep[] = [
   {
     id: "add-object",
     tab: "placements",
@@ -62,6 +69,8 @@ export const VIEWER_TOUR_STEPS: TourStep[] = [
     id: "shortcuts",
     center: true,
     title: "Keyboard shortcuts",
-    body: "M measure · T move · R rotate · S scale · G snap to surface · Esc step back out. Reopen this tour any time with the ▶ button.",
+    body: "M measure · P next panorama · V move panorama points · T move · R rotate · S scale · G snap to surface · Esc step back out. Reopen this tour any time with the ▶ button.",
   },
 ];
+
+export const VIEWER_TOUR_STEPS: TourStep[] = [...HEAD, ...VIEWER_TOUR_STEPS_B, ...TAIL];
