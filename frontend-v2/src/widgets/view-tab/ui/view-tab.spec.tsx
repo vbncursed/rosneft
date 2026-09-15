@@ -56,7 +56,7 @@ const base = (): ViewTabProps => ({
     canMovePoints: false,
     moving: false,
     onToggleMove: vi.fn(),
-    link: { url: undefined, canEdit: false, saving: false, onSave: vi.fn() },
+    link: { url: undefined, canEdit: false, saving: false, onSave: vi.fn(async () => true) },
     editor: null,
   },
   documents: { rows: [{ id: 3, name: "plan-sheet-03.pdf" }], canUpload: false, onUpload: vi.fn() , onOpen: vi.fn() },

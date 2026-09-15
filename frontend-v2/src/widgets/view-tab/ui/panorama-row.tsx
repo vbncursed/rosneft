@@ -23,7 +23,7 @@ export type PanoramaRowProps = {
 
 // 44×34, 40×32 at 1280 and below — Tailwind v4's max-[N] is exclusive.
 const THUMB =
-  "flex h-[34px] w-11 shrink-0 items-center justify-center overflow-hidden rounded-control-sm border max-[1281px]:h-8 max-[1281px]:w-10";
+  "flex h-[34px] w-11 shrink-0 items-center justify-center overflow-hidden rounded-control-sm border bg-panel max-[1281px]:h-8 max-[1281px]:w-10";
 
 /** One panorama: its photo, its title, and the way into or out of it. */
 export function PanoramaRow({ row, onEnter, onExit, onEdit }: PanoramaRowProps) {
@@ -40,7 +40,7 @@ export function PanoramaRow({ row, onEnter, onExit, onEdit }: PanoramaRowProps) 
         active ? "border-accent bg-accent-soft" : "border-line bg-panel-2",
       )}
     >
-      <span className={cx(THUMB, active ? "border-accent-line bg-panel text-accent" : "border-line-2 bg-panel text-dim")}>
+      <span className={cx(THUMB, active ? "border-accent-line text-accent" : "border-line-2 text-dim")}>
         {thumbUrl ? (
           <img src={thumbUrl} alt="" className="size-full object-cover" />
         ) : (
