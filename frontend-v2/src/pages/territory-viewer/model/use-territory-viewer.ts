@@ -5,7 +5,13 @@ import { pickLod, getSceneBundle, sceneQuery, toSceneViewModel } from "@/entitie
 import { getMe, meQuery } from "@/entities/user";
 import { viewerError } from "@/features/lod";
 import { measureSummary, useMeasurementTool } from "@/features/measure";
-import { useTour, VIEWER_TOUR, VIEWER_TOUR_STEPS } from "@/features/onboarding";
+import {
+  PANORAMA_TOUR,
+  PANORAMA_TOUR_STEPS,
+  useTour,
+  VIEWER_TOUR,
+  VIEWER_TOUR_STEPS,
+} from "@/features/onboarding";
 import { usePlacementsEditor } from "@/features/placements-editor";
 import { useViewerMode } from "@/features/viewer-mode";
 import { HttpError, messageOf } from "@/shared/api";
@@ -154,9 +160,22 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     seen,
     ready: vm !== null && me.data !== undefined,
   });
+  // The second first-run tour: it starts the moment the reader steps inside a
+  // panorama, where a whole panel of controls appears the viewer tour could
+  // never point at. It waits for the viewer tour to finish first — both run
+  // centred-first, and starting one over the other would fight for the panel.
+  const panoramaSeen = me.data?.onboardingToursSeen.includes(PANORAMA_TOUR) ?? true;
+  const panoramaTour = useTour(PANORAMA_TOUR, PANORAMA_TOUR_STEPS, {
+    seen: panoramaSeen,
+    ready: mode.state.view.kind === "panorama" && !tour.active && me.data !== undefined,
+  });
   // The tour reveals a control before it points at one: its step names the tab
   // its anchor lives on, and an inactive tab is not in the DOM at all.
-  const panel = useOverlaysPanel(mode.state.selectedId, tour.step?.tab, tour.active);
+  const panel = useOverlaysPanel(
+    mode.state.selectedId,
+    tour.step?.tab ?? panoramaTour.step?.tab,
+    tour.active || panoramaTour.active,
+  );
 
   const { view, failedAt, on } = usePageHandlers({
     mode,
@@ -199,9 +218,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
       placing: editor.placing,
       form: form.form,
       tour,
-      // Task 17 writes the panorama tour; until it does the viewer's own tour
-      // stands in, so nothing reads an undefined shape.
-      panoramaTour: tour,
+      panoramaTour,
       panoramas,
       documents,
       panel: { tab: panel.tab, collapsed: panel.collapsed },

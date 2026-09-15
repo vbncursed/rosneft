@@ -2,13 +2,20 @@ import { describe, expect, it } from "vitest";
 import { VIEWER_TOUR, VIEWER_TOUR_STEPS } from "./viewer-tour-steps";
 
 describe("the viewer tour's steps", () => {
-  it("visits the eight controls the A scope ships, in order", () => {
+  it("visits all fifteen controls, in order", () => {
     expect(VIEWER_TOUR_STEPS.map((s) => s.id)).toEqual([
       "intro",
       "catalog-link",
       "reset-camera",
       "measure",
       "overlays-tabs",
+      "panorama-picker",
+      "toggle-markers",
+      "panorama-marker",
+      "move-points",
+      "external-link",
+      "add-panorama",
+      "add-document",
       "add-object",
       "objects-list",
       "shortcuts",
@@ -29,9 +36,21 @@ describe("the viewer tour's steps", () => {
     }
   });
 
-  it("names only the two tabs the overlays panel renders", () => {
-    const tabs = VIEWER_TOUR_STEPS.flatMap((s) => (s.tab ? [s.tab] : []));
-    expect(tabs).toEqual(["placements", "placements"]);
+  it("puts every View-tab step on view and every Placements-tab step on placements", () => {
+    const VIEW_STEPS = [
+      "panorama-picker",
+      "toggle-markers",
+      "move-points",
+      "external-link",
+      "add-panorama",
+      "add-document",
+    ];
+    const PLACEMENTS_STEPS = ["add-object", "objects-list"];
+    for (const step of VIEWER_TOUR_STEPS) {
+      if (VIEW_STEPS.includes(step.id)) expect(step.tab, step.id).toBe("view");
+      else if (PLACEMENTS_STEPS.includes(step.id)) expect(step.tab, step.id).toBe("placements");
+      else expect(step.tab, step.id).toBeUndefined();
+    }
   });
 
   // A centred step has no anchor to reveal, so pairing it with a tab would
@@ -40,15 +59,6 @@ describe("the viewer tour's steps", () => {
     const centred = VIEWER_TOUR_STEPS.filter((s) => s.center);
     expect(centred.map((s) => s.id)).toEqual(["intro", "shortcuts"]);
     for (const step of centred) expect(step.tab).toBeUndefined();
-  });
-
-  // The B steps were dropped, not merely unlinked: a body still promising a
-  // panorama or a PDF sends the reader looking for a control that is not there.
-  it("promises nothing the A viewer does not have", () => {
-    for (const step of VIEWER_TOUR_STEPS) {
-      expect(step.body, `${step.id} mentions a panorama`).not.toMatch(/panorama/i);
-      expect(step.body, `${step.id} mentions a document`).not.toMatch(/document|PDF/i);
-    }
   });
 
   // The id keys the persisted onboardingToursSeen set: renaming it replays the
