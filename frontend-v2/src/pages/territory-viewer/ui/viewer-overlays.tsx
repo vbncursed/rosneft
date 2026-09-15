@@ -34,21 +34,27 @@ const PANEL_EDGE = "right-[calc(var(--overlays-w)+28px)]";
 /**
  * Two layers, because the window is placed two different ways.
  *
- * Floating (pip, and collapsed behind its pill): `usePipWindow` measures the
- * *browser window*, so the layer has to be that window — an absolute layer
- * inside the viewport container would put the docked window a header's height
- * below the fold. It is then lifted 44px so the docked corner clears the stats
- * strip, which is the mock's bottom 58.
+ * Floating (pip, and collapsed behind its pill): the layer IS the area the
+ * window may be docked and dragged in, because `usePipWindow` measures it —
+ * the viewport container, minus the stats-strip row at the bottom and minus
+ * the Overlays panel at the right. The header is already outside it. Measured
+ * against the browser window instead, the docked title bar's
+ * Expand/Hide/Delete/Exit cluster landed underneath the panel, and dragging
+ * the window up put the whole bar off the top of the screen.
  *
  * Expanded: the window fills the viewport container at the 14 inset, which is
  * the container itself.
+ *
+ * `left-0` rather than `inset-x-0`: `right` is set right beside it, and one
+ * property belongs in one place — the two would be resolved by the
+ * stylesheet's source order, not by the order they are written in.
  */
-// Both layers are transparent and cover everything under them — the floating
-// one is the whole browser window — so they pass clicks straight through and
-// `ViewportWindow` takes its own back. Without that the tool rail, the mode
-// chip, the stats strip and the collapsed document's own pill are all dead
-// while a PDF is open. Same pair, same reason, as the Toaster's cards.
-const DOC_FLOATING = "pointer-events-none fixed inset-x-0 bottom-0 -top-11";
+// Both layers are transparent and cover everything under them, so they pass
+// clicks straight through and `ViewportWindow` takes its own back. Without
+// that the tool rail, the mode chip, the stats strip and the collapsed
+// document's own pill are all dead while a PDF is open. Same pair, same
+// reason, as the Toaster's cards.
+const DOC_FLOATING = `pointer-events-none absolute left-0 top-0 bottom-11 ${PANEL_EDGE}`;
 const DOC_EXPANDED = "pointer-events-none absolute inset-0";
 
 /**
@@ -99,6 +105,7 @@ export function ViewerOverlays({
   error,
   switchTo3d,
   document: doc,
+  documentLayerRef,
 }: ViewerOverlaysProps) {
   const handlers: Record<RailTool, () => void> = {
     reset: onReset,
@@ -206,12 +213,16 @@ export function ViewerOverlays({
         </div>
       ) : null}
 
-      {doc ? (
-        <div className={doc.window === "expanded" ? DOC_EXPANDED : DOC_FLOATING}>
-          {/* The pill is the row's above, where the strip's width decides it. */}
-          <DocumentWindow {...doc} showPill={false} />
-        </div>
-      ) : null}
+      {/* Mounted whether or not a document is open: it is the box the pip
+          docks into, and `usePipWindow` measures it on mount. */}
+      <div
+        ref={documentLayerRef}
+        data-testid="document-layer"
+        className={doc?.window === "expanded" ? DOC_EXPANDED : DOC_FLOATING}
+      >
+        {/* The pill is the row's above, where the strip's width decides it. */}
+        {doc ? <DocumentWindow {...doc} showPill={false} /> : null}
+      </div>
 
       {error ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-3.5">

@@ -77,6 +77,7 @@ export const IDLE_PANORAMAS: PanoramaParts = {
 
 export const IDLE_DOCUMENTS: DocumentParts = {
   list: [],
+  layerRef: { current: null },
   pendingId: null,
   active: null,
   window: "pip",

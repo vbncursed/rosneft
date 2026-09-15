@@ -62,6 +62,7 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
   error: null,
   switchTo3d: null,
   document: null,
+  documentLayerRef: { current: null },
   ...over,
 });
 
@@ -321,22 +322,41 @@ describe("ViewerOverlays · the document window", () => {
     expect(screen.getByRole("dialog", { name: FILE })).toBeInTheDocument();
   });
 
-  // The floating layer is the browser window, so anything it swallows is the
-  // whole page: the tool rail, the mode chip, the stats strip and the pill all
-  // sit under it. jsdom does no hit-testing, so the class that decides it is
-  // what the test can read — the Toaster carries the same pair for the same
+  // The floating layer covers the whole viewport, so anything it swallows is
+  // the whole page: the tool rail, the mode chip, the stats strip and the pill
+  // all sit under it. jsdom does no hit-testing, so the class that decides it
+  // is what the test can read — the Toaster carries the same pair for the same
   // reason.
   it("lets clicks through the floating layer and takes them back for the window", () => {
     render(<ViewerOverlays {...props({ document: documentWindow() })} />);
-    const layer = document.querySelector(".fixed.inset-x-0") as HTMLElement;
-    expect(layer.className).toContain("pointer-events-none");
+    expect(screen.getByTestId("document-layer").className).toContain("pointer-events-none");
     expect(screen.getByRole("dialog", { name: FILE }).className).toContain("pointer-events-auto");
+  });
+
+  it("lets clicks through the expanded layer too", () => {
+    render(<ViewerOverlays {...props({ document: documentWindow({ window: "expanded" }) })} />);
+    const layer = screen.getByTestId("document-layer");
+    expect(layer.className).toContain("pointer-events-none");
+    expect(layer.className).toContain("inset-0");
   });
 
   it("keeps the pill clickable while the hidden window's layer is still mounted", () => {
     render(<ViewerOverlays {...props({ document: documentWindow({ window: "collapsed" }) })} />);
-    const layer = document.querySelector(".fixed.inset-x-0") as HTMLElement;
-    expect(layer.className).toContain("pointer-events-none");
+    expect(screen.getByTestId("document-layer").className).toContain("pointer-events-none");
+  });
+
+  it("docks the window inside the viewport, clear of the strip row and the open panel", () => {
+    // The area the pip is measured against is this layer: it starts at the
+    // container's top (the header is above it, so a window dragged to y = 0
+    // keeps its whole title bar on screen), stops 44px short of the bottom for
+    // the stats-strip row, and stops at the Overlays panel's edge.
+    render(<ViewerOverlays {...props({ document: documentWindow() })} />);
+    const layer = screen.getByTestId("document-layer");
+    expect(layer.className).toContain("absolute");
+    expect(layer.className).toContain("top-0");
+    expect(layer.className).toContain("bottom-11");
+    expect(layer.className).toContain("right-[calc(var(--overlays-w)+28px)]");
+    expect(layer.className).not.toContain("fixed");
   });
 
   it("draws nothing when no document is open", () => {

@@ -79,6 +79,8 @@ export type PanoramaParts = {
 /** Everything `useViewerDocuments` composes: the list, the open window, the upload. */
 export type DocumentParts = {
   list: Document[];
+  /** The page attaches this to the layer the floating window is docked inside. */
+  layerRef: RefObject<HTMLDivElement | null>;
   pendingId: number | null;
   active: Document | null;
   window: DocumentWindowMode;
