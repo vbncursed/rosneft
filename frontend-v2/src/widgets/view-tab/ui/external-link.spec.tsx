@@ -9,7 +9,7 @@ const link = (over: Partial<ExternalLinkProps> = {}) => {
     url: "https://tour.example/refinery",
     canEdit: false,
     saving: false,
-    onSave: vi.fn(),
+    onSave: vi.fn(async () => true),
     ...over,
   };
   return { props, ...render(<ExternalLink {...props} />) };
@@ -49,14 +49,16 @@ describe("ExternalLink", () => {
     expect(onSave).toHaveBeenCalledWith("https://tour.example/b");
   });
 
-  it("closes the editor on save and shows the url the parent answers with", async () => {
-    const view = link({ canEdit: true, url: "https://tour.example/a" });
+  it("closes the editor once the save answers true", async () => {
+    const onSave = vi.fn(async () => true);
+    const view = link({ canEdit: true, url: "https://tour.example/a", onSave });
 
     await userEvent.click(screen.getByRole("button", { name: /^(Edit|Add) link$/ }));
     await userEvent.clear(screen.getByLabelText("External tour URL"));
     await userEvent.type(screen.getByLabelText("External tour URL"), "https://tour.example/b");
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
 
+    expect(onSave).toHaveBeenCalledWith("https://tour.example/b");
     expect(screen.queryByLabelText("External tour URL")).not.toBeInTheDocument();
     view.rerender(<ExternalLink {...view.props} url="https://tour.example/b" />);
     expect(screen.getByRole("link", { name: TOUR_LINK })).toHaveAttribute(
@@ -65,23 +67,22 @@ describe("ExternalLink", () => {
     );
   });
 
-  it("keeps a refused draft for the retry", async () => {
-    const view = link({ canEdit: true, url: "https://tour.example/a" });
+  it("keeps a refused save on screen with the draft", async () => {
+    const onSave = vi.fn(async () => false);
+    link({ canEdit: true, url: "https://tour.example/a", onSave });
 
     await userEvent.click(screen.getByRole("button", { name: /^(Edit|Add) link$/ }));
     await userEvent.clear(screen.getByLabelText("External tour URL"));
     await userEvent.type(screen.getByLabelText("External tour URL"), "https://tour.example/b");
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    // The url did not move, so the PATCH was refused: reopening offers what
-    // was typed rather than the url that is still stored.
-    view.rerender(<ExternalLink {...view.props} url="https://tour.example/a" />);
-    await userEvent.click(screen.getByRole("button", { name: /^(Edit|Add) link$/ }));
+    // The hook toasted the refusal; the field stays open on what was typed so
+    // the operator can fix it rather than retype it.
     expect(screen.getByLabelText("External tour URL")).toHaveValue("https://tour.example/b");
   });
 
   it("cancels back to the link, discarding the draft", async () => {
-    const onSave = vi.fn();
+    const onSave = vi.fn(async () => true);
     link({ canEdit: true, onSave });
 
     await userEvent.click(screen.getByRole("button", { name: /^(Edit|Add) link$/ }));

@@ -62,6 +62,7 @@ function Live({
   documents = DOCUMENTS,
   calibrating = null,
   canWrite = true,
+  canMove = canWrite,
   url,
   footer = LOADING_FOOTER,
   editor = null,
@@ -72,6 +73,7 @@ function Live({
   documents?: { id: number; name: string }[];
   calibrating?: { title: string } | null;
   canWrite?: boolean;
+  canMove?: boolean;
   url?: string;
   footer?: string | null;
   editor?: ReactNode;
@@ -96,10 +98,18 @@ function Live({
           showMarkers,
           onToggleMarkers: () => setShowMarkers((on) => !on),
           onExitCalibration: () => {},
-          canMovePoints: canWrite,
+          canMovePoints: canMove,
           moving,
           onToggleMove: () => setMoving((on) => !on),
-          link: { url: link, canEdit: canWrite, saving: false, onSave: setLink },
+          link: {
+            url: link,
+            canEdit: canWrite,
+            saving: false,
+            onSave: async (next) => {
+              setLink(next);
+              return true;
+            },
+          },
           editor,
         }}
         documents={{ rows: documents, canUpload: canWrite, onUpload: () => {}, onOpen: () => {} }}
@@ -125,6 +135,9 @@ export default {
     <Live
       details={PANORAMA_DETAILS}
       rows={ACTIVE}
+      // Dragging a point is aimed on the mesh; inside the photo there is
+      // nothing to drag it over.
+      canMove={false}
       footer={insideFooter(2)}
       url="https://tour.example/refinery"
     />

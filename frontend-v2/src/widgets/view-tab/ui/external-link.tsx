@@ -9,7 +9,8 @@ export type ExternalLinkProps = {
   /** `territory:write` — the tour URL is a field on the territory. */
   canEdit: boolean;
   saving: boolean;
-  onSave: (url: string) => void;
+  /** Answers whether the PATCH landed; a refusal is toasted by the caller. */
+  onSave: (url: string) => Promise<boolean>;
 };
 
 const TEXT_BUTTON =
@@ -18,10 +19,6 @@ const TEXT_BUTTON =
 /** The territory's externally hosted 360° tour: the link, and the field behind it. */
 export function ExternalLink({ url, canEdit, saving, onSave }: ExternalLinkProps) {
   const [editing, setEditing] = useState(false);
-  // The draft outlives the editor on purpose: `onSave` answers nothing, so a
-  // refused PATCH can only be told by the unchanged link — and reopening has
-  // to offer what was typed rather than make the operator retype a long URL.
-  // Cancel is the one thing that discards it.
   const [draft, setDraft] = useState(url ?? "");
 
   const safe = url !== undefined && isSafeHttpUrl(url);
@@ -32,9 +29,11 @@ export function ExternalLink({ url, canEdit, saving, onSave }: ExternalLinkProps
     setEditing(false);
   };
 
-  const submit = () => {
-    onSave(draft.trim());
-    setEditing(false);
+  // Only a save that landed closes the editor: a refusal is toasted by the
+  // caller and leaves the field on screen with what was typed, so a long URL
+  // is fixed rather than retyped.
+  const submit = async () => {
+    if (await onSave(draft.trim())) setEditing(false);
   };
 
   return (
