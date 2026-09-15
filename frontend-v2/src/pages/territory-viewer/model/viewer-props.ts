@@ -4,11 +4,14 @@ import type { ModelOption, SceneViewModel } from "@/entities/scene";
 import type { ViewerError } from "@/features/lod";
 import type { Tour } from "@/features/onboarding";
 import type { GizmoMode, ViewerModeState } from "@/features/viewer-mode";
-import type { Detail } from "@/shared/ui/detail-list";
+import type { DocumentWindowProps } from "@/widgets/document-window";
 import type { PlaceObjectsModalProps } from "@/widgets/model-picker";
 import type { OverlaysTab } from "@/widgets/overlays-panel";
 import type { PlacementsPanelProps } from "@/widgets/placements-panel";
+import type { UploadModalProps } from "@/widgets/upload-modal";
+import type { ViewTabProps } from "@/widgets/view-tab";
 import type { LodReport, ViewerCanvasProps } from "@/widgets/viewer-canvas";
+import type { DocumentParts, PanoramaParts } from "./overlay-parts";
 import type { PlacementFormView } from "./use-placement-form";
 import type { ErrorCopy, Grants, HeaderPill, RailToolState } from "./viewer-view";
 
@@ -67,6 +70,12 @@ export type ViewerOverlaysProps = {
   strip: StripView;
   hints: boolean;
   error: ViewerErrorProps | null;
+  /** The way out of a panorama, under the mode chip; null in the 3D scene. */
+  switchTo3d: (() => void) | null;
+  /** The PDF window, mounted for as long as a document is open — collapsed only hides it. */
+  document: DocumentWindowProps | null;
+  /** The hidden window's pill, drawn beside the stats strip. */
+  collapsedPill: { name: string; onShow: () => void } | null;
 };
 
 export type ViewerPanelProps = {
@@ -75,7 +84,8 @@ export type ViewerPanelProps = {
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
   placementsCount: number;
-  details: Detail[];
+  /** The whole View tab: the scene's facts, its panoramas and its documents. */
+  viewTab: ViewTabProps;
   placements: PlacementsPanelProps;
 };
 
@@ -86,7 +96,11 @@ export type TerritoryViewerPageProps = {
   /** Null on a failure: the mock draws the error card over an otherwise bare viewport. */
   panel: ViewerPanelProps | null;
   picker: PlaceObjectsModalProps;
+  /** Whichever overlay upload is open — one dialog serves both kinds. */
+  upload: UploadModalProps | null;
   tour: Tour;
+  /** The panorama tour (Task 17); the viewer tour stands in until it is written. */
+  panoramaTour: Tour;
   /** Nothing on screen yet and nothing failed — the skeleton card stands in. */
   loadingScene: boolean;
 };
@@ -122,6 +136,10 @@ export type PageHandlers = {
   onSnap: (on: boolean) => void;
   onPlace: (slug: string, count: number) => void;
   onClosePicker: () => void;
+  /** The scene-only sub-mode for dragging panorama anchors (V). */
+  onToggleMove: () => void;
+  /** One checkbox of the selected placement's per-panorama allowlist. */
+  onVisibility: (placementId: number, panoramaId: number, visible: boolean) => void;
 };
 
 /** The page's own state, everything the hooks do not already own. */
@@ -157,6 +175,9 @@ export type PageParts = {
   placing: { done: number; total: number } | null;
   form: PlacementFormView | null;
   tour: Tour;
+  panoramaTour: Tour;
+  panoramas: PanoramaParts;
+  documents: DocumentParts;
   panel: { tab: OverlaysTab; collapsed: boolean };
   view: PageViewState;
   on: PageHandlers;

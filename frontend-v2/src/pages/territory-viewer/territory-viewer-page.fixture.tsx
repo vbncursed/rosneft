@@ -5,6 +5,7 @@ import type { Tour } from "@/features/onboarding";
 import { VIEWER_TOUR_STEPS } from "@/features/onboarding";
 import { CatalogShell } from "@/widgets/catalog-shell";
 import { pageProps, type PageHandlers, type PageParts } from "./model/page-props";
+import type { DocumentParts, PanoramaParts } from "./model/overlay-parts";
 import type { Grants } from "./model/viewer-view";
 import { TerritoryViewerPage } from "./ui/territory-viewer-page";
 import { ViewerLoading } from "./ui/territory-viewer-screen";
@@ -14,9 +15,96 @@ const noop = () => {};
 // stubs would be twenty-five lines saying the same thing.
 const ON = new Proxy({} as PageHandlers, { get: () => noop });
 
-const OWNER: Grants = { create: true, write: true, delete: true, replace: true };
-const GUEST: Grants = { create: false, write: false, delete: false, replace: false };
-const NO_DELETE: Grants = { create: true, write: true, delete: false, replace: true };
+const IDLE_UPLOAD = { stage: "idle", file: null } as const;
+
+/**
+ * A territory with nothing anchored over it: no panoramas, no documents, no
+ * dialog open. Every package-B state is one override away — Task 16 draws them.
+ */
+export const IDLE_PANORAMAS: PanoramaParts = {
+  list: [],
+  pendingId: null,
+  active: null,
+  editing: null,
+  index: { current: 0, total: 0 },
+  texture: { texture: null, progress: null, status: "idle" },
+  showMarkers: true,
+  onToggleMarkers: noop,
+  drag: { draggingId: null, livePos: null, begin: noop, move: noop, end: noop },
+  calibration: {
+    active: false,
+    effective: null,
+    draft: null,
+    opacity: 0.5,
+    step: 0.02,
+    onOpacity: noop,
+    onStep: noop,
+    onNudge: noop,
+    onYaw: noop,
+    onStart: noop,
+    onSave: noop,
+    onExit: noop,
+  },
+  onEnter: noop,
+  onExit: noop,
+  onEdit: noop,
+  onCloseEditor: noop,
+  onToggleView: noop,
+  onSave: noop,
+  onDelete: noop,
+  link: { url: "", saving: false, onSave: async () => true },
+  upload: {
+    open: false,
+    onOpen: noop,
+    onClose: noop,
+    form: {
+      upload: IDLE_UPLOAD,
+      title: "",
+      setTitle: noop,
+      useGps: true,
+      setUseGps: noop,
+      pick: async () => {},
+      clear: noop,
+      cancel: noop,
+      submit: async () => {},
+      canSubmit: false,
+    },
+  },
+  cameraPositionRef: { current: null },
+  cameraYawRef: { current: null },
+};
+
+export const IDLE_DOCUMENTS: DocumentParts = {
+  list: [],
+  pendingId: null,
+  active: null,
+  window: "pip",
+  pip: { geo: { x: 866, y: 386, w: 560, h: 400 }, dragging: false, startMove: noop, startResize: noop },
+  onOpen: noop,
+  onWindow: noop,
+  onDelete: noop,
+  onExit: noop,
+  escape: () => false,
+  upload: {
+    open: false,
+    onOpen: noop,
+    onClose: noop,
+    form: {
+      upload: IDLE_UPLOAD,
+      title: "",
+      setTitle: noop,
+      pick: async () => {},
+      clear: noop,
+      cancel: noop,
+      submit: async () => {},
+      canSubmit: false,
+    },
+  },
+};
+
+const OWNER: Grants = { create: true, write: true, delete: true, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: true, documentWrite: true, documentDelete: true };
+const GUEST: Grants = { create: false, write: false, delete: false, replace: false, panoramaCreate: false, panoramaWrite: false, panoramaDelete: false, documentWrite: false, documentDelete: false };
+const NO_DELETE: Grants = { create: true, write: true, delete: false, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: false, documentWrite: true, documentDelete: false };
 
 const at = (id: number, modelSlug: string, x: number): ResolvedPlacement => ({
   id,
@@ -79,7 +167,8 @@ const IDLE_TOUR: Tour = {
   restart: noop,
 };
 
-const base = (): PageParts => ({
+/** One whole page's worth of parts, shared with the model specs. */
+export const basePageParts = (): PageParts => ({
   slug: "refinery-block-c",
   title: "Refinery Block C",
   grants: OWNER,
@@ -100,6 +189,9 @@ const base = (): PageParts => ({
   placing: null,
   form: null,
   tour: IDLE_TOUR,
+  panoramaTour: IDLE_TOUR,
+  panoramas: IDLE_PANORAMAS,
+  documents: IDLE_DOCUMENTS,
   panel: { tab: "placements", collapsed: false },
   view: {
     report: { shown: 1, target: 1, percent: null, progressText: null, failure: null },
@@ -119,7 +211,7 @@ const base = (): PageParts => ({
 
 /** A whole page from one set of overrides — every state below is one call. */
 export const viewerState = (edit: (p: PageParts) => PageParts = (p) => p) =>
-  pageProps(edit(base()));
+  pageProps(edit(basePageParts()));
 
 const page = (edit?: (p: PageParts) => PageParts) => (
   <CatalogShell layout="viewport">

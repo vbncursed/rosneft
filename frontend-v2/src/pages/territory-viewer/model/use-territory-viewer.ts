@@ -8,6 +8,7 @@ import { viewerError } from "@/features/lod";
 import { useTour, VIEWER_TOUR, VIEWER_TOUR_STEPS } from "@/features/onboarding";
 import { usePlacementsEditor } from "@/features/placements-editor";
 import { useViewerMode } from "@/features/viewer-mode";
+import { decodeImageBitmap } from "@/widgets/viewer-canvas";
 import { HttpError, messageOf } from "@/shared/api";
 import { useMediaQuery } from "@/shared/lib/use-media-query";
 import { unanswered } from "@/shared/lib/unanswered";
@@ -16,6 +17,8 @@ import { useOverlaysPanel } from "@/widgets/overlays-panel";
 import type { LodReport } from "@/widgets/viewer-canvas";
 import { pageProps, type TerritoryViewerPageProps } from "./page-props";
 import { usePlacementForm } from "./use-placement-form";
+import { useViewerDocuments } from "./use-viewer-documents";
+import { useViewerPanoramas } from "./use-viewer-panoramas";
 
 export type TerritoryViewerState =
   | { status: "loading" }
@@ -86,6 +89,11 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
       write: can(me.data ?? null, "placement:write"),
       delete: can(me.data ?? null, "placement:delete"),
       replace: can(me.data ?? null, "territory:write"),
+      panoramaCreate: can(me.data ?? null, "panorama:create"),
+      panoramaWrite: can(me.data ?? null, "panorama:write"),
+      panoramaDelete: can(me.data ?? null, "panorama:delete"),
+      documentWrite: can(me.data ?? null, "document:write"),
+      documentDelete: can(me.data ?? null, "document:delete"),
     }),
     [me.data],
   );
@@ -124,6 +132,30 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     panoramaIds: [],
     onChanged,
   });
+  const panoramas = useViewerPanoramas({
+    slug,
+    initial: vm?.panoramas ?? [],
+    mode: {
+      view: mode.state.view,
+      editingPanoramaId: mode.state.editingPanoramaId,
+      enterPanorama: mode.enterPanorama,
+      exitPanorama: mode.exitPanorama,
+      startEdit: mode.startEdit,
+      closeEdit: mode.closeEdit,
+    },
+    moving: mode.state.move,
+    sourceBbox: vm?.sourceBbox ?? null,
+    externalUrl: bundle?.territory.externalPanoramaUrl,
+    onChanged,
+    decode: decodeImageBitmap,
+  });
+  const documents = useViewerDocuments({
+    slug,
+    initial: vm?.documents ?? [],
+    onChanged,
+    onOpen: mode.exitPanorama,
+  });
+
   // The selection is what opens the form, and a reader without `placement:write`
   // is handed none: that is the one state where the block only reports.
   const form = usePlacementForm(editor, mode.select, grants.write ? mode.state.selectedId : null);
@@ -214,6 +246,11 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
       placing: editor.placing,
       form: form.form,
       tour,
+      // Task 17 writes the panorama tour; until it does the viewer's own tour
+      // stands in, so nothing reads an undefined shape.
+      panoramaTour: tour,
+      panoramas,
+      documents,
       panel: { tab: panel.tab, collapsed: panel.collapsed },
       view: {
         report,
@@ -259,6 +296,8 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
         onSnap: mode.toggleSnap,
         onPlace,
         onClosePicker: closePicker,
+        onVisibility: noop,
+        onToggleMove: mode.toggleMove,
       },
     }),
   };

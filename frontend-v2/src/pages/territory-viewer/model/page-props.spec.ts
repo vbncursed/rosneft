@@ -2,11 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import type { ResolvedPlacement } from "@/entities/placement";
 import type { ModelOption, SceneViewModel } from "@/entities/scene";
 import type { Tour } from "@/features/onboarding";
+import { IDLE_DOCUMENTS, IDLE_PANORAMAS } from "../territory-viewer-page.fixture";
 import { pageProps, type PageHandlers, type PageParts } from "./page-props";
 import type { Grants } from "./viewer-view";
 
-const OWNER: Grants = { create: true, write: true, delete: true, replace: true };
-const GUEST: Grants = { create: false, write: false, delete: false, replace: false };
+const OWNER: Grants = { create: true, write: true, delete: true, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: true, documentWrite: true, documentDelete: true };
+const GUEST: Grants = { create: false, write: false, delete: false, replace: false, panoramaCreate: false, panoramaWrite: false, panoramaDelete: false, documentWrite: false, documentDelete: false };
 
 const TANK: ResolvedPlacement = {
   id: 4,
@@ -87,6 +88,8 @@ const HANDLERS: PageHandlers = {
   onSnap: noop,
   onPlace: noop,
   onClosePicker: noop,
+  onVisibility: noop,
+  onToggleMove: noop,
 };
 
 const parts = (over: Partial<PageParts> = {}): PageParts => ({
@@ -110,6 +113,9 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
   placing: null,
   form: null,
   tour: TOUR,
+  panoramaTour: TOUR,
+  panoramas: IDLE_PANORAMAS,
+  documents: IDLE_DOCUMENTS,
   panel: { tab: "view", collapsed: false },
   view: {
     report: { shown: 1, target: 1, percent: null, progressText: null, failure: null },
@@ -351,7 +357,7 @@ describe("pageProps · panel", () => {
 
   it("prints the territory's facts on the View tab, the slug in the accent", () => {
     const { panel } = pageProps(parts());
-    expect(panel?.details).toEqual([
+    expect(panel?.viewTab.details).toEqual([
       { label: "slug", value: "refinery-block-c", tone: "accent" },
       { label: "units", value: "metres" },
       { label: "vertices", value: "1 284 210" },

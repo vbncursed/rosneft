@@ -1,17 +1,18 @@
 import { computeUnitRatio } from "@/entities/measurement";
+import { groupByModel } from "@/entities/placement";
 import {
-  groupByModel,
-  instanceName,
-  type ResolvedPlacement,
-} from "@/entities/placement";
-import { groupDigits, type SceneViewModel } from "@/entities/scene";
-import type { Detail } from "@/shared/ui/detail-list";
-import type { SelectedBlockProps } from "@/widgets/placements-panel";
+  documentProps,
+  loadingLevel,
+  panoramaCanvasProps,
+  uploadProps,
+  viewTabProps,
+} from "./page-props-b";
+import { selectedBlock, visibilityBlock } from "./page-props-selected";
 import { loadingChip, modeChip, stripItems } from "./strip-and-chips";
-import { errorCopy, headerMeta, headerPills, railTools, uploadedLine } from "./viewer-view";
-import type { ViewerCanvasProps } from "@/widgets/viewer-canvas";
+import { errorCopy, headerMeta, headerPills, railTools } from "./viewer-view";
 import type { PageParts, TerritoryViewerPageProps } from "./viewer-props";
 
+export type { DocumentParts, PanoramaParts } from "./overlay-parts";
 export type {
   MeasuringView,
   PageHandlers,
@@ -25,30 +26,6 @@ export type {
   ViewerOverlaysProps,
   ViewerPanelProps,
 } from "./viewer-props";
-
-/**
- * Task 15 wires the panorama half of the canvas; until then every territory
- * opens in the 3D view with no panoramas to show. Module-level so the refs and
- * the callbacks keep one identity across renders — a fresh object here would
- * re-run CameraTracker's effect on every keystroke in the panel.
- */
-const NO_PANORAMA = {
-  activePanorama: null,
-  panoramaTexture: null,
-  panoramaStatus: "idle",
-  panoramaProgress: null,
-  panoramaOpacity: 1,
-  panoramas: [],
-  showMarkers: true,
-  markerLabels: {},
-  move: { active: false, draggingId: null, livePos: null },
-  cameraPositionRef: { current: null },
-  cameraYawRef: { current: null },
-  onActivatePanorama: () => {},
-  onMarkerGrab: () => {},
-  onMarkerMove: () => {},
-  onMarkerDrop: () => {},
-} satisfies Partial<ViewerCanvasProps>;
 
 /**
  * Every prop the viewer page draws, assembled from the container's pieces.
@@ -67,15 +44,9 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
   // says otherwise even if a coarse level is still drawn behind the card.
   const geometry = !failed && report.shown !== null;
 
-  const loadingLevel =
-    !failed &&
-    report.shown !== null &&
-    report.target !== null &&
-    report.shown !== report.target &&
-    report.percent !== null &&
-    report.progressText !== null
-      ? { shown: report.shown, target: report.target, percent: report.percent, text: report.progressText }
-      : null;
+  const loading = loadingLevel(view);
+  const docs = documentProps(p);
+  const inside = mode.view.kind === "panorama";
 
   const levels = vm.parentLods.map((a) => a.lod).sort((a, b) => a - b);
   const groups = groupByModel(p.placements, options);
@@ -96,10 +67,13 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       }),
       // The tour's pill replaces the meta line rather than joining it (spec §4),
       // and a guest's right cluster carries the sentence instead.
+      // A document over the scene takes the line: it is the state the reader
+      // most needs named, and the LOD line is still one fold of the panel away.
       meta:
-        failed || guest || p.tour.active || mode.mode === "measure"
+        docs.meta ??
+        (failed || guest || p.tour.active || mode.mode === "measure"
           ? null
-          : headerMeta(slug, vm.parentLods.length, vm.metadata.units),
+          : headerMeta(slug, vm.parentLods.length, vm.metadata.units)),
       guest,
       canReplace: grants.replace,
     },
@@ -120,7 +94,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       resetVersion: view.resetVersion,
       retryVersion: view.retryVersion,
       focusRequest: view.focusRequest,
-      ...NO_PANORAMA,
+      ...panoramaCanvasProps(p, groups),
       onPick: on.onPick,
       onTransformCommit: on.onTransformCommit,
       onMeasurePoint: on.onMeasurePoint,
@@ -135,10 +109,10 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
         grants,
         mode: mode.mode,
         geometry,
-        loading: loadingLevel !== null,
+        loading: loading !== null,
         tourActive: p.tour.active,
         view: mode.view,
-        documentOpen: false,
+        documentOpen: docs.window !== null,
       }),
       onReset: on.onReset,
       onMeasure: on.onMeasure,
@@ -147,17 +121,19 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       onDocuments: on.onDocuments,
       onReplayTour: on.onReplayTour,
       chip:
-        failed || loadingLevel
+        failed || loading
           ? null
           : modeChip({
               mode: mode.mode,
               measure: measure.summary,
               view: mode.view,
               move: mode.move,
-              calibrating: null,
+              calibrating: p.panoramas.calibration.active
+                ? (p.panoramas.editing?.title ?? null)
+                : null,
             }),
-      loading: loadingLevel
-        ? { chip: loadingChip(loadingLevel), percent: loadingLevel.percent, target: loadingLevel.target }
+      loading: loading
+        ? { chip: loadingChip(loading), percent: loading.percent, target: loading.target }
         : null,
       measuring:
         mode.mode === "measure"
@@ -179,6 +155,9 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
         failed,
       }),
       hints: !failed && p.panel.collapsed && mode.mode === "orbit",
+      switchTo3d: inside ? p.panoramas.onExit : null,
+      document: docs.window,
+      collapsedPill: docs.pill,
       error: error
         ? {
             copy: errorCopy(error, view.now),
@@ -204,7 +183,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
           collapsed: p.panel.collapsed,
           onCollapsedChange: on.onCollapsed,
           placementsCount: p.placements.length,
-          details: detailsOf(slug, vm),
+          viewTab: viewTabProps(p),
           placements: {
             groups,
             query: view.query,
@@ -220,6 +199,9 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
             onDelete: on.onDelete,
             onFocus: on.onFocus,
             selected: selectedBlock(p, groups, selected),
+            // B-5: inside a panorama nothing is placed.
+            canAdd: !inside,
+            visibility: visibilityBlock(p, selected),
           },
         },
 
@@ -232,44 +214,9 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       onPlace: on.onPlace,
     },
 
+    upload: uploadProps(p),
     tour: p.tour,
+    panoramaTour: p.panoramaTour,
     loadingScene: !failed && report.shown === null,
-  };
-}
-
-/** The View tab's key/value block: what this territory is, in the mock's order. */
-const detailsOf = (slug: string, vm: SceneViewModel): Detail[] => [
-  { label: "slug", value: slug, tone: "accent" },
-  { label: "units", value: vm.metadata.units },
-  { label: "vertices", value: groupDigits(vm.metadata.vertices) },
-  { label: "faces", value: groupDigits(vm.metadata.faces) },
-  { label: "uploaded", value: uploadedLine(vm.metadata.uploadedAt), tone: "muted" },
-];
-
-/**
- * The block under the object list. Its name comes from the grouped list rather
- * than the placement's own label, so the scene and the panel call the same
- * instance the same thing — `storage-tank-500 #1`, numbered by creation order.
- */
-function selectedBlock(
-  p: PageParts,
-  groups: ReturnType<typeof groupByModel>,
-  selected: ResolvedPlacement | null,
-): SelectedBlockProps | null {
-  if (!selected) return null;
-  const group = groups.find((g) => g.model.slug === selected.modelSlug);
-  const instance = group?.instances.find((i) => i.id === selected.id);
-  if (!group || !instance) return null;
-
-  return {
-    name: instanceName(group, instance),
-    gizmo: p.mode.gizmo,
-    onGizmo: p.on.onGizmo,
-    transform: { position: selected.position, rotation: selected.rotation, scale: selected.scale },
-    snap: p.mode.snap,
-    onSnap: p.on.onSnap,
-    canWrite: p.grants.write,
-    form: p.form,
-    compact: p.view.compact,
   };
 }

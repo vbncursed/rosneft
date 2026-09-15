@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 import { TourOverlay } from "@/features/onboarding";
-import { DetailList } from "@/shared/ui/detail-list";
 import { PlaceObjectsModal } from "@/widgets/model-picker";
 import { OverlaysPanel, overlaysWidthClass } from "@/widgets/overlays-panel";
 import { PlacementsPanel } from "@/widgets/placements-panel";
+import { ViewTab } from "@/widgets/view-tab";
 import { ViewerCanvas } from "@/widgets/viewer-canvas";
 import { ViewerSkeleton } from "@/widgets/viewer-skeleton";
 import type { TerritoryViewerPageProps } from "../model/page-props";
@@ -63,7 +63,7 @@ export function TerritoryViewerPage({
             // the strip itself — this component's own box is the viewport, and
             // the panel's root is a zero-height static block.
             tourId="overlays-tabs"
-            view={<DetailList items={panel.details} />}
+            view={<ViewTab {...panel.viewTab} />}
             placements={
               <div data-tour="objects-list">
                 <PlacementsPanel {...panel.placements} />
