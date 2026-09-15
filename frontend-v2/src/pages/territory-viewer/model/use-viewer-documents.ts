@@ -31,6 +31,10 @@ export function useViewerDocuments({
   onOpen,
 }: ViewerDocumentsParams): DocumentParts {
   const list = useDocumentList({ slug, initial, onChanged });
+  // Its members are `useCallback`s; the object around them is new every
+  // render, and depending on it would hand the window a fresh `onDelete`
+  // each time (`use-viewer-panoramas.ts` has the long version of this note).
+  const { add, remove } = list;
   const view = useDocumentView(list.documents, onOpen);
   const pip = usePipWindow(PIP_INSET);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -39,17 +43,19 @@ export function useViewerDocuments({
     slug,
     onCreated: useCallback(
       (document: Document) => {
-        list.add(document);
+        add(document);
         setUploadOpen(false);
       },
-      [list],
+      [add],
     ),
   });
 
   const activeId = view.active?.id ?? null;
   const onDelete = useCallback(() => {
-    if (activeId !== null) void list.remove(activeId);
-  }, [activeId, list]);
+    if (activeId !== null) void remove(activeId);
+  }, [activeId, remove]);
+  const openUpload = useCallback(() => setUploadOpen(true), []);
+  const closeUpload = useCallback(() => setUploadOpen(false), []);
 
   return {
     list: list.documents,
@@ -62,11 +68,6 @@ export function useViewerDocuments({
     onDelete,
     onExit: view.close,
     escape: view.escape,
-    upload: {
-      open: uploadOpen,
-      onOpen: () => setUploadOpen(true),
-      onClose: () => setUploadOpen(false),
-      form: upload,
-    },
+    upload: { open: uploadOpen, onOpen: openUpload, onClose: closeUpload, form: upload },
   };
 }

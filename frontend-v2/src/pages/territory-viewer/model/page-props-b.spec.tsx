@@ -127,6 +127,17 @@ describe("viewTabProps · panoramas", () => {
     expect(props.panoramas.moving).toBe(true);
   });
 
+  it("draws no Move points inside a panorama — the anchors are dragged on the model", () => {
+    // B-5: the sub-mode cannot be entered from inside a capture (the reducer
+    // refuses V there), so the button must not be drawn offering it.
+    const p = withPanoramas([panorama(1)]);
+    const inside = viewTabProps({
+      ...p,
+      mode: { ...p.mode, view: { kind: "panorama", id: 1 } },
+    });
+    expect(inside.panoramas.canMovePoints).toBe(false);
+  });
+
   it("builds the anchor card only for the panorama being edited", () => {
     expect(viewTabProps(withPanoramas([panorama(1)])).panoramas.editor).toBeNull();
 
@@ -243,6 +254,23 @@ describe("panoramaCanvasProps", () => {
       },
     };
     expect(panoramaCanvasProps(calibrating, []).panoramaOpacity).toBe(0.35);
+  });
+
+  it("hands the viewport markers the panel's own numbering, and the way into a capture", () => {
+    const active = panorama(1);
+    const p = withPanoramas([active], { active });
+    const groups = groupByModel(p.placements, [
+      { slug: "storage-tank-500", title: "storage-tank-500" },
+      { slug: "valve-assembly", title: "valve-assembly" },
+    ]);
+    const props = panoramaCanvasProps(p, groups);
+    expect(props.markerLabels).toEqual({
+      1: "storage-tank-500 #1",
+      2: "storage-tank-500 #2",
+      3: "storage-tank-500 #3",
+      4: "valve-assembly #1",
+    });
+    expect(props.onActivatePanorama).toBe(p.panoramas.onEnter);
   });
 
   it("passes the texture, the markers and the live drag straight through", () => {

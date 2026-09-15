@@ -7,7 +7,8 @@ const { list, useDocumentList, useDocumentUpload } = vi.hoisted(() => {
   const list = { documents: [] as unknown[], pendingId: null, add: vi.fn(), remove: vi.fn() };
   return {
     list,
-    useDocumentList: vi.fn(() => list),
+    // A fresh object each render, exactly as the real hook returns one.
+    useDocumentList: vi.fn(() => ({ ...list })),
     useDocumentUpload: vi.fn((params: { onCreated: (d: never) => void }) => ({
       params,
       canSubmit: false,
@@ -120,6 +121,17 @@ describe("useViewerDocuments", () => {
     const { result } = mount();
     expect(result.current.pip.geo).toMatchObject({ w: 560, h: 400 });
     expect(result.current.pip.dragging).toBe(false);
+  });
+
+  it("keeps the window's callbacks stable across a re-render", () => {
+    // The list hook hands back a new object every render; a callback that
+    // depended on it would hand the PDF window a new `onDelete` each time.
+    const { result, rerender } = mount();
+    const first = result.current;
+    rerender();
+    expect(result.current.onDelete).toBe(first.onDelete);
+    expect(result.current.onOpen).toBe(first.onOpen);
+    expect(result.current.onWindow).toBe(first.onWindow);
   });
 
   it("appends an uploaded PDF and shuts the dialog behind it", () => {

@@ -12,7 +12,11 @@ export type UseViewerModeParams = {
   onCancelChain: () => void;
   /** P: ask the owner of the panorama list to cycle to the next one. */
   onCycle: () => void;
-  /** Runs before the reducer sees Escape; returning true claims the key. */
+  /**
+   * The document overlay's claim on Escape; returning true keeps the key.
+   * Offered only when the reducer has nothing ahead of it to peel — see
+   * `escape` below.
+   */
   beforeEscape?: () => boolean;
 };
 
@@ -69,11 +73,16 @@ export function useViewerMode({
   const exitMove = useCallback(() => dispatch({ type: "exitMove" }), []);
   const startEdit = useCallback((id: number) => dispatch({ type: "startEdit", id }), []);
   const closeEdit = useCallback(() => dispatch({ type: "closeEdit" }), []);
+  // Spec §1's order: move, then an open chain, then the document overlay, then
+  // the selection, the mode and the panorama. `beforeEscape` is the document's
+  // claim on the key, so it is offered only once the reducer has nothing of its
+  // own left to peel first — otherwise the window closed while the reader was
+  // still stuck in move mode, which is the sub-mode Escape was pressed to leave.
   const escape = useCallback(() => {
-    if (beforeEscape?.()) return;
+    if (!state.move && !chainOpen && beforeEscape?.()) return;
     if (chainOpen) onCancelChain();
     dispatch({ type: "escape", chainOpen });
-  }, [beforeEscape, chainOpen, onCancelChain]);
+  }, [beforeEscape, chainOpen, onCancelChain, state.move]);
 
   const gizmoKey = (gizmo: GizmoMode) => () => {
     if (canWrite && state.selectedId !== null) setGizmo(gizmo);

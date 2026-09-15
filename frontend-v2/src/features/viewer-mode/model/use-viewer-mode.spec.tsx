@@ -175,6 +175,46 @@ describe("useViewerMode", () => {
     expect(result.current.state.view).toEqual({ kind: "panorama", id: 3 });
   });
 
+  it("leaves move before it offers Escape to the document overlay", () => {
+    // Spec §1's order: move, then an open chain, then the document, then the
+    // selection, the mode and the panorama. A document window that claimed the
+    // key first would strand the reader in a sub-mode Escape had just refused
+    // to leave.
+    const beforeEscape = vi.fn(() => true);
+    const { result } = renderHook(() =>
+      useViewerMode({
+        canWrite: true,
+        canMovePoints: true,
+        chainOpen: false,
+        onCancelChain: noop,
+        onCycle: noop,
+        beforeEscape,
+      }),
+    );
+    act(() => result.current.toggleMove());
+    press("Escape");
+    expect(result.current.state.move).toBe(false);
+    expect(beforeEscape).not.toHaveBeenCalled();
+  });
+
+  it("breaks an open chain before it offers Escape to the document overlay", () => {
+    const beforeEscape = vi.fn(() => true);
+    const onCancelChain = vi.fn();
+    renderHook(() =>
+      useViewerMode({
+        canWrite: true,
+        canMovePoints: true,
+        chainOpen: true,
+        onCancelChain,
+        onCycle: noop,
+        beforeEscape,
+      }),
+    );
+    press("Escape");
+    expect(onCancelChain).toHaveBeenCalledOnce();
+    expect(beforeEscape).not.toHaveBeenCalled();
+  });
+
   it("gizmo keys still work inside a panorama on a selected object (B-5)", () => {
     const { result } = renderHook(() =>
       useViewerMode({ canWrite: true, canMovePoints: true, chainOpen: false, onCancelChain: noop, onCycle: noop }),
