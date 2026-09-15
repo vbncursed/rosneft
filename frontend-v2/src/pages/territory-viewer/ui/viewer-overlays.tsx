@@ -43,8 +43,13 @@ const PANEL_EDGE = "right-[calc(var(--overlays-w)+28px)]";
  * Expanded: the window fills the viewport container at the 14 inset, which is
  * the container itself.
  */
-const DOC_FLOATING = "fixed inset-x-0 bottom-0 -top-11";
-const DOC_EXPANDED = "absolute inset-0";
+// Both layers are transparent and cover everything under them — the floating
+// one is the whole browser window — so they pass clicks straight through and
+// `ViewportWindow` takes its own back. Without that the tool rail, the mode
+// chip, the stats strip and the collapsed document's own pill are all dead
+// while a PDF is open. Same pair, same reason, as the Toaster's cards.
+const DOC_FLOATING = "pointer-events-none fixed inset-x-0 bottom-0 -top-11";
+const DOC_EXPANDED = "pointer-events-none absolute inset-0";
 
 /**
  * The strip and the collapsed document's pill share one row, so the pill sits

@@ -183,3 +183,17 @@ describe("Modal · warning tone", () => {
     expect(screen.getByText("Remove passkey · blocked").className).toContain("text-warn");
   });
 });
+
+describe("Modal · pointer events", () => {
+  // `pointer-events` is inherited, and promotion to the top layer does not
+  // break that chain: a dialog whose DOM parent sets `none` — the viewer's
+  // document-window layer does — is unclickable, confirm button and all.
+  it("takes its own pointer events back from an ancestor that gave them up", () => {
+    render(
+      <Modal open onClose={() => {}} title="Delete plan-sheet-03.pdf?">
+        body
+      </Modal>,
+    );
+    expect(screen.getByRole("dialog", { hidden: true }).className).toContain("pointer-events-auto");
+  });
+});

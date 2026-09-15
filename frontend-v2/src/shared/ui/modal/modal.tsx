@@ -70,7 +70,10 @@ export function Modal({
           : size === "sm"
             ? "w-[min(32.5rem,calc(100vw-2rem))]"
             : "w-[min(28rem,calc(100vw-2rem))]",
-        "m-auto flex flex-col gap-3.5 overflow-visible rounded-card border bg-panel p-5 text-fg shadow-elevation backdrop:bg-black/55",
+        // `pointer-events` is inherited, and the top layer does not break that
+        // chain: mounted under a layer that gave them up (the viewer's document
+        // window sits in one), the whole dialog would be unclickable.
+        "pointer-events-auto m-auto flex flex-col gap-3.5 overflow-visible rounded-card border bg-panel p-5 text-fg shadow-elevation backdrop:bg-black/55",
         tone === "danger" ? "border-bad" : tone === "warning" ? "border-warn" : "border-line",
         className,
       )}

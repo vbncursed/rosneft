@@ -321,6 +321,24 @@ describe("ViewerOverlays · the document window", () => {
     expect(screen.getByRole("dialog", { name: FILE })).toBeInTheDocument();
   });
 
+  // The floating layer is the browser window, so anything it swallows is the
+  // whole page: the tool rail, the mode chip, the stats strip and the pill all
+  // sit under it. jsdom does no hit-testing, so the class that decides it is
+  // what the test can read — the Toaster carries the same pair for the same
+  // reason.
+  it("lets clicks through the floating layer and takes them back for the window", () => {
+    render(<ViewerOverlays {...props({ document: documentWindow() })} />);
+    const layer = document.querySelector(".fixed.inset-x-0") as HTMLElement;
+    expect(layer.className).toContain("pointer-events-none");
+    expect(screen.getByRole("dialog", { name: FILE }).className).toContain("pointer-events-auto");
+  });
+
+  it("keeps the pill clickable while the hidden window's layer is still mounted", () => {
+    render(<ViewerOverlays {...props({ document: documentWindow({ window: "collapsed" }) })} />);
+    const layer = document.querySelector(".fixed.inset-x-0") as HTMLElement;
+    expect(layer.className).toContain("pointer-events-none");
+  });
+
   it("draws nothing when no document is open", () => {
     render(<ViewerOverlays {...props()} />);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
