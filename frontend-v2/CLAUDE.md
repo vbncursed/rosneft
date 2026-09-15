@@ -683,8 +683,9 @@ through a fake rather than exercising the real network path.
 
 `Andrey Viewer Mockup.dc.html` is superseded: the territory viewer for a ready
 territory is v2 now (`pages/territory-viewer`, built to `Territory Viewer
-v2.dc.html` instead — see "The territory viewer" below). Panoramas and
-documents stay in `frontend/` until package B ports them.
+v2.dc.html` instead — see "The territory viewer" below). Package B brought
+panoramas and documents across too, so nothing of the viewer is reached in
+`frontend/` any more.
 
 ## The territory viewer
 
@@ -792,3 +793,96 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
 - **`WAITING_NOTE` copy caveat** (`territory-conversion-page.tsx`): "opens the
   viewer by itself" is true for a finish watched on that page
   (`shouldOpenViewer`, `conversion-view.ts`).
+
+### Panoramas and documents
+
+Package B (spec `docs/superpowers/specs/2026-09-14-territory-viewer-v2-package-b-design.md`).
+Two overlays over the same scene: equirect captures anchored in it, and PDFs
+floated above it.
+
+- **The reducer owns where the camera is, not the list hooks.**
+  `features/viewer-mode`'s state carries `view` (`{kind:"scene"}` or
+  `{kind:"panorama", id}`), `move` (the scene-only sub-mode for dragging
+  anchors) and `editingPanoramaId` (the anchor card's target, which survives
+  going in and out of the sphere — the operator needs the 3D view to aim the
+  camera before pressing `Set from camera`). `P` cycles 3D → each capture →
+  3D; `V` toggles move and is gated on `panorama:write`; `Escape` peels move,
+  then an open measure chain, then the document window, then the selection,
+  the mode and the panorama — in that order. `usePanoramaView` derives
+  `active`/`editing` by id against the live list, so a deleted capture closes
+  its own card.
+- **The rig re-centres the camera on the anchor every frame, and that is the
+  whole trick** (`three/panorama-rig.tsx`). OrbitControls orbits *around* its
+  target, so left alone the eye drifts on a small arc and placements swim
+  against the photo; snapping it back onto the anchor turns the orbit into a
+  pure head rotation — zero translation, zero parallax. Zoom and pan are off
+  while inside.
+- **The sphere's raycast is a no-op.** It encloses the scene, so every ray
+  that misses a placement would hit it and `onPointerMissed` would never fire.
+  The instance's `raycast` is replaced after mount and the prototype's put
+  back on unmount, so nothing leaks onto the shared `Mesh` prototype.
+- **The texture decoder is injected, and that is the one exemption.**
+  `createImageBitmap` with `imageOrientation` is the single line jsdom cannot
+  run, so `usePanoramaTexture` takes a `TextureDecoder` and the canvas widget
+  supplies the real one; only `three/image-bitmap.ts` is exempt
+  (`exempt-modules.ts`), and *when* to decode is spec'd in the hook. The
+  equirect is tagged sRGB and U-flipped (`repeat.x = -1`, `offset.x = 1`) —
+  three does not tag JPEGs, and on the inside of a `BackSide` sphere an
+  untouched one reads mirrored.
+- **A panorama PUT is a replace, never a patch.** `usePanoramaList.update`
+  fills every absent field from the row it holds before sending, because the
+  gateway zeroes what the body omits. Three surfaces reach that one call —
+  the anchor card's Save, the calibration card's Save, and a marker drag — so
+  they cannot disagree. The card re-keys on
+  `id:updatedAt:position`, since a calibration save can change only the yaw
+  and the three legs alone would leave the boxes showing the angle the server
+  has just replaced.
+- **Visibility is an allowlist, and a new placement is visible everywhere.**
+  `POST /placements` carries every current panorama id
+  (`use-placements-editor.ts`), because `isVisibleIn` reads an empty list as
+  "in no capture" — an object created with `[]` would be invisible in every
+  photo. The `Visible in` block is drawn wherever a placement is selected and
+  the territory has captures, the 3D scene included (mock 13 is a scene
+  state); unchecking one sends `PUT …/placements/{id}/visibility` with the
+  rest. Hidden objects stay in the 3D scene; only the panorama marker goes.
+- **pdf.js is vendored in `public/pdfjs` and the iframe stays mounted while
+  the window is hidden.** `Hide` sets `hidden` on the wrapper rather than
+  unmounting, so the reader's page and zoom survive; the pill that stands in
+  its place is drawn by the *page*, in the stats strip's own row, so its
+  offset follows the strip's real width (`showPill={false}` on the widget).
+- **Both upload dialogs are one modal over one hook.** `widgets/upload-modal`
+  takes a `kind` and reads every word from its own `copy.ts`;
+  `entities/upload`'s `useFileUpload` sniffs the leading bytes (JPEG/PNG
+  magic, `%PDF-`) before a byte leaves the tab, streams the chunked protocol,
+  and the panorama's `run` then reads the file's own EXIF GPS. Three endings,
+  each its own toast: `Panorama placed from GPS`, `Photo location doesn't
+  match this territory — set position manually`, `Panorama uploaded — set its
+  position manually`. The projection is a real UTM forward transform picked by
+  the longitude (`entities/panorama/model/geo-anchor.ts`), matched against the
+  artifact's source bbox.
+- **Two first-run tours, never both on screen.** The viewer's explains the
+  scene; the panorama's (`PANORAMA_TOUR_STEPS`, nine steps) starts the first
+  time a reader stands inside a capture, and its editing steps skip
+  themselves for a reader without the grants. Each POSTs
+  `/api/auth/me/onboarding/{id}` once, on stopping — finishing and skipping
+  are the same thing to the server.
+- **`Move points` is a text button beside the markers switch** (spec §6.7):
+  the mock draws no such control, and the tour's `move-points` step needs an
+  anchor. `panorama:write` only, scene only, `aria-pressed`, with `V` as a
+  hint rather than part of its name.
+- **The floating document layer passes clicks through.** It is
+  `fixed inset-x-0 bottom-0 -top-11` — the whole browser window — because
+  `usePipWindow` measures that window; transparent but opaque to the pointer
+  it killed the tool rail, the mode chip, the stats strip and the pill while
+  a PDF was open. It carries `pointer-events-none` and `ViewportWindow` takes
+  its own back. **`pointer-events` is inherited and the top layer does not
+  break the chain**, so `Modal` claims its own too — without that every
+  confirm dialog mounted inside the layer was unclickable.
+- **Known, not fixed (found by the live pass, 2026-09-15)**: `usePipWindow`
+  docks off `window.innerWidth` but the window is positioned inside the
+  viewport container the Overlays panel overlays, so the whole title-bar
+  action cluster (Expand/Hide/Delete/Exit) lands under the open panel — at
+  1400 wide the panel's edge is 1066 and the first action is at 1248. The
+  reader can drag the window left by its grip and reach them. Fixing it means
+  deciding what area the pip may dock in and what a collapsing panel does to
+  a window already placed.

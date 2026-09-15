@@ -327,6 +327,26 @@ nothing the new one lacks.
    440 × 560.
 6. The panorama upload button is gated on `panorama:create`, the grant the
    POST needs; the old SPA gated on `panorama:write`.
+7. A `Move points` text button, with `V` as a keycap hint, sits beside the
+   markers switch (`panorama:write`, 3D scene only). The mock draws no such
+   control, and the tour's `move-points` step needs an anchor to point at.
+8. The LOD switcher is hidden while a panorama is active — mock state 8
+   draws one — or a document window is open: the sphere covers the mesh, and
+   a floating PDF would cover the switcher.
+9. The `Visible in` block is drawn in the 3D scene as well, not only inside a
+   panorama. Mock 13 is a scene state, and the question it asks — which
+   captures mark this object — is not about what is on screen now.
+10. The upload modal wears the design system's `Modal` / `DropZone` /
+    `ProgressBar` chrome (padding 20, radius 12, a 5 px track) rather than
+    state 10's hand-drawn 16/18, 13/18 and 4 px. Every dialog in the app
+    wears the same chrome on purpose.
+11. Found in the live pass (2026-09-15), fixed there: the page's floating
+    document layer is the whole browser window and was opaque to the
+    pointer, so an open PDF killed the tool rail, the mode chip, the stats
+    strip and the collapsed window's own `Show` pill. The layer is
+    click-through and `ViewportWindow` takes its own back; `Modal` claims
+    its own too, because `pointer-events` is inherited and the top layer
+    does not break the chain.
 
 ## 7. Not in this package
 
@@ -337,3 +357,10 @@ nothing the new one lacks.
 - The desktop shell's switch to `frontend-v2` (carries `pdfjs/` and the
   CSP with it).
 - Deep links into a PDF page.
+- Re-docking the PiP window clear of the Overlays panel. `usePipWindow`
+  measures `window.innerWidth`, but the window is positioned inside the
+  viewport container the panel overlays, so its title-bar actions open
+  under the panel (measured in the live pass: panel edge 1066, first
+  action 1248, at 1400 wide). The window is still draggable clear of it by
+  its grip. Fixing it needs a decision on the area the pip may dock in and
+  on what a collapsing panel does to a window already placed.

@@ -43,8 +43,12 @@ conversion-pending page (SSE by `jobId`, the jobs poll as the fallback).
 **Home is v2 now**: `/` (`frontend-v2/src/pages/home`)
 is the landing page — the conversions in flight, the four most recently
 updated territories, five models, the console doorways with counts, and the
-reader's own activity. Only panoramas and documents remain in `frontend/`,
-until package B; sign-in with no `?next=` lands on `/`.
+reader's own activity. **The whole viewer is v2 now** — package B brought the
+last two overlays across, so equirect panoramas (the sphere, the anchors, the
+calibration, the markers) and the PDF windows are wired against the gateway
+there too, and no screen is still reached in `frontend/` by following a link
+from v2. `frontend/` stays the production app until the switch; it is not
+being changed. Sign-in with no `?next=` lands on `/`.
 **Working in it? Read [`frontend-v2/CLAUDE.md`](frontend-v2/CLAUDE.md)
 first**: it records the design decisions, the user's working rules, and the
 tooling traps (chief among them that `tsc --noEmit` type-checks nothing there, and that a parallel session
