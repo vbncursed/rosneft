@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Panorama, SourceBbox } from "@/entities/panorama";
+import { HttpError } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { usePanoramaUpload } from "./use-panorama-upload";
 
@@ -218,6 +219,33 @@ describe("usePanoramaUpload", () => {
       percent: 50,
       label: "Reading EXIF · 50 %",
     });
+  });
+
+  it("empties the form after a create, so the next photo cannot inherit this title", async () => {
+    const { result } = await ready();
+
+    await act(async () => {
+      await result.current.p.submit();
+    });
+
+    expect(result.current.p.title).toBe("");
+    expect(result.current.p.useGps).toBe(true);
+    expect(result.current.p.canSubmit).toBe(false);
+  });
+
+  it("keeps the form as typed when the create is refused, so a retry costs one click", async () => {
+    createPanorama.mockRejectedValue(new HttpError(422, null, "Slug already taken."));
+    const { result } = await ready();
+    act(() => result.current.p.setUseGps(false));
+
+    await act(async () => {
+      await result.current.p.submit();
+    });
+
+    expect(result.current.p.title).toBe("  Pump house, south wall  ");
+    expect(result.current.p.useGps).toBe(false);
+    expect(result.current.p.canSubmit).toBe(true);
+    expect(result.current.notices[0]).toMatchObject({ tone: "error", message: "Slug already taken." });
   });
 
   it("clear() drops the picked photo", async () => {

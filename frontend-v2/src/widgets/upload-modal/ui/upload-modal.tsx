@@ -56,10 +56,21 @@ export function UploadModal({
   const busy = upload.stage === "uploading" || upload.stage === "creating";
   const close = closeTitle(kind);
 
+  // Every way out — Cancel, the ×, Escape, the dialog's own cancel event — has
+  // to give the session back first: this modal does not own the upload (the
+  // hook is the page's), so bytes left travelling still finalize and still
+  // create the row, minutes after the reader walked away. Nothing to abort once
+  // the bytes are in and `work` is running, which is also why `Cancel upload`
+  // is gone by then.
+  const leave = () => {
+    if (upload.stage === "uploading") onCancelUpload();
+    onClose();
+  };
+
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={leave}
       size="sm"
       title={
         // Modal has no close slot of its own, and every dialog in the app wears
@@ -68,7 +79,7 @@ export function UploadModal({
           <span>{modalTitle(kind, territoryTitle)}</span>
           <button
             type="button"
-            onClick={onClose}
+            onClick={leave}
             aria-label={close}
             title={close}
             className="flex size-[26px] shrink-0 cursor-pointer items-center justify-center rounded-[7px] border border-line-2 bg-panel-2 text-fg transition-colors duration-150 hover:border-accent-line focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -89,7 +100,7 @@ export function UploadModal({
             </button>
           ) : null}
           <div className="ml-auto flex items-center gap-2.5">
-            <Button onClick={onClose}>{CANCEL}</Button>
+            <Button onClick={leave}>{CANCEL}</Button>
             <Button variant="primary" disabled={busy || !canSubmit} onClick={onSubmit}>
               {busy ? UPLOADING : copy.submit}
             </Button>

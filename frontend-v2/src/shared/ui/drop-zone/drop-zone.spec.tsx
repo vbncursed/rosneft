@@ -171,6 +171,29 @@ describe("DropZone", () => {
     expect(clickSpy).not.toHaveBeenCalled();
   });
 
+  it("takes a node for the hint, so a caller can put a toned refusal in its place", () => {
+    render(
+      <DropZone
+        label="Drop one equirectangular photo here"
+        hint={
+          <span role="alert" className="text-bad">
+            Please choose an equirectangular JPG or PNG image.
+          </span>
+        }
+        buttonLabel="Choose file"
+        accept=".jpg"
+        onFiles={vi.fn()}
+      />,
+    );
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Please choose an equirectangular JPG or PNG image.");
+    // The hint line's own muted colour sits on the wrapper, so the caller's
+    // tone lands on its own element and the two never fight over one property.
+    expect(alert.className).toContain("text-bad");
+    expect(alert.parentElement?.className).toContain("text-muted");
+  });
+
   it("shows the not-allowed cursor while disabled — clsx cannot beat the stylesheet's own order", () => {
     const { container } = render(
       <DropZone

@@ -59,6 +59,13 @@ export function usePanoramaUpload({ slug, sourceBbox, onCreated }: PanoramaUploa
         yawOffset: 0,
       });
       notify.success(placedNote(placed));
+      // The form is emptied here, not on the dialog's close: this hook lives on
+      // the page (it is the page that takes onCreated), so a second upload in
+      // the same session would otherwise open over the first one's title and
+      // light up its primary the instant a file landed. A refusal keeps the
+      // typed values, which is why the reset is inside the successful path.
+      setTitle("");
+      setUseGps(true);
       onCreated(panorama);
     });
   };

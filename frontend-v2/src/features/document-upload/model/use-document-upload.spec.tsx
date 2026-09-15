@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Document } from "@/entities/document";
+import { HttpError } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useDocumentUpload } from "./use-document-upload";
 
@@ -147,6 +148,30 @@ describe("useDocumentUpload", () => {
     });
 
     expect(createDocument).not.toHaveBeenCalled();
+  });
+
+  it("empties the form after a create, so the next PDF cannot inherit this title", async () => {
+    const { result } = await ready();
+
+    await act(async () => {
+      await result.current.d.submit();
+    });
+
+    expect(result.current.d.title).toBe("");
+    expect(result.current.d.canSubmit).toBe(false);
+  });
+
+  it("keeps the title as typed when the create is refused, so a retry costs one click", async () => {
+    createDocument.mockRejectedValue(new HttpError(422, null, "Title already used."));
+    const { result } = await ready();
+
+    await act(async () => {
+      await result.current.d.submit();
+    });
+
+    expect(result.current.d.title).toBe("  Fire safety zones  ");
+    expect(result.current.d.canSubmit).toBe(true);
+    expect(result.current.notices[0]).toMatchObject({ tone: "error", message: "Title already used." });
   });
 
   it("clear() drops the picked PDF", async () => {

@@ -152,6 +152,35 @@ describe("UploadModal", () => {
     expect(onCancelUpload).toHaveBeenCalledTimes(1);
   });
 
+  it("aborts the upload on the way out, whichever way the reader leaves", async () => {
+    const { onCancelUpload, onClose } = draw({
+      upload: { stage: "uploading", file: file(), percent: 38, label: "Reading EXIF · 38 %" },
+    });
+
+    // Leaving without aborting lets the bytes land and the row appear minutes
+    // later in a panel the reader has already walked away from.
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onCancelUpload).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole("button", { name: "Close panorama upload" }));
+    expect(onCancelUpload).toHaveBeenCalledTimes(2);
+    expect(onClose).toHaveBeenCalledTimes(2);
+
+    await userEvent.keyboard("{Escape}");
+    expect(onCancelUpload).toHaveBeenCalledTimes(3);
+    expect(onClose).toHaveBeenCalledTimes(3);
+  });
+
+  it("aborts nothing when the reader leaves before a byte moves", async () => {
+    const { onCancelUpload, onClose } = draw({ upload: { stage: "picked", file: file() } });
+
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onCancelUpload).not.toHaveBeenCalled();
+  });
+
   it("offers no cancel once the bytes are in and the row is being written", () => {
     draw({ upload: { stage: "creating", file: file() } });
 
