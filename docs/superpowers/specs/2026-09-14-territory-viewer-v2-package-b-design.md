@@ -131,8 +131,11 @@ nothing the new one lacks.
   position mirrored in a ref so `end()` commits once; `usePanoramaTexture
   (hash, decode)` — `fetch` + `readWithProgress` for a real percent,
   `decode` wraps `createImageBitmap(blob, { imageOrientation: "flipY" })`,
-  the texture is sRGB with `flipY = false`, `wrapS = Repeat`, `repeat.x =
-  -1`, `offset.x = 1`, disposed on change; `showMarkers` in
+  and the hook answers the decoded `ImageBitmap` (closed by the hook on
+  change and on unmount) — it never imports `three`, so three's core stays
+  in the viewer's chunk; the sphere builds the `Texture` (sRGB, `flipY =
+  false`, `wrapS = Repeat`, `repeat.x = -1`, `offset.x = 1`, disposed
+  once per bitmap); `showMarkers` in
   `localStorage["andrey.panorama-markers"]`, default on. `Set from camera`
   and `Set default view` read `cameraPositionRef` / `cameraYawRef`, which
   the three layer writes on every OrbitControls `change`.
@@ -174,8 +177,8 @@ nothing the new one lacks.
 
 - **The boundary holds.** `ViewerCanvasProps` gains `activePanorama:
   Panorama | null` (already draft-overlaid), `panoramas`, `showMarkers`,
-  `panoramaOpacity`, `panoramaTexture: Texture | null` with its
-  `panoramaStatus`, `move: { active; draggingId; livePos }`,
+  `panoramaOpacity`, `panoramaBitmap: ImageBitmap | null` with its
+  `panoramaStatus` and `panoramaProgress`, `move: { active; draggingId; livePos }`,
   `cameraPositionRef`, `cameraYawRef`, and `onActivatePanorama`,
   `onPanoramaError`, `onMarkerGrab`, `onMarkerMove`, `onMarkerDrop`.
   Nothing under `three/` reads a context, the query client or the theme.
@@ -347,6 +350,17 @@ nothing the new one lacks.
     click-through and `ViewportWindow` takes its own back; `Modal` claims
     its own too, because `pointer-events` is inherited and the top layer
     does not break the chain.
+12. Found in the final review, fixed in its wave: the texture hook had
+    imported `three` and, imported eagerly by the page, put three's core
+    into every page's bundle. The bitmap crosses the Canvas boundary
+    instead and the sphere owns the `Texture`; `index` is 723 kB again
+    (package A's 673 plus B's own page code), `viewer-canvas` 1.17 MB.
+    Also from that wave: the territory mesh is hidden inside a panorama
+    unless calibrating (the old SPA's rule, dropped in the port); the
+    PDF window docks inside the viewport container minus the header, the
+    strip row and the open Overlays panel, re-clamped on fold and resize
+    and never re-docked; keys are inert under an open dialog; deleting
+    the active panorama leaves the view first.
 
 ## 7. Not in this package
 
