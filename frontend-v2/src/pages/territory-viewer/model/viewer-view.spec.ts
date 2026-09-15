@@ -17,9 +17,9 @@ import {
 const SCENE: ViewerView = { kind: "scene" };
 const INSIDE: ViewerView = { kind: "panorama", id: 7 };
 
-const OWNER: Grants = { create: true, write: true, delete: true, replace: true };
-const EDITOR: Grants = { create: true, write: true, delete: false, replace: false };
-const GUEST: Grants = { create: false, write: false, delete: false, replace: false };
+const OWNER: Grants = { create: true, write: true, delete: true, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: true, documentWrite: true, documentDelete: true };
+const EDITOR: Grants = { create: true, write: true, delete: false, replace: false, panoramaCreate: true, panoramaWrite: true, panoramaDelete: false, documentWrite: true, documentDelete: false };
+const GUEST: Grants = { create: false, write: false, delete: false, replace: false, panoramaCreate: false, panoramaWrite: false, panoramaDelete: false, documentWrite: false, documentDelete: false };
 
 const pills = (over: Partial<Parameters<typeof headerPills>[0]> = {}) =>
   headerPills({

@@ -29,8 +29,24 @@ export const ERROR_TITLE = "The territory mesh could not be loaded";
 const ERROR_TAIL =
   "The scene, placements and documents are intact — only the artifact download failed.";
 
-/** The four grants the viewer's chrome turns on. `replace` is `territory:write`. */
-export type Grants = { create: boolean; write: boolean; delete: boolean; replace: boolean };
+/**
+ * Every grant the viewer's chrome turns on. The first four are the placement
+ * ones (`replace` is `territory:write`, which also owns the tour link); the
+ * rest are package B's overlays, where creating a panorama and editing one are
+ * separate grants because uploading a capture and moving its anchor are
+ * separate jobs.
+ */
+export type Grants = {
+  create: boolean;
+  write: boolean;
+  delete: boolean;
+  replace: boolean;
+  panoramaCreate: boolean;
+  panoramaWrite: boolean;
+  panoramaDelete: boolean;
+  documentWrite: boolean;
+  documentDelete: boolean;
+};
 
 export type HeaderPill = { tone: "ok" | "accent" | "neutral" | "bad"; label: string };
 

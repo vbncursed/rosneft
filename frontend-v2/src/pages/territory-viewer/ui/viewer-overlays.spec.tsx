@@ -30,6 +30,9 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
   strip: STRIP,
   hints: false,
   error: null,
+  switchTo3d: null,
+  document: null,
+  collapsedPill: null,
   ...over,
 });
 
