@@ -590,5 +590,27 @@ describe("useTerritoryViewer", () => {
       act(() => state.panel!.viewTab.panoramas.onEnter(1));
       expect(now(r).panoramaTour.active).toBe(false);
     });
+
+    // The panel takes forcedTab/forceExpanded from *whichever* tour is
+    // active, not only the viewer one — dropping either `?? panoramaTour...`
+    // fallback leaves the panorama tour running with its anchor on a hidden
+    // tab or behind a folded panel.
+    it("switches the panel to the panorama tour's tab and un-collapses it, not just the viewer tour's", async () => {
+      const r = mount();
+      const state = await ready(r);
+      // The reader had picked a placement (tab -> "placements") and folded
+      // the panel away, before ever entering a panorama.
+      act(() => state.canvas.onPick(4));
+      act(() => now(r).panel!.onCollapsedChange(true));
+      expect(now(r).panel?.tab).toBe("placements");
+      expect(now(r).panel?.collapsed).toBe(true);
+
+      act(() => now(r).panel!.viewTab.panoramas.onEnter(1));
+      act(() => now(r).panoramaTour.next());
+      expect(now(r).panoramaTour.step?.id).toBe("panorama-view-toggle");
+
+      expect(now(r).panel?.tab).toBe("view");
+      expect(now(r).panel?.collapsed).toBe(false);
+    });
   });
 });
