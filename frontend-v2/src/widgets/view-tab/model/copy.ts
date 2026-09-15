@@ -1,3 +1,5 @@
+import { printDegrees } from "./degrees";
+
 export const PANORAMAS_OVERLINE = "Panoramas";
 export const DOCUMENTS_OVERLINE = "Documents";
 
@@ -30,3 +32,41 @@ export const insideFooter = (n: number) =>
   n === 1
     ? "One placement falls inside this panorama and is marked on the photo."
     : `${spell(n)} placements fall inside this panorama and are marked on the photo.`;
+
+// The anchor card (mock state 9) and the calibration block under it.
+export const EDITING_OVERLINE = "Panorama · editing";
+export const TITLE_LABEL = "Title";
+export const POSITION_LABEL = "Position";
+export const SET_FROM_CAMERA = "Set from camera";
+export const YAW_LABEL = "Yaw offset";
+export const SET_DEFAULT_VIEW = "Set default view";
+export const SAVE_ANCHOR = "Save anchor";
+export const DELETE_PANORAMA = "Delete panorama";
+export const ENTER_PANORAMA_VIEW = "Enter panorama view";
+export const SWITCH_TO_3D = "Switch to 3D view";
+export const CALIBRATE = "Calibrate (overlay)";
+export const CLOSE_EDITOR = "Close panorama editor";
+export const OPACITY_LABEL = "Photo opacity";
+export const NUDGE_LABEL = "Anchor nudge";
+export const YAW_SHORT = "Yaw";
+export const SAVE = "Save";
+export const EXIT = "Exit";
+
+export const IMAGE_FAILED =
+  "This panorama's image failed to load. Delete it and upload a fresh one.";
+
+/** Which of the territory's panoramas is open — the accent note beside the overline. */
+export const anchorCounter = (current: number, total: number) => `${current} of ${total}`;
+
+/** Where a reader first looks when this panorama opens. */
+export const defaultLook = (rad: number) => `Default look: ${printDegrees(rad)}`;
+
+/** The confirm question, named after the button that asked it. */
+export const deletePanoramaTitle = (title: string) => `Delete panorama ${title}?`;
+
+/** One nudge arrow. The axis is the subject, the direction is what happens. */
+export const nudgeLabel = (axis: "x" | "y" | "z", up: boolean) =>
+  `${up ? "Increase" : "Decrease"} ${axis.toUpperCase()}`;
+
+/** The ghosted photo's opacity, as the mock prints it. */
+export const opacityPercent = (o: number) => `${Math.round(o * 100)} %`;
