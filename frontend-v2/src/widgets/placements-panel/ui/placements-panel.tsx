@@ -16,6 +16,14 @@ import {
   type PlacementGrants,
 } from "../model/panel-copy";
 import { SelectedBlock, type SelectedBlockProps } from "./selected-block";
+import { VisibleIn } from "./visible-in";
+
+/** The selected instance's per-panorama allowlist, and how to change it. Panorama mode only. */
+export type PlacementVisibility = {
+  panoramas: { id: number; title: string }[];
+  visiblePanoramaIds: number[];
+  onToggle: (placementId: number, panoramaId: number, visible: boolean) => void;
+};
 
 export type PlacementsPanelProps = {
   groups: PlacementGroup[];
@@ -35,6 +43,10 @@ export type PlacementsPanelProps = {
   onFocus: (id: number) => void;
   /** The block under the list, when something is selected. */
   selected: SelectedBlockProps | null;
+  /** False inside a panorama (B-5): the Add button is not drawn, anywhere. */
+  canAdd?: boolean;
+  /** The Visible in block for the selected instance; null outside panorama mode. */
+  visibility?: PlacementVisibility | null;
 };
 
 /**
@@ -59,6 +71,8 @@ export function PlacementsPanel({
   onDelete,
   onFocus,
   selected,
+  canAdd = true,
+  visibility = null,
 }: PlacementsPanelProps) {
   const shown = groups.filter((group) => matchesObjects(group, query));
   const footer = footerFor(grants);
@@ -68,7 +82,7 @@ export function PlacementsPanel({
   const isOpen = (group: PlacementGroup) =>
     expandedModel === group.model.slug || group.instances.some((i) => i.id === selectedId);
 
-  const addButton = grants.create ? (
+  const addButton = grants.create && canAdd ? (
     <Button variant="primary" onClick={onAdd} className="w-full">
       <Icon name="plus" size={14} />
       {ADD_LABEL}
@@ -119,6 +133,16 @@ export function PlacementsPanel({
                           onDelete={onDelete}
                           onFocus={onFocus}
                         />
+                        {visibility && instance.id === selectedId ? (
+                          <VisibleIn
+                            placement={{ id: instance.id, visiblePanoramaIds: visibility.visiblePanoramaIds }}
+                            panoramas={visibility.panoramas}
+                            pending={pendingIds.includes(instance.id)}
+                            onToggle={(panoramaId, visible) =>
+                              visibility.onToggle(instance.id, panoramaId, visible)
+                            }
+                          />
+                        ) : null}
                       </li>
                     ))}
                   </ul>

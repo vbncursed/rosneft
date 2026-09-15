@@ -6,6 +6,7 @@ import {
   creating,
   mutating,
   realWorldScale,
+  setPlacementVisibility,
   updatePlacement,
   type MutationState,
   type Placement,
@@ -23,6 +24,8 @@ export type PlacementsEditorParams = {
   options: ModelOption[];
   /** The longest side of the territory's source bbox, in real-world units; 0 when unknown. */
   territoryMaxDim: number;
+  /** Panoramas a newly created object is visible in (spec §6.1: everywhere loaded). */
+  panoramaIds: number[];
   /** Every successful mutation calls this; the page refetches the scene bundle. */
   onChanged: () => void;
 };
@@ -41,6 +44,7 @@ export function usePlacementsEditor({
   initial,
   options,
   territoryMaxDim,
+  panoramaIds,
   onChanged,
 }: PlacementsEditorParams) {
   const [placements, setPlacements] = useState<ResolvedPlacement[]>(initial);
@@ -80,6 +84,7 @@ export function usePlacementsEditor({
             modelSlug,
             position: { x: i * step, y: 0, z: 0 },
             scale: { x: scale, y: scale, z: scale },
+            visiblePanoramaIds: panoramaIds,
           });
           created.push(resolve(placement));
           setPlacing({ done: i + 1, total });
@@ -103,7 +108,7 @@ export function usePlacementsEditor({
         setMutation(idle);
       }
     },
-    [slug, options, territoryMaxDim, resolve, onChanged],
+    [slug, options, territoryMaxDim, panoramaIds, resolve, onChanged],
   );
 
   const update = useCallback(
@@ -111,6 +116,22 @@ export function usePlacementsEditor({
       setMutation(mutating(id));
       try {
         const next = resolve(await updatePlacement(slug, id, body));
+        startTransition(() => setPlacements((prev) => prev.map((p) => (p.id === id ? next : p))));
+        onChanged();
+      } catch (err) {
+        notify.error(messageOf(err));
+      } finally {
+        setMutation(idle);
+      }
+    },
+    [slug, resolve, onChanged],
+  );
+
+  const setVisibility = useCallback(
+    async (id: number, ids: number[]) => {
+      setMutation(mutating(id));
+      try {
+        const next = resolve(await setPlacementVisibility(slug, id, ids));
         startTransition(() => setPlacements((prev) => prev.map((p) => (p.id === id ? next : p))));
         onChanged();
       } catch (err) {
@@ -179,5 +200,6 @@ export function usePlacementsEditor({
     rename,
     remove,
     commitTransform,
+    setVisibility,
   };
 }

@@ -12,6 +12,11 @@ export const GUEST_FOOTER =
 
 export const NO_DELETE_FOOTER = "Deleting placements needs the placement:delete grant.";
 
+export const VISIBLE_IN = "Visible in";
+
+export const VISIBLE_IN_NOTE =
+  "Hidden objects stay in the 3D scene; only the panorama markers are dropped.";
+
 /**
  * The sentence under the list names what this reader cannot do — a viewer is
  * told the whole tab is read-only, an editor without the delete grant is told
