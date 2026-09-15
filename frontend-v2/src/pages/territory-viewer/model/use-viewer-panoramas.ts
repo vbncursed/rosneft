@@ -18,7 +18,10 @@ import type { PanoramaParts } from "./overlay-parts";
 
 export type ViewerPanoramasParams = {
   slug: string;
-  /** The bundle's panoramas. The page re-keys this hook when it refetches. */
+  /**
+   * The bundle's panoramas, seeded once. The page does NOT re-key this hook on
+   * a refetch — see `use-territory-viewer.ts` for why, and for what that costs.
+   */
   initial: Panorama[];
   mode: PanoramaViewMode;
   /** The reducer's move sub-mode — the one source of truth for it. */

@@ -810,7 +810,11 @@ floated above it.
   then an open measure chain, then the document window, then the selection,
   the mode and the panorama — in that order. `usePanoramaView` derives
   `active`/`editing` by id against the live list, so a deleted capture closes
-  its own card.
+  its own card — and `onDelete` walks the reader out of the view first when
+  the capture deleted is the one they are standing in. The card closes itself;
+  the *camera* does not, and a reducer left in `{kind:"panorama", id}` over a
+  3D scene keeps the pill, the lit rail tile, the footer and the missing LOD
+  switcher all describing a capture that is gone.
 - **The rig re-centres the camera on the anchor every frame, and that is the
   whole trick** (`three/panorama-rig.tsx`). OrbitControls orbits *around* its
   target, so left alone the eye drifts on a small arc and placements swim
@@ -825,10 +829,30 @@ floated above it.
   `createImageBitmap` with `imageOrientation` is the single line jsdom cannot
   run, so `usePanoramaTexture` takes a `TextureDecoder` and the canvas widget
   supplies the real one; only `three/image-bitmap.ts` is exempt
-  (`exempt-modules.ts`), and *when* to decode is spec'd in the hook. The
-  equirect is tagged sRGB and U-flipped (`repeat.x = -1`, `offset.x = 1`) —
-  three does not tag JPEGs, and on the inside of a `BackSide` sphere an
-  untouched one reads mirrored.
+  (`exempt-modules.ts`), and *when* to decode is spec'd in the hook.
+- **Nothing under `features/` or `entities/` may import `three`.** The hook
+  hands back the decoded `ImageBitmap`; `PanoramaSphere` builds the `Texture`
+  from it and owns both — `texture.dispose()` and `bitmap.close()` when the
+  capture changes or the sphere unmounts. One `import { Texture } from "three"`
+  in that feature cost 380 kB in **`index`**: the viewer page imports the
+  feature eagerly, so Vite hoisted three's core out of the lazy
+  `viewer-canvas` chunk and every reader of `/`, `/territories`, `/models` and
+  `/account` downloaded and parsed it before first paint. The check is one
+  command — `VITE_API_URL= yarn build` must print `index` around 720 kB and
+  `viewer-canvas` around 1.2 MB, and `grep -c BufferGeometry` over the built
+  chunks must find three in the viewer's alone. The equirect is tagged sRGB
+  and U-flipped (`repeat.x = -1`, `offset.x = 1`) — three does not tag JPEGs,
+  and on the inside of a `BackSide` sphere an untouched one reads mirrored.
+- **The territory is hidden while a panorama is on screen** (`scene-canvas.tsx`,
+  `<group visible={!activePanorama || panoramaOpacity < 1}>`). The sphere has
+  radius 50 and the normalised mesh a max axis of 2, so the camera is inside
+  both: with the model drawn, an anchor set on the surface looks out at hills
+  and tanks in *front* of the photograph. Hidden, never unmounted — `Bounds`
+  fits at mount, the marker drag still projects onto the meshes, and
+  calibration (opacity < 1) is the operator lining the photo up against the
+  model. This is the old SPA's behaviour and B-1 asks for it; it was missed
+  once because the fixture's anchor sits above the whole mesh, where there is
+  nothing in front of the camera to notice.
 - **A panorama PUT is a replace, never a patch.** `usePanoramaList.update`
   fills every absent field from the row it holds before sending, because the
   gateway zeroes what the body omits. Three surfaces reach that one call —
@@ -841,10 +865,11 @@ floated above it.
   `POST /placements` carries every current panorama id
   (`use-placements-editor.ts`), because `isVisibleIn` reads an empty list as
   "in no capture" — an object created with `[]` would be invisible in every
-  photo. The `Visible in` block is drawn wherever a placement is selected and
-  the territory has captures, the 3D scene included (mock 13 is a scene
-  state); unchecking one sends `PUT …/placements/{id}/visibility` with the
-  rest. Hidden objects stay in the 3D scene; only the panorama marker goes.
+  photo. The `Visible in` block is drawn wherever a writer has a placement
+  selected and the territory has captures, the 3D scene included (mock 13 is a
+  scene state); unchecking one sends `PUT …/placements/{id}/visibility` with
+  the rest. `placement:write` gates it (spec §1) — offered without the grant,
+  every click was a refusal and a red toast. Hidden objects stay in the 3D scene; only the panorama marker goes.
 - **pdf.js is vendored in `public/pdfjs` and the iframe stays mounted while
   the window is hidden.** `Hide` sets `hidden` on the wrapper rather than
   unmounting, so the reader's page and zoom survive; the pill that stands in
@@ -870,19 +895,32 @@ floated above it.
   the mock draws no such control, and the tour's `move-points` step needs an
   anchor. `panorama:write` only, scene only, `aria-pressed`, with `V` as a
   hint rather than part of its name.
-- **The floating document layer passes clicks through.** It is
-  `fixed inset-x-0 bottom-0 -top-11` — the whole browser window — because
-  `usePipWindow` measures that window; transparent but opaque to the pointer
+- **The floating document layer IS the area the PDF window may live in**, and
+  `usePipWindow` measures that layer rather than the browser window. The two
+  disagreed, and both halves of the disagreement were bugs: the docked corner
+  ignored the Overlays panel (at 1400 wide the panel's edge is 1066 and the
+  title bar's first action sat at 1248, under it), and the layer's top was
+  44px *above* the screen, so dragging the window up put the whole title bar —
+  grip, Expand, Hide, Delete, Exit — out of reach. The layer is
+  `absolute left-0 top-0 bottom-11 right-[calc(var(--overlays-w)+28px)]`: the
+  viewport container, minus the stats-strip row, minus the open panel
+  (`left-0` rather than `inset-x-0` because `right` is set beside it — one
+  property, one place). It is mounted whether or not a document is open,
+  because the hook docks against it once on mount and a box that does not
+  exist cannot be measured. A placed window is only ever *re-clamped* after
+  that, never re-docked, through one `ResizeObserver` on the layer — which
+  catches the panel folding and the browser resizing with one mechanism, and
+  without threading `collapsed` back through three hooks to reach a pip.
+- **The layer passes clicks through.** Transparent but opaque to the pointer
   it killed the tool rail, the mode chip, the stats strip and the pill while
   a PDF was open. It carries `pointer-events-none` and `ViewportWindow` takes
   its own back. **`pointer-events` is inherited and the top layer does not
   break the chain**, so `Modal` claims its own too — without that every
   confirm dialog mounted inside the layer was unclickable.
-- **Known, not fixed (found by the live pass, 2026-09-15)**: `usePipWindow`
-  docks off `window.innerWidth` but the window is positioned inside the
-  viewport container the Overlays panel overlays, so the whole title-bar
-  action cluster (Expand/Hide/Delete/Exit) lands under the open panel — at
-  1400 wide the panel's edge is 1066 and the first action is at 1248. The
-  reader can drag the window left by its grip and reach them. Fixing it means
-  deciding what area the pip may dock in and what a collapsing panel does to
-  a window already placed.
+- **No key fires under an open `<dialog>`.** `useKeyboardShortcuts` returns
+  early while `dialog[open]` matches anything: Escape on a confirm dialog used
+  to cancel the dialog *and* run the escape ladder underneath it, walking the
+  reader out of the panorama they were only trying to cancel a delete in.
+  `Modal` and `ConfirmDialog` are native dialogs; `ViewportWindow` is a
+  `<section role="dialog">` on purpose, so the PDF window keeps its Escape,
+  which is what spec §1 gives it.

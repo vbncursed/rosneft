@@ -11,13 +11,15 @@ import type { DocumentWindowProps } from "@/widgets/document-window";
 /**
  * Everything `useViewerPanoramas` composes, in one object: the list, where the
  * camera is, the anchor being edited and the calibration draft over it, the
- * texture on the sphere, the in-scene marker drag, the tour link and the
- * upload dialog.
+ * decoded equirect for the sphere, the in-scene marker drag, the tour link and
+ * the upload dialog.
  *
  * The callbacks travel with the data rather than through `PageHandlers`
- * because every one of them is already a `useCallback` inside the feature hook
- * that owns it — routing them through the page would only re-wrap a stable
- * identity in a second one.
+ * because every one of them is already a `useCallback` (or a `useState`
+ * setter) inside the feature hook that owns it — routing them through the
+ * page would only re-wrap a stable identity in a second one. The objects
+ * around them are new every render, which is why the page depends on the
+ * members and never on the object.
  */
 export type PanoramaParts = {
   list: Panorama[];
