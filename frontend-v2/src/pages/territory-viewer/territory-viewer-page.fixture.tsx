@@ -27,7 +27,7 @@ export const IDLE_PANORAMAS: PanoramaParts = {
   active: null,
   editing: null,
   index: { current: 0, total: 0 },
-  texture: { texture: null, progress: null, status: "idle" },
+  texture: { bitmap: null, progress: null, status: "idle" },
   showMarkers: true,
   onToggleMarkers: noop,
   drag: { draggingId: null, livePos: null, begin: noop, move: noop, end: noop },

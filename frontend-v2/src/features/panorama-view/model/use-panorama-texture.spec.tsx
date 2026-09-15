@@ -1,6 +1,5 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { RepeatWrapping, SRGBColorSpace, Texture } from "three";
 import { usePanoramaTexture, type TextureDecoder } from "./use-panorama-texture";
 
 const bitmap = () => ({ close: vi.fn() }) as unknown as ImageBitmap;
@@ -24,7 +23,10 @@ afterEach(() => {
 });
 
 describe("usePanoramaTexture", () => {
-  it("streams the equirect and hands back a texture mapped for the inside of a sphere", async () => {
+  it("streams the equirect and hands back the decoded bitmap — never a three Texture", async () => {
+    // A `three` import here rides in every page's bundle (the feature is
+    // imported eagerly by the viewer page); the sphere builds the texture,
+    // and `panorama-sphere.spec.tsx` is where its mapping is asserted.
     vi.stubGlobal("fetch", vi.fn(async () => ok()));
     const decode = decoder();
     const { result } = renderHook(() => usePanoramaTexture("abc", decode));
@@ -32,15 +34,8 @@ describe("usePanoramaTexture", () => {
     expect(result.current.status).toBe("loading");
     await waitFor(() => expect(result.current.status).toBe("ready"));
 
-    const texture = result.current.texture as Texture;
     expect(result.current.progress).toBe(100);
-    expect(texture.colorSpace).toBe(SRGBColorSpace);
-    // The bitmap arrives pre-flipped, and WebGL cannot flip one itself.
-    expect(texture.flipY).toBe(false);
-    // U reversed so the photo is not mirrored on a BackSide sphere.
-    expect(texture.wrapS).toBe(RepeatWrapping);
-    expect(texture.repeat.x).toBe(-1);
-    expect(texture.offset.x).toBe(1);
+    expect(result.current.bitmap).toBe(await vi.mocked(decode).mock.results[0].value);
   });
 
   it("hands the decoder the downloaded blob — the orientation is its business, not the hook's", async () => {
@@ -57,7 +52,7 @@ describe("usePanoramaTexture", () => {
     vi.stubGlobal("fetch", fetchSpy);
     const { result } = renderHook(() => usePanoramaTexture(null, decoder()));
 
-    expect(result.current).toEqual({ texture: null, progress: null, status: "idle" });
+    expect(result.current).toEqual({ bitmap: null, progress: null, status: "idle" });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -66,7 +61,7 @@ describe("usePanoramaTexture", () => {
     const { result } = renderHook(() => usePanoramaTexture("abc", decoder()));
 
     await waitFor(() => expect(result.current.status).toBe("error"));
-    expect(result.current.texture).toBeNull();
+    expect(result.current.bitmap).toBeNull();
   });
 
   it("reports a picture it cannot decode as an error", async () => {
@@ -77,10 +72,10 @@ describe("usePanoramaTexture", () => {
     const { result } = renderHook(() => usePanoramaTexture("abc", decode));
 
     await waitFor(() => expect(result.current.status).toBe("error"));
-    expect(result.current.texture).toBeNull();
+    expect(result.current.bitmap).toBeNull();
   });
 
-  it("aborts a download the reader walked away from, and disposes a texture that never existed", async () => {
+  it("aborts a download the reader walked away from", async () => {
     const signals: AbortSignal[] = [];
     vi.stubGlobal(
       "fetch",
@@ -91,8 +86,6 @@ describe("usePanoramaTexture", () => {
         return await new Promise<Response>(() => {});
       }),
     );
-    const dispose = vi.spyOn(Texture.prototype, "dispose");
-
     const { rerender } = renderHook(({ hash }) => usePanoramaTexture(hash, decoder()), {
       initialProps: { hash: "abc" },
     });
@@ -100,20 +93,22 @@ describe("usePanoramaTexture", () => {
 
     expect(signals[0].aborted).toBe(true);
     expect(signals[1].aborted).toBe(false);
-    expect(dispose).not.toHaveBeenCalled();
   });
 
-  it("disposes the previous texture when the reader moves to the next capture", async () => {
+  it("reads as loading again the moment the reader moves to the next capture", async () => {
+    // The bitmap on screen belongs to the sphere, which frees it when this
+    // prop changes; the hook must not keep reporting it as this hash's.
     vi.stubGlobal("fetch", vi.fn(async () => ok()));
-    const dispose = vi.spyOn(Texture.prototype, "dispose");
     const { result, rerender } = renderHook(({ hash }) => usePanoramaTexture(hash, decoder()), {
       initialProps: { hash: "abc" },
     });
     await waitFor(() => expect(result.current.status).toBe("ready"));
+    const first = result.current.bitmap;
 
     rerender({ hash: "def" });
-    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(result.current).toEqual({ bitmap: null, progress: null, status: "loading" });
     await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.bitmap).not.toBe(first);
   });
 
   it("goes back to idle when the reader leaves the panorama", async () => {
@@ -124,7 +119,7 @@ describe("usePanoramaTexture", () => {
     await waitFor(() => expect(result.current.status).toBe("ready"));
 
     rerender({ hash: null });
-    expect(result.current).toEqual({ texture: null, progress: null, status: "idle" });
+    expect(result.current).toEqual({ bitmap: null, progress: null, status: "idle" });
   });
 
   it("says nothing about a download the abort tore down", async () => {

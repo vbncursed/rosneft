@@ -1,11 +1,11 @@
-import { useEffect, useRef } from "react";
-import { BackSide, type Mesh, type Texture } from "three";
+import { useEffect, useMemo, useRef } from "react";
+import { BackSide, RepeatWrapping, SRGBColorSpace, Texture, type Mesh } from "three";
 import type { Panorama } from "@/entities/panorama";
 
 interface PanoramaSphereProps {
   panorama: Panorama;
-  /** Fully-loaded, sRGB-tagged, U-flipped equirect from usePanoramaTexture. */
-  texture: Texture;
+  /** The decoded equirect from `usePanoramaTexture`; this mesh owns it from here. */
+  bitmap: ImageBitmap;
   /** < 1 ghosts the equirect over the model for overlay calibration. */
   opacity?: number;
 }
@@ -14,6 +14,11 @@ interface PanoramaSphereProps {
 // camera sits inside of. rotation-y = yawOffset aligns the panorama's implicit
 // "north" with the territory's axes, set per-panorama by the operator who knows
 // the capture orientation.
+//
+// The Texture is built HERE rather than in the feature hook that downloaded the
+// bytes: a `three` import under `features/` is hoisted out of the lazy
+// viewer-canvas chunk and into `index`, so every reader of every other screen
+// would download and parse three before first paint.
 //
 // The sphere is unhittable on purpose. It encloses the whole scene, so any
 // pointer ray that misses a placement would otherwise hit it, and a click into
@@ -24,8 +29,36 @@ interface PanoramaSphereProps {
 // Radius 50 is the old app's value and is kept as-is: it is far outside any
 // practical placement, and nothing measures against it — the panorama snap
 // raycaster that once used this mesh as a surface is not part of v2.
-export default function PanoramaSphere({ panorama, texture, opacity = 1 }: PanoramaSphereProps) {
+export default function PanoramaSphere({ panorama, bitmap, opacity = 1 }: PanoramaSphereProps) {
   const meshRef = useRef<Mesh>(null);
+
+  const texture = useMemo(() => {
+    const t = new Texture(bitmap);
+    // The bitmap arrives pre-flipped: WebGL cannot apply flipY to one, so a
+    // plain `new Texture(bitmap)` would render the equirect upside down.
+    t.flipY = false;
+    // Equirect JPGs encode sRGB but three doesn't tag them, and mapped onto the
+    // inside of a BackSide sphere they read horizontally mirrored. Fix both:
+    // tag sRGB, and flip the U axis (repeat.x = -1, offset.x = 1 keeps samples
+    // in [0,1] while reversing direction).
+    t.colorSpace = SRGBColorSpace;
+    t.wrapS = RepeatWrapping;
+    t.repeat.x = -1;
+    t.offset.x = 1;
+    t.needsUpdate = true;
+    return t;
+  }, [bitmap]);
+
+  // Both are this mesh's to free: the hook that downloaded the capture hands
+  // the bitmap over and keeps no reference, and an ImageBitmap is not
+  // garbage-collected bytes.
+  useEffect(
+    () => () => {
+      texture.dispose();
+      bitmap.close();
+    },
+    [texture, bitmap],
+  );
 
   useEffect(() => {
     const mesh = meshRef.current;

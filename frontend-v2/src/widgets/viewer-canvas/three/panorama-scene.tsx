@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import type { Object3D, Texture } from "three";
+import type { Object3D } from "three";
 import type { Panorama } from "@/entities/panorama";
 import type { Vec3 } from "@/entities/placement";
 import type { ViewerCanvasProps } from "../ui/props";
@@ -11,7 +11,7 @@ import PanoramaSphere from "./panorama-sphere";
 
 export interface PanoramaSceneProps {
   activePanorama: Panorama | null;
-  texture: Texture | null;
+  bitmap: ImageBitmap | null;
   status: ViewerCanvasProps["panoramaStatus"];
   progress: number | null;
   opacity: number;
@@ -38,7 +38,7 @@ export interface PanoramaSceneProps {
 // a radius-50 sphere inside Bounds would dominate the auto-fit.
 export default function PanoramaScene({
   activePanorama,
-  texture,
+  bitmap,
   status,
   progress,
   opacity,
@@ -56,9 +56,9 @@ export default function PanoramaScene({
     <>
       {activePanorama && status === "loading" ? <PanoramaLoadingOverlay progress={progress} /> : null}
 
-      {activePanorama && status === "ready" && texture ? (
+      {activePanorama && status === "ready" && bitmap ? (
         <>
-          <PanoramaSphere panorama={activePanorama} texture={texture} opacity={opacity} />
+          <PanoramaSphere panorama={activePanorama} bitmap={bitmap} opacity={opacity} />
           <PanoramaRig panorama={activePanorama} />
         </>
       ) : null}

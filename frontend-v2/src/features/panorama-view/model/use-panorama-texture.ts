@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { RepeatWrapping, SRGBColorSpace, Texture } from "three";
 import { readWithProgress } from "@/entities/panorama";
 import { assetUrl } from "@/entities/content";
 
@@ -13,32 +12,26 @@ export type PanoramaTextureStatus = "idle" | "loading" | "ready" | "error";
 export type TextureDecoder = (blob: Blob) => Promise<ImageBitmap>;
 
 export interface PanoramaTextureState {
-  texture: Texture | null;
+  /**
+   * The decoded equirect. Deliberately NOT a `three` Texture: a `three` import
+   * in a feature is hoisted out of the lazy viewer-canvas chunk and into
+   * `index`, and every other screen would then pay for it. `PanoramaSphere`
+   * builds the texture from this, and owns it (and this bitmap) from then on.
+   */
+  bitmap: ImageBitmap | null;
   // 0–100 while downloading, null when the server sent no Content-Length
   // (bar renders indeterminate), 100 once ready.
   progress: number | null;
   status: PanoramaTextureStatus;
 }
 
-const IDLE: PanoramaTextureState = { texture: null, progress: null, status: "idle" };
-const LOADING: PanoramaTextureState = { texture: null, progress: null, status: "loading" };
+const IDLE: PanoramaTextureState = { bitmap: null, progress: null, status: "idle" };
+const LOADING: PanoramaTextureState = { bitmap: null, progress: null, status: "loading" };
 
 // State carries the hash it describes, so a capture change reads as loading
 // during render. Clearing it from the effect instead would show the previous
 // sphere's texture for one render, and spend a second one taking it away.
 type Tracked = PanoramaTextureState & { hash: string | null };
-
-// Equirect JPGs encode sRGB but three doesn't tag them, and mapped onto the
-// inside of a BackSide sphere they read horizontally mirrored. Fix both: tag
-// sRGB, and flip the U axis (repeat.x = -1, offset.x = 1 keeps samples in
-// [0,1] while reversing direction).
-function applyEquirectFormat(texture: Texture): void {
-  texture.colorSpace = SRGBColorSpace;
-  texture.wrapS = RepeatWrapping;
-  texture.repeat.x = -1;
-  texture.offset.x = 1;
-  texture.needsUpdate = true;
-}
 
 // usePanoramaTexture streams the equirect via fetch so we can surface real
 // download progress — an <img>, which TextureLoader uses, emits no bytes.
@@ -47,7 +40,6 @@ function applyEquirectFormat(texture: Texture): void {
 // browser serves it from disk cache. Add an LRU only if that measurably hurts.
 export function usePanoramaTexture(hash: string | null, decode: TextureDecoder): PanoramaTextureState {
   const [state, setState] = useState<Tracked>({ ...IDLE, hash: null });
-  const textureRef = useRef<Texture | null>(null);
   // The decoder is read through a ref rather than a dependency: a caller who
   // spells it inline hands us a new function every render, and a decoder in
   // the dep list would restart the download on each one — forever.
@@ -74,13 +66,7 @@ export function usePanoramaTexture(hash: string | null, decode: TextureDecoder):
           bitmap.close();
           return;
         }
-        const texture = new Texture(bitmap);
-        // The bitmap arrives pre-flipped: WebGL cannot apply flipY to one, so a
-        // plain `new Texture(bitmap)` would render the equirect upside down.
-        texture.flipY = false;
-        applyEquirectFormat(texture);
-        textureRef.current = texture;
-        setState({ hash, texture, progress: 100, status: "ready" });
+        setState({ hash, bitmap, progress: 100, status: "ready" });
       } catch {
         if (!cancelled) setState({ ...IDLE, hash, status: "error" });
       }
@@ -89,11 +75,9 @@ export function usePanoramaTexture(hash: string | null, decode: TextureDecoder):
     return () => {
       cancelled = true;
       controller.abort();
-      textureRef.current?.dispose();
-      textureRef.current = null;
     };
   }, [hash]);
 
   if (state.hash !== hash) return hash ? LOADING : IDLE;
-  return { texture: state.texture, progress: state.progress, status: state.status };
+  return { bitmap: state.bitmap, progress: state.progress, status: state.status };
 }
