@@ -176,11 +176,6 @@ function Draft({
             disabled={!dirty}
             loading={saving}
             data-tour="panorama-save-anchor"
-            // The mock draws this one at 8/16, between the DS's sm (6/12) and
-            // md (10/18). Tailwind emits the spacing scale in ascending order,
-            // so px-4/py-2 land after the sm compound's px-3/py-1.5 and win —
-            // checked in the built stylesheet, not assumed.
-            className="px-4 py-2"
             onClick={() => onSave({ title, position, yawOffset, defaultYaw })}
           >
             {SAVE_ANCHOR}
