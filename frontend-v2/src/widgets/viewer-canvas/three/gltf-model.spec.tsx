@@ -10,26 +10,28 @@ const CHAIN = [
   { lod: 2, hash: "coarse", size: 2 },
 ];
 
-// One chunk per macrotask. React batches every update that lands in the same
-// tick, so a stream that enqueues both chunks at once renders once — and a
-// mid-download percent could not be observed even when the code reports it.
-const streamOf = (chunks: Uint8Array[]) =>
+// The stream stops between the two chunks and waits for the test to let the
+// second one go. React batches every update that lands in the same tick, so a
+// stream that enqueues both at once renders once and the mid-download percent
+// could not be observed even when the code reports it — and a stream that
+// merely yields to the macrotask queue raced React's batching, which is how
+// the 40 % assertion became a flake. `gate` makes the sequence the test's.
+const streamOf = (chunks: Uint8Array[], gate?: Promise<void>) =>
   new ReadableStream({
     async start(c) {
-      for (const ch of chunks) {
-        c.enqueue(ch);
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      }
+      c.enqueue(chunks[0]);
+      if (gate) await gate;
+      for (const ch of chunks.slice(1)) c.enqueue(ch);
       c.close();
     },
   });
 
-const stubDownload = (status = 200) => {
+const stubDownload = (status = 200, gate?: Promise<void>) => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async () =>
       status === 200
-        ? new Response(streamOf([new Uint8Array(4), new Uint8Array(6)]), { status })
+        ? new Response(streamOf([new Uint8Array(4), new Uint8Array(6)], gate), { status })
         : new Response(null, { status }),
     ),
   );
@@ -85,9 +87,27 @@ describe("GltfModel", () => {
   });
 
   it("reports bytes so far against the target's size while the coarse level is up", async () => {
-    stubDownload();
+    // *While* the bytes are on the wire, not only once they are in. The stub
+    // streams 4 of the target's 10, waits for this test to say so, then the
+    // other 6 — so the 40 % report has to have been made before the download
+    // can finish. The page's whole loading state (chip, percent, progress
+    // line, dimmed tiles) hangs off that percent being non-null, and the blob
+    // url does not exist yet at that point.
+    // Not Promise.withResolvers: the app targets es2023 and this one spec is
+    // no reason to widen its lib.
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    stubDownload(200, gate);
     const onReport = vi.fn();
     await ReactThreeTestRenderer.create(model({ onReport }));
+
+    const percents = () => onReport.mock.calls.map((c) => (c[0] as LodReport).percent);
+    await vi.waitFor(() => expect(percents()).toContain(40));
+    expect(percents()).not.toContain(100);
+
+    release();
     await vi.waitFor(() => {
       const withText = onReport.mock.calls
         .map((c) => c[0] as LodReport)
@@ -95,13 +115,6 @@ describe("GltfModel", () => {
       expect(withText.at(-1)!.percent).toBe(100);
       expect(withText.at(-1)!.progressText).toBe("0.0 / 0.0 MB");
     });
-    // *While* the bytes are on the wire, not only once they are in. The stub
-    // streams 4 then 6 of the target's 10, so a mid-download report has to say
-    // 40 % — the blob url does not exist yet at that point, and the page's
-    // whole loading state (chip, percent, progress line, dimmed tiles) hangs
-    // off this percent being non-null.
-    const percents = onReport.mock.calls.map((c) => (c[0] as LodReport).percent);
-    expect(percents).toContain(40);
   });
 
   it("stays on the coarse level when the target's download is refused, and stops counting", async () => {

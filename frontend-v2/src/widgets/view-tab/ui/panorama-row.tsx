@@ -42,7 +42,11 @@ export function PanoramaRow({ row, onEnter, onExit, onEdit }: PanoramaRowProps) 
     >
       <span className={cx(THUMB, active ? "border-accent-line text-accent" : "border-line-2 text-dim")}>
         {thumbUrl ? (
-          <img src={thumbUrl} alt="" className="size-full object-cover" />
+          // ponytail: the full equirect (4096x2048, 5-8 MB) for a 44x34 thumb.
+          // `lazy` keeps a capture the reader never scrolls to off the wire
+          // and `async` keeps the decode off the main thread; the ceiling is a
+          // server-side thumbnail, which is a gateway endpoint away.
+          <img src={thumbUrl} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
         ) : (
           <Icon name="panorama" size={16} />
         )}
