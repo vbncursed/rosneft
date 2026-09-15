@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, fireEvent, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Placement } from "@/entities/placement";
@@ -8,15 +8,23 @@ import type { Principal } from "@/shared/session";
 import { HttpError } from "@/shared/api";
 import { useTerritoryViewer, type TerritoryViewerState } from "./use-territory-viewer";
 
-const { getSceneBundle, getMe, createPlacement, updatePlacement, deletePlacement, markTourSeen } =
-  vi.hoisted(() => ({
-    getSceneBundle: vi.fn(),
-    getMe: vi.fn(),
-    createPlacement: vi.fn(),
-    updatePlacement: vi.fn(),
-    deletePlacement: vi.fn(),
-    markTourSeen: vi.fn(),
-  }));
+const {
+  getSceneBundle,
+  getMe,
+  createPlacement,
+  updatePlacement,
+  deletePlacement,
+  setPlacementVisibility,
+  markTourSeen,
+} = vi.hoisted(() => ({
+  getSceneBundle: vi.fn(),
+  getMe: vi.fn(),
+  createPlacement: vi.fn(),
+  updatePlacement: vi.fn(),
+  deletePlacement: vi.fn(),
+  setPlacementVisibility: vi.fn(),
+  markTourSeen: vi.fn(),
+}));
 
 vi.mock("@/entities/scene", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -31,6 +39,7 @@ vi.mock("@/entities/placement", async (importOriginal) => ({
   createPlacement,
   updatePlacement,
   deletePlacement,
+  setPlacementVisibility,
 }));
 vi.mock("@/features/onboarding", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -83,8 +92,28 @@ const BUNDLE: SceneBundle = {
       chain: [{ lod: 0, hash: "m0", size: 1 }],
     },
   ],
-  panoramas: [],
-  documents: [],
+  panoramas: [
+    {
+      id: 1,
+      territorySlug: SLUG,
+      slug: "control-room",
+      title: "Control room",
+      sourceBlobHash: "p1",
+      position: { x: 1, y: 0, z: 2 },
+      yawOffset: 0,
+      defaultYaw: 0,
+      updatedAt: "2026-09-14T10:00:00Z",
+    },
+  ],
+  documents: [
+    {
+      id: 7,
+      territorySlug: SLUG,
+      title: "Fire plan.pdf",
+      sourceBlobHash: "d7",
+      createdAt: "2026-09-14T10:00:00Z",
+    },
+  ],
 };
 
 const principal = (over: Partial<Principal> = {}): Principal => ({
@@ -145,6 +174,7 @@ describe("useTerritoryViewer", () => {
     getSceneBundle.mockReset().mockResolvedValue(BUNDLE);
     getMe.mockReset().mockResolvedValue(principal({ isOwner: true }));
     createPlacement.mockReset();
+    setPlacementVisibility.mockReset();
     updatePlacement.mockReset();
     deletePlacement.mockReset();
     markTourSeen.mockReset().mockResolvedValue(undefined);
@@ -389,6 +419,118 @@ describe("useTerritoryViewer", () => {
       expect(now(r).canvas.retryVersion).toBe(0);
       act(() => now(r).overlays.error!.onRetry());
       expect(now(r).canvas.retryVersion).toBe(1);
+    });
+  });
+
+  describe("panoramas and documents", () => {
+    const owner = () => principal({ isOwner: true });
+
+    it("offers Move points to a panorama writer and refuses it to everyone else", async () => {
+      expect((await ready(mount())).panel?.viewTab.panoramas.canMovePoints).toBe(true);
+
+      getMe.mockResolvedValue(principal({ permissions: ["territory:read"] }));
+      const guest = await ready(mount());
+      expect(guest.panel?.viewTab.panoramas.canMovePoints).toBe(false);
+      expect(guest.panel?.viewTab.panoramas.canUpload).toBe(false);
+    });
+
+    it("lists the territory's captures and its PDFs on the View tab", async () => {
+      const state = await ready(mount());
+      expect(state.panel?.viewTab.panoramas.rows.map((r) => r.title)).toEqual(["Control room"]);
+      expect(state.panel?.viewTab.documents.rows).toEqual([{ id: 7, name: "Fire plan.pdf" }]);
+    });
+
+    it("cycles into the first panorama on P — the key reaches the list through the ref", async () => {
+      // The mode reducer is created before the panorama hooks that answer P,
+      // so the cycle travels through a ref; a broken one leaves this a no-op.
+      getMe.mockResolvedValue(owner());
+      const r = mount();
+      await ready(r);
+      act(() => {
+        fireEvent.keyDown(window, { key: "p" });
+      });
+      expect(now(r).canvas.activePanorama?.id).toBe(1);
+      expect(now(r).overlays.switchTo3d).not.toBeNull();
+      expect(now(r).header.pills).toContainEqual({ tone: "accent", label: "panorama" });
+    });
+
+    it("gives Escape to an open document before the scene sees it", async () => {
+      const r = mount();
+      const state = await ready(r);
+      act(() => state.panel!.viewTab.documents.onOpen(7));
+      expect(now(r).overlays.document?.document.id).toBe(7);
+
+      act(() => {
+        fireEvent.keyDown(window, { key: "Escape" });
+      });
+      expect(now(r).overlays.document).toBeNull();
+    });
+
+    it("opens a document out of the panorama it was read from", async () => {
+      const r = mount();
+      const state = await ready(r);
+      act(() => state.panel!.viewTab.panoramas.onEnter(1));
+      act(() => now(r).panel!.viewTab.documents.onOpen(7));
+      // The two overlays do not stack: the PDF takes the viewport.
+      expect(now(r).canvas.activePanorama).toBeNull();
+    });
+
+    it("puts the View tab in front when a rail tile asks for a section", async () => {
+      const r = mount();
+      const state = await ready(r);
+      act(() => state.canvas.onPick(4));
+      expect(now(r).panel?.tab).toBe("placements");
+
+      act(() => now(r).overlays.onPanoramas());
+      expect(now(r).panel?.tab).toBe("view");
+      expect(now(r).panel?.collapsed).toBe(false);
+    });
+
+    it("brings a hidden document window back when the Documents tile is pressed", async () => {
+      const r = mount();
+      const state = await ready(r);
+      act(() => state.panel!.viewTab.documents.onOpen(7));
+      act(() => now(r).overlays.document!.onWindow("collapsed"));
+      expect(now(r).overlays.collapsedPill?.name).toBe("Fire plan.pdf");
+
+      act(() => now(r).overlays.onDocuments());
+      expect(now(r).overlays.document?.window).toBe("pip");
+      expect(now(r).overlays.collapsedPill).toBeNull();
+    });
+
+    it("makes a newly placed object visible in every panorama there is", async () => {
+      createPlacement.mockResolvedValue(placement(10));
+      const r = mount();
+      const state = await ready(r);
+      await act(async () => state.picker.onPlace("storage-tank-500", 1));
+      expect(createPlacement).toHaveBeenCalledWith(
+        SLUG,
+        expect.objectContaining({ visiblePanoramaIds: [1] }),
+      );
+    });
+
+    it("writes the selected object's allowlist from the block inside a panorama", async () => {
+      setPlacementVisibility.mockResolvedValue({ ...placement(4), visiblePanoramaIds: [1] });
+      const r = mount();
+      const state = await ready(r);
+      act(() => state.panel!.viewTab.panoramas.onEnter(1));
+      act(() => now(r).canvas.onPick(4));
+
+      const block = now(r).panel?.placements.visibility;
+      expect(block?.panoramas).toEqual([{ id: 1, title: "Control room" }]);
+      await act(async () => block!.onToggle(4, 1, true));
+      expect(setPlacementVisibility).toHaveBeenCalledWith(SLUG, 4, [1]);
+    });
+
+    it("takes the allowlist away again when the ticked capture is unticked", async () => {
+      setPlacementVisibility.mockResolvedValue(placement(4));
+      const r = mount();
+      const state = await ready(r);
+      act(() => state.panel!.viewTab.panoramas.onEnter(1));
+      act(() => now(r).canvas.onPick(4));
+      await act(async () => now(r).panel!.placements.visibility!.onToggle(4, 1, true));
+      await act(async () => now(r).panel!.placements.visibility!.onToggle(4, 1, false));
+      expect(setPlacementVisibility).toHaveBeenLastCalledWith(SLUG, 4, []);
     });
   });
 
