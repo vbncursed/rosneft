@@ -72,21 +72,46 @@ describe("usePipWindow", () => {
 
   it("re-clamps an off-screen window back inside on a window resize", () => {
     const { result } = renderHook(() => usePipWindow(14));
-    const start = result.current.geo;
     const originalW = window.innerWidth;
     const originalH = window.innerHeight;
 
     try {
-      // Shrink the viewport under the window's current position.
-      Object.defineProperty(window, "innerWidth", { configurable: true, value: start.x + 10 });
-      Object.defineProperty(window, "innerHeight", { configurable: true, value: start.y + 10 });
+      // Shrink the viewport under the window's docked position, but still
+      // bigger than the window itself (560x400) — the window fits, it just
+      // has to move back onto the new, smaller screen.
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: 600 });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: 450 });
 
       act(() => {
         fireEvent(window, new Event("resize"));
       });
 
+      expect(result.current.geo.x).toBeGreaterThanOrEqual(0);
+      expect(result.current.geo.y).toBeGreaterThanOrEqual(0);
       expect(result.current.geo.x).toBeLessThanOrEqual(window.innerWidth - result.current.geo.w);
       expect(result.current.geo.y).toBeLessThanOrEqual(window.innerHeight - result.current.geo.h);
+    } finally {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: originalW });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: originalH });
+    }
+  });
+
+  it("pins to the top-left corner — never negative — when the viewport shrinks below the window's own size", () => {
+    const { result } = renderHook(() => usePipWindow(14));
+    const originalW = window.innerWidth;
+    const originalH = window.innerHeight;
+
+    try {
+      // Narrower and shorter than the 560x400 window itself: viewport minus
+      // size is negative on both axes, and 0 must win, not that negative.
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: 460 });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: 364 });
+
+      act(() => {
+        fireEvent(window, new Event("resize"));
+      });
+
+      expect(result.current.geo).toEqual({ x: 0, y: 0, w: 560, h: 400 });
     } finally {
       Object.defineProperty(window, "innerWidth", { configurable: true, value: originalW });
       Object.defineProperty(window, "innerHeight", { configurable: true, value: originalH });

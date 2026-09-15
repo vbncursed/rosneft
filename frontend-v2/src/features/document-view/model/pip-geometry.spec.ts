@@ -27,6 +27,12 @@ describe("moved", () => {
   it("clamps at viewport minus size", () => {
     expect(moved(base, 5000, 5000, VIEWPORT)).toEqual({ x: 880, y: 500, w: 560, h: 400 });
   });
+
+  it("never goes negative when the viewport is smaller than the window — the lower bound wins", () => {
+    // viewport.w - base.w and viewport.h - base.h are both negative here;
+    // 0 must win that empty interval, not the negative upper bound.
+    expect(moved(base, 0, 0, { w: 460, h: 364 })).toEqual({ x: 0, y: 0, w: 560, h: 400 });
+  });
 });
 
 describe("resized", () => {
@@ -47,5 +53,16 @@ describe("resized", () => {
 
   it("clamps at viewport minus origin", () => {
     expect(resized(base, 5000, 5000, VIEWPORT)).toEqual({ x: 800, y: 400, w: 640, h: 500 });
+  });
+
+  it("never shrinks below the minimum when the viewport is smaller than the origin — the lower bound wins", () => {
+    // viewport.w - base.x and viewport.h - base.y are both below PIP_MIN here;
+    // the minimum must win that empty interval, not the smaller upper bound.
+    expect(resized(base, 0, 0, { w: 900, h: 600 })).toEqual({
+      x: 800,
+      y: 400,
+      w: PIP_MIN.w,
+      h: PIP_MIN.h,
+    });
   });
 });

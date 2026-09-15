@@ -15,20 +15,32 @@ export function dock(viewport: Viewport, inset: number): PipGeometry {
   };
 }
 
-/** Moves `base` by (dx, dy), clamped to [0, viewport − size] on each axis. Size is unchanged. */
+/**
+ * Moves `base` by (dx, dy), clamped to [0, viewport − size] on each axis. Size
+ * is unchanged. The lower bound (0) is applied last, so a viewport narrower
+ * than the window — where viewport − size is negative, an empty interval —
+ * pins to 0 rather than letting the negative upper bound win and push the
+ * window off-screen to the left/top.
+ */
 export function moved(base: PipGeometry, dx: number, dy: number, viewport: Viewport): PipGeometry {
   return {
     ...base,
-    x: Math.min(Math.max(0, base.x + dx), viewport.w - base.w),
-    y: Math.min(Math.max(0, base.y + dy), viewport.h - base.h),
+    x: Math.max(0, Math.min(base.x + dx, viewport.w - base.w)),
+    y: Math.max(0, Math.min(base.y + dy, viewport.h - base.h)),
   };
 }
 
-/** Grows `base` from its fixed top-left corner, clamped to [min, viewport − origin] on each axis. */
+/**
+ * Grows `base` from its fixed top-left corner, clamped to [min, viewport −
+ * origin] on each axis. The minimum is applied last, for the same reason as
+ * `moved`'s 0: a viewport too small for the origin makes viewport − origin
+ * an empty interval below PIP_MIN, and the minimum must win it rather than
+ * shrinking the window smaller than its floor.
+ */
 export function resized(base: PipGeometry, dx: number, dy: number, viewport: Viewport): PipGeometry {
   return {
     ...base,
-    w: Math.min(Math.max(PIP_MIN.w, base.w + dx), viewport.w - base.x),
-    h: Math.min(Math.max(PIP_MIN.h, base.h + dy), viewport.h - base.y),
+    w: Math.max(PIP_MIN.w, Math.min(base.w + dx, viewport.w - base.x)),
+    h: Math.max(PIP_MIN.h, Math.min(base.h + dy, viewport.h - base.y)),
   };
 }
