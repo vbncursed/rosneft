@@ -1,5 +1,5 @@
 import { isValidElement } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { assetUrl } from "@/entities/content";
 import type { Document } from "@/entities/document";
 import type { Panorama } from "@/entities/panorama";
@@ -328,14 +328,13 @@ describe("documentProps", () => {
   };
 
   it("draws nothing at all while no document is open", () => {
-    expect(documentProps(basePageParts())).toEqual({ window: null, pill: null, meta: null });
+    expect(documentProps(basePageParts())).toEqual({ window: null, meta: null });
   });
 
   it("mounts the window and says so in the header meta", () => {
-    const { window, pill, meta } = documentProps(open("pip"));
+    const { window, meta } = documentProps(open("pip"));
     expect(window).toMatchObject({ window: "pip", canDelete: true });
     expect(window?.document.title).toBe("Fire plan.pdf");
-    expect(pill).toBeNull();
     expect(meta).toBe("document overlay open");
   });
 
@@ -343,19 +342,10 @@ describe("documentProps", () => {
     expect(documentProps(open("expanded")).meta).toBe("document overlay expanded");
   });
 
-  it("keeps the window mounted when it is hidden, and offers the pill that brings it back", () => {
-    const { window, pill } = documentProps(open("collapsed"));
+  it("keeps the window mounted when it is hidden — the widget draws its own pill", () => {
     // Collapsed only hides the frame: unmounting it would throw away the
     // reader's page and zoom.
-    expect(window?.window).toBe("collapsed");
-    expect(pill).toEqual({ name: "Fire plan.pdf", onShow: expect.any(Function) });
-  });
-
-  it("brings a hidden window back as a pip", () => {
-    const p = open("collapsed");
-    const onWindow = vi.fn();
-    documentProps({ ...p, documents: { ...p.documents, onWindow } }).pill?.onShow();
-    expect(onWindow).toHaveBeenCalledWith("pip");
+    expect(documentProps(open("collapsed")).window?.window).toBe("collapsed");
   });
 
   it("refuses Delete to a reader without the grant", () => {

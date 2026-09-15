@@ -1,8 +1,11 @@
+import { clsx as cx } from "clsx";
 import { Icon } from "@/shared/ui/icon";
 
 export type CollapsedPillProps = {
   file: string;
   onShow: () => void;
+  /** Where the pill sits; the page positions it beside the stats strip. */
+  className?: string;
 };
 
 /**
@@ -10,9 +13,14 @@ export type CollapsedPillProps = {
  * a way to bring the window back. Positioning (beside the stats strip) is the
  * page's job, not this component's — it only carries its own look.
  */
-export function CollapsedPill({ file, onShow }: CollapsedPillProps) {
+export function CollapsedPill({ file, onShow, className }: CollapsedPillProps) {
   return (
-    <div className="flex items-center gap-2.5 rounded-full border border-line-2 bg-panel px-[13px] py-[7px] font-mono text-[10px] text-fg shadow-elevation">
+    <div
+      className={cx(
+        "flex items-center gap-2.5 rounded-full border border-line-2 bg-panel px-[13px] py-[7px] font-mono text-[10px] text-fg shadow-elevation",
+        className,
+      )}
+    >
       <Icon name="file" size={13} className="text-muted" />
       <span className="min-w-0 truncate">{file}</span>
       <button

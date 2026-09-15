@@ -3,6 +3,7 @@ import { TourOverlay } from "@/features/onboarding";
 import { PlaceObjectsModal } from "@/widgets/model-picker";
 import { OverlaysPanel, overlaysWidthClass } from "@/widgets/overlays-panel";
 import { PlacementsPanel } from "@/widgets/placements-panel";
+import { UploadModal } from "@/widgets/upload-modal";
 import { ViewTab } from "@/widgets/view-tab";
 import { ViewerCanvas } from "@/widgets/viewer-canvas";
 import { ViewerSkeleton } from "@/widgets/viewer-skeleton";
@@ -30,7 +31,9 @@ export function TerritoryViewerPage({
   overlays,
   panel,
   picker,
+  upload,
   tour,
+  panoramaTour,
   loadingScene,
 }: TerritoryViewerPageProps) {
   return (
@@ -79,7 +82,12 @@ export function TerritoryViewerPage({
         ) : null}
 
         <PlaceObjectsModal {...picker} />
+        {upload ? <UploadModal {...upload} /> : null}
+        {/* Two tours, never both: the viewer's explains the scene, the
+            panorama's explains a capture, and only the one that was started
+            has a step to draw. */}
         <TourOverlay tour={tour} />
+        <TourOverlay tour={panoramaTour} />
       </div>
     </>
   );

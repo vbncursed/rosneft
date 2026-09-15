@@ -79,11 +79,11 @@ describe("ViewerHeader", () => {
 
   it("tells a guest what it can still do, in place of the action", () => {
     render(<ViewerHeader {...props({ guest: true, canReplace: false })} />);
-    expect(screen.getByText("You can look and measure.")).toBeInTheDocument();
+    expect(screen.getByText("You can look, measure and open documents.")).toBeInTheDocument();
   });
 
   it("says nothing of the sort to a reader who can edit", () => {
     render(<ViewerHeader {...props()} />);
-    expect(screen.queryByText("You can look and measure.")).not.toBeInTheDocument();
+    expect(screen.queryByText("You can look, measure and open documents.")).not.toBeInTheDocument();
   });
 });

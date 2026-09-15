@@ -15,6 +15,7 @@ describe("the glyph registry", () => {
       "check",
       "chevron-left",
       "chevron-right",
+      "chevron-up",
       "close",
       "cube",
       "download",

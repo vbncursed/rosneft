@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { overlaysWidthClass } from "../model/overlays-width";
@@ -166,5 +166,37 @@ describe("OverlaysPanel", () => {
       />,
     );
     expect(container.querySelector("[data-tour]")).toBeNull();
+  });
+});
+
+describe("OverlaysPanel · the scrolled indicator", () => {
+  const panel = () =>
+    render(
+      <OverlaysPanel
+        tab="view"
+        onTabChange={vi.fn()}
+        collapsed={false}
+        onCollapsedChange={vi.fn()}
+        placementsCount={2}
+        view={<p>view body</p>}
+        placements={<p>placements body</p>}
+      />,
+    );
+
+  const body = () => screen.getByRole("tabpanel");
+
+  it("says the metadata is above once the body has been scrolled off the top", () => {
+    panel();
+    expect(screen.queryByText("scrolled · metadata above")).not.toBeInTheDocument();
+
+    fireEvent.scroll(body(), { target: { scrollTop: 40 } });
+    expect(screen.getByText("scrolled · metadata above")).toBeInTheDocument();
+  });
+
+  it("takes the strip away again at the top of the list", () => {
+    panel();
+    fireEvent.scroll(body(), { target: { scrollTop: 40 } });
+    fireEvent.scroll(body(), { target: { scrollTop: 0 } });
+    expect(screen.queryByText("scrolled · metadata above")).not.toBeInTheDocument();
   });
 });

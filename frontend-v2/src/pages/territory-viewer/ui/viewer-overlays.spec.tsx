@@ -1,8 +1,36 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import type { Document } from "@/entities/document";
 import type { ViewerOverlaysProps } from "../model/page-props";
 import { ViewerOverlays } from "./viewer-overlays";
+
+const FILE = "plan-sheet-03.pdf";
+
+const DOC: Document = {
+  id: 1,
+  territorySlug: "refinery-block-c",
+  title: FILE,
+  sourceBlobHash: "h",
+  createdAt: "2026-09-01T00:00:00Z",
+};
+
+const documentWindow = (over: Partial<ViewerOverlaysProps["document"]> = {}) => ({
+  document: DOC,
+  window: "pip" as const,
+  canDelete: true,
+  pip: {
+    geo: { x: 866, y: 242, w: 560, h: 400 },
+    dragging: false,
+    startMove: vi.fn(),
+    startResize: vi.fn(),
+  },
+  onWindow: vi.fn(),
+  onDelete: vi.fn(),
+  onExit: vi.fn(),
+  frameSrc: "about:blank",
+  ...over,
+});
 
 const STRIP = {
   items: ["36.0 × 24.0 × 8.5 m", "1 284 210 vertices", "612 480 faces", "LOD 1 active"],
@@ -15,6 +43,8 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
     { key: "reset", state: "active" },
     { key: "measure", state: "idle" },
     { key: "add", state: "idle" },
+    { key: "panoramas", state: "idle" },
+    { key: "documents", state: "idle" },
     { key: "tour", state: "idle" },
   ],
   onReset: vi.fn(),
@@ -32,7 +62,6 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
   error: null,
   switchTo3d: null,
   document: null,
-  collapsedPill: null,
   ...over,
 });
 
@@ -44,6 +73,8 @@ describe("ViewerOverlays · the tool rail", () => {
       "Reset camera",
       "Measure (M)",
       "Add objects",
+      "Panoramas",
+      "Documents",
       "Replay guided tour",
     ]);
     // The lit tile is not a pressed toggle unless it names a mode.
@@ -52,6 +83,36 @@ describe("ViewerOverlays · the tool rail", () => {
       "aria-pressed",
       "false",
     );
+  });
+
+  it("marks the two overlay tiles as the modes they are", () => {
+    render(
+      <ViewerOverlays
+        {...props({
+          tools: props().tools.map((t) =>
+            t.key === "panoramas" ? { ...t, state: "active" as const } : t,
+          ),
+        })}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Panoramas" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Documents" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  it("reveals each overlay section from its own tile", async () => {
+    const onPanoramas = vi.fn();
+    const onDocuments = vi.fn();
+    render(<ViewerOverlays {...props({ onPanoramas, onDocuments })} />);
+    await userEvent.click(screen.getByRole("button", { name: "Panoramas" }));
+    await userEvent.click(screen.getByRole("button", { name: "Documents" }));
+    expect(onPanoramas).toHaveBeenCalledOnce();
+    expect(onDocuments).toHaveBeenCalledOnce();
   });
 
   it("anchors the three tour targets on the tiles themselves", () => {
@@ -224,5 +285,52 @@ describe("ViewerOverlays · the error card", () => {
     expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
     // Exactly one: the strip beside it reports, so nothing is announced twice.
     expect(screen.getAllByRole("alert")).toHaveLength(1);
+  });
+});
+
+describe("ViewerOverlays · inside a panorama", () => {
+  it("offers the way back to the 3D scene under the chip", async () => {
+    const switchTo3d = vi.fn();
+    render(
+      <ViewerOverlays
+        {...props({ chip: { text: "panorama · drag to look around", kbd: "P" }, switchTo3d })}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Switch to 3D view" }));
+    expect(switchTo3d).toHaveBeenCalledOnce();
+  });
+
+  it("names the key that cycles the captures on the chip itself", () => {
+    render(
+      <ViewerOverlays {...props({ chip: { text: "panorama · drag to look around", kbd: "P" } })} />,
+    );
+    const chip = screen.getByRole("status", { name: "Pointer mode" });
+    expect(chip).toHaveTextContent("panorama · drag to look around");
+    expect(chip.querySelector("kbd")).toHaveTextContent("P");
+  });
+
+  it("draws no way back in the 3D scene", () => {
+    render(<ViewerOverlays {...props()} />);
+    expect(screen.queryByRole("button", { name: "Switch to 3D view" })).not.toBeInTheDocument();
+  });
+});
+
+describe("ViewerOverlays · the document window", () => {
+  it("mounts the window over the viewport when a document is open", () => {
+    render(<ViewerOverlays {...props({ document: documentWindow() })} />);
+    expect(screen.getByRole("dialog", { name: FILE })).toBeInTheDocument();
+  });
+
+  it("draws nothing when no document is open", () => {
+    render(<ViewerOverlays {...props()} />);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("stands exactly one pill beside the stats strip while the window is hidden", () => {
+    render(<ViewerOverlays {...props({ document: documentWindow({ window: "collapsed" }) })} />);
+    // The window draws its own pill; a second one from the page would double it.
+    expect(screen.getAllByRole("button", { name: "Show" })).toHaveLength(1);
+    const pill = screen.getByRole("button", { name: "Show" }).parentElement as HTMLElement;
+    expect(pill.className).toContain("absolute");
   });
 });

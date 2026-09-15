@@ -491,11 +491,11 @@ describe("useTerritoryViewer", () => {
       const state = await ready(r);
       act(() => state.panel!.viewTab.documents.onOpen(7));
       act(() => now(r).overlays.document!.onWindow("collapsed"));
-      expect(now(r).overlays.collapsedPill?.name).toBe("Fire plan.pdf");
+      expect(now(r).overlays.document?.document.title).toBe("Fire plan.pdf");
+      expect(now(r).overlays.document?.window).toBe("collapsed");
 
       act(() => now(r).overlays.onDocuments());
       expect(now(r).overlays.document?.window).toBe("pip");
-      expect(now(r).overlays.collapsedPill).toBeNull();
     });
 
     it("makes a newly placed object visible in every panorama there is", async () => {
