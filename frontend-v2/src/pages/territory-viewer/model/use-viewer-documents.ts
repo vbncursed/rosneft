@@ -6,7 +6,10 @@ import type { DocumentParts } from "./overlay-parts";
 
 export type ViewerDocumentsParams = {
   slug: string;
-  /** The bundle's documents. The page re-keys this hook when it refetches. */
+  /**
+   * The bundle's documents, seeded once. The page does NOT re-key this hook on
+   * a refetch — see `use-territory-viewer.ts` for why, and for what that costs.
+   */
   initial: Document[];
   onChanged: () => void;
   /** Opening a PDF leaves whatever else was on screen — the page passes its exitPanorama. */
