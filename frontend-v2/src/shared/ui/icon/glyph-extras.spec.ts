@@ -3,7 +3,7 @@ import { EXTRA_GLYPHS } from "./glyph-extras";
 
 describe("glyph extras", () => {
   it("gives the view-toggle and dash glyphs a square 24-wide box", () => {
-    for (const name of ["minus", "grid", "list", "arrow-right", "chevron-left", "chevron-right"] as const) {
+    for (const name of ["minus", "grid", "list", "arrow-right", "chevron-left", "chevron-right", "chevron-up"] as const) {
       const [minX, minY, width, height] = EXTRA_GLYPHS[name].box.split(" ").map(Number);
       expect([minX, minY]).toEqual([0, 0]);
       expect(width).toBe(height);
@@ -12,7 +12,7 @@ describe("glyph extras", () => {
   });
 
   it("strokes every extra glyph — none of them are filled", () => {
-    for (const name of ["minus", "grid", "list", "arrow-right", "chevron-left", "chevron-right"] as const) {
+    for (const name of ["minus", "grid", "list", "arrow-right", "chevron-left", "chevron-right", "chevron-up"] as const) {
       expect(EXTRA_GLYPHS[name].width).toBeGreaterThan(0);
     }
   });

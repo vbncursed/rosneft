@@ -4,6 +4,8 @@ import { LodSwitcher } from "@/shared/ui/lod-switcher";
 import { ModeChip } from "@/shared/ui/mode-chip";
 import { StatsStrip } from "@/shared/ui/stats-strip";
 import { ToolRail, type ToolRailItem } from "@/shared/ui/tool-rail";
+import { DocumentWindow } from "@/widgets/document-window";
+import { SWITCH_TO_3D } from "@/widgets/view-tab";
 import type { ViewerOverlaysProps } from "../model/page-props";
 import type { RailTool } from "../model/viewer-view";
 import { ViewerError } from "./viewer-error";
@@ -27,6 +29,15 @@ const TILES: Record<RailTool, { glyph: string; name: string; toggle?: boolean; d
 // is declared on the viewport container by the page, from the same
 // `overlaysWidthClass` the panel itself uses, so the two cannot drift.
 const PANEL_EDGE = "right-[calc(var(--overlays-w)+28px)]";
+
+/**
+ * The document layer is lifted 44px off the viewport's floor so a window docked
+ * at the hook's 14 inset clears the stats strip (the mock's bottom 58). The
+ * pill belongs *beside* that strip, so it drops the same 44 − 14 back down and
+ * starts right of the widest strip the scene can print.
+ */
+const DOC_LAYER = "absolute inset-0 bottom-11";
+const DOC_PILL = "absolute -bottom-[30px] left-[392px] max-w-[260px]";
 
 const HINT_BAR =
   "absolute left-3.5 bottom-3.5 flex items-center justify-center gap-[9px] rounded-[10px] border border-accent-line bg-panel px-3.5 py-[9px] font-mono text-[10px] text-fg shadow-elevation";
@@ -65,6 +76,8 @@ export function ViewerOverlays({
   strip,
   hints,
   error,
+  switchTo3d,
+  document,
 }: ViewerOverlaysProps) {
   const handlers: Record<RailTool, () => void> = {
     reset: onReset,
@@ -118,6 +131,11 @@ export function ViewerOverlays({
             {chip.text}
           </ModeChip>
         ) : null}
+        {switchTo3d ? (
+          <Button size="sm" onClick={switchTo3d} className="shadow-elevation">
+            {SWITCH_TO_3D}
+          </Button>
+        ) : null}
         {measuring ? (
           <div className="flex items-center gap-1.5">
             <Button size="sm" disabled={!measuring.canClear} onClick={measuring.onClear}>
@@ -161,6 +179,12 @@ export function ViewerOverlays({
           <span>
             <Key>Esc</Key> exits
           </span>
+        </div>
+      ) : null}
+
+      {document ? (
+        <div className={DOC_LAYER}>
+          <DocumentWindow {...document} pillClassName={DOC_PILL} />
         </div>
       ) : null}
 

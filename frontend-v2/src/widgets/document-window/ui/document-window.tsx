@@ -21,6 +21,8 @@ export type DocumentWindowProps = {
   onExit: () => void;
   /** Cosmos cannot load the real pdf.js viewer without the gateway; defaults to it. */
   frameSrc?: string;
+  /** Where the collapsed pill sits — the page owns that, this widget only draws it. */
+  pillClassName?: string;
 };
 
 function actionsFor(
@@ -67,6 +69,7 @@ export function DocumentWindow({
   onDelete,
   onExit,
   frameSrc,
+  pillClassName,
 }: DocumentWindowProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const file = documentFileName(document);
@@ -88,7 +91,9 @@ export function DocumentWindow({
         </ViewportWindow>
       </div>
 
-      {mode === "collapsed" ? <CollapsedPill file={file} onShow={() => onWindow("pip")} /> : null}
+      {mode === "collapsed" ? (
+        <CollapsedPill file={file} onShow={() => onWindow("pip")} className={pillClassName} />
+      ) : null}
 
       <ConfirmDialog
         open={confirmOpen}

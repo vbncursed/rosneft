@@ -41,6 +41,11 @@ export const EXTRA_GLYPHS = {
     width: 2,
     body: <path d="m10 6 6 6-6 6" />,
   },
+  "chevron-up": {
+    box: "0 0 24 24",
+    width: 2,
+    body: <path d="m6 15 6-6 6 6" />,
+  },
   // A 2:1 frame with the horizon: the panorama thumb and the upload card.
   panorama: {
     box: "0 0 24 24",

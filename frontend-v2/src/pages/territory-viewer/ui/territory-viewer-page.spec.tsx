@@ -1,5 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { Document } from "@/entities/document";
+import type { Panorama } from "@/entities/panorama";
 import type { PageParts } from "../model/page-props";
 import { viewerState } from "../territory-viewer-page.fixture";
 import { TerritoryViewerPage } from "./territory-viewer-page";
@@ -13,6 +15,26 @@ vi.mock("@/widgets/viewer-canvas", () => ({
 
 const page = (edit?: (p: PageParts) => PageParts) =>
   render(<TerritoryViewerPage {...viewerState(edit)} />);
+
+const PANORAMA: Panorama = {
+  id: 1,
+  territorySlug: "refinery-block-c",
+  slug: "control-room-north-door",
+  title: "Control room, north door",
+  sourceBlobHash: "p1",
+  position: { x: 4.82, y: 1.7, z: -2.145 },
+  yawOffset: 2.4,
+  defaultYaw: 0,
+  updatedAt: "2026-09-01T00:00:00Z",
+};
+
+const DOCUMENT: Document = {
+  id: 1,
+  territorySlug: "refinery-block-c",
+  title: "plan-sheet-03.pdf",
+  sourceBlobHash: "d1",
+  createdAt: "2026-09-01T00:00:00Z",
+};
 
 describe("TerritoryViewerPage", () => {
   it("draws the header, the rail, the strip and the panel", () => {
@@ -99,6 +121,43 @@ describe("TerritoryViewerPage", () => {
   it("takes the skeleton away once a level has arrived", () => {
     page();
     expect(screen.queryByText("Loading interface…")).not.toBeInTheDocument();
+  });
+
+  it("draws the View tab's panorama and document sections", () => {
+    page((p) => ({
+      ...p,
+      panel: { tab: "view", collapsed: false },
+      panoramas: { ...p.panoramas, list: [PANORAMA] },
+      documents: { ...p.documents, list: [DOCUMENT] },
+    }));
+    expect(screen.getByText("Control room, north door")).toBeInTheDocument();
+    expect(screen.getByText("plan-sheet-03.pdf")).toBeInTheDocument();
+  });
+
+  it("lays the open document over the viewport", () => {
+    page((p) => ({ ...p, documents: { ...p.documents, list: [DOCUMENT], active: DOCUMENT } }));
+    expect(screen.getByRole("dialog", { name: "plan-sheet-03.pdf" })).toBeInTheDocument();
+  });
+
+  it("opens the one upload dialog both overlays share", () => {
+    page((p) => ({
+      ...p,
+      panoramas: { ...p.panoramas, upload: { ...p.panoramas.upload, open: true } },
+    }));
+    expect(screen.getByRole("dialog")).toHaveTextContent("Add a panorama to Refinery Block C");
+  });
+
+  it("runs the panorama tour over everything else", () => {
+    page((p) => ({
+      ...p,
+      panoramaTour: {
+        ...p.panoramaTour,
+        active: true,
+        step: { id: "panoramas", title: "Every capture anchored here", body: "Step inside one." },
+        stepIndex: 0,
+      },
+    }));
+    expect(screen.getByRole("dialog", { name: /Tour step 1/ })).toBeInTheDocument();
   });
 
   it("runs the guided tour over everything else", () => {

@@ -21,7 +21,7 @@ export const DOC_OPEN_META = "document overlay open";
 export const DOC_EXPANDED_META = "document overlay expanded";
 
 /** What a reader without the editor role is told, in the header's right cluster. */
-export const GUEST_SENTENCE = "You can look and measure.";
+export const GUEST_SENTENCE = "You can look, measure and open documents.";
 
 export const ERROR_TITLE = "The territory mesh could not be loaded";
 

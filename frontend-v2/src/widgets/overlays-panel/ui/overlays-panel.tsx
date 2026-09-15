@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { CollapsedRail } from "@/shared/ui/collapsed-rail";
 import { Icon } from "@/shared/ui/icon";
 import { Tabs } from "@/shared/ui/tabs";
@@ -26,6 +26,12 @@ export type OverlaysPanelProps = {
 
 const EDGES = "absolute right-3.5 top-3.5 bottom-3.5";
 
+/**
+ * Mock state 9: the panel's own tabs stay put while the body scrolls, so a
+ * reader who has scrolled past the metadata grid is told where it went.
+ */
+const SCROLLED = "scrolled · metadata above";
+
 /** One panel for both tabs — only the active one is rendered. */
 const PANEL_ID = "overlays-panel-body";
 
@@ -52,6 +58,8 @@ export function OverlaysPanel({
   view,
   placements,
 }: OverlaysPanelProps) {
+  const [scrolled, setScrolled] = useState(false);
+
   return (
     <div className={overlaysWidthClass(collapsed)}>
       {collapsed ? (
@@ -96,6 +104,12 @@ export function OverlaysPanel({
               ]}
             />
           </div>
+          {scrolled ? (
+            <div className="flex items-center gap-1.5 border-b border-line bg-panel-2 px-3.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] text-dim">
+              <Icon name="chevron-up" size={11} />
+              {SCROLLED}
+            </div>
+          ) : null}
           {/* tabIndex 0: the body scrolls, and a keyboard reader cannot reach a
               long placements list without a focusable scroll container. */}
           <div
@@ -103,6 +117,7 @@ export function OverlaysPanel({
             role="tabpanel"
             aria-labelledby={`${PANEL_ID}-${tab}`}
             tabIndex={0}
+            onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 0)}
             className="flex-1 overflow-auto p-3.5"
           >
             {tab === "view" ? view : placements}

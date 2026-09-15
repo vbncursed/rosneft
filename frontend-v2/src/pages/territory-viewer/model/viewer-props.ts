@@ -74,8 +74,6 @@ export type ViewerOverlaysProps = {
   switchTo3d: (() => void) | null;
   /** The PDF window, mounted for as long as a document is open — collapsed only hides it. */
   document: DocumentWindowProps | null;
-  /** The hidden window's pill, drawn beside the stats strip. */
-  collapsedPill: { name: string; onShow: () => void } | null;
 };
 
 export type ViewerPanelProps = {

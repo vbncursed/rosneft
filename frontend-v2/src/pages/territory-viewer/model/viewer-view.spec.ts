@@ -111,7 +111,7 @@ describe("headerMeta", () => {
 
 describe("GUEST_SENTENCE", () => {
   it("says what a reader without the editor role can still do", () => {
-    expect(GUEST_SENTENCE).toBe("You can look and measure.");
+    expect(GUEST_SENTENCE).toBe("You can look, measure and open documents.");
   });
 });
 

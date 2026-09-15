@@ -179,20 +179,20 @@ export function panoramaCanvasProps(p: PageParts, groups: PlacementGroup[]) {
 }
 
 /**
- * The open document, in three pieces: the window itself, the pill that stands
- * in for it while it is hidden, and what the header says about it.
+ * The open document, in two pieces: the window itself and what the header says
+ * about it. The window draws its own collapsed pill — the page only positions
+ * it — so there is nothing here to build for the hidden state.
  *
  * The window is built for a collapsed document too — hiding it keeps the
  * reader's page and zoom, and unmounting it would throw both away.
  */
 export function documentProps(p: PageParts): {
   window: DocumentWindowProps | null;
-  pill: { name: string; onShow: () => void } | null;
   meta: string | null;
 } {
   const { documents: docs } = p;
   const active = docs.active;
-  if (!active) return { window: null, pill: null, meta: null };
+  if (!active) return { window: null, meta: null };
 
   return {
     window: {
@@ -204,10 +204,6 @@ export function documentProps(p: PageParts): {
       onDelete: docs.onDelete,
       onExit: docs.onExit,
     },
-    pill:
-      docs.window === "collapsed"
-        ? { name: documentFileName(active), onShow: () => docs.onWindow("pip") }
-        : null,
     meta: docs.window === "expanded" ? DOC_EXPANDED_META : DOC_OPEN_META,
   };
 }
