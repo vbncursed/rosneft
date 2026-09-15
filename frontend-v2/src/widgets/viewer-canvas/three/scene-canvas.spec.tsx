@@ -135,6 +135,11 @@ const inside = () => ({
   panoramaStatus: "ready" as const,
 });
 
+// The one node in the tree that carries an explicit `visible` prop: the group
+// that hides the territory behind the photograph.
+const territoryGroup = (r: Awaited<ReturnType<typeof mount>>) =>
+  r.scene.findAll((n) => n.props.visible !== undefined);
+
 const ground = (r: Awaited<ReturnType<typeof mount>>) =>
   (r.scene.instance as unknown as Scene).background as Color;
 
@@ -258,6 +263,28 @@ describe("SceneCanvas inside a panorama", () => {
     await mount({ snap: true });
     expect(seen.layer.snapEnabled).toBe(true);
     expect(seen.layer.activePanoramaId).toBeNull();
+  });
+
+  it("does not draw the territory over the photograph", async () => {
+    // The sphere has radius 50 and the normalised mesh max-axis 2, so the
+    // camera sits inside both: with the territory drawn, an anchor placed on
+    // the surface looks out at hills and tanks in front of the photo. The old
+    // SPA hid the group; B-1 is "the old SPA's behaviour".
+    const r = await mount(inside());
+    expect(territoryGroup(r)).toHaveLength(1);
+    expect(territoryGroup(r)[0].props.visible).toBe(false);
+  });
+
+  it("draws the territory while the photo is ghosted for calibration", async () => {
+    // Calibration is the operator lining the photo up against the model —
+    // there is nothing to line up against if the model is not drawn.
+    const r = await mount({ ...inside(), panoramaOpacity: 0.5 });
+    expect(territoryGroup(r)[0].props.visible).toBe(true);
+  });
+
+  it("draws the territory in the 3D view", async () => {
+    const r = await mount();
+    expect(territoryGroup(r)[0].props.visible).toBe(true);
   });
 
   it("does not chase a focus request while a panorama holds the camera", async () => {

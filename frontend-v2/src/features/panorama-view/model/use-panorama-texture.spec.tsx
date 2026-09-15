@@ -122,6 +122,25 @@ describe("usePanoramaTexture", () => {
     expect(result.current).toEqual({ bitmap: null, progress: null, status: "idle" });
   });
 
+  it("downloads again when the reader comes back to the capture they just left", async () => {
+    // The sphere freed the bitmap on the way out (close() detaches the bytes),
+    // so answering "ready" with it would hand three a closed image — a flash,
+    // two camera jumps, and an upload that cannot work.
+    vi.stubGlobal("fetch", vi.fn(async () => ok()));
+    const { result, rerender } = renderHook(({ hash }) => usePanoramaTexture(hash, decoder()), {
+      initialProps: { hash: "abc" as string | null },
+    });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    const first = result.current.bitmap;
+
+    rerender({ hash: null });
+    rerender({ hash: "abc" });
+
+    expect(result.current).toEqual({ bitmap: null, progress: null, status: "loading" });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.bitmap).not.toBe(first);
+  });
+
   it("says nothing about a download the abort tore down", async () => {
     // The reader has already moved on; reporting that capture's failure would
     // paint an error over the one now loading.

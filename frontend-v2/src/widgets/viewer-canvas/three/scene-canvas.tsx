@@ -155,16 +155,24 @@ export default function SceneCanvas({
             through CameraRig/resetVersion, and refit to a selection through
             FocusOn. */}
         <Bounds fit clip margin={1.2}>
-          <GltfModel
-            lods={parentLods}
-            targetLod={targetLod}
-            retryVersion={retryVersion}
-            // A marker drag projects the cursor onto the territory, which
-            // needs the meshes hittable for the same reason point-picking does.
-            raycastable={pointMode || move.active}
-            groupRef={territoryRef}
-            onReport={onLod}
-          />
+          {/* Inside a panorama the photograph IS the scene: the sphere encloses
+              the whole territory, so every hill and tank between the anchor and
+              the horizon would be drawn in front of it. Hidden, not unmounted —
+              Bounds fits at mount only, the drag projection still needs the
+              meshes, and calibration (opacity < 1) is the operator lining the
+              photo up against the model, which has to be on screen for that. */}
+          <group visible={!activePanorama || panoramaOpacity < 1}>
+            <GltfModel
+              lods={parentLods}
+              targetLod={targetLod}
+              retryVersion={retryVersion}
+              // A marker drag projects the cursor onto the territory, which
+              // needs the meshes hittable for the same reason point-picking does.
+              raycastable={pointMode || move.active}
+              groupRef={territoryRef}
+              onReport={onLod}
+            />
+          </group>
           {/* A panorama pins the camera at its anchor; framing a placement
               from there would fight the rig and land nowhere useful. */}
           <FocusOn root={wrapperRef} request={activePanorama ? null : focusRequest} />
