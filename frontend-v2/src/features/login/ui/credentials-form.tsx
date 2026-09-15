@@ -102,7 +102,8 @@ export function CredentialsForm({
           checked={remember ?? false}
           onChange={(e) => onRememberChange(e.target.checked)}
           disabled={submitting}
-          labelClassName="text-xs text-muted"
+          tone="muted"
+          labelClassName="text-xs"
         />
       ) : null}
 

@@ -168,6 +168,14 @@ describe("SceneCanvas", () => {
     expect(ground(r).getHexString()).toBe("ffffff");
   });
 
+  it("keeps its own stacking context, so drei's labels stay under the page chrome", async () => {
+    // Every <Html> carries a z-index of its own — the loading cover's default
+    // is 16777271 — and with no context on the canvas they painted over the
+    // Overlays panel, the tool rail and the document window.
+    await mount();
+    expect(canvas.props.className).toContain("isolate");
+  });
+
   it("deselects on a click into empty space while orbiting", async () => {
     const onPick = vi.fn();
     await mount({ onPick });

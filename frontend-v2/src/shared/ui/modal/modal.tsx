@@ -8,6 +8,12 @@ export type ModalProps = {
   title: ReactNode;
   /** Mono overline above the title, e.g. "Confirm · danger". */
   overline?: ReactNode;
+  /**
+   * Drawn on the title's row, beside it — a close button, usually. Outside the
+   * `<h2>` on purpose: the dialog's accessible name is that heading, and a
+   * button inside it is read out as part of the name.
+   */
+  action?: ReactNode;
   description?: ReactNode;
   /** Buttons; the design right-aligns them under the body. */
   footer?: ReactNode;
@@ -23,6 +29,7 @@ export function Modal({
   onClose,
   title,
   overline,
+  action,
   description,
   footer,
   tone = "default",
@@ -89,9 +96,18 @@ export function Modal({
         </p>
       ) : null}
 
-      <h2 id={titleId} className="m-0 text-base font-semibold">
-        {title}
-      </h2>
+      {action ? (
+        <div className="flex items-center justify-between gap-4">
+          <h2 id={titleId} className="m-0 text-base font-semibold">
+            {title}
+          </h2>
+          {action}
+        </div>
+      ) : (
+        <h2 id={titleId} className="m-0 text-base font-semibold">
+          {title}
+        </h2>
+      )}
 
       {description ? (
         <p className="m-0 text-[13px] leading-[1.55] text-muted">{description}</p>

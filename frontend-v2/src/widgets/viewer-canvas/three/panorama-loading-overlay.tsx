@@ -17,16 +17,14 @@ import { ProgressBar } from "@/shared/ui/progress-bar";
 // size — no dependency on where the camera is looking.
 const TOP_LEFT = (): [number, number] => [0, 0];
 
+const LABEL = "Loading panorama";
+
 interface PanoramaLoadingOverlayProps {
   /** 0–100, or null for indeterminate (server sent no Content-Length). */
   progress: number | null;
-  label?: string;
 }
 
-export default function PanoramaLoadingOverlay({
-  progress,
-  label = "Loading panorama",
-}: PanoramaLoadingOverlayProps) {
+export default function PanoramaLoadingOverlay({ progress }: PanoramaLoadingOverlayProps) {
   const size = useThree((s) => s.size);
 
   return (
@@ -36,7 +34,7 @@ export default function PanoramaLoadingOverlay({
           className="w-64"
           variant="thin"
           value={progress ?? undefined}
-          label={label}
+          label={LABEL}
           detail={progress === null ? undefined : `${Math.round(progress)}%`}
         />
       </div>

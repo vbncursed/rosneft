@@ -225,6 +225,13 @@ describe("pageProps · overlays", () => {
     expect(props.overlays.tools.every((t) => t.state === "idle")).toBe(true);
   });
 
+  it("lights no tile while the panorama tour runs either", () => {
+    // The replay tile lit under the panorama tour would start the viewer's
+    // over the top of it, and the two are never both on screen.
+    const props = pageProps(parts({ panoramaTour: { ...TOUR, active: true } }));
+    expect(props.overlays.tools.every((t) => t.state === "idle")).toBe(true);
+  });
+
   it("says what the pointer does", () => {
     expect(pageProps(parts()).overlays.chip).toEqual({ text: "orbit · drag to rotate" });
   });

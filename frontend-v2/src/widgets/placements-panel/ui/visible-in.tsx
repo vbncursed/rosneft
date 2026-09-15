@@ -23,7 +23,7 @@ export function VisibleIn({ placement, panoramas, pending, onToggle }: VisibleIn
             checked={checked}
             onChange={(e) => onToggle(panorama.id, e.target.checked)}
             disabled={pending}
-            labelClassName={checked ? "text-fg" : "text-muted"}
+            tone={checked ? "default" : "muted"}
           />
         );
       })}

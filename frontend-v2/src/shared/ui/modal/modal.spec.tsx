@@ -50,6 +50,21 @@ describe("Modal", () => {
     expect(screen.getByText("Grant Root to d.smirnov?")).toBeInTheDocument();
   });
 
+  it("keeps an action out of the name it is named by", async () => {
+    // aria-labelledby points at the <h2>; a close button inside it made the
+    // dialog announce "Add a panorama to X Close panorama upload".
+    render(
+      <Modal
+        open
+        onClose={vi.fn()}
+        title="Add a panorama"
+        action={<button type="button" aria-label="Close panorama upload" />}
+      />,
+    );
+    expect(screen.getByRole("dialog", { name: "Add a panorama" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close panorama upload" })).toBeInTheDocument();
+  });
+
   it("closes on Escape", async () => {
     render(<Harness />);
     await userEvent.click(screen.getByRole("button", { name: "Open" }));

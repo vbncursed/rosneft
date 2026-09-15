@@ -32,6 +32,19 @@ describe("Checkbox", () => {
     expect(screen.getByRole("checkbox", { name: "Locked on" })).toBeChecked();
   });
 
+  it("owns the label's colour, so only one of the two is ever on the element", () => {
+    // A caller passing a colour through labelClassName left `text-fg` and
+    // `text-muted` on the same label, and the stylesheet's source order — not
+    // the className string's — decided which one showed.
+    const { rerender } = render(<Checkbox label="Tone" />);
+    expect(screen.getByText("Tone")).toHaveClass("text-fg");
+    expect(screen.getByText("Tone")).not.toHaveClass("text-muted");
+
+    rerender(<Checkbox label="Tone" tone="muted" />);
+    expect(screen.getByText("Tone")).toHaveClass("text-muted");
+    expect(screen.getByText("Tone")).not.toHaveClass("text-fg");
+  });
+
   it("is reachable and toggleable from the keyboard", async () => {
     render(<Checkbox label="Keyboard" />);
     await userEvent.tab();

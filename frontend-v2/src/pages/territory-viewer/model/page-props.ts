@@ -110,7 +110,10 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
         mode: mode.mode,
         geometry,
         loading: loading !== null,
-        tourActive: p.tour.active,
+        // Either tour: the replay tile lit under the panorama tour would
+        // start the viewer's over the top of it, and the two are never both
+        // on screen.
+        tourActive: p.tour.active || p.panoramaTour.active,
         view: mode.view,
         documentOpen: docs.window !== null,
       }),

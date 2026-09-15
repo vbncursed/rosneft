@@ -72,21 +72,19 @@ export function UploadModal({
       open={open}
       onClose={leave}
       size="sm"
-      title={
-        // Modal has no close slot of its own, and every dialog in the app wears
-        // the same chrome — the mock's × lives in the heading row instead.
-        <span className="flex items-center justify-between gap-4">
-          <span>{modalTitle(kind, territoryTitle)}</span>
-          <button
-            type="button"
-            onClick={leave}
-            aria-label={close}
-            title={close}
-            className="flex size-[26px] shrink-0 cursor-pointer items-center justify-center rounded-[7px] border border-line-2 bg-panel-2 text-fg transition-colors duration-150 hover:border-accent-line focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            <Icon name="close" size={12} />
-          </button>
-        </span>
+      title={modalTitle(kind, territoryTitle)}
+      // Beside the heading, never inside it: the dialog is named by that
+      // heading, and a button in it is read out as part of the name.
+      action={
+        <button
+          type="button"
+          onClick={leave}
+          aria-label={close}
+          title={close}
+          className="flex size-[26px] shrink-0 cursor-pointer items-center justify-center rounded-[7px] border border-line-2 bg-panel-2 text-fg transition-colors duration-150 hover:border-accent-line focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          <Icon name="close" size={12} />
+        </button>
       }
       footer={
         <div className="flex w-full items-center gap-4">
