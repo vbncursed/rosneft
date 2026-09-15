@@ -30,10 +30,13 @@ describe("insideFooter", () => {
     );
   });
 
+  it("says none rather than counting to zero", () => {
+    // The common state right after an upload: older placements are not in the
+    // new capture's allowlist yet.
+    expect(insideFooter(0)).toBe("No placements fall inside this panorama.");
+  });
+
   it("spells up to nine and digits the rest", () => {
-    expect(insideFooter(0)).toBe(
-      "0 placements fall inside this panorama and are marked on the photo.",
-    );
     expect(insideFooter(9)).toBe(
       "Nine placements fall inside this panorama and are marked on the photo.",
     );

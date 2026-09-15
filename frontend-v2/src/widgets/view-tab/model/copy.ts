@@ -29,9 +29,11 @@ const spell = (n: number) => WORDS[n - 1] ?? String(n);
 
 /** How many placements the photo marks — the footer of the panorama view. */
 export const insideFooter = (n: number) =>
-  n === 1
-    ? "One placement falls inside this panorama and is marked on the photo."
-    : `${spell(n)} placements fall inside this panorama and are marked on the photo.`;
+  n === 0
+    ? "No placements fall inside this panorama."
+    : n === 1
+      ? "One placement falls inside this panorama and is marked on the photo."
+      : `${spell(n)} placements fall inside this panorama and are marked on the photo.`;
 
 // The anchor card (mock state 9) and the calibration block under it.
 export const EDITING_OVERLINE = "Panorama · editing";

@@ -4,10 +4,17 @@ import { clsx as cx } from "clsx";
 export type CheckboxProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "id"> & {
   label?: ReactNode;
   id?: string;
+  /**
+   * The label's colour, which is this component's to own: a caller passing one
+   * through `labelClassName` stacked a second text colour on the same element,
+   * and which of the two wins is the stylesheet's source order, not the
+   * className string's.
+   */
+  tone?: "default" | "muted";
   labelClassName?: string;
 };
 
-export function Checkbox({ label, id, className, labelClassName, ...rest }: CheckboxProps) {
+export function Checkbox({ label, id, className, tone = "default", labelClassName, ...rest }: CheckboxProps) {
   const autoId = useId();
   const boxId = id ?? autoId;
 
@@ -15,7 +22,8 @@ export function Checkbox({ label, id, className, labelClassName, ...rest }: Chec
     <label
       htmlFor={boxId}
       className={cx(
-        "inline-flex items-center gap-[9px] text-[13px] text-fg",
+        "inline-flex items-center gap-[9px] text-[13px]",
+        tone === "muted" ? "text-muted" : "text-fg",
         rest.disabled ? "opacity-45" : "cursor-pointer",
         labelClassName,
       )}

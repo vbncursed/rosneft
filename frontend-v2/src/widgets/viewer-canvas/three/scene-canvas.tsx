@@ -122,6 +122,11 @@ export default function SceneCanvas({
 
   return (
     <Canvas
+      // Its own stacking context. drei's <Html> labels carry z-indexes of
+      // their own (the loading cover's default is 16777271), and with no
+      // context here they painted over the Overlays panel and the tool rail —
+      // siblings drawn after the canvas, which now win by being later.
+      className="isolate"
       camera={CAMERA}
       gl={GL_CONFIG}
       dpr={DPR_RANGE}
