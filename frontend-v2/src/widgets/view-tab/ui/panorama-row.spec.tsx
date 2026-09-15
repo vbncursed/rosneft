@@ -26,9 +26,14 @@ const row = (over: Partial<PanoramaRowView> = {}, handlers: Partial<Parameters<t
   );
 
 describe("PanoramaRow", () => {
-  it("shows the photo when there is one", () => {
+  it("shows the photo when there is one, and does not pull it until it is looked at", () => {
+    // The thumb is the whole equirect — 5-8 MB and a 32 MB decode per capture,
+    // on a tab that opens by default.
     const { container } = row();
-    expect(container.querySelector("img")).toHaveAttribute("src", "/api/assets/abc");
+    const img = container.querySelector("img");
+    expect(img).toHaveAttribute("src", "/api/assets/abc");
+    expect(img).toHaveAttribute("loading", "lazy");
+    expect(img).toHaveAttribute("decoding", "async");
   });
 
   it("falls back to the panorama glyph when the thumbnail is missing", () => {
