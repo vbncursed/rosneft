@@ -75,7 +75,9 @@ export function viewTabProps(p: PageParts): ViewTabProps {
       showMarkers: pan.showMarkers,
       onToggleMarkers: pan.onToggleMarkers,
       onExitCalibration: pan.calibration.onExit,
-      canMovePoints: grants.panoramaWrite,
+      // Scene only (B-5): the reducer refuses V from inside a capture, and a
+      // button offering a sub-mode that cannot be entered is worse than none.
+      canMovePoints: grants.panoramaWrite && inside === null,
       moving: mode.move,
       onToggleMove: p.on.onToggleMove,
       link: {

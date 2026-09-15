@@ -9,7 +9,9 @@ const { list, usePanoramaList, usePanoramaTexture, usePanoramaUpload, useTerrito
     const list = { panoramas: [] as unknown[], pendingId: null, add: vi.fn(), update: vi.fn(), remove: vi.fn() };
     return {
       list,
-      usePanoramaList: vi.fn(() => list),
+      // A fresh object each render, exactly as the real hook returns one: the
+      // composite must depend on its stable members, not on the object.
+      usePanoramaList: vi.fn(() => ({ ...list })),
       usePanoramaTexture: vi.fn(() => ({ texture: null, progress: null, status: "idle" })),
       usePanoramaUpload: vi.fn((params: { onCreated: (p: never) => void }) => ({
         params,
@@ -180,6 +182,27 @@ describe("useViewerPanoramas", () => {
     act(() => usePanoramaUpload.mock.calls.at(-1)![0].onCreated(created as never));
     expect(list.add).toHaveBeenCalledWith(created);
     expect(result.current.upload.open).toBe(false);
+  });
+
+  it("keeps every canvas-bound callback stable across a re-render", () => {
+    // `onMarkerDrop` and friends are props on a tree that mounts WebGL: a fresh
+    // identity re-binds the drag controller's window listeners on every render
+    // the page does, which is one per keystroke in the panel. The list hook
+    // returns a new object each render, so the callbacks depend on its stable
+    // members, never on the object.
+    const mode = modeStub();
+    const { result, rerender } = mount(mode);
+    const first = result.current;
+    // What the page really hands over on a re-render: a fresh wrapper object
+    // around the same reducer callbacks.
+    rerender({ mode: { ...mode }, moving: true });
+
+    expect(result.current.drag.end).toBe(first.drag.end);
+    expect(result.current.drag.begin).toBe(first.drag.begin);
+    expect(result.current.drag.move).toBe(first.drag.move);
+    expect(result.current.onEnter).toBe(first.onEnter);
+    expect(result.current.onExit).toBe(first.onExit);
+    expect(result.current.onSave).toBe(first.onSave);
   });
 
   it("hands the tour link the territory's own URL", () => {

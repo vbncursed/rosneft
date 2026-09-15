@@ -54,17 +54,23 @@ export function useViewerPanoramas({
   decode,
 }: ViewerPanoramasParams): PanoramaParts {
   const list = usePanoramaList({ slug, initial, onChanged });
+  // The list hook hands back a new object every render; every callback below
+  // depends on its *members*, which are `useCallback`s and do not move. A
+  // dependency on the object itself would give the canvas a fresh
+  // `onMarkerDrop` on every render the page does — one per keystroke in the
+  // panel — and the drag controller re-binds its window listeners on each.
+  const { add, update, remove } = list;
   const view = usePanoramaView(list.panoramas, mode);
 
   const saveCalibration = useCallback(
-    (id: number, patch: { position: Vec3; yawOffset: number }) => void list.update(id, patch),
-    [list],
+    (id: number, patch: { position: Vec3; yawOffset: number }) => void update(id, patch),
+    [update],
   );
   const calibration = usePanoramaCalibration(view.editing, saveCalibration);
 
   const commitDrag = useCallback(
-    (id: number, position: Vec3) => void list.update(id, { position }),
-    [list],
+    (id: number, position: Vec3) => void update(id, { position }),
+    [update],
   );
   const drag = usePanoramaDrag(commitDrag);
   // One source of truth for the sub-mode: the reducer owns it, so leaving it
@@ -90,27 +96,32 @@ export function useViewerPanoramas({
     sourceBbox,
     onCreated: useCallback(
       (panorama: Panorama) => {
-        list.add(panorama);
+        add(panorama);
         setUploadOpen(false);
       },
-      [list],
+      [add],
     ),
   });
+
+  const { activate, startEdit, closeEdit, toggleView } = view;
+  const onExit = useCallback(() => activate(null), [activate]);
+  const openUpload = useCallback(() => setUploadOpen(true), []);
+  const closeUpload = useCallback(() => setUploadOpen(false), []);
 
   const editingId = view.editing?.id ?? null;
   const onSave = useCallback(
     (patch: PanoramaUpdate) => {
-      if (editingId !== null) void list.update(editingId, patch);
+      if (editingId !== null) void update(editingId, patch);
     },
-    [editingId, list],
+    [editingId, update],
   );
   // Deleting the card's subject closes the card: the row is gone, and a header
   // that still reads "editing anchor" would be pointing at nothing.
   const onDelete = useCallback(() => {
     if (editingId === null) return;
-    void list.remove(editingId);
-    mode.closeEdit();
-  }, [editingId, list, mode]);
+    void remove(editingId);
+    closeEdit();
+  }, [editingId, remove, closeEdit]);
 
   return {
     list: list.panoramas,
@@ -136,21 +147,16 @@ export function useViewerPanoramas({
       onSave: calibration.save,
       onExit: calibration.cancel,
     },
-    onEnter: (id: number) => view.activate(id),
-    onExit: () => view.activate(null),
+    onEnter: activate,
+    onExit,
     onCycle: view.cycle,
-    onEdit: view.startEdit,
-    onCloseEditor: view.closeEdit,
-    onToggleView: view.toggleView,
+    onEdit: startEdit,
+    onCloseEditor: closeEdit,
+    onToggleView: toggleView,
     onSave,
     onDelete,
     link: { url: link.url, saving: link.saving, onSave: link.save },
-    upload: {
-      open: uploadOpen,
-      onOpen: () => setUploadOpen(true),
-      onClose: () => setUploadOpen(false),
-      form: upload,
-    },
+    upload: { open: uploadOpen, onOpen: openUpload, onClose: closeUpload, form: upload },
     cameraPositionRef,
     cameraYawRef,
   };
