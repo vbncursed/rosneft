@@ -1,6 +1,6 @@
 import ReactThreeTestRenderer from "@react-three/test-renderer";
-import { BackSide, Raycaster, Texture, type Mesh, type MeshBasicMaterial } from "three";
-import { describe, expect, it } from "vitest";
+import { BackSide, Raycaster, RepeatWrapping, SRGBColorSpace, Texture, type Mesh, type MeshBasicMaterial } from "three";
+import { describe, expect, it, vi } from "vitest";
 import PanoramaSphere from "./panorama-sphere";
 
 const PANO = {
@@ -15,9 +15,18 @@ const PANO = {
   updatedAt: "",
 };
 
+// jsdom has no ImageBitmap; three only ever hands it to the GL upload, which
+// never runs here, so the close() the sphere owes it is the whole contract.
+const bitmap = () => ({ close: vi.fn() }) as unknown as ImageBitmap;
+
+const mount = (over: { bitmap?: ImageBitmap; opacity?: number } = {}) =>
+  ReactThreeTestRenderer.create(
+    <PanoramaSphere panorama={PANO} bitmap={over.bitmap ?? bitmap()} opacity={over.opacity} />,
+  );
+
 describe("PanoramaSphere", () => {
   it("is an inverted 50-unit sphere at the anchor, turned by the yaw offset, drawn from the inside without tone mapping", async () => {
-    const r = await ReactThreeTestRenderer.create(<PanoramaSphere panorama={PANO} texture={new Texture()} />);
+    const r = await mount();
     const mesh = r.scene.children[0].instance as Mesh;
     expect(mesh.position.toArray()).toEqual([1, 2, 3]);
     expect(mesh.rotation.y).toBeCloseTo(0.5);
@@ -29,10 +38,26 @@ describe("PanoramaSphere", () => {
     expect(mesh.renderOrder).toBe(0);
   });
 
+  it("maps the bitmap for the inside of the sphere: sRGB, pre-flipped, U reversed", async () => {
+    // three imports nowhere near the feature hook any more (it would ride in
+    // every page's bundle); the texture is built here, from the bitmap.
+    const r = await mount();
+    const texture = (r.scene.children[0].instance as Mesh & { material: MeshBasicMaterial }).material
+      .map as Texture;
+    expect(texture.colorSpace).toBe(SRGBColorSpace);
+    // The bitmap arrives pre-flipped, and WebGL cannot flip one itself.
+    expect(texture.flipY).toBe(false);
+    // U reversed so the photo is not mirrored on a BackSide sphere.
+    expect(texture.wrapS).toBe(RepeatWrapping);
+    expect(texture.repeat.x).toBe(-1);
+    expect(texture.offset.x).toBe(1);
+    // `needsUpdate` is a write-only setter that bumps the version; without it
+    // three never uploads the image and the sphere renders untextured.
+    expect(texture.version).toBeGreaterThan(0);
+  });
+
   it("ghosts for calibration: transparent, no depth, drawn last", async () => {
-    const r = await ReactThreeTestRenderer.create(
-      <PanoramaSphere panorama={PANO} texture={new Texture()} opacity={0.5} />,
-    );
+    const r = await mount({ opacity: 0.5 });
     const mesh = r.scene.children[0].instance as Mesh;
     const mat = mesh.material as MeshBasicMaterial;
     expect(mat.transparent).toBe(true);
@@ -43,7 +68,7 @@ describe("PanoramaSphere", () => {
   });
 
   it("cannot be hit by the pointer — a click into the sky reaches onPointerMissed", async () => {
-    const r = await ReactThreeTestRenderer.create(<PanoramaSphere panorama={PANO} texture={new Texture()} />);
+    const r = await mount();
     const mesh = r.scene.children[0].instance as Mesh;
     const hits: unknown[] = [];
     mesh.raycast(new Raycaster(), hits as never);
@@ -51,9 +76,34 @@ describe("PanoramaSphere", () => {
   });
 
   it("hands the prototype raycast back when the panorama closes", async () => {
-    const r = await ReactThreeTestRenderer.create(<PanoramaSphere panorama={PANO} texture={new Texture()} />);
+    const r = await mount();
     const mesh = r.scene.children[0].instance as Mesh;
     await r.unmount();
     expect(mesh.raycast).toBe((Object.getPrototypeOf(mesh) as Mesh).raycast);
+  });
+
+  it("frees the texture and the bitmap behind it when the panorama closes — nothing else holds either", async () => {
+    const first = bitmap();
+    const dispose = vi.spyOn(Texture.prototype, "dispose");
+    const r = await mount({ bitmap: first });
+    await r.unmount();
+
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(first.close).toHaveBeenCalledTimes(1);
+    dispose.mockRestore();
+  });
+
+  it("frees the previous capture's texture and bitmap when the reader moves to the next one", async () => {
+    const first = bitmap();
+    const second = bitmap();
+    const dispose = vi.spyOn(Texture.prototype, "dispose");
+    const r = await mount({ bitmap: first });
+
+    await r.update(<PanoramaSphere panorama={PANO} bitmap={second} />);
+
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(first.close).toHaveBeenCalledTimes(1);
+    expect(second.close).not.toHaveBeenCalled();
+    dispose.mockRestore();
   });
 });

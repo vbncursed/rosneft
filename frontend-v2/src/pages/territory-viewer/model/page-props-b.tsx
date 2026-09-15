@@ -159,7 +159,7 @@ export function panoramaCanvasProps(p: PageParts, groups: PlacementGroup[]) {
   const { panoramas: pan } = p;
   return {
     activePanorama: pan.calibration.effective ?? pan.active,
-    panoramaTexture: pan.texture.texture,
+    panoramaBitmap: pan.texture.bitmap,
     panoramaStatus: pan.texture.status,
     panoramaProgress: pan.texture.progress,
     panoramaOpacity: pan.calibration.active ? pan.calibration.opacity : 1,

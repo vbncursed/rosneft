@@ -1,6 +1,6 @@
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { createElement, type ComponentType } from "react";
-import { Texture, type BufferGeometry, type Color, type Mesh, type Scene } from "three";
+import type { BufferGeometry, Color, Mesh, Scene } from "three";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Panorama } from "@/entities/panorama";
 import type { ViewerCanvasProps } from "../ui/props";
@@ -73,6 +73,9 @@ const PANO: Panorama = {
 
 const STILL = { active: false, draggingId: null, livePos: null };
 
+// jsdom has no ImageBitmap, and nothing here uploads one to a GL context.
+const fakeBitmap = () => ({ close: vi.fn() }) as unknown as ImageBitmap;
+
 const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   slug: "t",
   parentLods: [],
@@ -90,7 +93,7 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   retryVersion: 0,
   focusRequest: null,
   activePanorama: null,
-  panoramaTexture: null,
+  panoramaBitmap: null,
   panoramaStatus: "idle",
   panoramaProgress: null,
   panoramaOpacity: 1,
@@ -128,7 +131,7 @@ const spheres = (r: Awaited<ReturnType<typeof mount>>) =>
 /** A panorama that has finished decoding, as the page hands it over. */
 const inside = () => ({
   activePanorama: PANO,
-  panoramaTexture: new Texture(),
+  panoramaBitmap: fakeBitmap(),
   panoramaStatus: "ready" as const,
 });
 

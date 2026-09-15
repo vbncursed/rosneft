@@ -27,8 +27,8 @@ describe("the overlay part shapes", () => {
   });
 
   it("describes the sphere exactly as the canvas asks for it", () => {
-    expectTypeOf<PanoramaParts["texture"]["texture"]>().toEqualTypeOf<
-      ViewerCanvasProps["panoramaTexture"]
+    expectTypeOf<PanoramaParts["texture"]["bitmap"]>().toEqualTypeOf<
+      ViewerCanvasProps["panoramaBitmap"]
     >();
     expectTypeOf<PanoramaParts["texture"]["status"]>().toEqualTypeOf<
       ViewerCanvasProps["panoramaStatus"]

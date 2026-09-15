@@ -1,6 +1,6 @@
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { createElement } from "react";
-import { Texture, type Mesh } from "three";
+import type { Mesh } from "three";
 import { describe, expect, it, vi } from "vitest";
 import type { Panorama } from "@/entities/panorama";
 import PanoramaScene from "./panorama-scene";
@@ -43,13 +43,16 @@ const PANO: Panorama = {
 
 const STILL = { active: false, draggingId: null, livePos: null };
 
+// jsdom has no ImageBitmap, and nothing here uploads one to a GL context.
+const fakeBitmap = () => ({ close: vi.fn() }) as unknown as ImageBitmap;
+
 type Props = Parameters<typeof PanoramaScene>[0];
 
 const mount = (over: Partial<Props> = {}) =>
   ReactThreeTestRenderer.create(
     <PanoramaScene
       activePanorama={null}
-      texture={null}
+      bitmap={null}
       status="idle"
       progress={null}
       opacity={1}
@@ -72,7 +75,7 @@ const named = (r: Awaited<ReturnType<typeof mount>>, name: string) =>
 const spheres = (r: Awaited<ReturnType<typeof mount>>) =>
   r.scene.findAll((n) => (n.instance as Mesh).isMesh === true);
 
-const ready = { activePanorama: PANO, texture: new Texture(), status: "ready" as const };
+const ready = { activePanorama: PANO, bitmap: fakeBitmap(), status: "ready" as const };
 
 describe("PanoramaScene", () => {
   it("puts the reader inside the equirect once it has decoded, with the rig holding the camera", async () => {

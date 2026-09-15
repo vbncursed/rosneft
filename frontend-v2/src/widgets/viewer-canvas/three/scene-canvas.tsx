@@ -52,7 +52,7 @@ export default function SceneCanvas({
   unitRatio,
   focusRequest,
   activePanorama,
-  panoramaTexture,
+  panoramaBitmap,
   panoramaStatus,
   panoramaProgress,
   panoramaOpacity,
@@ -206,7 +206,7 @@ export default function SceneCanvas({
           swallow the auto-fit. */}
       <PanoramaScene
         activePanorama={activePanorama}
-        texture={panoramaTexture}
+        bitmap={panoramaBitmap}
         status={panoramaStatus}
         progress={panoramaProgress}
         opacity={panoramaOpacity}

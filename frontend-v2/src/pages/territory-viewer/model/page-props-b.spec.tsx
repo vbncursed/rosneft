@@ -158,7 +158,7 @@ describe("viewTabProps · panoramas", () => {
     const props = viewTabProps(
       withPanoramas([editing], {
         editing,
-        texture: { texture: null, progress: null, status: "error" },
+        texture: { bitmap: null, progress: null, status: "error" },
       }),
     );
     expect((props.panoramas.editor as { props: { failed: boolean } }).props.failed).toBe(true);

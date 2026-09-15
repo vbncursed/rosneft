@@ -1,5 +1,4 @@
 import type { RefObject } from "react";
-import type { Texture } from "three";
 import type { Chain, MeasurePoint } from "@/entities/measurement";
 import type { Panorama } from "@/entities/panorama";
 import type { PlacementTransform, ResolvedPlacement, Vec3 } from "@/entities/placement";
@@ -36,7 +35,8 @@ export type ViewerCanvasProps = {
   focusRequest: number[] | null;
   /** The active panorama, calibration draft already applied; null in the 3D view. */
   activePanorama: Panorama | null;
-  panoramaTexture: Texture | null;
+  /** The decoded equirect; `PanoramaSphere` builds the texture and owns it. */
+  panoramaBitmap: ImageBitmap | null;
   panoramaStatus: "idle" | "loading" | "ready" | "error";
   panoramaProgress: number | null;
   /** < 1 ghosts the sphere for calibration. */
