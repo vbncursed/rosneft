@@ -1,10 +1,11 @@
-import { useRef, useState, type DragEvent, type KeyboardEvent } from "react";
+import { useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 import { clsx as cx } from "clsx";
 import { Icon } from "@/shared/ui/icon";
 
 export type DropZoneProps = {
   label: string;
-  hint: string;
+  /** A node, not a string: the upload modal's refusal is a toned `role="alert"` line in its place. */
+  hint: ReactNode;
   buttonLabel: string;
   accept: string;
   multiple?: boolean;
