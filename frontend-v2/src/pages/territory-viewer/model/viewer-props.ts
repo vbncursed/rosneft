@@ -1,3 +1,4 @@
+import type { RefObject } from "react";
 import type { Chain, MeasurePoint } from "@/entities/measurement";
 import type { PlacementTransform, ResolvedPlacement } from "@/entities/placement";
 import type { ModelOption, SceneViewModel } from "@/entities/scene";
@@ -74,6 +75,11 @@ export type ViewerOverlaysProps = {
   switchTo3d: (() => void) | null;
   /** The PDF window, mounted for as long as a document is open — collapsed only hides it. */
   document: DocumentWindowProps | null;
+  /**
+   * Goes on the floating layer. The layer is the area the window may be docked
+   * and dragged in, and `usePipWindow` measures it through this.
+   */
+  documentLayerRef: RefObject<HTMLDivElement | null>;
 };
 
 export type ViewerPanelProps = {

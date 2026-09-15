@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { Document } from "@/entities/document";
 import { useDocumentList, useDocumentView, usePipWindow } from "@/features/document-view";
 import { useDocumentUpload } from "@/features/document-upload";
@@ -13,7 +13,7 @@ export type ViewerDocumentsParams = {
   onOpen: () => void;
 };
 
-/** The mock's inset for the floating window; Task 16 positions the container it sits in. */
+/** The mock's inset for the floating window, measured from the layer it floats in. */
 const PIP_INSET = 14;
 
 /**
@@ -36,7 +36,12 @@ export function useViewerDocuments({
   // each time (`use-viewer-panoramas.ts` has the long version of this note).
   const { add, remove } = list;
   const view = useDocumentView(list.documents, onOpen);
-  const pip = usePipWindow(PIP_INSET);
+  // The layer the window is positioned inside — the viewport container minus
+  // the header, the stats-strip row and the open Overlays panel. The page
+  // attaches this to it; the pip docks and clamps against that box, not the
+  // browser window, which is what keeps its actions clear of the panel.
+  const layerRef = useRef<HTMLDivElement>(null);
+  const pip = usePipWindow(PIP_INSET, layerRef);
   const [uploadOpen, setUploadOpen] = useState(false);
 
   const upload = useDocumentUpload({
@@ -59,6 +64,7 @@ export function useViewerDocuments({
 
   return {
     list: list.documents,
+    layerRef,
     pendingId: list.pendingId,
     active: view.active,
     window: view.window,

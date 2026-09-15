@@ -160,6 +160,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       hints: !failed && p.panel.collapsed && mode.mode === "orbit",
       switchTo3d: inside ? p.panoramas.onExit : null,
       document: docs.window,
+      documentLayerRef: p.documents.layerRef,
       error: error
         ? {
             copy: errorCopy(error, view.now),
