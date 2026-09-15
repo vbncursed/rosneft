@@ -1,10 +1,11 @@
+import { documentFileName } from "@/entities/document";
 import { Button } from "@/shared/ui/button";
 import { KeycapHint } from "@/shared/ui/keycap-hint";
 import { LodSwitcher } from "@/shared/ui/lod-switcher";
 import { ModeChip } from "@/shared/ui/mode-chip";
 import { StatsStrip } from "@/shared/ui/stats-strip";
 import { ToolRail, type ToolRailItem } from "@/shared/ui/tool-rail";
-import { DocumentWindow } from "@/widgets/document-window";
+import { CollapsedPill, DocumentWindow } from "@/widgets/document-window";
 import { SWITCH_TO_3D } from "@/widgets/view-tab";
 import type { ViewerOverlaysProps } from "../model/page-props";
 import type { RailTool } from "../model/viewer-view";
@@ -44,8 +45,15 @@ const PANEL_EDGE = "right-[calc(var(--overlays-w)+28px)]";
  */
 const DOC_FLOATING = "fixed inset-x-0 bottom-0 -top-11";
 const DOC_EXPANDED = "absolute inset-0";
-/** Beside the strip: 14 + the widest strip the scene prints + the same gap. */
-const DOC_PILL = "absolute bottom-3.5 left-[472px] max-w-[260px]";
+
+/**
+ * The strip and the collapsed document's pill share one row, so the pill sits
+ * 14px past the strip's *real* right edge. The strip's width is the scene's —
+ * `LOD 1 active` and `LOD 1 active · LOD 0 loading` differ by ~96px — so an
+ * offset measured off the usual strip puts the pill under it the moment a
+ * level downloads.
+ */
+const BOTTOM_ROW = "absolute left-3.5 flex items-center gap-3.5";
 
 const HINT_BAR =
   "absolute left-3.5 bottom-3.5 flex items-center justify-center gap-[9px] rounded-[10px] border border-accent-line bg-panel px-3.5 py-[9px] font-mono text-[10px] text-fg shadow-elevation";
@@ -85,7 +93,7 @@ export function ViewerOverlays({
   hints,
   error,
   switchTo3d,
-  document,
+  document: doc,
 }: ViewerOverlaysProps) {
   const handlers: Record<RailTool, () => void> = {
     reset: onReset,
@@ -158,12 +166,15 @@ export function ViewerOverlays({
 
       {switcher ? <LodSwitcher {...switcher} className={`absolute top-3.5 ${PANEL_EDGE}`} /> : null}
 
-      <StatsStrip
-        items={strip.items}
-        tone={strip.tone}
-        accentLast={strip.accentLast}
-        className={`absolute left-3.5 ${measuring ? "bottom-[60px]" : "bottom-3.5"}`}
-      />
+      <div className={`${BOTTOM_ROW} ${measuring ? "bottom-[60px]" : "bottom-3.5"}`}>
+        <StatsStrip items={strip.items} tone={strip.tone} accentLast={strip.accentLast} />
+        {doc?.window === "collapsed" ? (
+          <CollapsedPill
+            file={documentFileName(doc.document)}
+            onShow={() => doc.onWindow("pip")}
+          />
+        ) : null}
+      </div>
 
       {hints ? (
         <div
@@ -190,9 +201,10 @@ export function ViewerOverlays({
         </div>
       ) : null}
 
-      {document ? (
-        <div className={document.window === "expanded" ? DOC_EXPANDED : DOC_FLOATING}>
-          <DocumentWindow {...document} pillClassName={DOC_PILL} />
+      {doc ? (
+        <div className={doc.window === "expanded" ? DOC_EXPANDED : DOC_FLOATING}>
+          {/* The pill is the row's above, where the strip's width decides it. */}
+          <DocumentWindow {...doc} showPill={false} />
         </div>
       ) : null}
 

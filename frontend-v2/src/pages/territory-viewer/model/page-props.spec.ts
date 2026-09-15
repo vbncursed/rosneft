@@ -459,3 +459,30 @@ describe("pageProps · picker, tour and the loading gate", () => {
     expect(pageProps(parts(FAILURE)).loadingScene).toBe(false);
   });
 });
+
+describe("pageProps · the LOD switcher goes where the level cannot be chosen", () => {
+  it("draws none inside a capture: the camera is in a photo, not on the mesh", () => {
+    const p = parts();
+    expect(
+      pageProps({ ...p, mode: { ...p.mode, view: { kind: "panorama", id: 1 } } }).overlays.switcher,
+    ).toBeNull();
+  });
+
+  it("draws none under an open document window", () => {
+    const p = parts();
+    const active = {
+      id: 7,
+      territorySlug: "refinery-block-c",
+      title: "Fire plan.pdf",
+      sourceBlobHash: "d7",
+      createdAt: "2026-09-01T00:00:00Z",
+    };
+    expect(
+      pageProps({ ...p, documents: { ...p.documents, list: [active], active } }).overlays.switcher,
+    ).toBeNull();
+  });
+
+  it("draws it in the 3D scene with nothing over it", () => {
+    expect(pageProps(parts()).overlays.switcher).not.toBeNull();
+  });
+});

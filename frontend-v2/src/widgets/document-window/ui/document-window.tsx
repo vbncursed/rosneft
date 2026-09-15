@@ -21,8 +21,12 @@ export type DocumentWindowProps = {
   onExit: () => void;
   /** Cosmos cannot load the real pdf.js viewer without the gateway; defaults to it. */
   frameSrc?: string;
-  /** Where the collapsed pill sits — the page owns that, this widget only draws it. */
-  pillClassName?: string;
+  /**
+   * False where the page draws the pill itself — the viewer puts it in the
+   * stats strip's own row, so its offset follows the strip's real width. The
+   * window is hidden either way; only the pill changes hands.
+   */
+  showPill?: boolean;
 };
 
 function actionsFor(
@@ -38,15 +42,15 @@ function actionsFor(
     : [];
   const exit: ViewportWindowAction = { name: "Exit document overlay", icon: "close", onClick: onExit };
 
-  if (mode === "expanded") {
-    return [
-      { name: `Restore ${file} to a window`, icon: "minimize", onClick: () => onWindow("pip") },
-      ...del,
-      exit,
-    ];
-  }
+  // Four actions in every mode (mock 12): expanding swaps Expand for Restore
+  // and changes nothing else, so a reader can still put the window away.
+  const first: ViewportWindowAction =
+    mode === "expanded"
+      ? { name: `Restore ${file} to a window`, icon: "minimize", onClick: () => onWindow("pip") }
+      : { name: `Expand ${file}`, icon: "maximize", onClick: () => onWindow("expanded") };
+
   return [
-    { name: `Expand ${file}`, icon: "maximize", onClick: () => onWindow("expanded") },
+    first,
     { name: `Hide ${file}`, icon: "minus", onClick: () => onWindow("collapsed") },
     ...del,
     exit,
@@ -69,7 +73,7 @@ export function DocumentWindow({
   onDelete,
   onExit,
   frameSrc,
-  pillClassName,
+  showPill = true,
 }: DocumentWindowProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const file = documentFileName(document);
@@ -91,8 +95,8 @@ export function DocumentWindow({
         </ViewportWindow>
       </div>
 
-      {mode === "collapsed" ? (
-        <CollapsedPill file={file} onShow={() => onWindow("pip")} className={pillClassName} />
+      {mode === "collapsed" && showPill ? (
+        <CollapsedPill file={file} onShow={() => onWindow("pip")} />
       ) : null}
 
       <ConfirmDialog
