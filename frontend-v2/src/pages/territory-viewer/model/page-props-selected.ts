@@ -64,15 +64,17 @@ export function selectedBlock(
 /**
  * The selected instance's per-panorama allowlist, under its row.
  *
- * Only inside a panorama: "visible in" is a question about the capture the
- * reader is standing in, and in the 3D view every placement is visible by
- * definition — the block would be a set of checkboxes about nothing on screen.
+ * Drawn wherever a placement is selected and the territory has captures — mock
+ * state 13 draws it in the 3D scene, and its own footer says why: "Hidden
+ * objects stay in the 3D scene; only the panorama markers are dropped." The
+ * question is which captures mark this object, not what is on screen now. With
+ * no captures at all there is nothing to ask.
  */
 export function visibilityBlock(
   p: PageParts,
   selected: ResolvedPlacement | null,
 ): PlacementVisibility | null {
-  if (p.mode.view.kind !== "panorama" || !selected) return null;
+  if (!selected || p.panoramas.list.length === 0) return null;
   return {
     panoramas: p.panoramas.list.map((x) => ({ id: x.id, title: x.title })),
     visiblePanoramaIds: selected.visiblePanoramaIds,

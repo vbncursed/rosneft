@@ -105,7 +105,7 @@ export const IDLE_DOCUMENTS: DocumentParts = {
 
 const OWNER: Grants = { create: true, write: true, delete: true, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: true, documentWrite: true, documentDelete: true };
 const GUEST: Grants = { create: false, write: false, delete: false, replace: false, panoramaCreate: false, panoramaWrite: false, panoramaDelete: false, documentWrite: false, documentDelete: false };
-const NO_DELETE: Grants = { create: true, write: true, delete: false, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: false, documentWrite: true, documentDelete: false };
+export const NO_DELETE: Grants = { create: true, write: true, delete: false, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: false, documentWrite: true, documentDelete: false };
 
 const at = (id: number, modelSlug: string, x: number): ResolvedPlacement => ({
   id,
@@ -214,7 +214,7 @@ export const basePageParts = (): PageParts => ({
 export const viewerState = (edit: (p: PageParts) => PageParts = (p) => p) =>
   pageProps(edit(basePageParts()));
 
-const page = (edit?: (p: PageParts) => PageParts) => (
+export const page = (edit?: (p: PageParts) => PageParts) => (
   <CatalogShell layout="viewport">
     <TerritoryViewerPage {...viewerState(edit)} />
   </CatalogShell>
@@ -230,7 +230,7 @@ const DRAFT = {
  * A selection a writer made, which is also a live draft: the block is a form
  * for as long as something is selected and the reader may write.
  */
-const selected = (p: PageParts): PageParts => ({
+export const selected = (p: PageParts): PageParts => ({
   ...p,
   mode: { ...p.mode, selectedId: 2 },
   form: {
@@ -279,8 +279,6 @@ export default {
   })),
 
   "7 empty": page((p) => ({ ...p, placements: [], vm: { ...VM, placements: [] } })),
-
-  "13 write, no delete": page((p) => ({ ...selected(p), grants: NO_DELETE })),
 
   "14 create form, saving": page((p) => {
     const q = selected(p);
