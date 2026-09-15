@@ -81,6 +81,36 @@ test("still fires for a key pressed on a non-typing element", () => {
   assert.equal(s.mock.calls.length, 1);
 });
 
+test("ignores every key while a modal is open — the dialog owns them", () => {
+  // Esc under an open ConfirmDialog cancelled the dialog AND ran the viewer's
+  // escape ladder underneath it, which walked the reader out of the panorama
+  // they were only trying to cancel a delete in. P, V and M acted behind an
+  // open dialog the same way.
+  const m = vi.fn();
+  const escape = vi.fn();
+  bind({ m, Escape: escape });
+  const dialog = document.createElement("dialog");
+  dialog.setAttribute("open", "");
+  document.body.appendChild(dialog);
+
+  press("m");
+  press("Escape");
+  dialog.remove();
+
+  assert.equal(m.mock.calls.length, 0);
+  assert.equal(escape.mock.calls.length, 0);
+});
+
+test("a closed dialog in the tree holds nothing back", () => {
+  const m = vi.fn();
+  bind({ m });
+  const dialog = document.createElement("dialog");
+  document.body.appendChild(dialog);
+  press("m");
+  dialog.remove();
+  assert.equal(m.mock.calls.length, 1);
+});
+
 test("a fresh handler map each render is picked up without re-binding", () => {
   // The map is read through a ref precisely so callers can pass an inline
   // object literal; a stale closure here would keep calling the first handler.

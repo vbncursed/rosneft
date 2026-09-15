@@ -74,7 +74,10 @@ export function visibilityBlock(
   p: PageParts,
   selected: ResolvedPlacement | null,
 ): PlacementVisibility | null {
-  if (!selected || p.panoramas.list.length === 0) return null;
+  // Gated on `placement:write` (spec §1): a reader who cannot change a
+  // placement is handed no control, rather than one whose every click the
+  // gateway refuses.
+  if (!selected || !p.grants.write || p.panoramas.list.length === 0) return null;
   return {
     panoramas: p.panoramas.list.map((x) => ({ id: x.id, title: x.title })),
     visiblePanoramaIds: selected.visiblePanoramaIds,

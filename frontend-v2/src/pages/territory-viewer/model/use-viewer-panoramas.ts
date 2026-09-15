@@ -116,12 +116,18 @@ export function useViewerPanoramas({
     [editingId, update],
   );
   // Deleting the card's subject closes the card: the row is gone, and a header
-  // that still reads "editing anchor" would be pointing at nothing.
+  // that still reads "editing anchor" would be pointing at nothing. And if the
+  // reader is standing inside that capture, it walks them out first — the
+  // sphere unmounts on its own (the lookup finds nothing) but the reducer's
+  // view does not, and every pill, tile and footer would go on describing a
+  // panorama over a 3D scene.
+  const activeId = view.active?.id ?? null;
   const onDelete = useCallback(() => {
     if (editingId === null) return;
+    if (activeId === editingId) activate(null);
     void remove(editingId);
     closeEdit();
-  }, [editingId, remove, closeEdit]);
+  }, [activeId, editingId, activate, remove, closeEdit]);
 
   return {
     list: list.panoramas,

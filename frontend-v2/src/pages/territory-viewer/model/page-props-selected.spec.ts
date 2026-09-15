@@ -98,6 +98,14 @@ describe("visibilityBlock", () => {
     expect(visibilityBlock(scene, first)?.panoramas).toEqual([{ id: 3, title: "Control room" }]);
   });
 
+  it("asks nothing of a reader who cannot write a placement", () => {
+    // Spec §1 gates the visibility checkboxes on `placement:write`. Offered
+    // without it, a guest's click sent a PUT the gateway refused and the only
+    // answer was a red toast.
+    const guest = { ...inside, grants: { ...inside.grants, write: false } };
+    expect(visibilityBlock(guest, first)).toBeNull();
+  });
+
   it("offers every capture, and ticks the ones this placement already shows in", () => {
     expect(visibilityBlock(inside, { ...first, visiblePanoramaIds: [3] })).toMatchObject({
       panoramas: [{ id: 3, title: "Control room" }],
