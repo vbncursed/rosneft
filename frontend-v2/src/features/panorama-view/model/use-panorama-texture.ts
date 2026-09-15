@@ -40,6 +40,11 @@ type Tracked = PanoramaTextureState & { hash: string | null };
 // browser serves it from disk cache. Add an LRU only if that measurably hurts.
 export function usePanoramaTexture(hash: string | null, decode: TextureDecoder): PanoramaTextureState {
   const [state, setState] = useState<Tracked>({ ...IDLE, hash: null });
+  // The bitmap this hook has handed out, so the cleanup can free it. An
+  // ImageBitmap is not garbage-collected bytes (32 MB for a 4096x2048
+  // equirect), and the sphere that showed it cannot free it: its own cleanup
+  // also runs on StrictMode's dev remount, where the picture is still wanted.
+  const bitmapRef = useRef<ImageBitmap | null>(null);
   // The decoder is read through a ref rather than a dependency: a caller who
   // spells it inline hands us a new function every render, and a decoder in
   // the dep list would restart the download on each one — forever.
@@ -66,6 +71,7 @@ export function usePanoramaTexture(hash: string | null, decode: TextureDecoder):
           bitmap.close();
           return;
         }
+        bitmapRef.current = bitmap;
         setState({ hash, bitmap, progress: 100, status: "ready" });
       } catch {
         if (!cancelled) setState({ ...IDLE, hash, status: "error" });
@@ -75,6 +81,8 @@ export function usePanoramaTexture(hash: string | null, decode: TextureDecoder):
     return () => {
       cancelled = true;
       controller.abort();
+      bitmapRef.current?.close();
+      bitmapRef.current = null;
       // Forget what was tracked, not just the download. The state carries the
       // hash it describes, and leaving A's `ready` behind means coming back to
       // A answers `ready` with a bitmap the sphere has already closed — one

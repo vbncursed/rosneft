@@ -111,15 +111,30 @@ describe("usePanoramaTexture", () => {
     expect(result.current.bitmap).not.toBe(first);
   });
 
-  it("goes back to idle when the reader leaves the panorama", async () => {
+  it("goes back to idle when the reader leaves the panorama, and closes the bitmap it handed out", async () => {
+    // 32 MB for a 4096x2048 equirect, and not garbage-collected bytes. The
+    // sphere cannot do it: its cleanup also runs on StrictMode's dev remount,
+    // where the picture is still on screen.
     vi.stubGlobal("fetch", vi.fn(async () => ok()));
     const { result, rerender } = renderHook(({ hash }) => usePanoramaTexture(hash, decoder()), {
       initialProps: { hash: "abc" as string | null },
     });
     await waitFor(() => expect(result.current.status).toBe("ready"));
+    const delivered = result.current.bitmap!;
 
     rerender({ hash: null });
     expect(result.current).toEqual({ bitmap: null, progress: null, status: "idle" });
+    expect(delivered.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes the bitmap when the reader leaves the page altogether", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ok()));
+    const { result, unmount } = renderHook(() => usePanoramaTexture("abc", decoder()));
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    const delivered = result.current.bitmap!;
+
+    unmount();
+    expect(delivered.close).toHaveBeenCalledTimes(1);
   });
 
   it("downloads again when the reader comes back to the capture they just left", async () => {
