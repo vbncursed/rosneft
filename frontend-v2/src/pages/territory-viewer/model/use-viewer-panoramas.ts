@@ -138,6 +138,7 @@ export function useViewerPanoramas({
     },
     onEnter: (id: number) => view.activate(id),
     onExit: () => view.activate(null),
+    onCycle: view.cycle,
     onEdit: view.startEdit,
     onCloseEditor: view.closeEdit,
     onToggleView: view.toggleView,

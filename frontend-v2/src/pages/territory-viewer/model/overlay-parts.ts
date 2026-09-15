@@ -57,6 +57,8 @@ export type PanoramaParts = {
   };
   onEnter: (id: number) => void;
   onExit: () => void;
+  /** P: 3D → first capture → next → … → 3D. The page routes the key here. */
+  onCycle: () => void;
   onEdit: (id: number) => void;
   onCloseEditor: () => void;
   onToggleView: () => void;

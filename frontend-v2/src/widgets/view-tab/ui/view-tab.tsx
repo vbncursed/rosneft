@@ -60,6 +60,10 @@ const KBD = "rounded-[4px] border border-accent-line px-[5px] py-px font-mono te
  * The Overlays panel's View tab: the scene's facts, its panoramas and the PDFs
  * laid over it. It scrolls in the panel body it is rendered into and adds no
  * scrolling container of its own.
+ *
+ * Both sections carry an id: the tool rail's Panoramas and Documents tiles
+ * scroll to them (`pages/territory-viewer/model/reveal-section.ts`), and an
+ * `aria-label` is not something `getElementById` can find.
  */
 export function ViewTab({ details, panoramas, documents, footer }: ViewTabProps) {
   const markersId = useId();
@@ -68,7 +72,7 @@ export function ViewTab({ details, panoramas, documents, footer }: ViewTabProps)
     <div className="flex flex-col gap-4">
       <DetailList items={details} />
 
-      <section aria-label={PANORAMAS_OVERLINE} className={SECTION}>
+      <section id="view-tab-panoramas" aria-label={PANORAMAS_OVERLINE} className={SECTION}>
         <SectionHead
           overline={PANORAMAS_OVERLINE}
           count={String(panoramas.rows.length)}
@@ -148,7 +152,7 @@ export function ViewTab({ details, panoramas, documents, footer }: ViewTabProps)
         {panoramas.editor}
       </section>
 
-      <section aria-label={DOCUMENTS_OVERLINE} className={SECTION}>
+      <section id="view-tab-documents" aria-label={DOCUMENTS_OVERLINE} className={SECTION}>
         <SectionHead
           overline={DOCUMENTS_OVERLINE}
           count={documentsCount(documents.rows.length)}

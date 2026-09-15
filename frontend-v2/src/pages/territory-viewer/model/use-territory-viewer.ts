@@ -1,21 +1,21 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { computeUnitRatio } from "@/entities/measurement";
-import { measureSummary, useMeasurementTool } from "@/features/measure";
 import { pickLod, getSceneBundle, sceneQuery, toSceneViewModel } from "@/entities/scene";
 import { getMe, meQuery } from "@/entities/user";
 import { viewerError } from "@/features/lod";
+import { measureSummary, useMeasurementTool } from "@/features/measure";
 import { useTour, VIEWER_TOUR, VIEWER_TOUR_STEPS } from "@/features/onboarding";
 import { usePlacementsEditor } from "@/features/placements-editor";
 import { useViewerMode } from "@/features/viewer-mode";
-import { decodeImageBitmap } from "@/widgets/viewer-canvas";
 import { HttpError, messageOf } from "@/shared/api";
 import { useMediaQuery } from "@/shared/lib/use-media-query";
 import { unanswered } from "@/shared/lib/unanswered";
 import { can } from "@/shared/session";
 import { useOverlaysPanel } from "@/widgets/overlays-panel";
-import type { LodReport } from "@/widgets/viewer-canvas";
+import { decodeImageBitmap } from "@/widgets/viewer-canvas";
 import { pageProps, type TerritoryViewerPageProps } from "./page-props";
+import { usePageHandlers } from "./use-page-handlers";
 import { usePlacementForm } from "./use-placement-form";
 import { useViewerDocuments } from "./use-viewer-documents";
 import { useViewerPanoramas } from "./use-viewer-panoramas";
@@ -26,54 +26,40 @@ export type TerritoryViewerState =
   | { status: "unavailable"; error: string }
   | ({ status: "ready" } & TerritoryViewerPageProps);
 
-const NO_REPORT: LodReport = {
-  shown: null,
-  target: null,
-  percent: null,
-  progressText: null,
-  failure: null,
-};
-
-/**
- * The canvas's last report, with the moment its failure arrived.
- *
- * The error card's footer answers "when did this last try", so the clock is
- * stamped when the failure lands rather than read while the card is being
- * drawn — otherwise every re-render behind it (a reset, a panel fold, a
- * refetch) moved "last attempt" forward to now.
- */
-type LodState = { report: LodReport; failedAt: Date | null };
-
-const NO_LOD: LodState = { report: NO_REPORT, failedAt: null };
-
 /** Never read — `error` is non-null only when `failedAt` is. */
 const UNSTAMPED = new Date(0);
-
-const noop = () => {};
 
 /** Under this the panel is 300 wide and the gizmo keys lose their brackets. */
 const COMPACT = "(max-width: 1280px)";
 
 /**
  * Everything the viewer page draws: the bundle, the principal's grants, and
- * the six hooks that own the scene's interaction — mode, measurement,
- * placements, the form, the panel and the tour.
+ * the hooks that own the scene's interaction — mode, measurement, placements,
+ * the form, the panel, the tour, and package B's two overlay slices.
  *
  * **The mode is `useViewerMode`'s, not the measure tool's.** The tool keeps a
  * `measureMode` flag of its own from when it was the only owner of that state;
  * it is deliberately ignored here, and `toggle`/`exit` are never called. One
- * source of truth, and the reducer that also owns the selection and the gizmo
- * is the one that has to win. An unfinished chain is broken by Escape, which
- * `useViewerMode` already routes to `cancelChain`.
+ * source of truth, and the reducer that also owns the selection, the gizmo,
+ * the panorama the camera is in and the move sub-mode is the one that has to
+ * win. An unfinished chain is broken by Escape, which `useViewerMode` already
+ * routes to `cancelChain`.
  *
- * **The editor is not re-keyed on the bundle.** `usePlacementsEditor` seeds
- * from `initial` once and is optimistic afterwards, so it and a bundle
- * refetched after one of *our own* mutations already agree. Remounting it on
- * `placements.length` — the only field a placement mutation actually moves —
- * would also throw away the create form that `onPlace` opens one tick later,
- * which is the flow the picker exists for. A refetch carrying *another*
- * reader's edits is therefore not adopted until the page is reloaded; noted
- * rather than solved, because the fix belongs in the editor hook.
+ * **Two of the reducer's keys are answered by hooks created after it**, so
+ * both travel through a ref: P cycles the panorama list, and Escape is offered
+ * to an open document first. Wiring them directly would need the panorama and
+ * document hooks above the reducer that feeds them, which is a cycle.
+ *
+ * **Neither the editor nor the two overlay lists is re-keyed on the bundle.**
+ * All three seed from `initial` once and are optimistic afterwards, so they and
+ * a bundle refetched after one of *our own* mutations already agree; the screen
+ * keys the whole body on whether the bundle is in hand
+ * (`use-scene-seeded.ts`), which is what makes that one seed the real list
+ * rather than an empty one. Remounting on the lists themselves would also
+ * throw away the create form that `onPlace` opens one tick later, which is the
+ * flow the picker exists for. A refetch carrying *another* reader's edits is
+ * therefore not adopted until the page is reloaded; noted rather than solved,
+ * because the fix belongs in the list hooks.
  */
 export function useTerritoryViewer(slug: string): TerritoryViewerState {
   const client = useQueryClient();
@@ -98,40 +84,24 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     [me.data],
   );
 
-  const [targetLod, setTargetLod] = useState(0);
-  const [retryVersion, setRetryVersion] = useState(0);
-  const [resetVersion, setResetVersion] = useState(0);
-  const [focusRequest, setFocusRequest] = useState<number[] | null>(null);
-  const [lod, setLod] = useState<LodState>(NO_LOD);
-  const report = lod.report;
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [expandedModel, setExpandedModel] = useState<string | null>(null);
   const compact = useMediaQuery(COMPACT);
-
   const measure = useMeasurementTool();
+
+  const cycle = useRef<() => void>(() => {});
+  const beforeEscape = useRef<() => boolean>(() => false);
   const mode = useViewerMode({
     canWrite: grants.write,
-    // Task 15 wires the real values once panoramas land on this page.
-    canMovePoints: false,
+    canMovePoints: grants.panoramaWrite,
     chainOpen: measure.activeChainId !== null,
     onCancelChain: measure.cancelChain,
-    onCycle: () => {},
+    onCycle: useCallback(() => cycle.current(), []),
+    beforeEscape: useCallback(() => beforeEscape.current(), []),
   });
 
-  const dims = vm?.metadata.dims ?? { x: 0, y: 0, z: 0 };
   const onChanged = useCallback(() => {
     void client.invalidateQueries({ queryKey: ["scene", slug] });
   }, [client, slug]);
-  const editor = usePlacementsEditor({
-    slug,
-    initial: vm?.placements ?? [],
-    options: bundle?.modelOptions ?? [],
-    territoryMaxDim: Math.max(dims.x, dims.y, dims.z),
-    // Task 15 wires the real panorama ids once panoramas land on this page.
-    panoramaIds: [],
-    onChanged,
-  });
+
   const panoramas = useViewerPanoramas({
     slug,
     initial: vm?.panoramas ?? [],
@@ -153,9 +123,24 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     slug,
     initial: vm?.documents ?? [],
     onChanged,
+    // The two overlays do not stack: a PDF takes the viewport the sphere had.
     onOpen: mode.exitPanorama,
   });
+  useEffect(() => {
+    cycle.current = panoramas.onCycle;
+    beforeEscape.current = documents.escape;
+  });
 
+  const dims = vm?.metadata.dims ?? { x: 0, y: 0, z: 0 };
+  const editor = usePlacementsEditor({
+    slug,
+    initial: vm?.placements ?? [],
+    options: bundle?.modelOptions ?? [],
+    territoryMaxDim: Math.max(dims.x, dims.y, dims.z),
+    // Spec §6.1: a new object is visible everywhere the territory is loaded.
+    panoramaIds: panoramas.list.map((p) => p.id),
+    onChanged,
+  });
   // The selection is what opens the form, and a reader without `placement:write`
   // is handed none: that is the one state where the block only reports.
   const form = usePlacementForm(editor, mode.select, grants.write ? mode.state.selectedId : null);
@@ -173,47 +158,15 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   // its anchor lives on, and an inactive tab is not in the DOM at all.
   const panel = useOverlaysPanel(mode.state.selectedId, tour.step?.tab, tour.active);
 
-  // Canvas-bound callbacks are memoized: each is a prop on a tree that mounts
-  // WebGL, and a fresh identity re-runs the effects that attach to the scene.
-  const onLod = useCallback(
-    (next: LodReport) =>
-      setLod((prev) => ({
-        report: next,
-        // A second failure of the same level is the same attempt still being
-        // reported; a different hash is a new one and gets a new stamp.
-        failedAt: next.failure
-          ? prev.report.failure?.hash === next.failure.hash
-            ? prev.failedAt
-            : new Date()
-          : null,
-      })),
-    [],
-  );
-  const onReset = useCallback(() => setResetVersion((v) => v + 1), []);
-  const onRetry = useCallback(() => setRetryVersion((v) => v + 1), []);
-  const onFocus = useCallback((id: number) => setFocusRequest([id]), []);
-  const onToggleGroup = useCallback(
-    (modelSlug: string) => setExpandedModel((open) => (open === modelSlug ? null : modelSlug)),
-    [],
-  );
-  const openPicker = useCallback(() => {
-    mode.enterPlace();
-    setPickerOpen(true);
-  }, [mode]);
-  const closePicker = useCallback(() => {
-    mode.exitPlace();
-    setPickerOpen(false);
-  }, [mode]);
-  const onPlace = useCallback(
-    async (modelSlug: string, count: number) => {
-      const id = await editor.create(modelSlug, count);
-      closePicker();
-      // The POSTs already landed, so the new object is in the scene; the form
-      // opens on the last of them to be named, and cancelling it deletes it.
-      if (id !== null) form.openNew(id);
-    },
-    [editor, form, closePicker],
-  );
+  const { view, failedAt, on } = usePageHandlers({
+    mode,
+    measure,
+    editor,
+    form,
+    panel,
+    tour,
+    documents,
+  });
 
   if (me.isPending || scene.isPending) return { status: "loading" };
   // Only the *scene's* 404 means "no such territory, or not this reader's". A
@@ -253,52 +206,17 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
       documents,
       panel: { tab: panel.tab, collapsed: panel.collapsed },
       view: {
-        report,
-        targetLod,
-        retryVersion,
-        resetVersion,
-        focusRequest,
-        pickerOpen,
-        query,
-        expandedModel,
+        ...view,
         compact,
-        error: viewerError(report.failure, vm.parentLods, pickLod(vm.parentLods, targetLod), slug),
-        now: lod.failedAt ?? UNSTAMPED,
+        error: viewerError(
+          view.report.failure,
+          vm.parentLods,
+          pickLod(vm.parentLods, view.targetLod),
+          slug,
+        ),
+        now: failedAt ?? UNSTAMPED,
       },
-      on: {
-        onPick: mode.select,
-        onTransformCommit: editor.commitTransform,
-        onMeasurePoint: measure.click,
-        onCloseActiveChain: measure.closeActive,
-        onRemoveSegment: measure.removeSegment,
-        onRemoveChain: measure.removeChain,
-        onLod,
-        onReset,
-        onMeasure: mode.toggleMeasure,
-        onAdd: openPicker,
-        // Task 15 reveals the View tab's two sections; until the panel owns
-        // that, the tiles are drawn but do nothing.
-        onPanoramas: noop,
-        onDocuments: noop,
-        onReplayTour: tour.restart,
-        onTargetLod: setTargetLod,
-        onRetry,
-        onClearMeasurements: measure.clear,
-        onTab: panel.setTab,
-        onCollapsed: panel.setCollapsed,
-        onQuery: setQuery,
-        onToggleGroup,
-        onSelect: mode.select,
-        onRename: form.openRename,
-        onDelete: editor.remove,
-        onFocus,
-        onGizmo: mode.setGizmo,
-        onSnap: mode.toggleSnap,
-        onPlace,
-        onClosePicker: closePicker,
-        onVisibility: noop,
-        onToggleMove: mode.toggleMove,
-      },
+      on,
     }),
   };
 }

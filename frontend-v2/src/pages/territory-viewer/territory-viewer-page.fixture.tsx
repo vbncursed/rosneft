@@ -47,6 +47,7 @@ export const IDLE_PANORAMAS: PanoramaParts = {
   },
   onEnter: noop,
   onExit: noop,
+  onCycle: noop,
   onEdit: noop,
   onCloseEditor: noop,
   onToggleView: noop,
