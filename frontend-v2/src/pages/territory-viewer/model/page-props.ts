@@ -91,6 +91,8 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
         mode: mode.mode,
         tourActive: p.tour.active,
         failed,
+        view: mode.view,
+        editing: mode.editingPanoramaId !== null,
       }),
       // The tour's pill replaces the meta line rather than joining it (spec §4),
       // and a guest's right cluster carries the sentence instead.
@@ -135,12 +137,25 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
         geometry,
         loading: loadingLevel !== null,
         tourActive: p.tour.active,
+        view: mode.view,
+        documentOpen: false,
       }),
       onReset: on.onReset,
       onMeasure: on.onMeasure,
       onAdd: on.onAdd,
+      onPanoramas: on.onPanoramas,
+      onDocuments: on.onDocuments,
       onReplayTour: on.onReplayTour,
-      chip: failed || loadingLevel ? null : modeChip({ mode: mode.mode, measure: measure.summary }),
+      chip:
+        failed || loadingLevel
+          ? null
+          : modeChip({
+              mode: mode.mode,
+              measure: measure.summary,
+              view: mode.view,
+              move: mode.move,
+              calibrating: null,
+            }),
       loading: loadingLevel
         ? { chip: loadingChip(loadingLevel), percent: loadingLevel.percent, target: loadingLevel.target }
         : null,

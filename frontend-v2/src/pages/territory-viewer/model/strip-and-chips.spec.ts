@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { SceneMetadata } from "@/entities/scene";
+import type { ViewerView } from "@/features/viewer-mode";
 import { loadingChip, modeChip, stripItems } from "./strip-and-chips";
+
+const SCENE: ViewerView = { kind: "scene" };
+const INSIDE: ViewerView = { kind: "panorama", id: 7 };
 
 const METADATA: SceneMetadata = {
   dims: { x: 36, y: 24, z: 8.5 },
@@ -12,30 +16,63 @@ const METADATA: SceneMetadata = {
 
 const NOTHING = { segments: 0, total: "0.00 m" };
 
+const chip = (over: Partial<Parameters<typeof modeChip>[0]> = {}) =>
+  modeChip({
+    mode: "orbit",
+    measure: NOTHING,
+    view: SCENE,
+    move: false,
+    calibrating: null,
+    ...over,
+  });
+
 describe("modeChip", () => {
   it("tells an orbiting pointer what a drag does", () => {
-    expect(modeChip({ mode: "orbit", measure: NOTHING })).toEqual({ text: "orbit · drag to rotate" });
+    expect(chip()).toEqual({ text: "orbit · drag to rotate" });
   });
 
   it("tells a placing pointer where the click lands", () => {
-    expect(modeChip({ mode: "place", measure: NOTHING })).toEqual({
+    expect(chip({ mode: "place" })).toEqual({
       text: "place objects · click the ground",
     });
   });
 
   it("reads plain measure before anything has been drawn", () => {
-    expect(modeChip({ mode: "measure", measure: NOTHING })).toEqual({ text: "measure" });
+    expect(chip({ mode: "measure" })).toEqual({ text: "measure" });
   });
 
   it("counts one segment in the singular", () => {
-    expect(modeChip({ mode: "measure", measure: { segments: 1, total: "12.40 m" } }).text).toBe(
+    expect(chip({ mode: "measure", measure: { segments: 1, total: "12.40 m" } }).text).toBe(
       "measure · 1 segment · 12.40 m total",
     );
   });
 
   it("counts two segments in the plural", () => {
-    expect(modeChip({ mode: "measure", measure: { segments: 2, total: "20.55 m" } }).text).toBe(
+    expect(chip({ mode: "measure", measure: { segments: 2, total: "20.55 m" } }).text).toBe(
       "measure · 2 segments · 20.55 m total",
+    );
+  });
+
+  it("says what a drag does inside a panorama, and which key leaves it", () => {
+    expect(chip({ view: INSIDE })).toEqual({
+      text: "panorama · drag to look around",
+      kbd: "P",
+    });
+  });
+
+  it("names the panorama being calibrated — there is only ever one", () => {
+    expect(chip({ calibrating: "Control room" })).toEqual({ text: "calibrating · Control room" });
+  });
+
+  it("says what move mode moves, and which key leaves it", () => {
+    expect(chip({ move: true })).toEqual({ text: "move points · drag a marker", kbd: "V" });
+  });
+
+  it("looks around rather than calibrating once the camera is inside the sphere", () => {
+    // The chip answers "what does the pointer do", and inside the sphere a
+    // drag looks around whatever the anchor card is doing on the panel.
+    expect(chip({ view: INSIDE, calibrating: "Control room" }).text).toBe(
+      "panorama · drag to look around",
     );
   });
 });

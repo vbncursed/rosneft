@@ -18,6 +18,8 @@ const TILES: Record<RailTool, { glyph: string; name: string; toggle?: boolean; d
   reset: { glyph: "↺", name: "Reset camera", dataTour: "reset-camera" },
   measure: { glyph: "↔", name: "Measure (M)", toggle: true, dataTour: "measure" },
   add: { glyph: "＋", name: "Add objects", toggle: true, dataTour: "add-object" },
+  panoramas: { glyph: "◎", name: "Panoramas", toggle: true, dataTour: "panoramas" },
+  documents: { glyph: "▤", name: "Documents", toggle: true, dataTour: "documents" },
   tour: { glyph: "▶", name: "Replay guided tour" },
 };
 
@@ -53,6 +55,8 @@ export function ViewerOverlays({
   onReset,
   onMeasure,
   onAdd,
+  onPanoramas,
+  onDocuments,
   onReplayTour,
   chip,
   loading,
@@ -66,6 +70,8 @@ export function ViewerOverlays({
     reset: onReset,
     measure: onMeasure,
     add: onAdd,
+    panoramas: onPanoramas,
+    documents: onDocuments,
     tour: onReplayTour,
   };
   const items: ToolRailItem[] = tools.map(({ key, state }) => ({

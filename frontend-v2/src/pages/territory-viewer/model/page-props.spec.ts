@@ -69,6 +69,8 @@ const HANDLERS: PageHandlers = {
   onReset: noop,
   onMeasure: noop,
   onAdd: noop,
+  onPanoramas: noop,
+  onDocuments: noop,
   onReplayTour: noop,
   onTargetLod: vi.fn(),
   onRetry: noop,
@@ -202,6 +204,8 @@ describe("pageProps · overlays", () => {
       { key: "reset", state: "active" },
       { key: "measure", state: "idle" },
       { key: "add", state: "idle" },
+      { key: "panoramas", state: "idle" },
+      { key: "documents", state: "idle" },
       { key: "tour", state: "idle" },
     ]);
   });
@@ -296,9 +300,13 @@ describe("pageProps · a failed mesh", () => {
     expect(overlays.strip.items).toContain("LOD 1 requested");
   });
 
-  it("makes every tool inert, drops the switcher and drops the panel", () => {
+  it("makes every tool that needs the mesh inert, drops the switcher and drops the panel", () => {
     const props = pageProps(parts(FAILURE));
-    expect(props.overlays.tools.every((t) => t.state === "inert")).toBe(true);
+    // Panoramas and Documents survive a failed mesh: both are served straight
+    // from BlobStore and neither needs a scene to be read.
+    expect(
+      props.overlays.tools.filter((t) => t.state !== "inert").map((t) => t.key),
+    ).toEqual(["panoramas", "documents"]);
     expect(props.overlays.switcher).toBeNull();
     expect(props.panel).toBeNull();
   });

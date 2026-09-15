@@ -46,6 +46,8 @@ const NO_LOD: LodState = { report: NO_REPORT, failedAt: null };
 /** Never read — `error` is non-null only when `failedAt` is. */
 const UNSTAMPED = new Date(0);
 
+const noop = () => {};
+
 /** Under this the panel is 300 wide and the gizmo keys lose their brackets. */
 const COMPACT = "(max-width: 1280px)";
 
@@ -237,6 +239,10 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
         onReset,
         onMeasure: mode.toggleMeasure,
         onAdd: openPicker,
+        // Task 15 reveals the View tab's two sections; until the panel owns
+        // that, the tiles are drawn but do nothing.
+        onPanoramas: noop,
+        onDocuments: noop,
         onReplayTour: tour.restart,
         onTargetLod: setTargetLod,
         onRetry,

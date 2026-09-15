@@ -1,22 +1,37 @@
 import { describe, expect, it } from "vitest";
 import type { ViewerError } from "@/features/lod";
+import type { ViewerView } from "@/features/viewer-mode";
 import {
+  EDITING_PILL,
   ERROR_TITLE,
   GUEST_SENTENCE,
   errorCopy,
   headerMeta,
   headerPills,
+  PANORAMA_PILL,
   railTools,
   uploadedLine,
   type Grants,
 } from "./viewer-view";
+
+const SCENE: ViewerView = { kind: "scene" };
+const INSIDE: ViewerView = { kind: "panorama", id: 7 };
 
 const OWNER: Grants = { create: true, write: true, delete: true, replace: true };
 const EDITOR: Grants = { create: true, write: true, delete: false, replace: false };
 const GUEST: Grants = { create: false, write: false, delete: false, replace: false };
 
 const pills = (over: Partial<Parameters<typeof headerPills>[0]> = {}) =>
-  headerPills({ ready: true, grants: OWNER, mode: "orbit", tourActive: false, failed: false, ...over });
+  headerPills({
+    ready: true,
+    grants: OWNER,
+    mode: "orbit",
+    tourActive: false,
+    failed: false,
+    view: SCENE,
+    editing: false,
+    ...over,
+  });
 
 describe("headerPills", () => {
   it("gives an owner the ready pill and nothing else — every grant is held", () => {
@@ -66,6 +81,26 @@ describe("headerPills", () => {
   it("keeps the failure pill even when the scene also claims to be ready", () => {
     expect(pills({ failed: true })[0]).toEqual({ tone: "bad", label: "artifact unavailable" });
   });
+
+  it("accents the panorama the camera is inside", () => {
+    expect(pills({ view: INSIDE })).toEqual([
+      { tone: "ok", label: "ready" },
+      { tone: "accent", label: PANORAMA_PILL },
+    ]);
+  });
+
+  it("names the open anchor card instead of the plain panorama pill, never beside it", () => {
+    expect(pills({ view: INSIDE, editing: true })).toEqual([
+      { tone: "ok", label: "ready" },
+      { tone: "accent", label: EDITING_PILL },
+    ]);
+  });
+
+  it("says nothing about an anchor card open over the 3D scene", () => {
+    // The card is on the panel, in plain sight; the pills report where the
+    // camera is, and in the scene that is nothing worth a pill.
+    expect(pills({ editing: true })).toEqual([{ tone: "ok", label: "ready" }]);
+  });
 });
 
 describe("headerMeta", () => {
@@ -82,64 +117,97 @@ describe("GUEST_SENTENCE", () => {
 
 describe("railTools", () => {
   const tools = (over: Partial<Parameters<typeof railTools>[0]> = {}) =>
-    railTools({ grants: OWNER, mode: "orbit", geometry: true, loading: false, tourActive: false, ...over });
+    railTools({
+      grants: OWNER,
+      mode: "orbit",
+      geometry: true,
+      loading: false,
+      tourActive: false,
+      view: SCENE,
+      documentOpen: false,
+      ...over,
+    });
+  const states = (over: Partial<Parameters<typeof railTools>[0]> = {}) =>
+    Object.fromEntries(tools(over).map((t) => [t.key, t.state]));
 
-  it("lights Reset while the pointer orbits a loaded scene", () => {
+  it("lights Reset while the pointer orbits a loaded scene, in the mock's order", () => {
     expect(tools()).toEqual([
       { key: "reset", state: "active" },
       { key: "measure", state: "idle" },
       { key: "add", state: "idle" },
+      { key: "panoramas", state: "idle" },
+      { key: "documents", state: "idle" },
       { key: "tour", state: "idle" },
     ]);
   });
 
   it("lights Measure and dims Reset in measure mode", () => {
-    expect(tools({ mode: "measure" })).toEqual([
-      { key: "reset", state: "idle" },
-      { key: "measure", state: "active" },
-      { key: "add", state: "idle" },
-      { key: "tour", state: "idle" },
-    ]);
+    expect(states({ mode: "measure" })).toMatchObject({ reset: "idle", measure: "active" });
   });
 
   it("lights Add objects in place mode", () => {
-    expect(tools({ mode: "place" }).find((t) => t.key === "add")).toEqual({
-      key: "add",
-      state: "active",
-    });
+    expect(states({ mode: "place" })).toMatchObject({ add: "active", reset: "idle" });
   });
 
   it("drops Add entirely for a reader who cannot create placements", () => {
-    expect(tools({ grants: GUEST }).map((t) => t.key)).toEqual(["reset", "measure", "tour"]);
+    expect(tools({ grants: GUEST }).map((t) => t.key)).toEqual([
+      "reset",
+      "measure",
+      "panoramas",
+      "documents",
+      "tour",
+    ]);
   });
 
   it("dims everything but the live tile while a level is still downloading", () => {
     // Mock state 3: "reset; others dim" — the scene is on screen but the target
     // is not, and a tool that needs the final mesh is not ready to be pressed.
-    expect(tools({ loading: true })).toEqual([
-      { key: "reset", state: "active" },
-      { key: "measure", state: "inert" },
-      { key: "add", state: "inert" },
-      { key: "tour", state: "inert" },
-    ]);
+    // The two overlay tiles stay reachable: a panorama and a PDF are served
+    // whatever the mesh is doing.
+    expect(states({ loading: true })).toEqual({
+      reset: "active",
+      measure: "inert",
+      add: "inert",
+      panoramas: "idle",
+      documents: "idle",
+      tour: "inert",
+    });
   });
 
   it("leaves every tile idle while the tour runs — the mock lights none of them", () => {
-    expect(tools({ tourActive: true })).toEqual([
-      { key: "reset", state: "idle" },
-      { key: "measure", state: "idle" },
-      { key: "add", state: "idle" },
-      { key: "tour", state: "idle" },
-    ]);
+    expect(tools({ tourActive: true }).every((t) => t.state === "idle")).toBe(true);
   });
 
-  it("makes every tile inert without geometry — the tour included, per the mock's error state", () => {
-    expect(tools({ geometry: false })).toEqual([
-      { key: "reset", state: "inert" },
-      { key: "measure", state: "inert" },
-      { key: "add", state: "inert" },
-      { key: "tour", state: "inert" },
-    ]);
+  it("makes every tile inert without geometry, bar the two overlay tiles", () => {
+    expect(states({ geometry: false })).toEqual({
+      reset: "inert",
+      measure: "inert",
+      add: "inert",
+      panoramas: "idle",
+      documents: "idle",
+      tour: "inert",
+    });
+  });
+
+  it("lights Panoramas inside one, and refuses the two tools that need the mesh", () => {
+    // Nothing is measured or placed against a photo; Reset still frames the
+    // sphere, and the tour is as replayable as it is anywhere else.
+    expect(states({ view: INSIDE })).toEqual({
+      reset: "idle",
+      measure: "inert",
+      add: "inert",
+      panoramas: "active",
+      documents: "idle",
+      tour: "idle",
+    });
+  });
+
+  it("lights Documents while a document overlay is open", () => {
+    expect(states({ documentOpen: true })).toMatchObject({
+      documents: "active",
+      reset: "idle",
+      panoramas: "idle",
+    });
   });
 });
 
