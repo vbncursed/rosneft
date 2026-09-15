@@ -326,11 +326,35 @@ describe("ViewerOverlays · the document window", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("stands exactly one pill beside the stats strip while the window is hidden", () => {
+  it("stands exactly one pill while the window is hidden", () => {
     render(<ViewerOverlays {...props({ document: documentWindow({ window: "collapsed" }) })} />);
-    // The window draws its own pill; a second one from the page would double it.
+    // One pill, whoever draws it: the widget's own and a page-drawn one both
+    // answer to "Show", and two of them is the bug this counts.
     expect(screen.getAllByRole("button", { name: "Show" })).toHaveLength(1);
-    const pill = screen.getByRole("button", { name: "Show" }).parentElement as HTMLElement;
-    expect(pill.className).toContain("absolute");
+  });
+
+  // The strip's width is the scene's, not a constant: `LOD 1 active` and
+  // `LOD 1 active · LOD 0 loading` differ by ~96px, so an offset measured off
+  // the usual one puts the pill under the strip the moment a level downloads.
+  it.each([
+    ["short", ["LOD 1 active"]],
+    ["long", ["36.0 × 24.0 × 8.5 m", "1 284 210 vertices", "LOD 1 active · LOD 0 loading"]],
+  ])("follows the %s strip's own right edge rather than a fixed offset", (_label, items) => {
+    render(
+      <ViewerOverlays
+        {...props({
+          strip: { items, tone: "neutral", accentLast: false },
+          document: documentWindow({ window: "collapsed" }),
+        })}
+      />,
+    );
+    const pill = screen.getByRole("button", { name: "Show" }).closest("div") as HTMLElement;
+    const strip = screen.getByRole("status", { name: "Scene stats" });
+    // jsdom lays nothing out, so the 14px is asserted as what produces it: one
+    // flex row, the strip first and the pill next, `gap-3.5` between them.
+    expect(pill.parentElement).toBe(strip.parentElement);
+    expect(strip.nextElementSibling).toBe(pill);
+    expect(strip.parentElement?.className).toContain("gap-3.5");
+    expect(pill.className).not.toContain("absolute");
   });
 });

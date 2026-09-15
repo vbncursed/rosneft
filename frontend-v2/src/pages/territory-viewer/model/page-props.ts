@@ -144,8 +144,11 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
               canClose: measure.activeChainId !== null,
             }
           : null,
+      // Inside a capture the camera is in a photograph and the level behind it
+      // cannot be chosen; under an open document the picker would sit beneath
+      // the window. The mock draws none in either (states 9, 12, 13).
       switcher:
-        failed || levels.length < 2
+        failed || levels.length < 2 || inside || docs.window !== null
           ? null
           : { levels, target: targetLod, shown: report.shown, onChange: on.onTargetLod },
       strip: stripItems({

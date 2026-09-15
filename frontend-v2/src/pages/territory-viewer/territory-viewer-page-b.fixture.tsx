@@ -64,6 +64,14 @@ const UPLOADING: FileUploadState = {
 const markedIn = (p: PageParts): ResolvedPlacement[] =>
   p.placements.map((x) => ({ ...x, visiblePanoramaIds: x.id === 1 || x.id === 4 ? [1] : [2] }));
 
+/**
+ * State 13 selects instance #2 and mock 13 draws it ticked for the control
+ * room and not for the tank yard, so that one placement's allowlist differs
+ * from state 8's — where #1 and #4 are the two the photo marks.
+ */
+const markedForSelected = (p: PageParts): ResolvedPlacement[] =>
+  markedIn(p).map((x) => (x.id === 2 ? { ...x, visiblePanoramaIds: [1] } : x));
+
 /** Everything the two panorama states share: the captures and the camera's place. */
 const captures = (p: PageParts): PageParts => ({
   ...p,
@@ -172,7 +180,7 @@ export default {
   "13-visible-in": page((p) => ({
     ...selected(p),
     grants: NO_DELETE,
-    placements: markedIn(p),
+    placements: markedForSelected(p),
     panoramas: { ...p.panoramas, list: PANORAMAS },
   })),
 };

@@ -32,6 +32,13 @@ const props = (over: Partial<DocumentWindowProps> = {}): DocumentWindowProps => 
 });
 
 describe("DocumentWindow", () => {
+  it("leaves the pill to the page when the page draws its own", () => {
+    render(<DocumentWindow {...props({ window: "collapsed", showPill: false })} />);
+    expect(screen.queryByRole("button", { name: "Show" })).toBeNull();
+    // The frame stays mounted regardless — that is what collapsing means here.
+    expect(screen.getByTitle(FILE)).toBeInTheDocument();
+  });
+
   it("points the pdf.js frame at the document's own asset by default", () => {
     render(<DocumentWindow {...props({ frameSrc: undefined })} />);
     expect(screen.getByTitle(FILE)).toHaveAttribute(
@@ -69,13 +76,15 @@ describe("DocumentWindow", () => {
     expect(screen.queryByRole("button", { name: `Delete ${FILE}` })).toBeNull();
   });
 
-  it("expands to fill the viewport: Restore instead of Expand, no Hide, no handle", () => {
+  it("expands to fill the viewport: Restore in place of Expand, no handle", () => {
     render(<DocumentWindow {...props({ window: "expanded" })} />);
 
     expect(screen.queryByTitle("Drag to move")).toBeNull();
     expect(screen.getByRole("button", { name: `Restore ${FILE} to a window` })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: `Expand ${FILE}` })).toBeNull();
-    expect(screen.queryByRole("button", { name: `Hide ${FILE}` })).toBeNull();
+    // Mock 12 lists four actions in every mode: Restore replaces Expand and
+    // nothing else changes, so a reader can still put the window away.
+    expect(screen.getByRole("button", { name: `Hide ${FILE}` })).toBeInTheDocument();
   });
 
   it("collapses to a pill without unmounting the frame", async () => {
