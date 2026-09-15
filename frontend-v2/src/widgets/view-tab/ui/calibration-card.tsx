@@ -13,7 +13,7 @@ import {
   SAVE,
   YAW_SHORT,
 } from "../model/copy";
-import { degToRad, printDegrees } from "../model/degrees";
+import { degToRad, printDegrees, radToDeg } from "../model/degrees";
 
 export type CalibrationCardProps = {
   /** The ghosted photo over the mesh: 0.15–1, so it never disappears entirely. */
@@ -58,7 +58,7 @@ export function CalibrationCard({
   onSave,
   onExit,
 }: CalibrationCardProps) {
-  const degrees = printDegrees(yawOffset);
+  const degrees = radToDeg(yawOffset);
 
   return (
     <div className="flex flex-col gap-[11px]">
@@ -116,11 +116,11 @@ export function CalibrationCard({
       <div className="flex flex-col gap-[7px]">
         <div className={LABEL_ROW}>
           <span className={OVERLINE}>{YAW_SHORT}</span>
-          <span className="font-mono text-[10px] text-fg">{degrees}</span>
+          <span className="font-mono text-[10px] text-fg">{printDegrees(yawOffset)}</span>
         </div>
         <Range
           label={YAW_SHORT}
-          value={Number.parseFloat(degrees)}
+          value={degrees}
           min={0}
           max={360}
           step={0.5}

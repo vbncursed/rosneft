@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import { fireEvent } from "@testing-library/dom";
 import userEvent from "@testing-library/user-event";
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -109,14 +110,29 @@ describe("AnchorCard", () => {
   });
 
   it("saves every field, so the PUT does not zero one", async () => {
-    const { onSave } = card();
-    await userEvent.type(screen.getByLabelText(TITLE_LABEL), "!");
+    // Every one of the four differs from the panorama before Save is pressed,
+    // so a payload that hardcodes any of them from the props goes red.
+    const cameraPositionRef = createRef<Vec3>();
+    cameraPositionRef.current = { x: 1.5, y: 2.5, z: 3.5 };
+    const cameraYawRef = createRef<number>();
+    cameraYawRef.current = degToRad(212.4);
+    const { onSave } = card({ inside: true, cameraPositionRef, cameraYawRef });
+
+    await userEvent.type(screen.getByLabelText(TITLE_LABEL), " (west)");
+    await userEvent.click(screen.getByRole("button", { name: SET_DEFAULT_VIEW }));
+    fireEvent.change(screen.getByRole("slider", { name: YAW_LABEL }), { target: { value: "200" } });
+    // Inside the panorama the camera cannot be read into the anchor, so the
+    // position is typed the way a person would type it.
+    const x = screen.getByLabelText("Pos x");
+    await userEvent.clear(x);
+    await userEvent.type(x, "9.25");
+
     await userEvent.click(screen.getByRole("button", { name: SAVE_ANCHOR }));
     expect(onSave).toHaveBeenCalledWith({
-      title: "Control room, north door!",
-      position: PANORAMA.position,
-      yawOffset: PANORAMA.yawOffset,
-      defaultYaw: 0,
+      title: "Control room, north door (west)",
+      position: { x: 9.25, y: 1.7, z: -2.145 },
+      yawOffset: degToRad(200),
+      defaultYaw: degToRad(212.4),
     });
   });
 
@@ -152,6 +168,19 @@ describe("AnchorCard", () => {
     rerender(<AnchorCard {...all} panorama={moved} />);
     expect(screen.getByLabelText("Pos x")).toHaveValue("9.1");
     expect(screen.getByLabelText(TITLE_LABEL)).toHaveValue("Control room, north door");
+  });
+
+  it("reseeds the yaw a calibration save changed under it, with the anchor unmoved", () => {
+    const all = props();
+    const { rerender } = render(<AnchorCard {...all} />);
+    const calibrated = {
+      ...PANORAMA,
+      yawOffset: degToRad(212.4),
+      updatedAt: "2026-09-04T10:05:00Z",
+    };
+    rerender(<AnchorCard {...all} panorama={calibrated} />);
+    expect(screen.getByLabelText(`${YAW_LABEL} in degrees`)).toHaveValue(212.4);
+    expect(screen.getByRole("button", { name: SAVE_ANCHOR })).toBeDisabled();
   });
 
   it("asks before deleting, and names what it is about to delete", async () => {

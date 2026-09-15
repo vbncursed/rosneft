@@ -101,6 +101,24 @@ export function AnchorFields({
       <div data-tour="panorama-yaw" className="flex flex-col gap-[7px]">
         <div className={LABEL_ROW}>
           <span className={OVERLINE}>{YAW_LABEL}</span>
+          <button
+            type="button"
+            onClick={onSetDefaultView}
+            // The look direction only exists once the camera is in the sphere.
+            disabled={disabled || !inside}
+            data-tour="panorama-default-view"
+            className={TEXT_BUTTON}
+          >
+            {SET_DEFAULT_VIEW}
+          </button>
+        </div>
+
+        <div className={LABEL_ROW}>
+          {defaultYaw === 0 ? (
+            <span />
+          ) : (
+            <span className="font-mono text-[10px] text-muted">{defaultLook(defaultYaw)}</span>
+          )}
           <input
             type="number"
             step="0.5"
@@ -115,9 +133,10 @@ export function AnchorFields({
               if (e.target.value !== "" && Number.isFinite(typed)) onYawOffset(degToRad(typed));
             }}
             onBlur={() => setDraft(null)}
-            className={`${BOX} w-24 text-right font-mono`}
+            className={`${BOX} w-24 shrink-0 text-right font-mono`}
           />
         </div>
+
         <Range
           label={YAW_LABEL}
           value={degrees}
@@ -127,21 +146,6 @@ export function AnchorFields({
           disabled={disabled}
           onChange={(deg) => onYawOffset(degToRad(deg))}
         />
-      </div>
-
-      <div data-tour="panorama-default-view" className={LABEL_ROW}>
-        <button
-          type="button"
-          onClick={onSetDefaultView}
-          // The look direction only exists once the camera is in the sphere.
-          disabled={disabled || !inside}
-          className={TEXT_BUTTON}
-        >
-          {SET_DEFAULT_VIEW}
-        </button>
-        {defaultYaw === 0 ? null : (
-          <span className="font-mono text-[10px] text-muted">{defaultLook(defaultYaw)}</span>
-        )}
       </div>
     </>
   );
