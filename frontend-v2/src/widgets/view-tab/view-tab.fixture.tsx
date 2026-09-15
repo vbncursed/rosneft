@@ -1,6 +1,12 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
+import type { Panorama } from "@/entities/panorama";
+import { nudgePosition } from "@/entities/panorama";
+import type { Vec3 } from "@/entities/placement";
+import { NUDGE_STEPS } from "@/features/panorama-view";
 import type { Detail } from "@/shared/ui/detail-list";
 import { insideFooter, LOADING_FOOTER } from "./model/copy";
+import { degToRad } from "./model/degrees";
+import { AnchorCard } from "./ui/anchor-card";
 import type { PanoramaRowView } from "./ui/panorama-row";
 import { ViewTab } from "./ui/view-tab";
 
@@ -19,25 +25,11 @@ const PANORAMA_DETAILS: Detail[] = [
   FULL_DETAILS[4],
 ];
 
+const BLANK = { thumbUrl: null, active: false, canEdit: false, editing: false };
+
 const ROWS: PanoramaRowView[] = [
-  {
-    id: 7,
-    title: "Control room, north door",
-    thumbUrl: null,
-    active: false,
-    calibrated: true,
-    canEdit: false,
-    editing: false,
-  },
-  {
-    id: 8,
-    title: "Pump house, south wall",
-    thumbUrl: null,
-    active: false,
-    calibrated: false,
-    canEdit: false,
-    editing: false,
-  },
+  { ...BLANK, id: 7, title: "Control room, north door", calibrated: true },
+  { ...BLANK, id: 8, title: "Pump house, south wall", calibrated: false },
 ];
 
 const DOCUMENTS = [
@@ -120,13 +112,63 @@ function Live({
 }
 
 const ACTIVE: PanoramaRowView[] = [{ ...ROWS[0], active: true }, ROWS[1]];
+const EDITING: PanoramaRowView[] = [{ ...ROWS[0], editing: true }, ROWS[1]];
 
-/** Task 12 owns the anchor card; until then the editor slot holds its outline. */
-const EDITOR_PLACEHOLDER = (
-  <div className="rounded-control-lg border border-accent bg-panel-2 p-3 text-xs text-muted">
-    Anchor editor (Task 12)
-  </div>
-);
+const PANORAMA: Panorama = {
+  id: 7,
+  territorySlug: "refinery-block-c",
+  slug: "control-room-north-door",
+  title: "Control room, north door",
+  sourceBlobHash: "9f2c",
+  position: { x: 4.82, y: 1.7, z: -2.145 },
+  yawOffset: degToRad(137.5),
+  defaultYaw: 0,
+  updatedAt: "2026-09-04T09:12:00Z",
+};
+
+type EditorProps = { inside?: boolean; failed?: boolean; calibrating?: boolean; defaultYaw?: number };
+
+/** The anchor card as a route drives it: live refs, a saved panorama, a draft. */
+function Editor({ inside = false, failed = false, calibrating = false, defaultYaw = 0 }: EditorProps) {
+  const cameraPositionRef = useRef<Vec3 | null>({ x: 2.4, y: 1.62, z: -0.85 });
+  const cameraYawRef = useRef<number | null>(degToRad(212.4));
+  const [panorama, setPanorama] = useState<Panorama>({ ...PANORAMA, defaultYaw });
+  const [opacity, setOpacity] = useState(0.65);
+  const [step, setStep] = useState<number>(NUDGE_STEPS[0].value);
+  const [draft, setDraft] = useState({ position: PANORAMA.position, yawOffset: PANORAMA.yawOffset });
+  const calibration = {
+    opacity,
+    onOpacity: setOpacity,
+    step,
+    onStep: setStep,
+    position: draft.position,
+    onNudge: (axis: "x" | "y" | "z", delta: number) =>
+      setDraft((d) => ({ ...d, position: nudgePosition(d.position, axis, delta) })),
+    yawOffset: draft.yawOffset,
+    onYaw: (yawOffset: number) => setDraft((d) => ({ ...d, yawOffset })),
+    onSave: () => setPanorama((p) => ({ ...p, ...draft })),
+    onExit: () => {},
+  };
+
+  return (
+    <AnchorCard
+      panorama={panorama}
+      index={{ current: 1, total: 2 }}
+      inside={inside}
+      failed={failed}
+      cameraPositionRef={cameraPositionRef}
+      cameraYawRef={cameraYawRef}
+      saving={false}
+      canDelete
+      onSave={(patch) => setPanorama((p) => ({ ...p, ...patch }))}
+      onDelete={() => {}}
+      onToggleView={() => {}}
+      onCalibrate={() => {}}
+      onClose={() => {}}
+      calibration={calibrating ? calibration : null}
+    />
+  );
+}
 
 export default {
   idle: <Live url="https://tour.example/refinery" />,
@@ -142,14 +184,20 @@ export default {
       url="https://tour.example/refinery"
     />
   ),
-  editor: (
+  editor: <Live rows={EDITING} editor={<Editor />} footer={null} />,
+  "editor-inside": (
     <Live
-      rows={[{ ...ROWS[0], editing: true }, ROWS[1]]}
-      calibrating={{ title: "Control room, north door" }}
-      editor={EDITOR_PLACEHOLDER}
+      details={PANORAMA_DETAILS}
+      rows={[{ ...ROWS[0], active: true, editing: true }, ROWS[1]]}
+      canMove={false}
+      editor={<Editor inside defaultYaw={degToRad(212.4)} />}
       footer={null}
     />
   ),
+  "editor-calibrating": (
+    <Live rows={EDITING} calibrating={{ title: PANORAMA.title }} editor={<Editor calibrating />} footer={null} />
+  ),
+  "editor-failed": <Live rows={EDITING} editor={<Editor failed />} footer={null} />,
   guest: <Live canWrite={false} url="https://tour.example/refinery" />,
   empty: <Live rows={[]} documents={[]} footer={null} />,
   compact: <Live width={300} url="https://tour.example/refinery" />,
