@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { fireEvent } from "@testing-library/dom";
 import { describe, expect, it, vi } from "vitest";
 import { POSITION_LABEL, SET_DEFAULT_VIEW, SET_FROM_CAMERA, TITLE_LABEL, YAW_LABEL } from "../model/copy";
 import { degToRad } from "../model/degrees";
@@ -76,6 +77,8 @@ describe("AnchorFields", () => {
     const slider = screen.getByRole("slider", { name: YAW_LABEL });
     expect(slider).toHaveAttribute("max", "360");
     expect(slider).toHaveValue("137.5");
+    fireEvent.change(slider, { target: { value: "200" } });
+    expect(onYawOffset).toHaveBeenCalledWith(degToRad(200));
   });
 
   it("stays quiet about a default look nobody has captured", () => {

@@ -45,12 +45,17 @@ export type AnchorCardProps = {
 /**
  * The anchor editor. The draft lives in `Draft` below and is reseeded by a key,
  * not an effect: a drag in the viewport writes the panorama through the gateway,
- * and the new position has to reach the boxes without racing the render that
- * brought it.
+ * and the new values have to reach the boxes without racing the render that
+ * brought them.
+ *
+ * `updatedAt` carries the key because a calibration save can change only the
+ * yaw — the three position legs would be identical and the boxes would keep
+ * showing the angle the server has just replaced. The legs stay because a
+ * move-drag and a save can land on the same timestamp.
  */
 export function AnchorCard(props: AnchorCardProps) {
-  const { id, position } = props.panorama;
-  return <Draft key={`${id}:${position.x},${position.y},${position.z}`} {...props} />;
+  const { id, updatedAt, position } = props.panorama;
+  return <Draft key={`${id}:${updatedAt}:${position.x},${position.y},${position.z}`} {...props} />;
 }
 
 function Draft({
@@ -171,6 +176,11 @@ function Draft({
             disabled={!dirty}
             loading={saving}
             data-tour="panorama-save-anchor"
+            // The mock draws this one at 8/16, between the DS's sm (6/12) and
+            // md (10/18). Tailwind emits the spacing scale in ascending order,
+            // so px-4/py-2 land after the sm compound's px-3/py-1.5 and win —
+            // checked in the built stylesheet, not assumed.
+            className="px-4 py-2"
             onClick={() => onSave({ title, position, yawOffset, defaultYaw })}
           >
             {SAVE_ANCHOR}
