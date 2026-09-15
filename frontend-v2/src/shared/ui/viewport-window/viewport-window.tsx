@@ -34,7 +34,7 @@ export function ViewportWindow({ title, geometry, actions, onMoveStart, onResize
       aria-label={title}
       style={floating ? { left: geometry.x, top: geometry.y, width: geometry.w, height: geometry.h } : undefined}
       className={cx(
-        "absolute z-30 flex flex-col overflow-hidden rounded-card border border-line-2 bg-panel shadow-elevation",
+        "pointer-events-auto absolute z-30 flex flex-col overflow-hidden rounded-card border border-line-2 bg-panel shadow-elevation",
         !floating && "inset-3.5",
         className,
       )}
