@@ -75,6 +75,12 @@ export function usePanoramaTexture(hash: string | null, decode: TextureDecoder):
     return () => {
       cancelled = true;
       controller.abort();
+      // Forget what was tracked, not just the download. The state carries the
+      // hash it describes, and leaving A's `ready` behind means coming back to
+      // A answers `ready` with a bitmap the sphere has already closed — one
+      // render of a dead texture, then loading, then ready again: a flash and
+      // two camera jumps.
+      setState({ ...IDLE, hash: null });
     };
   }, [hash]);
 
