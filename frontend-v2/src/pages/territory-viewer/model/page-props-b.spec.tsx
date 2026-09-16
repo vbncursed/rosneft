@@ -239,7 +239,29 @@ describe("panoramaCanvasProps", () => {
         calibration: { ...p.panoramas.calibration, active: true, effective },
       },
     };
-    expect(panoramaCanvasProps(calibrating, []).activePanorama).toBe(effective);
+    const props = panoramaCanvasProps(calibrating, []);
+    expect(props.activePanorama).toBe(effective);
+    expect(props.calibrationGhost).toBeNull();
+  });
+
+  it("calibrates from the 3D view against a free camera: the draft is a ghost, not the active capture", () => {
+    // `PanoramaRig` mounts on `activePanorama` alone. Substituting the draft
+    // there pins the camera onto the anchor and takes the 3D view — the one
+    // place the ring can be dragged against the mesh — away.
+    const effective = panorama(1, { position: { x: 9, y: 9, z: 9 } });
+    const p = withPanoramas([panorama(1), panorama(2)]);
+    expect(panoramaCanvasProps(p, []).calibrationGhost).toBeNull();
+
+    const calibrating = {
+      ...p,
+      panoramas: {
+        ...p.panoramas,
+        calibration: { ...p.panoramas.calibration, active: true, effective },
+      },
+    };
+    const props = panoramaCanvasProps(calibrating, []);
+    expect(props.activePanorama).toBeNull();
+    expect(props.calibrationGhost).toBe(effective);
   });
 
   it("ghosts the photo only while it is being calibrated against the mesh", () => {
@@ -257,8 +279,8 @@ describe("panoramaCanvasProps", () => {
   });
 
   it("tells the canvas the alignment is open, and still hands it the saved rows", () => {
-    // The anchor being calibrated is not drawn at all — the reader stands on
-    // it — so there is no draft to overlay onto the list the markers read.
+    // The list is reference only while an alignment is open: the one anchor
+    // drawn is the draft, and the canvas reads it off `calibrationGhost`.
     const p = withPanoramas([panorama(1), panorama(2)]);
     expect(panoramaCanvasProps(p, []).calibrating).toBe(false);
 

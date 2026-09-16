@@ -29,6 +29,7 @@ const props = {
   retryVersion: 0,
   focusRequest: null,
   activePanorama: null,
+  calibrationGhost: null,
   panoramaBitmap: null,
   panoramaStatus: "idle",
   panoramaProgress: null,

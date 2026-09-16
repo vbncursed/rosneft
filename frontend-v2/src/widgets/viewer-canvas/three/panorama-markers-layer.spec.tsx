@@ -44,14 +44,22 @@ describe("PanoramaMarkersLayer", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("does not draw the anchor the reader is standing on while it is calibrated", () => {
-    // The camera is pinned onto that anchor, so its marker would project onto
-    // the eye and land in the corner of the viewport. The nudge row and
-    // `Set from camera` are what move it; the rest stay for reference.
-    mount({ editingId: 2 });
-    expect(screen.queryByRole("button", { name: /Panorama 2/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open panorama Panorama 1" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open panorama Panorama 3" })).toBeInTheDocument();
+  it("wears the calibration look on the anchor being aligned, and on that one only", () => {
+    // The caller hands the layer the draft alone while an alignment is open;
+    // `editingId` is what tells the marker to wear the ring and the chip.
+    mount({ panoramas: [panorama(2)], editingId: 2, moveMode: true, onGrab: vi.fn() });
+    expect(screen.getByRole("button", { name: "Move panorama Panorama 2" }).className).toContain(
+      "bg-accent-soft",
+    );
+    expect(screen.getByText("anchor · drag to move")).toBeInTheDocument();
+  });
+
+  it("wears no calibration look when no alignment is open", () => {
+    mount({ editingId: null });
+    expect(screen.queryByText("anchor · drag to move")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open panorama Panorama 1" }).className).toContain(
+      "bg-panel",
+    );
   });
 
   it("marks only the grabbed one as dragging, and the rest stay grabbable", () => {

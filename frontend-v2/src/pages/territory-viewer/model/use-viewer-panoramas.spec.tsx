@@ -112,12 +112,40 @@ describe("useViewerPanoramas", () => {
     expect(usePanoramaTexture).toHaveBeenLastCalledWith(null, decode);
   });
 
+  it("downloads the calibrated capture's photo from the 3D view — the ghost backdrop needs it", () => {
+    // Calibration from the 3D view hangs the equirect around the scene as a
+    // backdrop. Keyed on `active` alone there is no active capture out there,
+    // so no photo ever arrived and the ghost could not be drawn.
+    const { result } = mount(modeStub({ editingPanoramaId: 2 }));
+    expect(usePanoramaTexture).toHaveBeenLastCalledWith(null, decode);
+    act(() => result.current.calibration.onStart());
+    expect(usePanoramaTexture).toHaveBeenLastCalledWith("p2", decode);
+  });
+
   it("writes a dropped marker's position through the list, and nothing else", () => {
     const { result } = mount(modeStub(), true);
     act(() => result.current.drag.begin(1));
     act(() => result.current.drag.move({ x: 4, y: 0, z: -1 }));
     act(() => result.current.drag.end());
     expect(list.update).toHaveBeenCalledWith(1, { position: { x: 4, y: 0, z: -1 } });
+  });
+
+  it("edits the calibration draft on a drop, and writes nothing to the server", () => {
+    // Save commits the alignment and Exit discards it; a drag that PUT on
+    // release would make both of those buttons a lie.
+    const { result } = mount(modeStub({ editingPanoramaId: 1 }));
+    act(() => result.current.calibration.onStart());
+    act(() => result.current.drag.begin(1));
+    act(() => result.current.drag.move({ x: 4, y: 0, z: -1 }));
+    act(() => result.current.drag.end());
+    expect(list.update).not.toHaveBeenCalled();
+    expect(result.current.calibration.draft?.position).toEqual({ x: 4, y: 0, z: -1 });
+
+    act(() => result.current.calibration.onSave());
+    expect(list.update).toHaveBeenCalledWith(1, {
+      position: { x: 4, y: 0, z: -1 },
+      yawOffset: 0.1,
+    });
   });
 
   it("drops an unfinished drag when the reducer leaves move mode", () => {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
   BackSide,
   RepeatWrapping,
@@ -74,7 +74,11 @@ export default function PanoramaSphere({ panorama, bitmap, opacity = 1 }: Panora
   // alpha 1: the slider moved `opacity`, the shader threw it away, and the
   // photo painted fully opaque at every setting. `needsUpdate` bumps
   // `material.version`, which is the one thing three does re-check.
-  useEffect(() => {
+  //
+  // Layout, not passive: R3F flips `transparent` in the mutation phase and
+  // schedules the next frame on a rAF, and a passive effect's ordering against
+  // that rAF is not guaranteed — one frame could still draw the stale program.
+  useLayoutEffect(() => {
     if (materialRef.current) materialRef.current.needsUpdate = true;
   }, [ghosting]);
 
