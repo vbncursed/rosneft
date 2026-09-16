@@ -370,6 +370,11 @@ nothing the new one lacks.
     are not grabbable. Dragging it edits the calibration **draft**, so
     `Save` still commits and `Exit` still discards, and the ring follows
     the nudge buttons because the anchors are drawn from the draft too.
+14. User request after package B (2026-09-16): `Show in this panorama` is
+    drawn on **every** row, calibrated or not. An anchor still at the origin
+    is a valid place to stand, and an alignment can only be judged from
+    inside the photograph. The `not calibrated yet` hint stays — above the
+    button, in the same column — as a warning rather than a locked door.
 
 ## 7. Not in this package
 

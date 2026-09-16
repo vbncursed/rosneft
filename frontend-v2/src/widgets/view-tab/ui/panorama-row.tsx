@@ -8,7 +8,7 @@ export type PanoramaRowView = {
   /** The equirect photo, or null while there is nothing to show for it. */
   thumbUrl: string | null;
   active: boolean;
-  /** An anchor still at the origin cannot be entered; the row says so. */
+  /** An anchor still at the origin: the row says so, above the way in. */
   calibrated: boolean;
   canEdit: boolean;
   editing: boolean;
@@ -54,18 +54,20 @@ export function PanoramaRow({ row, onEnter, onExit, onEdit }: PanoramaRowProps) 
 
       <span className="min-w-0 flex-1">
         <span className="block truncate text-xs text-fg">{title}</span>
-        {calibrated ? (
-          <button
-            type="button"
-            onClick={() => (active ? onExit() : onEnter(id))}
-            aria-label={`${label}: ${title}`}
-            className="mt-1 cursor-pointer border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.1em] text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
-          >
-            {label}
-          </button>
-        ) : (
+        {/* The hint warns, it does not lock the door (user request,
+            2026-09-16): an anchor at the origin is still a place to stand, and
+            an alignment can only be judged from inside the photograph. */}
+        {calibrated ? null : (
           <span className="mt-1 block font-mono text-[9px] text-muted">{NOT_CALIBRATED}</span>
         )}
+        <button
+          type="button"
+          onClick={() => (active ? onExit() : onEnter(id))}
+          aria-label={`${label}: ${title}`}
+          className="mt-1 cursor-pointer border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.1em] text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+        >
+          {label}
+        </button>
       </span>
 
       {canEdit ? (
