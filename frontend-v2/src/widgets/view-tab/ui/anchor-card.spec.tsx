@@ -10,8 +10,10 @@ import {
   CLOSE_EDITOR,
   DELETE_PANORAMA,
   ENTER_PANORAMA_VIEW,
+  EXIT,
   IMAGE_FAILED,
   OPACITY_LABEL,
+  SAVE,
   SAVE_ANCHOR,
   SET_DEFAULT_VIEW,
   SET_FROM_CAMERA,
@@ -221,6 +223,20 @@ describe("AnchorCard", () => {
     expect(screen.queryByLabelText(TITLE_LABEL)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: SAVE_ANCHOR })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: DELETE_PANORAMA })).toBeInTheDocument();
+  });
+
+  it("keeps the open alignment alive when the photo failed — it owns the only way out", () => {
+    // The backdrop download can fail from the 3D view now that calibration
+    // loads its own texture. Stripping the card to the callout there left the
+    // ring drawn and draggable with no Save and no Exit to end it with.
+    card({ failed: true, calibration: CALIBRATION });
+    expect(screen.getByText(IMAGE_FAILED)).toBeInTheDocument();
+    expect(screen.getByText(OPACITY_LABEL)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: SAVE })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: EXIT })).toBeInTheDocument();
+    // Still nothing to type into or to save as an anchor.
+    expect(screen.queryByLabelText(TITLE_LABEL)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: SAVE_ANCHOR })).not.toBeInTheDocument();
   });
 
   it("hands the numbers to the calibration block while one is open", () => {

@@ -101,6 +101,20 @@ describe("the view, move and the editing target", () => {
     expect(reduce(editing, { type: "closeEdit" }).editingPanoramaId).toBeNull();
   });
 
+  it("editing a different capture from inside one walks the reader out first", () => {
+    // Inside A, the pencil on B's row: the rig would stand the eye on B's
+    // anchor while the sphere still wore A's photograph, and an alignment
+    // judged against the wrong picture is saved to B.
+    const insideOne = reduce(INITIAL_VIEWER_MODE, { type: "enterPanorama", id: 1 });
+    const editingOther = reduce(insideOne, { type: "startEdit", id: 2 });
+    expect(editingOther.editingPanoramaId).toBe(2);
+    expect(editingOther.view).toEqual({ kind: "scene" });
+
+    // The capture the reader is already in is the coherent case: stay.
+    const editingSame = reduce(insideOne, { type: "startEdit", id: 1 });
+    expect(editingSame.view).toEqual({ kind: "panorama", id: 1 });
+  });
+
   it("escape peels: move, then the selection, then the mode, then the panorama", () => {
     const esc = { type: "escape", chainOpen: false } as const;
     const all = { ...inPano, move: false, selectedId: 2, mode: "measure" as const };

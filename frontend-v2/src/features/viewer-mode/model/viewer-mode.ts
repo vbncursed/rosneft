@@ -92,7 +92,16 @@ export function viewerModeReducer(state: ViewerModeState, action: ViewerModeActi
     case "exitMove":
       return state.move ? { ...state, move: false } : state;
     case "startEdit":
-      return { ...state, editingPanoramaId: action.id };
+      // Editing a capture while standing inside a *different* one is
+      // incoherent: the rig stands the eye on the edited anchor while the
+      // sphere still wears the photograph of the one being stood in, and an
+      // alignment judged against the wrong picture is saved to the edited row.
+      // The pencil therefore walks the reader out first.
+      return {
+        ...state,
+        editingPanoramaId: action.id,
+        view: state.view.kind === "panorama" && state.view.id !== action.id ? SCENE : state.view,
+      };
     case "closeEdit":
       return state.editingPanoramaId === null ? state : { ...state, editingPanoramaId: null };
     case "escape":

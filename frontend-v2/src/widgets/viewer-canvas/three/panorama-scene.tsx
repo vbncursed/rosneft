@@ -65,10 +65,10 @@ export default function PanoramaScene({
 
   return (
     <>
-      {/* Only inside. Out in the 3D view the photo is a backdrop the operator
-          asked for on top of a scene they can already see; covering it would
-          take the scene away to announce a download. */}
-      {activePanorama && status === "loading" ? <PanoramaLoadingOverlay progress={progress} /> : null}
+      {/* The backdrop is reported too: a multi-megabyte equirect takes seconds,
+          and `Calibrate (overlay)` with no signal at all reads as a button that
+          did nothing. */}
+      {sphere && status === "loading" ? <PanoramaLoadingOverlay progress={progress} /> : null}
 
       {sphere && status === "ready" && bitmap ? (
         <PanoramaSphere panorama={sphere} bitmap={bitmap} opacity={opacity} />
@@ -86,8 +86,13 @@ export default function PanoramaScene({
           ring would project onto the eye — and while picking points they would
           eat the click meant for the surface. While calibrating the layer is
           handed the draft alone: it is the only ring drawn, the only one
-          grabbable, and `V` therefore cannot reach another anchor's PUT. */}
-      {!activePanorama && !pointMode && showMarkers ? (
+          grabbable, and `V` therefore cannot reach another anchor's PUT.
+          That ring outranks both gates, because it is the alignment's own
+          control rather than a marker: `showMarkers` is remembered in
+          localStorage across sessions and territories, and `M` is one key
+          away, so either could silently leave an open alignment with nothing
+          to drag and no explanation. */}
+      {!activePanorama && (calibrating || (!pointMode && showMarkers)) ? (
         <PanoramaMarkersLayer
           panoramas={calibrationGhost ? [calibrationGhost] : panoramas}
           onActivate={onActivate}

@@ -191,6 +191,35 @@ describe("PanoramaScene", () => {
     expect(named(await mount({ showMarkers: false }), "PanoramaMarkersLayer")).toHaveLength(0);
   });
 
+  it("draws the ring being aligned whatever the markers switch and the mode say", async () => {
+    // It is the alignment's own control, not a marker. `showMarkers` is
+    // remembered in localStorage across sessions and territories, so a reader
+    // who turned anchors off months ago would open Calibrate to no ring, no
+    // explanation and a feature that reads as broken. `M` did the same.
+    const calibrating = {
+      calibrationGhost: DRAFT,
+      bitmap: fakeBitmap(),
+      status: "ready" as const,
+      opacity: 0.5,
+      calibrating: true,
+    };
+    const off = await mount({ ...calibrating, showMarkers: false });
+    expect(named(off, "PanoramaMarkersLayer")[0].instance.userData).toEqual({
+      ids: [7],
+      moveMode: true,
+      editingId: 7,
+    });
+    const measuring = await mount({ ...calibrating, pointMode: true });
+    expect(named(measuring, "PanoramaMarkersLayer")[0].instance.userData.ids).toEqual([7]);
+  });
+
+  it("reports the backdrop's download in the 3D view too", async () => {
+    // Several seconds of a multi-megabyte equirect with no signal at all read
+    // as `Calibrate (overlay)` doing nothing.
+    const r = await mount({ calibrationGhost: DRAFT, status: "loading", progress: 40, calibrating: true });
+    expect(named(r, "PanoramaLoadingOverlay")[0].instance.userData.progress).toBe(40);
+  });
+
   it("keeps the drag controller mounted so a release always lands", async () => {
     const r = await mount(ready);
     expect(named(r, "PanoramaDragController")[0].instance.userData.dragging).toBe(false);
