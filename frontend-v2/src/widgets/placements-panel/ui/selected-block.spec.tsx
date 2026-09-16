@@ -69,6 +69,8 @@ describe("SelectedBlock", () => {
     expect(onLabel).toHaveBeenCalledWith("T");
     // The form's rotation boxes carry bare degrees and report radians back.
     expect(screen.getByLabelText("Rot y")).toHaveValue("90");
+    // Mock state 14: the editable Pos and Scl boxes print three places.
+    expect(screen.getByRole("textbox", { name: "Scl x" })).toHaveValue("1.000");
     await userEvent.clear(screen.getByLabelText("Rot y"));
     await userEvent.type(screen.getByLabelText("Rot y"), "180");
     expect(onTransform).toHaveBeenLastCalledWith(
@@ -81,13 +83,14 @@ describe("SelectedBlock", () => {
   it("reports a new transform for the position and scale boxes too", async () => {
     const onTransform = vi.fn();
     render(<SelectedBlock {...base} form={{ ...form, onTransform }} />);
+    // The boxes print three places and select them on focus: typing replaces.
     await userEvent.type(screen.getByLabelText("Pos y"), "5");
     expect(onTransform).toHaveBeenLastCalledWith(
       expect.objectContaining({ position: { x: 12.4, y: 5, z: -8.25 } }),
     );
     await userEvent.type(screen.getByLabelText("Scl x"), "2");
     expect(onTransform).toHaveBeenLastCalledWith(
-      expect.objectContaining({ scale: { x: 12, y: 1, z: 1 } }),
+      expect.objectContaining({ scale: { x: 2, y: 1, z: 1 } }),
     );
   });
 

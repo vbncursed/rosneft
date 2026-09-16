@@ -2,6 +2,7 @@ import { useEffect, type RefObject } from "react";
 import { useThree } from "@react-three/fiber";
 import { Raycaster, Vector2, type Object3D } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import { holdStill } from "./stop-coast";
 import type { Vec3 } from "@/entities/placement";
 
 interface PanoramaDragControllerProps {
@@ -57,6 +58,7 @@ export default function PanoramaDragController({
   useEffect(() => {
     if (!dragging) return;
     setOrbit(controls, false);
+    if (controls) holdStill(controls, camera);
 
     const move = (event: PointerEvent | MouseEvent) => {
       const surface = territoryRef.current;

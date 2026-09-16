@@ -104,6 +104,22 @@ describe("useLodDownload", () => {
     expect(result.current.blobUrl).toBeNull();
   });
 
+  // 0 → 2 → 0: the coarse level is never streamed, so nothing overwrote the
+  // finished download of LOD 0 — the return showed "100 %" for a frame and
+  // warmed a blob that had already been revoked.
+  it("forgets a finished level once it is left, so a return starts from nothing", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(streamOf([new Uint8Array(5)]), { status: 200 })));
+    vi.stubGlobal("URL", { ...URL, createObjectURL: vi.fn(() => "blob:a"), revokeObjectURL: vi.fn() });
+    const a = { lod: 0, hash: "a", size: 5 };
+    const { result, rerender } = renderHook(({ art }) => useLodDownload(art), {
+      initialProps: { art: a as typeof a | null },
+    });
+    await waitFor(() => expect(result.current.blobUrl).toBe("blob:a"));
+    rerender({ art: null });
+    rerender({ art: a });
+    expect(result.current).toEqual({ blobUrl: null, received: 0, failed: null });
+  });
+
   it("does nothing for null", () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);

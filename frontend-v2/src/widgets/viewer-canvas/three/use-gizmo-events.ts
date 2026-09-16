@@ -7,6 +7,7 @@ import type {
 } from "three-stdlib";
 import type { GizmoMode } from "@/features/viewer-mode";
 import type { PlacementTransform } from "@/entities/placement";
+import { holdStill } from "./stop-coast";
 import { applySurface } from "./snap-translate";
 
 interface DraggingChangedEvent {
@@ -52,6 +53,7 @@ export function useGizmoEvents(params: UseGizmoEventsParams) {
   const { tcRef, target, selectedId, mode, territoryRef, snapEnabled, onCommit } = params;
   const orbit = useThree((state) => state.controls as OrbitControlsImpl | null);
   const invalidate = useThree((state) => state.invalidate);
+  const camera = useThree((state) => state.camera);
 
   // Apply the surface contract in-place. mode-gated here so non-translate
   // ticks short-circuit before touching the raycaster.
@@ -86,6 +88,7 @@ export function useGizmoEvents(params: UseGizmoEventsParams) {
     const emitter = asEmitter(tc);
     const onDragChange: DraggingChangedListener = (event) => {
       orbit.enabled = !event.value;
+      if (event.value) holdStill(orbit, camera);
       if (event.value && target) lastScaleRef.current = target.scale.x;
       if (!event.value) commitFromTarget();
     };
@@ -116,5 +119,5 @@ export function useGizmoEvents(params: UseGizmoEventsParams) {
       emitter.removeEventListener("dragging-changed", onDragChange);
       emitter.removeEventListener("objectChange", onObjectChange);
     };
-  }, [tcRef, orbit, commitFromTarget, mode, target, snapTick, invalidate]);
+  }, [tcRef, orbit, camera, commitFromTarget, mode, target, snapTick, invalidate]);
 }

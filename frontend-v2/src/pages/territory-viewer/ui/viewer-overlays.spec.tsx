@@ -174,6 +174,21 @@ describe("ViewerOverlays · what the pointer is doing", () => {
       "aria-valuenow",
       "62",
     );
+    // Fixed-width digits: the chip does not breathe with every chunk.
+    expect(screen.getByText("coarse LOD 2 shown · LOD 0 62% · 6.1 / 9.8 MB")).toHaveClass("tabular-nums");
+  });
+
+  it("fills the progress line by scale, linearly, and holds it still under reduced motion", () => {
+    render(
+      <ViewerOverlays
+        {...props({ chip: null, loading: { chip: "LOD 0 62%", percent: 62, target: 0 } })}
+      />,
+    );
+    const fill = screen.getByRole("progressbar", { name: "Loading LOD 0" })
+      .firstElementChild as HTMLElement;
+    expect(fill.style.transform).toBe("scaleX(0.62)");
+    expect(fill.style.width).toBe("");
+    expect(fill).toHaveClass("origin-left", "ease-linear", "motion-reduce:transition-none");
   });
 
   it("draws no progress line when nothing is downloading", () => {
@@ -241,6 +256,25 @@ describe("ViewerOverlays · the strip, the switcher and the hints", () => {
     const group = screen.getByRole("radiogroup", { name: "Level of detail" });
     expect(group.querySelectorAll("button")).toHaveLength(3);
     expect(screen.getByRole("radio", { name: "LOD 1" })).toHaveAttribute("aria-checked", "true");
+  });
+
+  // N23: folding the panel moves the switcher's edge by 276px. The browser
+  // tweens the computed `right` (the variable itself flips in one step); the
+  // floating document layer does not follow — its ResizeObserver would re-clamp
+  // the window on every frame.
+  it("slides the switcher and the hint bar to the panel's new edge, not the document layer", () => {
+    render(
+      <ViewerOverlays
+        {...props({
+          document: documentWindow(),
+          measuring: { onClear: vi.fn(), onCloseChain: vi.fn(), canClear: true, canClose: true },
+        })}
+      />,
+    );
+    const moving = ["transition-[right]", "duration-200", "ease-out", "motion-reduce:transition-none"];
+    expect(screen.getByRole("radiogroup")).toHaveClass(...moving);
+    expect(screen.getByRole("note", { name: "Measure tool" })).toHaveClass(...moving);
+    expect(screen.getByTestId("document-layer")).not.toHaveClass("transition-[right]");
   });
 
   it("draws no switcher when the page gave none", () => {

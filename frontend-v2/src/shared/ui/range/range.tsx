@@ -33,9 +33,12 @@ export function Range({ value, min, max, step, onChange, label, disabled = false
       onChange={(e) => onChange(Number(e.target.value))}
       style={{ "--range-fill": fill } as CSSProperties}
       className={cx(
-        "h-1 w-full cursor-pointer appearance-none rounded-full bg-[linear-gradient(to_right,var(--color-accent)_var(--range-fill),var(--color-line)_var(--range-fill))] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45",
+        "h-1 w-full cursor-grab appearance-none rounded-full bg-[linear-gradient(to_right,var(--color-accent)_var(--range-fill),var(--color-line)_var(--range-fill))] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent enabled:active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-45",
         "[&::-webkit-slider-thumb]:size-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-accent [&::-webkit-slider-thumb]:bg-panel",
         "[&::-moz-range-thumb]:size-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-accent [&::-moz-range-thumb]:bg-panel",
+        // The knob answers hover and press before the scene answers the value.
+        "[&::-webkit-slider-thumb]:transition-[scale] [&::-webkit-slider-thumb]:duration-100 [&::-webkit-slider-thumb]:ease-out enabled:hover:[&::-webkit-slider-thumb]:scale-110 enabled:active:[&::-webkit-slider-thumb]:scale-95 motion-reduce:[&::-webkit-slider-thumb]:transition-none",
+        "[&::-moz-range-thumb]:transition-[scale] [&::-moz-range-thumb]:duration-100 [&::-moz-range-thumb]:ease-out enabled:hover:[&::-moz-range-thumb]:scale-110 enabled:active:[&::-moz-range-thumb]:scale-95 motion-reduce:[&::-moz-range-thumb]:transition-none",
         className,
       )}
     />

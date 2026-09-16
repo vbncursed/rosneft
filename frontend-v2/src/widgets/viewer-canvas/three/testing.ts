@@ -26,6 +26,9 @@ export const fakePlacement = (id: number) => ({
 
 export const boundsStub = { refresh: vi.fn().mockReturnThis(), fit: vi.fn() };
 
+/** The props each drei <AdaptiveDpr> was mounted with, in mount order. */
+export const adaptiveDprProps: Record<string, unknown>[] = [];
+
 /** Every colour drei's <Line> was handed, in mount order. */
 export const lineColors: string[] = [];
 
@@ -61,7 +64,10 @@ export async function mockDrei(orig: () => Promise<unknown>) {
       lineColors.push(color);
       return null;
     },
-    AdaptiveDpr: () => null,
+    AdaptiveDpr: (p: Record<string, unknown>) => {
+      adaptiveDprProps.push(p);
+      return null;
+    },
     Bounds: ({ children }: { children: ReactNode }) =>
       createElement("group", { name: "Bounds" }, children),
     useBounds: () => boundsStub,

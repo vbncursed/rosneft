@@ -101,4 +101,9 @@ describe("ExternalLink", () => {
     await userEvent.click(screen.getByRole("button", { name: /^(Edit|Add) link$/ }));
     expect(screen.getByRole("button", { name: /Save/ })).toBeDisabled();
   });
+
+  it("presses the edit link", () => {
+    link({ canEdit: true });
+    expect(screen.getByRole("button", { name: "Edit link" })).toHaveClass("active:scale-[0.97]", "ease-out");
+  });
 });

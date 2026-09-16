@@ -75,6 +75,25 @@ describe("useProgressiveLod", () => {
     expect(result.current.warmUrl).toContain("/api/assets/b");
   });
 
+  it("returning to a level already seen goes through the coarse level again (0 → 2 → 0)", () => {
+    // Readiness is a fact about the level being fetched *now*. Kept from the
+    // first visit, it put LOD 0 straight back on screen on the way back — the
+    // canvas then suspended on a url nobody had parsed and drew nothing for the
+    // whole download, with no chip and no progress.
+    const { result, rerender } = renderHook(({ t }) => useProgressiveLod(chain, t), {
+      initialProps: { t: 0 },
+    });
+    act(() => result.current.onWarmReady());
+    rerender({ t: 2 });
+    expect(result.current.shown?.lod).toBe(2);
+    rerender({ t: 0 });
+    expect(result.current.shown?.lod).toBe(2);
+    expect(result.current.url).toContain("/api/assets/c");
+    expect(result.current.warmUrl).toContain("/api/assets/a");
+    act(() => result.current.onWarmReady());
+    expect(result.current.url).toContain("/api/assets/a");
+  });
+
   it("resolves urls through urlOf", () => {
     const { result } = renderHook(() => useProgressiveLod(chain, 0, (a) => `blob:${a.hash}`));
     expect(result.current.url).toBe("blob:c");

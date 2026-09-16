@@ -35,4 +35,11 @@ describe("PointMarker", () => {
     render(<PointMarker position={at} variant="active-start" />);
     expect(() => fireEvent.click(screen.getByRole("button"))).not.toThrow();
   });
+
+  it("answers hover on the closer with a wider halo, not a scale, and holds still under reduced motion", () => {
+    render(<PointMarker position={at} variant="active-start" />);
+    const closer = screen.getByRole("button");
+    expect(closer.className).not.toMatch(/hover:scale/);
+    expect(closer).toHaveClass("hover:ring-[6px]", "active:scale-95", "ease-out", "motion-reduce:transition-none");
+  });
 });

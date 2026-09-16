@@ -31,7 +31,8 @@ describe("AnchorFields", () => {
 
   it("prints the anchor in the Pos row", () => {
     fields();
-    expect(screen.getByLabelText("Pos x")).toHaveValue("4.82");
+    // Three places, as the mock prints them: a raw float overran the cell.
+    expect(screen.getByLabelText("Pos x")).toHaveValue("4.820");
     expect(screen.getByLabelText("Pos z")).toHaveValue("-2.145");
   });
 
@@ -79,6 +80,25 @@ describe("AnchorFields", () => {
     expect(slider).toHaveValue("137.5");
     fireEvent.change(slider, { target: { value: "200" } });
     expect(onYawOffset).toHaveBeenCalledWith(degToRad(200));
+  });
+
+  // 720 half-degree stops on a 260px track cannot be hit with a mouse; the
+  // box beside it still takes halves.
+  it("steps the slider in whole degrees and the box in halves", () => {
+    fields();
+    expect(screen.getByRole("slider", { name: YAW_LABEL })).toHaveAttribute("step", "1");
+    expect(screen.getByLabelText(`${YAW_LABEL} in degrees`)).toHaveAttribute("step", "0.5");
+  });
+
+  it("answers focus at once, and presses its text buttons", () => {
+    fields({ inside: true });
+    const title = screen.getByLabelText(TITLE_LABEL);
+    expect(title).toHaveClass("focus:border-accent");
+    expect(title.className).not.toMatch(/(^| )transition-/);
+    expect(screen.getByRole("button", { name: SET_DEFAULT_VIEW })).toHaveClass(
+      "enabled:active:scale-[0.97]",
+      "ease-out",
+    );
   });
 
   it("stays quiet about a default look nobody has captured", () => {

@@ -19,4 +19,15 @@ describe("GroupRow", () => {
     render(<GroupRow group={group} expanded selectedId={2} onToggle={vi.fn()} />);
     expect(screen.getByRole("button", { name: "storage-tank-500" })).toHaveAttribute("aria-current", "true");
   });
+
+  // A selection lights the group and its instance together; the group used to
+  // fade in over 150ms while the instance flipped at once.
+  it("repaints a selection at once, presses, and turns its chevron only with motion allowed", () => {
+    render(<GroupRow group={group} expanded selectedId={2} onToggle={vi.fn()} />);
+    const row = screen.getByRole("button", { name: "storage-tank-500" });
+    expect(row).not.toHaveClass("transition-colors");
+    expect(row).toHaveClass("active:scale-[0.99]");
+    const chevron = row.querySelector("svg")!;
+    expect(chevron).toHaveClass("transition-transform", "ease-out", "motion-reduce:transition-none", "rotate-90");
+  });
 });

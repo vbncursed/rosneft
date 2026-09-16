@@ -57,7 +57,8 @@ export default function PanoramaMarker({
   // One cursor per state, and one size/fill pair per state, resolved here:
   // clsx would merge nothing and two `size-*` or two `bg-*` utilities on one
   // element are a coin toss.
-  const cursor = moveMode ? (dragging ? "cursor-grabbing" : "cursor-grab") : "cursor-pointer";
+  // A ring being grabbed does not dip: the press is the start of a drag.
+  const cursor = moveMode ? (dragging ? "cursor-grabbing" : "cursor-grab") : "cursor-pointer active:scale-95";
   const ring = calibrating ? "size-3 bg-accent-soft" : "size-2.5 bg-panel";
 
   return (
@@ -71,7 +72,7 @@ export default function PanoramaMarker({
           onPointerDown={moveMode ? grab : undefined}
           onClick={moveMode ? undefined : activate}
           aria-label={`${moveMode ? "Move" : "Open"} panorama ${panorama.title}`}
-          className={`block rounded-full border-2 border-accent p-0 transition-transform duration-150 hover:scale-125 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${ring} ${cursor}`}
+          className={`block rounded-full border-2 border-accent p-0 transition-[box-shadow,scale] duration-150 ease-out hover:ring-4 hover:ring-accent-soft motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${ring} ${cursor}`}
         />
         {calibrating ? (
           // The title is the 3D view's question ("which capture is this?").

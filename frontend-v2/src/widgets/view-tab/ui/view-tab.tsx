@@ -87,17 +87,23 @@ export function ViewTab({ details, panoramas, documents, footer }: ViewTabProps)
           // The mock draws no glyph here; Callout always carries one, so it
           // takes the section's own.
           <Callout tone="accent" icon="panorama">
-            {CALIBRATION_LINE} <kbd className={KBD}>V</kbd>{" "}
-            <button
-              type="button"
-              onClick={panoramas.onExitCalibration}
-              // Named after its subject: the callout says which panorama only
-              // through the anchor card beside it.
-              aria-label={`${EXIT_CALIBRATION} of ${panoramas.calibrating.title}`}
-              className="ml-1 cursor-pointer rounded-control border border-accent bg-panel px-3 py-1.5 text-xs text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-              {EXIT_CALIBRATION}
-            </button>
+            {/* The way out is its own line, as mocks 4/9 draw it: glued to
+                the sentence, a narrow panel wrapped it flush left. */}
+            <span className="flex flex-col items-start gap-[9px]">
+              <span>
+                {CALIBRATION_LINE} <kbd className={KBD}>V</kbd>
+              </span>
+              <button
+                type="button"
+                onClick={panoramas.onExitCalibration}
+                // Named after its subject: the callout says which panorama only
+                // through the anchor card beside it.
+                aria-label={`${EXIT_CALIBRATION} of ${panoramas.calibrating.title}`}
+                className="cursor-pointer rounded-control border border-accent bg-panel px-3 py-1.5 text-xs text-accent transition-[scale] duration-150 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                {EXIT_CALIBRATION}
+              </button>
+            </span>
           </Callout>
         ) : null}
 
@@ -128,7 +134,7 @@ export function ViewTab({ details, panoramas, documents, footer }: ViewTabProps)
                 aria-pressed={panoramas.moving}
                 data-tour="move-points"
                 className={cx(
-                  "flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.1em] text-accent focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
+                  "flex cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.1em] text-accent transition-[scale] duration-150 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
                   panoramas.moving ? "underline" : "hover:underline",
                 )}
               >

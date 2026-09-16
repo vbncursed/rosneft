@@ -68,4 +68,13 @@ describe("VisibleIn", () => {
     expect(screen.getByRole("checkbox", { name: "Control room, north door" })).toBeDisabled();
     expect(screen.getByRole("checkbox", { name: "Tank yard, west gate" })).toBeDisabled();
   });
+
+  // Its row sits 12px in (InstanceRow's `ml-3`); the block under it did not,
+  // so its accent rule ran 12px past the row it belongs to.
+  it("lines up under the instance row it belongs to", () => {
+    const { container } = render(
+      <VisibleIn placement={{ id: 1, visiblePanoramaIds: [] }} panoramas={[]} pending={false} onToggle={vi.fn()} />,
+    );
+    expect(container.firstElementChild).toHaveClass("ml-3");
+  });
 });

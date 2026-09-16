@@ -51,4 +51,9 @@ describe("TourTooltip", () => {
     expect(onBack).toHaveBeenCalledOnce();
     expect(onSkip).toHaveBeenCalledOnce();
   });
+
+  it("presses Skip tour", () => {
+    render(<TourTooltip {...props} />);
+    expect(screen.getByRole("button", { name: "Skip tour" })).toHaveClass("active:scale-[0.97]", "ease-out");
+  });
 });

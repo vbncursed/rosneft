@@ -6,10 +6,11 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import type { Group, Object3D } from "three";
 import type { ThreeEvent } from "@react-three/fiber";
-import { useGLTF } from "@react-three/drei";
+import { useCursor, useGLTF } from "@react-three/drei";
 import { SkeletonUtils } from "three-stdlib";
 import type { ResolvedPlacement } from "@/entities/placement";
 import { useProgressiveLod } from "@/features/lod";
@@ -132,17 +133,28 @@ function PlacementBody({ placement, url, measureMode, onSelect, ref }: Placement
     [measureMode, onSelect, placement.id],
   );
 
+  // A click here selects, so the pointer says so — in orbit only: measuring,
+  // the click picks a surface point instead.
+  const [hovered, setHovered] = useState(false);
+  useCursor(hovered && !measureMode);
+
   const handlePointerOver = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
       // In measure mode hover events shouldn't be eaten — let the cursor
       // hint feel consistent across parent + placements.
       if (!measureMode) e.stopPropagation();
+      setHovered(true);
     },
     [measureMode],
   );
 
   return (
-    <group ref={groupRef} onClick={handleClick} onPointerOver={handlePointerOver}>
+    <group
+      ref={groupRef}
+      onClick={handleClick}
+      onPointerOver={handlePointerOver}
+      onPointerOut={() => setHovered(false)}
+    >
       <primitive object={cloned} />
     </group>
   );

@@ -117,4 +117,48 @@ describe("Vec3Field · row layout", () => {
     );
     expect(screen.getByText("1").className).toContain("text-muted");
   });
+
+  // Mock states 9/14 print three places in the editable cells too; the raw
+  // number (`0.03343509`) overran the cell and was clipped at its edge.
+  it("prints an editable row cell through the caller's format until it is typed into", async () => {
+    function Row() {
+      const [value, setValue] = useState({ x: 0.03343509, y: 0, z: -4.05 });
+      return (
+        <Vec3Field layout="row" label="Pos" value={value} onChange={setValue} format={(n) => n.toFixed(3)} />
+      );
+    }
+    render(<Row />);
+    const x = screen.getByLabelText("Pos x");
+    expect(x).toHaveValue("0.033");
+    expect(screen.getByLabelText("Pos z")).toHaveValue("-4.050");
+    await userEvent.clear(x);
+    await userEvent.type(x, "12.40");
+    expect(x).toHaveValue("12.40");
+    await userEvent.tab();
+    expect(x).toHaveValue("12.400");
+  });
+
+  // Printed as `1.000`, a caret dropped at the end turned a typed 5 into
+  // `1.0005`. Focus selects the whole number, so typing replaces it.
+  it("selects a cell's whole number on focus, so typing replaces it", async () => {
+    function Row() {
+      const [value, setValue] = useState({ x: 1, y: 0, z: 0 });
+      return (
+        <Vec3Field layout="row" label="Scl" value={value} onChange={setValue} format={(n) => n.toFixed(3)} />
+      );
+    }
+    render(<Row />);
+    const x = screen.getByLabelText("Scl x") as HTMLInputElement;
+    await userEvent.click(x);
+    expect([x.selectionStart, x.selectionEnd]).toEqual([0, "1.000".length]);
+    await userEvent.keyboard("5");
+    expect(x).toHaveValue("5");
+  });
+
+  it("puts focus on a cell at once — no tween on the focus frame", () => {
+    render(<Harness />);
+    const box = axis("x").closest("label")!;
+    expect(box).toHaveClass("focus-within:border-accent");
+    expect(box.className).not.toMatch(/transition/);
+  });
 });

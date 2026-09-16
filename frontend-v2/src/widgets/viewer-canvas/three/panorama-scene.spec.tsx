@@ -14,8 +14,19 @@ vi.mock("./panorama-rig", () => ({
     createElement("group", { name: "PanoramaRig", userData: { id: panorama.id } }),
 }));
 vi.mock("./panorama-loading-overlay", () => ({
-  default: ({ progress }: { progress: number | null }) =>
-    createElement("group", { name: "PanoramaLoadingOverlay", userData: { progress } }),
+  default: ({
+    progress,
+    leaving,
+    onLeft,
+  }: {
+    progress: number | null;
+    leaving: boolean;
+    onLeft: () => void;
+  }) =>
+    createElement("group", {
+      name: "PanoramaLoadingOverlay",
+      userData: { progress, leaving, onLeft },
+    }),
 }));
 vi.mock("./panorama-markers-layer", () => ({
   default: ({
@@ -60,28 +71,29 @@ const fakeBitmap = () => ({ close: vi.fn() }) as unknown as ImageBitmap;
 
 type Props = Parameters<typeof PanoramaScene>[0];
 
-const mount = (over: Partial<Props> = {}) =>
-  ReactThreeTestRenderer.create(
-    <PanoramaScene
-      activePanorama={null}
-      calibrationGhost={null}
-      bitmap={null}
-      status="idle"
-      progress={null}
-      opacity={1}
-      panoramas={[PANO]}
-      showMarkers
-      pointMode={false}
-      calibrating={false}
-      move={STILL}
-      territoryRef={{ current: null }}
-      onActivate={vi.fn()}
-      onGrab={vi.fn()}
-      onMove={vi.fn()}
-      onDrop={vi.fn()}
-      {...over}
-    />,
-  );
+const scene = (over: Partial<Props> = {}) => (
+  <PanoramaScene
+    activePanorama={null}
+    calibrationGhost={null}
+    bitmap={null}
+    status="idle"
+    progress={null}
+    opacity={1}
+    panoramas={[PANO]}
+    showMarkers
+    pointMode={false}
+    calibrating={false}
+    move={STILL}
+    territoryRef={{ current: null }}
+    onActivate={vi.fn()}
+    onGrab={vi.fn()}
+    onMove={vi.fn()}
+    onDrop={vi.fn()}
+    {...over}
+  />
+);
+
+const mount = (over: Partial<Props> = {}) => ReactThreeTestRenderer.create(scene(over));
 
 const named = (r: Awaited<ReturnType<typeof mount>>, name: string) =>
   r.scene.findAll((n) => n.instance.name === name);
@@ -104,6 +116,23 @@ describe("PanoramaScene", () => {
     const r = await mount({ activePanorama: PANO, status: "loading", progress: 40 });
     expect(named(r, "PanoramaLoadingOverlay")[0].instance.userData.progress).toBe(40);
     expect(spheres(r)).toHaveLength(0);
+  });
+
+  it("holds the cover over the photo while it fades, then lets it go", async () => {
+    // Cut at once, the cover swapped for the photograph in one frame with the
+    // camera already standing somewhere else. It stays, fading, until it says
+    // it has left.
+    const r = await mount({ activePanorama: PANO, status: "loading", progress: 90 });
+    expect(named(r, "PanoramaLoadingOverlay")[0].instance.userData.leaving).toBe(false);
+
+    await r.update(scene({ ...ready, progress: 100 }));
+    const cover = named(r, "PanoramaLoadingOverlay");
+    expect(cover).toHaveLength(1);
+    expect(cover[0].instance.userData.leaving).toBe(true);
+    expect(spheres(r)).toHaveLength(1);
+
+    await ReactThreeTestRenderer.act(async () => cover[0].instance.userData.onLeft());
+    expect(named(r, "PanoramaLoadingOverlay")).toHaveLength(0);
   });
 
   it("draws no sphere when the texture failed", async () => {

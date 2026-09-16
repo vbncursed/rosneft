@@ -18,7 +18,7 @@ export function CollapsedPill({ file, onShow }: CollapsedPillProps) {
       <button
         type="button"
         onClick={onShow}
-        className="cursor-pointer rounded-full border border-line-2 bg-panel-2 px-2.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-fg"
+        className="cursor-pointer rounded-full border border-line-2 bg-panel-2 px-2.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-fg transition-[border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         Show
       </button>

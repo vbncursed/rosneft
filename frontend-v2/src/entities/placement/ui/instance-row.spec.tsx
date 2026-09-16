@@ -44,4 +44,15 @@ describe("InstanceRow", () => {
     render(<InstanceRow group={group} instance={instance} selected pending canWrite canDelete {...handlers()} />);
     expect(screen.getByRole("button", { name: "Delete storage-tank-500 #2" })).toBeDisabled();
   });
+
+  it("presses its buttons, and repaints a selection without a tween", () => {
+    render(<InstanceRow group={group} instance={instance} selected pending={false} canWrite canDelete {...handlers()} />);
+    expect(screen.getByRole("button", { name: "Rename storage-tank-500 #2" })).toHaveClass("enabled:active:scale-95");
+    expect(screen.getByRole("button", { name: "storage-tank-500 #2 · Tank 2" })).toHaveClass("active:scale-[0.97]");
+    expect(screen.getByRole("button", { name: "storage-tank-500 #2 · Tank 2" }).parentElement!.className).not.toMatch(/transition/);
+  });
+  it("presses Focus", () => {
+    render(<InstanceRow group={group} instance={instance} selected={false} pending={false} canWrite={false} canDelete={false} {...handlers()} />);
+    expect(screen.getByRole("button", { name: "Focus storage-tank-500 #2" })).toHaveClass("active:scale-[0.97]", "ease-out");
+  });
 });

@@ -182,4 +182,24 @@ describe("ViewTab", () => {
     });
     expect(screen.getByText(insideFooter(2))).toBeInTheDocument();
   });
+
+  // Mock states 4/9: the way out is its own line under the sentence, 9px
+  // below it, not glued to the text where a narrow panel wraps it flush left.
+  it("puts Exit calibration on its own line under the callout's sentence, and presses it", () => {
+    const p = base();
+    p.panoramas.calibrating = { title: "Control room, north door" };
+    render(<ViewTab {...p} />);
+    const exit = screen.getByRole("button", { name: new RegExp(EXIT_CALIBRATION) });
+    expect(exit).not.toHaveClass("ml-1");
+    expect(exit).toHaveClass("active:scale-[0.97]");
+    expect(exit.parentElement).toHaveClass("flex", "flex-col", "items-start", "gap-[9px]");
+    expect(exit.parentElement).toHaveTextContent(CALIBRATION_LINE);
+  });
+
+  it("presses Move points", () => {
+    const p = base();
+    p.panoramas.canMovePoints = true;
+    render(<ViewTab {...p} />);
+    expect(screen.getByRole("button", { name: MOVE_POINTS })).toHaveClass("active:scale-[0.97]");
+  });
 });

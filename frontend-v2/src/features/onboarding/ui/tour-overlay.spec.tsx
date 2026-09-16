@@ -91,12 +91,42 @@ describe("TourOverlay", () => {
     expect(screen.getByTestId("tour-halo")).toHaveStyle({ top: "694px", left: "894px" });
   });
 
-  it("advances when the reader clicks the dimmed page rather than the control", async () => {
+  // A click beside the point is a reader trying to look past the tour, not a
+  // "read it" — it used to advance, and the step was gone. Next says that.
+  it("does nothing when the reader clicks the dimmed page", async () => {
     const next = vi.fn();
     anchor("reset-camera", { top: 20, left: 20, width: 30, height: 30 });
     render(<TourOverlay tour={tour({ next })} />);
     await userEvent.click(screen.getByTestId("tour-dim"));
-    expect(next).toHaveBeenCalledOnce();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("keeps a tall card on screen by its measured height, not a budget", () => {
+    // A four-line body runs past the old 190px budget; at 768 tall the card
+    // was placed as if it fitted and ran off the bottom.
+    const tall = vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(300);
+    anchor("reset-camera", { top: 600, left: 20, width: 30, height: 30 });
+    render(<TourOverlay tour={tour()} />);
+    expect(screen.getByTestId("tour-card")).toHaveStyle({ top: `${window.innerHeight - 300 - 12}px` });
+    tall.mockRestore();
+  });
+
+  // The one first-run moment with a delight budget: the dim fades in, the
+  // hole and the halo travel to the next control, the card arrives by step.
+  it("moves between steps rather than teleporting, and keeps only the fades under reduced motion", () => {
+    anchor("reset-camera", { top: 20, left: 20, width: 30, height: 30 });
+    render(<TourOverlay tour={tour()} />);
+    expect(screen.getByTestId("tour-dim")).toHaveClass(
+      "transition-[opacity,clip-path]",
+      "starting:opacity-0",
+      "motion-reduce:transition-opacity",
+    );
+    expect(screen.getByTestId("tour-halo")).toHaveClass("transition-[top,left,width,height]", "motion-reduce:transition-none");
+    expect(screen.getByTestId("tour-card")).toHaveClass(
+      "transition-[opacity,translate]",
+      "starting:opacity-0",
+      "motion-safe:starting:translate-y-1",
+    );
   });
 
   it("leaves the dim whole for a centred step — there is no control to light", () => {

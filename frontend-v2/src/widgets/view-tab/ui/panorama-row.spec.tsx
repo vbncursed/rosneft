@@ -98,4 +98,10 @@ describe("PanoramaRow", () => {
     expect(onEdit).toHaveBeenCalledWith(7);
     expect(edit.container.firstElementChild).toHaveAttribute("aria-current", "true");
   });
+
+  it("presses the row's buttons", () => {
+    row({ canEdit: true });
+    expect(screen.getByRole("button", { name: `Edit ${ROW.title}` })).toHaveClass("active:scale-95", "ease-out");
+    for (const b of screen.getAllByRole("button")) expect(b.className).toMatch(/active:scale-/);
+  });
 });

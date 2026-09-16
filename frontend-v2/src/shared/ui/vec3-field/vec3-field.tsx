@@ -1,4 +1,4 @@
-import { useId, useState, type ChangeEvent } from "react";
+import { useId, useState, type ChangeEvent, type FocusEvent } from "react";
 import { clsx as cx } from "clsx";
 import { AXES, parseAxis, type Axis, type Vec3 } from "./vec3";
 
@@ -16,7 +16,10 @@ export type Vec3FieldProps = {
   layout?: "stack" | "row";
   /** `row` only: the cells print their number instead of accepting one. */
   readOnly?: boolean;
-  /** `row` only: how a read-only cell prints its number (`12.400`, `90°`). */
+  /**
+   * `row` only: how a cell prints its number (`12.400`, `90°`) — the read-only
+   * text, and an editable box whenever it is not being typed into.
+   */
   format?: (value: number) => string;
   /** `readOnly` only: the mock draws Pos as data and Rot/Scl as context. */
   tone?: "fg" | "muted";
@@ -51,8 +54,11 @@ export function Vec3Field({
   };
 
   const box = (axis: Axis) => ({
-    value: draft[axis] ?? String(value[axis]),
+    value: draft[axis] ?? (layout === "row" ? format(value[axis]) : String(value[axis])),
     onChange: (e: ChangeEvent<HTMLInputElement>) => commit(axis, e.target.value),
+    // The whole number is selected on focus, so typing replaces it: a caret
+    // at the end of `1.000` turned a typed 5 into `1.0005`.
+    onFocus: (e: FocusEvent<HTMLInputElement>) => e.currentTarget.select(),
     onBlur: () => setDraft((d) => ({ ...d, [axis]: undefined })),
     disabled,
     inputMode: "decimal" as const,
@@ -102,7 +108,8 @@ export function Vec3Field({
           <label
             key={axis}
             className={cx(
-              "flex items-center gap-1.5 rounded-control-sm border bg-panel-2 px-2 py-1.5 transition-colors duration-150",
+              // No transition: focus is the system answering, and answers at once.
+              "flex items-center gap-1.5 rounded-control-sm border bg-panel-2 px-2 py-1.5",
               "focus-within:border-accent focus-within:ring-[3px] focus-within:ring-accent-soft",
               disabled ? "border-line opacity-60" : "border-line-2",
             )}

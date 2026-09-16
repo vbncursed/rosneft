@@ -24,7 +24,7 @@ export function StatsStrip({ items, tone = "neutral", accentLast = false, label 
       role="status"
       aria-label={label}
       className={cx(
-        "flex flex-wrap items-center gap-3.5 rounded-[10px] border bg-panel px-3.5 py-[9px] font-mono text-[10px] text-muted shadow-elevation",
+        "flex flex-wrap items-center gap-3.5 rounded-[10px] border bg-panel px-3.5 py-[9px] font-mono text-[10px] text-muted tabular-nums shadow-elevation",
         tone === "bad" ? "border-bad" : "border-line-2",
         className,
       )}

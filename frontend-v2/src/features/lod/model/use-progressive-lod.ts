@@ -27,8 +27,13 @@ export type ProgressiveLod = {
 // Readiness is keyed by the target's content hash rather than a boolean, so a
 // chain that changes underneath (the asset was reconverted, the placement now
 // points at a different model) resets itself without any derived-state dance:
-// the new target has a different hash, so `ready` is false again. A manual
-// target change re-keys it for free, for the same reason.
+// the new target has a different hash, so `ready` is false again.
+//
+// A manual target change clears it outright. Keyed by hash alone, a level
+// once seen stayed "ready" for good, so going 0 → 2 → 0 put LOD 0 straight
+// back on screen: the canvas suspended on a url nobody had parsed and drew no
+// territory for the whole download, with no chip and no progress. Cleared, the
+// way back goes through the coarse level and the warmer like the first visit.
 //
 // Failed levels are tracked by hash too and simply drop out of the chain,
 // which is what the placement's old fallback ladder did by index. The
@@ -61,6 +66,14 @@ export function useProgressiveLod(
   const ready = target !== null && readyHash === target.hash;
   const { show, warm } = selectProgressive(available, targetLod, ready);
   const targetHash = target?.hash ?? null;
+
+  // Adjusted during render, not in an effect: an effect would let one frame
+  // draw the stale "ready" level first, which is the very flash this prevents.
+  const [seenTarget, setSeenTarget] = useState(targetHash);
+  if (seenTarget !== targetHash) {
+    setSeenTarget(targetHash);
+    setReadyHash(null);
+  }
 
   const drop = (hash: string | undefined) => {
     if (hash) setBroken((prev) => (prev.includes(hash) ? prev : [...prev, hash]));

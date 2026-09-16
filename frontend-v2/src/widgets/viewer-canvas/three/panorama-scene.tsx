@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import { useState, type RefObject } from "react";
 import type { Object3D } from "three";
 import type { Panorama } from "@/entities/panorama";
 import type { Vec3 } from "@/entities/placement";
@@ -63,12 +63,25 @@ export default function PanoramaScene({
   // mutually exclusive by construction (the page nulls the ghost inside).
   const sphere = activePanorama ?? calibrationGhost;
 
+  // The cover outlives the download by its fade: once the photo is ready it
+  // stays mounted, leaving, until it reports it has gone. Cut at once, it
+  // swapped for the photograph in one frame with the eye already moved.
+  const loading = sphere !== null && status === "loading";
+  const [cover, setCover] = useState(loading);
+  if (loading && !cover) setCover(true);
+
   return (
     <>
       {/* The backdrop is reported too: a multi-megabyte equirect takes seconds,
           and `Calibrate (overlay)` with no signal at all reads as a button that
           did nothing. */}
-      {sphere && status === "loading" ? <PanoramaLoadingOverlay progress={progress} /> : null}
+      {cover ? (
+        <PanoramaLoadingOverlay
+          progress={progress}
+          leaving={!loading}
+          onLeft={() => setCover(false)}
+        />
+      ) : null}
 
       {sphere && status === "ready" && bitmap ? (
         <PanoramaSphere panorama={sphere} bitmap={bitmap} opacity={opacity} />

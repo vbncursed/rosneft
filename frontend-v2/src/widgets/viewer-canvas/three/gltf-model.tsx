@@ -1,7 +1,7 @@
-import { Suspense, useEffect, useLayoutEffect, useRef, type Ref } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState, type Ref } from "react";
 import { useGLTF } from "@react-three/drei";
 import type { Group, Mesh } from "three";
-import { pickLod, type LodArtifact } from "@/entities/scene";
+import { pickCoarsest, pickLod, type LodArtifact } from "@/entities/scene";
 import { lodProgress, lodUrl, useLodDownload, useProgressiveLod } from "@/features/lod";
 import type { LodReport } from "../ui/props";
 import { extendGltfLoader } from "./gltf-loader-setup";
@@ -42,10 +42,13 @@ function GltfPrimitive({
   url,
   raycastable,
   groupRef,
+  onDrawn,
 }: {
   url: string;
   raycastable: boolean;
   groupRef?: Ref<Group>;
+  /** This url's mesh mounted (its url) or went away (null) — "on screen" to the report. */
+  onDrawn: (url: string | null) => void;
 }) {
   // mesh-worker has already centered + scaled (max axis = 2) and
   // converted Z-up → Y-up, so we render the scene as-is. extendGltfLoader
@@ -72,6 +75,14 @@ function GltfPrimitive({
       m.raycast = raycastable ? orig : noopRaycast;
     });
   }, [scene, raycastable]);
+
+  // onDrawn is the parent's state setter, stable by React's contract. The
+  // cleanup matters too: a retry remounts the same url, and while it suspends
+  // (Suspense hides the tree and runs this cleanup) nothing is on screen.
+  useLayoutEffect(() => {
+    onDrawn(url);
+    return () => onDrawn(null);
+  }, [url, onDrawn]);
 
   return (
     <group ref={groupRef}>
@@ -111,11 +122,20 @@ export default function GltfModel({
   // bytes are counted. The chip therefore shows no percent at all rather than a
   // stale or zero one (see the report below). Hand useLodDownload the level
   // useProgressiveLod actually wants if a percent for that case matters.
+  //
+  // The coarsest level is never streamed: it is what goes on screen first, by
+  // its asset route, so a blob of it would only swap the url under a mesh
+  // already drawn and parse the same bytes twice (the way back to LOD 2).
   const wanted = pickLod(lods, targetLod);
-  const download = useLodDownload(wanted && lods.length > 1 ? wanted : null);
+  const fetched = wanted && wanted.hash !== pickCoarsest(lods)?.hash ? wanted : null;
+  const download = useLodDownload(fetched);
   const urlOf = (a: LodArtifact) =>
     a.hash === wanted?.hash && download.blobUrl ? download.blobUrl : lodUrl(a);
   const lod = useProgressiveLod(lods, targetLod, urlOf);
+  // The level the report calls "shown" is the one whose mesh has mounted, not
+  // the one selected: a coarse level still on the wire is nothing on screen.
+  const [drawnUrl, setDrawnUrl] = useState<string | null>(null);
+  const shown = lod.url !== null && drawnUrl === lod.url ? lod.shown : null;
   // The warm level's download is what LodWarmer parses; until the blob exists
   // there is nothing to warm.
   const warmUrl = lod.warmUrl && download.blobUrl ? download.blobUrl : null;
@@ -186,13 +206,13 @@ export default function GltfModel({
         ? lodProgress(download.received, lod.target.size)
         : null;
     latest.current.onReport({
-      shown: lod.shown?.lod ?? null,
+      shown: shown?.lod ?? null,
       target: lod.target?.lod ?? null,
       percent: p?.percent ?? null,
       progressText: p?.text ?? null,
       failure: lod.failure,
     });
-  }, [lod.shown, lod.target, download.received, lod.failure, counting]);
+  }, [lod.shown, shown, lod.target, download.received, lod.failure, counting]);
 
   if (!lod.url) return null;
   return (
@@ -202,7 +222,12 @@ export default function GltfModel({
         onError={(err) => lod.onShownFailed(statusOf(err))}
       >
         <Suspense fallback={null}>
-          <GltfPrimitive url={lod.url} raycastable={raycastable} groupRef={groupRef} />
+          <GltfPrimitive
+            url={lod.url}
+            raycastable={raycastable}
+            groupRef={groupRef}
+            onDrawn={setDrawnUrl}
+          />
         </Suspense>
       </LodErrorBoundary>
       {warmUrl ? <LodWarmer url={warmUrl} onReady={lod.onWarmReady} /> : null}

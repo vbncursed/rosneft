@@ -74,6 +74,9 @@ export function useLodDownload(artifact: LodArtifact | null): LodDownload {
     return () => {
       controller.abort();
       if (url) URL.revokeObjectURL(url);
+      // Leaving the level forgets it: a return starts from 0, not from a
+      // finished download whose blob was just revoked.
+      setState((st) => (st.hash === hash ? { ...IDLE, hash: null } : st));
     };
   }, [hash]);
 

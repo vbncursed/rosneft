@@ -76,7 +76,6 @@ function MeasurementSegmentImpl({
         depthTest={false}
         depthWrite={false}
         renderOrder={OVERLAY_RENDER_ORDER}
-        transparent
       />
       <Html
         position={labelPos}
@@ -88,7 +87,7 @@ function MeasurementSegmentImpl({
           type="button"
           onClick={handleRemoveSegment}
           title="Click to remove segment · Shift+click to remove whole chain"
-          className="flex cursor-pointer select-none items-center gap-1 whitespace-nowrap rounded-[6px] border border-accent bg-panel px-2 py-1 font-mono text-[11px] text-accent shadow-elevation transition-colors hover:border-bad hover:text-bad"
+          className="flex cursor-pointer select-none items-center gap-1 whitespace-nowrap rounded-[6px] border border-accent bg-panel px-2 py-1 font-mono text-[11px] text-accent shadow-elevation transition-[color,border-color,scale] duration-150 ease-out hover:border-bad hover:text-bad active:scale-[0.97]"
         >
           <span>{label}</span>
           <span aria-hidden="true">×</span>
