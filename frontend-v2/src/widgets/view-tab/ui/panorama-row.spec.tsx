@@ -42,10 +42,16 @@ describe("PanoramaRow", () => {
     expect(container.querySelector("svg")).not.toBeNull();
   });
 
-  it("says an uncalibrated panorama cannot be entered yet", () => {
-    row({ calibrated: false });
-    expect(screen.getByText(NOT_CALIBRATED)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Show in this panorama/ })).not.toBeInTheDocument();
+  it("says a panorama is not calibrated yet and still offers the way in", async () => {
+    // The anchor at the origin is a place to stand, and the alignment has to
+    // be judged from inside — so the hint warns, it does not lock the door.
+    const onEnter = vi.fn();
+    row({ calibrated: false }, { onEnter });
+    const hint = screen.getByText(NOT_CALIBRATED);
+    const enter = screen.getByRole("button", { name: `${SHOW_IN}: Control room, north door` });
+    expect(hint.compareDocumentPosition(enter) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await userEvent.click(enter);
+    expect(onEnter).toHaveBeenCalledWith(7);
   });
 
   it("enters a calibrated panorama by id", async () => {
