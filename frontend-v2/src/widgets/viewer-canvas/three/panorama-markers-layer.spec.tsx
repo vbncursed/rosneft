@@ -44,6 +44,15 @@ describe("PanoramaMarkersLayer", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it("hands only the calibrated anchor the grab and the chip", () => {
+    // Calibration edits one capture; the other anchors are drawn for
+    // reference and must not be draggable behind its back.
+    mount({ moveMode: true, editingId: 2, onGrab: vi.fn() });
+    expect(screen.getByRole("button", { name: "Move panorama Panorama 2" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open panorama Panorama 1" })).toBeInTheDocument();
+    expect(screen.getAllByText("anchor · drag to move")).toHaveLength(1);
+  });
+
   it("marks only the grabbed one as dragging, and the rest stay grabbable", () => {
     mount({ moveMode: true, draggingId: 2, livePos: { x: 9, y: 9, z: 9 }, onGrab: vi.fn() });
     const classes = (id: number) =>

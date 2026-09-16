@@ -56,6 +56,7 @@ export default function SceneCanvas({
   panoramaStatus,
   panoramaProgress,
   panoramaOpacity,
+  calibrating,
   panoramas,
   showMarkers,
   markerLabels,
@@ -173,7 +174,10 @@ export default function SceneCanvas({
               retryVersion={retryVersion}
               // A marker drag projects the cursor onto the territory, which
               // needs the meshes hittable for the same reason point-picking does.
-              raycastable={pointMode || move.active}
+              // Calibration drags the same marker without entering the move
+              // sub-mode, and the drag controller projects through the mesh's
+              // own raycast.
+              raycastable={pointMode || move.active || calibrating}
               groupRef={territoryRef}
               onReport={onLod}
             />
@@ -197,6 +201,7 @@ export default function SceneCanvas({
             activePanoramaId={activePanorama?.id ?? null}
             markerLabels={markerLabels}
             showMarkers={showMarkers}
+            calibrating={calibrating}
             onSelect={onPick}
             onCommit={onTransformCommit}
           />
@@ -226,6 +231,7 @@ export default function SceneCanvas({
         panoramas={panoramas}
         showMarkers={showMarkers}
         pointMode={pointMode}
+        calibrating={calibrating}
         move={move}
         territoryRef={territoryRef}
         onActivate={onActivatePanorama}

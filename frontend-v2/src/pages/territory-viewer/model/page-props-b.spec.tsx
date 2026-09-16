@@ -256,6 +256,30 @@ describe("panoramaCanvasProps", () => {
     expect(panoramaCanvasProps(calibrating, []).panoramaOpacity).toBe(0.35);
   });
 
+  it("tells the canvas the alignment is open, and moves the anchor with the draft", () => {
+    // The ring the operator drags has to follow the nudge buttons too, so the
+    // anchors are drawn from the draft-overlaid capture, not the saved row.
+    const saved = panorama(1);
+    const effective = panorama(1, { position: { x: 9, y: 9, z: 9 } });
+    const p = withPanoramas([saved, panorama(2)]);
+    expect(panoramaCanvasProps(p, []).calibrating).toBe(false);
+    expect(panoramaCanvasProps(p, []).panoramas).toBe(p.panoramas.list);
+
+    const calibrating = {
+      ...p,
+      panoramas: {
+        ...p.panoramas,
+        calibration: { ...p.panoramas.calibration, active: true, effective },
+      },
+    };
+    const props = panoramaCanvasProps(calibrating, []);
+    expect(props.calibrating).toBe(true);
+    expect(props.panoramas.map((x) => x.position)).toEqual([
+      { x: 9, y: 9, z: 9 },
+      { x: 1, y: 0, z: 2 },
+    ]);
+  });
+
   it("hands the viewport markers the panel's own numbering, and the way into a capture", () => {
     const active = panorama(1);
     const p = withPanoramas([active], { active });

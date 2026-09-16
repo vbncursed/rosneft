@@ -32,6 +32,8 @@ interface PlacementsLayerProps {
   /** `storage-tank-500 #1` by id, for the labels inside a panorama. */
   markerLabels: Record<number, string>;
   showMarkers: boolean;
+  /** The anchors are being aligned: the object rings would sit over the one being dragged. */
+  calibrating: boolean;
   onSelect: (id: number | null) => void;
   onCommit: (id: number, transform: PlacementTransform) => void;
 }
@@ -51,6 +53,7 @@ export default function PlacementsLayer({
   activePanoramaId,
   markerLabels,
   showMarkers,
+  calibrating,
   onSelect,
   onCommit,
 }: PlacementsLayerProps) {
@@ -93,7 +96,7 @@ export default function PlacementsLayer({
       {/* A panorama has no panel and no gizmo, so the ring and its name are
           the whole affordance. The 3D view names nothing — the labels would
           crowd a scene that already has the object list beside it. */}
-      {activePanoramaId !== null && showMarkers ? (
+      {activePanoramaId !== null && showMarkers && !calibrating ? (
         <PlacementMarkers placements={visible} labels={markerLabels} />
       ) : null}
     </>

@@ -33,6 +33,7 @@ const props = {
   panoramaStatus: "idle",
   panoramaProgress: null,
   panoramaOpacity: 1,
+  calibrating: false,
   panoramas: [],
   showMarkers: true,
   markerLabels: {},

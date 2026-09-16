@@ -18,10 +18,18 @@ vi.mock("./panorama-loading-overlay", () => ({
     createElement("group", { name: "PanoramaLoadingOverlay", userData: { progress } }),
 }));
 vi.mock("./panorama-markers-layer", () => ({
-  default: ({ panoramas, moveMode }: { panoramas: Panorama[]; moveMode: boolean }) =>
+  default: ({
+    panoramas,
+    moveMode,
+    editingId,
+  }: {
+    panoramas: Panorama[];
+    moveMode: boolean;
+    editingId: number | null;
+  }) =>
     createElement("group", {
       name: "PanoramaMarkersLayer",
-      userData: { ids: panoramas.map((p) => p.id), moveMode },
+      userData: { ids: panoramas.map((p) => p.id), moveMode, editingId },
     }),
 }));
 vi.mock("./panorama-drag-controller", () => ({
@@ -59,6 +67,7 @@ const mount = (over: Partial<Props> = {}) =>
       panoramas={[PANO]}
       showMarkers
       pointMode={false}
+      calibrating={false}
       move={STILL}
       territoryRef={{ current: null }}
       onActivate={vi.fn()}
@@ -106,13 +115,22 @@ describe("PanoramaScene", () => {
   it("offers the anchors in the 3D view, and drags them in move mode", async () => {
     const r = await mount({ move: { active: true, draggingId: 7, livePos: null } });
     const markers = named(r, "PanoramaMarkersLayer")[0];
-    expect(markers.instance.userData).toEqual({ ids: [7], moveMode: true });
+    expect(markers.instance.userData).toEqual({ ids: [7], moveMode: true, editingId: null });
     expect(named(r, "PanoramaDragController")[0].instance.userData.dragging).toBe(true);
   });
 
   it("hides the anchors inside a panorama — the reader is standing on one", async () => {
     const r = await mount(ready);
     expect(named(r, "PanoramaMarkersLayer")).toHaveLength(0);
+  });
+
+  it("draws the anchors while the photo is being calibrated, the edited one draggable", async () => {
+    // The callout says "Drag panorama points on the model": calibration is
+    // aimed at the anchors, so they are what the viewport shows — even though
+    // the sphere is up and `activePanorama` is the draft.
+    const r = await mount({ ...ready, opacity: 0.5, calibrating: true });
+    const markers = named(r, "PanoramaMarkersLayer")[0];
+    expect(markers.instance.userData).toEqual({ ids: [7], moveMode: true, editingId: 7 });
   });
 
   it("hides the anchors while points are being picked, and when the reader turned them off", async () => {
