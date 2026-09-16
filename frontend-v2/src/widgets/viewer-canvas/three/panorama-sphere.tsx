@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef } from "react";
-import { BackSide, RepeatWrapping, SRGBColorSpace, Texture, type Mesh } from "three";
+import {
+  BackSide,
+  RepeatWrapping,
+  SRGBColorSpace,
+  Texture,
+  type Mesh,
+  type MeshBasicMaterial,
+} from "three";
 import type { Panorama } from "@/entities/panorama";
 
 interface PanoramaSphereProps {
@@ -31,6 +38,10 @@ interface PanoramaSphereProps {
 // raycaster that once used this mesh as a surface is not part of v2.
 export default function PanoramaSphere({ panorama, bitmap, opacity = 1 }: PanoramaSphereProps) {
   const meshRef = useRef<Mesh>(null);
+  const materialRef = useRef<MeshBasicMaterial>(null);
+  // < 1 is the calibration ghost; 1 is every other second the reader spends
+  // inside a capture.
+  const ghosting = opacity < 1;
 
   const texture = useMemo(() => {
     const t = new Texture(bitmap);
@@ -56,6 +67,17 @@ export default function PanoramaSphere({ panorama, bitmap, opacity = 1 }: Panora
   // downloaded, where "the capture changed or the reader left" is knowable.
   useEffect(() => () => texture.dispose(), [texture]);
 
+  // three bakes `#define OPAQUE` — which hard-sets the fragment's alpha to 1.0
+  // — into the program it compiles while `transparent` is false, and
+  // `transparent` is not one of the properties `setProgram` re-checks per
+  // frame. Flipping it alone therefore left the sphere blending at source
+  // alpha 1: the slider moved `opacity`, the shader threw it away, and the
+  // photo painted fully opaque at every setting. `needsUpdate` bumps
+  // `material.version`, which is the one thing three does re-check.
+  useEffect(() => {
+    if (materialRef.current) materialRef.current.needsUpdate = true;
+  }, [ghosting]);
+
   useEffect(() => {
     const mesh = meshRef.current;
     if (!mesh) return;
@@ -71,17 +93,18 @@ export default function PanoramaSphere({ panorama, bitmap, opacity = 1 }: Panora
       ref={meshRef}
       position={[panorama.position.x, panorama.position.y, panorama.position.z]}
       rotation={[0, panorama.yawOffset, 0]}
-      renderOrder={opacity < 1 ? 1000 : 0}
+      renderOrder={ghosting ? 1000 : 0}
     >
       <sphereGeometry args={[50, 64, 32]} />
       <meshBasicMaterial
+        ref={materialRef}
         map={texture}
         side={BackSide}
         toneMapped={false}
-        transparent={opacity < 1}
+        transparent={ghosting}
         opacity={opacity}
-        depthTest={opacity >= 1}
-        depthWrite={opacity >= 1}
+        depthTest={!ghosting}
+        depthWrite={!ghosting}
       />
     </mesh>
   );
