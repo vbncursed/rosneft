@@ -67,6 +67,28 @@ describe("PanoramaSphere", () => {
     expect(mesh.renderOrder).toBe(1000);
   });
 
+  it("rebuilds the shader when the photo starts and stops ghosting", async () => {
+    // three bakes `#define OPAQUE` — which hard-sets the fragment's alpha to
+    // 1.0 — into the program it compiles while `transparent` is false, and
+    // `transparent` is not one of the properties `setProgram` re-checks per
+    // frame. So the slider set `opacity` on a material whose shader threw it
+    // away: blending was on, the source alpha was 1, and the photo painted
+    // fully opaque at every setting. `needsUpdate` bumps `material.version`,
+    // which is the one thing three does re-check.
+    const r = await mount({ opacity: 1 });
+    const mesh = r.scene.children[0].instance as Mesh;
+    const mat = mesh.material as MeshBasicMaterial;
+    const opaqueVersion = mat.version;
+
+    await r.update(<PanoramaSphere panorama={PANO} bitmap={bitmap()} opacity={0.5} />);
+    const ghostVersion = mat.version;
+    expect(ghostVersion).toBeGreaterThan(opaqueVersion);
+
+    // And back: the opaque program is the one that skips blending entirely.
+    await r.update(<PanoramaSphere panorama={PANO} bitmap={bitmap()} opacity={1} />);
+    expect(mat.version).toBeGreaterThan(ghostVersion);
+  });
+
   it("cannot be hit by the pointer — a click into the sky reaches onPointerMissed", async () => {
     const r = await mount();
     const mesh = r.scene.children[0].instance as Mesh;
