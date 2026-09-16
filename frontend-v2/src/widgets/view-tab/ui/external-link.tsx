@@ -14,7 +14,7 @@ export type ExternalLinkProps = {
 };
 
 const TEXT_BUTTON =
-  "w-fit cursor-pointer border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.1em] text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
+  "w-fit cursor-pointer border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.1em] text-accent transition-[color,scale] duration-150 ease-out active:scale-[0.97] hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
 
 /** The territory's externally hosted 360° tour: the link, and the field behind it. */
 export function ExternalLink({ url, canEdit, saving, onSave }: ExternalLinkProps) {

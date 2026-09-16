@@ -1,6 +1,6 @@
 import { act, fireEvent, renderHook } from "@testing-library/react";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { dock } from "./pip-geometry";
 import { usePipWindow } from "./use-pip-window";
 
@@ -15,8 +15,14 @@ const layer = (w: number, h: number) => {
   return { current: el };
 };
 
-const pointerDown = (clientX: number, clientY: number) =>
-  ({ clientX, clientY, preventDefault: () => {} }) as unknown as ReactPointerEvent<HTMLElement>;
+const pointerDown = (clientX: number, clientY: number, setPointerCapture = vi.fn()) =>
+  ({
+    clientX,
+    clientY,
+    pointerId: 7,
+    currentTarget: { setPointerCapture },
+    preventDefault: () => {},
+  }) as unknown as ReactPointerEvent<HTMLElement>;
 
 describe("usePipWindow", () => {
   it("starts docked bottom-right at the given inset", () => {
@@ -37,6 +43,24 @@ describe("usePipWindow", () => {
       fireEvent.pointerMove(window, { clientX: 70, clientY: 80 });
     });
     expect(result.current.geo).toEqual({ ...start, x: start.x - 30, y: start.y - 20 });
+  });
+
+  // Without capture the grip lost the pointer the moment it left the 14px
+  // handle: the cursor fell back to an arrow while the window still followed.
+  it("captures the pointer on the handle for the length of the drag", () => {
+    const { result } = renderHook(() => usePipWindow(14));
+    const capture = vi.fn();
+    act(() => result.current.startMove(pointerDown(0, 0, capture)));
+    expect(capture).toHaveBeenCalledWith(7);
+  });
+
+  it("a cancelled pointer ends the drag like a release", () => {
+    const { result } = renderHook(() => usePipWindow(14));
+    act(() => result.current.startResize(pointerDown(0, 0)));
+    act(() => {
+      fireEvent.pointerCancel(window);
+    });
+    expect(result.current.dragging).toBe(false);
   });
 
   it("pointerup ends the drag and detaches the listeners", () => {

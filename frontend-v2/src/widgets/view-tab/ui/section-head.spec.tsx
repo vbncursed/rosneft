@@ -31,4 +31,19 @@ describe("SectionHead", () => {
     await userEvent.click(button);
     expect(onClick).toHaveBeenCalled();
   });
-})
+
+  it("draws the upload button as the shared 24px icon button, with its press", () => {
+    render(
+      <SectionHead
+        overline="Panoramas"
+        count="2"
+        upload={{ title: "Upload a panorama", tourId: "add-panorama", onClick: vi.fn() }}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Upload a panorama" })).toHaveClass(
+      "size-6",
+      "bg-panel-2",
+      "enabled:active:scale-95",
+    );
+  });
+});

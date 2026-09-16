@@ -116,7 +116,26 @@ it away. `material.needsUpdate = true` bumps `material.version`, which three
 **jsdom 30 has no `HTMLDialogElement.showModal`.** `Modal` and `Drawer` use the
 native `<dialog>` on purpose (that is what gives a real browser the focus trap
 and the inert background), so `shared/lib/test-setup.ts` carries a small shim.
-Do not hand-roll a focus trap to make tests easier.
+Do not hand-roll a focus trap to make tests easier. The shim hands focus back
+to whatever held it before `showModal()`, as the browser does — and that is
+the whole of focus return, because **`Modal` and `Drawer` keep the `<dialog>`
+mounted while closed** (`display:none`, children unmounted). They used to
+`return null` when closed, which removed the element before `close()` could
+run, and every overlay in the app dropped focus on `<body>`.
+`shared/ui/modal/use-modal-dialog.ts` closes in a *passive* effect: a
+`useLayoutEffect` cleanup keyed on `open` closes before React re-focuses the
+button the reader pressed inside the dialog, and focus lands on `<body>`
+anyway. A `display` utility on the dialog must be `open:flex`, never `flex` —
+an author `display` shows a closed dialog.
+
+**Tailwind 4's `scale-*` and `translate-*` write the `scale` and `translate`
+properties, not `transform`.** A `transition-[…,transform]` list therefore
+animates no press and no slide at all, and nothing fails. Name `scale` /
+`translate` in the list (or use `transition-transform`, which covers all
+four). An arbitrary `transition-[…]` with no `duration-*` runs in 0s. Any
+`after:*` utility already draws the pseudo-element (`--tw-content` starts as
+`""`), so hide it where it must not exist (`last:after:hidden`) rather than
+trying to create it only where wanted.
 
 **vitest runs `afterEach` hooks in reverse registration order, so a spec's
 own `afterEach` runs *before* the setup file's RTL `cleanup`** — whatever
@@ -198,7 +217,8 @@ Specs assert what a user can observe — roles, labels, values, focus — so a
 class rename does not break them. The exception is a variant test that
 deliberately checks a token class survived.
 
-**The 200-line file cap is hand-checked here** (skip blank lines and comments).
+**The 200-line file cap is hand-checked here** (skip blank lines and comments),
+and it binds product files; several specs are longer and that is accepted.
 `.oxlintrc.json` declares only `react/rules-of-hooks` and
 `react/only-export-components` — there is no `max-lines` rule, unlike
 `frontend/`. Nothing will tell you when a file crosses the line; count it
@@ -223,6 +243,46 @@ Known unresolved disagreements:
 carries `text-fg`, not `text-muted` — the outlined one is muted. A secondary
 *pill* is transparent; only the control shape takes the raised `panel-2`
 ground.
+
+**`--dim` and the light `--muted` are not the mock's values** (design review,
+2026-09-16). The mock's `--dim` gave 3.6:1 dark / 3.25:1 light on 9–11 px
+mono text, under AA; it is `#81878e` / `#6b6f75` now (>= 4.5:1 on `bg`,
+`panel` and `panel-2`), and the light `--muted` darkened to `#55595f` so the
+two stay a visible step apart (1.39:1, as in dark). Both are recorded in the
+header of `theme.css`. The "carried follow-up" about `text-dim` counts below
+is closed by this.
+
+**Motion rules** (design review against Emil Kowalski's craft bar,
+2026-09-16; findings and decisions in
+`.superpowers/sdd/2026-09-16-frontend-v2-emil-review/`):
+
+- Every pressable answers on pointer-down: `active:scale-[0.97]` (a control),
+  `0.95` (a tile or glyph button of 30 px or less), `0.99` (a card), in a
+  `transition-[color,background-color,border-color,scale] duration-150
+  ease-out` list — with `enabled:` where the element can be disabled.
+  `Button` carries it in its base; a hand-rolled button copies the line.
+- Nothing keyboard-initiated animates (`M`, `P`, `V`, `T/R/S`, arrows, ⌘K,
+  Escape), nor routes, tabs, charts, row selection or a LOD swap.
+- Every `<dialog>` enters (200 ms) and leaves (150 ms) through one block in
+  `theme.css` — `@starting-style` plus `allow-discrete`; the Drawer slides on
+  `--ease-drawer` and its backdrop leaves with it. Menu, DatePicker and
+  Dropdown open from their trigger's corner (`origin-top-*`) and leave
+  instantly. Reduced motion keeps opacity, drops movement.
+- Tokens: `ease-out` is `cubic-bezier(0.23, 1, 0.32, 1)`, `ease-drawer`
+  exists, and the default timing of a bare `transition-*` is `ease`.
+- Field focus is instant — no `transition-*` on an element with a `focus:`
+  border; a progress fill animates `scaleX`, linear; a spinner turns in
+  700 ms (2 s under reduced motion, never frozen); a loading `Button` keeps
+  its width and does not dim.
+- Toasts: success/info leave after 4 s, error/warning stay until dismissed,
+  the timer pauses under the pointer and in a hidden tab, and the polite live
+  region is always mounted.
+- A loading placeholder is `PageSkeleton` in the screen's own shape
+  (`console`, `journal`, `catalog`, `form`), shown after 150 ms.
+- The console shell stacks below `lg` (the sidebar becomes a strip); the
+  scrollbar lane is reserved (`scrollbar-gutter`) on every page but the
+  full-bleed viewer, which `CatalogShell layout="viewport"` marks with
+  `data-fullbleed`.
 
 **`clsx` does not merge, and this has bitten the same property three times.**
 Two Tailwind utilities for the same property on one element are resolved by
@@ -256,7 +316,7 @@ webkit pseudo-elements are present.
 **Home's recorded deviations from `Home v2.dc.html`**: the console table
 uses `Roles & Permissions`, the mock's `Roles` — one `SCREENS` label,
 already shared with the sidebar; the section count reads `text-dim`, not the
-mock's `--muted`, same carried follow-up as everywhere else; the catalogs'
+mock's `--muted` (`--dim` passes AA since 2026-09-16); the catalogs'
 own card geometry stands (132 px thumbnail band, `Open →` trailing, `no
 image` in place of the mock's cube), not the mock's 126/104 px bands and
 `Open {title} →`; the Users console hint has no "invited" state (the
@@ -787,8 +847,7 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   (`use-placements-editor.ts`); binary MB one decimal (`lod-progress.ts`);
   the LOD switcher offset is one formula, `calc(var(--overlays-w) + 28px)`
   (`viewer-overlays.tsx`), and lands 2 px off the mock at two widths;
-  loading-state rail tiles read `idle`, not a dim treatment (`viewer-view.ts`'s
-  `railTools`); `Placing 0 of 2…` on the first line
+  `Placing 0 of 2…` on the first line
   (`place-objects-modal.tsx`); the Add-objects primary reads a bare `Place`,
   not the mock's `Place N × model`, because the count is in the stepper beside
   it and the model on the card above (user request 2026-09-14); an unconverted
@@ -798,6 +857,24 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   the failed conversion eyebrow still reads
   `Converting` (`territory-conversion-page.tsx:48`); Vec3Field cell padding
   is `6/7` at 300, the mock's `6/6` (`vec3-field.tsx`'s `ROW_CELL`).
+- **Deviations from the design review (2026-09-16):** the LOD loading line
+  stays the viewer's own 2 px rule (filled by `scaleX`), not `ProgressBar
+  thin`, whose track is 5 px; the Add-objects placing bar *is* `ProgressBar
+  thin` (5 px, the mock's 3) and reads `done/total`, so `Placing 1 of 2…`
+  sits at 0 %; the `scrolled · metadata above` strip reads `text-muted` and
+  overlays the panel body instead of pushing it; the LOD switcher's arrows
+  only move focus (spec B §6.15) and no tile changes size (§6.16); a Vec3
+  cell shows three decimals and selects its value on focus, so typing
+  replaces it; the canvas `dpr` is `[1, 1.5]` with no `AdaptiveDpr` (it
+  never regressed — nothing called `regress()`); the orbit coasts
+  (`dampingFactor` 0.08, off under reduced motion) and `stop-coast.ts` kills
+  the coast before a reset or a drag; the Overlays panel and rail fade in
+  with an 8 px slide, and the LOD switcher and measure bar glide on `right`
+  (one absolute element each) while the PDF layer does not move.
+- **Loading-state rail tiles are `inert`, as mock state 3 draws them** — dimmed
+  and out of the Tab order, except the active tile and the Panoramas/Documents
+  tiles, which never go inert (`viewer-view.ts`'s `railTools`). An earlier
+  note here recorded them as `idle`; the code and the mock both say `inert`.
 - **`WAITING_NOTE` copy caveat** (`territory-conversion-page.tsx`): "opens the
   viewer by itself" is true for a finish watched on that page
   (`shouldOpenViewer`, `conversion-view.ts`).

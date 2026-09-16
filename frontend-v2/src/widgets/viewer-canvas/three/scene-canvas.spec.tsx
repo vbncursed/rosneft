@@ -188,6 +188,18 @@ describe("SceneCanvas", () => {
     expect(canvas.props.className).toContain("isolate");
   });
 
+  // Nothing in this app calls `regress()` (CameraRig drives three-stdlib's
+  // controls itself), so drei's AdaptiveDpr never moved the density: it was
+  // dead code, and so was the 0.5 floor a drag was said to drop to. The
+  // density is a fixed range, 1 up to the pre-package 1.5 ceiling.
+  it("renders at a fixed density range and mounts no adaptive-DPR helper", async () => {
+    const { adaptiveDprProps } = await import("./testing");
+    adaptiveDprProps.length = 0;
+    await mount();
+    expect(canvas.props.dpr).toEqual([1, 1.5]);
+    expect(adaptiveDprProps).toHaveLength(0);
+  });
+
   it("deselects on a click into empty space while orbiting", async () => {
     const onPick = vi.fn();
     await mount({ onPick });

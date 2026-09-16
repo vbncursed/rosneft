@@ -109,7 +109,7 @@ function Draft({
             onClick={onClose}
             aria-label={CLOSE_EDITOR}
             title={CLOSE_EDITOR}
-            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-control-sm border border-line-2 bg-panel text-muted transition-colors duration-150 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-control-sm border border-line-2 bg-panel text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
           >
             <Icon name="close" size={12} />
           </button>
@@ -194,7 +194,7 @@ function Draft({
             type="button"
             onClick={() => setConfirming(true)}
             data-tour="panorama-delete"
-            className="ml-auto cursor-pointer border-none bg-transparent p-0 text-xs text-bad hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="ml-auto cursor-pointer border-none bg-transparent p-0 text-xs text-bad transition-[color,scale] duration-150 ease-out active:scale-[0.97] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             {DELETE_PANORAMA}
           </button>

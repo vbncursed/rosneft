@@ -114,4 +114,18 @@ describe("PanoramaMarker", () => {
     expect(classes()).toContain("cursor-grabbing");
     expect(container.firstElementChild?.className).toContain("pointer-events-none");
   });
+
+  // Hover used to scale the ring 125%: motion on every pass of the pointer, a
+  // shifted hit area, and no reduced-motion answer. A halo says it instead.
+  it("answers hover with a halo, press with a dip, and holds still under reduced motion", () => {
+    mount();
+    const ring = screen.getByRole("button", { name: "Open panorama Control room" });
+    expect(ring.className).not.toMatch(/hover:scale/);
+    expect(ring).toHaveClass("hover:ring-4", "hover:ring-accent-soft", "active:scale-95", "motion-reduce:transition-none");
+  });
+
+  it("does not dip a ring that is being dragged", () => {
+    mount({ moveMode: true, onGrab: vi.fn() });
+    expect(screen.getByRole("button", { name: "Move panorama Control room" })).not.toHaveClass("active:scale-95");
+  });
 });

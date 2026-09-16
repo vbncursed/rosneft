@@ -21,4 +21,18 @@ describe("Range", () => {
     render(<Range label="Yaw" value={0} min={0} max={1} step={0.1} onChange={() => {}} disabled />);
     expect(screen.getByRole("slider")).toBeDisabled();
   });
+
+  // Calibration is the slider's heaviest use: the knob answers the pointer
+  // before the scene does, and the cursor says it is being held.
+  it("answers hover and press on the knob, and shows a grab cursor", () => {
+    render(<Range label="Yaw" value={0} min={0} max={1} step={0.1} onChange={() => {}} />);
+    expect(screen.getByRole("slider")).toHaveClass(
+      "cursor-grab",
+      "enabled:active:cursor-grabbing",
+      "enabled:hover:[&::-webkit-slider-thumb]:scale-110",
+      "enabled:active:[&::-webkit-slider-thumb]:scale-95",
+      "motion-reduce:[&::-webkit-slider-thumb]:transition-none",
+    );
+    expect(screen.getByRole("slider")).not.toHaveClass("cursor-pointer");
+  });
 });

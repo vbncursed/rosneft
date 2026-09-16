@@ -34,10 +34,11 @@ export type AnchorFieldsProps = {
 // 320 wide and holds four rows. Vec3Field's row cells are hand-written for the
 // same reason.
 const BOX =
-  "rounded-[7px] border border-line-2 bg-panel px-2.5 py-2 text-xs text-fg outline-none transition-colors duration-150 focus:border-accent disabled:text-dim disabled:opacity-60";
+  "rounded-[7px] border border-line-2 bg-panel px-2.5 py-2 text-xs text-fg outline-none focus:border-accent disabled:text-dim disabled:opacity-60 disabled:transition-[color,opacity] disabled:duration-150";
+const DP3 = (n: number) => n.toFixed(3);
 const OVERLINE = "font-mono text-[9px] uppercase tracking-[0.14em] text-muted";
 const TEXT_BUTTON =
-  "cursor-pointer border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.08em] text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:text-dim disabled:no-underline";
+  "cursor-pointer border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.08em] text-accent transition-[color,scale] duration-150 ease-out hover:underline enabled:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:text-dim disabled:no-underline";
 const LABEL_ROW = "flex items-center justify-between gap-2.5";
 
 /**
@@ -95,7 +96,14 @@ export function AnchorFields({
             {SET_FROM_CAMERA}
           </button>
         </div>
-        <Vec3Field layout="row" label="Pos" value={position} onChange={onPosition} disabled={disabled} />
+        <Vec3Field
+          layout="row"
+          label="Pos"
+          value={position}
+          onChange={onPosition}
+          disabled={disabled}
+          format={DP3}
+        />
       </div>
 
       <div data-tour="panorama-yaw" className="flex flex-col gap-[7px]">
@@ -142,7 +150,9 @@ export function AnchorFields({
           value={degrees}
           min={0}
           max={360}
-          step={0.5}
+          // Whole degrees: 720 half-degree stops on a 260px track are out of a
+          // mouse's reach. The box above still takes halves.
+          step={1}
           disabled={disabled}
           onChange={(deg) => onYawOffset(degToRad(deg))}
         />

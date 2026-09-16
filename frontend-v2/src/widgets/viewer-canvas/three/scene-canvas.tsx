@@ -1,6 +1,6 @@
 import { Suspense, useCallback, useMemo, useRef } from "react";
 import { Canvas, type ThreeEvent } from "@react-three/fiber";
-import { AdaptiveDpr, Bounds } from "@react-three/drei";
+import { Bounds } from "@react-three/drei";
 import type { Group } from "three";
 import type { SceneColors } from "../model/scene-colors";
 import type { ViewerCanvasProps } from "../ui/props";
@@ -26,11 +26,12 @@ import PlacementsLayer from "./placements-layer";
 // invites Z-fighting on coplanar geometry without a measurable benefit
 // at the converter's normalised scale (max-axis = 2).
 const CAMERA = { position: [0, 0, 3] as [number, number, number], fov: 50, near: 0.1, far: 500 };
-// Lower bound is intentionally below 1: AdaptiveDpr drops dpr toward the
-// lower bound while the user is interacting. Half-resolution renders are
-// ~4x cheaper per pixel and read fine for the few hundred ms of an active
-// gesture; full quality is restored once the gesture ends.
-const DPR_RANGE: [number, number] = [0.5, 1.5];
+// A fixed density range. drei's AdaptiveDpr used to sit here, but it only
+// moves dpr when something calls `regress()`, and nothing does — CameraRig
+// drives three-stdlib's controls directly — so it never changed a pixel.
+// 1.5 is the ceiling this viewer has always rendered at; whether a retina
+// screen should get 2 is a cost call for a real GPU, not swiftshader.
+const DPR_RANGE: [number, number] = [1, 1.5];
 const GL_CONFIG = { antialias: true, alpha: false };
 const GRID_POSITION: [number, number, number] = [0, -1.2, 0];
 
@@ -247,9 +248,6 @@ export default function SceneCanvas({
       {/* Inside a panorama the floor is the photograph; a grid drawn over it
           reads as a bug. */}
       {activePanorama ? null : <gridHelper args={gridArgs} position={GRID_POSITION} />}
-      {/* Drop DPR while the user is interacting (camera drag, gizmo drag)
-          and restore it on idle — keeps frame rate up on weaker GPUs. */}
-      <AdaptiveDpr pixelated />
     </Canvas>
   );
 }

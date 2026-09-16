@@ -44,7 +44,7 @@ function PointMarkerImpl({ position, variant = "passive", onClick }: PointMarker
           onClick={handleClick}
           aria-label="Close measurement chain"
           title="Click to close chain"
-          className="size-4 cursor-pointer rounded-full border-2 border-accent bg-panel ring-4 ring-accent-soft transition-transform hover:scale-110"
+          className="size-4 cursor-pointer rounded-full border-2 border-accent bg-panel ring-4 ring-accent-soft transition-[box-shadow,scale] duration-150 ease-out hover:ring-[6px] active:scale-95 motion-reduce:transition-none"
         />
       </Html>
     );

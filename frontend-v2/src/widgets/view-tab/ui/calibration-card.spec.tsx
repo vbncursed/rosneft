@@ -90,4 +90,12 @@ describe("CalibrationCard", () => {
     await userEvent.click(screen.getByRole("button", { name: EXIT }));
     expect(onExit).toHaveBeenCalledOnce();
   });
+
+  it("presses the nudge arrows", () => {
+    calibration();
+    expect(screen.getByRole("button", { name: "Increase X" })).toHaveClass(
+      "active:scale-[0.97]",
+      "ease-out",
+    );
+  });
 });

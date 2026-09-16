@@ -17,7 +17,7 @@ export function DocumentRow({ id, name, onOpen }: DocumentRowProps) {
         onClick={() => onOpen(id)}
         aria-label={`Open ${name}`}
         title={`Open ${name}`}
-        className="shrink-0 cursor-pointer rounded-[7px] border border-line-2 bg-panel px-2.5 py-1 font-mono text-[10px] text-fg transition-colors duration-150 hover:border-accent-line focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+        className="shrink-0 cursor-pointer rounded-[7px] border border-line-2 bg-panel px-2.5 py-1 font-mono text-[10px] text-fg transition-[color,border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
       >
         Open
       </button>

@@ -1,3 +1,4 @@
+import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 
 export type SectionHeadProps = {
@@ -16,16 +17,16 @@ export function SectionHead({ overline, count, upload }: SectionHeadProps) {
       <span className="flex items-center gap-2">
         <span className="font-mono text-[10px] text-muted">{count}</span>
         {upload ? (
-          <button
-            type="button"
+          <Button
+            shape="icon"
+            size="xs"
             onClick={upload.onClick}
             aria-label={upload.title}
             title={upload.title}
             data-tour={upload.tourId}
-            className="flex size-6 cursor-pointer items-center justify-center rounded-[6px] border border-line-2 bg-panel-2 text-fg transition-colors duration-150 hover:border-accent-line focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <Icon name="arrow-up" size={12} />
-          </button>
+          </Button>
         ) : null}
       </span>
     </div>

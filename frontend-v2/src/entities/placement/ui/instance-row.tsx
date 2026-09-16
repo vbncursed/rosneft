@@ -17,7 +17,7 @@ export type InstanceRowProps = {
 };
 
 const ICON_BUTTON =
-  "flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50";
+  "flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border transition-[color,background-color,border-color,scale] duration-150 ease-out enabled:active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50";
 
 /** One placed instance under its model: select by name; rename, delete or focus by grant. */
 export function InstanceRow({
@@ -53,7 +53,7 @@ export function InstanceRow({
         aria-pressed={selected}
         aria-label={selectName}
         className={cx(
-          "min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent p-0 text-left font-mono text-[10px] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
+          "min-w-0 flex-1 cursor-pointer truncate border-none bg-transparent p-0 text-left font-mono text-[10px] transition-[scale] duration-150 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
           selected ? "text-accent" : "text-fg",
         )}
       >
@@ -92,7 +92,7 @@ export function InstanceRow({
           onClick={() => onFocus(instance.id)}
           aria-label={`Focus ${name}`}
           title={`Focus camera on ${name}`}
-          className="shrink-0 cursor-pointer rounded-[7px] border border-line-2 bg-panel px-2.5 py-1 font-mono text-[10px] text-fg hover:border-accent-line focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+          className="shrink-0 cursor-pointer rounded-[7px] border border-line-2 bg-panel px-2.5 py-1 font-mono text-[10px] text-fg transition-[border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
         >
           Focus
         </button>

@@ -49,7 +49,7 @@ export function TourTooltip({
         <button
           type="button"
           onClick={onSkip}
-          className="cursor-pointer border-none bg-transparent p-0 text-xs text-muted transition-colors duration-150 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="cursor-pointer border-none bg-transparent p-0 text-xs text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           Skip tour
         </button>

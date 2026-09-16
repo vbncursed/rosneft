@@ -398,6 +398,15 @@ padding 6/6. Verified in Cosmos at 1280 and 1440, both themes.
     one reads its LOD count and size, so every card in the Add-objects grid is
     the same height; the mock drew no sub line there (user request
     2026-09-14).
+12. Design review (2026-09-16): the `Placing N × model` bar is the system's
+    thin `ProgressBar` (a 5 px track, the mock's 3 px) and reads
+    `done / total`, so `Placing 1 of 2…` draws at 0 % until the first object
+    lands. The LOD loading line stays its own 2 px rule. The Overlays
+    panel's `scrolled · metadata above` strip reads `muted`, not the mock's
+    `dim`, and lies over the body instead of pushing it down. The panel and
+    its collapsed rail fade in with an 8 px slide; the LOD switcher and the
+    measure bar glide to their new offset when the panel folds (user
+    decision, the reviewers had declined it).
 
 ## 7. Not in this package
 

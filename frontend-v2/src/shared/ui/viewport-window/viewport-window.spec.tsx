@@ -50,4 +50,26 @@ describe("ViewportWindow", () => {
     rerender(<ViewportWindow title="f.pdf" geometry={GEO} actions={[]} dragging><p>body</p></ViewportWindow>);
     expect(screen.getByTestId("drag-shield")).toBeInTheDocument();
   });
+
+  it("keeps the grabbing cursor over the whole window while a drag runs", () => {
+    const { rerender } = render(<ViewportWindow title="f.pdf" geometry={GEO} actions={[]}><p>body</p></ViewportWindow>);
+    expect(screen.getByRole("dialog")).not.toHaveClass("cursor-grabbing");
+    rerender(<ViewportWindow title="f.pdf" geometry={GEO} actions={[]} dragging><p>body</p></ViewportWindow>);
+    expect(screen.getByRole("dialog")).toHaveClass("cursor-grabbing");
+  });
+
+  it("claims touch for its handle and grip, and gives the grip a finger-sized target", () => {
+    render(
+      <ViewportWindow title="f.pdf" geometry={GEO} actions={[]} onMoveStart={vi.fn()} onResizeStart={vi.fn()}>
+        <p>body</p>
+      </ViewportWindow>,
+    );
+    expect(screen.getByTitle("Drag to move")).toHaveClass("[touch-action:none]", "select-none");
+    expect(screen.getByTitle("Resize")).toHaveClass("[touch-action:none]", "size-5");
+  });
+
+  it("presses its action buttons", () => {
+    render(<ViewportWindow title="f.pdf" geometry={GEO} actions={actions()}><p>body</p></ViewportWindow>);
+    expect(screen.getByRole("button", { name: "Exit document overlay" })).toHaveClass("active:scale-95", "ease-out");
+  });
 });

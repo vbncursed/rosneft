@@ -6,8 +6,8 @@ import { TourTooltip } from "./tour-tooltip";
 // needed here for the fit maths. The two must agree.
 const WIDTH = 320;
 const GAP = 12;
-// Budgeted, not measured: enough to decide whether the card fits below the
-// anchor. Being wrong only picks the other side.
+// The card is measured once it is up (a four-line body runs ~215px); this is
+// only the first frame's guess, and what a layout-less test sees.
 const HEIGHT = 190;
 const HALO = 6;
 
@@ -19,14 +19,14 @@ const CENTRED: CSSProperties = { top: "50%", left: "50%", transform: "translate(
 
 // Beside the anchor when the card fits to its right, below it when it does not,
 // centred when neither works.
-function cardStyle(rect: Rect | null): CSSProperties {
+function cardStyle(rect: Rect | null, height: number): CSSProperties {
   if (!rect) return CENTRED;
   const beside = rect.left + rect.width + GAP;
   if (beside + WIDTH + GAP <= window.innerWidth) {
-    return { top: clamp(rect.top, GAP, window.innerHeight - HEIGHT - GAP), left: beside };
+    return { top: clamp(rect.top, GAP, window.innerHeight - height - GAP), left: beside };
   }
   const below = rect.top + rect.height + GAP;
-  if (below + HEIGHT + GAP <= window.innerHeight) {
+  if (below + height + GAP <= window.innerHeight) {
     return { top: below, left: clamp(rect.left, GAP, window.innerWidth - WIDTH - GAP) };
   }
   return CENTRED;
@@ -109,6 +109,14 @@ export function TourOverlay({ tour }: { tour: Tour }) {
   const rect = useAnchorRect(selector);
   const cardRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
+  const [height, setHeight] = useState(HEIGHT);
+
+  // Each step's body is its own length. Measured before paint, so the card
+  // never shows at the guessed place first; 0 means nothing was laid out.
+  useLayoutEffect(() => {
+    const measured = cardRef.current?.offsetHeight;
+    if (measured) setHeight(measured);
+  }, [step]);
 
   // Anchored but not yet measured: the card is still at the previous step's
   // place, so do not pull focus into it until it has landed.
@@ -161,26 +169,34 @@ export function TourOverlay({ tour }: { tour: Tour }) {
 
   return (
     <>
-      {/* Swallows every click, so the control being explained cannot fire. It
-          advances instead, and is hidden from assistive tech because Next says
-          the same thing with a name. */}
+      {/* Swallows every click, so nothing behind it fires — and does nothing
+          else: a click beside the point is not "I have read this", Next is.
+          Fades in; between steps its hole travels to the next control. */}
       <div
         aria-hidden="true"
         data-testid="tour-dim"
-        onClick={next}
         style={dimStyle(rect)}
-        className="fixed inset-0 z-[1200] bg-bg/60"
+        className="fixed inset-0 z-[1200] bg-bg/60 transition-[opacity,clip-path] duration-[200ms,240ms] ease-[var(--ease-out),cubic-bezier(0.77,0,0.175,1)] starting:opacity-0 motion-reduce:transition-opacity"
       />
 
       {rect && (
         <div
           data-testid="tour-halo"
           style={haloStyle(rect)}
-          className="pointer-events-none fixed z-[1201] rounded-[8px] border border-accent shadow-[0_0_0_6px_var(--accent-soft)]"
+          // One fixed, childless box: tweening its layout box is cheap, and it
+          // has to travel with the dim's hole.
+          className="pointer-events-none fixed z-[1201] rounded-[8px] border border-accent shadow-[0_0_0_6px_var(--accent-soft)] transition-[top,left,width,height] duration-240 ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transition-none"
         />
       )}
 
-      <div ref={cardRef} data-testid="tour-card" style={cardStyle(rect)} className="fixed z-[1210]">
+      {/* Keyed by step: each step's card arrives on its own. */}
+      <div
+        key={step.id}
+        ref={cardRef}
+        data-testid="tour-card"
+        style={cardStyle(rect, height)}
+        className="fixed z-[1210] transition-[opacity,translate] duration-180 ease-out starting:opacity-0 motion-safe:starting:translate-y-1"
+      >
         <TourTooltip
           nextRef={nextRef}
           step={stepIndex + 1}

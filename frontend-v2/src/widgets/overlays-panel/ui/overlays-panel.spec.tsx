@@ -100,6 +100,34 @@ describe("OverlaysPanel", () => {
     expect(onCollapsedChange).toHaveBeenCalledWith(false);
   });
 
+  // N23: the fold must not teleport. Both faces enter from 8px to the right
+  // and fade in; under reduced motion only the fade is left. Exit is instant.
+  it("brings the panel and the rail in with a short slide and fade", () => {
+    const entering = [
+      "transition-[opacity,translate]",
+      "duration-200",
+      "ease-out",
+      "starting:opacity-0",
+      "motion-safe:starting:translate-x-2",
+    ];
+    const at = (collapsed: boolean) => (
+      <OverlaysPanel
+        tab="view"
+        onTabChange={vi.fn()}
+        collapsed={collapsed}
+        onCollapsedChange={vi.fn()}
+        placementsCount={1}
+        view={null}
+        placements={null}
+      />
+    );
+    const { rerender } = render(at(false));
+    expect(screen.getByRole("complementary", { name: "Overlays" })).toHaveClass(...entering);
+    rerender(at(true));
+    const rail = screen.getByRole("button", { name: "Expand Overlays panel" }).parentElement;
+    expect(rail).toHaveClass(...entering);
+  });
+
   it("hands the page a width to offset against, in both states", () => {
     const { container, rerender } = render(
       <OverlaysPanel
@@ -198,5 +226,29 @@ describe("OverlaysPanel · the scrolled indicator", () => {
     fireEvent.scroll(body(), { target: { scrollTop: 40 } });
     fireEvent.scroll(body(), { target: { scrollTop: 0 } });
     expect(screen.queryByText("scrolled · metadata above")).not.toBeInTheDocument();
+  });
+
+  // Mock state 9. Inserted into the flow, the strip pushed the body down 26px
+  // on the first pixel of a scroll and back up at the top — a layout shift in
+  // answer to a gesture. It lies over the body instead, and fades in.
+  it("lies over the body rather than pushing it down, and fades in", () => {
+    panel();
+    fireEvent.scroll(body(), { target: { scrollTop: 40 } });
+    const strip = screen.getByText("scrolled · metadata above");
+    expect(strip).toHaveClass("absolute", "inset-x-0", "top-0", "text-muted");
+    expect(strip).toHaveClass("transition-opacity", "starting:opacity-0");
+    expect(strip).not.toHaveClass("text-dim");
+    expect(strip.parentElement).toBe(body().parentElement);
+    expect(strip.parentElement).toHaveClass("relative");
+    // Focus scrolled to the top of the body lands below the strip, not under it.
+    expect(body()).toHaveClass("scroll-pt-[26px]");
+  });
+
+  it("gives the collapse button press feedback", () => {
+    panel();
+    expect(screen.getByRole("button", { name: "Collapse Overlays panel" })).toHaveClass(
+      "active:scale-95",
+      "ease-out",
+    );
   });
 });

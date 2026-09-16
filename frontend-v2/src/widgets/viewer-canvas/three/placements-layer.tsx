@@ -72,6 +72,10 @@ export default function PlacementsLayer({
   }, [target]);
 
   const visible = placements.filter((p) => isVisibleIn(p, activePanoramaId));
+  const gizmo = canEdit && !measureMode && selectedId != null && target !== null;
+  // Without a gizmo — a guest, or an editor measuring — the selection would
+  // show only in the panel. The panorama's ring and name mark it instead.
+  const ringed = activePanoramaId === null && !gizmo ? visible.filter((p) => p.id === selectedId) : [];
 
   return (
     <>
@@ -90,7 +94,7 @@ export default function PlacementsLayer({
       {/* In measure mode the gizmo is hidden — the user is picking points,
           not editing the placement. The selection survives the mode switch
           so coming back to translate/rotate/scale finds the same target. */}
-      {canEdit && !measureMode && selectedId != null && target ? (
+      {gizmo ? (
         <TransformControls ref={tcRef} object={target} mode={mode} size={0.85} />
       ) : null}
       {/* A panorama has no panel and no gizmo, so the ring and its name are
@@ -99,6 +103,7 @@ export default function PlacementsLayer({
       {activePanoramaId !== null && showMarkers && !calibrating ? (
         <PlacementMarkers placements={visible} labels={markerLabels} />
       ) : null}
+      {ringed.length > 0 ? <PlacementMarkers placements={ringed} labels={markerLabels} /> : null}
     </>
   );
 }

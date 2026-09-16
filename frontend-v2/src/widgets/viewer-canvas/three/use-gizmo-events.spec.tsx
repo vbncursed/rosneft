@@ -1,7 +1,7 @@
 import { useThree } from "@react-three/fiber";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { useLayoutEffect, type RefObject } from "react";
-import { BoxGeometry, Mesh, MeshBasicMaterial, Object3D } from "three";
+import { BoxGeometry, Mesh, MeshBasicMaterial, Object3D, Vector3, type Camera } from "three";
 import type {
   OrbitControls as OrbitControlsImpl,
   TransformControls as TransformControlsImpl,
@@ -37,14 +37,26 @@ type Case = {
   mode?: GizmoMode;
   snapEnabled?: boolean;
   onCommit?: (id: number, t: unknown) => void;
-  orbit: { enabled: boolean };
+  orbit: FakeOrbit;
+  probe?: { camera?: Camera };
 };
 
-function Harness({ tc, target, selectedId = 5, mode = "translate", snapEnabled = false, onCommit = vi.fn(), orbit }: Case) {
+type FakeOrbit = {
+  enabled: boolean;
+  enableDamping?: boolean;
+  target?: Vector3;
+  update?: () => void;
+};
+
+function Harness({ tc, target, selectedId = 5, mode = "translate", snapEnabled = false, onCommit = vi.fn(), orbit, probe }: Case) {
   const set = useThree((s) => s.set);
+  const camera = useThree((s) => s.camera);
   useLayoutEffect(() => {
+    // The probe is the spec's own object, handed in to be filled.
+    // oxlint-disable-next-line react/immutability
+    if (probe) probe.camera = camera;
     set({ controls: orbit as unknown as OrbitControlsImpl });
-  }, [set, orbit]);
+  }, [set, orbit, probe, camera]);
   useGizmoEvents({
     tcRef: { current: tc as unknown as TransformControlsImpl },
     target,
@@ -57,8 +69,8 @@ function Harness({ tc, target, selectedId = 5, mode = "translate", snapEnabled =
   return null;
 }
 
-const mount = (props: Omit<Case, "orbit"> & { orbit?: { enabled: boolean } }) => {
-  const orbit = props.orbit ?? { enabled: true };
+const mount = (props: Omit<Case, "orbit"> & { orbit?: FakeOrbit }) => {
+  const orbit = props.orbit ?? { enabled: true, enableDamping: true, target: new Vector3(), update: vi.fn() };
   return ReactThreeTestRenderer.create(<Harness {...props} orbit={orbit} />).then((r) => ({
     r,
     orbit,
@@ -79,6 +91,26 @@ describe("useGizmoEvents", () => {
     expect(orbit.enabled).toBe(false);
     tc.emit("dragging-changed", { value: false });
     expect(orbit.enabled).toBe(true);
+  });
+
+  // A coast started before the grab would keep turning the view under it.
+  it("stops the orbit's leftover inertia where the view stands when a drag starts", async () => {
+    const tc = new FakeControls();
+    const target = new Vector3(1, 1, 1);
+    const probe: { camera?: Camera } = {};
+    // The undamped update throws the whole leftover at the camera in one go.
+    const update = vi.fn(() => {
+      probe.camera!.position.x += 5;
+      target.x += 5;
+    });
+    const { orbit } = await mount({ tc, target: at(0, 5, 0), probe, orbit: { enabled: true, enableDamping: true, target, update } });
+    const before = probe.camera!.position.toArray();
+    tc.emit("dragging-changed", { value: true });
+    expect(orbit.update).toHaveBeenCalledOnce();
+    expect(probe.camera!.position.toArray()).toEqual(before);
+    expect(target.toArray()).toEqual([1, 1, 1]);
+    tc.emit("dragging-changed", { value: false });
+    expect(orbit.update).toHaveBeenCalledOnce();
   });
 
   it("commits the object's own transform once, at the end of the drag", async () => {

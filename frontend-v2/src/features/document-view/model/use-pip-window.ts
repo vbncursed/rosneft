@@ -53,6 +53,9 @@ export function usePipWindow(inset = 14, area?: RefObject<HTMLElement | null>) {
   // anyway, and both handlers are plain props on one element.
   const begin = (kind: "move" | "resize") => (e: ReactPointerEvent<HTMLElement>) => {
     e.preventDefault();
+    // The handle keeps the pointer, and with it the cursor, however far the
+    // drag outruns it. Optional: jsdom has no pointer capture.
+    e.currentTarget.setPointerCapture?.(e.pointerId);
     const sx = e.clientX;
     const sy = e.clientY;
     const base = geo;
@@ -68,11 +71,14 @@ export function usePipWindow(inset = 14, area?: RefObject<HTMLElement | null>) {
       setDragging(false);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
       stop.current = null;
     };
     stop.current = onUp;
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+    // A touch the browser takes back (a system gesture) never sends pointerup.
+    window.addEventListener("pointercancel", onUp);
   };
 
   useEffect(() => () => stop.current?.(), []);

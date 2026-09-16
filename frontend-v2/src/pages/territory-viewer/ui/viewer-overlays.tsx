@@ -31,6 +31,14 @@ const TILES: Record<RailTool, { glyph: string; name: string; toggle?: boolean; d
 // `overlaysWidthClass` the panel itself uses, so the two cannot drift.
 const PANEL_EDGE = "right-[calc(var(--overlays-w)+28px)]";
 
+// Folding the panel moves that edge by 276px. `right` is a layout property,
+// and it is tweened here on purpose: the switcher and the hint bar are each one
+// absolutely-positioned box with nothing beside them in the flow, so a frame
+// re-lays out one small element. The variable flips in one step; the browser
+// interpolates the computed `right`. The document layer takes PANEL_EDGE
+// alone — its ResizeObserver would re-clamp the window on every frame.
+const PANEL_EDGE_MOVING = `${PANEL_EDGE} transition-[right] duration-200 ease-out motion-reduce:transition-none`;
+
 /**
  * Two layers, because the window is placed two different ways.
  *
@@ -133,9 +141,11 @@ export function ViewerOverlays({
           aria-valuenow={loading.percent}
           className="absolute inset-x-0 top-0 h-0.5 bg-line"
         >
+          {/* The mock's 2px line, not ProgressBar's 5px track; the fill follows
+              the same rule — scaled, linear, still under reduced motion. */}
           <div
-            className="h-full bg-accent transition-[width] duration-300"
-            style={{ width: `${loading.percent}%` }}
+            className="h-full w-full origin-left bg-accent transition-transform duration-300 ease-linear motion-reduce:transition-none"
+            style={{ transform: `scaleX(${loading.percent / 100})` }}
           />
         </div>
       ) : null}
@@ -151,7 +161,8 @@ export function ViewerOverlays({
                 progressbar above it are the only things that say a better level
                 is on its way. */}
             <ModeChip label="Loading progress" tone="neutral">
-              {loading.chip}
+              {/* Fixed-width digits: the chip does not breathe with each chunk. */}
+              <span className="tabular-nums">{loading.chip}</span>
             </ModeChip>
           </>
         ) : chip ? (
@@ -176,7 +187,7 @@ export function ViewerOverlays({
         ) : null}
       </div>
 
-      {switcher ? <LodSwitcher {...switcher} className={`absolute top-3.5 ${PANEL_EDGE}`} /> : null}
+      {switcher ? <LodSwitcher {...switcher} className={`absolute top-3.5 ${PANEL_EDGE_MOVING}`} /> : null}
 
       <div className={`${BOTTOM_ROW} ${measuring ? "bottom-[60px]" : "bottom-3.5"}`}>
         <StatsStrip items={strip.items} tone={strip.tone} accentLast={strip.accentLast} />
@@ -200,7 +211,7 @@ export function ViewerOverlays({
       ) : null}
 
       {measuring ? (
-        <div role="note" aria-label="Measure tool" className={`${HINT_BAR} ${PANEL_EDGE}`}>
+        <div role="note" aria-label="Measure tool" className={`${HINT_BAR} ${PANEL_EDGE_MOVING}`}>
           <span>Click two points</span>
           <Dot />
           <span>

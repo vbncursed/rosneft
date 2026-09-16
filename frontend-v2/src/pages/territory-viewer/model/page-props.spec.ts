@@ -465,6 +465,14 @@ describe("pageProps · picker, tour and the loading gate", () => {
     expect(pageProps({ ...p, view: nothing }).loadingScene).toBe(true);
     expect(pageProps(parts(FAILURE)).loadingScene).toBe(false);
   });
+
+  // The skeleton stands until a mesh mounts; "orbit · drag to rotate" beside
+  // it asked the reader to turn a scene that was not there yet.
+  it("draws no mode chip while the scene skeleton is up", () => {
+    const p = parts();
+    const nothing = { ...p.view, report: { ...p.view.report, shown: null } };
+    expect(pageProps({ ...p, view: nothing }).overlays.chip).toBeNull();
+  });
 });
 
 describe("pageProps · the LOD switcher goes where the level cannot be chosen", () => {

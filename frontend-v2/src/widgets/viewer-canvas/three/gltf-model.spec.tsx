@@ -42,10 +42,12 @@ const stubDownload = (status = 200, gate?: Promise<void>) => {
   });
 };
 
-const model = (over: { onReport?: (r: LodReport) => void; retryVersion?: number } = {}) => (
+const model = (
+  over: { onReport?: (r: LodReport) => void; retryVersion?: number; targetLod?: number } = {},
+) => (
   <GltfModel
     lods={CHAIN}
-    targetLod={0}
+    targetLod={over.targetLod ?? 0}
     retryVersion={over.retryVersion ?? 0}
     raycastable={false}
     onReport={over.onReport ?? vi.fn()}
@@ -78,12 +80,93 @@ describe("GltfModel", () => {
     await vi.waitFor(() =>
       expect(vi.mocked(drei.useGLTF).mock.calls.map((c) => c[0])).toContain("blob:fine"),
     );
-    // The first report is the coarse level standing in for the target; the
-    // last one, after the warmer says the blob parsed, is the target itself.
-    expect(onReport.mock.calls[0][0]).toMatchObject({ shown: 2, target: 0 });
+    // The first level reported is the coarse one standing in for the target;
+    // the last one, after the warmer says the blob parsed, is the target itself.
+    const levels = onReport.mock.calls.map((c) => c[0] as LodReport).filter((r) => r.shown !== null);
+    expect(levels[0]).toMatchObject({ shown: 2, target: 0 });
     await vi.waitFor(() =>
       expect((onReport.mock.lastCall![0] as LodReport).shown).toBe(0),
     );
+  });
+
+  it("keeps the coarse level on screen on the way back to a level already seen (0 → 2 → 0)", async () => {
+    // The return trip is progressive too: the coarse level stays up while the
+    // target downloads again, drei never fetches the target's asset route on
+    // its own (that was a second, parallel GET of the same bytes), and the
+    // coarse level — always on screen by its asset route — is never streamed
+    // into a blob, which would swap its url and re-parse it mid-view.
+    stubDownload();
+    const drei = await import("@react-three/drei");
+    vi.mocked(drei.useGLTF).mockClear();
+    const onReport = vi.fn();
+    const r = await ReactThreeTestRenderer.create(model({ onReport }));
+    const last = () => onReport.mock.lastCall![0] as LodReport;
+    await vi.waitFor(() => expect(last().shown).toBe(0));
+
+    await r.update(model({ onReport, targetLod: 2 }));
+    expect(last()).toMatchObject({ shown: 2, target: 2 });
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
+
+    const from = onReport.mock.calls.length;
+    await r.update(model({ onReport, targetLod: 0 }));
+    const back = onReport.mock.calls.slice(from).map((c) => c[0] as LodReport);
+    expect(back[0]).toMatchObject({ shown: 2, target: 0 });
+    // The finished first download is forgotten: the return counts from 0,
+    // never from the old 100 % against a revoked blob.
+    expect(back[0].percent).not.toBe(100);
+    await vi.waitFor(() => expect(last().shown).toBe(0));
+    const parsed = vi.mocked(drei.useGLTF).mock.calls.map((c) => String(c[0]));
+    expect(parsed).not.toContain("/api/assets/fine");
+    expect(parsed.filter((u) => u.startsWith("/api/assets/")).every((u) => u.endsWith("coarse"))).toBe(true);
+  });
+
+  it("reports no level on screen until the coarse mesh has actually mounted", async () => {
+    // The strip read "LOD 2 active" for the seconds the coarse level was still
+    // on the wire, over an empty scene. On screen means mounted. The target's
+    // download never finishes here, so the coarse level is all there is.
+    stubDownload(200, new Promise<void>(() => {}));
+    const drei = await import("@react-three/drei");
+    const { fakeScene } = await import("./testing");
+    let arrive!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      arrive = resolve;
+    });
+    let arrived = false;
+    void pending.then(() => {
+      arrived = true;
+    });
+    vi.mocked(drei.useGLTF).mockImplementation((url) => {
+      if (String(url) === "/api/assets/coarse" && !arrived) throw pending;
+      return { scene: fakeScene() } as never;
+    });
+    const onReport = vi.fn();
+    await ReactThreeTestRenderer.create(model({ onReport }));
+    expect(onReport.mock.calls[0][0]).toMatchObject({ shown: null, target: 0 });
+
+    arrive();
+    await vi.waitFor(() =>
+      expect(onReport.mock.calls.map((c) => (c[0] as LodReport).shown)).toContain(2),
+    );
+  });
+
+  it("stops calling a level shown once its mesh is gone again (a retry that suspends)", async () => {
+    // A retry remounts the same url; while it suspends nothing is on screen,
+    // and the strip must not keep saying "LOD 2 active" over the skeleton.
+    stubDownload(200, new Promise<void>(() => {}));
+    const drei = await import("@react-three/drei");
+    const { fakeScene } = await import("./testing");
+    let hang = false;
+    vi.mocked(drei.useGLTF).mockImplementation((url) => {
+      if (hang && String(url) === "/api/assets/coarse") throw new Promise(() => {});
+      return { scene: fakeScene() } as never;
+    });
+    const onReport = vi.fn();
+    const r = await ReactThreeTestRenderer.create(model({ onReport }));
+    const last = () => onReport.mock.lastCall![0] as LodReport;
+    await vi.waitFor(() => expect(last().shown).toBe(2));
+    hang = true;
+    await r.update(model({ onReport, retryVersion: 1 }));
+    await vi.waitFor(() => expect(last().shown).toBeNull());
   });
 
   it("reports bytes so far against the target's size while the coarse level is up", async () => {

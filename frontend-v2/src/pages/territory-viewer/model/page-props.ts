@@ -123,8 +123,10 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       onPanoramas: on.onPanoramas,
       onDocuments: on.onDocuments,
       onReplayTour: on.onReplayTour,
+      // No chip over a failure, a download, or the scene skeleton: without a
+      // mesh on screen (`!geometry`) there is nothing to drag or rotate.
       chip:
-        failed || loading
+        !geometry || loading
           ? null
           : modeChip({
               mode: mode.mode,

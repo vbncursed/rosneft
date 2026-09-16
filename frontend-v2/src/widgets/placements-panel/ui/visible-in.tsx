@@ -9,10 +9,10 @@ export type VisibleInProps = {
   onToggle: (panoramaId: number, visible: boolean) => void;
 };
 
-/** The selected instance's per-panorama allowlist, drawn under its row. */
+/** The selected instance's per-panorama allowlist, drawn under its row and indented with it. */
 export function VisibleIn({ placement, panoramas, pending, onToggle }: VisibleInProps) {
   return (
-    <div className="flex flex-col gap-[9px] rounded-b-[9px] border-t border-accent-line bg-panel p-[11px]">
+    <div className="ml-3 flex flex-col gap-[9px] rounded-b-[9px] border-t border-accent-line bg-panel p-[11px]">
       <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted">{VISIBLE_IN}</span>
       {panoramas.map((panorama) => {
         const checked = placement.visiblePanoramaIds.includes(panorama.id);

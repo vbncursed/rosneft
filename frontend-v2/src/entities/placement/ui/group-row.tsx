@@ -20,7 +20,7 @@ export function GroupRow({ group, expanded, selectedId, onToggle }: GroupRowProp
       aria-current={holdsSelection || undefined}
       aria-label={group.model.title}
       className={cx(
-        "flex w-full cursor-pointer items-center gap-[9px] rounded-[9px] border px-[11px] py-[9px] text-left transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
+        "flex w-full cursor-pointer items-center gap-[9px] rounded-[9px] border px-[11px] py-[9px] text-left transition-[scale] duration-150 ease-out active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
         holdsSelection ? "border-accent bg-accent-soft" : "border-line bg-panel-2 hover:border-line-2",
       )}
     >
@@ -31,7 +31,7 @@ export function GroupRow({ group, expanded, selectedId, onToggle }: GroupRowProp
       <Icon
         name="chevron-right"
         size={12}
-        className={cx("shrink-0 text-muted transition-transform duration-150", expanded && "rotate-90")}
+        className={cx("shrink-0 text-muted transition-transform duration-150 ease-out motion-reduce:transition-none", expanded && "rotate-90")}
       />
     </button>
   );

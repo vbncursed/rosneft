@@ -70,7 +70,7 @@ export function PanoramaRow({ row, onEnter, onExit, onEdit }: PanoramaRowProps) 
           // Sighted readers get the warning from proximity; a screen reader on
           // the button hears only the label unless it points at the hint.
           aria-describedby={calibrated ? undefined : hintId}
-          className="mt-1 cursor-pointer border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.1em] text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+          className="mt-1 cursor-pointer border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.1em] text-accent transition-[color,scale] duration-150 ease-out active:scale-[0.97] hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
         >
           {label}
         </button>
@@ -82,7 +82,7 @@ export function PanoramaRow({ row, onEnter, onExit, onEdit }: PanoramaRowProps) 
           onClick={() => onEdit(id)}
           aria-label={`Edit ${title}`}
           title={`Edit ${title}`}
-          className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-control-sm border border-line-2 bg-panel text-fg transition-colors duration-150 hover:border-accent-line focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+          className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-control-sm border border-line-2 bg-panel text-fg transition-[color,border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
         >
           <Icon name="pencil" size={12} />
         </button>

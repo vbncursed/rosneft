@@ -1,5 +1,5 @@
 import ReactThreeTestRenderer from "@react-three/test-renderer";
-import { Group } from "three";
+import { Group, type Camera } from "three";
 import { describe, expect, it, vi } from "vitest";
 import PanoramaDragController from "./panorama-drag-controller";
 import { fakeControls, fakeScene, WithControls } from "./testing";
@@ -40,6 +40,30 @@ describe("PanoramaDragController", () => {
       renderer.unmount();
     });
     expect(controls.enabled).toBe(true);
+  });
+
+  it("stops the orbit's leftover inertia where the view stands when a marker is grabbed", async () => {
+    const controls = fakeControls();
+    const probe: { camera?: Camera } = {};
+    controls.target.set(1, 1, 1);
+    controls.update.mockImplementation(() => {
+      probe.camera!.position.x += 5;
+      controls.target.x += 5;
+    });
+    const renderer = await ReactThreeTestRenderer.create(
+      <WithControls controls={controls} probe={probe}>
+        <PanoramaDragController dragging={false} territoryRef={{ current: fakeScene() }} onMove={vi.fn()} onEnd={vi.fn()} />
+      </WithControls>,
+    );
+    const before = probe.camera!.position.toArray();
+    await renderer.update(
+      <WithControls controls={controls} probe={probe}>
+        <PanoramaDragController dragging territoryRef={{ current: fakeScene() }} onMove={vi.fn()} onEnd={vi.fn()} />
+      </WithControls>,
+    );
+    expect(controls.update).toHaveBeenCalled();
+    expect(probe.camera!.position.toArray()).toEqual(before);
+    expect(controls.target.toArray()).toEqual([1, 1, 1]);
   });
 
   it("leaves the orbit alone when nothing is being dragged", async () => {

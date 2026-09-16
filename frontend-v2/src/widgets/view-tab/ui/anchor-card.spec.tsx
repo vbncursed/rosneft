@@ -143,14 +143,14 @@ describe("AnchorCard", () => {
     cameraPositionRef.current = { x: 1.5, y: 2.5, z: 3.5 };
     card({ cameraPositionRef });
     await userEvent.click(screen.getByRole("button", { name: SET_FROM_CAMERA }));
-    expect(screen.getByLabelText("Pos x")).toHaveValue("1.5");
+    expect(screen.getByLabelText("Pos x")).toHaveValue("1.500");
     expect(screen.getByRole("button", { name: SAVE_ANCHOR })).toBeEnabled();
   });
 
   it("leaves the position alone when no camera has reported yet", async () => {
     card();
     await userEvent.click(screen.getByRole("button", { name: SET_FROM_CAMERA }));
-    expect(screen.getByLabelText("Pos x")).toHaveValue("4.82");
+    expect(screen.getByLabelText("Pos x")).toHaveValue("4.820");
   });
 
   it("captures the look direction as the default view", async () => {
@@ -168,7 +168,7 @@ describe("AnchorCard", () => {
     await userEvent.type(screen.getByLabelText(TITLE_LABEL), "!");
     const moved = { ...PANORAMA, position: { x: 9.1, y: 0.4, z: 0.2 } };
     rerender(<AnchorCard {...all} panorama={moved} />);
-    expect(screen.getByLabelText("Pos x")).toHaveValue("9.1");
+    expect(screen.getByLabelText("Pos x")).toHaveValue("9.100");
     expect(screen.getByLabelText(TITLE_LABEL)).toHaveValue("Control room, north door");
   });
 
@@ -252,5 +252,11 @@ describe("AnchorCard", () => {
     card({ saving: true });
     expect(screen.getByLabelText(TITLE_LABEL)).toBeDisabled();
     expect(screen.getByRole("button", { name: SAVE_ANCHOR })).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("presses its close and delete buttons", () => {
+    card();
+    expect(screen.getByRole("button", { name: CLOSE_EDITOR })).toHaveClass("active:scale-95", "ease-out");
+    expect(screen.getByRole("button", { name: DELETE_PANORAMA })).toHaveClass("active:scale-[0.97]");
   });
 });

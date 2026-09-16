@@ -31,4 +31,11 @@ describe("StatsStrip", () => {
     expect(spans[1].className).toBe("");
     expect(spans[2].className).toBe("text-accent");
   });
+
+  // `62%` → `100%` and the megabytes used to change the strip's width inside
+  // one phase, and the document pill beside it moved with every chunk.
+  it("sets its digits in fixed widths", () => {
+    render(<StatsStrip items={["LOD 2 active", "LOD 0 62%"]} />);
+    expect(screen.getByRole("status")).toHaveClass("tabular-nums");
+  });
 });

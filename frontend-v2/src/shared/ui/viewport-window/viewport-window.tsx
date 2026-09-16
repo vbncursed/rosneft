@@ -18,7 +18,7 @@ export type ViewportWindowProps = {
 };
 
 const ACTION =
-  "flex size-6 cursor-pointer items-center justify-center rounded-[6px] border transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "flex size-6 cursor-pointer items-center justify-center rounded-[6px] border transition-[color,background-color,border-color,scale] duration-150 ease-out active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 /**
  * The mock's "viewport window": a floating panel with a title bar that can be
@@ -36,12 +36,18 @@ export function ViewportWindow({ title, geometry, actions, onMoveStart, onResize
       className={cx(
         "pointer-events-auto absolute z-30 flex flex-col overflow-hidden rounded-card border border-line-2 bg-panel shadow-elevation",
         !floating && "inset-3.5",
+        // The cursor holds over the whole window, iframe shield included.
+        dragging && "cursor-grabbing",
         className,
       )}
     >
       <div className="flex items-center gap-2.5 border-b border-line bg-panel-2 px-[11px] py-[9px]">
         {floating ? (
-          <span title="Drag to move" onPointerDown={onMoveStart} className="flex cursor-grab items-center text-line-2 active:cursor-grabbing">
+          <span
+            title="Drag to move"
+            onPointerDown={onMoveStart}
+            className="flex cursor-grab select-none items-center text-line-2 [touch-action:none] active:cursor-grabbing"
+          >
             <Icon name="grip" size={14} />
           </span>
         ) : null}
@@ -64,7 +70,14 @@ export function ViewportWindow({ title, geometry, actions, onMoveStart, onResize
         {dragging ? <div data-testid="drag-shield" className="absolute inset-0" /> : null}
       </div>
       {floating && onResizeStart ? (
-        <span title="Resize" onPointerDown={onResizeStart} className="absolute bottom-0 right-0 size-4 cursor-se-resize border-b-2 border-r-2 border-line-2" />
+        // A 20px target around the mock's 16px corner mark.
+        <span
+          title="Resize"
+          onPointerDown={onResizeStart}
+          className="absolute bottom-0 right-0 size-5 cursor-se-resize select-none [touch-action:none]"
+        >
+          <span aria-hidden="true" className="absolute bottom-0 right-0 size-4 border-b-2 border-r-2 border-line-2" />
+        </span>
       ) : null}
     </section>
   );

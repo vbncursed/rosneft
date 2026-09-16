@@ -145,4 +145,21 @@ describe("PlacementsLayer", () => {
     await r.fireEvent(instances(r)[0], "click", { stopPropagation: vi.fn() });
     expect(onSelect).not.toHaveBeenCalled();
   });
+
+  // Without the gizmo — a guest, or an editor measuring — a click lit the row
+  // in the panel and nothing at all in the scene.
+  it("rings the selection in the 3D view when no gizmo marks it", async () => {
+    const guest = await ReactThreeTestRenderer.create(
+      layer({ canEdit: false, markerLabels: { 1: "a", 2: "b" } }),
+    );
+    expect(markers(guest)[0].instance.userData.ids).toEqual([2]);
+
+    const measuring = await ReactThreeTestRenderer.create(
+      layer({ measureMode: true, markerLabels: { 2: "b" } }),
+    );
+    expect(markers(measuring)[0].instance.userData.ids).toEqual([2]);
+
+    const editing = await ReactThreeTestRenderer.create(layer({ markerLabels: { 2: "b" } }));
+    expect(markers(editing)).toHaveLength(0);
+  });
 });

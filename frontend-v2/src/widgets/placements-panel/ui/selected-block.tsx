@@ -128,7 +128,7 @@ export function SelectedBlock({
           label="Rot"
           readOnly={!typing}
           tone="muted"
-          format={degreesWithSign}
+          format={typing ? String : degreesWithSign}
           value={typing ? toDegreeVec(shown.rotation) : shown.rotation}
           onChange={(rotation) => form?.onTransform({ ...shown, rotation: toRadianVec(rotation) })}
         />

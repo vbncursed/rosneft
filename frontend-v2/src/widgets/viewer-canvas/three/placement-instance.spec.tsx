@@ -94,4 +94,21 @@ describe("PlacementInstance", () => {
     );
     expect(r.scene.findAll((n) => n.instance.userData?.placementId !== undefined)).toHaveLength(0);
   });
+
+  it("shows a pointer over an object that a click would select, and not while measuring", async () => {
+    const hover = async (measureMode: boolean) => {
+      const r = await ReactThreeTestRenderer.create(
+        <PlacementInstance placement={fakePlacement(5)} measureMode={measureMode} onSelect={vi.fn()} />,
+      );
+      const group = r.scene.findAll((n) => n.instance.userData?.placementId === 5)[0];
+      await r.fireEvent(group, "onPointerOver", { stopPropagation: vi.fn() });
+      const cursor = document.body.style.cursor;
+      await r.fireEvent(group, "onPointerOut", { stopPropagation: vi.fn() });
+      const after = document.body.style.cursor;
+      await r.unmount();
+      return { cursor, after };
+    };
+    expect(await hover(false)).toEqual({ cursor: "pointer", after: "auto" });
+    expect((await hover(true)).cursor).not.toBe("pointer");
+  });
 });

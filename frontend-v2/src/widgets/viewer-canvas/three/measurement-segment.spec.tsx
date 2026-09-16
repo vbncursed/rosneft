@@ -8,10 +8,12 @@ import MeasurementSegment from "./measurement-segment";
 // under react-dom, `<group>` is an unknown element and the chip is readable.
 // drei's own Html portal is a no-op outside a live R3F root.
 const lineColors: string[] = [];
+const lineProps: Record<string, unknown>[] = [];
 vi.mock("@react-three/drei", () => ({
   Html: ({ children }: { children: ReactNode }) => children,
-  Line: ({ color }: { color: string }) => {
-    lineColors.push(color);
+  Line: (props: { color: string }) => {
+    lineColors.push(props.color);
+    lineProps.push(props);
     return null;
   },
 }));
@@ -31,6 +33,7 @@ const draw = (props: { onRemoveSegment?: () => void; onRemoveChain?: () => void 
 
 beforeEach(() => {
   lineColors.length = 0;
+  lineProps.length = 0;
 });
 
 describe("MeasurementSegment", () => {
@@ -75,5 +78,18 @@ describe("MeasurementSegment", () => {
     draw();
     expect(screen.getByRole("button").className).toContain("border-accent");
     expect(screen.getByRole("button").className).toContain("text-accent");
+  });
+
+  // Fully opaque, and drawn last over everything by renderOrder alone:
+  // `transparent` only moved it into the sorted queue for nothing.
+  it("draws an opaque line outside the transparent queue", () => {
+    draw();
+    expect(lineProps[0].transparent).toBeFalsy();
+    expect(lineProps[0].depthTest).toBe(false);
+  });
+
+  it("presses the label chip", () => {
+    draw();
+    expect(screen.getByRole("button")).toHaveClass("active:scale-[0.97]", "ease-out");
   });
 });
