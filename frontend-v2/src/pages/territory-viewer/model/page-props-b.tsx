@@ -153,14 +153,20 @@ function anchorCard(p: PageParts) {
  *
  * The sphere renders the *draft* while one is open — that is what makes an
  * alignment live — and is ghosted only then: a reader looking around a capture
- * is looking at the photo, not through it. The anchor being aligned is not
- * drawn at all while that is open — the camera is standing on it.
+ * is looking at the photo, not through it.
+ *
+ * Which field carries the draft decides where the camera ends up. Inside a
+ * capture it is `activePanorama`, so the sphere and the rig both follow the
+ * nudge row. From the 3D view it is `calibrationGhost`, and `activePanorama`
+ * stays null: the rig never mounts, the camera stays free, and the photo hangs
+ * around the scene as a backdrop the anchor ring is dragged against.
  */
 export function panoramaCanvasProps(p: PageParts, groups: PlacementGroup[]) {
   const { panoramas: pan } = p;
   const { effective } = pan.calibration;
   return {
-    activePanorama: effective ?? pan.active,
+    activePanorama: pan.active ? (effective ?? pan.active) : null,
+    calibrationGhost: pan.active ? null : effective,
     panoramaBitmap: pan.texture.bitmap,
     panoramaStatus: pan.texture.status,
     panoramaProgress: pan.texture.progress,

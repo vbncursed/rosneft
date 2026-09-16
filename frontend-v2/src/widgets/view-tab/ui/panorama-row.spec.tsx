@@ -50,8 +50,19 @@ describe("PanoramaRow", () => {
     const hint = screen.getByText(NOT_CALIBRATED);
     const enter = screen.getByRole("button", { name: `${SHOW_IN}: Control room, north door` });
     expect(hint.compareDocumentPosition(enter) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Sighted readers get the warning from proximity; a screen reader gets it
+    // only if the button points at it.
+    expect(enter.getAttribute("aria-describedby")).toBe(hint.id);
+    expect(hint.id).not.toBe("");
     await userEvent.click(enter);
     expect(onEnter).toHaveBeenCalledWith(7);
+  });
+
+  it("points at no hint once the anchor is calibrated", () => {
+    row();
+    expect(
+      screen.getByRole("button", { name: /Show in this panorama/ }).getAttribute("aria-describedby"),
+    ).toBeNull();
   });
 
   it("enters a calibrated panorama by id", async () => {

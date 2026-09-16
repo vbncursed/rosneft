@@ -11,6 +11,8 @@ import PanoramaSphere from "./panorama-sphere";
 
 export interface PanoramaSceneProps {
   activePanorama: Panorama | null;
+  /** The draft hung around the 3D view as a backdrop — see `ViewerCanvasProps`. */
+  calibrationGhost: Panorama | null;
   bitmap: ImageBitmap | null;
   status: ViewerCanvasProps["panoramaStatus"];
   progress: number | null;
@@ -40,6 +42,7 @@ export interface PanoramaSceneProps {
 // a radius-50 sphere inside Bounds would dominate the auto-fit.
 export default function PanoramaScene({
   activePanorama,
+  calibrationGhost,
   bitmap,
   status,
   progress,
@@ -55,29 +58,41 @@ export default function PanoramaScene({
   onMove,
   onDrop,
 }: PanoramaSceneProps) {
+  // The sphere's subject: the capture the reader is inside, or — out in the 3D
+  // view — the one being aligned, whose photo becomes the backdrop. The two are
+  // mutually exclusive by construction (the page nulls the ghost inside).
+  const sphere = activePanorama ?? calibrationGhost;
+
   return (
     <>
+      {/* Only inside. Out in the 3D view the photo is a backdrop the operator
+          asked for on top of a scene they can already see; covering it would
+          take the scene away to announce a download. */}
       {activePanorama && status === "loading" ? <PanoramaLoadingOverlay progress={progress} /> : null}
 
+      {sphere && status === "ready" && bitmap ? (
+        <PanoramaSphere panorama={sphere} bitmap={bitmap} opacity={opacity} />
+      ) : null}
+
+      {/* The rig teleports the eye onto the anchor, so it follows the capture
+          the reader is *in* — never the ghost. Calibrating from the 3D view
+          keeps the free camera, which is the whole point of doing it there. */}
       {activePanorama && status === "ready" && bitmap ? (
-        <>
-          <PanoramaSphere panorama={activePanorama} bitmap={bitmap} opacity={opacity} />
-          <PanoramaRig panorama={activePanorama} />
-        </>
+        <PanoramaRig panorama={activePanorama} />
       ) : null}
 
       {/* Anchors belong to the 3D view only: inside a panorama the reader is
-          standing on one of them, and while picking points they would eat the
-          click meant for the surface. Calibration is the exception — the
-          callout asks the operator to drag the points on the model, so they
-          are drawn over the ghosted sphere — all but the one being aligned,
-          which the camera is standing on. */}
-      {(!activePanorama || calibrating) && !pointMode && showMarkers ? (
+          standing on one of them — including the one being aligned, where the
+          ring would project onto the eye — and while picking points they would
+          eat the click meant for the surface. While calibrating the layer is
+          handed the draft alone: it is the only ring drawn, the only one
+          grabbable, and `V` therefore cannot reach another anchor's PUT. */}
+      {!activePanorama && !pointMode && showMarkers ? (
         <PanoramaMarkersLayer
-          panoramas={panoramas}
+          panoramas={calibrationGhost ? [calibrationGhost] : panoramas}
           onActivate={onActivate}
-          moveMode={move.active}
-          editingId={calibrating ? (activePanorama?.id ?? null) : null}
+          moveMode={move.active || calibrating}
+          editingId={calibrating ? (calibrationGhost?.id ?? null) : null}
           draggingId={move.draggingId}
           livePos={move.livePos}
           onGrab={onGrab}

@@ -7,10 +7,10 @@ interface PanoramaMarkersLayerProps {
   onActivate: (id: number) => void;
   moveMode?: boolean;
   /**
-   * The capture being calibrated: its anchor is NOT drawn. The rig pins the
-   * camera onto it, so its marker projects onto the eye and lands in the
-   * corner of the viewport; the nudge row and `Set from camera` are what move
-   * it. The rest are drawn for reference. Null outside calibration.
+   * The capture being calibrated: it wears the calibration look — the ring and
+   * the chip that says to drag it. The caller hands it over ALONE while an
+   * alignment is open, so nothing else can be grabbed behind its back. Null
+   * outside calibration.
    */
   editingId?: number | null;
   draggingId?: number | null;
@@ -32,19 +32,18 @@ export default function PanoramaMarkersLayer({
 }: PanoramaMarkersLayerProps) {
   return (
     <>
-      {panoramas
-        .filter((p) => p.id !== editingId)
-        .map((p) => (
-          <PanoramaMarker
-            key={p.id}
-            panorama={p}
-            onActivate={onActivate}
-            moveMode={moveMode}
-            dragging={draggingId === p.id}
-            livePos={livePos}
-            onGrab={onGrab}
-          />
-        ))}
+      {panoramas.map((p) => (
+        <PanoramaMarker
+          key={p.id}
+          panorama={p}
+          onActivate={onActivate}
+          moveMode={moveMode}
+          calibrating={p.id === editingId}
+          dragging={draggingId === p.id}
+          livePos={livePos}
+          onGrab={onGrab}
+        />
+      ))}
     </>
   );
 }

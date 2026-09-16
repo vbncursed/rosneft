@@ -31,6 +31,7 @@ export function PanoramaRow({ row, onEnter, onExit, onEdit }: PanoramaRowProps) 
   // Two rows both reading "Show in this panorama" are one control to a screen
   // reader. The visible words stay first, so WCAG 2.5.3 still holds.
   const label = active ? EXIT_PANORAMA : SHOW_IN;
+  const hintId = `panorama-${id}-uncalibrated`;
 
   return (
     <div
@@ -58,12 +59,17 @@ export function PanoramaRow({ row, onEnter, onExit, onEdit }: PanoramaRowProps) 
             2026-09-16): an anchor at the origin is still a place to stand, and
             an alignment can only be judged from inside the photograph. */}
         {calibrated ? null : (
-          <span className="mt-1 block font-mono text-[9px] text-muted">{NOT_CALIBRATED}</span>
+          <span id={hintId} className="mt-1 block font-mono text-[9px] text-muted">
+            {NOT_CALIBRATED}
+          </span>
         )}
         <button
           type="button"
           onClick={() => (active ? onExit() : onEnter(id))}
           aria-label={`${label}: ${title}`}
+          // Sighted readers get the warning from proximity; a screen reader on
+          // the button hears only the label unless it points at the hint.
+          aria-describedby={calibrated ? undefined : hintId}
           className="mt-1 cursor-pointer border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.1em] text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
         >
           {label}

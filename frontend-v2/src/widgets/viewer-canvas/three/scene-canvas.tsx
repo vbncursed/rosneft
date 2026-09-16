@@ -52,6 +52,7 @@ export default function SceneCanvas({
   unitRatio,
   focusRequest,
   activePanorama,
+  calibrationGhost,
   panoramaBitmap,
   panoramaStatus,
   panoramaProgress,
@@ -174,7 +175,9 @@ export default function SceneCanvas({
               retryVersion={retryVersion}
               // A marker drag projects the cursor onto the territory, which
               // needs the meshes hittable for the same reason point-picking does.
-              raycastable={pointMode || move.active}
+              // Calibration drags the anchor ring straight from the 3D view,
+              // without entering the move sub-mode, through the same raycast.
+              raycastable={pointMode || move.active || calibrating}
               groupRef={territoryRef}
               onReport={onLod}
             />
@@ -221,6 +224,7 @@ export default function SceneCanvas({
           swallow the auto-fit. */}
       <PanoramaScene
         activePanorama={activePanorama}
+        calibrationGhost={calibrationGhost}
         bitmap={panoramaBitmap}
         status={panoramaStatus}
         progress={panoramaProgress}

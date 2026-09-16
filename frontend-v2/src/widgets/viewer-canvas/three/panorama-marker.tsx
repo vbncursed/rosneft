@@ -3,11 +3,15 @@ import { Html } from "@react-three/drei";
 import type { Panorama } from "@/entities/panorama";
 import type { Vec3 } from "@/entities/placement";
 
+const CALIBRATION_CHIP = "anchor · drag to move";
+
 interface PanoramaMarkerProps {
   panorama: Panorama;
   onActivate: (id: number) => void;
   /** Move mode: the marker is dragged to a new anchor instead of opened. */
   moveMode?: boolean;
+  /** This is the anchor being aligned: the mock's 12 px filled ring and its chip. */
+  calibrating?: boolean;
   dragging?: boolean;
   livePos?: Vec3 | null;
   onGrab?: (id: number) => void;
@@ -25,6 +29,7 @@ export default function PanoramaMarker({
   panorama,
   onActivate,
   moveMode = false,
+  calibrating = false,
   dragging = false,
   livePos = null,
   onGrab,
@@ -49,9 +54,11 @@ export default function PanoramaMarker({
     [onActivate, panorama.id],
   );
 
-  // One cursor per state, resolved here: clsx would merge nothing and two
-  // cursor utilities on one element are a coin toss.
+  // One cursor per state, and one size/fill pair per state, resolved here:
+  // clsx would merge nothing and two `size-*` or two `bg-*` utilities on one
+  // element are a coin toss.
   const cursor = moveMode ? (dragging ? "cursor-grabbing" : "cursor-grab") : "cursor-pointer";
+  const ring = calibrating ? "size-3 bg-accent-soft" : "size-2.5 bg-panel";
 
   return (
     <Html position={[at.x, at.y, at.z]} center zIndexRange={[20, 10]}>
@@ -64,11 +71,20 @@ export default function PanoramaMarker({
           onPointerDown={moveMode ? grab : undefined}
           onClick={moveMode ? undefined : activate}
           aria-label={`${moveMode ? "Move" : "Open"} panorama ${panorama.title}`}
-          className={`block size-2.5 rounded-full border-2 border-accent bg-panel p-0 transition-transform duration-150 hover:scale-125 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${cursor}`}
+          className={`block rounded-full border-2 border-accent p-0 transition-transform duration-150 hover:scale-125 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${ring} ${cursor}`}
         />
-        <span className="absolute -top-1.5 left-3.5 whitespace-nowrap font-mono text-[10px] text-accent">
-          {panorama.title}
-        </span>
+        {calibrating ? (
+          // The title is the 3D view's question ("which capture is this?").
+          // Mid-alignment the question is what to do with the ring under the
+          // cursor, and the panel already names the capture being edited.
+          <span className="absolute -top-1.75 left-4 whitespace-nowrap rounded-control-sm border border-accent bg-panel px-[7px] py-[3px] font-mono text-[10px] text-accent shadow-elevation">
+            {CALIBRATION_CHIP}
+          </span>
+        ) : (
+          <span className="absolute -top-1.5 left-3.5 whitespace-nowrap font-mono text-[10px] text-accent">
+            {panorama.title}
+          </span>
+        )}
       </div>
     </Html>
   );

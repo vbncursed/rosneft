@@ -49,6 +49,10 @@ const PANO: Panorama = {
   updatedAt: "",
 };
 
+// The same capture with the calibration draft applied: a different anchor, so
+// a sphere at [9, 9, 9] can only have come from the draft.
+const DRAFT: Panorama = { ...PANO, position: { x: 9, y: 9, z: 9 } };
+
 const STILL = { active: false, draggingId: null, livePos: null };
 
 // jsdom has no ImageBitmap, and nothing here uploads one to a GL context.
@@ -60,6 +64,7 @@ const mount = (over: Partial<Props> = {}) =>
   ReactThreeTestRenderer.create(
     <PanoramaScene
       activePanorama={null}
+      calibrationGhost={null}
       bitmap={null}
       status="idle"
       progress={null}
@@ -124,12 +129,61 @@ describe("PanoramaScene", () => {
     expect(named(r, "PanoramaMarkersLayer")).toHaveLength(0);
   });
 
-  it("draws the other anchors while the photo is being calibrated, and names the one to leave out", async () => {
-    // Calibration is aimed at the anchors, so they are what the viewport shows
-    // — all but the one the camera is standing on, which the layer drops.
-    const r = await mount({ ...ready, opacity: 0.5, calibrating: true });
+  it("hangs the draft around the 3D view as a ghosted backdrop, with no rig to pin the camera", async () => {
+    // Calibration from the 3D view keeps the free camera: the photo is a
+    // backdrop behind the terrain, and the rig — which teleports the eye onto
+    // the anchor — must stay unmounted.
+    const r = await mount({
+      calibrationGhost: DRAFT,
+      bitmap: fakeBitmap(),
+      status: "ready",
+      opacity: 0.5,
+      calibrating: true,
+    });
+    expect(spheres(r)).toHaveLength(1);
+    expect(spheres(r)[0].instance.position.toArray()).toEqual([9, 9, 9]);
+    expect((spheres(r)[0].instance as Mesh).renderOrder).toBe(1000);
+    expect(named(r, "PanoramaRig")).toHaveLength(0);
+  });
+
+  it("draws the anchor being aligned, alone and grabbable, over that backdrop", async () => {
+    const r = await mount({
+      calibrationGhost: DRAFT,
+      bitmap: fakeBitmap(),
+      status: "ready",
+      opacity: 0.5,
+      calibrating: true,
+      panoramas: [PANO, { ...PANO, id: 8 }],
+    });
     const markers = named(r, "PanoramaMarkersLayer")[0];
-    expect(markers.instance.userData).toEqual({ ids: [7], moveMode: false, editingId: 7 });
+    // The draft, not the saved row: the ring follows the nudge buttons too.
+    expect(markers.instance.userData).toEqual({ ids: [7], moveMode: true, editingId: 7 });
+  });
+
+  it("keeps V from reaching any other anchor while an alignment is open", async () => {
+    // Move mode is live in the 3D view, and a drop there is a PUT. The layer
+    // is handed one anchor, so there is nothing else to grab by construction.
+    const r = await mount({
+      calibrationGhost: DRAFT,
+      bitmap: fakeBitmap(),
+      status: "ready",
+      opacity: 0.5,
+      calibrating: true,
+      panoramas: [PANO, { ...PANO, id: 8 }],
+      move: { active: true, draggingId: null, livePos: null },
+    });
+    expect(named(r, "PanoramaMarkersLayer")[0].instance.userData.ids).toEqual([7]);
+  });
+
+  it("draws no anchor inside the capture being calibrated — the ring is not drawable there", async () => {
+    // Inside, the rig stands the camera on the anchor: its marker projects
+    // onto the eye. Nudge and yaw are the tools there.
+    // Inside, the page hands the draft as the active capture itself, so the
+    // sphere and the rig both follow the nudge row; there is no ghost.
+    const r = await mount({ ...ready, activePanorama: DRAFT, opacity: 0.5, calibrating: true });
+    expect(named(r, "PanoramaMarkersLayer")).toHaveLength(0);
+    expect(named(r, "PanoramaRig")[0].instance.userData.id).toBe(7);
+    expect(spheres(r)[0].instance.position.toArray()).toEqual([9, 9, 9]);
   });
 
   it("hides the anchors while points are being picked, and when the reader turned them off", async () => {

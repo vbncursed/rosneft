@@ -37,12 +37,22 @@ vi.mock("@react-three/fiber", async (orig) => {
 const seen = vi.hoisted(() => ({
   gltf: {} as Record<string, unknown>,
   layer: {} as Record<string, unknown>,
+  panorama: {} as Record<string, unknown>,
 }));
 vi.mock("./gltf-model", async (orig) => {
   const real = ((await orig()) as { default: ComponentType<Record<string, unknown>> }).default;
   return {
     default: (p: Record<string, unknown>) => {
       seen.gltf = p;
+      return createElement(real, p);
+    },
+  };
+});
+vi.mock("./panorama-scene", async (orig) => {
+  const real = ((await orig()) as { default: ComponentType<Record<string, unknown>> }).default;
+  return {
+    default: (p: Record<string, unknown>) => {
+      seen.panorama = p;
       return createElement(real, p);
     },
   };
@@ -93,6 +103,7 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   retryVersion: 0,
   focusRequest: null,
   activePanorama: null,
+  calibrationGhost: null,
   panoramaBitmap: null,
   panoramaStatus: "idle",
   panoramaProgress: null,
@@ -299,6 +310,12 @@ describe("SceneCanvas inside a panorama", () => {
   it("tells both layers the alignment is open", async () => {
     await mount({ ...inside(), panoramaOpacity: 0.5, calibrating: true });
     expect(seen.layer.calibrating).toBe(true);
+    expect(seen.panorama.calibrating).toBe(true);
+  });
+
+  it("hands the panorama scene the calibration ghost it hangs around the 3D view", async () => {
+    await mount({ calibrationGhost: PANO, panoramaOpacity: 0.5, calibrating: true });
+    expect(seen.panorama.calibrationGhost).toBe(PANO);
   });
 
   it("does not chase a focus request while a panorama holds the camera", async () => {
@@ -320,9 +337,11 @@ describe("SceneCanvas while a marker is being moved", () => {
     expect(seen.gltf.raycastable).toBe(true);
   });
 
-  it("leaves it inert while merely calibrating — no marker is dragged there", async () => {
-    await mount({ ...inside(), panoramaOpacity: 0.5, calibrating: true });
-    expect(seen.gltf.raycastable).toBe(false);
+  it("makes it hittable while calibrating too — that drag has no move sub-mode", async () => {
+    // The anchor ring is dragged straight from the 3D view, and the drag
+    // controller projects the cursor through the mesh's own raycast.
+    await mount({ calibrationGhost: PANO, panoramaOpacity: 0.5, calibrating: true });
+    expect(seen.gltf.raycastable).toBe(true);
   });
 });
 

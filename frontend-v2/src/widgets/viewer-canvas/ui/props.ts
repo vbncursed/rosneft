@@ -33,8 +33,20 @@ export type ViewerCanvasProps = {
   retryVersion: number;
   /** Instance ids to frame; a new array reference triggers a refit. */
   focusRequest: number[] | null;
-  /** The active panorama, calibration draft already applied; null in the 3D view. */
+  /**
+   * The capture the camera is standing inside, calibration draft already
+   * applied; null in the 3D view. It alone mounts `PanoramaRig`, so a draft
+   * must never be substituted here from outside a capture — that would pin the
+   * camera onto the anchor and take the free 3D view away.
+   */
   activePanorama: Panorama | null;
+  /**
+   * The capture being aligned, draft applied, while the reader is NOT inside
+   * one: it hangs the equirect around the scene as a ghosted backdrop. Null
+   * otherwise — including inside, where `activePanorama` already carries the
+   * draft.
+   */
+  calibrationGhost: Panorama | null;
   /** The decoded equirect; `PanoramaSphere` builds the texture and owns it. */
   panoramaBitmap: ImageBitmap | null;
   panoramaStatus: "idle" | "loading" | "ready" | "error";
@@ -42,9 +54,12 @@ export type ViewerCanvasProps = {
   /** < 1 ghosts the sphere for calibration. */
   panoramaOpacity: number;
   /**
-   * The overlay alignment is open. The viewport then shows the panorama
-   * anchors — the edited one draggable — and none of the object markers: the
-   * callout asks the operator to drag the points, not to read the equipment.
+   * The overlay alignment is open. The camera stays where it was. From the 3D
+   * view the viewport then shows the ghosted photo as a backdrop, the terrain,
+   * and the edited anchor's ring alone — draggable, and editing the draft.
+   * Inside a capture the ring is not drawable (the eye is standing on it), so
+   * nudge and yaw are the tools. No object markers either way: the callout
+   * asks the operator to drag the points, not to read the equipment.
    */
   calibrating: boolean;
   panoramas: Panorama[];
