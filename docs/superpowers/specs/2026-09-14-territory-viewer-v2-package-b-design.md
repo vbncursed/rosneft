@@ -365,10 +365,17 @@ nothing the new one lacks.
     the edited anchor"): **calibration happens from the 3D view, with a free
     camera.** Entering it pins the camera nowhere. From the 3D view the
     equirect is mounted at the `Photo opacity` value as a backdrop around the
-    scene — a `BackSide` sphere of radius 50 seen from outside shows its far
-    inner hemisphere behind the depth-tested terrain, which is the mock's
-    "sphere stand-in" — the territory mesh stays visible, and the **selected
-    panorama's anchor alone** is drawn: the mock's 12 px ring, 2 px accent,
+    scene — a `BackSide` sphere of radius 50 seen from outside, the mock's
+    "sphere stand-in". How it composites depends on the slider, and the two
+    ends differ in kind, not only in degree: at exactly 100 % the sphere is
+    ordinary opaque geometry 50 units out, so the terrain wins the depth test
+    and the photo reads as a wall *behind* the model; below 100 % — which is
+    every default session, the slider opens at 50 % — it is
+    `transparent`/`depthTest:false`/`renderOrder:1000` and paints last, *over*
+    the terrain, the grid and the placements alike. The wash is the alignment
+    picture; the opaque backdrop is the endpoint. Either way the territory
+    mesh stays visible, and the **selected panorama's anchor alone** is drawn:
+    the mock's 12 px ring, 2 px accent,
     `bg-accent-soft`, with the `anchor · drag to move` chip at (16, −7)
     (mock state 9). It is draggable; the drag projects onto the terrain and
     updates the **draft**, so the ring and the backdrop follow, a drop commits
@@ -376,7 +383,12 @@ nothing the new one lacks.
     anchors are hidden, and so are the objects' viewport markers — the callout
     says "Drag panorama points on the model", and putting the scene into
     "inside a panorama" contradicted it. `V` is not involved, and cannot reach
-    another anchor: the layer is handed one panorama. Inside the capture
+    another anchor: the layer is handed one panorama. That ring outranks both
+    the `Show panorama points` switch and measure mode — it is the alignment's
+    own control, not a marker, and the switch is remembered in `localStorage`
+    across sessions and territories, so either gate could silently leave an
+    open alignment with nothing to drag. The backdrop's download is reported
+    by the same loading cover the inside uses. Inside the capture
     (`Enter panorama view` with the alignment open, or calibrating while
     already inside) the rig keeps the camera on the draft anchor, the ring is
     not drawable there and is not drawn, and nudge, yaw and `Set default view`
@@ -386,7 +398,16 @@ nothing the new one lacks.
     the draft rides in `calibrationGhost`, its own canvas prop, because
     `activePanorama` is the one field `PanoramaRig` mounts on; and the texture
     falls back to the capture being aligned, since keyed on the active capture
-    alone there was no photo to ghost out in the 3D view.
+    alone there was no photo to ghost out in the 3D view — and because that
+    download can now fail out there, a failed photo no longer strips the
+    anchor card to its callout while an alignment is open: the calibration
+    block stays, since it owns the only `Save` and the only `Exit` there are.
+    Finally, the pencil on a *different* capture's row while standing inside
+    one walks the reader out to the 3D view first (`startEdit` in the
+    viewer-mode reducer): the rig would otherwise stand the eye on the edited
+    anchor while the sphere still wore the photograph of the capture being
+    stood in, and an alignment judged against the wrong picture is saved to
+    the edited row.
 14. User request after package B (2026-09-16): `Show in this panorama` is
     drawn on **every** row, calibrated or not. An anchor still at the origin
     is a valid place to stand, and an alignment can only be judged from

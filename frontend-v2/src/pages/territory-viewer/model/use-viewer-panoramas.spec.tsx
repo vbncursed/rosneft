@@ -148,6 +148,25 @@ describe("useViewerPanoramas", () => {
     });
   });
 
+  it("keeps the calibration draft when the reader steps inside the capture", () => {
+    // `Enter panorama view` mid-alignment only moves the camera. The draft is
+    // the alignment; losing it on the toggle would make the 3D view and the
+    // inside two separate edits of the same anchor.
+    const { result, rerender } = mount(modeStub({ editingPanoramaId: 1 }));
+    act(() => result.current.calibration.onStart());
+    act(() => result.current.calibration.onNudge("x", 0.5));
+    const draft = result.current.calibration.draft;
+    expect(draft?.position.x).toBe(1.5);
+
+    rerender({
+      mode: modeStub({ editingPanoramaId: 1, view: { kind: "panorama", id: 1 } }),
+      moving: false,
+    });
+    expect(result.current.calibration.active).toBe(true);
+    expect(result.current.calibration.draft).toEqual(draft);
+    expect(list.update).not.toHaveBeenCalled();
+  });
+
   it("drops an unfinished drag when the reducer leaves move mode", () => {
     // One source of truth: `move` is the reducer's, and the drag hook must not
     // keep a half-dragged marker alive behind a sub-mode that is already over.

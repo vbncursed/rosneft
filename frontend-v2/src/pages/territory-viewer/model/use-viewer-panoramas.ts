@@ -86,6 +86,13 @@ export function useViewerPanoramas({
   const drag = usePanoramaDrag(commitDrag);
   // One source of truth for the sub-mode: the reducer owns it, so leaving it
   // drops whatever the drag was holding — without committing it.
+  //
+  // A calibration drag never enters that sub-mode: it runs with `moving`
+  // false from grab to release, so this condition is true for the whole of it
+  // and only the stability of `moving` and `reset` keeps the effect from
+  // firing mid-drag. Both are stable by construction (`reset` is a
+  // `useCallback` over a `useCallback` over nothing) — do not give this effect
+  // a dependency that moves, or the calibration drag cancels itself.
   const { reset } = drag;
   useEffect(() => {
     if (!moving) reset();

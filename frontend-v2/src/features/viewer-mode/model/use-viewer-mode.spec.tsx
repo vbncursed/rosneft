@@ -215,6 +215,18 @@ describe("useViewerMode", () => {
     expect(beforeEscape).not.toHaveBeenCalled();
   });
 
+  it("the pencil on another capture's row leaves the one the reader is standing in", () => {
+    const { result } = renderHook(() =>
+      useViewerMode({ canWrite: true, canMovePoints: true, chainOpen: false, onCancelChain: vi.fn(), onCycle: noop }),
+    );
+    act(() => result.current.enterPanorama(1));
+    act(() => result.current.startEdit(2));
+    expect(result.current.state).toMatchObject({
+      view: { kind: "scene" },
+      editingPanoramaId: 2,
+    });
+  });
+
   it("gizmo keys still work inside a panorama on a selected object (B-5)", () => {
     const { result } = renderHook(() =>
       useViewerMode({ canWrite: true, canMovePoints: true, chainOpen: false, onCancelChain: noop, onCycle: noop }),

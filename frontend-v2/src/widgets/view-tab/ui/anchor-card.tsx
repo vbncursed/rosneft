@@ -120,16 +120,24 @@ function Draft({
         <Callout tone="warn" size="note">
           {IMAGE_FAILED}
         </Callout>
-      ) : (
+      ) : null}
+
+      {/* A failed photo strips the card to that sentence — unless an alignment
+          is open. That block owns the only `Save` and the only `Exit` there
+          are, and the ring on the model stays drawn and draggable either way:
+          taking it away strands the alignment with no way to end it. */}
+      {failed && !calibration ? null : (
         <>
-          <Button
-            size="sm"
-            onClick={onToggleView}
-            aria-pressed={inside}
-            data-tour="panorama-view-toggle"
-          >
-            {inside ? SWITCH_TO_3D : ENTER_PANORAMA_VIEW}
-          </Button>
+          {failed ? null : (
+            <Button
+              size="sm"
+              onClick={onToggleView}
+              aria-pressed={inside}
+              data-tour="panorama-view-toggle"
+            >
+              {inside ? SWITCH_TO_3D : ENTER_PANORAMA_VIEW}
+            </Button>
+          )}
 
           {/* Already calibrating — the way out is the block's own Exit. */}
           {calibration ? null : (

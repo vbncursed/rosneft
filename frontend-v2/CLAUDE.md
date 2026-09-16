@@ -866,13 +866,24 @@ floated above it.
   canvas prop, precisely because `activePanorama` is the field `PanoramaRig`
   mounts on — substituting the draft there teleported the eye onto the anchor
   and took the free camera away, which is what once made the ring undrawable.
-  Outside a capture the equirect hangs around the scene as a ghosted backdrop
-  (its far inner hemisphere, behind the depth-tested terrain), the mesh stays
-  visible and raycastable, and the anchors layer is handed the draft **alone**:
-  one 12 px `bg-accent-soft` ring with the `anchor · drag to move` chip,
-  dragged onto the terrain, editing the draft — so `Save` still commits and
-  `Exit` still discards, and `V` cannot reach another anchor's PUT because
-  there is no other anchor drawn. Inside a capture the rig stands on the draft,
+  Outside a capture the equirect hangs around the scene as a backdrop, and the
+  slider decides how it composites: at exactly 100 % the sphere is opaque
+  geometry 50 units out and the terrain wins the depth test (the photo is
+  *behind* the model); below 100 % — the default is 50 % — it is
+  `transparent`/`depthTest:false`/`renderOrder:1000` and paints last, *over*
+  terrain, grid and placements. The wash is the alignment picture. The mesh
+  stays visible and raycastable, and the anchors layer is handed the draft
+  **alone**: one 12 px `bg-accent-soft` ring with the `anchor · drag to move`
+  chip, dragged onto the terrain, editing the draft — so `Save` still commits
+  and `Exit` still discards, and `V` cannot reach another anchor's PUT because
+  there is no other anchor drawn. That ring ignores `Show panorama points` and
+  measure mode (it is the alignment's control, not a marker, and the switch is
+  remembered in `localStorage` across sessions), a failed backdrop download
+  leaves the calibration block standing (it owns the only Save and Exit), and
+  the pencil on another capture's row while inside one walks the reader out
+  first — `startEdit` in the viewer-mode reducer, because the rig would
+  otherwise stand the eye on the edited anchor under the *other* capture's
+  photograph. Inside a capture the rig stands on the draft,
   the ring would project onto the eye and is not drawn, and nudge, yaw and
   `Set default view` are the tools. The texture falls back to the capture being
   aligned when there is no active one — keyed on `active` alone, calibrating
