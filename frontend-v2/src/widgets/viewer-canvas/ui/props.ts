@@ -41,6 +41,12 @@ export type ViewerCanvasProps = {
   panoramaProgress: number | null;
   /** < 1 ghosts the sphere for calibration. */
   panoramaOpacity: number;
+  /**
+   * The overlay alignment is open. The viewport then shows the panorama
+   * anchors — the edited one draggable — and none of the object markers: the
+   * callout asks the operator to drag the points, not to read the equipment.
+   */
+  calibrating: boolean;
   panoramas: Panorama[];
   showMarkers: boolean;
   /** Labels for the viewport markers inside a panorama, by placement id (`storage-tank-500 #1`). */

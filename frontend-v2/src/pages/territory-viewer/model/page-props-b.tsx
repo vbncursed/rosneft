@@ -153,17 +153,20 @@ function anchorCard(p: PageParts) {
  *
  * The sphere renders the *draft* while one is open — that is what makes an
  * alignment live — and is ghosted only then: a reader looking around a capture
- * is looking at the photo, not through it.
+ * is looking at the photo, not through it. The anchors are drawn from that
+ * same draft, so the ring follows the nudge buttons as well as a drag.
  */
 export function panoramaCanvasProps(p: PageParts, groups: PlacementGroup[]) {
   const { panoramas: pan } = p;
+  const { effective } = pan.calibration;
   return {
-    activePanorama: pan.calibration.effective ?? pan.active,
+    activePanorama: effective ?? pan.active,
     panoramaBitmap: pan.texture.bitmap,
     panoramaStatus: pan.texture.status,
     panoramaProgress: pan.texture.progress,
     panoramaOpacity: pan.calibration.active ? pan.calibration.opacity : 1,
-    panoramas: pan.list,
+    calibrating: pan.calibration.active,
+    panoramas: effective ? pan.list.map((x) => (x.id === effective.id ? effective : x)) : pan.list,
     showMarkers: pan.showMarkers,
     markerLabels: markerLabels(groups),
     move: { active: p.mode.move, draggingId: pan.drag.draggingId, livePos: pan.drag.livePos },

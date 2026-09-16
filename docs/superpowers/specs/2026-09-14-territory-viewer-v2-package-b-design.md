@@ -361,6 +361,15 @@ nothing the new one lacks.
     strip row and the open Overlays panel, re-clamped on fold and resize
     and never re-docked; keys are inert under an open dialog; deleting
     the active panorama leaves the view first.
+13. User request after package B (2026-09-16): while an alignment is open
+    the viewport shows the **panorama anchors**, not the objects' viewport
+    markers — the callout says "Drag panorama points on the model", and
+    putting the scene into "inside a panorama" contradicted it. The anchor
+    being calibrated is the mock's 12 px accent-soft ring with the chip
+    `anchor · drag to move`; the other anchors are drawn for reference and
+    are not grabbable. Dragging it edits the calibration **draft**, so
+    `Save` still commits and `Exit` still discards, and the ring follows
+    the nudge buttons because the anchors are drawn from the draft too.
 
 ## 7. Not in this package
 

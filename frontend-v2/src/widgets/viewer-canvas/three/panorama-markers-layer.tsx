@@ -6,6 +6,13 @@ interface PanoramaMarkersLayerProps {
   panoramas: Panorama[];
   onActivate: (id: number) => void;
   moveMode?: boolean;
+  /**
+   * The capture being calibrated. It is the only one a grab may move while the
+   * alignment is open, and the only one drawn in the calibration look; the
+   * rest are reference. Null outside calibration, where `moveMode` speaks for
+   * every marker at once.
+   */
+  editingId?: number | null;
   draggingId?: number | null;
   livePos?: Vec3 | null;
   onGrab?: (id: number) => void;
@@ -18,6 +25,7 @@ export default function PanoramaMarkersLayer({
   panoramas,
   onActivate,
   moveMode = false,
+  editingId = null,
   draggingId = null,
   livePos = null,
   onGrab,
@@ -29,7 +37,8 @@ export default function PanoramaMarkersLayer({
           key={p.id}
           panorama={p}
           onActivate={onActivate}
-          moveMode={moveMode}
+          moveMode={moveMode && (editingId === null || p.id === editingId)}
+          calibrating={p.id === editingId}
           dragging={draggingId === p.id}
           livePos={livePos}
           onGrab={onGrab}

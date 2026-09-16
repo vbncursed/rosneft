@@ -97,6 +97,7 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   panoramaStatus: "idle",
   panoramaProgress: null,
   panoramaOpacity: 1,
+  calibrating: false,
   panoramas: [PANO],
   showMarkers: true,
   markerLabels: {},
@@ -295,6 +296,11 @@ describe("SceneCanvas inside a panorama", () => {
     expect(territoryGroup(r)[0].props.visible).toBe(true);
   });
 
+  it("tells both layers the alignment is open", async () => {
+    await mount({ ...inside(), panoramaOpacity: 0.5, calibrating: true });
+    expect(seen.layer.calibrating).toBe(true);
+  });
+
   it("does not chase a focus request while a panorama holds the camera", async () => {
     boundsStub.fit.mockClear();
     await mount({ ...inside(), placements: [fakePlacement(1)], focusRequest: [1] });
@@ -311,6 +317,13 @@ describe("SceneCanvas while a marker is being moved", () => {
 
   it("makes the territory hittable while points are being picked, as before", async () => {
     await mount({ mode: "measure" });
+    expect(seen.gltf.raycastable).toBe(true);
+  });
+
+  it("makes it hittable while calibrating too — that drag has no move sub-mode", async () => {
+    // Calibration drags the anchor without `V`, and the drag controller
+    // projects the cursor through the mesh's own raycast.
+    await mount({ ...inside(), panoramaOpacity: 0.5, calibrating: true });
     expect(seen.gltf.raycastable).toBe(true);
   });
 });

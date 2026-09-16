@@ -19,6 +19,8 @@ export interface PanoramaSceneProps {
   showMarkers: boolean;
   /** True whenever the canvas is picking points rather than editing. */
   pointMode: boolean;
+  /** The overlay alignment is open — see `ViewerCanvasProps`. */
+  calibrating: boolean;
   move: ViewerCanvasProps["move"];
   territoryRef: RefObject<Object3D | null>;
   onActivate: (id: number) => void;
@@ -45,6 +47,7 @@ export default function PanoramaScene({
   panoramas,
   showMarkers,
   pointMode,
+  calibrating,
   move,
   territoryRef,
   onActivate,
@@ -65,12 +68,15 @@ export default function PanoramaScene({
 
       {/* Anchors belong to the 3D view only: inside a panorama the reader is
           standing on one of them, and while picking points they would eat the
-          click meant for the surface. */}
-      {!activePanorama && !pointMode && showMarkers ? (
+          click meant for the surface. Calibration is the exception — the
+          callout asks the operator to drag the points on the model, so they
+          are drawn over the ghosted sphere and the edited one is grabbable. */}
+      {(!activePanorama || calibrating) && !pointMode && showMarkers ? (
         <PanoramaMarkersLayer
           panoramas={panoramas}
           onActivate={onActivate}
-          moveMode={move.active}
+          moveMode={move.active || calibrating}
+          editingId={calibrating ? (activePanorama?.id ?? null) : null}
           draggingId={move.draggingId}
           livePos={move.livePos}
           onGrab={onGrab}

@@ -31,6 +31,7 @@ const layer = (over: Partial<Parameters<typeof PlacementsLayer>[0]> = {}) => (
     activePanoramaId={null}
     markerLabels={{}}
     showMarkers
+    calibrating={false}
     onSelect={vi.fn()}
     onCommit={vi.fn()}
     {...over}
@@ -104,6 +105,22 @@ describe("PlacementsLayer", () => {
     expect(instances(r).map((g) => g.instance.userData.placementId)).toEqual([1]);
     expect(markers(r)).toHaveLength(1);
     expect(markers(r)[0].instance.userData.ids).toEqual([1]);
+  });
+
+  it("draws no object markers while the anchors are being calibrated", async () => {
+    // Calibration is about where the capture stands, not what it marks; the
+    // object rings would sit over the anchor the operator is dragging.
+    const r = await ReactThreeTestRenderer.create(
+      layer({
+        placements: inPanorama(),
+        selectedId: null,
+        activePanoramaId: 3,
+        calibrating: true,
+        markerLabels: { 1: "a" },
+      }),
+    );
+    expect(instances(r)).toHaveLength(1);
+    expect(markers(r)).toHaveLength(0);
   });
 
   it("hides the names when the reader has turned markers off", async () => {
