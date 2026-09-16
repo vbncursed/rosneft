@@ -59,7 +59,7 @@ export function GrantRow({ grant, onRemove }: GrantRowProps) {
             : `${grant.username}'s access cannot be removed here`
         }
         className={cx(
-          "whitespace-nowrap rounded-control-sm border bg-transparent px-2.5 py-[3px] font-mono text-[9px] uppercase tracking-[0.12em] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed",
+          "whitespace-nowrap rounded-control-sm border bg-transparent px-2.5 py-[3px] font-mono text-[9px] uppercase tracking-[0.12em] transition-[color,border-color,scale] duration-150 ease-out enabled:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed",
           ACTION_SKIN[action],
         )}
       >

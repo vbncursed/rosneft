@@ -71,7 +71,7 @@ export function ScanPane({ secret, otpauthUrl }: ScanPaneProps) {
             <button
               type="button"
               onClick={copy}
-              className="shrink-0 cursor-pointer rounded-full border border-line-2 bg-transparent px-[11px] py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-fg hover:border-accent-line focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="shrink-0 cursor-pointer rounded-full border border-line-2 bg-transparent px-[11px] py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-fg transition-[border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               {copied ? "Copied" : "Copy"}
             </button>

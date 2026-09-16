@@ -116,11 +116,39 @@ describe("PlaceObjectsModal", () => {
     // Nothing has landed yet and the first POST is in flight: the line names
     // the object being placed, never "0 of 2".
     expect(screen.getByText("Placing 1 of 2…")).toBeInTheDocument();
-    expect(screen.getByRole("progressbar", { name: "Placing" })).toHaveAttribute(
-      "aria-valuenow",
-      "50",
-    );
     expect(screen.getByRole("button", { name: "Place" })).toHaveAttribute("aria-busy", "true");
+  });
+
+  // The bar counts what has landed: the last POST still in flight must not
+  // read as a full bar.
+  it("fills the bar with the placements that landed, on the shared thin meter", () => {
+    const { rerender } = render(
+      <PlaceObjectsModal
+        open
+        onClose={vi.fn()}
+        territoryTitle="T"
+        options={options}
+        placing={{ done: 0, total: 2 }}
+        onPlace={vi.fn()}
+      />,
+    );
+    const bar = () => screen.getByRole("progressbar", { name: "Placing" });
+    expect(bar()).toHaveAttribute("aria-valuenow", "0");
+
+    rerender(
+      <PlaceObjectsModal
+        open
+        onClose={vi.fn()}
+        territoryTitle="T"
+        options={options}
+        placing={{ done: 1, total: 2 }}
+        onPlace={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Placing 2 of 2…")).toBeInTheDocument();
+    expect(bar()).toHaveAttribute("aria-valuenow", "50");
+    expect(bar()).toHaveClass("h-[5px]");
+    expect((bar().firstElementChild as HTMLElement).style.transform).toBe("scaleX(0.5)");
   });
 
   it("cannot place with nothing selected", () => {

@@ -2,7 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { territoryPath } from "@/entities/territory";
 import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { PageSkeleton } from "@/shared/ui/skeleton";
 import { matchesTerritory, tabCounts } from "../model/catalog";
 import { useTerritoryCatalog } from "../model/use-territory-catalog";
 import { TerritoryCatalogPage } from "./territory-catalog-page";
@@ -14,16 +14,7 @@ export function TerritoryCatalogScreen() {
 
   if (s.status === "loading") {
     return (
-      <div
-        role="status"
-        aria-busy="true"
-        aria-label="Loading territories"
-        className="flex flex-col gap-3"
-      >
-        <Skeleton height="28px" width="30%" />
-        <Skeleton height="96px" />
-        <Skeleton height="96px" />
-      </div>
+      <PageSkeleton shape="catalog" label="Loading territories" />
     );
   }
   if (s.status === "unavailable" || !s.cards) {

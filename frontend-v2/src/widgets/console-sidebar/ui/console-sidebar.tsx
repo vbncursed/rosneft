@@ -30,8 +30,11 @@ export function ConsoleSidebar({
     // so it stretches to the full height of the document and the panel fill
     // reaches the bottom of a long page. The inner one is the viewport-tall
     // sticky, so the contents hold their place while the page scrolls past.
-    <div className="border-r border-line bg-panel">
-      <div className="sticky top-0 flex h-dvh flex-col gap-5.5 overflow-hidden px-4.5 py-6">
+    //
+    // Below lg both are a plain strip above the content (ConsoleLayout
+    // stacks them): a viewport-tall sticky there would cover the screen.
+    <div className="border-b border-line bg-panel lg:border-b-0 lg:border-r">
+      <div className="flex flex-col gap-3 px-4 py-3 lg:sticky lg:top-0 lg:h-dvh lg:gap-5.5 lg:overflow-hidden lg:px-4.5 lg:py-6">
         <div className="flex items-center gap-2.5">
           <span
             aria-hidden="true"
@@ -48,15 +51,17 @@ export function ConsoleSidebar({
           items={items}
           active={active}
           backHref={backHref}
-          className="min-h-0 overflow-y-auto"
+          // Below lg the row scrolls sideways; the faded right edge says so,
+          // and pr-8 lets the last item scroll clear of the fade.
+          className="min-h-0 overflow-x-auto pr-8 [mask-image:linear-gradient(to_right,#000_85%,transparent)] lg:overflow-y-auto lg:pr-0 lg:[mask-image:none]"
         />
 
-        <div className="mt-auto flex flex-col gap-3 border-t border-line pt-4">
+        <div className="flex items-center gap-3 border-t border-line pt-3 lg:mt-auto lg:flex-col lg:items-stretch lg:pt-4">
           <ThemeToggle />
           <a
             href="/account"
             aria-label={`Account settings for ${viewer.username}`}
-            className="flex items-center gap-2.5 rounded-control-sm border border-transparent p-1 no-underline hover:border-line-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="flex min-w-0 flex-1 items-center gap-2.5 rounded-control-sm border border-transparent p-1 no-underline transition-colors duration-150 hover:border-line-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <Avatar name={viewer.username} size={32} />
             <div className="min-w-0 flex-1">

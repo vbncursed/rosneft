@@ -36,8 +36,9 @@ export function Toast({
 
   return (
     <div
-      // Errors and warnings interrupt; the other two wait their turn.
-      role={tone === "error" || tone === "warning" ? "alert" : "status"}
+      // Errors and warnings interrupt; the other two are announced by the
+      // host's polite live region (a status inside it would nest regions).
+      role={tone === "error" || tone === "warning" ? "alert" : undefined}
       className={cx(
         "flex items-start gap-2.5 rounded-[10px] border px-3.5 py-3",
         skin,
@@ -53,7 +54,9 @@ export function Toast({
           type="button"
           onClick={onDismiss}
           aria-label={dismissLabel}
-          className="cursor-pointer border-none bg-transparent p-0 text-muted transition-colors duration-150 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          // A 24px target (WCAG 2.5.8) around the glyph; the negative margins
+          // keep the row's height and the glyph where the padding put it.
+          className="-my-0.5 -mr-1.5 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           ×
         </button>

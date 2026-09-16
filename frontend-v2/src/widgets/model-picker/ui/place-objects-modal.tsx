@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ModelOption } from "@/entities/scene";
 import { Button } from "@/shared/ui/button";
 import { Modal } from "@/shared/ui/modal";
+import { ProgressBar } from "@/shared/ui/progress-bar";
 import { QuantityStepper } from "@/shared/ui/quantity-stepper";
 import { SearchField } from "@/shared/ui/search-field";
 import { ModelPicker } from "./model-picker";
@@ -149,29 +150,16 @@ function PlaceObjectsBody({
 function PlacingLine({ done, total }: { done: number; total: number }) {
   // `done` counts the POSTs that landed, and one is always in flight while this
   // line is drawn — so the object being placed is `done + 1`, and the first
-  // frame read "Placing 0 of 2…". The bar fills with it: the mock draws
-  // "Placing 1 of 2…" at half, which is the first object of two underway.
+  // frame read "Placing 0 of 2…". The bar counts what landed, so the last POST
+  // in flight never reads as a full bar (the mock drew "1 of 2" at half).
   const current = Math.min(done + 1, Math.max(total, 1));
-  const pct = total === 0 ? 0 : Math.round((current / total) * 100);
+  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
 
   return (
-    <p className="m-0 flex items-center gap-2">
-      <span
-        role="progressbar"
-        aria-label="Placing"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={pct}
-        // panel-2, not panel: the dialog's own ground is panel, and the unfilled
-        // half of the track vanished into it in the light theme.
-        className="block h-[3px] w-[70px] shrink-0 overflow-hidden rounded-full bg-panel-2"
-      >
-        <span
-          className="block h-full bg-accent transition-[width] duration-300"
-          style={{ width: `${pct}%` }}
-        />
-      </span>
+    // A div, not a p: the meter is a div, and a p may not hold one.
+    <div className="flex items-center gap-2">
+      <ProgressBar variant="thin" value={pct} ariaLabel="Placing" className="w-[70px] shrink-0" />
       <span className="font-mono text-[10px] text-accent">{`Placing ${current} of ${total}…`}</span>
-    </p>
+    </div>
   );
 }

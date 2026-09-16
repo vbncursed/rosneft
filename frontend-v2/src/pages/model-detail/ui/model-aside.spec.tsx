@@ -121,4 +121,9 @@ describe("ModelAside", () => {
     await userEvent.upload(input, file);
     expect(onThumbnail).toHaveBeenCalledWith(file);
   });
+
+  it("presses its thumbnail actions on pointer-down", () => {
+    render(<ModelAside {...props({ canWrite: true })} />);
+    expect(screen.getByRole("button", { name: "upload" })).toHaveClass("cursor-pointer", "transition-[scale]", "duration-150", "ease-out", "enabled:active:scale-95");
+  });
 });

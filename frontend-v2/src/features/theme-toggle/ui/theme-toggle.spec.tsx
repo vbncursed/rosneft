@@ -95,6 +95,44 @@ describe("ThemeToggle · the ground is decided once", () => {
   });
 });
 
+// The moon's path starts here; the sun is a disc and rays.
+const MOON = "M21 12.8";
+const glyphOf = (button: HTMLElement) =>
+  button.querySelector("circle")
+    ? "sun"
+    : button.querySelector("path")?.getAttribute("d")?.startsWith(MOON)
+      ? "moon"
+      : "other";
+
+describe("ThemeToggle · the icon follows the theme", () => {
+  it("draws a moon in the dark theme and a sun in the light one", async () => {
+    const ThemeToggle = await load();
+    render(<ThemeToggle />);
+    const button = screen.getByRole("button", { name: /^Theme:/ });
+    expect(glyphOf(button)).toBe("moon");
+
+    await userEvent.click(button);
+    expect(glyphOf(button)).toBe("sun");
+  });
+
+  // Pressable, like every other control: a color-only transition with no
+  // answer on pointer-down was the one exception left in the sidebar.
+  it("presses on pointer-down", async () => {
+    const ThemeToggle = await load();
+    render(<ThemeToggle />);
+    const cls = screen.getByRole("button", { name: /^Theme:/ }).className.split(/\s+/);
+    expect(cls).toEqual(
+      expect.arrayContaining([
+        "transition-[color,background-color,border-color,scale]",
+        "duration-150",
+        "ease-out",
+        "active:scale-[0.97]",
+      ]),
+    );
+    expect(cls).not.toContain("transition-colors");
+  });
+});
+
 describe("ThemeToggle · compact", () => {
   it("drops the label and rounds the button", async () => {
     const ThemeToggle = await load();

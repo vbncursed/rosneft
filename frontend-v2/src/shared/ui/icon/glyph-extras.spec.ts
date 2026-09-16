@@ -20,4 +20,11 @@ describe("glyph extras", () => {
   it("draws the console card's arrow at stroke 2 — heavier than the lock beside it", () => {
     expect(EXTRA_GLYPHS["arrow-right"].width).toBe(2);
   });
+
+  // The theme toggle's light-mode glyph: drawn on moon's grid and stroke, a
+  // disc and eight short rays.
+  it("draws sun on the same 24 grid and stroke as moon", () => {
+    expect(EXTRA_GLYPHS.sun.box).toBe("0 0 24 24");
+    expect(EXTRA_GLYPHS.sun.width).toBe(1.8);
+  });
 });

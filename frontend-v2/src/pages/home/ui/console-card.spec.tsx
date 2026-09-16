@@ -45,4 +45,10 @@ describe("ConsoleCard", () => {
     );
     expect(screen.getByText("count unavailable")).toBeInTheDocument();
   });
+
+  // Answers the press, not only the release; the hover border eases with it.
+  it("presses on pointer-down", () => {
+    render(<ConsoleCard label="Users" href="/console/users" hint={{ kind: "count", text: "12 users" }} locked={false} />);
+    expect(screen.getByRole("link", { name: /Users/ })).toHaveClass("transition-[border-color,scale]", "duration-150", "ease-out", "active:scale-[0.99]");
+  });
 });

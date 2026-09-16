@@ -47,7 +47,7 @@ export function PageHeader({
         {back ? (
           <a
             href={back.href}
-            className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted no-underline hover:text-fg"
+            className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted no-underline transition-colors duration-150 hover:text-fg"
           >
             {back.label}
           </a>

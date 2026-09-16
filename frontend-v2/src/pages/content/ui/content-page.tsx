@@ -138,7 +138,7 @@ export function ContentPage({
 
         {inspected ? (
           // Sticky so the item stays readable while the catalog scrolls.
-          <div className="xl:sticky xl:top-6">
+          <div className="transition-opacity duration-150 starting:opacity-0 xl:sticky xl:top-6">
             <ContentInspector
               item={inspected.item}
               details={inspected.details}

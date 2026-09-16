@@ -59,6 +59,10 @@ describe("TerritoryCatalogScreen", () => {
     useTerritoryCatalog.mockReturnValue(state({ status: "loading", cards: null }));
     const { unmount } = render(<TerritoryCatalogScreen />);
     expect(screen.getByRole("status", { name: "Loading territories" })).toBeInTheDocument();
+    // The placeholder is shaped like the catalog screen it stands in for.
+    expect(
+      screen.getByRole("status", { name: "Loading territories" }).querySelector('[style*="height: 280px"]'),
+    ).not.toBeNull();
     unmount();
     useTerritoryCatalog.mockReturnValue(
       state({ status: "unavailable", cards: null, error: "You don't have permission to do this" }),

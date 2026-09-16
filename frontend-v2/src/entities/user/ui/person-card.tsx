@@ -35,7 +35,7 @@ export function PersonCard({
       aria-current={selected ? "true" : undefined}
       aria-label={user.username}
       className={cx(
-        "cursor-pointer rounded-card border px-4 py-3.5 transition-colors duration-150",
+        "cursor-pointer rounded-card border px-4 py-3.5 transition-[color,background-color,border-color,scale] duration-150 ease-out active:scale-[0.99]",
         selected ? "border-accent bg-accent-soft" : "border-line bg-panel hover:border-line-2",
         user.status === "deleted" && "opacity-55",
       )}

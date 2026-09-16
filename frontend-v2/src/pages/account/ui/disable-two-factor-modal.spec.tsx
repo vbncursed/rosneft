@@ -49,6 +49,19 @@ describe("DisableTwoFactorModal", () => {
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
+  // The wrapper stays mounted between opens, so a code typed last time must
+  // not be waiting in the boxes the next time.
+  it("starts with empty boxes every time it opens", async () => {
+    const { rerender } = render(<DisableTwoFactorModal {...props()} />);
+    await userEvent.type(screen.getByRole("textbox", { name: /digit 1/i }), "123456");
+
+    rerender(<DisableTwoFactorModal {...props({ open: false })} />);
+    rerender(<DisableTwoFactorModal {...props()} />);
+
+    expect(screen.getByRole("textbox", { name: /digit 1/i })).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Disable" })).toBeDisabled();
+  });
+
   it("renders nothing while closed", () => {
     render(<DisableTwoFactorModal {...props({ open: false })} />);
     expect(screen.queryByRole("heading", { name: "Turn two-factor off?" })).not.toBeInTheDocument();

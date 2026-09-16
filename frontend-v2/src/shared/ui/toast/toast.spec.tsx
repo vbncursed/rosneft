@@ -4,12 +4,15 @@ import { describe, expect, it, vi } from "vitest";
 import { Toast } from "./toast";
 
 describe("Toast", () => {
-  it("interrupts for an error and waits its turn for info", () => {
+  // A calm tone carries no role of its own: the host's polite live region
+  // announces it, and a status inside that region would nest one in another.
+  it("interrupts for an error and leaves info to the host's live region", () => {
     const { rerender } = render(<Toast tone="error">Conversion failed</Toast>);
     expect(screen.getByRole("alert")).toHaveTextContent("Conversion failed");
 
     rerender(<Toast tone="info">mesh-worker is processing</Toast>);
-    expect(screen.getByRole("status")).toHaveTextContent("mesh-worker is processing");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("labels itself from the tone", () => {
@@ -47,5 +50,27 @@ describe("Toast", () => {
     );
     expect(screen.getByRole("button", { name: "Dismiss: Saved" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Dismiss" })).not.toBeInTheDocument();
+  });
+
+  // The glyph alone was a 10×24 target; WCAG 2.5.8 asks for 24×24.
+  it("gives its dismiss glyph a 24px target that presses", () => {
+    render(
+      <Toast tone="info" onDismiss={vi.fn()}>
+        Saved.
+      </Toast>,
+    );
+    const cls = screen.getByRole("button", { name: "Dismiss" }).className.split(/\s+/);
+    expect(cls).toEqual(
+      expect.arrayContaining([
+        "flex",
+        "size-6",
+        "items-center",
+        "justify-center",
+        "active:scale-95",
+        "transition-[color,scale]",
+        "ease-out",
+      ]),
+    );
+    expect(cls).not.toContain("p-0");
   });
 });

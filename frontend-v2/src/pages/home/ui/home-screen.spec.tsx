@@ -65,6 +65,10 @@ describe("HomeScreen", () => {
     useHome.mockReturnValue(state({ status: "loading" }));
     render(<HomeScreen consoleItems={items(true)} />);
     expect(screen.getByRole("status", { name: "Loading home" })).toBeInTheDocument();
+    // The placeholder is shaped like the catalog screen it stands in for.
+    expect(
+      screen.getByRole("status", { name: "Loading home" }).querySelector('[style*="height: 280px"]'),
+    ).not.toBeNull();
     expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
   });
 

@@ -189,6 +189,12 @@ describe("AuditPage", () => {
       />,
     );
     expect(screen.getByRole("complementary", { name: "Record inspector" })).toBeInTheDocument();
+    // Fades in (tens of opens a session: opacity only, no movement); leaves at once.
+    expect(screen.getByRole("complementary").parentElement).toHaveClass(
+      "starting:opacity-0",
+      "transition-opacity",
+      "duration-150",
+    );
     expect(screen.getByText("Record · 4f21c8")).toBeInTheDocument();
     expect(screen.getByText("10.42.0.18")).toBeInTheDocument();
     expect(screen.getByText("Changed fields · 1")).toBeInTheDocument();

@@ -61,4 +61,16 @@ describe("ConsoleLayout", () => {
     layout();
     expect(screen.getAllByRole("main")).toHaveLength(1);
   });
+
+  // At 400px a fixed 236px column left main 164px wide and scrolled the page
+  // sideways; below lg the column becomes a strip above the content.
+  it("stacks the column above the content until the viewport is wide enough", () => {
+    const { container } = layout();
+    const grid = container.firstElementChild!;
+    expect(grid).toHaveClass("grid-cols-1", "lg:grid-cols-[236px_minmax(0,1fr)]");
+    expect(grid).not.toHaveClass("grid-cols-[236px_minmax(0,1fr)]");
+    const main = screen.getByRole("main");
+    expect(main).toHaveClass("px-4", "lg:px-9");
+    expect(main).not.toHaveClass("px-9");
+  });
 });

@@ -85,6 +85,8 @@ describe("RolesScreen", () => {
   it("says it is loading rather than drawing an empty page", () => {
     showing({ status: "loading", roles: [], permissions: [], users: null });
     expect(screen.getByLabelText("Loading roles")).toHaveAttribute("aria-busy", "true");
+    // The placeholder is shaped like the console screen it stands in for.
+    expect(screen.getByLabelText("Loading roles").querySelector('[style*="height: 126px"]')).not.toBeNull();
     expect(screen.queryByRole("heading", { name: "Roles & Permissions" })).not.toBeInTheDocument();
   });
 

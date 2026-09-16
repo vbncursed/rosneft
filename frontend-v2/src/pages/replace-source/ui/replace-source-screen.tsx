@@ -1,7 +1,7 @@
 import { useParams } from "@tanstack/react-router";
 import { Callout } from "@/shared/ui/callout";
 import { EmptyState } from "@/shared/ui/card";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { PageSkeleton } from "@/shared/ui/skeleton";
 import { useReplaceSource } from "../model/use-replace-source";
 import { ReplaceSourcePage } from "./replace-source-page";
 
@@ -11,13 +11,7 @@ export function ReplaceSourceScreen() {
   const s = useReplaceSource(slug);
 
   if (s.status === "loading") {
-    return (
-      <div role="status" aria-busy="true" aria-label="Loading territory" className="flex flex-col gap-3">
-        <Skeleton height="28px" width="30%" />
-        <Skeleton height="96px" />
-        <Skeleton height="96px" />
-      </div>
-    );
+    return <PageSkeleton shape="form" label="Loading territory" />;
   }
 
   if (s.status === "missing") {

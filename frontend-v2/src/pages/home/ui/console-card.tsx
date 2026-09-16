@@ -33,7 +33,7 @@ export function ConsoleCard({ label, href, hint, locked }: ConsoleCardProps) {
       href={href}
       className={cx(
         BOX,
-        "bg-panel text-inherit hover:border-line-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+        "bg-panel text-inherit transition-[border-color,scale] duration-150 ease-out hover:border-line-2 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
       )}
     >
       {body}

@@ -129,6 +129,8 @@ describe("PersonInspector", () => {
   it("closes", async () => {
     const h = handlers();
     render(<PersonInspector user={user()} {...h} />);
+    // A 24px target (WCAG 2.5.8) that presses, not the bare 10px glyph.
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("size-6", "active:scale-95");
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(h.onClose).toHaveBeenCalledOnce();
   });

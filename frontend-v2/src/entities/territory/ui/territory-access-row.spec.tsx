@@ -74,4 +74,16 @@ describe("TerritoryAccessRow", () => {
     const button = screen.getByRole("button", { name: "Manage access to Refinery Block C" });
     expect(button).toHaveTextContent("Manage");
   });
+
+  // The whole card is the target: it answers the press, gently at this size.
+  it("presses on pointer-down", () => {
+    const { container } = render(<TerritoryAccessRow territory={territory()} onManage={() => {}} />);
+    const card = container.querySelector("article")!;
+    expect(card).toHaveClass(
+      "active:scale-[0.99]",
+      "transition-[color,background-color,border-color,scale]",
+      "ease-out",
+    );
+    expect(card).not.toHaveClass("transition-colors");
+  });
 });

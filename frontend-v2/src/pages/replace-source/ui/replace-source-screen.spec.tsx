@@ -37,7 +37,8 @@ describe("ReplaceSourceScreen", () => {
   it("shows a loading skeleton", () => {
     useReplaceSource.mockReturnValue({ status: "loading" });
     render(<ReplaceSourceScreen />);
-    expect(screen.getByRole("status")).toBeInTheDocument();
+    // Shaped like the form it stands in for: the card beside its aside.
+    expect(screen.getByRole("status", { name: "Loading territory" }).querySelector('[style*="height: 360px"]')).not.toBeNull();
   });
 
   it("says the territory was not found, with a way back", () => {

@@ -129,7 +129,8 @@ describe("ContentInspector", () => {
   it("hides every management action from a reader who may not manage content", () => {
     render(<ContentInspector {...props({ canManage: false, onCancelJob: vi.fn() })} />);
     expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+    // A 24px target (WCAG 2.5.8) that presses, not the bare 10px glyph.
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("size-6", "active:scale-95");
   });
 
   it("draws Replace source and Delete only when handed a handler", () => {

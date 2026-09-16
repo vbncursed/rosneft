@@ -60,6 +60,34 @@ describe("AddPasskeyModal", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  // The dialog stays mounted and fades for 150 ms after closing: resetting
+  // the step on the way out flashed "Name this passkey" and its buttons over
+  // a ceremony that had just finished. The reset happens on the next open.
+  it("holds the finished step through the exit and starts fresh on reopen", async () => {
+    const exit = { finished: new Promise(() => {}) } as unknown as Animation;
+    HTMLDialogElement.prototype.getAnimations = () => [exit];
+    try {
+      beginRegistration.mockResolvedValue({ optionsJson: "{}", flowId: "flow-1" });
+      createCredential.mockResolvedValue("{}");
+      finishRegistration.mockResolvedValue(CREDENTIAL);
+      const onClose = vi.fn();
+      const { rerender } = render(<AddPasskeyModal {...props({ onClose })} />);
+      await userEvent.type(screen.getByLabelText("Passkey name"), "MacBook Pro");
+      await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+      await waitFor(() => expect(onClose).toHaveBeenCalled());
+
+      rerender(<AddPasskeyModal {...props({ onClose, open: false })} />);
+      expect(screen.getByText("Confirm on your device")).toBeInTheDocument();
+      expect(screen.queryByText("Name this passkey")).not.toBeInTheDocument();
+
+      rerender(<AddPasskeyModal {...props({ onClose, open: true })} />);
+      expect(screen.getByText("Name this passkey")).toBeInTheDocument();
+      expect(screen.getByLabelText("Passkey name")).toHaveValue("");
+    } finally {
+      delete (HTMLDialogElement.prototype as Partial<HTMLDialogElement>).getAnimations;
+    }
+  });
+
   it("trims leading and trailing whitespace off the typed name before sending it", async () => {
     beginRegistration.mockResolvedValue({ optionsJson: "{}", flowId: "flow-1" });
     createCredential.mockResolvedValue("{}");

@@ -25,7 +25,8 @@ const OVERLINE = "font-mono text-[9px] uppercase tracking-[0.2em] text-muted";
 // two utilities on one property collide by the compiled stylesheet's source
 // order, not by the className string's — see Button/Badge's own notes on it.
 const CARD = "flex flex-col rounded-card border border-line bg-panel p-[18px]";
-const ACTION = "font-mono text-[10px] uppercase tracking-[0.14em] text-accent";
+const ACTION =
+  "cursor-pointer font-mono text-[10px] uppercase tracking-[0.14em] text-accent transition-[scale] duration-150 ease-out enabled:active:scale-95";
 
 function ArtifactsCard({ model, status, artifacts, jobError }: Pick<ModelAsideProps, "model" | "status" | "artifacts" | "jobError">) {
   return (

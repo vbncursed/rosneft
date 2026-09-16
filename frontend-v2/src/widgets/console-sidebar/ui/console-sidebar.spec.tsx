@@ -84,24 +84,48 @@ describe("ConsoleSidebar", () => {
     const column = container.firstElementChild as HTMLElement;
     // A plain grid item: it stretches to the row, so the panel fill and the
     // right border reach the bottom of a long page.
-    expect(column.className).toContain("bg-panel");
-    expect(column.className).toContain("border-r");
+    expect(column).toHaveClass("bg-panel", "lg:border-r");
     expect(column.className).not.toContain("h-dvh");
   });
 
   it("holds its contents in place while the page scrolls past", () => {
     const { container } = sidebar();
     const inner = container.firstElementChild!.firstElementChild as HTMLElement;
-    expect(inner.className).toContain("sticky");
-    expect(inner.className).toContain("top-0");
-    expect(inner.className).toContain("h-dvh");
+    expect(inner).toHaveClass("lg:sticky", "lg:top-0", "lg:h-dvh");
+  });
+
+  // Below lg the column is a strip over the content: a viewport-tall sticky
+  // there would cover the whole screen.
+  it("is a strip, not a sticky column, below lg", () => {
+    const { container } = sidebar();
+    const column = container.firstElementChild as HTMLElement;
+    const inner = column.firstElementChild as HTMLElement;
+    expect(column).toHaveClass("border-b", "lg:border-b-0");
+    expect(column).not.toHaveClass("border-r");
+    expect(inner).not.toHaveClass("sticky", "h-dvh");
+    const nav = screen.getByRole("navigation", { name: "Console" });
+    expect(nav).toHaveClass("overflow-x-auto", "lg:flex-col");
+    // The row scrolls sideways; a faded right edge says there is more.
+    expect(nav).toHaveClass(
+      "[mask-image:linear-gradient(to_right,#000_85%,transparent)]",
+      "lg:[mask-image:none]",
+    );
+    // Room at the end, so the last item scrolls clear of the fade.
+    expect(nav).toHaveClass("pr-8", "lg:pr-0");
+    expect(nav).not.toHaveClass("flex-col");
+  });
+
+  it("eases the identity link's hover border", () => {
+    sidebar();
+    expect(screen.getByRole("link", { name: "Account settings for a.ivanova" })).toHaveClass(
+      "transition-colors",
+      "duration-150",
+    );
   });
 
   it("scrolls only its navigation, keeping the brand and the identity in place", () => {
     sidebar();
-    expect(screen.getByRole("navigation", { name: "Console" }).className).toContain(
-      "overflow-y-auto",
-    );
+    expect(screen.getByRole("navigation", { name: "Console" })).toHaveClass("lg:overflow-y-auto");
   });
 
   it("is not a complementary region — the nav inside is the landmark", () => {

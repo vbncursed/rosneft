@@ -9,8 +9,10 @@ import { TextField } from "@/shared/ui/text-field";
  * The screen mock draws its controls one notch below the design system's Large
  * (14px, 13x20 pad) and puts the fields on `panel` against the `panel-2` ground.
  * cva utilities cannot be overridden by appending, hence the important modifier.
+ * The font size is not among them: the skin's text-sm is already 14px, and an
+ * important one would beat index.css's 16px touch rule — iOS zooms under 16.
  */
-const FIELD = "bg-panel! rounded-[9px]! py-[11px]! text-[14px]! leading-[normal]!";
+const FIELD = "bg-panel! rounded-[9px]! py-[11px]! leading-[normal]!";
 
 const PRIMARY = "justify-center gap-[9px]! px-5! py-[13px]! text-[14px]!";
 const SECONDARY = "justify-center bg-panel! px-5! py-3! text-[14px]! font-medium!";

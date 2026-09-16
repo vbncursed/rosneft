@@ -111,4 +111,11 @@ describe("PermissionMatrix · naming", () => {
     expect(screen.getByRole("button", { name: "territory:write" })).toHaveTextContent("write");
     expect(screen.queryAllByRole("button", { name: "write" })).toHaveLength(0);
   });
+
+  it("presses a chip it can toggle on pointer-down", () => {
+    render(<PermissionMatrix all={ALL} granted={[]} onToggle={() => {}} />);
+    const chip = screen.getAllByRole("button")[0];
+    expect(chip).toHaveClass("transition-[color,background-color,border-color,scale]", "duration-150", "ease-out", "enabled:active:scale-[0.97]");
+    expect(chip).not.toHaveClass("transition-colors");
+  });
 });

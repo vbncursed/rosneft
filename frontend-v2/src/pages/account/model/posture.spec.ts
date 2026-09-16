@@ -28,8 +28,8 @@ describe("postureCards", () => {
     expect(postureCards(on, null)[1]).toMatchObject({ value: "—", badge: "unknown", tone: "neutral" });
   });
 
-  // `dim` on this card measures 3.35:1 dark / 3.09:1 light against panel-2 —
-  // under the 4.5:1 floor for 9px text. `neutral` takes the outlined chrome
+  // `dim` is the quietest tier (3.35:1 / 3.09:1 on panel-2 before the token
+  // was raised past 4.5:1). `neutral` takes the outlined chrome
   // the Password card already wears: text-muted over the card's own ground,
   // 6.82:1 dark / 5.69:1 light. No off/unknown state may carry `dim`.
   it("never reports an off or unknown factor in a tone that cannot be read", () => {

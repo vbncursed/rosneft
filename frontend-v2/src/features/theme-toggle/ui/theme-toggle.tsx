@@ -27,13 +27,15 @@ export function ThemeToggle({ label = "Appearance", variant = "labelled" }: Them
         // stylesheet's source order, not by the className string's, which is
         // the trap that already bit Button's tracking twice. One property,
         // one place.
-        "flex cursor-pointer items-center gap-1.5 border bg-panel font-mono text-[9px] uppercase tracking-[0.16em] text-fg transition-colors duration-150 hover:border-accent-line focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+        "flex cursor-pointer items-center gap-1.5 border bg-panel font-mono text-[9px] uppercase tracking-[0.16em] text-fg transition-[color,background-color,border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
         variant === "compact"
           ? "rounded-full border-line-2 px-3 py-1.5"
           : "rounded-[7px] border-line-2 px-[9px] py-1",
       )}
     >
-      <Icon name="moon" size={12} className="text-accent" />
+      {/* The glyph names the theme in effect, like the word beside it; the
+          swap is instant — the whole page repaints with it anyway. */}
+      <Icon name={theme === "dark" ? "moon" : "sun"} size={12} className="text-accent" />
       {theme}
     </button>
   );

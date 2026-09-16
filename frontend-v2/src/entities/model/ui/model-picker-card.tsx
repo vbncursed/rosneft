@@ -33,12 +33,16 @@ export function ModelPickerCard({
   return (
     <div
       className={cx(
-        "relative overflow-hidden rounded-[10px] border transition-colors duration-150",
+        "relative overflow-hidden rounded-[10px] border transition-[color,background-color,border-color,scale] duration-150 ease-out",
+        // No opacity on an unavailable card: fading the whole thing took its
+        // own "Not converted yet" below 2:1. The dim title and the plain
+        // border say it; the reason prints at full strength.
         unavailable
-          ? "border-line bg-panel-2 opacity-45"
-          : selected
-            ? "border-accent bg-accent-soft"
-            : "border-line-2 bg-panel-2",
+          ? "border-line bg-panel-2"
+          : cx(
+              "active:scale-[0.97]",
+              selected ? "border-accent bg-accent-soft" : "border-line-2 bg-panel-2",
+            ),
       )}
     >
       <button
@@ -46,7 +50,8 @@ export function ModelPickerCard({
         onClick={onSelect}
         disabled={unavailable}
         aria-pressed={selected}
-        className="block w-full cursor-pointer border-none bg-transparent p-0 text-left disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        // Inset ring: the card's overflow-hidden clipped an outset one whole.
+        className="block w-full cursor-pointer border-none bg-transparent p-0 text-left disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
       >
         <span
           className={cx(
@@ -67,7 +72,7 @@ export function ModelPickerCard({
         <span
           className={cx(
             "block px-2 py-1.5 text-[11px]",
-            unavailable ? "text-muted" : selected ? "text-accent" : "text-fg",
+            unavailable ? "text-dim" : selected ? "text-accent" : "text-fg",
           )}
         >
           {/* One line, always: a wrapped name made its card taller than the
@@ -75,7 +80,6 @@ export function ModelPickerCard({
               name rides on `title` for the hover. */}
           <span className="block truncate" title={model.title}>
             {model.title}
-            {unavailable ? " · n/a" : null}
           </span>
           {meta ? <span className="block font-mono text-[9px] text-muted">{meta}</span> : null}
         </span>

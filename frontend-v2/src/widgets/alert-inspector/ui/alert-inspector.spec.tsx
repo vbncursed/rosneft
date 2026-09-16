@@ -86,7 +86,8 @@ describe("AlertInspector", () => {
     expect(screen.queryByRole("button", { name: "Silence 1h" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open in audit" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Copy PromQL" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+    // A 24px target (WCAG 2.5.8) that presses, not the bare 10px glyph.
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("size-6", "active:scale-95");
   });
 
   it("runs the three actions", async () => {

@@ -86,7 +86,7 @@ export function PermissionMatrix({
                     aria-label={permission.slug}
                     title={locked ? LOCKED_TITLE : permission.description}
                     className={cx(
-                      "inline-flex items-center gap-[7px] rounded-control border px-[11px] py-1.5 font-mono text-[11px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+                      "inline-flex items-center gap-[7px] rounded-control border px-[11px] py-1.5 font-mono text-[11px] transition-[color,background-color,border-color,scale] duration-150 ease-out enabled:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
                       CHIP[state],
                     )}
                   >

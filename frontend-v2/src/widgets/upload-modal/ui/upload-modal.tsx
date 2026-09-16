@@ -36,6 +36,18 @@ export type UploadModalProps = {
   onClose: () => void;
 };
 
+/**
+ * `showModal()` focuses the `[autofocus]` descendant, else the first focusable
+ * one — here the × beside the heading, so the dialog opened on the way out.
+ * React's `autoFocus` only calls `focus()` before that and writes no
+ * attribute, so the first thing to do is marked on the DOM: the drop zone,
+ * or the title once a file is chosen — unless it is read-only mid-upload,
+ * when the dialog's own first stop wins. The ref runs before the dialog opens.
+ */
+const markFirstTarget = (body: HTMLDivElement | null) => {
+  body?.querySelector('label[tabindex="0"], input:not([type="file"]):not([readonly])')?.setAttribute("autofocus", "");
+};
+
 /** One dialog for both overlay kinds; every word of the difference is in `copy.ts`. */
 export function UploadModal({
   open,
@@ -81,7 +93,7 @@ export function UploadModal({
           onClick={leave}
           aria-label={close}
           title={close}
-          className="flex size-[26px] shrink-0 cursor-pointer items-center justify-center rounded-[7px] border border-line-2 bg-panel-2 text-fg transition-colors duration-150 hover:border-accent-line focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="flex size-[26px] shrink-0 cursor-pointer items-center justify-center rounded-[7px] border border-line-2 bg-panel-2 text-fg transition-[color,background-color,border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           <Icon name="close" size={12} />
         </button>
@@ -106,7 +118,7 @@ export function UploadModal({
         </div>
       }
     >
-      <div className="flex flex-col gap-3.5">
+      <div ref={markFirstTarget} className="flex flex-col gap-3.5">
         {upload.file ? (
           <UploadFileCard
             file={upload.file}
@@ -141,7 +153,9 @@ export function UploadModal({
           label={TITLE_LABEL}
           placeholder={copy.placeholder}
           value={title}
-          disabled={busy}
+          // Read-only, not disabled: a disabled field greys its value to the
+          // placeholder's colour, and the title looked lost mid-upload.
+          readOnly={busy}
           onChange={(event) => onTitle(event.target.value)}
         />
 

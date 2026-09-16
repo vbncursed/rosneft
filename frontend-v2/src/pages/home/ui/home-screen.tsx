@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Callout } from "@/shared/ui/callout";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { PageSkeleton } from "@/shared/ui/skeleton";
 import type { ConsoleNavItem } from "@/widgets/console-nav";
 import type { ConsoleKey } from "../model/console-hints";
 import { showConsole } from "../model/home-view";
@@ -21,16 +21,7 @@ export function HomeScreen({ consoleItems }: HomeScreenProps) {
 
   if (s.status === "loading") {
     return (
-      <div
-        role="status"
-        aria-busy="true"
-        aria-label="Loading home"
-        className="flex flex-col gap-3"
-      >
-        <Skeleton height="28px" width="30%" />
-        <Skeleton height="96px" />
-        <Skeleton height="96px" />
-      </div>
+      <PageSkeleton shape="catalog" label="Loading home" />
     );
   }
   if (s.status === "unavailable") {

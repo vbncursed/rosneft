@@ -103,4 +103,14 @@ describe("FilterBar · chips the parser does not own", () => {
     render(<FilterBar query="" onChange={vi.fn()} />);
     expect(screen.queryByRole("button", { name: /Remove filter/ })).not.toBeInTheDocument();
   });
+
+  // Focus lands in one frame (no transition on the focus-within border);
+  // the chips' × eases its hover and answers the press.
+  it("focuses instantly and presses a chip's remove glyph", () => {
+    render(<Harness initial="entity:territory" />);
+    const box = field().parentElement!;
+    expect(box).toHaveClass("focus-within:border-accent");
+    expect(box.className).not.toMatch(/\btransition/);
+    expect(screen.getByRole("button", { name: "Remove filter entity:territory" })).toHaveClass("transition-[color,scale]", "duration-150", "ease-out", "active:scale-95");
+  });
 });

@@ -52,4 +52,13 @@ describe("RoleChips", () => {
     expect(screen.getByRole("button", { name: "+ add role" })).toBeInTheDocument();
     expect(screen.queryByText("No roles granted.")).not.toBeInTheDocument();
   });
+
+  it("presses its add and remove controls on pointer-down", () => {
+    render(<RoleChips roles={ROLES} {...props} />);
+    for (const button of screen.getAllByRole("button")) {
+      expect(button).toHaveClass("duration-150", "ease-out");
+      expect(button.className).toMatch(/active:scale-(95|\[0\.97\])/);
+      expect(button).not.toHaveClass("transition-colors");
+    }
+  });
 });
