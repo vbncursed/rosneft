@@ -361,16 +361,32 @@ nothing the new one lacks.
     strip row and the open Overlays panel, re-clamped on fold and resize
     and never re-docked; keys are inert under an open dialog; deleting
     the active panorama leaves the view first.
-13. User request after package B (2026-09-16): while an alignment is open
-    the viewport shows the **panorama anchors**, not the objects' viewport
-    markers — the callout says "Drag panorama points on the model", and
-    putting the scene into "inside a panorama" contradicted it. The anchor
-    **being calibrated is not drawn**, and neither is the mock's
-    `anchor · drag to move` chip: `PanoramaRig` pins the camera onto that
-    anchor, so its marker's world point is the eye, drei's `Html` projects
-    it to `NaN` and parks the ring in the corner of the viewport. The nudge
-    row and `Set from camera` are what move it there. Every other anchor is
-    drawn and openable exactly as in the 3D view.
+13. User decision, 2026-09-16 (this replaces the round-1 ruling "no ring for
+    the edited anchor"): **calibration happens from the 3D view, with a free
+    camera.** Entering it pins the camera nowhere. From the 3D view the
+    equirect is mounted at the `Photo opacity` value as a backdrop around the
+    scene — a `BackSide` sphere of radius 50 seen from outside shows its far
+    inner hemisphere behind the depth-tested terrain, which is the mock's
+    "sphere stand-in" — the territory mesh stays visible, and the **selected
+    panorama's anchor alone** is drawn: the mock's 12 px ring, 2 px accent,
+    `bg-accent-soft`, with the `anchor · drag to move` chip at (16, −7)
+    (mock state 9). It is draggable; the drag projects onto the terrain and
+    updates the **draft**, so the ring and the backdrop follow, a drop commits
+    nothing, `Save` PUTs once and `Exit` discards. The other panoramas'
+    anchors are hidden, and so are the objects' viewport markers — the callout
+    says "Drag panorama points on the model", and putting the scene into
+    "inside a panorama" contradicted it. `V` is not involved, and cannot reach
+    another anchor: the layer is handed one panorama. Inside the capture
+    (`Enter panorama view` with the alignment open, or calibrating while
+    already inside) the rig keeps the camera on the draft anchor, the ring is
+    not drawable there and is not drawn, and nudge, yaw and `Set default view`
+    are the tools; `Switch to 3D view` returns to the free camera with the
+    ring, and the edit target and the draft survive the toggle. `Photo
+    opacity` and `Set from camera` both apply in either view. Mechanically:
+    the draft rides in `calibrationGhost`, its own canvas prop, because
+    `activePanorama` is the one field `PanoramaRig` mounts on; and the texture
+    falls back to the capture being aligned, since keyed on the active capture
+    alone there was no photo to ghost out in the 3D view.
 14. User request after package B (2026-09-16): `Show in this panorama` is
     drawn on **every** row, calibrated or not. An anchor still at the origin
     is a valid place to stand, and an alignment can only be judged from

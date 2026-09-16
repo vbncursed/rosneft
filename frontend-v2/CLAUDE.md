@@ -105,6 +105,14 @@ timestamps and leaves the missing samples null so `LineChart` breaks the line
 there instead of sloping through an outage. Never fill one in, and never let a
 summary read the gap as the last value.
 
+**Flipping `material.transparent` at runtime needs `needsUpdate`.** three bakes
+`#define OPAQUE` — which hard-sets the fragment alpha to 1.0 — into the program
+it compiles while `transparent` is false, and `transparent` is not one of the
+properties `setProgram` re-checks per frame. Flip it alone and the material
+blends at source alpha 1: the opacity uniform is uploaded and the shader throws
+it away. `material.needsUpdate = true` bumps `material.version`, which three
+*does* re-check. Do it in a `useLayoutEffect`, ahead of R3F's rAF.
+
 **jsdom 30 has no `HTMLDialogElement.showModal`.** `Modal` and `Drawer` use the
 native `<dialog>` on purpose (that is what gives a real browser the focus trap
 and the inert background), so `shared/lib/test-setup.ts` carries a small shim.
@@ -853,6 +861,22 @@ floated above it.
   model. This is the old SPA's behaviour and B-1 asks for it; it was missed
   once because the fixture's anchor sits above the whole mesh, where there is
   nothing in front of the camera to notice.
+- **Calibration happens from the 3D view, and the camera stays free**
+  (user decision, 2026-09-16). The draft travels in `calibrationGhost`, its own
+  canvas prop, precisely because `activePanorama` is the field `PanoramaRig`
+  mounts on — substituting the draft there teleported the eye onto the anchor
+  and took the free camera away, which is what once made the ring undrawable.
+  Outside a capture the equirect hangs around the scene as a ghosted backdrop
+  (its far inner hemisphere, behind the depth-tested terrain), the mesh stays
+  visible and raycastable, and the anchors layer is handed the draft **alone**:
+  one 12 px `bg-accent-soft` ring with the `anchor · drag to move` chip,
+  dragged onto the terrain, editing the draft — so `Save` still commits and
+  `Exit` still discards, and `V` cannot reach another anchor's PUT because
+  there is no other anchor drawn. Inside a capture the rig stands on the draft,
+  the ring would project onto the eye and is not drawn, and nudge, yaw and
+  `Set default view` are the tools. The texture falls back to the capture being
+  aligned when there is no active one — keyed on `active` alone, calibrating
+  from the 3D view downloaded no photo and had nothing to ghost.
 - **A panorama PUT is a replace, never a patch.** `usePanoramaList.update`
   fills every absent field from the row it holds before sending, because the
   gateway zeroes what the body omits. Three surfaces reach that one call —
