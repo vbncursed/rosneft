@@ -3,11 +3,22 @@
 @import "tailwindcss";
 @import "./app/styles/theme.css";
 
+/* Reserve the scrollbar's lane so the scroll lock below does not shift the
+   page sideways on platforms whose scrollbars take up room. Not on a
+   full-bleed page (CatalogShell layout="viewport"): it never scrolls, and the
+   reserved lane would be an empty strip beside the scene. */
+html:not(:has([data-fullbleed])) {
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-sans);
+  /* viewport-fit=cover (index.html) paints under a landscape notch; keep the
+     content out of it. Zero everywhere else. */
+  padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
 }
 
 /* A modal <dialog> makes the page inert but not scroll-locked: the wheel
@@ -15,4 +26,25 @@ body {
    Drawer both open through showModal(), so one rule covers every overlay. */
 body:has(dialog:modal) {
   overflow: hidden;
+}
+
+/* A control is not text: no long-press selection, and no double-tap-zoom wait
+   before the click. In the base layer so a utility can still say otherwise. */
+@layer base {
+  button,
+  [role="button"] {
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
+/* iOS Safari zooms into a field under 16px and never zooms back. Unlayered on
+   purpose — it has to beat the text-sm/text-[13px] utilities on touch. The
+   OTP cells (inputmode="numeric") are already 18–20px and keep their size.
+   Never fix this with maximum-scale in the viewport tag. */
+@media (pointer: coarse) {
+  :is(input, textarea, select):not([inputmode="numeric"]) {
+    font-size: 16px;
+  }
 }

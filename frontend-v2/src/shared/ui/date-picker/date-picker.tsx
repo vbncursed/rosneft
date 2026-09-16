@@ -31,6 +31,10 @@ export type DatePickerProps = {
   align?: "start" | "end";
 };
 
+// A 24px target (WCAG 2.5.8) for a one-glyph control.
+const MONTH_ARROW =
+  "flex size-6 cursor-pointer items-center justify-center border-none bg-transparent p-0 text-muted transition-[color,scale] duration-150 ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.95]";
+
 const realToday = (): IsoDate => {
   const now = new Date();
   return toIso(now.getFullYear(), now.getMonth(), now.getDate());
@@ -48,19 +52,27 @@ export function DatePicker({
 }: DatePickerProps) {
   const gridId = useId();
   const root = useRef<HTMLDivElement>(null);
+  const field = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const todayIso = today ?? realToday();
 
   const anchor = parseIso(value) ?? parseIso(todayIso)!;
   const [view, setView] = useState({ year: anchor.year, month: anchor.month });
 
-  useDismiss(root, open, () => setOpen(false));
+  // The focused day leaves the DOM with the calendar; hand focus back first.
+  const close = () => {
+    if (root.current?.contains(document.activeElement)) field.current?.focus();
+    setOpen(false);
+  };
+
+  useDismiss(root, open, close);
 
   const days = monthGrid(view.year, view.month);
 
   return (
     <div ref={root} className={cx("relative", className)}>
       <button
+        ref={field}
         type="button"
         disabled={disabled}
         aria-haspopup="dialog"
@@ -72,7 +84,7 @@ export function DatePicker({
           setOpen((o) => !o);
         }}
         className={cx(
-          "flex w-full items-center justify-between gap-3 rounded-control border bg-panel-2 px-3 py-2.5 font-mono text-[13px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+          "flex w-full items-center justify-between gap-3 rounded-control border bg-panel-2 px-3 py-2.5 font-mono text-[13px] transition-[color,background-color,border-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent enabled:active:scale-[0.99]",
           disabled
             ? "cursor-not-allowed border-line text-dim opacity-55"
             : "cursor-pointer border-line-2 text-fg",
@@ -88,8 +100,9 @@ export function DatePicker({
           role="dialog"
           aria-label={label}
           className={cx(
-            "absolute z-10 mt-1 w-[17.5rem] rounded-[10px] border border-line-2 bg-panel-2 p-3.5 shadow-elevation",
-            align === "end" ? "right-0" : "left-0",
+            // Grows out of the edge it hangs from; leaving is instant (unmount).
+            "absolute z-10 mt-1 w-[17.5rem] rounded-[10px] border border-line-2 bg-panel-2 p-3.5 shadow-elevation transition-[opacity,scale] duration-180 ease-out starting:opacity-0 motion-safe:starting:scale-[0.97]",
+            align === "end" ? "right-0 origin-top-right" : "left-0 origin-top-left",
           )}
         >
           <div className="mb-2.5 flex items-center justify-between gap-4">
@@ -97,7 +110,7 @@ export function DatePicker({
               type="button"
               aria-label="Previous month"
               onClick={() => setView((v) => shiftMonth(v.year, v.month, -1))}
-              className="cursor-pointer border-none bg-transparent px-1 text-muted transition-colors duration-150 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className={MONTH_ARROW}
             >
               ←
             </button>
@@ -108,7 +121,7 @@ export function DatePicker({
               type="button"
               aria-label="Next month"
               onClick={() => setView((v) => shiftMonth(v.year, v.month, 1))}
-              className="cursor-pointer border-none bg-transparent px-1 text-muted transition-colors duration-150 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className={MONTH_ARROW}
             >
               →
             </button>
@@ -137,16 +150,16 @@ export function DatePicker({
                   aria-pressed={day.iso === value}
                   aria-current={day.iso === todayIso ? "date" : undefined}
                   onClick={() => {
+                    close();
                     onChange(day.iso);
-                    setOpen(false);
                   }}
                   className={cx(
-                    "flex aspect-square cursor-pointer items-center justify-center rounded-control-sm border text-center font-mono text-[11px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
+                    "flex aspect-square cursor-pointer items-center justify-center rounded-control-sm border text-center font-mono text-[11px] transition-[color,background-color,border-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent active:scale-[0.95]",
                     day.iso === value
                       ? "border-accent bg-accent font-semibold text-accent-fg"
                       : day.iso === todayIso
                         ? "border-accent-line bg-transparent text-accent"
-                        : "border-transparent bg-transparent text-fg hover:bg-panel",
+                        : "border-transparent bg-transparent text-fg hover:border-line-2",
                   )}
                 >
                   {day.day}

@@ -117,3 +117,43 @@ describe("DatePicker", () => {
     expect(screen.getByRole("dialog").className).toContain("right-0");
   });
 });
+
+describe("DatePicker · focus return", () => {
+  it("hands focus back to the field after a day is picked", async () => {
+    render(<Harness />);
+    await userEvent.click(field());
+    screen.getByRole("button", { name: "12 August 2026" }).focus();
+    await userEvent.keyboard("{Enter}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(field()).toHaveFocus();
+  });
+
+  it("hands focus back to the field after Escape", async () => {
+    render(<Harness />);
+    await userEvent.click(field());
+    screen.getByRole("button", { name: "Next month" }).focus();
+    await userEvent.keyboard("{Escape}");
+    expect(field()).toHaveFocus();
+  });
+});
+
+describe("DatePicker · states", () => {
+  it("gives the month arrows a 24px target and every day press feedback", async () => {
+    render(<Harness />);
+    await userEvent.click(field());
+    const prev = screen.getByRole("button", { name: "Previous month" });
+    expect(prev.classList).toContain("size-6");
+    expect(prev.classList).toContain("active:scale-[0.95]");
+    const day = screen.getByRole("button", { name: "12 August 2026" });
+    expect(day.classList).toContain("active:scale-[0.95]");
+    expect(day.classList).toContain("hover:border-line-2");
+  });
+
+  it("grows the calendar out of the edge it hangs from", async () => {
+    render(<Harness />);
+    await userEvent.click(field());
+    const calendar = screen.getByRole("dialog");
+    expect(calendar.classList).toContain("origin-top-left");
+    expect(calendar.classList).toContain("starting:opacity-0");
+  });
+});

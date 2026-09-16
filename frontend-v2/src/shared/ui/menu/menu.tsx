@@ -43,10 +43,20 @@ export function Menu({
 }: MenuProps) {
   const menuId = useId();
   const root = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
   const entries = useRef<(HTMLButtonElement | null)[]>([]);
   const [open, setOpen] = useState(false);
 
-  useDismiss(root, open, () => setOpen(false));
+  // The focused action leaves the DOM with the menu; hand focus back first or
+  // it falls to <body>. On an outside pointer this runs at pointerdown, before
+  // mousedown moves focus: focus moves to the trigger first; the pointer's
+  // mousedown then takes it where it wanted.
+  const close = () => {
+    if (root.current?.contains(document.activeElement)) button.current?.focus();
+    setOpen(false);
+  };
+
+  useDismiss(root, open, close);
 
   const firstEnabled = items.findIndex((i) => !i.disabled);
 
@@ -76,6 +86,7 @@ export function Menu({
   return (
     <div ref={root} className={cx("relative w-fit", className)}>
       <button
+        ref={button}
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -84,7 +95,7 @@ export function Menu({
         onClick={() => setOpen((o) => !o)}
         onKeyDown={onTriggerKeyDown}
         className={cx(
-          "flex cursor-pointer items-center rounded-[7px] border px-2 py-1.5 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+          "flex cursor-pointer items-center rounded-[7px] border px-2 py-1.5 transition-[color,background-color,border-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.95]",
           open ? "border-accent-line bg-accent-soft text-accent" : "border-transparent text-muted hover:text-fg",
           triggerClassName,
         )}
@@ -98,8 +109,9 @@ export function Menu({
           role="menu"
           aria-label={triggerLabel}
           className={cx(
-            "absolute z-10 mt-1 min-w-max rounded-[10px] border border-line-2 bg-panel p-1.5 shadow-elevation",
-            align === "end" ? "right-0" : "left-0",
+            // Grows out of the trigger's corner; leaving is instant (unmount).
+            "absolute z-10 mt-1 min-w-max rounded-[10px] border border-line-2 bg-panel p-1.5 shadow-elevation transition-[opacity,scale] duration-180 ease-out starting:opacity-0 motion-safe:starting:scale-[0.97]",
+            align === "end" ? "right-0 origin-top-right" : "left-0 origin-top-left",
           )}
         >
           {header ? (
@@ -119,12 +131,12 @@ export function Menu({
               role="menuitem"
               disabled={item.disabled}
               onClick={() => {
+                close();
                 item.onSelect();
-                setOpen(false);
               }}
               onKeyDown={(e) => onItemKeyDown(index, e)}
               className={cx(
-                "block w-full cursor-pointer rounded-control-sm border-none bg-transparent px-2.5 py-[7px] text-left text-xs transition-colors duration-150 hover:bg-panel-2 focus-visible:bg-panel-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45",
+                "block w-full cursor-pointer rounded-control-sm border-none bg-transparent px-2.5 py-[7px] text-left text-xs transition-[background-color,scale] duration-150 ease-out hover:bg-panel-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent enabled:active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45",
                 TONE[item.tone ?? "default"],
               )}
             >
