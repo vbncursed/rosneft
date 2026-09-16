@@ -121,3 +121,45 @@ describe("Drawer · native cancel", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
+
+describe("Drawer · focus return", () => {
+  it("returns focus to the trigger after its × control", async () => {
+    render(<Harness />);
+    await userEvent.click(screen.getByRole("button", { name: "+ New user" }));
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.getByRole("button", { name: "+ New user" })).toHaveFocus();
+  });
+
+  it("returns focus to the trigger after Escape", async () => {
+    render(<Harness />);
+    await userEvent.click(screen.getByRole("button", { name: "+ New user" }));
+    await userEvent.keyboard("{Escape}");
+    expect(screen.getByRole("button", { name: "+ New user" })).toHaveFocus();
+  });
+});
+
+describe("Drawer · closed element", () => {
+  it("stays in the tree while closed, flex only when open, tagged with its side", () => {
+    const { container } = render(
+      <Drawer open={false} onClose={() => {}} title="New user" side="left">
+        body
+      </Drawer>,
+    );
+    const dialog = container.querySelector("dialog")!;
+    expect(dialog.open).toBe(false);
+    expect(dialog.classList).toContain("open:flex");
+    expect(dialog.classList).not.toContain("flex");
+    expect(dialog).toHaveAttribute("data-side", "left");
+  });
+
+  it("gives its × a 24px target with press feedback", async () => {
+    render(
+      <Drawer open onClose={() => {}} title="New user">
+        body
+      </Drawer>,
+    );
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close.classList).toContain("size-6");
+    expect(close.classList).toContain("active:scale-[0.95]");
+  });
+});

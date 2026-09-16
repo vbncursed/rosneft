@@ -47,3 +47,25 @@ describe("CatalogShell · viewport layout", () => {
     expect(screen.getByRole("main").className).toContain("px-9");
   });
 });
+
+describe("CatalogShell · full-bleed marker", () => {
+  // index.css reserves the scrollbar lane on every page except one that
+  // carries this marker: a non-scrolling viewer would show an empty strip.
+  it("marks the viewport layout as full-bleed", () => {
+    render(
+      <CatalogShell layout="viewport">
+        <p>scene</p>
+      </CatalogShell>,
+    );
+    expect(screen.getByRole("main").parentElement).toHaveAttribute("data-fullbleed");
+  });
+
+  it("leaves the page layout unmarked", () => {
+    render(
+      <CatalogShell>
+        <p>page</p>
+      </CatalogShell>,
+    );
+    expect(screen.getByRole("main").parentElement).not.toHaveAttribute("data-fullbleed");
+  });
+});

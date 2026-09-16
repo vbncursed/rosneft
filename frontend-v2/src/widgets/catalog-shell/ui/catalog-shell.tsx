@@ -22,7 +22,8 @@ const MAIN: Record<NonNullable<CatalogShellProps["layout"]>, string> = {
  */
 export function CatalogShell({ children, layout = "page" }: CatalogShellProps) {
   return (
-    <div className="min-h-dvh bg-bg text-fg">
+    // data-fullbleed opts the viewer out of index.css's reserved scrollbar lane.
+    <div className="min-h-dvh bg-bg text-fg" data-fullbleed={layout === "viewport" || undefined}>
       <main className={MAIN[layout]}>{children}</main>
     </div>
   );

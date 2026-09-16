@@ -212,3 +212,60 @@ describe("Modal · pointer events", () => {
     expect(screen.getByRole("dialog", { hidden: true }).className).toContain("pointer-events-auto");
   });
 });
+
+describe("Modal · focus return", () => {
+  // A closed <dialog> hands focus back to whatever opened it — but only if the
+  // element is still attached when close() runs. Unmounted first, focus fell
+  // to <body> and the next Tab started from the top of the document.
+  it("returns focus to the trigger after Cancel", async () => {
+    render(<Harness />);
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "Open" })).toHaveFocus();
+  });
+
+  it("returns focus to the trigger after Escape", async () => {
+    render(<Harness />);
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    await userEvent.keyboard("{Escape}");
+    expect(screen.getByRole("button", { name: "Open" })).toHaveFocus();
+  });
+
+  it("returns focus when the caller unmounts it rather than closing it", async () => {
+    function Mounting() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <Button onClick={() => setOpen(true)}>Open</Button>
+          {open ? (
+            <Modal open onClose={() => setOpen(false)} title="Create user">
+              <Button onClick={() => setOpen(false)}>Cancel</Button>
+            </Modal>
+          ) : null}
+        </>
+      );
+    }
+    render(<Mounting />);
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open" })).toHaveFocus();
+  });
+});
+
+describe("Modal · closed element", () => {
+  // An author `display` would beat the UA's `dialog:not([open])` rule and
+  // draw the closed dialog in the page flow; only the open one may be flex.
+  it("stays in the tree while closed and is laid out as flex only when open", () => {
+    const { container } = render(
+      <Modal open={false} onClose={() => {}} title="Make Root">
+        body
+      </Modal>,
+    );
+    const dialog = container.querySelector("dialog")!;
+    expect(dialog.open).toBe(false);
+    expect(dialog.classList).toContain("open:flex");
+    expect(dialog.classList).not.toContain("flex");
+    expect(dialog.className).not.toContain("backdrop:");
+  });
+});

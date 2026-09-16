@@ -1,6 +1,14 @@
 /* Design tokens — ported verbatim from Claude Design "Design System.dc.html".
    Two themes. Dark is the design's default; an explicit [data-theme] on <html>
-   wins over the OS preference in both directions. */
+   wins over the OS preference in both directions.
+   Two deliberate departures. First, `--dim` is lifted from the design's #6b7178 (dark)
+   and #8b8f95 (light) to the lightest/darkest tone that still reads 4.5:1 on
+   bg, panel and panel-2 — it carries 9–11px mono text in ~70 places, and the
+   design's values measured 3.1–3.6:1.
+   Second, following from it: light `--muted` is darkened from the design's
+   #63676d to #55595f (6.41 / 7.05 / 6.70:1 on bg / panel / panel-2), or the
+   lifted dim would sit a hair from it (1.13:1). muted:dim is now 1.39:1 in
+   both themes — dark #9ba1a8:#81878e matches it. */
 :root,
 :root[data-theme="dark"] {
   --bg: #0e0f11;
@@ -10,7 +18,7 @@
   --line-2: #3a3f46;
   --fg: #f1f2f3;
   --muted: #9ba1a8;
-  --dim: #6b7178;
+  --dim: #81878e;
   --accent: #f97316;
   --accent-fg: #0e0f11;
   --accent-soft: rgb(249 115 22 / 0.14);
@@ -34,8 +42,8 @@
     --line: #e3e1db;
     --line-2: #c9c6bd;
     --fg: #16181b;
-    --muted: #63676d;
-    --dim: #8b8f95;
+    --muted: #55595f;
+    --dim: #6b6f75;
     --accent: #e5610a;
     --accent-fg: #ffffff;
     --accent-soft: rgb(229 97 10 / 0.1);
@@ -59,8 +67,8 @@
   --line: #e3e1db;
   --line-2: #c9c6bd;
   --fg: #16181b;
-  --muted: #63676d;
-  --dim: #8b8f95;
+  --muted: #55595f;
+  --dim: #6b6f75;
   --accent: #e5610a;
   --accent-fg: #ffffff;
   --accent-soft: rgb(229 97 10 / 0.1);
@@ -109,8 +117,15 @@
 
   --shadow-elevation: var(--elevation);
 
+  /* Motion. `ease-out` is overridden: Tailwind's own curve is too weak for an
+     entrance. `ease-drawer` is the iOS sheet curve. Colour/hover transitions
+     with no explicit easing take plain `ease`. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --default-transition-timing-function: ease;
+
   /* The conversion bar before a job reports any progress. */
-  --animate-indeterminate: indeterminate 1.4s ease-in-out infinite;
+  --animate-indeterminate: indeterminate 1.4s linear infinite;
 
   /* The pipeline's active dot, per the mock's om-breathe. */
   --animate-breathe: breathe 1.8s ease-in-out infinite;
@@ -135,9 +150,85 @@
   }
 }
 
-/* The native dialog's backdrop — one rule for every overlay in the app. */
+/* Every overlay is a native <dialog> (Modal, Drawer, ConfirmDialog), so one
+   block animates them all. The element stays in the tree while closed
+   (useModalDialog), which is what lets the exit play: `display` and `overlay`
+   flip only once the transition ends. Enter 200ms, exit 150ms — the system
+   answering is quicker than the thing arriving. A Modal is not anchored to a
+   trigger, so it scales from its centre. */
+dialog {
+  opacity: 0;
+  transform: scale(0.97);
+  transition-property: opacity, transform, overlay, display;
+  transition-duration: 150ms;
+  transition-timing-function: var(--ease-out);
+  transition-behavior: allow-discrete;
+}
+dialog[open] {
+  opacity: 1;
+  transform: none;
+  transition-duration: 200ms;
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+/* A Drawer slides along the edge it hangs from, in and out the same way. */
+dialog[data-side] {
+  transform: translateX(100%);
+  transition-duration: 200ms;
+  transition-timing-function: var(--ease-drawer);
+}
+dialog[data-side="left"] {
+  transform: translateX(-100%);
+}
+dialog[data-side][open] {
+  transform: none;
+  transition-duration: 250ms;
+  @starting-style {
+    transform: translateX(100%);
+  }
+}
+dialog[data-side="left"][open] {
+  @starting-style {
+    transform: translateX(-100%);
+  }
+}
+
+/* The backdrop — one rule for every overlay in the app — fades with it. */
 dialog::backdrop {
   background: rgb(0 0 0 / 0.55);
+  opacity: 0;
+  transition-property: opacity, overlay, display;
+  transition-duration: 150ms;
+  transition-timing-function: var(--ease-out);
+  transition-behavior: allow-discrete;
+}
+dialog[open]::backdrop {
+  opacity: 1;
+  transition-duration: 200ms;
+  @starting-style {
+    opacity: 0;
+  }
+}
+/* A Drawer's scrim keeps the panel's timing, so it does not lift first. */
+dialog[data-side]::backdrop {
+  transition-duration: 200ms;
+}
+dialog[data-side][open]::backdrop {
+  transition-duration: 250ms;
+}
+
+/* Reduced motion keeps the fade and drops the movement. :is() lifts this to
+   the specificity of the most specific rule above, and it comes last. */
+@media (prefers-reduced-motion: reduce) {
+  dialog:is(*, [open], [data-side], [data-side][open]) {
+    transform: none;
+    @starting-style {
+      transform: none;
+    }
+  }
 }
 
 /* Scrollbars follow the theme: a thin thumb in the line colour on a

@@ -107,3 +107,37 @@ describe("Dropdown", () => {
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 });
+
+describe("Dropdown · focus return", () => {
+  it("keeps focus on the trigger after an option is clicked", async () => {
+    render(<Harness />);
+    await userEvent.click(trigger());
+    await userEvent.click(screen.getByRole("option", { name: /model/ }));
+    expect(trigger()).toHaveFocus();
+  });
+});
+
+describe("Dropdown · states", () => {
+  it("rings the keyboard-active option in accent, the selected one included", async () => {
+    render(<Harness />);
+    trigger().focus();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(screen.getByRole("option", { name: /territory/ }).classList).toContain("outline-accent");
+    await userEvent.keyboard("{ArrowDown}");
+    expect(screen.getByRole("option", { name: /model/ }).classList).toContain("outline-accent");
+    expect(screen.getByRole("option", { name: /territory/ }).classList).not.toContain("outline-accent");
+  });
+
+  it("turns one arrow glyph instead of swapping it, and drops the list from the trigger", async () => {
+    render(<Harness />);
+    const arrow = trigger().querySelector("[aria-hidden]:last-child")!;
+    expect(arrow).toHaveTextContent("▾");
+    expect(arrow.classList).not.toContain("rotate-180");
+    await userEvent.click(trigger());
+    expect(arrow).toHaveTextContent("▾");
+    expect(arrow.classList).toContain("rotate-180");
+    const list = screen.getByRole("listbox");
+    expect(list.classList).toContain("origin-top");
+    expect(list.classList).toContain("motion-safe:starting:scale-y-[0.97]");
+  });
+});

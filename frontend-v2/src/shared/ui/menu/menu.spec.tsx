@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { Modal } from "@/shared/ui/modal";
 import { Menu, type MenuItem } from "./menu";
 
 const items = (overrides: Partial<MenuItem>[] = []): MenuItem[] =>
@@ -103,5 +105,86 @@ describe("Menu", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Account" }));
     expect(screen.getByText("a.ivanova@example.com")).toBeInTheDocument();
+  });
+});
+
+describe("Menu · focus return", () => {
+  // The focused action is removed with the menu; without a hand-back focus
+  // fell to <body> and the next Tab started from the top of the document.
+  it("hands focus back to the trigger after Escape", async () => {
+    render(<Menu trigger="⋮" triggerLabel="Row actions" items={items()} />);
+    trigger().focus();
+    await userEvent.keyboard("{ArrowDown}{Escape}");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(trigger()).toHaveFocus();
+  });
+
+  it("hands focus back to the trigger after choosing an action", async () => {
+    render(<Menu trigger="⋮" triggerLabel="Row actions" items={items()} />);
+    trigger().focus();
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(trigger()).toHaveFocus();
+  });
+
+  it("leaves focus where an outside pointer put it", async () => {
+    render(
+      <>
+        <Menu trigger="⋮" triggerLabel="Row actions" items={items()} />
+        <button type="button">elsewhere</button>
+      </>,
+    );
+    await userEvent.click(trigger());
+    await userEvent.click(screen.getByRole("button", { name: "elsewhere" }));
+    expect(screen.getByRole("button", { name: "elsewhere" })).toHaveFocus();
+  });
+
+  it("lands on the trigger once a dialog the action opened is cancelled", async () => {
+    function Row() {
+      const [asking, setAsking] = useState(false);
+      return (
+        <>
+          <Menu
+            trigger="⋮"
+            triggerLabel="Row actions"
+            items={[{ label: "Make Root", onSelect: () => setAsking(true) }]}
+          />
+          <Modal open={asking} onClose={() => setAsking(false)} title="Make Root?">
+            <button type="button" onClick={() => setAsking(false)}>
+              Cancel
+            </button>
+          </Modal>
+        </>
+      );
+    }
+    render(<Row />);
+    trigger().focus();
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(trigger()).toHaveFocus();
+  });
+});
+
+describe("Menu · states", () => {
+  it("rings the keyboard-focused action in accent rather than a near-invisible fill", async () => {
+    render(<Menu trigger="⋮" triggerLabel="Row actions" items={items()} />);
+    await userEvent.click(trigger());
+    const item = screen.getByRole("menuitem", { name: "Edit roles" });
+    expect(item.classList).toContain("focus-visible:outline-accent");
+    expect(item.className).not.toContain("focus-visible:outline-none");
+    expect(item.className).not.toContain("focus-visible:bg-");
+  });
+
+  it("grows out of the trigger's corner and answers a press", async () => {
+    const { rerender } = render(<Menu trigger="⋮" triggerLabel="Row actions" items={items()} />);
+    expect(trigger().classList).toContain("active:scale-[0.95]");
+    await userEvent.click(trigger());
+    const menu = screen.getByRole("menu");
+    expect(menu.classList).toContain("origin-top-right");
+    expect(menu.classList).toContain("starting:opacity-0");
+    expect(menu.classList).toContain("motion-safe:starting:scale-[0.97]");
+
+    rerender(<Menu trigger="⋮" triggerLabel="Row actions" items={items()} align="start" />);
+    expect(screen.getByRole("menu").classList).toContain("origin-top-left");
   });
 });

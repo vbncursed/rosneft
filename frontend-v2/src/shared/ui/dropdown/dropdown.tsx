@@ -34,6 +34,7 @@ export function Dropdown<T extends string>({
 }: DropdownProps<T>) {
   const listId = useId();
   const root = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const selectedIndex = Math.max(0, options.findIndex((o) => o.value === value));
   const [active, setActive] = useState(selectedIndex);
@@ -45,6 +46,9 @@ export function Dropdown<T extends string>({
   const choose = (index: number) => {
     const option = options[index];
     if (!option || option.disabled) return;
+    // Focus stays on the trigger (aria-activedescendant); a pointer on an
+    // option, which is not focusable, would otherwise drop it to <body>.
+    button.current?.focus();
     onChange(option.value);
     setOpen(false);
   };
@@ -73,6 +77,7 @@ export function Dropdown<T extends string>({
   return (
     <div ref={root} className={cx("relative", className)}>
       <button
+        ref={button}
         type="button"
         disabled={disabled}
         aria-haspopup="listbox"
@@ -85,7 +90,7 @@ export function Dropdown<T extends string>({
         }}
         onKeyDown={onKeyDown}
         className={cx(
-          "flex w-full items-center justify-between gap-2.5 border bg-panel-2 px-3 py-2.5 text-[13px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+          "flex w-full items-center justify-between gap-2.5 border bg-panel-2 px-3 py-2.5 text-[13px] transition-[color,background-color,border-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent enabled:active:scale-[0.99]",
           disabled
             ? "cursor-not-allowed border-line text-dim opacity-55"
             : "cursor-pointer text-fg",
@@ -99,8 +104,14 @@ export function Dropdown<T extends string>({
           </span>
         ) : null}
         <span className="flex-1 text-left">{selected?.label}</span>
-        <span aria-hidden="true" className={open ? "text-accent" : "text-muted"}>
-          {open ? "▴" : "▾"}
+        <span
+          aria-hidden="true"
+          className={cx(
+            "inline-block transition-transform duration-150 ease-out motion-reduce:transition-none",
+            open ? "rotate-180 text-accent" : "text-muted",
+          )}
+        >
+          ▾
         </span>
       </button>
 
@@ -110,7 +121,8 @@ export function Dropdown<T extends string>({
           role="listbox"
           aria-label={ariaLabel ?? label}
           aria-activedescendant={`${listId}-${active}`}
-          className="absolute z-10 m-0 w-full list-none rounded-b-control border border-t-0 border-accent-line bg-panel p-1.5 shadow-elevation"
+          // Drops from the trigger it is docked to; frequent, so quicker than a menu.
+          className="absolute z-10 m-0 w-full origin-top list-none rounded-b-control border border-t-0 border-accent-line bg-panel p-1.5 shadow-elevation transition-[opacity,scale] duration-120 ease-out starting:opacity-0 motion-safe:starting:scale-y-[0.97]"
         >
           {options.map((option, index) => {
             const isSelected = option.value === value;
@@ -124,12 +136,13 @@ export function Dropdown<T extends string>({
                 onClick={() => choose(index)}
                 onMouseEnter={() => !option.disabled && setActive(index)}
                 className={cx(
-                  "flex items-center gap-2 rounded-control-sm px-2.5 py-[7px] text-[13px]",
+                  "flex items-center gap-2 rounded-control-sm px-2.5 py-[7px] text-[13px] transition-[scale] duration-150 ease-out",
                   option.disabled
                     ? "cursor-not-allowed text-dim opacity-60"
-                    : "cursor-pointer text-fg",
+                    : "cursor-pointer text-fg active:scale-[0.97]",
                   isSelected && !option.disabled && "bg-accent-soft",
-                  index === active && !isSelected && !option.disabled && "bg-panel-2",
+                  // What Enter would pick: a ring, readable on the selected fill too.
+                  index === active && !option.disabled && "outline-2 -outline-offset-2 outline-accent",
                 )}
               >
                 <span aria-hidden="true" className="text-[10px] text-accent">
