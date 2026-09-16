@@ -42,6 +42,54 @@ describe("Button", () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
+  // jsdom computes no styles, so the press feedback is pinned by its tokens:
+  // the button answers pointer-down, not only the click that follows release.
+  it("scales down on press, and animates scale alongside the colours", () => {
+    render(<Button>Save</Button>);
+    const cls = classes(screen.getByRole("button", { name: "Save" }));
+    expect(cls).toContain("enabled:active:scale-[0.97]");
+    expect(cls).toContain("transition-[color,background-color,border-color,scale]");
+    expect(cls).toContain("ease-out");
+    expect(cls).not.toContain("transition-colors");
+  });
+
+  it("draws a 24px icon button at size xs, pressed a little deeper", () => {
+    render(
+      <Button shape="icon" size="xs" aria-label="Close">
+        ×
+      </Button>,
+    );
+    const cls = classes(screen.getByRole("button", { name: "Close" }));
+    expect(cls).toEqual(expect.arrayContaining(["size-6", "rounded-[6px]", "text-xs", "enabled:active:scale-95"]));
+    // One property, one place: the size decides the press depth, nothing else.
+    expect(cls).not.toContain("enabled:active:scale-[0.97]");
+    expect(cls).not.toContain("size-8");
+  });
+
+  // The spinner used to be inserted beside the label, so a loading button grew
+  // by its width and shifted everything next to it.
+  it("keeps its width while loading: the spinner floats over a hidden label", () => {
+    const { rerender } = render(<Button>Sign in</Button>);
+    const label = screen.getByText("Sign in");
+    expect(classes(label)).not.toContain("opacity-0");
+
+    rerender(<Button loading>Sign in</Button>);
+    expect(classes(screen.getByText("Sign in"))).toEqual(expect.arrayContaining(["opacity-0", "blur-[2px]"]));
+    expect(classes(screen.getByTestId("button-spinner").parentElement!)).toContain("absolute");
+    expect(classes(screen.getByRole("button", { name: "Sign in" }))).toContain("relative");
+  });
+
+  // Faster reads as quicker; under reduced motion it slows rather than freezing
+  // into an open arc that reads as a broken icon.
+  it("spins at 700ms, and slowly rather than not at all under reduced motion", () => {
+    render(<Button loading>Save</Button>);
+    const cls = classes(screen.getByTestId("button-spinner"));
+    expect(cls).toEqual(
+      expect.arrayContaining(["animate-spin", "[animation-duration:700ms]", "motion-reduce:[animation-duration:2s]"]),
+    );
+    expect(cls).not.toContain("motion-reduce:animate-none");
+  });
+
   it("blocks clicks while disabled", async () => {
     const onClick = vi.fn();
     render(<Button disabled onClick={onClick}>Delete</Button>);
@@ -122,5 +170,16 @@ describe("Button", () => {
     const md = classes(screen.getByRole("button", { name: "Remove" }));
     expect(md).toContain("tracking-[0.18em]");
     expect(md).not.toContain("tracking-[0.14em]");
+  });
+
+  // Loading is work in progress, not unavailability: only a disabled button dims.
+  it("dims when disabled but not while loading", () => {
+    const { rerender } = render(<Button loading>Save</Button>);
+    const cls = () => classes(screen.getByRole("button", { name: "Save" }));
+    expect(cls()).not.toContain("opacity-55");
+    expect(cls()).not.toContain("disabled:opacity-55");
+
+    rerender(<Button disabled>Save</Button>);
+    expect(cls()).toContain("opacity-55");
   });
 });

@@ -75,7 +75,7 @@ export function Segmented<T extends string>({
             onClick={() => onChange(item.value)}
             onKeyDown={(e) => onKeyDown(index, e)}
             className={cx(
-              "flex items-center justify-center gap-1.5 rounded-control-sm border-none transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45",
+              "flex items-center justify-center gap-1.5 rounded-control-sm border-none transition-[color,background-color,scale] duration-150 ease-out enabled:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45",
               // Padding and type are set once, per size — never a base utility
               // plus a variant one, which the stylesheet's source order, not
               // this string's, would decide between.

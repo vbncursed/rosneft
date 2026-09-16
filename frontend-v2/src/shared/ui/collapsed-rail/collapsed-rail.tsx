@@ -26,7 +26,7 @@ export function CollapsedRail({ label, badge, expandName, onExpand, className }:
         onClick={onExpand}
         aria-label={expandName}
         title={expandName}
-        className="flex size-7 cursor-pointer items-center justify-center rounded-[8px] border border-line-2 bg-panel-2 text-fg transition-colors duration-150 hover:border-accent-line focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        className="flex size-7 cursor-pointer items-center justify-center rounded-[8px] border border-line-2 bg-panel-2 text-fg transition-[color,background-color,border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         <Icon name="chevron-left" size={13} />
       </button>

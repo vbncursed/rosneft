@@ -18,8 +18,12 @@ export type ModeChipProps = {
   className?: string;
 };
 
+// The accent chip is drawn over a panorama photograph, so its 14% tint sits on
+// an opaque panel ground. The tint is a background *image*: a colour and an
+// image are two properties, and an inset shadow would collide with the
+// elevation shadow every chip already carries.
 const TONE = {
-  accent: "border-accent bg-accent-soft text-accent",
+  accent: "border-accent bg-panel bg-[image:linear-gradient(var(--accent-soft),var(--accent-soft))] text-accent",
   neutral: "border-line-2 bg-panel text-muted",
 } as const;
 
@@ -38,7 +42,7 @@ export function ModeChip({ children, tone = "accent", icon, spinning = false, la
       )}
     >
       {icon ? (
-        <Icon name={icon} size={12} className={spinning ? "animate-spin motion-reduce:animate-none" : undefined} />
+        <Icon name={icon} size={12} className={spinning ? "animate-spin [animation-duration:700ms] motion-reduce:[animation-duration:2s]" : undefined} />
       ) : null}
       {children}
       {kbd ? <kbd className="rounded-[4px] border border-accent-line px-[5px] py-px">{kbd}</kbd> : null}

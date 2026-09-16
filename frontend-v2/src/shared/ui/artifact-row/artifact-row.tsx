@@ -36,7 +36,7 @@ export function ArtifactRow({ tag, file, meta, size, href, className }: Artifact
         download={file}
         className={cx(
           ROW,
-          "border-line hover:border-line-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+          "border-line transition-[border-color,scale] duration-150 ease-out hover:border-line-2 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
           className,
         )}
       >

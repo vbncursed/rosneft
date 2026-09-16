@@ -98,10 +98,12 @@ export function OtpInput({
             maxLength={1}
             aria-label={`Digit ${index + 1} of ${length}`}
             className={cx(
-              "rounded-control border text-center font-mono text-fg outline-none transition-colors duration-150",
+              "rounded-control border text-center font-mono text-fg outline-none",
               size === "lg" ? "h-14 min-w-0 flex-1 text-xl" : "h-12 w-10 text-lg",
               "focus:border-accent focus:ring-[3px] focus:ring-accent-soft",
-              "disabled:border-line disabled:text-dim",
+              // Focus and the typed-in "complete" ground are instant; only a
+              // disabled flip eases.
+              "disabled:border-line disabled:text-dim disabled:transition-[color,border-color] disabled:duration-150",
               // The ground is a branch, not a base plus an override: two
               // background utilities on one element are decided by the
               // stylesheet's source order, not by clsx.

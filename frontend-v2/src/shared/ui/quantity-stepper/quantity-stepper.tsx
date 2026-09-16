@@ -13,7 +13,7 @@ export type QuantityStepperProps = {
 };
 
 const cell =
-  "flex size-7 items-center justify-center rounded-control-sm border border-line-2 bg-panel-2 text-sm text-fg transition-colors duration-150 enabled:cursor-pointer enabled:hover:border-accent-line focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:border-line disabled:text-dim disabled:opacity-50";
+  "flex size-7 items-center justify-center rounded-control-sm border border-line-2 bg-panel-2 text-sm text-fg transition-[color,background-color,border-color,scale] duration-150 ease-out enabled:cursor-pointer enabled:hover:border-accent-line enabled:active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:border-line disabled:text-dim disabled:opacity-50";
 
 export function QuantityStepper({
   value,

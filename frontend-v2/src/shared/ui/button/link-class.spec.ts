@@ -13,6 +13,16 @@ describe("linkButtonClass", () => {
     }
   });
 
+  it("answers a press the way Button does", () => {
+    for (const variant of ["primary", "secondary"] as const) {
+      const classes = classesOf(variant);
+      expect(classes).toContain("active:scale-[0.97]");
+      expect(classes).toContain("transition-[color,background-color,border-color,scale]");
+      expect(classes).toContain("ease-out");
+      expect(classes).not.toContain("transition-colors");
+    }
+  });
+
   it("fills the primary with the accent and its own foreground", () => {
     const classes = classesOf("primary");
     expect(classes).toContain("bg-accent");

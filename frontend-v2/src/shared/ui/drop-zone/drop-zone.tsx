@@ -90,8 +90,8 @@ export function DropZone({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       className={cx(
-        "flex items-center gap-3.5 rounded-[12px] border border-dashed px-5 py-[18px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-        over ? "border-accent bg-accent-soft" : "border-line-2 bg-panel",
+        "group flex items-center gap-3.5 rounded-[12px] border border-dashed px-5 py-[18px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+        over ? "border-accent bg-accent-soft" : cx("border-line-2 bg-panel", !disabled && "hover:border-accent-line"),
         // One property, one branch: clsx cannot resolve two cursor utilities —
         // only the compiled stylesheet's own source order can, and it picks
         // the wrong one.
@@ -104,7 +104,12 @@ export function DropZone({
         <span className="block text-[13px] font-semibold">{label}</span>
         <span className="mt-1 block text-xs text-muted">{hint}</span>
       </span>
-      <span className="rounded-full border border-accent bg-accent-soft px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-accent">
+      <span
+        className={cx(
+          "rounded-full border border-accent bg-accent-soft px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-accent transition-colors duration-150",
+          !disabled && "group-hover:bg-accent/20",
+        )}
+      >
         {buttonLabel}
       </span>
       <input

@@ -42,4 +42,16 @@ describe("Pager", () => {
     render(<Pager page={2} pageCount={3} onPage={vi.fn()} busy />);
     expect(screen.getByRole("button", { name: "Page 3" })).toHaveClass("disabled:opacity-55");
   });
+
+  it("presses a 28px page chip to 0.95 while it is enabled", () => {
+    render(<Pager page={1} pageCount={3} onPage={vi.fn()} />);
+    const cls = screen.getByRole("button", { name: "Page 2" }).className.split(/\s+/);
+    expect(cls).toEqual(
+      expect.arrayContaining([
+        "enabled:active:scale-95",
+        "transition-[color,background-color,border-color,scale]",
+        "ease-out",
+      ]),
+    );
+  });
 });

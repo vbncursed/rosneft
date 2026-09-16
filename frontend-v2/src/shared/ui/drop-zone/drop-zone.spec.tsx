@@ -72,14 +72,16 @@ describe("DropZone", () => {
       />,
     );
     const zone = container.firstElementChild as HTMLElement;
+    // Tokens, not a substring: the resting zone carries `hover:border-accent-line`.
+    const lit = () => zone.className.split(/\s+/).includes("border-accent");
     fireEvent.dragEnter(zone);
-    expect(zone.className).toContain("border-accent");
+    expect(lit()).toBe(true);
 
     fireEvent.dragLeave(zone);
-    expect(zone.className).not.toContain("border-accent");
+    expect(lit()).toBe(false);
 
     fireEvent.dragOver(zone);
-    expect(zone.className).toContain("border-accent");
+    expect(lit()).toBe(true);
   });
 
   it("ignores a dropped file that does not match the accept extension", () => {
@@ -208,5 +210,19 @@ describe("DropZone", () => {
     const cls = (container.firstElementChild as HTMLElement).className.split(/\s+/);
     expect(cls).toContain("cursor-not-allowed");
     expect(cls).not.toContain("cursor-pointer");
+  });
+
+  // A mouse over the zone used to get nothing until a file was dragged in.
+  it("answers a mouse hover and eases into the drag-over highlight", () => {
+    const { container, rerender } = render(
+      <DropZone label="Drop" hint="hint" buttonLabel="Choose files" accept=".zip" onFiles={vi.fn()} />,
+    );
+    const zone = () => (container.firstElementChild as HTMLElement).className.split(/\s+/);
+    expect(zone()).toEqual(expect.arrayContaining(["group", "hover:border-accent-line", "transition-colors", "duration-150"]));
+    expect(screen.getByText("Choose files").className).toContain("group-hover:bg-accent/20");
+
+    rerender(<DropZone label="Drop" hint="hint" buttonLabel="Choose files" accept=".zip" onFiles={vi.fn()} disabled />);
+    expect(zone()).not.toContain("hover:border-accent-line");
+    expect(screen.getByText("Choose files").className).not.toContain("group-hover:bg-accent/20");
   });
 });

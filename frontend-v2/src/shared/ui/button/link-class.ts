@@ -10,7 +10,7 @@ export type LinkButtonVariant = "primary" | "secondary";
 // than the string's — so the ground, the text colour and the border colour are
 // each declared once, per variant, and never overridden here.
 const CONTROL =
-  "inline-flex cursor-pointer items-center rounded-control border px-[18px] py-2.5 text-[13px] no-underline transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "inline-flex cursor-pointer items-center rounded-control border px-[18px] py-2.5 text-[13px] no-underline transition-[color,background-color,border-color,scale] duration-150 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 const PRIMARY = `${CONTROL} border-accent bg-accent font-semibold text-accent-fg hover:bg-accent/90`;
 const SECONDARY = `${CONTROL} border-line-2 bg-panel-2 font-medium text-fg hover:border-accent-line`;

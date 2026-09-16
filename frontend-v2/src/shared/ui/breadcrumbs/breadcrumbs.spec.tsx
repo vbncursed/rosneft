@@ -35,4 +35,12 @@ describe("Breadcrumbs", () => {
     render(<Breadcrumbs items={[{ label: "Home", href: "/" }]} />);
     expect(screen.getByText("Home")).toHaveAttribute("aria-current", "page");
   });
+
+  // An underline cannot ease in or out; its colour can.
+  it("fades the crumb underline in on hover instead of snapping it", () => {
+    render(<Breadcrumbs items={ITEMS} />);
+    expect(screen.getByRole("link", { name: "Catalog" }).className.split(/\s+/)).toEqual(
+      expect.arrayContaining(["underline", "decoration-transparent", "hover:decoration-current", "transition-colors"]),
+    );
+  });
 });

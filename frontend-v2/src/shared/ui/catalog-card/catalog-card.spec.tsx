@@ -230,4 +230,28 @@ describe("CatalogCard", () => {
     expect(footer).toHaveTextContent("Open →");
     expect(footer?.className).toContain("pt-3");
   });
+
+  // The card is one target: hovering anywhere on it lights the title and the
+  // frame together, and both ease rather than snap.
+  it("answers a hover anywhere on an openable card, on the title and the frame alike", () => {
+    render(<CatalogCard title="North Ridge Pad" slug="north-ridge-pad" href="/t/n" onOpen={vi.fn()} trailing={{ label: "Open →", tone: "accent" }} />);
+    const card = screen.getByRole("article", { name: "North Ridge Pad" }).className.split(/\s+/);
+    expect(card).toEqual(
+      expect.arrayContaining(["group", "hover:border-line-2", "transition-[border-color,scale]", "active:scale-[0.99]"]),
+    );
+    const title = screen.getByRole("link", { name: "North Ridge Pad" }).className.split(/\s+/);
+    expect(title).toEqual(expect.arrayContaining(["group-hover:text-accent", "transition-colors"]));
+    expect(title).not.toContain("hover:text-accent");
+  });
+
+  it("keeps a converting card's warn frame on hover, and a static card still", () => {
+    const { rerender } = render(
+      <CatalogCard title="A" slug="a" tone="warn" onOpen={vi.fn()} trailing={{ label: "x", tone: "warn" }} />,
+    );
+    expect(screen.getByRole("article").className).not.toContain("hover:border-line-2");
+    rerender(<CatalogCard title="A" slug="a" trailing={{ label: "x", tone: "muted" }} />);
+    const still = screen.getByRole("article").className;
+    expect(still).not.toContain("hover:border-line-2");
+    expect(still).not.toContain("active:scale");
+  });
 });
