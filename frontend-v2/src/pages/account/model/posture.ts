@@ -3,9 +3,9 @@ import type { TwoFactorStatus } from "@/entities/user";
 /**
  * `ok` is the tinted green fill; `neutral` the outlined chrome — `text-muted`
  * over the card's own ground, 6.82:1 dark / 5.69:1 light. `dim` is deliberately
- * not offered: at this badge's 9px it measures 3.35:1 dark / 3.09:1 light on
- * `panel-2`, under the 4.5:1 floor, and off/unknown is exactly the state a
- * reader must be able to read.
+ * not offered: it measured 3.35:1 dark / 3.09:1 light on `panel-2` until the
+ * token was raised past 4.5:1 (#81878e / #6b6f75), and it is still the quietest
+ * tier — off/unknown is exactly the state a reader must not skim past.
  */
 export type PostureTone = "ok" | "neutral";
 export type PostureCard = {

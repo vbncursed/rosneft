@@ -47,7 +47,7 @@ export function ContentRow({ item, selected = false, onSelect, actions }: Conten
       // No overflow-hidden on the row: the kebab menu is absolutely positioned
       // inside it and was being cut at the row's bottom edge.
       className={cx(
-        "relative flex cursor-pointer items-start gap-3 rounded-[11px] border border-l-[3px] py-3.5 pl-4 pr-4 transition-colors duration-150",
+        "relative flex cursor-pointer items-start gap-3 rounded-[11px] border border-l-[3px] py-3.5 pl-4 pr-4 transition-[color,background-color,border-color,scale] duration-150 ease-out active:scale-[0.99]",
         selected ? "border-accent bg-accent-soft" : "border-line bg-panel hover:border-line-2",
         selected ? RAIL[item.status] : RAIL_DIM[item.status],
       )}

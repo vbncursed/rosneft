@@ -55,7 +55,7 @@ describe("ModelPicker", () => {
   it("refuses a model that cannot be placed yet", async () => {
     const onSelect = vi.fn();
     render(<ModelPicker models={MODELS} selectedSlug={null} onSelect={onSelect} />);
-    const unavailable = screen.getByRole("button", { name: /Flare · n\/a/ });
+    const unavailable = screen.getByRole("button", { name: /Flare/ });
     expect(unavailable).toBeDisabled();
     await userEvent.click(unavailable);
     expect(onSelect).not.toHaveBeenCalled();

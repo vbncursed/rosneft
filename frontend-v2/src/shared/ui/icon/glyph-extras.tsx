@@ -4,6 +4,17 @@
  * does not have to grow every time a new screen needs an icon.
  */
 export const EXTRA_GLYPHS = {
+  // The theme toggle's light-mode partner to `moon`: same grid and stroke.
+  sun: {
+    box: "0 0 24 24",
+    width: 1.8,
+    body: (
+      <>
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+      </>
+    ),
+  },
   minus: {
     box: "0 0 24 24",
     width: 2.2,

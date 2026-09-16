@@ -100,4 +100,9 @@ describe("PageHeader · description", () => {
     const { container } = render(<PageHeader eyebrow="Models" title="Library" />);
     expect(container.querySelectorAll("p")).toHaveLength(1);
   });
+
+  it("eases the back link's hover colour", () => {
+    render(<PageHeader eyebrow="Territory catalog" title="Scenes" back={{ label: "← Home", href: "/" }} />);
+    expect(screen.getByRole("link", { name: "← Home" })).toHaveClass("transition-colors", "duration-150");
+  });
 });

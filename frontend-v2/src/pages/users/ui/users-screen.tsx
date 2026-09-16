@@ -4,7 +4,7 @@ import { CreateUserDialog } from "@/features/create-user";
 import { AddRoleDialog, RoleChips } from "@/features/role-assign";
 import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { PageSkeleton } from "@/shared/ui/skeleton";
 import { coverageOf, groupPeople, inspectorDetails, matchesPerson, statsOf } from "../model/people";
 import { useUsers, type PendingAction } from "../model/use-users";
 import { UsersPage } from "./users-page";
@@ -70,11 +70,7 @@ export function UsersScreen() {
 
   if (s.status === "loading") {
     return (
-      <div role="status" aria-busy="true" aria-label="Loading people" className="flex flex-col gap-3">
-        <Skeleton height="28px" width="30%" />
-        <Skeleton height="96px" />
-        <Skeleton height="96px" />
-      </div>
+      <PageSkeleton shape="console" label="Loading people" />
     );
   }
   if (s.status === "unavailable" || !s.users) {

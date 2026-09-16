@@ -9,7 +9,7 @@ const model = (slug: string, title: string): Model => ({ slug, title, sourceBlob
 const MODELS = [
   { model: model("pump-jack", "Pump Jack") },
   { model: model("storage-tank-500", "Tank 500") },
-  { model: model("flare-stack", "Flare"), unavailable: true },
+  { model: model("flare-stack", "Flare"), unavailable: true, meta: "Not converted yet" },
 ];
 
 const lods = (sizes: number[]): ModelOption["chain"] =>

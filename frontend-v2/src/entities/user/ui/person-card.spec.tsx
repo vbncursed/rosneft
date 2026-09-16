@@ -100,4 +100,16 @@ describe("PersonCard", () => {
     await userEvent.click(screen.getByRole("article", { name: "d.smirnov" }));
     expect(onSelect).toHaveBeenCalledOnce();
   });
+
+  // The whole card is the target: it answers the press, gently at this size.
+  it("presses on pointer-down", () => {
+    const { container } = render(<PersonCard user={user()} />);
+    const card = container.querySelector("article")!;
+    expect(card).toHaveClass(
+      "active:scale-[0.99]",
+      "transition-[color,background-color,border-color,scale]",
+      "ease-out",
+    );
+    expect(card).not.toHaveClass("transition-colors");
+  });
 });

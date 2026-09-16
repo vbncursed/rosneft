@@ -1,6 +1,6 @@
 import { AddPersonDialog } from "@/features/grant-access";
 import { Callout } from "@/shared/ui/callout";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { PageSkeleton } from "@/shared/ui/skeleton";
 import { groupAccess, matchesAccess, mixOf, statsOf } from "../model/access-view";
 import { useTerritoryAccess } from "../model/use-territory-access";
 import { TerritoryAccessPage } from "./territory-access-page";
@@ -11,16 +11,7 @@ export function TerritoryAccessScreen() {
 
   if (s.status === "loading") {
     return (
-      <div
-        role="status"
-        aria-busy="true"
-        aria-label="Loading territories"
-        className="flex flex-col gap-3"
-      >
-        <Skeleton height="28px" width="30%" />
-        <Skeleton height="96px" />
-        <Skeleton height="96px" />
-      </div>
+      <PageSkeleton shape="console" label="Loading territories" />
     );
   }
   if (s.status === "unavailable" || !s.territories) {

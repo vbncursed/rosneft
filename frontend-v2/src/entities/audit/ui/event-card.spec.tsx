@@ -111,4 +111,16 @@ describe("EventCard · actor", () => {
     expect(screen.getByRole("img", { name: "u-1" })).toBeInTheDocument();
     expect(screen.getByText("u-1")).toBeInTheDocument();
   });
-})
+
+  // The whole card is the target: it answers the press, gently at this size.
+  it("presses on pointer-down", () => {
+    const { container } = render(<EventCard entry={entry()} summary="4 fields changed" />);
+    const card = container.querySelector("article")!;
+    expect(card).toHaveClass(
+      "active:scale-[0.99]",
+      "transition-[color,background-color,border-color,scale]",
+      "ease-out",
+    );
+    expect(card).not.toHaveClass("transition-colors");
+  });
+});

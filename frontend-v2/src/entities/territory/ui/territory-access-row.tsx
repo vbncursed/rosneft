@@ -28,7 +28,7 @@ export function TerritoryAccessRow({
       aria-current={selected ? "true" : undefined}
       aria-label={territory.title}
       className={cx(
-        "relative flex cursor-pointer items-start gap-3 overflow-hidden rounded-[11px] border py-3.5 pl-4.5 pr-4 transition-colors duration-150",
+        "relative flex cursor-pointer items-start gap-3 overflow-hidden rounded-[11px] border py-3.5 pl-4.5 pr-4 transition-[color,background-color,border-color,scale] duration-150 ease-out active:scale-[0.99]",
         selected ? "border-accent bg-accent-soft" : "border-line bg-panel hover:border-line-2",
       )}
     >

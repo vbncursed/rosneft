@@ -40,6 +40,7 @@ describe("the glyph registry", () => {
       "refresh",
       "ruler",
       "search",
+      "sun",
       "trash",
       "upload",
       "warning",

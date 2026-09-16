@@ -71,6 +71,8 @@ describe("UsersScreen", () => {
   it("says it is loading rather than drawing an empty page", () => {
     showing({ status: "loading", users: null });
     expect(screen.getByLabelText("Loading people")).toHaveAttribute("aria-busy", "true");
+    // The placeholder is shaped like the console screen it stands in for.
+    expect(screen.getByLabelText("Loading people").querySelector('[style*="height: 126px"]')).not.toBeNull();
     expect(screen.queryByRole("heading", { name: "Users" })).not.toBeInTheDocument();
   });
 

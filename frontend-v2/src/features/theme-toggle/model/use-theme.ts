@@ -36,6 +36,19 @@ const subscribe = (listener: () => void) => {
 
 const getSnapshot = () => current;
 
+// The page grounds index.html pairs with each OS scheme. An explicit choice
+// overrides the scheme, so both tags take the chosen ground — otherwise a
+// light OS would put a light browser bar over a dark page.
+const CHROME: Record<Theme, string> = { dark: "#0e0f11", light: "#f5f4f1" };
+
+function paintChrome(theme: Theme) {
+  document.head
+    .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
+    .forEach((meta) => {
+      meta.content = CHROME[theme];
+    });
+}
+
 function toggle() {
   current = current === "dark" ? "light" : "dark";
   applyTheme(current);
@@ -53,6 +66,7 @@ export function useTheme() {
   // document rather than waiting for someone to press the toggle.
   useEffect(() => {
     applyTheme(theme);
+    paintChrome(theme);
   }, [theme]);
   return { theme, toggle };
 }

@@ -115,7 +115,7 @@ export function UsersPage({
 
         {inspected ? (
           // Sticky so the inspector stays put while a long list scrolls past.
-          <div className="xl:sticky xl:top-6">
+          <div className="transition-opacity duration-150 starting:opacity-0 xl:sticky xl:top-6">
             <PersonInspector
               user={inspected.user}
               details={inspected.details}

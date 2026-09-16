@@ -28,12 +28,18 @@ export type AddPasskeyModalProps = {
 export function AddPasskeyModal({ open, onClose, onAdded, initialStep = "name" }: AddPasskeyModalProps) {
   const [step, setStep] = useState<Step>(initialStep);
   const [name, setName] = useState("");
+  const [wasOpen, setWasOpen] = useState(open);
 
-  const close = () => {
-    setStep("name");
-    setName("");
-    onClose();
-  };
+  // Reset on the way in, never on the way out: the dialog fades for a beat
+  // after closing, and a reset there flashed the naming step's title and
+  // buttons over a ceremony that had just finished.
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setStep(initialStep);
+      setName("");
+    }
+  }
 
   // Named before the ceremony runs: backing out of naming leaves nothing on
   // the authenticator, backing out after it would leave an unnamed credential.
@@ -43,17 +49,17 @@ export function AddPasskeyModal({ open, onClose, onAdded, initialStep = "name" }
       const { optionsJson, flowId } = await beginRegistration();
       const credentialJson = await createCredential(optionsJson);
       onAdded(await finishRegistration(flowId, credentialJson, name.trim()));
-      close();
+      onClose();
     } catch (err) {
       if (!isCancelled(err)) notify.error(messageOf(err));
-      close();
+      onClose();
     }
   };
 
   return (
     <Modal
       open={open}
-      onClose={close}
+      onClose={onClose}
       overline="Add a passkey"
       title={step === "name" ? "Name this passkey" : "Confirm on your device"}
       description={
@@ -64,7 +70,7 @@ export function AddPasskeyModal({ open, onClose, onAdded, initialStep = "name" }
       footer={
         step === "name" ? (
           <>
-            <Button onClick={close}>Cancel</Button>
+            <Button onClick={onClose}>Cancel</Button>
             <Button variant="primary" disabled={name.trim() === ""} onClick={() => void run()}>
               Continue
             </Button>

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { CreateRoleDialog } from "@/features/create-role";
 import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { PageSkeleton } from "@/shared/ui/skeleton";
 import {
   distributionOf,
   groupRoles,
@@ -38,16 +38,7 @@ export function RolesScreen() {
 
   if (s.status === "loading") {
     return (
-      <div
-        role="status"
-        aria-busy="true"
-        aria-label="Loading roles"
-        className="flex flex-col gap-3"
-      >
-        <Skeleton height="28px" width="30%" />
-        <Skeleton height="96px" />
-        <Skeleton height="96px" />
-      </div>
+      <PageSkeleton shape="console" label="Loading roles" />
     );
   }
   if (s.status === "unavailable") {

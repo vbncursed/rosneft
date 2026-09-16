@@ -75,6 +75,10 @@ describe("ContentScreen", () => {
     useContent.mockReturnValue(state({ status: "loading", items: null }));
     const { unmount } = render(<ContentScreen />);
     expect(screen.getByRole("status", { name: "Loading content" })).toBeInTheDocument();
+    // The placeholder is shaped like the console screen it stands in for.
+    expect(
+      screen.getByRole("status", { name: "Loading content" }).querySelector('[style*="height: 126px"]'),
+    ).not.toBeNull();
     unmount();
     useContent.mockReturnValue(
       state({

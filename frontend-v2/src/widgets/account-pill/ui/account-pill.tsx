@@ -9,7 +9,7 @@ export function AccountPill({ username, roleTitle }: AccountPillProps) {
     <a
       href="/account"
       aria-label={`Open account for ${username}`}
-      className="inline-flex items-center gap-[9px] rounded-full border border-line-2 bg-panel py-[5px] pl-[5px] pr-[13px] text-fg no-underline hover:border-accent-line focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      className="inline-flex items-center gap-[9px] rounded-full border border-line-2 bg-panel py-[5px] pl-[5px] pr-[13px] text-fg no-underline transition-[border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
     >
       <Avatar name={username} variant="soft" size={28} />
       <span className="flex flex-col items-start leading-[1.25]">

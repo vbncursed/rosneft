@@ -120,6 +120,12 @@ describe("ContentPage", () => {
     expect(
       screen.getByRole("complementary", { name: "Content: Terminal Yard 4" }),
     ).toBeInTheDocument();
+    // Fades in (tens of opens a session: opacity only, no movement); leaves at once.
+    expect(screen.getByRole("complementary").parentElement).toHaveClass(
+      "starting:opacity-0",
+      "transition-opacity",
+      "duration-150",
+    );
     expect(screen.getByText("8f21 · mesh-worker-2")).toBeInTheDocument();
   });
 

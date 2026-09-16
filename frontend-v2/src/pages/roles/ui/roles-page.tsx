@@ -146,7 +146,7 @@ export function RolesPage({
 
         {edited ? (
           // Sticky so the permission set stays put while the list scrolls.
-          <div className="xl:sticky xl:top-6">
+          <div className="transition-opacity duration-150 starting:opacity-0 xl:sticky xl:top-6">
             <RoleInspector
               role={edited.role}
               all={allPermissions}

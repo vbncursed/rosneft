@@ -57,7 +57,7 @@ export function RoleCard({
       aria-current={selected ? "true" : undefined}
       aria-label={role.title}
       className={cx(
-        "relative cursor-pointer overflow-hidden rounded-card border py-4 pl-5 pr-4 transition-colors duration-150",
+        "relative cursor-pointer overflow-hidden rounded-card border py-4 pl-5 pr-4 transition-[color,background-color,border-color,scale] duration-150 ease-out active:scale-[0.99]",
         selected ? "border-accent bg-accent-soft" : "border-line bg-panel hover:border-line-2",
       )}
     >

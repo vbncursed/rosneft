@@ -171,7 +171,7 @@ export function MetricsPage({
 
         {alert ? (
           // Sticky so the firing alert stays in view while the panels scroll.
-          <div className="xl:sticky xl:top-6">
+          <div className="transition-opacity duration-150 starting:opacity-0 xl:sticky xl:top-6">
             <AlertInspector
               alert={alert}
               onClose={onCloseAlert}

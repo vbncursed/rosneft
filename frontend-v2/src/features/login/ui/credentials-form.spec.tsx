@@ -20,6 +20,17 @@ describe("CredentialsForm", () => {
     expect(screen.getByLabelText(/Password/)).toBeInTheDocument();
   });
 
+  // An !important font size beats index.css's touch rule (16px on
+  // pointer:coarse), and iOS then zooms the whole login into the field. The
+  // skin's own text-sm is already the mock's 14px.
+  it("leaves the fields' font size to the shared skin and the touch rule", () => {
+    render(<CredentialsForm {...props()} />);
+    for (const field of [screen.getByLabelText("Email or username"), screen.getByLabelText(/^Password/)]) {
+      expect(field.className).not.toMatch(/text-\[\d+px\]!/);
+      expect(field).toHaveClass("text-sm");
+    }
+  });
+
   it("reports typing in both fields", async () => {
     const onIdentifierChange = vi.fn();
     const onPasswordChange = vi.fn();

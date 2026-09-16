@@ -174,6 +174,8 @@ describe("RoleInspector", () => {
   it("closes", async () => {
     const onClose = vi.fn();
     render(<RoleInspector {...props({ onClose })} />);
+    // A 24px target (WCAG 2.5.8) that presses, not the bare 10px glyph.
+    expect(screen.getByRole("button", { name: "Close" })).toHaveClass("size-6", "active:scale-95");
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalledOnce();
   });

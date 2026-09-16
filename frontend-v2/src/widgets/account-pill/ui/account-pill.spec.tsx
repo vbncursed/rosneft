@@ -17,4 +17,10 @@ describe("AccountPill", () => {
     expect(screen.getByText("a.ivanova")).toBeInTheDocument();
     expect(screen.getByText("Company Owner")).toBeInTheDocument();
   });
+
+  // Answers the press, not only the release; the hover border eases with it.
+  it("presses on pointer-down", () => {
+    render(<AccountPill username="a.ivanova" roleTitle="Company Owner" />);
+    expect(screen.getByRole("link", { name: "Open account for a.ivanova" })).toHaveClass("transition-[border-color,scale]", "duration-150", "ease-out", "active:scale-[0.97]");
+  });
 });

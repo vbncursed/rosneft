@@ -62,6 +62,10 @@ describe("ModelLibraryScreen", () => {
     useModelLibrary.mockReturnValue(state({ status: "loading", cards: null }));
     const { unmount } = render(<ModelLibraryScreen />);
     expect(screen.getByRole("status", { name: "Loading models" })).toBeInTheDocument();
+    // The placeholder is shaped like the catalog screen it stands in for.
+    expect(
+      screen.getByRole("status", { name: "Loading models" }).querySelector('[style*="height: 280px"]'),
+    ).not.toBeNull();
     unmount();
     useModelLibrary.mockReturnValue(
       state({ status: "unavailable", cards: null, error: "You don't have permission to do this" }),

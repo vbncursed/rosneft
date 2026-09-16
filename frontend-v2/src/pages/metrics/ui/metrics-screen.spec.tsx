@@ -72,6 +72,10 @@ describe("MetricsScreen", () => {
     useMetrics.mockReturnValue(state({ status: "loading", results: {} }));
     const { unmount } = render(<MetricsScreen />);
     expect(screen.getByRole("status", { name: "Loading dashboard" })).toBeInTheDocument();
+    // The placeholder is shaped like the console screen it stands in for.
+    expect(
+      screen.getByRole("status", { name: "Loading dashboard" }).querySelector('[style*="height: 126px"]'),
+    ).not.toBeNull();
     unmount();
 
     useMetrics.mockReturnValue(

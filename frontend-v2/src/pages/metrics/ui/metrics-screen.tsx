@@ -1,7 +1,7 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { SECTIONS, type MetricsRange, type ServiceHealth } from "@/entities/metric";
 import { Callout } from "@/shared/ui/callout";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { PageSkeleton } from "@/shared/ui/skeleton";
 import {
   alertDetails,
   matchesPanel,
@@ -35,16 +35,7 @@ export function MetricsScreen() {
 
   if (s.status === "loading") {
     return (
-      <div
-        role="status"
-        aria-busy="true"
-        aria-label="Loading dashboard"
-        className="flex flex-col gap-3"
-      >
-        <Skeleton height="28px" width="30%" />
-        <Skeleton height="96px" />
-        <Skeleton height="96px" />
-      </div>
+      <PageSkeleton shape="console" label="Loading dashboard" />
     );
   }
   if (s.status === "unavailable") {

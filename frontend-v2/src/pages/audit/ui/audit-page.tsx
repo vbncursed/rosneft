@@ -191,7 +191,7 @@ export function AuditPage({
 
         {inspected ? (
           // Sticky so the record stays readable while the journal scrolls.
-          <div className="xl:sticky xl:top-6">
+          <div className="transition-opacity duration-150 starting:opacity-0 xl:sticky xl:top-6">
             <RecordInspector
               entry={inspected.entry}
               refs={inspected.refs}

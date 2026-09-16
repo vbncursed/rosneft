@@ -32,7 +32,7 @@ function LinkAction({ href, children, tone }: { href: string; children: string; 
     <a
       href={href}
       className={cx(
-        "w-fit rounded-control border px-3.5 py-[7px] font-mono text-[10px] uppercase tracking-[0.12em] no-underline",
+        "w-fit rounded-control border px-3.5 py-[7px] font-mono text-[10px] uppercase tracking-[0.12em] no-underline transition-[color,background-color,border-color,scale] duration-150 ease-out active:scale-[0.97]",
         tone === "accent"
           ? "border-accent bg-accent-soft text-accent hover:bg-accent/20"
           : "border-warn text-warn hover:bg-warn/10",
@@ -60,9 +60,10 @@ export function TwoFactorSection({ status, loading, onDisable }: TwoFactorSectio
         title="Two-factor authentication"
         count={
           loading ? undefined : (
-            // Not `dim`: at this size it is 3.35:1 dark / 3.09:1 light on its
-            // own ground, under the 4.5:1 floor, and off/unknown is exactly
-            // the state a reader must be able to read. `neutral` outlined is
+            // Not `dim`: it measured 3.35:1 dark / 3.09:1 light here until the
+            // token was raised to clear 4.5:1 (#81878e / #6b6f75), and it is
+            // still the quietest tier — off/unknown is exactly the state a
+            // reader must not skim past. `neutral` outlined is
             // text-muted over the panel — 6.82:1 / 5.69:1 — the same chrome
             // the posture card's off/unknown badge wears. The fill follows the
             // tone, as it does there: a filled neutral chip carries text-fg

@@ -31,6 +31,36 @@ describe("systemTheme", () => {
   });
 });
 
+const themeColors = () =>
+  [...document.head.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')].map(
+    (m) => m.content,
+  );
+
+function addThemeColorMeta() {
+  document.head.innerHTML =
+    '<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0e0f11">' +
+    '<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f4f1">';
+}
+
+// index.html pairs the browser chrome with the OS scheme; an explicit choice
+// in the app would leave a light bar over a dark page without this.
+describe("useTheme · the browser chrome follows the choice", () => {
+  afterEach(() => {
+    document.head.innerHTML = "";
+  });
+
+  it("paints both theme-color tags with the theme in effect", async () => {
+    addThemeColorMeta();
+    vi.stubGlobal("matchMedia", media(false));
+    const { useTheme } = await load();
+    const { result } = renderHook(() => useTheme());
+    expect(themeColors()).toEqual(["#0e0f11", "#0e0f11"]);
+
+    act(() => result.current.toggle());
+    expect(themeColors()).toEqual(["#f5f4f1", "#f5f4f1"]);
+  });
+});
+
 describe("useTheme", () => {
   it("starts from the OS preference when nothing was chosen before", async () => {
     vi.stubGlobal("matchMedia", media(true));

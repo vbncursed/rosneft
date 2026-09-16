@@ -65,6 +65,43 @@ describe("UploadModal", () => {
     expect(screen.getByRole("button", { name: "Upload panorama" })).toBeDisabled();
   });
 
+  // showModal() focuses the [autofocus] descendant, else the first focusable
+  // one — the × beside the heading. React's autoFocus writes no attribute, so
+  // the first thing to do is marked on the DOM.
+  it("opens on the drop zone, not on the way out", () => {
+    draw();
+    const zone = screen.getByText("Choose file").closest("label")!;
+    expect(zone).toHaveAttribute("autofocus");
+    expect(screen.getByLabelText("Title")).not.toHaveAttribute("autofocus");
+    expect(screen.getByRole("button", { name: "Close panorama upload" })).not.toHaveAttribute(
+      "autofocus",
+    );
+  });
+
+  it("opens on the title once a file is already chosen", () => {
+    draw({ upload: { stage: "picked", file: file() } });
+    expect(screen.getByLabelText("Title")).toHaveAttribute("autofocus");
+  });
+
+  // Reopened mid-upload the title is read-only: a caret in a field that
+  // takes no typing is not the first thing to do.
+  it("does not open on the title while it is read-only", () => {
+    draw({
+      title: "Pump house",
+      upload: { stage: "uploading", file: file(), percent: 38, label: "Reading EXIF · 38 %" },
+    });
+    expect(screen.getByLabelText("Title")).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("Title")).not.toHaveAttribute("autofocus");
+  });
+
+  it("presses its close button on pointer-down", () => {
+    draw();
+    expect(screen.getByRole("button", { name: "Close panorama upload" })).toHaveClass(
+      "active:scale-95",
+      "transition-[color,background-color,border-color,scale]",
+    );
+  });
+
   it("closes from the button named after the upload it abandons", async () => {
     const { onClose } = draw();
 
@@ -145,7 +182,11 @@ describe("UploadModal", () => {
       "aria-valuenow",
       "38",
     );
-    expect(screen.getByLabelText("Title")).toBeDisabled();
+    // Read-only, not disabled: a disabled field greys its value to the
+    // placeholder's colour, and the reader cannot tell the title was kept.
+    expect(screen.getByLabelText("Title")).not.toBeDisabled();
+    expect(screen.getByLabelText("Title")).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("Title")).toHaveValue("Pump house, south wall");
     expect(
       screen.getByRole("checkbox", { name: "Place from the photo's GPS when present" }),
     ).toBeDisabled();

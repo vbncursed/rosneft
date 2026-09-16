@@ -86,8 +86,8 @@ describe("TwoFactorSection · off", () => {
   });
 
   // Same badge, same state, same screen as the posture card's off/unknown one:
-  // `dim` at this size measures 3.35:1 dark / 3.09:1 light on its own ground,
-  // under the 4.5:1 floor. The outlined `neutral` chrome is text-muted over
+  // `dim` is the quietest tier (it measured 3.35:1 / 3.09:1 before the token
+  // was raised past 4.5:1). The outlined `neutral` chrome is text-muted over
   // the panel — 6.82:1 / 5.69:1 — and is exactly what the posture card wears.
   it("reports off in a tone a person can actually read", () => {
     render(<TwoFactorSection {...props({ status: OFF })} />);
@@ -127,5 +127,10 @@ describe("TwoFactorSection · loading", () => {
     expect(screen.getByRole("status", { name: "Loading two-factor status" })).toBeInTheDocument();
     expect(screen.queryByText("Two-factor status is unavailable right now.")).not.toBeInTheDocument();
     expect(screen.queryByText("unknown")).not.toBeInTheDocument();
+  });
+
+  it("presses its link actions on pointer-down", () => {
+    render(<TwoFactorSection {...props({ status: OFF })} />);
+    expect(screen.getByRole("link", { name: "Enable two-factor" })).toHaveClass("transition-[color,background-color,border-color,scale]", "duration-150", "ease-out", "active:scale-[0.97]");
   });
 });

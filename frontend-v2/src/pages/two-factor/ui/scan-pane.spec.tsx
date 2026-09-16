@@ -86,4 +86,11 @@ describe("ScanPane", () => {
     expect(await screen.findByText("Could not copy — select it and copy by hand")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Copied" })).not.toBeInTheDocument();
   });
+
+  // Answers the press, not only the release; the hover border eases with it.
+  it("presses its copy button on pointer-down", async () => {
+    render(<ScanPane secret={SECRET} otpauthUrl={URL} />);
+    await userEvent.click(screen.getByRole("button", { name: /Show manual key/ }));
+    expect(screen.getByRole("button", { name: "Copy" })).toHaveClass("transition-[border-color,scale]", "duration-150", "ease-out", "active:scale-[0.97]");
+  });
 });

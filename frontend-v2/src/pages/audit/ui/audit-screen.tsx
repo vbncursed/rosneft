@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Callout } from "@/shared/ui/callout";
 import { DatePicker } from "@/shared/ui/date-picker";
-import { Skeleton } from "@/shared/ui/skeleton";
+import { PageSkeleton } from "@/shared/ui/skeleton";
 import {
   activityOf,
   countersOf,
@@ -22,16 +22,7 @@ export function AuditScreen() {
 
   if (s.status === "loading") {
     return (
-      <div
-        role="status"
-        aria-busy="true"
-        aria-label="Loading journal"
-        className="flex flex-col gap-3"
-      >
-        <Skeleton height="28px" width="30%" />
-        <Skeleton height="96px" />
-        <Skeleton height="96px" />
-      </div>
+      <PageSkeleton shape="journal" label="Loading journal" />
     );
   }
   if (s.status === "unavailable" || !s.window) {

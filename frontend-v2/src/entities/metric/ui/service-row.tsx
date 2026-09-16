@@ -25,7 +25,7 @@ export function ServiceRow({ service, selected = false, onSelect }: ServiceRowPr
       aria-current={selected ? "true" : undefined}
       aria-label={service.name}
       className={cx(
-        "relative flex cursor-pointer items-center gap-3.5 overflow-hidden rounded-[11px] border py-3.5 pl-4.5 pr-4 transition-colors duration-150",
+        "relative flex cursor-pointer items-center gap-3.5 overflow-hidden rounded-[11px] border py-3.5 pl-4.5 pr-4 transition-[color,background-color,border-color,scale] duration-150 ease-out active:scale-[0.99]",
         down ? "border-bad bg-bad-soft" : selected ? "border-accent bg-accent-soft" : "border-line bg-panel hover:border-line-2",
       )}
     >

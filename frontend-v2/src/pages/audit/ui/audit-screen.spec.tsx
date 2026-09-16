@@ -65,6 +65,10 @@ describe("AuditScreen", () => {
     useAudit.mockReturnValue(state({ status: "loading", window: null }));
     const { unmount } = render(<AuditScreen />);
     expect(screen.getByRole("status", { name: "Loading journal" })).toBeInTheDocument();
+    // The placeholder is the journal's shape: no tile row, a list of events.
+    const loading = screen.getByRole("status", { name: "Loading journal" });
+    expect(loading.querySelector('[style*="height: 126px"]')).toBeNull();
+    expect(loading.querySelector('[style*="height: 72px"]')).not.toBeNull();
     unmount();
 
     useAudit.mockReturnValue(
@@ -195,6 +199,24 @@ describe("AuditScreen", () => {
     expect(screen.queryByText("No events match this filter.")).not.toBeInTheDocument();
     // Nothing was asked for; an export would still dump the whole journal.
     expect(screen.getByRole("button", { name: /Export/ })).toBeDisabled();
+  });
+
+  // The page's notice slot is a polite live region. A `tone="bad"` Callout
+  // mounts role="alert", which would nest an assertive region inside it —
+  // every notice this screen hands the slot must stay warn or accent.
+  it("hands the notice slot only notices that carry no alert role", () => {
+    for (const over of [
+      { unknownActor: "ghost", entries: [] },
+      { backwardsRange: true, entries: [] },
+      { entries: [] },
+    ]) {
+      useAudit.mockReturnValue(state(over));
+      const { unmount } = render(<AuditScreen />);
+      const slot = screen.getByRole("status");
+      expect(slot).not.toBeEmptyDOMElement();
+      expect(within(slot).queryByRole("alert")).not.toBeInTheDocument();
+      unmount();
+    }
   });
 
   it("answers an empty journal with a sentence rather than a blank frame", () => {

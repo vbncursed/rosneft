@@ -33,7 +33,7 @@ export function RoleChips({
               type="button"
               onClick={() => onRemove(role.slug)}
               aria-label={`Remove role ${role.title}`}
-              className="cursor-pointer border-none bg-transparent p-0 leading-none text-accent transition-colors duration-150 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="cursor-pointer border-none bg-transparent p-0 leading-none text-accent transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               ×
             </button>
@@ -45,7 +45,7 @@ export function RoleChips({
         <button
           type="button"
           onClick={onAdd}
-          className="cursor-pointer rounded-[7px] border border-dashed border-line-2 bg-transparent px-[11px] py-[5px] font-mono text-[11px] text-muted transition-colors duration-150 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="cursor-pointer rounded-[7px] border border-dashed border-line-2 bg-transparent px-[11px] py-[5px] font-mono text-[11px] text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           {addLabel}
         </button>

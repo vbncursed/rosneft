@@ -57,6 +57,10 @@ describe("TerritoryAccessScreen", () => {
     useTerritoryAccess.mockReturnValue(state({ status: "loading", territories: null }));
     const { unmount } = render(<TerritoryAccessScreen />);
     expect(screen.getByRole("status", { name: "Loading territories" })).toBeInTheDocument();
+    // The placeholder is shaped like the console screen it stands in for.
+    expect(
+      screen.getByRole("status", { name: "Loading territories" }).querySelector('[style*="height: 126px"]'),
+    ).not.toBeNull();
     unmount();
     useTerritoryAccess.mockReturnValue(state({ status: "unavailable", territories: null, error: "boom" }));
     render(<TerritoryAccessScreen />);

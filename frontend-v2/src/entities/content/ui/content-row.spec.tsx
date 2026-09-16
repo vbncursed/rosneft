@@ -109,4 +109,16 @@ describe("ContentRow", () => {
     // is left as aria-hidden.
     expect(container.querySelectorAll("span[aria-hidden]")).toHaveLength(1);
   });
+
+  // The whole card is the target: it answers the press, gently at this size.
+  it("presses on pointer-down", () => {
+    const { container } = render(<ContentRow item={item()} />);
+    const card = container.querySelector("article")!;
+    expect(card).toHaveClass(
+      "active:scale-[0.99]",
+      "transition-[color,background-color,border-color,scale]",
+      "ease-out",
+    );
+    expect(card).not.toHaveClass("transition-colors");
+  });
 });

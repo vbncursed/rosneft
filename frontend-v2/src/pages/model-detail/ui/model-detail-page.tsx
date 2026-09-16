@@ -53,7 +53,7 @@ export function ModelDetailPage({
               <a
                 href={assetUrl(base.hash)}
                 download={artifactFile(model.slug, 0)}
-                className="inline-flex items-center gap-[7px] rounded-control border border-line-2 bg-panel-2 px-3.5 py-2 text-[13px] text-fg no-underline hover:border-accent-line"
+                className="inline-flex items-center gap-[7px] rounded-control border border-line-2 bg-panel-2 px-3.5 py-2 text-[13px] text-fg no-underline transition-[border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-[0.97]"
               >
                 <Icon name="download" size={14} />
                 Download GLB

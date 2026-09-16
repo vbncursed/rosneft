@@ -32,12 +32,53 @@ describe("ModelPickerCard", () => {
 
   it("cannot be picked while unavailable, and says why in its label", async () => {
     const onSelect = vi.fn();
-    render(<ModelPickerCard model={MODEL} selected={false} onSelect={onSelect} unavailable />);
+    render(
+      <ModelPickerCard
+        model={MODEL}
+        selected={false}
+        onSelect={onSelect}
+        unavailable
+        meta="Not converted yet"
+      />,
+    );
 
-    const button = screen.getByRole("button", { name: /Tank 500 · n\/a/ });
+    const button = screen.getByRole("button", { name: /Tank 500.*Not converted yet/ });
     expect(button).toBeDisabled();
     await userEvent.click(button);
     expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  // The whole card at 45% opacity put its own reason below 2:1; the reason
+  // prints at full strength and the title steps down to dim instead.
+  it("keeps an unavailable card legible rather than fading it", () => {
+    const { container } = render(
+      <ModelPickerCard
+        model={MODEL}
+        selected={false}
+        onSelect={() => {}}
+        unavailable
+        meta="Not converted yet"
+      />,
+    );
+    expect(container.querySelector('[class*="opacity-"]')).toBeNull();
+    expect(screen.getByText("Tank 500").parentElement).toHaveClass("text-dim");
+    expect(screen.getByText("Not converted yet")).toHaveClass("text-muted");
+  });
+
+  // overflow-hidden on the card clipped an outset ring entirely.
+  it("draws its focus ring inside the card and presses when it can be picked", () => {
+    const { container, rerender } = render(
+      <ModelPickerCard model={MODEL} selected={false} onSelect={() => {}} />,
+    );
+    const button = screen.getByRole("button", { name: /Tank 500/ });
+    expect(button).toHaveClass("focus-visible:outline-offset-[-2px]");
+    expect(button).not.toHaveClass("focus-visible:outline-offset-2");
+    const card = container.firstElementChild!;
+    expect(card).toHaveClass("active:scale-[0.97]", "transition-[color,background-color,border-color,scale]");
+    expect(card).not.toHaveClass("transition-colors");
+
+    rerender(<ModelPickerCard model={MODEL} selected={false} onSelect={() => {}} unavailable />);
+    expect(container.firstElementChild).not.toHaveClass("active:scale-[0.97]");
   });
 
   it("shows a quantity stepper only once selected", async () => {

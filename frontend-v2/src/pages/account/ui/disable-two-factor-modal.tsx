@@ -19,6 +19,14 @@ export type DisableTwoFactorModalProps = {
  */
 export function DisableTwoFactorModal({ open, busy = false, onClose, onConfirm }: DisableTwoFactorModalProps) {
   const [code, setCode] = useState("");
+  const [wasOpen, setWasOpen] = useState(open);
+
+  // This wrapper stays mounted between opens; a code typed last time must not
+  // be waiting the next. Cleared on the way in, so the fade-out keeps its digits.
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setCode("");
+  }
 
   return (
     <Modal
