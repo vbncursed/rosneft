@@ -71,17 +71,9 @@ export function useViewerPanoramas({
   );
   const calibration = usePanoramaCalibration(view.editing, saveCalibration);
 
-  // One drop, two meanings. While an alignment is open the marker is the
-  // anchor being calibrated, so the release edits the draft the calibration
-  // card shows and `Save` / `Exit` keep meaning what they say; in the move
-  // sub-mode it is the write itself.
-  const { calibrating, setPosition } = calibration;
   const commitDrag = useCallback(
-    (id: number, position: Vec3) => {
-      if (calibrating) setPosition(position);
-      else void update(id, { position });
-    },
-    [calibrating, setPosition, update],
+    (id: number, position: Vec3) => void update(id, { position }),
+    [update],
   );
   const drag = usePanoramaDrag(commitDrag);
   // One source of truth for the sub-mode: the reducer owns it, so leaving it

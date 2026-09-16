@@ -85,20 +85,6 @@ describe("PanoramaMarker", () => {
     expect(label.className).toContain("-top-1.5");
   });
 
-  it("wears the calibration look: a 12 px filled ring and the chip that says to drag it", () => {
-    mount({ calibrating: true, moveMode: true, onGrab: vi.fn() });
-    const ring = screen.getByRole("button", { name: "Move panorama Control room" });
-    expect(ring.className).toContain("size-3");
-    expect(ring.className).toContain("bg-accent-soft");
-    expect(ring.className).not.toContain("size-2.5");
-    expect(screen.queryByText("Control room")).toBeNull();
-    const chip = screen.getByText("anchor · drag to move");
-    expect(chip.className).toContain("left-4");
-    expect(chip.className).toContain("-top-1.75");
-    expect(chip.className).toContain("border-accent");
-    expect(chip.className).toContain("rounded-control-sm");
-  });
-
   it("shows one cursor per state and lets the pointer through while dragging", () => {
     const classes = () => screen.getByRole("button").className.split(" ");
 

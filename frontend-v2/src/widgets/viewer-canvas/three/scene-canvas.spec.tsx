@@ -320,11 +320,9 @@ describe("SceneCanvas while a marker is being moved", () => {
     expect(seen.gltf.raycastable).toBe(true);
   });
 
-  it("makes it hittable while calibrating too — that drag has no move sub-mode", async () => {
-    // Calibration drags the anchor without `V`, and the drag controller
-    // projects the cursor through the mesh's own raycast.
+  it("leaves it inert while merely calibrating — no marker is dragged there", async () => {
     await mount({ ...inside(), panoramaOpacity: 0.5, calibrating: true });
-    expect(seen.gltf.raycastable).toBe(true);
+    expect(seen.gltf.raycastable).toBe(false);
   });
 });
 

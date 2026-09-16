@@ -124,13 +124,12 @@ describe("PanoramaScene", () => {
     expect(named(r, "PanoramaMarkersLayer")).toHaveLength(0);
   });
 
-  it("draws the anchors while the photo is being calibrated, the edited one draggable", async () => {
-    // The callout says "Drag panorama points on the model": calibration is
-    // aimed at the anchors, so they are what the viewport shows — even though
-    // the sphere is up and `activePanorama` is the draft.
+  it("draws the other anchors while the photo is being calibrated, and names the one to leave out", async () => {
+    // Calibration is aimed at the anchors, so they are what the viewport shows
+    // — all but the one the camera is standing on, which the layer drops.
     const r = await mount({ ...ready, opacity: 0.5, calibrating: true });
     const markers = named(r, "PanoramaMarkersLayer")[0];
-    expect(markers.instance.userData).toEqual({ ids: [7], moveMode: true, editingId: 7 });
+    expect(markers.instance.userData).toEqual({ ids: [7], moveMode: false, editingId: 7 });
   });
 
   it("hides the anchors while points are being picked, and when the reader turned them off", async () => {

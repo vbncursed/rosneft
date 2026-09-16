@@ -365,11 +365,12 @@ nothing the new one lacks.
     the viewport shows the **panorama anchors**, not the objects' viewport
     markers — the callout says "Drag panorama points on the model", and
     putting the scene into "inside a panorama" contradicted it. The anchor
-    being calibrated is the mock's 12 px accent-soft ring with the chip
-    `anchor · drag to move`; the other anchors are drawn for reference and
-    are not grabbable. Dragging it edits the calibration **draft**, so
-    `Save` still commits and `Exit` still discards, and the ring follows
-    the nudge buttons because the anchors are drawn from the draft too.
+    **being calibrated is not drawn**, and neither is the mock's
+    `anchor · drag to move` chip: `PanoramaRig` pins the camera onto that
+    anchor, so its marker's world point is the eye, drei's `Html` projects
+    it to `NaN` and parks the ring in the corner of the viewport. The nudge
+    row and `Set from camera` are what move it there. Every other anchor is
+    drawn and openable exactly as in the 3D view.
 14. User request after package B (2026-09-16): `Show in this panorama` is
     drawn on **every** row, calibrated or not. An anchor still at the origin
     is a valid place to stand, and an alignment can only be judged from
