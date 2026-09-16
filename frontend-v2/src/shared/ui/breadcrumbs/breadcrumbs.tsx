@@ -24,7 +24,7 @@ export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
           return (
             <li key={index} className="flex items-center gap-2">
               {item.href && !last ? (
-                <a href={item.href} className="text-muted no-underline hover:underline">
+                <a href={item.href} className="text-muted underline decoration-transparent transition-colors duration-150 hover:decoration-current">
                   {item.label}
                 </a>
               ) : (

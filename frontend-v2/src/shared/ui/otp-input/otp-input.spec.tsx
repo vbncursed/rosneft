@@ -113,4 +113,11 @@ describe("OtpInput · sizes", () => {
     // overflows a narrow panel.
     expect(first.className).toContain("min-w-0");
   });
+
+  it("focuses a cell instantly and eases only the disabled change", () => {
+    render(<Harness />);
+    const cls = cell(1).className.split(/\s+/);
+    expect(cls.filter((c) => /^transition/.test(c))).toEqual([]);
+    expect(cls).toContain("disabled:transition-[color,border-color]");
+  });
 });

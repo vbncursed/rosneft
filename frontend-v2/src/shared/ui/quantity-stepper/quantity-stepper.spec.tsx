@@ -47,4 +47,16 @@ describe("QuantityStepper", () => {
     expect(dec()).toBeDisabled();
     expect(inc()).toBeDisabled();
   });
+
+  it("presses an enabled 28px step to 0.95", () => {
+    render(<Harness />);
+    const cls = inc().className.split(/\s+/);
+    expect(cls).toEqual(
+      expect.arrayContaining([
+        "enabled:active:scale-95",
+        "transition-[color,background-color,border-color,scale]",
+        "ease-out",
+      ]),
+    );
+  });
 });

@@ -27,9 +27,11 @@ export type ToolRailItem = {
 
 export type ToolRailProps = { tools: ToolRailItem[]; label: string; className?: string };
 
+// A 30px tile presses to 0.95 — 3% is invisible at this size. An inert tile
+// does nothing, so it does not press either.
 const TILE: Record<NonNullable<ToolRailItem["state"]>, string> = {
-  active: "cursor-pointer bg-accent-soft text-accent",
-  idle: "cursor-pointer bg-transparent text-muted hover:text-fg",
+  active: "cursor-pointer bg-accent-soft text-accent active:scale-95",
+  idle: "cursor-pointer bg-transparent text-muted hover:text-fg active:scale-95",
   inert: "cursor-default bg-transparent text-dim",
 };
 
@@ -52,9 +54,10 @@ export function ToolRail({ tools, label, className }: ToolRailProps) {
           aria-label={name}
           aria-pressed={toggle ? state === "active" : undefined}
           aria-disabled={state === "inert" || undefined}
+          tabIndex={state === "inert" ? -1 : 0}
           onClick={state === "inert" ? undefined : onClick}
           className={cx(
-            "flex size-[30px] items-center justify-center rounded-[7px] border-none font-mono text-[12px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
+            "flex size-[30px] items-center justify-center rounded-[7px] border-none font-mono text-[12px] transition-[color,background-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
             TILE[state],
           )}
         >

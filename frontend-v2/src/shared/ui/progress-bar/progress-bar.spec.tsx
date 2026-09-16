@@ -59,6 +59,31 @@ describe("ProgressBar · thin", () => {
   });
 });
 
+// The fill used to animate `width` — layout and paint on every chunk. Now it is
+// a full-width bar scaled from its left edge: the compositor's job, at a
+// constant rate, and still under reduced motion.
+describe("ProgressBar · fill", () => {
+  for (const size of ["md", "lg"] as const) {
+    it(`scales a full-width fill from the left instead of resizing it (${size})`, () => {
+      render(<ProgressBar size={size} value={64} ariaLabel="p" />);
+      const fill = screen.getByRole("progressbar").firstElementChild as HTMLElement;
+      expect(fill.style.transform).toBe("scaleX(0.64)");
+      expect(fill.style.width).toBe("");
+      expect(fill.className.split(/\s+/)).toEqual(
+        expect.arrayContaining([
+          "w-full",
+          "origin-left",
+          "transition-transform",
+          "duration-300",
+          "ease-linear",
+          "motion-reduce:transition-none",
+        ]),
+      );
+      expect(fill.className).not.toContain("transition-[width]");
+    });
+  }
+});
+
 describe("ProgressBar · lg", () => {
   it("draws the mock's 8px framed track with the caption above it", () => {
     const { container } = render(

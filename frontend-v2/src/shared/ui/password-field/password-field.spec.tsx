@@ -86,4 +86,14 @@ describe("PasswordField", () => {
     await userEvent.click(screen.getByRole("button", { name: "Show password" }));
     expect(input().className).toContain("leading-5");
   });
+
+  it("fades the action's underline in and presses the reveal toggle", () => {
+    render(<PasswordField label="Password" action={{ label: "Generate", onClick: () => {} }} />);
+    expect(screen.getByRole("button", { name: "Generate" }).className.split(/\s+/)).toEqual(
+      expect.arrayContaining(["underline", "decoration-transparent", "hover:decoration-current", "transition-colors"]),
+    );
+    expect(screen.getByRole("button", { name: "Show password" }).className.split(/\s+/)).toEqual(
+      expect.arrayContaining(["enabled:active:scale-95", "transition-[color,scale]"]),
+    );
+  });
 });

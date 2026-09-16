@@ -47,4 +47,12 @@ describe("SearchField", () => {
       screen.getByRole("searchbox", { name: "Two" }).id,
     );
   });
+
+  // The decision for every field: the focus frame changes in the same frame.
+  it("switches its focus frame without a transition", () => {
+    render(<Harness />);
+    const frame = screen.getByRole("searchbox").parentElement!;
+    expect(frame.className).toContain("focus-within:border-accent");
+    expect(frame.className).not.toContain("transition");
+  });
 });

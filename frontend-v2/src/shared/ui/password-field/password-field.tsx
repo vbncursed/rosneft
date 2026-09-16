@@ -39,7 +39,7 @@ export function PasswordField({
             type="button"
             onClick={() => action.onClick(() => setShown(true))}
             disabled={disabled}
-            className="cursor-pointer border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.16em] text-accent hover:underline disabled:cursor-not-allowed disabled:opacity-55"
+            className="cursor-pointer border-none bg-transparent p-0 font-mono text-[10px] uppercase tracking-[0.16em] text-accent underline decoration-transparent transition-colors duration-150 hover:decoration-current disabled:cursor-not-allowed disabled:opacity-55"
           >
             {action.label}
           </button>
@@ -73,7 +73,7 @@ export function PasswordField({
           disabled={disabled}
           aria-pressed={shown}
           aria-label={shown ? "Hide password" : "Show password"}
-          className={`absolute right-3 top-1/2 flex -translate-y-1/2 cursor-pointer border-none bg-transparent p-0 transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-55 ${
+          className={`absolute right-3 top-1/2 flex -translate-y-1/2 cursor-pointer border-none bg-transparent p-0 transition-[color,scale] duration-150 ease-out enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-55 ${
             shown ? "text-accent" : "text-muted hover:text-fg"
           }`}
         >

@@ -9,9 +9,11 @@ export function controlClass({
   className,
 }: { mono?: boolean; invalid?: boolean; spaced?: boolean; className?: string } = {}) {
   return cx(
-    "w-full rounded-control border px-3 py-2.5 text-fg outline-none transition-colors duration-150",
+    "w-full rounded-control border px-3 py-2.5 text-fg outline-none",
+    // Focus lands in one frame — border and ring together. Only a disabled
+    // flip (an upload locking the form) eases.
     "focus:border-accent focus:ring-[3px] focus:ring-accent-soft",
-    "disabled:border-line disabled:text-dim disabled:opacity-60",
+    "disabled:border-line disabled:text-dim disabled:opacity-60 disabled:transition-[color,border-color,opacity] disabled:duration-150",
     spaced && "mt-[7px]",
     // Same size in both faces, not just the same line-height: a revealed
     // password switches font-family only, or two PasswordFields side by side

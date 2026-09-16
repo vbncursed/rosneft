@@ -1,5 +1,5 @@
 import { clsx as cx } from "clsx";
-import { useRef, type KeyboardEvent } from "react";
+import { useRef, useState, type FocusEvent, type KeyboardEvent } from "react";
 import { nextEnabled } from "@/shared/lib/roving";
 
 export type LodSwitcherProps = {
@@ -19,22 +19,34 @@ function nameOf(lod: number, target: number, shown: number | null): string {
   return `LOD ${lod}`;
 }
 
-/** The viewport's level picker; the loading target carries a dot, the level on screen an outline. */
+/**
+ * The viewport's level picker; the loading target carries a dot, the level on
+ * screen an inset ring. Neither changes a tile's size: the ring is a shadow and
+ * the dot sits out of the flow, so the group holds still through a download.
+ * The arrows only move focus — every level is a multi-megabyte download, so the
+ * choice is Space or Enter, which a focused button turns into a click. The Tab
+ * stop follows focus (roving tabindex) and falls back to the chosen level once
+ * focus leaves the group, so the group is always one stop.
+ */
 export function LodSwitcher({ levels, target, shown, onChange, label = "Level of detail", className }: LodSwitcherProps) {
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+  const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  const tabStop = focusIndex ?? levels.indexOf(target);
+  const onBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) setFocusIndex(null);
+  };
   const onKeyDown = (index: number, event: KeyboardEvent) => {
     const direction = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
     if (!direction) return;
     event.preventDefault();
-    const next = nextEnabled(levels.length, index, direction, () => false, true);
-    onChange(levels[next]);
-    buttons.current[next]?.focus();
+    buttons.current[nextEnabled(levels.length, index, direction, () => false, true)]?.focus();
   };
 
   return (
     <div
       role="radiogroup"
       aria-label={label}
+      onBlur={onBlur}
       className={cx("flex gap-1 rounded-[10px] border border-line-2 bg-panel p-1 shadow-elevation", className)}
     >
       {levels.map((lod, index) => {
@@ -52,18 +64,26 @@ export function LodSwitcher({ levels, target, shown, onChange, label = "Level of
             aria-checked={isTarget}
             aria-label={nameOf(lod, target, shown)}
             data-shown={onScreen || undefined}
-            tabIndex={isTarget ? 0 : -1}
+            tabIndex={index === tabStop ? 0 : -1}
+            onFocus={() => setFocusIndex(index)}
             onClick={() => onChange(lod)}
             onKeyDown={(e) => onKeyDown(index, e)}
             className={cx(
-              "flex cursor-pointer items-center gap-1.5 rounded-[6px] px-2.5 py-1 font-mono text-[10px] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
+              "relative flex cursor-pointer items-center rounded-[6px] border-none py-1 pl-2.5 pr-[21px] font-mono text-[10px] transition-[color,background-color,box-shadow,scale] duration-150 ease-out active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
               isTarget ? "bg-accent-soft" : "bg-transparent",
-              onScreen ? "border border-line-2" : "border-none",
+              onScreen && "ring-1 ring-inset ring-line-2",
               isTarget ? "font-semibold text-accent" : onScreen ? "text-fg" : "text-muted hover:text-fg",
             )}
           >
             LOD {lod}
-            {loading ? <span aria-hidden="true" className="size-[5px] rounded-full bg-accent" /> : null}
+            {/* Every tile reserves the dot's room on the right (21px = 6px gap +
+                5px dot + 10px padding), so no phase changes a tile's width. */}
+            {loading ? (
+              <span
+                aria-hidden="true"
+                className="absolute right-2.5 top-1/2 size-[5px] -translate-y-1/2 animate-breathe rounded-full bg-accent motion-reduce:animate-none"
+              />
+            ) : null}
           </button>
         );
       })}

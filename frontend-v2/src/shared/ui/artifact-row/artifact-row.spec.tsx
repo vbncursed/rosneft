@@ -25,4 +25,19 @@ describe("ArtifactRow", () => {
     render(<ArtifactRow {...props} file="a-very-long-file-name-that-does-not-fit-lod1.glb" />);
     expect(screen.getByText(/a-very-long/)).toHaveClass("truncate");
   });
+
+  it("eases its hover frame and presses when it is a link", () => {
+    render(<ArtifactRow tag="LOD0" file="a.glb" meta="m" size="1 MB" href="/api/assets/x" />);
+    const cls = screen.getByRole("link").className.split(/\s+/);
+    expect(cls).toEqual(
+      expect.arrayContaining([
+        "hover:border-line-2",
+        "transition-[border-color,scale]",
+        "duration-150",
+        "ease-out",
+        "active:scale-[0.99]",
+      ]),
+    );
+    expect(cls).not.toContain("transition-colors");
+  });
 });

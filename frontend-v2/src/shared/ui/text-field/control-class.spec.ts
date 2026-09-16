@@ -49,4 +49,12 @@ describe("controlClass", () => {
   it("appends the caller's own classes last", () => {
     expect(controlClass({ className: "pr-10" })).toContain("pr-10");
   });
+
+  // Focus is a signal, not a transition: the border used to ease for 150ms
+  // while the ring beside it snapped. Only a disabled flip eases now.
+  it("focuses instantly and eases only the disabled change", () => {
+    const cls = controlClass().split(/\s+/);
+    expect(cls.filter((c) => /^transition/.test(c))).toEqual([]);
+    expect(cls).toContain("disabled:transition-[color,border-color,opacity]");
+  });
 });

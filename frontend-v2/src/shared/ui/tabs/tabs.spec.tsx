@@ -115,4 +115,17 @@ describe("Tabs, segments variant", () => {
       "true",
     );
   });
+
+  it("presses an enabled tab and animates the scale with the colours", () => {
+    render(<Harness />);
+    const cls = screen.getByRole("tab", { name: "Placements" }).className.split(/\s+/);
+    expect(cls).toEqual(
+      expect.arrayContaining([
+        "enabled:active:scale-[0.97]",
+        "transition-[color,background-color,border-color,scale]",
+        "ease-out",
+      ]),
+    );
+    expect(cls).not.toContain("transition-colors");
+  });
 });

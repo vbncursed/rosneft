@@ -32,6 +32,23 @@ const TEXT: Record<ProgressTone, string> = {
   bad: "text-bad",
 };
 
+/**
+ * A full-width bar scaled from its left edge rather than a resized one: a
+ * transform is the compositor's, a width is layout and paint on every chunk.
+ * Linear, because progress is constant motion; still under reduced motion.
+ */
+function Fill({ pct, tone }: { pct: number; tone: ProgressTone }) {
+  return (
+    <div
+      className={cx(
+        "h-full w-full origin-left transition-transform duration-300 ease-linear motion-reduce:transition-none",
+        FILL[tone],
+      )}
+      style={{ transform: `scaleX(${pct / 100})` }}
+    />
+  );
+}
+
 export function ProgressBar({
   value,
   tone = "accent",
@@ -74,10 +91,7 @@ export function ProgressBar({
             aria-valuenow={pct}
             className="h-2 overflow-hidden rounded-full border border-line bg-panel-2"
           >
-            <div
-              className={cx("h-full transition-[width] duration-300", FILL[tone])}
-              style={{ width: `${pct}%` }}
-            />
+            <Fill pct={pct} tone={tone} />
           </div>
         )}
       </div>
@@ -102,10 +116,7 @@ export function ProgressBar({
         {indeterminate ? (
           <div className="h-full w-2/5 animate-indeterminate bg-linear-to-r from-transparent via-accent to-transparent motion-reduce:animate-none motion-reduce:w-full motion-reduce:opacity-40" />
         ) : (
-          <div
-            className={cx("h-full transition-[width] duration-300", FILL[tone])}
-            style={{ width: `${pct}%` }}
-          />
+          <Fill pct={pct} tone={tone} />
         )}
       </div>
       {label || detail ? (

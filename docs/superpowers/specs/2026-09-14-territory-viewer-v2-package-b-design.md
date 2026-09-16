@@ -413,6 +413,15 @@ nothing the new one lacks.
     is a valid place to stand, and an alignment can only be judged from
     inside the photograph. The `not calibrated yet` hint stays — above the
     button, in the same column — as a warning rather than a locked door.
+15. Found in the design-engineering review (2026-09-16): **the LOD switcher's
+    arrows only move focus.** Every level is a multi-megabyte download, so the
+    choice is Space or Enter; the group stays one Tab stop (roving tabindex that
+    falls back to the chosen level when focus leaves). The group keeps
+    `role="radiogroup"`, where the WAI-ARIA pattern selects on arrow.
+16. Same review: **no tile changes size between phases.** The level on screen
+    is an inset ring rather than a border, and the loading dot sits in a
+    right-hand reserve every tile carries (6 px gap, as the mock draws it), so
+    at rest a label reads about 5 px left of centre.
 
 ## 7. Not in this package
 

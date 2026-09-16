@@ -145,4 +145,20 @@ describe("Segmented · xs", () => {
     await userEvent.keyboard("{ArrowRight}");
     expect(onChange).toHaveBeenCalledWith("rotate");
   });
+
+  // jsdom computes no styles, so the press and the HUD's one focus offset are
+  // pinned by their tokens. A disabled segment does not press.
+  it("presses an enabled segment and focuses with the 2px offset", () => {
+    render(<Harness />);
+    const cls = screen.getByRole("radio", { name: /Rotate/ }).className.split(/\s+/);
+    expect(cls).toEqual(
+      expect.arrayContaining([
+        "enabled:active:scale-[0.97]",
+        "transition-[color,background-color,scale]",
+        "ease-out",
+        "focus-visible:outline-offset-2",
+      ]),
+    );
+    expect(cls).not.toContain("focus-visible:outline-offset-1");
+  });
 });

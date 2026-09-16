@@ -36,4 +36,26 @@ describe("Switch", () => {
     await userEvent.click(screen.getByRole("switch"));
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  // The knob used to jump through the track's flex alignment while the ground
+  // eased; now it slides, and under reduced motion only its colour eases.
+  it("slides the knob on a transform instead of re-aligning the track", () => {
+    const { rerender } = render(<Switch checked={false} label="Snap to surface" onChange={vi.fn()} />);
+    const track = () => screen.getByRole("switch").className.split(/\s+/);
+    const knob = () => screen.getByRole("switch").firstElementChild!.className.split(/\s+/);
+    expect(track()).toContain("justify-start");
+    expect(knob()).not.toContain("translate-x-4");
+    expect(knob()).toEqual(
+      expect.arrayContaining([
+        "transition-[translate,background-color]",
+        "ease-out",
+        "motion-reduce:transition-[background-color]",
+      ]),
+    );
+
+    rerender(<Switch checked label="Snap to surface" onChange={vi.fn()} />);
+    expect(track()).toContain("justify-start");
+    expect(track()).not.toContain("justify-end");
+    expect(knob()).toContain("translate-x-4");
+  });
 });

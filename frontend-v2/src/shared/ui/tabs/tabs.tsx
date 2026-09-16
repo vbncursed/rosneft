@@ -26,8 +26,9 @@ export type TabsProps<T extends string> = {
   className?: string;
 };
 
+// Focus ring plus press feedback, shared by both variants.
 const FOCUS =
-  "transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "transition-[color,background-color,border-color,scale] duration-150 ease-out enabled:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 // One property, one place per state: clsx concatenates, so the two variants
 // carry their own complete base string rather than layering on a shared one.

@@ -2,8 +2,11 @@ import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentPropsWithRef, ReactNode } from "react";
 import { clsx as cx } from "clsx";
 
+// Tailwind v4's `scale-*` writes the `scale` property, not `transform`, so the
+// transition list names `scale`. The press depth lives on `size` (one property,
+// one place): 0.97 for a control, 0.95 for the 24px icon, where 3% is invisible.
 const button = cva(
-  "inline-flex cursor-pointer items-center justify-center gap-2 border transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-55",
+  "relative inline-flex cursor-pointer items-center justify-center border transition-[color,background-color,border-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed",
   {
     variants: {
       variant: {
@@ -22,7 +25,12 @@ const button = cva(
         pill: "rounded-full font-mono uppercase",
         icon: "shrink-0 p-0 font-sans",
       },
-      size: { sm: "", md: "", lg: "" },
+      size: {
+        xs: "enabled:active:scale-95",
+        sm: "enabled:active:scale-[0.97]",
+        md: "enabled:active:scale-[0.97]",
+        lg: "enabled:active:scale-[0.97]",
+      },
     },
     compoundVariants: [
       { shape: "control", size: "sm", class: "rounded-control-sm px-3 py-1.5 text-xs font-semibold" },
@@ -36,6 +44,8 @@ const button = cva(
       { shape: "pill", size: "sm", class: "px-3.5 py-1.5 text-[10px] tracking-[0.14em]" },
       { shape: "pill", size: "md", class: "px-[18px] py-2.5 text-[11px] tracking-[0.18em]" },
       { shape: "pill", size: "lg", class: "px-6 py-3 text-xs tracking-[0.18em]" },
+      // xs exists for the icon shape alone: the viewer's 24px glyph buttons.
+      { shape: "icon", size: "xs", class: "size-6 rounded-[6px] text-xs" },
       { shape: "icon", size: "sm", class: "size-8 rounded-control text-[13px]" },
       { shape: "icon", size: "md", class: "size-9 rounded-control text-[15px]" },
       { shape: "icon", size: "lg", class: "size-11 rounded-control-lg text-base" },
@@ -65,15 +75,15 @@ type Variants = VariantProps<typeof button>;
 // plain prop, and the props type has to admit it or `{...rest}` never carries
 // it to the element. The guided tour focuses its own Next button through it.
 type BaseProps = Omit<ComponentPropsWithRef<"button">, "children"> &
-  Variants & {
-    /** Swaps the label for a spinner and blocks further clicks. */
+  Omit<Variants, "shape" | "size"> & {
+    /** Covers the label with a spinner, keeping the width, and blocks further clicks. */
     loading?: boolean;
   };
 
 export type ButtonProps =
-  | (BaseProps & { shape?: "control" | "pill"; children: ReactNode })
+  | (BaseProps & { shape?: "control" | "pill"; size?: "sm" | "md" | "lg"; children: ReactNode })
   // An icon-only button carries no text, so it has to name itself.
-  | (BaseProps & { shape: "icon"; children: ReactNode; "aria-label": string });
+  | (BaseProps & { shape: "icon"; size?: "xs" | "sm" | "md" | "lg"; children: ReactNode; "aria-label": string });
 
 export function Button({
   variant,
@@ -91,17 +101,28 @@ export function Button({
       type={type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={cx(button({ variant, shape, size }), className)}
+      // Only a disabled button dims; a loading one is busy, not unavailable.
+      className={cx(button({ variant, shape, size }), disabled && !loading && "opacity-55", className)}
       {...rest}
     >
       {loading ? (
-        <span
-          data-testid="button-spinner"
-          aria-hidden="true"
-          className="size-[11px] animate-spin rounded-full border-2 border-current border-t-transparent motion-reduce:animate-none"
-        />
+        <span aria-hidden="true" className="absolute inset-0 grid place-items-center">
+          <span
+            data-testid="button-spinner"
+            className="size-[11px] animate-spin rounded-full border-2 border-current border-t-transparent [animation-duration:700ms] motion-reduce:[animation-duration:2s]"
+          />
+        </span>
       ) : null}
-      {children}
+      {/* The label stays in the flow while hidden, so the button keeps its width;
+          the blur blends the swap into one change instead of two overlapping. */}
+      <span
+        className={cx(
+          "inline-flex items-center justify-center gap-2 transition-[opacity,filter] duration-150 ease-out",
+          loading && "opacity-0 blur-[2px]",
+        )}
+      >
+        {children}
+      </span>
     </button>
   );
 }

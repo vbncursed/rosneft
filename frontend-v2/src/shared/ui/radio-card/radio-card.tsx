@@ -55,8 +55,10 @@ export function RadioCards<T extends string>({
             <span
               aria-hidden="true"
               className={cx(
-                "mt-0.5 size-[13px] shrink-0 rounded-full bg-panel peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent",
-                active ? "border-4 border-accent" : "border border-line-2",
+                "mt-0.5 size-[13px] shrink-0 rounded-full bg-panel transition-[box-shadow] duration-150 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent",
+                // The ring is an inset shadow, not a border: a 1px→4px border
+                // cannot ease, and it moved nothing but still repainted a box.
+                active ? "shadow-[inset_0_0_0_4px_var(--accent)]" : "shadow-[inset_0_0_0_1px_var(--line-2)]",
               )}
             />
             <span className="min-w-0 flex-1">

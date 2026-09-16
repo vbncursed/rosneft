@@ -74,4 +74,19 @@ describe("RadioCards", () => {
     const names = screen.getAllByRole("radio").map((r) => (r as HTMLInputElement).name);
     expect(new Set(names).size).toBe(2);
   });
+
+  // The ring was a border that jumped from 1px to 4px; as an inset shadow it
+  // eases with the card around it.
+  it("draws the ring as an inset shadow that eases", () => {
+    render(<Harness />);
+    const ring = (title: string) =>
+      screen.getByText(title).closest("label")!.querySelector("span[aria-hidden]")!.className.split(/\s+/);
+    expect(ring("Assigned people")).toEqual(
+      expect.arrayContaining(["shadow-[inset_0_0_0_4px_var(--accent)]", "transition-[box-shadow]"]),
+    );
+    expect(ring("Whole company")).toContain("shadow-[inset_0_0_0_1px_var(--line-2)]");
+    for (const t of ["Assigned people", "Whole company"]) {
+      expect(ring(t).filter((c) => /^border/.test(c))).toEqual([]);
+    }
+  });
 });

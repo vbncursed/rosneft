@@ -88,8 +88,11 @@ export function CatalogCard({
   // The article's own onClick handles the rest of the card; without stopping
   // here the click would bubble there too and fire onOpen a second time.
   const stop = (event: { stopPropagation: () => void }) => event.stopPropagation();
+  // The card is one target: a hover anywhere lights the title (group-hover)
+  // and, on a neutral card, the frame — a converting or failed card keeps its tone.
+  const openable = Boolean(onOpen || href);
   const interactive =
-    "m-0 border-0 bg-transparent p-0 text-left text-inherit no-underline [font:inherit] hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+    "m-0 border-0 bg-transparent p-0 text-left text-inherit no-underline [font:inherit] transition-colors duration-150 group-hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
   const titleClass = cx(
     "m-0 font-semibold",
     sm ? "truncate text-[14px] tracking-[-0.01em]" : "text-[18px] tracking-[-0.015em]",
@@ -102,9 +105,10 @@ export function CatalogCard({
       onMouseEnter={onPreload}
       onFocus={onPreload}
       className={cx(
-        "overflow-hidden border bg-panel",
+        "group overflow-hidden border bg-panel transition-[border-color,scale] duration-150 ease-out",
         TONE[tone],
-        onOpen && "cursor-pointer",
+        openable && tone === "neutral" && "hover:border-line-2",
+        onOpen && "cursor-pointer active:scale-[0.99]",
         sm ? "rounded-[12px]" : "rounded-[14px]",
         className,
       )}

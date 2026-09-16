@@ -16,4 +16,14 @@ describe("CollapsedRail", () => {
     render(<CollapsedRail label="Overlays" expandName="Expand Overlays panel" onExpand={vi.fn()} />);
     expect(screen.queryByText(/placed/)).toBeNull();
   });
+
+  // jsdom computes no styles, so the press is pinned by its tokens.
+  it("presses the 28px expand button to 0.95 and animates the scale", () => {
+    render(<CollapsedRail label="Overlays" expandName="Expand Overlays panel" onExpand={vi.fn()} />);
+    const cls = screen.getByRole("button", { name: "Expand Overlays panel" }).className.split(/\s+/);
+    expect(cls).toEqual(
+      expect.arrayContaining(["active:scale-95", "transition-[color,background-color,border-color,scale]", "ease-out"]),
+    );
+    expect(cls).not.toContain("transition-colors");
+  });
 });
