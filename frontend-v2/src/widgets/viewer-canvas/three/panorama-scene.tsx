@@ -70,12 +70,13 @@ export default function PanoramaScene({
           standing on one of them, and while picking points they would eat the
           click meant for the surface. Calibration is the exception — the
           callout asks the operator to drag the points on the model, so they
-          are drawn over the ghosted sphere and the edited one is grabbable. */}
+          are drawn over the ghosted sphere — all but the one being aligned,
+          which the camera is standing on. */}
       {(!activePanorama || calibrating) && !pointMode && showMarkers ? (
         <PanoramaMarkersLayer
           panoramas={panoramas}
           onActivate={onActivate}
-          moveMode={move.active || calibrating}
+          moveMode={move.active}
           editingId={calibrating ? (activePanorama?.id ?? null) : null}
           draggingId={move.draggingId}
           livePos={move.livePos}

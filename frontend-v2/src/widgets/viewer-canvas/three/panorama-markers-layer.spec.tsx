@@ -44,13 +44,14 @@ describe("PanoramaMarkersLayer", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("hands only the calibrated anchor the grab and the chip", () => {
-    // Calibration edits one capture; the other anchors are drawn for
-    // reference and must not be draggable behind its back.
-    mount({ moveMode: true, editingId: 2, onGrab: vi.fn() });
-    expect(screen.getByRole("button", { name: "Move panorama Panorama 2" })).toBeInTheDocument();
+  it("does not draw the anchor the reader is standing on while it is calibrated", () => {
+    // The camera is pinned onto that anchor, so its marker would project onto
+    // the eye and land in the corner of the viewport. The nudge row and
+    // `Set from camera` are what move it; the rest stay for reference.
+    mount({ editingId: 2 });
+    expect(screen.queryByRole("button", { name: /Panorama 2/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open panorama Panorama 1" })).toBeInTheDocument();
-    expect(screen.getAllByText("anchor · drag to move")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Open panorama Panorama 3" })).toBeInTheDocument();
   });
 
   it("marks only the grabbed one as dragging, and the rest stay grabbable", () => {

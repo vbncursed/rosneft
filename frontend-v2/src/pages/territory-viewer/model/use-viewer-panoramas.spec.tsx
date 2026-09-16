@@ -120,24 +120,6 @@ describe("useViewerPanoramas", () => {
     expect(list.update).toHaveBeenCalledWith(1, { position: { x: 4, y: 0, z: -1 } });
   });
 
-  it("edits the calibration draft on a drop, and writes nothing to the server", () => {
-    // Save commits the alignment and Exit discards it; a drag that PUT on
-    // release would make both of those buttons a lie.
-    const { result } = mount(modeStub({ editingPanoramaId: 1 }));
-    act(() => result.current.calibration.onStart());
-    act(() => result.current.drag.begin(1));
-    act(() => result.current.drag.move({ x: 4, y: 0, z: -1 }));
-    act(() => result.current.drag.end());
-    expect(list.update).not.toHaveBeenCalled();
-    expect(result.current.calibration.draft?.position).toEqual({ x: 4, y: 0, z: -1 });
-
-    act(() => result.current.calibration.onSave());
-    expect(list.update).toHaveBeenCalledWith(1, {
-      position: { x: 4, y: 0, z: -1 },
-      yawOffset: 0.1,
-    });
-  });
-
   it("drops an unfinished drag when the reducer leaves move mode", () => {
     // One source of truth: `move` is the reducer's, and the drag hook must not
     // keep a half-dragged marker alive behind a sub-mode that is already over.

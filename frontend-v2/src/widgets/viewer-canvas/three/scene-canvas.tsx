@@ -174,10 +174,7 @@ export default function SceneCanvas({
               retryVersion={retryVersion}
               // A marker drag projects the cursor onto the territory, which
               // needs the meshes hittable for the same reason point-picking does.
-              // Calibration drags the same marker without entering the move
-              // sub-mode, and the drag controller projects through the mesh's
-              // own raycast.
-              raycastable={pointMode || move.active || calibrating}
+              raycastable={pointMode || move.active}
               groupRef={territoryRef}
               onReport={onLod}
             />
