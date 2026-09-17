@@ -135,14 +135,20 @@ function PlaceObjectsBody({
         label="Search the model library"
         placeholder="Search the model library"
       />
-      <ModelPicker
-        models={models}
-        columns={4}
-        thumb="band"
-        emptyCopy="Nothing matches your search."
-        selectedSlug={selectedSlug}
-        onSelect={setSelectedSlug}
-      />
+      {/* The grid is the one part that scrolls. The dialog is overflow-visible
+          (Modal's dropdown rule) under the UA's viewport max-height, so a long
+          library spilled past its frame with nothing to scroll; min-h-0 lets
+          this flex child shrink to what is left, keeping search and footer. */}
+      <div className="min-h-0 overflow-y-auto">
+        <ModelPicker
+          models={models}
+          columns={4}
+          thumb="band"
+          emptyCopy="Nothing matches your search."
+          selectedSlug={selectedSlug}
+          onSelect={setSelectedSlug}
+        />
+      </div>
     </Modal>
   );
 }
