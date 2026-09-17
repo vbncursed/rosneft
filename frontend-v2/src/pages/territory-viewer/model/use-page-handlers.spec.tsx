@@ -41,7 +41,7 @@ const deps = (over: { documents?: DocumentParts; placements?: ResolvedPlacement[
   };
   const documents = over.documents ?? IDLE_DOCUMENTS;
   return {
-    spies: { mode, editor, panel, form, documents },
+    spies: { mode, editor, panel, form, documents, measure },
     deps: {
       mode,
       measure,
@@ -60,6 +60,14 @@ const mount = (over?: Parameters<typeof deps>[0]) => {
 };
 
 describe("usePageHandlers", () => {
+  it("Clear wipes every chain until the grants are wired", () => {
+    // M6 hands keepSaved from measurement:delete; until then Clear keeps
+    // today's behaviour, and the click event must not reach clear().
+    const { result, spies } = mount();
+    act(() => result.current.on.onClearMeasurements());
+    expect(spies.measure.clear).toHaveBeenCalledWith(false);
+  });
+
   it("starts with LOD 0 asked for and nothing else pending", () => {
     const { result } = mount();
     expect(result.current.view).toMatchObject({

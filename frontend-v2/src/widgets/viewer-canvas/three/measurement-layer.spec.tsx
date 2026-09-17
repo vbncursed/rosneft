@@ -24,6 +24,7 @@ const open: Chain = {
     { x: 1, y: 0, z: 1 },
   ],
   closed: false,
+  sync: "local",
 };
 
 const draw = (chains: Chain[], activeChainId: number | null) =>
@@ -60,7 +61,7 @@ describe("MeasurementLayer", () => {
   });
 
   it("withholds the closer from a chain with nothing to close into a loop", () => {
-    draw([{ id: 1, points: [{ x: 0, y: 0, z: 0 }], closed: false }], 1);
+    draw([{ id: 1, points: [{ x: 0, y: 0, z: 0 }], closed: false, sync: "local" }], 1);
     expect(screen.queryByRole("button", { name: "Close measurement chain" })).toBeNull();
   });
 

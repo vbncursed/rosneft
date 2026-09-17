@@ -9,6 +9,7 @@ export {
   decodeSegmentId,
   removeSegment,
   type Chain,
+  type ChainSync,
 } from "./model/chain";
 export { formatDistance } from "./model/distance";
 export { computeUnitRatio } from "./model/unit-ratio";
@@ -17,4 +18,6 @@ export {
   initialMeasurementState,
   type MeasurementState,
   type MeasurementAction,
+  type StoredChain,
 } from "./model/measurement-reducer";
+export { syncPlan, canEditSaved, type SavedChain, type SyncGrants, type SyncOp } from "./model/sync-plan";

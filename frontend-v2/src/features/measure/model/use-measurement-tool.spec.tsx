@@ -71,8 +71,17 @@ describe("useMeasurementTool", () => {
   it("clear wipes the chains", () => {
     const { result } = renderHook(() => useMeasurementTool());
     act(() => result.current.click(p(0)));
-    act(() => result.current.clear());
+    act(() => result.current.click(p(1)));
+    act(() => result.current.clear(false));
     expect(result.current.chains).toEqual([]);
+  });
+
+  it("clear(true) keeps the saved chains", () => {
+    const { result } = renderHook(() => useMeasurementTool());
+    act(() => result.current.seed([{ serverId: 7, points: [p(0), p(1)], closed: false }]));
+    act(() => result.current.click(p(5)));
+    act(() => result.current.clear(true));
+    expect(result.current.chains.map((c) => c.serverId)).toEqual([7]);
   });
 
   it("removeChain drops the named chain", () => {
@@ -87,6 +96,36 @@ describe("useMeasurementTool", () => {
     for (const pt of [p(0), p(1), p(2), p(3)]) act(() => result.current.click(pt));
     act(() => result.current.removeSegment(1, 1));
     expect(result.current.chains.length).toBe(2);
+  });
+
+  it("seed draws the stored chains as saved", () => {
+    const { result } = renderHook(() => useMeasurementTool());
+    act(() => result.current.seed([{ serverId: 7, points: [p(0), p(1)], closed: false }]));
+    expect(result.current.chains).toEqual([
+      { id: 1, serverId: 7, points: [p(0), p(1)], closed: false, sync: "saved" },
+    ]);
+  });
+
+  it("saving, saved and failed move a chain along", () => {
+    const { result } = renderHook(() => useMeasurementTool());
+    act(() => result.current.click(p(0)));
+    act(() => result.current.click(p(1)));
+    act(() => result.current.cancelChain());
+    act(() => result.current.saving(1));
+    expect(result.current.chains[0].sync).toBe("saving");
+    act(() => result.current.failed(1));
+    expect(result.current.chains[0].sync).toBe("failed");
+    act(() => result.current.saved(1, 9));
+    expect(result.current.chains[0]).toMatchObject({ sync: "saved", serverId: 9 });
+  });
+
+  it("restore puts a removed chain back", () => {
+    const { result } = renderHook(() => useMeasurementTool());
+    act(() => result.current.seed([{ serverId: 7, points: [p(0), p(1)], closed: false }]));
+    const chain = result.current.chains[0];
+    act(() => result.current.removeChain(1));
+    act(() => result.current.restore(chain));
+    expect(result.current.chains).toEqual([chain]);
   });
 
   it("every dispatcher keeps a stable identity across renders", () => {
@@ -105,6 +144,11 @@ describe("useMeasurementTool", () => {
       "clear",
       "removeChain",
       "removeSegment",
+      "seed",
+      "saving",
+      "saved",
+      "failed",
+      "restore",
     ] as const) {
       expect(result.current[key], `${key} changed identity`).toBe(before[key]);
     }

@@ -21,7 +21,7 @@ function triangle(): MeasurementState {
 test("the first click opens a chain and takes the next id", () => {
   const s = click(initialMeasurementState, p(1, 2, 3));
   assert.equal(s.chains.length, 1);
-  assert.deepEqual(s.chains[0], { id: 1, points: [p(1, 2, 3)], closed: false });
+  assert.deepEqual(s.chains[0], { id: 1, points: [p(1, 2, 3)], closed: false, sync: "local" });
   assert.equal(s.activeChainId, 1);
   assert.equal(s.nextId, 2);
 });
@@ -72,7 +72,7 @@ test("cancelChain drops the active id but keeps the points drawn so far", () => 
 test("toggle turns measure mode on and off, dropping the active chain on the way out", () => {
   const on = reduce(initialMeasurementState, { type: "toggle" });
   assert.equal(on.measureMode, true);
-  const drawing = click(on, p(0));
+  const drawing = click(click(on, p(0)), p(1));
   const off = reduce(drawing, { type: "toggle" });
   assert.equal(off.measureMode, false);
   assert.equal(off.activeChainId, null);
@@ -86,7 +86,7 @@ test("exit leaves measure mode regardless of the current mode", () => {
 });
 
 test("clear wipes the chains but keeps the id counter monotonic", () => {
-  const s = reduce(triangle(), { type: "clear" });
+  const s = reduce(triangle(), { type: "clear", keepSaved: false });
   assert.deepEqual(s.chains, []);
   assert.equal(s.activeChainId, null);
   assert.equal(s.nextId, 2, "ids must not be reused after a clear");
@@ -141,4 +141,130 @@ test("an unknown action returns the same state object", () => {
   const s = triangle();
   // @ts-expect-error — exercising the default branch a bad dispatch would hit.
   assert.equal(reduce(s, { type: "nope" }), s);
+});
+
+// --- finishing a chain drops it when it has fewer than two points ---
+
+const onePoint = () => ({ ...click(initialMeasurementState, p(0)), measureMode: true });
+
+for (const action of [
+  { type: "closeActive" },
+  { type: "cancelChain" },
+  { type: "toggle" },
+  { type: "exit" },
+] as const) {
+  test(`${action.type} drops an active chain of one point — it has no segment to keep`, () => {
+    const s = reduce(onePoint(), action);
+    assert.equal(s.activeChainId, null);
+    assert.deepEqual(s.chains, []);
+  });
+}
+
+test("finishing keeps an active chain of two points and every other chain", () => {
+  const two = click(click(initialMeasurementState, p(0)), p(1));
+  const finished = reduce(two, { type: "cancelChain" });
+  const withStray = reduce(click(finished, p(5)), { type: "exit" });
+  assert.deepEqual(withStray.chains.map((c) => c.id), [1]);
+});
+
+test("toggling measure mode on does not finish anything", () => {
+  const s = { ...onePoint(), measureMode: false };
+  assert.equal(reduce(s, { type: "toggle" }).chains.length, 1);
+});
+
+// --- where a chain stands with the server ---
+
+const pt3 = [p(0), p(1), p(2)];
+const seeded = reduce(initialMeasurementState, {
+  type: "seed",
+  chains: [
+    { serverId: 7, points: pt3, closed: false },
+    { serverId: 8, points: pt3, closed: true },
+  ],
+});
+
+test("seed hands the stored chains local ids and marks them saved", () => {
+  assert.deepEqual(seeded.chains, [
+    { id: 1, serverId: 7, points: pt3, closed: false, sync: "saved" },
+    { id: 2, serverId: 8, points: pt3, closed: true, sync: "saved" },
+  ]);
+  assert.equal(seeded.nextId, 3);
+});
+
+test("seed replaces stored chains and keeps local ones and the active chain", () => {
+  const drawing = click(click(seeded, p(9)), p(8));
+  const s = reduce(drawing, { type: "seed", chains: [{ serverId: 8, points: pt3, closed: true }] });
+  assert.deepEqual(s.chains.map((c) => [c.id, c.serverId ?? null]), [[3, null], [4, 8]]);
+  assert.equal(s.activeChainId, 3);
+  assert.equal(s.nextId, 5);
+});
+
+test("saving, saved and failed move one chain along", () => {
+  const local = reduce(click(click(initialMeasurementState, p(0)), p(1)), { type: "cancelChain" });
+  const saving = reduce(local, { type: "saving", id: 1 });
+  assert.equal(saving.chains[0].sync, "saving");
+  const saved = reduce(saving, { type: "saved", id: 1, serverId: 55 });
+  assert.deepEqual([saved.chains[0].sync, saved.chains[0].serverId], ["saved", 55]);
+  assert.equal(saved.chains[0].points, local.chains[0].points, "the points are not copied");
+  assert.equal(reduce(saving, { type: "failed", id: 1 }).chains[0].sync, "failed");
+});
+
+test("a sync action for a chain that is gone returns the same state object", () => {
+  for (const action of [
+    { type: "saving", id: 99 },
+    { type: "saved", id: 99, serverId: 1 },
+    { type: "failed", id: 99 },
+  ] as const) {
+    assert.equal(reduce(seeded, action), seeded, action.type);
+  }
+});
+
+test("restore puts a chain back after a failed delete, once", () => {
+  const removed = reduce(seeded, { type: "removeChain", chainId: 1 });
+  const back = reduce(removed, { type: "restore", chain: seeded.chains[0] });
+  assert.deepEqual(back.chains.map((c) => c.id).sort(), [1, 2]);
+  assert.equal(reduce(back, { type: "restore", chain: seeded.chains[0] }), back);
+});
+
+test("a cut of a saved chain keeps its server id on the left part only", () => {
+  const four = reduce(initialMeasurementState, {
+    type: "seed",
+    chains: [{ serverId: 7, points: [p(0), p(1), p(2), p(3)], closed: false }],
+  });
+  const s = reduce(four, { type: "removeSegment", chainId: 1, segmentIndex: 1 });
+  assert.deepEqual(s.chains.map((c) => [c.serverId ?? null, c.sync]), [[7, "saved"], [null, "local"]]);
+});
+
+test("removeSegment of an active one-point chain finishes it, and it goes", () => {
+  const s = reduce(onePoint(), { type: "removeSegment", chainId: 1, segmentIndex: 0 });
+  assert.equal(s.activeChainId, null);
+  assert.deepEqual(s.chains, []);
+});
+
+test("clear with keepSaved drops only the chains the server does not hold", () => {
+  const drawing = click(click(seeded, p(9)), p(8));
+  const s = reduce(drawing, { type: "clear", keepSaved: true });
+  assert.deepEqual(s.chains, seeded.chains);
+  assert.equal(s.activeChainId, null);
+});
+
+test("clear without keepSaved drops saved chains too", () => {
+  const s = reduce(seeded, { type: "clear", keepSaved: false });
+  assert.deepEqual(s.chains, []);
+});
+
+test("seed keeps a saved chain whose last write failed, over the server's copy of it", () => {
+  const failed = reduce(seeded, { type: "failed", id: 1 });
+  const s = reduce(failed, {
+    type: "seed",
+    chains: [
+      { serverId: 7, points: [p(5), p(6)], closed: false },
+      { serverId: 9, points: pt3, closed: false },
+    ],
+  });
+  assert.deepEqual(s.chains.map((c) => [c.id, c.serverId, c.sync]), [
+    [1, 7, "failed"],
+    [3, 9, "saved"],
+  ]);
+  assert.equal(s.chains[0].points, pt3, "the unsaved edit stays on screen");
 });

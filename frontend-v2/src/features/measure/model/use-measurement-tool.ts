@@ -2,7 +2,9 @@ import { useCallback, useMemo, useReducer } from "react";
 import {
   initialMeasurementState,
   measurementReducer,
+  type Chain,
   type MeasurePoint,
+  type StoredChain,
 } from "@/entities/measurement";
 
 // useMeasurementTool wraps the measurement reducer with stable
@@ -27,7 +29,11 @@ export function useMeasurementTool() {
   const cancelChain = useCallback(() => dispatch({ type: "cancelChain" }), []);
   const toggle = useCallback(() => dispatch({ type: "toggle" }), []);
   const exit = useCallback(() => dispatch({ type: "exit" }), []);
-  const clear = useCallback(() => dispatch({ type: "clear" }), []);
+  // keepSaved: leave the chains the server holds (a reader's Clear).
+  const clear = useCallback(
+    (keepSaved: boolean) => dispatch({ type: "clear", keepSaved }),
+    [],
+  );
   const removeChain = useCallback(
     (chainId: number) => dispatch({ type: "removeChain", chainId }),
     [],
@@ -37,6 +43,20 @@ export function useMeasurementTool() {
       dispatch({ type: "removeSegment", chainId, segmentIndex }),
     [],
   );
+
+  // Where a chain stands with the server. The caller that talks to the
+  // gateway reports through these; the hook itself sends nothing.
+  const seed = useCallback(
+    (chains: StoredChain[]) => dispatch({ type: "seed", chains }),
+    [],
+  );
+  const saving = useCallback((id: number) => dispatch({ type: "saving", id }), []);
+  const saved = useCallback(
+    (id: number, serverId: number) => dispatch({ type: "saved", id, serverId }),
+    [],
+  );
+  const failed = useCallback((id: number) => dispatch({ type: "failed", id }), []);
+  const restore = useCallback((chain: Chain) => dispatch({ type: "restore", chain }), []);
 
   // Active chain's start vertex — exposed for the interactive close
   // marker. Recompute only when the active chain or its points change.
@@ -60,5 +80,10 @@ export function useMeasurementTool() {
     clear,
     removeChain,
     removeSegment,
+    seed,
+    saving,
+    saved,
+    failed,
+    restore,
   };
 }

@@ -10,10 +10,18 @@ import type { Measurement, MeasurePoint } from "./measurement";
 //   - points.length >= 1 for any persisted chain
 //   - closed === true requires points.length >= 3 (you need at least a
 //     triangle for a closed loop)
+//
+// `id` is the reducer's own counter and keys the chain on screen; `serverId`
+// is the row a saved chain is stored under. `sync` says where the chain
+// stands with the server: never sent, on its way, stored, or refused.
+export type ChainSync = "local" | "saving" | "saved" | "failed";
+
 export interface Chain {
   id: number;
   points: MeasurePoint[];
   closed: boolean;
+  serverId?: number;
+  sync: ChainSync;
 }
 
 // World-space distance below which a click counts as "the same point as
@@ -102,6 +110,11 @@ export function decodeSegmentId(segmentId: number): {
 //
 // New chain ids come from the caller (we don't allocate ids in the
 // domain layer); pass the next two ids as `nextIds`.
+//
+// A saved chain's first surviving part — the left one, else the right one,
+// or the reopened closed chain — keeps its `serverId`: it is the same row,
+// rewritten, and reads "saved". The other part is a new, local chain, and a
+// saved chain with no part left is gone.
 export function removeSegment(
   chain: Chain,
   segmentIndex: number,
@@ -120,7 +133,7 @@ export function removeSegment(
       ...chain.points.slice(segmentIndex + 1),
       ...chain.points.slice(0, segmentIndex + 1),
     ];
-    return [{ id: nextIds[0], points: rotated, closed: false }];
+    return [{ ...survivorOf(chain), id: nextIds[0], points: rotated, closed: false }];
   }
 
   if (segmentIndex >= n - 1) return [chain];
@@ -128,7 +141,14 @@ export function removeSegment(
   const left = chain.points.slice(0, segmentIndex + 1);
   const right = chain.points.slice(segmentIndex + 1);
   const result: Chain[] = [];
-  if (left.length >= 2) result.push({ id: nextIds[0], points: left, closed: false });
-  if (right.length >= 2) result.push({ id: nextIds[1], points: right, closed: false });
+  if (left.length >= 2) result.push({ id: nextIds[0], points: left, closed: false, sync: "local" });
+  if (right.length >= 2) result.push({ id: nextIds[1], points: right, closed: false, sync: "local" });
+  if (result.length > 0) result[0] = { ...result[0], ...survivorOf(chain) };
   return result;
+}
+
+function survivorOf(chain: Chain): Pick<Chain, "serverId" | "sync"> {
+  return chain.serverId == null
+    ? { sync: "local" }
+    : { serverId: chain.serverId, sync: "saved" };
 }

@@ -126,6 +126,10 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
     reveal("documents");
   }, [documents, reveal]);
 
+  // keepSaved stays false until M6 reads it off measurement:delete.
+  const clearMeasurements = measure.clear;
+  const onClearMeasurements = useCallback(() => clearMeasurements(false), [clearMeasurements]);
+
   const onVisibility = useCallback(
     (placementId: number, panoramaId: number, visible: boolean) => {
       const current = editor.placements.find((x) => x.id === placementId);
@@ -164,7 +168,7 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
       onReplayTour: tour.restart,
       onTargetLod: setTargetLod,
       onRetry,
-      onClearMeasurements: measure.clear,
+      onClearMeasurements,
       onTab: panel.setTab,
       onCollapsed: panel.setCollapsed,
       onQuery: setQuery,
