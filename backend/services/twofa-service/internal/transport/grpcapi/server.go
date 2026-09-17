@@ -21,6 +21,7 @@ type Service interface {
 	Enable(ctx context.Context, userID, code string) ([]string, error)
 	Disable(ctx context.Context, userID, code string) error
 	Regenerate(ctx context.Context, userID, code string) ([]string, error)
+	Status(ctx context.Context, userID string) (domain.Status, error)
 	IsEnabled(ctx context.Context, userID string) (bool, error)
 	EnabledFor(ctx context.Context, userIDs []string) ([]string, error)
 	Verify(ctx context.Context, userID, code string) (bool, error)

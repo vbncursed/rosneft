@@ -21,8 +21,9 @@ func tsOrNil(t time.Time) *timestamppb.Timestamp {
 	return timestamppb.New(t)
 }
 
-// ListEntries returns one page of the journal plus the next cursor (0 = end).
-func (c *Client) ListEntries(ctx context.Context, q domain.AuditQuery) ([]domain.AuditEntry, int64, error) {
+// ListEntries returns one page of the journal plus the next cursor (0 = end)
+// and, when q.IncludeTotal, the count of every row the filters match.
+func (c *Client) ListEntries(ctx context.Context, q domain.AuditQuery) (domain.AuditPage, error) {
 	resp, err := c.cc.ListEntries(ctx, &auditv1.ListEntriesRequest{
 		AllCompanies: q.AllCompanies,
 		CompanyId:    q.CompanyID,
@@ -33,6 +34,7 @@ func (c *Client) ListEntries(ctx context.Context, q domain.AuditQuery) ([]domain
 		To:           tsOrNil(q.To),
 		Cursor:       q.Cursor,
 		Limit:        q.Limit,
+		IncludeTotal: q.IncludeTotal,
 	})
 	if err != nil {
 		// Без MapStatus сюда доезжает голый gRPC status, а isInvalid в
@@ -42,11 +44,15 @@ func (c *Client) ListEntries(ctx context.Context, q domain.AuditQuery) ([]domain
 		// Сентинел NotFound — nil: у журнала нет такого случая, фильтр без
 		// совпадений даёт пустую страницу, а не отсутствующий ресурс. Работает
 		// только ветка InvalidArgument.
-		return nil, 0, fmt.Errorf("audit.ListEntries: %w", grpcerr.MapStatus(err, nil))
+		return domain.AuditPage{}, fmt.Errorf("audit.ListEntries: %w", grpcerr.MapStatus(err, nil))
 	}
-	out := make([]domain.AuditEntry, 0, len(resp.GetEntries()))
+	page := domain.AuditPage{
+		Entries:    make([]domain.AuditEntry, 0, len(resp.GetEntries())),
+		NextCursor: resp.GetNextCursor(),
+		Total:      resp.GetTotal(),
+	}
 	for _, e := range resp.GetEntries() {
-		out = append(out, domain.AuditEntry{
+		page.Entries = append(page.Entries, domain.AuditEntry{
 			ID:          e.GetId(),
 			At:          e.GetAt().AsTime(),
 			ActorID:     e.GetActorId(),
@@ -60,7 +66,7 @@ func (c *Client) ListEntries(ctx context.Context, q domain.AuditQuery) ([]domain
 			Result:      e.GetResult(),
 		})
 	}
-	return out, resp.GetNextCursor(), nil
+	return page, nil
 }
 
 // Record appends one non-row event.

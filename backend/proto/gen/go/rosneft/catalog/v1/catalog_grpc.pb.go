@@ -46,6 +46,11 @@ const (
 	CatalogService_UpdatePlacement_FullMethodName             = "/rosneft.catalog.v1.CatalogService/UpdatePlacement"
 	CatalogService_SetPlacementVisibility_FullMethodName      = "/rosneft.catalog.v1.CatalogService/SetPlacementVisibility"
 	CatalogService_DeletePlacement_FullMethodName             = "/rosneft.catalog.v1.CatalogService/DeletePlacement"
+	CatalogService_ListMeasurements_FullMethodName            = "/rosneft.catalog.v1.CatalogService/ListMeasurements"
+	CatalogService_CreateMeasurement_FullMethodName           = "/rosneft.catalog.v1.CatalogService/CreateMeasurement"
+	CatalogService_UpdateMeasurement_FullMethodName           = "/rosneft.catalog.v1.CatalogService/UpdateMeasurement"
+	CatalogService_DeleteMeasurement_FullMethodName           = "/rosneft.catalog.v1.CatalogService/DeleteMeasurement"
+	CatalogService_DeleteMeasurements_FullMethodName          = "/rosneft.catalog.v1.CatalogService/DeleteMeasurements"
 )
 
 // CatalogServiceClient is the client API for CatalogService service.
@@ -103,6 +108,13 @@ type CatalogServiceClient interface {
 	UpdatePlacement(ctx context.Context, in *UpdatePlacementRequest, opts ...grpc.CallOption) (*UpdatePlacementResponse, error)
 	SetPlacementVisibility(ctx context.Context, in *SetPlacementVisibilityRequest, opts ...grpc.CallOption) (*SetPlacementVisibilityResponse, error)
 	DeletePlacement(ctx context.Context, in *DeletePlacementRequest, opts ...grpc.CallOption) (*DeletePlacementResponse, error)
+	// Measurements are scoped by territory_slug on every call: an id that
+	// belongs to another territory is NOT_FOUND, same as an unknown one.
+	ListMeasurements(ctx context.Context, in *ListMeasurementsRequest, opts ...grpc.CallOption) (*ListMeasurementsResponse, error)
+	CreateMeasurement(ctx context.Context, in *CreateMeasurementRequest, opts ...grpc.CallOption) (*CreateMeasurementResponse, error)
+	UpdateMeasurement(ctx context.Context, in *UpdateMeasurementRequest, opts ...grpc.CallOption) (*UpdateMeasurementResponse, error)
+	DeleteMeasurement(ctx context.Context, in *DeleteMeasurementRequest, opts ...grpc.CallOption) (*DeleteMeasurementResponse, error)
+	DeleteMeasurements(ctx context.Context, in *DeleteMeasurementsRequest, opts ...grpc.CallOption) (*DeleteMeasurementsResponse, error)
 }
 
 type catalogServiceClient struct {
@@ -383,6 +395,56 @@ func (c *catalogServiceClient) DeletePlacement(ctx context.Context, in *DeletePl
 	return out, nil
 }
 
+func (c *catalogServiceClient) ListMeasurements(ctx context.Context, in *ListMeasurementsRequest, opts ...grpc.CallOption) (*ListMeasurementsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListMeasurementsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListMeasurements_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) CreateMeasurement(ctx context.Context, in *CreateMeasurementRequest, opts ...grpc.CallOption) (*CreateMeasurementResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateMeasurementResponse)
+	err := c.cc.Invoke(ctx, CatalogService_CreateMeasurement_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) UpdateMeasurement(ctx context.Context, in *UpdateMeasurementRequest, opts ...grpc.CallOption) (*UpdateMeasurementResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateMeasurementResponse)
+	err := c.cc.Invoke(ctx, CatalogService_UpdateMeasurement_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) DeleteMeasurement(ctx context.Context, in *DeleteMeasurementRequest, opts ...grpc.CallOption) (*DeleteMeasurementResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteMeasurementResponse)
+	err := c.cc.Invoke(ctx, CatalogService_DeleteMeasurement_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) DeleteMeasurements(ctx context.Context, in *DeleteMeasurementsRequest, opts ...grpc.CallOption) (*DeleteMeasurementsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteMeasurementsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_DeleteMeasurements_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CatalogServiceServer is the server API for CatalogService service.
 // All implementations must embed UnimplementedCatalogServiceServer
 // for forward compatibility.
@@ -438,6 +500,13 @@ type CatalogServiceServer interface {
 	UpdatePlacement(context.Context, *UpdatePlacementRequest) (*UpdatePlacementResponse, error)
 	SetPlacementVisibility(context.Context, *SetPlacementVisibilityRequest) (*SetPlacementVisibilityResponse, error)
 	DeletePlacement(context.Context, *DeletePlacementRequest) (*DeletePlacementResponse, error)
+	// Measurements are scoped by territory_slug on every call: an id that
+	// belongs to another territory is NOT_FOUND, same as an unknown one.
+	ListMeasurements(context.Context, *ListMeasurementsRequest) (*ListMeasurementsResponse, error)
+	CreateMeasurement(context.Context, *CreateMeasurementRequest) (*CreateMeasurementResponse, error)
+	UpdateMeasurement(context.Context, *UpdateMeasurementRequest) (*UpdateMeasurementResponse, error)
+	DeleteMeasurement(context.Context, *DeleteMeasurementRequest) (*DeleteMeasurementResponse, error)
+	DeleteMeasurements(context.Context, *DeleteMeasurementsRequest) (*DeleteMeasurementsResponse, error)
 	mustEmbedUnimplementedCatalogServiceServer()
 }
 
@@ -528,6 +597,21 @@ func (UnimplementedCatalogServiceServer) SetPlacementVisibility(context.Context,
 }
 func (UnimplementedCatalogServiceServer) DeletePlacement(context.Context, *DeletePlacementRequest) (*DeletePlacementResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeletePlacement not implemented")
+}
+func (UnimplementedCatalogServiceServer) ListMeasurements(context.Context, *ListMeasurementsRequest) (*ListMeasurementsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListMeasurements not implemented")
+}
+func (UnimplementedCatalogServiceServer) CreateMeasurement(context.Context, *CreateMeasurementRequest) (*CreateMeasurementResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateMeasurement not implemented")
+}
+func (UnimplementedCatalogServiceServer) UpdateMeasurement(context.Context, *UpdateMeasurementRequest) (*UpdateMeasurementResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateMeasurement not implemented")
+}
+func (UnimplementedCatalogServiceServer) DeleteMeasurement(context.Context, *DeleteMeasurementRequest) (*DeleteMeasurementResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteMeasurement not implemented")
+}
+func (UnimplementedCatalogServiceServer) DeleteMeasurements(context.Context, *DeleteMeasurementsRequest) (*DeleteMeasurementsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteMeasurements not implemented")
 }
 func (UnimplementedCatalogServiceServer) mustEmbedUnimplementedCatalogServiceServer() {}
 func (UnimplementedCatalogServiceServer) testEmbeddedByValue()                        {}
@@ -1036,6 +1120,96 @@ func _CatalogService_DeletePlacement_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CatalogService_ListMeasurements_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListMeasurementsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ListMeasurements(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ListMeasurements_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ListMeasurements(ctx, req.(*ListMeasurementsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_CreateMeasurement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateMeasurementRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).CreateMeasurement(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_CreateMeasurement_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).CreateMeasurement(ctx, req.(*CreateMeasurementRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_UpdateMeasurement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateMeasurementRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).UpdateMeasurement(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_UpdateMeasurement_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).UpdateMeasurement(ctx, req.(*UpdateMeasurementRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_DeleteMeasurement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteMeasurementRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).DeleteMeasurement(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_DeleteMeasurement_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).DeleteMeasurement(ctx, req.(*DeleteMeasurementRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_DeleteMeasurements_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteMeasurementsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).DeleteMeasurements(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_DeleteMeasurements_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).DeleteMeasurements(ctx, req.(*DeleteMeasurementsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CatalogService_ServiceDesc is the grpc.ServiceDesc for CatalogService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1150,6 +1324,26 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeletePlacement",
 			Handler:    _CatalogService_DeletePlacement_Handler,
+		},
+		{
+			MethodName: "ListMeasurements",
+			Handler:    _CatalogService_ListMeasurements_Handler,
+		},
+		{
+			MethodName: "CreateMeasurement",
+			Handler:    _CatalogService_CreateMeasurement_Handler,
+		},
+		{
+			MethodName: "UpdateMeasurement",
+			Handler:    _CatalogService_UpdateMeasurement_Handler,
+		},
+		{
+			MethodName: "DeleteMeasurement",
+			Handler:    _CatalogService_DeleteMeasurement_Handler,
+		},
+		{
+			MethodName: "DeleteMeasurements",
+			Handler:    _CatalogService_DeleteMeasurements_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

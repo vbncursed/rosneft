@@ -6,11 +6,11 @@ import (
 	"log/slog"
 )
 
-// compress applies the optional post-processor (Draco) to the freshly emitted
-// GLB. When no compressor is wired, the raw bytes flow through unchanged. We
-// log the size delta on success so operators can see whether Draco actually
-// reduced payload size for a given asset (rare adversarial inputs can grow
-// slightly after compression).
+// compress applies the optional post-processor (meshopt) to the freshly
+// emitted GLB. When no compressor is wired, the raw bytes flow through
+// unchanged. We log the size delta on success so operators can see whether
+// compression actually reduced payload size for a given asset (rare
+// adversarial inputs can grow slightly after compression).
 func (c *Converter) compress(ctx context.Context, glb []byte) ([]byte, error) {
 	if c.compressor == nil {
 		return glb, nil

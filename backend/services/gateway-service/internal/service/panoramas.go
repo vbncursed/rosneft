@@ -16,7 +16,7 @@ func (g *Gateway) ListPanoramas(ctx context.Context, territorySlug string) ([]do
 }
 
 // CreatePanorama validates input and persists the panorama.
-func (g *Gateway) CreatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error) {
+func (g *Gateway) CreatePanorama(ctx context.Context, p domain.Panorama, scope domain.BlobScope) (domain.Panorama, error) {
 	if p.TerritorySlug == "" {
 		return domain.Panorama{}, fmt.Errorf("%w: territory slug is required", domain.ErrInvalidInput)
 	}
@@ -26,11 +26,18 @@ func (g *Gateway) CreatePanorama(ctx context.Context, p domain.Panorama) (domain
 	if p.SourceBlobHash == "" {
 		return domain.Panorama{}, fmt.Errorf("%w: source_blob_hash is required", domain.ErrInvalidInput)
 	}
+	if err := g.authorizeBlobs(ctx, scope, p.SourceBlobHash); err != nil {
+		return domain.Panorama{}, err
+	}
 	return g.content.CreatePanorama(ctx, p)
 }
 
-// UpdatePanorama replaces title, position, and yaw offset.
+// UpdatePanorama replaces title, position, and yaw offset. Content scopes the
+// lookup by p.TerritorySlug.
 func (g *Gateway) UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error) {
+	if p.TerritorySlug == "" {
+		return domain.Panorama{}, fmt.Errorf("%w: empty territory slug", domain.ErrInvalidInput)
+	}
 	if p.ID == 0 {
 		return domain.Panorama{}, fmt.Errorf("%w: id is required", domain.ErrInvalidInput)
 	}
@@ -40,10 +47,13 @@ func (g *Gateway) UpdatePanorama(ctx context.Context, p domain.Panorama) (domain
 	return g.content.UpdatePanorama(ctx, p)
 }
 
-// DeletePanorama removes a panorama by ID.
-func (g *Gateway) DeletePanorama(ctx context.Context, id int64) error {
+// DeletePanorama removes a panorama on territorySlug by ID.
+func (g *Gateway) DeletePanorama(ctx context.Context, territorySlug string, id int64) error {
+	if territorySlug == "" {
+		return fmt.Errorf("%w: empty territory slug", domain.ErrInvalidInput)
+	}
 	if id <= 0 {
 		return fmt.Errorf("%w: id is required", domain.ErrInvalidInput)
 	}
-	return g.content.DeletePanorama(ctx, id)
+	return g.content.DeletePanorama(ctx, territorySlug, id)
 }

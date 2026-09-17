@@ -19,6 +19,12 @@ func (r *Redis) GetJob(ctx context.Context, id string) (domain.Job, error) {
 		return domain.Job{}, domain.ErrJobNotFound
 	}
 
+	return jobFromHash(res), nil
+}
+
+// jobFromHash maps one HGETALL result to a Job. Unparseable numbers and
+// timestamps read as zero values, as they always have.
+func jobFromHash(res map[string]string) domain.Job {
 	j := domain.Job{
 		ID:           res["id"],
 		Kind:         domain.ParseKind(res["kind"]),
@@ -37,5 +43,5 @@ func (r *Redis) GetJob(ctx context.Context, id string) (domain.Job, error) {
 	if t, err := time.Parse(time.RFC3339Nano, res["updated_at"]); err == nil {
 		j.UpdatedAt = t
 	}
-	return j, nil
+	return j
 }

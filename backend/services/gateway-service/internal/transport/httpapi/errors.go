@@ -23,5 +23,6 @@ func isNotFound(err error) bool {
 		errors.Is(err, domain.ErrArtifactNotFound) ||
 		errors.Is(err, domain.ErrJobNotFound) ||
 		errors.Is(err, domain.ErrPlacementNotFound) ||
+		errors.Is(err, domain.ErrMeasurementNotFound) ||
 		errors.Is(err, domain.ErrUploadNotFound)
 }

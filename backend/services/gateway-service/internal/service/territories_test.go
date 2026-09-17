@@ -40,12 +40,12 @@ func (s *TerritoriesSuite) TestGetRejectsEmptySlug() {
 }
 
 func (s *TerritoriesSuite) TestCreateRejectsEmptyTitle() {
-	_, _, err := s.svc.CreateTerritory(s.ctx, domain.Territory{SourceBlobHash: "h"})
+	_, _, err := s.svc.CreateTerritory(s.ctx, domain.Territory{SourceBlobHash: "h"}, rootScope)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *TerritoriesSuite) TestCreateRejectsEmptyHash() {
-	_, _, err := s.svc.CreateTerritory(s.ctx, domain.Territory{Title: "x"})
+	_, _, err := s.svc.CreateTerritory(s.ctx, domain.Territory{Title: "x"}, rootScope)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
@@ -55,7 +55,7 @@ func (s *TerritoriesSuite) TestCreateUpsertsAndSubmitsJob() {
 	s.mesh.SubmitConversionMock.Expect(s.ctx, domain.KindTerritory, "t1").
 		Return(domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1"}, nil)
 
-	saved, job, err := s.svc.CreateTerritory(s.ctx, in)
+	saved, job, err := s.svc.CreateTerritory(s.ctx, in, rootScope)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), saved.Slug, "t1")
 	assert.Equal(s.T(), job.ID, "job-1")
@@ -63,7 +63,7 @@ func (s *TerritoriesSuite) TestCreateUpsertsAndSubmitsJob() {
 
 func (s *TerritoriesSuite) TestCreateReturnsCatalogError() {
 	s.cat.UpsertTerritoryMock.Return(domain.Territory{}, errors.New("db down"))
-	_, _, err := s.svc.CreateTerritory(s.ctx, domain.Territory{Slug: "t1", Title: "x", SourceBlobHash: "h"})
+	_, _, err := s.svc.CreateTerritory(s.ctx, domain.Territory{Slug: "t1", Title: "x", SourceBlobHash: "h"}, rootScope)
 	assert.ErrorContains(s.T(), err, "db down")
 }
 
@@ -75,7 +75,7 @@ func (s *TerritoriesSuite) TestCreateSurfaceMeshErrorWithSavedTerritory() {
 	s.cat.UpsertTerritoryMock.Expect(s.ctx, in).Return(in, nil)
 	s.mesh.SubmitConversionMock.Return(domain.Job{}, errors.New("redis down"))
 
-	saved, job, err := s.svc.CreateTerritory(s.ctx, in)
+	saved, job, err := s.svc.CreateTerritory(s.ctx, in, rootScope)
 	assert.ErrorContains(s.T(), err, "redis down")
 	assert.Equal(s.T(), saved.Slug, "t1")
 	assert.Equal(s.T(), job.ID, "")

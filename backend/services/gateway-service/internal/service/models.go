@@ -21,8 +21,11 @@ func (g *Gateway) GetModel(ctx context.Context, slug string) (domain.Model, erro
 }
 
 // CreateModel upserts the model in the catalog and queues a conversion job.
-func (g *Gateway) CreateModel(ctx context.Context, m domain.Model) (domain.Model, domain.Job, error) {
+func (g *Gateway) CreateModel(ctx context.Context, m domain.Model, scope domain.BlobScope) (domain.Model, domain.Job, error) {
 	if err := validateEntity(m.Title, m.SourceBlobHash); err != nil {
+		return domain.Model{}, domain.Job{}, err
+	}
+	if err := g.authorizeBlobs(ctx, scope, m.SourceBlobHash, m.ThumbnailBlobHash); err != nil {
 		return domain.Model{}, domain.Job{}, err
 	}
 	saved, err := g.catalog.UpsertModel(ctx, m)
@@ -40,9 +43,14 @@ func (g *Gateway) CreateModel(ctx context.Context, m domain.Model) (domain.Model
 // source archive or re-queuing a conversion. Read-modify-write over the
 // existing catalog RPCs (fetch, apply non-nil patch fields, upsert) —
 // mirrors UpdateTerritory.
-func (g *Gateway) UpdateModel(ctx context.Context, slug string, update domain.ModelUpdate) (domain.Model, error) {
+func (g *Gateway) UpdateModel(ctx context.Context, slug string, update domain.ModelUpdate, scope domain.BlobScope) (domain.Model, error) {
 	if slug == "" {
 		return domain.Model{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
+	}
+	if update.ThumbnailBlobHash != nil {
+		if err := g.authorizeBlobs(ctx, scope, *update.ThumbnailBlobHash); err != nil {
+			return domain.Model{}, err
+		}
 	}
 	current, err := g.catalog.GetModel(ctx, slug)
 	if err != nil {

@@ -10,7 +10,11 @@ import "time"
 // hashed, moved into BlobStore as a content-addressed blob, and the
 // session is removed.
 type Session struct {
-	ID          string
+	ID string
+	// OwnerID is the user who initiated the session. Every later call must
+	// come from the same user; empty only in sessions written before the field
+	// existed, which therefore belong to nobody.
+	OwnerID     string
 	Size        int64 // expected total size
 	Offset      int64 // bytes written so far
 	ContentType string

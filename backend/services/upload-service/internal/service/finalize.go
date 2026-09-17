@@ -15,12 +15,10 @@ import (
 // finish the upload first via WriteChunk). When the session declared
 // application/pdf, the blob's leading bytes must be the PDF magic number — this
 // is the only content type we hard-validate, so ZIP/image uploads are
-// unaffected.
-func (u *Upload) Finalize(ctx context.Context, id string) (domain.FinalizedBlob, error) {
-	if id == "" {
-		return domain.FinalizedBlob{}, domain.ErrSessionNotFound
-	}
-	s, err := u.store.GetStatus(ctx, id)
+// unaffected. The hash is then recorded for owner, which is what lets owner —
+// and nobody who merely learned the hash — attach it to a territory or model.
+func (u *Upload) Finalize(ctx context.Context, owner, id string) (domain.FinalizedBlob, error) {
+	s, err := u.ownedSession(ctx, owner, id)
 	if err != nil {
 		return domain.FinalizedBlob{}, err
 	}
@@ -39,6 +37,14 @@ func (u *Upload) Finalize(ctx context.Context, id string) (domain.FinalizedBlob,
 		_, err := u.blobs.Put(ctx, hash, s.ContentType, r)
 		return err
 	})
+	// The marker is written after the blob is published and after the store
+	// has removed the session directory. If writing it fails, the bytes are
+	// safe in BlobStore but the session is gone: a retried finalize answers
+	// 404 and the client uploads the file again. Nothing is lost; the author
+	// just cannot attach the hash until an upload records it.
+	if err == nil {
+		err = u.store.RecordUpload(ctx, hash, owner)
+	}
 	if err != nil {
 		metricUploads.WithLabelValues("failed").Inc()
 		return domain.FinalizedBlob{}, err

@@ -33,16 +33,16 @@ type RepositoryMock struct {
 	beforeCreatePanoramaCounter uint64
 	CreatePanoramaMock          mRepositoryMockCreatePanorama
 
-	funcDeleteDocument          func(ctx context.Context, id int64) (err error)
+	funcDeleteDocument          func(ctx context.Context, territorySlug string, id int64) (err error)
 	funcDeleteDocumentOrigin    string
-	inspectFuncDeleteDocument   func(ctx context.Context, id int64)
+	inspectFuncDeleteDocument   func(ctx context.Context, territorySlug string, id int64)
 	afterDeleteDocumentCounter  uint64
 	beforeDeleteDocumentCounter uint64
 	DeleteDocumentMock          mRepositoryMockDeleteDocument
 
-	funcDeletePanorama          func(ctx context.Context, id int64) (err error)
+	funcDeletePanorama          func(ctx context.Context, territorySlug string, id int64) (err error)
 	funcDeletePanoramaOrigin    string
-	inspectFuncDeletePanorama   func(ctx context.Context, id int64)
+	inspectFuncDeletePanorama   func(ctx context.Context, territorySlug string, id int64)
 	afterDeletePanoramaCounter  uint64
 	beforeDeletePanoramaCounter uint64
 	DeletePanoramaMock          mRepositoryMockDeletePanorama
@@ -815,14 +815,16 @@ type RepositoryMockDeleteDocumentExpectation struct {
 
 // RepositoryMockDeleteDocumentParams contains parameters of the Repository.DeleteDocument
 type RepositoryMockDeleteDocumentParams struct {
-	ctx context.Context
-	id  int64
+	ctx           context.Context
+	territorySlug string
+	id            int64
 }
 
 // RepositoryMockDeleteDocumentParamPtrs contains pointers to parameters of the Repository.DeleteDocument
 type RepositoryMockDeleteDocumentParamPtrs struct {
-	ctx *context.Context
-	id  *int64
+	ctx           *context.Context
+	territorySlug *string
+	id            *int64
 }
 
 // RepositoryMockDeleteDocumentResults contains results of the Repository.DeleteDocument
@@ -832,9 +834,10 @@ type RepositoryMockDeleteDocumentResults struct {
 
 // RepositoryMockDeleteDocumentOrigins contains origins of expectations of the Repository.DeleteDocument
 type RepositoryMockDeleteDocumentExpectationOrigins struct {
-	origin    string
-	originCtx string
-	originId  string
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originId            string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -848,7 +851,7 @@ func (mmDeleteDocument *mRepositoryMockDeleteDocument) Optional() *mRepositoryMo
 }
 
 // Expect sets up expected params for Repository.DeleteDocument
-func (mmDeleteDocument *mRepositoryMockDeleteDocument) Expect(ctx context.Context, id int64) *mRepositoryMockDeleteDocument {
+func (mmDeleteDocument *mRepositoryMockDeleteDocument) Expect(ctx context.Context, territorySlug string, id int64) *mRepositoryMockDeleteDocument {
 	if mmDeleteDocument.mock.funcDeleteDocument != nil {
 		mmDeleteDocument.mock.t.Fatalf("RepositoryMock.DeleteDocument mock is already set by Set")
 	}
@@ -861,7 +864,7 @@ func (mmDeleteDocument *mRepositoryMockDeleteDocument) Expect(ctx context.Contex
 		mmDeleteDocument.mock.t.Fatalf("RepositoryMock.DeleteDocument mock is already set by ExpectParams functions")
 	}
 
-	mmDeleteDocument.defaultExpectation.params = &RepositoryMockDeleteDocumentParams{ctx, id}
+	mmDeleteDocument.defaultExpectation.params = &RepositoryMockDeleteDocumentParams{ctx, territorySlug, id}
 	mmDeleteDocument.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmDeleteDocument.expectations {
 		if minimock.Equal(e.params, mmDeleteDocument.defaultExpectation.params) {
@@ -895,8 +898,31 @@ func (mmDeleteDocument *mRepositoryMockDeleteDocument) ExpectCtxParam1(ctx conte
 	return mmDeleteDocument
 }
 
-// ExpectIdParam2 sets up expected param id for Repository.DeleteDocument
-func (mmDeleteDocument *mRepositoryMockDeleteDocument) ExpectIdParam2(id int64) *mRepositoryMockDeleteDocument {
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.DeleteDocument
+func (mmDeleteDocument *mRepositoryMockDeleteDocument) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockDeleteDocument {
+	if mmDeleteDocument.mock.funcDeleteDocument != nil {
+		mmDeleteDocument.mock.t.Fatalf("RepositoryMock.DeleteDocument mock is already set by Set")
+	}
+
+	if mmDeleteDocument.defaultExpectation == nil {
+		mmDeleteDocument.defaultExpectation = &RepositoryMockDeleteDocumentExpectation{}
+	}
+
+	if mmDeleteDocument.defaultExpectation.params != nil {
+		mmDeleteDocument.mock.t.Fatalf("RepositoryMock.DeleteDocument mock is already set by Expect")
+	}
+
+	if mmDeleteDocument.defaultExpectation.paramPtrs == nil {
+		mmDeleteDocument.defaultExpectation.paramPtrs = &RepositoryMockDeleteDocumentParamPtrs{}
+	}
+	mmDeleteDocument.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmDeleteDocument.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmDeleteDocument
+}
+
+// ExpectIdParam3 sets up expected param id for Repository.DeleteDocument
+func (mmDeleteDocument *mRepositoryMockDeleteDocument) ExpectIdParam3(id int64) *mRepositoryMockDeleteDocument {
 	if mmDeleteDocument.mock.funcDeleteDocument != nil {
 		mmDeleteDocument.mock.t.Fatalf("RepositoryMock.DeleteDocument mock is already set by Set")
 	}
@@ -919,7 +945,7 @@ func (mmDeleteDocument *mRepositoryMockDeleteDocument) ExpectIdParam2(id int64) 
 }
 
 // Inspect accepts an inspector function that has same arguments as the Repository.DeleteDocument
-func (mmDeleteDocument *mRepositoryMockDeleteDocument) Inspect(f func(ctx context.Context, id int64)) *mRepositoryMockDeleteDocument {
+func (mmDeleteDocument *mRepositoryMockDeleteDocument) Inspect(f func(ctx context.Context, territorySlug string, id int64)) *mRepositoryMockDeleteDocument {
 	if mmDeleteDocument.mock.inspectFuncDeleteDocument != nil {
 		mmDeleteDocument.mock.t.Fatalf("Inspect function is already set for RepositoryMock.DeleteDocument")
 	}
@@ -944,7 +970,7 @@ func (mmDeleteDocument *mRepositoryMockDeleteDocument) Return(err error) *Reposi
 }
 
 // Set uses given function f to mock the Repository.DeleteDocument method
-func (mmDeleteDocument *mRepositoryMockDeleteDocument) Set(f func(ctx context.Context, id int64) (err error)) *RepositoryMock {
+func (mmDeleteDocument *mRepositoryMockDeleteDocument) Set(f func(ctx context.Context, territorySlug string, id int64) (err error)) *RepositoryMock {
 	if mmDeleteDocument.defaultExpectation != nil {
 		mmDeleteDocument.mock.t.Fatalf("Default expectation is already set for the Repository.DeleteDocument method")
 	}
@@ -960,14 +986,14 @@ func (mmDeleteDocument *mRepositoryMockDeleteDocument) Set(f func(ctx context.Co
 
 // When sets expectation for the Repository.DeleteDocument which will trigger the result defined by the following
 // Then helper
-func (mmDeleteDocument *mRepositoryMockDeleteDocument) When(ctx context.Context, id int64) *RepositoryMockDeleteDocumentExpectation {
+func (mmDeleteDocument *mRepositoryMockDeleteDocument) When(ctx context.Context, territorySlug string, id int64) *RepositoryMockDeleteDocumentExpectation {
 	if mmDeleteDocument.mock.funcDeleteDocument != nil {
 		mmDeleteDocument.mock.t.Fatalf("RepositoryMock.DeleteDocument mock is already set by Set")
 	}
 
 	expectation := &RepositoryMockDeleteDocumentExpectation{
 		mock:               mmDeleteDocument.mock,
-		params:             &RepositoryMockDeleteDocumentParams{ctx, id},
+		params:             &RepositoryMockDeleteDocumentParams{ctx, territorySlug, id},
 		expectationOrigins: RepositoryMockDeleteDocumentExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmDeleteDocument.expectations = append(mmDeleteDocument.expectations, expectation)
@@ -1002,17 +1028,17 @@ func (mmDeleteDocument *mRepositoryMockDeleteDocument) invocationsDone() bool {
 }
 
 // DeleteDocument implements mm_service.Repository
-func (mmDeleteDocument *RepositoryMock) DeleteDocument(ctx context.Context, id int64) (err error) {
+func (mmDeleteDocument *RepositoryMock) DeleteDocument(ctx context.Context, territorySlug string, id int64) (err error) {
 	mm_atomic.AddUint64(&mmDeleteDocument.beforeDeleteDocumentCounter, 1)
 	defer mm_atomic.AddUint64(&mmDeleteDocument.afterDeleteDocumentCounter, 1)
 
 	mmDeleteDocument.t.Helper()
 
 	if mmDeleteDocument.inspectFuncDeleteDocument != nil {
-		mmDeleteDocument.inspectFuncDeleteDocument(ctx, id)
+		mmDeleteDocument.inspectFuncDeleteDocument(ctx, territorySlug, id)
 	}
 
-	mm_params := RepositoryMockDeleteDocumentParams{ctx, id}
+	mm_params := RepositoryMockDeleteDocumentParams{ctx, territorySlug, id}
 
 	// Record call args
 	mmDeleteDocument.DeleteDocumentMock.mutex.Lock()
@@ -1031,13 +1057,18 @@ func (mmDeleteDocument *RepositoryMock) DeleteDocument(ctx context.Context, id i
 		mm_want := mmDeleteDocument.DeleteDocumentMock.defaultExpectation.params
 		mm_want_ptrs := mmDeleteDocument.DeleteDocumentMock.defaultExpectation.paramPtrs
 
-		mm_got := RepositoryMockDeleteDocumentParams{ctx, id}
+		mm_got := RepositoryMockDeleteDocumentParams{ctx, territorySlug, id}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
 				mmDeleteDocument.t.Errorf("RepositoryMock.DeleteDocument got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmDeleteDocument.DeleteDocumentMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmDeleteDocument.t.Errorf("RepositoryMock.DeleteDocument got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteDocument.DeleteDocumentMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
 			}
 
 			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
@@ -1057,9 +1088,9 @@ func (mmDeleteDocument *RepositoryMock) DeleteDocument(ctx context.Context, id i
 		return (*mm_results).err
 	}
 	if mmDeleteDocument.funcDeleteDocument != nil {
-		return mmDeleteDocument.funcDeleteDocument(ctx, id)
+		return mmDeleteDocument.funcDeleteDocument(ctx, territorySlug, id)
 	}
-	mmDeleteDocument.t.Fatalf("Unexpected call to RepositoryMock.DeleteDocument. %v %v", ctx, id)
+	mmDeleteDocument.t.Fatalf("Unexpected call to RepositoryMock.DeleteDocument. %v %v %v", ctx, territorySlug, id)
 	return
 }
 
@@ -1157,14 +1188,16 @@ type RepositoryMockDeletePanoramaExpectation struct {
 
 // RepositoryMockDeletePanoramaParams contains parameters of the Repository.DeletePanorama
 type RepositoryMockDeletePanoramaParams struct {
-	ctx context.Context
-	id  int64
+	ctx           context.Context
+	territorySlug string
+	id            int64
 }
 
 // RepositoryMockDeletePanoramaParamPtrs contains pointers to parameters of the Repository.DeletePanorama
 type RepositoryMockDeletePanoramaParamPtrs struct {
-	ctx *context.Context
-	id  *int64
+	ctx           *context.Context
+	territorySlug *string
+	id            *int64
 }
 
 // RepositoryMockDeletePanoramaResults contains results of the Repository.DeletePanorama
@@ -1174,9 +1207,10 @@ type RepositoryMockDeletePanoramaResults struct {
 
 // RepositoryMockDeletePanoramaOrigins contains origins of expectations of the Repository.DeletePanorama
 type RepositoryMockDeletePanoramaExpectationOrigins struct {
-	origin    string
-	originCtx string
-	originId  string
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originId            string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -1190,7 +1224,7 @@ func (mmDeletePanorama *mRepositoryMockDeletePanorama) Optional() *mRepositoryMo
 }
 
 // Expect sets up expected params for Repository.DeletePanorama
-func (mmDeletePanorama *mRepositoryMockDeletePanorama) Expect(ctx context.Context, id int64) *mRepositoryMockDeletePanorama {
+func (mmDeletePanorama *mRepositoryMockDeletePanorama) Expect(ctx context.Context, territorySlug string, id int64) *mRepositoryMockDeletePanorama {
 	if mmDeletePanorama.mock.funcDeletePanorama != nil {
 		mmDeletePanorama.mock.t.Fatalf("RepositoryMock.DeletePanorama mock is already set by Set")
 	}
@@ -1203,7 +1237,7 @@ func (mmDeletePanorama *mRepositoryMockDeletePanorama) Expect(ctx context.Contex
 		mmDeletePanorama.mock.t.Fatalf("RepositoryMock.DeletePanorama mock is already set by ExpectParams functions")
 	}
 
-	mmDeletePanorama.defaultExpectation.params = &RepositoryMockDeletePanoramaParams{ctx, id}
+	mmDeletePanorama.defaultExpectation.params = &RepositoryMockDeletePanoramaParams{ctx, territorySlug, id}
 	mmDeletePanorama.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmDeletePanorama.expectations {
 		if minimock.Equal(e.params, mmDeletePanorama.defaultExpectation.params) {
@@ -1237,8 +1271,31 @@ func (mmDeletePanorama *mRepositoryMockDeletePanorama) ExpectCtxParam1(ctx conte
 	return mmDeletePanorama
 }
 
-// ExpectIdParam2 sets up expected param id for Repository.DeletePanorama
-func (mmDeletePanorama *mRepositoryMockDeletePanorama) ExpectIdParam2(id int64) *mRepositoryMockDeletePanorama {
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.DeletePanorama
+func (mmDeletePanorama *mRepositoryMockDeletePanorama) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockDeletePanorama {
+	if mmDeletePanorama.mock.funcDeletePanorama != nil {
+		mmDeletePanorama.mock.t.Fatalf("RepositoryMock.DeletePanorama mock is already set by Set")
+	}
+
+	if mmDeletePanorama.defaultExpectation == nil {
+		mmDeletePanorama.defaultExpectation = &RepositoryMockDeletePanoramaExpectation{}
+	}
+
+	if mmDeletePanorama.defaultExpectation.params != nil {
+		mmDeletePanorama.mock.t.Fatalf("RepositoryMock.DeletePanorama mock is already set by Expect")
+	}
+
+	if mmDeletePanorama.defaultExpectation.paramPtrs == nil {
+		mmDeletePanorama.defaultExpectation.paramPtrs = &RepositoryMockDeletePanoramaParamPtrs{}
+	}
+	mmDeletePanorama.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmDeletePanorama.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmDeletePanorama
+}
+
+// ExpectIdParam3 sets up expected param id for Repository.DeletePanorama
+func (mmDeletePanorama *mRepositoryMockDeletePanorama) ExpectIdParam3(id int64) *mRepositoryMockDeletePanorama {
 	if mmDeletePanorama.mock.funcDeletePanorama != nil {
 		mmDeletePanorama.mock.t.Fatalf("RepositoryMock.DeletePanorama mock is already set by Set")
 	}
@@ -1261,7 +1318,7 @@ func (mmDeletePanorama *mRepositoryMockDeletePanorama) ExpectIdParam2(id int64) 
 }
 
 // Inspect accepts an inspector function that has same arguments as the Repository.DeletePanorama
-func (mmDeletePanorama *mRepositoryMockDeletePanorama) Inspect(f func(ctx context.Context, id int64)) *mRepositoryMockDeletePanorama {
+func (mmDeletePanorama *mRepositoryMockDeletePanorama) Inspect(f func(ctx context.Context, territorySlug string, id int64)) *mRepositoryMockDeletePanorama {
 	if mmDeletePanorama.mock.inspectFuncDeletePanorama != nil {
 		mmDeletePanorama.mock.t.Fatalf("Inspect function is already set for RepositoryMock.DeletePanorama")
 	}
@@ -1286,7 +1343,7 @@ func (mmDeletePanorama *mRepositoryMockDeletePanorama) Return(err error) *Reposi
 }
 
 // Set uses given function f to mock the Repository.DeletePanorama method
-func (mmDeletePanorama *mRepositoryMockDeletePanorama) Set(f func(ctx context.Context, id int64) (err error)) *RepositoryMock {
+func (mmDeletePanorama *mRepositoryMockDeletePanorama) Set(f func(ctx context.Context, territorySlug string, id int64) (err error)) *RepositoryMock {
 	if mmDeletePanorama.defaultExpectation != nil {
 		mmDeletePanorama.mock.t.Fatalf("Default expectation is already set for the Repository.DeletePanorama method")
 	}
@@ -1302,14 +1359,14 @@ func (mmDeletePanorama *mRepositoryMockDeletePanorama) Set(f func(ctx context.Co
 
 // When sets expectation for the Repository.DeletePanorama which will trigger the result defined by the following
 // Then helper
-func (mmDeletePanorama *mRepositoryMockDeletePanorama) When(ctx context.Context, id int64) *RepositoryMockDeletePanoramaExpectation {
+func (mmDeletePanorama *mRepositoryMockDeletePanorama) When(ctx context.Context, territorySlug string, id int64) *RepositoryMockDeletePanoramaExpectation {
 	if mmDeletePanorama.mock.funcDeletePanorama != nil {
 		mmDeletePanorama.mock.t.Fatalf("RepositoryMock.DeletePanorama mock is already set by Set")
 	}
 
 	expectation := &RepositoryMockDeletePanoramaExpectation{
 		mock:               mmDeletePanorama.mock,
-		params:             &RepositoryMockDeletePanoramaParams{ctx, id},
+		params:             &RepositoryMockDeletePanoramaParams{ctx, territorySlug, id},
 		expectationOrigins: RepositoryMockDeletePanoramaExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmDeletePanorama.expectations = append(mmDeletePanorama.expectations, expectation)
@@ -1344,17 +1401,17 @@ func (mmDeletePanorama *mRepositoryMockDeletePanorama) invocationsDone() bool {
 }
 
 // DeletePanorama implements mm_service.Repository
-func (mmDeletePanorama *RepositoryMock) DeletePanorama(ctx context.Context, id int64) (err error) {
+func (mmDeletePanorama *RepositoryMock) DeletePanorama(ctx context.Context, territorySlug string, id int64) (err error) {
 	mm_atomic.AddUint64(&mmDeletePanorama.beforeDeletePanoramaCounter, 1)
 	defer mm_atomic.AddUint64(&mmDeletePanorama.afterDeletePanoramaCounter, 1)
 
 	mmDeletePanorama.t.Helper()
 
 	if mmDeletePanorama.inspectFuncDeletePanorama != nil {
-		mmDeletePanorama.inspectFuncDeletePanorama(ctx, id)
+		mmDeletePanorama.inspectFuncDeletePanorama(ctx, territorySlug, id)
 	}
 
-	mm_params := RepositoryMockDeletePanoramaParams{ctx, id}
+	mm_params := RepositoryMockDeletePanoramaParams{ctx, territorySlug, id}
 
 	// Record call args
 	mmDeletePanorama.DeletePanoramaMock.mutex.Lock()
@@ -1373,13 +1430,18 @@ func (mmDeletePanorama *RepositoryMock) DeletePanorama(ctx context.Context, id i
 		mm_want := mmDeletePanorama.DeletePanoramaMock.defaultExpectation.params
 		mm_want_ptrs := mmDeletePanorama.DeletePanoramaMock.defaultExpectation.paramPtrs
 
-		mm_got := RepositoryMockDeletePanoramaParams{ctx, id}
+		mm_got := RepositoryMockDeletePanoramaParams{ctx, territorySlug, id}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
 				mmDeletePanorama.t.Errorf("RepositoryMock.DeletePanorama got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmDeletePanorama.DeletePanoramaMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmDeletePanorama.t.Errorf("RepositoryMock.DeletePanorama got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeletePanorama.DeletePanoramaMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
 			}
 
 			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
@@ -1399,9 +1461,9 @@ func (mmDeletePanorama *RepositoryMock) DeletePanorama(ctx context.Context, id i
 		return (*mm_results).err
 	}
 	if mmDeletePanorama.funcDeletePanorama != nil {
-		return mmDeletePanorama.funcDeletePanorama(ctx, id)
+		return mmDeletePanorama.funcDeletePanorama(ctx, territorySlug, id)
 	}
-	mmDeletePanorama.t.Fatalf("Unexpected call to RepositoryMock.DeletePanorama. %v %v", ctx, id)
+	mmDeletePanorama.t.Fatalf("Unexpected call to RepositoryMock.DeletePanorama. %v %v %v", ctx, territorySlug, id)
 	return
 }
 

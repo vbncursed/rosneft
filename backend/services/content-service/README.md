@@ -123,7 +123,7 @@ suite.
 
 ## Toolchain & dependencies
 
-Go **1.27.0** — `go 1.27.0` in `go.mod`, build stage `golang:1.27.0-alpine`.
+Go **1.27.1** — `go 1.27.1` in `go.mod`, build stage `golang:1.27.1-alpine`.
 Versions are pinned identically across every module in the workspace; see
 [`backend/README.md#toolchain--dependencies`](../../README.md#toolchain--dependencies)
 for the repo-wide matrix and the upgrade procedure.
@@ -131,8 +131,8 @@ for the repo-wide matrix and the upgrade procedure.
 | Module | Version | Role |
 | --- | --- | --- |
 | `github.com/gojuno/minimock/v3` | v3.4.7 | Generated interface mocks (test) |
-| `github.com/jackc/pgx/v5` | v5.10.0 | Postgres driver + connection pool |
-| `github.com/pressly/goose/v3` | v3.27.3 | Embedded SQL migrations |
+| `github.com/jackc/pgx/v5` | v5.11.0 | Postgres driver + connection pool |
+| `github.com/pressly/goose/v3` | v3.28.0 | Embedded SQL migrations |
 | `github.com/spf13/cobra` | v1.10.2 | CLI root command / flag definitions |
 | `github.com/spf13/viper` | v1.21.0 | Layered config (flag > env > default) |
 | `github.com/stretchr/testify` | v1.11.1 | `suite` grouping only (test) |

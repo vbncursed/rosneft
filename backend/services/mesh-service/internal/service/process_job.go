@@ -23,7 +23,7 @@ import (
 //
 // On any error it marks the job Failed and returns the error so the caller
 // can decide whether to ack or retry. Either way — success or failure — the
-// reconciler's claim on the target is released before returning: see the
+// target claim SubmitConversion took is released before returning: see the
 // unlock call below for why a failure releases too, rather than waiting out
 // the TTL.
 func (m *Mesh) ProcessJob(ctx context.Context, jobID string) error {
@@ -35,8 +35,9 @@ func (m *Mesh) ProcessJob(ctx context.Context, jobID string) error {
 		return err
 	}
 
-	if err := m.runConversion(ctx, &job); err != nil {
-		// Release rather than hold ReconcileLockTTL: its own doc comment
+	source, err := m.runConversion(ctx, &job)
+	if err != nil {
+		// Release rather than hold TargetLockTTL: its own doc comment
 		// scopes it to the worker dying between claim and finish, and that
 		// case never reaches here — a returned error means the worker is
 		// alive and already knows the outcome. Holding the claim anyway
@@ -49,14 +50,17 @@ func (m *Mesh) ProcessJob(ctx context.Context, jobID string) error {
 		return err
 	}
 
-	// A user-initiated conversion holds no claim, so this is a no-op for
-	// that path.
+	// Every job holds the claim now — SubmitConversion took it.
 	m.unlockTarget(ctx, job)
 
-	return m.markSucceeded(ctx, job)
+	if err := m.markSucceeded(ctx, job); err != nil {
+		return err
+	}
+	m.requeueIfSourceReplaced(ctx, job, source)
+	return nil
 }
 
-// unlockTarget releases the reconciler's claim on job's target. Logged
+// unlockTarget releases the claim on job's target. Logged
 // rather than returned in both callers: failing ProcessJob itself over an
 // `UnlockTarget` that didn't land would be worse than the stale key, which
 // the TTL clears regardless — and either way ProcessJob's own outcome
@@ -90,34 +94,37 @@ func (m *Mesh) markFailed(ctx context.Context, j domain.Job, cause error) error 
 // determinate bar so the user can tell the difference between "stuck" and
 // "running long". Errors from UpdateProgress are swallowed: a missed tick
 // must not fail the conversion.
-func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) error {
+//
+// It returns the source hash it converted; the target is read exactly once,
+// here, so ProcessJob re-checks it afterwards — see requeueIfSourceReplaced.
+func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) (string, error) {
 	_ = m.UpdateProgress(ctx, j.ID, 0.05, "fetching")
 
 	target, err := m.catalog.GetTarget(ctx, j.Kind, j.Slug)
 	if err != nil {
 		if errors.Is(err, domain.ErrTargetNotFound) {
-			return err
+			return "", err
 		}
-		return fmt.Errorf("get target: %w", err)
+		return "", fmt.Errorf("get target: %w", err)
 	}
 	if target.SourceBlobHash == "" {
-		return fmt.Errorf("%w: target has no source_blob_hash", domain.ErrInvalidInput)
+		return "", fmt.Errorf("%w: target has no source_blob_hash", domain.ErrInvalidInput)
 	}
 
 	workDir, err := os.MkdirTemp("", "mesh-job-*")
 	if err != nil {
-		return fmt.Errorf("tmp dir: %w", err)
+		return "", fmt.Errorf("tmp dir: %w", err)
 	}
 	defer func() { _ = os.RemoveAll(workDir) }()
 
 	if err := m.fetchAndExtract(ctx, target.SourceBlobHash, workDir); err != nil {
-		return fmt.Errorf("fetch/extract source: %w", err)
+		return "", fmt.Errorf("fetch/extract source: %w", err)
 	}
 	_ = m.UpdateProgress(ctx, j.ID, 0.20, "extracting")
 
 	objPath, err := findFirstOBJ(workDir)
 	if err != nil {
-		return fmt.Errorf("locate obj: %w", err)
+		return "", fmt.Errorf("locate obj: %w", err)
 	}
 	_ = m.UpdateProgress(ctx, j.ID, 0.30, "parsing")
 
@@ -127,16 +134,16 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) error {
 	})
 	results, err := m.converter.ConvertLODs(convCtx, objPath)
 	if err != nil {
-		return fmt.Errorf("convert: %w", err)
+		return "", fmt.Errorf("convert: %w", err)
 	}
 	if len(results) == 0 {
-		return fmt.Errorf("convert: no LOD results")
+		return "", fmt.Errorf("convert: no LOD results")
 	}
 
 	// Keep existing placements 1:1 with the new mesh before publishing the
 	// artifacts — see rescaleAfterConvert for why ordering matters.
 	if err := m.rescaleAfterConvert(ctx, j.Kind, j.Slug, results); err != nil {
-		return err
+		return "", err
 	}
 
 	// Per-LOD register pass. Distribute the remaining 0.30 evenly across
@@ -144,14 +151,14 @@ func (m *Mesh) runConversion(ctx context.Context, j *domain.Job) error {
 	span := float32(0.30) / float32(len(results))
 	for i, r := range results {
 		if err := m.persistLOD(ctx, j.Kind, j.Slug, uint32(i), r); err != nil {
-			return err
+			return "", err
 		}
 		_ = m.UpdateProgress(ctx, j.ID, 0.70+span*float32(i+1), fmt.Sprintf("lod-%d", i))
 	}
 	j.ArtifactHash = results[0].ArtifactHash
 	j.Progress = 1.0
 	j.Stage = "registering"
-	return nil
+	return target.SourceBlobHash, nil
 }
 
 // persistLOD writes one LOD artifact to the BlobStore and registers it in

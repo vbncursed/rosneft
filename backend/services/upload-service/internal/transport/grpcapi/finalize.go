@@ -7,7 +7,7 @@ import (
 )
 
 func (s *Server) Finalize(ctx context.Context, req *uploadv1.FinalizeRequest) (*uploadv1.FinalizeResponse, error) {
-	out, err := s.svc.Finalize(ctx, req.GetUploadId())
+	out, err := s.svc.Finalize(ctx, callerID(ctx), req.GetUploadId())
 	if err != nil {
 		return nil, mapError(err)
 	}

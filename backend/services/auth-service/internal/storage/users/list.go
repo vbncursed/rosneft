@@ -15,7 +15,9 @@ func (s *Store) List(ctx context.Context, status string, includeDeleted bool, ow
 	args := make([]any, 0, 3)
 	if ownerID != "" {
 		args = append(args, ownerID)
-		q += fmt.Sprintf(" AND u.created_by = $%d", len(args))
+		// A Company Owner's own row is created by Root, not by the owner —
+		// created_by alone would hide the owner from their own list.
+		q += fmt.Sprintf(" AND (u.created_by = $%d OR u.id = $%d)", len(args), len(args))
 	}
 	if status != "" {
 		args = append(args, status)

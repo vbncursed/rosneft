@@ -43,9 +43,14 @@ type userJSON struct {
 	// means the owning service could not answer. They never come from the proto
 	// user — auth-service does not own either factor and leaves both zero — so
 	// they are filled from the overlaid factorSets and from nowhere else.
-	TOTPEnabled    *bool    `json:"totpEnabled,omitempty"`
-	PasskeyEnabled *bool    `json:"passkeyEnabled,omitempty"`
-	RoleSlugs      []string `json:"roleSlugs"`
+	TOTPEnabled    *bool `json:"totpEnabled,omitempty"`
+	PasskeyEnabled *bool `json:"passkeyEnabled,omitempty"`
+	// TOTPRequired is not tri-state like the two fields above: it is a column on
+	// auth-service's own users row, so it arrives with the user or not at all —
+	// there is no "owning service unreachable" case to represent, unlike
+	// totp_enabled (twofa-service) and passkey_enabled (passkey-service).
+	TOTPRequired bool     `json:"totpRequired"`
+	RoleSlugs    []string `json:"roleSlugs"`
 	// RoleTitles names each slug in RoleSlugs. The slug is not an abbreviation
 	// of the title — slug "admin" is titled "Company Owner", while a different
 	// role is slugged "owner" — so a UI that prints the slug names the wrong
@@ -74,6 +79,7 @@ func userToJSON(u *authv1.User, totp, passkeys factorSet) userJSON {
 		Status:              u.GetStatus(),
 		TOTPEnabled:         totp.state(u.GetId()),
 		PasskeyEnabled:      passkeys.state(u.GetId()),
+		TOTPRequired:        u.GetTotpRequired(),
 		RoleSlugs:           u.GetRoleSlugs(),
 		RoleTitles:          u.GetRoleTitles(),
 		Permissions:         u.GetPermissions(),

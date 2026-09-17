@@ -1,0 +1,94 @@
+import { memo, useEffect } from "react";
+import { useThree } from "@react-three/fiber";
+import { canRemove, chainSegments, type Chain } from "@/entities/measurement";
+import MeasurementSegment from "./measurement-segment";
+import PointMarker from "./point-marker";
+
+interface MeasurementLayerProps {
+  /** False draws nothing — the chains are kept, only not painted. */
+  visible: boolean;
+  chains: Chain[];
+  activeChainId: number | null;
+  /** The reader holds every measurement edit grant; a saved chain offers removal only then. */
+  canEditSaved: boolean;
+  unitRatio: number;
+  lineColor: string;
+  onCloseActive: () => void;
+  onRemoveSegment: (chainId: number, segmentIndex: number) => void;
+  onRemoveChain: (chainId: number) => void;
+}
+
+// MeasurementLayer renders every chain in the scene. For each chain it
+// emits one Line+label per derived segment plus a marker per vertex.
+// The first vertex of the active chain is rendered with the
+// "active-start" variant — clicking it closes the chain into a loop.
+//
+// Memoed so unrelated re-renders of the canvas (selection, hover,
+// gizmo drag) don't reconcile every segment.
+function MeasurementLayerImpl({
+  visible,
+  chains,
+  activeChainId,
+  canEditSaved,
+  unitRatio,
+  lineColor,
+  onCloseActive,
+  onRemoveSegment,
+  onRemoveChain,
+}: MeasurementLayerProps) {
+  const invalidate = useThree((state) => state.invalidate);
+
+  // Canvas runs in frameloop="demand". Html children update the DOM on
+  // unmount synchronously, but lines live in WebGL — they only clear
+  // when a new frame is drawn. Force an invalidate on every chain
+  // change so Clear, segment removal, and chain removal always paint —
+  // and on hide/show, which drops or brings back every line at once.
+  useEffect(() => {
+    invalidate();
+  }, [chains, visible, invalidate]);
+
+  // Unmounted rather than `<group visible>`: the labels are drei <Html>, DOM
+  // that a hidden Object3D does not take off the screen.
+  if (!visible) return null;
+
+  return (
+    <>
+      {chains.map((chain) => {
+        const segments = chainSegments(chain);
+        const isActive = chain.id === activeChainId;
+        const removable = canRemove(chain, canEditSaved);
+        return (
+          <group key={chain.id}>
+            {segments.map((segment) => (
+              <MeasurementSegment
+                key={segment.id}
+                measurement={segment}
+                unitRatio={unitRatio}
+                lineColor={lineColor}
+                removable={removable}
+                onRemoveSegment={onRemoveSegment}
+                onRemoveChain={onRemoveChain}
+              />
+            ))}
+            {chain.points.map((p, idx) => {
+              // Active chain's first vertex (when there are at least
+              // two points to close into a loop) becomes the closer.
+              const isCloser =
+                isActive && idx === 0 && chain.points.length >= 2 && !chain.closed;
+              return (
+                <PointMarker
+                  key={idx}
+                  position={p}
+                  variant={isCloser ? "active-start" : "passive"}
+                  onClick={isCloser ? onCloseActive : undefined}
+                />
+              );
+            })}
+          </group>
+        );
+      })}
+    </>
+  );
+}
+
+export default memo(MeasurementLayerImpl);

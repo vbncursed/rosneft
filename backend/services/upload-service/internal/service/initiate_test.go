@@ -40,24 +40,24 @@ func (s *InitiateSuite) SetupTest() {
 }
 
 func (s *InitiateSuite) TestRejectsZeroSize() {
-	_, err := s.svc.Initiate(s.ctx, 0, "application/zip")
+	_, err := s.svc.Initiate(s.ctx, author, 0, "application/zip")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *InitiateSuite) TestRejectsNegativeSize() {
-	_, err := s.svc.Initiate(s.ctx, -1, "application/zip")
+	_, err := s.svc.Initiate(s.ctx, author, -1, "application/zip")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *InitiateSuite) TestRejectsSizeAboveCap() {
-	_, err := s.svc.Initiate(s.ctx, 2048, "application/zip")
+	_, err := s.svc.Initiate(s.ctx, author, 2048, "application/zip")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *InitiateSuite) TestAcceptsExactlyMaxSize() {
-	s.store.InitiateMock.Expect(s.ctx, "fixed-id", int64(1024), "application/zip").
+	s.store.InitiateMock.Expect(s.ctx, "fixed-id", author, int64(1024), "application/zip").
 		Return(domain.Session{ID: "fixed-id", Size: 1024}, nil)
-	sess, err := s.svc.Initiate(s.ctx, 1024, "application/zip")
+	sess, err := s.svc.Initiate(s.ctx, author, 1024, "application/zip")
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), sess.Size, int64(1024))
 }
@@ -67,31 +67,38 @@ func (s *InitiateSuite) TestAcceptsAnySizeWhenCapDisabled() {
 		Store: s.store, Blobs: s.blobs, MaxUploadBytes: 0, // 0 means no cap
 		IDGen: func() string { return "fixed-id" },
 	})
-	s.store.InitiateMock.Expect(s.ctx, "fixed-id", int64(9_999_999), "application/zip").
+	s.store.InitiateMock.Expect(s.ctx, "fixed-id", author, int64(9_999_999), "application/zip").
 		Return(domain.Session{ID: "fixed-id", Size: 9_999_999}, nil)
-	sess, err := s.svc.Initiate(s.ctx, 9_999_999, "application/zip")
+	sess, err := s.svc.Initiate(s.ctx, author, 9_999_999, "application/zip")
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), sess.Size, int64(9_999_999))
 }
 
 func (s *InitiateSuite) TestUsesIDGenerator() {
-	s.store.InitiateMock.Expect(s.ctx, "fixed-id", int64(100), "application/zip").
+	s.store.InitiateMock.Expect(s.ctx, "fixed-id", author, int64(100), "application/zip").
 		Return(domain.Session{ID: "fixed-id"}, nil)
-	sess, err := s.svc.Initiate(s.ctx, 100, "application/zip")
+	sess, err := s.svc.Initiate(s.ctx, author, 100, "application/zip")
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), sess.ID, "fixed-id")
 }
 
 func (s *InitiateSuite) TestForwardsContentType() {
-	s.store.InitiateMock.Expect(s.ctx, "fixed-id", int64(100), "application/x-zip-compressed").
+	s.store.InitiateMock.Expect(s.ctx, "fixed-id", author, int64(100), "application/x-zip-compressed").
 		Return(domain.Session{ContentType: "application/x-zip-compressed"}, nil)
-	sess, err := s.svc.Initiate(s.ctx, 100, "application/x-zip-compressed")
+	sess, err := s.svc.Initiate(s.ctx, author, 100, "application/x-zip-compressed")
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), sess.ContentType, "application/x-zip-compressed")
 }
 
 func (s *InitiateSuite) TestPropagatesStoreError() {
 	s.store.InitiateMock.Return(domain.Session{}, errors.New("disk full"))
-	_, err := s.svc.Initiate(s.ctx, 100, "application/zip")
+	_, err := s.svc.Initiate(s.ctx, author, 100, "application/zip")
 	assert.ErrorContains(s.T(), err, "disk full")
+}
+
+// A session with no author could never be resumed or finalized by anyone, so
+// it is refused up front instead of being left to rot on disk.
+func (s *InitiateSuite) TestRejectsMissingAuthor() {
+	_, err := s.svc.Initiate(s.ctx, "", 100, "application/zip")
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }

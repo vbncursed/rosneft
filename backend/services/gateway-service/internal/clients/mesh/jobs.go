@@ -29,3 +29,16 @@ func (c *Client) GetJob(ctx context.Context, id string) (domain.Job, error) {
 	}
 	return jobFromProto(resp.GetJob()), nil
 }
+
+// ListTargetJobs fetches the latest job per catalog target.
+func (c *Client) ListTargetJobs(ctx context.Context) ([]domain.Job, error) {
+	resp, err := c.cc.ListTargetJobs(ctx, &meshv1.ListTargetJobsRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("mesh.ListTargetJobs: %w", grpcerr.MapStatus(err, nil))
+	}
+	out := make([]domain.Job, len(resp.GetJobs()))
+	for i, j := range resp.GetJobs() {
+		out[i] = jobFromProto(j)
+	}
+	return out, nil
+}

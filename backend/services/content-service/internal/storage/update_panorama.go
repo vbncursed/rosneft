@@ -13,22 +13,25 @@ import (
 
 // UpdatePanorama replaces title, position, and yaw_offset; the source
 // blob and slug are immutable after creation (a new equirect = a new
-// panorama). Returns ErrPanoramaNotFound for unknown IDs.
+// panorama). The update is scoped to p.TerritorySlug, so an id from another
+// territory yields ErrPanoramaNotFound exactly like an unknown id — the
+// gateway's territory gate checks only the slug in the URL.
 //
 // Wrapped in audittx.Run so the audit trigger can attribute the change.
 func (r *PG) UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error) {
 	const q = `
 		WITH updated AS (
-			UPDATE panoramas SET
+			UPDATE panoramas pa SET
 				title      = $2,
 				position_x = $3, position_y = $4, position_z = $5,
 				yaw_offset = $6,
 				default_yaw = $7,
 				updated_at = NOW()
-			WHERE id = $1
-			RETURNING id, territory_id, slug, title, source_blob_hash,
-				position_x, position_y, position_z,
-				yaw_offset, default_yaw, created_at, updated_at
+			FROM territories t
+			WHERE pa.id = $1 AND pa.territory_id = t.id AND t.slug = $8
+			RETURNING pa.id, pa.territory_id, pa.slug, pa.title, pa.source_blob_hash,
+				pa.position_x, pa.position_y, pa.position_z,
+				pa.yaw_offset, pa.default_yaw, pa.created_at, pa.updated_at
 		)
 		SELECT u.id, t.slug, u.slug, u.title, u.source_blob_hash,
 			u.position_x, u.position_y, u.position_z,
@@ -41,7 +44,7 @@ func (r *PG) UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Pano
 		row := tx.QueryRow(ctx, q,
 			p.ID, p.Title,
 			p.Position.X, p.Position.Y, p.Position.Z,
-			p.YawOffset, p.DefaultYaw,
+			p.YawOffset, p.DefaultYaw, p.TerritorySlug,
 		)
 		var scanErr error
 		out, scanErr = scanPanorama(row)

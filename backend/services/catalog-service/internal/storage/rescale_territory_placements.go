@@ -10,22 +10,25 @@ import (
 )
 
 // RescaleTerritoryPlacements applies a pending rescale baseline in one atomic
-// statement: it multiplies every placement's position and scale by
-// old_max / newMax and clears the baseline. Position and scale are both linear
-// in the territory's normalization, so the single factor keeps each placed
-// object 1:1 (same real-world size and location) against the freshly converted
-// mesh.
+// statement: it multiplies every placement's position and scale, and every
+// measurement point, by old_max / newMax and clears the baseline. All of them
+// are linear in the territory's normalization, so the single factor keeps each
+// placed object and each ruler 1:1 (same real-world size and location) against
+// the freshly converted mesh. The name predates measurements; mesh-worker
+// calls it, so it stays.
 //
 // When no baseline is pending (first conversions, re-runs) it matches no rows
-// and returns 0. The epsilon guard skips the placement write when the factor is
-// indistinguishable from 1 (an identical re-scan) while still clearing the
-// baseline via the always-executed `cleared` CTE. A non-positive newMax is a
-// defensive no-op that leaves the baseline intact for a later valid conversion.
-// Returns the number of placements changed.
+// and returns 0. The epsilon guard skips the placement and measurement writes
+// when the factor is indistinguishable from 1 (an identical re-scan) while
+// still clearing the baseline via the always-executed `cleared` CTE. A
+// non-positive newMax is a defensive no-op that leaves the baseline intact for
+// a later valid conversion. Returns the number of placements changed;
+// measurements are not counted.
 //
-// Wrapped in audittx.Run because it writes placements and territories, both
-// audited. mesh-worker calls it with no actor on ctx, so the resulting entries
-// are attributed to the system — correct, since no human moved anything.
+// Wrapped in audittx.Run because it writes placements, measurements and
+// territories, all audited. mesh-worker calls it with no actor on ctx, so the
+// resulting entries are attributed to the system — correct, since no human
+// moved anything.
 func (r *PG) RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64) (int, error) {
 	if newMax <= 0 {
 		return 0, nil
@@ -51,6 +54,19 @@ func (r *PG) RescaleTerritoryPlacements(ctx context.Context, slug string, newMax
 			  AND b.old_max IS NOT NULL
 			  AND abs(b.old_max / $2 - 1) >= 1e-9
 			RETURNING p.id
+		),
+		measured AS (
+			UPDATE measurements m SET
+				points = ARRAY(
+					SELECT v * (b.old_max / $2)
+					FROM unnest(m.points) WITH ORDINALITY AS u(v, i)
+					ORDER BY i
+				),
+				updated_at = NOW()
+			FROM base b
+			WHERE m.territory_id = b.id
+			  AND b.old_max IS NOT NULL
+			  AND abs(b.old_max / $2 - 1) >= 1e-9
 		),
 		cleared AS (
 			UPDATE territories t SET rescale_baseline_max = NULL

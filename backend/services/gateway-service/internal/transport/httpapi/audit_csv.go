@@ -69,7 +69,7 @@ func (s *Server) ServeAuditCSV(w http.ResponseWriter, r *http.Request) {
 		writeAuditCSVError(w, err)
 		return
 	}
-	first, next, _, err := s.svc.ListAudit(ctx, q, sc, token, false)
+	first, _, err := s.svc.ListAudit(ctx, q, sc, token, false)
 	if err != nil {
 		writeAuditCSVError(w, err)
 		return
@@ -83,7 +83,7 @@ func (s *Server) ServeAuditCSV(w http.ResponseWriter, r *http.Request) {
 	if err := cw.Write(auditCSVHeader); err != nil {
 		return // client hung up
 	}
-	page := first
+	page, next := first.Entries, first.NextCursor
 	for {
 		for _, e := range page {
 			if err := cw.Write(auditCSVRow(e)); err != nil {
@@ -95,11 +95,12 @@ func (s *Server) ServeAuditCSV(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		q.Cursor = next
-		page, next, _, err = s.svc.ListAudit(ctx, q, sc, token, false)
+		more, _, err := s.svc.ListAudit(ctx, q, sc, token, false)
 		if err != nil {
 			// The header is already out; log-free bail is the only option left.
 			return
 		}
+		page, next = more.Entries, more.NextCursor
 	}
 }
 

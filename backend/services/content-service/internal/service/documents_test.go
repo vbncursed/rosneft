@@ -66,12 +66,17 @@ func (s *DocumentsSuite) TestListDelegates() {
 }
 
 func (s *DocumentsSuite) TestDeleteRejectsZeroID() {
-	err := s.svc.DeleteDocument(s.ctx, 0)
+	err := s.svc.DeleteDocument(s.ctx, "site-a", 0)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
-func (s *DocumentsSuite) TestDeleteDelegates() {
-	s.repo.DeleteDocumentMock.Expect(minimock.AnyContext, int64(7)).Return(nil)
-	err := s.svc.DeleteDocument(s.ctx, 7)
+func (s *DocumentsSuite) TestDeleteRejectsEmptyTerritorySlug() {
+	err := s.svc.DeleteDocument(s.ctx, "", 7)
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *DocumentsSuite) TestDeleteForwardsTerritorySlug() {
+	s.repo.DeleteDocumentMock.Expect(minimock.AnyContext, "site-a", int64(7)).Return(nil)
+	err := s.svc.DeleteDocument(s.ctx, "site-a", 7)
 	assert.NilError(s.T(), err)
 }

@@ -26,7 +26,7 @@ func (s *Server) ListPanoramas(ctx context.Context, req ListPanoramasRequestObje
 
 func (s *Server) CreatePanorama(ctx context.Context, req CreatePanoramaRequestObject) (CreatePanoramaResponseObject, error) {
 	if req.Body == nil {
-		return CreatePanorama400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
+		return CreatePanorama400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
 	body := *req.Body
 	var yawOffset float64
@@ -40,7 +40,7 @@ func (s *Server) CreatePanorama(ctx context.Context, req CreatePanoramaRequestOb
 		SourceBlobHash: body.SourceBlobHash,
 		Position:       vec3PtrFromAPI(body.Position),
 		YawOffset:      yawOffset,
-	})
+	}, blobScope(ctx))
 	switch {
 	case isInvalid(err):
 		return CreatePanorama400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
@@ -54,7 +54,7 @@ func (s *Server) CreatePanorama(ctx context.Context, req CreatePanoramaRequestOb
 
 func (s *Server) UpdatePanorama(ctx context.Context, req UpdatePanoramaRequestObject) (UpdatePanoramaResponseObject, error) {
 	if req.Body == nil {
-		return UpdatePanorama400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
+		return UpdatePanorama400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
 	body := *req.Body
 	title := ""
@@ -70,11 +70,12 @@ func (s *Server) UpdatePanorama(ctx context.Context, req UpdatePanoramaRequestOb
 		defaultYaw = *body.DefaultYaw
 	}
 	p, err := s.svc.UpdatePanorama(ctx, domain.Panorama{
-		ID:         req.Id,
-		Title:      title,
-		Position:   vec3PtrFromAPI(body.Position),
-		YawOffset:  yawOffset,
-		DefaultYaw: defaultYaw,
+		ID:            req.Id,
+		TerritorySlug: req.Slug,
+		Title:         title,
+		Position:      vec3PtrFromAPI(body.Position),
+		YawOffset:     yawOffset,
+		DefaultYaw:    defaultYaw,
 	})
 	switch {
 	case isInvalid(err):
@@ -88,7 +89,7 @@ func (s *Server) UpdatePanorama(ctx context.Context, req UpdatePanoramaRequestOb
 }
 
 func (s *Server) DeletePanorama(ctx context.Context, req DeletePanoramaRequestObject) (DeletePanoramaResponseObject, error) {
-	err := s.svc.DeletePanorama(ctx, req.Id)
+	err := s.svc.DeletePanorama(ctx, req.Slug, req.Id)
 	switch {
 	case isNotFound(err):
 		return DeletePanorama404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil

@@ -1,0 +1,46 @@
+import { pipelineSteps, type PipelinePhase } from "./model/pipeline";
+import { ConversionBadge } from "./ui/conversion-badge";
+import { Pipeline } from "./ui/pipeline";
+import { StageList } from "./ui/stage-list";
+
+const STATES = [
+  { status: "ready" as const },
+  { status: "converting" as const, progress: 42 },
+  { status: "converting" as const },
+  { status: "failed" as const },
+];
+
+// The upload pipeline's stages: hints on every row, and the active step
+// toned accent rather than the conversion pipeline's warn default.
+const UPLOAD_STAGES = [
+  { label: "Chunked upload", state: "active" as const, time: "running", hint: "8 MB chunks, resumable" },
+  { label: "Finalize blob", state: "pending" as const, time: "queued", hint: "content hash written" },
+  { label: "Parse OBJ + MTL", state: "pending" as const, time: "~1 min", hint: "geometry and materials" },
+];
+
+const pipeline = (stage: string | null, phase: PipelinePhase) => (
+  <div className="max-w-[760px] p-6">
+    <Pipeline steps={pipelineSteps(stage, phase)} />
+  </div>
+);
+
+export default {
+  badges: (
+    <div className="flex flex-col gap-3 rounded-card border border-line bg-panel p-6">
+      {STATES.map((state, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <ConversionBadge status={state.status} />
+        </div>
+      ))}
+    </div>
+  ),
+  stages: (
+    <div className="max-w-sm rounded-card border border-line bg-panel p-6">
+      <StageList stages={UPLOAD_STAGES} activeTone="accent" />
+    </div>
+  ),
+  "pipeline queued": pipeline(null, "queued"),
+  "pipeline running": pipeline("encoding", "running"),
+  "pipeline failed": pipeline("compressing", "failed"),
+  "pipeline failed, no stage": pipeline(null, "failed"),
+};
