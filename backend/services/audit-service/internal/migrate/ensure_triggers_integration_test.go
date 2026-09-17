@@ -60,7 +60,7 @@ func (s *EnsureTriggersSuite) TearDownSuite() {
 // Each test starts from "audit has migrated, nobody else has". Dropping the
 // table drops its trigger with it.
 func (s *EnsureTriggersSuite) SetupTest() {
-	_, err := s.pool.Exec(s.T().Context(), `DROP TABLE IF EXISTS territories`)
+	_, err := s.pool.Exec(s.T().Context(), `DROP TABLE IF EXISTS territories, measurements`)
 	assert.NilError(s.T(), err)
 }
 
@@ -121,4 +121,37 @@ func (s *EnsureTriggersSuite) TestIsIdempotent() {
 		 WHERE tgrelid = 'public.territories'::regclass AND NOT tgisinternal`).Scan(&triggers)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), triggers, 1)
+}
+
+// measurements is the first table with a pk but no label column: the entry
+// carries the id and a NULL label, and the row itself is in new_row.
+func (s *EnsureTriggersSuite) TestAttachesToMeasurementsWithAnIDAndNoLabel() {
+	ctx := s.T().Context()
+	_, err := s.pool.Exec(ctx, `
+		CREATE TABLE measurements (
+			id BIGSERIAL PRIMARY KEY,
+			points DOUBLE PRECISION[] NOT NULL,
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)`)
+	assert.NilError(s.T(), err)
+
+	var attached int
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT ensure_audit_triggers()`).Scan(&attached))
+	assert.Equal(s.T(), attached, 1)
+
+	var id string
+	err = s.pool.QueryRow(ctx,
+		`INSERT INTO measurements (points) VALUES ('{1,2,3,4,5,6}') RETURNING id::text`).Scan(&id)
+	assert.NilError(s.T(), err)
+
+	var action, entityID, points string
+	var label *string
+	err = s.pool.QueryRow(ctx, `
+		SELECT action, entity_id, entity_label, new_row->>'points'
+		FROM audit_log WHERE entity = 'measurement'`).Scan(&action, &entityID, &label, &points)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), action, "measurement.insert")
+	assert.Equal(s.T(), entityID, id)
+	assert.Assert(s.T(), label == nil)
+	assert.Equal(s.T(), points, "[1, 2, 3, 4, 5, 6]")
 }

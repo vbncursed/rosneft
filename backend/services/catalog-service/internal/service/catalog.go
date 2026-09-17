@@ -52,6 +52,14 @@ type Repository interface {
 	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, territorySlug string, id int64) error
 
+	// Every id-addressed measurement call is scoped by the territory slug: a
+	// row of another territory is ErrMeasurementNotFound.
+	ListMeasurements(ctx context.Context, territorySlug string) ([]domain.Measurement, error)
+	CreateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
+	UpdateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
+	DeleteMeasurement(ctx context.Context, territorySlug string, id int64) error
+	DeleteMeasurements(ctx context.Context, territorySlug string) (int, error)
+
 	// ListPanoramaIDs returns the IDs of panoramas on a territory. Panoramas
 	// themselves are owned by content-service; catalog only needs their IDs to
 	// validate placement visibility allowlists (read-only, shared DB).

@@ -160,3 +160,26 @@ func (s *RollbackSuite) TestUpAgainAfterRollback() {
 	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT count(*) FROM audit_log`).Scan(&n))
 	assert.Equal(s.T(), n, 1)
 }
+
+// One step back is 00005 alone: its trigger comes off measurements, and the
+// previous ensure_audit_triggers() body no longer picks the table up on boot.
+func (s *RollbackSuite) TestOneStepBackForgetsMeasurements() {
+	ctx := s.T().Context()
+	_, err := s.pool.Exec(ctx, `CREATE TABLE measurements (id BIGSERIAL PRIMARY KEY)`)
+	assert.NilError(s.T(), err)
+
+	assert.NilError(s.T(), migrate.Up(ctx, s.dsn))
+	var attached int
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT ensure_audit_triggers()`).Scan(&attached))
+	assert.Equal(s.T(), attached, 1)
+
+	assert.NilError(s.T(), migrate.Down(ctx, s.dsn))
+	var trgs int
+	assert.NilError(s.T(), s.pool.QueryRow(ctx,
+		`SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal
+		 AND tgrelid = 'public.measurements'::regclass`).Scan(&trgs))
+	assert.Equal(s.T(), trgs, 0)
+
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT ensure_audit_triggers()`).Scan(&attached))
+	assert.Equal(s.T(), attached, 0)
+}

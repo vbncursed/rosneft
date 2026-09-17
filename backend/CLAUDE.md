@@ -14,7 +14,7 @@ Guidance for Claude Code when working in `backend/`.
 | Service | Module | Cmds | Role |
 | --- | --- | --- | --- |
 | gateway | `services/gateway-service` | `gateway` | Public REST + Scalar UI on `:8080`; proxies `/api/assets/*` to asset; speaks gRPC to catalog, content, auth, twofa, passkey, mesh-api, and upload. Runs ETag + Brotli/gzip middleware on JSON, exposes a single-shot scene bundle and SSE job stream. Terminates the chunked-upload protocol on `/api/uploads`. |
-| catalog | `services/catalog-service` | `catalog` | Owns territories + models + their artifacts + placements + territory admins. Postgres-backed. API-driven (no startup seeding). Keeps a read-only `ListPanoramaIDs` to validate placement visibility against content's panoramas table (shared DB). |
+| catalog | `services/catalog-service` | `catalog` | Owns territories + models + their artifacts + placements + measurements (saved ruler chains, rescaled with placements) + territory admins. Postgres-backed. API-driven (no startup seeding). Keeps a read-only `ListPanoramaIDs` to validate placement visibility against content's panoramas table (shared DB). |
 | content | `services/content-service` | `content` | gRPC `:9007`. Owns **documents** (PDFs) + **panoramas** (equirect images) anchored to a territory — non-geometry media, no mesh pipeline. Shares the `andrey` DB isolated by `content_goose_db_version`; the `territories` FK cascade still cleans up its rows on territory delete. Extracted from catalog. |
 | auth | `services/auth-service` | `auth` | gRPC `:9004`. Owns users, roles, permissions, sessions. Postgres + Redis (auth cache, logical DB 1). Delegates 2FA login verification to twofa. |
 | twofa | `services/twofa-service` | `twofa` | gRPC `:9006`. Owns TOTP secrets, recovery codes, 2FA verify. Postgres + Redis (logical DB 2). AES-GCM-encrypts secrets at rest. |
@@ -295,13 +295,19 @@ The trigger logic is SQL, so it is covered by integration tests:
 `services/audit-service/internal/migrate/*_integration_test.go`, behind the
 `integration` build tag. They are not the only ones in the repo —
 `catalog-service/internal/storage/*_integration_test.go` (blob scoping, the
-placement territory scope, model delete, list counts),
+placement territory scope, model delete, list counts, the measurement territory
+scope and points constraint, and the rescale CTE over placements and
+measurements),
 `content-service/internal/storage/territory_scope_integration_test.go` (panorama
-and document territory scope, including the allowlist scrub) and
-`auth-service/internal/storage/users/set_totp_required_integration_test.go`
-cover SQL logic the same way, in their own services. Run them per module with
-`GOWORK=off go test -race -tags=integration ./internal/storage/...` (audit:
-`./...` from `services/audit-service`); needs Docker. The content suite has no
+and document territory scope, including the allowlist scrub),
+`auth-service/internal/storage/users/set_totp_required_integration_test.go` and
+`auth-service/internal/migrate/measurement_permissions_integration_test.go`
+(which system role holds which measurement grant) cover SQL logic the same way,
+in their own services; the audit suites include the `measurements` trigger and
+its rollback. Run them per module with
+`GOWORK=off go test -race -tags=integration ./internal/storage/...` (auth: add
+`./internal/migrate/...`; audit: `./...` from `services/audit-service`); needs
+Docker. The content suite has no
 schema of its own — it applies catalog's migrations from the repo checkout.
 **`make check`, `make test` and CI do not run them**: they stay Docker-free, so
 a regression in this SQL is caught only by running the suites by hand.
@@ -311,8 +317,20 @@ a regression in this SQL is caught only by running the suites by hand.
 Scope is enforced by `httpapi.RequireTerritoryAccess`, mounted in the `/api`
 group after `RequirePermissionForRoute` (the permission check costs no network,
 so a caller heading for a 403 should not first buy a catalog lookup). It matches
-on the route-pattern prefix `/api/territories/{slug}`, so all thirteen child
-routes — and any added later — are covered without anyone remembering.
+on the route-pattern prefix `/api/territories/{slug}`, so every child route —
+thirteen when it landed, measurements since — and any added later are covered
+without anyone remembering.
+
+**The middleware checks the slug; the handler must still use it.** A check on
+the URL's territory says nothing about a row id in the same URL. Until
+`c5ec5e1d` five id-addressed mutations (placement update/delete, panorama
+update/delete, document delete) passed only the id down and storage matched
+`WHERE id = $1`, so a caller with access to their own territory changed
+another tenant's rows through it. Every id-addressed statement now also
+matches the territory by slug in SQL, and a foreign id answers the same 404 as
+a missing one. `route_permissions_spec_test.go` separately fails when a
+non-GET operation in the spec is neither in `routePerms` nor a reasoned
+exception — the visibility PUT had slipped through with no grant at all.
 
 That shape is deliberate. The hole it closed was not a missing check but a check
 that had to be threaded through thirteen handlers and reached three of them.
