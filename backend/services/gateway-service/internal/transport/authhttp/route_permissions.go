@@ -12,7 +12,8 @@ import (
 
 // routePerms maps "METHOD <chi route pattern>" to the permissions that open it —
 // holding ANY of them is enough. Only mutations are listed; reads need any
-// authenticated principal.
+// authenticated principal. A spec mutation missing from here must be excused
+// in route_permissions_spec_test.go, or that test fails.
 //
 // The journal has two grants of different width, and they open different
 // routes: audit:read reads the company's history, audit:read_own reads your
@@ -33,21 +34,23 @@ var routePerms = map[string][]string{
 	"DELETE /api/territories/{slug}": {"territory:delete"},
 	// Replacing the source model is a write on the territory: it feeds a
 	// reconversion, same grant as PATCH.
-	"POST /api/territories/{slug}/source":            {"territory:write"},
-	"POST /api/models":                               {"model:write"},
-	"PATCH /api/models/{slug}":                       {"model:write"},
-	"DELETE /api/models/{slug}":                      {"model:delete"},
-	"POST /api/territories/{slug}/placements":        {"placement:create"},
-	"PUT /api/territories/{slug}/placements/{id}":    {"placement:write"},
-	"DELETE /api/territories/{slug}/placements/{id}": {"placement:delete"},
-	"POST /api/territories/{slug}/panoramas":         {"panorama:create"},
-	"PUT /api/territories/{slug}/panoramas/{id}":     {"panorama:write"},
-	"DELETE /api/territories/{slug}/panoramas/{id}":  {"panorama:delete"},
-	"POST /api/territories/{slug}/documents":         {"document:write"},
-	"DELETE /api/territories/{slug}/documents/{id}":  {"document:delete"},
-	"POST /api/uploads":                              {"upload:create"},
-	"PATCH /api/uploads/{id}":                        {"upload:create"},
-	"POST /api/uploads/{id}/finalize":                {"upload:create"},
+	"POST /api/territories/{slug}/source":         {"territory:write"},
+	"POST /api/models":                            {"model:write"},
+	"PATCH /api/models/{slug}":                    {"model:write"},
+	"DELETE /api/models/{slug}":                   {"model:delete"},
+	"POST /api/territories/{slug}/placements":     {"placement:create"},
+	"PUT /api/territories/{slug}/placements/{id}": {"placement:write"},
+	// The panorama allowlist is part of the placement: same grant as the transform.
+	"PUT /api/territories/{slug}/placements/{id}/visibility": {"placement:write"},
+	"DELETE /api/territories/{slug}/placements/{id}":         {"placement:delete"},
+	"POST /api/territories/{slug}/panoramas":                 {"panorama:create"},
+	"PUT /api/territories/{slug}/panoramas/{id}":             {"panorama:write"},
+	"DELETE /api/territories/{slug}/panoramas/{id}":          {"panorama:delete"},
+	"POST /api/territories/{slug}/documents":                 {"document:write"},
+	"DELETE /api/territories/{slug}/documents/{id}":          {"document:delete"},
+	"POST /api/uploads":                                      {"upload:create"},
+	"PATCH /api/uploads/{id}":                                {"upload:create"},
+	"POST /api/uploads/{id}/finalize":                        {"upload:create"},
 }
 
 // RequirePermissionForRoute enforces routePerms against the principal. Routes

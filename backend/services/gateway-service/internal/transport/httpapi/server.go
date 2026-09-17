@@ -40,16 +40,16 @@ type Service interface {
 	CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
-	DeletePlacement(ctx context.Context, id int64) error
+	DeletePlacement(ctx context.Context, territorySlug string, id int64) error
 
 	ListPanoramas(ctx context.Context, territorySlug string) ([]domain.Panorama, error)
 	CreatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
 	UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
-	DeletePanorama(ctx context.Context, id int64) error
+	DeletePanorama(ctx context.Context, territorySlug string, id int64) error
 
 	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
 	CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error)
-	DeleteDocument(ctx context.Context, id int64) error
+	DeleteDocument(ctx context.Context, territorySlug string, id int64) error
 
 	// ListAudit takes a scope the HANDLER already resolved — AuditScope for the
 	// company journal, AuditOwnScope for /api/audit/mine. Which route was called

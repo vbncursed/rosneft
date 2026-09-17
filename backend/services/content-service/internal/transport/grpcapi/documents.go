@@ -32,7 +32,7 @@ func (s *Server) CreateDocument(ctx context.Context, req *contentv1.CreateDocume
 }
 
 func (s *Server) DeleteDocument(ctx context.Context, req *contentv1.DeleteDocumentRequest) (*contentv1.DeleteDocumentResponse, error) {
-	if err := s.svc.DeleteDocument(ctx, req.GetId()); err != nil {
+	if err := s.svc.DeleteDocument(ctx, req.GetTerritorySlug(), req.GetId()); err != nil {
 		return nil, mapError(err)
 	}
 	return &contentv1.DeleteDocumentResponse{}, nil

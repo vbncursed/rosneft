@@ -2,8 +2,11 @@
 package authhttp
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
 )
@@ -58,6 +61,7 @@ func (s *RoutePermsSuite) TestEveryContentMutationRouteIsGated() {
 		"DELETE /api/models/{slug}",
 		"POST /api/territories/{slug}/placements",
 		"PUT /api/territories/{slug}/placements/{id}",
+		"PUT /api/territories/{slug}/placements/{id}/visibility", // was missing too
 		"DELETE /api/territories/{slug}/placements/{id}",
 		"POST /api/territories/{slug}/panoramas",
 		"PUT /api/territories/{slug}/panoramas/{id}",
@@ -82,5 +86,37 @@ func (s *RoutePermsSuite) TestEveryContentMutationRouteIsGated() {
 func (s *RoutePermsSuite) TestNoRouteHasAnEmptyPermissionList() {
 	for route, need := range routePerms {
 		assert.Assert(s.T(), len(need) > 0, "%s names no permissions", route)
+	}
+}
+
+// The visibility allowlist is a placement write. It was absent from routePerms,
+// so a guest or viewer — whose read grants are enough to pass
+// RequireTerritoryAccess — could rewrite it on a territory assigned to them.
+// Drives the real middleware through a chi route, because the gate keys on the
+// matched pattern, not on the URL.
+func (s *RoutePermsSuite) TestVisibilityNeedsPlacementWrite() {
+	const pattern = "/api/territories/{slug}/placements/{id}/visibility"
+	r := chi.NewRouter()
+	r.With(RequirePermissionForRoute).Put(pattern, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+	cases := []struct {
+		name     string
+		perms    []string
+		expected int
+	}{
+		{name: "guest", perms: []string{"territory:read", "placement:read", "panorama:read"}, expected: http.StatusForbidden},
+		{name: "viewer", perms: []string{"territory:read", "placement:read"}, expected: http.StatusForbidden},
+		{name: "editor", perms: []string{"territory:read", "placement:write"}, expected: http.StatusNoContent},
+	}
+	for _, tc := range cases {
+		s.Run(tc.name, func() {
+			req := httptest.NewRequestWithContext(
+				withPrincipal(s.T().Context(), "u1", tc.perms, false, "admin", "admin"),
+				http.MethodPut, "/api/territories/yard/placements/7/visibility", http.NoBody)
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, req)
+			assert.Equal(s.T(), rec.Code, tc.expected)
+		})
 	}
 }

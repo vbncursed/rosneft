@@ -45,7 +45,7 @@ type Service interface {
 	CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
-	DeletePlacement(ctx context.Context, id int64) error
+	DeletePlacement(ctx context.Context, territorySlug string, id int64) error
 }
 
 // Server implements catalogv1.CatalogServiceServer over a Service.

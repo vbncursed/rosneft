@@ -2895,12 +2895,14 @@ func (x *CreatePlacementResponse) GetPlacement() *Placement {
 }
 
 type UpdatePlacementRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Position      *Vec3                  `protobuf:"bytes,2,opt,name=position,proto3" json:"position,omitempty"`
-	Rotation      *Vec3                  `protobuf:"bytes,3,opt,name=rotation,proto3" json:"rotation,omitempty"`
-	Scale         *Vec3                  `protobuf:"bytes,4,opt,name=scale,proto3" json:"scale,omitempty"`
-	Label         string                 `protobuf:"bytes,5,opt,name=label,proto3" json:"label,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Id       int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Position *Vec3                  `protobuf:"bytes,2,opt,name=position,proto3" json:"position,omitempty"`
+	Rotation *Vec3                  `protobuf:"bytes,3,opt,name=rotation,proto3" json:"rotation,omitempty"`
+	Scale    *Vec3                  `protobuf:"bytes,4,opt,name=scale,proto3" json:"scale,omitempty"`
+	Label    string                 `protobuf:"bytes,5,opt,name=label,proto3" json:"label,omitempty"`
+	// Scopes the lookup: an id from another territory reads as not found.
+	TerritorySlug string `protobuf:"bytes,6,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2966,6 +2968,13 @@ func (x *UpdatePlacementRequest) GetScale() *Vec3 {
 func (x *UpdatePlacementRequest) GetLabel() string {
 	if x != nil {
 		return x.Label
+	}
+	return ""
+}
+
+func (x *UpdatePlacementRequest) GetTerritorySlug() string {
+	if x != nil {
+		return x.TerritorySlug
 	}
 	return ""
 }
@@ -3122,8 +3131,10 @@ func (x *SetPlacementVisibilityResponse) GetPlacement() *Placement {
 }
 
 type DeletePlacementRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Scopes the lookup: an id from another territory reads as not found.
+	TerritorySlug string `protobuf:"bytes,2,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3163,6 +3174,13 @@ func (x *DeletePlacementRequest) GetId() int64 {
 		return x.Id
 	}
 	return 0
+}
+
+func (x *DeletePlacementRequest) GetTerritorySlug() string {
+	if x != nil {
+		return x.TerritorySlug
+	}
+	return ""
 }
 
 type DeletePlacementResponse struct {
@@ -3393,13 +3411,14 @@ const file_rosneft_catalog_v1_catalog_proto_rawDesc = "" +
 	"\x05label\x18\x06 \x01(\tR\x05label\x120\n" +
 	"\x14visible_panorama_ids\x18\a \x03(\x03R\x12visiblePanoramaIds\"V\n" +
 	"\x17CreatePlacementResponse\x12;\n" +
-	"\tplacement\x18\x01 \x01(\v2\x1d.rosneft.catalog.v1.PlacementR\tplacement\"\xda\x01\n" +
+	"\tplacement\x18\x01 \x01(\v2\x1d.rosneft.catalog.v1.PlacementR\tplacement\"\x81\x02\n" +
 	"\x16UpdatePlacementRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x124\n" +
 	"\bposition\x18\x02 \x01(\v2\x18.rosneft.catalog.v1.Vec3R\bposition\x124\n" +
 	"\brotation\x18\x03 \x01(\v2\x18.rosneft.catalog.v1.Vec3R\brotation\x12.\n" +
 	"\x05scale\x18\x04 \x01(\v2\x18.rosneft.catalog.v1.Vec3R\x05scale\x12\x14\n" +
-	"\x05label\x18\x05 \x01(\tR\x05label\"V\n" +
+	"\x05label\x18\x05 \x01(\tR\x05label\x12%\n" +
+	"\x0eterritory_slug\x18\x06 \x01(\tR\rterritorySlug\"V\n" +
 	"\x17UpdatePlacementResponse\x12;\n" +
 	"\tplacement\x18\x01 \x01(\v2\x1d.rosneft.catalog.v1.PlacementR\tplacement\"\x8c\x01\n" +
 	"\x1dSetPlacementVisibilityRequest\x12%\n" +
@@ -3407,9 +3426,10 @@ const file_rosneft_catalog_v1_catalog_proto_rawDesc = "" +
 	"\fplacement_id\x18\x02 \x01(\x03R\vplacementId\x12!\n" +
 	"\fpanorama_ids\x18\x03 \x03(\x03R\vpanoramaIds\"]\n" +
 	"\x1eSetPlacementVisibilityResponse\x12;\n" +
-	"\tplacement\x18\x01 \x01(\v2\x1d.rosneft.catalog.v1.PlacementR\tplacement\"(\n" +
+	"\tplacement\x18\x01 \x01(\v2\x1d.rosneft.catalog.v1.PlacementR\tplacement\"O\n" +
 	"\x16DeletePlacementRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\"\x19\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12%\n" +
+	"\x0eterritory_slug\x18\x02 \x01(\tR\rterritorySlug\"\x19\n" +
 	"\x17DeletePlacementResponse2\xa9\x18\n" +
 	"\x0eCatalogService\x12j\n" +
 	"\x0fListTerritories\x12*.rosneft.catalog.v1.ListTerritoriesRequest\x1a+.rosneft.catalog.v1.ListTerritoriesResponse\x12|\n" +

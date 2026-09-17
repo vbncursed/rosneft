@@ -44,7 +44,7 @@ func (s *Server) CreateDocument(ctx context.Context, req CreateDocumentRequestOb
 }
 
 func (s *Server) DeleteDocument(ctx context.Context, req DeleteDocumentRequestObject) (DeleteDocumentResponseObject, error) {
-	err := s.svc.DeleteDocument(ctx, req.Id)
+	err := s.svc.DeleteDocument(ctx, req.Slug, req.Id)
 	switch {
 	case isNotFound(err):
 		return DeleteDocument404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil

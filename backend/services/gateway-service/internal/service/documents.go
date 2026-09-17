@@ -29,10 +29,13 @@ func (g *Gateway) CreateDocument(ctx context.Context, d domain.Document) (domain
 	return g.content.CreateDocument(ctx, d)
 }
 
-// DeleteDocument removes a document by ID.
-func (g *Gateway) DeleteDocument(ctx context.Context, id int64) error {
+// DeleteDocument removes a document on territorySlug by ID.
+func (g *Gateway) DeleteDocument(ctx context.Context, territorySlug string, id int64) error {
+	if territorySlug == "" {
+		return fmt.Errorf("%w: empty territory slug", domain.ErrInvalidInput)
+	}
 	if id <= 0 {
 		return fmt.Errorf("%w: id is required", domain.ErrInvalidInput)
 	}
-	return g.content.DeleteDocument(ctx, id)
+	return g.content.DeleteDocument(ctx, territorySlug, id)
 }
