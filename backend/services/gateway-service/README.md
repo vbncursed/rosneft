@@ -321,14 +321,14 @@ assertions (the project-wide convention).
 
 ## Toolchain & dependencies
 
-Go **1.27.0** — `go 1.27.0` in `go.mod`, build stage `golang:1.27.0-alpine`.
+Go **1.27.1** — `go 1.27.1` in `go.mod`, build stage `golang:1.27.1-alpine`.
 Versions are pinned identically across every module in the workspace; see
 [`backend/README.md#toolchain--dependencies`](../../README.md#toolchain--dependencies)
 for the repo-wide matrix and the upgrade procedure.
 
 | Module | Version | Role |
 | --- | --- | --- |
-| `github.com/andybalholm/brotli` | v1.2.2 | Brotli response compression |
+| `github.com/andybalholm/brotli` | v1.2.4 | Brotli response compression |
 | `github.com/getkin/kin-openapi` | v0.145.0 | OpenAPI 3 spec load + request validation |
 | `github.com/go-chi/chi/v5` | v5.3.1 | HTTP router |
 | `github.com/go-chi/cors` | v1.2.2 | CORS middleware |
@@ -340,6 +340,6 @@ for the repo-wide matrix and the upgrade procedure.
 | `github.com/stretchr/testify` | v1.11.1 | `suite` grouping only (test) |
 | `github.com/vbncursed/rosneft/backend/pkg` | v0.0.0 | Workspace module — shared libs (`replace` → `../../pkg`) |
 | `github.com/vbncursed/rosneft/backend/proto` | v0.0.0 | Workspace module — generated gRPC stubs (`replace` → `../../proto`) |
-| `golang.org/x/sync` | v0.22.0 | `errgroup` — parallel scene-bundle fan-out |
+| `golang.org/x/sync` | v0.23.0 | `errgroup` — parallel scene-bundle fan-out |
 | `google.golang.org/grpc` | v1.82.1 | gRPC transport |
 | `gotest.tools/v3` | v3.5.2 | `assert` — the actual assertions (test) |

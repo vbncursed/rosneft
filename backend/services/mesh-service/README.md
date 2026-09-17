@@ -188,7 +188,7 @@ OBJ parser benchmarks: ~5 allocs/op, ~260–330 MB/s on Apple M3.
 
 ## Toolchain & dependencies
 
-Go **1.27.0** — `go 1.27.0` in `go.mod`, build stage `golang:1.27.0-alpine`.
+Go **1.27.1** — `go 1.27.1` in `go.mod`, build stage `golang:1.27.1-alpine`.
 Versions are pinned identically across every module in the workspace; see
 [`backend/README.md#toolchain--dependencies`](../../README.md#toolchain--dependencies)
 for the repo-wide matrix and the upgrade procedure.
