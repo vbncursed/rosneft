@@ -64,6 +64,20 @@ export default {
       onPlace={() => {}}
     />
   ),
+  "place-objects long library": (
+    <PlaceObjectsModal
+      open
+      onClose={() => {}}
+      territoryTitle="Refinery Block C"
+      options={Array.from({ length: 40 }, (_, i) => ({
+        slug: `model-${i}`,
+        title: `model-${i}`,
+        chain: lods([2_000_000]),
+      }))}
+      placing={null}
+      onPlace={() => {}}
+    />
+  ),
   "picker band thumbs": (
     <div className="max-w-sm rounded-card border border-line bg-panel p-6">
       <ModelPicker models={MODELS} selectedSlug="storage-tank-500" onSelect={() => {}} thumb="band" />

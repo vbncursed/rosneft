@@ -58,8 +58,9 @@ export function Modal({
         // clips/scrolls an absolutely-positioned floating child (a Dropdown's
         // open list) instead of letting it sit above the box. overflow-visible
         // opts back out.
-        // ponytail: a dialog taller than the viewport no longer scrolls itself
-        // — move the list to a portal if that ever matters.
+        // The UA still caps the height at the viewport, so a tall body must
+        // scroll a part of its own (`min-h-0 overflow-y-auto`, as the model
+        // picker does) — the dialog itself no longer scrolls.
         // The width lives here, once per size: a base utility plus a variant
         // one for the same property is resolved by the stylesheet's source
         // order, not by the className string's. `open:flex`, never `flex`: an
