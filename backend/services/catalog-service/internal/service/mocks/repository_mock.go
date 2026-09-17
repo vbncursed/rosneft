@@ -47,9 +47,9 @@ type RepositoryMock struct {
 	beforeDeleteModelCounter uint64
 	DeleteModelMock          mRepositoryMockDeleteModel
 
-	funcDeletePlacement          func(ctx context.Context, id int64) (err error)
+	funcDeletePlacement          func(ctx context.Context, territorySlug string, id int64) (err error)
 	funcDeletePlacementOrigin    string
-	inspectFuncDeletePlacement   func(ctx context.Context, id int64)
+	inspectFuncDeletePlacement   func(ctx context.Context, territorySlug string, id int64)
 	afterDeletePlacementCounter  uint64
 	beforeDeletePlacementCounter uint64
 	DeletePlacementMock          mRepositoryMockDeletePlacement
@@ -1730,14 +1730,16 @@ type RepositoryMockDeletePlacementExpectation struct {
 
 // RepositoryMockDeletePlacementParams contains parameters of the Repository.DeletePlacement
 type RepositoryMockDeletePlacementParams struct {
-	ctx context.Context
-	id  int64
+	ctx           context.Context
+	territorySlug string
+	id            int64
 }
 
 // RepositoryMockDeletePlacementParamPtrs contains pointers to parameters of the Repository.DeletePlacement
 type RepositoryMockDeletePlacementParamPtrs struct {
-	ctx *context.Context
-	id  *int64
+	ctx           *context.Context
+	territorySlug *string
+	id            *int64
 }
 
 // RepositoryMockDeletePlacementResults contains results of the Repository.DeletePlacement
@@ -1747,9 +1749,10 @@ type RepositoryMockDeletePlacementResults struct {
 
 // RepositoryMockDeletePlacementOrigins contains origins of expectations of the Repository.DeletePlacement
 type RepositoryMockDeletePlacementExpectationOrigins struct {
-	origin    string
-	originCtx string
-	originId  string
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originId            string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -1763,7 +1766,7 @@ func (mmDeletePlacement *mRepositoryMockDeletePlacement) Optional() *mRepository
 }
 
 // Expect sets up expected params for Repository.DeletePlacement
-func (mmDeletePlacement *mRepositoryMockDeletePlacement) Expect(ctx context.Context, id int64) *mRepositoryMockDeletePlacement {
+func (mmDeletePlacement *mRepositoryMockDeletePlacement) Expect(ctx context.Context, territorySlug string, id int64) *mRepositoryMockDeletePlacement {
 	if mmDeletePlacement.mock.funcDeletePlacement != nil {
 		mmDeletePlacement.mock.t.Fatalf("RepositoryMock.DeletePlacement mock is already set by Set")
 	}
@@ -1776,7 +1779,7 @@ func (mmDeletePlacement *mRepositoryMockDeletePlacement) Expect(ctx context.Cont
 		mmDeletePlacement.mock.t.Fatalf("RepositoryMock.DeletePlacement mock is already set by ExpectParams functions")
 	}
 
-	mmDeletePlacement.defaultExpectation.params = &RepositoryMockDeletePlacementParams{ctx, id}
+	mmDeletePlacement.defaultExpectation.params = &RepositoryMockDeletePlacementParams{ctx, territorySlug, id}
 	mmDeletePlacement.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmDeletePlacement.expectations {
 		if minimock.Equal(e.params, mmDeletePlacement.defaultExpectation.params) {
@@ -1810,8 +1813,31 @@ func (mmDeletePlacement *mRepositoryMockDeletePlacement) ExpectCtxParam1(ctx con
 	return mmDeletePlacement
 }
 
-// ExpectIdParam2 sets up expected param id for Repository.DeletePlacement
-func (mmDeletePlacement *mRepositoryMockDeletePlacement) ExpectIdParam2(id int64) *mRepositoryMockDeletePlacement {
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.DeletePlacement
+func (mmDeletePlacement *mRepositoryMockDeletePlacement) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockDeletePlacement {
+	if mmDeletePlacement.mock.funcDeletePlacement != nil {
+		mmDeletePlacement.mock.t.Fatalf("RepositoryMock.DeletePlacement mock is already set by Set")
+	}
+
+	if mmDeletePlacement.defaultExpectation == nil {
+		mmDeletePlacement.defaultExpectation = &RepositoryMockDeletePlacementExpectation{}
+	}
+
+	if mmDeletePlacement.defaultExpectation.params != nil {
+		mmDeletePlacement.mock.t.Fatalf("RepositoryMock.DeletePlacement mock is already set by Expect")
+	}
+
+	if mmDeletePlacement.defaultExpectation.paramPtrs == nil {
+		mmDeletePlacement.defaultExpectation.paramPtrs = &RepositoryMockDeletePlacementParamPtrs{}
+	}
+	mmDeletePlacement.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmDeletePlacement.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmDeletePlacement
+}
+
+// ExpectIdParam3 sets up expected param id for Repository.DeletePlacement
+func (mmDeletePlacement *mRepositoryMockDeletePlacement) ExpectIdParam3(id int64) *mRepositoryMockDeletePlacement {
 	if mmDeletePlacement.mock.funcDeletePlacement != nil {
 		mmDeletePlacement.mock.t.Fatalf("RepositoryMock.DeletePlacement mock is already set by Set")
 	}
@@ -1834,7 +1860,7 @@ func (mmDeletePlacement *mRepositoryMockDeletePlacement) ExpectIdParam2(id int64
 }
 
 // Inspect accepts an inspector function that has same arguments as the Repository.DeletePlacement
-func (mmDeletePlacement *mRepositoryMockDeletePlacement) Inspect(f func(ctx context.Context, id int64)) *mRepositoryMockDeletePlacement {
+func (mmDeletePlacement *mRepositoryMockDeletePlacement) Inspect(f func(ctx context.Context, territorySlug string, id int64)) *mRepositoryMockDeletePlacement {
 	if mmDeletePlacement.mock.inspectFuncDeletePlacement != nil {
 		mmDeletePlacement.mock.t.Fatalf("Inspect function is already set for RepositoryMock.DeletePlacement")
 	}
@@ -1859,7 +1885,7 @@ func (mmDeletePlacement *mRepositoryMockDeletePlacement) Return(err error) *Repo
 }
 
 // Set uses given function f to mock the Repository.DeletePlacement method
-func (mmDeletePlacement *mRepositoryMockDeletePlacement) Set(f func(ctx context.Context, id int64) (err error)) *RepositoryMock {
+func (mmDeletePlacement *mRepositoryMockDeletePlacement) Set(f func(ctx context.Context, territorySlug string, id int64) (err error)) *RepositoryMock {
 	if mmDeletePlacement.defaultExpectation != nil {
 		mmDeletePlacement.mock.t.Fatalf("Default expectation is already set for the Repository.DeletePlacement method")
 	}
@@ -1875,14 +1901,14 @@ func (mmDeletePlacement *mRepositoryMockDeletePlacement) Set(f func(ctx context.
 
 // When sets expectation for the Repository.DeletePlacement which will trigger the result defined by the following
 // Then helper
-func (mmDeletePlacement *mRepositoryMockDeletePlacement) When(ctx context.Context, id int64) *RepositoryMockDeletePlacementExpectation {
+func (mmDeletePlacement *mRepositoryMockDeletePlacement) When(ctx context.Context, territorySlug string, id int64) *RepositoryMockDeletePlacementExpectation {
 	if mmDeletePlacement.mock.funcDeletePlacement != nil {
 		mmDeletePlacement.mock.t.Fatalf("RepositoryMock.DeletePlacement mock is already set by Set")
 	}
 
 	expectation := &RepositoryMockDeletePlacementExpectation{
 		mock:               mmDeletePlacement.mock,
-		params:             &RepositoryMockDeletePlacementParams{ctx, id},
+		params:             &RepositoryMockDeletePlacementParams{ctx, territorySlug, id},
 		expectationOrigins: RepositoryMockDeletePlacementExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmDeletePlacement.expectations = append(mmDeletePlacement.expectations, expectation)
@@ -1917,17 +1943,17 @@ func (mmDeletePlacement *mRepositoryMockDeletePlacement) invocationsDone() bool 
 }
 
 // DeletePlacement implements mm_service.Repository
-func (mmDeletePlacement *RepositoryMock) DeletePlacement(ctx context.Context, id int64) (err error) {
+func (mmDeletePlacement *RepositoryMock) DeletePlacement(ctx context.Context, territorySlug string, id int64) (err error) {
 	mm_atomic.AddUint64(&mmDeletePlacement.beforeDeletePlacementCounter, 1)
 	defer mm_atomic.AddUint64(&mmDeletePlacement.afterDeletePlacementCounter, 1)
 
 	mmDeletePlacement.t.Helper()
 
 	if mmDeletePlacement.inspectFuncDeletePlacement != nil {
-		mmDeletePlacement.inspectFuncDeletePlacement(ctx, id)
+		mmDeletePlacement.inspectFuncDeletePlacement(ctx, territorySlug, id)
 	}
 
-	mm_params := RepositoryMockDeletePlacementParams{ctx, id}
+	mm_params := RepositoryMockDeletePlacementParams{ctx, territorySlug, id}
 
 	// Record call args
 	mmDeletePlacement.DeletePlacementMock.mutex.Lock()
@@ -1946,13 +1972,18 @@ func (mmDeletePlacement *RepositoryMock) DeletePlacement(ctx context.Context, id
 		mm_want := mmDeletePlacement.DeletePlacementMock.defaultExpectation.params
 		mm_want_ptrs := mmDeletePlacement.DeletePlacementMock.defaultExpectation.paramPtrs
 
-		mm_got := RepositoryMockDeletePlacementParams{ctx, id}
+		mm_got := RepositoryMockDeletePlacementParams{ctx, territorySlug, id}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
 				mmDeletePlacement.t.Errorf("RepositoryMock.DeletePlacement got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmDeletePlacement.DeletePlacementMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmDeletePlacement.t.Errorf("RepositoryMock.DeletePlacement got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeletePlacement.DeletePlacementMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
 			}
 
 			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
@@ -1972,9 +2003,9 @@ func (mmDeletePlacement *RepositoryMock) DeletePlacement(ctx context.Context, id
 		return (*mm_results).err
 	}
 	if mmDeletePlacement.funcDeletePlacement != nil {
-		return mmDeletePlacement.funcDeletePlacement(ctx, id)
+		return mmDeletePlacement.funcDeletePlacement(ctx, territorySlug, id)
 	}
-	mmDeletePlacement.t.Fatalf("Unexpected call to RepositoryMock.DeletePlacement. %v %v", ctx, id)
+	mmDeletePlacement.t.Fatalf("Unexpected call to RepositoryMock.DeletePlacement. %v %v %v", ctx, territorySlug, id)
 	return
 }
 

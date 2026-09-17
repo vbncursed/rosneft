@@ -356,6 +356,8 @@ message UpdatePlacementRequest {
   Vec3 rotation = 3;
   Vec3 scale = 4;
   string label = 5;
+  // Scopes the lookup: an id from another territory reads as not found.
+  string territory_slug = 6;
 }
 message UpdatePlacementResponse {
   Placement placement = 1;
@@ -375,5 +377,7 @@ message SetPlacementVisibilityResponse {
 
 message DeletePlacementRequest {
   int64 id = 1;
+  // Scopes the lookup: an id from another territory reads as not found.
+  string territory_slug = 2;
 }
 message DeletePlacementResponse {}

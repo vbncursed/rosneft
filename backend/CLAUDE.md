@@ -294,10 +294,17 @@ by the triggers, and listing them would double-write.
 The trigger logic is SQL, so it is covered by integration tests:
 `services/audit-service/internal/migrate/*_integration_test.go`, behind the
 `integration` build tag. They are not the only ones in the repo —
-`catalog-service/internal/storage/resolve_blob_access_integration_test.go` and
+`catalog-service/internal/storage/*_integration_test.go` (blob scoping, the
+placement territory scope, model delete, list counts),
+`content-service/internal/storage/territory_scope_integration_test.go` (panorama
+and document territory scope, including the allowlist scrub) and
 `auth-service/internal/storage/users/set_totp_required_integration_test.go`
-cover SQL logic the same way, in their own services. Run with `go test -tags=integration ./...` from
-`services/audit-service`; needs Docker. `make test` stays Docker-free.
+cover SQL logic the same way, in their own services. Run them per module with
+`GOWORK=off go test -race -tags=integration ./internal/storage/...` (audit:
+`./...` from `services/audit-service`); needs Docker. The content suite has no
+schema of its own — it applies catalog's migrations from the repo checkout.
+**`make check`, `make test` and CI do not run them**: they stay Docker-free, so
+a regression in this SQL is caught only by running the suites by hand.
 
 ## Tenant isolation
 

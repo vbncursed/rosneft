@@ -33,9 +33,9 @@ type CatalogMock struct {
 	beforeDeleteModelCounter uint64
 	DeleteModelMock          mCatalogMockDeleteModel
 
-	funcDeletePlacement          func(ctx context.Context, id int64) (err error)
+	funcDeletePlacement          func(ctx context.Context, territorySlug string, id int64) (err error)
 	funcDeletePlacementOrigin    string
-	inspectFuncDeletePlacement   func(ctx context.Context, id int64)
+	inspectFuncDeletePlacement   func(ctx context.Context, territorySlug string, id int64)
 	afterDeletePlacementCounter  uint64
 	beforeDeletePlacementCounter uint64
 	DeletePlacementMock          mCatalogMockDeletePlacement
@@ -984,14 +984,16 @@ type CatalogMockDeletePlacementExpectation struct {
 
 // CatalogMockDeletePlacementParams contains parameters of the Catalog.DeletePlacement
 type CatalogMockDeletePlacementParams struct {
-	ctx context.Context
-	id  int64
+	ctx           context.Context
+	territorySlug string
+	id            int64
 }
 
 // CatalogMockDeletePlacementParamPtrs contains pointers to parameters of the Catalog.DeletePlacement
 type CatalogMockDeletePlacementParamPtrs struct {
-	ctx *context.Context
-	id  *int64
+	ctx           *context.Context
+	territorySlug *string
+	id            *int64
 }
 
 // CatalogMockDeletePlacementResults contains results of the Catalog.DeletePlacement
@@ -1001,9 +1003,10 @@ type CatalogMockDeletePlacementResults struct {
 
 // CatalogMockDeletePlacementOrigins contains origins of expectations of the Catalog.DeletePlacement
 type CatalogMockDeletePlacementExpectationOrigins struct {
-	origin    string
-	originCtx string
-	originId  string
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originId            string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -1017,7 +1020,7 @@ func (mmDeletePlacement *mCatalogMockDeletePlacement) Optional() *mCatalogMockDe
 }
 
 // Expect sets up expected params for Catalog.DeletePlacement
-func (mmDeletePlacement *mCatalogMockDeletePlacement) Expect(ctx context.Context, id int64) *mCatalogMockDeletePlacement {
+func (mmDeletePlacement *mCatalogMockDeletePlacement) Expect(ctx context.Context, territorySlug string, id int64) *mCatalogMockDeletePlacement {
 	if mmDeletePlacement.mock.funcDeletePlacement != nil {
 		mmDeletePlacement.mock.t.Fatalf("CatalogMock.DeletePlacement mock is already set by Set")
 	}
@@ -1030,7 +1033,7 @@ func (mmDeletePlacement *mCatalogMockDeletePlacement) Expect(ctx context.Context
 		mmDeletePlacement.mock.t.Fatalf("CatalogMock.DeletePlacement mock is already set by ExpectParams functions")
 	}
 
-	mmDeletePlacement.defaultExpectation.params = &CatalogMockDeletePlacementParams{ctx, id}
+	mmDeletePlacement.defaultExpectation.params = &CatalogMockDeletePlacementParams{ctx, territorySlug, id}
 	mmDeletePlacement.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmDeletePlacement.expectations {
 		if minimock.Equal(e.params, mmDeletePlacement.defaultExpectation.params) {
@@ -1064,8 +1067,31 @@ func (mmDeletePlacement *mCatalogMockDeletePlacement) ExpectCtxParam1(ctx contex
 	return mmDeletePlacement
 }
 
-// ExpectIdParam2 sets up expected param id for Catalog.DeletePlacement
-func (mmDeletePlacement *mCatalogMockDeletePlacement) ExpectIdParam2(id int64) *mCatalogMockDeletePlacement {
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Catalog.DeletePlacement
+func (mmDeletePlacement *mCatalogMockDeletePlacement) ExpectTerritorySlugParam2(territorySlug string) *mCatalogMockDeletePlacement {
+	if mmDeletePlacement.mock.funcDeletePlacement != nil {
+		mmDeletePlacement.mock.t.Fatalf("CatalogMock.DeletePlacement mock is already set by Set")
+	}
+
+	if mmDeletePlacement.defaultExpectation == nil {
+		mmDeletePlacement.defaultExpectation = &CatalogMockDeletePlacementExpectation{}
+	}
+
+	if mmDeletePlacement.defaultExpectation.params != nil {
+		mmDeletePlacement.mock.t.Fatalf("CatalogMock.DeletePlacement mock is already set by Expect")
+	}
+
+	if mmDeletePlacement.defaultExpectation.paramPtrs == nil {
+		mmDeletePlacement.defaultExpectation.paramPtrs = &CatalogMockDeletePlacementParamPtrs{}
+	}
+	mmDeletePlacement.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmDeletePlacement.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmDeletePlacement
+}
+
+// ExpectIdParam3 sets up expected param id for Catalog.DeletePlacement
+func (mmDeletePlacement *mCatalogMockDeletePlacement) ExpectIdParam3(id int64) *mCatalogMockDeletePlacement {
 	if mmDeletePlacement.mock.funcDeletePlacement != nil {
 		mmDeletePlacement.mock.t.Fatalf("CatalogMock.DeletePlacement mock is already set by Set")
 	}
@@ -1088,7 +1114,7 @@ func (mmDeletePlacement *mCatalogMockDeletePlacement) ExpectIdParam2(id int64) *
 }
 
 // Inspect accepts an inspector function that has same arguments as the Catalog.DeletePlacement
-func (mmDeletePlacement *mCatalogMockDeletePlacement) Inspect(f func(ctx context.Context, id int64)) *mCatalogMockDeletePlacement {
+func (mmDeletePlacement *mCatalogMockDeletePlacement) Inspect(f func(ctx context.Context, territorySlug string, id int64)) *mCatalogMockDeletePlacement {
 	if mmDeletePlacement.mock.inspectFuncDeletePlacement != nil {
 		mmDeletePlacement.mock.t.Fatalf("Inspect function is already set for CatalogMock.DeletePlacement")
 	}
@@ -1113,7 +1139,7 @@ func (mmDeletePlacement *mCatalogMockDeletePlacement) Return(err error) *Catalog
 }
 
 // Set uses given function f to mock the Catalog.DeletePlacement method
-func (mmDeletePlacement *mCatalogMockDeletePlacement) Set(f func(ctx context.Context, id int64) (err error)) *CatalogMock {
+func (mmDeletePlacement *mCatalogMockDeletePlacement) Set(f func(ctx context.Context, territorySlug string, id int64) (err error)) *CatalogMock {
 	if mmDeletePlacement.defaultExpectation != nil {
 		mmDeletePlacement.mock.t.Fatalf("Default expectation is already set for the Catalog.DeletePlacement method")
 	}
@@ -1129,14 +1155,14 @@ func (mmDeletePlacement *mCatalogMockDeletePlacement) Set(f func(ctx context.Con
 
 // When sets expectation for the Catalog.DeletePlacement which will trigger the result defined by the following
 // Then helper
-func (mmDeletePlacement *mCatalogMockDeletePlacement) When(ctx context.Context, id int64) *CatalogMockDeletePlacementExpectation {
+func (mmDeletePlacement *mCatalogMockDeletePlacement) When(ctx context.Context, territorySlug string, id int64) *CatalogMockDeletePlacementExpectation {
 	if mmDeletePlacement.mock.funcDeletePlacement != nil {
 		mmDeletePlacement.mock.t.Fatalf("CatalogMock.DeletePlacement mock is already set by Set")
 	}
 
 	expectation := &CatalogMockDeletePlacementExpectation{
 		mock:               mmDeletePlacement.mock,
-		params:             &CatalogMockDeletePlacementParams{ctx, id},
+		params:             &CatalogMockDeletePlacementParams{ctx, territorySlug, id},
 		expectationOrigins: CatalogMockDeletePlacementExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmDeletePlacement.expectations = append(mmDeletePlacement.expectations, expectation)
@@ -1171,17 +1197,17 @@ func (mmDeletePlacement *mCatalogMockDeletePlacement) invocationsDone() bool {
 }
 
 // DeletePlacement implements mm_service.Catalog
-func (mmDeletePlacement *CatalogMock) DeletePlacement(ctx context.Context, id int64) (err error) {
+func (mmDeletePlacement *CatalogMock) DeletePlacement(ctx context.Context, territorySlug string, id int64) (err error) {
 	mm_atomic.AddUint64(&mmDeletePlacement.beforeDeletePlacementCounter, 1)
 	defer mm_atomic.AddUint64(&mmDeletePlacement.afterDeletePlacementCounter, 1)
 
 	mmDeletePlacement.t.Helper()
 
 	if mmDeletePlacement.inspectFuncDeletePlacement != nil {
-		mmDeletePlacement.inspectFuncDeletePlacement(ctx, id)
+		mmDeletePlacement.inspectFuncDeletePlacement(ctx, territorySlug, id)
 	}
 
-	mm_params := CatalogMockDeletePlacementParams{ctx, id}
+	mm_params := CatalogMockDeletePlacementParams{ctx, territorySlug, id}
 
 	// Record call args
 	mmDeletePlacement.DeletePlacementMock.mutex.Lock()
@@ -1200,13 +1226,18 @@ func (mmDeletePlacement *CatalogMock) DeletePlacement(ctx context.Context, id in
 		mm_want := mmDeletePlacement.DeletePlacementMock.defaultExpectation.params
 		mm_want_ptrs := mmDeletePlacement.DeletePlacementMock.defaultExpectation.paramPtrs
 
-		mm_got := CatalogMockDeletePlacementParams{ctx, id}
+		mm_got := CatalogMockDeletePlacementParams{ctx, territorySlug, id}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
 				mmDeletePlacement.t.Errorf("CatalogMock.DeletePlacement got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmDeletePlacement.DeletePlacementMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmDeletePlacement.t.Errorf("CatalogMock.DeletePlacement got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeletePlacement.DeletePlacementMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
 			}
 
 			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
@@ -1226,9 +1257,9 @@ func (mmDeletePlacement *CatalogMock) DeletePlacement(ctx context.Context, id in
 		return (*mm_results).err
 	}
 	if mmDeletePlacement.funcDeletePlacement != nil {
-		return mmDeletePlacement.funcDeletePlacement(ctx, id)
+		return mmDeletePlacement.funcDeletePlacement(ctx, territorySlug, id)
 	}
-	mmDeletePlacement.t.Fatalf("Unexpected call to CatalogMock.DeletePlacement. %v %v", ctx, id)
+	mmDeletePlacement.t.Fatalf("Unexpected call to CatalogMock.DeletePlacement. %v %v %v", ctx, territorySlug, id)
 	return
 }
 

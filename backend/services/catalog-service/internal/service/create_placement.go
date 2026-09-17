@@ -18,6 +18,11 @@ func (c *Catalog) CreatePlacement(ctx context.Context, p domain.Placement) (doma
 	if p.Scale.X <= 0 || p.Scale.Y <= 0 || p.Scale.Z <= 0 {
 		return domain.Placement{}, fmt.Errorf("service.CreatePlacement: %w: scale components must be positive", domain.ErrInvalidInput)
 	}
+	if len(p.VisiblePanoramaIDs) > 0 {
+		if err := c.requirePanoramasOnTerritory(ctx, p.TerritorySlug, p.VisiblePanoramaIDs); err != nil {
+			return domain.Placement{}, fmt.Errorf("service.CreatePlacement: %w", err)
+		}
+	}
 	return c.repo.CreatePlacement(ctx, p)
 }
 

@@ -39,7 +39,7 @@ type Catalog interface {
 	CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
-	DeletePlacement(ctx context.Context, id int64) error
+	DeletePlacement(ctx context.Context, territorySlug string, id int64) error
 }
 
 // Content is the content-service client surface this service calls.
@@ -47,11 +47,11 @@ type Content interface {
 	ListPanoramas(ctx context.Context, territorySlug string) ([]domain.Panorama, error)
 	CreatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
 	UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
-	DeletePanorama(ctx context.Context, id int64) error
+	DeletePanorama(ctx context.Context, territorySlug string, id int64) error
 
 	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
 	CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error)
-	DeleteDocument(ctx context.Context, id int64) error
+	DeleteDocument(ctx context.Context, territorySlug string, id int64) error
 }
 
 // Mesh is the mesh client surface this service calls.

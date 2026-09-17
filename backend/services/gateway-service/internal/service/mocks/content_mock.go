@@ -33,16 +33,16 @@ type ContentMock struct {
 	beforeCreatePanoramaCounter uint64
 	CreatePanoramaMock          mContentMockCreatePanorama
 
-	funcDeleteDocument          func(ctx context.Context, id int64) (err error)
+	funcDeleteDocument          func(ctx context.Context, territorySlug string, id int64) (err error)
 	funcDeleteDocumentOrigin    string
-	inspectFuncDeleteDocument   func(ctx context.Context, id int64)
+	inspectFuncDeleteDocument   func(ctx context.Context, territorySlug string, id int64)
 	afterDeleteDocumentCounter  uint64
 	beforeDeleteDocumentCounter uint64
 	DeleteDocumentMock          mContentMockDeleteDocument
 
-	funcDeletePanorama          func(ctx context.Context, id int64) (err error)
+	funcDeletePanorama          func(ctx context.Context, territorySlug string, id int64) (err error)
 	funcDeletePanoramaOrigin    string
-	inspectFuncDeletePanorama   func(ctx context.Context, id int64)
+	inspectFuncDeletePanorama   func(ctx context.Context, territorySlug string, id int64)
 	afterDeletePanoramaCounter  uint64
 	beforeDeletePanoramaCounter uint64
 	DeletePanoramaMock          mContentMockDeletePanorama
@@ -815,14 +815,16 @@ type ContentMockDeleteDocumentExpectation struct {
 
 // ContentMockDeleteDocumentParams contains parameters of the Content.DeleteDocument
 type ContentMockDeleteDocumentParams struct {
-	ctx context.Context
-	id  int64
+	ctx           context.Context
+	territorySlug string
+	id            int64
 }
 
 // ContentMockDeleteDocumentParamPtrs contains pointers to parameters of the Content.DeleteDocument
 type ContentMockDeleteDocumentParamPtrs struct {
-	ctx *context.Context
-	id  *int64
+	ctx           *context.Context
+	territorySlug *string
+	id            *int64
 }
 
 // ContentMockDeleteDocumentResults contains results of the Content.DeleteDocument
@@ -832,9 +834,10 @@ type ContentMockDeleteDocumentResults struct {
 
 // ContentMockDeleteDocumentOrigins contains origins of expectations of the Content.DeleteDocument
 type ContentMockDeleteDocumentExpectationOrigins struct {
-	origin    string
-	originCtx string
-	originId  string
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originId            string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -848,7 +851,7 @@ func (mmDeleteDocument *mContentMockDeleteDocument) Optional() *mContentMockDele
 }
 
 // Expect sets up expected params for Content.DeleteDocument
-func (mmDeleteDocument *mContentMockDeleteDocument) Expect(ctx context.Context, id int64) *mContentMockDeleteDocument {
+func (mmDeleteDocument *mContentMockDeleteDocument) Expect(ctx context.Context, territorySlug string, id int64) *mContentMockDeleteDocument {
 	if mmDeleteDocument.mock.funcDeleteDocument != nil {
 		mmDeleteDocument.mock.t.Fatalf("ContentMock.DeleteDocument mock is already set by Set")
 	}
@@ -861,7 +864,7 @@ func (mmDeleteDocument *mContentMockDeleteDocument) Expect(ctx context.Context, 
 		mmDeleteDocument.mock.t.Fatalf("ContentMock.DeleteDocument mock is already set by ExpectParams functions")
 	}
 
-	mmDeleteDocument.defaultExpectation.params = &ContentMockDeleteDocumentParams{ctx, id}
+	mmDeleteDocument.defaultExpectation.params = &ContentMockDeleteDocumentParams{ctx, territorySlug, id}
 	mmDeleteDocument.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmDeleteDocument.expectations {
 		if minimock.Equal(e.params, mmDeleteDocument.defaultExpectation.params) {
@@ -895,8 +898,31 @@ func (mmDeleteDocument *mContentMockDeleteDocument) ExpectCtxParam1(ctx context.
 	return mmDeleteDocument
 }
 
-// ExpectIdParam2 sets up expected param id for Content.DeleteDocument
-func (mmDeleteDocument *mContentMockDeleteDocument) ExpectIdParam2(id int64) *mContentMockDeleteDocument {
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Content.DeleteDocument
+func (mmDeleteDocument *mContentMockDeleteDocument) ExpectTerritorySlugParam2(territorySlug string) *mContentMockDeleteDocument {
+	if mmDeleteDocument.mock.funcDeleteDocument != nil {
+		mmDeleteDocument.mock.t.Fatalf("ContentMock.DeleteDocument mock is already set by Set")
+	}
+
+	if mmDeleteDocument.defaultExpectation == nil {
+		mmDeleteDocument.defaultExpectation = &ContentMockDeleteDocumentExpectation{}
+	}
+
+	if mmDeleteDocument.defaultExpectation.params != nil {
+		mmDeleteDocument.mock.t.Fatalf("ContentMock.DeleteDocument mock is already set by Expect")
+	}
+
+	if mmDeleteDocument.defaultExpectation.paramPtrs == nil {
+		mmDeleteDocument.defaultExpectation.paramPtrs = &ContentMockDeleteDocumentParamPtrs{}
+	}
+	mmDeleteDocument.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmDeleteDocument.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmDeleteDocument
+}
+
+// ExpectIdParam3 sets up expected param id for Content.DeleteDocument
+func (mmDeleteDocument *mContentMockDeleteDocument) ExpectIdParam3(id int64) *mContentMockDeleteDocument {
 	if mmDeleteDocument.mock.funcDeleteDocument != nil {
 		mmDeleteDocument.mock.t.Fatalf("ContentMock.DeleteDocument mock is already set by Set")
 	}
@@ -919,7 +945,7 @@ func (mmDeleteDocument *mContentMockDeleteDocument) ExpectIdParam2(id int64) *mC
 }
 
 // Inspect accepts an inspector function that has same arguments as the Content.DeleteDocument
-func (mmDeleteDocument *mContentMockDeleteDocument) Inspect(f func(ctx context.Context, id int64)) *mContentMockDeleteDocument {
+func (mmDeleteDocument *mContentMockDeleteDocument) Inspect(f func(ctx context.Context, territorySlug string, id int64)) *mContentMockDeleteDocument {
 	if mmDeleteDocument.mock.inspectFuncDeleteDocument != nil {
 		mmDeleteDocument.mock.t.Fatalf("Inspect function is already set for ContentMock.DeleteDocument")
 	}
@@ -944,7 +970,7 @@ func (mmDeleteDocument *mContentMockDeleteDocument) Return(err error) *ContentMo
 }
 
 // Set uses given function f to mock the Content.DeleteDocument method
-func (mmDeleteDocument *mContentMockDeleteDocument) Set(f func(ctx context.Context, id int64) (err error)) *ContentMock {
+func (mmDeleteDocument *mContentMockDeleteDocument) Set(f func(ctx context.Context, territorySlug string, id int64) (err error)) *ContentMock {
 	if mmDeleteDocument.defaultExpectation != nil {
 		mmDeleteDocument.mock.t.Fatalf("Default expectation is already set for the Content.DeleteDocument method")
 	}
@@ -960,14 +986,14 @@ func (mmDeleteDocument *mContentMockDeleteDocument) Set(f func(ctx context.Conte
 
 // When sets expectation for the Content.DeleteDocument which will trigger the result defined by the following
 // Then helper
-func (mmDeleteDocument *mContentMockDeleteDocument) When(ctx context.Context, id int64) *ContentMockDeleteDocumentExpectation {
+func (mmDeleteDocument *mContentMockDeleteDocument) When(ctx context.Context, territorySlug string, id int64) *ContentMockDeleteDocumentExpectation {
 	if mmDeleteDocument.mock.funcDeleteDocument != nil {
 		mmDeleteDocument.mock.t.Fatalf("ContentMock.DeleteDocument mock is already set by Set")
 	}
 
 	expectation := &ContentMockDeleteDocumentExpectation{
 		mock:               mmDeleteDocument.mock,
-		params:             &ContentMockDeleteDocumentParams{ctx, id},
+		params:             &ContentMockDeleteDocumentParams{ctx, territorySlug, id},
 		expectationOrigins: ContentMockDeleteDocumentExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmDeleteDocument.expectations = append(mmDeleteDocument.expectations, expectation)
@@ -1002,17 +1028,17 @@ func (mmDeleteDocument *mContentMockDeleteDocument) invocationsDone() bool {
 }
 
 // DeleteDocument implements mm_service.Content
-func (mmDeleteDocument *ContentMock) DeleteDocument(ctx context.Context, id int64) (err error) {
+func (mmDeleteDocument *ContentMock) DeleteDocument(ctx context.Context, territorySlug string, id int64) (err error) {
 	mm_atomic.AddUint64(&mmDeleteDocument.beforeDeleteDocumentCounter, 1)
 	defer mm_atomic.AddUint64(&mmDeleteDocument.afterDeleteDocumentCounter, 1)
 
 	mmDeleteDocument.t.Helper()
 
 	if mmDeleteDocument.inspectFuncDeleteDocument != nil {
-		mmDeleteDocument.inspectFuncDeleteDocument(ctx, id)
+		mmDeleteDocument.inspectFuncDeleteDocument(ctx, territorySlug, id)
 	}
 
-	mm_params := ContentMockDeleteDocumentParams{ctx, id}
+	mm_params := ContentMockDeleteDocumentParams{ctx, territorySlug, id}
 
 	// Record call args
 	mmDeleteDocument.DeleteDocumentMock.mutex.Lock()
@@ -1031,13 +1057,18 @@ func (mmDeleteDocument *ContentMock) DeleteDocument(ctx context.Context, id int6
 		mm_want := mmDeleteDocument.DeleteDocumentMock.defaultExpectation.params
 		mm_want_ptrs := mmDeleteDocument.DeleteDocumentMock.defaultExpectation.paramPtrs
 
-		mm_got := ContentMockDeleteDocumentParams{ctx, id}
+		mm_got := ContentMockDeleteDocumentParams{ctx, territorySlug, id}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
 				mmDeleteDocument.t.Errorf("ContentMock.DeleteDocument got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmDeleteDocument.DeleteDocumentMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmDeleteDocument.t.Errorf("ContentMock.DeleteDocument got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteDocument.DeleteDocumentMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
 			}
 
 			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
@@ -1057,9 +1088,9 @@ func (mmDeleteDocument *ContentMock) DeleteDocument(ctx context.Context, id int6
 		return (*mm_results).err
 	}
 	if mmDeleteDocument.funcDeleteDocument != nil {
-		return mmDeleteDocument.funcDeleteDocument(ctx, id)
+		return mmDeleteDocument.funcDeleteDocument(ctx, territorySlug, id)
 	}
-	mmDeleteDocument.t.Fatalf("Unexpected call to ContentMock.DeleteDocument. %v %v", ctx, id)
+	mmDeleteDocument.t.Fatalf("Unexpected call to ContentMock.DeleteDocument. %v %v %v", ctx, territorySlug, id)
 	return
 }
 
@@ -1157,14 +1188,16 @@ type ContentMockDeletePanoramaExpectation struct {
 
 // ContentMockDeletePanoramaParams contains parameters of the Content.DeletePanorama
 type ContentMockDeletePanoramaParams struct {
-	ctx context.Context
-	id  int64
+	ctx           context.Context
+	territorySlug string
+	id            int64
 }
 
 // ContentMockDeletePanoramaParamPtrs contains pointers to parameters of the Content.DeletePanorama
 type ContentMockDeletePanoramaParamPtrs struct {
-	ctx *context.Context
-	id  *int64
+	ctx           *context.Context
+	territorySlug *string
+	id            *int64
 }
 
 // ContentMockDeletePanoramaResults contains results of the Content.DeletePanorama
@@ -1174,9 +1207,10 @@ type ContentMockDeletePanoramaResults struct {
 
 // ContentMockDeletePanoramaOrigins contains origins of expectations of the Content.DeletePanorama
 type ContentMockDeletePanoramaExpectationOrigins struct {
-	origin    string
-	originCtx string
-	originId  string
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originId            string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -1190,7 +1224,7 @@ func (mmDeletePanorama *mContentMockDeletePanorama) Optional() *mContentMockDele
 }
 
 // Expect sets up expected params for Content.DeletePanorama
-func (mmDeletePanorama *mContentMockDeletePanorama) Expect(ctx context.Context, id int64) *mContentMockDeletePanorama {
+func (mmDeletePanorama *mContentMockDeletePanorama) Expect(ctx context.Context, territorySlug string, id int64) *mContentMockDeletePanorama {
 	if mmDeletePanorama.mock.funcDeletePanorama != nil {
 		mmDeletePanorama.mock.t.Fatalf("ContentMock.DeletePanorama mock is already set by Set")
 	}
@@ -1203,7 +1237,7 @@ func (mmDeletePanorama *mContentMockDeletePanorama) Expect(ctx context.Context, 
 		mmDeletePanorama.mock.t.Fatalf("ContentMock.DeletePanorama mock is already set by ExpectParams functions")
 	}
 
-	mmDeletePanorama.defaultExpectation.params = &ContentMockDeletePanoramaParams{ctx, id}
+	mmDeletePanorama.defaultExpectation.params = &ContentMockDeletePanoramaParams{ctx, territorySlug, id}
 	mmDeletePanorama.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmDeletePanorama.expectations {
 		if minimock.Equal(e.params, mmDeletePanorama.defaultExpectation.params) {
@@ -1237,8 +1271,31 @@ func (mmDeletePanorama *mContentMockDeletePanorama) ExpectCtxParam1(ctx context.
 	return mmDeletePanorama
 }
 
-// ExpectIdParam2 sets up expected param id for Content.DeletePanorama
-func (mmDeletePanorama *mContentMockDeletePanorama) ExpectIdParam2(id int64) *mContentMockDeletePanorama {
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Content.DeletePanorama
+func (mmDeletePanorama *mContentMockDeletePanorama) ExpectTerritorySlugParam2(territorySlug string) *mContentMockDeletePanorama {
+	if mmDeletePanorama.mock.funcDeletePanorama != nil {
+		mmDeletePanorama.mock.t.Fatalf("ContentMock.DeletePanorama mock is already set by Set")
+	}
+
+	if mmDeletePanorama.defaultExpectation == nil {
+		mmDeletePanorama.defaultExpectation = &ContentMockDeletePanoramaExpectation{}
+	}
+
+	if mmDeletePanorama.defaultExpectation.params != nil {
+		mmDeletePanorama.mock.t.Fatalf("ContentMock.DeletePanorama mock is already set by Expect")
+	}
+
+	if mmDeletePanorama.defaultExpectation.paramPtrs == nil {
+		mmDeletePanorama.defaultExpectation.paramPtrs = &ContentMockDeletePanoramaParamPtrs{}
+	}
+	mmDeletePanorama.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmDeletePanorama.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmDeletePanorama
+}
+
+// ExpectIdParam3 sets up expected param id for Content.DeletePanorama
+func (mmDeletePanorama *mContentMockDeletePanorama) ExpectIdParam3(id int64) *mContentMockDeletePanorama {
 	if mmDeletePanorama.mock.funcDeletePanorama != nil {
 		mmDeletePanorama.mock.t.Fatalf("ContentMock.DeletePanorama mock is already set by Set")
 	}
@@ -1261,7 +1318,7 @@ func (mmDeletePanorama *mContentMockDeletePanorama) ExpectIdParam2(id int64) *mC
 }
 
 // Inspect accepts an inspector function that has same arguments as the Content.DeletePanorama
-func (mmDeletePanorama *mContentMockDeletePanorama) Inspect(f func(ctx context.Context, id int64)) *mContentMockDeletePanorama {
+func (mmDeletePanorama *mContentMockDeletePanorama) Inspect(f func(ctx context.Context, territorySlug string, id int64)) *mContentMockDeletePanorama {
 	if mmDeletePanorama.mock.inspectFuncDeletePanorama != nil {
 		mmDeletePanorama.mock.t.Fatalf("Inspect function is already set for ContentMock.DeletePanorama")
 	}
@@ -1286,7 +1343,7 @@ func (mmDeletePanorama *mContentMockDeletePanorama) Return(err error) *ContentMo
 }
 
 // Set uses given function f to mock the Content.DeletePanorama method
-func (mmDeletePanorama *mContentMockDeletePanorama) Set(f func(ctx context.Context, id int64) (err error)) *ContentMock {
+func (mmDeletePanorama *mContentMockDeletePanorama) Set(f func(ctx context.Context, territorySlug string, id int64) (err error)) *ContentMock {
 	if mmDeletePanorama.defaultExpectation != nil {
 		mmDeletePanorama.mock.t.Fatalf("Default expectation is already set for the Content.DeletePanorama method")
 	}
@@ -1302,14 +1359,14 @@ func (mmDeletePanorama *mContentMockDeletePanorama) Set(f func(ctx context.Conte
 
 // When sets expectation for the Content.DeletePanorama which will trigger the result defined by the following
 // Then helper
-func (mmDeletePanorama *mContentMockDeletePanorama) When(ctx context.Context, id int64) *ContentMockDeletePanoramaExpectation {
+func (mmDeletePanorama *mContentMockDeletePanorama) When(ctx context.Context, territorySlug string, id int64) *ContentMockDeletePanoramaExpectation {
 	if mmDeletePanorama.mock.funcDeletePanorama != nil {
 		mmDeletePanorama.mock.t.Fatalf("ContentMock.DeletePanorama mock is already set by Set")
 	}
 
 	expectation := &ContentMockDeletePanoramaExpectation{
 		mock:               mmDeletePanorama.mock,
-		params:             &ContentMockDeletePanoramaParams{ctx, id},
+		params:             &ContentMockDeletePanoramaParams{ctx, territorySlug, id},
 		expectationOrigins: ContentMockDeletePanoramaExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmDeletePanorama.expectations = append(mmDeletePanorama.expectations, expectation)
@@ -1344,17 +1401,17 @@ func (mmDeletePanorama *mContentMockDeletePanorama) invocationsDone() bool {
 }
 
 // DeletePanorama implements mm_service.Content
-func (mmDeletePanorama *ContentMock) DeletePanorama(ctx context.Context, id int64) (err error) {
+func (mmDeletePanorama *ContentMock) DeletePanorama(ctx context.Context, territorySlug string, id int64) (err error) {
 	mm_atomic.AddUint64(&mmDeletePanorama.beforeDeletePanoramaCounter, 1)
 	defer mm_atomic.AddUint64(&mmDeletePanorama.afterDeletePanoramaCounter, 1)
 
 	mmDeletePanorama.t.Helper()
 
 	if mmDeletePanorama.inspectFuncDeletePanorama != nil {
-		mmDeletePanorama.inspectFuncDeletePanorama(ctx, id)
+		mmDeletePanorama.inspectFuncDeletePanorama(ctx, territorySlug, id)
 	}
 
-	mm_params := ContentMockDeletePanoramaParams{ctx, id}
+	mm_params := ContentMockDeletePanoramaParams{ctx, territorySlug, id}
 
 	// Record call args
 	mmDeletePanorama.DeletePanoramaMock.mutex.Lock()
@@ -1373,13 +1430,18 @@ func (mmDeletePanorama *ContentMock) DeletePanorama(ctx context.Context, id int6
 		mm_want := mmDeletePanorama.DeletePanoramaMock.defaultExpectation.params
 		mm_want_ptrs := mmDeletePanorama.DeletePanoramaMock.defaultExpectation.paramPtrs
 
-		mm_got := ContentMockDeletePanoramaParams{ctx, id}
+		mm_got := ContentMockDeletePanoramaParams{ctx, territorySlug, id}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
 				mmDeletePanorama.t.Errorf("ContentMock.DeletePanorama got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmDeletePanorama.DeletePanoramaMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmDeletePanorama.t.Errorf("ContentMock.DeletePanorama got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeletePanorama.DeletePanoramaMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
 			}
 
 			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
@@ -1399,9 +1461,9 @@ func (mmDeletePanorama *ContentMock) DeletePanorama(ctx context.Context, id int6
 		return (*mm_results).err
 	}
 	if mmDeletePanorama.funcDeletePanorama != nil {
-		return mmDeletePanorama.funcDeletePanorama(ctx, id)
+		return mmDeletePanorama.funcDeletePanorama(ctx, territorySlug, id)
 	}
-	mmDeletePanorama.t.Fatalf("Unexpected call to ContentMock.DeletePanorama. %v %v", ctx, id)
+	mmDeletePanorama.t.Fatalf("Unexpected call to ContentMock.DeletePanorama. %v %v %v", ctx, territorySlug, id)
 	return
 }
 

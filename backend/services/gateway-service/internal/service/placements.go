@@ -29,7 +29,11 @@ func (g *Gateway) CreatePlacement(ctx context.Context, p domain.Placement) (doma
 }
 
 // UpdatePlacement replaces the transform and label of an existing placement.
+// The catalog scopes the lookup by p.TerritorySlug.
 func (g *Gateway) UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
+	if p.TerritorySlug == "" {
+		return domain.Placement{}, fmt.Errorf("%w: empty territory slug", domain.ErrInvalidInput)
+	}
 	if p.ID == 0 {
 		return domain.Placement{}, fmt.Errorf("%w: id is required", domain.ErrInvalidInput)
 	}
@@ -52,12 +56,15 @@ func (g *Gateway) SetPlacementVisibility(ctx context.Context, territorySlug stri
 	return g.catalog.SetPlacementVisibility(ctx, territorySlug, placementID, panoramaIDs)
 }
 
-// DeletePlacement removes a placement by ID.
-func (g *Gateway) DeletePlacement(ctx context.Context, id int64) error {
+// DeletePlacement removes a placement on territorySlug by ID.
+func (g *Gateway) DeletePlacement(ctx context.Context, territorySlug string, id int64) error {
+	if territorySlug == "" {
+		return fmt.Errorf("%w: empty territory slug", domain.ErrInvalidInput)
+	}
 	if id <= 0 {
 		return fmt.Errorf("%w: id is required", domain.ErrInvalidInput)
 	}
-	return g.catalog.DeletePlacement(ctx, id)
+	return g.catalog.DeletePlacement(ctx, territorySlug, id)
 }
 
 // defaultScale replaces a zero-value Vec3 with {1,1,1}.

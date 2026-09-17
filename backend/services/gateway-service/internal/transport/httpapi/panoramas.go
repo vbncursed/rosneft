@@ -70,11 +70,12 @@ func (s *Server) UpdatePanorama(ctx context.Context, req UpdatePanoramaRequestOb
 		defaultYaw = *body.DefaultYaw
 	}
 	p, err := s.svc.UpdatePanorama(ctx, domain.Panorama{
-		ID:         req.Id,
-		Title:      title,
-		Position:   vec3PtrFromAPI(body.Position),
-		YawOffset:  yawOffset,
-		DefaultYaw: defaultYaw,
+		ID:            req.Id,
+		TerritorySlug: req.Slug,
+		Title:         title,
+		Position:      vec3PtrFromAPI(body.Position),
+		YawOffset:     yawOffset,
+		DefaultYaw:    defaultYaw,
 	})
 	switch {
 	case isInvalid(err):
@@ -88,7 +89,7 @@ func (s *Server) UpdatePanorama(ctx context.Context, req UpdatePanoramaRequestOb
 }
 
 func (s *Server) DeletePanorama(ctx context.Context, req DeletePanoramaRequestObject) (DeletePanoramaResponseObject, error) {
-	err := s.svc.DeletePanorama(ctx, req.Id)
+	err := s.svc.DeletePanorama(ctx, req.Slug, req.Id)
 	switch {
 	case isNotFound(err):
 		return DeletePanorama404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
