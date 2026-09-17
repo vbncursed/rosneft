@@ -100,7 +100,7 @@ export function useTerritoryCatalog(): TerritoryCatalogState {
     setTab,
     query,
     setQuery,
-    canUpload: can(me, "territory:write"),
+    canUpload: can(me, "territory:create"),
     canDelete: can(me, "territory:delete"),
     canReplace: can(me, "territory:write"),
     pending,

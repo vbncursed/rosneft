@@ -137,6 +137,25 @@ describe("useHome", () => {
     expect(result.current.meta).toBe("0 territories assigned · read-only access");
   });
 
+  it("is viewer-empty for a territory writer who may not create one", async () => {
+    fetchMock.mockImplementation(async (url: string) =>
+      url === "/api/territories" ? json([]) : ROUTER(url),
+    );
+    const { result } = renderHook(() => useHome(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.territories.viewerEmpty).toBe(true);
+  });
+
+  it("is not viewer-empty for Root, who may create a territory", async () => {
+    client.setQueryData(["me"], { ...PRINCIPAL, permissions: [], isOwner: true });
+    fetchMock.mockImplementation(async (url: string) =>
+      url === "/api/territories" ? json([]) : ROUTER(url),
+    );
+    const { result } = renderHook(() => useHome(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.territories.viewerEmpty).toBe(false);
+  });
+
   it("is unavailable only when a core list never answered", async () => {
     fetchMock.mockImplementation(async (url: string) =>
       url === "/api/models" ? json({ code: "internal", message: "down" }, 500) : ROUTER(url),

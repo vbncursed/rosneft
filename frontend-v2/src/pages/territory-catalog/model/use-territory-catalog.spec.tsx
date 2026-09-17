@@ -69,12 +69,19 @@ describe("useTerritoryCatalog", () => {
     ]);
   });
 
-  it("knows the viewer's grants", async () => {
+  it("knows the viewer's grants: write replaces a source but creates nothing", async () => {
+    const { result } = renderHook(() => useTerritoryCatalog(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.canUpload).toBe(false);
+    expect(result.current.canDelete).toBe(true);
+    expect(result.current.canReplace).toBe(true);
+  });
+
+  it("offers a territory upload only to whoever may create one — Root", async () => {
+    client.setQueryData(["me"], { ...PRINCIPAL, permissions: [], isOwner: true });
     const { result } = renderHook(() => useTerritoryCatalog(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.canUpload).toBe(true);
-    expect(result.current.canDelete).toBe(true);
-    expect(result.current.canReplace).toBe(true);
   });
 
   it("starts on the all tab with an empty query", async () => {

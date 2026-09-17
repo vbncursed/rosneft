@@ -514,6 +514,14 @@ on the catalog that owns the thing uploaded, and both catalogs offer it, so
 `HomePageProps` carries no `canUpload*`/`onUpload*` and `home-page.tsx`
 imports no `Button` — `useHome` still computes the two grants as locals
 because `viewerEmpty` means "nothing assigned and nothing you may upload".
+**A territory upload is offered on `territory:create`, never `territory:write`**
+(2026-09-17): `POST /api/territories` checks `:create`, no system role holds
+it, so only Root (`can`'s owner bypass) creates one. A Company Owner holds
+`:write` — it replaces a source and edits, and was walked through a whole
+upload to a 403 while the gate read `:write`. Home's grant, the catalog's
+`canUpload`, `/territories/new`'s callout and Content's `canCreateTerritory`
+(the `+ Territory` button and the drop target) all read `:create`; Content's
+`canManage` and every replace-source gate stay on `:write`.
 The header carries `widgets/account-pill` instead: a link to `/account`
 with the avatar, username and role title, fed by `viewerOf(me)`. **`viewerOf`
 has exactly one definition, `shared/session/principal.ts`** — it used to sit

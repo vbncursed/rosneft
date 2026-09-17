@@ -48,6 +48,7 @@ const state = (over: Partial<ContentState> = {}): ContentState => ({
   items: [T, M],
   storageBytes: 412 * 1024 * 1024,
   canManage: true,
+  canCreateTerritory: true,
   canDelete: () => true,
   artifactsOf: () => [artifact()],
   jobOf: () => undefined,
@@ -161,6 +162,21 @@ describe("ContentScreen", () => {
     await userEvent.click(within(row).getByRole("button", { name: "Row actions for M 1" }));
     expect(screen.getByRole("menuitem", { name: "Open in viewer" })).toBeInTheDocument();
     expect(screen.queryByRole("menuitem", { name: "Replace source" })).not.toBeInTheDocument();
+  });
+
+  it("offers a Company Owner no territory upload but keeps the model upload and row menus", () => {
+    useContent.mockReturnValue(state({ canCreateTerritory: false }));
+    render(<ContentScreen />);
+    expect(screen.queryByRole("button", { name: "+ Territory" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Upload an OBJ/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "+ Model" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Row actions for T 1" })).toBeInTheDocument();
+  });
+
+  it("does not ask a Company Owner to start an empty catalog with a territory", () => {
+    useContent.mockReturnValue(state({ items: [], storageBytes: 0, canCreateTerritory: false }));
+    render(<ContentScreen />);
+    expect(screen.getByText("Nothing uploaded yet.")).toBeInTheDocument();
   });
 
   it("offers no row menu to a reader who may not manage the catalog", () => {

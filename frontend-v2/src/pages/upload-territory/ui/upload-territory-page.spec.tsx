@@ -109,7 +109,7 @@ describe("UploadTerritoryPage", () => {
 
   it("replaces the whole form with a callout when the viewer may not upload", () => {
     render(<UploadTerritoryPage {...props({ canUpload: false })} />);
-    expect(screen.getByText("Uploading a territory needs territory:write.")).toBeInTheDocument();
+    expect(screen.getByText("Uploading a territory needs territory:create.")).toBeInTheDocument();
     expect(screen.queryByLabelText("Drop a ZIP here")).not.toBeInTheDocument();
     expect(screen.queryByText("What happens next")).not.toBeInTheDocument();
   });

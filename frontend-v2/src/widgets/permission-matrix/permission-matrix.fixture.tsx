@@ -4,7 +4,7 @@ import type { Permission } from "@/entities/permission";
 
 const ALL: Permission[] = [
   { slug: "territory:read", description: "See territories" },
-  { slug: "territory:write", description: "Create and edit territories" },
+  { slug: "territory:write", description: "Edit territories" },
   { slug: "territory:delete", description: "Delete territories" },
   { slug: "territory:assign", description: "Assign territory admins" },
   { slug: "users:read" },

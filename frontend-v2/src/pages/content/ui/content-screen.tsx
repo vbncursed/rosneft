@@ -92,7 +92,9 @@ export function ContentScreen() {
         {...(s.canManage ? { renderRowActions: rowActions } : {})}
         // v2 owns every href this screen builds; a full navigation would
         // reload the app and throw the query cache away.
-        onUploadTerritory={() => void navigate({ to: "/territories/new" })}
+        onUploadTerritory={
+          s.canCreateTerritory ? () => void navigate({ to: "/territories/new" }) : undefined
+        }
         onUploadModel={() => void navigate({ to: "/models/new" })}
         onReplaceSource={replace ? () => void navigate({ href: replace }) : undefined}
         onOpenInViewer={() => selected && void navigate({ href: contentPath(selected) })}
@@ -101,7 +103,11 @@ export function ContentScreen() {
         openable
         onDelete={selected && s.canDelete(selected.kind) ? s.ask : undefined}
         {...(s.items.length === 0
-          ? { emptyHint: "Nothing uploaded yet — start with a territory." }
+          ? {
+              emptyHint: s.canCreateTerritory
+                ? "Nothing uploaded yet — start with a territory."
+                : "Nothing uploaded yet.",
+            }
           : {})}
       />
 
