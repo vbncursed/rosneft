@@ -122,6 +122,21 @@ describe("RoleInspector", () => {
     expect(onToggle).not.toHaveBeenCalled();
   });
 
+  it("marks a system role read-only in its header", () => {
+    const { rerender } = render(<RoleInspector {...props({ role: system() })} />);
+    expect(screen.getByText("system · read-only")).toBeInTheDocument();
+    rerender(<RoleInspector {...props({ readOnly: true })} />);
+    expect(screen.queryByText("system · read-only")).not.toBeInTheDocument();
+  });
+
+  it("shows which permissions a system role holds", () => {
+    render(<RoleInspector {...props({ role: system() })} />);
+    expect(screen.getByRole("button", { name: "territory:write" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "territory:write" })).toHaveClass("border-accent");
+    expect(screen.getByRole("button", { name: "audit:read" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "audit:read" })).not.toHaveClass("border-accent");
+  });
+
   it("offers to save only once something changed", async () => {
     const onSave = vi.fn();
     const { rerender } = render(<RoleInspector {...props({ onSave })} />);
@@ -139,6 +154,9 @@ describe("RoleInspector", () => {
     expect(screen.getByRole("button", { name: /Save permissions/ })).toBeDisabled();
     await userEvent.click(screen.getByRole("button", { name: "territory:write" }));
     expect(onToggle).not.toHaveBeenCalled();
+    // The set being saved stays legible while it is.
+    expect(screen.getByRole("button", { name: "territory:write" })).toHaveClass("border-accent");
+    expect(screen.getByRole("button", { name: "audit:read" })).not.toHaveClass("border-accent");
   });
 
   // The matrix stops the actor adding a grant they lack, but the gateway checks

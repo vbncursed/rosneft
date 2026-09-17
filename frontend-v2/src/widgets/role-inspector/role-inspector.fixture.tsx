@@ -88,7 +88,8 @@ export default {
       <RoleInspector
         role={system}
         all={ALL}
-        granted={["territory:read", "model:read"]}
+        granted={["territory:read", "model:read", "placement:read", "audit:read"]}
+        grantable={GRANTABLE}
         onToggle={noop}
         onRename={noop}
         onReset={noop}

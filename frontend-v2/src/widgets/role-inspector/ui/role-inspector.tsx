@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from "react";
 import { usersLabel, type Role } from "@/entities/role";
 import type { Permission } from "@/entities/permission";
+import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Callout } from "@/shared/ui/callout";
 import { ProgressBar } from "@/shared/ui/progress-bar";
@@ -77,9 +78,16 @@ export function RoleInspector({
     >
       <div className="flex items-start justify-between gap-3 border-b border-line bg-accent-soft p-4.5">
         <div className="min-w-0 flex-1">
-          <p className="m-0 font-mono text-[9px] uppercase tracking-[0.2em] text-accent">
-            {locked ? "Viewing role" : "Editing role"}
-          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="m-0 font-mono text-[9px] uppercase tracking-[0.2em] text-accent">
+              {locked ? "Viewing role" : "Editing role"}
+            </p>
+            {role.kind === "system" ? (
+              <Badge tone="dim" fill="soft" shape="tag" size="sm">
+                system · read-only
+              </Badge>
+            ) : null}
+          </div>
           <input
             value={role.title}
             onChange={(e) => onRename(e.target.value)}

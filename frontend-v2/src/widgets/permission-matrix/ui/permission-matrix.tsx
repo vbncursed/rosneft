@@ -17,24 +17,42 @@ export type PermissionMatrixProps = {
 
 const LOCKED_TITLE = "You cannot grant a permission you do not have";
 
-/** The four states a chip can be in, in the order they take precedence. */
-type ChipState = "locked" | "system" | "on" | "off";
+/**
+ * A chip is granted or not, and editable or not. A read-only role (a system
+ * one, a reader without the grant, a save in flight) still shows which is
+ * which: `held`/`absent`. `locked`/`lockedHeld` exist only on an editable role:
+ * dashed means "you cannot change this", accent means "granted".
+ */
+type ChipState = "on" | "off" | "locked" | "lockedHeld" | "held" | "absent";
+
+const PRESS = "cursor-pointer enabled:active:scale-[0.97]";
 
 const CHIP: Record<ChipState, string> = {
-  on: "cursor-pointer border-solid border-accent bg-accent-soft text-accent",
-  off: "cursor-pointer border-solid border-line-2 text-muted hover:text-fg",
+  on: cx(PRESS, "border-solid border-accent bg-accent-soft text-accent"),
+  off: cx(PRESS, "border-solid border-line-2 text-muted hover:text-fg"),
   locked: "cursor-not-allowed border-dashed border-line-2 text-dim",
-  system: "cursor-not-allowed border-solid border-line text-dim opacity-50",
+  lockedHeld: "cursor-not-allowed border-dashed border-accent bg-accent-soft text-accent",
+  held: "cursor-default border-solid border-accent bg-accent-soft text-accent",
+  absent: "cursor-default border-solid border-line text-dim",
 };
 
 // The dot is the second cue, so state does not rest on the border alone. Warn
-// on a locked chip is the design's signal that Root is needed to grant it.
+// on a locked chip is the design's signal that Root is needed to grant it; on
+// a read-only role a filled dot is granted and a hollow ring is not.
 const DOT: Record<ChipState, string> = {
   on: "bg-accent",
   off: "bg-line-2",
   locked: "bg-warn",
-  system: "bg-line-2",
+  lockedHeld: "bg-warn",
+  held: "bg-accent",
+  absent: "border border-dim",
 };
+
+function chipState(on: boolean, locked: boolean, readOnly: boolean): ChipState {
+  if (readOnly) return on ? "held" : "absent";
+  if (locked) return on ? "lockedHeld" : "locked";
+  return on ? "on" : "off";
+}
 
 export function PermissionMatrix({
   all,
@@ -65,28 +83,25 @@ export function PermissionMatrix({
               {group.permissions.map((permission) => {
                 const locked = grantable ? !grantable.has(permission.slug) : false;
                 const on = granted.includes(permission.slug);
-                const state: ChipState = locked
-                  ? "locked"
-                  : readOnly
-                    ? "system"
-                    : on
-                      ? "on"
-                      : "off";
+                const state = chipState(on, locked, readOnly);
 
                 return (
                   <button
                     key={permission.slug}
                     type="button"
-                    disabled={state === "locked" || state === "system"}
-                    onClick={() => onToggle(permission.slug)}
+                    disabled={locked && !readOnly}
+                    // Read-only chips stay focusable, so what they hold can
+                    // still be read; they just do nothing when pressed.
+                    aria-disabled={readOnly || undefined}
+                    onClick={readOnly ? undefined : () => onToggle(permission.slug)}
                     aria-pressed={on}
                     // The visible label is the action alone, so "write" appears
                     // once per group; the slug is what makes each chip's name
                     // unique and says which resource it belongs to.
                     aria-label={permission.slug}
-                    title={locked ? LOCKED_TITLE : permission.description}
+                    title={locked && !readOnly ? LOCKED_TITLE : permission.description}
                     className={cx(
-                      "inline-flex items-center gap-[7px] rounded-control border px-[11px] py-1.5 font-mono text-[11px] transition-[color,background-color,border-color,scale] duration-150 ease-out enabled:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+                      "inline-flex items-center gap-[7px] rounded-control border px-[11px] py-1.5 font-mono text-[11px] transition-[color,background-color,border-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
                       CHIP[state],
                     )}
                   >
