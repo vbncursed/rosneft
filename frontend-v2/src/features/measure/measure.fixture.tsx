@@ -13,6 +13,7 @@ const SAMPLE: Chain = {
     { x: 10.275, y: 0, z: 0 },
   ],
   closed: false,
+  sync: "local",
 };
 const UNIT_RATIO = 2;
 

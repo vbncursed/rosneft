@@ -153,8 +153,8 @@ const VM: SceneViewModel = {
 };
 
 const CHAINS: Chain[] = [
-  { id: 1, points: [{ x: -0.4, y: 0.1, z: 0.2 }, { x: 0.3, y: 0.1, z: 0.2 }], closed: false },
-  { id: 2, points: [{ x: 0.1, y: 0.1, z: -0.5 }, { x: 0.1, y: 0.1, z: 0.1 }], closed: false },
+  { id: 1, points: [{ x: -0.4, y: 0.1, z: 0.2 }, { x: 0.3, y: 0.1, z: 0.2 }], closed: false, sync: "saved", serverId: 1 },
+  { id: 2, points: [{ x: 0.1, y: 0.1, z: -0.5 }, { x: 0.1, y: 0.1, z: 0.1 }], closed: false, sync: "local" },
 ];
 
 const IDLE_TOUR: Tour = {

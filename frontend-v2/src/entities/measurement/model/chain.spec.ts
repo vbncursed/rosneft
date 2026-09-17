@@ -12,7 +12,17 @@ import {
 } from "./chain";
 
 const p = (x: number, y: number, z: number) => ({ x, y, z });
-const chain = (points: ReturnType<typeof p>[], closed = false): Chain => ({ id: 1, points, closed });
+const chain = (points: ReturnType<typeof p>[], closed = false): Chain => ({
+  id: 1,
+  points,
+  closed,
+  sync: "local",
+});
+const saved = (points: ReturnType<typeof p>[], closed = false): Chain => ({
+  ...chain(points, closed),
+  serverId: 42,
+  sync: "saved",
+});
 
 describe("shouldCloseAt", () => {
   it("is false when already closed", () => {
@@ -109,6 +119,7 @@ describe("removeSegment", () => {
     expect(out[0]).toEqual({
       id: 10,
       closed: false,
+      sync: "local",
       points: [p(2, 0, 0), p(3, 0, 0), p(0, 0, 0), p(1, 0, 0)],
     });
   });
@@ -123,8 +134,8 @@ describe("removeSegment", () => {
     const c = chain([p(0, 0, 0), p(1, 0, 0), p(2, 0, 0), p(3, 0, 0)]);
     const out = removeSegment(c, 1, [10, 11]);
     expect(out).toEqual([
-      { id: 10, closed: false, points: [p(0, 0, 0), p(1, 0, 0)] },
-      { id: 11, closed: false, points: [p(2, 0, 0), p(3, 0, 0)] },
+      { id: 10, closed: false, sync: "local", points: [p(0, 0, 0), p(1, 0, 0)] },
+      { id: 11, closed: false, sync: "local", points: [p(2, 0, 0), p(3, 0, 0)] },
     ]);
   });
 
@@ -132,11 +143,54 @@ describe("removeSegment", () => {
     const c = chain([p(0, 0, 0), p(1, 0, 0), p(2, 0, 0)]);
     const out = removeSegment(c, 0, [10, 11]);
     // left side [A] has no segment → dropped; only the right side survives, on nextIds[1]
-    expect(out).toEqual([{ id: 11, closed: false, points: [p(1, 0, 0), p(2, 0, 0)] }]);
+    expect(out).toEqual([{ id: 11, closed: false, sync: "local", points: [p(1, 0, 0), p(2, 0, 0)] }]);
   });
 
   it("is a no-op at or past the last open segment index", () => {
     const c = chain([p(0, 0, 0), p(1, 0, 0), p(2, 0, 0)]);
     expect(removeSegment(c, 2, [10, 11])).toEqual([c]); // segments are 0,1 only
+  });
+
+  it("a saved chain's left part keeps the server id, the right part is new and local", () => {
+    const out = removeSegment(saved([p(0, 0, 0), p(1, 0, 0), p(2, 0, 0), p(3, 0, 0)]), 1, [10, 11]);
+    expect(out.map(({ id, serverId, sync }) => ({ id, serverId, sync }))).toEqual([
+      { id: 10, serverId: 42, sync: "saved" },
+      { id: 11, serverId: undefined, sync: "local" },
+    ]);
+  });
+
+  it("a saved closed chain opens up under the same server id", () => {
+    const out = removeSegment(saved([p(0, 0, 0), p(1, 0, 0), p(2, 0, 0)], true), 0, [10, 11]);
+    expect(out).toEqual([
+      { id: 10, serverId: 42, sync: "saved", closed: false, points: [p(1, 0, 0), p(2, 0, 0), p(0, 0, 0)] },
+    ]);
+  });
+
+  it("a saved chain that loses its left part hands its server id to the right part", () => {
+    const out = removeSegment(saved([p(0, 0, 0), p(1, 0, 0), p(2, 0, 0)]), 0, [10, 11]);
+    expect(out).toEqual([
+      { id: 11, serverId: 42, sync: "saved", closed: false, points: [p(1, 0, 0), p(2, 0, 0)] },
+    ]);
+  });
+
+  it("a saved chain losing its last segment keeps the server id on the left part", () => {
+    const out = removeSegment(saved([p(0, 0, 0), p(1, 0, 0), p(2, 0, 0)]), 1, [10, 11]);
+    expect(out).toEqual([
+      { id: 10, serverId: 42, sync: "saved", closed: false, points: [p(0, 0, 0), p(1, 0, 0)] },
+    ]);
+  });
+
+  it("a saved two-point chain cut in its only segment leaves nothing", () => {
+    expect(removeSegment(saved([p(0, 0, 0), p(1, 0, 0)]), 0, [10, 11])).toEqual([]);
+  });
+
+  it("a left part of a chain whose save is still pending or failed is local", () => {
+    const pending: Chain = { ...chain([p(0, 0, 0), p(1, 0, 0), p(2, 0, 0)]), sync: "failed" };
+    expect(removeSegment(pending, 1, [10, 11])[0]).toEqual({
+      id: 10,
+      sync: "local",
+      closed: false,
+      points: [p(0, 0, 0), p(1, 0, 0)],
+    });
   });
 });
