@@ -298,6 +298,15 @@ declared earlier in the array and has therefore never applied, and in
 place; decide per variant, never override with a second utility for the
 same property.
 
+**A permission chip shows two things at once: granted, and changeable**
+(`widgets/permission-matrix`, 2026-09-17). A read-only set — a system role,
+a reader without `roles:manage`, a save in flight — still says what it holds:
+`held` (accent, filled dot) against `absent` (dim, hollow dot), focusable,
+`aria-disabled`, never toggled. On an editable role a permission the actor
+cannot grant is `locked` (dashed, warn dot) or, when the role already holds
+it, `lockedHeld` (dashed *accent*). The old read-only state drew every chip
+the same grey, and a system role's set could not be read at all.
+
 **`Modal` has three tones** — `default`, `danger`, `warning` — read off the
 `tone` prop and applied to the border and the overline colour alike. The
 passkey removal mock's tinted head band, its own close `×`, and a footer
