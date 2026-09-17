@@ -163,6 +163,27 @@ nothing today — the build and tests stay green — it only fails the next
 person who runs the generator, which may be months later. `frontend/` carries
 the identical pin for the identical reason.
 
+**React stays on 19.2.x, pinned with `~`, until `@react-three/fiber` allows
+more.** fiber 9.7.0 — the latest stable on 2026-09-17 — declares
+`react >=19 <19.3`: it ships its own reconciler build against one React
+minor. `^19.2.8` resolved to 19.3.0 in the dependency upgrade and yarn only
+warned; the viewer still rendered, which is exactly the kind of green that
+hides a reconciler mismatch. `react`, `react-dom`, `@types/react` and
+`@types/react-dom` are `~19.2.x`; lift them together with fiber once a fiber
+release widens its peer range (`node -e "console.log(require('@react-three/fiber/package.json').peerDependencies.react)"`).
+
+**`resolutions` carries two pins, and both are deliberate.**
+`openapi-typescript/typescript: 5.9.3` is the generator's compiler (below).
+`openapi-typescript/**/js-yaml: 4.3.2` lifts a dev-only transitive
+(`@redocly/openapi-core` pins js-yaml 4.3.1, which has a high-severity
+advisory); the `**` is required — yarn 1 ignores a nested `a/b` path when `a`
+is not a direct dependency. Drop it once `@redocly/openapi-core` moves on.
+
+**Cosmos and `yarn dev` share `node_modules/.vite/deps`.** Restarting both at
+once let Cosmos overwrite the dev server's pre-bundle, and :3001 answered
+`504 (Outdated Optimize Dep)` — first the login page, then the viewer chunk.
+Restart `yarn dev` again after Cosmos is up; the second restart holds.
+
 **`credentialed` belongs only on the calls that actually answer 401 for a
 wrong credential — three of the seven, not all seven.** `shared/api`'s
 `SendOpts` carries `credentialed?: boolean`: it means "a 401 from this
