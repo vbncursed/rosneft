@@ -9,6 +9,15 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("notify", () => {
+  it("carries the action a failure offers", () => {
+    const { result } = renderHook(() => useNotices());
+    const run = vi.fn();
+    act(() => {
+      notify.error("Measurement not saved", { label: "Retry", run });
+    });
+    expect(result.current[0].action).toEqual({ label: "Retry", run });
+  });
+
   it("stacks the newest notice on top", () => {
     const { result } = renderHook(() => useNotices());
 

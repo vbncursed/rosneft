@@ -27,11 +27,12 @@ const open: Chain = {
   sync: "local",
 };
 
-const draw = (chains: Chain[], activeChainId: number | null) =>
+const draw = (chains: Chain[], activeChainId: number | null, canEditSaved = true) =>
   render(
     <MeasurementLayer
       chains={chains}
       activeChainId={activeChainId}
+      canEditSaved={canEditSaved}
       unitRatio={1}
       lineColor="#f97316"
       onCloseActive={vi.fn()}
@@ -44,6 +45,22 @@ describe("MeasurementLayer", () => {
   it("draws one label per segment — an open chain of N points has N-1", () => {
     draw([open], null);
     expect(screen.getAllByRole("button")).toHaveLength(2);
+  });
+
+  it("keeps the labels but drops the remove buttons on a saved chain the reader cannot edit", () => {
+    const saved: Chain = { ...open, serverId: 7, sync: "saved" };
+    const { unmount } = draw([saved], null, false);
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    expect(screen.getAllByText("1.00 u")).toHaveLength(2);
+    unmount();
+
+    draw([saved, { ...open, id: 2 }], null, false);
+    expect(screen.getAllByRole("button")).toHaveLength(2);
+  });
+
+  it("offers no remove button on a chain that is still being saved", () => {
+    draw([{ ...open, sync: "saving" }], null, true);
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
   });
 
   it("closes the loop on a closed chain, so N points give N segments", () => {
@@ -71,6 +88,7 @@ describe("MeasurementLayer", () => {
       <MeasurementLayer
         chains={[open]}
         activeChainId={1}
+        canEditSaved
         unitRatio={1}
         lineColor="#f97316"
         onCloseActive={onCloseActive}

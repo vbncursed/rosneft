@@ -5,6 +5,8 @@ import {
   EDITING_PILL,
   ERROR_TITLE,
   GUEST_SENTENCE,
+  clearTitle,
+  measureGrants,
   errorCopy,
   headerMeta,
   headerPills,
@@ -17,9 +19,9 @@ import {
 const SCENE: ViewerView = { kind: "scene" };
 const INSIDE: ViewerView = { kind: "panorama", id: 7 };
 
-const OWNER: Grants = { create: true, write: true, delete: true, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: true, documentWrite: true, documentDelete: true };
-const EDITOR: Grants = { create: true, write: true, delete: false, replace: false, panoramaCreate: true, panoramaWrite: true, panoramaDelete: false, documentWrite: true, documentDelete: false };
-const GUEST: Grants = { create: false, write: false, delete: false, replace: false, panoramaCreate: false, panoramaWrite: false, panoramaDelete: false, documentWrite: false, documentDelete: false };
+const OWNER: Grants = { create: true, write: true, delete: true, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: true, documentWrite: true, documentDelete: true, measureCreate: true, measureWrite: true, measureDelete: true };
+const EDITOR: Grants = { create: true, write: true, delete: false, replace: false, panoramaCreate: true, panoramaWrite: true, panoramaDelete: false, documentWrite: true, documentDelete: false, measureCreate: true, measureWrite: false, measureDelete: false };
+const GUEST: Grants = { create: false, write: false, delete: false, replace: false, panoramaCreate: false, panoramaWrite: false, panoramaDelete: false, documentWrite: false, documentDelete: false, measureCreate: false, measureWrite: false, measureDelete: false };
 
 const pills = (over: Partial<Parameters<typeof headerPills>[0]> = {}) =>
   headerPills({
@@ -257,5 +259,19 @@ describe("uploadedLine", () => {
 
   it("prints an em-dash for a date it cannot read", () => {
     expect(uploadedLine("not a date")).toBe("—");
+  });
+});
+
+describe("measureGrants", () => {
+  it("reads the three measurement grants in the sync plan's shape", () => {
+    expect(measureGrants(OWNER)).toEqual({ create: true, write: true, delete: true });
+    expect(measureGrants(EDITOR)).toEqual({ create: true, write: false, delete: false });
+  });
+});
+
+describe("clearTitle", () => {
+  it("asks about every saved chain, in the singular for one", () => {
+    expect(clearTitle(3)).toBe("Delete all 3 measurements on this territory?");
+    expect(clearTitle(1)).toBe("Delete 1 measurement on this territory?");
   });
 });

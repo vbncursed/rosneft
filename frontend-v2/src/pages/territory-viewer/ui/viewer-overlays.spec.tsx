@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Document } from "@/entities/document";
@@ -206,6 +206,7 @@ describe("ViewerOverlays · measuring", () => {
         onCloseChain: vi.fn(),
         canClear: true,
         canClose: true,
+        confirm: null,
         ...over,
       },
     });
@@ -224,6 +225,21 @@ describe("ViewerOverlays · measuring", () => {
     render(<ViewerOverlays {...measuring({ canClear: false, canClose: false })} />);
     expect(screen.getByRole("button", { name: "Clear" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Close measurement chain" })).toBeDisabled();
+  });
+
+  it("asks the Clear question in a danger dialog, and answers both ways", async () => {
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+    const { rerender } = render(<ViewerOverlays {...measuring()} />);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const title = "Delete all 2 measurements on this territory?";
+    rerender(<ViewerOverlays {...measuring({ confirm: { title, onConfirm, onCancel } })} />);
+    const dialog = screen.getByRole("dialog", { name: title });
+    expect(dialog).toHaveTextContent("everyone who opens this territory");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+    expect(onConfirm).toHaveBeenCalledOnce();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    expect(onCancel).toHaveBeenCalledOnce();
   });
 
   it("keeps the hint bar off outside measure mode", () => {
@@ -267,7 +283,7 @@ describe("ViewerOverlays · the strip, the switcher and the hints", () => {
       <ViewerOverlays
         {...props({
           document: documentWindow(),
-          measuring: { onClear: vi.fn(), onCloseChain: vi.fn(), canClear: true, canClose: true },
+          measuring: { onClear: vi.fn(), onCloseChain: vi.fn(), canClear: true, canClose: true, confirm: null },
         })}
       />,
     );

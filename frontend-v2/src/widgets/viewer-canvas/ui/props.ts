@@ -27,6 +27,8 @@ export type ViewerCanvasProps = {
   canWrite: boolean;
   chains: Chain[];
   activeChainId: number | null;
+  /** Every measurement edit grant: a saved chain offers its remove buttons only then. */
+  canEditMeasurements: boolean;
   unitRatio: number;
   resetVersion: number;
   /** Bumped by the page's Retry: re-arms the boundary and clears the failure. */

@@ -16,7 +16,11 @@ const {
   deletePlacement,
   setPlacementVisibility,
   markTourSeen,
+  createMeasurement,
+  deleteMeasurements,
 } = vi.hoisted(() => ({
+  createMeasurement: vi.fn(),
+  deleteMeasurements: vi.fn(),
   getSceneBundle: vi.fn(),
   getMe: vi.fn(),
   createPlacement: vi.fn(),
@@ -40,6 +44,11 @@ vi.mock("@/entities/placement", async (importOriginal) => ({
   updatePlacement,
   deletePlacement,
   setPlacementVisibility,
+}));
+vi.mock("@/entities/measurement", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  createMeasurement,
+  deleteMeasurements,
 }));
 vi.mock("@/features/onboarding", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -114,6 +123,16 @@ const BUNDLE: SceneBundle = {
       createdAt: "2026-09-14T10:00:00Z",
     },
   ],
+  measurements: [
+    {
+      serverId: 31,
+      points: [
+        { x: 0, y: 0, z: 0 },
+        { x: 1, y: 0, z: 0 },
+      ],
+      closed: false,
+    },
+  ],
 };
 
 const principal = (over: Partial<Principal> = {}): Principal => ({
@@ -178,6 +197,8 @@ describe("useTerritoryViewer", () => {
     updatePlacement.mockReset();
     deletePlacement.mockReset();
     markTourSeen.mockReset().mockResolvedValue(undefined);
+    createMeasurement.mockReset().mockImplementation((_slug, body) => Promise.resolve({ serverId: 32, ...body }));
+    deleteMeasurements.mockReset().mockResolvedValue(undefined);
   });
 
   describe("the four states", () => {
@@ -319,6 +340,76 @@ describe("useTerritoryViewer", () => {
   });
 
   describe("measuring", () => {
+    const measureAndFinish = (r: ReturnType<typeof cold>) => {
+      // The chip speaks only over a drawn level.
+      act(() =>
+        now(r).canvas.onLod({ shown: 0, target: 0, percent: null, progressText: null, failure: null }),
+      );
+      act(() => now(r).overlays.onMeasure());
+      act(() => now(r).canvas.onMeasurePoint({ x: 0, y: 0, z: 0 }));
+      act(() => now(r).canvas.onMeasurePoint({ x: 0, y: 0, z: 1 }));
+      act(() => now(r).overlays.measuring!.onCloseChain());
+    };
+
+    it("draws the territory's saved chains from the bundle", async () => {
+      const state = await ready(mount());
+      expect(state.canvas.chains).toMatchObject([{ serverId: 31, sync: "saved" }]);
+      expect(state.canvas.canEditMeasurements).toBe(true);
+    });
+
+    it("saves a finished chain for a reader who may create one", async () => {
+      getMe.mockResolvedValue(principal({ permissions: ["measurement:read", "measurement:create"] }));
+      const r = mount();
+      await ready(r);
+      measureAndFinish(r);
+      expect(createMeasurement).toHaveBeenCalledExactlyOnceWith(SLUG, {
+        points: [
+          { x: 0, y: 0, z: 0 },
+          { x: 0, y: 0, z: 1 },
+        ],
+        closed: false,
+      });
+      await waitFor(() => expect(now(r).canvas.chains.at(-1)).toMatchObject({ serverId: 32 }));
+      expect(now(r).overlays.chip?.text).not.toContain("not saved");
+    });
+
+    // Review M6 I-2: the body seeds from the cached bundle when the reader
+    // comes back in the SPA, so a saved chain must reach that cache.
+    it("refetches the bundle once a chain is saved", async () => {
+      const r = mount();
+      await ready(r);
+      const calls = getSceneBundle.mock.calls.length;
+      measureAndFinish(r);
+      await waitFor(() => expect(getSceneBundle.mock.calls.length).toBe(calls + 1));
+    });
+
+    it("keeps a reader's chain local, says so on the chip, and hides the saved chains' remove buttons", async () => {
+      getMe.mockResolvedValue(principal({ permissions: ["measurement:read"] }));
+      const r = mount();
+      const state = await ready(r);
+      expect(state.canvas.canEditMeasurements).toBe(false);
+      measureAndFinish(r);
+      expect(createMeasurement).not.toHaveBeenCalled();
+      expect(now(r).overlays.chip?.text).toBe("measure · 2 segments · 36.00 m total · not saved");
+      // Clear takes only the reader's own chain, without asking.
+      act(() => now(r).overlays.measuring!.onClear());
+      expect(now(r).overlays.measuring!.confirm).toBeNull();
+      expect(now(r).canvas.chains.map((c) => c.serverId)).toEqual([31]);
+      expect(deleteMeasurements).not.toHaveBeenCalled();
+    });
+
+    it("asks before a measurement:delete holder clears the territory, then deletes it", async () => {
+      const r = mount();
+      await ready(r);
+      act(() => now(r).overlays.onMeasure());
+      act(() => now(r).overlays.measuring!.onClear());
+      expect(now(r).overlays.measuring!.confirm?.title).toBe("Delete 1 measurement on this territory?");
+      expect(deleteMeasurements).not.toHaveBeenCalled();
+      act(() => now(r).overlays.measuring!.confirm!.onConfirm());
+      expect(deleteMeasurements).toHaveBeenCalledExactlyOnceWith(SLUG);
+      expect(now(r).canvas.chains).toEqual([]);
+    });
+
     it("drops an unfinished chain when the reader leaves measure mode", async () => {
       const r = mount();
       const state = await ready(r);

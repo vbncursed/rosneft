@@ -289,6 +289,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/territories/{slug}/measurements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        /** List saved measurements on a territory */
+        get: operations["listMeasurements"];
+        put?: never;
+        /**
+         * Save a finished measurement chain
+         * @description Requires measurement:create. The author is recorded from the session.
+         */
+        post: operations["createMeasurement"];
+        /**
+         * Remove every measurement on a territory
+         * @description Requires measurement:delete. Measurements are shared, so this clears them for every reader of the territory.
+         */
+        delete: operations["deleteMeasurements"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/territories/{slug}/measurements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace a measurement chain
+         * @description Requires measurement:write. An id that belongs to another territory answers 404, the same as an unknown id.
+         */
+        put: operations["updateMeasurement"];
+        post?: never;
+        /**
+         * Remove a measurement
+         * @description Requires measurement:delete. An id that belongs to another territory answers 404, the same as an unknown id.
+         */
+        delete: operations["deleteMeasurement"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/territories/{slug}/panoramas": {
         parameters: {
             query?: never;
@@ -480,7 +534,12 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Discard an in-progress session */
+        /**
+         * Discard an in-progress session
+         * @description Idempotent for a session that no longer exists. A session belongs to
+         *     the user who initiated it; anyone else gets 404 here, as on HEAD,
+         *     PATCH and finalize.
+         */
         delete: operations["abortUpload"];
         options?: never;
         /** Query the current offset of a session */
@@ -2416,6 +2475,36 @@ export interface components {
             panoramaIds: number[];
         };
         /**
+         * @description A saved ruler chain on a territory, shared by everyone who can open
+         *     it. Points are in the territory's normalised scene space — the space
+         *     placement positions use — in drawing order. A closed chain has an
+         *     implicit last segment back to its first point.
+         */
+        Measurement: {
+            /** Format: int64 */
+            id: number;
+            territorySlug: string;
+            points: components["schemas"]["Vec3"][];
+            closed: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        /**
+         * @description The full chain; PUT replaces points and closed together. At least
+         *     two points, at least three when closed, at most 1000, all finite —
+         *     anything else is 400.
+         */
+        MeasurementWrite: {
+            points: components["schemas"]["Vec3"][];
+            closed: boolean;
+        };
+        MeasurementsDeleted: {
+            /** @description How many measurements were removed. */
+            deleted: number;
+        };
+        /**
          * @description Equirectangular panorama (Insta360 Pro source) anchored to a point
          *     in a territory's scene-units space. The viewer "panorama mode"
          *     teleports the camera to position and renders a sphere skybox;
@@ -2569,8 +2658,8 @@ export interface components {
         /**
          * @description Single-shot bundle for the viewer page. Includes the requested
          *     territory, its current LOD0 artifact (when present), all
-         *     placements on it, and the list of available models with their
-         *     artifacts for the placement picker.
+         *     placements and saved measurements on it, and the list of available
+         *     models with their artifacts for the placement picker.
          */
         SceneBundle: {
             territory: components["schemas"]["Territory"];
@@ -2585,6 +2674,8 @@ export interface components {
             panoramas?: components["schemas"]["Panorama"][];
             /** @description PDF documents attached to this territory. */
             documents?: components["schemas"]["Document"][];
+            /** @description Saved measurement chains on this territory, by id; empty when none. */
+            measurements: components["schemas"]["Measurement"][];
         };
         UploadInitiate: {
             /** Format: int64 */
@@ -3440,6 +3531,142 @@ export interface operations {
             500: components["responses"]["Internal"];
         };
     };
+    listMeasurements: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Measurement"][];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    createMeasurement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeasurementWrite"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Measurement"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    deleteMeasurements: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeasurementsDeleted"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    updateMeasurement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeasurementWrite"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Measurement"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    deleteMeasurement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
     listPanoramas: {
         parameters: {
             query?: never;
@@ -3838,6 +4065,7 @@ export interface operations {
                 };
                 content?: never;
             };
+            404: components["responses"]["NotFound"];
             500: components["responses"]["Internal"];
         };
     };

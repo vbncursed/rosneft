@@ -20,12 +20,15 @@ vi.mock("@react-three/drei", () => ({
 
 const segment = { id: encodeSegmentId(4, 2), a: { x: 0, y: 0, z: 0 }, b: { x: 1, y: 0, z: 0 } };
 
-const draw = (props: { onRemoveSegment?: () => void; onRemoveChain?: () => void } = {}) =>
+const draw = (
+  props: { onRemoveSegment?: () => void; onRemoveChain?: () => void; removable?: boolean } = {},
+) =>
   render(
     <MeasurementSegment
       measurement={segment}
       unitRatio={10}
       lineColor="#f97316"
+      removable={props.removable ?? true}
       onRemoveSegment={props.onRemoveSegment ?? vi.fn()}
       onRemoveChain={props.onRemoveChain ?? vi.fn()}
     />,
@@ -48,6 +51,13 @@ describe("MeasurementSegment", () => {
     draw();
     // 1 scene unit × unitRatio 10 = 10 m.
     expect(screen.getByRole("button")).toHaveTextContent("10.00 m");
+  });
+
+  it("is a plain label when its chain offers no way to remove it", () => {
+    draw({ removable: false });
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.getByText("10.00 m")).toBeInTheDocument();
+    expect(screen.queryByText("×")).toBeNull();
   });
 
   it("says both ways out in its title, since neither is visible", () => {

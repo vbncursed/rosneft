@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { Chain } from "@/entities/measurement";
 import type { ResolvedPlacement } from "@/entities/placement";
 import { IDLE_DOCUMENTS, basePageParts } from "../territory-viewer-page.fixture";
 import type { DocumentParts } from "./overlay-parts";
@@ -13,7 +14,17 @@ const placement = (id: number, visiblePanoramaIds: number[]): ResolvedPlacement 
 
 // Every dependency is one of the page's own hooks; this spec is about what
 // happens between them, so each is a spy and nothing real is mounted.
-const deps = (over: { documents?: DocumentParts; placements?: ResolvedPlacement[] } = {}) => {
+const SAVED: Chain = { id: 1, points: [], closed: false, serverId: 7, sync: "saved" };
+const LOCAL: Chain = { id: 2, points: [], closed: false, sync: "local" };
+
+const deps = (
+  over: {
+    documents?: DocumentParts;
+    placements?: ResolvedPlacement[];
+    chains?: Chain[];
+    canDeleteMeasurements?: boolean;
+  } = {},
+) => {
   const mode = {
     enterPlace: vi.fn(),
     exitPlace: vi.fn(),
@@ -33,6 +44,7 @@ const deps = (over: { documents?: DocumentParts; placements?: ResolvedPlacement[
   const panel = { setTab: vi.fn(), setCollapsed: vi.fn() };
   const form = { openNew: vi.fn(), openRename: vi.fn() };
   const measure = {
+    chains: over.chains ?? [],
     click: vi.fn(),
     closeActive: vi.fn(),
     removeSegment: vi.fn(),
@@ -50,6 +62,7 @@ const deps = (over: { documents?: DocumentParts; placements?: ResolvedPlacement[
       panel,
       tour: basePageParts().tour,
       documents,
+      canDeleteMeasurements: over.canDeleteMeasurements ?? true,
     } as unknown as HandlerDeps,
   };
 };
@@ -60,12 +73,40 @@ const mount = (over?: Parameters<typeof deps>[0]) => {
 };
 
 describe("usePageHandlers", () => {
-  it("Clear wipes every chain until the grants are wired", () => {
-    // M6 hands keepSaved from measurement:delete; until then Clear keeps
-    // today's behaviour, and the click event must not reach clear().
-    const { result, spies } = mount();
-    act(() => result.current.on.onClearMeasurements());
-    expect(spies.measure.clear).toHaveBeenCalledWith(false);
+  describe("Clear", () => {
+    it("asks first when saved chains would go, and clears everything once confirmed", () => {
+      const { result, spies } = mount({ chains: [SAVED, LOCAL] });
+      act(() => result.current.on.onClearMeasurements());
+      expect(result.current.view.confirmClear).toBe(true);
+      expect(spies.measure.clear).not.toHaveBeenCalled();
+      act(() => result.current.on.onConfirmClear());
+      expect(result.current.view.confirmClear).toBe(false);
+      expect(spies.measure.clear).toHaveBeenCalledExactlyOnceWith(false);
+    });
+
+    it("clears nothing when the question is cancelled", () => {
+      const { result, spies } = mount({ chains: [SAVED] });
+      act(() => result.current.on.onClearMeasurements());
+      act(() => result.current.on.onCancelClear());
+      expect(result.current.view.confirmClear).toBe(false);
+      expect(spies.measure.clear).not.toHaveBeenCalled();
+    });
+
+    it("clears at once when nothing saved is on screen", () => {
+      const { result, spies } = mount({ chains: [LOCAL] });
+      act(() => result.current.on.onClearMeasurements());
+      expect(result.current.view.confirmClear).toBe(false);
+      expect(spies.measure.clear).toHaveBeenCalledExactlyOnceWith(false);
+    });
+
+    // Review r-2: without measurement:delete the saved chains must stay on
+    // screen, since nothing will delete them on the server.
+    it("keeps the saved chains for a reader who cannot delete them, and asks nothing", () => {
+      const { result, spies } = mount({ chains: [SAVED, LOCAL], canDeleteMeasurements: false });
+      act(() => result.current.on.onClearMeasurements());
+      expect(result.current.view.confirmClear).toBe(false);
+      expect(spies.measure.clear).toHaveBeenCalledExactlyOnceWith(true);
+    });
   });
 
   it("starts with LOD 0 asked for and nothing else pending", () => {
@@ -78,6 +119,7 @@ describe("usePageHandlers", () => {
       pickerOpen: false,
       query: "",
       expandedModel: null,
+      confirmClear: false,
     });
     expect(result.current.failedAt).toBeNull();
   });

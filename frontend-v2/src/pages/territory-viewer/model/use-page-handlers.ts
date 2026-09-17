@@ -19,6 +19,8 @@ export type HandlerDeps = {
   tour: Tour;
   /** Only the documents: every panorama callback is already the parts' own. */
   documents: DocumentParts;
+  /** `measurement:delete`: Clear then deletes the saved chains too, after asking. */
+  canDeleteMeasurements: boolean;
 };
 
 /** The page's own state, plus the moment a failure arrived — `now`'s source. */
@@ -58,7 +60,7 @@ const NO_LOD: LodState = { report: NO_REPORT, failedAt: null };
  * fresh identity re-runs the effects that attach to the scene.
  */
 export function usePageHandlers(d: HandlerDeps): PageInteraction {
-  const { mode, measure, editor, form, panel, tour, documents } = d;
+  const { mode, measure, editor, form, panel, tour, documents, canDeleteMeasurements } = d;
   const [targetLod, setTargetLod] = useState(0);
   const [retryVersion, setRetryVersion] = useState(0);
   const [resetVersion, setResetVersion] = useState(0);
@@ -67,6 +69,7 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [expandedModel, setExpandedModel] = useState<string | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const onLod = useCallback(
     (next: LodReport) =>
@@ -126,9 +129,19 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
     reveal("documents");
   }, [documents, reveal]);
 
-  // keepSaved stays false until M6 reads it off measurement:delete.
+  // Saved chains are everyone's: they go only with the grant, and only after
+  // asking. Without it Clear takes the reader's own chains and asks nothing.
   const clearMeasurements = measure.clear;
-  const onClearMeasurements = useCallback(() => clearMeasurements(false), [clearMeasurements]);
+  const hasSaved = measure.chains.some((c) => c.serverId != null);
+  const onClearMeasurements = useCallback(() => {
+    if (canDeleteMeasurements && hasSaved) setConfirmClear(true);
+    else clearMeasurements(!canDeleteMeasurements);
+  }, [canDeleteMeasurements, hasSaved, clearMeasurements]);
+  const onConfirmClear = useCallback(() => {
+    setConfirmClear(false);
+    clearMeasurements(false);
+  }, [clearMeasurements]);
+  const onCancelClear = useCallback(() => setConfirmClear(false), []);
 
   const onVisibility = useCallback(
     (placementId: number, panoramaId: number, visible: boolean) => {
@@ -150,6 +163,7 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
       pickerOpen,
       query,
       expandedModel,
+      confirmClear,
     },
     failedAt: lod.failedAt,
     on: {
@@ -169,6 +183,8 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
       onTargetLod: setTargetLod,
       onRetry,
       onClearMeasurements,
+      onConfirmClear,
+      onCancelClear,
       onTab: panel.setTab,
       onCollapsed: panel.setCollapsed,
       onQuery: setQuery,

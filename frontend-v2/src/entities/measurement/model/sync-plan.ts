@@ -11,7 +11,8 @@ import type { MeasurementAction, MeasurementState } from "./measurement-reducer"
 //   - update: a saved chain whose points or closed flag changed (the first
 //     surviving part of a cut keeps its server id);
 //   - delete: a saved chain that is gone, or a row whose save landed after
-//     its chain was removed (`chain: null` — nothing to put back);
+//     its chain was removed and that no chain holds (`chain: null` — nothing
+//     to put back);
 //   - deleteAll: `clear` without keepSaved over at least one saved chain.
 // delete and deleteAll carry what they remove, so a failed call can restore
 // it. Every operation needs its own grant; without it the chain stays local.
@@ -37,6 +38,15 @@ export function canEditSaved(grants: SyncGrants): boolean {
   return grants.create && grants.write && grants.delete;
 }
 
+/**
+ * Whether a chain offers its remove affordances. A chain on its way to the
+ * server offers none — a cut there could not reach the row being written
+ * (review r-1) — and a chain the server holds needs every edit grant (m-2).
+ */
+export function canRemove(chain: Chain, editSaved: boolean): boolean {
+  return chain.sync !== "saving" && (chain.serverId == null || editSaved);
+}
+
 export function syncPlan(
   action: MeasurementAction,
   before: MeasurementState,
@@ -53,8 +63,9 @@ function opsFor(
 ): SyncOp[] {
   switch (action.type) {
     case "saved":
-      // The chain went while its create was in flight: the new row is an orphan.
-      return before.chains.some((c) => c.id === action.id)
+      // The chain went while its create was in flight: the new row is an orphan
+      // — unless a chain still holds it (a later cut kept the row under a new id).
+      return after.chains.some((c) => c.id === action.id || c.serverId === action.serverId)
         ? []
         : [{ kind: "delete", id: action.id, serverId: action.serverId, chain: null }];
     case "seed":
@@ -102,8 +113,10 @@ function creates(
   const known = new Set(before.chains.map((c) => c.id));
   const target =
     action.type === "removeSegment" ? before.chains.find((c) => c.id === action.chainId) : undefined;
+  // A chain whose save failed is still meant for the server, so its parts are too.
   const cutReachesServer =
-    target != null && (target.id === before.activeChainId || isSaved(target));
+    target != null &&
+    (target.id === before.activeChainId || isSaved(target) || target.sync === "failed");
   return after.chains
     .filter(
       (c) =>

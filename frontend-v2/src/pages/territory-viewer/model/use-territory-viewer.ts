@@ -4,7 +4,7 @@ import { computeUnitRatio } from "@/entities/measurement";
 import { pickLod, getSceneBundle, sceneQuery, toSceneViewModel } from "@/entities/scene";
 import { getMe, meQuery } from "@/entities/user";
 import { viewerError } from "@/features/lod";
-import { measureSummary, useMeasurementTool } from "@/features/measure";
+import { measureSummary, notSaved, useMeasurementSync } from "@/features/measure";
 import {
   PANORAMA_TOUR,
   PANORAMA_TOUR_STEPS,
@@ -21,6 +21,7 @@ import { can } from "@/shared/session";
 import { useOverlaysPanel } from "@/widgets/overlays-panel";
 import { decodeImageBitmap } from "@/widgets/viewer-canvas";
 import { pageProps, type TerritoryViewerPageProps } from "./page-props";
+import { measureGrants } from "./viewer-view";
 import { usePageHandlers } from "./use-page-handlers";
 import { usePlacementForm } from "./use-placement-form";
 import { useViewerDocuments } from "./use-viewer-documents";
@@ -86,12 +87,24 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
       panoramaDelete: can(me.data ?? null, "panorama:delete"),
       documentWrite: can(me.data ?? null, "document:write"),
       documentDelete: can(me.data ?? null, "document:delete"),
+      measureCreate: can(me.data ?? null, "measurement:create"),
+      measureWrite: can(me.data ?? null, "measurement:write"),
+      measureDelete: can(me.data ?? null, "measurement:delete"),
     }),
     [me.data],
   );
 
   const compact = useMediaQuery(COMPACT);
-  const measure = useMeasurementTool();
+  const onChanged = useCallback(() => {
+    void client.invalidateQueries({ queryKey: ["scene", slug] });
+  }, [client, slug]);
+
+  const measure = useMeasurementSync({
+    slug,
+    stored: vm?.measurements ?? null,
+    grants: measureGrants(grants),
+    onChanged,
+  });
 
   const cycle = useRef<() => void>(() => {});
   const beforeEscape = useRef<() => boolean>(() => false);
@@ -103,10 +116,6 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     onCycle: useCallback(() => cycle.current(), []),
     beforeEscape: useCallback(() => beforeEscape.current(), []),
   });
-
-  const onChanged = useCallback(() => {
-    void client.invalidateQueries({ queryKey: ["scene", slug] });
-  }, [client, slug]);
 
   const panoramas = useViewerPanoramas({
     slug,
@@ -185,6 +194,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     panel,
     tour,
     documents,
+    canDeleteMeasurements: grants.measureDelete,
   });
 
   if (me.isPending || scene.isPending) return { status: "loading" };
@@ -211,7 +221,10 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
       measure: {
         chains: measure.chains,
         activeChainId: measure.activeChainId,
-        summary: measureSummary(measure.chains, computeUnitRatio(dims)),
+        summary: {
+          ...measureSummary(measure.chains, computeUnitRatio(dims)),
+          unsaved: notSaved(measure.chains, measure.activeChainId, grants.measureCreate),
+        },
       },
       placements: editor.placements,
       pendingIds: editor.pendingIds,

@@ -4,6 +4,7 @@ import { toPlacement, type Placement, type Vec3 } from "@/entities/placement";
 import { toTerritory, type Territory } from "@/entities/territory";
 import { toPanorama, type Panorama } from "@/entities/panorama";
 import { toDocument, type Document } from "@/entities/document";
+import { toStoredChain, type StoredChain } from "@/entities/measurement";
 import type { LodArtifact } from "../model/lod";
 
 type BundleDto = components["schemas"]["SceneBundle"];
@@ -38,6 +39,8 @@ export type SceneBundle = {
   modelOptions: ModelOption[];
   panoramas: Panorama[];
   documents: Document[];
+  /** The territory's saved measurement chains, shared by every reader. */
+  measurements: StoredChain[];
 };
 
 const ZERO: Vec3 = { x: 0, y: 0, z: 0 };
@@ -75,5 +78,6 @@ export async function getSceneBundle(slug: string): Promise<SceneBundle> {
     modelOptions: d.modelOptions.map(toOption),
     panoramas: (d.panoramas ?? []).map(toPanorama),
     documents: (d.documents ?? []).map(toDocument),
+    measurements: d.measurements.map(toStoredChain),
   };
 }

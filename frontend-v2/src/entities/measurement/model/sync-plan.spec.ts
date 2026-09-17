@@ -5,7 +5,8 @@ import {
   type MeasurementAction,
   type MeasurementState,
 } from "./measurement-reducer";
-import { canEditSaved, syncPlan, type SyncGrants } from "./sync-plan";
+import type { Chain } from "./chain";
+import { canEditSaved, canRemove, syncPlan, type SyncGrants } from "./sync-plan";
 
 const p = (x: number) => ({ x, y: 0, z: 0 });
 const ALL: SyncGrants = { create: true, write: true, delete: true };
@@ -116,6 +117,17 @@ describe("syncPlan — removing and cutting", () => {
     ]);
   });
 
+  // Review M6 m-2: a chain whose create failed is still on its way to the
+  // server, so its parts go there too rather than silently turning local.
+  it("cutting a chain whose save failed creates both parts", () => {
+    const failed = reduce(finished(0, 1, 2, 3), { type: "failed", id: 1 });
+    const ops = plan(failed, cut(1));
+    expect(ops).toEqual([
+      { kind: "create", id: 2, points: [p(0), p(1)], closed: false },
+      { kind: "create", id: 3, points: [p(2), p(3)], closed: false },
+    ]);
+  });
+
   it("cutting the active chain finishes both parts, and both are created", () => {
     const ops = plan(clicks(0, 1, 2, 3), cut(1));
     expect(ops.map((op) => [op.kind, "points" in op && op.points])).toEqual([
@@ -158,6 +170,14 @@ describe("syncPlan — clear and bookkeeping", () => {
     expect(plan(before, saved, NONE)).toEqual([]);
   });
 
+  // Review M6 I-1: a stale Retry answers for an id that a later cut replaced;
+  // the row lives on under the new id and must not be deleted.
+  it("a save that lands for a gone id whose row another chain still holds deletes nothing", () => {
+    const before = stored([0, 1, 2]);
+    const recut = reduce(before, cut(0));
+    expect(plan(recut, { type: "saved", id: 1, serverId: 7 })).toEqual([]);
+  });
+
   it("a chain removed while its create is in flight is deleted once the save lands", () => {
     const saving = reduce(finished(0, 1), { type: "saving", id: 1 });
     const removed = reduce(saving, { type: "removeChain", chainId: 1 });
@@ -197,5 +217,20 @@ describe("canEditSaved", () => {
     [{ create: true, write: true, delete: false }, false],
   ])("%o → %s", (grants, expected) => {
     expect(canEditSaved(grants)).toBe(expected);
+  });
+});
+
+describe("canRemove", () => {
+  const chain = (over: Partial<Chain>): Chain => ({ id: 1, points: [p(0), p(1)], closed: false, sync: "local", ...over });
+  it.each([
+    ["a local chain, for anyone", chain({}), false, true],
+    ["a chain whose create failed, for anyone", chain({ sync: "failed" }), false, true],
+    ["a saved chain, with every grant", chain({ serverId: 7, sync: "saved" }), true, true],
+    ["a saved chain, without them", chain({ serverId: 7, sync: "saved" }), false, false],
+    ["a saved chain whose update failed, without them", chain({ serverId: 7, sync: "failed" }), false, false],
+    ["a chain on its way to the server, even with every grant", chain({ sync: "saving" }), true, false],
+    ["a saved chain being updated", chain({ serverId: 7, sync: "saving" }), true, false],
+  ])("%s", (_name, c, editSaved, expected) => {
+    expect(canRemove(c, editSaved)).toBe(expected);
   });
 });

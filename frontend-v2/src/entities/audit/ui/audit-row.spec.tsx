@@ -31,6 +31,17 @@ describe("AuditRow", () => {
     expect(screen.getByText("a.ivanova")).toBeInTheDocument();
   });
 
+  it("names a measurement row by its id", () => {
+    render(
+      <AuditRow
+        entry={entry({ action: "measurement.delete", entity: "measurement", entityId: "7", entityLabel: "" })}
+        expanded={false}
+        onToggle={() => {}}
+      />,
+    );
+    expect(screen.getByText(/measurement #7/)).toBeInTheDocument();
+  });
+
   it("credits a system change rather than showing a blank actor", () => {
     render(
       <AuditRow entry={entry({ actorId: "", actorLogin: "" })} expanded={false} onToggle={() => {}} />,

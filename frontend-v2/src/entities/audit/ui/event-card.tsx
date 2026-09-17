@@ -1,7 +1,7 @@
 import { clsx as cx } from "clsx";
 import { Avatar } from "@/shared/ui/avatar";
 import { Badge } from "@/shared/ui/badge";
-import { actorName, formatAt, isSystemChange, type AuditEntry } from "../model/audit-entry";
+import { actorName, entityName, formatAt, isSystemChange, type AuditEntry } from "../model/audit-entry";
 import { eventKind, type EventKind } from "../model/event-kind";
 
 export type EventCardProps = {
@@ -51,7 +51,7 @@ export function EventCard({ entry, summary, selected = false, onSelect }: EventC
     <article
       onClick={onSelect}
       aria-current={selected ? "true" : undefined}
-      aria-label={`${entry.action}, ${KIND_WORD[kind]} ${entry.entityLabel}${failed ? ", failed" : ""}`}
+      aria-label={`${entry.action}, ${KIND_WORD[kind]} ${entityName(entry)}${failed ? ", failed" : ""}`}
       className={cx(
         "relative flex cursor-pointer items-start gap-3 overflow-hidden rounded-[11px] border py-3.5 pl-4.5 pr-4 transition-[color,background-color,border-color,scale] duration-150 ease-out active:scale-[0.99]",
         selected ? "border-accent bg-accent-soft" : "border-line bg-panel hover:border-line-2",
@@ -76,7 +76,7 @@ export function EventCard({ entry, summary, selected = false, onSelect }: EventC
         <div className="flex min-w-0 flex-wrap items-center gap-2.5">
           <span className="whitespace-nowrap font-mono text-xs text-accent">{entry.action}</span>
           <span className="min-w-0 truncate text-[13px] font-medium text-fg">
-            {entry.entityLabel}
+            {entityName(entry)}
           </span>
           {failed ? (
             <Badge tone="bad" shape="tag" size="sm" className="tracking-[0.1em]">

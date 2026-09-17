@@ -18,6 +18,16 @@ const base = {
 } satisfies Omit<AuditEntry, "id" | "at" | "action" | "entity">;
 
 const ENTRIES: AuditEntry[] = [
+  // Live shape: a measurement row carries its id and no label.
+  {
+    ...base,
+    id: 5,
+    at: ago(2),
+    action: "measurement.insert",
+    entity: "measurement",
+    entityId: "42",
+    territorySlug: "dji-wp46-cut",
+  },
   { ...base, id: 4, at: ago(6), action: "auth.login", entity: "session" },
   { ...base, id: 3, at: ago(95), action: "territory.replace_source", entity: "territory" },
   {

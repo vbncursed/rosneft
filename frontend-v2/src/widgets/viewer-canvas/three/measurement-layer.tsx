@@ -1,12 +1,14 @@
 import { memo, useEffect } from "react";
 import { useThree } from "@react-three/fiber";
-import { chainSegments, type Chain } from "@/entities/measurement";
+import { canRemove, chainSegments, type Chain } from "@/entities/measurement";
 import MeasurementSegment from "./measurement-segment";
 import PointMarker from "./point-marker";
 
 interface MeasurementLayerProps {
   chains: Chain[];
   activeChainId: number | null;
+  /** The reader holds every measurement edit grant; a saved chain offers removal only then. */
+  canEditSaved: boolean;
   unitRatio: number;
   lineColor: string;
   onCloseActive: () => void;
@@ -24,6 +26,7 @@ interface MeasurementLayerProps {
 function MeasurementLayerImpl({
   chains,
   activeChainId,
+  canEditSaved,
   unitRatio,
   lineColor,
   onCloseActive,
@@ -45,6 +48,7 @@ function MeasurementLayerImpl({
       {chains.map((chain) => {
         const segments = chainSegments(chain);
         const isActive = chain.id === activeChainId;
+        const removable = canRemove(chain, canEditSaved);
         return (
           <group key={chain.id}>
             {segments.map((segment) => (
@@ -53,6 +57,7 @@ function MeasurementLayerImpl({
                 measurement={segment}
                 unitRatio={unitRatio}
                 lineColor={lineColor}
+                removable={removable}
                 onRemoveSegment={onRemoveSegment}
                 onRemoveChain={onRemoveChain}
               />

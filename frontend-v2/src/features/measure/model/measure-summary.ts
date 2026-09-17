@@ -13,3 +13,14 @@ export function measureSummary(chains: Chain[], unitRatio: number): { segments: 
   const total = segments.length === 0 ? `0.00 ${unitRatio === 1 ? "u" : "m"}` : formatDistance(sum * unitRatio, unitRatio);
   return { segments: segments.length, total };
 }
+
+/**
+ * Whether the chip should say the reader's last finished chain is not on the
+ * server: a reader without `measurement:create` drew it, or its save failed.
+ * The chain still being drawn is not judged — nothing is sent until it ends.
+ */
+export function notSaved(chains: Chain[], activeChainId: number | null, canCreate: boolean): boolean {
+  const last = chains.filter((c) => c.id !== activeChainId).at(-1);
+  if (!last) return false;
+  return last.sync === "failed" || (!canCreate && last.serverId == null);
+}

@@ -895,6 +895,45 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
 - **`WAITING_NOTE` copy caveat** (`territory-conversion-page.tsx`): "opens the
   viewer by itself" is true for a finish watched on that page
   (`shouldOpenViewer`, `conversion-view.ts`).
+- **Measurements are saved when a chain ends** (spec
+  `docs/superpowers/specs/2026-09-17-persisted-measurements-design.md`). A
+  chain belongs to the territory and every reader sees it. It goes to the
+  server once it stops being the active chain — closed, `Close measurement
+  chain`, Escape, or leaving measure mode — and only with two points or more;
+  nothing is sent while it is drawn. Cutting a saved chain is a `PUT` of the
+  first surviving part plus a `POST` of the second; removing one is a
+  `DELETE`; Clear is one `DELETE` of the collection. **Who:**
+  `measurement:create/write/delete` (`Grants.measure*`); without `create` the
+  tool still measures, the chain stays local and the chip ends in
+  ` · not saved` (`notSaved`, also for a failed save); a saved chain offers
+  its × only with all three grants and never while `saving` (`canRemove`).
+  **Which calls** a transition needs is the pure `syncPlan` in
+  `entities/measurement`; `useMeasurementSync` (`features/measure`) only runs
+  it. **It runs in the tool's dispatcher**, which keeps its own running copy of
+  the state and computes `after` with the same reducer — never in the reducer
+  or a `setState` updater, which StrictMode runs twice and which would send
+  every request twice (the spec proves it by moving the plan into an updater).
+  The hook belongs to one territory (the screen keys the body on the slug)
+  and seeds the bundle's chains once. **Every call that lands calls
+  `onChanged`** — the same scene-bundle invalidation the placement, panorama
+  and document hooks use — because a reader who comes back in the SPA gets a
+  body seeded from that cache; without it the chains they just drew were
+  missing until a reload. A failed save is one toast with `Retry`
+  (`notify.error(msg, action)`), and **Retry runs only if that chain is still
+  on screen and still `failed`** (`io.read()`): a chain cut again since holds a
+  newer edit, and the stale PUT used to overwrite it and then delete its row
+  through the orphan branch — which now also asks whether any chain still
+  holds the `serverId`. A refused delete puts the chain back (Retry removes it
+  again); a 404 counts as done; a refused Clear restores everything and offers
+  no Retry, because a repeat must ask again and Clear is on screen; an orphan
+  that will not delete is only `console.warn`ed — the reader never saw it.
+  Cutting a chain whose create failed saves its parts. The Toaster hands
+  focus back to where it came from when a card closes.
+  **`clear(keepSaved)`**: the page passes `!measurement:delete`, so a reader's
+  Clear takes only their own chains and asks nothing; with the grant and saved
+  chains on screen it asks first (`ConfirmDialog`, N = the saved chains). The
+  journal names these rows `measurement #id` (`entityName`) — the trigger
+  records no label.
 
 ### Panoramas and documents
 

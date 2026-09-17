@@ -40,6 +40,19 @@ describe("Toast", () => {
     expect(onDismiss).toHaveBeenCalledOnce();
   });
 
+  it("draws its action as a named button that runs it", async () => {
+    const onClick = vi.fn();
+    render(
+      <Toast tone="error" action={{ label: "Retry", name: "Retry: Not saved", onClick }}>
+        Not saved
+      </Toast>,
+    );
+    const button = screen.getByRole("button", { name: "Retry: Not saved" });
+    expect(button).toHaveTextContent("Retry");
+    await userEvent.click(button);
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
   // Two stacked toasts must not both name their button "Dismiss" — a screen
   // reader cannot tell them apart.
   it("takes an explicit label for its dismiss button", () => {

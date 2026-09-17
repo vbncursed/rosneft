@@ -2,9 +2,9 @@
 // suite covers what the hook adds on top — the derived close marker and the
 // stability of the dispatchers.
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
-import { CLOSE_TOLERANCE } from "@/entities/measurement";
-import { useMeasurementTool } from "./use-measurement-tool";
+import { describe, expect, it, vi } from "vitest";
+import { CLOSE_TOLERANCE, type MeasurementAction } from "@/entities/measurement";
+import { useMeasurementTool, type MeasurementTransition } from "./use-measurement-tool";
 
 const p = (x: number, y = 0, z = 0) => ({ x, y, z });
 
@@ -128,10 +128,47 @@ describe("useMeasurementTool", () => {
     expect(result.current.chains).toEqual([chain]);
   });
 
+  it("reports each transition with the state before and after it", () => {
+    const seen: Parameters<MeasurementTransition>[] = [];
+    const { result } = renderHook(() => useMeasurementTool((...args) => seen.push(args)));
+    // Two clicks in one act: the second must see the first's point, which the
+    // rendered state does not hold yet.
+    act(() => {
+      result.current.click(p(0));
+      result.current.click(p(1));
+    });
+    act(() => result.current.closeActive());
+    const [action, before, after] = seen[2];
+    expect(action).toEqual({ type: "closeActive" });
+    expect(before.chains[0].points).toEqual([p(0), p(1)]);
+    expect(before.activeChainId).toBe(1);
+    expect(after.activeChainId).toBe(null);
+    expect(seen[1][1].chains[0].points).toEqual([p(0)]);
+  });
+
+  it("hands the listener a dispatch that moves the state and is reported too", () => {
+    const listener = vi.fn<MeasurementTransition>((action, _before, _after, io) => {
+      if (action.type === "closeActive") io.dispatch({ type: "saving", id: 1 });
+    });
+    const { result } = renderHook(() => useMeasurementTool(listener));
+    act(() => {
+      result.current.click(p(0));
+      result.current.click(p(1));
+      result.current.closeActive();
+    });
+    expect(result.current.chains[0].sync).toBe("saving");
+    const actions = listener.mock.calls.map((c): MeasurementAction => c[0]);
+    expect(actions.at(-1)).toEqual({ type: "saving", id: 1 });
+    // read answers now, not the moment the listener was called.
+    const io = listener.mock.calls[0][3];
+    expect(io.read().chains[0].sync).toBe("saving");
+  });
+
   it("every dispatcher keeps a stable identity across renders", () => {
     // They are handed to memoized three.js children; a fresh identity per
     // render would re-render the whole measurement layer on every state change.
-    const { result, rerender } = renderHook(() => useMeasurementTool());
+    // A fresh listener every render must not change them either.
+    const { result, rerender } = renderHook(() => useMeasurementTool(() => {}));
     const before = { ...result.current };
     act(() => result.current.click(p(0)));
     rerender();

@@ -32,6 +32,17 @@ describe("EventCard", () => {
     expect(screen.getByText("4 fields changed")).toBeInTheDocument();
   });
 
+  it("names a measurement, which has no label, by its id", () => {
+    render(
+      <EventCard
+        entry={entry({ action: "measurement.insert", entity: "measurement", entityId: "9", entityLabel: "" })}
+        summary=""
+      />,
+    );
+    expect(screen.getByRole("article", { name: "measurement.insert, created measurement #9" })).toBeInTheDocument();
+    expect(screen.getByText("measurement #9")).toBeInTheDocument();
+  });
+
   it("spells the kind out in the accessible name, not just in the glyph", () => {
     render(<EventCard entry={entry({ action: "placement.insert" })} summary="placed" />);
     expect(

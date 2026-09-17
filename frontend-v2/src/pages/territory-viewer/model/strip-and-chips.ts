@@ -1,10 +1,13 @@
 import { formatDims, groupDigits, type SceneMetadata } from "@/entities/scene";
 import type { ViewerMode, ViewerView } from "@/features/viewer-mode";
+import type { MeasuringView, PageParts } from "./viewer-props";
+import { clearTitle } from "./viewer-view";
 
 /** What the mode chip says, per mode. Measure's tail is counted below. */
 const ORBIT_CHIP = "orbit · drag to rotate";
 const PLACE_CHIP = "place objects · click the ground";
 const MEASURE_CHIP = "measure";
+const NOT_SAVED = " · not saved";
 const PANORAMA_CHIP = "panorama · drag to look around";
 const MOVE_CHIP = "move points · drag a marker";
 const calibratingChip = (title: string) => `calibrating · ${title}`;
@@ -28,7 +31,8 @@ const level = (n: number | null) => (n === null ? "—" : `${n}`);
  */
 export function modeChip(a: {
   mode: ViewerMode;
-  measure: { segments: number; total: string };
+  /** `unsaved`: the last finished chain is not on the server (spec D-1, D-4). */
+  measure: { segments: number; total: string; unsaved: boolean };
   view: ViewerView;
   /** The scene-only sub-mode for dragging panorama anchors (V). */
   move: boolean;
@@ -40,10 +44,11 @@ export function modeChip(a: {
   if (a.move) return { text: MOVE_CHIP, kbd: "V" };
   if (a.mode === "orbit") return { text: ORBIT_CHIP };
   if (a.mode === "place") return { text: PLACE_CHIP };
-  const { segments, total } = a.measure;
+  const { segments, total, unsaved } = a.measure;
   if (segments === 0) return { text: MEASURE_CHIP };
   const counted = `${segments} ${segments === 1 ? "segment" : "segments"}`;
-  return { text: `${MEASURE_CHIP} · ${counted} · ${total} total` };
+  const tail = unsaved ? NOT_SAVED : "";
+  return { text: `${MEASURE_CHIP} · ${counted} · ${total} total${tail}` };
 }
 
 /**
@@ -86,3 +91,21 @@ export function stripItems(a: {
 /** The neutral chip beside the spinner: what is on screen, and how far the target has got. */
 export const loadingChip = (p: { shown: number; target: number; text: string; percent: number }) =>
   `coarse LOD ${p.shown} shown · LOD ${p.target} ${p.percent}% · ${p.text}`;
+
+/**
+ * The measure bar's two buttons and the Clear question. A reader's Clear
+ * leaves the saved chains, so it needs one of their own to take; the question
+ * counts only the saved chains — the ones nobody can take back.
+ */
+export function measuringView({ grants, measure, view, on }: PageParts): MeasuringView {
+  const saved = measure.chains.filter((c) => c.serverId != null).length;
+  return {
+    onClear: on.onClearMeasurements,
+    onCloseChain: on.onCloseActiveChain,
+    canClear: measure.chains.some((c) => grants.measureDelete || c.serverId == null),
+    canClose: measure.activeChainId !== null,
+    confirm: view.confirmClear
+      ? { title: clearTitle(saved), onConfirm: on.onConfirmClear, onCancel: on.onCancelClear }
+      : null,
+  };
+}

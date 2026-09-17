@@ -191,8 +191,9 @@ gateway flattens it for the RPC and rebuilds it on the way back.
 - `Clear` with saved chains and `measurement:delete` opens
   `ConfirmDialog`; the count is the saved chains'.
 - The strip chip: `measure · 2 segments · 20.55 m total` gains
-  ` · not saved` when the active or last-finished chain has no server id
-  and the reader cannot save, or a save failed.
+  ` · not saved` when the last finished chain has no server id because the
+  reader cannot save, or its save failed. A chain still being drawn is
+  never saved yet, so it is not flagged (M-3).
 - Tests: `syncPlan` table, gateway, mapper, reducer actions, hook with a
   mocked gateway, the confirm flow, the grants; fixtures with saved and
   unsaved chains. Live: measure, finish, reload — the chain is there; guest

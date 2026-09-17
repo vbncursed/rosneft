@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import type { Chain } from "@/entities/measurement";
 import type { ResolvedPlacement } from "@/entities/placement";
 import type { ModelOption, SceneViewModel } from "@/entities/scene";
 import type { Tour } from "@/features/onboarding";
@@ -6,8 +7,8 @@ import { IDLE_DOCUMENTS, IDLE_PANORAMAS } from "../territory-viewer-page.fixture
 import { pageProps, type PageHandlers, type PageParts } from "./page-props";
 import type { Grants } from "./viewer-view";
 
-const OWNER: Grants = { create: true, write: true, delete: true, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: true, documentWrite: true, documentDelete: true };
-const GUEST: Grants = { create: false, write: false, delete: false, replace: false, panoramaCreate: false, panoramaWrite: false, panoramaDelete: false, documentWrite: false, documentDelete: false };
+const OWNER: Grants = { create: true, write: true, delete: true, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: true, documentWrite: true, documentDelete: true, measureCreate: true, measureWrite: true, measureDelete: true };
+const GUEST: Grants = { create: false, write: false, delete: false, replace: false, panoramaCreate: false, panoramaWrite: false, panoramaDelete: false, documentWrite: false, documentDelete: false, measureCreate: false, measureWrite: false, measureDelete: false };
 
 const TANK: ResolvedPlacement = {
   id: 4,
@@ -42,6 +43,7 @@ const VM: SceneViewModel = {
   placements: [TANK],
   panoramas: [],
   documents: [],
+  measurements: [],
   sourceBbox: null,
 };
 
@@ -76,6 +78,8 @@ const HANDLERS: PageHandlers = {
   onTargetLod: vi.fn(),
   onRetry: noop,
   onClearMeasurements: noop,
+  onConfirmClear: noop,
+  onCancelClear: noop,
   onTab: noop,
   onCollapsed: noop,
   onQuery: noop,
@@ -107,7 +111,7 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
     move: false,
     editingPanoramaId: null,
   },
-  measure: { chains: [], activeChainId: null, summary: { segments: 0, total: "0.00 m" } },
+  measure: { chains: [], activeChainId: null, summary: { segments: 0, total: "0.00 m", unsaved: false } },
   placements: [TANK],
   pendingIds: [],
   placing: null,
@@ -126,6 +130,7 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
     pickerOpen: false,
     query: "",
     expandedModel: null,
+    confirmClear: false,
     compact: false,
     error: null,
     now: new Date(2026, 8, 9, 14, 22),
@@ -288,7 +293,7 @@ describe("pageProps · overlays", () => {
     const measuring = pageProps({
       ...p,
       mode: { ...p.mode, mode: "measure" },
-      measure: { chains: [], activeChainId: null, summary: { segments: 0, total: "0.00 m" } },
+      measure: { chains: [], activeChainId: null, summary: { segments: 0, total: "0.00 m", unsaved: false } },
     }).overlays.measuring;
     expect(measuring).toMatchObject({ canClear: false, canClose: false });
   });
@@ -298,10 +303,65 @@ describe("pageProps · overlays", () => {
     const { overlays } = pageProps({
       ...p,
       mode: { ...p.mode, mode: "measure" },
-      measure: { chains: [], activeChainId: 1, summary: { segments: 2, total: "20.55 m" } },
+      measure: { chains: [], activeChainId: 1, summary: { segments: 2, total: "20.55 m", unsaved: false } },
     });
     expect(overlays.chip).toEqual({ text: "measure · 2 segments · 20.55 m total" });
     expect(overlays.measuring).toMatchObject({ canClose: true });
+  });
+});
+
+describe("pageProps · saved measurements", () => {
+  const line = { points: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }], closed: false };
+  const SAVED: Chain = { id: 1, ...line, serverId: 7, sync: "saved" };
+  const LOCAL: Chain = { id: 3, ...line, sync: "local" };
+  const measuring = (over: Partial<PageParts>) => {
+    const p = parts(over);
+    return pageProps({ ...p, mode: { ...p.mode, mode: "measure" } }).overlays.measuring!;
+  };
+  const measure = (chains: Chain[]) => ({ ...parts().measure, chains });
+
+  it("lets the canvas offer removal on saved chains only with every measurement grant", () => {
+    expect(pageProps(parts()).canvas.canEditMeasurements).toBe(true);
+    expect(pageProps(parts({ grants: { ...OWNER, measureCreate: false } })).canvas.canEditMeasurements).toBe(false);
+    expect(pageProps(parts({ grants: GUEST })).canvas.canEditMeasurements).toBe(false);
+  });
+
+  it("offers Clear to a reader only when something of their own is drawn", () => {
+    expect(measuring({ grants: GUEST, measure: measure([SAVED]) }).canClear).toBe(false);
+    expect(measuring({ grants: GUEST, measure: measure([SAVED, LOCAL]) }).canClear).toBe(true);
+    expect(measuring({ measure: measure([SAVED]) }).canClear).toBe(true);
+  });
+
+  it("asks before clearing, naming how many saved chains go", () => {
+    const onConfirmClear = vi.fn();
+    const onCancelClear = vi.fn();
+    const two = { ...SAVED, id: 2, serverId: 8 };
+    expect(measuring({ measure: measure([SAVED, two, LOCAL]) }).confirm).toBeNull();
+    const { confirm } = measuring({
+      measure: measure([SAVED, two, LOCAL]),
+      view: { ...parts().view, confirmClear: true },
+      on: { ...HANDLERS, onConfirmClear, onCancelClear },
+    });
+    expect(confirm?.title).toBe("Delete all 2 measurements on this territory?");
+    confirm?.onConfirm();
+    confirm?.onCancel();
+    expect(onConfirmClear).toHaveBeenCalledOnce();
+    expect(onCancelClear).toHaveBeenCalledOnce();
+  });
+
+  it("names a single saved chain in the singular", () => {
+    const { confirm } = measuring({ measure: measure([SAVED]), view: { ...parts().view, confirmClear: true } });
+    expect(confirm?.title).toBe("Delete 1 measurement on this territory?");
+  });
+
+  it("carries the chip's not saved", () => {
+    const p = parts();
+    const { overlays } = pageProps({
+      ...p,
+      mode: { ...p.mode, mode: "measure" },
+      measure: { chains: [LOCAL], activeChainId: null, summary: { segments: 1, total: "2.00 m", unsaved: true } },
+    });
+    expect(overlays.chip?.text).toBe("measure · 1 segment · 2.00 m total · not saved");
   });
 });
 
