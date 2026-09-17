@@ -5,6 +5,9 @@ export default (
     <Toast tone="error" onDismiss={() => {}}>
       Conversion failed: OBJ parse error at line 84120.
     </Toast>
+    <Toast tone="error" onDismiss={() => {}} action={{ label: "Retry", onClick: () => {} }}>
+      Measurement not saved: network error.
+    </Toast>
     <Toast tone="warning" onDismiss={() => {}}>
       Two-factor status is unavailable right now.
     </Toast>

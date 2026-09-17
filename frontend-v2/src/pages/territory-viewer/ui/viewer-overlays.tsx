@@ -1,5 +1,6 @@
 import { documentFileName } from "@/entities/document";
 import { Button } from "@/shared/ui/button";
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { KeycapHint } from "@/shared/ui/keycap-hint";
 import { LodSwitcher } from "@/shared/ui/lod-switcher";
 import { ModeChip } from "@/shared/ui/mode-chip";
@@ -10,6 +11,10 @@ import { SWITCH_TO_3D } from "@/widgets/view-tab";
 import type { ViewerOverlaysProps } from "../model/page-props";
 import type { RailTool } from "../model/viewer-view";
 import { ViewerError } from "./viewer-error";
+
+/** Saved measurements are shared (spec M-1), so Clear takes them from everyone. */
+const CLEAR_NOTE =
+  "Measurements are shared: this removes them for everyone who opens this territory. Your unsaved chains are cleared too.";
 
 /**
  * The mock's glyph, name and tour anchor per tile. The page decides the state.
@@ -183,6 +188,15 @@ export function ViewerOverlays({
             <Button size="sm" disabled={!measuring.canClose} onClick={measuring.onCloseChain}>
               Close measurement chain
             </Button>
+            <ConfirmDialog
+              open={measuring.confirm !== null}
+              tone="danger"
+              title={measuring.confirm?.title ?? ""}
+              description={CLEAR_NOTE}
+              confirmLabel="Delete"
+              onConfirm={() => measuring.confirm?.onConfirm()}
+              onCancel={() => measuring.confirm?.onCancel()}
+            />
           </div>
         ) : null}
       </div>

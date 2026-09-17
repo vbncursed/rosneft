@@ -53,6 +53,7 @@ const bundle: SceneBundle = {
   modelOptions: [{ slug: "tank", title: "storage-tank-500", chain: [{ lod: 0, hash: "m0", size: 5 }] }],
   panoramas: [panorama],
   documents: [document],
+  measurements: [{ serverId: 5, points: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }], closed: false }],
 };
 
 describe("sceneReady", () => {
@@ -91,10 +92,11 @@ describe("toSceneViewModel", () => {
     expect(vm.metadata.uploadedAt).toBeNull();
   });
 
-  it("passes panoramas and documents through untouched", () => {
+  it("passes panoramas, documents and saved measurements through untouched", () => {
     const vm = toSceneViewModel(bundle)!;
     expect(vm.panoramas).toBe(bundle.panoramas);
     expect(vm.documents).toBe(bundle.documents);
+    expect(vm.measurements).toBe(bundle.measurements);
   });
 
   describe("sourceBbox", () => {

@@ -1,4 +1,4 @@
-import { computeUnitRatio } from "@/entities/measurement";
+import { canEditSaved, computeUnitRatio } from "@/entities/measurement";
 import { groupByModel } from "@/entities/placement";
 import {
   documentProps,
@@ -8,8 +8,8 @@ import {
   viewTabProps,
 } from "./page-props-b";
 import { selectedBlock, visibilityBlock } from "./page-props-selected";
-import { loadingChip, modeChip, stripItems } from "./strip-and-chips";
-import { errorCopy, headerMeta, headerPills, railTools } from "./viewer-view";
+import { loadingChip, measuringView, modeChip, stripItems } from "./strip-and-chips";
+import { errorCopy, headerMeta, headerPills, measureGrants, railTools } from "./viewer-view";
 import type { PageParts, TerritoryViewerPageProps } from "./viewer-props";
 
 export type { DocumentParts, PanoramaParts } from "./overlay-parts";
@@ -90,6 +90,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       canWrite: grants.write,
       chains: measure.chains,
       activeChainId: measure.activeChainId,
+      canEditMeasurements: canEditSaved(measureGrants(grants)),
       unitRatio: computeUnitRatio(vm.metadata.dims),
       resetVersion: view.resetVersion,
       retryVersion: view.retryVersion,
@@ -140,15 +141,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       loading: loading
         ? { chip: loadingChip(loading), percent: loading.percent, target: loading.target }
         : null,
-      measuring:
-        mode.mode === "measure"
-          ? {
-              onClear: on.onClearMeasurements,
-              onCloseChain: on.onCloseActiveChain,
-              canClear: measure.chains.length > 0,
-              canClose: measure.activeChainId !== null,
-            }
-          : null,
+      measuring: mode.mode === "measure" ? measuringView(p) : null,
       // Inside a capture the camera is in a photograph and the level behind it
       // cannot be chosen; under an open document the picker would sit beneath
       // the window. The mock draws none in either (states 9, 12, 13).

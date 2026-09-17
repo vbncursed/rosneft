@@ -1,6 +1,6 @@
 import { clsx as cx } from "clsx";
 import { Badge } from "@/shared/ui/badge";
-import { actorName, formatAt, type AuditEntry } from "../model/audit-entry";
+import { actorName, entityName, formatAt, type AuditEntry } from "../model/audit-entry";
 import { DiffView } from "./diff-view";
 
 export type AuditRowProps = {
@@ -20,7 +20,7 @@ export function AuditRow({ entry, expanded, onToggle }: AuditRowProps) {
           <span aria-hidden="true" className="text-dim">
             ·
           </span>{" "}
-          {entry.entityLabel}
+          {entityName(entry)}
         </span>
 
         <span className="text-xs text-muted">{actorName(entry)}</span>

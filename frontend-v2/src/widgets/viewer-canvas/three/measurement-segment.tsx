@@ -8,6 +8,8 @@ interface MeasurementSegmentProps {
   unitRatio: number;
   /** The scene's accent, read from the theme tokens — three takes no CSS vars. */
   lineColor: string;
+  /** False on a chain that offers no remove affordance: the chip is then a plain label. */
+  removable: boolean;
   onRemoveSegment: (chainId: number, segmentIndex: number) => void;
   onRemoveChain: (chainId: number) => void;
 }
@@ -18,10 +20,14 @@ interface MeasurementSegmentProps {
 // Z-fight with them.
 const OVERLAY_RENDER_ORDER = 999;
 
+const CHIP =
+  "flex select-none items-center gap-1 whitespace-nowrap rounded-[6px] border border-accent bg-panel px-2 py-1 font-mono text-[11px] text-accent shadow-elevation";
+
 function MeasurementSegmentImpl({
   measurement,
   unitRatio,
   lineColor,
+  removable,
   onRemoveSegment,
   onRemoveChain,
 }: MeasurementSegmentProps) {
@@ -83,15 +89,19 @@ function MeasurementSegmentImpl({
         zIndexRange={[20, 10]}
         style={{ transform: "translate(-50%, calc(-100% - 12px))" }}
       >
-        <button
-          type="button"
-          onClick={handleRemoveSegment}
-          title="Click to remove segment · Shift+click to remove whole chain"
-          className="flex cursor-pointer select-none items-center gap-1 whitespace-nowrap rounded-[6px] border border-accent bg-panel px-2 py-1 font-mono text-[11px] text-accent shadow-elevation transition-[color,border-color,scale] duration-150 ease-out hover:border-bad hover:text-bad active:scale-[0.97]"
-        >
-          <span>{label}</span>
-          <span aria-hidden="true">×</span>
-        </button>
+        {removable ? (
+          <button
+            type="button"
+            onClick={handleRemoveSegment}
+            title="Click to remove segment · Shift+click to remove whole chain"
+            className={`${CHIP} cursor-pointer transition-[color,border-color,scale] duration-150 ease-out hover:border-bad hover:text-bad active:scale-[0.97]`}
+          >
+            <span>{label}</span>
+            <span aria-hidden="true">×</span>
+          </button>
+        ) : (
+          <span className={CHIP}>{label}</span>
+        )}
       </Html>
     </group>
   );

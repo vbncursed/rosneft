@@ -1,7 +1,10 @@
 import { useSyncExternalStore } from "react";
 import type { ToastTone } from "@/shared/ui/toast";
 
-export type Notice = { id: number; tone: ToastTone; message: string };
+/** The one thing a reader can do about a failure from the card itself. */
+export type NoticeAction = { label: string; run: () => void };
+
+export type Notice = { id: number; tone: ToastTone; message: string; action?: NoticeAction };
 
 // A confirmation goes by itself; a failure waits for the reader, who may have
 // looked away for the second it was on screen.
@@ -54,10 +57,10 @@ export function releaseNotices(reason: NoticeHold): void {
 
 const emit = () => listeners.forEach((listen) => listen());
 
-function push(tone: ToastTone, message: string): number {
+function push(tone: ToastTone, message: string, action?: NoticeAction): number {
   const id = nextId++;
   // Newest first, so the host draws it on top.
-  notices = [{ id, tone, message }, ...notices];
+  notices = [{ id, tone, message, ...(action ? { action } : {}) }, ...notices];
   emit();
   const lifetime = LIFETIME[tone];
   if (lifetime !== null) {
@@ -106,7 +109,7 @@ export function useNotices(): readonly Notice[] {
 
 export const notify = {
   success: (message: string) => push("success", message),
-  error: (message: string) => push("error", message),
+  error: (message: string, action?: NoticeAction) => push("error", message, action),
   info: (message: string) => push("info", message),
   warning: (message: string) => push("warning", message),
 };

@@ -50,6 +50,7 @@ export default function SceneCanvas({
   canWrite,
   chains,
   activeChainId,
+  canEditMeasurements,
   unitRatio,
   focusRequest,
   activePanorama,
@@ -212,6 +213,7 @@ export default function SceneCanvas({
       <MeasurementLayer
         chains={chains}
         activeChainId={activeChainId}
+        canEditSaved={canEditMeasurements}
         unitRatio={unitRatio}
         lineColor={colors.accent}
         onCloseActive={onCloseActiveChain}

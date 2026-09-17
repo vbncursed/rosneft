@@ -18,6 +18,7 @@ export default (
         gizmo="translate"
         snap={false}
         canWrite={false}
+        canEditMeasurements={false}
         chains={[]}
         activeChainId={null}
         unitRatio={1}

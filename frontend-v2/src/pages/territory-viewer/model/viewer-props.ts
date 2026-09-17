@@ -52,6 +52,8 @@ export type MeasuringView = {
   onCloseChain: () => void;
   canClear: boolean;
   canClose: boolean;
+  /** The Clear question, while it is asked; null otherwise. */
+  confirm: { title: string; onConfirm: () => void; onCancel: () => void } | null;
 };
 
 export type ViewerOverlaysProps = {
@@ -127,7 +129,10 @@ export type PageHandlers = {
   /** The switcher and the error card's way out share one setter. */
   onTargetLod: (lod: number) => void;
   onRetry: () => void;
+  /** Asks first when saved chains would go (spec M-4); a reader's Clear keeps them. */
   onClearMeasurements: () => void;
+  onConfirmClear: () => void;
+  onCancelClear: () => void;
   onTab: (tab: OverlaysTab) => void;
   onCollapsed: (collapsed: boolean) => void;
   onQuery: (query: string) => void;
@@ -156,6 +161,8 @@ export type PageViewState = {
   pickerOpen: boolean;
   query: string;
   expandedModel: string | null;
+  /** The Clear question is on screen. */
+  confirmClear: boolean;
   compact: boolean;
   error: ViewerError | null;
   /** Passed in rather than read here, so the error card's clock is testable. */
@@ -172,7 +179,7 @@ export type PageParts = {
   measure: {
     chains: Chain[];
     activeChainId: number | null;
-    summary: { segments: number; total: string };
+    summary: { segments: number; total: string; unsaved: boolean };
   };
   placements: ResolvedPlacement[];
   pendingIds: number[];

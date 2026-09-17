@@ -1,4 +1,4 @@
-import type { AuditEntry } from "./audit-entry";
+import { entityName, type AuditEntry } from "./audit-entry";
 
 /**
  * The second line of an activity row: what the action touched, and whether it
@@ -12,7 +12,7 @@ import type { AuditEntry } from "./audit-entry";
  * "session" under actions the reader could already see.
  */
 export function summaryOf(entry: AuditEntry): string {
-  const parts = [entry.entityLabel, entry.territorySlug];
+  const parts = [entityName(entry), entry.territorySlug];
   if (entry.result === "failed") parts.push("failed");
   return parts.filter(Boolean).join(" · ");
 }

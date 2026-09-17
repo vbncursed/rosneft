@@ -45,6 +45,19 @@ const dto = {
     },
   ],
   documents: [{ id: 8, territorySlug: "t", title: "Plot plan.pdf", sourceBlobHash: "d" }],
+  measurements: [
+    {
+      id: 5,
+      territorySlug: "t",
+      points: [
+        { x: 0, y: 0, z: 0 },
+        { x: 1, y: 1, z: 1 },
+      ],
+      closed: false,
+      createdAt: "c",
+      updatedAt: "u",
+    },
+  ],
 };
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -64,6 +77,7 @@ describe("getSceneBundle", () => {
     expect(bundle.modelOptions[0].chain).toEqual([]);
     expect(bundle.panoramas).toEqual([{ ...dto.panoramas[0], updatedAt: "" }]);
     expect(bundle.documents).toEqual([{ ...dto.documents[0], createdAt: "" }]);
+    expect(bundle.measurements).toEqual([{ serverId: 5, points: dto.measurements[0].points, closed: false }]);
   });
 
   it("defaults panoramas and documents to [] when the DTO omits them", async () => {

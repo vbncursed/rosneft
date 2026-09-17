@@ -38,7 +38,17 @@ const seen = vi.hoisted(() => ({
   gltf: {} as Record<string, unknown>,
   layer: {} as Record<string, unknown>,
   panorama: {} as Record<string, unknown>,
+  measure: {} as Record<string, unknown>,
 }));
+vi.mock("./measurement-layer", async (orig) => {
+  const real = ((await orig()) as { default: ComponentType<Record<string, unknown>> }).default;
+  return {
+    default: (p: Record<string, unknown>) => {
+      seen.measure = p;
+      return createElement(real, p);
+    },
+  };
+});
 vi.mock("./gltf-model", async (orig) => {
   const real = ((await orig()) as { default: ComponentType<Record<string, unknown>> }).default;
   return {
@@ -96,6 +106,7 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   gizmo: "translate",
   snap: false,
   canWrite: false,
+  canEditMeasurements: false,
   chains: [],
   activeChainId: null,
   unitRatio: 1,
@@ -263,6 +274,13 @@ describe("SceneCanvas", () => {
       ],
     });
     expect(lineColors).toEqual(["#f97316"]);
+  });
+
+  it("hands the measurement layer the reader's edit grant", async () => {
+    await mount({ canEditMeasurements: true });
+    expect(seen.measure.canEditSaved).toBe(true);
+    await mount({ canEditMeasurements: false });
+    expect(seen.measure.canEditSaved).toBe(false);
   });
 
   it("picks no points at all while orbiting", async () => {

@@ -104,9 +104,9 @@ export const IDLE_DOCUMENTS: DocumentParts = {
   },
 };
 
-const OWNER: Grants = { create: true, write: true, delete: true, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: true, documentWrite: true, documentDelete: true };
-const GUEST: Grants = { create: false, write: false, delete: false, replace: false, panoramaCreate: false, panoramaWrite: false, panoramaDelete: false, documentWrite: false, documentDelete: false };
-export const NO_DELETE: Grants = { create: true, write: true, delete: false, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: false, documentWrite: true, documentDelete: false };
+const OWNER: Grants = { create: true, write: true, delete: true, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: true, documentWrite: true, documentDelete: true, measureCreate: true, measureWrite: true, measureDelete: true };
+export const GUEST: Grants = { create: false, write: false, delete: false, replace: false, panoramaCreate: false, panoramaWrite: false, panoramaDelete: false, documentWrite: false, documentDelete: false, measureCreate: false, measureWrite: false, measureDelete: false };
+export const NO_DELETE: Grants = { create: true, write: true, delete: false, replace: true, panoramaCreate: true, panoramaWrite: true, panoramaDelete: false, documentWrite: true, documentDelete: false, measureCreate: true, measureWrite: true, measureDelete: false };
 
 const at = (id: number, modelSlug: string, x: number): ResolvedPlacement => ({
   id,
@@ -149,6 +149,7 @@ const VM: SceneViewModel = {
   placements: PLACEMENTS,
   panoramas: [],
   documents: [],
+  measurements: [],
   sourceBbox: null,
 };
 
@@ -185,7 +186,7 @@ export const basePageParts = (): PageParts => ({
     move: false,
     editingPanoramaId: null,
   },
-  measure: { chains: [], activeChainId: null, summary: { segments: 0, total: "0.00 m" } },
+  measure: { chains: [], activeChainId: null, summary: { segments: 0, total: "0.00 m", unsaved: false } },
   placements: PLACEMENTS,
   pendingIds: [],
   placing: null,
@@ -204,6 +205,7 @@ export const basePageParts = (): PageParts => ({
     pickerOpen: false,
     query: "",
     expandedModel: "storage-tank-500",
+    confirmClear: false,
     compact: false,
     error: null,
     now: new Date(2026, 8, 9, 14, 22),
@@ -265,7 +267,7 @@ export default {
     ...p,
     mode: { ...p.mode, mode: "measure" },
     panel: { tab: "view", collapsed: false },
-    measure: { chains: CHAINS, activeChainId: 2, summary: { segments: 2, total: "20.55 m" } },
+    measure: { chains: CHAINS, activeChainId: 2, summary: { segments: 2, total: "20.55 m", unsaved: false } },
   })),
 
   "5 guest": page((p) => ({ ...p, grants: GUEST })),

@@ -26,6 +26,16 @@ export type AuditEntry = {
 /** Nobody was behind this — a worker conversion, a migration. */
 export const isSystemChange = (entry: AuditEntry) => entry.actorId === "";
 
+/**
+ * What the journal calls the row's subject. A measurement has no label column
+ * — its audit trigger records an empty one — so it is named by kind and id;
+ * any other label-less row stays blank, as `summaryOf` expects.
+ */
+export function entityName(entry: AuditEntry): string {
+  if (entry.entityLabel) return entry.entityLabel;
+  return entry.entity === "measurement" && entry.entityId ? `measurement #${entry.entityId}` : "";
+}
+
 /** Who to credit: the login, the bare id if the account is gone, or "system". */
 export function actorName(entry: AuditEntry): string {
   if (isSystemChange(entry)) return "system";

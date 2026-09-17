@@ -20,4 +20,13 @@ export {
   type MeasurementAction,
   type StoredChain,
 } from "./model/measurement-reducer";
-export { syncPlan, canEditSaved, type SavedChain, type SyncGrants, type SyncOp } from "./model/sync-plan";
+export { syncPlan, canEditSaved, canRemove, type SavedChain, type SyncGrants, type SyncOp } from "./model/sync-plan";
+export { toStoredChain } from "./api/to-measurement";
+export {
+  listMeasurements,
+  createMeasurement,
+  updateMeasurement,
+  deleteMeasurement,
+  deleteMeasurements,
+  type MeasurementWrite,
+} from "./api/measurements-gateway";

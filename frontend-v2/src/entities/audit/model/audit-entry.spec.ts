@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actorName, formatAt, isSystemChange, type AuditEntry } from "./audit-entry";
+import { actorName, entityName, formatAt, isSystemChange, type AuditEntry } from "./audit-entry";
 
 const entry = (over: Partial<AuditEntry> = {}): AuditEntry => ({
   id: 1,
@@ -47,5 +47,21 @@ describe("formatAt", () => {
 
   it("leaves an already-short value alone", () => {
     expect(formatAt("2026-08-31")).toBe("2026-08-31");
+  });
+});
+
+describe("entityName", () => {
+  it("is the label the journal recorded", () => {
+    expect(entityName(entry())).toBe("Refinery Block C");
+  });
+
+  // A measurement has no label column: the trigger writes an empty one.
+  it("names a measurement by its id", () => {
+    expect(entityName(entry({ entity: "measurement", entityId: "42", entityLabel: "" }))).toBe("measurement #42");
+  });
+
+  it("leaves a label-less row of any other kind blank", () => {
+    expect(entityName(entry({ entity: "session", entityId: "", entityLabel: "" }))).toBe("");
+    expect(entityName(entry({ entityLabel: "" }))).toBe("");
   });
 });

@@ -32,9 +32,9 @@ const ERROR_TAIL =
 /**
  * Every grant the viewer's chrome turns on. The first four are the placement
  * ones (`replace` is `territory:write`, which also owns the tour link); the
- * rest are package B's overlays, where creating a panorama and editing one are
+ * next are package B's overlays, where creating a panorama and editing one are
  * separate grants because uploading a capture and moving its anchor are
- * separate jobs.
+ * separate jobs; the last three are the saved measurements'.
  */
 export type Grants = {
   create: boolean;
@@ -46,7 +46,23 @@ export type Grants = {
   panoramaDelete: boolean;
   documentWrite: boolean;
   documentDelete: boolean;
+  measureCreate: boolean;
+  measureWrite: boolean;
+  measureDelete: boolean;
 };
+
+/** The three measurement grants, in the shape the sync plan reads. */
+export const measureGrants = (g: Grants) => ({
+  create: g.measureCreate,
+  write: g.measureWrite,
+  delete: g.measureDelete,
+});
+
+/** The Clear question (spec M-4); `count` is the saved chains, the only ones it cannot take back. */
+export const clearTitle = (count: number) =>
+  count === 1
+    ? "Delete 1 measurement on this territory?"
+    : `Delete all ${count} measurements on this territory?`;
 
 export type HeaderPill = { tone: "ok" | "accent" | "neutral" | "bad"; label: string };
 

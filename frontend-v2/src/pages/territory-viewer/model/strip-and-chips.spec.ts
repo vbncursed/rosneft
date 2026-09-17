@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { SceneMetadata } from "@/entities/scene";
 import type { ViewerView } from "@/features/viewer-mode";
-import { loadingChip, modeChip, stripItems } from "./strip-and-chips";
+import type { Chain } from "@/entities/measurement";
+import { basePageParts, GUEST } from "../territory-viewer-page.fixture";
+import { loadingChip, measuringView, modeChip, stripItems } from "./strip-and-chips";
 
 const SCENE: ViewerView = { kind: "scene" };
 const INSIDE: ViewerView = { kind: "panorama", id: 7 };
@@ -14,7 +16,7 @@ const METADATA: SceneMetadata = {
   uploadedAt: "2026-09-04T09:00:00Z",
 };
 
-const NOTHING = { segments: 0, total: "0.00 m" };
+const NOTHING = { segments: 0, total: "0.00 m", unsaved: false };
 
 const chip = (over: Partial<Parameters<typeof modeChip>[0]> = {}) =>
   modeChip({
@@ -42,14 +44,20 @@ describe("modeChip", () => {
   });
 
   it("counts one segment in the singular", () => {
-    expect(chip({ mode: "measure", measure: { segments: 1, total: "12.40 m" } }).text).toBe(
+    expect(chip({ mode: "measure", measure: { segments: 1, total: "12.40 m", unsaved: false } }).text).toBe(
       "measure · 1 segment · 12.40 m total",
     );
   });
 
   it("counts two segments in the plural", () => {
-    expect(chip({ mode: "measure", measure: { segments: 2, total: "20.55 m" } }).text).toBe(
+    expect(chip({ mode: "measure", measure: { segments: 2, total: "20.55 m", unsaved: false } }).text).toBe(
       "measure · 2 segments · 20.55 m total",
+    );
+  });
+
+  it("says when the last finished chain is not on the server", () => {
+    expect(chip({ mode: "measure", measure: { segments: 2, total: "20.55 m", unsaved: true } }).text).toBe(
+      "measure · 2 segments · 20.55 m total · not saved",
     );
   });
 
@@ -132,6 +140,25 @@ describe("loadingChip", () => {
   it("says which level is shown, which is coming and how far it has got", () => {
     expect(loadingChip({ shown: 2, target: 0, percent: 62, text: "6.1 / 9.8 MB" })).toBe(
       "coarse LOD 2 shown · LOD 0 62% · 6.1 / 9.8 MB",
+    );
+  });
+});
+
+describe("measuringView", () => {
+  const saved: Chain = { id: 1, points: [], closed: false, serverId: 7, sync: "saved" };
+  const parts = basePageParts();
+  const withChains = (chains: Chain[], over = {}) => ({ ...parts, measure: { ...parts.measure, chains }, ...over });
+
+  it("lets Clear take saved chains only with the delete grant", () => {
+    expect(measuringView(withChains([saved])).canClear).toBe(true);
+    expect(measuringView(withChains([saved], { grants: GUEST })).canClear).toBe(false);
+  });
+
+  it("asks only while the page holds the question open, counting the saved chains", () => {
+    expect(measuringView(withChains([saved])).confirm).toBeNull();
+    const view = { ...parts.view, confirmClear: true };
+    expect(measuringView(withChains([saved, { ...saved, id: 2 }], { view })).confirm?.title).toBe(
+      "Delete all 2 measurements on this territory?",
     );
   });
 });

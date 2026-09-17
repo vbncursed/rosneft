@@ -6,6 +6,9 @@ export default (
   <div className="flex gap-2 p-6">
     <Button onClick={() => notify.success("Permissions saved")}>Success</Button>
     <Button onClick={() => notify.error("Cannot freeze the last admin.")}>Error</Button>
+    <Button onClick={() => notify.error("Measurement not saved: network error", { label: "Retry", run: () => {} })}>
+      Error with Retry
+    </Button>
     <Toaster />
   </div>
 );

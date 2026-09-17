@@ -39,6 +39,20 @@ describe("summaryOf", () => {
       .toBe("Refinery Block C");
   });
 
+  it("names a measurement, which has no label, by its id", () => {
+    expect(
+      summaryOf(
+        entry({
+          action: "measurement.insert",
+          entity: "measurement",
+          entityId: "42",
+          entityLabel: "",
+          territorySlug: "dji-wp46-cut",
+        }),
+      ),
+    ).toBe("measurement #42 · dji-wp46-cut");
+  });
+
   it("adds the territory when the change happened inside one", () => {
     expect(
       summaryOf(

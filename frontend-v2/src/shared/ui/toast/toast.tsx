@@ -14,6 +14,8 @@ export type ToastProps = {
    * named "Dismiss" are indistinguishable to a screen reader.
    */
   dismissLabel?: string;
+  /** A button beside the message; `name` keeps two stacked cards' buttons apart. */
+  action?: { label: string; name?: string; onClick: () => void };
   className?: string;
 };
 
@@ -30,6 +32,7 @@ export function Toast({
   label,
   onDismiss,
   dismissLabel = "Dismiss",
+  action,
   className,
 }: ToastProps) {
   const { label: fallback, skin } = TONE[tone];
@@ -49,6 +52,16 @@ export function Toast({
         {label ?? fallback}
       </span>
       <p className="m-0 flex-1 text-[13px] leading-[1.45] text-fg">{children}</p>
+      {action ? (
+        <button
+          type="button"
+          onClick={action.onClick}
+          aria-label={action.name}
+          className="-my-0.5 shrink-0 cursor-pointer rounded-[6px] border border-current bg-transparent px-2 py-0.5 text-[12px] font-semibold transition-[color,background-color,border-color,scale] duration-150 ease-out hover:bg-panel active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {action.label}
+        </button>
+      ) : null}
       {onDismiss ? (
         <button
           type="button"

@@ -115,6 +115,80 @@ describe("Toaster", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it("runs a notice's action once and takes the card away", async () => {
+    const run = vi.fn();
+    render(<Toaster />);
+    act(() => {
+      notify.error("Measurement not saved", { label: "Retry", run });
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Retry: Measurement not saved" }));
+    expect(run).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  // Review M6 m-5: the card goes away under the pointer; focus must not fall
+  // to <body>, it goes back where the reader was before reaching the card.
+  it.each([
+    ["Retry: Not saved", { label: "Retry", run: () => {} }],
+    ["Dismiss: Not saved", undefined],
+  ])("hands focus back after %s takes the card away", async (name, action) => {
+    render(
+      <>
+        <button type="button">Measure</button>
+        <Toaster />
+      </>,
+    );
+    screen.getByRole("button", { name: "Measure" }).focus();
+    act(() => {
+      notify.error("Not saved", action);
+    });
+    await userEvent.click(screen.getByRole("button", { name }));
+    expect(screen.getByRole("button", { name: "Measure" })).toHaveFocus();
+  });
+
+  // Review M6 m-8: the way back is used once. A later card closed by a click
+  // that focuses nothing (Safari) must not pull focus to a field left long ago.
+  it("does not send focus back a second time for a card closed with nothing focused", async () => {
+    render(
+      <>
+        <button type="button">Measure</button>
+        <Toaster />
+      </>,
+    );
+    const measure = screen.getByRole("button", { name: "Measure" });
+    measure.focus();
+    act(() => {
+      notify.error("First");
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Dismiss: First" }));
+    expect(measure).toHaveFocus();
+    measure.blur();
+    act(() => {
+      notify.error("Second");
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss: Second" }));
+    expect(document.body).toHaveFocus();
+  });
+
+  it("leaves a field the reader moved on to alone when a card closes", () => {
+    render(
+      <>
+        <button type="button">Measure</button>
+        <input aria-label="Title" />
+        <Toaster />
+      </>,
+    );
+    screen.getByRole("button", { name: "Measure" }).focus();
+    act(() => {
+      notify.error("Not saved");
+    });
+    screen.getByRole("button", { name: "Dismiss: Not saved" }).focus();
+    const title = screen.getByRole("textbox", { name: "Title" });
+    title.focus();
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss: Not saved" }));
+    expect(title).toHaveFocus();
+  });
+
   // Two notices at once must not give a screen reader two identically named
   // "Dismiss" buttons.
   it("gives each stacked notice a uniquely named dismiss button", () => {
