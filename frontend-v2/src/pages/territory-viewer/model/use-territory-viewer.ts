@@ -4,7 +4,12 @@ import { computeUnitRatio } from "@/entities/measurement";
 import { pickLod, getSceneBundle, sceneQuery, toSceneViewModel } from "@/entities/scene";
 import { getMe, meQuery } from "@/entities/user";
 import { viewerError } from "@/features/lod";
-import { measureSummary, notSaved, useMeasurementSync } from "@/features/measure";
+import {
+  measureSummary,
+  notSaved,
+  useMeasurementSwitch,
+  useMeasurementSync,
+} from "@/features/measure";
 import {
   PANORAMA_TOUR,
   PANORAMA_TOUR_STEPS,
@@ -99,6 +104,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     void client.invalidateQueries({ queryKey: ["scene", slug] });
   }, [client, slug]);
 
+  const ruler = useMeasurementSwitch();
   const measure = useMeasurementSync({
     slug,
     stored: vm?.measurements ?? null,
@@ -225,6 +231,8 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
           ...measureSummary(measure.chains, computeUnitRatio(dims)),
           unsaved: notSaved(measure.chains, measure.activeChainId, grants.measureCreate),
         },
+        show: ruler.showMeasurements,
+        onToggleShow: ruler.toggle,
       },
       placements: editor.placements,
       pendingIds: editor.pendingIds,

@@ -934,6 +934,13 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   chains on screen it asks first (`ConfirmDialog`, N = the saved chains). The
   journal names these rows `measurement #id` (`entityName`) — the trigger
   records no label.
+  **`Show measurements`** (View tab, its own `Measurements` section — not in
+  the mock) hides every chain in the scene, remembered per browser in
+  `localStorage["andrey.measurements"]` through `shared/lib/use-stored-switch`
+  (the same hook `Show panorama points` uses); measure mode draws the ruler
+  regardless (`showMeasurements || mode === "measure"` in `scene-canvas.tsx`)
+  and leaves the stored choice alone. Hidden is unmounted, not a hidden
+  `Object3D`: the labels are `<Html>` DOM.
 
 ### Panoramas and documents
 

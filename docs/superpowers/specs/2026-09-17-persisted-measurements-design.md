@@ -201,6 +201,36 @@ gateway flattens it for the RPC and rebuilds it on the way back.
   segment of a saved chain, reload — the split survived; Clear asks and
   empties the territory for everyone.
 
+## Hiding the ruler
+
+User request, 2026-09-17: "the ruler's measurements should be hideable so
+they don't get in the way". Decisions:
+
+- A **`Show measurements`** switch on the View tab, in a small section of
+  its own (`Measurements`, count `saved chains · N` — the chains with a
+  server id), placed after Documents. **The mock draws no such switch or
+  section; this is a deviation.** Its row copies `Show panorama points`
+  (the same `Switch`, `aria-labelledby` on the visible words).
+- Remembered per browser, not per user and not on the server:
+  `localStorage["andrey.measurements"] = "hidden"`; no entry means shown.
+  The write happens outside the state updater (StrictMode) and every storage
+  access is wrapped in try/catch — a blocked store answers "shown" and the
+  switch still works for the session. The storage logic is one hook,
+  `shared/lib/use-stored-switch`, under both `useMeasurementSwitch`
+  (`features/measure`) and the existing `useMarkerSwitch`: one shared hook
+  plus two three-line wrappers came out shorter than two copies.
+- Hidden means the scene draws no segment, no label and no point of any
+  chain — saved and local alike. `MeasurementLayer` unmounts its children
+  (`visible={false}`) rather than setting `Object3D.visible`, because the
+  labels are drei `<Html>` DOM, and repaints on the change (the canvas runs
+  on demand). The chains, their sync and the strip chip do not change.
+- **Measure mode wins:** while the mode is `measure`, the ruler is drawn
+  whatever the switch says — nobody measures blind. The stored choice is not
+  touched, so leaving measure mode hides the ruler again. The override is
+  the canvas's (`showMeasurements || mode === "measure"`), not the page's.
+- No keyboard shortcut, no tour step, no animation — the switch is instant,
+  like every other scene toggle.
+
 ## Found while reading, not part of this change
 
 The existing id-addressed mutations under `/api/territories/{slug}` —

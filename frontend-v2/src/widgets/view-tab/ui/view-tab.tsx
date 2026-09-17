@@ -9,6 +9,9 @@ import {
   documentsCount,
   EXIT_CALIBRATION,
   MARKERS_SWITCH,
+  MEASUREMENTS_OVERLINE,
+  MEASUREMENTS_SWITCH,
+  measurementsCount,
   MOVE_POINTS,
   PANORAMAS_OVERLINE,
   UPLOAD_DOCUMENT_TITLE,
@@ -48,11 +51,18 @@ export type ViewTabProps = {
     onUpload: () => void;
     onOpen: (id: number) => void;
   };
-  /** The sentence under both sections — the loading note, or what the photo marks. */
+  /**
+   * The ruler's switch. Hiding it keeps every chain; measure mode draws them
+   * regardless, and that is the canvas's call, not this one's.
+   */
+  measurements: { saved: number; show: boolean; onToggle: () => void };
+  /** The sentence under the sections — the loading note, or what the photo marks. */
   footer: string | null;
 };
 
 const SECTION = "flex flex-col gap-[9px]";
+const SWITCH_ROW = "flex items-center justify-between gap-2.5";
+const SWITCH_LABEL = "font-mono text-[10px] text-fg";
 const LIST = "m-0 flex list-none flex-col gap-[9px] p-0";
 const KBD = "rounded-[4px] border border-accent-line px-[5px] py-px font-mono text-[10px]";
 
@@ -61,12 +71,13 @@ const KBD = "rounded-[4px] border border-accent-line px-[5px] py-px font-mono te
  * laid over it. It scrolls in the panel body it is rendered into and adds no
  * scrolling container of its own.
  *
- * Both sections carry an id: the tool rail's Panoramas and Documents tiles
+ * The Panoramas and Documents sections carry an id: the tool rail's tiles
  * scroll to them (`pages/territory-viewer/model/reveal-section.ts`), and an
  * `aria-label` is not something `getElementById` can find.
  */
-export function ViewTab({ details, panoramas, documents, footer }: ViewTabProps) {
+export function ViewTab({ details, panoramas, documents, measurements, footer }: ViewTabProps) {
   const markersId = useId();
+  const rulerId = useId();
 
   return (
     <div className="flex flex-col gap-4">
@@ -122,8 +133,8 @@ export function ViewTab({ details, panoramas, documents, footer }: ViewTabProps)
           </ul>
         ) : null}
 
-        <div data-tour="toggle-markers" className="flex items-center justify-between gap-2.5">
-          <span id={markersId} className="font-mono text-[10px] text-fg">
+        <div data-tour="toggle-markers" className={SWITCH_ROW}>
+          <span id={markersId} className={SWITCH_LABEL}>
             {MARKERS_SWITCH}
           </span>
           <span className="flex items-center gap-2.5">
@@ -177,6 +188,22 @@ export function ViewTab({ details, panoramas, documents, footer }: ViewTabProps)
             ))}
           </ul>
         ) : null}
+      </section>
+
+      {/* Not in the mock: the ruler has no section there, and no switch. */}
+      <section aria-label={MEASUREMENTS_OVERLINE} className={SECTION}>
+        <SectionHead overline={MEASUREMENTS_OVERLINE} count={measurementsCount(measurements.saved)} />
+        <div className={SWITCH_ROW}>
+          <span id={rulerId} className={SWITCH_LABEL}>
+            {MEASUREMENTS_SWITCH}
+          </span>
+          <Switch
+            checked={measurements.show}
+            onChange={measurements.onToggle}
+            label={MEASUREMENTS_SWITCH}
+            labelledBy={rulerId}
+          />
+        </div>
       </section>
 
       {footer ? <p className="m-0 text-[11px] leading-[1.55] text-muted">{footer}</p> : null}

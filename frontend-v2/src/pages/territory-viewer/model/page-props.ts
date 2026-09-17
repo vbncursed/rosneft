@@ -90,6 +90,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       canWrite: grants.write,
       chains: measure.chains,
       activeChainId: measure.activeChainId,
+      showMeasurements: measure.show,
       canEditMeasurements: canEditSaved(measureGrants(grants)),
       unitRatio: computeUnitRatio(vm.metadata.dims),
       resetVersion: view.resetVersion,

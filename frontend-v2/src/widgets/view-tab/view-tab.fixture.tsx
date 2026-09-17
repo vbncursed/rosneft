@@ -59,6 +59,7 @@ function Live({
   footer = LOADING_FOOTER,
   editor = null,
   width,
+  ruler = true,
 }: {
   details?: Detail[];
   rows?: PanoramaRowView[];
@@ -70,9 +71,11 @@ function Live({
   footer?: string | null;
   editor?: ReactNode;
   width?: number;
+  ruler?: boolean;
 }) {
   const [showMarkers, setShowMarkers] = useState(true);
   const [moving, setMoving] = useState(false);
+  const [showRuler, setShowRuler] = useState(ruler);
   const [link, setLink] = useState(url);
 
   return (
@@ -105,6 +108,7 @@ function Live({
           editor,
         }}
         documents={{ rows: documents, canUpload: canWrite, onUpload: () => {}, onOpen: () => {} }}
+        measurements={{ saved: 2, show: showRuler, onToggle: () => setShowRuler((on) => !on) }}
         footer={footer}
       />
     </Body>
@@ -198,6 +202,7 @@ export default {
     <Live rows={EDITING} calibrating={{ title: PANORAMA.title }} editor={<Editor calibrating />} footer={null} />
   ),
   "editor-failed": <Live rows={EDITING} editor={<Editor failed />} footer={null} />,
+  "ruler-hidden": <Live ruler={false} url="https://tour.example/refinery" />,
   guest: <Live canWrite={false} url="https://tour.example/refinery" />,
   empty: <Live rows={[]} documents={[]} footer={null} />,
   compact: <Live width={300} url="https://tour.example/refinery" />,

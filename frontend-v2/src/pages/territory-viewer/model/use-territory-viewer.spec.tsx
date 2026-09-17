@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Placement } from "@/entities/placement";
 import type { SceneBundle } from "@/entities/scene";
 import type { Principal } from "@/shared/session";
@@ -408,6 +408,30 @@ describe("useTerritoryViewer", () => {
       act(() => now(r).overlays.measuring!.confirm!.onConfirm());
       expect(deleteMeasurements).toHaveBeenCalledExactlyOnceWith(SLUG);
       expect(now(r).canvas.chains).toEqual([]);
+    });
+
+    describe("the ruler switch", () => {
+      // A failure mid-test must not leave "hidden" behind for the next one.
+      afterEach(() => localStorage.clear());
+
+      it("hides the ruler from the View tab, keeps the chains, and remembers it for the next load", async () => {
+        localStorage.clear();
+        const r = mount();
+        const state = await ready(r);
+        expect(state.canvas.showMeasurements).toBe(true);
+        expect(state.panel!.viewTab.measurements).toMatchObject({ saved: 1, show: true });
+
+        act(() => state.panel!.viewTab.measurements.onToggle());
+        expect(now(r).canvas.showMeasurements).toBe(false);
+        expect(now(r).canvas.chains).toHaveLength(1);
+        // Entering measure mode leaves the stored choice alone — the canvas decides the override.
+        act(() => now(r).overlays.onMeasure());
+        expect(now(r).canvas.showMeasurements).toBe(false);
+        expect(now(r).canvas.mode).toBe("measure");
+
+        r.unmount();
+        expect((await ready(mount())).canvas.showMeasurements).toBe(false);
+      });
     });
 
     it("drops an unfinished chain when the reader leaves measure mode", async () => {
