@@ -25,8 +25,11 @@ func (g *Gateway) GetTerritory(ctx context.Context, slug, scopeAdminID string) (
 // CreateTerritory upserts the territory in the catalog and queues a
 // conversion job. Returns both — the frontend uses the job ID to subscribe
 // to /api/jobs/{id}/events for progress.
-func (g *Gateway) CreateTerritory(ctx context.Context, t domain.Territory) (domain.Territory, domain.Job, error) {
+func (g *Gateway) CreateTerritory(ctx context.Context, t domain.Territory, scope domain.BlobScope) (domain.Territory, domain.Job, error) {
 	if err := validateEntity(t.Title, t.SourceBlobHash); err != nil {
+		return domain.Territory{}, domain.Job{}, err
+	}
+	if err := g.authorizeBlobs(ctx, scope, t.SourceBlobHash); err != nil {
 		return domain.Territory{}, domain.Job{}, err
 	}
 	saved, err := g.catalog.UpsertTerritory(ctx, t)
@@ -44,12 +47,15 @@ func (g *Gateway) CreateTerritory(ctx context.Context, t domain.Territory) (doma
 // re-queues a conversion, keeping the same territory (and therefore its
 // placements). The existing artifacts are cleared so the viewer shows the
 // conversion screen until the new mesh lands — mirroring the create flow.
-func (g *Gateway) ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHash string) (domain.Territory, domain.Job, error) {
+func (g *Gateway) ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHash string, scope domain.BlobScope) (domain.Territory, domain.Job, error) {
 	if slug == "" {
 		return domain.Territory{}, domain.Job{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}
 	if sourceBlobHash == "" {
 		return domain.Territory{}, domain.Job{}, fmt.Errorf("%w: empty source_blob_hash", domain.ErrInvalidInput)
+	}
+	if err := g.authorizeBlobs(ctx, scope, sourceBlobHash); err != nil {
+		return domain.Territory{}, domain.Job{}, err
 	}
 	current, err := g.catalog.GetTerritory(ctx, slug, "") // mutation flow; gated by permission
 	if err != nil {

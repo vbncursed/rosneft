@@ -93,8 +93,8 @@ func writeGLB(positions []vertex, uvs []uv, groups []materialGroup, materials []
 
 		prims = append(prims, &gltf.Primitive{
 			Attributes: attrs,
-			Indices:    gltf.Index(idx),
-			Material:   gltf.Index(matIdx),
+			Indices:    new(idx),
+			Material:   new(matIdx),
 		})
 	}
 
@@ -103,9 +103,9 @@ func writeGLB(positions []vertex, uvs []uv, groups []materialGroup, materials []
 	}
 
 	doc.Meshes = []*gltf.Mesh{{Primitives: prims}}
-	doc.Nodes = []*gltf.Node{{Mesh: gltf.Index(0)}}
+	doc.Nodes = []*gltf.Node{{Mesh: new(0)}}
 	doc.Scenes = []*gltf.Scene{{Nodes: []int{0}}}
-	doc.Scene = gltf.Index(0)
+	doc.Scene = new(0)
 
 	var buf bytes.Buffer
 	enc := gltf.NewEncoder(&buf)
@@ -120,9 +120,6 @@ func writeGLB(positions []vertex, uvs []uv, groups []materialGroup, materials []
 // hasUVs is false the texture is dropped even if present — UV-less primitives
 // can't sample it correctly; baseColorFactor still works.
 func buildMaterial(doc *gltf.Document, m glMaterial, hasUVs bool, samplerIdx int, cache map[string]int) (int, error) {
-	roughness := float64(1.0)
-	metallic := float64(0.0)
-
 	pbr := &gltf.PBRMetallicRoughness{
 		BaseColorFactor: &[4]float64{
 			float64(m.BaseColor[0]),
@@ -130,8 +127,8 @@ func buildMaterial(doc *gltf.Document, m glMaterial, hasUVs bool, samplerIdx int
 			float64(m.BaseColor[2]),
 			float64(m.BaseColor[3]),
 		},
-		RoughnessFactor: &roughness,
-		MetallicFactor:  &metallic,
+		RoughnessFactor: new(float64(1.0)),
+		MetallicFactor:  new(float64(0.0)),
 	}
 
 	if m.Texture != nil && hasUVs {
@@ -168,8 +165,8 @@ func embedTexture(doc *gltf.Document, tex *textureAsset, samplerIdx int, cache m
 		return 0, fmt.Errorf("write image: %w", err)
 	}
 	doc.Textures = append(doc.Textures, &gltf.Texture{
-		Source:  gltf.Index(imgIdx),
-		Sampler: gltf.Index(samplerIdx),
+		Source:  new(imgIdx),
+		Sampler: new(samplerIdx),
 	})
 	textureIdx := len(doc.Textures) - 1
 	cache[tex.Path] = textureIdx

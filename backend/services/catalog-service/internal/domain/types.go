@@ -14,6 +14,9 @@ type Territory struct {
 	SourceBlobHash      string    `yaml:"source_blob_hash"`
 	CreatedAt           time.Time `yaml:"-"`
 	UpdatedAt           time.Time `yaml:"-"`
+	// PlacementCount is how many placements sit on this territory. Filled by
+	// both ListTerritories and GetTerritory.
+	PlacementCount int `yaml:"-"`
 }
 
 // Model is a placeable 3D asset overlaid on a territory.
@@ -25,6 +28,9 @@ type Model struct {
 	ThumbnailBlobHash string    `yaml:"thumbnail_blob_hash"`
 	CreatedAt         time.Time `yaml:"-"`
 	UpdatedAt         time.Time `yaml:"-"`
+	// UsageCount is how many distinct territories place this model. Filled by
+	// both ListModels and GetModel.
+	UsageCount int `yaml:"-"`
 }
 
 // Vec3 is a 3D point used for bounding-box corners and placement transforms.

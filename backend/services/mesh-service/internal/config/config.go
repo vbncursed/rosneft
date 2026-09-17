@@ -5,6 +5,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -28,18 +29,20 @@ type Config struct {
 	LogLevel          string        `mapstructure:"log-level"`
 	LogFormat         string        `mapstructure:"log-format"`
 	ShutdownTimeout   time.Duration `mapstructure:"shutdown-timeout"`
-	// DracoEnabled toggles KHR_draco_mesh_compression on freshly converted
-	// GLBs. The frontend's DRACOLoader must be configured when this is on.
-	DracoEnabled bool `mapstructure:"draco-enabled"`
+	// MeshoptEnabled toggles EXT_meshopt_compression on freshly converted
+	// GLBs. Decoded automatically by drei's MeshoptDecoder — no frontend
+	// wiring required.
+	MeshoptEnabled bool `mapstructure:"meshopt-enabled"`
 	// KTX2Enabled toggles KHR_texture_basisu (KTX2 / Basis Universal) for
 	// embedded textures. Frontend KTX2Loader MUST be configured when this
 	// is on — without it, drei fails to decode KTX2 and textures render
 	// as solid colour. Encoder-heavy (large textures take seconds), but
 	// dramatically reduces VRAM at runtime.
 	KTX2Enabled bool `mapstructure:"ktx2-enabled"`
-	// DracoBin is the path/name of the gltfpack binary used by both Draco
-	// and KTX2 encoders. Empty falls back to "gltfpack" resolved on $PATH.
-	DracoBin string `mapstructure:"draco-bin"`
+	// GltfpackBin is the path/name of the gltfpack binary used by both the
+	// meshopt and KTX2 encoders. Empty falls back to "gltfpack" resolved on
+	// $PATH.
+	GltfpackBin string `mapstructure:"gltfpack-bin"`
 	// LODRatios are simplification ratios for additional LOD artifacts.
 	// Each ratio in (0,1) produces one extra LOD beyond LOD0. Example:
 	// "0.5,0.25" → LOD1 (50% triangles), LOD2 (25% triangles). Empty → no
@@ -113,10 +116,13 @@ func Load(cmd *cobra.Command) (Config, error) {
 	v.SetDefault("log-level", "info")
 	v.SetDefault("log-format", "json")
 	v.SetDefault("shutdown-timeout", 30*time.Second)
-	v.SetDefault("draco-enabled", true)
+	v.SetDefault("meshopt-enabled", true)
 	v.SetDefault("ktx2-enabled", true)
-	v.SetDefault("draco-bin", "gltfpack")
+	v.SetDefault("gltfpack-bin", "gltfpack")
 	v.SetDefault("lod-ratios", []string{"0.5", "0.25"})
+
+	applyDeprecatedEnv(v, "meshopt-enabled", "MESH_MESHOPT_ENABLED", "MESH_DRACO_ENABLED")
+	applyDeprecatedEnv(v, "gltfpack-bin", "MESH_GLTFPACK_BIN", "MESH_DRACO_BIN")
 
 	if err := v.BindPFlags(cmd.Root().PersistentFlags()); err != nil {
 		return Config{}, fmt.Errorf("config: bind persistent flags: %w", err)
@@ -130,6 +136,23 @@ func Load(cmd *cobra.Command) (Config, error) {
 		return Config{}, fmt.Errorf("config: unmarshal: %w", err)
 	}
 	return cfg, nil
+}
+
+// applyDeprecatedEnv keeps a renamed env var working for one release: when
+// newEnv is unset and oldEnv is set, oldEnv's value wins the key and a
+// deprecation warning is logged. Two renamed keys don't earn a general
+// alias table — this is the smallest thing that works.
+func applyDeprecatedEnv(v *viper.Viper, key, newEnv, oldEnv string) {
+	if _, ok := os.LookupEnv(newEnv); ok {
+		return
+	}
+	old, ok := os.LookupEnv(oldEnv)
+	if !ok {
+		return
+	}
+	slog.Warn("config: reading deprecated env var; switch before it stops being read",
+		slog.String("old", oldEnv), slog.String("new", newEnv))
+	v.Set(key, old)
 }
 
 // ValidateAPI checks fields required by mesh-api.

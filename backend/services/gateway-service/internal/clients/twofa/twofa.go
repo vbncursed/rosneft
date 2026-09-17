@@ -2,6 +2,7 @@ package twofa
 
 import (
 	"context"
+	"time"
 
 	twofav1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/twofa/v1"
 )
@@ -33,6 +34,30 @@ func (c *Client) Regenerate(ctx context.Context, token, code string) ([]string, 
 		return nil, err
 	}
 	return resp.GetRecoveryCodes(), nil
+}
+
+// Status is the caller's 2FA posture, as the account screen needs it.
+type Status struct {
+	Enabled           bool
+	EnabledAt         time.Time // zero when unknown; the handler then omits it
+	RecoveryRemaining int
+	RecoveryTotal     int
+}
+
+func (c *Client) Status(ctx context.Context, token string) (Status, error) {
+	resp, err := c.cc.Status(ctx, &twofav1.StatusRequest{Token: token})
+	if err != nil {
+		return Status{}, err
+	}
+	st := Status{
+		Enabled:           resp.GetEnabled(),
+		RecoveryRemaining: int(resp.GetRecoveryRemaining()),
+		RecoveryTotal:     int(resp.GetRecoveryTotal()),
+	}
+	if at := resp.GetEnabledAt(); at > 0 {
+		st.EnabledAt = time.Unix(at, 0).UTC()
+	}
+	return st, nil
 }
 
 func (c *Client) IsEnabled(ctx context.Context, userID string) (bool, error) {

@@ -24,14 +24,14 @@ func (s *Server) ListDocuments(ctx context.Context, req ListDocumentsRequestObje
 
 func (s *Server) CreateDocument(ctx context.Context, req CreateDocumentRequestObject) (CreateDocumentResponseObject, error) {
 	if req.Body == nil {
-		return CreateDocument400JSONResponse{BadRequestJSONResponse: BadRequestJSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}}, nil
+		return CreateDocument400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
 	body := *req.Body
 	d, err := s.svc.CreateDocument(ctx, domain.Document{
 		TerritorySlug:  req.Slug,
 		Title:          body.Title,
 		SourceBlobHash: body.SourceBlobHash,
-	})
+	}, blobScope(ctx))
 	switch {
 	case isInvalid(err):
 		return CreateDocument400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
@@ -44,7 +44,7 @@ func (s *Server) CreateDocument(ctx context.Context, req CreateDocumentRequestOb
 }
 
 func (s *Server) DeleteDocument(ctx context.Context, req DeleteDocumentRequestObject) (DeleteDocumentResponseObject, error) {
-	err := s.svc.DeleteDocument(ctx, req.Id)
+	err := s.svc.DeleteDocument(ctx, req.Slug, req.Id)
 	switch {
 	case isNotFound(err):
 		return DeleteDocument404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil

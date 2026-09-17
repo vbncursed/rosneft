@@ -39,7 +39,13 @@ type Catalog interface {
 	CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
-	DeletePlacement(ctx context.Context, id int64) error
+	DeletePlacement(ctx context.Context, territorySlug string, id int64) error
+
+	ListMeasurements(ctx context.Context, territorySlug string) ([]domain.Measurement, error)
+	CreateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
+	UpdateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
+	DeleteMeasurement(ctx context.Context, territorySlug string, id int64) error
+	DeleteMeasurements(ctx context.Context, territorySlug string) (int, error)
 }
 
 // Content is the content-service client surface this service calls.
@@ -47,17 +53,18 @@ type Content interface {
 	ListPanoramas(ctx context.Context, territorySlug string) ([]domain.Panorama, error)
 	CreatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
 	UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
-	DeletePanorama(ctx context.Context, id int64) error
+	DeletePanorama(ctx context.Context, territorySlug string, id int64) error
 
 	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
 	CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error)
-	DeleteDocument(ctx context.Context, id int64) error
+	DeleteDocument(ctx context.Context, territorySlug string, id int64) error
 }
 
 // Mesh is the mesh client surface this service calls.
 type Mesh interface {
 	SubmitConversion(ctx context.Context, kind domain.Kind, slug string) (domain.Job, error)
 	GetJob(ctx context.Context, id string) (domain.Job, error)
+	ListTargetJobs(ctx context.Context) ([]domain.Job, error)
 }
 
 // Upload is the upload-service client surface this service calls.
@@ -67,11 +74,13 @@ type Upload interface {
 	GetStatus(ctx context.Context, id string) (domain.UploadSession, error)
 	Finalize(ctx context.Context, id string) (domain.FinalizedBlob, error)
 	Abort(ctx context.Context, id string) error
+	// HasUploaded answers for the caller carried on ctx (actor metadata).
+	HasUploaded(ctx context.Context, hash string) (bool, error)
 }
 
 // Audit is the audit-service client surface this service calls.
 type Audit interface {
-	ListEntries(ctx context.Context, q domain.AuditQuery) ([]domain.AuditEntry, int64, error)
+	ListEntries(ctx context.Context, q domain.AuditQuery) (domain.AuditPage, error)
 	ListActors(ctx context.Context, q domain.AuditQuery) ([]string, error)
 	Record(ctx context.Context, e domain.AuditEvent) error
 }

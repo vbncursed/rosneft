@@ -121,3 +121,41 @@ func (s *ConvertLODsSuite) TestSimplifiesRawNotCompressed() {
 		assert.Assert(s.T(), len(got) > 0)
 	}
 }
+
+// A simplifier that hands the same GLB back stands in for gltfpack: the
+// bytes are a real GLB, so the LOD carries real counts.
+func (s *ConvertLODsSuite) TestLODsCarryTheirOwnCountsAndLOD0Bbox() {
+	c := &Converter{
+		lodRatios: []float64{0.5},
+		compressor: &fakePostprocessor{
+			simplifyFn: func(_ context.Context, glb []byte, _ float64) ([]byte, error) { return glb, nil },
+		},
+	}
+
+	out, err := c.ConvertLODs(s.T().Context(), s.objPath)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(out), 2)
+	assert.Equal(s.T(), out[1].Vertices, uint64(3))
+	assert.Equal(s.T(), out[1].Faces, uint64(1))
+	assert.Equal(s.T(), out[1].BBoxMin, out[0].BBoxMin)
+	assert.Equal(s.T(), out[1].BBoxMax, out[0].BBoxMax)
+}
+
+// A LOD whose bytes cannot be read still ships: the artifact is complete,
+// only its stats are unknown, and the bbox is LOD0's either way.
+func (s *ConvertLODsSuite) TestLODWithUnreadableBytesKeepsZeroCounts() {
+	c := &Converter{
+		lodRatios: []float64{0.5},
+		compressor: &fakePostprocessor{
+			simplifyFn: func(context.Context, []byte, float64) ([]byte, error) { return []byte("garbage"), nil },
+		},
+	}
+
+	out, err := c.ConvertLODs(s.T().Context(), s.objPath)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(out), 2)
+	assert.Equal(s.T(), out[1].Faces, uint64(0))
+	assert.Equal(s.T(), out[1].BBoxMax, out[0].BBoxMax)
+}

@@ -92,14 +92,40 @@ func (s *PlacementsSuite) TestUpdateRejectsNegativeScale() {
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
+func (s *PlacementsSuite) TestUpdateRejectsEmptyTerritory() {
+	p := validPlacement()
+	p.ID = 1
+	p.TerritorySlug = ""
+	_, err := s.svc.UpdatePlacement(s.ctx, p)
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *PlacementsSuite) TestUpdateForwardsTerritory() {
+	p := validPlacement()
+	p.ID = 1
+	s.cat.UpdatePlacementMock.Expect(s.ctx, p).Return(p, nil)
+	_, err := s.svc.UpdatePlacement(s.ctx, p)
+	assert.NilError(s.T(), err)
+}
+
 func (s *PlacementsSuite) TestDeleteRejectsZeroID() {
-	err := s.svc.DeletePlacement(s.ctx, 0)
+	err := s.svc.DeletePlacement(s.ctx, "t1", 0)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *PlacementsSuite) TestDeleteRejectsNegativeID() {
-	err := s.svc.DeletePlacement(s.ctx, -1)
+	err := s.svc.DeletePlacement(s.ctx, "t1", -1)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *PlacementsSuite) TestDeleteRejectsEmptyTerritory() {
+	err := s.svc.DeletePlacement(s.ctx, "", 1)
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *PlacementsSuite) TestDeleteForwardsTerritory() {
+	s.cat.DeletePlacementMock.Expect(s.ctx, "t1", int64(1)).Return(nil)
+	assert.NilError(s.T(), s.svc.DeletePlacement(s.ctx, "t1", 1))
 }
 
 func (s *PlacementsSuite) TestListRejectsEmptySlug() {

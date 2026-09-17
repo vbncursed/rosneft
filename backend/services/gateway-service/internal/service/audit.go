@@ -29,21 +29,21 @@ import (
 // ?actor= alongside it would let a pinned caller ask about somebody else.
 func (g *Gateway) ListAudit(
 	ctx context.Context, q domain.AuditQuery, sc domain.AuditScope, token string, wantRefs bool,
-) ([]domain.AuditEntry, int64, map[string]string, error) {
+) (domain.AuditPage, map[string]string, error) {
 	q.AllCompanies = sc.All
 	q.CompanyID = sc.Company
 	if sc.Actor != "" {
 		q.ActorID = sc.Actor
 	}
-	entries, next, err := g.audit.ListEntries(ctx, q)
+	page, err := g.audit.ListEntries(ctx, q)
 	if err != nil {
-		return nil, 0, nil, err
+		return domain.AuditPage{}, nil, err
 	}
-	entries = g.labelAuditEntries(ctx, token, entries)
+	page.Entries = g.labelAuditEntries(ctx, token, page.Entries)
 	if !wantRefs {
-		return entries, next, nil, nil
+		return page, nil, nil
 	}
-	return entries, next, g.resolveRowRefs(ctx, token, entries), nil
+	return page, g.resolveRowRefs(ctx, token, page.Entries), nil
 }
 
 // RecordAuditEvent appends an event no trigger can see (login, logout, password

@@ -17,11 +17,15 @@ import (
 
 // SessionStore is what Upload needs from the on-disk session manager.
 type SessionStore interface {
-	Initiate(ctx context.Context, id string, size int64, contentType string) (domain.Session, error)
+	Initiate(ctx context.Context, id, owner string, size int64, contentType string) (domain.Session, error)
 	AppendChunk(ctx context.Context, id string, offset int64, data []byte) (int64, error)
 	GetStatus(ctx context.Context, id string) (domain.Session, error)
 	Finalize(ctx context.Context, id string, putBlob func(ctx context.Context, hash string, r io.Reader) error) (string, int64, error)
 	Abort(ctx context.Context, id string) error
+	// RecordUpload remembers that owner finalized an upload with hash;
+	// HasUpload answers whether they ever did.
+	RecordUpload(ctx context.Context, hash, owner string) error
+	HasUpload(ctx context.Context, hash, owner string) (bool, error)
 }
 
 // Blobs is what Finalize uses to publish the finalized bytes into the
@@ -59,6 +63,29 @@ func New(cfg Config) *Upload {
 		maxUploadBytes: cfg.MaxUploadBytes,
 		idGen:          gen,
 	}
+}
+
+// ownedSession returns session id when owner is its author. Anyone else — and
+// a caller with no identity, or a session with no author — gets
+// ErrSessionNotFound, the same answer as for an id that does not exist.
+func (u *Upload) ownedSession(ctx context.Context, owner, id string) (domain.Session, error) {
+	if id == "" {
+		return domain.Session{}, domain.ErrSessionNotFound
+	}
+	s, err := u.store.GetStatus(ctx, id)
+	if err != nil {
+		return domain.Session{}, err
+	}
+	if !owns(s, owner) {
+		return domain.Session{}, domain.ErrSessionNotFound
+	}
+	return s, nil
+}
+
+// owns reports whether owner authored s. An empty owner owns nothing — not
+// even the legacy sessions whose author is also empty.
+func owns(s domain.Session, owner string) bool {
+	return owner != "" && s.OwnerID == owner
 }
 
 // newSessionID returns a 128-bit hex ID.

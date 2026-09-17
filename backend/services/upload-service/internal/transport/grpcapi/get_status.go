@@ -7,7 +7,7 @@ import (
 )
 
 func (s *Server) GetStatus(ctx context.Context, req *uploadv1.GetStatusRequest) (*uploadv1.GetStatusResponse, error) {
-	out, err := s.svc.GetStatus(ctx, req.GetUploadId())
+	out, err := s.svc.GetStatus(ctx, callerID(ctx), req.GetUploadId())
 	if err != nil {
 		return nil, mapError(err)
 	}

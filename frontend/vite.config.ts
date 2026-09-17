@@ -1,26 +1,22 @@
 /// <reference types="vitest/config" />
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
 import path from "node:path";
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
+// Shared with src/architecture.spec.ts's EXEMPT — one policy, one list.
+import { EXEMPT_MODULES } from "./exempt-modules.ts";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   resolve: {
-    alias: { "@": path.resolve(__dirname, "src") },
+    alias: { "@": path.resolve(import.meta.dirname, "src") },
   },
   server: {
-    // Port 3000, not Vite's 5173: PASSKEY_RP_ORIGINS is pinned to
-    // http://localhost:3000, and a mismatched origin fails every WebAuthn
-    // ceremony with an opaque client-side SecurityError and no server log.
+    // 3000 is the origin the gateway's PASSKEY_RP_ORIGINS lists for local
+    // dev. strictPort: a busy port must fail loudly — Vite's silent move to
+    // 3001 would leave every passkey ceremony failing with no server log.
     port: 3000,
-    // /api is proxied by DEFAULT so dev matches production's topology, where
-    // nginx serves the SPA and proxies /api to the gateway. Same origin is what
-    // lets the session cookie ride on <img>, <iframe> (pdf.js) and EventSource
-    // without withCredentials anywhere — and it removes the class of bug this
-    // repo already hit once, where dev and prod differed and prod silently
-    // built against undefined/api/…
-    //
-    // VITE_DEV_PROXY overrides the target, e.g. to run the SPA against prod.
+    strictPort: true,
     proxy: {
       "/api": {
         target: process.env.VITE_DEV_PROXY ?? "http://localhost:8080",
@@ -31,11 +27,25 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
-    // SPA/vitest tests use *.spec.ts(x); legacy node:test files keep *.test.ts
-    // and run via `yarn test` (node --test). Two runners, no glob collision.
+    globals: true,
+    // vitest (mode "test") loads no .env.* file, so shared/api/client.ts's
+    // `${API_BASE}${path}` would fetch "undefined/api/...". Empty string
+    // matches the real dev/prod value — this SPA is single-origin by design.
+    env: { VITE_API_URL: "" },
+    setupFiles: ["./src/shared/lib/test-setup.ts"],
     include: ["src/**/*.spec.ts", "src/**/*.spec.tsx"],
-    // vitest (mode "test") does not load .env.development, so give the client a
-    // defined base URL for tests. Real dev/prod read it from .env.* / the build.
-    env: { VITE_API_URL: "http://localhost:8080" },
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.{ts,tsx}"],
+      // The modules architecture.spec.ts excuses from needing a spec, plus
+      // the files that are specs or sample data themselves.
+      exclude: [
+        ...EXEMPT_MODULES,
+        "src/**/*.fixture.tsx",
+        "src/**/index.ts",
+        "src/architecture.spec.ts",
+      ],
+      thresholds: { statements: 90, branches: 85, functions: 90, lines: 90 },
+    },
   },
 });

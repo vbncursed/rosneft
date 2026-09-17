@@ -12,7 +12,8 @@ import (
 
 // routePerms maps "METHOD <chi route pattern>" to the permissions that open it —
 // holding ANY of them is enough. Only mutations are listed; reads need any
-// authenticated principal.
+// authenticated principal. A spec mutation missing from here must be excused
+// in route_permissions_spec_test.go, or that test fails.
 //
 // The journal has two grants of different width, and they open different
 // routes: audit:read reads the company's history, audit:read_own reads your
@@ -27,24 +28,38 @@ var routePerms = map[string][]string{
 	"GET /api/audit/actors": {"audit:read"},
 	// Either grant opens the own-journal: a Company Owner carries only the
 	// wider one in some deployments and must not lose their own account page.
-	"GET /api/audit/mine":                            {"audit:read_own", "audit:read"},
-	"POST /api/territories":                          {"territory:create"},
-	"PATCH /api/territories/{slug}":                  {"territory:write"},
-	"DELETE /api/territories/{slug}":                 {"territory:delete"},
-	"POST /api/models":                               {"model:write"},
-	"PATCH /api/models/{slug}":                       {"model:write"},
-	"DELETE /api/models/{slug}":                      {"model:delete"},
-	"POST /api/territories/{slug}/placements":        {"placement:create"},
-	"PUT /api/territories/{slug}/placements/{id}":    {"placement:write"},
-	"DELETE /api/territories/{slug}/placements/{id}": {"placement:delete"},
-	"POST /api/territories/{slug}/panoramas":         {"panorama:create"},
-	"PUT /api/territories/{slug}/panoramas/{id}":     {"panorama:write"},
-	"DELETE /api/territories/{slug}/panoramas/{id}":  {"panorama:delete"},
-	"POST /api/territories/{slug}/documents":         {"document:write"},
-	"DELETE /api/territories/{slug}/documents/{id}":  {"document:delete"},
-	"POST /api/uploads":                              {"upload:create"},
-	"PATCH /api/uploads/{id}":                        {"upload:create"},
-	"POST /api/uploads/{id}/finalize":                {"upload:create"},
+	"GET /api/audit/mine":            {"audit:read_own", "audit:read"},
+	"POST /api/territories":          {"territory:create"},
+	"PATCH /api/territories/{slug}":  {"territory:write"},
+	"DELETE /api/territories/{slug}": {"territory:delete"},
+	// Replacing the source model is a write on the territory: it feeds a
+	// reconversion, same grant as PATCH.
+	"POST /api/territories/{slug}/source":         {"territory:write"},
+	"POST /api/models":                            {"model:write"},
+	"PATCH /api/models/{slug}":                    {"model:write"},
+	"DELETE /api/models/{slug}":                   {"model:delete"},
+	"POST /api/territories/{slug}/placements":     {"placement:create"},
+	"PUT /api/territories/{slug}/placements/{id}": {"placement:write"},
+	// The panorama allowlist is part of the placement: same grant as the transform.
+	"PUT /api/territories/{slug}/placements/{id}/visibility": {"placement:write"},
+	"DELETE /api/territories/{slug}/placements/{id}":         {"placement:delete"},
+	"POST /api/territories/{slug}/panoramas":                 {"panorama:create"},
+	"PUT /api/territories/{slug}/panoramas/{id}":             {"panorama:write"},
+	"DELETE /api/territories/{slug}/panoramas/{id}":          {"panorama:delete"},
+	"POST /api/territories/{slug}/documents":                 {"document:write"},
+	"DELETE /api/territories/{slug}/documents/{id}":          {"document:delete"},
+	"POST /api/uploads":                                      {"upload:create"},
+	"PATCH /api/uploads/{id}":                                {"upload:create"},
+	"POST /api/uploads/{id}/finalize":                        {"upload:create"},
+	// Discarding a session is part of the upload flow; upload-service also
+	// refuses it to anyone but the session's author.
+	"DELETE /api/uploads/{id}": {"upload:create"},
+	// Measurements are shared by every reader of the territory; clearing them
+	// all is a delete of each, so it takes the same grant as one.
+	"POST /api/territories/{slug}/measurements":        {"measurement:create"},
+	"PUT /api/territories/{slug}/measurements/{id}":    {"measurement:write"},
+	"DELETE /api/territories/{slug}/measurements/{id}": {"measurement:delete"},
+	"DELETE /api/territories/{slug}/measurements":      {"measurement:delete"},
 }
 
 // RequirePermissionForRoute enforces routePerms against the principal. Routes

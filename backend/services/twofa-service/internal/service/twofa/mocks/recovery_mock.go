@@ -18,6 +18,13 @@ type RecoveryMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
+	funcCounts          func(ctx context.Context, userID string) (remaining int, total int, err error)
+	funcCountsOrigin    string
+	inspectFuncCounts   func(ctx context.Context, userID string)
+	afterCountsCounter  uint64
+	beforeCountsCounter uint64
+	CountsMock          mRecoveryMockCounts
+
 	funcDeleteAll          func(ctx context.Context, userID string) (err error)
 	funcDeleteAllOrigin    string
 	inspectFuncDeleteAll   func(ctx context.Context, userID string)
@@ -55,6 +62,9 @@ func NewRecoveryMock(t minimock.Tester) *RecoveryMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.CountsMock = mRecoveryMockCounts{mock: m}
+	m.CountsMock.callArgs = []*RecoveryMockCountsParams{}
+
 	m.DeleteAllMock = mRecoveryMockDeleteAll{mock: m}
 	m.DeleteAllMock.callArgs = []*RecoveryMockDeleteAllParams{}
 
@@ -70,6 +80,350 @@ func NewRecoveryMock(t minimock.Tester) *RecoveryMock {
 	t.Cleanup(m.MinimockFinish)
 
 	return m
+}
+
+type mRecoveryMockCounts struct {
+	optional           bool
+	mock               *RecoveryMock
+	defaultExpectation *RecoveryMockCountsExpectation
+	expectations       []*RecoveryMockCountsExpectation
+
+	callArgs []*RecoveryMockCountsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RecoveryMockCountsExpectation specifies expectation struct of the Recovery.Counts
+type RecoveryMockCountsExpectation struct {
+	mock               *RecoveryMock
+	params             *RecoveryMockCountsParams
+	paramPtrs          *RecoveryMockCountsParamPtrs
+	expectationOrigins RecoveryMockCountsExpectationOrigins
+	results            *RecoveryMockCountsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RecoveryMockCountsParams contains parameters of the Recovery.Counts
+type RecoveryMockCountsParams struct {
+	ctx    context.Context
+	userID string
+}
+
+// RecoveryMockCountsParamPtrs contains pointers to parameters of the Recovery.Counts
+type RecoveryMockCountsParamPtrs struct {
+	ctx    *context.Context
+	userID *string
+}
+
+// RecoveryMockCountsResults contains results of the Recovery.Counts
+type RecoveryMockCountsResults struct {
+	remaining int
+	total     int
+	err       error
+}
+
+// RecoveryMockCountsOrigins contains origins of expectations of the Recovery.Counts
+type RecoveryMockCountsExpectationOrigins struct {
+	origin       string
+	originCtx    string
+	originUserID string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmCounts *mRecoveryMockCounts) Optional() *mRecoveryMockCounts {
+	mmCounts.optional = true
+	return mmCounts
+}
+
+// Expect sets up expected params for Recovery.Counts
+func (mmCounts *mRecoveryMockCounts) Expect(ctx context.Context, userID string) *mRecoveryMockCounts {
+	if mmCounts.mock.funcCounts != nil {
+		mmCounts.mock.t.Fatalf("RecoveryMock.Counts mock is already set by Set")
+	}
+
+	if mmCounts.defaultExpectation == nil {
+		mmCounts.defaultExpectation = &RecoveryMockCountsExpectation{}
+	}
+
+	if mmCounts.defaultExpectation.paramPtrs != nil {
+		mmCounts.mock.t.Fatalf("RecoveryMock.Counts mock is already set by ExpectParams functions")
+	}
+
+	mmCounts.defaultExpectation.params = &RecoveryMockCountsParams{ctx, userID}
+	mmCounts.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmCounts.expectations {
+		if minimock.Equal(e.params, mmCounts.defaultExpectation.params) {
+			mmCounts.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCounts.defaultExpectation.params)
+		}
+	}
+
+	return mmCounts
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Recovery.Counts
+func (mmCounts *mRecoveryMockCounts) ExpectCtxParam1(ctx context.Context) *mRecoveryMockCounts {
+	if mmCounts.mock.funcCounts != nil {
+		mmCounts.mock.t.Fatalf("RecoveryMock.Counts mock is already set by Set")
+	}
+
+	if mmCounts.defaultExpectation == nil {
+		mmCounts.defaultExpectation = &RecoveryMockCountsExpectation{}
+	}
+
+	if mmCounts.defaultExpectation.params != nil {
+		mmCounts.mock.t.Fatalf("RecoveryMock.Counts mock is already set by Expect")
+	}
+
+	if mmCounts.defaultExpectation.paramPtrs == nil {
+		mmCounts.defaultExpectation.paramPtrs = &RecoveryMockCountsParamPtrs{}
+	}
+	mmCounts.defaultExpectation.paramPtrs.ctx = &ctx
+	mmCounts.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmCounts
+}
+
+// ExpectUserIDParam2 sets up expected param userID for Recovery.Counts
+func (mmCounts *mRecoveryMockCounts) ExpectUserIDParam2(userID string) *mRecoveryMockCounts {
+	if mmCounts.mock.funcCounts != nil {
+		mmCounts.mock.t.Fatalf("RecoveryMock.Counts mock is already set by Set")
+	}
+
+	if mmCounts.defaultExpectation == nil {
+		mmCounts.defaultExpectation = &RecoveryMockCountsExpectation{}
+	}
+
+	if mmCounts.defaultExpectation.params != nil {
+		mmCounts.mock.t.Fatalf("RecoveryMock.Counts mock is already set by Expect")
+	}
+
+	if mmCounts.defaultExpectation.paramPtrs == nil {
+		mmCounts.defaultExpectation.paramPtrs = &RecoveryMockCountsParamPtrs{}
+	}
+	mmCounts.defaultExpectation.paramPtrs.userID = &userID
+	mmCounts.defaultExpectation.expectationOrigins.originUserID = minimock.CallerInfo(1)
+
+	return mmCounts
+}
+
+// Inspect accepts an inspector function that has same arguments as the Recovery.Counts
+func (mmCounts *mRecoveryMockCounts) Inspect(f func(ctx context.Context, userID string)) *mRecoveryMockCounts {
+	if mmCounts.mock.inspectFuncCounts != nil {
+		mmCounts.mock.t.Fatalf("Inspect function is already set for RecoveryMock.Counts")
+	}
+
+	mmCounts.mock.inspectFuncCounts = f
+
+	return mmCounts
+}
+
+// Return sets up results that will be returned by Recovery.Counts
+func (mmCounts *mRecoveryMockCounts) Return(remaining int, total int, err error) *RecoveryMock {
+	if mmCounts.mock.funcCounts != nil {
+		mmCounts.mock.t.Fatalf("RecoveryMock.Counts mock is already set by Set")
+	}
+
+	if mmCounts.defaultExpectation == nil {
+		mmCounts.defaultExpectation = &RecoveryMockCountsExpectation{mock: mmCounts.mock}
+	}
+	mmCounts.defaultExpectation.results = &RecoveryMockCountsResults{remaining, total, err}
+	mmCounts.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmCounts.mock
+}
+
+// Set uses given function f to mock the Recovery.Counts method
+func (mmCounts *mRecoveryMockCounts) Set(f func(ctx context.Context, userID string) (remaining int, total int, err error)) *RecoveryMock {
+	if mmCounts.defaultExpectation != nil {
+		mmCounts.mock.t.Fatalf("Default expectation is already set for the Recovery.Counts method")
+	}
+
+	if len(mmCounts.expectations) > 0 {
+		mmCounts.mock.t.Fatalf("Some expectations are already set for the Recovery.Counts method")
+	}
+
+	mmCounts.mock.funcCounts = f
+	mmCounts.mock.funcCountsOrigin = minimock.CallerInfo(1)
+	return mmCounts.mock
+}
+
+// When sets expectation for the Recovery.Counts which will trigger the result defined by the following
+// Then helper
+func (mmCounts *mRecoveryMockCounts) When(ctx context.Context, userID string) *RecoveryMockCountsExpectation {
+	if mmCounts.mock.funcCounts != nil {
+		mmCounts.mock.t.Fatalf("RecoveryMock.Counts mock is already set by Set")
+	}
+
+	expectation := &RecoveryMockCountsExpectation{
+		mock:               mmCounts.mock,
+		params:             &RecoveryMockCountsParams{ctx, userID},
+		expectationOrigins: RecoveryMockCountsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmCounts.expectations = append(mmCounts.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Recovery.Counts return parameters for the expectation previously defined by the When method
+func (e *RecoveryMockCountsExpectation) Then(remaining int, total int, err error) *RecoveryMock {
+	e.results = &RecoveryMockCountsResults{remaining, total, err}
+	return e.mock
+}
+
+// Times sets number of times Recovery.Counts should be invoked
+func (mmCounts *mRecoveryMockCounts) Times(n uint64) *mRecoveryMockCounts {
+	if n == 0 {
+		mmCounts.mock.t.Fatalf("Times of RecoveryMock.Counts mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmCounts.expectedInvocations, n)
+	mmCounts.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmCounts
+}
+
+func (mmCounts *mRecoveryMockCounts) invocationsDone() bool {
+	if len(mmCounts.expectations) == 0 && mmCounts.defaultExpectation == nil && mmCounts.mock.funcCounts == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmCounts.mock.afterCountsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmCounts.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// Counts implements mm_twofa.Recovery
+func (mmCounts *RecoveryMock) Counts(ctx context.Context, userID string) (remaining int, total int, err error) {
+	mm_atomic.AddUint64(&mmCounts.beforeCountsCounter, 1)
+	defer mm_atomic.AddUint64(&mmCounts.afterCountsCounter, 1)
+
+	mmCounts.t.Helper()
+
+	if mmCounts.inspectFuncCounts != nil {
+		mmCounts.inspectFuncCounts(ctx, userID)
+	}
+
+	mm_params := RecoveryMockCountsParams{ctx, userID}
+
+	// Record call args
+	mmCounts.CountsMock.mutex.Lock()
+	mmCounts.CountsMock.callArgs = append(mmCounts.CountsMock.callArgs, &mm_params)
+	mmCounts.CountsMock.mutex.Unlock()
+
+	for _, e := range mmCounts.CountsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.remaining, e.results.total, e.results.err
+		}
+	}
+
+	if mmCounts.CountsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCounts.CountsMock.defaultExpectation.Counter, 1)
+		mm_want := mmCounts.CountsMock.defaultExpectation.params
+		mm_want_ptrs := mmCounts.CountsMock.defaultExpectation.paramPtrs
+
+		mm_got := RecoveryMockCountsParams{ctx, userID}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmCounts.t.Errorf("RecoveryMock.Counts got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCounts.CountsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.userID != nil && !minimock.Equal(*mm_want_ptrs.userID, mm_got.userID) {
+				mmCounts.t.Errorf("RecoveryMock.Counts got unexpected parameter userID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCounts.CountsMock.defaultExpectation.expectationOrigins.originUserID, *mm_want_ptrs.userID, mm_got.userID, minimock.Diff(*mm_want_ptrs.userID, mm_got.userID))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCounts.t.Errorf("RecoveryMock.Counts got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmCounts.CountsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCounts.CountsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCounts.t.Fatal("No results are set for the RecoveryMock.Counts")
+		}
+		return (*mm_results).remaining, (*mm_results).total, (*mm_results).err
+	}
+	if mmCounts.funcCounts != nil {
+		return mmCounts.funcCounts(ctx, userID)
+	}
+	mmCounts.t.Fatalf("Unexpected call to RecoveryMock.Counts. %v %v", ctx, userID)
+	return
+}
+
+// CountsAfterCounter returns a count of finished RecoveryMock.Counts invocations
+func (mmCounts *RecoveryMock) CountsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCounts.afterCountsCounter)
+}
+
+// CountsBeforeCounter returns a count of RecoveryMock.Counts invocations
+func (mmCounts *RecoveryMock) CountsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCounts.beforeCountsCounter)
+}
+
+// Calls returns a list of arguments used in each call to RecoveryMock.Counts.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCounts *mRecoveryMockCounts) Calls() []*RecoveryMockCountsParams {
+	mmCounts.mutex.RLock()
+
+	argCopy := make([]*RecoveryMockCountsParams, len(mmCounts.callArgs))
+	copy(argCopy, mmCounts.callArgs)
+
+	mmCounts.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCountsDone returns true if the count of the Counts invocations corresponds
+// the number of defined expectations
+func (m *RecoveryMock) MinimockCountsDone() bool {
+	if m.CountsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.CountsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.CountsMock.invocationsDone()
+}
+
+// MinimockCountsInspect logs each unmet expectation
+func (m *RecoveryMock) MinimockCountsInspect() {
+	for _, e := range m.CountsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RecoveryMock.Counts at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterCountsCounter := mm_atomic.LoadUint64(&m.afterCountsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CountsMock.defaultExpectation != nil && afterCountsCounter < 1 {
+		if m.CountsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RecoveryMock.Counts at\n%s", m.CountsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RecoveryMock.Counts at\n%s with params: %#v", m.CountsMock.defaultExpectation.expectationOrigins.origin, *m.CountsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCounts != nil && afterCountsCounter < 1 {
+		m.t.Errorf("Expected call to RecoveryMock.Counts at\n%s", m.funcCountsOrigin)
+	}
+
+	if !m.CountsMock.invocationsDone() && afterCountsCounter > 0 {
+		m.t.Errorf("Expected %d calls to RecoveryMock.Counts at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.CountsMock.expectedInvocations), m.CountsMock.expectedInvocationsOrigin, afterCountsCounter)
+	}
 }
 
 type mRecoveryMockDeleteAll struct {
@@ -1477,6 +1831,8 @@ func (m *RecoveryMock) MinimockReplaceInspect() {
 func (m *RecoveryMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
 		if !m.minimockDone() {
+			m.MinimockCountsInspect()
+
 			m.MinimockDeleteAllInspect()
 
 			m.MinimockListInspect()
@@ -1507,6 +1863,7 @@ func (m *RecoveryMock) MinimockWait(timeout mm_time.Duration) {
 func (m *RecoveryMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockCountsDone() &&
 		m.MinimockDeleteAllDone() &&
 		m.MinimockListDone() &&
 		m.MinimockMarkUsedDone() &&

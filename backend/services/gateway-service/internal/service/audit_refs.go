@@ -147,7 +147,7 @@ func kindedLogins(logins map[string]string, err error) (map[string]string, error
 // It walks the field table rather than the entries because one kind sits under
 // more than one column name: a user is "user_id" in user_roles and
 // "admin_user_id" in territory_assignments, and the client searches by the name
-// it can see in the diff. Six entities against a page capped at 200 rows makes
+// it can see in the diff. Seven entities against a page capped at 200 rows makes
 // the sweep free.
 //
 // An id nobody resolved is left out entirely rather than mapped to an empty

@@ -28,7 +28,7 @@ func (r *PG) DeleteModel(ctx context.Context, slug string) error {
 		return nil
 	})
 	if err != nil {
-		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23503" { // foreign_key_violation
+		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == pgRestrictViolation {
 			return fmt.Errorf("storage.DeleteModel: %w: model is in use by placements", domain.ErrInvalidInput)
 		}
 		return fmt.Errorf("storage.DeleteModel: %w", err)

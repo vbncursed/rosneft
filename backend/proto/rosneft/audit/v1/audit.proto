@@ -48,10 +48,16 @@ message ListEntriesRequest {
   google.protobuf.Timestamp to = 7;
   int64 cursor = 8; // exclusive upper bound on id; 0 = newest page
   int32 limit = 9;
+
+  // include_total asks for the count of every row the other filters match,
+  // cursor aside. Off by default: the company journal is polled and must not
+  // pay for a COUNT on every tick; the own-actions page asks for it once.
+  bool include_total = 10;
 }
 message ListEntriesResponse {
   repeated Entry entries = 1;
   int64 next_cursor = 2; // 0 = no further pages
+  int64 total = 3;       // rows matched by the filters, paging aside; 0 unless include_total
 }
 
 message RecordRequest {
