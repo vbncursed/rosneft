@@ -59,7 +59,8 @@ func authenticate(validate validateFunc, next http.Handler) http.Handler {
 		ctx = withToken(ctx, token)
 		// Also publish the actor for outbound gRPC: the client interceptor in
 		// grpcutil forwards it to catalog/content/auth, where it reaches the
-		// audit trigger through the mutation's transaction.
+		// audit trigger through the mutation's transaction, and to upload, where it
+		// owns the session.
 		ctx = grpcutil.WithActor(ctx, grpcutil.Actor{ID: uid, Company: auditCompany})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

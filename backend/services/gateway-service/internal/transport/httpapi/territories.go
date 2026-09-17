@@ -43,7 +43,7 @@ func (s *Server) CreateTerritory(ctx context.Context, req CreateTerritoryRequest
 	if req.Body == nil {
 		return CreateTerritory400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
-	t, job, err := s.svc.CreateTerritory(ctx, entityToTerritory(*req.Body))
+	t, job, err := s.svc.CreateTerritory(ctx, entityToTerritory(*req.Body), blobScope(ctx))
 	switch {
 	case isInvalid(err):
 		return CreateTerritory400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
@@ -57,7 +57,7 @@ func (s *Server) ReplaceTerritorySource(ctx context.Context, req ReplaceTerritor
 	if req.Body == nil {
 		return ReplaceTerritorySource400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
-	t, job, err := s.svc.ReplaceTerritorySource(ctx, req.Slug, req.Body.SourceBlobHash)
+	t, job, err := s.svc.ReplaceTerritorySource(ctx, req.Slug, req.Body.SourceBlobHash, blobScope(ctx))
 	switch {
 	case isNotFound(err):
 		return ReplaceTerritorySource404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil

@@ -499,6 +499,94 @@ func (*AbortResponse) Descriptor() ([]byte, []int) {
 	return file_rosneft_upload_v1_upload_proto_rawDescGZIP(), []int{9}
 }
 
+type HasUploadedRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BlobHash      string                 `protobuf:"bytes,1,opt,name=blob_hash,json=blobHash,proto3" json:"blob_hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HasUploadedRequest) Reset() {
+	*x = HasUploadedRequest{}
+	mi := &file_rosneft_upload_v1_upload_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HasUploadedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HasUploadedRequest) ProtoMessage() {}
+
+func (x *HasUploadedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_upload_v1_upload_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HasUploadedRequest.ProtoReflect.Descriptor instead.
+func (*HasUploadedRequest) Descriptor() ([]byte, []int) {
+	return file_rosneft_upload_v1_upload_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *HasUploadedRequest) GetBlobHash() string {
+	if x != nil {
+		return x.BlobHash
+	}
+	return ""
+}
+
+type HasUploadedResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Uploaded      bool                   `protobuf:"varint,1,opt,name=uploaded,proto3" json:"uploaded,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HasUploadedResponse) Reset() {
+	*x = HasUploadedResponse{}
+	mi := &file_rosneft_upload_v1_upload_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HasUploadedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HasUploadedResponse) ProtoMessage() {}
+
+func (x *HasUploadedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rosneft_upload_v1_upload_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HasUploadedResponse.ProtoReflect.Descriptor instead.
+func (*HasUploadedResponse) Descriptor() ([]byte, []int) {
+	return file_rosneft_upload_v1_upload_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *HasUploadedResponse) GetUploaded() bool {
+	if x != nil {
+		return x.Uploaded
+	}
+	return false
+}
+
 var File_rosneft_upload_v1_upload_proto protoreflect.FileDescriptor
 
 const file_rosneft_upload_v1_upload_proto_rawDesc = "" +
@@ -527,14 +615,19 @@ const file_rosneft_upload_v1_upload_proto_rawDesc = "" +
 	"\x04size\x18\x02 \x01(\x03R\x04size\"+\n" +
 	"\fAbortRequest\x12\x1b\n" +
 	"\tupload_id\x18\x01 \x01(\tR\buploadId\"\x0f\n" +
-	"\rAbortResponse2\xba\x03\n" +
+	"\rAbortResponse\"1\n" +
+	"\x12HasUploadedRequest\x12\x1b\n" +
+	"\tblob_hash\x18\x01 \x01(\tR\bblobHash\"1\n" +
+	"\x13HasUploadedResponse\x12\x1a\n" +
+	"\buploaded\x18\x01 \x01(\bR\buploaded2\x98\x04\n" +
 	"\rUploadService\x12S\n" +
 	"\bInitiate\x12\".rosneft.upload.v1.InitiateRequest\x1a#.rosneft.upload.v1.InitiateResponse\x12[\n" +
 	"\n" +
 	"WriteChunk\x12$.rosneft.upload.v1.WriteChunkRequest\x1a%.rosneft.upload.v1.WriteChunkResponse(\x01\x12V\n" +
 	"\tGetStatus\x12#.rosneft.upload.v1.GetStatusRequest\x1a$.rosneft.upload.v1.GetStatusResponse\x12S\n" +
 	"\bFinalize\x12\".rosneft.upload.v1.FinalizeRequest\x1a#.rosneft.upload.v1.FinalizeResponse\x12J\n" +
-	"\x05Abort\x12\x1f.rosneft.upload.v1.AbortRequest\x1a .rosneft.upload.v1.AbortResponseBNZLgithub.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/upload/v1;uploadv1b\x06proto3"
+	"\x05Abort\x12\x1f.rosneft.upload.v1.AbortRequest\x1a .rosneft.upload.v1.AbortResponse\x12\\\n" +
+	"\vHasUploaded\x12%.rosneft.upload.v1.HasUploadedRequest\x1a&.rosneft.upload.v1.HasUploadedResponseBNZLgithub.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/upload/v1;uploadv1b\x06proto3"
 
 var (
 	file_rosneft_upload_v1_upload_proto_rawDescOnce sync.Once
@@ -548,35 +641,39 @@ func file_rosneft_upload_v1_upload_proto_rawDescGZIP() []byte {
 	return file_rosneft_upload_v1_upload_proto_rawDescData
 }
 
-var file_rosneft_upload_v1_upload_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_rosneft_upload_v1_upload_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_rosneft_upload_v1_upload_proto_goTypes = []any{
-	(*InitiateRequest)(nil),    // 0: rosneft.upload.v1.InitiateRequest
-	(*InitiateResponse)(nil),   // 1: rosneft.upload.v1.InitiateResponse
-	(*WriteChunkRequest)(nil),  // 2: rosneft.upload.v1.WriteChunkRequest
-	(*WriteChunkResponse)(nil), // 3: rosneft.upload.v1.WriteChunkResponse
-	(*GetStatusRequest)(nil),   // 4: rosneft.upload.v1.GetStatusRequest
-	(*GetStatusResponse)(nil),  // 5: rosneft.upload.v1.GetStatusResponse
-	(*FinalizeRequest)(nil),    // 6: rosneft.upload.v1.FinalizeRequest
-	(*FinalizeResponse)(nil),   // 7: rosneft.upload.v1.FinalizeResponse
-	(*AbortRequest)(nil),       // 8: rosneft.upload.v1.AbortRequest
-	(*AbortResponse)(nil),      // 9: rosneft.upload.v1.AbortResponse
+	(*InitiateRequest)(nil),     // 0: rosneft.upload.v1.InitiateRequest
+	(*InitiateResponse)(nil),    // 1: rosneft.upload.v1.InitiateResponse
+	(*WriteChunkRequest)(nil),   // 2: rosneft.upload.v1.WriteChunkRequest
+	(*WriteChunkResponse)(nil),  // 3: rosneft.upload.v1.WriteChunkResponse
+	(*GetStatusRequest)(nil),    // 4: rosneft.upload.v1.GetStatusRequest
+	(*GetStatusResponse)(nil),   // 5: rosneft.upload.v1.GetStatusResponse
+	(*FinalizeRequest)(nil),     // 6: rosneft.upload.v1.FinalizeRequest
+	(*FinalizeResponse)(nil),    // 7: rosneft.upload.v1.FinalizeResponse
+	(*AbortRequest)(nil),        // 8: rosneft.upload.v1.AbortRequest
+	(*AbortResponse)(nil),       // 9: rosneft.upload.v1.AbortResponse
+	(*HasUploadedRequest)(nil),  // 10: rosneft.upload.v1.HasUploadedRequest
+	(*HasUploadedResponse)(nil), // 11: rosneft.upload.v1.HasUploadedResponse
 }
 var file_rosneft_upload_v1_upload_proto_depIdxs = []int32{
-	0, // 0: rosneft.upload.v1.UploadService.Initiate:input_type -> rosneft.upload.v1.InitiateRequest
-	2, // 1: rosneft.upload.v1.UploadService.WriteChunk:input_type -> rosneft.upload.v1.WriteChunkRequest
-	4, // 2: rosneft.upload.v1.UploadService.GetStatus:input_type -> rosneft.upload.v1.GetStatusRequest
-	6, // 3: rosneft.upload.v1.UploadService.Finalize:input_type -> rosneft.upload.v1.FinalizeRequest
-	8, // 4: rosneft.upload.v1.UploadService.Abort:input_type -> rosneft.upload.v1.AbortRequest
-	1, // 5: rosneft.upload.v1.UploadService.Initiate:output_type -> rosneft.upload.v1.InitiateResponse
-	3, // 6: rosneft.upload.v1.UploadService.WriteChunk:output_type -> rosneft.upload.v1.WriteChunkResponse
-	5, // 7: rosneft.upload.v1.UploadService.GetStatus:output_type -> rosneft.upload.v1.GetStatusResponse
-	7, // 8: rosneft.upload.v1.UploadService.Finalize:output_type -> rosneft.upload.v1.FinalizeResponse
-	9, // 9: rosneft.upload.v1.UploadService.Abort:output_type -> rosneft.upload.v1.AbortResponse
-	5, // [5:10] is the sub-list for method output_type
-	0, // [0:5] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: rosneft.upload.v1.UploadService.Initiate:input_type -> rosneft.upload.v1.InitiateRequest
+	2,  // 1: rosneft.upload.v1.UploadService.WriteChunk:input_type -> rosneft.upload.v1.WriteChunkRequest
+	4,  // 2: rosneft.upload.v1.UploadService.GetStatus:input_type -> rosneft.upload.v1.GetStatusRequest
+	6,  // 3: rosneft.upload.v1.UploadService.Finalize:input_type -> rosneft.upload.v1.FinalizeRequest
+	8,  // 4: rosneft.upload.v1.UploadService.Abort:input_type -> rosneft.upload.v1.AbortRequest
+	10, // 5: rosneft.upload.v1.UploadService.HasUploaded:input_type -> rosneft.upload.v1.HasUploadedRequest
+	1,  // 6: rosneft.upload.v1.UploadService.Initiate:output_type -> rosneft.upload.v1.InitiateResponse
+	3,  // 7: rosneft.upload.v1.UploadService.WriteChunk:output_type -> rosneft.upload.v1.WriteChunkResponse
+	5,  // 8: rosneft.upload.v1.UploadService.GetStatus:output_type -> rosneft.upload.v1.GetStatusResponse
+	7,  // 9: rosneft.upload.v1.UploadService.Finalize:output_type -> rosneft.upload.v1.FinalizeResponse
+	9,  // 10: rosneft.upload.v1.UploadService.Abort:output_type -> rosneft.upload.v1.AbortResponse
+	11, // 11: rosneft.upload.v1.UploadService.HasUploaded:output_type -> rosneft.upload.v1.HasUploadedResponse
+	6,  // [6:12] is the sub-list for method output_type
+	0,  // [0:6] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_rosneft_upload_v1_upload_proto_init() }
@@ -590,7 +687,7 @@ func file_rosneft_upload_v1_upload_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rosneft_upload_v1_upload_proto_rawDesc), len(file_rosneft_upload_v1_upload_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

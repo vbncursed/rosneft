@@ -7,7 +7,7 @@ import (
 )
 
 func (s *Server) Initiate(ctx context.Context, req *uploadv1.InitiateRequest) (*uploadv1.InitiateResponse, error) {
-	out, err := s.svc.Initiate(ctx, req.GetSize(), req.GetContentType())
+	out, err := s.svc.Initiate(ctx, callerID(ctx), req.GetSize(), req.GetContentType())
 	if err != nil {
 		return nil, mapError(err)
 	}

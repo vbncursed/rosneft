@@ -13,7 +13,7 @@ import (
 // Initiate creates a new session directory under root and writes its meta.
 // Returns the persisted session including the timestamps assigned by the
 // store.
-func (f *FS) Initiate(_ context.Context, id string, size int64, contentType string) (domain.Session, error) {
+func (f *FS) Initiate(_ context.Context, id, owner string, size int64, contentType string) (domain.Session, error) {
 	dir, _, meta, err := f.paths(id)
 	if err != nil {
 		return domain.Session{}, err
@@ -24,6 +24,7 @@ func (f *FS) Initiate(_ context.Context, id string, size int64, contentType stri
 	now := time.Now().UTC()
 	s := domain.Session{
 		ID:          id,
+		OwnerID:     owner,
 		Size:        size,
 		Offset:      0,
 		ContentType: contentType,

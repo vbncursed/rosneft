@@ -51,6 +51,9 @@ var routePerms = map[string][]string{
 	"POST /api/uploads":                                      {"upload:create"},
 	"PATCH /api/uploads/{id}":                                {"upload:create"},
 	"POST /api/uploads/{id}/finalize":                        {"upload:create"},
+	// Discarding a session is part of the upload flow; upload-service also
+	// refuses it to anyone but the session's author.
+	"DELETE /api/uploads/{id}": {"upload:create"},
 	// Measurements are shared by every reader of the territory; clearing them
 	// all is a delete of each, so it takes the same grant as one.
 	"POST /api/territories/{slug}/measurements":        {"measurement:create"},

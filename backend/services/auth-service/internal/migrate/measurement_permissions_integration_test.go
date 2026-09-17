@@ -6,10 +6,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/suite"
-	"github.com/testcontainers/testcontainers-go"
-	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 	"gotest.tools/v3/assert"
 
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/migrate"
@@ -18,44 +15,10 @@ import (
 // MeasurementPermissionsSuite pins 00017's seed: which system role holds which
 // measurement grant is policy (spec M-2), and a typo in a slug list is a silent
 // missing grant, not an error — only reading the tables back shows it.
-type MeasurementPermissionsSuite struct {
-	suite.Suite
-	dsn  string
-	pool *pgxpool.Pool
-	ctr  *tcpostgres.PostgresContainer
-}
+type MeasurementPermissionsSuite struct{ pgSuite }
 
 func TestMeasurementPermissionsSuite(t *testing.T) {
 	suite.Run(t, new(MeasurementPermissionsSuite))
-}
-
-func (s *MeasurementPermissionsSuite) SetupSuite() {
-	ctx := s.T().Context()
-	// postgres:18.6, matching docker-compose.yml's pin.
-	ctr, err := tcpostgres.Run(ctx, "postgres:18.6",
-		tcpostgres.WithDatabase("andrey"),
-		tcpostgres.WithUsername("andrey"),
-		tcpostgres.WithPassword("andrey"),
-		tcpostgres.BasicWaitStrategies(),
-	)
-	assert.NilError(s.T(), err)
-	s.ctr = ctr
-
-	s.dsn, err = ctr.ConnectionString(ctx, "sslmode=disable")
-	assert.NilError(s.T(), err)
-	assert.NilError(s.T(), migrate.Up(ctx, s.dsn))
-
-	s.pool, err = pgxpool.New(ctx, s.dsn)
-	assert.NilError(s.T(), err)
-}
-
-func (s *MeasurementPermissionsSuite) TearDownSuite() {
-	if s.pool != nil {
-		s.pool.Close()
-	}
-	if s.ctr != nil {
-		_ = testcontainers.TerminateContainer(s.ctr)
-	}
 }
 
 // grants lists "role permission" pairs for every measurement grant.
@@ -108,11 +71,12 @@ func (s *MeasurementPermissionsSuite) TestTerritoryWriteNoLongerClaimsCreation()
 	assert.Equal(s.T(), s.territoryWriteDescription(), "update territories")
 }
 
-// Rolls 00017 back; the cleanup rolls it forward again even when an assertion
+// Rolls back to 00016 (undoing everything after it, 00017 included); the
+// cleanup rolls forward again even when an assertion
 // fails, so the other tests never see the rolled-back state.
 func (s *MeasurementPermissionsSuite) TestDownRemovesTheGrantsAndRestoresTheDescription() {
 	ctx := s.T().Context()
-	assert.NilError(s.T(), migrate.Down(ctx, s.dsn))
+	assert.NilError(s.T(), migrate.DownTo(ctx, s.dsn, 16))
 	t := s.T()
 	t.Cleanup(func() {
 		// t.Context() is already cancelled when cleanups run.

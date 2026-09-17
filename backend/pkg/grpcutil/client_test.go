@@ -3,6 +3,7 @@ package grpcutil_test
 import (
 	"context"
 	"net"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -11,6 +12,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 	"gotest.tools/v3/assert"
@@ -72,4 +74,33 @@ func (s *DialSuite) TestStopsAtMaxAttempts() {
 	_, err := healthpb.NewHealthClient(conn).Check(s.T().Context(), &healthpb.HealthCheckRequest{})
 	assert.Assert(s.T(), err != nil)
 	assert.Equal(s.T(), int32(3), attempts.Load())
+}
+
+// A client stream (upload-service WriteChunk) must carry the actor too: the
+// unary interceptor never sees a stream, and upload-service refuses a chunk
+// whose session author it cannot compare against.
+func (s *DialSuite) TestStreamCarriesActor() {
+	seen := make(chan string, 1)
+	lis := bufconn.Listen(1024 * 1024)
+	srv := grpc.NewServer(grpc.UnknownServiceHandler(func(_ any, stream grpc.ServerStream) error {
+		md, _ := metadata.FromIncomingContext(stream.Context())
+		seen <- strings.Join(md.Get(grpcutil.ActorIDHeader), ",")
+		return nil
+	}))
+	go func() { _ = srv.Serve(lis) }()
+	s.T().Cleanup(srv.Stop)
+	conn, err := grpcutil.Dial("passthrough:///bufnet",
+		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
+			return lis.DialContext(ctx)
+		}))
+	assert.NilError(s.T(), err)
+	s.T().Cleanup(func() { _ = conn.Close() })
+
+	ctx := grpcutil.WithActor(s.T().Context(), grpcutil.Actor{ID: "user-1"})
+	stream, err := conn.NewStream(ctx, &grpc.StreamDesc{ClientStreams: true}, "/test.Svc/Upload")
+	assert.NilError(s.T(), err)
+	assert.NilError(s.T(), stream.CloseSend())
+	_ = stream.RecvMsg(new(healthpb.HealthCheckResponse))
+
+	assert.Equal(s.T(), <-seen, "user-1")
 }

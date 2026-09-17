@@ -74,6 +74,8 @@ type Upload interface {
 	GetStatus(ctx context.Context, id string) (domain.UploadSession, error)
 	Finalize(ctx context.Context, id string) (domain.FinalizedBlob, error)
 	Abort(ctx context.Context, id string) error
+	// HasUploaded answers for the caller carried on ctx (actor metadata).
+	HasUploaded(ctx context.Context, hash string) (bool, error)
 }
 
 // Audit is the audit-service client surface this service calls.
