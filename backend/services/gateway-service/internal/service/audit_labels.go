@@ -13,6 +13,7 @@ import (
 // user or session events has no parent territory to find.
 var territoryOwners = map[string]struct{}{
 	"placement":            {},
+	"measurement":          {},
 	"panorama":             {},
 	"document":             {},
 	"territory_assignment": {},

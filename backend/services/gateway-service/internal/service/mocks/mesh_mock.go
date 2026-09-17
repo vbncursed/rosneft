@@ -26,6 +26,13 @@ type MeshMock struct {
 	beforeGetJobCounter uint64
 	GetJobMock          mMeshMockGetJob
 
+	funcListTargetJobs          func(ctx context.Context) (ja1 []domain.Job, err error)
+	funcListTargetJobsOrigin    string
+	inspectFuncListTargetJobs   func(ctx context.Context)
+	afterListTargetJobsCounter  uint64
+	beforeListTargetJobsCounter uint64
+	ListTargetJobsMock          mMeshMockListTargetJobs
+
 	funcSubmitConversion          func(ctx context.Context, kind domain.Kind, slug string) (j1 domain.Job, err error)
 	funcSubmitConversionOrigin    string
 	inspectFuncSubmitConversion   func(ctx context.Context, kind domain.Kind, slug string)
@@ -44,6 +51,9 @@ func NewMeshMock(t minimock.Tester) *MeshMock {
 
 	m.GetJobMock = mMeshMockGetJob{mock: m}
 	m.GetJobMock.callArgs = []*MeshMockGetJobParams{}
+
+	m.ListTargetJobsMock = mMeshMockListTargetJobs{mock: m}
+	m.ListTargetJobsMock.callArgs = []*MeshMockListTargetJobsParams{}
 
 	m.SubmitConversionMock = mMeshMockSubmitConversion{mock: m}
 	m.SubmitConversionMock.callArgs = []*MeshMockSubmitConversionParams{}
@@ -393,6 +403,318 @@ func (m *MeshMock) MinimockGetJobInspect() {
 	if !m.GetJobMock.invocationsDone() && afterGetJobCounter > 0 {
 		m.t.Errorf("Expected %d calls to MeshMock.GetJob at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.GetJobMock.expectedInvocations), m.GetJobMock.expectedInvocationsOrigin, afterGetJobCounter)
+	}
+}
+
+type mMeshMockListTargetJobs struct {
+	optional           bool
+	mock               *MeshMock
+	defaultExpectation *MeshMockListTargetJobsExpectation
+	expectations       []*MeshMockListTargetJobsExpectation
+
+	callArgs []*MeshMockListTargetJobsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// MeshMockListTargetJobsExpectation specifies expectation struct of the Mesh.ListTargetJobs
+type MeshMockListTargetJobsExpectation struct {
+	mock               *MeshMock
+	params             *MeshMockListTargetJobsParams
+	paramPtrs          *MeshMockListTargetJobsParamPtrs
+	expectationOrigins MeshMockListTargetJobsExpectationOrigins
+	results            *MeshMockListTargetJobsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// MeshMockListTargetJobsParams contains parameters of the Mesh.ListTargetJobs
+type MeshMockListTargetJobsParams struct {
+	ctx context.Context
+}
+
+// MeshMockListTargetJobsParamPtrs contains pointers to parameters of the Mesh.ListTargetJobs
+type MeshMockListTargetJobsParamPtrs struct {
+	ctx *context.Context
+}
+
+// MeshMockListTargetJobsResults contains results of the Mesh.ListTargetJobs
+type MeshMockListTargetJobsResults struct {
+	ja1 []domain.Job
+	err error
+}
+
+// MeshMockListTargetJobsOrigins contains origins of expectations of the Mesh.ListTargetJobs
+type MeshMockListTargetJobsExpectationOrigins struct {
+	origin    string
+	originCtx string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmListTargetJobs *mMeshMockListTargetJobs) Optional() *mMeshMockListTargetJobs {
+	mmListTargetJobs.optional = true
+	return mmListTargetJobs
+}
+
+// Expect sets up expected params for Mesh.ListTargetJobs
+func (mmListTargetJobs *mMeshMockListTargetJobs) Expect(ctx context.Context) *mMeshMockListTargetJobs {
+	if mmListTargetJobs.mock.funcListTargetJobs != nil {
+		mmListTargetJobs.mock.t.Fatalf("MeshMock.ListTargetJobs mock is already set by Set")
+	}
+
+	if mmListTargetJobs.defaultExpectation == nil {
+		mmListTargetJobs.defaultExpectation = &MeshMockListTargetJobsExpectation{}
+	}
+
+	if mmListTargetJobs.defaultExpectation.paramPtrs != nil {
+		mmListTargetJobs.mock.t.Fatalf("MeshMock.ListTargetJobs mock is already set by ExpectParams functions")
+	}
+
+	mmListTargetJobs.defaultExpectation.params = &MeshMockListTargetJobsParams{ctx}
+	mmListTargetJobs.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmListTargetJobs.expectations {
+		if minimock.Equal(e.params, mmListTargetJobs.defaultExpectation.params) {
+			mmListTargetJobs.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListTargetJobs.defaultExpectation.params)
+		}
+	}
+
+	return mmListTargetJobs
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Mesh.ListTargetJobs
+func (mmListTargetJobs *mMeshMockListTargetJobs) ExpectCtxParam1(ctx context.Context) *mMeshMockListTargetJobs {
+	if mmListTargetJobs.mock.funcListTargetJobs != nil {
+		mmListTargetJobs.mock.t.Fatalf("MeshMock.ListTargetJobs mock is already set by Set")
+	}
+
+	if mmListTargetJobs.defaultExpectation == nil {
+		mmListTargetJobs.defaultExpectation = &MeshMockListTargetJobsExpectation{}
+	}
+
+	if mmListTargetJobs.defaultExpectation.params != nil {
+		mmListTargetJobs.mock.t.Fatalf("MeshMock.ListTargetJobs mock is already set by Expect")
+	}
+
+	if mmListTargetJobs.defaultExpectation.paramPtrs == nil {
+		mmListTargetJobs.defaultExpectation.paramPtrs = &MeshMockListTargetJobsParamPtrs{}
+	}
+	mmListTargetJobs.defaultExpectation.paramPtrs.ctx = &ctx
+	mmListTargetJobs.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmListTargetJobs
+}
+
+// Inspect accepts an inspector function that has same arguments as the Mesh.ListTargetJobs
+func (mmListTargetJobs *mMeshMockListTargetJobs) Inspect(f func(ctx context.Context)) *mMeshMockListTargetJobs {
+	if mmListTargetJobs.mock.inspectFuncListTargetJobs != nil {
+		mmListTargetJobs.mock.t.Fatalf("Inspect function is already set for MeshMock.ListTargetJobs")
+	}
+
+	mmListTargetJobs.mock.inspectFuncListTargetJobs = f
+
+	return mmListTargetJobs
+}
+
+// Return sets up results that will be returned by Mesh.ListTargetJobs
+func (mmListTargetJobs *mMeshMockListTargetJobs) Return(ja1 []domain.Job, err error) *MeshMock {
+	if mmListTargetJobs.mock.funcListTargetJobs != nil {
+		mmListTargetJobs.mock.t.Fatalf("MeshMock.ListTargetJobs mock is already set by Set")
+	}
+
+	if mmListTargetJobs.defaultExpectation == nil {
+		mmListTargetJobs.defaultExpectation = &MeshMockListTargetJobsExpectation{mock: mmListTargetJobs.mock}
+	}
+	mmListTargetJobs.defaultExpectation.results = &MeshMockListTargetJobsResults{ja1, err}
+	mmListTargetJobs.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmListTargetJobs.mock
+}
+
+// Set uses given function f to mock the Mesh.ListTargetJobs method
+func (mmListTargetJobs *mMeshMockListTargetJobs) Set(f func(ctx context.Context) (ja1 []domain.Job, err error)) *MeshMock {
+	if mmListTargetJobs.defaultExpectation != nil {
+		mmListTargetJobs.mock.t.Fatalf("Default expectation is already set for the Mesh.ListTargetJobs method")
+	}
+
+	if len(mmListTargetJobs.expectations) > 0 {
+		mmListTargetJobs.mock.t.Fatalf("Some expectations are already set for the Mesh.ListTargetJobs method")
+	}
+
+	mmListTargetJobs.mock.funcListTargetJobs = f
+	mmListTargetJobs.mock.funcListTargetJobsOrigin = minimock.CallerInfo(1)
+	return mmListTargetJobs.mock
+}
+
+// When sets expectation for the Mesh.ListTargetJobs which will trigger the result defined by the following
+// Then helper
+func (mmListTargetJobs *mMeshMockListTargetJobs) When(ctx context.Context) *MeshMockListTargetJobsExpectation {
+	if mmListTargetJobs.mock.funcListTargetJobs != nil {
+		mmListTargetJobs.mock.t.Fatalf("MeshMock.ListTargetJobs mock is already set by Set")
+	}
+
+	expectation := &MeshMockListTargetJobsExpectation{
+		mock:               mmListTargetJobs.mock,
+		params:             &MeshMockListTargetJobsParams{ctx},
+		expectationOrigins: MeshMockListTargetJobsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmListTargetJobs.expectations = append(mmListTargetJobs.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Mesh.ListTargetJobs return parameters for the expectation previously defined by the When method
+func (e *MeshMockListTargetJobsExpectation) Then(ja1 []domain.Job, err error) *MeshMock {
+	e.results = &MeshMockListTargetJobsResults{ja1, err}
+	return e.mock
+}
+
+// Times sets number of times Mesh.ListTargetJobs should be invoked
+func (mmListTargetJobs *mMeshMockListTargetJobs) Times(n uint64) *mMeshMockListTargetJobs {
+	if n == 0 {
+		mmListTargetJobs.mock.t.Fatalf("Times of MeshMock.ListTargetJobs mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmListTargetJobs.expectedInvocations, n)
+	mmListTargetJobs.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmListTargetJobs
+}
+
+func (mmListTargetJobs *mMeshMockListTargetJobs) invocationsDone() bool {
+	if len(mmListTargetJobs.expectations) == 0 && mmListTargetJobs.defaultExpectation == nil && mmListTargetJobs.mock.funcListTargetJobs == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmListTargetJobs.mock.afterListTargetJobsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmListTargetJobs.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ListTargetJobs implements mm_service.Mesh
+func (mmListTargetJobs *MeshMock) ListTargetJobs(ctx context.Context) (ja1 []domain.Job, err error) {
+	mm_atomic.AddUint64(&mmListTargetJobs.beforeListTargetJobsCounter, 1)
+	defer mm_atomic.AddUint64(&mmListTargetJobs.afterListTargetJobsCounter, 1)
+
+	mmListTargetJobs.t.Helper()
+
+	if mmListTargetJobs.inspectFuncListTargetJobs != nil {
+		mmListTargetJobs.inspectFuncListTargetJobs(ctx)
+	}
+
+	mm_params := MeshMockListTargetJobsParams{ctx}
+
+	// Record call args
+	mmListTargetJobs.ListTargetJobsMock.mutex.Lock()
+	mmListTargetJobs.ListTargetJobsMock.callArgs = append(mmListTargetJobs.ListTargetJobsMock.callArgs, &mm_params)
+	mmListTargetJobs.ListTargetJobsMock.mutex.Unlock()
+
+	for _, e := range mmListTargetJobs.ListTargetJobsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.ja1, e.results.err
+		}
+	}
+
+	if mmListTargetJobs.ListTargetJobsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmListTargetJobs.ListTargetJobsMock.defaultExpectation.Counter, 1)
+		mm_want := mmListTargetJobs.ListTargetJobsMock.defaultExpectation.params
+		mm_want_ptrs := mmListTargetJobs.ListTargetJobsMock.defaultExpectation.paramPtrs
+
+		mm_got := MeshMockListTargetJobsParams{ctx}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmListTargetJobs.t.Errorf("MeshMock.ListTargetJobs got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListTargetJobs.ListTargetJobsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmListTargetJobs.t.Errorf("MeshMock.ListTargetJobs got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmListTargetJobs.ListTargetJobsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmListTargetJobs.ListTargetJobsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmListTargetJobs.t.Fatal("No results are set for the MeshMock.ListTargetJobs")
+		}
+		return (*mm_results).ja1, (*mm_results).err
+	}
+	if mmListTargetJobs.funcListTargetJobs != nil {
+		return mmListTargetJobs.funcListTargetJobs(ctx)
+	}
+	mmListTargetJobs.t.Fatalf("Unexpected call to MeshMock.ListTargetJobs. %v", ctx)
+	return
+}
+
+// ListTargetJobsAfterCounter returns a count of finished MeshMock.ListTargetJobs invocations
+func (mmListTargetJobs *MeshMock) ListTargetJobsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListTargetJobs.afterListTargetJobsCounter)
+}
+
+// ListTargetJobsBeforeCounter returns a count of MeshMock.ListTargetJobs invocations
+func (mmListTargetJobs *MeshMock) ListTargetJobsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListTargetJobs.beforeListTargetJobsCounter)
+}
+
+// Calls returns a list of arguments used in each call to MeshMock.ListTargetJobs.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmListTargetJobs *mMeshMockListTargetJobs) Calls() []*MeshMockListTargetJobsParams {
+	mmListTargetJobs.mutex.RLock()
+
+	argCopy := make([]*MeshMockListTargetJobsParams, len(mmListTargetJobs.callArgs))
+	copy(argCopy, mmListTargetJobs.callArgs)
+
+	mmListTargetJobs.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockListTargetJobsDone returns true if the count of the ListTargetJobs invocations corresponds
+// the number of defined expectations
+func (m *MeshMock) MinimockListTargetJobsDone() bool {
+	if m.ListTargetJobsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ListTargetJobsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ListTargetJobsMock.invocationsDone()
+}
+
+// MinimockListTargetJobsInspect logs each unmet expectation
+func (m *MeshMock) MinimockListTargetJobsInspect() {
+	for _, e := range m.ListTargetJobsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to MeshMock.ListTargetJobs at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterListTargetJobsCounter := mm_atomic.LoadUint64(&m.afterListTargetJobsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ListTargetJobsMock.defaultExpectation != nil && afterListTargetJobsCounter < 1 {
+		if m.ListTargetJobsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to MeshMock.ListTargetJobs at\n%s", m.ListTargetJobsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to MeshMock.ListTargetJobs at\n%s with params: %#v", m.ListTargetJobsMock.defaultExpectation.expectationOrigins.origin, *m.ListTargetJobsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcListTargetJobs != nil && afterListTargetJobsCounter < 1 {
+		m.t.Errorf("Expected call to MeshMock.ListTargetJobs at\n%s", m.funcListTargetJobsOrigin)
+	}
+
+	if !m.ListTargetJobsMock.invocationsDone() && afterListTargetJobsCounter > 0 {
+		m.t.Errorf("Expected %d calls to MeshMock.ListTargetJobs at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListTargetJobsMock.expectedInvocations), m.ListTargetJobsMock.expectedInvocationsOrigin, afterListTargetJobsCounter)
 	}
 }
 
@@ -776,6 +1098,8 @@ func (m *MeshMock) MinimockFinish() {
 		if !m.minimockDone() {
 			m.MinimockGetJobInspect()
 
+			m.MinimockListTargetJobsInspect()
+
 			m.MinimockSubmitConversionInspect()
 		}
 	})
@@ -801,5 +1125,6 @@ func (m *MeshMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockGetJobDone() &&
+		m.MinimockListTargetJobsDone() &&
 		m.MinimockSubmitConversionDone()
 }

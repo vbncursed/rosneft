@@ -72,3 +72,29 @@ func (s *Service) Verify(ctx context.Context, userID, code string) (bool, error)
 	metricTwofaVerifications.WithLabelValues("failed").Inc()
 	return false, nil
 }
+
+// Status reports what the account screen shows: whether 2FA is on, when it
+// went on, and how many recovery codes are left. An unenrolled or disabled
+// user is "off" with no codes — not an error, and not a second query.
+func (s *Service) Status(ctx context.Context, userID string) (domain.Status, error) {
+	c, err := s.store.Get(ctx, userID)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return domain.Status{}, nil
+		}
+		return domain.Status{}, err
+	}
+	if !c.Enabled {
+		return domain.Status{}, nil
+	}
+	remaining, total, err := s.recovery.Counts(ctx, userID)
+	if err != nil {
+		return domain.Status{}, err
+	}
+	return domain.Status{
+		Enabled:           true,
+		EnabledAt:         c.EnabledAt,
+		RecoveryRemaining: remaining,
+		RecoveryTotal:     total,
+	}, nil
+}

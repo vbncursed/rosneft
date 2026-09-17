@@ -1,7 +1,9 @@
 # Andrey Desktop
 
-Tauri v2 shell around the existing SPA. A loopback HTTP server inside the Rust
-process serves the embedded `frontend/dist` and proxies `/api` to the gateway,
+Tauri v2 shell around the SPA in `frontend/` (the Feature-Sliced app that was
+`frontend-v2/` until it replaced the old one on 2026-09-17). A loopback HTTP
+server inside the Rust process serves the embedded `frontend/dist` and proxies
+`/api` to the gateway,
 which reproduces production's nginx topology — that is what lets the
 single-origin frontend run unchanged.
 
@@ -51,7 +53,7 @@ serves a built `dist`, so rebuild the frontend after changing it.
 
 `make -C backend compose-up` passes `--build` to `docker compose`, which on a
 machine that cannot reach Docker Hub fails trying to pull the
-`golang:1.27.0-alpine` base rather than reusing what is already built. If the
+`golang:1.27.1-alpine` base rather than reusing what is already built. If the
 images are already built (from an earlier successful compose-up, or built
 elsewhere), start from them directly and skip the rebuild:
 

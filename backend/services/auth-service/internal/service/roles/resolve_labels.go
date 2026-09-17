@@ -3,8 +3,7 @@ package roles
 import (
 	"context"
 	"fmt"
-
-	"github.com/google/uuid"
+	"uuid"
 
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
@@ -52,7 +51,7 @@ func (s *Service) ResolveLabels(ctx context.Context, refs []domain.LabelRef) (ma
 		// Отвергается здесь, а не в запросе. Запрос сравнивает id::text и мусор
 		// переживёт — дело в ответе: невалидный id молча не совпал бы ни с чем и
 		// прочитался бы как «роль удалена», а это другой факт.
-		if uuid.Validate(ref.ID) != nil {
+		if _, err := uuid.Parse(ref.ID); err != nil {
 			return nil, fmt.Errorf("roles.ResolveLabels: %w: id must be a uuid",
 				domain.ErrInvalidInput)
 		}

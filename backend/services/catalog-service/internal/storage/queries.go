@@ -11,6 +11,13 @@ import (
 // pgUniqueViolation is Postgres' SQLSTATE for a unique-constraint breach.
 const pgUniqueViolation = "23505"
 
+// pgRestrictViolation is what an explicit ON DELETE RESTRICT raises (SQLSTATE
+// 23001). 23503, foreign_key_violation, is the NO ACTION / insert-update code
+// and never fires for this delete — checking it here left a placed model's
+// delete as a raw 500 until auth-service's integration test showed which
+// code Postgres actually sends.
+const pgRestrictViolation = "23001"
+
 // isUniqueViolation reports whether err is a Postgres unique-constraint
 // violation — the signal that a slug candidate is already taken.
 func isUniqueViolation(err error) bool {
@@ -60,6 +67,23 @@ func scanModel(r rowScanner) (domain.Model, error) {
 	return m, err
 }
 
+// scanTerritoryListed scans a territory row plus its trailing
+// placement_count, used by both ListTerritories' and GetTerritory's
+// correlated-count query.
+func scanTerritoryListed(r rowScanner) (domain.Territory, error) {
+	var t domain.Territory
+	err := r.Scan(&t.Slug, &t.Title, &t.Description, &t.SourceBlobHash, &t.ExternalPanoramaURL, &t.CreatedAt, &t.UpdatedAt, &t.PlacementCount)
+	return t, err
+}
+
+// scanModelListed scans a model row plus its trailing usage_count, used by
+// both ListModels' and GetModel's correlated-count query.
+func scanModelListed(r rowScanner) (domain.Model, error) {
+	var m domain.Model
+	err := r.Scan(&m.Slug, &m.Title, &m.Description, &m.SourceBlobHash, &m.ThumbnailBlobHash, &m.CreatedAt, &m.UpdatedAt, &m.UsageCount)
+	return m, err
+}
+
 func scanArtifact(r rowScanner, slug string) (domain.Artifact, error) {
 	a := domain.Artifact{Slug: slug}
 	err := r.Scan(
@@ -95,4 +119,32 @@ func scanPlacement(r rowScanner) (domain.Placement, error) {
 		&p.Label, &p.CreatedAt, &p.UpdatedAt, &p.VisiblePanoramaIDs,
 	)
 	return p, err
+}
+
+// measurementCols reads a measurement aliased m joined to its territory t.
+// The mutations alias their RETURNING CTE as m, so one list serves all.
+const measurementCols = `m.id, t.slug, m.points, m.closed,
+	COALESCE(m.created_by::text, ''), m.created_at, m.updated_at`
+
+// measurementReturning is the RETURNING list that feeds measurementCols.
+const measurementReturning = `m.id, m.territory_id, m.points, m.closed,
+	m.created_by, m.created_at, m.updated_at`
+
+func scanMeasurement(r rowScanner) (domain.Measurement, error) {
+	var (
+		m    domain.Measurement
+		flat []float64
+	)
+	if err := r.Scan(&m.ID, &m.TerritorySlug, &flat, &m.Closed, &m.CreatedBy, &m.CreatedAt, &m.UpdatedAt); err != nil {
+		return domain.Measurement{}, err
+	}
+	points, err := domain.PointsFromFlat(flat)
+	m.Points = points
+	return m, err
+}
+
+// isMeasurementShapeViolation reports whether err is the points CHECK firing.
+func isMeasurementShapeViolation(err error) bool {
+	pgErr, ok := errors.AsType[*pgconn.PgError](err)
+	return ok && pgErr.Code == "23514" && pgErr.ConstraintName == "measurements_points_shape"
 }

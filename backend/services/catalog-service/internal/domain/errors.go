@@ -10,7 +10,10 @@ var (
 	ErrModelNotFound     = errors.New("model not found")
 	ErrArtifactNotFound  = errors.New("artifact not found")
 	ErrPlacementNotFound = errors.New("placement not found")
-	ErrInvalidInput      = errors.New("invalid input")
+	// ErrMeasurementNotFound also covers a measurement id that exists under
+	// another territory: the caller only ever names the one in its URL.
+	ErrMeasurementNotFound = errors.New("measurement not found")
+	ErrInvalidInput        = errors.New("invalid input")
 	// ErrSlugConflict means the proposed slug is already taken. The service
 	// retries with the next numbered candidate; it never reaches transport.
 	ErrSlugConflict = errors.New("slug already exists")

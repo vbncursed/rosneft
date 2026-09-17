@@ -51,10 +51,11 @@ func (s *AuditLabelsSuite) SetupTest() {
 // listAsRoot drives the real entry point, since the labelling is only reachable
 // through it.
 func (s *AuditLabelsSuite) list() ([]domain.AuditEntry, error) {
-	s.aud.ListEntriesMock.Return(s.page, 0, nil)
+	s.aud.ListEntriesMock.Return(domain.AuditPage{Entries: s.page}, nil)
 	// wantRefs=false: подписи внутри снимков — предмет audit_refs_test.go, а
 	// здесь проверяются подписи уровня записи.
-	out, _, _, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", false)
+	page, _, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", false)
+	out := page.Entries
 	return out, err
 }
 
@@ -149,4 +150,19 @@ func (s *AuditLabelsSuite) TestEmptyPageAsksNobody() {
 	assert.Equal(s.T(), len(out), 0)
 	assert.Equal(s.T(), s.aut.ResolveUserLoginsAfterCounter(), uint64(0))
 	assert.Equal(s.T(), s.cat.ResolveTerritorySlugsAfterCounter(), uint64(0))
+}
+
+// Измерение принадлежит территории так же, как размещение: запись журнала о нём
+// должна называть свою территорию.
+func (s *AuditLabelsSuite) TestMeasurementNamesItsTerritory() {
+	s.page[0].Entity = "measurement"
+	s.page[0].Action = "measurement.create"
+	s.page[0].NewRow = `{"id":3,"territory_id":5,"points":[0,0,0,1,1,1],"closed":false,"created_by":"` + actorID + `"}`
+	s.aut.ResolveUserLoginsMock.Return(map[string]string{}, nil)
+	s.cat.ResolveTerritorySlugsMock.Return(map[int64]string{5: "tenant-a-scene"}, nil)
+
+	out, err := s.list()
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), out[0].TerritorySlug, "tenant-a-scene")
 }

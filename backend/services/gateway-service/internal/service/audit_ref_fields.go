@@ -11,12 +11,12 @@ import (
 // reference and to what.
 //
 // The client never gets a copy: the page dictionary is keyed "field:value", and
-// because no column name means two different kinds across the ten audited
+// because no column name means two different kinds across the audited
 // tables, the field name alone carries the kind. That is deliberate — the
-// entity list in frontend/src/audit/domain/vocabulary.ts is the same idea
-// duplicated onto the client, and it silently drifted out of step with the
-// triggers. If a future table ever introduces a column whose name means a
-// different kind, this map is where it has to be noticed.
+// old SPA kept a copy of the entity list on the client, and it silently
+// drifted out of step with the triggers; the current frontend keeps none (its
+// `entity:` filter is free text). If a future table ever introduces a column
+// whose name means a different kind, this map is where it has to be noticed.
 var refFields = map[string]map[string]string{
 	"user_role":            {"user_id": "user", "role_id": "role"},
 	"role_permission":      {"role_id": "role", "permission_id": "permission"},
@@ -26,8 +26,10 @@ var refFields = map[string]map[string]string{
 		"model_id":             "model",
 		"visible_panorama_ids": "panorama",
 	},
-	"panorama": {"territory_id": "territory"},
-	"document": {"territory_id": "territory"},
+	// created_by is the author's uuid; it names a user wherever it appears.
+	"measurement": {"territory_id": "territory", "created_by": "user"},
+	"panorama":    {"territory_id": "territory"},
+	"document":    {"territory_id": "territory"},
 }
 
 // refKey is the dictionary key the client rebuilds from the field name and the

@@ -40,6 +40,20 @@ type AuditQuery struct {
 	To           time.Time
 	Cursor       int64
 	Limit        int32
+
+	// IncludeTotal asks the journal to count every matching row, not just the
+	// page. It costs a second scan, so only a surface that pages by number
+	// turns it on.
+	IncludeTotal bool
+}
+
+// AuditPage is one read of the journal: the labelled rows, the cursor for
+// the next page (0 = none) and, when the query asked, how many rows the
+// filters match in all.
+type AuditPage struct {
+	Entries    []AuditEntry
+	NextCursor int64
+	Total      int64
 }
 
 // AuditEvent is a non-row event recorded by the gateway itself — a login, a

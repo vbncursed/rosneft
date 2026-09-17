@@ -41,11 +41,12 @@ func (c *Client) CreatePanorama(ctx context.Context, p domain.Panorama) (domain.
 // UpdatePanorama replaces title, position, and yaw offset.
 func (c *Client) UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error) {
 	resp, err := c.cc.UpdatePanorama(ctx, &contentv1.UpdatePanoramaRequest{
-		Id:         p.ID,
-		Title:      p.Title,
-		Position:   vec3ToProto(p.Position),
-		YawOffset:  p.YawOffset,
-		DefaultYaw: p.DefaultYaw,
+		Id:            p.ID,
+		TerritorySlug: p.TerritorySlug,
+		Title:         p.Title,
+		Position:      vec3ToProto(p.Position),
+		YawOffset:     p.YawOffset,
+		DefaultYaw:    p.DefaultYaw,
 	})
 	if err != nil {
 		return domain.Panorama{}, fmt.Errorf("content.UpdatePanorama: %w", grpcerr.MapStatus(err, domain.ErrPanoramaNotFound))
@@ -53,9 +54,9 @@ func (c *Client) UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.
 	return panoramaFromProto(resp.GetPanorama()), nil
 }
 
-// DeletePanorama removes a panorama by ID.
-func (c *Client) DeletePanorama(ctx context.Context, id int64) error {
-	_, err := c.cc.DeletePanorama(ctx, &contentv1.DeletePanoramaRequest{Id: id})
+// DeletePanorama removes a panorama on territorySlug by ID.
+func (c *Client) DeletePanorama(ctx context.Context, territorySlug string, id int64) error {
+	_, err := c.cc.DeletePanorama(ctx, &contentv1.DeletePanoramaRequest{Id: id, TerritorySlug: territorySlug})
 	if err != nil {
 		return fmt.Errorf("content.DeletePanorama: %w", grpcerr.MapStatus(err, domain.ErrPanoramaNotFound))
 	}

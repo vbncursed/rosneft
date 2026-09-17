@@ -9,10 +9,9 @@ import (
 
 // Available is a startup preflight: it resolves the gltfpack binary on PATH
 // (or absolute path) and confirms it can execute. Worker bootstrap calls this
-// once at boot and refuses to start when Draco compression is enabled but the
-// binary is missing — failing fast is preferable to silently producing
-// uncompressed artifacts that the frontend will load without a DRACO decoder
-// configured for them.
+// once at boot and refuses to start when meshopt or KTX2 compression is
+// enabled but the binary is missing — failing fast is preferable to silently
+// producing uncompressed artifacts nobody asked for.
 func (o *Optimizer) Available(ctx context.Context) error {
 	path, err := exec.LookPath(o.binPath)
 	if err != nil {

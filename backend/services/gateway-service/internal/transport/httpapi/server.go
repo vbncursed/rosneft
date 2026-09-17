@@ -12,14 +12,15 @@ import (
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
 
 // Service is the gateway surface this transport calls.
 type Service interface {
 	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
 	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
-	CreateTerritory(ctx context.Context, t domain.Territory) (domain.Territory, domain.Job, error)
-	ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHash string) (domain.Territory, domain.Job, error)
+	CreateTerritory(ctx context.Context, t domain.Territory, scope domain.BlobScope) (domain.Territory, domain.Job, error)
+	ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHash string, scope domain.BlobScope) (domain.Territory, domain.Job, error)
 	UpdateTerritory(ctx context.Context, slug string, update domain.TerritoryUpdate) (domain.Territory, error)
 	DeleteTerritory(ctx context.Context, slug string) error
 	ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
@@ -30,8 +31,8 @@ type Service interface {
 
 	ListModels(ctx context.Context) ([]domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)
-	CreateModel(ctx context.Context, m domain.Model) (domain.Model, domain.Job, error)
-	UpdateModel(ctx context.Context, slug string, update domain.ModelUpdate) (domain.Model, error)
+	CreateModel(ctx context.Context, m domain.Model, scope domain.BlobScope) (domain.Model, domain.Job, error)
+	UpdateModel(ctx context.Context, slug string, update domain.ModelUpdate, scope domain.BlobScope) (domain.Model, error)
 	DeleteModel(ctx context.Context, slug string) error
 	ListModelArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
 	GetModelArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
@@ -40,16 +41,22 @@ type Service interface {
 	CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
-	DeletePlacement(ctx context.Context, id int64) error
+	DeletePlacement(ctx context.Context, territorySlug string, id int64) error
+
+	ListMeasurements(ctx context.Context, territorySlug string) ([]domain.Measurement, error)
+	CreateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
+	UpdateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
+	DeleteMeasurement(ctx context.Context, territorySlug string, id int64) error
+	DeleteMeasurements(ctx context.Context, territorySlug string) (int, error)
 
 	ListPanoramas(ctx context.Context, territorySlug string) ([]domain.Panorama, error)
-	CreatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
+	CreatePanorama(ctx context.Context, p domain.Panorama, scope domain.BlobScope) (domain.Panorama, error)
 	UpdatePanorama(ctx context.Context, p domain.Panorama) (domain.Panorama, error)
-	DeletePanorama(ctx context.Context, id int64) error
+	DeletePanorama(ctx context.Context, territorySlug string, id int64) error
 
 	ListDocuments(ctx context.Context, territorySlug string) ([]domain.Document, error)
-	CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error)
-	DeleteDocument(ctx context.Context, id int64) error
+	CreateDocument(ctx context.Context, d domain.Document, scope domain.BlobScope) (domain.Document, error)
+	DeleteDocument(ctx context.Context, territorySlug string, id int64) error
 
 	// ListAudit takes a scope the HANDLER already resolved — AuditScope for the
 	// company journal, AuditOwnScope for /api/audit/mine. Which route was called
@@ -62,7 +69,7 @@ type Service interface {
 	//
 	// Neither derives the tenant from a request parameter — that comes from the
 	// session, or one Company Owner could read another's history.
-	ListAudit(ctx context.Context, q domain.AuditQuery, sc domain.AuditScope, token string, wantRefs bool) ([]domain.AuditEntry, int64, map[string]string, error)
+	ListAudit(ctx context.Context, q domain.AuditQuery, sc domain.AuditScope, token string, wantRefs bool) (domain.AuditPage, map[string]string, error)
 	ListAuditActors(ctx context.Context, p domain.AuditPrincipal, token string) ([]domain.AuditActor, error)
 
 	// ResolveBlobAccess backs RequireBlobAccess. A blob hash addresses content
@@ -70,13 +77,24 @@ type Service interface {
 	// territory and the territory gate cannot cover it.
 	ResolveBlobAccess(ctx context.Context, hash, scopeAdminID string) (bool, error)
 
+	// The six methods above that take a BlobScope accept a blob hash from the
+	// request body only if the caller uploaded it or can already read it.
+
 	GetJob(ctx context.Context, id string) (domain.Job, error)
+	ListTargetJobs(ctx context.Context) ([]domain.Job, error)
 
 	InitiateUpload(ctx context.Context, size int64, contentType string) (domain.UploadSession, error)
 	AppendUploadChunk(ctx context.Context, id string, offset int64, body io.Reader) (int64, error)
 	GetUploadStatus(ctx context.Context, id string) (domain.UploadSession, error)
 	FinalizeUpload(ctx context.Context, id string) (domain.FinalizedBlob, error)
 	AbortUpload(ctx context.Context, id string) error
+}
+
+// blobScope is the caller's scope for attaching blobs by hash, read from the
+// principal Authenticate put on ctx — never from the request.
+func blobScope(ctx context.Context) domain.BlobScope {
+	adminID, allAccess := authhttp.Scope(ctx)
+	return domain.BlobScope{AdminID: adminID, AllAccess: allAccess}
 }
 
 // Server implements the oapi-codegen StrictServerInterface over a Service.

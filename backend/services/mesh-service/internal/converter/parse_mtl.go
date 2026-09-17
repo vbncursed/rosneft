@@ -177,7 +177,7 @@ func stripMapOptions(s string) string {
 			argc = 1
 		}
 		s = rest
-		for i := 0; i < argc; i++ {
+		for range argc {
 			s = trimLeftSpace(s)
 			_, s = splitToken(s)
 		}

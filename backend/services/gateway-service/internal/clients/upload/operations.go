@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -32,34 +33,43 @@ func (c *Client) WriteChunk(ctx context.Context, id string, offset int64, body i
 		return 0, fmt.Errorf("upload.WriteChunk: open stream: %w", grpcerr.MapStatus(err, nil))
 	}
 
-	cur := offset
-	buf := make([]byte, chunkChunkSize)
-	for {
-		n, readErr := body.Read(buf)
-		if n > 0 {
-			payload := make([]byte, n)
-			copy(payload, buf[:n])
-			if err := stream.Send(&uploadv1.WriteChunkRequest{
-				UploadId: id,
-				Offset:   cur,
-				Data:     payload,
-			}); err != nil {
-				return 0, fmt.Errorf("upload.WriteChunk: send: %w", err)
-			}
-			cur += int64(n)
-		}
-		if readErr != nil {
-			if errors.Is(readErr, io.EOF) {
-				break
-			}
-			return 0, fmt.Errorf("upload.WriteChunk: read: %w", readErr)
-		}
+	if err := sendChunks(stream, id, offset, body); err != nil {
+		return 0, err
 	}
 	resp, err := stream.CloseAndRecv()
 	if err != nil {
 		return 0, fmt.Errorf("upload.WriteChunk: close: %w", grpcerr.MapStatus(err, domain.ErrUploadNotFound))
 	}
 	return resp.GetOffset(), nil
+}
+
+// sendChunks streams body as ~64 KB messages starting at offset. A server that
+// refuses the session ends the stream on the first message; every later Send
+// then reports only io.EOF, and the refusal (NOT_FOUND for another user's
+// session) is what CloseAndRecv returns — so io.EOF stops sending instead of
+// becoming the error.
+func sendChunks(stream uploadv1.UploadService_WriteChunkClient, id string, offset int64, body io.Reader) error {
+	cur := offset
+	buf := make([]byte, chunkChunkSize)
+	for {
+		n, readErr := body.Read(buf)
+		if n > 0 {
+			err := stream.Send(&uploadv1.WriteChunkRequest{UploadId: id, Offset: cur, Data: bytes.Clone(buf[:n])})
+			switch {
+			case errors.Is(err, io.EOF):
+				return nil
+			case err != nil:
+				return fmt.Errorf("upload.WriteChunk: send: %w", err)
+			}
+			cur += int64(n)
+		}
+		switch {
+		case errors.Is(readErr, io.EOF):
+			return nil
+		case readErr != nil:
+			return fmt.Errorf("upload.WriteChunk: read: %w", readErr)
+		}
+	}
 }
 
 // GetStatus returns the current offset for the session.
@@ -78,6 +88,16 @@ func (c *Client) Finalize(ctx context.Context, id string) (domain.FinalizedBlob,
 		return domain.FinalizedBlob{}, fmt.Errorf("upload.Finalize: %w", grpcerr.MapStatus(err, domain.ErrUploadNotFound))
 	}
 	return domain.FinalizedBlob{Hash: resp.GetBlobHash(), Size: resp.GetSize()}, nil
+}
+
+// HasUploaded reports whether the caller on ctx (forwarded as actor metadata)
+// ever finalized an upload with hash.
+func (c *Client) HasUploaded(ctx context.Context, hash string) (bool, error) {
+	resp, err := c.cc.HasUploaded(ctx, &uploadv1.HasUploadedRequest{BlobHash: hash})
+	if err != nil {
+		return false, fmt.Errorf("upload.HasUploaded: %w", grpcerr.MapStatus(err, nil))
+	}
+	return resp.GetUploaded(), nil
 }
 
 // Abort discards an in-progress session.

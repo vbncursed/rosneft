@@ -51,7 +51,7 @@ func (s *ValidateTokenSuite) TestGuestKeepsRealCompanyForAudit() {
 	s.us.GetByIDMock.Expect(s.ctx, "guest-1").Return(u, nil)
 	s.us.ResolveOwningAdminMock.Expect(s.ctx, "guest-1").Return("company-1", nil)
 
-	uid, perms, isOwner, owningAdmin, auditCompany, err := s.svc.ValidateToken(s.ctx, "tok")
+	uid, perms, isOwner, owningAdmin, auditCompany, _, err := s.svc.ValidateToken(s.ctx, "tok")
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), uid, "guest-1")
@@ -69,7 +69,7 @@ func (s *ValidateTokenSuite) TestRootHasNoCompany() {
 	s.us.GetByIDMock.Expect(s.ctx, "root-1").Return(u, nil)
 	s.us.ResolveOwningAdminMock.Expect(s.ctx, "root-1").Return("", nil)
 
-	_, _, isOwner, owningAdmin, auditCompany, err := s.svc.ValidateToken(s.ctx, "tok")
+	_, _, isOwner, owningAdmin, auditCompany, _, err := s.svc.ValidateToken(s.ctx, "tok")
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), isOwner, true)
@@ -85,7 +85,7 @@ func (s *ValidateTokenSuite) TestEmployeeCarriesCompanyOnBothKeys() {
 	s.us.GetByIDMock.Expect(s.ctx, "emp-1").Return(u, nil)
 	s.us.ResolveOwningAdminMock.Expect(s.ctx, "emp-1").Return("company-1", nil)
 
-	_, _, _, owningAdmin, auditCompany, err := s.svc.ValidateToken(s.ctx, "tok")
+	_, _, _, owningAdmin, auditCompany, _, err := s.svc.ValidateToken(s.ctx, "tok")
 
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), owningAdmin, "company-1")
@@ -98,17 +98,98 @@ func (s *ValidateTokenSuite) TestEmployeeCarriesCompanyOnBothKeys() {
 func (s *ValidateTokenSuite) TestCachedHitKeepsAuditCompany() {
 	u := domain.User{ID: "emp-1", RoleSlugs: []string{"editor"}}
 	s.ss.GetMock.Expect(s.ctx, "tok").Return(domain.Session{UserID: "emp-1"}, nil)
-	s.us.GetByIDMock.Expect(s.ctx, "emp-1").Return(u, nil)
-	s.us.ResolveOwningAdminMock.Expect(s.ctx, "emp-1").Return("company-1", nil)
+	// Times(1): a default Expect() alone has no invocation ceiling — a second
+	// DB hit would pass it silently. Times(1) is what actually fails the test
+	// if the cache is bypassed, which is the whole point of this test.
+	s.us.GetByIDMock.Expect(s.ctx, "emp-1").Times(1).Return(u, nil)
+	s.us.ResolveOwningAdminMock.Expect(s.ctx, "emp-1").Times(1).Return("company-1", nil)
 
-	_, _, _, _, first, err := s.svc.ValidateToken(s.ctx, "tok")
+	_, _, _, _, first, _, err := s.svc.ValidateToken(s.ctx, "tok")
 	assert.NilError(s.T(), err)
 
-	// GetByID/ResolveOwningAdmin are expected once; a second DB hit would fail
-	// the minimock controller, so this also proves the cache was used.
-	_, _, _, _, second, err := s.svc.ValidateToken(s.ctx, "tok")
+	// GetByID/ResolveOwningAdmin above are capped at one call each, so this
+	// second call proves the cache was used, not just claims it.
+	_, _, _, _, second, _, err := s.svc.ValidateToken(s.ctx, "tok")
 	assert.NilError(s.T(), err)
 
 	assert.Equal(s.T(), first, "company-1")
 	assert.Equal(s.T(), second, "company-1")
+}
+
+// Policy without enrollment restricts the session. The twofa round trip is paid
+// only when the flag is set, which is never for an ordinary account.
+func (s *ValidateTokenSuite) TestRequiredButNotEnrolledMustEnroll() {
+	u := domain.User{ID: "u-1", TOTPRequired: true}
+	s.ss.GetMock.Expect(s.ctx, "tok").Return(domain.Session{UserID: "u-1"}, nil)
+	s.us.GetByIDMock.Expect(s.ctx, "u-1").Return(u, nil)
+	s.us.ResolveOwningAdminMock.Expect(s.ctx, "u-1").Return("company-1", nil)
+	s.tf.IsEnabledMock.Expect(s.ctx, "u-1").Return(false, nil)
+
+	_, _, _, _, _, mustEnroll, err := s.svc.ValidateToken(s.ctx, "tok")
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), mustEnroll, true)
+}
+
+func (s *ValidateTokenSuite) TestRequiredAndEnrolledIsUnrestricted() {
+	u := domain.User{ID: "u-1", TOTPRequired: true}
+	s.ss.GetMock.Expect(s.ctx, "tok").Return(domain.Session{UserID: "u-1"}, nil)
+	s.us.GetByIDMock.Expect(s.ctx, "u-1").Return(u, nil)
+	s.us.ResolveOwningAdminMock.Expect(s.ctx, "u-1").Return("company-1", nil)
+	s.tf.IsEnabledMock.Expect(s.ctx, "u-1").Return(true, nil)
+
+	_, _, _, _, _, mustEnroll, err := s.svc.ValidateToken(s.ctx, "tok")
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), mustEnroll, false)
+}
+
+// The ordinary account: no flag, so no twofa call is made at all. minimock
+// fails the test if IsEnabled is called without an expectation.
+func (s *ValidateTokenSuite) TestUnrequiredCostsNoTwoFACall() {
+	u := domain.User{ID: "u-1"}
+	s.ss.GetMock.Expect(s.ctx, "tok").Return(domain.Session{UserID: "u-1"}, nil)
+	s.us.GetByIDMock.Expect(s.ctx, "u-1").Return(u, nil)
+	s.us.ResolveOwningAdminMock.Expect(s.ctx, "u-1").Return("company-1", nil)
+
+	_, _, _, _, _, mustEnroll, err := s.svc.ValidateToken(s.ctx, "tok")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), mustEnroll, false)
+
+	// Cache hit: totpRequired is false in the cached snapshot too, so the
+	// second call must stay just as free — no IsEnabledMock.Expect is set up
+	// anywhere in this test, so minimock fails the test on any call to it.
+	_, _, _, _, _, mustEnroll, err = s.svc.ValidateToken(s.ctx, "tok")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), mustEnroll, false)
+}
+
+// A cache hit must still report mustEnroll true for a required-but-unenrolled
+// account. Every other test above exercises only a cold cache — this is the
+// one a cold-cache-only test suite cannot catch: totpRequired is cached in
+// the snapshot like any other policy field, but enrollment status is a live
+// twofa-service fact and is re-checked on every call, cache hit or not.
+func (s *ValidateTokenSuite) TestCachedHitStillReportsMustEnroll() {
+	u := domain.User{ID: "u-1", TOTPRequired: true}
+	s.ss.GetMock.Expect(s.ctx, "tok").Return(domain.Session{UserID: "u-1"}, nil)
+	// Times(1): caps the DB hydration at one call, so the second
+	// ValidateToken below is provably a cache hit, not just an assumed one.
+	s.us.GetByIDMock.Expect(s.ctx, "u-1").Times(1).Return(u, nil)
+	s.us.ResolveOwningAdminMock.Expect(s.ctx, "u-1").Times(1).Return("company-1", nil)
+	// Times(2): the load-bearing assertion. Enrollment must be re-read live on
+	// every call, cache hit or not — a version that cached mustEnroll in the
+	// snapshot and skipped this call on the hit would still pass an
+	// unconstrained Expect(), but fails this one.
+	s.tf.IsEnabledMock.Expect(s.ctx, "u-1").Times(2).Return(false, nil)
+
+	_, _, _, _, _, first, err := s.svc.ValidateToken(s.ctx, "tok")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), first, true)
+
+	// GetByID/ResolveOwningAdmin above are capped at one call each, so this
+	// second call is provably a cache hit — and must still report
+	// mustEnroll: true, off a fresh, live IsEnabled call.
+	_, _, _, _, _, second, err := s.svc.ValidateToken(s.ctx, "tok")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), second, true)
 }

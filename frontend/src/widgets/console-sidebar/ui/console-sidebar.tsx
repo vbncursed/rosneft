@@ -1,0 +1,80 @@
+import { ThemeToggle } from "@/features/theme-toggle";
+import { Avatar } from "@/shared/ui/avatar";
+import { ConsoleNav, type ConsoleNavItem } from "@/widgets/console-nav";
+
+import type { Viewer } from "@/shared/session";
+export type ConsoleSidebarProps = {
+  items: ConsoleNavItem[];
+  /** Key of the section currently open. */
+  active: string;
+  backHref: string;
+  /** Signed-in identity, shown at the foot of the column. */
+  viewer: Viewer;
+  /** Single letter in the brand mark. */
+  mark?: string;
+};
+
+export function ConsoleSidebar({
+  items,
+  active,
+  backHref,
+  viewer,
+  mark = "A",
+}: ConsoleSidebarProps) {
+  return (
+    // Not an <aside>: the column is the console's primary navigation, and the
+    // <nav> inside already carries that landmark. A second complementary
+    // region here competes with the person inspector for the same role.
+    //
+    // Two elements, and both are needed. The outer one is a plain grid item,
+    // so it stretches to the full height of the document and the panel fill
+    // reaches the bottom of a long page. The inner one is the viewport-tall
+    // sticky, so the contents hold their place while the page scrolls past.
+    //
+    // Below lg both are a plain strip above the content (ConsoleLayout
+    // stacks them): a viewport-tall sticky there would cover the screen.
+    <div className="border-b border-line bg-panel lg:border-b-0 lg:border-r">
+      <div className="flex flex-col gap-3 px-4 py-3 lg:sticky lg:top-0 lg:h-dvh lg:gap-5.5 lg:overflow-hidden lg:px-4.5 lg:py-6">
+        <div className="flex items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="flex size-7 items-center justify-center rounded-control bg-accent text-[13px] font-bold text-accent-fg"
+          >
+            {mark}
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted">
+            Console
+          </span>
+        </div>
+
+        <ConsoleNav
+          items={items}
+          active={active}
+          backHref={backHref}
+          // Below lg the row scrolls sideways; the faded right edge says so,
+          // and pr-8 lets the last item scroll clear of the fade.
+          className="min-h-0 overflow-x-auto pr-8 [mask-image:linear-gradient(to_right,#000_85%,transparent)] lg:overflow-y-auto lg:pr-0 lg:[mask-image:none]"
+        />
+
+        <div className="flex items-center gap-3 border-t border-line pt-3 lg:mt-auto lg:flex-col lg:items-stretch lg:pt-4">
+          <ThemeToggle />
+          <a
+            href="/account"
+            aria-label={`Account settings for ${viewer.username}`}
+            className="flex min-w-0 flex-1 items-center gap-2.5 rounded-control-sm border border-transparent p-1 no-underline transition-colors duration-150 hover:border-line-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <Avatar name={viewer.username} size={32} />
+            <div className="min-w-0 flex-1">
+              <p className="m-0 truncate text-xs font-medium text-fg">
+                {viewer.username}
+              </p>
+              <p className="m-0 mt-px truncate text-[10px] text-dim">
+                {viewer.roleTitle}
+              </p>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}

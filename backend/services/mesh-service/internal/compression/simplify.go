@@ -11,8 +11,8 @@ import (
 
 // Simplify reduces mesh polygon count to roughly `ratio` of the input
 // (e.g. 0.5 = 50% triangles), scales texture dimensions by the same ratio,
-// and applies the Draco/KTX2 settings the Optimizer is configured with. Used
-// by the worker to emit lower-LOD artifacts alongside LOD0.
+// and applies the meshopt/KTX2 settings the Optimizer is configured with.
+// Used by the worker to emit lower-LOD artifacts alongside LOD0.
 //
 // The input MUST be an uncompressed GLB — see rawGLB in the converter package
 // for why passing the compressed LOD0 makes the texture scaling a no-op.

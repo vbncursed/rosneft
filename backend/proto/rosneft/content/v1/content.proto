@@ -64,6 +64,8 @@ message UpdatePanoramaRequest {
   Vec3 position = 3;
   double yaw_offset = 4;
   double default_yaw = 5;
+  // Scopes the lookup: an id from another territory reads as not found.
+  string territory_slug = 6;
 }
 message UpdatePanoramaResponse {
   Panorama panorama = 1;
@@ -71,6 +73,8 @@ message UpdatePanoramaResponse {
 
 message DeletePanoramaRequest {
   int64 id = 1;
+  // Scopes the lookup: an id from another territory reads as not found.
+  string territory_slug = 2;
 }
 message DeletePanoramaResponse {}
 
@@ -102,5 +106,7 @@ message CreateDocumentResponse {
 
 message DeleteDocumentRequest {
   int64 id = 1;
+  // Scopes the lookup: an id from another territory reads as not found.
+  string territory_slug = 2;
 }
 message DeleteDocumentResponse {}

@@ -35,7 +35,7 @@ func TestVerifyIntegrationSuite(t *testing.T) { suite.Run(t, new(VerifyIntegrati
 // a shared database would let one case's damage decide the next one's verdict.
 func (s *VerifyIntegrationSuite) SetupTest() {
 	ctx := context.Background()
-	ctr, err := tcpostgres.Run(ctx, "postgres:17-alpine",
+	ctr, err := tcpostgres.Run(ctx, "postgres:18.6",
 		tcpostgres.WithDatabase("andrey"),
 		tcpostgres.WithUsername("andrey"),
 		tcpostgres.WithPassword("andrey"),

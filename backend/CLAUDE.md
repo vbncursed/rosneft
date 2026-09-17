@@ -4,8 +4,8 @@ Guidance for Claude Code when working in `backend/`.
 
 ## Stack
 
-- **Go 1.27.0**, `go.work` workspace with one module per service (`services/*`) plus `pkg/` and `proto/` — 11 modules, all pinning `go 1.27.0`; every build stage is `golang:1.27.0-alpine`. Dependency matrix and bump procedure: [`README.md#toolchain--dependencies`](README.md#toolchain--dependencies).
-- **Postgres 17** (catalog), **Redis 8 Streams** (mesh job queue), filesystem `BlobStore` (asset).
+- **Go 1.27.1**, `go.work` workspace with one module per service (`services/*`) plus `pkg/` and `proto/` — 11 modules, all pinning `go 1.27.1`; every build stage is `golang:1.27.1-alpine`. Dependency matrix and bump procedure: [`README.md#toolchain--dependencies`](README.md#toolchain--dependencies).
+- **Postgres 18.6** (catalog), **Redis 8 Streams** (mesh job queue), filesystem `BlobStore` (asset).
 - **gRPC** for service-to-service, **HTTP/JSON** for the gateway, OpenAPI spec served by gateway with Scalar UI.
 - **Docker Compose** orchestrates the containers: `postgres`, `redis`, `gateway`, `catalog`, `auth`, `twofa`, `passkey`, `content`, `mesh-api`, `mesh-worker`, `asset`, `upload`, `prometheus`. The compose file lives at the repo root (`docker-compose.yml`); `make compose-up` from `backend/` works via `-f ../docker-compose.yml`. The frontend is **not** a compose service — it runs locally (`yarn dev --port 3000`; port 3000, not Vite's 5173, because `PASSKEY_RP_ORIGINS` is pinned to it).
 
@@ -14,16 +14,22 @@ Guidance for Claude Code when working in `backend/`.
 | Service | Module | Cmds | Role |
 | --- | --- | --- | --- |
 | gateway | `services/gateway-service` | `gateway` | Public REST + Scalar UI on `:8080`; proxies `/api/assets/*` to asset; speaks gRPC to catalog, content, auth, twofa, passkey, mesh-api, and upload. Runs ETag + Brotli/gzip middleware on JSON, exposes a single-shot scene bundle and SSE job stream. Terminates the chunked-upload protocol on `/api/uploads`. |
-| catalog | `services/catalog-service` | `catalog` | Owns territories + models + their artifacts + placements + territory admins. Postgres-backed. API-driven (no startup seeding). Keeps a read-only `ListPanoramaIDs` to validate placement visibility against content's panoramas table (shared DB). |
+| catalog | `services/catalog-service` | `catalog` | Owns territories + models + their artifacts + placements + measurements (saved ruler chains, rescaled with placements) + territory admins. Postgres-backed. API-driven (no startup seeding). Keeps a read-only `ListPanoramaIDs` to validate placement visibility against content's panoramas table (shared DB). |
 | content | `services/content-service` | `content` | gRPC `:9007`. Owns **documents** (PDFs) + **panoramas** (equirect images) anchored to a territory — non-geometry media, no mesh pipeline. Shares the `andrey` DB isolated by `content_goose_db_version`; the `territories` FK cascade still cleans up its rows on territory delete. Extracted from catalog. |
 | auth | `services/auth-service` | `auth` | gRPC `:9004`. Owns users, roles, permissions, sessions. Postgres + Redis (auth cache, logical DB 1). Delegates 2FA login verification to twofa. |
 | twofa | `services/twofa-service` | `twofa` | gRPC `:9006`. Owns TOTP secrets, recovery codes, 2FA verify. Postgres + Redis (logical DB 2). AES-GCM-encrypts secrets at rest. |
 | passkey | `services/passkey-service` | `passkey` | gRPC `:9008`. Owns WebAuthn credentials + ceremonies. Postgres (`passkey_credentials`) + Redis (ceremony challenges, logical DB 3). Gateway calls the management RPCs; auth calls `BeginLogin`/`FinishLogin` — `FinishLogin` returns a **verified user id, never a session**. `PASSKEY_RP_ID`/`PASSKEY_RP_ORIGINS` must match the browser address bar exactly. |
 | mesh-api | `services/mesh-service` | `mesh-api` | gRPC façade for `SubmitConversion(kind, slug)` / `GetJob`. Writes Redis Streams. |
-| mesh-worker | `services/mesh-service` | `mesh-worker` | Consumes the stream, fetches the source ZIP from BlobStore by hash, extracts to a tmp dir, runs the OBJ→GLB converter, applies optional Draco / KTX2 / LOD via `gltfpack`, writes each LOD GLB to BlobStore, registers each artifact in catalog (territory_artifacts vs model_artifacts based on Kind). Runs the reconciler that auto-queues entities whose LOD0 GLB is missing. |
+| mesh-worker | `services/mesh-service` | `mesh-worker` | Consumes the stream, fetches the source ZIP from BlobStore by hash, extracts to a tmp dir, runs the OBJ→GLB converter, applies optional meshopt / KTX2 / LOD via `gltfpack`, writes each LOD GLB to BlobStore, registers each artifact in catalog (territory_artifacts vs model_artifacts based on Kind). Runs the reconciler that auto-queues entities whose LOD0 GLB is missing. |
 | asset | `services/asset-service` | `asset` | Internal HTTP serving content-addressed GLB blobs with immutable cache headers + ETag. |
 | audit | `services/audit-service` | `audit` | gRPC `:9009`. Owns the append-only `audit_log` plus the generic `audit_capture()` trigger attached to every audited table. Shares the `andrey` DB, isolated by `audit_goose_db_version`. Re-attaches its triggers idempotently on every boot via `ensure_audit_triggers()`, so it needs no ordering against the other services' migrations. Also seals periodic checkpoint digests and witnesses them to a volume outside the database (`audit verify`, `audit export`). |
 | upload | `services/upload-service` | `upload` | Internal gRPC accepting resumable chunked uploads (`Initiate` / `WriteChunk(stream)` / `GetStatus` / `Finalize` / `Abort`). On Finalize the bytes are SHA-256 hashed and moved into BlobStore; the gateway forwards the resulting hash into `createTerritory` / `createModel`. |
+
+There is a request-path call cycle: `twofa.Setup → auth.GetMe → ValidateToken →
+twofa.IsEnabled`. It terminates at depth 2 and is not a deadlock today — no
+gRPC server here caps `MaxConcurrentStreams` — but whoever adds that cap later
+needs to know the cycle exists, since a cap tight enough to starve one call in
+the loop would starve the whole chain.
 
 ## Architecture conventions
 
@@ -33,7 +39,7 @@ Guidance for Claude Code when working in `backend/`.
 - Catalog client lives inside `mesh-service/internal/catalog/`; mesh-service depends on a small interface, not the proto types.
 - Bootstrap pattern: `internal/bootstrap/` wires service+transport+config and is the only place that touches `os.Args`/env/clients.
 - Errors are sentinels in `domain/errors.go`; transport translates them to gRPC `codes.*` / HTTP statuses.
-- **File size cap: 200 lines**, same as the frontend rule. Reviewed by hand on the backend (no oxlint equivalent).
+- **File size cap: 200 lines**, same as the frontend rule. Reviewed by hand (neither side has a linter for it).
 - **Tests**: `testify/suite` for grouping + `gotest.tools/v3/assert` for assertions + `gojuno/minimock/v3` for interface mocks. Stdlib `testing` alone is not used in new tests. Service dependencies are mocked via `//go:generate minimock -i <Interfaces> -o ./mocks -s _mock.go` on the interface file (mirrors auth-service); the generated `mocks/` package is lint-exempt. Assertions stay `gotest.tools` even inside suite methods (`assert.X(s.T(), …)`, not `s.Equal()`). Build the controller per test in `SetupTest` with `minimock.NewController(s.T())` (auto-verifies on cleanup — no manual `AssertExpectations`). For an errgroup/derived-context call, match the ctx with `minimock.AnyContext`.
 
 ## Build / run
@@ -127,17 +133,19 @@ Each entity has its own artifact family (`territory_artifacts` / `model_artifact
 ## Mesh conversion pipeline
 
 1. Frontend uploads a ZIP via `POST /api/uploads` (chunked) → `POST /api/uploads/{id}/finalize` returns a `blobHash`.
-2. Frontend `POST /api/territories` (or `/api/models`) with `{slug, title, description, sourceBlobHash}` → gateway upserts in catalog and queues `mesh-api.SubmitConversion(kind=TERRITORY|MODEL, slug)` → Redis Stream + Postgres job row. Response carries the `Job` so the client can subscribe to SSE.
+2. Frontend `POST /api/territories` (or `/api/models`) with `{slug, title, description, sourceBlobHash}` → gateway upserts in catalog and calls `mesh-api.SubmitConversion(kind=TERRITORY|MODEL, slug)`. That either queues a conversion (Redis Stream + Postgres job row) **or**, when the target claim is already held, hands back the job already in flight for that target — the caller wanted a job to follow, and that is it. Response carries the `Job` either way, so the client can subscribe to SSE.
+   - **A source replaced mid-conversion is re-queued when the running job finishes.** The in-flight job read `source_blob_hash` once, at its start, so it publishes artifacts built from the *old* bytes; `ProcessJob` re-reads the target after marking the job succeeded and submits again when the hash moved (`requeue_if_replaced.go`). Without that, the replacement never converted and nothing errored: `HasLOD0` was true, so the reconciler never retried.
 3. `mesh-worker` consumes the stream, calls catalog for `ConversionTarget` (kind+slug → source_blob_hash), fetches the ZIP from BlobStore by hash, extracts to a tmp dir, recursively finds the first `.obj`, and runs the converter.
 4. Converter: streaming OBJ parser (positions, UVs, faces, fan-triangulation, Z-up→Y-up, V-flip, `usemtl` grouping) → dedup `(v_idx, vt_idx)` pairs → MTL parser (`Kd`, `d`/`Tr`, `map_Kd`) → per-material glTF primitive sharing one position/UV buffer; PBR baseColorFactor (always) + baseColorTexture (when `map_Kd` exists). Texture cache deduplicates images shared across materials. Normalize (center, scale to maxDim=2). Emit GLB.
 5. Optional `gltfpack` post-processing pass — flag set chosen by config:
-   - `MESH_DRACO_ENABLED=true` (default) → `-cc` adds `KHR_draco_mesh_compression`.
+   - `MESH_MESHOPT_ENABLED=true` (default) → `-cc` adds `EXT_meshopt_compression`, decoded automatically by drei's `MeshoptDecoder`. `MESH_DRACO_ENABLED` is still read for one release as a deprecated alias, with a `slog.Warn` on use.
    - `MESH_KTX2_ENABLED=true` (default on) → `-tc` re-encodes textures via Basis Universal (`KHR_texture_basisu`). Frontend MUST register a `KTX2Loader` via `useGLTF.setKTX2Loader(...)` — drei does NOT auto-register one, and missing loader silently produces solid-colour textures.
    - `MESH_LOD_RATIOS=0.5,0.25` (default) → for each ratio, run `gltfpack -si <r> -ts <r>` against the **uncompressed** GLB to produce LOD1, LOD2, …. LOD0 itself is never simplified (it stays full quality). Frontends that don't request lower LODs simply ignore the extra artifacts.
      - **`-ts` takes the same ratio as `-si`, and the input must be the raw GLB.** gltfpack cannot decode Basis Universal, so a pass fed the already-compressed LOD0 silently ignores `-ts` and every LOD ships full-resolution textures. That is why `ConvertLODs` calls `convertRaw` and hands `raw.content` to `Simplify` rather than reusing `base.Content` — see `converter/raw.go`.
-     - Measured on `dji-wp-46-cut` (1.8M triangles): adding `-ts` took LOD2 from 37.8% to **23.3%** of LOD0's bytes. Textures turned out to be only ~17% of the file, not the majority — Draco already does most of the work — but they were a fixed floor the coarse LOD could not get under.
+     - Measured on `dji-wp-46-cut` (1.8M triangles): adding `-ts` took LOD2 from 37.8% to **23.3%** of LOD0's bytes. Textures turned out to be only ~17% of the file, not the majority — meshopt compression already does most of the work — but they were a fixed floor the coarse LOD could not get under.
+     - Every LOD records its own `vertices`/`faces`, read back from the produced GLB's glTF header (`glb_stats.go`), and copies LOD0's source-unit bounding box; a decode failure leaves that LOD's counts at zero without failing the job (`simplifyLOD`, `convert_lods.go`), and artifacts converted before this landed aren't backfilled (their LOD1/2 counts stay 0).
 6. Worker writes each LOD GLB to BlobStore (content-addressed, SHA-256 filename, 2-char prefix sharding) and calls `RegisterTerritoryArtifact` or `RegisterModelArtifact` (selected by Job.Kind) in catalog.
-7. Reconciler runs in-process every minute: lists every territory + model via the catalog client, queues `SubmitConversion` for any without a LOD0 artifact — auto-recovers stuck conversions without manual trigger.
+7. Reconciler runs in-process every 5 minutes (`reconcileTickInterval`): lists every territory + model via the catalog client, queues `SubmitConversion` for any without a LOD0 artifact — auto-recovers stuck conversions without manual trigger. The same tick also **sweeps the target index** (`andrey:mesh:targets`), forgetting entries for targets the catalog no longer lists, so a deleted territory or model drops out of `GET /api/jobs` within one tick instead of sitting there forever. The job hash itself is kept, so an SSE subscriber holding the id can still read it.
 
 ### gltfpack binary
 
@@ -160,7 +168,11 @@ Implemented in `gateway-service`:
 - **Scene bundle**: `GET /api/territories/{slug}/scene` aggregates territory + LOD0 artifact (with full `artifacts: [LodArtifact]` chain attached) + placements + model options (each with its own `artifacts: [LodArtifact]` chain) in one round trip via `errgroup` parallel fan-out. Replaces 4+ client requests on first paint and removes any need for follow-up `GetArtifact` calls when the frontend wants a specific LOD.
 - **SSE conversion stream**: `GET /api/jobs/{id}/events` emits `event: job` whenever the job state changes; gateway polls mesh-api every 1 s under the hood. Stream terminates on `succeeded` / `failed`. The Job payload carries `kind` and `slug` so the client knows which entity is being converted.
 - **Chunked upload**: `POST /api/uploads` initiates a session, `PATCH /api/uploads/{id}` appends bytes (raw `application/octet-stream` body, `Upload-Offset` header), `HEAD` reports current offset for resumability, `POST .../finalize` publishes the bytes to BlobStore. Gateway terminates the public HTTP flow and translates each operation into a gRPC call to upload-service (chunks travel as a client-streaming RPC).
-- **ETag** middleware on all GET JSON endpoints — strong ETag = sha256 of the response body, supports `If-None-Match` → 304. PATCH/POST upload endpoints bypass the JSON middleware chain (raw bytes, no compression).
+  - **A session belongs to its author.** upload-service stores the initiating user (`x-actor-id`) in the session's `meta.json`; HEAD/PATCH/finalize/DELETE from anyone else answer 404, like a missing id. The author reaches the chunk stream only because `grpcutil.Dial` chains `ActorStreamClientInterceptor` too — drop it and every PATCH is refused. A session without an author (written before this) belongs to nobody — **deploy note:** an upload in flight when this shipped (H) cannot be resumed and must be started again.
+  - A refused chunk stream is closed by upload-service after its first message; the gateway client then sees `io.EOF` from `Send` and must read the real status from `CloseAndRecv` (`clients/upload.sendChunks`), or a foreign session answers 500 instead of 404.
+  - Finalize also records `<incoming>/uploaded/<hash>/<user>`, which `HasUploaded` reads — see **Blob scoping**.
+- **Body limit**: `httpapi.LimitBody` on the root router answers 413 to any body over 1 MiB before a handler reads it (`/api/auth/*` included). The chunk PATCH is exempt; upload-service bounds it by the session's declared size.
+- **ETag** middleware on all GET JSON endpoints — strong ETag = sha256 of the response body, supports `If-None-Match` → 304. The upload routes live in the `/api` group like every other: ETag touches only GET, Compress skips the non-JSON bodies, and only the chunk PATCH is exempt from `LimitBody`.
 - **Brotli/gzip** middleware on JSON only — `Accept-Encoding` negotiation, br preferred; binary blobs (asset proxy) bypass.
 - **Cache-Control: immutable** on `/api/assets/{hash}` (asset-service emits this; gateway proxy preserves the header).
 
@@ -202,14 +214,14 @@ Deliberately unwrapped, each with a comment saying why: the artifact registrars
 in catalog (their tables carry no trigger) and `users.MarkTourSeen` (it writes
 only ignored columns).
 
-**Adding an audited table? Update `frontend/src/audit/domain/vocabulary.ts`
-too.** The journal's filter bar keeps its own copy of the entity list, and
-nothing links the two — no compiler, and no test either: `vocabulary.test.ts`
-pins the list to what it already contains, so a table added here keeps passing
-it. The symptom is silent and one-sided: entries for the new entity show up in
-the journal, because `entity` comes from the server, but the Entity dropdown
-cannot select it. That already happened once — the list sat at eight entities
-while the triggers wrote ten. Note the entity name is the spec array's *second*
+**Adding an audited table? The frontend keeps no entity list** — the journal's
+`entity:` filter is free text, so a new entity is filterable the moment the
+trigger writes it. (The old SPA kept a hand-copied list, and it once sat at
+eight entities while the triggers wrote ten.) What the client does special-case
+is a row's name: `entityName` (`frontend/src/entities/audit/model/audit-entry.ts`)
+prints `entityLabel`, and falls back to `measurement #id` for the one table
+whose trigger records no label — a new label-less table needs a line there, or
+its rows read nameless. Note the entity name is the spec array's *second*
 column (`territory_assignments` → `territory`), and a new one arrives in a new
 migration that `CREATE OR REPLACE`s `ensure_audit_triggers()`, not by editing
 `00002`.
@@ -284,18 +296,51 @@ in `gateway-service/internal/transport/authhttp/audit.go`. Only events that
 change no table belong in that map: user and role mutations are already caught
 by the triggers, and listing them would double-write.
 
-The trigger logic is SQL, so it is covered by the repo's only integration tests:
+The trigger logic is SQL, so it is covered by integration tests:
 `services/audit-service/internal/migrate/*_integration_test.go`, behind the
-`integration` build tag. Run with `go test -tags=integration ./...` from
-`services/audit-service`; needs Docker. `make test` stays Docker-free.
+`integration` build tag. They are not the only ones in the repo —
+`catalog-service/internal/storage/*_integration_test.go` (blob scoping, the
+placement territory scope, model delete, list counts, the measurement territory
+scope and points constraint, and the rescale CTE over placements and
+measurements),
+`content-service/internal/storage/territory_scope_integration_test.go` (panorama
+and document territory scope, including the allowlist scrub),
+`auth-service/internal/storage/users/set_totp_required_integration_test.go`,
+`auth-service/internal/migrate/measurement_permissions_integration_test.go`
+(which system role holds which measurement grant),
+`auth-service/internal/migrate/model_library_permissions_integration_test.go`
+(no system or tenant role changes the model library) and
+`catalog-service/internal/migrate/scrub_panorama_ids_integration_test.go` (00016
+keeps only a placement's own panorama ids) cover SQL logic the same way,
+in their own services; the audit suites include the `measurements` trigger and
+its rollback. Run them per module with
+`GOWORK=off go test -race -tags=integration ./internal/storage/...` (auth and
+catalog: add `./internal/migrate/...`, whose `export_test.go` provides `DownTo`
+because `Down` only undoes the newest migration; audit: `./...` from `services/audit-service`); needs
+Docker. The content suite has no
+schema of its own — it applies catalog's migrations from the repo checkout.
+**`make check`, `make test` and CI do not run them**: they stay Docker-free, so
+a regression in this SQL is caught only by running the suites by hand.
 
 ## Tenant isolation
 
 Scope is enforced by `httpapi.RequireTerritoryAccess`, mounted in the `/api`
 group after `RequirePermissionForRoute` (the permission check costs no network,
 so a caller heading for a 403 should not first buy a catalog lookup). It matches
-on the route-pattern prefix `/api/territories/{slug}`, so all thirteen child
-routes — and any added later — are covered without anyone remembering.
+on the route-pattern prefix `/api/territories/{slug}`, so every child route —
+thirteen when it landed, measurements since — and any added later are covered
+without anyone remembering.
+
+**The middleware checks the slug; the handler must still use it.** A check on
+the URL's territory says nothing about a row id in the same URL. Until
+`c5ec5e1d` five id-addressed mutations (placement update/delete, panorama
+update/delete, document delete) passed only the id down and storage matched
+`WHERE id = $1`, so a caller with access to their own territory changed
+another tenant's rows through it. Every id-addressed statement now also
+matches the territory by slug in SQL, and a foreign id answers the same 404 as
+a missing one. `route_permissions_spec_test.go` separately fails when a
+non-GET operation in the spec is neither in `routePerms` nor a reasoned
+exception — the visibility PUT had slipped through with no grant at all.
 
 That shape is deliberate. The hole it closed was not a missing check but a check
 that had to be threaded through thirteen handlers and reached three of them.
@@ -313,8 +358,13 @@ value does not mean "no access", it means "every territory".
 
 `/api/assets/{hash}` carries `RequireBlobAccess` rather than the territory gate —
 see **Blob scoping** below for why the two cannot be the same check.
-`/api/jobs/{id}/events` is authenticated but deliberately unscoped: a job id is
-128 random bits and its payload names a kind and a slug, not a blob.
+`/api/jobs/{id}/events` and `/api/jobs` are authenticated and tenant-scoped in
+the handler rather than by the middleware: neither path carries a `{slug}`, so
+`RequireTerritoryAccess` cannot see them. `Server.scopedJob` resolves the job
+first and then checks its slug; `visibleJob` filters the list. Both refuse in the
+404 shape ("job not found" / an absent row), both let models through — the
+library is shared — and both fail closed on an empty scope, for the reason the
+paragraph above gives.
 
 ### Blob scoping
 
@@ -330,6 +380,17 @@ The logic is entirely SQL, so it is covered by a testcontainers suite
 would assert only argument passing, while a scope filter dropped from one branch
 leaks exactly one class of asset, silently. That suite was checked by removing a
 filter and confirming it fails.
+
+**A hash in a request body is the other half.** `POST /api/territories`,
+`…/source`, `POST /api/models` (source and thumbnail), `PATCH /api/models/{slug}`,
+`POST …/panoramas` and `POST …/documents` accept a hash only if the caller
+finalized that upload (`upload.HasUploaded`) or already passes
+`ResolveBlobAccess` for it (`service/authorize_blob.go`); anything else is
+`400 unknown blob hash`, the same for "someone else's" and "nonexistent". Without
+it, anyone who once learned a hash could attach it to a row of their own and read
+the blob from then on. Root is waved through by `BlobScope.AllAccess`, as in
+`RequireBlobAccess` — `ResolveBlobAccess(hash, "")` means "held by any row", not
+"allowed". A new route taking a hash must call `authorizeBlobs`.
 
 **Added a table with a hash column? Add a branch and a test case.** Otherwise
 the new asset type is reachable by nobody or by everybody, and neither the
@@ -396,7 +457,7 @@ gets stolen.
 - Images are slim distroless (`distroless/static` for static-link Go services, `distroless/cc` for `mesh-worker` because it ships gltfpack alongside).
 - Volumes (all named, Docker-managed for nonroot ownership):
   - `blob-data:/var/blob` — BlobStore root, shared between mesh-worker (rw), asset (ro), and upload (rw).
-  - `upload-incoming:/var/upload/incoming` — partial-upload session state (per-session subdir, deleted on Finalize/Abort).
+  - `upload-incoming:/var/upload/incoming` — partial-upload session state (per-session subdir, deleted on Finalize/Abort), **and** `uploaded/<hash>/<user>`, the H-1 markers of who finalized which hash. Do not clean `uploaded/` as leftover state: without it users can no longer attach their own earlier uploads that they cannot yet read through `ResolveBlobAccess`.
   - `postgres-data`, `redis-data` — datastore persistence.
 - All services log structured JSON via `log/slog`.
 - Every container gets `TZ=Europe/Moscow` from the `x-tz` anchor at the top of the compose file, so the `time` field of each log record reads `+03:00` instead of `Z`. Both distroless bases already ship `/usr/share/zoneinfo`, so no `time/tzdata` import is needed. Two things this does *not* do: `docker logs -t` prefixes stay UTC (the daemon stamps them before the container is involved), and a running container will not pick the zone up — `TZ` is read at creation, so it takes `up -d --force-recreate`, not `restart`.

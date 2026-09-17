@@ -13,25 +13,28 @@ import (
 )
 
 // UpdatePlacement replaces the placement's transform and label and bumps
-// updated_at. Returns ErrPlacementNotFound for unknown IDs.
+// updated_at. The update is scoped to p.TerritorySlug, so an id from another
+// territory yields ErrPlacementNotFound exactly like an unknown id — the
+// gateway's territory gate checks only the slug in the URL.
 //
 // Wrapped in audittx.Run so the audit trigger can attribute the change — this
 // is the write behind every gizmo drag, so it is the busiest audited path.
 func (r *PG) UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
 	const q = `
 		WITH updated AS (
-			UPDATE placements SET
+			UPDATE placements pl SET
 				position_x = $2, position_y = $3, position_z = $4,
 				rotation_x = $5, rotation_y = $6, rotation_z = $7,
 				scale_x    = $8, scale_y    = $9, scale_z    = $10,
 				label      = $11,
 				updated_at = NOW()
-			WHERE id = $1
-			RETURNING id, territory_id, model_id,
-				position_x, position_y, position_z,
-				rotation_x, rotation_y, rotation_z,
-				scale_x, scale_y, scale_z,
-				label, created_at, updated_at, visible_panorama_ids
+			FROM territories t
+			WHERE pl.id = $1 AND pl.territory_id = t.id AND t.slug = $12
+			RETURNING pl.id, pl.territory_id, pl.model_id,
+				pl.position_x, pl.position_y, pl.position_z,
+				pl.rotation_x, pl.rotation_y, pl.rotation_z,
+				pl.scale_x, pl.scale_y, pl.scale_z,
+				pl.label, pl.created_at, pl.updated_at, pl.visible_panorama_ids
 		)
 		SELECT u.id, t.slug, m.slug,
 			u.position_x, u.position_y, u.position_z,
@@ -49,7 +52,7 @@ func (r *PG) UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Pl
 			p.Position.X, p.Position.Y, p.Position.Z,
 			p.Rotation.X, p.Rotation.Y, p.Rotation.Z,
 			p.Scale.X, p.Scale.Y, p.Scale.Z,
-			p.Label,
+			p.Label, p.TerritorySlug,
 		)
 		var scanErr error
 		out, scanErr = scanPlacement(row)

@@ -75,6 +75,23 @@ func (h *Handlers) unfreezeUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, h.userJSON(r.Context(), u))
 }
 
+func (h *Handlers) requireUser2FA(w http.ResponseWriter, r *http.Request) {
+	h.setUser2FARequired(w, r, true)
+}
+
+func (h *Handlers) unrequireUser2FA(w http.ResponseWriter, r *http.Request) {
+	h.setUser2FARequired(w, r, false)
+}
+
+func (h *Handlers) setUser2FARequired(w http.ResponseWriter, r *http.Request, required bool) {
+	u, err := h.client.SetUserTOTPRequired(r.Context(), sessionToken(r), chi.URLParam(r, "id"), required)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, h.userJSON(r.Context(), u))
+}
+
 func (h *Handlers) softDeleteUser(w http.ResponseWriter, r *http.Request) {
 	if err := h.client.SoftDeleteUser(r.Context(), sessionToken(r), chi.URLParam(r, "id")); err != nil {
 		fail(w, err)

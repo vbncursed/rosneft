@@ -13,15 +13,15 @@ import (
 // rescale baseline from the old LOD0 → clear artifacts → re-queue conversion.
 
 func (s *TerritoriesSuite) TestReplaceSourceRejectsEmptyInputs() {
-	_, _, err := s.svc.ReplaceTerritorySource(s.ctx, "", "h")
+	_, _, err := s.svc.ReplaceTerritorySource(s.ctx, "", "h", rootScope)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
-	_, _, err = s.svc.ReplaceTerritorySource(s.ctx, "t1", "")
+	_, _, err = s.svc.ReplaceTerritorySource(s.ctx, "t1", "", rootScope)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *TerritoriesSuite) TestReplaceSourceReturnsNotFoundForUnknown() {
 	s.cat.GetTerritoryMock.Expect(s.ctx, "missing", "").Return(domain.Territory{}, domain.ErrTerritoryNotFound)
-	_, _, err := s.svc.ReplaceTerritorySource(s.ctx, "missing", "h2")
+	_, _, err := s.svc.ReplaceTerritorySource(s.ctx, "missing", "h2", rootScope)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrTerritoryNotFound))
 }
 
@@ -37,7 +37,7 @@ func (s *TerritoriesSuite) TestReplaceSourceSwapsHashClearsArtifactsAndQueues() 
 	s.mesh.SubmitConversionMock.Expect(s.ctx, domain.KindTerritory, "t1").
 		Return(domain.Job{ID: "job-1", Kind: domain.KindTerritory, Slug: "t1"}, nil)
 
-	out, job, err := s.svc.ReplaceTerritorySource(s.ctx, "t1", "new")
+	out, job, err := s.svc.ReplaceTerritorySource(s.ctx, "t1", "new", rootScope)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), out.SourceBlobHash, "new")
 	assert.Equal(s.T(), job.ID, "job-1")
@@ -58,7 +58,7 @@ func (s *TerritoriesSuite) TestReplaceSourceSetsRescaleBaselineFromOldLOD0() {
 	s.cat.DeleteTerritoryArtifactsMock.Expect(s.ctx, "t1").Return(nil)
 	s.mesh.SubmitConversionMock.Return(domain.Job{ID: "job-1"}, nil)
 
-	_, _, err := s.svc.ReplaceTerritorySource(s.ctx, "t1", "new")
+	_, _, err := s.svc.ReplaceTerritorySource(s.ctx, "t1", "new", rootScope)
 	assert.NilError(s.T(), err)
 }
 
@@ -74,7 +74,7 @@ func (s *TerritoriesSuite) TestReplaceSourceSkipsBaselineWhenNoLOD0() {
 	s.cat.DeleteTerritoryArtifactsMock.Expect(s.ctx, "t1").Return(nil)
 	s.mesh.SubmitConversionMock.Return(domain.Job{ID: "job-1"}, nil)
 
-	_, _, err := s.svc.ReplaceTerritorySource(s.ctx, "t1", "new")
+	_, _, err := s.svc.ReplaceTerritorySource(s.ctx, "t1", "new", rootScope)
 	assert.NilError(s.T(), err)
 }
 
@@ -88,7 +88,7 @@ func (s *TerritoriesSuite) TestReplaceSourceSurfacesMeshErrorWithSavedTerritory(
 	s.cat.DeleteTerritoryArtifactsMock.Expect(s.ctx, "t1").Return(nil)
 	s.mesh.SubmitConversionMock.Return(domain.Job{}, errors.New("redis down"))
 
-	out, job, err := s.svc.ReplaceTerritorySource(s.ctx, "t1", "new")
+	out, job, err := s.svc.ReplaceTerritorySource(s.ctx, "t1", "new", rootScope)
 	assert.ErrorContains(s.T(), err, "redis down")
 	assert.Equal(s.T(), out.SourceBlobHash, "new")
 	assert.Equal(s.T(), job.ID, "")
