@@ -9,6 +9,10 @@ option go_package = "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/u
 // of these RPCs. Partial uploads live on the upload-service local filesystem
 // (or shared volume in multi-replica deployments); on Finalize the bytes are
 // hashed and moved into BlobStore.
+//
+// A session belongs to the caller who initiated it (x-actor-id metadata, set
+// by the gateway): WriteChunk, GetStatus, Finalize and Abort answer NOT_FOUND
+// to anyone else, exactly as for an id that does not exist.
 service UploadService {
   // Initiate creates a new upload session for an expected total size.
   rpc Initiate(InitiateRequest) returns (InitiateResponse);
@@ -28,6 +32,11 @@ service UploadService {
 
   // Abort discards a partial upload session.
   rpc Abort(AbortRequest) returns (AbortResponse);
+
+  // HasUploaded reports whether the caller (x-actor-id metadata) ever
+  // finalized an upload with this hash. The gateway accepts a blob hash in a
+  // request body only from a caller who uploaded it or can already read it.
+  rpc HasUploaded(HasUploadedRequest) returns (HasUploadedResponse);
 }
 
 message InitiateRequest {
@@ -73,3 +82,10 @@ message AbortRequest {
   string upload_id = 1;
 }
 message AbortResponse {}
+
+message HasUploadedRequest {
+  string blob_hash = 1;
+}
+message HasUploadedResponse {
+  bool uploaded = 1;
+}

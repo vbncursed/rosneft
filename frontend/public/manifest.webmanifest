@@ -1,11 +1,11 @@
 {
-  "name": "Andrey 3D Viewer",
+  "name": "Andrey Viewer",
   "short_name": "Andrey",
-  "description": "Walk through scanned territories in 3D \u2014 place models, measure distances, and pin panoramas and documents to the scene.",
+  "description": "Walk through scanned territories in 3D — place models, measure distances, and pin panoramas and documents to the scene.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0a0a0a",
+  "background_color": "#0e0f11",
+  "theme_color": "#0e0f11",
   "icons": [
     {
       "src": "/icon.svg",

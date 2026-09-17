@@ -8,10 +8,13 @@ import (
 )
 
 // UpdatePlacement replaces the transform + label of an existing placement.
-// TerritorySlug / ModelSlug on the input are ignored — clients cannot move
-// a placement to a different territory or swap the model via update; they
-// delete and re-create instead.
+// TerritorySlug scopes the lookup (a placement on another territory reads as
+// not found) and is never written; ModelSlug is ignored — clients cannot move
+// a placement or swap its model via update, they delete and re-create instead.
 func (c *Catalog) UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
+	if p.TerritorySlug == "" {
+		return domain.Placement{}, fmt.Errorf("service.UpdatePlacement: %w: empty territory slug", domain.ErrInvalidInput)
+	}
 	if p.ID == 0 {
 		return domain.Placement{}, fmt.Errorf("service.UpdatePlacement: %w: id is required", domain.ErrInvalidInput)
 	}

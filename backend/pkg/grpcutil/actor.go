@@ -79,12 +79,29 @@ func ActorClientInterceptor() grpc.UnaryClientInterceptor {
 		ctx context.Context, method string, req, reply any,
 		cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption,
 	) error {
-		if a := ActorFromContext(ctx); a.ID != "" {
-			ctx = metadata.AppendToOutgoingContext(ctx,
-				ActorIDHeader, a.ID,
-				ActorCompanyHeader, a.Company,
-			)
-		}
-		return invoker(ctx, method, req, reply, cc, opts...)
+		return invoker(withActorMetadata(ctx), method, req, reply, cc, opts...)
 	}
+}
+
+// ActorStreamClientInterceptor is the streaming counterpart. upload-service
+// checks a chunk stream's author against the session's, so a stream that lost
+// the actor is refused rather than attributed to nobody.
+func ActorStreamClientInterceptor() grpc.StreamClientInterceptor {
+	return func(
+		ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn,
+		method string, streamer grpc.Streamer, opts ...grpc.CallOption,
+	) (grpc.ClientStream, error) {
+		return streamer(withActorMetadata(ctx), desc, cc, method, opts...)
+	}
+}
+
+func withActorMetadata(ctx context.Context) context.Context {
+	a := ActorFromContext(ctx)
+	if a.ID == "" {
+		return ctx
+	}
+	return metadata.AppendToOutgoingContext(ctx,
+		ActorIDHeader, a.ID,
+		ActorCompanyHeader, a.Company,
+	)
 }

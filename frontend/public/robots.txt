@@ -39,5 +39,4 @@ Disallow: /api/
 
 # No Sitemap: line, and no sitemap.xml. The only URLs worth listing are
 # territory and model slugs, so that file would be a public inventory of a
-# private tenant's contents, served to anyone with no session at all. See
-# frontend/README.md for the same reasoning about rel=canonical.
+# private tenant's contents, served to anyone with no session at all.

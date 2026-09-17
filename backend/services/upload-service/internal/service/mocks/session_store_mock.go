@@ -48,12 +48,26 @@ type SessionStoreMock struct {
 	beforeGetStatusCounter uint64
 	GetStatusMock          mSessionStoreMockGetStatus
 
-	funcInitiate          func(ctx context.Context, id string, size int64, contentType string) (s1 domain.Session, err error)
+	funcHasUpload          func(ctx context.Context, hash string, owner string) (b1 bool, err error)
+	funcHasUploadOrigin    string
+	inspectFuncHasUpload   func(ctx context.Context, hash string, owner string)
+	afterHasUploadCounter  uint64
+	beforeHasUploadCounter uint64
+	HasUploadMock          mSessionStoreMockHasUpload
+
+	funcInitiate          func(ctx context.Context, id string, owner string, size int64, contentType string) (s1 domain.Session, err error)
 	funcInitiateOrigin    string
-	inspectFuncInitiate   func(ctx context.Context, id string, size int64, contentType string)
+	inspectFuncInitiate   func(ctx context.Context, id string, owner string, size int64, contentType string)
 	afterInitiateCounter  uint64
 	beforeInitiateCounter uint64
 	InitiateMock          mSessionStoreMockInitiate
+
+	funcRecordUpload          func(ctx context.Context, hash string, owner string) (err error)
+	funcRecordUploadOrigin    string
+	inspectFuncRecordUpload   func(ctx context.Context, hash string, owner string)
+	afterRecordUploadCounter  uint64
+	beforeRecordUploadCounter uint64
+	RecordUploadMock          mSessionStoreMockRecordUpload
 }
 
 // NewSessionStoreMock returns a mock for mm_service.SessionStore
@@ -76,8 +90,14 @@ func NewSessionStoreMock(t minimock.Tester) *SessionStoreMock {
 	m.GetStatusMock = mSessionStoreMockGetStatus{mock: m}
 	m.GetStatusMock.callArgs = []*SessionStoreMockGetStatusParams{}
 
+	m.HasUploadMock = mSessionStoreMockHasUpload{mock: m}
+	m.HasUploadMock.callArgs = []*SessionStoreMockHasUploadParams{}
+
 	m.InitiateMock = mSessionStoreMockInitiate{mock: m}
 	m.InitiateMock.callArgs = []*SessionStoreMockInitiateParams{}
+
+	m.RecordUploadMock = mSessionStoreMockRecordUpload{mock: m}
+	m.RecordUploadMock.callArgs = []*SessionStoreMockRecordUploadParams{}
 
 	t.Cleanup(m.MinimockFinish)
 
@@ -1549,6 +1569,380 @@ func (m *SessionStoreMock) MinimockGetStatusInspect() {
 	}
 }
 
+type mSessionStoreMockHasUpload struct {
+	optional           bool
+	mock               *SessionStoreMock
+	defaultExpectation *SessionStoreMockHasUploadExpectation
+	expectations       []*SessionStoreMockHasUploadExpectation
+
+	callArgs []*SessionStoreMockHasUploadParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// SessionStoreMockHasUploadExpectation specifies expectation struct of the SessionStore.HasUpload
+type SessionStoreMockHasUploadExpectation struct {
+	mock               *SessionStoreMock
+	params             *SessionStoreMockHasUploadParams
+	paramPtrs          *SessionStoreMockHasUploadParamPtrs
+	expectationOrigins SessionStoreMockHasUploadExpectationOrigins
+	results            *SessionStoreMockHasUploadResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// SessionStoreMockHasUploadParams contains parameters of the SessionStore.HasUpload
+type SessionStoreMockHasUploadParams struct {
+	ctx   context.Context
+	hash  string
+	owner string
+}
+
+// SessionStoreMockHasUploadParamPtrs contains pointers to parameters of the SessionStore.HasUpload
+type SessionStoreMockHasUploadParamPtrs struct {
+	ctx   *context.Context
+	hash  *string
+	owner *string
+}
+
+// SessionStoreMockHasUploadResults contains results of the SessionStore.HasUpload
+type SessionStoreMockHasUploadResults struct {
+	b1  bool
+	err error
+}
+
+// SessionStoreMockHasUploadOrigins contains origins of expectations of the SessionStore.HasUpload
+type SessionStoreMockHasUploadExpectationOrigins struct {
+	origin      string
+	originCtx   string
+	originHash  string
+	originOwner string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmHasUpload *mSessionStoreMockHasUpload) Optional() *mSessionStoreMockHasUpload {
+	mmHasUpload.optional = true
+	return mmHasUpload
+}
+
+// Expect sets up expected params for SessionStore.HasUpload
+func (mmHasUpload *mSessionStoreMockHasUpload) Expect(ctx context.Context, hash string, owner string) *mSessionStoreMockHasUpload {
+	if mmHasUpload.mock.funcHasUpload != nil {
+		mmHasUpload.mock.t.Fatalf("SessionStoreMock.HasUpload mock is already set by Set")
+	}
+
+	if mmHasUpload.defaultExpectation == nil {
+		mmHasUpload.defaultExpectation = &SessionStoreMockHasUploadExpectation{}
+	}
+
+	if mmHasUpload.defaultExpectation.paramPtrs != nil {
+		mmHasUpload.mock.t.Fatalf("SessionStoreMock.HasUpload mock is already set by ExpectParams functions")
+	}
+
+	mmHasUpload.defaultExpectation.params = &SessionStoreMockHasUploadParams{ctx, hash, owner}
+	mmHasUpload.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmHasUpload.expectations {
+		if minimock.Equal(e.params, mmHasUpload.defaultExpectation.params) {
+			mmHasUpload.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmHasUpload.defaultExpectation.params)
+		}
+	}
+
+	return mmHasUpload
+}
+
+// ExpectCtxParam1 sets up expected param ctx for SessionStore.HasUpload
+func (mmHasUpload *mSessionStoreMockHasUpload) ExpectCtxParam1(ctx context.Context) *mSessionStoreMockHasUpload {
+	if mmHasUpload.mock.funcHasUpload != nil {
+		mmHasUpload.mock.t.Fatalf("SessionStoreMock.HasUpload mock is already set by Set")
+	}
+
+	if mmHasUpload.defaultExpectation == nil {
+		mmHasUpload.defaultExpectation = &SessionStoreMockHasUploadExpectation{}
+	}
+
+	if mmHasUpload.defaultExpectation.params != nil {
+		mmHasUpload.mock.t.Fatalf("SessionStoreMock.HasUpload mock is already set by Expect")
+	}
+
+	if mmHasUpload.defaultExpectation.paramPtrs == nil {
+		mmHasUpload.defaultExpectation.paramPtrs = &SessionStoreMockHasUploadParamPtrs{}
+	}
+	mmHasUpload.defaultExpectation.paramPtrs.ctx = &ctx
+	mmHasUpload.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmHasUpload
+}
+
+// ExpectHashParam2 sets up expected param hash for SessionStore.HasUpload
+func (mmHasUpload *mSessionStoreMockHasUpload) ExpectHashParam2(hash string) *mSessionStoreMockHasUpload {
+	if mmHasUpload.mock.funcHasUpload != nil {
+		mmHasUpload.mock.t.Fatalf("SessionStoreMock.HasUpload mock is already set by Set")
+	}
+
+	if mmHasUpload.defaultExpectation == nil {
+		mmHasUpload.defaultExpectation = &SessionStoreMockHasUploadExpectation{}
+	}
+
+	if mmHasUpload.defaultExpectation.params != nil {
+		mmHasUpload.mock.t.Fatalf("SessionStoreMock.HasUpload mock is already set by Expect")
+	}
+
+	if mmHasUpload.defaultExpectation.paramPtrs == nil {
+		mmHasUpload.defaultExpectation.paramPtrs = &SessionStoreMockHasUploadParamPtrs{}
+	}
+	mmHasUpload.defaultExpectation.paramPtrs.hash = &hash
+	mmHasUpload.defaultExpectation.expectationOrigins.originHash = minimock.CallerInfo(1)
+
+	return mmHasUpload
+}
+
+// ExpectOwnerParam3 sets up expected param owner for SessionStore.HasUpload
+func (mmHasUpload *mSessionStoreMockHasUpload) ExpectOwnerParam3(owner string) *mSessionStoreMockHasUpload {
+	if mmHasUpload.mock.funcHasUpload != nil {
+		mmHasUpload.mock.t.Fatalf("SessionStoreMock.HasUpload mock is already set by Set")
+	}
+
+	if mmHasUpload.defaultExpectation == nil {
+		mmHasUpload.defaultExpectation = &SessionStoreMockHasUploadExpectation{}
+	}
+
+	if mmHasUpload.defaultExpectation.params != nil {
+		mmHasUpload.mock.t.Fatalf("SessionStoreMock.HasUpload mock is already set by Expect")
+	}
+
+	if mmHasUpload.defaultExpectation.paramPtrs == nil {
+		mmHasUpload.defaultExpectation.paramPtrs = &SessionStoreMockHasUploadParamPtrs{}
+	}
+	mmHasUpload.defaultExpectation.paramPtrs.owner = &owner
+	mmHasUpload.defaultExpectation.expectationOrigins.originOwner = minimock.CallerInfo(1)
+
+	return mmHasUpload
+}
+
+// Inspect accepts an inspector function that has same arguments as the SessionStore.HasUpload
+func (mmHasUpload *mSessionStoreMockHasUpload) Inspect(f func(ctx context.Context, hash string, owner string)) *mSessionStoreMockHasUpload {
+	if mmHasUpload.mock.inspectFuncHasUpload != nil {
+		mmHasUpload.mock.t.Fatalf("Inspect function is already set for SessionStoreMock.HasUpload")
+	}
+
+	mmHasUpload.mock.inspectFuncHasUpload = f
+
+	return mmHasUpload
+}
+
+// Return sets up results that will be returned by SessionStore.HasUpload
+func (mmHasUpload *mSessionStoreMockHasUpload) Return(b1 bool, err error) *SessionStoreMock {
+	if mmHasUpload.mock.funcHasUpload != nil {
+		mmHasUpload.mock.t.Fatalf("SessionStoreMock.HasUpload mock is already set by Set")
+	}
+
+	if mmHasUpload.defaultExpectation == nil {
+		mmHasUpload.defaultExpectation = &SessionStoreMockHasUploadExpectation{mock: mmHasUpload.mock}
+	}
+	mmHasUpload.defaultExpectation.results = &SessionStoreMockHasUploadResults{b1, err}
+	mmHasUpload.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmHasUpload.mock
+}
+
+// Set uses given function f to mock the SessionStore.HasUpload method
+func (mmHasUpload *mSessionStoreMockHasUpload) Set(f func(ctx context.Context, hash string, owner string) (b1 bool, err error)) *SessionStoreMock {
+	if mmHasUpload.defaultExpectation != nil {
+		mmHasUpload.mock.t.Fatalf("Default expectation is already set for the SessionStore.HasUpload method")
+	}
+
+	if len(mmHasUpload.expectations) > 0 {
+		mmHasUpload.mock.t.Fatalf("Some expectations are already set for the SessionStore.HasUpload method")
+	}
+
+	mmHasUpload.mock.funcHasUpload = f
+	mmHasUpload.mock.funcHasUploadOrigin = minimock.CallerInfo(1)
+	return mmHasUpload.mock
+}
+
+// When sets expectation for the SessionStore.HasUpload which will trigger the result defined by the following
+// Then helper
+func (mmHasUpload *mSessionStoreMockHasUpload) When(ctx context.Context, hash string, owner string) *SessionStoreMockHasUploadExpectation {
+	if mmHasUpload.mock.funcHasUpload != nil {
+		mmHasUpload.mock.t.Fatalf("SessionStoreMock.HasUpload mock is already set by Set")
+	}
+
+	expectation := &SessionStoreMockHasUploadExpectation{
+		mock:               mmHasUpload.mock,
+		params:             &SessionStoreMockHasUploadParams{ctx, hash, owner},
+		expectationOrigins: SessionStoreMockHasUploadExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmHasUpload.expectations = append(mmHasUpload.expectations, expectation)
+	return expectation
+}
+
+// Then sets up SessionStore.HasUpload return parameters for the expectation previously defined by the When method
+func (e *SessionStoreMockHasUploadExpectation) Then(b1 bool, err error) *SessionStoreMock {
+	e.results = &SessionStoreMockHasUploadResults{b1, err}
+	return e.mock
+}
+
+// Times sets number of times SessionStore.HasUpload should be invoked
+func (mmHasUpload *mSessionStoreMockHasUpload) Times(n uint64) *mSessionStoreMockHasUpload {
+	if n == 0 {
+		mmHasUpload.mock.t.Fatalf("Times of SessionStoreMock.HasUpload mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmHasUpload.expectedInvocations, n)
+	mmHasUpload.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmHasUpload
+}
+
+func (mmHasUpload *mSessionStoreMockHasUpload) invocationsDone() bool {
+	if len(mmHasUpload.expectations) == 0 && mmHasUpload.defaultExpectation == nil && mmHasUpload.mock.funcHasUpload == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmHasUpload.mock.afterHasUploadCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmHasUpload.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// HasUpload implements mm_service.SessionStore
+func (mmHasUpload *SessionStoreMock) HasUpload(ctx context.Context, hash string, owner string) (b1 bool, err error) {
+	mm_atomic.AddUint64(&mmHasUpload.beforeHasUploadCounter, 1)
+	defer mm_atomic.AddUint64(&mmHasUpload.afterHasUploadCounter, 1)
+
+	mmHasUpload.t.Helper()
+
+	if mmHasUpload.inspectFuncHasUpload != nil {
+		mmHasUpload.inspectFuncHasUpload(ctx, hash, owner)
+	}
+
+	mm_params := SessionStoreMockHasUploadParams{ctx, hash, owner}
+
+	// Record call args
+	mmHasUpload.HasUploadMock.mutex.Lock()
+	mmHasUpload.HasUploadMock.callArgs = append(mmHasUpload.HasUploadMock.callArgs, &mm_params)
+	mmHasUpload.HasUploadMock.mutex.Unlock()
+
+	for _, e := range mmHasUpload.HasUploadMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.b1, e.results.err
+		}
+	}
+
+	if mmHasUpload.HasUploadMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmHasUpload.HasUploadMock.defaultExpectation.Counter, 1)
+		mm_want := mmHasUpload.HasUploadMock.defaultExpectation.params
+		mm_want_ptrs := mmHasUpload.HasUploadMock.defaultExpectation.paramPtrs
+
+		mm_got := SessionStoreMockHasUploadParams{ctx, hash, owner}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmHasUpload.t.Errorf("SessionStoreMock.HasUpload got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmHasUpload.HasUploadMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.hash != nil && !minimock.Equal(*mm_want_ptrs.hash, mm_got.hash) {
+				mmHasUpload.t.Errorf("SessionStoreMock.HasUpload got unexpected parameter hash, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmHasUpload.HasUploadMock.defaultExpectation.expectationOrigins.originHash, *mm_want_ptrs.hash, mm_got.hash, minimock.Diff(*mm_want_ptrs.hash, mm_got.hash))
+			}
+
+			if mm_want_ptrs.owner != nil && !minimock.Equal(*mm_want_ptrs.owner, mm_got.owner) {
+				mmHasUpload.t.Errorf("SessionStoreMock.HasUpload got unexpected parameter owner, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmHasUpload.HasUploadMock.defaultExpectation.expectationOrigins.originOwner, *mm_want_ptrs.owner, mm_got.owner, minimock.Diff(*mm_want_ptrs.owner, mm_got.owner))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmHasUpload.t.Errorf("SessionStoreMock.HasUpload got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmHasUpload.HasUploadMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmHasUpload.HasUploadMock.defaultExpectation.results
+		if mm_results == nil {
+			mmHasUpload.t.Fatal("No results are set for the SessionStoreMock.HasUpload")
+		}
+		return (*mm_results).b1, (*mm_results).err
+	}
+	if mmHasUpload.funcHasUpload != nil {
+		return mmHasUpload.funcHasUpload(ctx, hash, owner)
+	}
+	mmHasUpload.t.Fatalf("Unexpected call to SessionStoreMock.HasUpload. %v %v %v", ctx, hash, owner)
+	return
+}
+
+// HasUploadAfterCounter returns a count of finished SessionStoreMock.HasUpload invocations
+func (mmHasUpload *SessionStoreMock) HasUploadAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmHasUpload.afterHasUploadCounter)
+}
+
+// HasUploadBeforeCounter returns a count of SessionStoreMock.HasUpload invocations
+func (mmHasUpload *SessionStoreMock) HasUploadBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmHasUpload.beforeHasUploadCounter)
+}
+
+// Calls returns a list of arguments used in each call to SessionStoreMock.HasUpload.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmHasUpload *mSessionStoreMockHasUpload) Calls() []*SessionStoreMockHasUploadParams {
+	mmHasUpload.mutex.RLock()
+
+	argCopy := make([]*SessionStoreMockHasUploadParams, len(mmHasUpload.callArgs))
+	copy(argCopy, mmHasUpload.callArgs)
+
+	mmHasUpload.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockHasUploadDone returns true if the count of the HasUpload invocations corresponds
+// the number of defined expectations
+func (m *SessionStoreMock) MinimockHasUploadDone() bool {
+	if m.HasUploadMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.HasUploadMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.HasUploadMock.invocationsDone()
+}
+
+// MinimockHasUploadInspect logs each unmet expectation
+func (m *SessionStoreMock) MinimockHasUploadInspect() {
+	for _, e := range m.HasUploadMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to SessionStoreMock.HasUpload at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterHasUploadCounter := mm_atomic.LoadUint64(&m.afterHasUploadCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.HasUploadMock.defaultExpectation != nil && afterHasUploadCounter < 1 {
+		if m.HasUploadMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to SessionStoreMock.HasUpload at\n%s", m.HasUploadMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to SessionStoreMock.HasUpload at\n%s with params: %#v", m.HasUploadMock.defaultExpectation.expectationOrigins.origin, *m.HasUploadMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcHasUpload != nil && afterHasUploadCounter < 1 {
+		m.t.Errorf("Expected call to SessionStoreMock.HasUpload at\n%s", m.funcHasUploadOrigin)
+	}
+
+	if !m.HasUploadMock.invocationsDone() && afterHasUploadCounter > 0 {
+		m.t.Errorf("Expected %d calls to SessionStoreMock.HasUpload at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.HasUploadMock.expectedInvocations), m.HasUploadMock.expectedInvocationsOrigin, afterHasUploadCounter)
+	}
+}
+
 type mSessionStoreMockInitiate struct {
 	optional           bool
 	mock               *SessionStoreMock
@@ -1577,6 +1971,7 @@ type SessionStoreMockInitiateExpectation struct {
 type SessionStoreMockInitiateParams struct {
 	ctx         context.Context
 	id          string
+	owner       string
 	size        int64
 	contentType string
 }
@@ -1585,6 +1980,7 @@ type SessionStoreMockInitiateParams struct {
 type SessionStoreMockInitiateParamPtrs struct {
 	ctx         *context.Context
 	id          *string
+	owner       *string
 	size        *int64
 	contentType *string
 }
@@ -1600,6 +1996,7 @@ type SessionStoreMockInitiateExpectationOrigins struct {
 	origin            string
 	originCtx         string
 	originId          string
+	originOwner       string
 	originSize        string
 	originContentType string
 }
@@ -1615,7 +2012,7 @@ func (mmInitiate *mSessionStoreMockInitiate) Optional() *mSessionStoreMockInitia
 }
 
 // Expect sets up expected params for SessionStore.Initiate
-func (mmInitiate *mSessionStoreMockInitiate) Expect(ctx context.Context, id string, size int64, contentType string) *mSessionStoreMockInitiate {
+func (mmInitiate *mSessionStoreMockInitiate) Expect(ctx context.Context, id string, owner string, size int64, contentType string) *mSessionStoreMockInitiate {
 	if mmInitiate.mock.funcInitiate != nil {
 		mmInitiate.mock.t.Fatalf("SessionStoreMock.Initiate mock is already set by Set")
 	}
@@ -1628,7 +2025,7 @@ func (mmInitiate *mSessionStoreMockInitiate) Expect(ctx context.Context, id stri
 		mmInitiate.mock.t.Fatalf("SessionStoreMock.Initiate mock is already set by ExpectParams functions")
 	}
 
-	mmInitiate.defaultExpectation.params = &SessionStoreMockInitiateParams{ctx, id, size, contentType}
+	mmInitiate.defaultExpectation.params = &SessionStoreMockInitiateParams{ctx, id, owner, size, contentType}
 	mmInitiate.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmInitiate.expectations {
 		if minimock.Equal(e.params, mmInitiate.defaultExpectation.params) {
@@ -1685,8 +2082,31 @@ func (mmInitiate *mSessionStoreMockInitiate) ExpectIdParam2(id string) *mSession
 	return mmInitiate
 }
 
-// ExpectSizeParam3 sets up expected param size for SessionStore.Initiate
-func (mmInitiate *mSessionStoreMockInitiate) ExpectSizeParam3(size int64) *mSessionStoreMockInitiate {
+// ExpectOwnerParam3 sets up expected param owner for SessionStore.Initiate
+func (mmInitiate *mSessionStoreMockInitiate) ExpectOwnerParam3(owner string) *mSessionStoreMockInitiate {
+	if mmInitiate.mock.funcInitiate != nil {
+		mmInitiate.mock.t.Fatalf("SessionStoreMock.Initiate mock is already set by Set")
+	}
+
+	if mmInitiate.defaultExpectation == nil {
+		mmInitiate.defaultExpectation = &SessionStoreMockInitiateExpectation{}
+	}
+
+	if mmInitiate.defaultExpectation.params != nil {
+		mmInitiate.mock.t.Fatalf("SessionStoreMock.Initiate mock is already set by Expect")
+	}
+
+	if mmInitiate.defaultExpectation.paramPtrs == nil {
+		mmInitiate.defaultExpectation.paramPtrs = &SessionStoreMockInitiateParamPtrs{}
+	}
+	mmInitiate.defaultExpectation.paramPtrs.owner = &owner
+	mmInitiate.defaultExpectation.expectationOrigins.originOwner = minimock.CallerInfo(1)
+
+	return mmInitiate
+}
+
+// ExpectSizeParam4 sets up expected param size for SessionStore.Initiate
+func (mmInitiate *mSessionStoreMockInitiate) ExpectSizeParam4(size int64) *mSessionStoreMockInitiate {
 	if mmInitiate.mock.funcInitiate != nil {
 		mmInitiate.mock.t.Fatalf("SessionStoreMock.Initiate mock is already set by Set")
 	}
@@ -1708,8 +2128,8 @@ func (mmInitiate *mSessionStoreMockInitiate) ExpectSizeParam3(size int64) *mSess
 	return mmInitiate
 }
 
-// ExpectContentTypeParam4 sets up expected param contentType for SessionStore.Initiate
-func (mmInitiate *mSessionStoreMockInitiate) ExpectContentTypeParam4(contentType string) *mSessionStoreMockInitiate {
+// ExpectContentTypeParam5 sets up expected param contentType for SessionStore.Initiate
+func (mmInitiate *mSessionStoreMockInitiate) ExpectContentTypeParam5(contentType string) *mSessionStoreMockInitiate {
 	if mmInitiate.mock.funcInitiate != nil {
 		mmInitiate.mock.t.Fatalf("SessionStoreMock.Initiate mock is already set by Set")
 	}
@@ -1732,7 +2152,7 @@ func (mmInitiate *mSessionStoreMockInitiate) ExpectContentTypeParam4(contentType
 }
 
 // Inspect accepts an inspector function that has same arguments as the SessionStore.Initiate
-func (mmInitiate *mSessionStoreMockInitiate) Inspect(f func(ctx context.Context, id string, size int64, contentType string)) *mSessionStoreMockInitiate {
+func (mmInitiate *mSessionStoreMockInitiate) Inspect(f func(ctx context.Context, id string, owner string, size int64, contentType string)) *mSessionStoreMockInitiate {
 	if mmInitiate.mock.inspectFuncInitiate != nil {
 		mmInitiate.mock.t.Fatalf("Inspect function is already set for SessionStoreMock.Initiate")
 	}
@@ -1757,7 +2177,7 @@ func (mmInitiate *mSessionStoreMockInitiate) Return(s1 domain.Session, err error
 }
 
 // Set uses given function f to mock the SessionStore.Initiate method
-func (mmInitiate *mSessionStoreMockInitiate) Set(f func(ctx context.Context, id string, size int64, contentType string) (s1 domain.Session, err error)) *SessionStoreMock {
+func (mmInitiate *mSessionStoreMockInitiate) Set(f func(ctx context.Context, id string, owner string, size int64, contentType string) (s1 domain.Session, err error)) *SessionStoreMock {
 	if mmInitiate.defaultExpectation != nil {
 		mmInitiate.mock.t.Fatalf("Default expectation is already set for the SessionStore.Initiate method")
 	}
@@ -1773,14 +2193,14 @@ func (mmInitiate *mSessionStoreMockInitiate) Set(f func(ctx context.Context, id 
 
 // When sets expectation for the SessionStore.Initiate which will trigger the result defined by the following
 // Then helper
-func (mmInitiate *mSessionStoreMockInitiate) When(ctx context.Context, id string, size int64, contentType string) *SessionStoreMockInitiateExpectation {
+func (mmInitiate *mSessionStoreMockInitiate) When(ctx context.Context, id string, owner string, size int64, contentType string) *SessionStoreMockInitiateExpectation {
 	if mmInitiate.mock.funcInitiate != nil {
 		mmInitiate.mock.t.Fatalf("SessionStoreMock.Initiate mock is already set by Set")
 	}
 
 	expectation := &SessionStoreMockInitiateExpectation{
 		mock:               mmInitiate.mock,
-		params:             &SessionStoreMockInitiateParams{ctx, id, size, contentType},
+		params:             &SessionStoreMockInitiateParams{ctx, id, owner, size, contentType},
 		expectationOrigins: SessionStoreMockInitiateExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmInitiate.expectations = append(mmInitiate.expectations, expectation)
@@ -1815,17 +2235,17 @@ func (mmInitiate *mSessionStoreMockInitiate) invocationsDone() bool {
 }
 
 // Initiate implements mm_service.SessionStore
-func (mmInitiate *SessionStoreMock) Initiate(ctx context.Context, id string, size int64, contentType string) (s1 domain.Session, err error) {
+func (mmInitiate *SessionStoreMock) Initiate(ctx context.Context, id string, owner string, size int64, contentType string) (s1 domain.Session, err error) {
 	mm_atomic.AddUint64(&mmInitiate.beforeInitiateCounter, 1)
 	defer mm_atomic.AddUint64(&mmInitiate.afterInitiateCounter, 1)
 
 	mmInitiate.t.Helper()
 
 	if mmInitiate.inspectFuncInitiate != nil {
-		mmInitiate.inspectFuncInitiate(ctx, id, size, contentType)
+		mmInitiate.inspectFuncInitiate(ctx, id, owner, size, contentType)
 	}
 
-	mm_params := SessionStoreMockInitiateParams{ctx, id, size, contentType}
+	mm_params := SessionStoreMockInitiateParams{ctx, id, owner, size, contentType}
 
 	// Record call args
 	mmInitiate.InitiateMock.mutex.Lock()
@@ -1844,7 +2264,7 @@ func (mmInitiate *SessionStoreMock) Initiate(ctx context.Context, id string, siz
 		mm_want := mmInitiate.InitiateMock.defaultExpectation.params
 		mm_want_ptrs := mmInitiate.InitiateMock.defaultExpectation.paramPtrs
 
-		mm_got := SessionStoreMockInitiateParams{ctx, id, size, contentType}
+		mm_got := SessionStoreMockInitiateParams{ctx, id, owner, size, contentType}
 
 		if mm_want_ptrs != nil {
 
@@ -1856,6 +2276,11 @@ func (mmInitiate *SessionStoreMock) Initiate(ctx context.Context, id string, siz
 			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
 				mmInitiate.t.Errorf("SessionStoreMock.Initiate got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmInitiate.InitiateMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+			if mm_want_ptrs.owner != nil && !minimock.Equal(*mm_want_ptrs.owner, mm_got.owner) {
+				mmInitiate.t.Errorf("SessionStoreMock.Initiate got unexpected parameter owner, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmInitiate.InitiateMock.defaultExpectation.expectationOrigins.originOwner, *mm_want_ptrs.owner, mm_got.owner, minimock.Diff(*mm_want_ptrs.owner, mm_got.owner))
 			}
 
 			if mm_want_ptrs.size != nil && !minimock.Equal(*mm_want_ptrs.size, mm_got.size) {
@@ -1880,9 +2305,9 @@ func (mmInitiate *SessionStoreMock) Initiate(ctx context.Context, id string, siz
 		return (*mm_results).s1, (*mm_results).err
 	}
 	if mmInitiate.funcInitiate != nil {
-		return mmInitiate.funcInitiate(ctx, id, size, contentType)
+		return mmInitiate.funcInitiate(ctx, id, owner, size, contentType)
 	}
-	mmInitiate.t.Fatalf("Unexpected call to SessionStoreMock.Initiate. %v %v %v %v", ctx, id, size, contentType)
+	mmInitiate.t.Fatalf("Unexpected call to SessionStoreMock.Initiate. %v %v %v %v %v", ctx, id, owner, size, contentType)
 	return
 }
 
@@ -1954,6 +2379,379 @@ func (m *SessionStoreMock) MinimockInitiateInspect() {
 	}
 }
 
+type mSessionStoreMockRecordUpload struct {
+	optional           bool
+	mock               *SessionStoreMock
+	defaultExpectation *SessionStoreMockRecordUploadExpectation
+	expectations       []*SessionStoreMockRecordUploadExpectation
+
+	callArgs []*SessionStoreMockRecordUploadParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// SessionStoreMockRecordUploadExpectation specifies expectation struct of the SessionStore.RecordUpload
+type SessionStoreMockRecordUploadExpectation struct {
+	mock               *SessionStoreMock
+	params             *SessionStoreMockRecordUploadParams
+	paramPtrs          *SessionStoreMockRecordUploadParamPtrs
+	expectationOrigins SessionStoreMockRecordUploadExpectationOrigins
+	results            *SessionStoreMockRecordUploadResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// SessionStoreMockRecordUploadParams contains parameters of the SessionStore.RecordUpload
+type SessionStoreMockRecordUploadParams struct {
+	ctx   context.Context
+	hash  string
+	owner string
+}
+
+// SessionStoreMockRecordUploadParamPtrs contains pointers to parameters of the SessionStore.RecordUpload
+type SessionStoreMockRecordUploadParamPtrs struct {
+	ctx   *context.Context
+	hash  *string
+	owner *string
+}
+
+// SessionStoreMockRecordUploadResults contains results of the SessionStore.RecordUpload
+type SessionStoreMockRecordUploadResults struct {
+	err error
+}
+
+// SessionStoreMockRecordUploadOrigins contains origins of expectations of the SessionStore.RecordUpload
+type SessionStoreMockRecordUploadExpectationOrigins struct {
+	origin      string
+	originCtx   string
+	originHash  string
+	originOwner string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmRecordUpload *mSessionStoreMockRecordUpload) Optional() *mSessionStoreMockRecordUpload {
+	mmRecordUpload.optional = true
+	return mmRecordUpload
+}
+
+// Expect sets up expected params for SessionStore.RecordUpload
+func (mmRecordUpload *mSessionStoreMockRecordUpload) Expect(ctx context.Context, hash string, owner string) *mSessionStoreMockRecordUpload {
+	if mmRecordUpload.mock.funcRecordUpload != nil {
+		mmRecordUpload.mock.t.Fatalf("SessionStoreMock.RecordUpload mock is already set by Set")
+	}
+
+	if mmRecordUpload.defaultExpectation == nil {
+		mmRecordUpload.defaultExpectation = &SessionStoreMockRecordUploadExpectation{}
+	}
+
+	if mmRecordUpload.defaultExpectation.paramPtrs != nil {
+		mmRecordUpload.mock.t.Fatalf("SessionStoreMock.RecordUpload mock is already set by ExpectParams functions")
+	}
+
+	mmRecordUpload.defaultExpectation.params = &SessionStoreMockRecordUploadParams{ctx, hash, owner}
+	mmRecordUpload.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmRecordUpload.expectations {
+		if minimock.Equal(e.params, mmRecordUpload.defaultExpectation.params) {
+			mmRecordUpload.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmRecordUpload.defaultExpectation.params)
+		}
+	}
+
+	return mmRecordUpload
+}
+
+// ExpectCtxParam1 sets up expected param ctx for SessionStore.RecordUpload
+func (mmRecordUpload *mSessionStoreMockRecordUpload) ExpectCtxParam1(ctx context.Context) *mSessionStoreMockRecordUpload {
+	if mmRecordUpload.mock.funcRecordUpload != nil {
+		mmRecordUpload.mock.t.Fatalf("SessionStoreMock.RecordUpload mock is already set by Set")
+	}
+
+	if mmRecordUpload.defaultExpectation == nil {
+		mmRecordUpload.defaultExpectation = &SessionStoreMockRecordUploadExpectation{}
+	}
+
+	if mmRecordUpload.defaultExpectation.params != nil {
+		mmRecordUpload.mock.t.Fatalf("SessionStoreMock.RecordUpload mock is already set by Expect")
+	}
+
+	if mmRecordUpload.defaultExpectation.paramPtrs == nil {
+		mmRecordUpload.defaultExpectation.paramPtrs = &SessionStoreMockRecordUploadParamPtrs{}
+	}
+	mmRecordUpload.defaultExpectation.paramPtrs.ctx = &ctx
+	mmRecordUpload.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmRecordUpload
+}
+
+// ExpectHashParam2 sets up expected param hash for SessionStore.RecordUpload
+func (mmRecordUpload *mSessionStoreMockRecordUpload) ExpectHashParam2(hash string) *mSessionStoreMockRecordUpload {
+	if mmRecordUpload.mock.funcRecordUpload != nil {
+		mmRecordUpload.mock.t.Fatalf("SessionStoreMock.RecordUpload mock is already set by Set")
+	}
+
+	if mmRecordUpload.defaultExpectation == nil {
+		mmRecordUpload.defaultExpectation = &SessionStoreMockRecordUploadExpectation{}
+	}
+
+	if mmRecordUpload.defaultExpectation.params != nil {
+		mmRecordUpload.mock.t.Fatalf("SessionStoreMock.RecordUpload mock is already set by Expect")
+	}
+
+	if mmRecordUpload.defaultExpectation.paramPtrs == nil {
+		mmRecordUpload.defaultExpectation.paramPtrs = &SessionStoreMockRecordUploadParamPtrs{}
+	}
+	mmRecordUpload.defaultExpectation.paramPtrs.hash = &hash
+	mmRecordUpload.defaultExpectation.expectationOrigins.originHash = minimock.CallerInfo(1)
+
+	return mmRecordUpload
+}
+
+// ExpectOwnerParam3 sets up expected param owner for SessionStore.RecordUpload
+func (mmRecordUpload *mSessionStoreMockRecordUpload) ExpectOwnerParam3(owner string) *mSessionStoreMockRecordUpload {
+	if mmRecordUpload.mock.funcRecordUpload != nil {
+		mmRecordUpload.mock.t.Fatalf("SessionStoreMock.RecordUpload mock is already set by Set")
+	}
+
+	if mmRecordUpload.defaultExpectation == nil {
+		mmRecordUpload.defaultExpectation = &SessionStoreMockRecordUploadExpectation{}
+	}
+
+	if mmRecordUpload.defaultExpectation.params != nil {
+		mmRecordUpload.mock.t.Fatalf("SessionStoreMock.RecordUpload mock is already set by Expect")
+	}
+
+	if mmRecordUpload.defaultExpectation.paramPtrs == nil {
+		mmRecordUpload.defaultExpectation.paramPtrs = &SessionStoreMockRecordUploadParamPtrs{}
+	}
+	mmRecordUpload.defaultExpectation.paramPtrs.owner = &owner
+	mmRecordUpload.defaultExpectation.expectationOrigins.originOwner = minimock.CallerInfo(1)
+
+	return mmRecordUpload
+}
+
+// Inspect accepts an inspector function that has same arguments as the SessionStore.RecordUpload
+func (mmRecordUpload *mSessionStoreMockRecordUpload) Inspect(f func(ctx context.Context, hash string, owner string)) *mSessionStoreMockRecordUpload {
+	if mmRecordUpload.mock.inspectFuncRecordUpload != nil {
+		mmRecordUpload.mock.t.Fatalf("Inspect function is already set for SessionStoreMock.RecordUpload")
+	}
+
+	mmRecordUpload.mock.inspectFuncRecordUpload = f
+
+	return mmRecordUpload
+}
+
+// Return sets up results that will be returned by SessionStore.RecordUpload
+func (mmRecordUpload *mSessionStoreMockRecordUpload) Return(err error) *SessionStoreMock {
+	if mmRecordUpload.mock.funcRecordUpload != nil {
+		mmRecordUpload.mock.t.Fatalf("SessionStoreMock.RecordUpload mock is already set by Set")
+	}
+
+	if mmRecordUpload.defaultExpectation == nil {
+		mmRecordUpload.defaultExpectation = &SessionStoreMockRecordUploadExpectation{mock: mmRecordUpload.mock}
+	}
+	mmRecordUpload.defaultExpectation.results = &SessionStoreMockRecordUploadResults{err}
+	mmRecordUpload.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmRecordUpload.mock
+}
+
+// Set uses given function f to mock the SessionStore.RecordUpload method
+func (mmRecordUpload *mSessionStoreMockRecordUpload) Set(f func(ctx context.Context, hash string, owner string) (err error)) *SessionStoreMock {
+	if mmRecordUpload.defaultExpectation != nil {
+		mmRecordUpload.mock.t.Fatalf("Default expectation is already set for the SessionStore.RecordUpload method")
+	}
+
+	if len(mmRecordUpload.expectations) > 0 {
+		mmRecordUpload.mock.t.Fatalf("Some expectations are already set for the SessionStore.RecordUpload method")
+	}
+
+	mmRecordUpload.mock.funcRecordUpload = f
+	mmRecordUpload.mock.funcRecordUploadOrigin = minimock.CallerInfo(1)
+	return mmRecordUpload.mock
+}
+
+// When sets expectation for the SessionStore.RecordUpload which will trigger the result defined by the following
+// Then helper
+func (mmRecordUpload *mSessionStoreMockRecordUpload) When(ctx context.Context, hash string, owner string) *SessionStoreMockRecordUploadExpectation {
+	if mmRecordUpload.mock.funcRecordUpload != nil {
+		mmRecordUpload.mock.t.Fatalf("SessionStoreMock.RecordUpload mock is already set by Set")
+	}
+
+	expectation := &SessionStoreMockRecordUploadExpectation{
+		mock:               mmRecordUpload.mock,
+		params:             &SessionStoreMockRecordUploadParams{ctx, hash, owner},
+		expectationOrigins: SessionStoreMockRecordUploadExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmRecordUpload.expectations = append(mmRecordUpload.expectations, expectation)
+	return expectation
+}
+
+// Then sets up SessionStore.RecordUpload return parameters for the expectation previously defined by the When method
+func (e *SessionStoreMockRecordUploadExpectation) Then(err error) *SessionStoreMock {
+	e.results = &SessionStoreMockRecordUploadResults{err}
+	return e.mock
+}
+
+// Times sets number of times SessionStore.RecordUpload should be invoked
+func (mmRecordUpload *mSessionStoreMockRecordUpload) Times(n uint64) *mSessionStoreMockRecordUpload {
+	if n == 0 {
+		mmRecordUpload.mock.t.Fatalf("Times of SessionStoreMock.RecordUpload mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmRecordUpload.expectedInvocations, n)
+	mmRecordUpload.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmRecordUpload
+}
+
+func (mmRecordUpload *mSessionStoreMockRecordUpload) invocationsDone() bool {
+	if len(mmRecordUpload.expectations) == 0 && mmRecordUpload.defaultExpectation == nil && mmRecordUpload.mock.funcRecordUpload == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmRecordUpload.mock.afterRecordUploadCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmRecordUpload.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// RecordUpload implements mm_service.SessionStore
+func (mmRecordUpload *SessionStoreMock) RecordUpload(ctx context.Context, hash string, owner string) (err error) {
+	mm_atomic.AddUint64(&mmRecordUpload.beforeRecordUploadCounter, 1)
+	defer mm_atomic.AddUint64(&mmRecordUpload.afterRecordUploadCounter, 1)
+
+	mmRecordUpload.t.Helper()
+
+	if mmRecordUpload.inspectFuncRecordUpload != nil {
+		mmRecordUpload.inspectFuncRecordUpload(ctx, hash, owner)
+	}
+
+	mm_params := SessionStoreMockRecordUploadParams{ctx, hash, owner}
+
+	// Record call args
+	mmRecordUpload.RecordUploadMock.mutex.Lock()
+	mmRecordUpload.RecordUploadMock.callArgs = append(mmRecordUpload.RecordUploadMock.callArgs, &mm_params)
+	mmRecordUpload.RecordUploadMock.mutex.Unlock()
+
+	for _, e := range mmRecordUpload.RecordUploadMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmRecordUpload.RecordUploadMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmRecordUpload.RecordUploadMock.defaultExpectation.Counter, 1)
+		mm_want := mmRecordUpload.RecordUploadMock.defaultExpectation.params
+		mm_want_ptrs := mmRecordUpload.RecordUploadMock.defaultExpectation.paramPtrs
+
+		mm_got := SessionStoreMockRecordUploadParams{ctx, hash, owner}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmRecordUpload.t.Errorf("SessionStoreMock.RecordUpload got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmRecordUpload.RecordUploadMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.hash != nil && !minimock.Equal(*mm_want_ptrs.hash, mm_got.hash) {
+				mmRecordUpload.t.Errorf("SessionStoreMock.RecordUpload got unexpected parameter hash, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmRecordUpload.RecordUploadMock.defaultExpectation.expectationOrigins.originHash, *mm_want_ptrs.hash, mm_got.hash, minimock.Diff(*mm_want_ptrs.hash, mm_got.hash))
+			}
+
+			if mm_want_ptrs.owner != nil && !minimock.Equal(*mm_want_ptrs.owner, mm_got.owner) {
+				mmRecordUpload.t.Errorf("SessionStoreMock.RecordUpload got unexpected parameter owner, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmRecordUpload.RecordUploadMock.defaultExpectation.expectationOrigins.originOwner, *mm_want_ptrs.owner, mm_got.owner, minimock.Diff(*mm_want_ptrs.owner, mm_got.owner))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmRecordUpload.t.Errorf("SessionStoreMock.RecordUpload got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmRecordUpload.RecordUploadMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmRecordUpload.RecordUploadMock.defaultExpectation.results
+		if mm_results == nil {
+			mmRecordUpload.t.Fatal("No results are set for the SessionStoreMock.RecordUpload")
+		}
+		return (*mm_results).err
+	}
+	if mmRecordUpload.funcRecordUpload != nil {
+		return mmRecordUpload.funcRecordUpload(ctx, hash, owner)
+	}
+	mmRecordUpload.t.Fatalf("Unexpected call to SessionStoreMock.RecordUpload. %v %v %v", ctx, hash, owner)
+	return
+}
+
+// RecordUploadAfterCounter returns a count of finished SessionStoreMock.RecordUpload invocations
+func (mmRecordUpload *SessionStoreMock) RecordUploadAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmRecordUpload.afterRecordUploadCounter)
+}
+
+// RecordUploadBeforeCounter returns a count of SessionStoreMock.RecordUpload invocations
+func (mmRecordUpload *SessionStoreMock) RecordUploadBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmRecordUpload.beforeRecordUploadCounter)
+}
+
+// Calls returns a list of arguments used in each call to SessionStoreMock.RecordUpload.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmRecordUpload *mSessionStoreMockRecordUpload) Calls() []*SessionStoreMockRecordUploadParams {
+	mmRecordUpload.mutex.RLock()
+
+	argCopy := make([]*SessionStoreMockRecordUploadParams, len(mmRecordUpload.callArgs))
+	copy(argCopy, mmRecordUpload.callArgs)
+
+	mmRecordUpload.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockRecordUploadDone returns true if the count of the RecordUpload invocations corresponds
+// the number of defined expectations
+func (m *SessionStoreMock) MinimockRecordUploadDone() bool {
+	if m.RecordUploadMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.RecordUploadMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.RecordUploadMock.invocationsDone()
+}
+
+// MinimockRecordUploadInspect logs each unmet expectation
+func (m *SessionStoreMock) MinimockRecordUploadInspect() {
+	for _, e := range m.RecordUploadMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to SessionStoreMock.RecordUpload at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterRecordUploadCounter := mm_atomic.LoadUint64(&m.afterRecordUploadCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.RecordUploadMock.defaultExpectation != nil && afterRecordUploadCounter < 1 {
+		if m.RecordUploadMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to SessionStoreMock.RecordUpload at\n%s", m.RecordUploadMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to SessionStoreMock.RecordUpload at\n%s with params: %#v", m.RecordUploadMock.defaultExpectation.expectationOrigins.origin, *m.RecordUploadMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcRecordUpload != nil && afterRecordUploadCounter < 1 {
+		m.t.Errorf("Expected call to SessionStoreMock.RecordUpload at\n%s", m.funcRecordUploadOrigin)
+	}
+
+	if !m.RecordUploadMock.invocationsDone() && afterRecordUploadCounter > 0 {
+		m.t.Errorf("Expected %d calls to SessionStoreMock.RecordUpload at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.RecordUploadMock.expectedInvocations), m.RecordUploadMock.expectedInvocationsOrigin, afterRecordUploadCounter)
+	}
+}
+
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *SessionStoreMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
@@ -1966,7 +2764,11 @@ func (m *SessionStoreMock) MinimockFinish() {
 
 			m.MinimockGetStatusInspect()
 
+			m.MinimockHasUploadInspect()
+
 			m.MinimockInitiateInspect()
+
+			m.MinimockRecordUploadInspect()
 		}
 	})
 }
@@ -1994,5 +2796,7 @@ func (m *SessionStoreMock) minimockDone() bool {
 		m.MinimockAppendChunkDone() &&
 		m.MinimockFinalizeDone() &&
 		m.MinimockGetStatusDone() &&
-		m.MinimockInitiateDone()
+		m.MinimockHasUploadDone() &&
+		m.MinimockInitiateDone() &&
+		m.MinimockRecordUploadDone()
 }

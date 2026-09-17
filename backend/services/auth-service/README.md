@@ -230,7 +230,7 @@ external Postgres or Redis is required for the unit suite.
 
 ## Toolchain & dependencies
 
-Go **1.27.0** — `go 1.27.0` in `go.mod`, build stage `golang:1.27.0-alpine`.
+Go **1.27.1** — `go 1.27.1` in `go.mod`, build stage `golang:1.27.1-alpine`.
 Versions are pinned identically across every module in the workspace; see
 [`backend/README.md#toolchain--dependencies`](../../README.md#toolchain--dependencies)
 for the repo-wide matrix and the upgrade procedure.
@@ -238,8 +238,8 @@ for the repo-wide matrix and the upgrade procedure.
 | Module | Version | Role |
 | --- | --- | --- |
 | `github.com/gojuno/minimock/v3` | v3.4.7 | Generated interface mocks (test) |
-| `github.com/jackc/pgx/v5` | v5.10.0 | Postgres driver + connection pool |
-| `github.com/pressly/goose/v3` | v3.27.3 | Embedded SQL migrations |
+| `github.com/jackc/pgx/v5` | v5.11.0 | Postgres driver + connection pool |
+| `github.com/pressly/goose/v3` | v3.28.0 | Embedded SQL migrations |
 | `github.com/prometheus/client_golang` | v1.24.1 | Prometheus `/metrics` exposition |
 | `github.com/redis/go-redis/v9` | v9.21.0 | Session store + auth cache (logical DB 1) |
 | `github.com/spf13/cobra` | v1.10.2 | CLI root command / flag definitions |
@@ -247,7 +247,7 @@ for the repo-wide matrix and the upgrade procedure.
 | `github.com/stretchr/testify` | v1.11.1 | `suite` grouping only (test) |
 | `github.com/vbncursed/rosneft/backend/pkg` | v0.0.0 | Workspace module — shared libs (`replace` → `../../pkg`) |
 | `github.com/vbncursed/rosneft/backend/proto` | v0.0.0 | Workspace module — generated gRPC stubs (`replace` → `../../proto`) |
-| `golang.org/x/crypto` | v0.54.0 | argon2id password hashing |
+| `golang.org/x/crypto` | v0.57.0 | argon2id password hashing |
 | `google.golang.org/grpc` | v1.82.1 | gRPC transport |
 | `google.golang.org/protobuf` | v1.36.11 | Generated protobuf message runtime |
 | `gotest.tools/v3` | v3.5.2 | `assert` — the actual assertions (test) |

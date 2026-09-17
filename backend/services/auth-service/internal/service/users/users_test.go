@@ -39,6 +39,31 @@ func (s *UsersSuite) TestFreezeRejectsSelf() {
 	assert.ErrorIs(s.T(), err, domain.ErrSelfTarget)
 }
 
+// SetTOTPRequired has no guard() call (see its doc comment), so the
+// self-target check has to stand on its own — this is exactly the path a
+// scoped administrator could otherwise use to strip a TOTP requirement Root
+// imposed on them.
+func (s *UsersSuite) TestSetTOTPRequiredRejectsSelf() {
+	s.st.GetByIDMock.Expect(s.ctx, "u1").Return(domain.User{ID: "u1"}, nil)
+	_, err := s.svc.SetTOTPRequired(s.ctx, "u1", true, "u1", false)
+	assert.ErrorIs(s.T(), err, domain.ErrSelfTarget)
+}
+
+// Unfreeze/Restore are only unreachable for self today because Freeze/
+// SoftDelete evict the actor's own sessions first — make it a guarantee
+// rather than an accident of ordering.
+func (s *UsersSuite) TestUnfreezeRejectsSelf() {
+	s.st.GetByIDMock.Expect(s.ctx, "u1").Return(domain.User{ID: "u1"}, nil)
+	_, err := s.svc.Unfreeze(s.ctx, "u1", true, "u1")
+	assert.ErrorIs(s.T(), err, domain.ErrSelfTarget)
+}
+
+func (s *UsersSuite) TestRestoreRejectsSelf() {
+	s.st.GetByIDMock.Expect(s.ctx, "u1").Return(domain.User{ID: "u1"}, nil)
+	_, err := s.svc.Restore(s.ctx, "u1", true, "u1")
+	assert.ErrorIs(s.T(), err, domain.ErrSelfTarget)
+}
+
 func (s *UsersSuite) TestFreezeRejectsLastAdmin() {
 	s.st.GetByIDMock.When(s.ctx, "admin1").Then(domain.User{ID: "admin1", RoleSlugs: []string{"admin"}}, nil)
 	s.st.GetByIDMock.When(s.ctx, "owner").Then(domain.User{ID: "owner", IsOwner: true}, nil)

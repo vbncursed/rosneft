@@ -36,11 +36,12 @@ func (s *Server) CreatePanorama(ctx context.Context, req *contentv1.CreatePanora
 
 func (s *Server) UpdatePanorama(ctx context.Context, req *contentv1.UpdatePanoramaRequest) (*contentv1.UpdatePanoramaResponse, error) {
 	out, err := s.svc.UpdatePanorama(ctx, domain.Panorama{
-		ID:         req.GetId(),
-		Title:      req.GetTitle(),
-		Position:   vec3FromProto(req.GetPosition()),
-		YawOffset:  req.GetYawOffset(),
-		DefaultYaw: req.GetDefaultYaw(),
+		ID:            req.GetId(),
+		TerritorySlug: req.GetTerritorySlug(),
+		Title:         req.GetTitle(),
+		Position:      vec3FromProto(req.GetPosition()),
+		YawOffset:     req.GetYawOffset(),
+		DefaultYaw:    req.GetDefaultYaw(),
 	})
 	if err != nil {
 		return nil, mapError(err)
@@ -49,7 +50,7 @@ func (s *Server) UpdatePanorama(ctx context.Context, req *contentv1.UpdatePanora
 }
 
 func (s *Server) DeletePanorama(ctx context.Context, req *contentv1.DeletePanoramaRequest) (*contentv1.DeletePanoramaResponse, error) {
-	if err := s.svc.DeletePanorama(ctx, req.GetId()); err != nil {
+	if err := s.svc.DeletePanorama(ctx, req.GetTerritorySlug(), req.GetId()); err != nil {
 		return nil, mapError(err)
 	}
 	return &contentv1.DeletePanoramaResponse{}, nil

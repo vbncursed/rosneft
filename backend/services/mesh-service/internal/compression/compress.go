@@ -13,11 +13,11 @@ import (
 // and the output is read back into memory.
 //
 // Flag rationale:
-//   - `-cc`  — KHR_draco_mesh_compression (when WithDraco)
+//   - `-cc`  — EXT_meshopt_compression (when WithMeshopt)
 //   - `-tc`  — KHR_texture_basisu via Basis Universal (when WithKTX2)
 //   - `-noq` — skip mesh quantization extensions; we want explicit control
-//     of which extensions land, so DRACOLoader on the frontend doesn't also
-//     need KHR_mesh_quantization handling
+//     of which extensions land, so drei's MeshoptDecoder on the frontend
+//     doesn't also need KHR_mesh_quantization handling
 //   - `-kn -km -ke` — preserve node, material and extras names so debugging
 //     and downstream texture lookups continue to work after compression
 func (o *Optimizer) Compress(ctx context.Context, glb []byte) ([]byte, error) {
@@ -65,7 +65,7 @@ func (o *Optimizer) buildArgs(in, out string) []string {
 		"-noq",
 		"-kn", "-km", "-ke",
 	}
-	if o.draco {
+	if o.meshopt {
 		args = append(args, "-cc")
 	}
 	if o.ktx2 {

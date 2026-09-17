@@ -59,6 +59,14 @@ service CatalogService {
   rpc UpdatePlacement(UpdatePlacementRequest) returns (UpdatePlacementResponse);
   rpc SetPlacementVisibility(SetPlacementVisibilityRequest) returns (SetPlacementVisibilityResponse);
   rpc DeletePlacement(DeletePlacementRequest) returns (DeletePlacementResponse);
+
+  // Measurements are scoped by territory_slug on every call: an id that
+  // belongs to another territory is NOT_FOUND, same as an unknown one.
+  rpc ListMeasurements(ListMeasurementsRequest) returns (ListMeasurementsResponse);
+  rpc CreateMeasurement(CreateMeasurementRequest) returns (CreateMeasurementResponse);
+  rpc UpdateMeasurement(UpdateMeasurementRequest) returns (UpdateMeasurementResponse);
+  rpc DeleteMeasurement(DeleteMeasurementRequest) returns (DeleteMeasurementResponse);
+  rpc DeleteMeasurements(DeleteMeasurementsRequest) returns (DeleteMeasurementsResponse);
 }
 
 // Vec3 represents a point in 3D space (used for bounding-box corners
@@ -81,6 +89,8 @@ message Territory {
   google.protobuf.Timestamp updated_at = 6;
   // Optional link to an externally-hosted panorama tour. Empty = unset.
   string external_panorama_url = 7;
+  // How many placements sit on this territory.
+  uint32 placement_count = 8;
 }
 
 // Model is a placeable 3D asset overlaid on a territory.
@@ -93,6 +103,8 @@ message Model {
   google.protobuf.Timestamp updated_at = 6;
   // Optional thumbnail image blob hash ('' = none), served via /api/assets.
   string thumbnail_blob_hash = 7;
+  // How many distinct territories place this model.
+  uint32 usage_count = 8;
 }
 
 // TerritoryArtifact is a converted GLB output for one territory + LOD.
@@ -141,6 +153,19 @@ message Placement {
   // shown in (panorama mode only — the 3D view always shows every
   // placement). Empty means the placement is hidden in every panorama.
   repeated int64 visible_panorama_ids = 10;
+}
+
+// Measurement is a saved ruler chain on a territory. points is flat —
+// x0,y0,z0,x1,… in the territory's normalised scene space, the space placement
+// positions use — so its length is a multiple of three: at least two points,
+// at least three when closed.
+message Measurement {
+  int64 id = 1;
+  string territory_slug = 2;
+  repeated double points = 3;
+  bool closed = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
 }
 
 // ─── Territory RPCs ─────────────────────────────────────────────────────────
@@ -263,9 +288,10 @@ message SetTerritoryRescaleBaselineRequest {
 message SetTerritoryRescaleBaselineResponse {}
 
 // RescaleTerritoryPlacements applies a pending rescale baseline: it scales
-// every placement's position and scale by old_max / new_source_max and clears
-// the baseline, atomically. A no-op when no baseline is set. The response
-// reports how many placements were changed.
+// every placement's position and scale, and every measurement point, by
+// old_max / new_source_max and clears the baseline, atomically. A no-op when no
+// baseline is set. The response reports how many placements were changed
+// (measurements are not counted).
 message RescaleTerritoryPlacementsRequest {
   string territory_slug = 1;
   double new_source_max = 2;
@@ -352,6 +378,8 @@ message UpdatePlacementRequest {
   Vec3 rotation = 3;
   Vec3 scale = 4;
   string label = 5;
+  // Scopes the lookup: an id from another territory reads as not found.
+  string territory_slug = 6;
 }
 message UpdatePlacementResponse {
   Placement placement = 1;
@@ -371,5 +399,52 @@ message SetPlacementVisibilityResponse {
 
 message DeletePlacementRequest {
   int64 id = 1;
+  // Scopes the lookup: an id from another territory reads as not found.
+  string territory_slug = 2;
 }
 message DeletePlacementResponse {}
+
+// ─── Measurement RPCs ───────────────────────────────────────────────────────
+
+message ListMeasurementsRequest {
+  string territory_slug = 1;
+}
+message ListMeasurementsResponse {
+  repeated Measurement measurements = 1;
+}
+
+// CreateMeasurementRequest carries no author: catalog records the caller from
+// the x-actor-id metadata.
+message CreateMeasurementRequest {
+  string territory_slug = 1;
+  repeated double points = 2;
+  bool closed = 3;
+}
+message CreateMeasurementResponse {
+  Measurement measurement = 1;
+}
+
+// UpdateMeasurementRequest replaces the chain's points and closed flag.
+message UpdateMeasurementRequest {
+  string territory_slug = 1;
+  int64 id = 2;
+  repeated double points = 3;
+  bool closed = 4;
+}
+message UpdateMeasurementResponse {
+  Measurement measurement = 1;
+}
+
+message DeleteMeasurementRequest {
+  string territory_slug = 1;
+  int64 id = 2;
+}
+message DeleteMeasurementResponse {}
+
+// DeleteMeasurementsRequest removes every measurement on the territory.
+message DeleteMeasurementsRequest {
+  string territory_slug = 1;
+}
+message DeleteMeasurementsResponse {
+  uint32 deleted = 1;
+}

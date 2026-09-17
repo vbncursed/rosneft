@@ -41,6 +41,13 @@ type UploadMock struct {
 	beforeGetStatusCounter uint64
 	GetStatusMock          mUploadMockGetStatus
 
+	funcHasUploaded          func(ctx context.Context, hash string) (b1 bool, err error)
+	funcHasUploadedOrigin    string
+	inspectFuncHasUploaded   func(ctx context.Context, hash string)
+	afterHasUploadedCounter  uint64
+	beforeHasUploadedCounter uint64
+	HasUploadedMock          mUploadMockHasUploaded
+
 	funcInitiate          func(ctx context.Context, size int64, contentType string) (u1 domain.UploadSession, err error)
 	funcInitiateOrigin    string
 	inspectFuncInitiate   func(ctx context.Context, size int64, contentType string)
@@ -72,6 +79,9 @@ func NewUploadMock(t minimock.Tester) *UploadMock {
 
 	m.GetStatusMock = mUploadMockGetStatus{mock: m}
 	m.GetStatusMock.callArgs = []*UploadMockGetStatusParams{}
+
+	m.HasUploadedMock = mUploadMockHasUploaded{mock: m}
+	m.HasUploadedMock.callArgs = []*UploadMockHasUploadedParams{}
 
 	m.InitiateMock = mUploadMockInitiate{mock: m}
 	m.InitiateMock.callArgs = []*UploadMockInitiateParams{}
@@ -1112,6 +1122,349 @@ func (m *UploadMock) MinimockGetStatusInspect() {
 	}
 }
 
+type mUploadMockHasUploaded struct {
+	optional           bool
+	mock               *UploadMock
+	defaultExpectation *UploadMockHasUploadedExpectation
+	expectations       []*UploadMockHasUploadedExpectation
+
+	callArgs []*UploadMockHasUploadedParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// UploadMockHasUploadedExpectation specifies expectation struct of the Upload.HasUploaded
+type UploadMockHasUploadedExpectation struct {
+	mock               *UploadMock
+	params             *UploadMockHasUploadedParams
+	paramPtrs          *UploadMockHasUploadedParamPtrs
+	expectationOrigins UploadMockHasUploadedExpectationOrigins
+	results            *UploadMockHasUploadedResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// UploadMockHasUploadedParams contains parameters of the Upload.HasUploaded
+type UploadMockHasUploadedParams struct {
+	ctx  context.Context
+	hash string
+}
+
+// UploadMockHasUploadedParamPtrs contains pointers to parameters of the Upload.HasUploaded
+type UploadMockHasUploadedParamPtrs struct {
+	ctx  *context.Context
+	hash *string
+}
+
+// UploadMockHasUploadedResults contains results of the Upload.HasUploaded
+type UploadMockHasUploadedResults struct {
+	b1  bool
+	err error
+}
+
+// UploadMockHasUploadedOrigins contains origins of expectations of the Upload.HasUploaded
+type UploadMockHasUploadedExpectationOrigins struct {
+	origin     string
+	originCtx  string
+	originHash string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmHasUploaded *mUploadMockHasUploaded) Optional() *mUploadMockHasUploaded {
+	mmHasUploaded.optional = true
+	return mmHasUploaded
+}
+
+// Expect sets up expected params for Upload.HasUploaded
+func (mmHasUploaded *mUploadMockHasUploaded) Expect(ctx context.Context, hash string) *mUploadMockHasUploaded {
+	if mmHasUploaded.mock.funcHasUploaded != nil {
+		mmHasUploaded.mock.t.Fatalf("UploadMock.HasUploaded mock is already set by Set")
+	}
+
+	if mmHasUploaded.defaultExpectation == nil {
+		mmHasUploaded.defaultExpectation = &UploadMockHasUploadedExpectation{}
+	}
+
+	if mmHasUploaded.defaultExpectation.paramPtrs != nil {
+		mmHasUploaded.mock.t.Fatalf("UploadMock.HasUploaded mock is already set by ExpectParams functions")
+	}
+
+	mmHasUploaded.defaultExpectation.params = &UploadMockHasUploadedParams{ctx, hash}
+	mmHasUploaded.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmHasUploaded.expectations {
+		if minimock.Equal(e.params, mmHasUploaded.defaultExpectation.params) {
+			mmHasUploaded.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmHasUploaded.defaultExpectation.params)
+		}
+	}
+
+	return mmHasUploaded
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Upload.HasUploaded
+func (mmHasUploaded *mUploadMockHasUploaded) ExpectCtxParam1(ctx context.Context) *mUploadMockHasUploaded {
+	if mmHasUploaded.mock.funcHasUploaded != nil {
+		mmHasUploaded.mock.t.Fatalf("UploadMock.HasUploaded mock is already set by Set")
+	}
+
+	if mmHasUploaded.defaultExpectation == nil {
+		mmHasUploaded.defaultExpectation = &UploadMockHasUploadedExpectation{}
+	}
+
+	if mmHasUploaded.defaultExpectation.params != nil {
+		mmHasUploaded.mock.t.Fatalf("UploadMock.HasUploaded mock is already set by Expect")
+	}
+
+	if mmHasUploaded.defaultExpectation.paramPtrs == nil {
+		mmHasUploaded.defaultExpectation.paramPtrs = &UploadMockHasUploadedParamPtrs{}
+	}
+	mmHasUploaded.defaultExpectation.paramPtrs.ctx = &ctx
+	mmHasUploaded.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmHasUploaded
+}
+
+// ExpectHashParam2 sets up expected param hash for Upload.HasUploaded
+func (mmHasUploaded *mUploadMockHasUploaded) ExpectHashParam2(hash string) *mUploadMockHasUploaded {
+	if mmHasUploaded.mock.funcHasUploaded != nil {
+		mmHasUploaded.mock.t.Fatalf("UploadMock.HasUploaded mock is already set by Set")
+	}
+
+	if mmHasUploaded.defaultExpectation == nil {
+		mmHasUploaded.defaultExpectation = &UploadMockHasUploadedExpectation{}
+	}
+
+	if mmHasUploaded.defaultExpectation.params != nil {
+		mmHasUploaded.mock.t.Fatalf("UploadMock.HasUploaded mock is already set by Expect")
+	}
+
+	if mmHasUploaded.defaultExpectation.paramPtrs == nil {
+		mmHasUploaded.defaultExpectation.paramPtrs = &UploadMockHasUploadedParamPtrs{}
+	}
+	mmHasUploaded.defaultExpectation.paramPtrs.hash = &hash
+	mmHasUploaded.defaultExpectation.expectationOrigins.originHash = minimock.CallerInfo(1)
+
+	return mmHasUploaded
+}
+
+// Inspect accepts an inspector function that has same arguments as the Upload.HasUploaded
+func (mmHasUploaded *mUploadMockHasUploaded) Inspect(f func(ctx context.Context, hash string)) *mUploadMockHasUploaded {
+	if mmHasUploaded.mock.inspectFuncHasUploaded != nil {
+		mmHasUploaded.mock.t.Fatalf("Inspect function is already set for UploadMock.HasUploaded")
+	}
+
+	mmHasUploaded.mock.inspectFuncHasUploaded = f
+
+	return mmHasUploaded
+}
+
+// Return sets up results that will be returned by Upload.HasUploaded
+func (mmHasUploaded *mUploadMockHasUploaded) Return(b1 bool, err error) *UploadMock {
+	if mmHasUploaded.mock.funcHasUploaded != nil {
+		mmHasUploaded.mock.t.Fatalf("UploadMock.HasUploaded mock is already set by Set")
+	}
+
+	if mmHasUploaded.defaultExpectation == nil {
+		mmHasUploaded.defaultExpectation = &UploadMockHasUploadedExpectation{mock: mmHasUploaded.mock}
+	}
+	mmHasUploaded.defaultExpectation.results = &UploadMockHasUploadedResults{b1, err}
+	mmHasUploaded.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmHasUploaded.mock
+}
+
+// Set uses given function f to mock the Upload.HasUploaded method
+func (mmHasUploaded *mUploadMockHasUploaded) Set(f func(ctx context.Context, hash string) (b1 bool, err error)) *UploadMock {
+	if mmHasUploaded.defaultExpectation != nil {
+		mmHasUploaded.mock.t.Fatalf("Default expectation is already set for the Upload.HasUploaded method")
+	}
+
+	if len(mmHasUploaded.expectations) > 0 {
+		mmHasUploaded.mock.t.Fatalf("Some expectations are already set for the Upload.HasUploaded method")
+	}
+
+	mmHasUploaded.mock.funcHasUploaded = f
+	mmHasUploaded.mock.funcHasUploadedOrigin = minimock.CallerInfo(1)
+	return mmHasUploaded.mock
+}
+
+// When sets expectation for the Upload.HasUploaded which will trigger the result defined by the following
+// Then helper
+func (mmHasUploaded *mUploadMockHasUploaded) When(ctx context.Context, hash string) *UploadMockHasUploadedExpectation {
+	if mmHasUploaded.mock.funcHasUploaded != nil {
+		mmHasUploaded.mock.t.Fatalf("UploadMock.HasUploaded mock is already set by Set")
+	}
+
+	expectation := &UploadMockHasUploadedExpectation{
+		mock:               mmHasUploaded.mock,
+		params:             &UploadMockHasUploadedParams{ctx, hash},
+		expectationOrigins: UploadMockHasUploadedExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmHasUploaded.expectations = append(mmHasUploaded.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Upload.HasUploaded return parameters for the expectation previously defined by the When method
+func (e *UploadMockHasUploadedExpectation) Then(b1 bool, err error) *UploadMock {
+	e.results = &UploadMockHasUploadedResults{b1, err}
+	return e.mock
+}
+
+// Times sets number of times Upload.HasUploaded should be invoked
+func (mmHasUploaded *mUploadMockHasUploaded) Times(n uint64) *mUploadMockHasUploaded {
+	if n == 0 {
+		mmHasUploaded.mock.t.Fatalf("Times of UploadMock.HasUploaded mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmHasUploaded.expectedInvocations, n)
+	mmHasUploaded.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmHasUploaded
+}
+
+func (mmHasUploaded *mUploadMockHasUploaded) invocationsDone() bool {
+	if len(mmHasUploaded.expectations) == 0 && mmHasUploaded.defaultExpectation == nil && mmHasUploaded.mock.funcHasUploaded == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmHasUploaded.mock.afterHasUploadedCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmHasUploaded.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// HasUploaded implements mm_service.Upload
+func (mmHasUploaded *UploadMock) HasUploaded(ctx context.Context, hash string) (b1 bool, err error) {
+	mm_atomic.AddUint64(&mmHasUploaded.beforeHasUploadedCounter, 1)
+	defer mm_atomic.AddUint64(&mmHasUploaded.afterHasUploadedCounter, 1)
+
+	mmHasUploaded.t.Helper()
+
+	if mmHasUploaded.inspectFuncHasUploaded != nil {
+		mmHasUploaded.inspectFuncHasUploaded(ctx, hash)
+	}
+
+	mm_params := UploadMockHasUploadedParams{ctx, hash}
+
+	// Record call args
+	mmHasUploaded.HasUploadedMock.mutex.Lock()
+	mmHasUploaded.HasUploadedMock.callArgs = append(mmHasUploaded.HasUploadedMock.callArgs, &mm_params)
+	mmHasUploaded.HasUploadedMock.mutex.Unlock()
+
+	for _, e := range mmHasUploaded.HasUploadedMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.b1, e.results.err
+		}
+	}
+
+	if mmHasUploaded.HasUploadedMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmHasUploaded.HasUploadedMock.defaultExpectation.Counter, 1)
+		mm_want := mmHasUploaded.HasUploadedMock.defaultExpectation.params
+		mm_want_ptrs := mmHasUploaded.HasUploadedMock.defaultExpectation.paramPtrs
+
+		mm_got := UploadMockHasUploadedParams{ctx, hash}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmHasUploaded.t.Errorf("UploadMock.HasUploaded got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmHasUploaded.HasUploadedMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.hash != nil && !minimock.Equal(*mm_want_ptrs.hash, mm_got.hash) {
+				mmHasUploaded.t.Errorf("UploadMock.HasUploaded got unexpected parameter hash, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmHasUploaded.HasUploadedMock.defaultExpectation.expectationOrigins.originHash, *mm_want_ptrs.hash, mm_got.hash, minimock.Diff(*mm_want_ptrs.hash, mm_got.hash))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmHasUploaded.t.Errorf("UploadMock.HasUploaded got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmHasUploaded.HasUploadedMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmHasUploaded.HasUploadedMock.defaultExpectation.results
+		if mm_results == nil {
+			mmHasUploaded.t.Fatal("No results are set for the UploadMock.HasUploaded")
+		}
+		return (*mm_results).b1, (*mm_results).err
+	}
+	if mmHasUploaded.funcHasUploaded != nil {
+		return mmHasUploaded.funcHasUploaded(ctx, hash)
+	}
+	mmHasUploaded.t.Fatalf("Unexpected call to UploadMock.HasUploaded. %v %v", ctx, hash)
+	return
+}
+
+// HasUploadedAfterCounter returns a count of finished UploadMock.HasUploaded invocations
+func (mmHasUploaded *UploadMock) HasUploadedAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmHasUploaded.afterHasUploadedCounter)
+}
+
+// HasUploadedBeforeCounter returns a count of UploadMock.HasUploaded invocations
+func (mmHasUploaded *UploadMock) HasUploadedBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmHasUploaded.beforeHasUploadedCounter)
+}
+
+// Calls returns a list of arguments used in each call to UploadMock.HasUploaded.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmHasUploaded *mUploadMockHasUploaded) Calls() []*UploadMockHasUploadedParams {
+	mmHasUploaded.mutex.RLock()
+
+	argCopy := make([]*UploadMockHasUploadedParams, len(mmHasUploaded.callArgs))
+	copy(argCopy, mmHasUploaded.callArgs)
+
+	mmHasUploaded.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockHasUploadedDone returns true if the count of the HasUploaded invocations corresponds
+// the number of defined expectations
+func (m *UploadMock) MinimockHasUploadedDone() bool {
+	if m.HasUploadedMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.HasUploadedMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.HasUploadedMock.invocationsDone()
+}
+
+// MinimockHasUploadedInspect logs each unmet expectation
+func (m *UploadMock) MinimockHasUploadedInspect() {
+	for _, e := range m.HasUploadedMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to UploadMock.HasUploaded at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterHasUploadedCounter := mm_atomic.LoadUint64(&m.afterHasUploadedCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.HasUploadedMock.defaultExpectation != nil && afterHasUploadedCounter < 1 {
+		if m.HasUploadedMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to UploadMock.HasUploaded at\n%s", m.HasUploadedMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to UploadMock.HasUploaded at\n%s with params: %#v", m.HasUploadedMock.defaultExpectation.expectationOrigins.origin, *m.HasUploadedMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcHasUploaded != nil && afterHasUploadedCounter < 1 {
+		m.t.Errorf("Expected call to UploadMock.HasUploaded at\n%s", m.funcHasUploadedOrigin)
+	}
+
+	if !m.HasUploadedMock.invocationsDone() && afterHasUploadedCounter > 0 {
+		m.t.Errorf("Expected %d calls to UploadMock.HasUploaded at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.HasUploadedMock.expectedInvocations), m.HasUploadedMock.expectedInvocationsOrigin, afterHasUploadedCounter)
+	}
+}
+
 type mUploadMockInitiate struct {
 	optional           bool
 	mock               *UploadMock
@@ -1901,6 +2254,8 @@ func (m *UploadMock) MinimockFinish() {
 
 			m.MinimockGetStatusInspect()
 
+			m.MinimockHasUploadedInspect()
+
 			m.MinimockInitiateInspect()
 
 			m.MinimockWriteChunkInspect()
@@ -1930,6 +2285,7 @@ func (m *UploadMock) minimockDone() bool {
 		m.MinimockAbortDone() &&
 		m.MinimockFinalizeDone() &&
 		m.MinimockGetStatusDone() &&
+		m.MinimockHasUploadedDone() &&
 		m.MinimockInitiateDone() &&
 		m.MinimockWriteChunkDone()
 }

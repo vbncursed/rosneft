@@ -26,6 +26,13 @@ type StoreMock struct {
 	beforeComputeDigestCounter uint64
 	ComputeDigestMock          mStoreMockComputeDigest
 
+	funcCount          func(ctx context.Context, f domain.Filter) (i1 int64, err error)
+	funcCountOrigin    string
+	inspectFuncCount   func(ctx context.Context, f domain.Filter)
+	afterCountCounter  uint64
+	beforeCountCounter uint64
+	CountMock          mStoreMockCount
+
 	funcDistinctActors          func(ctx context.Context, f domain.Filter) (sa1 []string, err error)
 	funcDistinctActorsOrigin    string
 	inspectFuncDistinctActors   func(ctx context.Context, f domain.Filter)
@@ -93,6 +100,9 @@ func NewStoreMock(t minimock.Tester) *StoreMock {
 
 	m.ComputeDigestMock = mStoreMockComputeDigest{mock: m}
 	m.ComputeDigestMock.callArgs = []*StoreMockComputeDigestParams{}
+
+	m.CountMock = mStoreMockCount{mock: m}
+	m.CountMock.callArgs = []*StoreMockCountParams{}
 
 	m.DistinctActorsMock = mStoreMockDistinctActors{mock: m}
 	m.DistinctActorsMock.callArgs = []*StoreMockDistinctActorsParams{}
@@ -527,6 +537,349 @@ func (m *StoreMock) MinimockComputeDigestInspect() {
 	if !m.ComputeDigestMock.invocationsDone() && afterComputeDigestCounter > 0 {
 		m.t.Errorf("Expected %d calls to StoreMock.ComputeDigest at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.ComputeDigestMock.expectedInvocations), m.ComputeDigestMock.expectedInvocationsOrigin, afterComputeDigestCounter)
+	}
+}
+
+type mStoreMockCount struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockCountExpectation
+	expectations       []*StoreMockCountExpectation
+
+	callArgs []*StoreMockCountParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockCountExpectation specifies expectation struct of the Store.Count
+type StoreMockCountExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockCountParams
+	paramPtrs          *StoreMockCountParamPtrs
+	expectationOrigins StoreMockCountExpectationOrigins
+	results            *StoreMockCountResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockCountParams contains parameters of the Store.Count
+type StoreMockCountParams struct {
+	ctx context.Context
+	f   domain.Filter
+}
+
+// StoreMockCountParamPtrs contains pointers to parameters of the Store.Count
+type StoreMockCountParamPtrs struct {
+	ctx *context.Context
+	f   *domain.Filter
+}
+
+// StoreMockCountResults contains results of the Store.Count
+type StoreMockCountResults struct {
+	i1  int64
+	err error
+}
+
+// StoreMockCountOrigins contains origins of expectations of the Store.Count
+type StoreMockCountExpectationOrigins struct {
+	origin    string
+	originCtx string
+	originF   string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmCount *mStoreMockCount) Optional() *mStoreMockCount {
+	mmCount.optional = true
+	return mmCount
+}
+
+// Expect sets up expected params for Store.Count
+func (mmCount *mStoreMockCount) Expect(ctx context.Context, f domain.Filter) *mStoreMockCount {
+	if mmCount.mock.funcCount != nil {
+		mmCount.mock.t.Fatalf("StoreMock.Count mock is already set by Set")
+	}
+
+	if mmCount.defaultExpectation == nil {
+		mmCount.defaultExpectation = &StoreMockCountExpectation{}
+	}
+
+	if mmCount.defaultExpectation.paramPtrs != nil {
+		mmCount.mock.t.Fatalf("StoreMock.Count mock is already set by ExpectParams functions")
+	}
+
+	mmCount.defaultExpectation.params = &StoreMockCountParams{ctx, f}
+	mmCount.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmCount.expectations {
+		if minimock.Equal(e.params, mmCount.defaultExpectation.params) {
+			mmCount.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCount.defaultExpectation.params)
+		}
+	}
+
+	return mmCount
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.Count
+func (mmCount *mStoreMockCount) ExpectCtxParam1(ctx context.Context) *mStoreMockCount {
+	if mmCount.mock.funcCount != nil {
+		mmCount.mock.t.Fatalf("StoreMock.Count mock is already set by Set")
+	}
+
+	if mmCount.defaultExpectation == nil {
+		mmCount.defaultExpectation = &StoreMockCountExpectation{}
+	}
+
+	if mmCount.defaultExpectation.params != nil {
+		mmCount.mock.t.Fatalf("StoreMock.Count mock is already set by Expect")
+	}
+
+	if mmCount.defaultExpectation.paramPtrs == nil {
+		mmCount.defaultExpectation.paramPtrs = &StoreMockCountParamPtrs{}
+	}
+	mmCount.defaultExpectation.paramPtrs.ctx = &ctx
+	mmCount.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmCount
+}
+
+// ExpectFParam2 sets up expected param f for Store.Count
+func (mmCount *mStoreMockCount) ExpectFParam2(f domain.Filter) *mStoreMockCount {
+	if mmCount.mock.funcCount != nil {
+		mmCount.mock.t.Fatalf("StoreMock.Count mock is already set by Set")
+	}
+
+	if mmCount.defaultExpectation == nil {
+		mmCount.defaultExpectation = &StoreMockCountExpectation{}
+	}
+
+	if mmCount.defaultExpectation.params != nil {
+		mmCount.mock.t.Fatalf("StoreMock.Count mock is already set by Expect")
+	}
+
+	if mmCount.defaultExpectation.paramPtrs == nil {
+		mmCount.defaultExpectation.paramPtrs = &StoreMockCountParamPtrs{}
+	}
+	mmCount.defaultExpectation.paramPtrs.f = &f
+	mmCount.defaultExpectation.expectationOrigins.originF = minimock.CallerInfo(1)
+
+	return mmCount
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.Count
+func (mmCount *mStoreMockCount) Inspect(f func(ctx context.Context, f domain.Filter)) *mStoreMockCount {
+	if mmCount.mock.inspectFuncCount != nil {
+		mmCount.mock.t.Fatalf("Inspect function is already set for StoreMock.Count")
+	}
+
+	mmCount.mock.inspectFuncCount = f
+
+	return mmCount
+}
+
+// Return sets up results that will be returned by Store.Count
+func (mmCount *mStoreMockCount) Return(i1 int64, err error) *StoreMock {
+	if mmCount.mock.funcCount != nil {
+		mmCount.mock.t.Fatalf("StoreMock.Count mock is already set by Set")
+	}
+
+	if mmCount.defaultExpectation == nil {
+		mmCount.defaultExpectation = &StoreMockCountExpectation{mock: mmCount.mock}
+	}
+	mmCount.defaultExpectation.results = &StoreMockCountResults{i1, err}
+	mmCount.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmCount.mock
+}
+
+// Set uses given function f to mock the Store.Count method
+func (mmCount *mStoreMockCount) Set(f func(ctx context.Context, f domain.Filter) (i1 int64, err error)) *StoreMock {
+	if mmCount.defaultExpectation != nil {
+		mmCount.mock.t.Fatalf("Default expectation is already set for the Store.Count method")
+	}
+
+	if len(mmCount.expectations) > 0 {
+		mmCount.mock.t.Fatalf("Some expectations are already set for the Store.Count method")
+	}
+
+	mmCount.mock.funcCount = f
+	mmCount.mock.funcCountOrigin = minimock.CallerInfo(1)
+	return mmCount.mock
+}
+
+// When sets expectation for the Store.Count which will trigger the result defined by the following
+// Then helper
+func (mmCount *mStoreMockCount) When(ctx context.Context, f domain.Filter) *StoreMockCountExpectation {
+	if mmCount.mock.funcCount != nil {
+		mmCount.mock.t.Fatalf("StoreMock.Count mock is already set by Set")
+	}
+
+	expectation := &StoreMockCountExpectation{
+		mock:               mmCount.mock,
+		params:             &StoreMockCountParams{ctx, f},
+		expectationOrigins: StoreMockCountExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmCount.expectations = append(mmCount.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.Count return parameters for the expectation previously defined by the When method
+func (e *StoreMockCountExpectation) Then(i1 int64, err error) *StoreMock {
+	e.results = &StoreMockCountResults{i1, err}
+	return e.mock
+}
+
+// Times sets number of times Store.Count should be invoked
+func (mmCount *mStoreMockCount) Times(n uint64) *mStoreMockCount {
+	if n == 0 {
+		mmCount.mock.t.Fatalf("Times of StoreMock.Count mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmCount.expectedInvocations, n)
+	mmCount.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmCount
+}
+
+func (mmCount *mStoreMockCount) invocationsDone() bool {
+	if len(mmCount.expectations) == 0 && mmCount.defaultExpectation == nil && mmCount.mock.funcCount == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmCount.mock.afterCountCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmCount.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// Count implements mm_service.Store
+func (mmCount *StoreMock) Count(ctx context.Context, f domain.Filter) (i1 int64, err error) {
+	mm_atomic.AddUint64(&mmCount.beforeCountCounter, 1)
+	defer mm_atomic.AddUint64(&mmCount.afterCountCounter, 1)
+
+	mmCount.t.Helper()
+
+	if mmCount.inspectFuncCount != nil {
+		mmCount.inspectFuncCount(ctx, f)
+	}
+
+	mm_params := StoreMockCountParams{ctx, f}
+
+	// Record call args
+	mmCount.CountMock.mutex.Lock()
+	mmCount.CountMock.callArgs = append(mmCount.CountMock.callArgs, &mm_params)
+	mmCount.CountMock.mutex.Unlock()
+
+	for _, e := range mmCount.CountMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1, e.results.err
+		}
+	}
+
+	if mmCount.CountMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCount.CountMock.defaultExpectation.Counter, 1)
+		mm_want := mmCount.CountMock.defaultExpectation.params
+		mm_want_ptrs := mmCount.CountMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockCountParams{ctx, f}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmCount.t.Errorf("StoreMock.Count got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCount.CountMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.f != nil && !minimock.Equal(*mm_want_ptrs.f, mm_got.f) {
+				mmCount.t.Errorf("StoreMock.Count got unexpected parameter f, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCount.CountMock.defaultExpectation.expectationOrigins.originF, *mm_want_ptrs.f, mm_got.f, minimock.Diff(*mm_want_ptrs.f, mm_got.f))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCount.t.Errorf("StoreMock.Count got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmCount.CountMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCount.CountMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCount.t.Fatal("No results are set for the StoreMock.Count")
+		}
+		return (*mm_results).i1, (*mm_results).err
+	}
+	if mmCount.funcCount != nil {
+		return mmCount.funcCount(ctx, f)
+	}
+	mmCount.t.Fatalf("Unexpected call to StoreMock.Count. %v %v", ctx, f)
+	return
+}
+
+// CountAfterCounter returns a count of finished StoreMock.Count invocations
+func (mmCount *StoreMock) CountAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCount.afterCountCounter)
+}
+
+// CountBeforeCounter returns a count of StoreMock.Count invocations
+func (mmCount *StoreMock) CountBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCount.beforeCountCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.Count.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCount *mStoreMockCount) Calls() []*StoreMockCountParams {
+	mmCount.mutex.RLock()
+
+	argCopy := make([]*StoreMockCountParams, len(mmCount.callArgs))
+	copy(argCopy, mmCount.callArgs)
+
+	mmCount.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCountDone returns true if the count of the Count invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockCountDone() bool {
+	if m.CountMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.CountMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.CountMock.invocationsDone()
+}
+
+// MinimockCountInspect logs each unmet expectation
+func (m *StoreMock) MinimockCountInspect() {
+	for _, e := range m.CountMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.Count at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterCountCounter := mm_atomic.LoadUint64(&m.afterCountCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CountMock.defaultExpectation != nil && afterCountCounter < 1 {
+		if m.CountMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.Count at\n%s", m.CountMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.Count at\n%s with params: %#v", m.CountMock.defaultExpectation.expectationOrigins.origin, *m.CountMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCount != nil && afterCountCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.Count at\n%s", m.funcCountOrigin)
+	}
+
+	if !m.CountMock.invocationsDone() && afterCountCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.Count at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.CountMock.expectedInvocations), m.CountMock.expectedInvocationsOrigin, afterCountCounter)
 	}
 }
 
@@ -3158,6 +3511,8 @@ func (m *StoreMock) MinimockFinish() {
 		if !m.minimockDone() {
 			m.MinimockComputeDigestInspect()
 
+			m.MinimockCountInspect()
+
 			m.MinimockDistinctActorsInspect()
 
 			m.MinimockLastCheckpointInspect()
@@ -3197,6 +3552,7 @@ func (m *StoreMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockComputeDigestDone() &&
+		m.MinimockCountDone() &&
 		m.MinimockDistinctActorsDone() &&
 		m.MinimockLastCheckpointDone() &&
 		m.MinimockListDone() &&

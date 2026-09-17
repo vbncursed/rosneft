@@ -42,9 +42,9 @@ func (s *ModelsSuite) TestGetRejectsEmptySlug() {
 func (s *ModelsSuite) TestCreateRejectsMissingFields() {
 	// Missing source hash, then missing title. The slug is no longer required —
 	// the catalog derives it from the title.
-	_, _, err := s.svc.CreateModel(s.ctx, domain.Model{Title: "x"})
+	_, _, err := s.svc.CreateModel(s.ctx, domain.Model{Title: "x"}, rootScope)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
-	_, _, err = s.svc.CreateModel(s.ctx, domain.Model{SourceBlobHash: "h"})
+	_, _, err = s.svc.CreateModel(s.ctx, domain.Model{SourceBlobHash: "h"}, rootScope)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
@@ -54,14 +54,14 @@ func (s *ModelsSuite) TestCreateUpsertsAndSubmitsJob() {
 	s.mesh.SubmitConversionMock.Expect(s.ctx, domain.KindModel, "m1").
 		Return(domain.Job{ID: "job-1", Kind: domain.KindModel, Slug: "m1"}, nil)
 
-	saved, job, err := s.svc.CreateModel(s.ctx, in)
+	saved, job, err := s.svc.CreateModel(s.ctx, in, rootScope)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), saved.Slug, "m1")
 	assert.Equal(s.T(), job.ID, "job-1")
 }
 
 func (s *ModelsSuite) TestUpdateRejectsEmptySlug() {
-	_, err := s.svc.UpdateModel(s.ctx, "", domain.ModelUpdate{})
+	_, err := s.svc.UpdateModel(s.ctx, "", domain.ModelUpdate{}, rootScope)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
@@ -73,8 +73,7 @@ func (s *ModelsSuite) TestUpdateSetsThumbnailViaReadModifyWrite() {
 	merged.ThumbnailBlobHash = "thumb-hash"
 	s.cat.UpsertModelMock.Expect(s.ctx, merged).Return(merged, nil)
 
-	hash := "thumb-hash"
-	saved, err := s.svc.UpdateModel(s.ctx, "m1", domain.ModelUpdate{ThumbnailBlobHash: &hash})
+	saved, err := s.svc.UpdateModel(s.ctx, "m1", domain.ModelUpdate{ThumbnailBlobHash: new("thumb-hash")}, rootScope)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), saved.ThumbnailBlobHash, "thumb-hash")
 }

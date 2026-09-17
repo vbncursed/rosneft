@@ -11,7 +11,7 @@ import (
 )
 
 // territoryScopedPrefix is the route-pattern prefix every child resource of a
-// territory shares. Thirteen routes sit under it today, and any added later is
+// territory shares. Thirteen routes sat under it when it landed; any added later is
 // covered the moment it is registered — which is the point. The hole this closes
 // was not a missing check but a check that had to be remembered thirteen times
 // and was remembered three.

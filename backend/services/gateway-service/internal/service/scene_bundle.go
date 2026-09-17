@@ -11,8 +11,9 @@ import (
 )
 
 // GetSceneBundle is the single-shot composition for the viewer page. It
-// fans out four catalog calls in parallel — territory, territory artifacts,
-// placements, and the model catalog — and stitches the result together.
+// fans out its reads in parallel — territory, territory artifacts,
+// placements, measurements, the model catalog, panoramas and documents — and
+// stitches the result together.
 //
 // A missing LOD0 territory artifact is not an error: SceneBundle.Artifact
 // is left nil so the frontend renders a "conversion pending" placeholder.
@@ -29,6 +30,7 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 		models     []domain.Model
 		panoramas  []domain.Panorama
 		documents  []domain.Document
+		measures   []domain.Measurement
 	)
 
 	gr, gctx := errgroup.WithContext(ctx)
@@ -54,6 +56,14 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 			return err
 		}
 		placements = p
+		return nil
+	})
+	gr.Go(func() error {
+		m, err := g.catalog.ListMeasurements(gctx, slug)
+		if err != nil && !errors.Is(err, domain.ErrTerritoryNotFound) {
+			return err
+		}
+		measures = m
 		return nil
 	})
 	gr.Go(func() error {
@@ -85,9 +95,10 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 	}
 
 	bundle.Territory = territory
-	bundle.Placements = nilToEmptyPlacements(placements)
-	bundle.Panoramas = nilToEmptyPanoramas(panoramas)
-	bundle.Documents = nilToEmptyDocuments(documents)
+	bundle.Placements = nilToEmpty(placements)
+	bundle.Panoramas = nilToEmpty(panoramas)
+	bundle.Documents = nilToEmpty(documents)
+	bundle.Measurements = nilToEmpty(measures)
 	if a, ok := pickLOD0(artifacts); ok {
 		a.LODs = lodChain(artifacts)
 		bundle.Artifact = &a
@@ -122,23 +133,11 @@ func lodChain(arts []domain.Artifact) []domain.LodArtifact {
 	return out
 }
 
-func nilToEmptyPlacements(in []domain.Placement) []domain.Placement {
+// nilToEmpty turns a nil list into an empty one, so the bundle serialises as
+// [] rather than null.
+func nilToEmpty[T any](in []T) []T {
 	if in == nil {
-		return []domain.Placement{}
-	}
-	return in
-}
-
-func nilToEmptyPanoramas(in []domain.Panorama) []domain.Panorama {
-	if in == nil {
-		return []domain.Panorama{}
-	}
-	return in
-}
-
-func nilToEmptyDocuments(in []domain.Document) []domain.Document {
-	if in == nil {
-		return []domain.Document{}
+		return []T{}
 	}
 	return in
 }

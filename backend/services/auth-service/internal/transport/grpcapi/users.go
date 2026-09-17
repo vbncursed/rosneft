@@ -116,3 +116,15 @@ func (s *Server) SetUserOwner(ctx context.Context, req *authv1.SetUserOwnerReque
 	}
 	return userToProto(u), nil
 }
+
+func (s *Server) SetUserTOTPRequired(ctx context.Context, req *authv1.SetUserTOTPRequiredRequest) (*authv1.User, error) {
+	actorID, scopeAll, err := s.actor(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	u, err := s.users.SetTOTPRequired(ctx, actorID, scopeAll, req.GetId(), req.GetRequired())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	return userToProto(u), nil
+}

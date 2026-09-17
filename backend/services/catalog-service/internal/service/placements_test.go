@@ -92,6 +92,23 @@ func (s *PlacementsSuite) TestCreateRejectsNegativeScale() {
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
+func (s *PlacementsSuite) TestCreateRejectsPanoramaFromAnotherTerritory() {
+	p := validPlacement()
+	p.VisiblePanoramaIDs = []int64{999}
+	s.repo.ListPanoramaIDsMock.Expect(s.ctx, "t1").Return([]int64{10}, nil)
+	_, err := s.svc.CreatePlacement(s.ctx, p)
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *PlacementsSuite) TestCreateAcceptsPanoramaOnTheSameTerritory() {
+	p := validPlacement()
+	p.VisiblePanoramaIDs = []int64{10}
+	s.repo.ListPanoramaIDsMock.Expect(s.ctx, "t1").Return([]int64{10}, nil)
+	s.repo.CreatePlacementMock.Expect(s.ctx, p).Return(p, nil)
+	_, err := s.svc.CreatePlacement(s.ctx, p)
+	assert.NilError(s.T(), err)
+}
+
 func (s *PlacementsSuite) TestCreateAssignsID() {
 	forwarded := validPlacement()
 	s.repo.CreatePlacementMock.Expect(s.ctx, forwarded).Return(domain.Placement{ID: 1}, nil)
@@ -103,6 +120,14 @@ func (s *PlacementsSuite) TestCreateAssignsID() {
 func (s *PlacementsSuite) TestUpdateRejectsZeroID() {
 	p := validPlacement()
 	p.ID = 0
+	_, err := s.svc.UpdatePlacement(s.ctx, p)
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *PlacementsSuite) TestUpdateRejectsEmptyTerritorySlug() {
+	p := validPlacement()
+	p.ID = 1
+	p.TerritorySlug = ""
 	_, err := s.svc.UpdatePlacement(s.ctx, p)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
@@ -136,24 +161,29 @@ func (s *PlacementsSuite) TestUpdateReturnsNotFoundForUnknownID() {
 }
 
 func (s *PlacementsSuite) TestDeleteRejectsZeroID() {
-	err := s.svc.DeletePlacement(s.ctx, 0)
+	err := s.svc.DeletePlacement(s.ctx, "t1", 0)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *PlacementsSuite) TestDeleteRejectsNegativeID() {
-	err := s.svc.DeletePlacement(s.ctx, -1)
+	err := s.svc.DeletePlacement(s.ctx, "t1", -1)
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *PlacementsSuite) TestDeleteRejectsEmptyTerritorySlug() {
+	err := s.svc.DeletePlacement(s.ctx, "", 1)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *PlacementsSuite) TestDeleteReturnsNotFoundForUnknownID() {
-	s.repo.DeletePlacementMock.Expect(s.ctx, int64(999)).Return(domain.ErrPlacementNotFound)
-	err := s.svc.DeletePlacement(s.ctx, 999)
+	s.repo.DeletePlacementMock.Expect(s.ctx, "t1", int64(999)).Return(domain.ErrPlacementNotFound)
+	err := s.svc.DeletePlacement(s.ctx, "t1", 999)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrPlacementNotFound))
 }
 
-func (s *PlacementsSuite) TestDeleteRemovesExisting() {
-	s.repo.DeletePlacementMock.Expect(s.ctx, int64(1)).Return(nil)
-	assert.NilError(s.T(), s.svc.DeletePlacement(s.ctx, 1))
+func (s *PlacementsSuite) TestDeleteForwardsTerritorySlug() {
+	s.repo.DeletePlacementMock.Expect(s.ctx, "t1", int64(1)).Return(nil)
+	assert.NilError(s.T(), s.svc.DeletePlacement(s.ctx, "t1", 1))
 }
 
 func (s *PlacementsSuite) TestListRejectsEmptySlug() {

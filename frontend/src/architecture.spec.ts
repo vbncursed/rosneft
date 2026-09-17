@@ -1,0 +1,140 @@
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { basename, extname, join } from "node:path";
+import { describe, expect, it } from "vitest";
+// Shared with vite.config.ts's coverage exclude — one policy, one list.
+import { EXEMPT_MODULES } from "../exempt-modules.ts";
+
+const SRC = join(import.meta.dirname);
+
+const EXEMPT = new Set(EXEMPT_MODULES);
+
+const isBarrel = (file: string) => basename(file) === "index.ts";
+const isTestOrFixture = (file: string) =>
+  /\.(spec|fixture)\.tsx?$/.test(file) || file.endsWith("architecture.spec.ts");
+
+function walk(dir: string): string[] {
+  return readdirSync(dir).flatMap((entry) => {
+    const full = join(dir, entry);
+    return statSync(full).isDirectory() ? walk(full) : [full];
+  });
+}
+
+const rel = (file: string) => `src/${file.slice(SRC.length + 1)}`;
+
+const sources = walk(SRC)
+  .filter((f) => [".ts", ".tsx"].includes(extname(f)))
+  .filter((f) => !isTestOrFixture(f) && !isBarrel(f))
+  .filter((f) => !EXEMPT.has(rel(f)));
+
+const specFor = (file: string) => {
+  const stem = file.slice(0, -extname(file).length);
+  return [`${stem}.spec.ts`, `${stem}.spec.tsx`].find((candidate) => {
+    try {
+      return statSync(candidate).isFile();
+    } catch {
+      return false;
+    }
+  });
+};
+
+describe("every module carries its own spec", () => {
+  it("finds sources to check at all — a broken walk must not pass silently", () => {
+    expect(sources.length).toBeGreaterThan(20);
+  });
+
+  it.each(sources.map((f) => [rel(f), f]))("%s", (_label, file) => {
+    expect(specFor(file), `${rel(file)} has no neighbouring *.spec.ts(x)`).toBeDefined();
+  });
+});
+
+describe("every slice with a component carries a Cosmos fixture", () => {
+  // A slice is the directory that owns a component: shared/ui/button,
+  // entities/territory, and so on. Anything rendering JSX must be browsable.
+  const componentDirs = [
+    ...new Set(
+      sources.filter((f) => extname(f) === ".tsx").map((f) => f.slice(0, f.lastIndexOf("/"))),
+    ),
+  ];
+
+  const sliceOf = (dir: string) => {
+    const parts = rel(dir).split("/");
+    // src/shared/ui/button -> src/shared/ui/button
+    // src/entities/territory/ui -> src/entities/territory
+    return parts[1] === "shared" ? parts.slice(0, 4).join("/") : parts.slice(0, 3).join("/");
+  };
+
+  const slices = [...new Set(componentDirs.map(sliceOf))];
+
+  it("finds slices to check", () => {
+    expect(slices.length).toBeGreaterThan(10);
+  });
+
+  it.each(slices)("%s", (slice) => {
+    const dir = join(SRC, "..", slice);
+    expect(
+      walk(dir).some((f) => f.endsWith(".fixture.tsx")),
+      `${slice} renders JSX but has no *.fixture.tsx`,
+    ).toBe(true);
+  });
+});
+
+describe("layer dependencies point inward only", () => {
+  // app -> pages -> widgets -> features -> entities -> shared
+  const ORDER = ["shared", "entities", "features", "widgets", "pages", "app"];
+
+  const layerOf = (file: string) => {
+    const parts = rel(file).split("/");
+    return parts[1] && ORDER.includes(parts[1]) ? parts[1] : null;
+  };
+
+  it.each(sources.map((f) => [rel(f), f]))("%s", (_label, file) => {
+    const layer = layerOf(file);
+    if (!layer) return;
+
+    const imports = [...readFileSync(file, "utf8").matchAll(/from\s+"@\/([a-z-]+)\//g)].map(
+      (m) => m[1],
+    );
+
+    for (const imported of imports) {
+      if (!ORDER.includes(imported)) continue;
+      expect(
+        ORDER.indexOf(imported),
+        `${rel(file)} (${layer}) imports from ${imported}, which is not below it`,
+      ).toBeLessThanOrEqual(ORDER.indexOf(layer));
+    }
+  });
+});
+
+describe("slices do not import each other's internals", () => {
+  const sliceOf = (path: string) => {
+    const parts = path.split("/");
+    return parts[1] === "shared" ? parts.slice(0, 4).join("/") : parts.slice(0, 3).join("/");
+  };
+
+  it.each(sources.map((f) => [rel(f), f]))("%s", (_label, file) => {
+    const own = sliceOf(rel(file));
+
+    const deep = [...readFileSync(file, "utf8").matchAll(/from\s+"@\/([^"]+)"/g)]
+      .map((m) => `src/${m[1]}`)
+      // A slice's own path is its public surface; anything deeper reaches
+      // past its index.ts.
+      .filter((target) => sliceOf(target) !== own && target !== sliceOf(target));
+
+    expect(deep, `${rel(file)} reaches past another slice's index.ts`).toEqual([]);
+  });
+});
+
+describe("the layout has no stray files", () => {
+  it("keeps every source inside a known layer", () => {
+    const strays = sources.map(rel).filter((f) => {
+      const layer = f.split("/")[1];
+      return !["shared", "entities", "features", "widgets", "pages", "app"].includes(layer);
+    });
+    expect(strays).toEqual([]);
+  });
+
+  it("puts nothing directly in a layer root — everything lives in a slice", () => {
+    const flat = sources.map(rel).filter((f) => f.split("/").length < 4);
+    expect(flat).toEqual([]);
+  });
+});

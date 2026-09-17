@@ -26,7 +26,7 @@ type AuditMock struct {
 	beforeListActorsCounter uint64
 	ListActorsMock          mAuditMockListActors
 
-	funcListEntries          func(ctx context.Context, q domain.AuditQuery) (aa1 []domain.AuditEntry, i1 int64, err error)
+	funcListEntries          func(ctx context.Context, q domain.AuditQuery) (a1 domain.AuditPage, err error)
 	funcListEntriesOrigin    string
 	inspectFuncListEntries   func(ctx context.Context, q domain.AuditQuery)
 	afterListEntriesCounter  uint64
@@ -444,8 +444,7 @@ type AuditMockListEntriesParamPtrs struct {
 
 // AuditMockListEntriesResults contains results of the Audit.ListEntries
 type AuditMockListEntriesResults struct {
-	aa1 []domain.AuditEntry
-	i1  int64
+	a1  domain.AuditPage
 	err error
 }
 
@@ -549,7 +548,7 @@ func (mmListEntries *mAuditMockListEntries) Inspect(f func(ctx context.Context, 
 }
 
 // Return sets up results that will be returned by Audit.ListEntries
-func (mmListEntries *mAuditMockListEntries) Return(aa1 []domain.AuditEntry, i1 int64, err error) *AuditMock {
+func (mmListEntries *mAuditMockListEntries) Return(a1 domain.AuditPage, err error) *AuditMock {
 	if mmListEntries.mock.funcListEntries != nil {
 		mmListEntries.mock.t.Fatalf("AuditMock.ListEntries mock is already set by Set")
 	}
@@ -557,13 +556,13 @@ func (mmListEntries *mAuditMockListEntries) Return(aa1 []domain.AuditEntry, i1 i
 	if mmListEntries.defaultExpectation == nil {
 		mmListEntries.defaultExpectation = &AuditMockListEntriesExpectation{mock: mmListEntries.mock}
 	}
-	mmListEntries.defaultExpectation.results = &AuditMockListEntriesResults{aa1, i1, err}
+	mmListEntries.defaultExpectation.results = &AuditMockListEntriesResults{a1, err}
 	mmListEntries.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
 	return mmListEntries.mock
 }
 
 // Set uses given function f to mock the Audit.ListEntries method
-func (mmListEntries *mAuditMockListEntries) Set(f func(ctx context.Context, q domain.AuditQuery) (aa1 []domain.AuditEntry, i1 int64, err error)) *AuditMock {
+func (mmListEntries *mAuditMockListEntries) Set(f func(ctx context.Context, q domain.AuditQuery) (a1 domain.AuditPage, err error)) *AuditMock {
 	if mmListEntries.defaultExpectation != nil {
 		mmListEntries.mock.t.Fatalf("Default expectation is already set for the Audit.ListEntries method")
 	}
@@ -594,8 +593,8 @@ func (mmListEntries *mAuditMockListEntries) When(ctx context.Context, q domain.A
 }
 
 // Then sets up Audit.ListEntries return parameters for the expectation previously defined by the When method
-func (e *AuditMockListEntriesExpectation) Then(aa1 []domain.AuditEntry, i1 int64, err error) *AuditMock {
-	e.results = &AuditMockListEntriesResults{aa1, i1, err}
+func (e *AuditMockListEntriesExpectation) Then(a1 domain.AuditPage, err error) *AuditMock {
+	e.results = &AuditMockListEntriesResults{a1, err}
 	return e.mock
 }
 
@@ -621,7 +620,7 @@ func (mmListEntries *mAuditMockListEntries) invocationsDone() bool {
 }
 
 // ListEntries implements mm_service.Audit
-func (mmListEntries *AuditMock) ListEntries(ctx context.Context, q domain.AuditQuery) (aa1 []domain.AuditEntry, i1 int64, err error) {
+func (mmListEntries *AuditMock) ListEntries(ctx context.Context, q domain.AuditQuery) (a1 domain.AuditPage, err error) {
 	mm_atomic.AddUint64(&mmListEntries.beforeListEntriesCounter, 1)
 	defer mm_atomic.AddUint64(&mmListEntries.afterListEntriesCounter, 1)
 
@@ -641,7 +640,7 @@ func (mmListEntries *AuditMock) ListEntries(ctx context.Context, q domain.AuditQ
 	for _, e := range mmListEntries.ListEntriesMock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.aa1, e.results.i1, e.results.err
+			return e.results.a1, e.results.err
 		}
 	}
 
@@ -673,7 +672,7 @@ func (mmListEntries *AuditMock) ListEntries(ctx context.Context, q domain.AuditQ
 		if mm_results == nil {
 			mmListEntries.t.Fatal("No results are set for the AuditMock.ListEntries")
 		}
-		return (*mm_results).aa1, (*mm_results).i1, (*mm_results).err
+		return (*mm_results).a1, (*mm_results).err
 	}
 	if mmListEntries.funcListEntries != nil {
 		return mmListEntries.funcListEntries(ctx, q)

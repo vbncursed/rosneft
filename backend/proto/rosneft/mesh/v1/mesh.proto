@@ -18,6 +18,11 @@ service MeshService {
 
   // GetJob returns the current state of a conversion job.
   rpc GetJob(GetJobRequest) returns (GetJobResponse);
+
+  // ListTargetJobs returns the latest job of every catalog target that has
+  // one — the read behind the console's "what is converting" view. Every
+  // status is included.
+  rpc ListTargetJobs(ListTargetJobsRequest) returns (ListTargetJobsResponse);
 }
 
 // Kind discriminates whether a job's output artifacts belong on a Territory
@@ -72,4 +77,10 @@ message GetJobRequest {
 
 message GetJobResponse {
   Job job = 1;
+}
+
+message ListTargetJobsRequest {}
+
+message ListTargetJobsResponse {
+  repeated Job jobs = 1;
 }

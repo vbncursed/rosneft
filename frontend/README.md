@@ -1,248 +1,206 @@
-# Andrey Frontend
+# frontend
 
-Vite + React 19 single-page app for the Andrey 3D platform. Talks to
-`gateway-service` over REST on relative `/api` paths — the session is an httpOnly
-cookie the browser attaches itself — and renders converted GLBs with
-`@react-three/fiber`.
+The SPA — served in production by nginx and embedded in the desktop shell.
+Vite 8 + React 19 + TypeScript 7, Tailwind 4, laid out Feature-Sliced. It was
+`frontend-v2/` (the redesign) until 2026-09-17, when it replaced the previous
+app and took over its directory. It is built against the Claude Design project
+`Design System.dc.html` — that document, not this code, is the source of truth
+for tokens, spacing and states.
 
 ## Commands
 
 ```bash
-yarn dev               # Vite dev server (http://localhost:3000, /api proxied to the gateway)
-yarn build             # production build → dist/
-yarn preview           # serve the production build locally
-yarn lint              # tsc --noEmit + oxlint
-yarn test              # domain unit tests (node --test, src/**/*.test.ts)
-yarn test:spa          # component/integration tests (vitest, src/**/*.spec.ts[x])
-yarn openapi:generate  # regenerate src/shared/infrastructure/api/dto.ts from
-                       # ../backend/services/gateway-service/api/openapi.yaml
+yarn dev          # Vite dev server on :3000, /api proxied to the gateway
+yarn build        # tsc -b && vite build → dist/
+yarn preview      # serve the production build
+yarn lint         # tsc -b --noEmit + oxlint
+yarn test         # vitest (jsdom) — every *.spec.ts(x)
+yarn test:watch   # the same, watching
+yarn test:coverage
+yarn cosmos       # React Cosmos on :5100 — every *.fixture.tsx
+yarn cosmos:export
+yarn openapi:generate   # regenerate src/shared/api/dto.ts from the gateway's openapi.yaml
 ```
 
-> Two test runners by design: pure domain logic runs framework-free under
-> Node's built-in runner (`*.test.ts`); anything needing jsdom/React runs under
-> vitest (`*.spec.ts[x]`). The globs don't overlap.
->
-> Re-run `yarn openapi:generate` whenever the gateway's `openapi.yaml` changes.
+Port 3000 is not a preference: it is the origin the gateway's
+`PASSKEY_RP_ORIGINS` lists for local dev, and a passkey ceremony from any
+other origin fails with no server log. `VITE_DEV_PROXY` overrides the `/api`
+target (default `http://localhost:8080`).
 
-## Stack
+`VITE_API_URL` is **empty** in dev and in production — `.env.development` and
+`.env.production` both pin it, and both are tracked (`git add -f`, the root
+`.gitignore` excludes `.env.*`). A build without `.env.production` sends every
+request to `undefined/api/...` and warns about nothing; production is
+single-origin behind nginx, the desktop shell behind its loopback proxy.
 
-- Vite 8 + React 19, TypeScript strict mode. Entry: `src/main.tsx`.
-- Routing: `@tanstack/react-router` (route tree in `src/routes/`).
-- Data: `@tanstack/react-query` (query client in `src/shared/infrastructure/query/`).
-- Tailwind CSS 4 via `@tailwindcss/postcss` (CSS-first config, `@theme inline`)
-- `@react-three/fiber` + `@react-three/drei` (Bounds, OrbitControls, TransformControls, useGLTF, Line, Html), `three`, `three-mesh-bvh`
-- oxlint (`.oxlintrc.json`) — see [Linting](#linting) below
+**Use yarn, never npm** — including version lookups (`yarn info <pkg> version`).
 
-## Document head
+## What is here
 
-**Per-route titles.** Every route sets one through TanStack's `head` option and
-the `titleMeta()` helper in `shared/presentation/page-title.ts`; `<HeadContent />`
-in `routes/root.tsx` renders the tags and React 19 hoists them into `<head>`.
-The deepest matched route wins, so a child overrides its layout. Before this,
-nothing in the app ever set a title and all 22 routes shared one — three open
-territories meant three indistinguishable tabs, history entries and bookmarks.
-The wiring is covered by `page-title.spec.tsx`, which fails if `<HeadContent />`
-is removed; a broken chain here is silent, not an error.
+The design system's components, ported layer by layer, and every screen built
+from them, wired against the real gateway: a session marker, an HTTP client
+with CSRF and a 401 bounce, a router and its guard.
 
-**Link previews are static, and cannot be otherwise.** The `og:` and `twitter:`
-tags live in `index.html` and are identical for every route. No unfurler —
-Slack, Telegram, WhatsApp, iMessage, Twitter — runs JavaScript; they read the
-served HTML, which for a client-rendered SPA is always the same shell.
-Per-route previews would need SSR or prerendering. Do not try to set `og:` tags
-from a route's `head`: it will look right in the browser and change nothing in
-any preview.
+Routes: `/login`; Home at `/`; the catalog (`/territories`, `/models`, both
+upload forms, `/models/{slug}`, `/territories/{slug}/replace`); the territory
+viewer or its conversion page at `/territories/{slug}`; `/account` and
+`/account/two-factor`; and `/console/{users,roles,content,access,audit,metrics}`.
+`/console` alone renders nothing: it resolves a landing screen from the
+signed-in principal's permissions (`app/router/guard.ts`) and redirects to it.
+`CLAUDE.md` beside this file has the detail.
 
-`og:image` must be an absolute URL — a relative path is dropped by most
-unfurlers — so it names the production host even in the desktop shell, where
-nothing reads these tags.
+**Every console screen is live.** Each fetches through a container hook in
+`pages/*/model`, renders the page beside its dialogs, and reports every
+outcome as a toast — `shared/lib/notify`, whose Toaster
+`app/router/console-shell.tsx` mounts around the whole console. Audit is one
+infinite query that follows the newest page and stops following once you page
+back; Metrics is one query per panel, keyed on the range the URL holds
+(`?range=`, `1h` by default) and polled every 30 s in a visible tab, where a
+failed panel is one dark card rather than a blank dashboard. Content also
+watches `GET /api/jobs`, polled
+every five seconds only while a conversion is live, so a row shows its
+progress and stage as it converts and the worker's message when it fails.
 
-**robots.txt** (`public/robots.txt`) deliberately says `Allow: /`, not
-`Disallow: /`. Deindexing is done by the `X-Robots-Tag: noindex` header nginx
-sets on every response, and a crawler only sees that header on a URL it is
-allowed to fetch — disallowing the path hides the noindex and leaves a
-already-known URL in the index without a description. **As of 2026-09-01 the public
-does not see this file at all**: Cloudflare's managed robots.txt replaces it
-wholesale rather than appending to it, verified against the origin and through
-a cache-busted edge request. The file is the policy of record and goes live the
-moment that Cloudflare feature is switched off — at which point the AI-crawler
-blocks it currently provides have to be copied in. Before the file existed,
-`/robots.txt` fell through nginx's SPA fallback and answered 200 with the app's
-HTML shell.
+Three rulings a reader would otherwise trip on. **Reset password is not
+rendered** — nothing can reset one yet, and an action with no endpoint is not
+drawn. **There is no owner toggle**: it is not drawn in the mocks, and
+although the gateway offers the endpoint it is deliberately left unwired.
+(Role delete, by contrast, is wired.) **A role's people count is unknown, not zero,
+without `users:read`** — the people list is never requested, so the card reads
+"— users" and the distribution meter says "unavailable".
 
-**Regenerating the preview card** (`public/og-card.png`, 1200x630) after editing
-`public/og-card.svg`:
+**Passkey sign-in is not wired**, by decision of the spec (passkey
+*management* on `/account` is). `CredentialsForm` draws the button only when
+handed `onPasskey`, and the login container does not hand it one.
 
-```bash
-sips -s format png public/og-card.svg --out public/og-card.png
-```
+Console screens render inside `widgets/console-layout`, which the route
+applies. A page renders only its own content: it never draws the navigation
+column, and its spec asserts as much.
 
-`sips` is macOS-native and preserves the SVG's own dimensions; ImageMagick is
-not required.
-
-## Linting
-
-`.oxlintrc.json` is kept as strict JSON with no comments, even though oxlint
-accepts them: an editor's JSON validator flags them, and renaming the file to
-`.jsonc` would take it off oxlint's default discovery path — the editor
-extension would then silently lint with its own defaults instead of these
-rules. So the reasoning lives here.
-
-**Why oxlint and not ESLint.** Not a preference. typescript-eslint refuses to
-load under TypeScript 7 (`typescript-eslint does not support TS 7.0`, see
-typescript-eslint#10940), so the old `eslint.config.mjs` could not run at all
-once TS moved to the native port. `yarn lint` also went from ~5.8 s to ~0.6 s.
-
-**The rule set is a mirror, not oxlint's defaults.** A linter swap should
-change the engine, not the policy, or a real regression is indistinguishable
-from a new opinion. Concretely:
-
-| Setting | Why |
+| Layer | Slices |
 | --- | --- |
-| `plugins` listed explicitly | Drops the unicorn plugin oxlint enables by default. Its rules are reasonable, but ESLint never ran them here. |
-| `max-lines: 200`, `skipBlankLines`, `skipComments` | The architecture rule, same numbers as before, so no file changes status in the swap. |
-| `react/set-state-in-effect`, `react/immutability` off | Carried over verbatim from `eslint.config.mjs`. These React-Compiler-oriented rules flag intentional patterns: setState inside data-fetch/async effects, and imperative mutation of three.js objects (OrbitControls, TransformControls), which are not React state. |
-| `react/no-did-update-set-state` off | oxlint's react plugin bundles rules `eslint-plugin-react-hooks` does not have. `lod-error-boundary.tsx` sets state in `componentDidUpdate` on purpose — that is how a failed LOD level drops out of the chain. |
-| `typescript/no-unused-vars` with `^_` | A leading underscore marks a parameter that exists only to give a signature its shape. |
-| `dto.ts` override | openapi-typescript output; the only permanent `max-lines` exemption. |
+| `shared/ui` | icon, button, badge, detail-list, search-field, radio-card, field, text-field, password-field, checkbox, otp-input, quantity-stepper, vec3-field, dropdown, segmented, date-picker, toast, callout, progress-bar, skeleton, sparkline, line-chart, coverage-meter, modal, drawer, menu, card, section-heading, tabs, avatar, breadcrumbs, catalog-card, artifact-row, checklist, collapsed-rail, confirm-dialog, drop-zone, file-card, keycap-hint, lod-switcher, mode-chip, pager, range, stats-strip, switch, tool-rail, viewport-window |
+| `entities` | conversion, content, territory, model, audit, user, role, metric, placement, permission, scene, measurement, passkey, upload, panorama, document |
+| `features` | measure, onboarding, recovery-codes, theme-toggle, audit-filter, role-assign, create-user, create-role, grant-access, login, viewer-mode, lod, placements-editor, passkey-manage, panorama-view, panorama-upload, document-view, document-upload, territory-link |
+| `widgets` | users-table, permission-matrix, alerts-card, console-nav, console-sidebar, console-layout, page-header, viewer-canvas, viewer-skeleton, overlays-panel, placements-panel, model-picker, people-groups, event-timeline, record-inspector, person-inspector, role-groups, role-inspector, content-groups, content-inspector, access-groups, access-inspector, service-health, metric-panels, alert-inspector, auth-steps, login-intro, catalog-shell, account-pill, toaster, view-tab, upload-modal, document-window |
+| `pages` | users, audit, roles, content, territory-access, metrics, login, home, account, two-factor, territory-catalog, territory-viewer, territory-conversion, replace-source, model-library, model-detail, upload-territory, upload-models |
 
-`oxlint` does not typecheck, so `yarn lint` runs `tsc --noEmit` first.
+## `public/` — served as-is
 
-## Architecture
+- `basis/`, `draco/` — the KTX2 transcoder and the Draco decoder, copied from
+  the installed `three`; `pdfjs/` — the vendored pdf.js viewer.
+- `sw.js` — a minimal service worker: it exists so Chrome and Edge offer
+  install, and so a navigation with no network lands on `offline.html` (a
+  self-contained page — inline styles, no JS). It caches nothing else;
+  `/api`, SSE and GLB downloads go straight to the network.
+  `app/pwa/register-service-worker.ts` registers it after `load` and ignores
+  a refusal — the desktop shell answers `/sw.js` with 404 on purpose.
+  Bump `CACHE` in `sw.js` whenever `offline.html` changes.
+- `manifest.webmanifest`, `icon.svg`, `apple-icon.png` — install metadata and
+  icons (`apple-icon.png` is also the source of the desktop icons).
+- `og-card.png` (rendered from `og-card.svg`) — the link-preview image. The
+  Open Graph tags in `index.html` are static on purpose: no unfurler runs
+  JavaScript, so they cannot vary per route.
+- `robots.txt` — `Allow` plus nginx's `X-Robots-Tag: noindex`; the file
+  explains why it is not `Disallow: /`.
+- `fonts/` — IBM Plex woff2 files carried over from the previous app;
+  nothing in this SPA references them (its faces come from `@fontsource`).
 
-Clean Architecture + DDD inside `src/`. Each bounded context owns
-`domain/` · `application/` · `infrastructure/` · `presentation/` layers.
-
-Contexts: `territory` (parent scenes) · `model` (placeable assets) ·
-`placement` (scene overlays) · `panorama` (equirect tours) · `document`
-(PDF overlays) · `upload` (chunked uploads) · `measurement` (measure tool) ·
-`viewer` (3D scene composition) · `conversion` (pending-conversion screen) ·
-`auth` (login, session marker, RBAC, passkeys, 2FA, admin console) · `metrics`
-(owner-only Prometheus dashboard) · `onboarding` (guided tour) · `shared`
-(cross-context primitives). `app-shell` and `login` hold the top-level layout
-and login screen.
+## Layout — Feature-Sliced Design
 
 ```
 src/
-  main.tsx                             # app entry: QueryClientProvider + RouterProvider
-  globals.css                          # Tailwind entry + self-hosted fonts
-  routes/                              # TanStack Router route tree (client-only)
-    router.tsx, root.tsx, layout.tsx   # tree + authed layout guard
-    login.tsx, home.tsx, territory-viewer.tsx, territories.tsx, models.tsx, ...
-    admin.tsx, admin-users.tsx, admin-roles.tsx, admin-metrics.tsx, ...
-    guard.ts                           # redirect-to-login / permission guards
-  shared/
-    domain/{vec3.ts, lod-artifact.ts, artifact.ts, job.ts}
-    infrastructure/
-      api/dto.ts                       # openapi-typescript output (autogen, lint-exempt)
-      http/{client.ts, http-error.ts, ...}
-      query/query-client.ts
-      asset-url.ts
-    application/{lod-url.ts, toast/{notify.ts, toast-store.ts, toast.ts}}
-    presentation/toast/toaster.tsx     # the React Toaster; store lives in application
-  territory/  model/  placement/  panorama/  document/  upload/
-  measurement/  viewer/  conversion/  auth/  metrics/  onboarding/
+  app/          # app-wide setup; app/styles/theme.css holds the design tokens
+  pages/        # route-level compositions
+  widgets/      # self-contained blocks assembled from features + entities
+  features/     # user-facing actions
+  entities/     # business objects (territory, model, placement, …)
+  shared/       # reusable, domain-free
+    ui/         # the design system's components
+    lib/        # helpers (cx, theme, test-setup)
 ```
 
-### Layer rules
+Imports point downward only: `app → pages → widgets → features → entities → shared`.
+A slice never imports a sibling in the same layer.
 
-- **domain** — entities and value objects only; no I/O, no React.
-- **application** — use cases / query definitions that orchestrate domain + infrastructure. Also cross-cutting client ports like `toast/notify`.
-- **infrastructure** — adapters: HTTP transport, openapi DTO→domain mapping, URL builders, the session marker. Returns domain entities, never DTOs.
-- **presentation** — React components and hooks. Imports from `application/` (or an `infrastructure/` gateway that already returns domain entities). Never reaches into DTOs. Dependencies point strictly inward: domain ← application ← presentation.
-- **routes** (`src/routes/`) are client components: they read params/search, call TanStack Query, and render presentation. There is no server runtime.
+The single alias is `@/*` → `src/*`. Use it for anything outside the current
+slice; relative paths stay inside one.
 
-### Hard rules
+## Per-module contract
 
-- **200 lines per file** (skipBlankLines, skipComments). Enforced by oxlint. The autogen `src/shared/infrastructure/api/dto.ts` is the only permanent exemption.
-- **No speculative abstractions, no dead code, no helpers "just in case."** Add only what the current task requires.
-- Single path alias `@/*` → `frontend/src/*`. No relative `../../..` imports.
+**Every module gets its own spec beside it — one file, one spec.** Not "covered
+by a neighbour's test": a module with no `*.spec.ts(x)` of its own fails the
+build.
 
-See [`CLAUDE.md`](CLAUDE.md) for the full architecture rules and the
-Three.js / loader-setup notes.
+```
+button/
+  button.tsx          # the component
+  button.spec.tsx     # vitest + testing-library — behaviour, not markup
+  button.fixture.tsx  # React Cosmos — every state the design draws
+  index.ts            # the slice's public surface (exempt)
+```
 
-## Territory route composition
+Specs assert what a user can observe (roles, labels, values, focus), so a class
+rename does not break them. The exception is a variant test that deliberately
+checks a token class survived.
 
-`/territories/$slug` is a TanStack Router route. Its loader primes the query
-cache with **one** call — `sceneBundleQuery(slug)` — and the component reads it
-via `useQuery`. The gateway aggregates territory + LOD0 artifact + placements +
-model options + panoramas + documents server-side, so there's no client-side
-fan-out. `toSceneViewModel(bundle)` maps the bundle into the viewer's props;
-each placement's `glbUrl` is joined client-side against `modelOptions[].slug →
-glbUrl`, so CRUD round-trips reuse the same map and never need a per-mutation
-`getArtifact`.
+Fixtures render inside `src/cosmos.decorator.tsx`, which loads the real
+stylesheet — what Cosmos shows is what the app shows.
 
-When the artifact is missing, the route renders `ConversionPending`, which
-subscribes to `EventSource` on `/api/jobs/{id}/events` (when a `?jobId=` is
-present) and refetches once the SSE stream reports `succeeded` — otherwise it
-falls back to a short poll.
+**The decorator adds no padding, and must not.** A full-screen fixture — a
+page, the console shell — has to reach the edges of the frame, and Cosmos
+composes decorators rather than letting a nested one replace its parent, so a
+gutter set there could not be opted out of. Component fixtures carry their
+own `p-6`; page-level ones deliberately do not.
 
-`<SceneCanvas>` keeps `<Bounds fit clip observe>` wrapping only the territory
-GLB so auto-fit ignores placement instances. Each `<PlacementInstance>`
-clones its GLB scene via `SkeletonUtils.clone`; useGLTF caches by URL so
-duplicate-model placements share a single network fetch.
+**`lazy` is deliberately `false`.** Cosmos then imports every fixture into one
+bundle, so the first load is heavy and every fixture after it is instant —
+which is the right trade for browsing the library, where you open one after
+another. Turning it on makes the first paint quicker and puts a fetch in
+front of each fixture you open; don't switch it without asking.
+`watchDirs` is narrowed to `src` (the default is `.`, the whole directory).
 
-Transforms: position in scene units (territory's normalised space, max-axis =
-2 after `converter.normalize`), rotation Euler XYZ in radians (the form
-converts to/from degrees), per-axis scale (default {1,1,1}).
+If Cosmos ever seems to hang, check nothing is already holding the port —
+`lsof -nP -iTCP:5100 -sTCP:LISTEN`. Killing the `yarn cosmos` wrapper leaves
+the child alive; `pkill -f 'node_modules/.bin/cosmos'` is what actually stops
+it.
 
-In-scene gizmo (drei `<TransformControls>`): clicking a placement selects it;
-mode `translate`/`rotate`/`scale` switches via the panel toggle or `T`/`R`/`S`
-keys; `Esc` deselects; clicking empty space deselects. The transform is applied
-imperatively via `useLayoutEffect` on the placement's group ref so
-TransformControls can mutate the object during a drag without React re-renders
-fighting the gizmo. On `dragging-changed → false` the post-drag transform is
-committed via PUT; OrbitControls is auto-disabled while dragging.
+### The rules are enforced, not remembered
 
-Measure tool (`MeasurementLayer` + `MeasureButton`): toggled by the toolbar
-button or `M` key. Two clicks on any visible surface form one measurement —
-drei `<Line>`, sphere markers, and a midpoint `<Html>` distance label.
-Distance converts scene units to source units through
-`unitRatio = max(metadata.dimensions) / 2`; missing bbox metadata falls back to
-raw scene units suffixed `u`.
+`src/fixtures.spec.tsx` renders every fixture. Cosmos loads one only when
+someone opens it, so a broken fixture otherwise sits there silently until a
+person clicks it — and fixtures are where undertested sample data lives.
 
-## Authentication
+`src/architecture.spec.ts` fails the suite when any of these slips:
 
-Fully wired. The gateway authenticates every `/api/*` route: requests without a
-session get `401`, and mutating routes additionally require a per-route
-permission (`403` otherwise). Everything under `/api/territories/{slug}` is
-additionally gated on the caller's tenant and answers `404` for another
-company's territory. `/api/assets/{hash}` needs a session **and** is scoped to
-the tenant; `/api/jobs/{id}/events` needs a session.
+- a module under `src/` has no neighbouring `*.spec.ts(x)`
+- a `shared/ui` slice has no `*.fixture.tsx`
+- an import points outward across layers (`shared` may not reach into `entities`,
+  and so on up the chain)
+- a `shared/ui` slice reaches past a sibling's `index.ts` into its internals
+- a source file sits outside a layer, or loose in a layer root instead of a slice
 
-**Mutations carry `X-CSRF-Token`.** The token is handed out at login and in
-`/api/auth/me`, and `auth/infrastructure/csrf-token` keeps it in memory only —
-never localStorage, never a cookie, both of which outlive the tab. A page reload
-therefore starts without one, and `getMe()` is what brings it back before
-anything can be mutated. `client.ts` attaches it on mutating methods;
-`upload-gateway` does it by hand, its PATCH/DELETE bypassing the shared client.
+Wiring is exempt, and the list lives in one place — `exempt-modules.ts` at this
+package's root, read by both `architecture.spec.ts` and `vite.config.ts`'s coverage
+exclude. Two copies of it drifted once and put untested router files in the
+coverage numerator. `index.ts` barrels are exempt as re-exports.
 
-**The session is an httpOnly cookie (`andrey_session`), not a stored token.**
-This code cannot read it and does not try to: the browser attaches it to every
-same-origin request on its own, which is exactly what lets `<img>` thumbnails,
-the pdf.js `<iframe>` and three.js loader requests authenticate — none of them
-can carry an `Authorization` header.
+`yarn test:coverage` enforces 90% statements / lines / functions and 85%
+branches over the same set.
 
-The login route (`POST /api/auth/login`, with a `POST /api/auth/login/2fa`
-challenge and WebAuthn passkey flow) therefore stores no secret. All it keeps is
-`auth/infrastructure/session-marker` → `andrey.authed=1` in localStorage, a flag
-that lets `routes/guard.ts` bounce an anonymous visitor without an awaited round
-trip. It is untrusted and may be stale; a `401` from `client.ts` clears it and
-redirects to `/login?next=…`. RBAC gates routes through `routes/guard.ts` and the
-admin console (users / roles / content / territories / metrics). The full auth
-surface is documented in the gateway OpenAPI spec (Swagger at
-`http://localhost:8080/docs`).
+**Type-checking needs `tsc -b`, not `tsc --noEmit`.** The root `tsconfig.json`
+is solution-style — `files: []` plus references — so a bare `tsc --noEmit`
+compiles nothing and exits 0 whatever is in `src`. It silently passed a
+deliberately broken file until this was found; `-b` walks the references.
 
-## Environment
+## Theme
 
-- `VITE_API_URL` — **empty in both dev and prod**, so every request goes out on a
-  relative `/api` path. nginx serves the SPA and proxies `/api` in production;
-  the Vite dev server does the same. Single origin is what the session cookie
-  depends on — a non-empty value here reintroduces cross-origin requests and
-  breaks asset, panorama and PDF loading. Read by `client.ts`, `asset-url.ts` and
-  the SSE `EventSource`.
-- `VITE_DEV_PROXY` (dev only) — overrides the dev proxy target (default
-  `http://localhost:8080`), e.g. to run the SPA against prod without touching its
-  CORS. See `vite.config.ts`.
-- The dev server listens on **3000**, not Vite's 5173: `PASSKEY_RP_ORIGINS` is
-  pinned to `http://localhost:3000`, and a mismatched origin fails every WebAuthn
-  ceremony with an opaque client-side `SecurityError` and no server log.
+Tokens live in `src/app/styles/theme.css` as CSS custom properties on `:root`,
+re-exported to Tailwind through `@theme inline` (so `bg-panel`, `text-muted`,
+`border-line-2` all work). Dark is the design's default; the OS preference
+applies on its own and an explicit `data-theme` on `<html>` overrides it in
+either direction — `applyTheme()` in `shared/lib/theme.ts` is the only writer.
+
+**Archivo ships no Cyrillic subset.** Territory and model names may be Russian,
+so the `--font-sans` stack falls through to Helvetica Neue and then system-ui
+for those glyphs. JetBrains Mono does carry Cyrillic.

@@ -1,13 +1,13 @@
 # Andrey Backend
 
 Microservices backend for the Andrey 3D viewer. Heavy work (OBJ parsing,
-glTF/GLB conversion, Draco compression, KTX2 textures, LOD generation, blob
+glTF/GLB conversion, meshopt compression, KTX2 textures, LOD generation, blob
 storage) lives here so the frontend can fetch compact binary assets instead
 of 100+ MB ASCII files.
 
 ## Stack
 
-- **Go 1.27.0** — modern stdlib (`slices`, `maps`, `cmp`, `slog`, `errors.AsType`, `wg.Go`, `strings.SplitSeq`)
+- **Go 1.27.1** — modern stdlib (`slices`, `maps`, `cmp`, `slog`, `errors.AsType`, `wg.Go`, `strings.SplitSeq`)
 - **gRPC** — internal service-to-service
 - **REST + OpenAPI 3.0** — gateway → frontend (schema-first, `oapi-codegen` generates Go server stubs; frontend generates TS client from the same spec)
 - **PostgreSQL 17** — catalog + auth persistence (shared instance, separate tables / goose version table)
@@ -15,10 +15,10 @@ of 100+ MB ASCII files.
 - **Auth** — argon2id passwords, TOTP 2FA, WebAuthn passkeys, multi-role RBAC, opaque Redis sessions (`auth-service` + `twofa-service` + `passkey-service`)
 - **Local FS** — blob storage behind `BlobStore` interface (S3-ready)
 - **Cobra + Viper** — CLI / config (flag > env > file > default)
-- **gltfpack** (built from `zeux/meshoptimizer` in the worker image) — Draco / KTX2 / LOD encoder
+- **gltfpack** (built from `zeux/meshoptimizer` in the worker image) — meshopt / KTX2 / LOD encoder
 
-Every module pins `go 1.27.0` and every service image builds from
-`golang:1.27.0-alpine`. See [Toolchain & dependencies](#toolchain--dependencies)
+Every module pins `go 1.27.1` and every service image builds from
+`golang:1.27.1-alpine`. See [Toolchain & dependencies](#toolchain--dependencies)
 for the full pinned-version matrix.
 
 ## Services
@@ -31,7 +31,7 @@ for the full pinned-version matrix.
 | `auth-service`    | Users, multi-role RBAC, sessions, freeze/soft-delete (2FA → twofa) | gRPC `:9004`   | —                  | gRPC          |
 | `twofa-service`   | TOTP 2FA: secrets, recovery codes, verify + lockout              | gRPC `:9006`   | —                  | 6 gRPC        |
 | `passkey-service` | WebAuthn passkeys: credentials, ceremonies, assertion verify     | gRPC `:9008`   | —                  | 6 gRPC        |
-| `mesh-service`    | OBJ → GLB + Draco + KTX2 + LOD (`mesh-api` + `mesh-worker`)      | gRPC `:9002`   | —                  | 2 gRPC        |
+| `mesh-service`    | OBJ → GLB + meshopt + KTX2 + LOD (`mesh-api` + `mesh-worker`)    | gRPC `:9002`   | —                  | 2 gRPC        |
 | `upload-service`  | Resumable chunked uploads (gRPC streaming)                       | gRPC `:9003`   | —                  | 5 gRPC        |
 | `asset-service`   | Binary artifact server (Range / ETag / immutable cache)          | HTTP `:8081`   | (via gw proxy)     | 2 HTTP + health |
 
@@ -68,7 +68,7 @@ frontend tasks listed in `documentation/`:
   middleware that authenticates the Bearer token via `auth-service` and gates
   every mutating `/api/*` route on a per-route permission.
 - **ETag + 304** on JSON endpoints; **Brotli/gzip** content negotiation.
-- **Draco** mesh compression (default on), **KTX2** textures (opt-in),
+- **Meshopt** mesh compression (default on), **KTX2** textures (opt-in),
   **LOD** generation (opt-in via `MESH_LOD_RATIOS`) — see
   [`services/mesh-service/README.md`](services/mesh-service/README.md).
 - **Cache-Control: immutable** + ETag on `/api/assets/{hash}` blobs.
@@ -98,24 +98,23 @@ backend/
 
 | Where | Value |
 | --- | --- |
-| `go.work` + all 11 `go.mod` files | `go 1.27.0` |
-| every service `Dockerfile` build stage | `golang:1.27.0-alpine` |
+| `go.work` + all 11 `go.mod` files | `go 1.27.1` |
+| every service `Dockerfile` build stage | `golang:1.27.1-alpine` |
 | runtime images | `gcr.io/distroless/static` (all services except mesh-worker) |
 | `mesh-worker` runtime image | `gcr.io/distroless/cc-debian12:nonroot` (glibc + libstdc++ for `gltfpack`) |
 
 No `toolchain` directive is pinned — the `go` line is the floor, and CI/dev use
-whatever ≥1.27.0 toolchain is installed. Bump procedure:
+whatever ≥1.27.1 toolchain is installed. Bump procedure:
 
 ```bash
 # 1. bump the language version everywhere
-sed -i '' 's/^go 1\.27\.0$/go 1.27.X/' go.work pkg/go.mod proto/go.mod services/*/go.mod
-sed -i '' 's/golang:1\.27\.0-alpine/golang:1.27.X-alpine/' services/*/Dockerfile*
+sed -i '' 's/^go 1\.27\.1$/go 1.27.X/' go.work pkg/go.mod proto/go.mod services/*/go.mod
+sed -i '' 's/golang:1\.27\.1-alpine/golang:1.27.X-alpine/' services/*/Dockerfile*
 # 2. refresh dependencies per module
 for m in pkg proto services/*; do (cd $m && GOWORK=off go get -u ./... && GOWORK=off go mod tidy); done
-# 3. test-only deps are NOT reachable from ./... — name them
-for m in services/audit-service services/catalog-service; do \
-  (cd $m && GOWORK=off go get -u github.com/testcontainers/testcontainers-go \
-                                  github.com/testcontainers/testcontainers-go/modules/postgres); done
+# 3. deps used only by `//go:build integration` files (testcontainers) are NOT
+#    reachable from ./..., not even with -t — the build tag has to be named
+for m in pkg proto services/*; do (cd $m && GOWORK=off go get -u -t -tags=integration ./... && GOWORK=off go mod tidy); done
 # 4. verify — the whole gate, not just build/test/lint
 make check
 # 5. confirm nothing direct is left behind
@@ -142,8 +141,8 @@ for m in pkg proto services/*; do (cd $m && GOWORK=off go list -m -u \
 | `google.golang.org/protobuf` | v1.36.12 | proto, auth, catalog, content, mesh | Generated message runtime |
 | `github.com/spf13/cobra` | v1.10.2 | all services | CLI root command |
 | `github.com/spf13/viper` | v1.21.0 | all services | Layered config (flag > env > default) |
-| `github.com/jackc/pgx/v5` | v5.10.0 | auth, catalog, content, passkey, twofa | Postgres driver + pool |
-| `github.com/pressly/goose/v3` | v3.27.3 | auth, catalog, content, passkey, twofa | Embedded SQL migrations |
+| `github.com/jackc/pgx/v5` | v5.11.0 | auth, catalog, content, passkey, twofa | Postgres driver + pool |
+| `github.com/pressly/goose/v3` | v3.28.0 | auth, catalog, content, passkey, twofa | Embedded SQL migrations |
 | `github.com/redis/go-redis/v9` | v9.22.0 | auth, mesh, passkey, twofa | Streams (mesh) / sessions / ceremony + rate-limit state |
 | `github.com/prometheus/client_golang` | v1.24.1 | pkg, auth, mesh, twofa, upload | `/metrics` exposition |
 | `github.com/gojuno/minimock/v3` | v3.4.7 | all services (test) | Generated interface mocks |
@@ -156,15 +155,34 @@ for m in pkg proto services/*; do (cd $m && GOWORK=off go list -m -u \
 | --- | --- |
 | `pkg` | — (grpc + prometheus + test libs only) |
 | `proto` | — (grpc + protobuf only) |
-| `gateway-service` | `andybalholm/brotli` v1.2.3 · `getkin/kin-openapi` v0.149.0 · `go-chi/chi/v5` v5.3.2 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.7.0 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.22.0 |
+| `gateway-service` | `andybalholm/brotli` v1.2.4 · `getkin/kin-openapi` v0.149.0 · `go-chi/chi/v5` v5.3.2 · `go-chi/cors` v1.2.2 · `oapi-codegen/runtime` v1.7.0 · `samber/slog-chi` v1.19.1 · `golang.org/x/sync` v0.23.0 |
 | `catalog-service` | — |
 | `content-service` | — |
-| `auth-service` | `golang.org/x/crypto` v0.55.0 (argon2id) |
+| `auth-service` | `golang.org/x/crypto` v0.57.0 (argon2id) |
 | `twofa-service` | `pquerna/otp` v1.5.0 (TOTP) |
-| `passkey-service` | `go-webauthn/webauthn` v0.18.0 |
+| `passkey-service` | `go-webauthn/webauthn` v0.18.1 |
 | `mesh-service` | `qmuntal/gltf` v0.29.0 (GLB writer) |
 | `upload-service` | — |
 | `asset-service` | — (does not import `proto`; HTTP-only) |
+
+### Notable version moves in the 1.27.1 refresh
+
+| Dependency / tool | From → To | Note |
+| --- | --- | --- |
+| Go | 1.27.0 → **1.27.1** | `go.work`, all 12 `go.mod`, every build stage `golang:1.27.1-alpine` |
+| `jackc/pgx/v5` | 5.10.0 → **5.11.0** | `pgx.Rows` gained `TypeMap()` — nothing here implements `Rows` itself; `db`-tag matching became case-insensitive — no code here maps rows by name |
+| `pressly/goose/v3` | 3.27.3 → **3.28.0** | Changes are CLI / MySQL / ClickHouse only. Pulls the Azure SDK into the module *graph* (for its `azuresql` CLI driver); nothing of it is built |
+| `golang.org/x/crypto` | 0.55.0 → **0.57.0** | argon2id path unaffected |
+| `golang.org/x/sync` | 0.22.0 → **0.23.0** | |
+| `andybalholm/brotli` | 1.2.3 → **1.2.4** | |
+| `go-webauthn/webauthn` | 0.18.0 → **0.18.1** | |
+| `oapi-codegen` (generator) | 2.7.0 → **2.8.0** | Regenerated stubs: `JobStatus` enum constants are now type-prefixed (`JobStatusFailed`, …; nothing referenced the old names), path params pass `ValueIsUnescaped` so an already-decoded chi param is not decoded twice, operation comments gained the Go name. The embedded spec decompresses byte-identical |
+| golangci-lint (CI pin) | 2.13.1 → **2.13.2** | |
+| buf / govulncheck | 1.72.0 → **1.73.0** / 1.7.0 → **1.8.0** | `make proto-gen` output unchanged; plugins were already current (protoc-gen-go 1.36.12, protoc-gen-go-grpc 1.6.2), as was minimock 3.4.7 |
+
+grpc, protobuf, chi, redis, testcontainers, testify, gotest.tools, minimock,
+kin-openapi and `oapi-codegen/runtime` were already on their latest releases,
+and no direct dependency has a newer major (`/vN`) module.
 
 ### Notable version moves in the 1.27.0 refresh
 

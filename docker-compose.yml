@@ -405,7 +405,8 @@ services:
       - "9093"
 
 # The frontend is a client-only Vite SPA — no server runtime, so it is not a
-# compose service. Run it with `yarn dev` (see frontend/README.md); Prometheus
+# compose service. Run it with `yarn dev` (see frontend/README.md), which
+# listens on :3000, the origin PASSKEY_RP_ORIGINS lists above; Prometheus
 # stays compose-internal and the SPA reads it through the gateway's
 # owner-gated /api/metrics/query.
 

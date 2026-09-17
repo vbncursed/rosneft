@@ -23,6 +23,7 @@ const (
 	TwoFAService_Enable_FullMethodName                  = "/rosneft.twofa.v1.TwoFAService/Enable"
 	TwoFAService_Disable_FullMethodName                 = "/rosneft.twofa.v1.TwoFAService/Disable"
 	TwoFAService_RegenerateRecoveryCodes_FullMethodName = "/rosneft.twofa.v1.TwoFAService/RegenerateRecoveryCodes"
+	TwoFAService_Status_FullMethodName                  = "/rosneft.twofa.v1.TwoFAService/Status"
 	TwoFAService_IsEnabled_FullMethodName               = "/rosneft.twofa.v1.TwoFAService/IsEnabled"
 	TwoFAService_EnabledFor_FullMethodName              = "/rosneft.twofa.v1.TwoFAService/EnabledFor"
 	TwoFAService_Verify_FullMethodName                  = "/rosneft.twofa.v1.TwoFAService/Verify"
@@ -42,6 +43,10 @@ type TwoFAServiceClient interface {
 	Enable(ctx context.Context, in *EnableRequest, opts ...grpc.CallOption) (*EnableResponse, error)
 	Disable(ctx context.Context, in *DisableRequest, opts ...grpc.CallOption) (*DisableResponse, error)
 	RegenerateRecoveryCodes(ctx context.Context, in *RegenerateRequest, opts ...grpc.CallOption) (*RegenerateResponse, error)
+	// Status is the caller's own 2FA posture, for the account screen. Separate
+	// from IsEnabled, which auth-service calls on the hot path and must not pay
+	// for the recovery-code counts.
+	Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	// Internal surface (called by auth-service during login).
 	IsEnabled(ctx context.Context, in *IsEnabledRequest, opts ...grpc.CallOption) (*IsEnabledResponse, error)
 	// EnabledFor is the batch form of IsEnabled: the admin user list needs an
@@ -100,6 +105,16 @@ func (c *twoFAServiceClient) RegenerateRecoveryCodes(ctx context.Context, in *Re
 	return out, nil
 }
 
+func (c *twoFAServiceClient) Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, TwoFAService_Status_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *twoFAServiceClient) IsEnabled(ctx context.Context, in *IsEnabledRequest, opts ...grpc.CallOption) (*IsEnabledResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(IsEnabledResponse)
@@ -144,6 +159,10 @@ type TwoFAServiceServer interface {
 	Enable(context.Context, *EnableRequest) (*EnableResponse, error)
 	Disable(context.Context, *DisableRequest) (*DisableResponse, error)
 	RegenerateRecoveryCodes(context.Context, *RegenerateRequest) (*RegenerateResponse, error)
+	// Status is the caller's own 2FA posture, for the account screen. Separate
+	// from IsEnabled, which auth-service calls on the hot path and must not pay
+	// for the recovery-code counts.
+	Status(context.Context, *StatusRequest) (*StatusResponse, error)
 	// Internal surface (called by auth-service during login).
 	IsEnabled(context.Context, *IsEnabledRequest) (*IsEnabledResponse, error)
 	// EnabledFor is the batch form of IsEnabled: the admin user list needs an
@@ -173,6 +192,9 @@ func (UnimplementedTwoFAServiceServer) Disable(context.Context, *DisableRequest)
 }
 func (UnimplementedTwoFAServiceServer) RegenerateRecoveryCodes(context.Context, *RegenerateRequest) (*RegenerateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RegenerateRecoveryCodes not implemented")
+}
+func (UnimplementedTwoFAServiceServer) Status(context.Context, *StatusRequest) (*StatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Status not implemented")
 }
 func (UnimplementedTwoFAServiceServer) IsEnabled(context.Context, *IsEnabledRequest) (*IsEnabledResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method IsEnabled not implemented")
@@ -276,6 +298,24 @@ func _TwoFAService_RegenerateRecoveryCodes_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TwoFAService_Status_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TwoFAServiceServer).Status(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TwoFAService_Status_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TwoFAServiceServer).Status(ctx, req.(*StatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _TwoFAService_IsEnabled_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IsEnabledRequest)
 	if err := dec(in); err != nil {
@@ -352,6 +392,10 @@ var TwoFAService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RegenerateRecoveryCodes",
 			Handler:    _TwoFAService_RegenerateRecoveryCodes_Handler,
+		},
+		{
+			MethodName: "Status",
+			Handler:    _TwoFAService_Status_Handler,
 		},
 		{
 			MethodName: "IsEnabled",

@@ -1,22 +1,17 @@
 {
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
   "ignorePatterns": ["dist/**", "build/**", "public/**"],
-  "plugins": ["typescript", "react", "oxc"],
-  "env": { "browser": true, "node": true },
-  "categories": { "correctness": "error" },
+  "plugins": ["react", "typescript", "oxc"],
   "rules": {
-    "max-lines": ["error", { "max": 200, "skipBlankLines": true, "skipComments": true }],
-    "react/set-state-in-effect": "off",
-    "react/immutability": "off",
-    "react/no-did-update-set-state": "off",
-    "typescript/no-unused-vars": [
-      "error",
-      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
-    ]
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": ["warn", { "allowConstantExport": true }]
   },
   "overrides": [
     {
-      "files": ["**/shared/infrastructure/api/dto.ts"],
-      "rules": { "max-lines": "off" }
+      "files": ["**/*.fixture.tsx", "src/cosmos.decorator.tsx"],
+      "rules": {
+        "react/only-export-components": "off"
+      }
     }
   ]
 }

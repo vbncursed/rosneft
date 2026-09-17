@@ -7,7 +7,7 @@ import (
 )
 
 func (s *Server) Abort(ctx context.Context, req *uploadv1.AbortRequest) (*uploadv1.AbortResponse, error) {
-	if err := s.svc.Abort(ctx, req.GetUploadId()); err != nil {
+	if err := s.svc.Abort(ctx, callerID(ctx), req.GetUploadId()); err != nil {
 		return nil, mapError(err)
 	}
 	return &uploadv1.AbortResponse{}, nil

@@ -20,6 +20,10 @@ var panels = map[string]panel{
 	"stat-errors": {expr: `(sum(rate(http_requests_total{code=~"5.."}[5m])) or vector(0)) / clamp_min(sum(rate(http_requests_total[5m])),0.001)`, instant: true},
 	"stat-p99":    {expr: `histogram_quantile(0.99, sum by (le)(rate(grpc_server_handling_seconds_bucket[5m])))`, instant: true},
 	"stat-queue":  {expr: `max(mesh_queue_depth)`, instant: true},
+	// One row per scraped service, 1 or 0 — the only reading that can say
+	// "down". Named by the `service` label the scrape config relabels onto
+	// every target (ops/prometheus/prometheus.yml).
+	"services-up": {expr: `up{job="services"}`, instant: true},
 
 	// Services (RED).
 	"red-rate":    {expr: `sum by (service)(rate(grpc_server_handled_total[5m]))`},

@@ -33,38 +33,68 @@ func (s *AbortStatusSuite) SetupTest() {
 }
 
 func (s *AbortStatusSuite) TestAbortRejectsEmptyID() {
-	err := s.svc.Abort(s.ctx, "")
+	err := s.svc.Abort(s.ctx, author, "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrSessionNotFound))
 }
 
+// tus DELETE is idempotent: a session already gone is not an error, and there
+// is nothing left to remove.
 func (s *AbortStatusSuite) TestAbortIsIdempotentOnUnknownID() {
-	// store.Abort is delete-or-noop, so an unknown id is not an error.
-	s.store.AbortMock.Expect(s.ctx, "missing").Return(nil)
-	err := s.svc.Abort(s.ctx, "missing")
+	s.store.GetStatusMock.Expect(s.ctx, "missing").Return(domain.Session{}, domain.ErrSessionNotFound)
+	err := s.svc.Abort(s.ctx, author, "missing")
 	assert.NilError(s.T(), err)
 }
 
-func (s *AbortStatusSuite) TestAbortRemovesExisting() {
+func (s *AbortStatusSuite) TestAbortRemovesOwnSession() {
+	stubSession(s.ctx, s.store, "sess-1", author, 100, 5)
 	s.store.AbortMock.Expect(s.ctx, "sess-1").Return(nil)
-	assert.NilError(s.T(), s.svc.Abort(s.ctx, "sess-1"))
+	assert.NilError(s.T(), s.svc.Abort(s.ctx, author, "sess-1"))
+}
+
+// Another user's session is left alone and answered as missing; the store's
+// Abort is never reached (minimock fails on an unexpected call).
+func (s *AbortStatusSuite) TestAbortRefusesAnotherAuthorsSession() {
+	stubSession(s.ctx, s.store, "sess-1", author, 100, 5)
+	err := s.svc.Abort(s.ctx, stranger, "sess-1")
+	assert.Assert(s.T(), errors.Is(err, domain.ErrSessionNotFound))
 }
 
 func (s *AbortStatusSuite) TestGetStatusRejectsEmptyID() {
-	_, err := s.svc.GetStatus(s.ctx, "")
+	_, err := s.svc.GetStatus(s.ctx, author, "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrSessionNotFound))
 }
 
 func (s *AbortStatusSuite) TestGetStatusReturnsNotFoundForUnknown() {
 	s.store.GetStatusMock.Expect(s.ctx, "missing").Return(domain.Session{}, domain.ErrSessionNotFound)
-	_, err := s.svc.GetStatus(s.ctx, "missing")
+	_, err := s.svc.GetStatus(s.ctx, author, "missing")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrSessionNotFound))
 }
 
 func (s *AbortStatusSuite) TestGetStatusReportsCurrentOffset() {
-	s.store.GetStatusMock.Expect(s.ctx, "sess-1").
-		Return(domain.Session{ID: "sess-1", Offset: 5, Size: 100}, nil)
-	got, err := s.svc.GetStatus(s.ctx, "sess-1")
+	stubSession(s.ctx, s.store, "sess-1", author, 100, 5)
+	got, err := s.svc.GetStatus(s.ctx, author, "sess-1")
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), got.Offset, int64(5))
 	assert.Equal(s.T(), got.Size, int64(100))
+}
+
+func (s *AbortStatusSuite) TestGetStatusHidesAnotherAuthorsSession() {
+	stubSession(s.ctx, s.store, "sess-1", author, 100, 5)
+	_, err := s.svc.GetStatus(s.ctx, stranger, "sess-1")
+	assert.Assert(s.T(), errors.Is(err, domain.ErrSessionNotFound))
+}
+
+// A session written before sessions carried an author belongs to nobody, so
+// nobody may resume it. Failing closed costs one re-upload at deploy time.
+func (s *AbortStatusSuite) TestGetStatusHidesASessionWithoutAuthor() {
+	stubSession(s.ctx, s.store, "sess-1", "", 100, 5)
+	_, err := s.svc.GetStatus(s.ctx, author, "sess-1")
+	assert.Assert(s.T(), errors.Is(err, domain.ErrSessionNotFound))
+}
+
+// A caller without an identity owns nothing, not the sessions that have none.
+func (s *AbortStatusSuite) TestGetStatusRefusesACallerWithoutIdentity() {
+	stubSession(s.ctx, s.store, "sess-1", "", 100, 5)
+	_, err := s.svc.GetStatus(s.ctx, "", "sess-1")
+	assert.Assert(s.T(), errors.Is(err, domain.ErrSessionNotFound))
 }

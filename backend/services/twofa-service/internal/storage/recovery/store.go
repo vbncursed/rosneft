@@ -64,3 +64,14 @@ func (s *Store) DeleteAll(ctx context.Context, userID string) error {
 	}
 	return nil
 }
+
+// Counts returns how many of the user's recovery codes are still unused and
+// how many the current set holds. Both are zero for a user who has none.
+func (s *Store) Counts(ctx context.Context, userID string) (remaining, total int, err error) {
+	const q = `SELECT count(*) FILTER (WHERE used_at IS NULL), count(*)
+		FROM twofa_recovery_codes WHERE user_id = $1`
+	if err := s.pool.QueryRow(ctx, q, userID).Scan(&remaining, &total); err != nil {
+		return 0, 0, fmt.Errorf("recovery.Counts: %w", err)
+	}
+	return remaining, total, nil
+}

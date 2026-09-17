@@ -1,0 +1,66 @@
+import { createRouter } from "@tanstack/react-router";
+import { queryClient } from "@/app/query/query-client";
+import {
+  accountRoute,
+  catalogRoute,
+  homeRoute,
+  modelDetailRoute,
+  modelNewRoute,
+  modelsRoute,
+  territoriesRoute,
+  territoryNewRoute,
+  territoryReplaceRoute,
+  territoryRoute,
+  twoFactorRoute,
+} from "./catalog-routes";
+import { NotFound, RouteError } from "./fallbacks";
+import {
+  consoleAccessRoute,
+  consoleAuditRoute,
+  consoleContentRoute,
+  consoleIndexRoute,
+  consoleMetricsRoute,
+  consoleRolesRoute,
+  consoleRoute,
+  consoleUsersRoute,
+  loginRoute,
+  rootRoute,
+} from "./routes";
+
+const routeTree = rootRoute.addChildren([
+  loginRoute,
+  consoleRoute.addChildren([
+    consoleIndexRoute,
+    consoleUsersRoute,
+    consoleRolesRoute,
+    consoleContentRoute,
+    consoleAccessRoute,
+    consoleAuditRoute,
+    consoleMetricsRoute,
+  ]),
+  catalogRoute.addChildren([
+    homeRoute,
+    territoriesRoute,
+    territoryNewRoute,
+    territoryRoute,
+    modelsRoute,
+    modelNewRoute,
+    modelDetailRoute,
+    territoryReplaceRoute,
+    accountRoute,
+    twoFactorRoute,
+  ]),
+]);
+
+export const router = createRouter({
+  routeTree,
+  context: { queryClient },
+  defaultNotFoundComponent: NotFound,
+  defaultErrorComponent: RouteError,
+});
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router;
+  }
+}

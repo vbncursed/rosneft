@@ -15,6 +15,7 @@ import (
 // rangeSeconds is the allow-list of dashboard ranges → window in seconds.
 // Anything else is rejected before a Prometheus query is built.
 var rangeSeconds = map[string]int{
+	"15m": 900,
 	"1h":  3600,
 	"6h":  21600,
 	"24h": 86400,

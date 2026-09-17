@@ -1,7 +1,7 @@
 # Andrey 3D Viewer
 
 Browser-native 3D viewer for very large OBJ models. Heavy work — OBJ parsing,
-multi-material GLB conversion (with Draco compression, KTX2 textures, and
+multi-material GLB conversion (with meshopt compression, KTX2 textures, and
 LOD generation), texture optimisation, blob storage — happens server-side so
 the browser fetches compact binary artifacts instead of 100+ MB ASCII files.
 
@@ -9,9 +9,9 @@ the browser fetches compact binary artifacts instead of 100+ MB ASCII files.
 
 ```
 andrey/
-├── backend/            # Go 1.27.0 microservices (gateway, catalog, content, auth,
+├── backend/            # Go 1.27.1 microservices (gateway, catalog, content, auth,
 │                       #   twofa, passkey, mesh, upload, asset)
-├── frontend/           # Vite + React 19 SPA viewer (TanStack Router + react-three-fiber)
+├── frontend/           # Vite + React 19 SPA, Feature-Sliced (TanStack Router + react-three-fiber)
 ├── desktop/            # Tauri v2 desktop shell wrapping the same SPA
 ├── ops/                # deployment + observability config (Prometheus, …)
 ├── docs/               # design specs and implementation plans
@@ -25,20 +25,23 @@ Each top-level package owns its own toolchain, build, and README.
 
 ### Frontend (`frontend/`)
 
-Vite + React 19 SPA (TanStack Router in `src/routes/`, TanStack Query),
-Tailwind v4. Clean Architecture + DDD layout under
-`src/<context>/{domain,application,infrastructure,presentation}/` with
-bounded contexts `territory`, `model`, `placement`, `viewer`, `auth`,
-plus `shared`. Renders converted GLBs through
-`@react-three/fiber`/`@react-three/drei`, exposes an in-scene gizmo
-(translate/rotate/scale), placement editor and measurement tool.
-Self-hosts the DRACOLoader decoder under `public/draco/`.
+Vite 8 + React 19 SPA (TanStack Router in `src/app/router/`, TanStack Query),
+Tailwind 4, laid out Feature-Sliced (`app → pages → widgets → features →
+entities → shared`) and built against the Claude Design project
+`Design System.dc.html`. It is the catalog, the admin console, the account
+pages and the territory viewer: converted GLBs rendered through
+`@react-three/fiber`/`@react-three/drei` with progressive LOD, an in-scene
+gizmo, placements, a saved measurement tool, equirect panoramas and PDF
+overlays. Self-hosts the Draco and Basis decoders and pdf.js under `public/`,
+along with the PWA shell (`sw.js`, `offline.html`, the manifest). It was
+`frontend-v2/` until 2026-09-17, when it replaced the previous SPA.
 
-See [`frontend/README.md`](frontend/README.md).
+See [`frontend/README.md`](frontend/README.md) and
+[`frontend/CLAUDE.md`](frontend/CLAUDE.md).
 
 ### Backend (`backend/`)
 
-Go **1.27.0** multi-module workspace (`go.work`, 12 modules). Services:
+Go **1.27.1** multi-module workspace (`go.work`, 12 modules). Services:
 
 | Service           | Purpose                                                       | Network            |
 | ----------------- | ------------------------------------------------------------- | ------------------ |
@@ -48,14 +51,14 @@ Go **1.27.0** multi-module workspace (`go.work`, 12 modules). Services:
 | [`auth-service`](backend/services/auth-service/README.md)       | Users, multi-role RBAC, sessions                              | gRPC `:9004` (internal)   |
 | [`twofa-service`](backend/services/twofa-service/README.md)     | TOTP 2FA: secrets, recovery codes, verify                     | gRPC `:9006` (internal)   |
 | [`passkey-service`](backend/services/passkey-service/README.md) | WebAuthn passkeys: credentials, ceremonies, assertion verify  | gRPC `:9008` (internal)   |
-| [`mesh-service`](backend/services/mesh-service/README.md)       | OBJ → GLB + Draco + KTX2 + LOD (`mesh-api` + `mesh-worker`)   | gRPC `:9002` (internal)   |
+| [`mesh-service`](backend/services/mesh-service/README.md)       | OBJ → GLB + meshopt + KTX2 + LOD (`mesh-api` + `mesh-worker`) | gRPC `:9002` (internal)   |
 | [`upload-service`](backend/services/upload-service/README.md)   | Resumable chunked uploads (gRPC streaming)                    | gRPC `:9003` (internal)   |
 | [`asset-service`](backend/services/asset-service/README.md)     | Binary artifact server (Range / ETag / immutable cache)       | `:8081` (via gw)          |
 | [`audit-service`](backend/services/audit-service/README.md)     | Append-only journal + capture triggers + checkpoint digests    | gRPC `:9009` (internal)   |
 
 Persistence: PostgreSQL 17 + Redis 8 Streams + local FS blob store
 (S3-ready behind `BlobStore`). The mesh-worker container ships `gltfpack`
-(built from `zeux/meshoptimizer`) for Draco / KTX2 / LOD encoding.
+(built from `zeux/meshoptimizer`) for meshopt / KTX2 / LOD encoding.
 
 See [`backend/README.md`](backend/README.md).
 
@@ -77,21 +80,21 @@ Implemented across both sides; some are opt-in until both halves are wired:
 
 | Feature | Backend | Frontend requirement |
 | --- | --- | --- |
-| Single-shot scene bundle | `GET /api/territories/{slug}/scene` | Use it instead of 4 parallel calls |
-| SSE conversion stream | `GET /api/jobs/{id}/events` | Replace polling with `EventSource` |
+| Single-shot scene bundle | `GET /api/territories/{slug}/scene` | `sceneQuery(slug)` — the viewer route loads it once |
+| SSE conversion stream | `GET /api/jobs/{id}/events` | `openJobStream` on the conversion page, the jobs poll as fallback |
 | Project pagination | `?limit=&cursor=` + `X-Next-Cursor` | Send params when listing |
 | ETag + 304 on JSON | always-on middleware | nothing — browsers handle automatically |
 | Brotli/gzip JSON | always-on middleware | nothing — browsers handle automatically |
 | Asset immutable cache | always-on middleware | nothing — browsers handle automatically |
-| Draco mesh compression | `MESH_DRACO_ENABLED=true` (default) | `useGLTF.setDecoderPath("/draco/")` ✅ wired |
-| KTX2 / Basis textures | `MESH_KTX2_ENABLED=true` (default) | Register `KTX2Loader` explicitly (drei does NOT auto-register) |
-| LOD generation | `MESH_LOD_RATIOS=0.5,0.25` (default) | Use `getArtifact(slug, lod)` per level (LOD0 always = full quality) |
+| Meshopt mesh compression | `MESH_MESHOPT_ENABLED=true` (default) | nothing — drei's `useGLTF` auto-registers `MeshoptDecoder` ✅ wired |
+| KTX2 / Basis textures | `MESH_KTX2_ENABLED=true` (default) | `KTX2Loader` registered in `widgets/viewer-canvas/three/gltf-loader-setup.ts` (drei does NOT auto-register) |
+| LOD generation | `MESH_LOD_RATIOS=0.5,0.25` (default) | `features/lod`: coarsest level first, LOD0 warmed and swapped in |
 
 ## Toolchain
 
 | Half | Runtime | Pinned where |
 | --- | --- | --- |
-| Backend | **Go 1.27.0** | `backend/go.work` + all 11 `go.mod` files; `golang:1.27.0-alpine` in every service Dockerfile |
+| Backend | **Go 1.27.1** | `backend/go.work` + all 11 `go.mod` files; `golang:1.27.1-alpine` in every service Dockerfile |
 | Frontend | **Node + Yarn**, Vite 8, React 19, TypeScript strict | `frontend/package.json` |
 | Datastores | PostgreSQL 17, Redis 8 | `docker-compose.yml` |
 
@@ -111,27 +114,30 @@ make test            # go test -race -shuffle=on across all 11 modules
 make lint            # golangci-lint across all 11 modules
 
 # Frontend (from frontend/)
-yarn dev --port 3000 # set VITE_API_URL to the gateway
+yarn dev             # :3000, /api proxied to the gateway on :8080
 ```
 
-> The frontend is **not** a compose service — run it locally. Use port **3000**,
-> not Vite's default 5173: `PASSKEY_RP_ORIGINS` is pinned to
-> `http://localhost:3000`, and a mismatched origin fails every WebAuthn ceremony
-> with an opaque client-side `SecurityError` and no server log.
+> The frontend is **not** a compose service — run it locally. It listens on
+> port **3000** (`vite.config.ts`), not Vite's default 5173:
+> `PASSKEY_RP_ORIGINS` is pinned to `http://localhost:3000`, and a mismatched
+> origin fails every WebAuthn ceremony with an opaque client-side
+> `SecurityError` and no server log. `VITE_API_URL` stays empty in dev and in
+> production (`.env.development`, `.env.production`): the SPA is single-origin.
 
 Browse `http://localhost:8080/docs` for the Scalar API explorer.
 
 ## Architecture rules (repo-wide)
 
-- **Clean Architecture + DDD**, every file lives in one of `domain/`,
-  `application/`, `infrastructure/`, or `presentation/` under a bounded
-  context.
-- **Hard cap: 200 lines per file** in the frontend (enforced by oxlint);
-  the backend enforces a similar discipline through review.
+- **Layered, dependencies pointing inward.** The frontend is Feature-Sliced,
+  enforced by `src/architecture.spec.ts`; the backend services keep their
+  transport, service and storage layers apart.
+- **Hard cap: 200 lines per product file**, on both sides, checked by hand
+  and in review.
 - **No speculative abstractions, no dead code.** Add only what the current
   task requires.
 - **Tests**: `testify/suite` + `gotest.tools/v3/assert` on the backend;
-  Vitest (`*.spec`) + Node's built-in runner (`*.test`, domain) on the frontend.
+  Vitest (`*.spec.ts(x)`, one beside every module) and a React Cosmos fixture
+  per rendering slice on the frontend.
 - **Cross-service contracts**: protobuf for internal gRPC, OpenAPI 3.1 for
   the gateway; both schemas generate code on each side (`oapi-codegen` for
   Go, `openapi-typescript` for the frontend).

@@ -55,11 +55,12 @@ func (c *Client) SetPlacementVisibility(ctx context.Context, territorySlug strin
 // UpdatePlacement replaces a placement's transform and label.
 func (c *Client) UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
 	resp, err := c.cc.UpdatePlacement(ctx, &catalogv1.UpdatePlacementRequest{
-		Id:       p.ID,
-		Position: vec3ToProto(p.Position),
-		Rotation: vec3ToProto(p.Rotation),
-		Scale:    vec3ToProto(p.Scale),
-		Label:    p.Label,
+		Id:            p.ID,
+		TerritorySlug: p.TerritorySlug,
+		Position:      vec3ToProto(p.Position),
+		Rotation:      vec3ToProto(p.Rotation),
+		Scale:         vec3ToProto(p.Scale),
+		Label:         p.Label,
 	})
 	if err != nil {
 		return domain.Placement{}, fmt.Errorf("catalog.UpdatePlacement: %w", grpcerr.MapStatus(err, domain.ErrPlacementNotFound))
@@ -67,9 +68,9 @@ func (c *Client) UpdatePlacement(ctx context.Context, p domain.Placement) (domai
 	return placementFromProto(resp.GetPlacement()), nil
 }
 
-// DeletePlacement removes a placement by ID.
-func (c *Client) DeletePlacement(ctx context.Context, id int64) error {
-	_, err := c.cc.DeletePlacement(ctx, &catalogv1.DeletePlacementRequest{Id: id})
+// DeletePlacement removes a placement on territorySlug by ID.
+func (c *Client) DeletePlacement(ctx context.Context, territorySlug string, id int64) error {
+	_, err := c.cc.DeletePlacement(ctx, &catalogv1.DeletePlacementRequest{Id: id, TerritorySlug: territorySlug})
 	if err != nil {
 		return fmt.Errorf("catalog.DeletePlacement: %w", grpcerr.MapStatus(err, domain.ErrPlacementNotFound))
 	}

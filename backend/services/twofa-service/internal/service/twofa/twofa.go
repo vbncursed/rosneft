@@ -21,6 +21,8 @@ type Recovery interface {
 	List(ctx context.Context, userID string) (ids, hashes []string, err error)
 	MarkUsed(ctx context.Context, id string) error
 	DeleteAll(ctx context.Context, userID string) error
+	// Counts reports unused and issued recovery codes for the account screen.
+	Counts(ctx context.Context, userID string) (remaining, total int, err error)
 }
 
 type Cipher interface {

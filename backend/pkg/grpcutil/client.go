@@ -57,6 +57,7 @@ func Dial(target string, extra ...grpc.DialOption) (*grpc.ClientConn, error) {
 		// Forwards the ctx actor as metadata so the next hop can attribute the
 		// change it makes. A call with no actor on ctx is unaffected.
 		grpc.WithChainUnaryInterceptor(ActorClientInterceptor()),
+		grpc.WithChainStreamInterceptor(ActorStreamClientInterceptor()),
 		grpc.WithDefaultServiceConfig(retryServiceConfig),
 		grpc.WithDefaultCallOptions(
 			grpc.MaxCallRecvMsgSize(MaxMessageSize),
