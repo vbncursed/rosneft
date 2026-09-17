@@ -42,6 +42,6 @@ describe("UploadTerritoryScreen", () => {
   it("gates the whole form on the hook's canUpload", () => {
     useUploadTerritory.mockReturnValue(state({ canUpload: false }));
     render(<UploadTerritoryScreen />);
-    expect(screen.getByText("Uploading a territory needs territory:write.")).toBeInTheDocument();
+    expect(screen.getByText("Uploading a territory needs territory:create.")).toBeInTheDocument();
   });
 });

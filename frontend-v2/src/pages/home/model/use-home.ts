@@ -91,7 +91,7 @@ export function useHome(): HomeState {
   const allJobs = jobs.data ?? [];
   const jobOf = (kind: TargetJob["kind"], slug: string) =>
     allJobs.find((j) => j.kind === kind && j.slug === slug);
-  const canUploadTerritory = can(me, "territory:write");
+  const canUploadTerritory = can(me, "territory:create");
   const canUploadModel = can(me, "model:write");
   const empty = viewerEmpty(allTerritories.length, canUploadTerritory, canUploadModel);
   const modelCards = recent(allModels, MODEL_CARDS).map((m) =>

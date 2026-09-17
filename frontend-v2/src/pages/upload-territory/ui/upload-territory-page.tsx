@@ -21,7 +21,7 @@ export type UploadTerritoryPageProps = {
   progress?: { value: number; header: string; stats: string[] };
   onSubmit: () => void;
   onCancel: () => void;
-  /** Whether the viewer holds territory:write — without it the whole form is replaced by a callout. */
+  /** Whether the viewer holds territory:create (Root alone, today) — without it the whole form is replaced by a callout. */
   canUpload: boolean;
   checks: ChecklistItem[];
   stages: (ConversionStage & { hint: string })[];
@@ -87,7 +87,7 @@ export function UploadTerritoryPage({
           <UploadAside stages={stages} checks={checks} />
         </div>
       ) : (
-        <Callout tone="warn">Uploading a territory needs territory:write.</Callout>
+        <Callout tone="warn">Uploading a territory needs territory:create.</Callout>
       )}
     </>
   );

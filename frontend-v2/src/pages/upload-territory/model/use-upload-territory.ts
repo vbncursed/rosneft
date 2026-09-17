@@ -123,7 +123,7 @@ export function useUploadTerritory(): UploadTerritoryState {
     progress: progressFor(phase === "uploading" || phase === "finalizing", progress, samples),
     onSubmit,
     onCancel,
-    canUpload: can(me, "territory:write"),
+    canUpload: can(me, "territory:create"),
     checks: ARCHIVE_CHECKLIST,
     stages: stagesFor(phase),
   };

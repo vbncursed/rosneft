@@ -26,6 +26,8 @@ export type ContentState = {
   items: ContentItem[] | null;
   storageBytes: number;
   canManage: boolean;
+  /** `territory:create` — Root alone; `territory:write` edits but creates nothing. */
+  canCreateTerritory: boolean;
   canDelete: (kind: ContentKind) => boolean;
   artifactsOf: (kind: ContentKind, slug: string) => Artifact[];
   /** The target's live or failed conversion, or undefined when it has none. */
@@ -142,6 +144,7 @@ export function useContent(): ContentState {
     items,
     storageBytes: [...artifacts.bySlug.values()].reduce((sum, a) => sum + totalSize(a), 0),
     canManage: can(me, "territory:write") || can(me, "model:write"),
+    canCreateTerritory: can(me, "territory:create"),
     canDelete: (kind) => can(me, kind === "territory" ? "territory:delete" : "model:delete"),
     artifactsOf,
     jobOf,

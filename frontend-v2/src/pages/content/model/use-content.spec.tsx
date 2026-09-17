@@ -75,6 +75,14 @@ describe("useContent", () => {
     ]);
     expect(result.current.storageBytes).toBe(1024);
     expect(result.current.canManage).toBe(true);
+    expect(result.current.canCreateTerritory).toBe(false);
+  });
+
+  it("lets Root create a territory", async () => {
+    client.setQueryData(["me"], { ...PRINCIPAL, permissions: [], isOwner: true });
+    const { result } = renderHook(() => useContent(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.canCreateTerritory).toBe(true);
   });
 
   it("knows which kinds the viewer may delete", async () => {

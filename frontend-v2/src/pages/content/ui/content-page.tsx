@@ -41,7 +41,8 @@ export type ContentPageProps = {
   inspected?: InspectedContent | null;
   renderRowActions?: (item: ContentItem) => ReactNode;
 
-  onUploadTerritory: () => void;
+  /** Absent when the viewer may not create a territory: no button, no drop target. */
+  onUploadTerritory?: () => void;
   onUploadModel: () => void;
   /** Absent for a model — there is no source-replace route for one. */
   onReplaceSource?: () => void;
@@ -90,9 +91,11 @@ export function ContentPage({
           canManage ? (
             <div className="flex gap-2.5">
               <Button onClick={onUploadModel}>+ Model</Button>
-              <Button variant="primary" onClick={onUploadTerritory}>
-                + Territory
-              </Button>
+              {onUploadTerritory ? (
+                <Button variant="primary" onClick={onUploadTerritory}>
+                  + Territory
+                </Button>
+              ) : null}
             </div>
           ) : undefined
         }

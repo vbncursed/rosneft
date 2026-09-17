@@ -31,7 +31,7 @@ const PRINCIPAL = {
   passkeyEnabled: null,
   roleSlugs: ["editor"],
   roleTitles: { editor: "Editor" },
-  permissions: ["territory:write"],
+  permissions: ["territory:create"],
   isOwner: false,
   onboardingToursSeen: [],
 };
@@ -221,9 +221,15 @@ describe("useUploadTerritory", () => {
     expect(result.current.progress).toBeUndefined();
   });
 
-  it("says the whole page needs territory:write when the viewer lacks the grant", () => {
-    client.setQueryData(["me"], { ...PRINCIPAL, permissions: [] });
+  it("refuses the page to a territory writer who may not create one", () => {
+    client.setQueryData(["me"], { ...PRINCIPAL, permissions: ["territory:write"] });
     const { result } = renderHook(() => useUploadTerritory(), { wrapper });
     expect(result.current.canUpload).toBe(false);
+  });
+
+  it("opens the page to Root, who may create a territory", () => {
+    client.setQueryData(["me"], { ...PRINCIPAL, permissions: [], isOwner: true });
+    const { result } = renderHook(() => useUploadTerritory(), { wrapper });
+    expect(result.current.canUpload).toBe(true);
   });
 });

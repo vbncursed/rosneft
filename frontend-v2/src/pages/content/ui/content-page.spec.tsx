@@ -166,6 +166,13 @@ describe("ContentPage", () => {
     expect(onUploadTerritory).toHaveBeenCalledOnce();
   });
 
+  it("offers no territory upload, button or drop target, without a handler for it", () => {
+    render(<ContentPage {...props({ onUploadTerritory: undefined })} />);
+    expect(screen.getByRole("button", { name: "+ Model" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "+ Territory" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Upload an OBJ/ })).not.toBeInTheDocument();
+  });
+
   it("hides every management control from a reader who may not manage content", () => {
     render(
       <ContentPage
