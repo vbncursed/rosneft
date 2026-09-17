@@ -3,7 +3,10 @@ import { printDegrees } from "./degrees";
 export const PANORAMAS_OVERLINE = "Panoramas";
 export const DOCUMENTS_OVERLINE = "Documents";
 
+export const MEASUREMENTS_OVERLINE = "Measurements";
+
 export const documentsCount = (n: number) => `PDF overlays · ${n}`;
+export const measurementsCount = (n: number) => `saved chains · ${n}`;
 
 export const NOT_CALIBRATED = "not calibrated yet";
 export const SHOW_IN = "Show in this panorama";
@@ -19,6 +22,7 @@ export const LOADING_FOOTER =
   "Panoramas and documents stay clickable while the target LOD downloads — the coarse mesh is enough to aim the camera.";
 
 export const MARKERS_SWITCH = "Show panorama points";
+export const MEASUREMENTS_SWITCH = "Show measurements";
 export const MOVE_POINTS = "Move points";
 export const TOUR_LINK = "Panorama tour";
 

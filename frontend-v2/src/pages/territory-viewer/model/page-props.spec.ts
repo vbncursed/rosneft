@@ -111,7 +111,13 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
     move: false,
     editingPanoramaId: null,
   },
-  measure: { chains: [], activeChainId: null, summary: { segments: 0, total: "0.00 m", unsaved: false } },
+  measure: {
+    chains: [],
+    activeChainId: null,
+    summary: { segments: 0, total: "0.00 m", unsaved: false },
+    show: true,
+    onToggleShow: vi.fn(),
+  },
   placements: [TANK],
   pendingIds: [],
   placing: null,
@@ -182,6 +188,12 @@ describe("pageProps · canvas", () => {
     expect(canvas.targetLod).toBe(1);
     expect(canvas.mode).toBe("orbit");
     expect(canvas.canWrite).toBe(true);
+  });
+
+  it("hands the canvas the ruler switch as the page holds it", () => {
+    const p = parts();
+    expect(pageProps(p).canvas.showMeasurements).toBe(true);
+    expect(pageProps({ ...p, measure: { ...p.measure, show: false } }).canvas.showMeasurements).toBe(false);
   });
 
   it("derives the measure tool's unit ratio from the territory's own bbox", () => {
@@ -293,7 +305,7 @@ describe("pageProps · overlays", () => {
     const measuring = pageProps({
       ...p,
       mode: { ...p.mode, mode: "measure" },
-      measure: { chains: [], activeChainId: null, summary: { segments: 0, total: "0.00 m", unsaved: false } },
+      measure: { ...parts().measure, activeChainId: null, summary: { segments: 0, total: "0.00 m", unsaved: false } },
     }).overlays.measuring;
     expect(measuring).toMatchObject({ canClear: false, canClose: false });
   });
@@ -303,7 +315,7 @@ describe("pageProps · overlays", () => {
     const { overlays } = pageProps({
       ...p,
       mode: { ...p.mode, mode: "measure" },
-      measure: { chains: [], activeChainId: 1, summary: { segments: 2, total: "20.55 m", unsaved: false } },
+      measure: { ...parts().measure, activeChainId: 1, summary: { segments: 2, total: "20.55 m", unsaved: false } },
     });
     expect(overlays.chip).toEqual({ text: "measure · 2 segments · 20.55 m total" });
     expect(overlays.measuring).toMatchObject({ canClose: true });
@@ -359,7 +371,7 @@ describe("pageProps · saved measurements", () => {
     const { overlays } = pageProps({
       ...p,
       mode: { ...p.mode, mode: "measure" },
-      measure: { chains: [LOCAL], activeChainId: null, summary: { segments: 1, total: "2.00 m", unsaved: true } },
+      measure: { ...parts().measure, chains: [LOCAL], activeChainId: null, summary: { segments: 1, total: "2.00 m", unsaved: true } },
     });
     expect(overlays.chip?.text).toBe("measure · 1 segment · 2.00 m total · not saved");
   });

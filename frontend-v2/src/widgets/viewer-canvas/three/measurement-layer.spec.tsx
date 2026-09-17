@@ -11,10 +11,8 @@ vi.mock("@react-three/drei", () => ({
   Html: ({ children }: { children: ReactNode }) => children,
   Line: () => null,
 }));
-vi.mock("@react-three/fiber", () => {
-  const invalidate = () => {};
-  return { useThree: () => invalidate };
-});
+const invalidate = vi.hoisted(() => vi.fn());
+vi.mock("@react-three/fiber", () => ({ useThree: () => invalidate }));
 
 const open: Chain = {
   id: 1,
@@ -27,9 +25,10 @@ const open: Chain = {
   sync: "local",
 };
 
-const draw = (chains: Chain[], activeChainId: number | null, canEditSaved = true) =>
+const draw = (chains: Chain[], activeChainId: number | null, canEditSaved = true, visible = true) =>
   render(
     <MeasurementLayer
+      visible={visible}
       chains={chains}
       activeChainId={activeChainId}
       canEditSaved={canEditSaved}
@@ -86,6 +85,7 @@ describe("MeasurementLayer", () => {
     const onCloseActive = vi.fn();
     render(
       <MeasurementLayer
+        visible
         chains={[open]}
         activeChainId={1}
         canEditSaved
@@ -103,5 +103,38 @@ describe("MeasurementLayer", () => {
   it("draws nothing at all when no chain has been started", () => {
     draw([], null);
     expect(screen.queryAllByRole("button")).toHaveLength(0);
+  });
+
+  it("draws no segment, label or point while hidden, saved and local chains alike", () => {
+    const saved: Chain = { ...open, id: 2, serverId: 7, sync: "saved" };
+    const { container } = draw([open, saved], 1, true, false);
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    expect(screen.queryByText("1.00 u")).toBeNull();
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("repaints when it is hidden or shown — the lines live in WebGL", () => {
+    const chains = [open];
+    const { rerender } = draw(chains, null);
+    invalidate.mockClear();
+    const layer = (visible: boolean) => (
+      <MeasurementLayer
+        visible={visible}
+        chains={chains}
+        activeChainId={null}
+        canEditSaved
+        unitRatio={1}
+        lineColor="#f97316"
+        onCloseActive={vi.fn()}
+        onRemoveSegment={vi.fn()}
+        onRemoveChain={vi.fn()}
+      />
+    );
+    rerender(layer(true));
+    expect(invalidate).not.toHaveBeenCalled();
+    rerender(layer(false));
+    expect(invalidate).toHaveBeenCalledTimes(1);
+    rerender(layer(true));
+    expect(invalidate).toHaveBeenCalledTimes(2);
   });
 });

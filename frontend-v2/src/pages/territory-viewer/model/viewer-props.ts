@@ -180,6 +180,9 @@ export type PageParts = {
     chains: Chain[];
     activeChainId: number | null;
     summary: { segments: number; total: string; unsaved: boolean };
+    /** The View tab's ruler switch, as stored; measure mode overrides it on the canvas. */
+    show: boolean;
+    onToggleShow: () => void;
   };
   placements: ResolvedPlacement[];
   pendingIds: number[];

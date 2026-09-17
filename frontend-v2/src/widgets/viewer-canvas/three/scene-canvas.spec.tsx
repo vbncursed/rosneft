@@ -122,6 +122,7 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   calibrating: false,
   panoramas: [PANO],
   showMarkers: true,
+  showMeasurements: true,
   markerLabels: {},
   move: STILL,
   cameraPositionRef: { current: null },
@@ -281,6 +282,32 @@ describe("SceneCanvas", () => {
     expect(seen.measure.canEditSaved).toBe(true);
     await mount({ canEditMeasurements: false });
     expect(seen.measure.canEditSaved).toBe(false);
+  });
+
+  it("hides the ruler when the switch is off, except while measuring", async () => {
+    const chain = {
+      id: 1,
+      points: [
+        { x: 0, y: 0, z: 0 },
+        { x: 1, y: 0, z: 0 },
+      ],
+      closed: false,
+      sync: "local" as const,
+    };
+    lineColors.length = 0;
+    await mount({ chains: [chain], showMeasurements: false });
+    expect(seen.measure.visible).toBe(false);
+    expect(lineColors).toEqual([]);
+
+    await mount({ chains: [chain], showMeasurements: false, mode: "place" });
+    expect(seen.measure.visible).toBe(false);
+
+    // Measuring blind is not measuring: the tool shows the ruler whatever the switch says.
+    await mount({ chains: [chain], showMeasurements: false, mode: "measure" });
+    expect(seen.measure.visible).toBe(true);
+
+    await mount({ chains: [chain], showMeasurements: true });
+    expect(seen.measure.visible).toBe(true);
   });
 
   it("picks no points at all while orbiting", async () => {

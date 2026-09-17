@@ -5,6 +5,7 @@ import {
   deletePanoramaTitle,
   documentsCount,
   insideFooter,
+  measurementsCount,
   nudgeLabel,
   opacityPercent,
 } from "./copy";
@@ -14,6 +15,13 @@ describe("documentsCount", () => {
   it("prints the mock's count line", () => {
     expect(documentsCount(2)).toBe("PDF overlays · 2");
     expect(documentsCount(0)).toBe("PDF overlays · 0");
+  });
+});
+
+describe("measurementsCount", () => {
+  it("counts the saved chains in the documents line's shape", () => {
+    expect(measurementsCount(2)).toBe("saved chains · 2");
+    expect(measurementsCount(0)).toBe("saved chains · 0");
   });
 });
 

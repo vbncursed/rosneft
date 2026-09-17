@@ -5,6 +5,8 @@ import MeasurementSegment from "./measurement-segment";
 import PointMarker from "./point-marker";
 
 interface MeasurementLayerProps {
+  /** False draws nothing — the chains are kept, only not painted. */
+  visible: boolean;
   chains: Chain[];
   activeChainId: number | null;
   /** The reader holds every measurement edit grant; a saved chain offers removal only then. */
@@ -24,6 +26,7 @@ interface MeasurementLayerProps {
 // Memoed so unrelated re-renders of the canvas (selection, hover,
 // gizmo drag) don't reconcile every segment.
 function MeasurementLayerImpl({
+  visible,
   chains,
   activeChainId,
   canEditSaved,
@@ -38,10 +41,15 @@ function MeasurementLayerImpl({
   // Canvas runs in frameloop="demand". Html children update the DOM on
   // unmount synchronously, but lines live in WebGL — they only clear
   // when a new frame is drawn. Force an invalidate on every chain
-  // change so Clear, segment removal, and chain removal always paint.
+  // change so Clear, segment removal, and chain removal always paint —
+  // and on hide/show, which drops or brings back every line at once.
   useEffect(() => {
     invalidate();
-  }, [chains, invalidate]);
+  }, [chains, visible, invalidate]);
+
+  // Unmounted rather than `<group visible>`: the labels are drei <Html>, DOM
+  // that a hidden Object3D does not take off the screen.
+  if (!visible) return null;
 
   return (
     <>

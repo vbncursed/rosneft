@@ -2,6 +2,7 @@ import { isValidElement } from "react";
 import { describe, expect, it } from "vitest";
 import { assetUrl } from "@/entities/content";
 import type { Document } from "@/entities/document";
+import type { Chain } from "@/entities/measurement";
 import type { Panorama } from "@/entities/panorama";
 import { groupByModel, type ResolvedPlacement } from "@/entities/placement";
 import type { ModelOption } from "@/entities/scene";
@@ -162,6 +163,23 @@ describe("viewTabProps · panoramas", () => {
       }),
     );
     expect((props.panoramas.editor as { props: { failed: boolean } }).props.failed).toBe(true);
+  });
+});
+
+describe("viewTabProps · measurements", () => {
+  const chain = (id: number, over: Partial<Chain> = {}): Chain => ({
+    id,
+    points: [],
+    closed: false,
+    sync: "local",
+    ...over,
+  });
+
+  it("counts the chains the server holds, and hands over the switch", () => {
+    const p = basePageParts();
+    const chains = [chain(1, { serverId: 7, sync: "saved" }), chain(2, { serverId: 8, sync: "saving" }), chain(3)];
+    const props = viewTabProps({ ...p, measure: { ...p.measure, chains, show: false } });
+    expect(props.measurements).toEqual({ saved: 2, show: false, onToggle: p.measure.onToggleShow });
   });
 });
 

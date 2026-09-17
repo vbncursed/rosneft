@@ -38,6 +38,7 @@ const props = {
   calibrating: false,
   panoramas: [],
   showMarkers: true,
+  showMeasurements: true,
   markerLabels: {},
   move: { active: false, draggingId: null, livePos: null },
   cameraPositionRef: { current: null },

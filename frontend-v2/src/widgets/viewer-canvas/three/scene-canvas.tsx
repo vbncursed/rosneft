@@ -62,6 +62,7 @@ export default function SceneCanvas({
   calibrating,
   panoramas,
   showMarkers,
+  showMeasurements,
   markerLabels,
   move,
   cameraPositionRef,
@@ -211,6 +212,8 @@ export default function SceneCanvas({
       </group>
 
       <MeasurementLayer
+        // Measure mode wins over the switch: nobody measures blind.
+        visible={showMeasurements || mode === "measure"}
         chains={chains}
         activeChainId={activeChainId}
         canEditSaved={canEditMeasurements}

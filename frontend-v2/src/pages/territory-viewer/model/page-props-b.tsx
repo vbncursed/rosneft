@@ -51,7 +51,7 @@ export const markerLabels = (groups: PlacementGroup[]): Record<number, string> =
  * many placements the photo marks.
  */
 export function viewTabProps(p: PageParts): ViewTabProps {
-  const { panoramas: pan, documents: docs, grants, mode } = p;
+  const { panoramas: pan, documents: docs, grants, mode, measure } = p;
   const inside = mode.view.kind === "panorama" ? mode.view.id : null;
 
   return {
@@ -95,6 +95,11 @@ export function viewTabProps(p: PageParts): ViewTabProps {
       canUpload: grants.documentWrite,
       onUpload: docs.upload.onOpen,
       onOpen: docs.onOpen,
+    },
+    measurements: {
+      saved: measure.chains.filter((c) => c.serverId != null).length,
+      show: measure.show,
+      onToggle: measure.onToggleShow,
     },
     footer:
       loadingLevel(p.view) !== null

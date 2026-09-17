@@ -6,6 +6,9 @@ import {
   DOCUMENTS_OVERLINE,
   EXIT_CALIBRATION,
   MARKERS_SWITCH,
+  MEASUREMENTS_OVERLINE,
+  MEASUREMENTS_SWITCH,
+  measurementsCount,
   MOVE_POINTS,
   PANORAMAS_OVERLINE,
   UPLOAD_DOCUMENT_TITLE,
@@ -60,6 +63,7 @@ const base = (): ViewTabProps => ({
     editor: null,
   },
   documents: { rows: [{ id: 3, name: "plan-sheet-03.pdf" }], canUpload: false, onUpload: vi.fn() , onOpen: vi.fn() },
+  measurements: { saved: 3, show: true, onToggle: vi.fn() },
   footer: null,
 });
 
@@ -105,6 +109,28 @@ describe("ViewTab", () => {
     expect(markers).toBeChecked();
     await userEvent.click(markers);
     expect(props.panoramas.onToggleMarkers).toHaveBeenCalled();
+  });
+
+  it("heads the ruler's own section with how many chains are saved", () => {
+    tab();
+    const section = screen.getByRole("region", { name: MEASUREMENTS_OVERLINE });
+    expect(section).toHaveTextContent(measurementsCount(3));
+  });
+
+  it("switches the ruler, and says when it is hidden", async () => {
+    const { props } = tab();
+    const ruler = screen.getByRole("switch", { name: MEASUREMENTS_SWITCH });
+    expect(ruler).toBeChecked();
+    await userEvent.click(ruler);
+    expect(props.measurements.onToggle).toHaveBeenCalledTimes(1);
+    expect(props.panoramas.onToggleMarkers).not.toHaveBeenCalled();
+  });
+
+  it("draws the ruler switch off when the ruler is hidden", () => {
+    tab((p) => {
+      p.measurements.show = false;
+    });
+    expect(screen.getByRole("switch", { name: MEASUREMENTS_SWITCH })).not.toBeChecked();
   });
 
   it("offers Move points only to a writer, and says whether it is on", async () => {

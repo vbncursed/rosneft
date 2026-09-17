@@ -186,7 +186,13 @@ export const basePageParts = (): PageParts => ({
     move: false,
     editingPanoramaId: null,
   },
-  measure: { chains: [], activeChainId: null, summary: { segments: 0, total: "0.00 m", unsaved: false } },
+  measure: {
+    chains: [],
+    activeChainId: null,
+    summary: { segments: 0, total: "0.00 m", unsaved: false },
+    show: true,
+    onToggleShow: noop,
+  },
   placements: PLACEMENTS,
   pendingIds: [],
   placing: null,
@@ -267,7 +273,7 @@ export default {
     ...p,
     mode: { ...p.mode, mode: "measure" },
     panel: { tab: "view", collapsed: false },
-    measure: { chains: CHAINS, activeChainId: 2, summary: { segments: 2, total: "20.55 m", unsaved: false } },
+    measure: { ...p.measure, chains: CHAINS, activeChainId: 2, summary: { segments: 2, total: "20.55 m", unsaved: false } },
   })),
 
   "5 guest": page((p) => ({ ...p, grants: GUEST })),

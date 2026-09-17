@@ -27,6 +27,7 @@ const measuring = (chains: Chain[], unsaved: boolean) => (p: PageParts): PagePar
   mode: { ...p.mode, mode: "measure" },
   panel: { tab: "view", collapsed: false },
   measure: {
+    ...p.measure,
     chains,
     activeChainId: null,
     summary: { segments: chains.length * 2, total: `${(chains.length * 13.42).toFixed(2)} m`, unsaved },

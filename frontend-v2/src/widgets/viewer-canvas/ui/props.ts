@@ -66,6 +66,8 @@ export type ViewerCanvasProps = {
   calibrating: boolean;
   panoramas: Panorama[];
   showMarkers: boolean;
+  /** The View tab's ruler switch; measure mode draws the ruler regardless. */
+  showMeasurements: boolean;
   /** Labels for the viewport markers inside a panorama, by placement id (`storage-tank-500 #1`). */
   markerLabels: Record<number, string>;
   move: { active: boolean; draggingId: number | null; livePos: Vec3 | null };
