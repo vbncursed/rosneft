@@ -156,6 +156,24 @@ func (s *AuditRefsSuite) TestRefsBeyondTheResolverCapAreStillResolved() {
 	assert.Equal(s.T(), refs["visible_panorama_ids:600"], "pano-600")
 }
 
+// Автор измерения лежит в created_by как uuid и подписывается логином;
+// территория — своим названием.
+func (s *AuditRefsSuite) TestMeasurementNamesItsAuthorAndTerritory() {
+	s.audit.ListEntriesMock.Return(domain.AuditPage{Entries: []domain.AuditEntry{{
+		Entity: "measurement",
+		NewRow: `{"id":3,"territory_id":5,"points":[0,0,0,1,1,1],"closed":false,"created_by":"u-9"}`,
+	}}}, nil)
+	s.auth.ResolveUserLoginsMock.Return(map[string]string{"u-9": "ivan.petrov"}, nil)
+	s.catalog.ResolveTerritorySlugsMock.Return(map[int64]string{5: "yard"}, nil)
+	s.catalog.ResolveLabelsMock.Return(map[string]string{"territory:5": "Площадка А"}, nil)
+
+	_, refs, err := s.svc.ListAudit(s.ctx, domain.AuditQuery{}, domain.AuditScope{All: true}, "tok", true)
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), refs["created_by:u-9"], "ivan.petrov")
+	assert.Equal(s.T(), refs["territory_id:5"], "Площадка А")
+}
+
 func (s *AuditRefsSuite) TestWantRefsFalseSkipsBothResolvers() {
 	// Экспорт CSV снимков не печатает; моки без ожиданий провалят тест, если
 	// резолверы всё же позовут.

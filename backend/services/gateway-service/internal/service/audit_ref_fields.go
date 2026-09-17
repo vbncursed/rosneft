@@ -11,7 +11,7 @@ import (
 // reference and to what.
 //
 // The client never gets a copy: the page dictionary is keyed "field:value", and
-// because no column name means two different kinds across the ten audited
+// because no column name means two different kinds across the audited
 // tables, the field name alone carries the kind. That is deliberate — the
 // entity list in frontend/src/audit/domain/vocabulary.ts is the same idea
 // duplicated onto the client, and it silently drifted out of step with the
@@ -26,8 +26,10 @@ var refFields = map[string]map[string]string{
 		"model_id":             "model",
 		"visible_panorama_ids": "panorama",
 	},
-	"panorama": {"territory_id": "territory"},
-	"document": {"territory_id": "territory"},
+	// created_by is the author's uuid; it names a user wherever it appears.
+	"measurement": {"territory_id": "territory", "created_by": "user"},
+	"panorama":    {"territory_id": "territory"},
+	"document":    {"territory_id": "territory"},
 }
 
 // refKey is the dictionary key the client rebuilds from the field name and the

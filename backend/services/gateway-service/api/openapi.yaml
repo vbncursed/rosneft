@@ -203,6 +203,49 @@ components:
           description: Full replacement allowlist of panorama ids.
           items: { type: integer, format: int64 }
 
+    Measurement:
+      type: object
+      required: [id, territorySlug, points, closed, createdAt, updatedAt]
+      description: |
+        A saved ruler chain on a territory, shared by everyone who can open
+        it. Points are in the territory's normalised scene space — the space
+        placement positions use — in drawing order. A closed chain has an
+        implicit last segment back to its first point.
+      properties:
+        id: { type: integer, format: int64 }
+        territorySlug: { type: string }
+        points:
+          type: array
+          minItems: 2
+          items: { $ref: '#/components/schemas/Vec3' }
+        closed: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    MeasurementWrite:
+      type: object
+      required: [points, closed]
+      description: |
+        The full chain; PUT replaces points and closed together. At least
+        two points, at least three when closed, at most 1000, all finite —
+        anything else is 400.
+      properties:
+        points:
+          type: array
+          minItems: 2
+          maxItems: 1000
+          items: { $ref: '#/components/schemas/Vec3' }
+        closed: { type: boolean }
+
+    MeasurementsDeleted:
+      type: object
+      required: [deleted]
+      properties:
+        deleted:
+          type: integer
+          minimum: 0
+          description: How many measurements were removed.
+
     Panorama:
       type: object
       required: [id, territorySlug, slug, title, sourceBlobHash, position, yawOffset, defaultYaw]
@@ -386,12 +429,12 @@ components:
 
     SceneBundle:
       type: object
-      required: [territory, placements, modelOptions]
+      required: [territory, placements, modelOptions, measurements]
       description: |
         Single-shot bundle for the viewer page. Includes the requested
         territory, its current LOD0 artifact (when present), all
-        placements on it, and the list of available models with their
-        artifacts for the placement picker.
+        placements and saved measurements on it, and the list of available
+        models with their artifacts for the placement picker.
       properties:
         territory: { $ref: '#/components/schemas/Territory' }
         artifact: { $ref: '#/components/schemas/Artifact' }
@@ -412,6 +455,10 @@ components:
           type: array
           description: PDF documents attached to this territory.
           items: { $ref: '#/components/schemas/Document' }
+        measurements:
+          type: array
+          description: Saved measurement chains on this territory, by id; empty when none.
+          items: { $ref: '#/components/schemas/Measurement' }
 
     UploadInitiate:
       type: object
@@ -1272,6 +1319,110 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Placement' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/territories/{slug}/measurements:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: listMeasurements
+      summary: List saved measurements on a territory
+      tags: [measurements]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Measurement' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+    post:
+      operationId: createMeasurement
+      summary: Save a finished measurement chain
+      description: Requires measurement:create. The author is recorded from the session.
+      tags: [measurements]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MeasurementWrite' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Measurement' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+    delete:
+      operationId: deleteMeasurements
+      summary: Remove every measurement on a territory
+      description: >
+        Requires measurement:delete. Measurements are shared, so this clears
+        them for every reader of the territory.
+      tags: [measurements]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeasurementsDeleted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/territories/{slug}/measurements/{id}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
+    put:
+      operationId: updateMeasurement
+      summary: Replace a measurement chain
+      description: >
+        Requires measurement:write. An id that belongs to another territory
+        answers 404, the same as an unknown id.
+      tags: [measurements]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MeasurementWrite' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Measurement' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+    delete:
+      operationId: deleteMeasurement
+      summary: Remove a measurement
+      description: >
+        Requires measurement:delete. An id that belongs to another territory
+        answers 404, the same as an unknown id.
+      tags: [measurements]
+      responses:
+        '204': { description: Deleted }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
 

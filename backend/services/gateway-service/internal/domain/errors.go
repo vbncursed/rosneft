@@ -18,4 +18,7 @@ var (
 	// resource — distinct from a missing permission, which the route middleware
 	// rejects before the service is reached.
 	ErrForbidden = errors.New("forbidden")
+	// ErrMeasurementNotFound also covers an id that exists under another
+	// territory: the catalog scopes every id-addressed call by slug.
+	ErrMeasurementNotFound = errors.New("measurement not found")
 )

@@ -37,6 +37,16 @@ func (r slugRecorder) DeletePlacement(_ context.Context, territorySlug string, _
 	return nil
 }
 
+func (r slugRecorder) UpdateMeasurement(_ context.Context, m domain.Measurement) (domain.Measurement, error) {
+	*r.slug = m.TerritorySlug
+	return m, nil
+}
+
+func (r slugRecorder) DeleteMeasurement(_ context.Context, territorySlug string, _ int64) error {
+	*r.slug = territorySlug
+	return nil
+}
+
 func (r slugRecorder) UpdatePanorama(_ context.Context, p domain.Panorama) (domain.Panorama, error) {
 	*r.slug = p.TerritorySlug
 	return p, nil
@@ -63,6 +73,14 @@ func (s *TerritoryScopedMutationsSuite) TestEveryMutationForwardsTheURLSlug() {
 		}},
 		{name: "delete placement", call: func(ctx context.Context, srv *Server) error {
 			_, err := srv.DeletePlacement(ctx, DeletePlacementRequestObject{Slug: "yard", Id: 1})
+			return err
+		}},
+		{name: "update measurement", call: func(ctx context.Context, srv *Server) error {
+			_, err := srv.UpdateMeasurement(ctx, UpdateMeasurementRequestObject{Slug: "yard", Id: 1, Body: &UpdateMeasurementJSONRequestBody{}})
+			return err
+		}},
+		{name: "delete measurement", call: func(ctx context.Context, srv *Server) error {
+			_, err := srv.DeleteMeasurement(ctx, DeleteMeasurementRequestObject{Slug: "yard", Id: 1})
 			return err
 		}},
 		{name: "update panorama", call: func(ctx context.Context, srv *Server) error {

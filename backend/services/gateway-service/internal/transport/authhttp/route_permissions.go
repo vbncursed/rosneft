@@ -51,6 +51,12 @@ var routePerms = map[string][]string{
 	"POST /api/uploads":                                      {"upload:create"},
 	"PATCH /api/uploads/{id}":                                {"upload:create"},
 	"POST /api/uploads/{id}/finalize":                        {"upload:create"},
+	// Measurements are shared by every reader of the territory; clearing them
+	// all is a delete of each, so it takes the same grant as one.
+	"POST /api/territories/{slug}/measurements":        {"measurement:create"},
+	"PUT /api/territories/{slug}/measurements/{id}":    {"measurement:write"},
+	"DELETE /api/territories/{slug}/measurements/{id}": {"measurement:delete"},
+	"DELETE /api/territories/{slug}/measurements":      {"measurement:delete"},
 }
 
 // RequirePermissionForRoute enforces routePerms against the principal. Routes
