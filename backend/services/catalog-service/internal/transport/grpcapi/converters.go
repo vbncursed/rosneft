@@ -138,3 +138,14 @@ func placementToProto(p domain.Placement) *catalogv1.Placement {
 		VisiblePanoramaIds: p.VisiblePanoramaIDs,
 	}
 }
+
+func measurementToProto(m domain.Measurement) *catalogv1.Measurement {
+	return &catalogv1.Measurement{
+		Id:            m.ID,
+		TerritorySlug: m.TerritorySlug,
+		Points:        domain.FlattenPoints(m.Points),
+		Closed:        m.Closed,
+		CreatedAt:     timestamppb.New(m.CreatedAt),
+		UpdatedAt:     timestamppb.New(m.UpdatedAt),
+	}
+}

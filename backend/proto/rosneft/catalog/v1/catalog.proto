@@ -59,6 +59,14 @@ service CatalogService {
   rpc UpdatePlacement(UpdatePlacementRequest) returns (UpdatePlacementResponse);
   rpc SetPlacementVisibility(SetPlacementVisibilityRequest) returns (SetPlacementVisibilityResponse);
   rpc DeletePlacement(DeletePlacementRequest) returns (DeletePlacementResponse);
+
+  // Measurements are scoped by territory_slug on every call: an id that
+  // belongs to another territory is NOT_FOUND, same as an unknown one.
+  rpc ListMeasurements(ListMeasurementsRequest) returns (ListMeasurementsResponse);
+  rpc CreateMeasurement(CreateMeasurementRequest) returns (CreateMeasurementResponse);
+  rpc UpdateMeasurement(UpdateMeasurementRequest) returns (UpdateMeasurementResponse);
+  rpc DeleteMeasurement(DeleteMeasurementRequest) returns (DeleteMeasurementResponse);
+  rpc DeleteMeasurements(DeleteMeasurementsRequest) returns (DeleteMeasurementsResponse);
 }
 
 // Vec3 represents a point in 3D space (used for bounding-box corners
@@ -145,6 +153,19 @@ message Placement {
   // shown in (panorama mode only — the 3D view always shows every
   // placement). Empty means the placement is hidden in every panorama.
   repeated int64 visible_panorama_ids = 10;
+}
+
+// Measurement is a saved ruler chain on a territory. points is flat —
+// x0,y0,z0,x1,… in the territory's normalised scene space, the space placement
+// positions use — so its length is a multiple of three: at least two points,
+// at least three when closed.
+message Measurement {
+  int64 id = 1;
+  string territory_slug = 2;
+  repeated double points = 3;
+  bool closed = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
 }
 
 // ─── Territory RPCs ─────────────────────────────────────────────────────────
@@ -267,9 +288,10 @@ message SetTerritoryRescaleBaselineRequest {
 message SetTerritoryRescaleBaselineResponse {}
 
 // RescaleTerritoryPlacements applies a pending rescale baseline: it scales
-// every placement's position and scale by old_max / new_source_max and clears
-// the baseline, atomically. A no-op when no baseline is set. The response
-// reports how many placements were changed.
+// every placement's position and scale, and every measurement point, by
+// old_max / new_source_max and clears the baseline, atomically. A no-op when no
+// baseline is set. The response reports how many placements were changed
+// (measurements are not counted).
 message RescaleTerritoryPlacementsRequest {
   string territory_slug = 1;
   double new_source_max = 2;
@@ -381,3 +403,48 @@ message DeletePlacementRequest {
   string territory_slug = 2;
 }
 message DeletePlacementResponse {}
+
+// ─── Measurement RPCs ───────────────────────────────────────────────────────
+
+message ListMeasurementsRequest {
+  string territory_slug = 1;
+}
+message ListMeasurementsResponse {
+  repeated Measurement measurements = 1;
+}
+
+// CreateMeasurementRequest carries no author: catalog records the caller from
+// the x-actor-id metadata.
+message CreateMeasurementRequest {
+  string territory_slug = 1;
+  repeated double points = 2;
+  bool closed = 3;
+}
+message CreateMeasurementResponse {
+  Measurement measurement = 1;
+}
+
+// UpdateMeasurementRequest replaces the chain's points and closed flag.
+message UpdateMeasurementRequest {
+  string territory_slug = 1;
+  int64 id = 2;
+  repeated double points = 3;
+  bool closed = 4;
+}
+message UpdateMeasurementResponse {
+  Measurement measurement = 1;
+}
+
+message DeleteMeasurementRequest {
+  string territory_slug = 1;
+  int64 id = 2;
+}
+message DeleteMeasurementResponse {}
+
+// DeleteMeasurementsRequest removes every measurement on the territory.
+message DeleteMeasurementsRequest {
+  string territory_slug = 1;
+}
+message DeleteMeasurementsResponse {
+  uint32 deleted = 1;
+}

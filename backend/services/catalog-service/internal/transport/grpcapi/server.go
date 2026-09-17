@@ -15,6 +15,8 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
+//go:generate minimock -i Service -o ./mocks -s _mock.go
+
 // Service is the catalog surface this transport calls.
 type Service interface {
 	UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
@@ -46,6 +48,12 @@ type Service interface {
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, territorySlug string, id int64) error
+
+	ListMeasurements(ctx context.Context, territorySlug string) ([]domain.Measurement, error)
+	CreateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
+	UpdateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
+	DeleteMeasurement(ctx context.Context, territorySlug string, id int64) error
+	DeleteMeasurements(ctx context.Context, territorySlug string) (int, error)
 }
 
 // Server implements catalogv1.CatalogServiceServer over a Service.
@@ -72,6 +80,7 @@ var statusByCode = map[codes.Code][]error{
 		domain.ErrModelNotFound,
 		domain.ErrArtifactNotFound,
 		domain.ErrPlacementNotFound,
+		domain.ErrMeasurementNotFound,
 	},
 }
 

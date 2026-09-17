@@ -19,6 +19,13 @@ type RepositoryMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
+	funcCreateMeasurement          func(ctx context.Context, m domain.Measurement) (m1 domain.Measurement, err error)
+	funcCreateMeasurementOrigin    string
+	inspectFuncCreateMeasurement   func(ctx context.Context, m domain.Measurement)
+	afterCreateMeasurementCounter  uint64
+	beforeCreateMeasurementCounter uint64
+	CreateMeasurementMock          mRepositoryMockCreateMeasurement
+
 	funcCreateModel          func(ctx context.Context, m domain.Model) (m1 domain.Model, err error)
 	funcCreateModelOrigin    string
 	inspectFuncCreateModel   func(ctx context.Context, m domain.Model)
@@ -39,6 +46,20 @@ type RepositoryMock struct {
 	afterCreateTerritoryCounter  uint64
 	beforeCreateTerritoryCounter uint64
 	CreateTerritoryMock          mRepositoryMockCreateTerritory
+
+	funcDeleteMeasurement          func(ctx context.Context, territorySlug string, id int64) (err error)
+	funcDeleteMeasurementOrigin    string
+	inspectFuncDeleteMeasurement   func(ctx context.Context, territorySlug string, id int64)
+	afterDeleteMeasurementCounter  uint64
+	beforeDeleteMeasurementCounter uint64
+	DeleteMeasurementMock          mRepositoryMockDeleteMeasurement
+
+	funcDeleteMeasurements          func(ctx context.Context, territorySlug string) (i1 int, err error)
+	funcDeleteMeasurementsOrigin    string
+	inspectFuncDeleteMeasurements   func(ctx context.Context, territorySlug string)
+	afterDeleteMeasurementsCounter  uint64
+	beforeDeleteMeasurementsCounter uint64
+	DeleteMeasurementsMock          mRepositoryMockDeleteMeasurements
 
 	funcDeleteModel          func(ctx context.Context, slug string) (err error)
 	funcDeleteModelOrigin    string
@@ -102,6 +123,13 @@ type RepositoryMock struct {
 	afterGetTerritoryArtifactCounter  uint64
 	beforeGetTerritoryArtifactCounter uint64
 	GetTerritoryArtifactMock          mRepositoryMockGetTerritoryArtifact
+
+	funcListMeasurements          func(ctx context.Context, territorySlug string) (ma1 []domain.Measurement, err error)
+	funcListMeasurementsOrigin    string
+	inspectFuncListMeasurements   func(ctx context.Context, territorySlug string)
+	afterListMeasurementsCounter  uint64
+	beforeListMeasurementsCounter uint64
+	ListMeasurementsMock          mRepositoryMockListMeasurements
 
 	funcListModelArtifacts          func(ctx context.Context, slug string) (aa1 []domain.Artifact, err error)
 	funcListModelArtifactsOrigin    string
@@ -208,6 +236,13 @@ type RepositoryMock struct {
 	beforeSetTerritoryRescaleBaselineCounter uint64
 	SetTerritoryRescaleBaselineMock          mRepositoryMockSetTerritoryRescaleBaseline
 
+	funcUpdateMeasurement          func(ctx context.Context, m domain.Measurement) (m1 domain.Measurement, err error)
+	funcUpdateMeasurementOrigin    string
+	inspectFuncUpdateMeasurement   func(ctx context.Context, m domain.Measurement)
+	afterUpdateMeasurementCounter  uint64
+	beforeUpdateMeasurementCounter uint64
+	UpdateMeasurementMock          mRepositoryMockUpdateMeasurement
+
 	funcUpdatePlacement          func(ctx context.Context, p domain.Placement) (p1 domain.Placement, err error)
 	funcUpdatePlacementOrigin    string
 	inspectFuncUpdatePlacement   func(ctx context.Context, p domain.Placement)
@@ -238,6 +273,9 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.CreateMeasurementMock = mRepositoryMockCreateMeasurement{mock: m}
+	m.CreateMeasurementMock.callArgs = []*RepositoryMockCreateMeasurementParams{}
+
 	m.CreateModelMock = mRepositoryMockCreateModel{mock: m}
 	m.CreateModelMock.callArgs = []*RepositoryMockCreateModelParams{}
 
@@ -246,6 +284,12 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 
 	m.CreateTerritoryMock = mRepositoryMockCreateTerritory{mock: m}
 	m.CreateTerritoryMock.callArgs = []*RepositoryMockCreateTerritoryParams{}
+
+	m.DeleteMeasurementMock = mRepositoryMockDeleteMeasurement{mock: m}
+	m.DeleteMeasurementMock.callArgs = []*RepositoryMockDeleteMeasurementParams{}
+
+	m.DeleteMeasurementsMock = mRepositoryMockDeleteMeasurements{mock: m}
+	m.DeleteMeasurementsMock.callArgs = []*RepositoryMockDeleteMeasurementsParams{}
 
 	m.DeleteModelMock = mRepositoryMockDeleteModel{mock: m}
 	m.DeleteModelMock.callArgs = []*RepositoryMockDeleteModelParams{}
@@ -273,6 +317,9 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 
 	m.GetTerritoryArtifactMock = mRepositoryMockGetTerritoryArtifact{mock: m}
 	m.GetTerritoryArtifactMock.callArgs = []*RepositoryMockGetTerritoryArtifactParams{}
+
+	m.ListMeasurementsMock = mRepositoryMockListMeasurements{mock: m}
+	m.ListMeasurementsMock.callArgs = []*RepositoryMockListMeasurementsParams{}
 
 	m.ListModelArtifactsMock = mRepositoryMockListModelArtifacts{mock: m}
 	m.ListModelArtifactsMock.callArgs = []*RepositoryMockListModelArtifactsParams{}
@@ -319,6 +366,9 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 	m.SetTerritoryRescaleBaselineMock = mRepositoryMockSetTerritoryRescaleBaseline{mock: m}
 	m.SetTerritoryRescaleBaselineMock.callArgs = []*RepositoryMockSetTerritoryRescaleBaselineParams{}
 
+	m.UpdateMeasurementMock = mRepositoryMockUpdateMeasurement{mock: m}
+	m.UpdateMeasurementMock.callArgs = []*RepositoryMockUpdateMeasurementParams{}
+
 	m.UpdatePlacementMock = mRepositoryMockUpdatePlacement{mock: m}
 	m.UpdatePlacementMock.callArgs = []*RepositoryMockUpdatePlacementParams{}
 
@@ -331,6 +381,349 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 	t.Cleanup(m.MinimockFinish)
 
 	return m
+}
+
+type mRepositoryMockCreateMeasurement struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockCreateMeasurementExpectation
+	expectations       []*RepositoryMockCreateMeasurementExpectation
+
+	callArgs []*RepositoryMockCreateMeasurementParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockCreateMeasurementExpectation specifies expectation struct of the Repository.CreateMeasurement
+type RepositoryMockCreateMeasurementExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockCreateMeasurementParams
+	paramPtrs          *RepositoryMockCreateMeasurementParamPtrs
+	expectationOrigins RepositoryMockCreateMeasurementExpectationOrigins
+	results            *RepositoryMockCreateMeasurementResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockCreateMeasurementParams contains parameters of the Repository.CreateMeasurement
+type RepositoryMockCreateMeasurementParams struct {
+	ctx context.Context
+	m   domain.Measurement
+}
+
+// RepositoryMockCreateMeasurementParamPtrs contains pointers to parameters of the Repository.CreateMeasurement
+type RepositoryMockCreateMeasurementParamPtrs struct {
+	ctx *context.Context
+	m   *domain.Measurement
+}
+
+// RepositoryMockCreateMeasurementResults contains results of the Repository.CreateMeasurement
+type RepositoryMockCreateMeasurementResults struct {
+	m1  domain.Measurement
+	err error
+}
+
+// RepositoryMockCreateMeasurementOrigins contains origins of expectations of the Repository.CreateMeasurement
+type RepositoryMockCreateMeasurementExpectationOrigins struct {
+	origin    string
+	originCtx string
+	originM   string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmCreateMeasurement *mRepositoryMockCreateMeasurement) Optional() *mRepositoryMockCreateMeasurement {
+	mmCreateMeasurement.optional = true
+	return mmCreateMeasurement
+}
+
+// Expect sets up expected params for Repository.CreateMeasurement
+func (mmCreateMeasurement *mRepositoryMockCreateMeasurement) Expect(ctx context.Context, m domain.Measurement) *mRepositoryMockCreateMeasurement {
+	if mmCreateMeasurement.mock.funcCreateMeasurement != nil {
+		mmCreateMeasurement.mock.t.Fatalf("RepositoryMock.CreateMeasurement mock is already set by Set")
+	}
+
+	if mmCreateMeasurement.defaultExpectation == nil {
+		mmCreateMeasurement.defaultExpectation = &RepositoryMockCreateMeasurementExpectation{}
+	}
+
+	if mmCreateMeasurement.defaultExpectation.paramPtrs != nil {
+		mmCreateMeasurement.mock.t.Fatalf("RepositoryMock.CreateMeasurement mock is already set by ExpectParams functions")
+	}
+
+	mmCreateMeasurement.defaultExpectation.params = &RepositoryMockCreateMeasurementParams{ctx, m}
+	mmCreateMeasurement.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmCreateMeasurement.expectations {
+		if minimock.Equal(e.params, mmCreateMeasurement.defaultExpectation.params) {
+			mmCreateMeasurement.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCreateMeasurement.defaultExpectation.params)
+		}
+	}
+
+	return mmCreateMeasurement
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.CreateMeasurement
+func (mmCreateMeasurement *mRepositoryMockCreateMeasurement) ExpectCtxParam1(ctx context.Context) *mRepositoryMockCreateMeasurement {
+	if mmCreateMeasurement.mock.funcCreateMeasurement != nil {
+		mmCreateMeasurement.mock.t.Fatalf("RepositoryMock.CreateMeasurement mock is already set by Set")
+	}
+
+	if mmCreateMeasurement.defaultExpectation == nil {
+		mmCreateMeasurement.defaultExpectation = &RepositoryMockCreateMeasurementExpectation{}
+	}
+
+	if mmCreateMeasurement.defaultExpectation.params != nil {
+		mmCreateMeasurement.mock.t.Fatalf("RepositoryMock.CreateMeasurement mock is already set by Expect")
+	}
+
+	if mmCreateMeasurement.defaultExpectation.paramPtrs == nil {
+		mmCreateMeasurement.defaultExpectation.paramPtrs = &RepositoryMockCreateMeasurementParamPtrs{}
+	}
+	mmCreateMeasurement.defaultExpectation.paramPtrs.ctx = &ctx
+	mmCreateMeasurement.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmCreateMeasurement
+}
+
+// ExpectMParam2 sets up expected param m for Repository.CreateMeasurement
+func (mmCreateMeasurement *mRepositoryMockCreateMeasurement) ExpectMParam2(m domain.Measurement) *mRepositoryMockCreateMeasurement {
+	if mmCreateMeasurement.mock.funcCreateMeasurement != nil {
+		mmCreateMeasurement.mock.t.Fatalf("RepositoryMock.CreateMeasurement mock is already set by Set")
+	}
+
+	if mmCreateMeasurement.defaultExpectation == nil {
+		mmCreateMeasurement.defaultExpectation = &RepositoryMockCreateMeasurementExpectation{}
+	}
+
+	if mmCreateMeasurement.defaultExpectation.params != nil {
+		mmCreateMeasurement.mock.t.Fatalf("RepositoryMock.CreateMeasurement mock is already set by Expect")
+	}
+
+	if mmCreateMeasurement.defaultExpectation.paramPtrs == nil {
+		mmCreateMeasurement.defaultExpectation.paramPtrs = &RepositoryMockCreateMeasurementParamPtrs{}
+	}
+	mmCreateMeasurement.defaultExpectation.paramPtrs.m = &m
+	mmCreateMeasurement.defaultExpectation.expectationOrigins.originM = minimock.CallerInfo(1)
+
+	return mmCreateMeasurement
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.CreateMeasurement
+func (mmCreateMeasurement *mRepositoryMockCreateMeasurement) Inspect(f func(ctx context.Context, m domain.Measurement)) *mRepositoryMockCreateMeasurement {
+	if mmCreateMeasurement.mock.inspectFuncCreateMeasurement != nil {
+		mmCreateMeasurement.mock.t.Fatalf("Inspect function is already set for RepositoryMock.CreateMeasurement")
+	}
+
+	mmCreateMeasurement.mock.inspectFuncCreateMeasurement = f
+
+	return mmCreateMeasurement
+}
+
+// Return sets up results that will be returned by Repository.CreateMeasurement
+func (mmCreateMeasurement *mRepositoryMockCreateMeasurement) Return(m1 domain.Measurement, err error) *RepositoryMock {
+	if mmCreateMeasurement.mock.funcCreateMeasurement != nil {
+		mmCreateMeasurement.mock.t.Fatalf("RepositoryMock.CreateMeasurement mock is already set by Set")
+	}
+
+	if mmCreateMeasurement.defaultExpectation == nil {
+		mmCreateMeasurement.defaultExpectation = &RepositoryMockCreateMeasurementExpectation{mock: mmCreateMeasurement.mock}
+	}
+	mmCreateMeasurement.defaultExpectation.results = &RepositoryMockCreateMeasurementResults{m1, err}
+	mmCreateMeasurement.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmCreateMeasurement.mock
+}
+
+// Set uses given function f to mock the Repository.CreateMeasurement method
+func (mmCreateMeasurement *mRepositoryMockCreateMeasurement) Set(f func(ctx context.Context, m domain.Measurement) (m1 domain.Measurement, err error)) *RepositoryMock {
+	if mmCreateMeasurement.defaultExpectation != nil {
+		mmCreateMeasurement.mock.t.Fatalf("Default expectation is already set for the Repository.CreateMeasurement method")
+	}
+
+	if len(mmCreateMeasurement.expectations) > 0 {
+		mmCreateMeasurement.mock.t.Fatalf("Some expectations are already set for the Repository.CreateMeasurement method")
+	}
+
+	mmCreateMeasurement.mock.funcCreateMeasurement = f
+	mmCreateMeasurement.mock.funcCreateMeasurementOrigin = minimock.CallerInfo(1)
+	return mmCreateMeasurement.mock
+}
+
+// When sets expectation for the Repository.CreateMeasurement which will trigger the result defined by the following
+// Then helper
+func (mmCreateMeasurement *mRepositoryMockCreateMeasurement) When(ctx context.Context, m domain.Measurement) *RepositoryMockCreateMeasurementExpectation {
+	if mmCreateMeasurement.mock.funcCreateMeasurement != nil {
+		mmCreateMeasurement.mock.t.Fatalf("RepositoryMock.CreateMeasurement mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockCreateMeasurementExpectation{
+		mock:               mmCreateMeasurement.mock,
+		params:             &RepositoryMockCreateMeasurementParams{ctx, m},
+		expectationOrigins: RepositoryMockCreateMeasurementExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmCreateMeasurement.expectations = append(mmCreateMeasurement.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.CreateMeasurement return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockCreateMeasurementExpectation) Then(m1 domain.Measurement, err error) *RepositoryMock {
+	e.results = &RepositoryMockCreateMeasurementResults{m1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.CreateMeasurement should be invoked
+func (mmCreateMeasurement *mRepositoryMockCreateMeasurement) Times(n uint64) *mRepositoryMockCreateMeasurement {
+	if n == 0 {
+		mmCreateMeasurement.mock.t.Fatalf("Times of RepositoryMock.CreateMeasurement mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmCreateMeasurement.expectedInvocations, n)
+	mmCreateMeasurement.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmCreateMeasurement
+}
+
+func (mmCreateMeasurement *mRepositoryMockCreateMeasurement) invocationsDone() bool {
+	if len(mmCreateMeasurement.expectations) == 0 && mmCreateMeasurement.defaultExpectation == nil && mmCreateMeasurement.mock.funcCreateMeasurement == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmCreateMeasurement.mock.afterCreateMeasurementCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmCreateMeasurement.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// CreateMeasurement implements mm_service.Repository
+func (mmCreateMeasurement *RepositoryMock) CreateMeasurement(ctx context.Context, m domain.Measurement) (m1 domain.Measurement, err error) {
+	mm_atomic.AddUint64(&mmCreateMeasurement.beforeCreateMeasurementCounter, 1)
+	defer mm_atomic.AddUint64(&mmCreateMeasurement.afterCreateMeasurementCounter, 1)
+
+	mmCreateMeasurement.t.Helper()
+
+	if mmCreateMeasurement.inspectFuncCreateMeasurement != nil {
+		mmCreateMeasurement.inspectFuncCreateMeasurement(ctx, m)
+	}
+
+	mm_params := RepositoryMockCreateMeasurementParams{ctx, m}
+
+	// Record call args
+	mmCreateMeasurement.CreateMeasurementMock.mutex.Lock()
+	mmCreateMeasurement.CreateMeasurementMock.callArgs = append(mmCreateMeasurement.CreateMeasurementMock.callArgs, &mm_params)
+	mmCreateMeasurement.CreateMeasurementMock.mutex.Unlock()
+
+	for _, e := range mmCreateMeasurement.CreateMeasurementMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.m1, e.results.err
+		}
+	}
+
+	if mmCreateMeasurement.CreateMeasurementMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCreateMeasurement.CreateMeasurementMock.defaultExpectation.Counter, 1)
+		mm_want := mmCreateMeasurement.CreateMeasurementMock.defaultExpectation.params
+		mm_want_ptrs := mmCreateMeasurement.CreateMeasurementMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockCreateMeasurementParams{ctx, m}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmCreateMeasurement.t.Errorf("RepositoryMock.CreateMeasurement got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreateMeasurement.CreateMeasurementMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.m != nil && !minimock.Equal(*mm_want_ptrs.m, mm_got.m) {
+				mmCreateMeasurement.t.Errorf("RepositoryMock.CreateMeasurement got unexpected parameter m, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreateMeasurement.CreateMeasurementMock.defaultExpectation.expectationOrigins.originM, *mm_want_ptrs.m, mm_got.m, minimock.Diff(*mm_want_ptrs.m, mm_got.m))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCreateMeasurement.t.Errorf("RepositoryMock.CreateMeasurement got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmCreateMeasurement.CreateMeasurementMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCreateMeasurement.CreateMeasurementMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCreateMeasurement.t.Fatal("No results are set for the RepositoryMock.CreateMeasurement")
+		}
+		return (*mm_results).m1, (*mm_results).err
+	}
+	if mmCreateMeasurement.funcCreateMeasurement != nil {
+		return mmCreateMeasurement.funcCreateMeasurement(ctx, m)
+	}
+	mmCreateMeasurement.t.Fatalf("Unexpected call to RepositoryMock.CreateMeasurement. %v %v", ctx, m)
+	return
+}
+
+// CreateMeasurementAfterCounter returns a count of finished RepositoryMock.CreateMeasurement invocations
+func (mmCreateMeasurement *RepositoryMock) CreateMeasurementAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCreateMeasurement.afterCreateMeasurementCounter)
+}
+
+// CreateMeasurementBeforeCounter returns a count of RepositoryMock.CreateMeasurement invocations
+func (mmCreateMeasurement *RepositoryMock) CreateMeasurementBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCreateMeasurement.beforeCreateMeasurementCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.CreateMeasurement.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCreateMeasurement *mRepositoryMockCreateMeasurement) Calls() []*RepositoryMockCreateMeasurementParams {
+	mmCreateMeasurement.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockCreateMeasurementParams, len(mmCreateMeasurement.callArgs))
+	copy(argCopy, mmCreateMeasurement.callArgs)
+
+	mmCreateMeasurement.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCreateMeasurementDone returns true if the count of the CreateMeasurement invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockCreateMeasurementDone() bool {
+	if m.CreateMeasurementMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.CreateMeasurementMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.CreateMeasurementMock.invocationsDone()
+}
+
+// MinimockCreateMeasurementInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockCreateMeasurementInspect() {
+	for _, e := range m.CreateMeasurementMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.CreateMeasurement at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterCreateMeasurementCounter := mm_atomic.LoadUint64(&m.afterCreateMeasurementCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CreateMeasurementMock.defaultExpectation != nil && afterCreateMeasurementCounter < 1 {
+		if m.CreateMeasurementMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.CreateMeasurement at\n%s", m.CreateMeasurementMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.CreateMeasurement at\n%s with params: %#v", m.CreateMeasurementMock.defaultExpectation.expectationOrigins.origin, *m.CreateMeasurementMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCreateMeasurement != nil && afterCreateMeasurementCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.CreateMeasurement at\n%s", m.funcCreateMeasurementOrigin)
+	}
+
+	if !m.CreateMeasurementMock.invocationsDone() && afterCreateMeasurementCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.CreateMeasurement at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.CreateMeasurementMock.expectedInvocations), m.CreateMeasurementMock.expectedInvocationsOrigin, afterCreateMeasurementCounter)
+	}
 }
 
 type mRepositoryMockCreateModel struct {
@@ -1359,6 +1752,722 @@ func (m *RepositoryMock) MinimockCreateTerritoryInspect() {
 	if !m.CreateTerritoryMock.invocationsDone() && afterCreateTerritoryCounter > 0 {
 		m.t.Errorf("Expected %d calls to RepositoryMock.CreateTerritory at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.CreateTerritoryMock.expectedInvocations), m.CreateTerritoryMock.expectedInvocationsOrigin, afterCreateTerritoryCounter)
+	}
+}
+
+type mRepositoryMockDeleteMeasurement struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockDeleteMeasurementExpectation
+	expectations       []*RepositoryMockDeleteMeasurementExpectation
+
+	callArgs []*RepositoryMockDeleteMeasurementParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockDeleteMeasurementExpectation specifies expectation struct of the Repository.DeleteMeasurement
+type RepositoryMockDeleteMeasurementExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockDeleteMeasurementParams
+	paramPtrs          *RepositoryMockDeleteMeasurementParamPtrs
+	expectationOrigins RepositoryMockDeleteMeasurementExpectationOrigins
+	results            *RepositoryMockDeleteMeasurementResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockDeleteMeasurementParams contains parameters of the Repository.DeleteMeasurement
+type RepositoryMockDeleteMeasurementParams struct {
+	ctx           context.Context
+	territorySlug string
+	id            int64
+}
+
+// RepositoryMockDeleteMeasurementParamPtrs contains pointers to parameters of the Repository.DeleteMeasurement
+type RepositoryMockDeleteMeasurementParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	id            *int64
+}
+
+// RepositoryMockDeleteMeasurementResults contains results of the Repository.DeleteMeasurement
+type RepositoryMockDeleteMeasurementResults struct {
+	err error
+}
+
+// RepositoryMockDeleteMeasurementOrigins contains origins of expectations of the Repository.DeleteMeasurement
+type RepositoryMockDeleteMeasurementExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originId            string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmDeleteMeasurement *mRepositoryMockDeleteMeasurement) Optional() *mRepositoryMockDeleteMeasurement {
+	mmDeleteMeasurement.optional = true
+	return mmDeleteMeasurement
+}
+
+// Expect sets up expected params for Repository.DeleteMeasurement
+func (mmDeleteMeasurement *mRepositoryMockDeleteMeasurement) Expect(ctx context.Context, territorySlug string, id int64) *mRepositoryMockDeleteMeasurement {
+	if mmDeleteMeasurement.mock.funcDeleteMeasurement != nil {
+		mmDeleteMeasurement.mock.t.Fatalf("RepositoryMock.DeleteMeasurement mock is already set by Set")
+	}
+
+	if mmDeleteMeasurement.defaultExpectation == nil {
+		mmDeleteMeasurement.defaultExpectation = &RepositoryMockDeleteMeasurementExpectation{}
+	}
+
+	if mmDeleteMeasurement.defaultExpectation.paramPtrs != nil {
+		mmDeleteMeasurement.mock.t.Fatalf("RepositoryMock.DeleteMeasurement mock is already set by ExpectParams functions")
+	}
+
+	mmDeleteMeasurement.defaultExpectation.params = &RepositoryMockDeleteMeasurementParams{ctx, territorySlug, id}
+	mmDeleteMeasurement.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmDeleteMeasurement.expectations {
+		if minimock.Equal(e.params, mmDeleteMeasurement.defaultExpectation.params) {
+			mmDeleteMeasurement.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmDeleteMeasurement.defaultExpectation.params)
+		}
+	}
+
+	return mmDeleteMeasurement
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.DeleteMeasurement
+func (mmDeleteMeasurement *mRepositoryMockDeleteMeasurement) ExpectCtxParam1(ctx context.Context) *mRepositoryMockDeleteMeasurement {
+	if mmDeleteMeasurement.mock.funcDeleteMeasurement != nil {
+		mmDeleteMeasurement.mock.t.Fatalf("RepositoryMock.DeleteMeasurement mock is already set by Set")
+	}
+
+	if mmDeleteMeasurement.defaultExpectation == nil {
+		mmDeleteMeasurement.defaultExpectation = &RepositoryMockDeleteMeasurementExpectation{}
+	}
+
+	if mmDeleteMeasurement.defaultExpectation.params != nil {
+		mmDeleteMeasurement.mock.t.Fatalf("RepositoryMock.DeleteMeasurement mock is already set by Expect")
+	}
+
+	if mmDeleteMeasurement.defaultExpectation.paramPtrs == nil {
+		mmDeleteMeasurement.defaultExpectation.paramPtrs = &RepositoryMockDeleteMeasurementParamPtrs{}
+	}
+	mmDeleteMeasurement.defaultExpectation.paramPtrs.ctx = &ctx
+	mmDeleteMeasurement.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmDeleteMeasurement
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.DeleteMeasurement
+func (mmDeleteMeasurement *mRepositoryMockDeleteMeasurement) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockDeleteMeasurement {
+	if mmDeleteMeasurement.mock.funcDeleteMeasurement != nil {
+		mmDeleteMeasurement.mock.t.Fatalf("RepositoryMock.DeleteMeasurement mock is already set by Set")
+	}
+
+	if mmDeleteMeasurement.defaultExpectation == nil {
+		mmDeleteMeasurement.defaultExpectation = &RepositoryMockDeleteMeasurementExpectation{}
+	}
+
+	if mmDeleteMeasurement.defaultExpectation.params != nil {
+		mmDeleteMeasurement.mock.t.Fatalf("RepositoryMock.DeleteMeasurement mock is already set by Expect")
+	}
+
+	if mmDeleteMeasurement.defaultExpectation.paramPtrs == nil {
+		mmDeleteMeasurement.defaultExpectation.paramPtrs = &RepositoryMockDeleteMeasurementParamPtrs{}
+	}
+	mmDeleteMeasurement.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmDeleteMeasurement.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmDeleteMeasurement
+}
+
+// ExpectIdParam3 sets up expected param id for Repository.DeleteMeasurement
+func (mmDeleteMeasurement *mRepositoryMockDeleteMeasurement) ExpectIdParam3(id int64) *mRepositoryMockDeleteMeasurement {
+	if mmDeleteMeasurement.mock.funcDeleteMeasurement != nil {
+		mmDeleteMeasurement.mock.t.Fatalf("RepositoryMock.DeleteMeasurement mock is already set by Set")
+	}
+
+	if mmDeleteMeasurement.defaultExpectation == nil {
+		mmDeleteMeasurement.defaultExpectation = &RepositoryMockDeleteMeasurementExpectation{}
+	}
+
+	if mmDeleteMeasurement.defaultExpectation.params != nil {
+		mmDeleteMeasurement.mock.t.Fatalf("RepositoryMock.DeleteMeasurement mock is already set by Expect")
+	}
+
+	if mmDeleteMeasurement.defaultExpectation.paramPtrs == nil {
+		mmDeleteMeasurement.defaultExpectation.paramPtrs = &RepositoryMockDeleteMeasurementParamPtrs{}
+	}
+	mmDeleteMeasurement.defaultExpectation.paramPtrs.id = &id
+	mmDeleteMeasurement.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmDeleteMeasurement
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.DeleteMeasurement
+func (mmDeleteMeasurement *mRepositoryMockDeleteMeasurement) Inspect(f func(ctx context.Context, territorySlug string, id int64)) *mRepositoryMockDeleteMeasurement {
+	if mmDeleteMeasurement.mock.inspectFuncDeleteMeasurement != nil {
+		mmDeleteMeasurement.mock.t.Fatalf("Inspect function is already set for RepositoryMock.DeleteMeasurement")
+	}
+
+	mmDeleteMeasurement.mock.inspectFuncDeleteMeasurement = f
+
+	return mmDeleteMeasurement
+}
+
+// Return sets up results that will be returned by Repository.DeleteMeasurement
+func (mmDeleteMeasurement *mRepositoryMockDeleteMeasurement) Return(err error) *RepositoryMock {
+	if mmDeleteMeasurement.mock.funcDeleteMeasurement != nil {
+		mmDeleteMeasurement.mock.t.Fatalf("RepositoryMock.DeleteMeasurement mock is already set by Set")
+	}
+
+	if mmDeleteMeasurement.defaultExpectation == nil {
+		mmDeleteMeasurement.defaultExpectation = &RepositoryMockDeleteMeasurementExpectation{mock: mmDeleteMeasurement.mock}
+	}
+	mmDeleteMeasurement.defaultExpectation.results = &RepositoryMockDeleteMeasurementResults{err}
+	mmDeleteMeasurement.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmDeleteMeasurement.mock
+}
+
+// Set uses given function f to mock the Repository.DeleteMeasurement method
+func (mmDeleteMeasurement *mRepositoryMockDeleteMeasurement) Set(f func(ctx context.Context, territorySlug string, id int64) (err error)) *RepositoryMock {
+	if mmDeleteMeasurement.defaultExpectation != nil {
+		mmDeleteMeasurement.mock.t.Fatalf("Default expectation is already set for the Repository.DeleteMeasurement method")
+	}
+
+	if len(mmDeleteMeasurement.expectations) > 0 {
+		mmDeleteMeasurement.mock.t.Fatalf("Some expectations are already set for the Repository.DeleteMeasurement method")
+	}
+
+	mmDeleteMeasurement.mock.funcDeleteMeasurement = f
+	mmDeleteMeasurement.mock.funcDeleteMeasurementOrigin = minimock.CallerInfo(1)
+	return mmDeleteMeasurement.mock
+}
+
+// When sets expectation for the Repository.DeleteMeasurement which will trigger the result defined by the following
+// Then helper
+func (mmDeleteMeasurement *mRepositoryMockDeleteMeasurement) When(ctx context.Context, territorySlug string, id int64) *RepositoryMockDeleteMeasurementExpectation {
+	if mmDeleteMeasurement.mock.funcDeleteMeasurement != nil {
+		mmDeleteMeasurement.mock.t.Fatalf("RepositoryMock.DeleteMeasurement mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockDeleteMeasurementExpectation{
+		mock:               mmDeleteMeasurement.mock,
+		params:             &RepositoryMockDeleteMeasurementParams{ctx, territorySlug, id},
+		expectationOrigins: RepositoryMockDeleteMeasurementExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmDeleteMeasurement.expectations = append(mmDeleteMeasurement.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.DeleteMeasurement return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockDeleteMeasurementExpectation) Then(err error) *RepositoryMock {
+	e.results = &RepositoryMockDeleteMeasurementResults{err}
+	return e.mock
+}
+
+// Times sets number of times Repository.DeleteMeasurement should be invoked
+func (mmDeleteMeasurement *mRepositoryMockDeleteMeasurement) Times(n uint64) *mRepositoryMockDeleteMeasurement {
+	if n == 0 {
+		mmDeleteMeasurement.mock.t.Fatalf("Times of RepositoryMock.DeleteMeasurement mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmDeleteMeasurement.expectedInvocations, n)
+	mmDeleteMeasurement.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmDeleteMeasurement
+}
+
+func (mmDeleteMeasurement *mRepositoryMockDeleteMeasurement) invocationsDone() bool {
+	if len(mmDeleteMeasurement.expectations) == 0 && mmDeleteMeasurement.defaultExpectation == nil && mmDeleteMeasurement.mock.funcDeleteMeasurement == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmDeleteMeasurement.mock.afterDeleteMeasurementCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmDeleteMeasurement.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// DeleteMeasurement implements mm_service.Repository
+func (mmDeleteMeasurement *RepositoryMock) DeleteMeasurement(ctx context.Context, territorySlug string, id int64) (err error) {
+	mm_atomic.AddUint64(&mmDeleteMeasurement.beforeDeleteMeasurementCounter, 1)
+	defer mm_atomic.AddUint64(&mmDeleteMeasurement.afterDeleteMeasurementCounter, 1)
+
+	mmDeleteMeasurement.t.Helper()
+
+	if mmDeleteMeasurement.inspectFuncDeleteMeasurement != nil {
+		mmDeleteMeasurement.inspectFuncDeleteMeasurement(ctx, territorySlug, id)
+	}
+
+	mm_params := RepositoryMockDeleteMeasurementParams{ctx, territorySlug, id}
+
+	// Record call args
+	mmDeleteMeasurement.DeleteMeasurementMock.mutex.Lock()
+	mmDeleteMeasurement.DeleteMeasurementMock.callArgs = append(mmDeleteMeasurement.DeleteMeasurementMock.callArgs, &mm_params)
+	mmDeleteMeasurement.DeleteMeasurementMock.mutex.Unlock()
+
+	for _, e := range mmDeleteMeasurement.DeleteMeasurementMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmDeleteMeasurement.DeleteMeasurementMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmDeleteMeasurement.DeleteMeasurementMock.defaultExpectation.Counter, 1)
+		mm_want := mmDeleteMeasurement.DeleteMeasurementMock.defaultExpectation.params
+		mm_want_ptrs := mmDeleteMeasurement.DeleteMeasurementMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockDeleteMeasurementParams{ctx, territorySlug, id}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmDeleteMeasurement.t.Errorf("RepositoryMock.DeleteMeasurement got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteMeasurement.DeleteMeasurementMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmDeleteMeasurement.t.Errorf("RepositoryMock.DeleteMeasurement got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteMeasurement.DeleteMeasurementMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmDeleteMeasurement.t.Errorf("RepositoryMock.DeleteMeasurement got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteMeasurement.DeleteMeasurementMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmDeleteMeasurement.t.Errorf("RepositoryMock.DeleteMeasurement got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmDeleteMeasurement.DeleteMeasurementMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmDeleteMeasurement.DeleteMeasurementMock.defaultExpectation.results
+		if mm_results == nil {
+			mmDeleteMeasurement.t.Fatal("No results are set for the RepositoryMock.DeleteMeasurement")
+		}
+		return (*mm_results).err
+	}
+	if mmDeleteMeasurement.funcDeleteMeasurement != nil {
+		return mmDeleteMeasurement.funcDeleteMeasurement(ctx, territorySlug, id)
+	}
+	mmDeleteMeasurement.t.Fatalf("Unexpected call to RepositoryMock.DeleteMeasurement. %v %v %v", ctx, territorySlug, id)
+	return
+}
+
+// DeleteMeasurementAfterCounter returns a count of finished RepositoryMock.DeleteMeasurement invocations
+func (mmDeleteMeasurement *RepositoryMock) DeleteMeasurementAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDeleteMeasurement.afterDeleteMeasurementCounter)
+}
+
+// DeleteMeasurementBeforeCounter returns a count of RepositoryMock.DeleteMeasurement invocations
+func (mmDeleteMeasurement *RepositoryMock) DeleteMeasurementBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDeleteMeasurement.beforeDeleteMeasurementCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.DeleteMeasurement.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmDeleteMeasurement *mRepositoryMockDeleteMeasurement) Calls() []*RepositoryMockDeleteMeasurementParams {
+	mmDeleteMeasurement.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockDeleteMeasurementParams, len(mmDeleteMeasurement.callArgs))
+	copy(argCopy, mmDeleteMeasurement.callArgs)
+
+	mmDeleteMeasurement.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockDeleteMeasurementDone returns true if the count of the DeleteMeasurement invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockDeleteMeasurementDone() bool {
+	if m.DeleteMeasurementMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.DeleteMeasurementMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.DeleteMeasurementMock.invocationsDone()
+}
+
+// MinimockDeleteMeasurementInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockDeleteMeasurementInspect() {
+	for _, e := range m.DeleteMeasurementMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.DeleteMeasurement at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterDeleteMeasurementCounter := mm_atomic.LoadUint64(&m.afterDeleteMeasurementCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.DeleteMeasurementMock.defaultExpectation != nil && afterDeleteMeasurementCounter < 1 {
+		if m.DeleteMeasurementMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.DeleteMeasurement at\n%s", m.DeleteMeasurementMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.DeleteMeasurement at\n%s with params: %#v", m.DeleteMeasurementMock.defaultExpectation.expectationOrigins.origin, *m.DeleteMeasurementMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcDeleteMeasurement != nil && afterDeleteMeasurementCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.DeleteMeasurement at\n%s", m.funcDeleteMeasurementOrigin)
+	}
+
+	if !m.DeleteMeasurementMock.invocationsDone() && afterDeleteMeasurementCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.DeleteMeasurement at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.DeleteMeasurementMock.expectedInvocations), m.DeleteMeasurementMock.expectedInvocationsOrigin, afterDeleteMeasurementCounter)
+	}
+}
+
+type mRepositoryMockDeleteMeasurements struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockDeleteMeasurementsExpectation
+	expectations       []*RepositoryMockDeleteMeasurementsExpectation
+
+	callArgs []*RepositoryMockDeleteMeasurementsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockDeleteMeasurementsExpectation specifies expectation struct of the Repository.DeleteMeasurements
+type RepositoryMockDeleteMeasurementsExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockDeleteMeasurementsParams
+	paramPtrs          *RepositoryMockDeleteMeasurementsParamPtrs
+	expectationOrigins RepositoryMockDeleteMeasurementsExpectationOrigins
+	results            *RepositoryMockDeleteMeasurementsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockDeleteMeasurementsParams contains parameters of the Repository.DeleteMeasurements
+type RepositoryMockDeleteMeasurementsParams struct {
+	ctx           context.Context
+	territorySlug string
+}
+
+// RepositoryMockDeleteMeasurementsParamPtrs contains pointers to parameters of the Repository.DeleteMeasurements
+type RepositoryMockDeleteMeasurementsParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+}
+
+// RepositoryMockDeleteMeasurementsResults contains results of the Repository.DeleteMeasurements
+type RepositoryMockDeleteMeasurementsResults struct {
+	i1  int
+	err error
+}
+
+// RepositoryMockDeleteMeasurementsOrigins contains origins of expectations of the Repository.DeleteMeasurements
+type RepositoryMockDeleteMeasurementsExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmDeleteMeasurements *mRepositoryMockDeleteMeasurements) Optional() *mRepositoryMockDeleteMeasurements {
+	mmDeleteMeasurements.optional = true
+	return mmDeleteMeasurements
+}
+
+// Expect sets up expected params for Repository.DeleteMeasurements
+func (mmDeleteMeasurements *mRepositoryMockDeleteMeasurements) Expect(ctx context.Context, territorySlug string) *mRepositoryMockDeleteMeasurements {
+	if mmDeleteMeasurements.mock.funcDeleteMeasurements != nil {
+		mmDeleteMeasurements.mock.t.Fatalf("RepositoryMock.DeleteMeasurements mock is already set by Set")
+	}
+
+	if mmDeleteMeasurements.defaultExpectation == nil {
+		mmDeleteMeasurements.defaultExpectation = &RepositoryMockDeleteMeasurementsExpectation{}
+	}
+
+	if mmDeleteMeasurements.defaultExpectation.paramPtrs != nil {
+		mmDeleteMeasurements.mock.t.Fatalf("RepositoryMock.DeleteMeasurements mock is already set by ExpectParams functions")
+	}
+
+	mmDeleteMeasurements.defaultExpectation.params = &RepositoryMockDeleteMeasurementsParams{ctx, territorySlug}
+	mmDeleteMeasurements.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmDeleteMeasurements.expectations {
+		if minimock.Equal(e.params, mmDeleteMeasurements.defaultExpectation.params) {
+			mmDeleteMeasurements.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmDeleteMeasurements.defaultExpectation.params)
+		}
+	}
+
+	return mmDeleteMeasurements
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.DeleteMeasurements
+func (mmDeleteMeasurements *mRepositoryMockDeleteMeasurements) ExpectCtxParam1(ctx context.Context) *mRepositoryMockDeleteMeasurements {
+	if mmDeleteMeasurements.mock.funcDeleteMeasurements != nil {
+		mmDeleteMeasurements.mock.t.Fatalf("RepositoryMock.DeleteMeasurements mock is already set by Set")
+	}
+
+	if mmDeleteMeasurements.defaultExpectation == nil {
+		mmDeleteMeasurements.defaultExpectation = &RepositoryMockDeleteMeasurementsExpectation{}
+	}
+
+	if mmDeleteMeasurements.defaultExpectation.params != nil {
+		mmDeleteMeasurements.mock.t.Fatalf("RepositoryMock.DeleteMeasurements mock is already set by Expect")
+	}
+
+	if mmDeleteMeasurements.defaultExpectation.paramPtrs == nil {
+		mmDeleteMeasurements.defaultExpectation.paramPtrs = &RepositoryMockDeleteMeasurementsParamPtrs{}
+	}
+	mmDeleteMeasurements.defaultExpectation.paramPtrs.ctx = &ctx
+	mmDeleteMeasurements.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmDeleteMeasurements
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.DeleteMeasurements
+func (mmDeleteMeasurements *mRepositoryMockDeleteMeasurements) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockDeleteMeasurements {
+	if mmDeleteMeasurements.mock.funcDeleteMeasurements != nil {
+		mmDeleteMeasurements.mock.t.Fatalf("RepositoryMock.DeleteMeasurements mock is already set by Set")
+	}
+
+	if mmDeleteMeasurements.defaultExpectation == nil {
+		mmDeleteMeasurements.defaultExpectation = &RepositoryMockDeleteMeasurementsExpectation{}
+	}
+
+	if mmDeleteMeasurements.defaultExpectation.params != nil {
+		mmDeleteMeasurements.mock.t.Fatalf("RepositoryMock.DeleteMeasurements mock is already set by Expect")
+	}
+
+	if mmDeleteMeasurements.defaultExpectation.paramPtrs == nil {
+		mmDeleteMeasurements.defaultExpectation.paramPtrs = &RepositoryMockDeleteMeasurementsParamPtrs{}
+	}
+	mmDeleteMeasurements.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmDeleteMeasurements.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmDeleteMeasurements
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.DeleteMeasurements
+func (mmDeleteMeasurements *mRepositoryMockDeleteMeasurements) Inspect(f func(ctx context.Context, territorySlug string)) *mRepositoryMockDeleteMeasurements {
+	if mmDeleteMeasurements.mock.inspectFuncDeleteMeasurements != nil {
+		mmDeleteMeasurements.mock.t.Fatalf("Inspect function is already set for RepositoryMock.DeleteMeasurements")
+	}
+
+	mmDeleteMeasurements.mock.inspectFuncDeleteMeasurements = f
+
+	return mmDeleteMeasurements
+}
+
+// Return sets up results that will be returned by Repository.DeleteMeasurements
+func (mmDeleteMeasurements *mRepositoryMockDeleteMeasurements) Return(i1 int, err error) *RepositoryMock {
+	if mmDeleteMeasurements.mock.funcDeleteMeasurements != nil {
+		mmDeleteMeasurements.mock.t.Fatalf("RepositoryMock.DeleteMeasurements mock is already set by Set")
+	}
+
+	if mmDeleteMeasurements.defaultExpectation == nil {
+		mmDeleteMeasurements.defaultExpectation = &RepositoryMockDeleteMeasurementsExpectation{mock: mmDeleteMeasurements.mock}
+	}
+	mmDeleteMeasurements.defaultExpectation.results = &RepositoryMockDeleteMeasurementsResults{i1, err}
+	mmDeleteMeasurements.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmDeleteMeasurements.mock
+}
+
+// Set uses given function f to mock the Repository.DeleteMeasurements method
+func (mmDeleteMeasurements *mRepositoryMockDeleteMeasurements) Set(f func(ctx context.Context, territorySlug string) (i1 int, err error)) *RepositoryMock {
+	if mmDeleteMeasurements.defaultExpectation != nil {
+		mmDeleteMeasurements.mock.t.Fatalf("Default expectation is already set for the Repository.DeleteMeasurements method")
+	}
+
+	if len(mmDeleteMeasurements.expectations) > 0 {
+		mmDeleteMeasurements.mock.t.Fatalf("Some expectations are already set for the Repository.DeleteMeasurements method")
+	}
+
+	mmDeleteMeasurements.mock.funcDeleteMeasurements = f
+	mmDeleteMeasurements.mock.funcDeleteMeasurementsOrigin = minimock.CallerInfo(1)
+	return mmDeleteMeasurements.mock
+}
+
+// When sets expectation for the Repository.DeleteMeasurements which will trigger the result defined by the following
+// Then helper
+func (mmDeleteMeasurements *mRepositoryMockDeleteMeasurements) When(ctx context.Context, territorySlug string) *RepositoryMockDeleteMeasurementsExpectation {
+	if mmDeleteMeasurements.mock.funcDeleteMeasurements != nil {
+		mmDeleteMeasurements.mock.t.Fatalf("RepositoryMock.DeleteMeasurements mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockDeleteMeasurementsExpectation{
+		mock:               mmDeleteMeasurements.mock,
+		params:             &RepositoryMockDeleteMeasurementsParams{ctx, territorySlug},
+		expectationOrigins: RepositoryMockDeleteMeasurementsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmDeleteMeasurements.expectations = append(mmDeleteMeasurements.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.DeleteMeasurements return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockDeleteMeasurementsExpectation) Then(i1 int, err error) *RepositoryMock {
+	e.results = &RepositoryMockDeleteMeasurementsResults{i1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.DeleteMeasurements should be invoked
+func (mmDeleteMeasurements *mRepositoryMockDeleteMeasurements) Times(n uint64) *mRepositoryMockDeleteMeasurements {
+	if n == 0 {
+		mmDeleteMeasurements.mock.t.Fatalf("Times of RepositoryMock.DeleteMeasurements mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmDeleteMeasurements.expectedInvocations, n)
+	mmDeleteMeasurements.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmDeleteMeasurements
+}
+
+func (mmDeleteMeasurements *mRepositoryMockDeleteMeasurements) invocationsDone() bool {
+	if len(mmDeleteMeasurements.expectations) == 0 && mmDeleteMeasurements.defaultExpectation == nil && mmDeleteMeasurements.mock.funcDeleteMeasurements == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmDeleteMeasurements.mock.afterDeleteMeasurementsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmDeleteMeasurements.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// DeleteMeasurements implements mm_service.Repository
+func (mmDeleteMeasurements *RepositoryMock) DeleteMeasurements(ctx context.Context, territorySlug string) (i1 int, err error) {
+	mm_atomic.AddUint64(&mmDeleteMeasurements.beforeDeleteMeasurementsCounter, 1)
+	defer mm_atomic.AddUint64(&mmDeleteMeasurements.afterDeleteMeasurementsCounter, 1)
+
+	mmDeleteMeasurements.t.Helper()
+
+	if mmDeleteMeasurements.inspectFuncDeleteMeasurements != nil {
+		mmDeleteMeasurements.inspectFuncDeleteMeasurements(ctx, territorySlug)
+	}
+
+	mm_params := RepositoryMockDeleteMeasurementsParams{ctx, territorySlug}
+
+	// Record call args
+	mmDeleteMeasurements.DeleteMeasurementsMock.mutex.Lock()
+	mmDeleteMeasurements.DeleteMeasurementsMock.callArgs = append(mmDeleteMeasurements.DeleteMeasurementsMock.callArgs, &mm_params)
+	mmDeleteMeasurements.DeleteMeasurementsMock.mutex.Unlock()
+
+	for _, e := range mmDeleteMeasurements.DeleteMeasurementsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.i1, e.results.err
+		}
+	}
+
+	if mmDeleteMeasurements.DeleteMeasurementsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmDeleteMeasurements.DeleteMeasurementsMock.defaultExpectation.Counter, 1)
+		mm_want := mmDeleteMeasurements.DeleteMeasurementsMock.defaultExpectation.params
+		mm_want_ptrs := mmDeleteMeasurements.DeleteMeasurementsMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockDeleteMeasurementsParams{ctx, territorySlug}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmDeleteMeasurements.t.Errorf("RepositoryMock.DeleteMeasurements got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteMeasurements.DeleteMeasurementsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmDeleteMeasurements.t.Errorf("RepositoryMock.DeleteMeasurements got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDeleteMeasurements.DeleteMeasurementsMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmDeleteMeasurements.t.Errorf("RepositoryMock.DeleteMeasurements got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmDeleteMeasurements.DeleteMeasurementsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmDeleteMeasurements.DeleteMeasurementsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmDeleteMeasurements.t.Fatal("No results are set for the RepositoryMock.DeleteMeasurements")
+		}
+		return (*mm_results).i1, (*mm_results).err
+	}
+	if mmDeleteMeasurements.funcDeleteMeasurements != nil {
+		return mmDeleteMeasurements.funcDeleteMeasurements(ctx, territorySlug)
+	}
+	mmDeleteMeasurements.t.Fatalf("Unexpected call to RepositoryMock.DeleteMeasurements. %v %v", ctx, territorySlug)
+	return
+}
+
+// DeleteMeasurementsAfterCounter returns a count of finished RepositoryMock.DeleteMeasurements invocations
+func (mmDeleteMeasurements *RepositoryMock) DeleteMeasurementsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDeleteMeasurements.afterDeleteMeasurementsCounter)
+}
+
+// DeleteMeasurementsBeforeCounter returns a count of RepositoryMock.DeleteMeasurements invocations
+func (mmDeleteMeasurements *RepositoryMock) DeleteMeasurementsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDeleteMeasurements.beforeDeleteMeasurementsCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.DeleteMeasurements.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmDeleteMeasurements *mRepositoryMockDeleteMeasurements) Calls() []*RepositoryMockDeleteMeasurementsParams {
+	mmDeleteMeasurements.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockDeleteMeasurementsParams, len(mmDeleteMeasurements.callArgs))
+	copy(argCopy, mmDeleteMeasurements.callArgs)
+
+	mmDeleteMeasurements.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockDeleteMeasurementsDone returns true if the count of the DeleteMeasurements invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockDeleteMeasurementsDone() bool {
+	if m.DeleteMeasurementsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.DeleteMeasurementsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.DeleteMeasurementsMock.invocationsDone()
+}
+
+// MinimockDeleteMeasurementsInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockDeleteMeasurementsInspect() {
+	for _, e := range m.DeleteMeasurementsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.DeleteMeasurements at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterDeleteMeasurementsCounter := mm_atomic.LoadUint64(&m.afterDeleteMeasurementsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.DeleteMeasurementsMock.defaultExpectation != nil && afterDeleteMeasurementsCounter < 1 {
+		if m.DeleteMeasurementsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.DeleteMeasurements at\n%s", m.DeleteMeasurementsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.DeleteMeasurements at\n%s with params: %#v", m.DeleteMeasurementsMock.defaultExpectation.expectationOrigins.origin, *m.DeleteMeasurementsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcDeleteMeasurements != nil && afterDeleteMeasurementsCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.DeleteMeasurements at\n%s", m.funcDeleteMeasurementsOrigin)
+	}
+
+	if !m.DeleteMeasurementsMock.invocationsDone() && afterDeleteMeasurementsCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.DeleteMeasurements at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.DeleteMeasurementsMock.expectedInvocations), m.DeleteMeasurementsMock.expectedInvocationsOrigin, afterDeleteMeasurementsCounter)
 	}
 }
 
@@ -4566,6 +5675,349 @@ func (m *RepositoryMock) MinimockGetTerritoryArtifactInspect() {
 	if !m.GetTerritoryArtifactMock.invocationsDone() && afterGetTerritoryArtifactCounter > 0 {
 		m.t.Errorf("Expected %d calls to RepositoryMock.GetTerritoryArtifact at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.GetTerritoryArtifactMock.expectedInvocations), m.GetTerritoryArtifactMock.expectedInvocationsOrigin, afterGetTerritoryArtifactCounter)
+	}
+}
+
+type mRepositoryMockListMeasurements struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockListMeasurementsExpectation
+	expectations       []*RepositoryMockListMeasurementsExpectation
+
+	callArgs []*RepositoryMockListMeasurementsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockListMeasurementsExpectation specifies expectation struct of the Repository.ListMeasurements
+type RepositoryMockListMeasurementsExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockListMeasurementsParams
+	paramPtrs          *RepositoryMockListMeasurementsParamPtrs
+	expectationOrigins RepositoryMockListMeasurementsExpectationOrigins
+	results            *RepositoryMockListMeasurementsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockListMeasurementsParams contains parameters of the Repository.ListMeasurements
+type RepositoryMockListMeasurementsParams struct {
+	ctx           context.Context
+	territorySlug string
+}
+
+// RepositoryMockListMeasurementsParamPtrs contains pointers to parameters of the Repository.ListMeasurements
+type RepositoryMockListMeasurementsParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+}
+
+// RepositoryMockListMeasurementsResults contains results of the Repository.ListMeasurements
+type RepositoryMockListMeasurementsResults struct {
+	ma1 []domain.Measurement
+	err error
+}
+
+// RepositoryMockListMeasurementsOrigins contains origins of expectations of the Repository.ListMeasurements
+type RepositoryMockListMeasurementsExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmListMeasurements *mRepositoryMockListMeasurements) Optional() *mRepositoryMockListMeasurements {
+	mmListMeasurements.optional = true
+	return mmListMeasurements
+}
+
+// Expect sets up expected params for Repository.ListMeasurements
+func (mmListMeasurements *mRepositoryMockListMeasurements) Expect(ctx context.Context, territorySlug string) *mRepositoryMockListMeasurements {
+	if mmListMeasurements.mock.funcListMeasurements != nil {
+		mmListMeasurements.mock.t.Fatalf("RepositoryMock.ListMeasurements mock is already set by Set")
+	}
+
+	if mmListMeasurements.defaultExpectation == nil {
+		mmListMeasurements.defaultExpectation = &RepositoryMockListMeasurementsExpectation{}
+	}
+
+	if mmListMeasurements.defaultExpectation.paramPtrs != nil {
+		mmListMeasurements.mock.t.Fatalf("RepositoryMock.ListMeasurements mock is already set by ExpectParams functions")
+	}
+
+	mmListMeasurements.defaultExpectation.params = &RepositoryMockListMeasurementsParams{ctx, territorySlug}
+	mmListMeasurements.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmListMeasurements.expectations {
+		if minimock.Equal(e.params, mmListMeasurements.defaultExpectation.params) {
+			mmListMeasurements.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListMeasurements.defaultExpectation.params)
+		}
+	}
+
+	return mmListMeasurements
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.ListMeasurements
+func (mmListMeasurements *mRepositoryMockListMeasurements) ExpectCtxParam1(ctx context.Context) *mRepositoryMockListMeasurements {
+	if mmListMeasurements.mock.funcListMeasurements != nil {
+		mmListMeasurements.mock.t.Fatalf("RepositoryMock.ListMeasurements mock is already set by Set")
+	}
+
+	if mmListMeasurements.defaultExpectation == nil {
+		mmListMeasurements.defaultExpectation = &RepositoryMockListMeasurementsExpectation{}
+	}
+
+	if mmListMeasurements.defaultExpectation.params != nil {
+		mmListMeasurements.mock.t.Fatalf("RepositoryMock.ListMeasurements mock is already set by Expect")
+	}
+
+	if mmListMeasurements.defaultExpectation.paramPtrs == nil {
+		mmListMeasurements.defaultExpectation.paramPtrs = &RepositoryMockListMeasurementsParamPtrs{}
+	}
+	mmListMeasurements.defaultExpectation.paramPtrs.ctx = &ctx
+	mmListMeasurements.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmListMeasurements
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.ListMeasurements
+func (mmListMeasurements *mRepositoryMockListMeasurements) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockListMeasurements {
+	if mmListMeasurements.mock.funcListMeasurements != nil {
+		mmListMeasurements.mock.t.Fatalf("RepositoryMock.ListMeasurements mock is already set by Set")
+	}
+
+	if mmListMeasurements.defaultExpectation == nil {
+		mmListMeasurements.defaultExpectation = &RepositoryMockListMeasurementsExpectation{}
+	}
+
+	if mmListMeasurements.defaultExpectation.params != nil {
+		mmListMeasurements.mock.t.Fatalf("RepositoryMock.ListMeasurements mock is already set by Expect")
+	}
+
+	if mmListMeasurements.defaultExpectation.paramPtrs == nil {
+		mmListMeasurements.defaultExpectation.paramPtrs = &RepositoryMockListMeasurementsParamPtrs{}
+	}
+	mmListMeasurements.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmListMeasurements.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmListMeasurements
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.ListMeasurements
+func (mmListMeasurements *mRepositoryMockListMeasurements) Inspect(f func(ctx context.Context, territorySlug string)) *mRepositoryMockListMeasurements {
+	if mmListMeasurements.mock.inspectFuncListMeasurements != nil {
+		mmListMeasurements.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ListMeasurements")
+	}
+
+	mmListMeasurements.mock.inspectFuncListMeasurements = f
+
+	return mmListMeasurements
+}
+
+// Return sets up results that will be returned by Repository.ListMeasurements
+func (mmListMeasurements *mRepositoryMockListMeasurements) Return(ma1 []domain.Measurement, err error) *RepositoryMock {
+	if mmListMeasurements.mock.funcListMeasurements != nil {
+		mmListMeasurements.mock.t.Fatalf("RepositoryMock.ListMeasurements mock is already set by Set")
+	}
+
+	if mmListMeasurements.defaultExpectation == nil {
+		mmListMeasurements.defaultExpectation = &RepositoryMockListMeasurementsExpectation{mock: mmListMeasurements.mock}
+	}
+	mmListMeasurements.defaultExpectation.results = &RepositoryMockListMeasurementsResults{ma1, err}
+	mmListMeasurements.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmListMeasurements.mock
+}
+
+// Set uses given function f to mock the Repository.ListMeasurements method
+func (mmListMeasurements *mRepositoryMockListMeasurements) Set(f func(ctx context.Context, territorySlug string) (ma1 []domain.Measurement, err error)) *RepositoryMock {
+	if mmListMeasurements.defaultExpectation != nil {
+		mmListMeasurements.mock.t.Fatalf("Default expectation is already set for the Repository.ListMeasurements method")
+	}
+
+	if len(mmListMeasurements.expectations) > 0 {
+		mmListMeasurements.mock.t.Fatalf("Some expectations are already set for the Repository.ListMeasurements method")
+	}
+
+	mmListMeasurements.mock.funcListMeasurements = f
+	mmListMeasurements.mock.funcListMeasurementsOrigin = minimock.CallerInfo(1)
+	return mmListMeasurements.mock
+}
+
+// When sets expectation for the Repository.ListMeasurements which will trigger the result defined by the following
+// Then helper
+func (mmListMeasurements *mRepositoryMockListMeasurements) When(ctx context.Context, territorySlug string) *RepositoryMockListMeasurementsExpectation {
+	if mmListMeasurements.mock.funcListMeasurements != nil {
+		mmListMeasurements.mock.t.Fatalf("RepositoryMock.ListMeasurements mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockListMeasurementsExpectation{
+		mock:               mmListMeasurements.mock,
+		params:             &RepositoryMockListMeasurementsParams{ctx, territorySlug},
+		expectationOrigins: RepositoryMockListMeasurementsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmListMeasurements.expectations = append(mmListMeasurements.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.ListMeasurements return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockListMeasurementsExpectation) Then(ma1 []domain.Measurement, err error) *RepositoryMock {
+	e.results = &RepositoryMockListMeasurementsResults{ma1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.ListMeasurements should be invoked
+func (mmListMeasurements *mRepositoryMockListMeasurements) Times(n uint64) *mRepositoryMockListMeasurements {
+	if n == 0 {
+		mmListMeasurements.mock.t.Fatalf("Times of RepositoryMock.ListMeasurements mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmListMeasurements.expectedInvocations, n)
+	mmListMeasurements.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmListMeasurements
+}
+
+func (mmListMeasurements *mRepositoryMockListMeasurements) invocationsDone() bool {
+	if len(mmListMeasurements.expectations) == 0 && mmListMeasurements.defaultExpectation == nil && mmListMeasurements.mock.funcListMeasurements == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmListMeasurements.mock.afterListMeasurementsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmListMeasurements.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ListMeasurements implements mm_service.Repository
+func (mmListMeasurements *RepositoryMock) ListMeasurements(ctx context.Context, territorySlug string) (ma1 []domain.Measurement, err error) {
+	mm_atomic.AddUint64(&mmListMeasurements.beforeListMeasurementsCounter, 1)
+	defer mm_atomic.AddUint64(&mmListMeasurements.afterListMeasurementsCounter, 1)
+
+	mmListMeasurements.t.Helper()
+
+	if mmListMeasurements.inspectFuncListMeasurements != nil {
+		mmListMeasurements.inspectFuncListMeasurements(ctx, territorySlug)
+	}
+
+	mm_params := RepositoryMockListMeasurementsParams{ctx, territorySlug}
+
+	// Record call args
+	mmListMeasurements.ListMeasurementsMock.mutex.Lock()
+	mmListMeasurements.ListMeasurementsMock.callArgs = append(mmListMeasurements.ListMeasurementsMock.callArgs, &mm_params)
+	mmListMeasurements.ListMeasurementsMock.mutex.Unlock()
+
+	for _, e := range mmListMeasurements.ListMeasurementsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.ma1, e.results.err
+		}
+	}
+
+	if mmListMeasurements.ListMeasurementsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmListMeasurements.ListMeasurementsMock.defaultExpectation.Counter, 1)
+		mm_want := mmListMeasurements.ListMeasurementsMock.defaultExpectation.params
+		mm_want_ptrs := mmListMeasurements.ListMeasurementsMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockListMeasurementsParams{ctx, territorySlug}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmListMeasurements.t.Errorf("RepositoryMock.ListMeasurements got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListMeasurements.ListMeasurementsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmListMeasurements.t.Errorf("RepositoryMock.ListMeasurements got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListMeasurements.ListMeasurementsMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmListMeasurements.t.Errorf("RepositoryMock.ListMeasurements got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmListMeasurements.ListMeasurementsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmListMeasurements.ListMeasurementsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmListMeasurements.t.Fatal("No results are set for the RepositoryMock.ListMeasurements")
+		}
+		return (*mm_results).ma1, (*mm_results).err
+	}
+	if mmListMeasurements.funcListMeasurements != nil {
+		return mmListMeasurements.funcListMeasurements(ctx, territorySlug)
+	}
+	mmListMeasurements.t.Fatalf("Unexpected call to RepositoryMock.ListMeasurements. %v %v", ctx, territorySlug)
+	return
+}
+
+// ListMeasurementsAfterCounter returns a count of finished RepositoryMock.ListMeasurements invocations
+func (mmListMeasurements *RepositoryMock) ListMeasurementsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListMeasurements.afterListMeasurementsCounter)
+}
+
+// ListMeasurementsBeforeCounter returns a count of RepositoryMock.ListMeasurements invocations
+func (mmListMeasurements *RepositoryMock) ListMeasurementsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListMeasurements.beforeListMeasurementsCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.ListMeasurements.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmListMeasurements *mRepositoryMockListMeasurements) Calls() []*RepositoryMockListMeasurementsParams {
+	mmListMeasurements.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockListMeasurementsParams, len(mmListMeasurements.callArgs))
+	copy(argCopy, mmListMeasurements.callArgs)
+
+	mmListMeasurements.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockListMeasurementsDone returns true if the count of the ListMeasurements invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockListMeasurementsDone() bool {
+	if m.ListMeasurementsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ListMeasurementsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ListMeasurementsMock.invocationsDone()
+}
+
+// MinimockListMeasurementsInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockListMeasurementsInspect() {
+	for _, e := range m.ListMeasurementsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.ListMeasurements at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterListMeasurementsCounter := mm_atomic.LoadUint64(&m.afterListMeasurementsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ListMeasurementsMock.defaultExpectation != nil && afterListMeasurementsCounter < 1 {
+		if m.ListMeasurementsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.ListMeasurements at\n%s", m.ListMeasurementsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.ListMeasurements at\n%s with params: %#v", m.ListMeasurementsMock.defaultExpectation.expectationOrigins.origin, *m.ListMeasurementsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcListMeasurements != nil && afterListMeasurementsCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.ListMeasurements at\n%s", m.funcListMeasurementsOrigin)
+	}
+
+	if !m.ListMeasurementsMock.invocationsDone() && afterListMeasurementsCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.ListMeasurements at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListMeasurementsMock.expectedInvocations), m.ListMeasurementsMock.expectedInvocationsOrigin, afterListMeasurementsCounter)
 	}
 }
 
@@ -9867,6 +11319,349 @@ func (m *RepositoryMock) MinimockSetTerritoryRescaleBaselineInspect() {
 	}
 }
 
+type mRepositoryMockUpdateMeasurement struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockUpdateMeasurementExpectation
+	expectations       []*RepositoryMockUpdateMeasurementExpectation
+
+	callArgs []*RepositoryMockUpdateMeasurementParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockUpdateMeasurementExpectation specifies expectation struct of the Repository.UpdateMeasurement
+type RepositoryMockUpdateMeasurementExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockUpdateMeasurementParams
+	paramPtrs          *RepositoryMockUpdateMeasurementParamPtrs
+	expectationOrigins RepositoryMockUpdateMeasurementExpectationOrigins
+	results            *RepositoryMockUpdateMeasurementResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockUpdateMeasurementParams contains parameters of the Repository.UpdateMeasurement
+type RepositoryMockUpdateMeasurementParams struct {
+	ctx context.Context
+	m   domain.Measurement
+}
+
+// RepositoryMockUpdateMeasurementParamPtrs contains pointers to parameters of the Repository.UpdateMeasurement
+type RepositoryMockUpdateMeasurementParamPtrs struct {
+	ctx *context.Context
+	m   *domain.Measurement
+}
+
+// RepositoryMockUpdateMeasurementResults contains results of the Repository.UpdateMeasurement
+type RepositoryMockUpdateMeasurementResults struct {
+	m1  domain.Measurement
+	err error
+}
+
+// RepositoryMockUpdateMeasurementOrigins contains origins of expectations of the Repository.UpdateMeasurement
+type RepositoryMockUpdateMeasurementExpectationOrigins struct {
+	origin    string
+	originCtx string
+	originM   string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmUpdateMeasurement *mRepositoryMockUpdateMeasurement) Optional() *mRepositoryMockUpdateMeasurement {
+	mmUpdateMeasurement.optional = true
+	return mmUpdateMeasurement
+}
+
+// Expect sets up expected params for Repository.UpdateMeasurement
+func (mmUpdateMeasurement *mRepositoryMockUpdateMeasurement) Expect(ctx context.Context, m domain.Measurement) *mRepositoryMockUpdateMeasurement {
+	if mmUpdateMeasurement.mock.funcUpdateMeasurement != nil {
+		mmUpdateMeasurement.mock.t.Fatalf("RepositoryMock.UpdateMeasurement mock is already set by Set")
+	}
+
+	if mmUpdateMeasurement.defaultExpectation == nil {
+		mmUpdateMeasurement.defaultExpectation = &RepositoryMockUpdateMeasurementExpectation{}
+	}
+
+	if mmUpdateMeasurement.defaultExpectation.paramPtrs != nil {
+		mmUpdateMeasurement.mock.t.Fatalf("RepositoryMock.UpdateMeasurement mock is already set by ExpectParams functions")
+	}
+
+	mmUpdateMeasurement.defaultExpectation.params = &RepositoryMockUpdateMeasurementParams{ctx, m}
+	mmUpdateMeasurement.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmUpdateMeasurement.expectations {
+		if minimock.Equal(e.params, mmUpdateMeasurement.defaultExpectation.params) {
+			mmUpdateMeasurement.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdateMeasurement.defaultExpectation.params)
+		}
+	}
+
+	return mmUpdateMeasurement
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.UpdateMeasurement
+func (mmUpdateMeasurement *mRepositoryMockUpdateMeasurement) ExpectCtxParam1(ctx context.Context) *mRepositoryMockUpdateMeasurement {
+	if mmUpdateMeasurement.mock.funcUpdateMeasurement != nil {
+		mmUpdateMeasurement.mock.t.Fatalf("RepositoryMock.UpdateMeasurement mock is already set by Set")
+	}
+
+	if mmUpdateMeasurement.defaultExpectation == nil {
+		mmUpdateMeasurement.defaultExpectation = &RepositoryMockUpdateMeasurementExpectation{}
+	}
+
+	if mmUpdateMeasurement.defaultExpectation.params != nil {
+		mmUpdateMeasurement.mock.t.Fatalf("RepositoryMock.UpdateMeasurement mock is already set by Expect")
+	}
+
+	if mmUpdateMeasurement.defaultExpectation.paramPtrs == nil {
+		mmUpdateMeasurement.defaultExpectation.paramPtrs = &RepositoryMockUpdateMeasurementParamPtrs{}
+	}
+	mmUpdateMeasurement.defaultExpectation.paramPtrs.ctx = &ctx
+	mmUpdateMeasurement.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmUpdateMeasurement
+}
+
+// ExpectMParam2 sets up expected param m for Repository.UpdateMeasurement
+func (mmUpdateMeasurement *mRepositoryMockUpdateMeasurement) ExpectMParam2(m domain.Measurement) *mRepositoryMockUpdateMeasurement {
+	if mmUpdateMeasurement.mock.funcUpdateMeasurement != nil {
+		mmUpdateMeasurement.mock.t.Fatalf("RepositoryMock.UpdateMeasurement mock is already set by Set")
+	}
+
+	if mmUpdateMeasurement.defaultExpectation == nil {
+		mmUpdateMeasurement.defaultExpectation = &RepositoryMockUpdateMeasurementExpectation{}
+	}
+
+	if mmUpdateMeasurement.defaultExpectation.params != nil {
+		mmUpdateMeasurement.mock.t.Fatalf("RepositoryMock.UpdateMeasurement mock is already set by Expect")
+	}
+
+	if mmUpdateMeasurement.defaultExpectation.paramPtrs == nil {
+		mmUpdateMeasurement.defaultExpectation.paramPtrs = &RepositoryMockUpdateMeasurementParamPtrs{}
+	}
+	mmUpdateMeasurement.defaultExpectation.paramPtrs.m = &m
+	mmUpdateMeasurement.defaultExpectation.expectationOrigins.originM = minimock.CallerInfo(1)
+
+	return mmUpdateMeasurement
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.UpdateMeasurement
+func (mmUpdateMeasurement *mRepositoryMockUpdateMeasurement) Inspect(f func(ctx context.Context, m domain.Measurement)) *mRepositoryMockUpdateMeasurement {
+	if mmUpdateMeasurement.mock.inspectFuncUpdateMeasurement != nil {
+		mmUpdateMeasurement.mock.t.Fatalf("Inspect function is already set for RepositoryMock.UpdateMeasurement")
+	}
+
+	mmUpdateMeasurement.mock.inspectFuncUpdateMeasurement = f
+
+	return mmUpdateMeasurement
+}
+
+// Return sets up results that will be returned by Repository.UpdateMeasurement
+func (mmUpdateMeasurement *mRepositoryMockUpdateMeasurement) Return(m1 domain.Measurement, err error) *RepositoryMock {
+	if mmUpdateMeasurement.mock.funcUpdateMeasurement != nil {
+		mmUpdateMeasurement.mock.t.Fatalf("RepositoryMock.UpdateMeasurement mock is already set by Set")
+	}
+
+	if mmUpdateMeasurement.defaultExpectation == nil {
+		mmUpdateMeasurement.defaultExpectation = &RepositoryMockUpdateMeasurementExpectation{mock: mmUpdateMeasurement.mock}
+	}
+	mmUpdateMeasurement.defaultExpectation.results = &RepositoryMockUpdateMeasurementResults{m1, err}
+	mmUpdateMeasurement.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmUpdateMeasurement.mock
+}
+
+// Set uses given function f to mock the Repository.UpdateMeasurement method
+func (mmUpdateMeasurement *mRepositoryMockUpdateMeasurement) Set(f func(ctx context.Context, m domain.Measurement) (m1 domain.Measurement, err error)) *RepositoryMock {
+	if mmUpdateMeasurement.defaultExpectation != nil {
+		mmUpdateMeasurement.mock.t.Fatalf("Default expectation is already set for the Repository.UpdateMeasurement method")
+	}
+
+	if len(mmUpdateMeasurement.expectations) > 0 {
+		mmUpdateMeasurement.mock.t.Fatalf("Some expectations are already set for the Repository.UpdateMeasurement method")
+	}
+
+	mmUpdateMeasurement.mock.funcUpdateMeasurement = f
+	mmUpdateMeasurement.mock.funcUpdateMeasurementOrigin = minimock.CallerInfo(1)
+	return mmUpdateMeasurement.mock
+}
+
+// When sets expectation for the Repository.UpdateMeasurement which will trigger the result defined by the following
+// Then helper
+func (mmUpdateMeasurement *mRepositoryMockUpdateMeasurement) When(ctx context.Context, m domain.Measurement) *RepositoryMockUpdateMeasurementExpectation {
+	if mmUpdateMeasurement.mock.funcUpdateMeasurement != nil {
+		mmUpdateMeasurement.mock.t.Fatalf("RepositoryMock.UpdateMeasurement mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockUpdateMeasurementExpectation{
+		mock:               mmUpdateMeasurement.mock,
+		params:             &RepositoryMockUpdateMeasurementParams{ctx, m},
+		expectationOrigins: RepositoryMockUpdateMeasurementExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmUpdateMeasurement.expectations = append(mmUpdateMeasurement.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.UpdateMeasurement return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockUpdateMeasurementExpectation) Then(m1 domain.Measurement, err error) *RepositoryMock {
+	e.results = &RepositoryMockUpdateMeasurementResults{m1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.UpdateMeasurement should be invoked
+func (mmUpdateMeasurement *mRepositoryMockUpdateMeasurement) Times(n uint64) *mRepositoryMockUpdateMeasurement {
+	if n == 0 {
+		mmUpdateMeasurement.mock.t.Fatalf("Times of RepositoryMock.UpdateMeasurement mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmUpdateMeasurement.expectedInvocations, n)
+	mmUpdateMeasurement.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmUpdateMeasurement
+}
+
+func (mmUpdateMeasurement *mRepositoryMockUpdateMeasurement) invocationsDone() bool {
+	if len(mmUpdateMeasurement.expectations) == 0 && mmUpdateMeasurement.defaultExpectation == nil && mmUpdateMeasurement.mock.funcUpdateMeasurement == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmUpdateMeasurement.mock.afterUpdateMeasurementCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmUpdateMeasurement.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// UpdateMeasurement implements mm_service.Repository
+func (mmUpdateMeasurement *RepositoryMock) UpdateMeasurement(ctx context.Context, m domain.Measurement) (m1 domain.Measurement, err error) {
+	mm_atomic.AddUint64(&mmUpdateMeasurement.beforeUpdateMeasurementCounter, 1)
+	defer mm_atomic.AddUint64(&mmUpdateMeasurement.afterUpdateMeasurementCounter, 1)
+
+	mmUpdateMeasurement.t.Helper()
+
+	if mmUpdateMeasurement.inspectFuncUpdateMeasurement != nil {
+		mmUpdateMeasurement.inspectFuncUpdateMeasurement(ctx, m)
+	}
+
+	mm_params := RepositoryMockUpdateMeasurementParams{ctx, m}
+
+	// Record call args
+	mmUpdateMeasurement.UpdateMeasurementMock.mutex.Lock()
+	mmUpdateMeasurement.UpdateMeasurementMock.callArgs = append(mmUpdateMeasurement.UpdateMeasurementMock.callArgs, &mm_params)
+	mmUpdateMeasurement.UpdateMeasurementMock.mutex.Unlock()
+
+	for _, e := range mmUpdateMeasurement.UpdateMeasurementMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.m1, e.results.err
+		}
+	}
+
+	if mmUpdateMeasurement.UpdateMeasurementMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmUpdateMeasurement.UpdateMeasurementMock.defaultExpectation.Counter, 1)
+		mm_want := mmUpdateMeasurement.UpdateMeasurementMock.defaultExpectation.params
+		mm_want_ptrs := mmUpdateMeasurement.UpdateMeasurementMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockUpdateMeasurementParams{ctx, m}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmUpdateMeasurement.t.Errorf("RepositoryMock.UpdateMeasurement got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateMeasurement.UpdateMeasurementMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.m != nil && !minimock.Equal(*mm_want_ptrs.m, mm_got.m) {
+				mmUpdateMeasurement.t.Errorf("RepositoryMock.UpdateMeasurement got unexpected parameter m, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateMeasurement.UpdateMeasurementMock.defaultExpectation.expectationOrigins.originM, *mm_want_ptrs.m, mm_got.m, minimock.Diff(*mm_want_ptrs.m, mm_got.m))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmUpdateMeasurement.t.Errorf("RepositoryMock.UpdateMeasurement got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmUpdateMeasurement.UpdateMeasurementMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmUpdateMeasurement.UpdateMeasurementMock.defaultExpectation.results
+		if mm_results == nil {
+			mmUpdateMeasurement.t.Fatal("No results are set for the RepositoryMock.UpdateMeasurement")
+		}
+		return (*mm_results).m1, (*mm_results).err
+	}
+	if mmUpdateMeasurement.funcUpdateMeasurement != nil {
+		return mmUpdateMeasurement.funcUpdateMeasurement(ctx, m)
+	}
+	mmUpdateMeasurement.t.Fatalf("Unexpected call to RepositoryMock.UpdateMeasurement. %v %v", ctx, m)
+	return
+}
+
+// UpdateMeasurementAfterCounter returns a count of finished RepositoryMock.UpdateMeasurement invocations
+func (mmUpdateMeasurement *RepositoryMock) UpdateMeasurementAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateMeasurement.afterUpdateMeasurementCounter)
+}
+
+// UpdateMeasurementBeforeCounter returns a count of RepositoryMock.UpdateMeasurement invocations
+func (mmUpdateMeasurement *RepositoryMock) UpdateMeasurementBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateMeasurement.beforeUpdateMeasurementCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.UpdateMeasurement.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmUpdateMeasurement *mRepositoryMockUpdateMeasurement) Calls() []*RepositoryMockUpdateMeasurementParams {
+	mmUpdateMeasurement.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockUpdateMeasurementParams, len(mmUpdateMeasurement.callArgs))
+	copy(argCopy, mmUpdateMeasurement.callArgs)
+
+	mmUpdateMeasurement.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockUpdateMeasurementDone returns true if the count of the UpdateMeasurement invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockUpdateMeasurementDone() bool {
+	if m.UpdateMeasurementMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.UpdateMeasurementMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.UpdateMeasurementMock.invocationsDone()
+}
+
+// MinimockUpdateMeasurementInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockUpdateMeasurementInspect() {
+	for _, e := range m.UpdateMeasurementMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.UpdateMeasurement at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterUpdateMeasurementCounter := mm_atomic.LoadUint64(&m.afterUpdateMeasurementCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.UpdateMeasurementMock.defaultExpectation != nil && afterUpdateMeasurementCounter < 1 {
+		if m.UpdateMeasurementMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.UpdateMeasurement at\n%s", m.UpdateMeasurementMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.UpdateMeasurement at\n%s with params: %#v", m.UpdateMeasurementMock.defaultExpectation.expectationOrigins.origin, *m.UpdateMeasurementMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcUpdateMeasurement != nil && afterUpdateMeasurementCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.UpdateMeasurement at\n%s", m.funcUpdateMeasurementOrigin)
+	}
+
+	if !m.UpdateMeasurementMock.invocationsDone() && afterUpdateMeasurementCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.UpdateMeasurement at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.UpdateMeasurementMock.expectedInvocations), m.UpdateMeasurementMock.expectedInvocationsOrigin, afterUpdateMeasurementCounter)
+	}
+}
+
 type mRepositoryMockUpdatePlacement struct {
 	optional           bool
 	mock               *RepositoryMock
@@ -10900,11 +12695,17 @@ func (m *RepositoryMock) MinimockUpsertTerritoryInspect() {
 func (m *RepositoryMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
 		if !m.minimockDone() {
+			m.MinimockCreateMeasurementInspect()
+
 			m.MinimockCreateModelInspect()
 
 			m.MinimockCreatePlacementInspect()
 
 			m.MinimockCreateTerritoryInspect()
+
+			m.MinimockDeleteMeasurementInspect()
+
+			m.MinimockDeleteMeasurementsInspect()
 
 			m.MinimockDeleteModelInspect()
 
@@ -10923,6 +12724,8 @@ func (m *RepositoryMock) MinimockFinish() {
 			m.MinimockGetTerritoryAdminsInspect()
 
 			m.MinimockGetTerritoryArtifactInspect()
+
+			m.MinimockListMeasurementsInspect()
 
 			m.MinimockListModelArtifactsInspect()
 
@@ -10954,6 +12757,8 @@ func (m *RepositoryMock) MinimockFinish() {
 
 			m.MinimockSetTerritoryRescaleBaselineInspect()
 
+			m.MinimockUpdateMeasurementInspect()
+
 			m.MinimockUpdatePlacementInspect()
 
 			m.MinimockUpsertModelInspect()
@@ -10982,9 +12787,12 @@ func (m *RepositoryMock) MinimockWait(timeout mm_time.Duration) {
 func (m *RepositoryMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockCreateMeasurementDone() &&
 		m.MinimockCreateModelDone() &&
 		m.MinimockCreatePlacementDone() &&
 		m.MinimockCreateTerritoryDone() &&
+		m.MinimockDeleteMeasurementDone() &&
+		m.MinimockDeleteMeasurementsDone() &&
 		m.MinimockDeleteModelDone() &&
 		m.MinimockDeletePlacementDone() &&
 		m.MinimockDeleteTerritoryDone() &&
@@ -10994,6 +12802,7 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockGetTerritoryDone() &&
 		m.MinimockGetTerritoryAdminsDone() &&
 		m.MinimockGetTerritoryArtifactDone() &&
+		m.MinimockListMeasurementsDone() &&
 		m.MinimockListModelArtifactsDone() &&
 		m.MinimockListModelsDone() &&
 		m.MinimockListPanoramaIDsDone() &&
@@ -11009,6 +12818,7 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockSetPlacementVisibilityDone() &&
 		m.MinimockSetTerritoryAdminsDone() &&
 		m.MinimockSetTerritoryRescaleBaselineDone() &&
+		m.MinimockUpdateMeasurementDone() &&
 		m.MinimockUpdatePlacementDone() &&
 		m.MinimockUpsertModelDone() &&
 		m.MinimockUpsertTerritoryDone()

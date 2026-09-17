@@ -120,3 +120,31 @@ func scanPlacement(r rowScanner) (domain.Placement, error) {
 	)
 	return p, err
 }
+
+// measurementCols reads a measurement aliased m joined to its territory t.
+// The mutations alias their RETURNING CTE as m, so one list serves all.
+const measurementCols = `m.id, t.slug, m.points, m.closed,
+	COALESCE(m.created_by::text, ''), m.created_at, m.updated_at`
+
+// measurementReturning is the RETURNING list that feeds measurementCols.
+const measurementReturning = `m.id, m.territory_id, m.points, m.closed,
+	m.created_by, m.created_at, m.updated_at`
+
+func scanMeasurement(r rowScanner) (domain.Measurement, error) {
+	var (
+		m    domain.Measurement
+		flat []float64
+	)
+	if err := r.Scan(&m.ID, &m.TerritorySlug, &flat, &m.Closed, &m.CreatedBy, &m.CreatedAt, &m.UpdatedAt); err != nil {
+		return domain.Measurement{}, err
+	}
+	points, err := domain.PointsFromFlat(flat)
+	m.Points = points
+	return m, err
+}
+
+// isMeasurementShapeViolation reports whether err is the points CHECK firing.
+func isMeasurementShapeViolation(err error) bool {
+	pgErr, ok := errors.AsType[*pgconn.PgError](err)
+	return ok && pgErr.Code == "23514" && pgErr.ConstraintName == "measurements_points_shape"
+}
