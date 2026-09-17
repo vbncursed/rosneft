@@ -200,7 +200,7 @@ services:
       # CHANGE IN PROD: RP_ID must equal the domain in the browser address bar,
       # RP_ORIGINS the full scheme+host. Prod: andrey.vbncursed.fun / https://andrey.vbncursed.fun
       PASSKEY_RP_ID: "localhost"
-      PASSKEY_RP_ORIGINS: "http://localhost:3000,http://localhost:3001"
+      PASSKEY_RP_ORIGINS: "http://localhost:3000"
       PASSKEY_RP_NAME: "Andrey"
       PASSKEY_LOG_LEVEL: "info"
     healthcheck:
@@ -405,7 +405,8 @@ services:
       - "9093"
 
 # The frontend is a client-only Vite SPA — no server runtime, so it is not a
-# compose service. Run it with `yarn dev` (see frontend/README.md); Prometheus
+# compose service. Run it with `yarn dev` (see frontend/README.md), which
+# listens on :3000, the origin PASSKEY_RP_ORIGINS lists above; Prometheus
 # stays compose-internal and the SPA reads it through the gateway's
 # owner-gated /api/metrics/query.
 
