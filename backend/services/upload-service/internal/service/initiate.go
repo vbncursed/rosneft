@@ -7,10 +7,13 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/upload-service/internal/domain"
 )
 
-// Initiate creates a new upload session and returns its server-assigned ID.
-// The size cap is enforced here: a request larger than maxUploadBytes is
-// rejected before we touch the filesystem.
-func (u *Upload) Initiate(ctx context.Context, size int64, contentType string) (domain.Session, error) {
+// Initiate creates a new upload session owned by owner and returns its
+// server-assigned ID. The size cap is enforced here: a request larger than
+// maxUploadBytes is rejected before we touch the filesystem.
+func (u *Upload) Initiate(ctx context.Context, owner string, size int64, contentType string) (domain.Session, error) {
+	if owner == "" {
+		return domain.Session{}, fmt.Errorf("%w: no caller identity", domain.ErrInvalidInput)
+	}
 	if size <= 0 {
 		return domain.Session{}, fmt.Errorf("%w: size must be positive", domain.ErrInvalidInput)
 	}
@@ -18,5 +21,5 @@ func (u *Upload) Initiate(ctx context.Context, size int64, contentType string) (
 		return domain.Session{}, fmt.Errorf("%w: size %d exceeds max %d", domain.ErrInvalidInput, size, u.maxUploadBytes)
 	}
 	id := u.idGen()
-	return u.store.Initiate(ctx, id, size, contentType)
+	return u.store.Initiate(ctx, id, owner, size, contentType)
 }

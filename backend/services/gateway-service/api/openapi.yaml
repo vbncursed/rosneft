@@ -28,6 +28,15 @@ info:
     Authentication is an opaque bearer token from `POST /api/auth/login`.
     Every mutating `/api/*` route is additionally gated on a per-route
     permission; `403` means the session is valid but lacks it.
+
+    A request body larger than 1 MiB is refused with `413` before any
+    handler reads it; the chunk `PATCH /api/uploads/{id}` is exempt and is
+    bounded by the session's declared size instead.
+
+    A blob hash in a request body (`sourceBlobHash`, `thumbnailBlobHash`) is
+    accepted only if the caller finalized that upload or can already read the
+    blob; any other hash, existing or not, is `400 unknown blob hash`. An
+    upload session belongs to the user who initiated it.
 servers:
   - url: http://localhost:8080
     description: Local docker-compose
@@ -1754,9 +1763,14 @@ paths:
     delete:
       operationId: abortUpload
       summary: Discard an in-progress session
+      description: |
+        Idempotent for a session that no longer exists. A session belongs to
+        the user who initiated it; anyone else gets 404 here, as on HEAD,
+        PATCH and finalize.
       tags: [uploads]
       responses:
         '204': { description: Aborted }
+        '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
 
   /api/uploads/{id}/finalize:

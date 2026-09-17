@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
@@ -14,8 +15,8 @@ import (
 )
 
 // MeasurementsSuite covers the gateway's guards in front of catalog. The chain's
-// shape rules (two points, three when closed, finite values) are catalog's and
-// come back as InvalidArgument; the gateway only refuses what should never
+// shape rules (two points, three when closed, at most 1000, finite values) are
+// catalog's and come back as InvalidArgument; the gateway only refuses what should never
 // cost an RPC.
 type MeasurementsSuite struct {
 	suite.Suite
@@ -80,20 +81,12 @@ func (s *MeasurementsSuite) TestRefusesWhatShouldNeverReachCatalog() {
 			_, err := s.svc.CreateMeasurement(s.ctx, noSlug)
 			return err
 		}},
-		{name: "create over the cap", call: func() error {
-			_, err := s.svc.CreateMeasurement(s.ctx, chainOf(1001))
-			return err
-		}},
 		{name: "update without slug", call: func() error {
 			_, err := s.svc.UpdateMeasurement(s.ctx, noSlug)
 			return err
 		}},
 		{name: "update without id", call: func() error {
 			_, err := s.svc.UpdateMeasurement(s.ctx, noID)
-			return err
-		}},
-		{name: "update over the cap", call: func() error {
-			_, err := s.svc.UpdateMeasurement(s.ctx, chainOf(1001))
 			return err
 		}},
 		{name: "delete without slug", call: func() error { return s.svc.DeleteMeasurement(s.ctx, "", 3) }},
@@ -110,12 +103,16 @@ func (s *MeasurementsSuite) TestRefusesWhatShouldNeverReachCatalog() {
 	}
 }
 
-// The cap is inclusive: a chain of exactly 1000 points is catalog's to judge.
-func (s *MeasurementsSuite) TestTheCapIsInclusive() {
-	m := chainOf(1000)
-	s.cat.CreateMeasurementMock.Expect(s.ctx, m).Return(m, nil)
+// The point cap is catalog's alone: the gateway's body limit already bounds
+// what an RPC can carry, and a second copy of the number could drift. An
+// oversized chain is forwarded and catalog's refusal comes back as invalid
+// input (the client maps InvalidArgument), which the handler answers with 400.
+func (s *MeasurementsSuite) TestThePointCapIsCatalogs() {
+	m := chainOf(1001)
+	refusal := errors.Join(domain.ErrInvalidInput, errors.New("at most 1000 points"))
+	s.cat.CreateMeasurementMock.Expect(s.ctx, m).Return(domain.Measurement{}, refusal)
 
 	_, err := s.svc.CreateMeasurement(s.ctx, m)
 
-	assert.NilError(s.T(), err)
+	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
 }

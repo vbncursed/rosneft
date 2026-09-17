@@ -34,7 +34,7 @@ func (s *Server) CreateModel(ctx context.Context, req CreateModelRequestObject) 
 	if req.Body == nil {
 		return CreateModel400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
-	m, job, err := s.svc.CreateModel(ctx, entityToModel(*req.Body))
+	m, job, err := s.svc.CreateModel(ctx, entityToModel(*req.Body), blobScope(ctx))
 	switch {
 	case isInvalid(err):
 		return CreateModel400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
@@ -50,7 +50,7 @@ func (s *Server) UpdateModel(ctx context.Context, req UpdateModelRequestObject) 
 	}
 	m, err := s.svc.UpdateModel(ctx, req.Slug, domain.ModelUpdate{
 		ThumbnailBlobHash: req.Body.ThumbnailBlobHash,
-	})
+	}, blobScope(ctx))
 	switch {
 	case isNotFound(err):
 		return UpdateModel404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil

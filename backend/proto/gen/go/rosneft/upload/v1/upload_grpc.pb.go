@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UploadService_Initiate_FullMethodName   = "/rosneft.upload.v1.UploadService/Initiate"
-	UploadService_WriteChunk_FullMethodName = "/rosneft.upload.v1.UploadService/WriteChunk"
-	UploadService_GetStatus_FullMethodName  = "/rosneft.upload.v1.UploadService/GetStatus"
-	UploadService_Finalize_FullMethodName   = "/rosneft.upload.v1.UploadService/Finalize"
-	UploadService_Abort_FullMethodName      = "/rosneft.upload.v1.UploadService/Abort"
+	UploadService_Initiate_FullMethodName    = "/rosneft.upload.v1.UploadService/Initiate"
+	UploadService_WriteChunk_FullMethodName  = "/rosneft.upload.v1.UploadService/WriteChunk"
+	UploadService_GetStatus_FullMethodName   = "/rosneft.upload.v1.UploadService/GetStatus"
+	UploadService_Finalize_FullMethodName    = "/rosneft.upload.v1.UploadService/Finalize"
+	UploadService_Abort_FullMethodName       = "/rosneft.upload.v1.UploadService/Abort"
+	UploadService_HasUploaded_FullMethodName = "/rosneft.upload.v1.UploadService/HasUploaded"
 )
 
 // UploadServiceClient is the client API for UploadService service.
@@ -35,6 +36,10 @@ const (
 // of these RPCs. Partial uploads live on the upload-service local filesystem
 // (or shared volume in multi-replica deployments); on Finalize the bytes are
 // hashed and moved into BlobStore.
+//
+// A session belongs to the caller who initiated it (x-actor-id metadata, set
+// by the gateway): WriteChunk, GetStatus, Finalize and Abort answer NOT_FOUND
+// to anyone else, exactly as for an id that does not exist.
 type UploadServiceClient interface {
 	// Initiate creates a new upload session for an expected total size.
 	Initiate(ctx context.Context, in *InitiateRequest, opts ...grpc.CallOption) (*InitiateResponse, error)
@@ -50,6 +55,10 @@ type UploadServiceClient interface {
 	Finalize(ctx context.Context, in *FinalizeRequest, opts ...grpc.CallOption) (*FinalizeResponse, error)
 	// Abort discards a partial upload session.
 	Abort(ctx context.Context, in *AbortRequest, opts ...grpc.CallOption) (*AbortResponse, error)
+	// HasUploaded reports whether the caller (x-actor-id metadata) ever
+	// finalized an upload with this hash. The gateway accepts a blob hash in a
+	// request body only from a caller who uploaded it or can already read it.
+	HasUploaded(ctx context.Context, in *HasUploadedRequest, opts ...grpc.CallOption) (*HasUploadedResponse, error)
 }
 
 type uploadServiceClient struct {
@@ -113,6 +122,16 @@ func (c *uploadServiceClient) Abort(ctx context.Context, in *AbortRequest, opts 
 	return out, nil
 }
 
+func (c *uploadServiceClient) HasUploaded(ctx context.Context, in *HasUploadedRequest, opts ...grpc.CallOption) (*HasUploadedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HasUploadedResponse)
+	err := c.cc.Invoke(ctx, UploadService_HasUploaded_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UploadServiceServer is the server API for UploadService service.
 // All implementations must embed UnimplementedUploadServiceServer
 // for forward compatibility.
@@ -122,6 +141,10 @@ func (c *uploadServiceClient) Abort(ctx context.Context, in *AbortRequest, opts 
 // of these RPCs. Partial uploads live on the upload-service local filesystem
 // (or shared volume in multi-replica deployments); on Finalize the bytes are
 // hashed and moved into BlobStore.
+//
+// A session belongs to the caller who initiated it (x-actor-id metadata, set
+// by the gateway): WriteChunk, GetStatus, Finalize and Abort answer NOT_FOUND
+// to anyone else, exactly as for an id that does not exist.
 type UploadServiceServer interface {
 	// Initiate creates a new upload session for an expected total size.
 	Initiate(context.Context, *InitiateRequest) (*InitiateResponse, error)
@@ -137,6 +160,10 @@ type UploadServiceServer interface {
 	Finalize(context.Context, *FinalizeRequest) (*FinalizeResponse, error)
 	// Abort discards a partial upload session.
 	Abort(context.Context, *AbortRequest) (*AbortResponse, error)
+	// HasUploaded reports whether the caller (x-actor-id metadata) ever
+	// finalized an upload with this hash. The gateway accepts a blob hash in a
+	// request body only from a caller who uploaded it or can already read it.
+	HasUploaded(context.Context, *HasUploadedRequest) (*HasUploadedResponse, error)
 	mustEmbedUnimplementedUploadServiceServer()
 }
 
@@ -161,6 +188,9 @@ func (UnimplementedUploadServiceServer) Finalize(context.Context, *FinalizeReque
 }
 func (UnimplementedUploadServiceServer) Abort(context.Context, *AbortRequest) (*AbortResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Abort not implemented")
+}
+func (UnimplementedUploadServiceServer) HasUploaded(context.Context, *HasUploadedRequest) (*HasUploadedResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method HasUploaded not implemented")
 }
 func (UnimplementedUploadServiceServer) mustEmbedUnimplementedUploadServiceServer() {}
 func (UnimplementedUploadServiceServer) testEmbeddedByValue()                       {}
@@ -262,6 +292,24 @@ func _UploadService_Abort_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UploadService_HasUploaded_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HasUploadedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UploadServiceServer).HasUploaded(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UploadService_HasUploaded_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UploadServiceServer).HasUploaded(ctx, req.(*HasUploadedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UploadService_ServiceDesc is the grpc.ServiceDesc for UploadService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -284,6 +332,10 @@ var UploadService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Abort",
 			Handler:    _UploadService_Abort_Handler,
+		},
+		{
+			MethodName: "HasUploaded",
+			Handler:    _UploadService_HasUploaded_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

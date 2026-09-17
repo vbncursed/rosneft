@@ -16,7 +16,7 @@ func (g *Gateway) ListDocuments(ctx context.Context, territorySlug string) ([]do
 }
 
 // CreateDocument validates input and persists the document.
-func (g *Gateway) CreateDocument(ctx context.Context, d domain.Document) (domain.Document, error) {
+func (g *Gateway) CreateDocument(ctx context.Context, d domain.Document, scope domain.BlobScope) (domain.Document, error) {
 	if d.TerritorySlug == "" {
 		return domain.Document{}, fmt.Errorf("%w: territory slug is required", domain.ErrInvalidInput)
 	}
@@ -25,6 +25,9 @@ func (g *Gateway) CreateDocument(ctx context.Context, d domain.Document) (domain
 	}
 	if d.SourceBlobHash == "" {
 		return domain.Document{}, fmt.Errorf("%w: source_blob_hash is required", domain.ErrInvalidInput)
+	}
+	if err := g.authorizeBlobs(ctx, scope, d.SourceBlobHash); err != nil {
+		return domain.Document{}, err
 	}
 	return g.content.CreateDocument(ctx, d)
 }

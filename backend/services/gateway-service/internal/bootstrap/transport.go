@@ -30,7 +30,7 @@ var (
 
 // InitRouter builds the chi.Router stack:
 //
-//	[metrics, (CORS), RequestID, Recoverer, slog-chi]        ← root
+//	[metrics, (CORS), RequestID, Recoverer, slog-chi, LimitBody] ← root
 //	  /healthz, /readyz, /docs, /openapi.json
 //	  /api/assets/{hash}   → Authenticate → RequireBlobAccess → binary proxy
 //	  /api/jobs/{id}/events→ Authenticate → SSE (tenant-scoped per job)
@@ -84,6 +84,9 @@ func InitRouter(
 			slogchi.IgnorePath("/healthz", "/readyz"),
 		},
 	}))
+	// After the logger, so a refused body still shows up as a 413 in the log;
+	// on the root router, so /api/auth/* — login is anonymous — is covered too.
+	r.Use(httpapi.LimitBody)
 
 	// Eight named probes, evaluated concurrently under one 2s deadline — the
 	// shape healthz was written for. MarkReady on its own reported ok with an

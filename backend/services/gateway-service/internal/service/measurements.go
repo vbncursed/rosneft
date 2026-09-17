@@ -7,11 +7,6 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-// maxMeasurementPoints mirrors catalog's cap. Catalog owns the chain's shape
-// rules; the gateway repeats only this one, so an oversized body is refused
-// before it is copied into an RPC.
-const maxMeasurementPoints = 1000
-
 // ListMeasurements returns the saved measurements on a territory.
 func (g *Gateway) ListMeasurements(ctx context.Context, territorySlug string) ([]domain.Measurement, error) {
 	if territorySlug == "" {
@@ -63,9 +58,6 @@ func (g *Gateway) DeleteMeasurements(ctx context.Context, territorySlug string) 
 func checkMeasurement(m domain.Measurement) error {
 	if m.TerritorySlug == "" {
 		return fmt.Errorf("%w: empty territory slug", domain.ErrInvalidInput)
-	}
-	if len(m.Points) > maxMeasurementPoints {
-		return fmt.Errorf("%w: at most %d points", domain.ErrInvalidInput, maxMeasurementPoints)
 	}
 	return nil
 }

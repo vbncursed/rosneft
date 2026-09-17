@@ -30,7 +30,7 @@ func (s *Server) WriteChunk(stream uploadv1.UploadService_WriteChunkServer) erro
 		} else if req.GetUploadId() != uploadID {
 			return mapError(errMixedUploadIDs)
 		}
-		newOffset, err := s.svc.WriteChunk(stream.Context(), req.GetUploadId(), req.GetOffset(), req.GetData())
+		newOffset, err := s.svc.WriteChunk(stream.Context(), callerID(stream.Context()), req.GetUploadId(), req.GetOffset(), req.GetData())
 		if err != nil {
 			return mapError(err)
 		}

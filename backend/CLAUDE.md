@@ -167,7 +167,11 @@ Implemented in `gateway-service`:
 - **Scene bundle**: `GET /api/territories/{slug}/scene` aggregates territory + LOD0 artifact (with full `artifacts: [LodArtifact]` chain attached) + placements + model options (each with its own `artifacts: [LodArtifact]` chain) in one round trip via `errgroup` parallel fan-out. Replaces 4+ client requests on first paint and removes any need for follow-up `GetArtifact` calls when the frontend wants a specific LOD.
 - **SSE conversion stream**: `GET /api/jobs/{id}/events` emits `event: job` whenever the job state changes; gateway polls mesh-api every 1 s under the hood. Stream terminates on `succeeded` / `failed`. The Job payload carries `kind` and `slug` so the client knows which entity is being converted.
 - **Chunked upload**: `POST /api/uploads` initiates a session, `PATCH /api/uploads/{id}` appends bytes (raw `application/octet-stream` body, `Upload-Offset` header), `HEAD` reports current offset for resumability, `POST .../finalize` publishes the bytes to BlobStore. Gateway terminates the public HTTP flow and translates each operation into a gRPC call to upload-service (chunks travel as a client-streaming RPC).
-- **ETag** middleware on all GET JSON endpoints — strong ETag = sha256 of the response body, supports `If-None-Match` → 304. PATCH/POST upload endpoints bypass the JSON middleware chain (raw bytes, no compression).
+  - **A session belongs to its author.** upload-service stores the initiating user (`x-actor-id`) in the session's `meta.json`; HEAD/PATCH/finalize/DELETE from anyone else answer 404, like a missing id. The author reaches the chunk stream only because `grpcutil.Dial` chains `ActorStreamClientInterceptor` too — drop it and every PATCH is refused. A session without an author (written before this) belongs to nobody — **deploy note:** an upload in flight when this shipped (H) cannot be resumed and must be started again.
+  - A refused chunk stream is closed by upload-service after its first message; the gateway client then sees `io.EOF` from `Send` and must read the real status from `CloseAndRecv` (`clients/upload.sendChunks`), or a foreign session answers 500 instead of 404.
+  - Finalize also records `<incoming>/uploaded/<hash>/<user>`, which `HasUploaded` reads — see **Blob scoping**.
+- **Body limit**: `httpapi.LimitBody` on the root router answers 413 to any body over 1 MiB before a handler reads it (`/api/auth/*` included). The chunk PATCH is exempt; upload-service bounds it by the session's declared size.
+- **ETag** middleware on all GET JSON endpoints — strong ETag = sha256 of the response body, supports `If-None-Match` → 304. The upload routes live in the `/api` group like every other: ETag touches only GET, Compress skips the non-JSON bodies, and only the chunk PATCH is exempt from `LimitBody`.
 - **Brotli/gzip** middleware on JSON only — `Accept-Encoding` negotiation, br preferred; binary blobs (asset proxy) bypass.
 - **Cache-Control: immutable** on `/api/assets/{hash}` (asset-service emits this; gateway proxy preserves the header).
 
@@ -300,13 +304,18 @@ scope and points constraint, and the rescale CTE over placements and
 measurements),
 `content-service/internal/storage/territory_scope_integration_test.go` (panorama
 and document territory scope, including the allowlist scrub),
-`auth-service/internal/storage/users/set_totp_required_integration_test.go` and
+`auth-service/internal/storage/users/set_totp_required_integration_test.go`,
 `auth-service/internal/migrate/measurement_permissions_integration_test.go`
-(which system role holds which measurement grant) cover SQL logic the same way,
+(which system role holds which measurement grant),
+`auth-service/internal/migrate/model_library_permissions_integration_test.go`
+(no system or tenant role changes the model library) and
+`catalog-service/internal/migrate/scrub_panorama_ids_integration_test.go` (00016
+keeps only a placement's own panorama ids) cover SQL logic the same way,
 in their own services; the audit suites include the `measurements` trigger and
 its rollback. Run them per module with
-`GOWORK=off go test -race -tags=integration ./internal/storage/...` (auth: add
-`./internal/migrate/...`; audit: `./...` from `services/audit-service`); needs
+`GOWORK=off go test -race -tags=integration ./internal/storage/...` (auth and
+catalog: add `./internal/migrate/...`, whose `export_test.go` provides `DownTo`
+because `Down` only undoes the newest migration; audit: `./...` from `services/audit-service`); needs
 Docker. The content suite has no
 schema of its own — it applies catalog's migrations from the repo checkout.
 **`make check`, `make test` and CI do not run them**: they stay Docker-free, so
@@ -370,6 +379,17 @@ The logic is entirely SQL, so it is covered by a testcontainers suite
 would assert only argument passing, while a scope filter dropped from one branch
 leaks exactly one class of asset, silently. That suite was checked by removing a
 filter and confirming it fails.
+
+**A hash in a request body is the other half.** `POST /api/territories`,
+`…/source`, `POST /api/models` (source and thumbnail), `PATCH /api/models/{slug}`,
+`POST …/panoramas` and `POST …/documents` accept a hash only if the caller
+finalized that upload (`upload.HasUploaded`) or already passes
+`ResolveBlobAccess` for it (`service/authorize_blob.go`); anything else is
+`400 unknown blob hash`, the same for "someone else's" and "nonexistent". Without
+it, anyone who once learned a hash could attach it to a row of their own and read
+the blob from then on. Root is waved through by `BlobScope.AllAccess`, as in
+`RequireBlobAccess` — `ResolveBlobAccess(hash, "")` means "held by any row", not
+"allowed". A new route taking a hash must call `authorizeBlobs`.
 
 **Added a table with a hash column? Add a branch and a test case.** Otherwise
 the new asset type is reachable by nobody or by everybody, and neither the
@@ -436,7 +456,7 @@ gets stolen.
 - Images are slim distroless (`distroless/static` for static-link Go services, `distroless/cc` for `mesh-worker` because it ships gltfpack alongside).
 - Volumes (all named, Docker-managed for nonroot ownership):
   - `blob-data:/var/blob` — BlobStore root, shared between mesh-worker (rw), asset (ro), and upload (rw).
-  - `upload-incoming:/var/upload/incoming` — partial-upload session state (per-session subdir, deleted on Finalize/Abort).
+  - `upload-incoming:/var/upload/incoming` — partial-upload session state (per-session subdir, deleted on Finalize/Abort), **and** `uploaded/<hash>/<user>`, the H-1 markers of who finalized which hash. Do not clean `uploaded/` as leftover state: without it users can no longer attach their own earlier uploads that they cannot yet read through `ResolveBlobAccess`.
   - `postgres-data`, `redis-data` — datastore persistence.
 - All services log structured JSON via `log/slog`.
 - Every container gets `TZ=Europe/Moscow` from the `x-tz` anchor at the top of the compose file, so the `time` field of each log record reads `+03:00` instead of `Z`. Both distroless bases already ship `/usr/share/zoneinfo`, so no `time/tzdata` import is needed. Two things this does *not* do: `docker logs -t` prefixes stay UTC (the daemon stamps them before the container is involved), and a running container will not pick the zone up — `TZ` is read at creation, so it takes `up -d --force-recreate`, not `restart`.

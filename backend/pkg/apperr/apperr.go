@@ -23,6 +23,9 @@ const (
 	SlugConflict        = "conflict"
 	SlugUnprocessable   = "unprocessable"
 	SlugInternal        = "internal"
+	// SlugPayloadTooLarge accompanies 413: the gateway refused a request body
+	// before any handler read it.
+	SlugPayloadTooLarge = "payload_too_large"
 
 	// SlugTwoFAEnrollmentRequired is a distinct code, not a bare forbidden: the
 	// SPA has to tell "enroll a second factor" apart from "you don't have

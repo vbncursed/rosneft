@@ -21,9 +21,6 @@ var ungatedMutations = map[string]string{
 	"PUT /api/territories/{slug}/admins": "root check in handler",
 	// Read-only offset probe for a resumable upload.
 	"HEAD /api/uploads/{id}": "read, no state change",
-	// OPEN QUESTION (review S, Q5): any session may abort an upload by id; the
-	// id is 128 random bits and the session is not bound to its creator.
-	"DELETE /api/uploads/{id}": "known gap, pending the upload-ownership decision",
 	// Root router, outside the /api sub-router this gate runs on.
 	"HEAD /api/assets/{hash}": "read, gated by RequireBlobAccess",
 

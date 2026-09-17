@@ -31,7 +31,7 @@ func (s *Server) CreateDocument(ctx context.Context, req CreateDocumentRequestOb
 		TerritorySlug:  req.Slug,
 		Title:          body.Title,
 		SourceBlobHash: body.SourceBlobHash,
-	})
+	}, blobScope(ctx))
 	switch {
 	case isInvalid(err):
 		return CreateDocument400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil

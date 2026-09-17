@@ -71,6 +71,7 @@ func (s *RoutePermsSuite) TestEveryContentMutationRouteIsGated() {
 		"POST /api/uploads",
 		"PATCH /api/uploads/{id}",
 		"POST /api/uploads/{id}/finalize",
+		"DELETE /api/uploads/{id}", // was a "known gap" until H-2
 	} {
 		need, gated := routePerms[route]
 		assert.Assert(s.T(), gated, "%s is not gated: RequirePermissionForRoute lets it through", route)

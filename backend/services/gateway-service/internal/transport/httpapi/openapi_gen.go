@@ -5173,6 +5173,20 @@ func (response AbortUpload204Response) VisitAbortUploadResponse(w http.ResponseW
 	return nil
 }
 
+type AbortUpload404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response AbortUpload404JSONResponse) VisitAbortUploadResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type AbortUpload500JSONResponse struct{ InternalJSONResponse }
 
 func (response AbortUpload500JSONResponse) VisitAbortUploadResponse(w http.ResponseWriter) error {

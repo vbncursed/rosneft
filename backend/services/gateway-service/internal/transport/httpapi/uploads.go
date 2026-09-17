@@ -74,7 +74,11 @@ func (s *Server) FinalizeUpload(ctx context.Context, req FinalizeUploadRequestOb
 }
 
 func (s *Server) AbortUpload(ctx context.Context, req AbortUploadRequestObject) (AbortUploadResponseObject, error) {
-	if err := s.svc.AbortUpload(ctx, req.Id); err != nil {
+	err := s.svc.AbortUpload(ctx, req.Id)
+	switch {
+	case isNotFound(err):
+		return AbortUpload404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
+	case err != nil:
 		return AbortUpload500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
 	}
 	return AbortUpload204Response{}, nil

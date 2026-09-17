@@ -40,7 +40,7 @@ func (s *Server) CreatePanorama(ctx context.Context, req CreatePanoramaRequestOb
 		SourceBlobHash: body.SourceBlobHash,
 		Position:       vec3PtrFromAPI(body.Position),
 		YawOffset:      yawOffset,
-	})
+	}, blobScope(ctx))
 	switch {
 	case isInvalid(err):
 		return CreatePanorama400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
