@@ -48,11 +48,12 @@ var (
 	sbModelsM1 = []domain.Model{{Slug: "m1", Title: "Box"}}
 )
 
-// expectFanOut wires the five parallel catalog reads of GetSceneBundle.
+// expectFanOut wires the parallel reads of GetSceneBundle.
 func (s *SceneBundleSuite) expectFanOut(terrArts []domain.Artifact, models []domain.Model, placements []domain.Placement) {
 	s.cat.GetTerritoryMock.Return(domain.Territory{Slug: "t1", Title: "Site"}, nil)
 	s.cat.ListTerritoryArtifactsMock.Return(terrArts, nil)
 	s.cat.ListPlacementsMock.Return(placements, nil)
+	s.cat.ListMeasurementsMock.Return(nil, nil)
 	s.con.ListPanoramasMock.Return(nil, nil)
 	s.con.ListDocumentsMock.Return(nil, nil)
 	s.cat.ListModelsMock.Return(models, nil)
@@ -75,6 +76,7 @@ func (s *SceneBundleSuite) TestPropagatesTerritoryNotFound() {
 	s.cat.GetTerritoryMock.Return(domain.Territory{}, domain.ErrTerritoryNotFound)
 	s.cat.ListTerritoryArtifactsMock.Return(nil, nil)
 	s.cat.ListPlacementsMock.Return(nil, nil)
+	s.cat.ListMeasurementsMock.Return(nil, nil)
 	s.con.ListPanoramasMock.Return(nil, nil)
 	s.con.ListDocumentsMock.Return(nil, nil)
 	s.cat.ListModelsMock.Return(nil, nil)

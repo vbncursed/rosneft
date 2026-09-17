@@ -120,3 +120,68 @@ func (s *RoutePermsSuite) TestVisibilityNeedsPlacementWrite() {
 		})
 	}
 }
+
+// Measurements are shared by everyone who can open the territory, so a reader
+// who could write one would be writing on everyone's scene. Each mutation needs
+// its own grant; the GET needs only the session, as every content read does.
+// Driven through a chi router for the same reason as the visibility test.
+func (s *RoutePermsSuite) TestMeasurementMutationsNeedTheirGrants() {
+	const (
+		collection = "/api/territories/{slug}/measurements"
+		item       = "/api/territories/{slug}/measurements/{id}"
+	)
+	ok := func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }
+	r := chi.NewRouter()
+	gated := r.With(RequirePermissionForRoute)
+	gated.Get(collection, ok)
+	gated.Post(collection, ok)
+	gated.Delete(collection, ok)
+	gated.Put(item, ok)
+	gated.Delete(item, ok)
+
+	reader := []string{"territory:read", "placement:read", "measurement:read"}
+	editor := []string{"territory:read", "measurement:read", "measurement:create", "measurement:write", "measurement:delete"}
+	requests := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodPost, "/api/territories/yard/measurements"},
+		{http.MethodPut, "/api/territories/yard/measurements/7"},
+		{http.MethodDelete, "/api/territories/yard/measurements/7"},
+		{http.MethodDelete, "/api/territories/yard/measurements"},
+	}
+	cases := []struct {
+		name     string
+		perms    []string
+		expected int
+	}{
+		{name: "guest", perms: reader, expected: http.StatusForbidden},
+		{name: "viewer", perms: reader, expected: http.StatusForbidden},
+		{name: "custom role without measurement grants", perms: reader[:2], expected: http.StatusForbidden},
+		{name: "editor", perms: editor, expected: http.StatusNoContent},
+	}
+	for _, tc := range cases {
+		for _, rq := range requests {
+			s.Run(tc.name+" "+rq.method+" "+rq.path, func() {
+				assert.Equal(s.T(), s.serve(r, tc.perms, rq.method, rq.path), tc.expected)
+			})
+		}
+		s.Run(tc.name+" reads", func() {
+			assert.Equal(s.T(), s.serve(r, tc.perms, http.MethodGet, "/api/territories/yard/measurements"), http.StatusNoContent)
+		})
+	}
+
+	// Each route names exactly its grant: create cannot update, write cannot delete.
+	assert.DeepEqual(s.T(), routePerms["POST "+collection], []string{"measurement:create"})
+	assert.DeepEqual(s.T(), routePerms["PUT "+item], []string{"measurement:write"})
+	assert.DeepEqual(s.T(), routePerms["DELETE "+item], []string{"measurement:delete"})
+	assert.DeepEqual(s.T(), routePerms["DELETE "+collection], []string{"measurement:delete"})
+}
+
+func (s *RoutePermsSuite) serve(r http.Handler, perms []string, method, path string) int {
+	req := httptest.NewRequestWithContext(
+		withPrincipal(s.T().Context(), "u1", perms, false, "admin", "admin"), method, path, http.NoBody)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+	return rec.Code
+}

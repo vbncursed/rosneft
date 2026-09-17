@@ -423,6 +423,33 @@ type LoginResponse struct {
 	TwoFactorRequired *bool   `json:"twoFactorRequired,omitempty"`
 }
 
+// Measurement A saved ruler chain on a territory, shared by everyone who can open
+// it. Points are in the territory's normalised scene space — the space
+// placement positions use — in drawing order. A closed chain has an
+// implicit last segment back to its first point.
+type Measurement struct {
+	Closed        bool      `json:"closed"`
+	CreatedAt     time.Time `json:"createdAt"`
+	Id            int64     `json:"id"`
+	Points        []Vec3    `json:"points"`
+	TerritorySlug string    `json:"territorySlug"`
+	UpdatedAt     time.Time `json:"updatedAt"`
+}
+
+// MeasurementWrite The full chain; PUT replaces points and closed together. At least
+// two points, at least three when closed, at most 1000, all finite —
+// anything else is 400.
+type MeasurementWrite struct {
+	Closed bool   `json:"closed"`
+	Points []Vec3 `json:"points"`
+}
+
+// MeasurementsDeleted defines model for MeasurementsDeleted.
+type MeasurementsDeleted struct {
+	// Deleted How many measurements were removed.
+	Deleted int `json:"deleted"`
+}
+
 // MetricPoint defines model for MetricPoint.
 type MetricPoint struct {
 	// T Unix timestamp in seconds
@@ -606,13 +633,16 @@ type PlacementVisibilityUpdate struct {
 
 // SceneBundle Single-shot bundle for the viewer page. Includes the requested
 // territory, its current LOD0 artifact (when present), all
-// placements on it, and the list of available models with their
-// artifacts for the placement picker.
+// placements and saved measurements on it, and the list of available
+// models with their artifacts for the placement picker.
 type SceneBundle struct {
 	Artifact *Artifact `json:"artifact,omitempty"`
 
 	// Documents PDF documents attached to this territory.
-	Documents    *[]Document   `json:"documents,omitempty"`
+	Documents *[]Document `json:"documents,omitempty"`
+
+	// Measurements Saved measurement chains on this territory, by id; empty when none.
+	Measurements []Measurement `json:"measurements"`
 	ModelOptions []AssetOption `json:"modelOptions"`
 
 	// Panoramas Equirect panoramas anchored to this territory. The viewer
@@ -814,6 +844,12 @@ type SetTerritoryAdminsJSONRequestBody = TerritoryAdmins
 // CreateDocumentJSONRequestBody defines body for CreateDocument for application/json ContentType.
 type CreateDocumentJSONRequestBody = DocumentCreate
 
+// CreateMeasurementJSONRequestBody defines body for CreateMeasurement for application/json ContentType.
+type CreateMeasurementJSONRequestBody = MeasurementWrite
+
+// UpdateMeasurementJSONRequestBody defines body for UpdateMeasurement for application/json ContentType.
+type UpdateMeasurementJSONRequestBody = MeasurementWrite
+
 // CreatePanoramaJSONRequestBody defines body for CreatePanorama for application/json ContentType.
 type CreatePanoramaJSONRequestBody = PanoramaCreate
 
@@ -903,6 +939,21 @@ type ServerInterface interface {
 	// Remove a document
 	// (DELETE /api/territories/{slug}/documents/{id})
 	DeleteDocument(w http.ResponseWriter, r *http.Request, slug string, id int64)
+	// Remove every measurement on a territory
+	// (DELETE /api/territories/{slug}/measurements)
+	DeleteMeasurements(w http.ResponseWriter, r *http.Request, slug string)
+	// List saved measurements on a territory
+	// (GET /api/territories/{slug}/measurements)
+	ListMeasurements(w http.ResponseWriter, r *http.Request, slug string)
+	// Save a finished measurement chain
+	// (POST /api/territories/{slug}/measurements)
+	CreateMeasurement(w http.ResponseWriter, r *http.Request, slug string)
+	// Remove a measurement
+	// (DELETE /api/territories/{slug}/measurements/{id})
+	DeleteMeasurement(w http.ResponseWriter, r *http.Request, slug string, id int64)
+	// Replace a measurement chain
+	// (PUT /api/territories/{slug}/measurements/{id})
+	UpdateMeasurement(w http.ResponseWriter, r *http.Request, slug string, id int64)
 	// List panoramas anchored to a territory
 	// (GET /api/territories/{slug}/panoramas)
 	ListPanoramas(w http.ResponseWriter, r *http.Request, slug string)
@@ -1086,6 +1137,36 @@ func (_ Unimplemented) CreateDocument(w http.ResponseWriter, r *http.Request, sl
 // Remove a document
 // (DELETE /api/territories/{slug}/documents/{id})
 func (_ Unimplemented) DeleteDocument(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Remove every measurement on a territory
+// (DELETE /api/territories/{slug}/measurements)
+func (_ Unimplemented) DeleteMeasurements(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List saved measurements on a territory
+// (GET /api/territories/{slug}/measurements)
+func (_ Unimplemented) ListMeasurements(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Save a finished measurement chain
+// (POST /api/territories/{slug}/measurements)
+func (_ Unimplemented) CreateMeasurement(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Remove a measurement
+// (DELETE /api/territories/{slug}/measurements/{id})
+func (_ Unimplemented) DeleteMeasurement(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Replace a measurement chain
+// (PUT /api/territories/{slug}/measurements/{id})
+func (_ Unimplemented) UpdateMeasurement(w http.ResponseWriter, r *http.Request, slug string, id int64) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1890,6 +1971,154 @@ func (siw *ServerInterfaceWrapper) DeleteDocument(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteMeasurements operation middleware
+func (siw *ServerInterfaceWrapper) DeleteMeasurements(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteMeasurements(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListMeasurements operation middleware
+func (siw *ServerInterfaceWrapper) ListMeasurements(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMeasurements(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateMeasurement operation middleware
+func (siw *ServerInterfaceWrapper) CreateMeasurement(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateMeasurement(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteMeasurement operation middleware
+func (siw *ServerInterfaceWrapper) DeleteMeasurement(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteMeasurement(w, r, slug, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateMeasurement operation middleware
+func (siw *ServerInterfaceWrapper) UpdateMeasurement(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateMeasurement(w, r, slug, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListPanoramas operation middleware
 func (siw *ServerInterfaceWrapper) ListPanoramas(w http.ResponseWriter, r *http.Request) {
 
@@ -2545,6 +2774,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/territories/{slug}/documents/{id}", wrapper.DeleteDocument)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/territories/{slug}/measurements", wrapper.DeleteMeasurements)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/territories/{slug}/measurements", wrapper.ListMeasurements)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/territories/{slug}/measurements", wrapper.CreateMeasurement)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/territories/{slug}/measurements/{id}", wrapper.DeleteMeasurement)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/territories/{slug}/measurements/{id}", wrapper.UpdateMeasurement)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/territories/{slug}/panoramas", wrapper.ListPanoramas)
@@ -3870,6 +4114,366 @@ func (response DeleteDocument500JSONResponse) VisitDeleteDocumentResponse(w http
 	return err
 }
 
+type DeleteMeasurementsRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type DeleteMeasurementsResponseObject interface {
+	VisitDeleteMeasurementsResponse(w http.ResponseWriter) error
+}
+
+type DeleteMeasurements200JSONResponse MeasurementsDeleted
+
+func (response DeleteMeasurements200JSONResponse) VisitDeleteMeasurementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMeasurements400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response DeleteMeasurements400JSONResponse) VisitDeleteMeasurementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMeasurements403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteMeasurements403JSONResponse) VisitDeleteMeasurementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMeasurements404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteMeasurements404JSONResponse) VisitDeleteMeasurementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMeasurements500JSONResponse struct{ InternalJSONResponse }
+
+func (response DeleteMeasurements500JSONResponse) VisitDeleteMeasurementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMeasurementsRequestObject struct {
+	Slug string `json:"slug"`
+}
+
+type ListMeasurementsResponseObject interface {
+	VisitListMeasurementsResponse(w http.ResponseWriter) error
+}
+
+type ListMeasurements200JSONResponse []Measurement
+
+func (response ListMeasurements200JSONResponse) VisitListMeasurementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMeasurements404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response ListMeasurements404JSONResponse) VisitListMeasurementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMeasurements500JSONResponse struct{ InternalJSONResponse }
+
+func (response ListMeasurements500JSONResponse) VisitListMeasurementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateMeasurementRequestObject struct {
+	Slug string `json:"slug"`
+	Body *CreateMeasurementJSONRequestBody
+}
+
+type CreateMeasurementResponseObject interface {
+	VisitCreateMeasurementResponse(w http.ResponseWriter) error
+}
+
+type CreateMeasurement201JSONResponse Measurement
+
+func (response CreateMeasurement201JSONResponse) VisitCreateMeasurementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateMeasurement400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreateMeasurement400JSONResponse) VisitCreateMeasurementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateMeasurement403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreateMeasurement403JSONResponse) VisitCreateMeasurementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateMeasurement404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreateMeasurement404JSONResponse) VisitCreateMeasurementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateMeasurement500JSONResponse struct{ InternalJSONResponse }
+
+func (response CreateMeasurement500JSONResponse) VisitCreateMeasurementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMeasurementRequestObject struct {
+	Slug string `json:"slug"`
+	Id   int64  `json:"id"`
+}
+
+type DeleteMeasurementResponseObject interface {
+	VisitDeleteMeasurementResponse(w http.ResponseWriter) error
+}
+
+type DeleteMeasurement204Response struct {
+}
+
+func (response DeleteMeasurement204Response) VisitDeleteMeasurementResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteMeasurement400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response DeleteMeasurement400JSONResponse) VisitDeleteMeasurementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMeasurement403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response DeleteMeasurement403JSONResponse) VisitDeleteMeasurementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMeasurement404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response DeleteMeasurement404JSONResponse) VisitDeleteMeasurementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMeasurement500JSONResponse struct{ InternalJSONResponse }
+
+func (response DeleteMeasurement500JSONResponse) VisitDeleteMeasurementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMeasurementRequestObject struct {
+	Slug string `json:"slug"`
+	Id   int64  `json:"id"`
+	Body *UpdateMeasurementJSONRequestBody
+}
+
+type UpdateMeasurementResponseObject interface {
+	VisitUpdateMeasurementResponse(w http.ResponseWriter) error
+}
+
+type UpdateMeasurement200JSONResponse Measurement
+
+func (response UpdateMeasurement200JSONResponse) VisitUpdateMeasurementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMeasurement400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response UpdateMeasurement400JSONResponse) VisitUpdateMeasurementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMeasurement403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response UpdateMeasurement403JSONResponse) VisitUpdateMeasurementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMeasurement404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response UpdateMeasurement404JSONResponse) VisitUpdateMeasurementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMeasurement500JSONResponse struct{ InternalJSONResponse }
+
+func (response UpdateMeasurement500JSONResponse) VisitUpdateMeasurementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListPanoramasRequestObject struct {
 	Slug string `json:"slug"`
 }
@@ -4839,6 +5443,21 @@ type StrictServerInterface interface {
 	// Remove a document
 	// (DELETE /api/territories/{slug}/documents/{id})
 	DeleteDocument(ctx context.Context, request DeleteDocumentRequestObject) (DeleteDocumentResponseObject, error)
+	// Remove every measurement on a territory
+	// (DELETE /api/territories/{slug}/measurements)
+	DeleteMeasurements(ctx context.Context, request DeleteMeasurementsRequestObject) (DeleteMeasurementsResponseObject, error)
+	// List saved measurements on a territory
+	// (GET /api/territories/{slug}/measurements)
+	ListMeasurements(ctx context.Context, request ListMeasurementsRequestObject) (ListMeasurementsResponseObject, error)
+	// Save a finished measurement chain
+	// (POST /api/territories/{slug}/measurements)
+	CreateMeasurement(ctx context.Context, request CreateMeasurementRequestObject) (CreateMeasurementResponseObject, error)
+	// Remove a measurement
+	// (DELETE /api/territories/{slug}/measurements/{id})
+	DeleteMeasurement(ctx context.Context, request DeleteMeasurementRequestObject) (DeleteMeasurementResponseObject, error)
+	// Replace a measurement chain
+	// (PUT /api/territories/{slug}/measurements/{id})
+	UpdateMeasurement(ctx context.Context, request UpdateMeasurementRequestObject) (UpdateMeasurementResponseObject, error)
 	// List panoramas anchored to a territory
 	// (GET /api/territories/{slug}/panoramas)
 	ListPanoramas(ctx context.Context, request ListPanoramasRequestObject) (ListPanoramasResponseObject, error)
@@ -5518,6 +6137,152 @@ func (sh *strictHandler) DeleteDocument(w http.ResponseWriter, r *http.Request, 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(DeleteDocumentResponseObject); ok {
 		if err := validResponse.VisitDeleteDocumentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteMeasurements operation middleware
+func (sh *strictHandler) DeleteMeasurements(w http.ResponseWriter, r *http.Request, slug string) {
+	var request DeleteMeasurementsRequestObject
+
+	request.Slug = slug
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteMeasurements(ctx, request.(DeleteMeasurementsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteMeasurements")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteMeasurementsResponseObject); ok {
+		if err := validResponse.VisitDeleteMeasurementsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListMeasurements operation middleware
+func (sh *strictHandler) ListMeasurements(w http.ResponseWriter, r *http.Request, slug string) {
+	var request ListMeasurementsRequestObject
+
+	request.Slug = slug
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListMeasurements(ctx, request.(ListMeasurementsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListMeasurements")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListMeasurementsResponseObject); ok {
+		if err := validResponse.VisitListMeasurementsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateMeasurement operation middleware
+func (sh *strictHandler) CreateMeasurement(w http.ResponseWriter, r *http.Request, slug string) {
+	var request CreateMeasurementRequestObject
+
+	request.Slug = slug
+
+	var body CreateMeasurementJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateMeasurement(ctx, request.(CreateMeasurementRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateMeasurement")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateMeasurementResponseObject); ok {
+		if err := validResponse.VisitCreateMeasurementResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteMeasurement operation middleware
+func (sh *strictHandler) DeleteMeasurement(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	var request DeleteMeasurementRequestObject
+
+	request.Slug = slug
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteMeasurement(ctx, request.(DeleteMeasurementRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteMeasurement")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteMeasurementResponseObject); ok {
+		if err := validResponse.VisitDeleteMeasurementResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateMeasurement operation middleware
+func (sh *strictHandler) UpdateMeasurement(w http.ResponseWriter, r *http.Request, slug string, id int64) {
+	var request UpdateMeasurementRequestObject
+
+	request.Slug = slug
+	request.Id = id
+
+	var body UpdateMeasurementJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateMeasurement(ctx, request.(UpdateMeasurementRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateMeasurement")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateMeasurementResponseObject); ok {
+		if err := validResponse.VisitUpdateMeasurementResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

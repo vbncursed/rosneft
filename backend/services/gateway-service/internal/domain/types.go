@@ -137,6 +137,7 @@ type SceneBundle struct {
 	ModelOptions []AssetOption
 	Panoramas    []Panorama
 	Documents    []Document
+	Measurements []Measurement
 }
 
 // Placement is the gateway view of a positioned model on a territory.

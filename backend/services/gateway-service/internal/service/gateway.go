@@ -40,6 +40,12 @@ type Catalog interface {
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, territorySlug string, id int64) error
+
+	ListMeasurements(ctx context.Context, territorySlug string) ([]domain.Measurement, error)
+	CreateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
+	UpdateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
+	DeleteMeasurement(ctx context.Context, territorySlug string, id int64) error
+	DeleteMeasurements(ctx context.Context, territorySlug string) (int, error)
 }
 
 // Content is the content-service client surface this service calls.

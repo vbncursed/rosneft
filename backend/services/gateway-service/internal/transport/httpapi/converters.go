@@ -164,6 +164,7 @@ func sceneBundleToAPI(b domain.SceneBundle) SceneBundle {
 		Territory:    territoryToAPI(b.Territory),
 		Placements:   make([]Placement, len(b.Placements)),
 		ModelOptions: make([]AssetOption, len(b.ModelOptions)),
+		Measurements: measurementsToAPI(b.Measurements),
 	}
 	for i, p := range b.Placements {
 		out.Placements[i] = placementToAPI(p)
