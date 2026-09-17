@@ -39,7 +39,7 @@ the loop would starve the whole chain.
 - Catalog client lives inside `mesh-service/internal/catalog/`; mesh-service depends on a small interface, not the proto types.
 - Bootstrap pattern: `internal/bootstrap/` wires service+transport+config and is the only place that touches `os.Args`/env/clients.
 - Errors are sentinels in `domain/errors.go`; transport translates them to gRPC `codes.*` / HTTP statuses.
-- **File size cap: 200 lines**, same as the frontend rule. Reviewed by hand on the backend (no oxlint equivalent).
+- **File size cap: 200 lines**, same as the frontend rule. Reviewed by hand (neither side has a linter for it).
 - **Tests**: `testify/suite` for grouping + `gotest.tools/v3/assert` for assertions + `gojuno/minimock/v3` for interface mocks. Stdlib `testing` alone is not used in new tests. Service dependencies are mocked via `//go:generate minimock -i <Interfaces> -o ./mocks -s _mock.go` on the interface file (mirrors auth-service); the generated `mocks/` package is lint-exempt. Assertions stay `gotest.tools` even inside suite methods (`assert.X(s.T(), …)`, not `s.Equal()`). Build the controller per test in `SetupTest` with `minimock.NewController(s.T())` (auto-verifies on cleanup — no manual `AssertExpectations`). For an errgroup/derived-context call, match the ctx with `minimock.AnyContext`.
 
 ## Build / run
@@ -143,6 +143,7 @@ Each entity has its own artifact family (`territory_artifacts` / `model_artifact
    - `MESH_LOD_RATIOS=0.5,0.25` (default) → for each ratio, run `gltfpack -si <r> -ts <r>` against the **uncompressed** GLB to produce LOD1, LOD2, …. LOD0 itself is never simplified (it stays full quality). Frontends that don't request lower LODs simply ignore the extra artifacts.
      - **`-ts` takes the same ratio as `-si`, and the input must be the raw GLB.** gltfpack cannot decode Basis Universal, so a pass fed the already-compressed LOD0 silently ignores `-ts` and every LOD ships full-resolution textures. That is why `ConvertLODs` calls `convertRaw` and hands `raw.content` to `Simplify` rather than reusing `base.Content` — see `converter/raw.go`.
      - Measured on `dji-wp-46-cut` (1.8M triangles): adding `-ts` took LOD2 from 37.8% to **23.3%** of LOD0's bytes. Textures turned out to be only ~17% of the file, not the majority — meshopt compression already does most of the work — but they were a fixed floor the coarse LOD could not get under.
+     - Every LOD records its own `vertices`/`faces`, read back from the produced GLB's glTF header (`glb_stats.go`), and copies LOD0's source-unit bounding box; a decode failure leaves that LOD's counts at zero without failing the job (`simplifyLOD`, `convert_lods.go`), and artifacts converted before this landed aren't backfilled (their LOD1/2 counts stay 0).
 6. Worker writes each LOD GLB to BlobStore (content-addressed, SHA-256 filename, 2-char prefix sharding) and calls `RegisterTerritoryArtifact` or `RegisterModelArtifact` (selected by Job.Kind) in catalog.
 7. Reconciler runs in-process every 5 minutes (`reconcileTickInterval`): lists every territory + model via the catalog client, queues `SubmitConversion` for any without a LOD0 artifact — auto-recovers stuck conversions without manual trigger. The same tick also **sweeps the target index** (`andrey:mesh:targets`), forgetting entries for targets the catalog no longer lists, so a deleted territory or model drops out of `GET /api/jobs` within one tick instead of sitting there forever. The job hash itself is kept, so an SSE subscriber holding the id can still read it.
 
@@ -213,14 +214,14 @@ Deliberately unwrapped, each with a comment saying why: the artifact registrars
 in catalog (their tables carry no trigger) and `users.MarkTourSeen` (it writes
 only ignored columns).
 
-**Adding an audited table? Update `frontend/src/audit/domain/vocabulary.ts`
-too.** The journal's filter bar keeps its own copy of the entity list, and
-nothing links the two — no compiler, and no test either: `vocabulary.test.ts`
-pins the list to what it already contains, so a table added here keeps passing
-it. The symptom is silent and one-sided: entries for the new entity show up in
-the journal, because `entity` comes from the server, but the Entity dropdown
-cannot select it. That already happened once — the list sat at eight entities
-while the triggers wrote ten. Note the entity name is the spec array's *second*
+**Adding an audited table? The frontend keeps no entity list** — the journal's
+`entity:` filter is free text, so a new entity is filterable the moment the
+trigger writes it. (The old SPA kept a hand-copied list, and it once sat at
+eight entities while the triggers wrote ten.) What the client does special-case
+is a row's name: `entityName` (`frontend/src/entities/audit/model/audit-entry.ts`)
+prints `entityLabel`, and falls back to `measurement #id` for the one table
+whose trigger records no label — a new label-less table needs a line there, or
+its rows read nameless. Note the entity name is the spec array's *second*
 column (`territory_assignments` → `territory`), and a new one arrives in a new
 migration that `CREATE OR REPLACE`s `ensure_audit_triggers()`, not by editing
 `00002`.

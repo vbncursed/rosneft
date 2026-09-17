@@ -73,7 +73,6 @@ equirect_panoramas/
 
 # Vendored pdf.js runtime uses a build/ dir; the generic build/ rule above must not drop it
 !frontend/public/pdfjs/build/
-!frontend-v2/public/pdfjs/build/
 
 # local screenshots
 /ui*.png

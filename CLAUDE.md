@@ -13,185 +13,39 @@ catch Docker-build failures that `make lint` cannot see): [`backend/CLAUDE.md`](
 
 ## CI
 
-Five workflows, and until 2026-09-01 there was one. `backend.yml` runs
-`make -C backend check`; `frontend.yml` runs lint, both test runners, the build
-and a production-dependency audit; `frontend-v2.yml` runs the same shape
-against the redesign (lint, `test:coverage` with its 90/85/90/90 thresholds
-in place of a plain test run, build, audit); `desktop.yml` runs
-`make -C desktop check`, `cargo audit` and the three-platform bundle;
-`dependabot.yml` watches gomod, npm, cargo **and github-actions**. Each
-workflow invokes the same Makefile or yarn script a developer runs, never a
-reimplementation of it in YAML — the failure that shape produces is a green
-PR that a local commit would reject.
+Four workflows, and until 2026-09-01 there was one. `backend.yml` runs
+`make -C backend check`; `frontend.yml` runs lint, `test:coverage` (vitest
+with its 90/85/90/90 thresholds, in place of a plain test run), the build and
+a production-dependency audit; `desktop.yml` runs `make -C desktop check`,
+`cargo audit` and the three-platform bundle; `dependabot.yml` watches gomod,
+npm, cargo **and github-actions**. Each workflow invokes the same Makefile or
+yarn script a developer runs, never a reimplementation of it in YAML — the
+failure that shape produces is a green PR that a local commit would reject.
 
-## Two frontends
+## Frontend (`frontend/`)
 
-`frontend/` is the app in production. `frontend-v2/` is the redesign, built
-against the Claude Design project `Design System.dc.html` — Feature-Sliced, its
-own component library, a router and a working sign-in against the real
-gateway; every console screen is wired against the gateway, and so are the six
-catalog screens — `/territories`, `/models`, both upload forms, the model
-page (`/models/{slug}`) and the territory replace-source form
-(`/territories/{slug}/replace`) — which live in their own sidebar-free shell
-and drive the real chunked-upload protocol. `/account` and
-`/account/two-factor` — password change, 2FA enrolment/disable, passkey
-management, the caller's own activity feed — live in the same shell.
-`/territories/{slug}` is the v2 viewer (three.js, `widgets/viewer-canvas`, its
-own `lazy()`-loaded code-split chunk) once a territory's LOD0 has converted;
-until then, or while a `?jobId=` is being watched, the same route renders the
-conversion-pending page (SSE by `jobId`, the jobs poll as the fallback).
-**Home is v2 now**: `/` (`frontend-v2/src/pages/home`)
-is the landing page — the conversions in flight, the four most recently
-updated territories, five models, the console doorways with counts, and the
-reader's own activity. **The whole viewer is v2 now** — package B brought the
-last two overlays across, so equirect panoramas (the sphere, the anchors, the
-calibration, the markers) and the PDF windows are wired against the gateway
-there too, and no screen is still reached in `frontend/` by following a link
-from v2. `frontend/` stays the production app until the switch; it is not
-being changed. Sign-in with no `?next=` lands on `/`.
-**Working in it? Read [`frontend-v2/CLAUDE.md`](frontend-v2/CLAUDE.md)
-first**: it records the design decisions, the user's working rules, and the
-tooling traps (chief among them that `tsc --noEmit` type-checks nothing there, and that a parallel session
-works in `backend/` so commits must be staged by path).
+One SPA: Vite 8 + React 19 + TypeScript 7, Tailwind 4, TanStack Router and
+Query, laid out Feature-Sliced (`app → pages → widgets → features → entities
+→ shared`) and built against the Claude Design project
+`Design System.dc.html`. It is Home, the catalog, the account pages, the
+admin console and the territory viewer (three.js, panoramas, PDFs), all
+wired against the real gateway. It was `frontend-v2/` — the redesign — until
+2026-09-17, when the previous app was deleted (commit `3d5ce2d2`) and this one
+took over its directory; that app's Clean-Architecture/DDD layout, its
+`src/routes/` tree and its rules are gone with it. It is served by nginx in
+production and embedded by the desktop shell. `yarn dev` runs it on port
+**3000**, the origin `PASSKEY_RP_ORIGINS` lists.
 
-Everything below this line describes `frontend/`.
-
-# Frontend is a Vite + React SPA (no Next.js)
-
-The frontend is a client-only single-page app: Vite 8 + React 19, routed with
-`@tanstack/react-router` (route tree in `src/routes/`) and served data through
-`@tanstack/react-query`. There is no server runtime, no RSC, no App Router.
-Entry point is `src/main.tsx`. Check the installed versions in
-`frontend/node_modules/@tanstack/*` when an API looks unfamiliar.
-
-**Never write `"use client"`.** It marks a server/client boundary that does not
-exist here; every module is already client-side and the bundler ignores it. 62
-files carried it as migration residue and were cleaned out — don't reintroduce
-it by copying a neighbouring file.
-
-## Commands
-
-All commands run from `frontend/`:
-
-```bash
-yarn dev          # Vite dev server (http://localhost:3000, /api proxied to the gateway)
-yarn build        # Production build → dist/
-yarn preview      # Serve the production build locally
-yarn lint         # tsc --noEmit + oxlint (.oxlintrc.json)
-yarn test         # Domain unit tests (node --test, src/**/*.test.ts)
-yarn test:spa     # Component/integration tests (vitest, src/**/*.spec.ts[x])
-```
-
-## Stack
-
-- **Vite 8 + React 19** SPA. Routing: `@tanstack/react-router` (`src/routes/`). Data: `@tanstack/react-query`. Entry: `src/main.tsx`.
-- **TypeScript 7** (the native port) strict mode, bundler module resolution. Single path alias `@/*` → `frontend/src/*`.
-- **Tailwind CSS 4** via `@tailwindcss/postcss` — uses `@import "tailwindcss"` and `@theme inline` syntax, not v3 `@tailwind` directives
-- **oxlint** (`.oxlintrc.json`), not ESLint — typescript-eslint refuses to load under TypeScript 7, so the flat config could not run at all. The rule set deliberately mirrors what ESLint enforced (unicorn off) so the swap changed the engine, not the policy. **Keep the config strict JSON: no comments** — an editor's JSON validator flags them, and `.jsonc` falls off oxlint's default discovery so the editor extension would silently lint with its own rules. Rationale per rule: [`frontend/README.md#linting`](frontend/README.md#linting).
-
-## Architecture rules (hard)
-
-- **Clean Architecture + DDD**. Every file lives in one of four layers under a bounded context: `domain/`, `application/`, `infrastructure/`, `presentation/`.
-- **Hard cap: 200 lines per file** (skipBlankLines, skipComments). Enforced by oxlint. Generated files are exempted explicitly.
-- **No speculative abstractions, no dead code, no helpers "just in case"** — only what the current task requires.
-- Dependencies point strictly inward: `domain ← application ← presentation`. Domain imports nothing outward; application never imports presentation. Presentation talks to `application/` use cases or an `infrastructure/` gateway that already returns domain entities — never DTO types.
-- DTO→domain mapping happens inside gateways; openapi-typescript output is treated as an internal implementation detail.
-
-### Allowed exceptions to layering
-
-- **`territory/` aggregates `placement/` domain types in the SceneBundle response.** `territory-gateway.ts` imports `Placement` and `PlacementAssetOption` from `@/placement/domain` because `SceneBundle` is the server-side aggregate that joins territory + artifact + placements + model options in one call. This is the only sanctioned cross-context domain import; do not extend it to other contexts.
-
-## UI animations
-
-UI animations use the `motion` library (import from `motion/react` — never `framer-motion`). Shared variant/transition presets, a reduced-motion helper, and reusable wrappers (`MotionOverlay`, `MotionModal`, `MotionDrawer`, `MotionList`/`MotionItem`) live in `@/shared/presentation/motion/`; import them from there rather than inlining variants or hand-rolling `AnimatePresence` per component. `motion` is **presentation-only** — never import it in `domain/`, `application/`, or `infrastructure/`. Every animated surface must respect `prefers-reduced-motion` via `useResolvedVariants` (its pure core `resolveVariants` is unit-tested). Keep animated files under the 200-line cap by leaning on the wrappers; extract a sub-section rather than inlining motion mechanics.
-
-## Project layout
-
-```
-frontend/
-  src/
-    main.tsx                            # entry: QueryClientProvider + RouterProvider
-    globals.css                         # Tailwind entry + self-hosted fonts
-    routes/                             # TanStack Router route tree (client-only)
-      router.tsx, root.tsx, layout.tsx  # tree + authed layout guard
-      login.tsx, home.tsx, territory-viewer.tsx, territories.tsx, models.tsx,
-      model-detail.tsx, *-new.tsx, account.tsx                 # each exports a route
-      admin.tsx, admin-users.tsx, admin-roles.tsx, admin-metrics.tsx, ...
-      guard.ts                          # redirect-to-login / permission guards
-    shared/
-      domain/{vec3.ts, lod-artifact.ts, artifact.ts, job.ts}
-      infrastructure/
-        api/dto.ts                      # openapi-typescript output (autogen, lint-exempt)
-        http/{client.ts, http-error.ts, ...}
-        query/query-client.ts
-        asset-url.ts
-      application/{lod-url.ts, toast/{notify.ts, toast-store.ts, toast.ts}}
-      presentation/toast/toaster.tsx    # React Toaster; the store lives in application
-    territory/                          # bounded context: parent scenes
-      domain/{territory.ts, scene-bundle.ts}
-      infrastructure/territory-gateway.ts
-    model/                              # bounded context: placeable assets
-      domain/model.ts
-      infrastructure/model-gateway.ts
-    upload/                             # bounded context: chunked uploads (tus-style)
-      domain/session.ts
-      infrastructure/upload-gateway.ts
-      application/use-chunked-upload.ts
-      presentation/components/{upload-form.tsx, field.tsx, progress-bar.tsx}
-    placement/                          # bounded context: scene overlays
-      domain/{placement.ts, transform.ts, mutation-state.ts,
-              gizmo-mode.ts, asset-option.ts}
-      application/use-placements-editor.ts
-      infrastructure/placement-gateway.ts
-      presentation/
-        components/{placements-panel.tsx, placement-row.tsx,
-                    placement-form.tsx, create-placement-row.tsx,
-                    mode-toggle.tsx, vec3-field.tsx, empty-state.tsx}
-        three/{placement-instance.tsx, placements-layer.tsx}
-    measurement/                        # bounded context: measure tool
-      domain/{measurement.ts, distance.ts, unit-ratio.ts}
-      application/use-measurement-tool.ts
-      presentation/
-        components/measure-button.tsx
-        three/{measurement-layer.tsx, measurement-segment.tsx, point-marker.tsx}
-    viewer/                             # bounded context: 3D scene composition
-      domain/model-metadata.ts
-      application/use-keyboard-shortcuts.ts
-      presentation/
-        components/{model-viewer.tsx, viewer-entry.tsx, viewer-skeleton.tsx,
-                    ui-overlay.tsx, model-info-panel.tsx,
-                    loading-progress.tsx, reset-camera-button.tsx}
-        three/{scene-canvas.tsx, gltf-model.tsx, camera-rig.tsx, lighting.tsx,
-               gltf-loader-setup.ts}
-    conversion/                         # bounded context: pending conversion screen
-      application/{use-conversion-watcher.ts, use-job-stream.ts}
-      presentation/conversion-pending.tsx
-    panorama/                           # equirect panorama tours + scene markers
-    document/                           # PDF overlays anchored to a territory
-    auth/                               # login, session marker, RBAC, passkeys, 2FA, admin console
-    metrics/                            # owner-only Prometheus dashboard
-    audit/                              # bounded context: the change journal
-      domain/{audit-entry.ts, diff.ts}  # diff.ts is pure — node --test
-      infrastructure/audit-gateway.ts
-      application/use-audit-log.ts      # useInfiniteQuery, cursor paging
-      presentation/components/          # panel, table, row, filters, diff, export
-    onboarding/                         # guided tour
-    app-shell/  login/                  # top-level layout + login screen
-```
-
-`@/*` resolves to `frontend/src/*`. Route modules in `src/routes/` are client components: they read params/search, call TanStack Query (or a gateway), and render each context's `presentation/`.
-
-## Key conventions
-
-- Tailwind v4 syntax: `@theme inline` block for design tokens, `@import "tailwindcss"` instead of `@tailwind base/components/utilities`
-- oxlint config is `.oxlintrc.json` (comments allowed). There is no `eslint.config.mjs` any more — do not add one back.
-- Every route sets its own `<title>` through TanStack's `head` option plus `titleMeta()` (`shared/presentation/page-title.ts`); `<HeadContent />` lives in `routes/root.tsx`. Deepest match wins. **Open-Graph/Twitter tags are static in `index.html` and cannot be per-route** — no unfurler runs JavaScript, so they read the one shell this SPA serves for every URL. Setting `og:` from a route's `head` looks right in the browser and changes nothing in any preview.
-- Two test runners: pure domain logic → `node --test` (`*.test.ts`); jsdom/React → vitest (`*.spec.ts[x]`). Globs don't overlap.
-- Client env is `VITE_API_URL` — **empty in both dev and prod**. nginx serves the SPA and proxies `/api` in production; Vite's dev server proxies `/api` by default in development. Single origin is not a convenience: it is what lets the httpOnly session cookie ride on `<img>`, the pdf.js `<iframe>` and three.js loader requests, none of which can carry an Authorization header. `VITE_DEV_PROXY` overrides the dev target. Dev runs on port **3000** — `PASSKEY_RP_ORIGINS` lists it, and now also `frontend-v2`'s dev port **3001**, so both SPAs can run a passkey ceremony locally.
+**Working in it? Read [`frontend/CLAUDE.md`](frontend/CLAUDE.md) first**: it
+records the design decisions, the user's working rules, the production shell
+(single origin, `VITE_API_URL` empty, the PWA files in `public/`), and the
+tooling traps — chief among them that `tsc --noEmit` type-checks nothing there,
+and that a parallel session works in `backend/` so commits must be staged by
+path.
 
 ## Desktop shell (`desktop/`)
 
-Tauri v2 wrapper around the same SPA. A loopback axum server inside the Rust
+Tauri v2 wrapper around the SPA in `frontend/`. A loopback axum server inside the Rust
 process serves the embedded `frontend/dist` through `app.asset_resolver()` and
 proxies `/api` to the gateway, reproducing production's nginx topology. That is
 deliberate and load-bearing: the frontend is single-origin by design — the
@@ -350,7 +204,9 @@ the origin breaks asset loading while login still appears to work.
   still resolved to the *previous* user and a cache hit handed B one of A's
   blobs with no gateway call, defeating the per-user split entirely.
 - Passkeys are unavailable in the shell (the RP origin is a loopback port).
-  `isPasskeySupported()` is the single gate — do not add a second check.
+  `isPasskeySupported()` (`frontend/src/entities/passkey`) is the single gate —
+  it reads the `window.__DESKTOP__` flag `main.rs` injects; do not add a
+  second check.
 - Logging is `tauri-plugin-log` at `Info` (Trace is tao's webview firehose); a
   bind failure raises a native dialog through `tauri-plugin-dialog` and exits.
   Use `show`, not `blocking_show` — `setup()` runs on the main thread and
@@ -360,43 +216,6 @@ the origin breaks asset loading while login still appears to work.
   a separate binary from the `tauri` crate) installed locally; CI installs it
   itself via `tauri-apps/tauri-action`.
 
-## Territory route composition
-
-`/territories/$slug` is a TanStack Router route. Its loader primes the query
-cache with **one** call — `sceneBundleQuery(slug)` — and the component reads it via
-`useQuery`; the gateway aggregates territory + LOD0 artifact + placements + model
-options + panoramas + documents server-side via errgroup. `toSceneViewModel(bundle)`
-maps it into the viewer's props. No client-side fan-out.
-
-Each placement's `glbUrl` is computed by joining `placement.modelSlug` against the `modelOptions[].slug → glbUrl` map (modelOptions already carries the artifact hash). `usePlacementsEditor` receives `modelOptions` and reuses the same lookup for CRUD round-trips, so no per-mutation `getArtifact` is needed.
-
-When the artifact is missing, the route renders `ConversionPending`. If a `?jobId=…` search param is present (set by the upload form's redirect), it subscribes to `/api/jobs/{id}/events` for live SSE updates and refetches on `succeeded`. Without a jobId, it falls back to a short poll — the worker reconciler eventually queues the conversion, and the route re-renders into the viewer once the artifact lands.
-
-`<SceneCanvas>` keeps `<Bounds fit clip observe>` wrapping only the territory GLB so auto-fit ignores placement instances. Each `<PlacementInstance>` clones its GLB scene via `SkeletonUtils.clone` (Three.js disallows the same Object3D under two parents — without the clone, only one of N instances of the same model would render). useGLTF caches by URL so duplicate-model placements share a single network fetch.
-
-Placement transforms: position in scene units (territory's normalized space, max-axis = 2 after `converter.normalize`), rotation Euler XYZ in radians (the form converts to/from degrees for the human input), per-axis scale (default {1,1,1}). Self-placement is structurally impossible (placements FK to two different tables); the backend still rejects non-positive scale.
-
-In-scene gizmo (drei `<TransformControls>`): clicking a placement selects it; the panel and the scene share `selectedId` lifted into `ModelViewer`. Mode is `translate`/`rotate`/`scale`, switchable via the panel toggle or `T`/`R`/`S` keys; `Esc` deselects; clicking empty space (`onPointerMissed`) deselects. The transform is applied imperatively via `useLayoutEffect` on the placement's group ref — keeping React's JSX out of the write path is what lets TransformControls mutate the object during a drag without React re-renders fighting the gizmo. On `dragging-changed → false` we read the object's current pos/rot/scale and dispatch a PUT; OrbitControls is auto-disabled while dragging via the same event. The form re-keys on `placement.updatedAt` so a successful drag refreshes the panel inputs to the new canonical values.
-
-Draco + KTX2 setup lives in `viewer/presentation/three/gltf-loader-setup.ts`. The module-level `useGLTF.setDecoderPath("/draco/")` call wires up the self-hosted Draco decoder (in `frontend/public/draco/`, copied from `node_modules/three/examples/jsm/libs/draco/gltf/`), and the exported `extendGltfLoader(loader)` callback registers a singleton `KTX2Loader` (from `three-stdlib` for drei type-compat) pointing at `frontend/public/basis/`. Every `useGLTF` / `useGLTF.preload` call in `gltf-model.tsx`, `placement-instance.tsx`, and `model-viewer.tsx` passes `extendGltfLoader` so KTX2 textures decode correctly — drei v10 has no global `setKTX2Loader` static method. Without `extendGltfLoader`, KTX2-textured models render as solid-colour primitives. `KTX2Loader.detectSupport(renderer)` is intentionally skipped — module init runs before a renderer exists, so the transcoder falls back to RGBA8 (file-size win preserved, GPU-format VRAM win deferred).
-
-KTX2/Basis Universal textures (`KHR_texture_basisu`) are produced by mesh-service by default (`MESH_KTX2_ENABLED=true`). The frontend MUST register a `KTX2Loader` explicitly — drei does NOT auto-register it, and a missing loader silently renders KTX2-textured models as solid colour. Setup mirrors the Draco one: copy `node_modules/three/examples/jsm/libs/basis/` into `frontend/public/basis/`, then in `model-viewer.tsx`:
-
-```ts
-import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
-const ktx2Loader = new KTX2Loader().setTranscoderPath('/basis/').detectSupport(renderer);
-useGLTF.setKTX2Loader(ktx2Loader);
-```
-
-LOD generation is on by default with `MESH_LOD_RATIOS=0.5,0.25` — every conversion produces three artifacts: LOD0 (full quality, never simplified), LOD1 (~50% triangles), LOD2 (~25% triangles). Lower LODs also carry textures scaled by the same ratio (`gltfpack -ts`), so they are lighter on the wire and not merely lighter in triangles: on `dji-wp-46-cut`, LOD2 is 23% of LOD0's bytes. Every LOD also records its own `vertices`/`faces`, read back from the produced GLB's glTF header, and copies LOD0's source-unit bounding box (simplification doesn't move the mesh); a decode failure leaves that LOD's counts at zero without failing the job, and artifacts converted before this landed aren't backfilled, so their LOD1/2 counts stay zero.
-
-**Loading is progressive, and both the territory and every placement use the same mechanism.** `useProgressiveLod(chain, targetLod)` (`viewer/application/`) shows the coarsest available level immediately and returns a `warmUrl`; `<LodWarmer>` downloads the target inside its own `<Suspense>` and calls back, at which point the hook swaps `url` to the target. `gltf-model.tsx` and `placement-instance.tsx` both do exactly this with `targetLod: 0`. The pure decision lives in `selectProgressive` (`shared/domain/lod-artifact.ts`) and is unit-tested; the hook is spec-tested with `renderHook`.
-
-This is deliberately **not** drei's `<Detailed>`: the level on screen does not depend on camera distance. A territory is normally framed whole, so distance-based switching would leave it coarse forever, and the measure tool's raycast would hit different geometry depending on zoom.
-
-The hook also owns the fallback ladder — a level that fails to load drops out of the chain by hash. That replaced an index-based ladder that only placements had; the territory previously had no fallback at all. A chain containing only LOD0 yields `warmUrl: null` and behaves exactly as before progressive loading existed, so un-reconverted territories are safe.
-
-`GlbPreloader` warms only the coarsest level of each chain. Do not add LOD0 back to it: racing it into the cache alongside the coarse level puts both on the wire at once and defeats the point.
 
 ## Backend gateway endpoints used by the frontend
 
@@ -407,13 +226,13 @@ The gateway exposes a small REST surface defined in `backend/services/gateway-se
 - `GET /api/territories/{slug}/measurements`, `POST …/measurements` (`{points: Vec3[], closed}` → 201 `Measurement`), `PUT …/measurements/{id}` (same body, replaces the chain), `DELETE …/measurements/{id}` (204) and `DELETE …/measurements` (every measurement on the territory → `{deleted: n}`) — saved ruler chains, shared by everyone who can open the territory. The GET needs only the session; POST needs `measurement:create`, PUT `measurement:write`, both DELETEs `measurement:delete`. A point is `{x, y, z}` in the territory's normalised scene space; a chain has 2–1000 points, a closed one at least 3, anything else is 400. An id of another territory answers 404, like an unknown one.
 - `POST /api/territories` — create a territory from `{slug, title, description, sourceBlobHash}`. Response is `{territory, job}`; redirect to `/territories/{slug}?jobId={job.id}` so the conversion-pending screen can subscribe to SSE.
 - `GET /api/models` / `POST /api/models` / `GET /api/models/{slug}/artifacts` — same shape as territory, model side. `GET /api/models` and the single `GET /api/models/{slug}` both carry `usageCount` (distinct territories placing the model), omitted when it's zero.
-- `POST /api/uploads` → `PATCH /api/uploads/{id}` (raw bytes + `Upload-Offset` header) → `POST /api/uploads/{id}/finalize` — chunked upload protocol. `useChunkedUpload` slices files into 8 MB chunks and drives the loop; the resulting `blobHash` feeds into create-territory / create-model. Resumable: `HEAD /api/uploads/{id}` reports the current offset so a re-attempted client can pick up where it left off.
+- `POST /api/uploads` → `PATCH /api/uploads/{id}` (raw bytes + `Upload-Offset` header) → `POST /api/uploads/{id}/finalize` — chunked upload protocol. `runChunkedUpload` (`entities/upload`) slices files into 8 MB chunks and drives the loop; the resulting `blobHash` feeds into create-territory / create-model. Resumable: `HEAD /api/uploads/{id}` reports the current offset so a re-attempted client can pick up where it left off.
 - `GET /api/auth/2fa` — the caller's own 2FA posture: whether it's on, when it went on, and how many recovery codes remain. `enabledAt` is **omitted**, never guessed, when the enrolment predates the column or 2FA is off. Disabling 2FA and regenerating recovery codes (`POST /api/auth/2fa/disable` / `.../recovery/regenerate`) both take a **current TOTP code** — not a recovery code, and not the password; an earlier mock said "password" and it cost a design round to correct.
 - `GET /api/audit` — the **company's** change journal, cursor-paged over descending `id` (`nextCursor` in the body, and only there — no response header carries it). Filters: `actor`, `action`, `entity`, `from`, `to`, `limit` (default 50, capped at 200). Behind `audit:read` alone; Root passes via the owner bypass. **The company scope comes from the session and is not a parameter** — there is no way to ask for another company's history.
-- `GET /api/audit/mine` — the caller's **own** actions, behind `audit:read_own` or `audit:read`. It declares no `actor` parameter, so there is nothing to merge and nothing to forget to overwrite: the actor comes from the session and no query string can widen it. Root is pinned to its own actions here too. `/account` reads this route and only this route; `/admin/audit` reads `/api/audit`. Keeping them separate is the boundary — when both grants opened one route and the scope resolver preferred the wider one, a Company Owner (who holds both) saw the whole company under a "My activity" heading. It also carries `total` — how many rows the same filters match, paging aside — because the account page pages by number; `GET /api/audit` does not (`include_total` is set only by the `/mine` handler), it is polled and would pay for the count on every tick.
+- `GET /api/audit/mine` — the caller's **own** actions, behind `audit:read_own` or `audit:read`. It declares no `actor` parameter, so there is nothing to merge and nothing to forget to overwrite: the actor comes from the session and no query string can widen it. Root is pinned to its own actions here too. `/account` reads this route and only this route; `/console/audit` reads `/api/audit`. Keeping them separate is the boundary — when both grants opened one route and the scope resolver preferred the wider one, a Company Owner (who holds both) saw the whole company under a "My activity" heading. It also carries `total` — how many rows the same filters match, paging aside — because the account page pages by number; `GET /api/audit` does not (`include_total` is set only by the `/mine` handler), it is polled and would pay for the count on every tick.
 - `GET /api/audit.csv` — the same query streamed as CSV. Stays behind `audit:read` alone: it is the whole company's history in one file, which is not what `audit:read_own` opens. Lives on the root router, outside the ETag/compression chain, because ETag hashes the whole body and would buffer the export. The client fetches and blobs it rather than using a plain `<a download>` — not for auth reasons any more (the session cookie rides on a same-origin link too) but because it wants a filename and an error it can surface, and an `<a>` gives neither.
-- `GET /api/jobs/{id}/events` — Server-Sent Events for one conversion job. Emits `event: job` whenever the job state changes; closes on `succeeded`/`failed`. Job payload carries `kind` and `slug` so the client knows which entity is being converted. An unknown or foreign id answers one `event: error` frame and closes; v2 treats it as "use the poll".
-- `GET /api/jobs` — the latest conversion job per territory/model, succeeded ones excluded, territories filtered to the caller's visible set. `Cache-Control: no-store`; the v2 console polls it every 5 s while anything is running. Each row is the latest job by write order — two concurrent submits for one target are not serialised, so a superseded terminal state can briefly show while a newer job runs. The per-id SSE applies the same rule: a territory job the caller cannot see is "job not found".
+- `GET /api/jobs/{id}/events` — Server-Sent Events for one conversion job. Emits `event: job` whenever the job state changes; closes on `succeeded`/`failed`. Job payload carries `kind` and `slug` so the client knows which entity is being converted. An unknown or foreign id answers one `event: error` frame and closes; the SPA treats it as "use the poll".
+- `GET /api/jobs` — the latest conversion job per territory/model, succeeded ones excluded, territories filtered to the caller's visible set. `Cache-Control: no-store`; the SPA polls it every 5 s while anything is running. Each row is the latest job by write order — two concurrent submits for one target are not serialised, so a superseded terminal state can briefly show while a newer job runs. The per-id SSE applies the same rule: a territory job the caller cannot see is "job not found".
 - **Every route under `/api/territories/{slug}` is gated by `RequireTerritoryAccess`**, a middleware keyed on the route-pattern prefix. A new child resource inherits the gate the moment it is registered — do not add a per-handler scope check instead, that is the shape that failed. It answers 404, never 403: a 403 confirms the territory exists, and to another tenant it must not.
 - `GET /api/assets/{hash}` **requires a session and is scoped to the tenant**: `RequireBlobAccess` asks the catalog whether any row this caller can see holds that hash. A blob hash addresses content and is deduplicated across territories and models, so it has no single territory and `RequireTerritoryAccess` cannot cover it. Model blobs pass for everyone — the library is shared by decision. Refusal is 404 (403 would confirm the blob exists); a catalog failure is 503, because that is neither "yours" nor "missing".
 - **Added a table with a hash column?** Add a branch to `ResolveBlobAccess` and a case to its integration test, or the new asset type is reachable by nobody or by everybody, and nothing else will notice.
@@ -423,4 +242,3 @@ The gateway exposes a small REST surface defined in `backend/services/gateway-se
 - All JSON GETs carry strong ETags and answer `If-None-Match` with 304. Browsers cache automatically — no client-side work required.
 - All JSON responses are Brotli/gzip-compressed when the client advertises `Accept-Encoding: br, gzip`.
 
-Measure tool (`MeasurementLayer` + `MeasureButton`): toggled by the toolbar button or `M` key. Two clicks on any visible surface (parent GLB or a placement) form one measurement — drei `<Line>` between the points, sphere markers at both ends, and a midpoint `<Html>` label with the distance. While `measureMode` is on the gizmo unmounts and `PlacementInstance` skips its own `stopPropagation` so the click bubbles up to the wrapper-group's `onClick` handler that captures `event.point`. The label converts scene units to source units by `unitRatio = max(metadata.dimensions) / 2` (the converter normalises every mesh to max-axis = 2); when bbox metadata is missing we fall back to raw scene units suffixed `u`. `Esc` exits measure mode, `Clear` wipes finished measurements.

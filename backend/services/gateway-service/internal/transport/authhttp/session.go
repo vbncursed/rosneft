@@ -9,8 +9,9 @@ import "net/http"
 func (h *Handlers) login(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Identifier, Password string
-		// nil is "not sent": frontend/ and the desktop shell predate the field
-		// and keep their persistent cookie. Only an explicit false opts out.
+		// nil is "not sent": callers that predate the field (curl, scripts,
+		// integrations) keep their persistent cookie. The SPA always sends it,
+		// the desktop shell included. Only an explicit false opts out.
 		Remember *bool
 	}
 	if !decode(w, r, &req) {

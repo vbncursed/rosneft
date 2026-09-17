@@ -179,7 +179,7 @@ make build
 ```
 
 Or via Compose: `make compose-up`. The frontend must then run on port 3000
-(`yarn dev --port 3000`) to match `PASSKEY_RP_ORIGINS`.
+(`yarn dev`, which defaults to it) to match `PASSKEY_RP_ORIGINS`.
 
 ## Tests / lint
 

@@ -1,7 +1,9 @@
 # Andrey Desktop
 
-Tauri v2 shell around the existing SPA. A loopback HTTP server inside the Rust
-process serves the embedded `frontend/dist` and proxies `/api` to the gateway,
+Tauri v2 shell around the SPA in `frontend/` (the Feature-Sliced app that was
+`frontend-v2/` until it replaced the old one on 2026-09-17). A loopback HTTP
+server inside the Rust process serves the embedded `frontend/dist` and proxies
+`/api` to the gateway,
 which reproduces production's nginx topology — that is what lets the
 single-origin frontend run unchanged.
 
