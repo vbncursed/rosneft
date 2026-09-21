@@ -265,6 +265,7 @@ describe("TourOverlay", () => {
 
     expect(el.scrollIntoView).not.toHaveBeenCalled();
   });
+
   it("puts the card to the anchor's left when the right edge leaves no room", () => {
     anchor("toggle-markers", { top: 300, left: 700, width: 280, height: 20 });
     const step = VIEWER_TOUR_STEPS.find((s) => s.id === "toggle-markers");
@@ -297,7 +298,49 @@ describe("TourOverlay", () => {
     expect(native, "the native scroll must be cancelled").toBe(false);
 
     fireEvent.wheel(screen.getByTestId("tour-dim"), { clientX: 600, clientY: 600, deltaY: 120 });
+    // A trackpad pinch (ctrlKey) and a sideways-only wheel are not scrolls of
+    // the panel, and are left to the browser.
+    expect(fireEvent.wheel(el, { clientX: 150, clientY: 200, deltaY: 120, ctrlKey: true })).toBe(true);
+    expect(fireEvent.wheel(el, { clientX: 150, clientY: 200, deltaX: 80, deltaY: 0 })).toBe(true);
     expect(panel.scrollBy).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves a wheel over an anchor with nothing to scroll to the browser", () => {
+    const el = anchor("reset-camera", { top: 20, left: 20, width: 30, height: 30 });
+    render(<TourOverlay tour={tour()} />);
+    expect(fireEvent.wheel(el, { clientX: 30, clientY: 30, deltaY: 120 })).toBe(true);
+  });
+
+  it("sets the card left of the panel, not over it, for a small control at its right edge", () => {
+    const panel = document.createElement("div");
+    panel.style.overflow = "auto";
+    panel.getBoundingClientRect = () =>
+      ({ top: 100, left: 600, width: 400, height: 600, right: 1000, bottom: 700, x: 600, y: 100, toJSON: () => ({}) }) as DOMRect;
+    document.body.append(panel);
+    anchors.push(panel);
+    panel.append(anchor("toggle-markers", { top: 150, left: 960, width: 30, height: 30 }));
+    const step = VIEWER_TOUR_STEPS.find((s) => s.id === "toggle-markers");
+    render(<TourOverlay tour={tour({ step })} />);
+
+    // 600 panel left - 12 gap - 320 card = 268; level with the control.
+    expect(screen.getByTestId("tour-card")).toHaveStyle({ left: "268px", top: "150px" });
+    // The halo is still the control's own box.
+    expect(screen.getByTestId("tour-halo")).toHaveStyle({ left: "954px", width: "42px" });
+  });
+
+  // The viewer's <main> is overflow:hidden and starts at x=0; keyed on every
+  // clipper, the card would be pushed "left of x=0" and fall below instead.
+  it("measures the card's left edge against the scrolling panel, not a page-wide clip", () => {
+    const main = document.createElement("div");
+    main.style.overflow = "hidden";
+    main.getBoundingClientRect = () =>
+      ({ top: 0, left: 0, width: 1024, height: 768, right: 1024, bottom: 768, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+    document.body.append(main);
+    anchors.push(main);
+    main.append(anchor("reset-camera", { top: 300, left: 700, width: 280, height: 20 }));
+    render(<TourOverlay tour={tour()} />);
+
+    expect(screen.getByTestId("tour-card")).toHaveStyle({ left: "368px", top: "300px" });
   });
 
   it("parks the halo on the panel's edge when the anchor is scrolled wholly out of it", () => {
