@@ -17,13 +17,18 @@ const clamp = (value: number, lo: number, hi: number) => Math.min(Math.max(value
 
 const CENTRED: CSSProperties = { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
 
-// Beside the anchor when the card fits to its right, below it when it does not,
-// centred when neither works.
+// Beside the anchor when the card fits to its right, to its left when it does
+// not (the Overlays panel sits on the right edge), below it when neither does,
+// centred last.
 function cardStyle(rect: Rect | null, height: number): CSSProperties {
   if (!rect) return CENTRED;
   const beside = rect.left + rect.width + GAP;
   if (beside + WIDTH + GAP <= window.innerWidth) {
     return { top: clamp(rect.top, GAP, window.innerHeight - height - GAP), left: beside };
+  }
+  const before = rect.left - GAP - WIDTH;
+  if (before >= GAP) {
+    return { top: clamp(rect.top, GAP, window.innerHeight - height - GAP), left: before };
   }
   const below = rect.top + rect.height + GAP;
   if (below + height + GAP <= window.innerHeight) {
@@ -81,7 +86,20 @@ function visibleRect(el: Element): Rect {
     right = Math.min(right, box.right);
     bottom = Math.min(bottom, box.bottom);
   }
+  // Scrolled wholly out of a clipping ancestor, the box is empty; park it on
+  // the clip's edge rather than at the anchor's own off-screen place.
+  top = Math.min(top, bottom);
+  left = Math.min(left, right);
   return { top, left, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
+}
+
+// The ancestor a wheel over the anchor should scroll: the nearest one that
+// scrolls vertically and has somewhere to go.
+function scrollerOf(el: Element | null): Element | null {
+  for (let p = el?.parentElement; p; p = p.parentElement) {
+    if (/auto|scroll/.test(getComputedStyle(p).overflowY) && p.scrollHeight > p.clientHeight) return p;
+  }
+  return null;
 }
 
 // Measured in a layout effect and kept up to date by the only two things that
@@ -96,8 +114,8 @@ function useAnchorRect(selector: string, reveal: boolean): Rect | null {
   useLayoutEffect(() => {
     if (!selector) return;
     // A panel control can sit far below the panel's fold (ten panoramas push
-    // the markers switch off-screen), and the dim swallows the wheel that would
-    // reach it. Scrolled before the first measure, so the halo is drawn where
+    // the markers switch off-screen), and a control below the fold is not under
+    // the pointer to be wheeled to. Scrolled before the first measure, so the halo is drawn where
     // the control ends up. "start": a list taller than the panel shows its
     // first rows rather than its middle, and a small control lands at the
     // panel's top, where the card fits below it. `?.` because jsdom has no
@@ -189,13 +207,35 @@ export function TourOverlay({ tour }: { tour: Tour }) {
     return () => document.removeEventListener("keydown", onKey, true);
   }, [step]);
 
+  // Chromium scrolls the dim under a wheel over its clip-path hole — element
+  // hit-testing honours the hole, scroll targeting does not — so a lit list of
+  // fifteen panoramas could not be scrolled. The event itself goes to the lit
+  // control, not the dim, so it is caught on window: the native scroll is
+  // cancelled and the anchor's scroller moved instead, the same in every
+  // browser and never twice. `measure` follows the scroll and keeps the halo
+  // on it. Not passive, or preventDefault is ignored.
+  useEffect(() => {
+    if (!rect) return;
+    const onWheel = (event: WheelEvent) => {
+      const { clientX: x, clientY: y } = event;
+      if (x < rect.left || x > rect.left + rect.width || y < rect.top || y > rect.top + rect.height) return;
+      const scroller = scrollerOf(document.querySelector(selector));
+      if (!scroller) return;
+      event.preventDefault();
+      scroller.scrollBy({ top: event.deltaY, left: 0 });
+    };
+    window.addEventListener("wheel", onWheel, { passive: false });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, [rect, selector]);
+
   if (!step) return null;
 
   return (
     <>
-      {/* Swallows every click, so nothing behind it fires — and does nothing
-          else: a click beside the point is not "I have read this", Next is.
-          Fades in; between steps its hole travels to the next control. */}
+      {/* Swallows every click, so nothing behind it fires — a click beside
+          the point is not "I have read this", Next is. A wheel over the hole
+          is passed on to the lit control's scroller (see above). Fades in; between steps
+          its hole travels to the next control. */}
       <div
         aria-hidden="true"
         data-testid="tour-dim"
