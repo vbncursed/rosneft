@@ -359,3 +359,78 @@ Also fix Task 1's reveal comment — "the dim swallows the wheel that would reac
 git add frontend/src/features/onboarding/ui/tour-overlay.tsx frontend/src/features/onboarding/ui/tour-overlay.spec.tsx
 git commit -m "fix(frontend): tour lets the lit panel scroll and sets the card beside it"
 ```
+
+---
+
+### Task 4: Reveal only when needed; the halo follows a scroll 1:1
+
+From `/code-review` of PR #46 and a design-engineering pass against emilkowalski/skills
+(emil-design-eng, animate, apple-design, review-animations STANDARDS):
+
+1. **`block: "start"` scrolls on every panel step even when the control is visible** — the
+   panorama tour's eight View-tab steps each jump the panel, pushing the section headers that
+   explain the control out of view. Use `block: "nearest"`: a visible control does not move; an
+   element taller than the panel whose top is below the fold is still aligned to its top (CSSOM
+   `nearest` rule), so step 6's reason for `start` still holds; `scroll-padding-top` is honoured.
+2. **(Must) The halo trails the content while the reader scrolls.** Every scroll tick
+   re-measures and restarts the halo's 240 ms `top/left/width/height` transition and the dim's
+   `clip-path` transition, each from near-zero velocity. A scroll is not a state change: the
+   spotlight must follow the content 1:1 (`transition: none`), and animate only on step change.
+3. **(Should) The halo/dim travel uses a hard-coded ease-in-out** `cubic-bezier(0.77,0,0.175,1)`
+   — near-stationary for the first ~90 ms, so on a Next press the halo arrives after the card;
+   it is also the only curve outside the tokens. Use the `ease-out` utility (= `--ease-out`,
+   `cubic-bezier(0.23,1,0.32,1)`) for both, same durations.
+
+Rejected (recorded, not to do): smooth reveal scroll; smooth wheel `scrollBy`; animating the
+halo via `transform`; halo fade-in (Could, skipped for the 200-line cap); dim fade on exit.
+
+**Files:**
+- Modify: `frontend/src/features/onboarding/ui/tour-overlay.tsx` (`useAnchorRect`, the dim and halo `style`/`className`)
+- Test: `frontend/src/features/onboarding/ui/tour-overlay.spec.tsx`
+
+**Interfaces:**
+- `useAnchorRect(selector, reveal)` returns `{ rect: Rect | null; tracking: boolean }`.
+  `tracking` is true once a scroll/resize has moved the anchor away from the rect measured when
+  the step began (the reveal's own scroll event re-measures the same box and does not count);
+  it resets to false when the step changes, in the same commit as the new rect.
+
+- [ ] **Step 1: Failing tests**
+  - Task 1's expectation becomes `{ block: "nearest" }`.
+  - Scroll after the step began moves the anchor → `tour-halo` and `tour-dim` have inline
+    `style.transition === "none"`; rerender with the next step → neither has an inline transition.
+  - A scroll event that leaves the anchor's box unchanged does not set it.
+  - Halo and dim class lists contain `ease-out` and no `cubic-bezier(0.77`.
+
+- [ ] **Step 2: Run, expect FAIL**: `cd frontend && yarn vitest run src/features/onboarding/ui/tour-overlay.spec.tsx`
+
+- [ ] **Step 3: Implement** (sketch):
+
+```ts
+const [tracking, setTracking] = useState(false);
+// in the layout effect, after the reveal:
+const at = measure();            // measure now returns the Rect it set, or null
+setTracking(false);
+const follow = () => {
+  const now = measure();
+  // The reveal's own scroll event re-measures the same box; anything else is the reader.
+  if (now && at && (now.top !== at.top || now.left !== at.left || now.width !== at.width || now.height !== at.height)) setTracking(true);
+};
+// resize/scroll → follow
+```
+
+In the component, `style={{ ...dimStyle(rect), ...(tracking && { transition: "none" }) }}` and the
+same on the halo — an inline style wins deterministically, so no second transition utility on
+the same property (the clsx trap in `frontend/CLAUDE.md`). Classes: dim
+`ease-[var(--ease-out),cubic-bezier(0.77,0,0.175,1)]` → `ease-out`; halo
+`ease-[cubic-bezier(0.77,0,0.175,1)]` → `ease-out`. Keep reduced-motion classes as they are.
+Update comments to match (the reveal comment's "start" rationale → "nearest").
+
+- [ ] **Step 4: Tests + lint**: `cd frontend && yarn vitest run src/features/onboarding && yarn lint`
+
+- [ ] **Step 5: Live check** (local stack, `dji-wp46-cut` already seeded: 15 panoramas, 33 placements; 1280×800 and 1920×1080; both tours): all prior assertions; panorama tour — the panel's `scrollTop` does not change between consecutive steps whose control is already visible; step 6 still opens the list at its first row; during a wheel on steps 6 and 14 the halo's rect equals the anchor's clipped rect within 1 px on the very next frame (no lag); on Next the halo transitions again (computed `transition-duration` non-zero). Feel-check: record a burst of 5 fast Next presses and a wheel sequence as screenshots/video frames and look at them.
+
+- [ ] **Step 6: Coverage + commit**: `cd frontend && yarn test:coverage`, then
+```bash
+git add frontend/src/features/onboarding/ui/tour-overlay.tsx frontend/src/features/onboarding/ui/tour-overlay.spec.tsx
+git commit -m "fix(frontend): tour reveals only what is hidden and its spotlight follows a scroll 1:1"
+```
