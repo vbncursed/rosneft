@@ -120,38 +120,51 @@ function scrollerOf(el: Element | null): Element | null {
 // overlays panel counts and not just the document's own. No ResizeObserver and
 // no rAF loop — the rail does not move by itself, and the halo is not worth a
 // frame budget.
-function useAnchorRect(selector: string, reveal: boolean): Rect | null {
-  const [rect, setRect] = useState<Rect | null>(null);
+//
+// `tracking`: the reader has moved the anchor since the step began. A scroll is
+// not a state change — the spotlight follows it 1:1, and animates only between
+// steps.
+function useAnchorRect(selector: string, reveal: boolean): { rect: Rect | null; tracking: boolean } {
+  const [anchor, setAnchor] = useState<{ rect: Rect | null; tracking: boolean }>({ rect: null, tracking: false });
 
   useLayoutEffect(() => {
     if (!selector) return;
     // A panel control can sit far below the panel's fold (ten panoramas push
     // the markers switch off-screen), and a control below the fold is not
     // under the pointer to be wheeled to. Scrolled before the first measure,
-    // so the halo is drawn where the control ends up. "start": a list taller
-    // than the panel shows its first rows rather than its middle. `?.`
-    // because jsdom has no scrollIntoView.
-    if (reveal) document.querySelector(selector)?.scrollIntoView?.({ block: "start" });
-    const measure = () => {
+    // so the halo is drawn where the control ends up. "nearest": a visible
+    // control does not move. "start" for a list taller than its panel: it is
+    // never wholly visible, and "nearest" on one whose top the step before
+    // scrolled past aligns its bottom, hiding the first rows it is there to
+    // show. `?.` because jsdom has no scrollIntoView.
+    const target = reveal ? document.querySelector(selector) : null;
+    const tall = target && target.getBoundingClientRect().height > (scrollerOf(target)?.clientHeight ?? Infinity);
+    target?.scrollIntoView?.({ block: tall ? "start" : "nearest" });
+    let at: Rect | null = null;
+    // `first` is the step's own measure: it resets `tracking` in the same
+    // update as the new rect. After it, the reveal's own scroll event
+    // re-measures the same box; a box that moved is the reader's doing.
+    const measure = (first: boolean) => {
       const el = document.querySelector(selector);
-      if (!el) {
-        setRect(null);
-        return;
-      }
-      setRect(visibleRect(el));
+      const now = el ? visibleRect(el) : null;
+      if (first) at = now;
+      const moved =
+        !!now && !!at && (now.top !== at.top || now.left !== at.left || now.width !== at.width || now.height !== at.height);
+      setAnchor((prev) => ({ rect: now, tracking: !first && (prev.tracking || moved) }));
     };
-    measure();
-    window.addEventListener("resize", measure);
-    window.addEventListener("scroll", measure, true);
+    const follow = () => measure(false);
+    measure(true);
+    window.addEventListener("resize", follow);
+    window.addEventListener("scroll", follow, true);
     return () => {
-      window.removeEventListener("resize", measure);
-      window.removeEventListener("scroll", measure, true);
+      window.removeEventListener("resize", follow);
+      window.removeEventListener("scroll", follow, true);
     };
   }, [selector, reveal]);
 
   // Derived, not cleared from the effect: a centred step must not inherit the
   // previous step's anchor, and the stale value never has to be written away.
-  return selector ? rect : null;
+  return { rect: selector ? anchor.rect : null, tracking: Boolean(selector) && anchor.tracking };
 }
 
 // TourOverlay dims the page, lights one control up, and explains it beside the
@@ -163,7 +176,10 @@ function useAnchorRect(selector: string, reveal: boolean): Rect | null {
 export function TourOverlay({ tour }: { tour: Tour }) {
   const { step, stepIndex, total, next, prev, skip } = tour;
   const selector = step && !step.center ? `[data-tour="${step.id}"]` : "";
-  const rect = useAnchorRect(selector, step?.tab !== undefined);
+  const { rect, tracking } = useAnchorRect(selector, step?.tab !== undefined);
+  // An inline style wins over the transition utility outright — no second
+  // utility on the same property (see the clsx rule in frontend/CLAUDE.md).
+  const follow: CSSProperties = tracking ? { transition: "none" } : {};
   const cardRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
   const [height, setHeight] = useState(HEIGHT);
@@ -254,17 +270,17 @@ export function TourOverlay({ tour }: { tour: Tour }) {
       <div
         aria-hidden="true"
         data-testid="tour-dim"
-        style={dimStyle(rect)}
-        className="fixed inset-0 z-[1200] bg-bg/60 transition-[opacity,clip-path] duration-[200ms,240ms] ease-[var(--ease-out),cubic-bezier(0.77,0,0.175,1)] starting:opacity-0 motion-reduce:transition-opacity"
+        style={{ ...dimStyle(rect), ...follow }}
+        className="fixed inset-0 z-[1200] bg-bg/60 transition-[opacity,clip-path] duration-[200ms,240ms] ease-out starting:opacity-0 motion-reduce:transition-opacity"
       />
 
       {rect && (
         <div
           data-testid="tour-halo"
-          style={haloStyle(rect)}
+          style={{ ...haloStyle(rect), ...follow }}
           // One fixed, childless box: tweening its layout box is cheap, and it
           // has to travel with the dim's hole.
-          className="pointer-events-none fixed z-[1201] rounded-[8px] border border-accent shadow-[0_0_0_6px_var(--accent-soft)] transition-[top,left,width,height] duration-240 ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transition-none"
+          className="pointer-events-none fixed z-[1201] rounded-[8px] border border-accent shadow-[0_0_0_6px_var(--accent-soft)] transition-[top,left,width,height] duration-240 ease-out motion-reduce:transition-none"
         />
       )}
 
