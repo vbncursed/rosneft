@@ -77,18 +77,20 @@ describe("TourOverlay", () => {
     expect(screen.getByTestId("tour-card")).toHaveStyle({ top: "50%", left: "50%" });
   });
 
-  it("drops below the anchor when the card would run off the right edge", () => {
-    anchor("reset-camera", { top: 20, left: 900, width: 30, height: 30 });
+  // 500 wide at 300: the card fits neither to the right (1144 > 1024) nor to
+  // the left (300 - 332 < 12).
+  it("drops below the anchor when the card fits on neither side of it", () => {
+    anchor("reset-camera", { top: 20, left: 300, width: 500, height: 30 });
     render(<TourOverlay tour={tour()} />);
-    expect(screen.getByTestId("tour-card")).toHaveStyle({ top: "62px", left: "692px" });
+    expect(screen.getByTestId("tour-card")).toHaveStyle({ top: "62px", left: "300px" });
   });
 
   it("falls back to the centre when the card fits neither beside nor below", () => {
-    anchor("reset-camera", { top: 700, left: 900, width: 30, height: 30 });
+    anchor("reset-camera", { top: 700, left: 300, width: 500, height: 30 });
     render(<TourOverlay tour={tour()} />);
     expect(screen.getByTestId("tour-card")).toHaveStyle({ top: "50%", left: "50%" });
     // The halo still marks the control — only the card gave up its place.
-    expect(screen.getByTestId("tour-halo")).toHaveStyle({ top: "694px", left: "894px" });
+    expect(screen.getByTestId("tour-halo")).toHaveStyle({ top: "694px", left: "294px" });
   });
 
   // A click beside the point is a reader trying to look past the tour, not a
@@ -221,8 +223,212 @@ describe("TourOverlay", () => {
     expect(screen.getByTestId("tour-halo")).toHaveStyle({ top: "44px" });
   });
 
+  // A scroll is not a step change: the spotlight follows it 1:1, and animates
+  // again only when the step moves on.
+  it("follows a scroll with no transition, and transitions again on the next step", () => {
+    const el = anchor("reset-camera", { top: 200, left: 20, width: 30, height: 30 });
+    const { rerender } = render(<TourOverlay tour={tour()} />);
+    const halo = () => screen.getByTestId("tour-halo");
+    const dim = () => screen.getByTestId("tour-dim");
+
+    fireEvent.scroll(window); // the anchor's box is unchanged: not the reader
+    expect(halo().style.transition).toBe("");
+    expect(dim().style.transition).toBe("");
+
+    el.getBoundingClientRect = () =>
+      ({ top: 50, left: 20, width: 30, height: 30, right: 50, bottom: 80, x: 20, y: 50, toJSON: () => ({}) }) as DOMRect;
+    fireEvent.scroll(window);
+    expect(halo().style.transition).toBe("none");
+    expect(dim().style.transition).toBe("none");
+
+    anchor("toggle-markers", { top: 300, left: 20, width: 30, height: 30 });
+    rerender(<TourOverlay tour={tour({ step: VIEWER_TOUR_STEPS.find((s) => s.id === "toggle-markers") })} />);
+    expect(halo().style.transition).toBe("");
+    expect(dim().style.transition).toBe("");
+  });
+
+  // The token curve (--ease-out), not a hard-coded ease-in-out that leaves the
+  // halo near-stationary for its first ~90 ms and arriving after the card.
+  it("moves the halo and the dim's hole on the ease-out token", () => {
+    anchor("reset-camera", { top: 20, left: 20, width: 30, height: 30 });
+    render(<TourOverlay tour={tour()} />);
+    for (const id of ["tour-halo", "tour-dim"]) {
+      expect(screen.getByTestId(id)).toHaveClass("ease-out");
+      expect(screen.getByTestId(id).className).not.toContain("cubic-bezier(0.77");
+    }
+  });
+
   it("renders nothing once the tour has ended", () => {
     const { container } = render(<TourOverlay tour={tour({ active: false, step: null })} />);
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("scrolls a panel step's control into view before measuring it", () => {
+    const el = anchor("toggle-markers", { top: 900, left: 1700, width: 280, height: 20 });
+    el.scrollIntoView = vi.fn();
+    const step = VIEWER_TOUR_STEPS.find((s) => s.id === "toggle-markers");
+    render(<TourOverlay tour={tour({ step })} />);
+
+    expect(el.scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+  });
+
+  // "nearest" on a list taller than its panel, scrolled past by the step
+  // before, aligns the list's *bottom* — its first rows end up above the fold.
+  it("aligns an anchor taller than its panel to the panel's top", () => {
+    const panel = document.createElement("div");
+    panel.style.overflowY = "auto";
+    Object.defineProperty(panel, "scrollHeight", { value: 2000 });
+    Object.defineProperty(panel, "clientHeight", { value: 400 });
+    document.body.append(panel);
+    anchors.push(panel);
+    const el = anchor("panorama-picker", { top: -400, left: 1010, width: 280, height: 1200 });
+    el.scrollIntoView = vi.fn();
+    panel.append(el);
+    const step = VIEWER_TOUR_STEPS.find((s) => s.id === "panorama-picker");
+    render(<TourOverlay tour={tour({ step })} />);
+
+    expect(el.scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+  });
+
+  it("clips the spotlight to what the anchor's scrolling panel shows", () => {
+    const panel = document.createElement("div");
+    panel.style.overflow = "auto";
+    panel.getBoundingClientRect = () =>
+      ({ top: 100, left: 1000, width: 300, height: 400, right: 1300, bottom: 500, x: 1000, y: 100, toJSON: () => ({}) }) as DOMRect;
+    document.body.append(panel);
+    anchors.push(panel);
+    // A list three times the panel's height, starting inside it.
+    const el = anchor("panorama-picker", { top: 150, left: 1010, width: 280, height: 1200 });
+    panel.append(el);
+    const step = VIEWER_TOUR_STEPS.find((s) => s.id === "panorama-picker");
+    render(<TourOverlay tour={tour({ step })} />);
+
+    expect(screen.getByTestId("tour-halo")).toHaveStyle({
+      top: "144px",
+      left: "1004px",
+      width: "292px",
+      height: "362px",
+    });
+  });
+
+  it("leaves fixed chrome and canvas anchors where they are", () => {
+    const el = anchor("reset-camera", { top: 20, left: 20, width: 30, height: 30 });
+    el.scrollIntoView = vi.fn();
+    render(<TourOverlay tour={tour()} />);
+
+    expect(el.scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it("puts the card to the anchor's left when the right edge leaves no room", () => {
+    anchor("toggle-markers", { top: 300, left: 700, width: 280, height: 20 });
+    const step = VIEWER_TOUR_STEPS.find((s) => s.id === "toggle-markers");
+    render(<TourOverlay tour={tour({ step })} />);
+
+    // 700 - 12 gap - 320 card = 368.
+    expect(screen.getByTestId("tour-card")).toHaveStyle({ left: "368px", top: "300px" });
+  });
+
+  it("hands a wheel over the lit anchor to the panel it scrolls in", () => {
+    const panel = document.createElement("div");
+    // jsdom computes the `overflow` shorthand as "" for a longhand-only style,
+    // so this panel scrolls without clipping the hole — the hole is the anchor.
+    panel.style.overflowY = "auto";
+    Object.defineProperty(panel, "scrollHeight", { value: 2000 });
+    Object.defineProperty(panel, "clientHeight", { value: 400 });
+    panel.scrollBy = vi.fn();
+    document.body.append(panel);
+    anchors.push(panel);
+    const el = anchor("panorama-picker", { top: 100, left: 100, width: 200, height: 300 });
+    panel.append(el);
+    const step = VIEWER_TOUR_STEPS.find((s) => s.id === "panorama-picker");
+    render(<TourOverlay tour={tour({ step })} />);
+
+    // Chromium dispatches the wheel to the lit control (hit-testing honours
+    // the hole) but scrolls the dim (scroll targeting does not) — so the
+    // event is taken over and the native scroll cancelled.
+    const native = fireEvent.wheel(el, { clientX: 150, clientY: 200, deltaY: 120 });
+    expect(panel.scrollBy).toHaveBeenCalledWith({ top: 120, left: 0 });
+    expect(native, "the native scroll must be cancelled").toBe(false);
+
+    fireEvent.wheel(screen.getByTestId("tour-dim"), { clientX: 600, clientY: 600, deltaY: 120 });
+    // A trackpad pinch (ctrlKey) and a sideways-only wheel are not scrolls of
+    // the panel, and are left to the browser.
+    expect(fireEvent.wheel(el, { clientX: 150, clientY: 200, deltaY: 120, ctrlKey: true })).toBe(true);
+    expect(fireEvent.wheel(el, { clientX: 150, clientY: 200, deltaX: 80, deltaY: 0 })).toBe(true);
+    expect(panel.scrollBy).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves a wheel over an anchor with nothing to scroll to the browser", () => {
+    const el = anchor("reset-camera", { top: 20, left: 20, width: 30, height: 30 });
+    render(<TourOverlay tour={tour()} />);
+    expect(fireEvent.wheel(el, { clientX: 30, clientY: 30, deltaY: 120 })).toBe(true);
+  });
+
+  it("sets the card left of the panel, not over it, for a small control at its right edge", () => {
+    const panel = document.createElement("div");
+    panel.style.overflow = "auto";
+    panel.getBoundingClientRect = () =>
+      ({ top: 100, left: 600, width: 400, height: 600, right: 1000, bottom: 700, x: 600, y: 100, toJSON: () => ({}) }) as DOMRect;
+    document.body.append(panel);
+    anchors.push(panel);
+    panel.append(anchor("toggle-markers", { top: 150, left: 960, width: 30, height: 30 }));
+    const step = VIEWER_TOUR_STEPS.find((s) => s.id === "toggle-markers");
+    render(<TourOverlay tour={tour({ step })} />);
+
+    // 600 panel left - 12 gap - 320 card = 268; level with the control.
+    expect(screen.getByTestId("tour-card")).toHaveStyle({ left: "268px", top: "150px" });
+    // The halo is still the control's own box.
+    expect(screen.getByTestId("tour-halo")).toHaveStyle({ left: "954px", width: "42px" });
+  });
+
+  // The viewer's <main> is overflow:hidden and starts at x=0; keyed on every
+  // clipper, the card would be pushed "left of x=0" and fall below instead.
+  it("measures the card's left edge against the scrolling panel, not a page-wide clip", () => {
+    const main = document.createElement("div");
+    main.style.overflow = "hidden";
+    main.getBoundingClientRect = () =>
+      ({ top: 0, left: 0, width: 1024, height: 768, right: 1024, bottom: 768, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+    document.body.append(main);
+    anchors.push(main);
+    main.append(anchor("reset-camera", { top: 300, left: 700, width: 280, height: 20 }));
+    render(<TourOverlay tour={tour()} />);
+
+    expect(screen.getByTestId("tour-card")).toHaveStyle({ left: "368px", top: "300px" });
+  });
+
+  // The Overlays panel lays a 26 px "scrolled" strip over its own top once it
+  // is scrolled, and declares that band as scroll-padding-top.
+  it.each([
+    [300, "120px"],
+    [0, "94px"],
+  ])("keeps the halo below a scrolled panel's scroll-padding (scrollTop %i)", (scrollTop, haloTop) => {
+    const panel = document.createElement("div");
+    panel.style.overflow = "auto";
+    panel.style.scrollPaddingTop = "26px";
+    Object.defineProperty(panel, "scrollTop", { value: scrollTop });
+    panel.getBoundingClientRect = () =>
+      ({ top: 100, left: 600, width: 400, height: 600, right: 1000, bottom: 700, x: 600, y: 100, toJSON: () => ({}) }) as DOMRect;
+    document.body.append(panel);
+    anchors.push(panel);
+    panel.append(anchor("panorama-picker", { top: 50, left: 610, width: 380, height: 1200 }));
+    const step = VIEWER_TOUR_STEPS.find((s) => s.id === "panorama-picker");
+    render(<TourOverlay tour={tour({ step })} />);
+
+    expect(screen.getByTestId("tour-halo")).toHaveStyle({ top: haloTop });
+  });
+
+  it("parks the halo on the panel's edge when the anchor is scrolled wholly out of it", () => {
+    const panel = document.createElement("div");
+    panel.style.overflow = "auto";
+    panel.getBoundingClientRect = () =>
+      ({ top: 100, left: 1000, width: 300, height: 400, right: 1300, bottom: 500, x: 1000, y: 100, toJSON: () => ({}) }) as DOMRect;
+    document.body.append(panel);
+    anchors.push(panel);
+    panel.append(anchor("toggle-markers", { top: 900, left: 1010, width: 280, height: 20 }));
+    const step = VIEWER_TOUR_STEPS.find((s) => s.id === "toggle-markers");
+    render(<TourOverlay tour={tour({ step })} />);
+
+    // Panel bottom 500 - 6 ring, not the anchor's own off-screen 900 - 6.
+    expect(screen.getByTestId("tour-halo")).toHaveStyle({ top: "494px", height: "12px" });
   });
 });
