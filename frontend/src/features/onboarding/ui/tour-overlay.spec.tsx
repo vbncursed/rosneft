@@ -232,7 +232,28 @@ describe("TourOverlay", () => {
     const step = VIEWER_TOUR_STEPS.find((s) => s.id === "toggle-markers");
     render(<TourOverlay tour={tour({ step })} />);
 
-    expect(el.scrollIntoView).toHaveBeenCalledWith({ block: "center" });
+    expect(el.scrollIntoView).toHaveBeenCalledWith({ block: "start" });
+  });
+
+  it("clips the spotlight to what the anchor's scrolling panel shows", () => {
+    const panel = document.createElement("div");
+    panel.style.overflow = "auto";
+    panel.getBoundingClientRect = () =>
+      ({ top: 100, left: 1000, width: 300, height: 400, right: 1300, bottom: 500, x: 1000, y: 100, toJSON: () => ({}) }) as DOMRect;
+    document.body.append(panel);
+    anchors.push(panel);
+    // A list three times the panel's height, starting inside it.
+    const el = anchor("panorama-picker", { top: 150, left: 1010, width: 280, height: 1200 });
+    panel.append(el);
+    const step = VIEWER_TOUR_STEPS.find((s) => s.id === "panorama-picker");
+    render(<TourOverlay tour={tour({ step })} />);
+
+    expect(screen.getByTestId("tour-halo")).toHaveStyle({
+      top: "144px",
+      left: "1004px",
+      width: "292px",
+      height: "362px",
+    });
   });
 
   it("leaves fixed chrome and canvas anchors where they are", () => {

@@ -64,6 +64,26 @@ function haloStyle(rect: Rect): CSSProperties {
   };
 }
 
+// The part of `el` its clipping ancestors actually show. A tall anchor — the
+// list of fifteen panoramas — is taller than the panel it scrolls in, and its
+// raw box ran the halo and the dim's hole past the panel and off the screen.
+// Keyed on the values that clip rather than on `visible`: jsdom computes the
+// shorthand as "" on an element that never set it, and clipping to <body>'s
+// empty box there hid every halo.
+const CLIPS = /auto|scroll|hidden|clip/;
+function visibleRect(el: Element): Rect {
+  let { top, left, right, bottom } = el.getBoundingClientRect();
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    if (!CLIPS.test(getComputedStyle(p).overflow)) continue;
+    const box = p.getBoundingClientRect();
+    top = Math.max(top, box.top);
+    left = Math.max(left, box.left);
+    right = Math.min(right, box.right);
+    bottom = Math.min(bottom, box.bottom);
+  }
+  return { top, left, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
+}
+
 // Measured in a layout effect and kept up to date by the only two things that
 // move a control the reader can cause: a window resize and a scroll, and, for
 // a panel step, the reveal below. Capture phase, so a scroll inside the
@@ -78,16 +98,18 @@ function useAnchorRect(selector: string, reveal: boolean): Rect | null {
     // A panel control can sit far below the panel's fold (ten panoramas push
     // the markers switch off-screen), and the dim swallows the wheel that would
     // reach it. Scrolled before the first measure, so the halo is drawn where
-    // the control ends up. `?.` because jsdom has no scrollIntoView.
-    if (reveal) document.querySelector(selector)?.scrollIntoView?.({ block: "center" });
+    // the control ends up. "start": a list taller than the panel shows its
+    // first rows rather than its middle, and a small control lands at the
+    // panel's top, where the card fits below it. `?.` because jsdom has no
+    // scrollIntoView.
+    if (reveal) document.querySelector(selector)?.scrollIntoView?.({ block: "start" });
     const measure = () => {
       const el = document.querySelector(selector);
       if (!el) {
         setRect(null);
         return;
       }
-      const { top, left, width, height } = el.getBoundingClientRect();
-      setRect({ top, left, width, height });
+      setRect(visibleRect(el));
     };
     measure();
     window.addEventListener("resize", measure);
