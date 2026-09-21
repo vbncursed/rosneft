@@ -223,6 +223,41 @@ describe("TourOverlay", () => {
     expect(screen.getByTestId("tour-halo")).toHaveStyle({ top: "44px" });
   });
 
+  // A scroll is not a step change: the spotlight follows it 1:1, and animates
+  // again only when the step moves on.
+  it("follows a scroll with no transition, and transitions again on the next step", () => {
+    const el = anchor("reset-camera", { top: 200, left: 20, width: 30, height: 30 });
+    const { rerender } = render(<TourOverlay tour={tour()} />);
+    const halo = () => screen.getByTestId("tour-halo");
+    const dim = () => screen.getByTestId("tour-dim");
+
+    fireEvent.scroll(window); // the anchor's box is unchanged: not the reader
+    expect(halo().style.transition).toBe("");
+    expect(dim().style.transition).toBe("");
+
+    el.getBoundingClientRect = () =>
+      ({ top: 50, left: 20, width: 30, height: 30, right: 50, bottom: 80, x: 20, y: 50, toJSON: () => ({}) }) as DOMRect;
+    fireEvent.scroll(window);
+    expect(halo().style.transition).toBe("none");
+    expect(dim().style.transition).toBe("none");
+
+    anchor("toggle-markers", { top: 300, left: 20, width: 30, height: 30 });
+    rerender(<TourOverlay tour={tour({ step: VIEWER_TOUR_STEPS.find((s) => s.id === "toggle-markers") })} />);
+    expect(halo().style.transition).toBe("");
+    expect(dim().style.transition).toBe("");
+  });
+
+  // The token curve (--ease-out), not a hard-coded ease-in-out that leaves the
+  // halo near-stationary for its first ~90 ms and arriving after the card.
+  it("moves the halo and the dim's hole on the ease-out token", () => {
+    anchor("reset-camera", { top: 20, left: 20, width: 30, height: 30 });
+    render(<TourOverlay tour={tour()} />);
+    for (const id of ["tour-halo", "tour-dim"]) {
+      expect(screen.getByTestId(id)).toHaveClass("ease-out");
+      expect(screen.getByTestId(id).className).not.toContain("cubic-bezier(0.77");
+    }
+  });
+
   it("renders nothing once the tour has ended", () => {
     const { container } = render(<TourOverlay tour={tour({ active: false, step: null })} />);
     expect(container).toBeEmptyDOMElement();
@@ -232,6 +267,24 @@ describe("TourOverlay", () => {
     const el = anchor("toggle-markers", { top: 900, left: 1700, width: 280, height: 20 });
     el.scrollIntoView = vi.fn();
     const step = VIEWER_TOUR_STEPS.find((s) => s.id === "toggle-markers");
+    render(<TourOverlay tour={tour({ step })} />);
+
+    expect(el.scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+  });
+
+  // "nearest" on a list taller than its panel, scrolled past by the step
+  // before, aligns the list's *bottom* — its first rows end up above the fold.
+  it("aligns an anchor taller than its panel to the panel's top", () => {
+    const panel = document.createElement("div");
+    panel.style.overflowY = "auto";
+    Object.defineProperty(panel, "scrollHeight", { value: 2000 });
+    Object.defineProperty(panel, "clientHeight", { value: 400 });
+    document.body.append(panel);
+    anchors.push(panel);
+    const el = anchor("panorama-picker", { top: -400, left: 1010, width: 280, height: 1200 });
+    el.scrollIntoView = vi.fn();
+    panel.append(el);
+    const step = VIEWER_TOUR_STEPS.find((s) => s.id === "panorama-picker");
     render(<TourOverlay tour={tour({ step })} />);
 
     expect(el.scrollIntoView).toHaveBeenCalledWith({ block: "start" });
