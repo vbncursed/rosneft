@@ -77,18 +77,20 @@ describe("TourOverlay", () => {
     expect(screen.getByTestId("tour-card")).toHaveStyle({ top: "50%", left: "50%" });
   });
 
-  it("drops below the anchor when the card would run off the right edge", () => {
-    anchor("reset-camera", { top: 20, left: 900, width: 30, height: 30 });
+  // 500 wide at 300: the card fits neither to the right (1144 > 1024) nor to
+  // the left (300 - 332 < 12).
+  it("drops below the anchor when the card fits on neither side of it", () => {
+    anchor("reset-camera", { top: 20, left: 300, width: 500, height: 30 });
     render(<TourOverlay tour={tour()} />);
-    expect(screen.getByTestId("tour-card")).toHaveStyle({ top: "62px", left: "692px" });
+    expect(screen.getByTestId("tour-card")).toHaveStyle({ top: "62px", left: "300px" });
   });
 
   it("falls back to the centre when the card fits neither beside nor below", () => {
-    anchor("reset-camera", { top: 700, left: 900, width: 30, height: 30 });
+    anchor("reset-camera", { top: 700, left: 300, width: 500, height: 30 });
     render(<TourOverlay tour={tour()} />);
     expect(screen.getByTestId("tour-card")).toHaveStyle({ top: "50%", left: "50%" });
     // The halo still marks the control — only the card gave up its place.
-    expect(screen.getByTestId("tour-halo")).toHaveStyle({ top: "694px", left: "894px" });
+    expect(screen.getByTestId("tour-halo")).toHaveStyle({ top: "694px", left: "294px" });
   });
 
   // A click beside the point is a reader trying to look past the tour, not a
@@ -262,5 +264,54 @@ describe("TourOverlay", () => {
     render(<TourOverlay tour={tour()} />);
 
     expect(el.scrollIntoView).not.toHaveBeenCalled();
+  });
+  it("puts the card to the anchor's left when the right edge leaves no room", () => {
+    anchor("toggle-markers", { top: 300, left: 700, width: 280, height: 20 });
+    const step = VIEWER_TOUR_STEPS.find((s) => s.id === "toggle-markers");
+    render(<TourOverlay tour={tour({ step })} />);
+
+    // 700 - 12 gap - 320 card = 368.
+    expect(screen.getByTestId("tour-card")).toHaveStyle({ left: "368px", top: "300px" });
+  });
+
+  it("hands a wheel over the lit anchor to the panel it scrolls in", () => {
+    const panel = document.createElement("div");
+    // jsdom computes the `overflow` shorthand as "" for a longhand-only style,
+    // so this panel scrolls without clipping the hole — the hole is the anchor.
+    panel.style.overflowY = "auto";
+    Object.defineProperty(panel, "scrollHeight", { value: 2000 });
+    Object.defineProperty(panel, "clientHeight", { value: 400 });
+    panel.scrollBy = vi.fn();
+    document.body.append(panel);
+    anchors.push(panel);
+    const el = anchor("panorama-picker", { top: 100, left: 100, width: 200, height: 300 });
+    panel.append(el);
+    const step = VIEWER_TOUR_STEPS.find((s) => s.id === "panorama-picker");
+    render(<TourOverlay tour={tour({ step })} />);
+
+    // Chromium dispatches the wheel to the lit control (hit-testing honours
+    // the hole) but scrolls the dim (scroll targeting does not) — so the
+    // event is taken over and the native scroll cancelled.
+    const native = fireEvent.wheel(el, { clientX: 150, clientY: 200, deltaY: 120 });
+    expect(panel.scrollBy).toHaveBeenCalledWith({ top: 120, left: 0 });
+    expect(native, "the native scroll must be cancelled").toBe(false);
+
+    fireEvent.wheel(screen.getByTestId("tour-dim"), { clientX: 600, clientY: 600, deltaY: 120 });
+    expect(panel.scrollBy).toHaveBeenCalledTimes(1);
+  });
+
+  it("parks the halo on the panel's edge when the anchor is scrolled wholly out of it", () => {
+    const panel = document.createElement("div");
+    panel.style.overflow = "auto";
+    panel.getBoundingClientRect = () =>
+      ({ top: 100, left: 1000, width: 300, height: 400, right: 1300, bottom: 500, x: 1000, y: 100, toJSON: () => ({}) }) as DOMRect;
+    document.body.append(panel);
+    anchors.push(panel);
+    panel.append(anchor("toggle-markers", { top: 900, left: 1010, width: 280, height: 20 }));
+    const step = VIEWER_TOUR_STEPS.find((s) => s.id === "toggle-markers");
+    render(<TourOverlay tour={tour({ step })} />);
+
+    // Panel bottom 500 - 6 ring, not the anchor's own off-screen 900 - 6.
+    expect(screen.getByTestId("tour-halo")).toHaveStyle({ top: "494px", height: "12px" });
   });
 });
