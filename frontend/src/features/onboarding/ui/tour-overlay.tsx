@@ -11,22 +11,25 @@ const GAP = 12;
 const HEIGHT = 190;
 const HALO = 6;
 
-type Rect = { top: number; left: number; width: number; height: number };
+// `clipLeft`: the left edge of the nearest scrolling container the anchor sits
+// in — the Overlays panel for a panel control. Only the card reads it.
+type Rect = { top: number; left: number; width: number; height: number; clipLeft?: number };
 
 const clamp = (value: number, lo: number, hi: number) => Math.min(Math.max(value, lo), hi);
 
 const CENTRED: CSSProperties = { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
 
-// Beside the anchor when the card fits to its right, to its left when it does
-// not (the Overlays panel sits on the right edge), below it when neither does,
-// centred last.
+// Beside the anchor when the card fits to its right, to the left of the panel
+// it sits in when it does not (the Overlays panel is on the right edge, and a
+// card over it would hide the headers that explain the control), below it
+// when neither does, centred last.
 function cardStyle(rect: Rect | null, height: number): CSSProperties {
   if (!rect) return CENTRED;
   const beside = rect.left + rect.width + GAP;
   if (beside + WIDTH + GAP <= window.innerWidth) {
     return { top: clamp(rect.top, GAP, window.innerHeight - height - GAP), left: beside };
   }
-  const before = rect.left - GAP - WIDTH;
+  const before = Math.min(rect.left, rect.clipLeft ?? rect.left) - GAP - WIDTH;
   if (before >= GAP) {
     return { top: clamp(rect.top, GAP, window.innerHeight - height - GAP), left: before };
   }
@@ -78,9 +81,15 @@ function haloStyle(rect: Rect): CSSProperties {
 const CLIPS = /auto|scroll|hidden|clip/;
 function visibleRect(el: Element): Rect {
   let { top, left, right, bottom } = el.getBoundingClientRect();
+  // The nearest *scrolling* clipper, not the widest clipper: the viewer's
+  // <main> is overflow:hidden from x=0, and would push every panel card off
+  // the left edge.
+  let clipLeft: number | undefined;
   for (let p = el.parentElement; p; p = p.parentElement) {
-    if (!CLIPS.test(getComputedStyle(p).overflow)) continue;
+    const overflow = getComputedStyle(p).overflow;
+    if (!CLIPS.test(overflow)) continue;
     const box = p.getBoundingClientRect();
+    if (clipLeft === undefined && /auto|scroll/.test(overflow)) clipLeft = box.left;
     top = Math.max(top, box.top);
     left = Math.max(left, box.left);
     right = Math.min(right, box.right);
@@ -90,7 +99,7 @@ function visibleRect(el: Element): Rect {
   // the clip's edge rather than at the anchor's own off-screen place.
   top = Math.min(top, bottom);
   left = Math.min(left, right);
-  return { top, left, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
+  return { top, left, width: Math.max(0, right - left), height: Math.max(0, bottom - top), clipLeft };
 }
 
 // The ancestor a wheel over the anchor should scroll: the nearest one that
@@ -114,12 +123,11 @@ function useAnchorRect(selector: string, reveal: boolean): Rect | null {
   useLayoutEffect(() => {
     if (!selector) return;
     // A panel control can sit far below the panel's fold (ten panoramas push
-    // the markers switch off-screen), and a control below the fold is not under
-    // the pointer to be wheeled to. Scrolled before the first measure, so the halo is drawn where
-    // the control ends up. "start": a list taller than the panel shows its
-    // first rows rather than its middle, and a small control lands at the
-    // panel's top, where the card fits below it. `?.` because jsdom has no
-    // scrollIntoView.
+    // the markers switch off-screen), and a control below the fold is not
+    // under the pointer to be wheeled to. Scrolled before the first measure,
+    // so the halo is drawn where the control ends up. "start": a list taller
+    // than the panel shows its first rows rather than its middle. `?.`
+    // because jsdom has no scrollIntoView.
     if (reveal) document.querySelector(selector)?.scrollIntoView?.({ block: "start" });
     const measure = () => {
       const el = document.querySelector(selector);
@@ -217,6 +225,10 @@ export function TourOverlay({ tour }: { tour: Tour }) {
   useEffect(() => {
     if (!rect) return;
     const onWheel = (event: WheelEvent) => {
+      // A pinch-zoom (ctrlKey) or a sideways-only wheel is not a panel scroll.
+      // `deltaMode` is deliberately not read: Firefox ≥88 reports pixels to a
+      // listener that does not ask for it.
+      if (event.ctrlKey || !event.deltaY) return;
       const { clientX: x, clientY: y } = event;
       if (x < rect.left || x > rect.left + rect.width || y < rect.top || y > rect.top + rect.height) return;
       const scroller = scrollerOf(document.querySelector(selector));
@@ -234,8 +246,8 @@ export function TourOverlay({ tour }: { tour: Tour }) {
     <>
       {/* Swallows every click, so nothing behind it fires — a click beside
           the point is not "I have read this", Next is. A wheel over the hole
-          is passed on to the lit control's scroller (see above). Fades in; between steps
-          its hole travels to the next control. */}
+          is passed on to the lit control's scroller (see above). Fades in;
+          between steps its hole travels to the next control. */}
       <div
         aria-hidden="true"
         data-testid="tour-dim"
