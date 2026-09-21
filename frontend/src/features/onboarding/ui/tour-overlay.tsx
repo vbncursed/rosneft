@@ -86,11 +86,14 @@ function visibleRect(el: Element): Rect {
   // the left edge.
   let clipLeft: number | undefined;
   for (let p = el.parentElement; p; p = p.parentElement) {
-    const overflow = getComputedStyle(p).overflow;
-    if (!CLIPS.test(overflow)) continue;
+    const style = getComputedStyle(p);
+    if (!CLIPS.test(style.overflow)) continue;
     const box = p.getBoundingClientRect();
-    if (clipLeft === undefined && /auto|scroll/.test(overflow)) clipLeft = box.left;
-    top = Math.max(top, box.top);
+    if (clipLeft === undefined && /auto|scroll/.test(style.overflow)) clipLeft = box.left;
+    // A scrolled container may lay chrome over its own top — the Overlays
+    // panel's "scrolled" strip — and declares that band as scroll-padding.
+    const covered = p.scrollTop > 0 ? parseFloat(style.scrollPaddingTop) || 0 : 0;
+    top = Math.max(top, box.top + covered);
     left = Math.max(left, box.left);
     right = Math.min(right, box.right);
     bottom = Math.min(bottom, box.bottom);

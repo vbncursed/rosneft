@@ -343,6 +343,27 @@ describe("TourOverlay", () => {
     expect(screen.getByTestId("tour-card")).toHaveStyle({ left: "368px", top: "300px" });
   });
 
+  // The Overlays panel lays a 26 px "scrolled" strip over its own top once it
+  // is scrolled, and declares that band as scroll-padding-top.
+  it.each([
+    [300, "120px"],
+    [0, "94px"],
+  ])("keeps the halo below a scrolled panel's scroll-padding (scrollTop %i)", (scrollTop, haloTop) => {
+    const panel = document.createElement("div");
+    panel.style.overflow = "auto";
+    panel.style.scrollPaddingTop = "26px";
+    Object.defineProperty(panel, "scrollTop", { value: scrollTop });
+    panel.getBoundingClientRect = () =>
+      ({ top: 100, left: 600, width: 400, height: 600, right: 1000, bottom: 700, x: 600, y: 100, toJSON: () => ({}) }) as DOMRect;
+    document.body.append(panel);
+    anchors.push(panel);
+    panel.append(anchor("panorama-picker", { top: 50, left: 610, width: 380, height: 1200 }));
+    const step = VIEWER_TOUR_STEPS.find((s) => s.id === "panorama-picker");
+    render(<TourOverlay tour={tour({ step })} />);
+
+    expect(screen.getByTestId("tour-halo")).toHaveStyle({ top: haloTop });
+  });
+
   it("parks the halo on the panel's edge when the anchor is scrolled wholly out of it", () => {
     const panel = document.createElement("div");
     panel.style.overflow = "auto";
