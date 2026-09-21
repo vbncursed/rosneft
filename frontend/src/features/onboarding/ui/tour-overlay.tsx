@@ -65,15 +65,21 @@ function haloStyle(rect: Rect): CSSProperties {
 }
 
 // Measured in a layout effect and kept up to date by the only two things that
-// move a control the reader can cause: a window resize and a scroll. Capture
-// phase, so a scroll inside the overlays panel counts and not just the
-// document's own. No ResizeObserver and no rAF loop — the rail does not move by
-// itself, and the halo is not worth a frame budget.
-function useAnchorRect(selector: string): Rect | null {
+// move a control the reader can cause: a window resize and a scroll, and, for
+// a panel step, the reveal below. Capture phase, so a scroll inside the
+// overlays panel counts and not just the document's own. No ResizeObserver and
+// no rAF loop — the rail does not move by itself, and the halo is not worth a
+// frame budget.
+function useAnchorRect(selector: string, reveal: boolean): Rect | null {
   const [rect, setRect] = useState<Rect | null>(null);
 
   useLayoutEffect(() => {
     if (!selector) return;
+    // A panel control can sit far below the panel's fold (ten panoramas push
+    // the markers switch off-screen), and the dim swallows the wheel that would
+    // reach it. Scrolled before the first measure, so the halo is drawn where
+    // the control ends up. `?.` because jsdom has no scrollIntoView.
+    if (reveal) document.querySelector(selector)?.scrollIntoView?.({ block: "center" });
     const measure = () => {
       const el = document.querySelector(selector);
       if (!el) {
@@ -90,7 +96,7 @@ function useAnchorRect(selector: string): Rect | null {
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
     };
-  }, [selector]);
+  }, [selector, reveal]);
 
   // Derived, not cleared from the effect: a centred step must not inherit the
   // previous step's anchor, and the stale value never has to be written away.
@@ -106,7 +112,7 @@ function useAnchorRect(selector: string): Rect | null {
 export function TourOverlay({ tour }: { tour: Tour }) {
   const { step, stepIndex, total, next, prev, skip } = tour;
   const selector = step && !step.center ? `[data-tour="${step.id}"]` : "";
-  const rect = useAnchorRect(selector);
+  const rect = useAnchorRect(selector, step?.tab !== undefined);
   const cardRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
   const [height, setHeight] = useState(HEIGHT);
@@ -124,10 +130,6 @@ export function TourOverlay({ tour }: { tour: Tour }) {
 
   // Asked of the DOM here rather than read off `rect`: a null rect also means
   // "not measured yet", which would skip a step whose control is present.
-  //
-  // Nothing scrolls the anchor into view. Every A-scope anchor is fixed chrome
-  // — the header link, the tool rail, the panel's own header — and scrolling
-  // the page under a modal dim reads as a jump, not as help.
   useLayoutEffect(() => {
     if (selector && !document.querySelector(selector)) next();
   }, [selector, next]);

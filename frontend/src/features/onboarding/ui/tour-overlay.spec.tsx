@@ -225,4 +225,21 @@ describe("TourOverlay", () => {
     const { container } = render(<TourOverlay tour={tour({ active: false, step: null })} />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it("scrolls a panel step's control into view before measuring it", () => {
+    const el = anchor("toggle-markers", { top: 900, left: 1700, width: 280, height: 20 });
+    el.scrollIntoView = vi.fn();
+    const step = VIEWER_TOUR_STEPS.find((s) => s.id === "toggle-markers");
+    render(<TourOverlay tour={tour({ step })} />);
+
+    expect(el.scrollIntoView).toHaveBeenCalledWith({ block: "center" });
+  });
+
+  it("leaves fixed chrome and canvas anchors where they are", () => {
+    const el = anchor("reset-camera", { top: 20, left: 20, width: 30, height: 30 });
+    el.scrollIntoView = vi.fn();
+    render(<TourOverlay tour={tour()} />);
+
+    expect(el.scrollIntoView).not.toHaveBeenCalled();
+  });
 });
