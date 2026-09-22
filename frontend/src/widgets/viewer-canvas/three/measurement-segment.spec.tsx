@@ -58,6 +58,14 @@ describe("MeasurementSegment", () => {
     expect(screen.queryByRole("button")).toBeNull();
     expect(screen.getByText("10.00 m")).toBeInTheDocument();
     expect(screen.queryByText("×")).toBeNull();
+    expect(document.querySelector("svg")).toBeNull();
+  });
+
+  it("marks the removable chip with a drawn close icon, not a × character", () => {
+    draw();
+    const chip = screen.getByRole("button");
+    expect(chip.querySelector("svg")).not.toBeNull();
+    expect(chip).not.toHaveTextContent("×");
   });
 
   it("says both ways out in its title, since neither is visible", () => {

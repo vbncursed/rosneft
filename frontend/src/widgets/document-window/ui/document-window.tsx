@@ -38,7 +38,7 @@ function actionsFor(
   askDelete: () => void,
 ): ViewportWindowAction[] {
   const del: ViewportWindowAction[] = canDelete
-    ? [{ name: `Delete ${file}`, icon: "trash", tone: "bad", onClick: askDelete }]
+    ? [{ name: `Delete ${file}`, tooltip: "Delete", icon: "trash", tone: "bad", onClick: askDelete }]
     : [];
   const exit: ViewportWindowAction = { name: "Exit document overlay", icon: "close", onClick: onExit };
 
@@ -46,12 +46,12 @@ function actionsFor(
   // and changes nothing else, so a reader can still put the window away.
   const first: ViewportWindowAction =
     mode === "expanded"
-      ? { name: `Restore ${file} to a window`, icon: "minimize", onClick: () => onWindow("pip") }
-      : { name: `Expand ${file}`, icon: "maximize", onClick: () => onWindow("expanded") };
+      ? { name: `Restore ${file} to a window`, tooltip: "Restore", icon: "minimize", onClick: () => onWindow("pip") }
+      : { name: `Expand ${file}`, tooltip: "Expand", icon: "maximize", onClick: () => onWindow("expanded") };
 
   return [
     first,
-    { name: `Hide ${file}`, icon: "minus", onClick: () => onWindow("collapsed") },
+    { name: `Hide ${file}`, tooltip: "Hide", icon: "minus", onClick: () => onWindow("collapsed") },
     ...del,
     exit,
   ];

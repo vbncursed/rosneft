@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Document } from "@/entities/document";
+import { useSectionFolds } from "@/widgets/view-tab";
 import { useViewerDocuments } from "./use-viewer-documents";
 
 const { list, useDocumentList, useDocumentUpload } = vi.hoisted(() => {
@@ -53,6 +54,7 @@ const mount = () =>
       initial: DOCUMENTS,
       onChanged,
       onOpen,
+      reveal: vi.fn(),
     }),
   );
 
@@ -143,5 +145,25 @@ describe("useViewerDocuments", () => {
     act(() => useDocumentUpload.mock.calls.at(-1)![0].onCreated(created as never));
     expect(list.add).toHaveBeenCalledWith(created);
     expect(result.current.upload.open).toBe(false);
+  });
+
+  it("opens a folded Documents list on a finished upload, so the PDF is not hidden", () => {
+    localStorage.clear();
+    const { result } = renderHook(() => {
+      const folds = useSectionFolds({ panoramas: false, documents: false });
+      const documents = useViewerDocuments({
+        slug: "refinery-block-c",
+        initial: DOCUMENTS,
+        onChanged,
+        onOpen,
+        reveal: folds.reveal,
+      });
+      return { folds, documents };
+    });
+    expect(result.current.folds.documents.open).toBe(false);
+
+    act(() => useDocumentUpload.mock.calls.at(-1)![0].onCreated(doc(9, "Permit.pdf") as never));
+    expect(result.current.folds.documents.open).toBe(true);
+    expect(result.current.folds.panoramas.open).toBe(false);
   });
 });

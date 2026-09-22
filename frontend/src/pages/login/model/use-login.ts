@@ -1,6 +1,13 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
-import { login, verifyTwoFactor } from "@/entities/user";
+import {
+  beginLogin,
+  finishLogin,
+  getCredential,
+  isCancelled,
+  isPasskeySupported,
+} from "@/entities/passkey";
+import { login, startSession, verifyTwoFactor } from "@/entities/user";
 import { messageOf } from "@/shared/api";
 import type { LoginPageProps, LoginStep } from "../ui/login-page";
 import { nextTarget } from "./next-target";
@@ -27,6 +34,8 @@ const INTRO = {
   ],
 };
 
+const PASSKEY_FAILED = "Passkey sign-in failed. Try again or use your password.";
+
 const FOOTNOTE =
   "Accounts are created by your company administrator. No access — contact your organisation owner.";
 
@@ -35,9 +44,9 @@ const FOOTNOTE =
  * `LoginPageProps` so `LoginPage` — and its Cosmos fixtures, which feed the
  * same shape by hand — never change.
  *
- * `onPasskey` is left undefined on purpose: the gateway's passkey RP origin
- * is pinned to the other SPA's dev port, so a ceremony started here cannot
- * succeed.
+ * `onPasskey` is offered only behind `isPasskeySupported()`: without it the
+ * button and its copy disappear — in a browser with no WebAuthn, and in the
+ * desktop shell, whose loopback origin `PASSKEY_RP_ORIGINS` never lists.
  */
 export function useLogin(): LoginPageProps {
   const navigate = useNavigate();
@@ -98,6 +107,27 @@ export function useLogin(): LoginPageProps {
       .finally(() => setSubmitting(false));
   };
 
+  // Usernameless: the gateway's begin asks for a discoverable credential, so
+  // nothing typed into the form is used. A passkey sign-in is its own second
+  // factor — the gateway never answers it with a 2FA challenge.
+  const signInWithPasskey = () => {
+    if (submitting) return;
+    setSubmitting(true);
+    setError(undefined);
+    beginLogin()
+      .then(({ optionsJson, flowId }) =>
+        getCredential(optionsJson).then((assertion) => finishLogin(flowId, assertion)),
+      )
+      .then((csrfToken) => {
+        startSession(csrfToken);
+        goToTarget();
+      })
+      .catch((err: unknown) => {
+        if (!isCancelled(err)) setError(PASSKEY_FAILED);
+      })
+      .finally(() => setSubmitting(false));
+  };
+
   return {
     step,
     intro: INTRO,
@@ -112,6 +142,7 @@ export function useLogin(): LoginPageProps {
       remember,
       onRememberChange: setRemember,
       onSubmit: submitCredentials,
+      onPasskey: isPasskeySupported() ? signInWithPasskey : undefined,
       submitting,
     },
     twoFactor:

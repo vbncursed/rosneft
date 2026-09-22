@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { PasswordField } from "./password-field";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const input = () => screen.getByLabelText(/Password/) as HTMLInputElement;
 
@@ -95,5 +96,12 @@ describe("PasswordField", () => {
     expect(screen.getByRole("button", { name: "Show password" }).className.split(/\s+/)).toEqual(
       expect.arrayContaining(["enabled:active:scale-95", "transition-[color,scale]"]),
     );
+  });
+});
+
+describe("PasswordField · tooltip", () => {
+  it("names the eye in a tooltip that follows its state", async () => {
+    render(<PasswordField label="Password" />);
+    expect(hoverTip(screen.getByRole("button", { name: "Show password" }))).toHaveTextContent("Show password");
   });
 });

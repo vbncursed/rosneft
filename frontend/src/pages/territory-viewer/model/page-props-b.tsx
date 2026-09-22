@@ -89,12 +89,14 @@ export function viewTabProps(p: PageParts): ViewTabProps {
         onSave: pan.link.onSave,
       },
       editor: anchorCard(p),
+      fold: p.sections.panoramas,
     },
     documents: {
       rows: docs.list.map((document) => ({ id: document.id, name: documentFileName(document) })),
       canUpload: grants.documentWrite,
       onUpload: docs.upload.onOpen,
       onOpen: docs.onOpen,
+      fold: p.sections.documents,
     },
     measurements: {
       saved: measure.chains.filter((c) => c.serverId != null).length,

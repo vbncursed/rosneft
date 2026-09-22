@@ -41,7 +41,10 @@ describe("PasskeysSection · populated", () => {
     expect(screen.getByText("2 registered")).toBeInTheDocument();
     expect(screen.getByText("MacBook Pro")).toBeInTheDocument();
     expect(screen.getByText("iPhone 15")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "+ Add passkey" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add passkey" })).toBeInTheDocument();
+    // A drawn plus, not a typed "+": the name and text carry the label alone.
+    expect(screen.getByRole("button", { name: "Add passkey" }).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Add passkey" })).toHaveTextContent(/^Add passkey$/);
   });
 
   // Each Remove button is named after its own key: several rows of "Remove"
@@ -108,7 +111,7 @@ describe("PasskeysSection · populated", () => {
 describe("PasskeysSection · adding", () => {
   it("opens the naming step and closes again without starting a ceremony", async () => {
     render(<PasskeysSection {...props()} />);
-    await userEvent.click(screen.getByRole("button", { name: "+ Add passkey" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add passkey" }));
     expect(screen.getByRole("heading", { name: "Name this passkey" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("heading", { name: "Name this passkey" })).not.toBeInTheDocument();
@@ -125,7 +128,7 @@ describe("PasskeysSection · adding", () => {
     finishRegistration.mockResolvedValue(added);
     const onAdded = vi.fn();
     render(<PasskeysSection {...props({ onAdded })} />);
-    await userEvent.click(screen.getByRole("button", { name: "+ Add passkey" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add passkey" }));
     await userEvent.type(screen.getByLabelText("Passkey name"), "Probe");
     await userEvent.click(screen.getByRole("button", { name: "Continue" }));
     await waitFor(() => expect(onAdded).toHaveBeenCalledExactlyOnceWith(added));
@@ -138,7 +141,7 @@ describe("PasskeysSection · empty", () => {
     render(<PasskeysSection {...props({ passkeys: [] })} />);
     expect(screen.getByText("0 registered")).toBeInTheDocument();
     expect(screen.getByText("No passkeys yet")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "+ Add passkey" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add passkey" })).toBeInTheDocument();
   });
 });
 
@@ -178,7 +181,7 @@ describe("PasskeysSection · browser cannot register a passkey", () => {
     isPasskeySupported.mockReturnValue(false);
     render(<PasskeysSection {...props()} />);
     expect(screen.getByText("This browser cannot register a passkey")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "+ Add passkey" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add passkey" })).not.toBeInTheDocument();
   });
 
   it("still lets an existing key be removed — that needs no ceremony", async () => {
@@ -196,7 +199,7 @@ describe("PasskeysSection · browser cannot register a passkey", () => {
     render(<PasskeysSection {...props({ passkeys: [] })} />);
     expect(screen.getByText("This browser cannot register a passkey")).toBeInTheDocument();
     expect(screen.getByText("No passkeys yet")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "+ Add passkey" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add passkey" })).not.toBeInTheDocument();
   });
 
   it("says nothing about registering when the browser can do it", () => {

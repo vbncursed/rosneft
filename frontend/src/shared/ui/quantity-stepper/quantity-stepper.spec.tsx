@@ -1,8 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { QuantityStepper } from "./quantity-stepper";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 function Harness({ initial = 4, ...rest }: { initial?: number; min?: number; max?: number }) {
   const [value, setValue] = useState(initial);
@@ -58,5 +59,25 @@ describe("QuantityStepper", () => {
         "ease-out",
       ]),
     );
+  });
+});
+
+describe("QuantityStepper · step marks", () => {
+  it("draws minus and plus as icons, not − + characters", () => {
+    render(<Harness />);
+    for (const step of [dec(), inc()]) {
+      expect(step.querySelector("svg")).not.toBeNull();
+      expect(step.textContent).toBe("");
+    }
+  });
+});
+
+describe("QuantityStepper · tooltips", () => {
+  it("names both steps, the one at its limit too", () => {
+    render(<Harness initial={1} min={1} />);
+    expect(hoverTip(inc())).toHaveTextContent("Increase quantity");
+    fireEvent.pointerLeave(inc(), { pointerType: "mouse" });
+    // A disabled button takes no pointer events: the tooltip's wrapper does.
+    expect(hoverTip(dec().parentElement!)).toHaveTextContent("Decrease quantity");
   });
 });

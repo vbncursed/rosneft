@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { EXIT_PANORAMA, NOT_CALIBRATED, SHOW_IN } from "../model/copy";
 import { PanoramaRow, type PanoramaRowView } from "./panorama-row";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const ROW: PanoramaRowView = {
   id: 7,
@@ -103,5 +104,14 @@ describe("PanoramaRow", () => {
     row({ canEdit: true });
     expect(screen.getByRole("button", { name: `Edit ${ROW.title}` })).toHaveClass("active:scale-95", "ease-out");
     for (const b of screen.getAllByRole("button")) expect(b.className).toMatch(/active:scale-/);
+  });
+});
+
+describe("PanoramaRow · tooltip", () => {
+  it("names its edit button in a tooltip, not a native title", () => {
+    row({ canEdit: true });
+    const edit = screen.getByRole("button", { name: "Edit Control room, north door" });
+    expect(edit).not.toHaveAttribute("title");
+    expect(hoverTip(edit)).toHaveTextContent("Edit Control room, north door");
   });
 });

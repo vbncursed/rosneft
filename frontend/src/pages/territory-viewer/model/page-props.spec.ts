@@ -127,6 +127,10 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
   panoramas: IDLE_PANORAMAS,
   documents: IDLE_DOCUMENTS,
   panel: { tab: "view", collapsed: false },
+  sections: {
+    panoramas: { open: true, locked: false, onToggle: vi.fn() },
+    documents: { open: true, locked: false, onToggle: vi.fn() },
+  },
   view: {
     report: { shown: 1, target: 1, percent: null, progressText: null, failure: null },
     targetLod: 1,

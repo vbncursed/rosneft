@@ -6,6 +6,7 @@ import { NUDGE_STEPS } from "@/features/panorama-view";
 import type { Detail } from "@/shared/ui/detail-list";
 import { insideFooter, LOADING_FOOTER } from "./model/copy";
 import { degToRad } from "./model/degrees";
+import { useSectionFolds } from "./model/use-section-folds";
 import { AnchorCard } from "./ui/anchor-card";
 import type { PanoramaRowView } from "./ui/panorama-row";
 import { ViewTab } from "./ui/view-tab";
@@ -77,6 +78,11 @@ function Live({
   const [moving, setMoving] = useState(false);
   const [showRuler, setShowRuler] = useState(ruler);
   const [link, setLink] = useState(url);
+  // The page's rule: standing in or editing a capture holds the list open.
+  const folds = useSectionFolds({
+    panoramas: rows.some((row) => row.active || row.editing),
+    documents: false,
+  });
 
   return (
     <Body width={width}>
@@ -106,8 +112,15 @@ function Live({
             },
           },
           editor,
+          fold: folds.panoramas,
         }}
-        documents={{ rows: documents, canUpload: canWrite, onUpload: () => {}, onOpen: () => {} }}
+        documents={{
+          rows: documents,
+          canUpload: canWrite,
+          onUpload: () => {},
+          onOpen: () => {},
+          fold: folds.documents,
+        }}
         measurements={{ saved: 2, show: showRuler, onToggle: () => setShowRuler((on) => !on) }}
         footer={footer}
       />

@@ -102,7 +102,7 @@ describe("TerritoryCatalogScreen", () => {
   it("navigates to the v2 upload route rather than leaving the SPA", async () => {
     useTerritoryCatalog.mockReturnValue(state());
     render(<TerritoryCatalogScreen />);
-    await userEvent.click(screen.getByRole("button", { name: "+ Upload" }));
+    await userEvent.click(screen.getAllByRole("button", { name: "Upload territory" })[0]);
     expect(navigate).toHaveBeenCalledWith({ to: "/territories/new" });
   });
 

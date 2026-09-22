@@ -1,5 +1,6 @@
 import { clsx as cx } from "clsx";
 import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 import { instanceLine, instanceName, type PlacementGroup, type PlacementInstance } from "../model/groups";
 
 export type InstanceRowProps = {
@@ -60,31 +61,33 @@ export function InstanceRow({
         {instanceLine(instance)}
       </button>
       {canWrite ? (
-        <button
-          type="button"
-          onClick={() => onRename(instance.id)}
-          disabled={pending}
-          aria-label={`Rename ${name}`}
-          title={`Rename ${name}`}
-          className={cx(ICON_BUTTON, "border-line-2 bg-panel text-fg hover:border-accent-line")}
-        >
-          <Icon name="pencil" size={12} />
-        </button>
+        <Tooltip label={`Rename ${name}`}>
+          <button
+            type="button"
+            onClick={() => onRename(instance.id)}
+            disabled={pending}
+            aria-label={`Rename ${name}`}
+            className={cx(ICON_BUTTON, "border-line-2 bg-panel text-fg hover:border-accent-line")}
+          >
+            <Icon name="pencil" size={12} />
+          </button>
+        </Tooltip>
       ) : null}
       {canDelete ? (
-        <button
-          type="button"
-          onClick={() => onDelete(instance.id)}
-          disabled={pending}
-          aria-label={`Delete ${name}`}
-          title={`Delete ${name}`}
-          className={cx(
-            ICON_BUTTON,
-            selected ? "border-bad bg-bad-soft text-bad" : "border-line-2 bg-panel text-muted hover:text-bad",
-          )}
-        >
-          <Icon name="trash" size={12} />
-        </button>
+        <Tooltip label={`Delete ${name}`}>
+          <button
+            type="button"
+            onClick={() => onDelete(instance.id)}
+            disabled={pending}
+            aria-label={`Delete ${name}`}
+            className={cx(
+              ICON_BUTTON,
+              selected ? "border-bad bg-bad-soft text-bad" : "border-line-2 bg-panel text-muted hover:text-bad",
+            )}
+          >
+            <Icon name="trash" size={12} />
+          </button>
+        </Tooltip>
       ) : null}
       {!editor ? (
         <button

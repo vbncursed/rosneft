@@ -98,7 +98,7 @@ describe("ModelLibraryScreen", () => {
   it("navigates to the v2 upload route rather than leaving the SPA", async () => {
     useModelLibrary.mockReturnValue(state());
     render(<ModelLibraryScreen />);
-    await userEvent.click(screen.getByRole("button", { name: "+ Upload" }));
+    await userEvent.click(screen.getAllByRole("button", { name: "Upload models" })[0]);
     expect(navigate).toHaveBeenCalledWith({ to: "/models/new" });
   });
 

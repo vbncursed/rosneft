@@ -59,7 +59,8 @@ const USERS: User[] = [
 
 const newUser = (
   <Button variant="primary" size="sm">
-    + New user
+    <Icon name="plus" size={12} />
+    New user
   </Button>
 );
 

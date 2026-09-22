@@ -2,6 +2,8 @@ import { clsx as cx } from "clsx";
 import { diffRows, type AuditEntry, type DiffKind, type Refs } from "@/entities/audit";
 import { Button } from "@/shared/ui/button";
 import { DetailList, type Detail } from "@/shared/ui/detail-list";
+import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 import { inspectorValue } from "../model/inspector-value";
 
 export type RecordInspectorProps = {
@@ -50,14 +52,16 @@ export function RecordInspector({
           <p className="m-0 mt-1 text-[13px] text-muted">{entry.entityLabel}</p>
         </div>
         {onClose ? (
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="-m-1 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent p-0 leading-none text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            ×
-          </button>
+          <Tooltip label="Close">
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="-m-1 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent p-0 leading-none text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              <Icon name="close" size={14} />
+            </button>
+          </Tooltip>
         ) : null}
       </div>
 

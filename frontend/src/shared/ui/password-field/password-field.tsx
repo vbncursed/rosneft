@@ -2,6 +2,7 @@ import { useId, useState, type InputHTMLAttributes, type ReactNode } from "react
 import { Field, describedBy } from "@/shared/ui/field";
 import { Icon } from "@/shared/ui/icon";
 import { controlClass } from "@/shared/ui/text-field";
+import { Tooltip } from "@/shared/ui/tooltip";
 
 export type PasswordFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "id" | "type"> & {
   label?: ReactNode;
@@ -67,18 +68,20 @@ export function PasswordField({
           })}
           {...rest}
         />
-        <button
-          type="button"
-          onClick={() => setShown((s) => !s)}
-          disabled={disabled}
-          aria-pressed={shown}
-          aria-label={shown ? "Hide password" : "Show password"}
-          className={`absolute right-3 top-1/2 flex -translate-y-1/2 cursor-pointer border-none bg-transparent p-0 transition-[color,scale] duration-150 ease-out enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-55 ${
-            shown ? "text-accent" : "text-muted hover:text-fg"
-          }`}
-        >
-          <Icon name={shown ? "eye-off" : "eye"} size={17} />
-        </button>
+        <Tooltip label={shown ? "Hide password" : "Show password"}>
+          <button
+            type="button"
+            onClick={() => setShown((s) => !s)}
+            disabled={disabled}
+            aria-pressed={shown}
+            aria-label={shown ? "Hide password" : "Show password"}
+            className={`absolute right-3 top-1/2 flex -translate-y-1/2 cursor-pointer border-none bg-transparent p-0 transition-[color,scale] duration-150 ease-out enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-55 ${
+              shown ? "text-accent" : "text-muted hover:text-fg"
+            }`}
+          >
+            <Icon name={shown ? "eye-off" : "eye"} size={17} />
+          </button>
+        </Tooltip>
       </div>
     </Field>
   );

@@ -44,6 +44,19 @@ describe("Dropdown", () => {
     );
   });
 
+  // A drawn check on the chosen option; the others keep an empty box of the
+  // same width so their labels line up with it.
+  it("marks the selected option with a check and leaves the rest an empty slot", async () => {
+    render(<Harness />);
+    await userEvent.click(trigger());
+    const marker = (name: RegExp) => screen.getByRole("option", { name }).firstElementChild!;
+    expect(marker(/territory/).querySelector("svg")).not.toBeNull();
+    expect(marker(/model/).querySelector("svg")).toBeNull();
+    expect(marker(/model/)).toBeEmptyDOMElement();
+    expect(marker(/model/).className).toBe(marker(/territory/).className);
+    expect(screen.getByRole("listbox")).not.toHaveTextContent(/[●○]/);
+  });
+
   it("selects on click and closes", async () => {
     render(<Harness />);
     await userEvent.click(trigger());
@@ -130,11 +143,13 @@ describe("Dropdown · states", () => {
 
   it("turns one arrow glyph instead of swapping it, and drops the list from the trigger", async () => {
     render(<Harness />);
+    // A drawn chevron, not the ▾ character it replaced.
     const arrow = trigger().querySelector("[aria-hidden]:last-child")!;
-    expect(arrow).toHaveTextContent("▾");
+    expect(arrow.querySelector("svg")).not.toBeNull();
+    expect(trigger()).not.toHaveTextContent("▾");
     expect(arrow.classList).not.toContain("rotate-180");
     await userEvent.click(trigger());
-    expect(arrow).toHaveTextContent("▾");
+    expect(trigger().querySelector("[aria-hidden]:last-child")).toBe(arrow);
     expect(arrow.classList).toContain("rotate-180");
     const list = screen.getByRole("listbox");
     expect(list.classList).toContain("origin-top");

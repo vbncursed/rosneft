@@ -1,8 +1,16 @@
 import type { PointerEvent, ReactNode } from "react";
 import { clsx as cx } from "clsx";
 import { Icon, type IconName } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 
-export type ViewportWindowAction = { name: string; icon: IconName; tone?: "default" | "bad"; onClick: () => void };
+export type ViewportWindowAction = {
+  name: string;
+  /** What the tooltip says, when the name is longer than it needs to be beside the title. */
+  tooltip?: string;
+  icon: IconName;
+  tone?: "default" | "bad";
+  onClick: () => void;
+};
 
 export type ViewportWindowProps = {
   title: string;
@@ -43,26 +51,29 @@ export function ViewportWindow({ title, geometry, actions, onMoveStart, onResize
     >
       <div className="flex items-center gap-2.5 border-b border-line bg-panel-2 px-[11px] py-[9px]">
         {floating ? (
-          <span
-            title="Drag to move"
-            onPointerDown={onMoveStart}
-            className="flex cursor-grab select-none items-center text-line-2 [touch-action:none] active:cursor-grabbing"
-          >
-            <Icon name="grip" size={14} />
-          </span>
+          // Pointer-only, like the corner: never focused, so its tooltip is hover-only.
+          <Tooltip label="Drag to move">
+            <span
+              data-testid="drag-handle"
+              onPointerDown={onMoveStart}
+              className="flex cursor-grab select-none items-center text-dim [touch-action:none] active:cursor-grabbing"
+            >
+              <Icon name="grip" size={14} />
+            </span>
+          </Tooltip>
         ) : null}
         <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-fg">{title}</span>
         {actions.map((a) => (
-          <button
-            key={a.name}
-            type="button"
-            title={a.name}
-            aria-label={a.name}
-            onClick={a.onClick}
-            className={cx(ACTION, a.tone === "bad" ? "border-bad bg-bad-soft text-bad" : "border-line-2 bg-panel text-fg hover:border-accent-line")}
-          >
-            <Icon name={a.icon} size={12} />
-          </button>
+          <Tooltip key={a.name} label={a.tooltip ?? a.name}>
+            <button
+              type="button"
+              aria-label={a.name}
+              onClick={a.onClick}
+              className={cx(ACTION, a.tone === "bad" ? "border-bad bg-bad-soft text-bad" : "border-line-2 bg-panel text-fg hover:border-accent-line")}
+            >
+              <Icon name={a.icon} size={12} />
+            </button>
+          </Tooltip>
         ))}
       </div>
       <div className="relative min-h-0 flex-1 bg-panel-2">
@@ -71,13 +82,15 @@ export function ViewportWindow({ title, geometry, actions, onMoveStart, onResize
       </div>
       {floating && onResizeStart ? (
         // A 20px target around the mock's 16px corner mark.
-        <span
-          title="Resize"
-          onPointerDown={onResizeStart}
-          className="absolute bottom-0 right-0 size-5 cursor-se-resize select-none [touch-action:none]"
-        >
-          <span aria-hidden="true" className="absolute bottom-0 right-0 size-4 border-b-2 border-r-2 border-line-2" />
-        </span>
+        <Tooltip label="Resize">
+          <span
+            data-testid="resize-grip"
+            onPointerDown={onResizeStart}
+            className="absolute bottom-0 right-0 size-5 cursor-se-resize select-none [touch-action:none]"
+          >
+            <span aria-hidden="true" className="absolute bottom-0 right-0 size-4 border-b-2 border-r-2 border-dim" />
+          </span>
+        </Tooltip>
       ) : null}
     </section>
   );

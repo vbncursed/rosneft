@@ -62,6 +62,8 @@ const props = (over: Partial<AccountPageProps> = {}): AccountPageProps => ({
   onRemovePasskey: vi.fn().mockResolvedValue(undefined),
   onPasskeyAdded: vi.fn(),
   onPage: vi.fn(),
+  onSignOut: vi.fn(),
+  signingOut: false,
   ...over,
 });
 

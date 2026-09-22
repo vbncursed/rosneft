@@ -50,8 +50,9 @@ export function ModelLibraryPage({
           <div className="flex items-center gap-[9px]">
             <ThemeToggle variant="compact" />
             {canUpload ? (
-              <Button variant="primary" shape="pill" onClick={onUpload}>
-                + Upload
+              <Button variant="primary" shape="pill" aria-label="Upload models" onClick={onUpload}>
+                <Icon name="plus" size={14} />
+                Upload
               </Button>
             ) : null}
           </div>
@@ -108,7 +109,7 @@ export function ModelLibraryPage({
                         : `Delete ${card.title}`
                     }
                     disabled={card.usageCount > 0}
-                    title={card.usageCount > 0 ? "Remove its placements first" : undefined}
+                    tooltip={card.usageCount > 0 ? { label: "Remove its placements first" } : undefined}
                     onClick={() => onDelete(card.slug)}
                   >
                     <Icon name="trash" size={14} />

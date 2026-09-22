@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { createCredential, isCancelled } from "./webauthn";
+import { createCredential, getCredential, isCancelled } from "./webauthn";
 
 vi.mock("@github/webauthn-json", () => ({
   create: vi.fn(async (opts: unknown) => ({ id: "cred", echoed: opts })),
+  get: vi.fn(async (opts: unknown) => ({ id: "assertion", echoed: opts })),
   supported: () => true,
 }));
 
@@ -10,6 +11,13 @@ describe("createCredential", () => {
   it("parses the server's options and stringifies what the authenticator returns", async () => {
     const out = await createCredential(JSON.stringify({ publicKey: { challenge: "c" } }));
     expect(JSON.parse(out)).toEqual({ id: "cred", echoed: { publicKey: { challenge: "c" } } });
+  });
+});
+
+describe("getCredential", () => {
+  it("runs the get() ceremony over the server's options and stringifies the assertion", async () => {
+    const out = await getCredential(JSON.stringify({ publicKey: { challenge: "c" } }));
+    expect(JSON.parse(out)).toEqual({ id: "assertion", echoed: { publicKey: { challenge: "c" } } });
   });
 });
 

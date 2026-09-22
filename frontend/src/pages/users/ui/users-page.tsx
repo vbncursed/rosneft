@@ -4,6 +4,7 @@ import type { User } from "@/entities/user";
 import { FilterBar } from "@/features/audit-filter";
 import { Button } from "@/shared/ui/button";
 import { CoverageMeter, type CoverageSegment } from "@/shared/ui/coverage-meter";
+import { Icon } from "@/shared/ui/icon";
 import { PageHeader } from "@/widgets/page-header";
 import { PeopleGroups, type PeopleGroup } from "@/widgets/people-groups";
 import { PersonInspector, type PersonDetail } from "@/widgets/person-inspector";
@@ -78,7 +79,8 @@ export function UsersPage({
         action={
           canManage ? (
             <Button variant="primary" onClick={onCreateUser}>
-              + New user
+              <Icon name="plus" size={14} />
+              New user
             </Button>
           ) : undefined
         }

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AccessInspector, type AccessInspectorProps } from "./access-inspector";
 import type { AccessGrant, TerritoryAccess } from "@/entities/territory";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const territory: TerritoryAccess = {
   slug: "refinery-block-c",
@@ -96,7 +97,10 @@ describe("AccessInspector", () => {
   it("adds a person", async () => {
     const onAddPerson = vi.fn();
     render(<AccessInspector {...props({ onAddPerson })} />);
-    await userEvent.click(screen.getByRole("button", { name: "+ add person" }));
+    await userEvent.click(screen.getByRole("button", { name: "add person" }));
+    // A drawn plus, not a typed "+": the name and text carry the label alone.
+    expect(screen.getByRole("button", { name: "add person" }).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "add person" })).toHaveTextContent(/^add person$/);
     expect(onAddPerson).toHaveBeenCalledOnce();
   });
 
@@ -125,7 +129,7 @@ describe("AccessInspector", () => {
     expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
     expect(screen.getByText("Owner only")).toBeInTheDocument();
     expect(screen.getByText("Nobody can open this territory yet.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "+ add person" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "add person" })).toBeInTheDocument();
   });
 
   it("closes", async () => {
@@ -135,5 +139,23 @@ describe("AccessInspector", () => {
     expect(screen.getByRole("button", { name: "Close" })).toHaveClass("size-6", "active:scale-95");
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalledOnce();
+  });
+});
+
+describe("AccessInspector · close mark", () => {
+  it("draws its Close button as an icon, not a × character", () => {
+    render(<AccessInspector {...props()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close.querySelector("svg")).not.toBeNull();
+    expect(close.textContent).toBe("");
+  });
+});
+
+describe("AccessInspector · tooltip", () => {
+  it("names its Close button in a tooltip, not a native title", () => {
+    render(<AccessInspector {...props()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close).not.toHaveAttribute("title");
+    expect(hoverTip(close)).toHaveTextContent("Close");
   });
 });

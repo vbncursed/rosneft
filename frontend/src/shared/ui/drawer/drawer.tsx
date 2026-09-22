@@ -1,6 +1,8 @@
 import { useId, type ReactNode } from "react";
 import { clsx as cx } from "clsx";
 import { useModalDialog } from "@/shared/ui/modal";
+import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 
 export type DrawerProps = {
   open: boolean;
@@ -48,14 +50,16 @@ export function Drawer({
             <h2 id={titleId} className="m-0 text-[15px] font-semibold">
               {title}
             </h2>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="flex size-6 cursor-pointer items-center justify-center border-none bg-transparent p-0 text-muted transition-[color,scale] duration-150 ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.95]"
-            >
-              ×
-            </button>
+            <Tooltip label="Close">
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close"
+                className="flex size-6 cursor-pointer items-center justify-center border-none bg-transparent p-0 text-muted transition-[color,scale] duration-150 ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.95]"
+              >
+                <Icon name="close" size={14} />
+              </button>
+            </Tooltip>
           </div>
 
           <div className="flex flex-1 flex-col gap-3 overflow-y-auto">{children}</div>

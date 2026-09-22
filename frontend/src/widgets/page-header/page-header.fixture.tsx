@@ -1,5 +1,6 @@
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
+import { Icon } from "@/shared/ui/icon";
 import { PageHeader } from "./ui/page-header";
 
 export default (
@@ -10,7 +11,8 @@ export default (
       title="Scenes to walk through"
       action={
         <Button shape="pill" variant="primary">
-          + Upload
+          <Icon name="plus" size={14} />
+          Upload
         </Button>
       }
     />
@@ -22,7 +24,8 @@ export default (
       description="Sites you have access to. Open one to inspect it in 3D, measure distances and place models."
       action={
         <Button shape="pill" variant="primary">
-          + Upload
+          <Icon name="plus" size={14} />
+          Upload
         </Button>
       }
     />

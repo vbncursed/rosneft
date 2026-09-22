@@ -7,11 +7,13 @@ import type { ConsoleHint } from "../model/console-hints";
 import type { HomeState } from "../model/use-home";
 import { HomeScreen } from "./home-screen";
 
-const { useHome, useConsoleCounters, navigate } = vi.hoisted(() => ({
+const { useHome, useConsoleCounters, navigate, signOut } = vi.hoisted(() => ({
   useHome: vi.fn(),
   useConsoleCounters: vi.fn(),
   navigate: vi.fn(),
+  signOut: vi.fn(),
 }));
+vi.mock("@/features/sign-out", () => ({ useSignOut: () => ({ signOut, pending: false }) }));
 vi.mock("../model/use-home", () => ({ useHome }));
 vi.mock("../model/use-console-counters", () => ({ useConsoleCounters }));
 // A stand-in for the router context: the screen is rendered on its own.
@@ -58,6 +60,7 @@ beforeEach(() => {
   useConsoleCounters.mockReset();
   useConsoleCounters.mockReturnValue(hints);
   navigate.mockReset();
+  signOut.mockReset();
 });
 
 describe("HomeScreen", () => {
@@ -87,13 +90,23 @@ describe("HomeScreen", () => {
     ).toBeInTheDocument();
   });
 
-  it("hands the page the signed-in reader for its account pill", () => {
+  it("hands the page the signed-in reader for its account menu", () => {
     useHome.mockReturnValue(state());
     render(<HomeScreen consoleItems={items(true)} />);
-    expect(screen.getByRole("link", { name: "Open account for a.ivanova" })).toHaveAttribute(
-      "href",
-      "/account",
-    );
+    expect(screen.getByRole("button", { name: "Account menu for a.ivanova" })).toBeInTheDocument();
+  });
+
+  it("routes Account to /account and Sign out to the sign-out feature", async () => {
+    useHome.mockReturnValue(state());
+    render(<HomeScreen consoleItems={items(true)} />);
+    const menu = screen.getByRole("button", { name: "Account menu for a.ivanova" });
+    await userEvent.click(menu);
+    await userEvent.click(screen.getByRole("menuitem", { name: "Account" }));
+    expect(navigate).toHaveBeenCalledWith({ href: "/account" });
+
+    await userEvent.click(menu);
+    await userEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
+    expect(signOut).toHaveBeenCalledOnce();
   });
 
   it("navigates to a card's own href when it is opened", async () => {

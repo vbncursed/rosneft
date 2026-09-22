@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { Toast } from "./toast";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 describe("Toast", () => {
   // A calm tone carries no role of its own: the host's polite live region
@@ -85,5 +86,32 @@ describe("Toast", () => {
       ]),
     );
     expect(cls).not.toContain("p-0");
+  });
+});
+
+describe("Toast · dismiss mark", () => {
+  it("draws its dismiss button as an icon, not a × character", () => {
+    render(
+      <Toast tone="info" onDismiss={vi.fn()}>
+        Saved.
+      </Toast>,
+    );
+    const dismiss = screen.getByRole("button", { name: "Dismiss" });
+    expect(dismiss.querySelector("svg")).not.toBeNull();
+    expect(dismiss.textContent).toBe("");
+  });
+});
+
+describe("Toast · tooltip", () => {
+  // The long accessible name tells stacked cards apart for a screen reader; a
+  // sighted reader has the card itself, and a tooltip repeating it covers it.
+  it("names its dismiss button plainly in a tooltip, whatever its accessible name", () => {
+    render(
+      <Toast tone="info" onDismiss={vi.fn()} dismissLabel="Dismiss: Saved">
+        Saved
+      </Toast>,
+    );
+    const tip = hoverTip(screen.getByRole("button", { name: "Dismiss: Saved" }));
+    expect(tip?.textContent).toBe("Dismiss");
   });
 });

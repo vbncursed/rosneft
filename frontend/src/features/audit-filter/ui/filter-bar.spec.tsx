@@ -1,8 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { FilterBar } from "./filter-bar";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 function Harness({ initial = "" }: { initial?: string }) {
   const [query, setQuery] = useState(initial);
@@ -112,5 +113,33 @@ describe("FilterBar · chips the parser does not own", () => {
     expect(box).toHaveClass("focus-within:border-accent");
     expect(box.className).not.toMatch(/\btransition/);
     expect(screen.getByRole("button", { name: "Remove filter entity:territory" })).toHaveClass("transition-[color,scale]", "duration-150", "ease-out", "active:scale-95");
+  });
+});
+
+describe("FilterBar · remove marks", () => {
+  it("draws each chip's remove button as an icon, not a × character", () => {
+    render(
+      <FilterBar
+        query="entity:territory"
+        onChange={() => {}}
+        extra={[{ label: "from:2026-08-01", onRemove: () => {} }]}
+      />,
+    );
+    for (const name of ["Remove filter entity:territory", "Remove filter from:2026-08-01"]) {
+      const remove = screen.getByRole("button", { name });
+      expect(remove.querySelector("svg")).not.toBeNull();
+      expect(remove.textContent).toBe("");
+    }
+  });
+});
+
+describe("FilterBar · tooltip", () => {
+  it("names each chip's remove button in a tooltip", () => {
+    render(<FilterBar query="entity:territory" onChange={vi.fn()} extra={[{ label: "last 7 days", onRemove: vi.fn() }]} />);
+    const parsed = screen.getByRole("button", { name: "Remove filter entity:territory" });
+    expect(hoverTip(parsed)).toHaveTextContent("Remove filter entity:territory");
+    fireEvent.pointerLeave(parsed, { pointerType: "mouse" });
+    const extra = screen.getByRole("button", { name: "Remove filter last 7 days" });
+    expect(hoverTip(extra)).toHaveTextContent("Remove filter last 7 days");
   });
 });

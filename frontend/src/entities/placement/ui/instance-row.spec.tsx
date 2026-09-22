@@ -1,7 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { InstanceRow } from "./instance-row";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const group = { model: { slug: "tank", title: "storage-tank-500" }, instances: [{ id: 2, index: 2, label: "Tank 2" }] };
 const instance = group.instances[0];
@@ -54,5 +55,25 @@ describe("InstanceRow", () => {
   it("presses Focus", () => {
     render(<InstanceRow group={group} instance={instance} selected={false} pending={false} canWrite={false} canDelete={false} {...handlers()} />);
     expect(screen.getByRole("button", { name: "Focus storage-tank-500 #2" })).toHaveClass("active:scale-[0.97]", "ease-out");
+  });
+});
+
+describe("InstanceRow · tooltip", () => {
+  it("names Rename and Delete in tooltips, not native titles", () => {
+    render(<InstanceRow group={group} instance={instance} selected={false} pending={false} canWrite canDelete {...handlers()} />);
+    const rename = screen.getByRole("button", { name: /^Rename / });
+    const del = screen.getByRole("button", { name: /^Delete / });
+    expect(rename).not.toHaveAttribute("title");
+    expect(del).not.toHaveAttribute("title");
+    expect(hoverTip(rename)).toHaveTextContent(rename.getAttribute("aria-label")!);
+    fireEvent.pointerLeave(rename, { pointerType: "mouse" });
+    expect(hoverTip(del)).toHaveTextContent(del.getAttribute("aria-label")!);
+  });
+
+  it("still names them while a write is pending and they are disabled", () => {
+    render(<InstanceRow group={group} instance={instance} selected={false} pending canWrite canDelete {...handlers()} />);
+    const rename = screen.getByRole("button", { name: /^Rename / });
+    expect(rename).toBeDisabled();
+    expect(hoverTip(rename.parentElement!)).toHaveTextContent(rename.getAttribute("aria-label")!);
   });
 });

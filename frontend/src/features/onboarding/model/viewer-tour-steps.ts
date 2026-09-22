@@ -69,7 +69,7 @@ const TAIL: TourStep[] = [
     id: "shortcuts",
     center: true,
     title: "Keyboard shortcuts",
-    body: "M measure · P next panorama · V move panorama points · T move · R rotate · S scale · G snap to surface · Esc step back out. Reopen this tour any time with the ▶ button.",
+    body: "M measure · P next panorama · V move panorama points · T move · R rotate · S scale · G snap to surface · Esc step back out. Reopen this tour any time with the\u00a0? button.",
   },
 ];
 

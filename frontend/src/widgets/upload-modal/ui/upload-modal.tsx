@@ -3,6 +3,7 @@ import { Button } from "@/shared/ui/button";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { DropZone } from "@/shared/ui/drop-zone";
 import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 import { Modal } from "@/shared/ui/modal";
 import { TextField } from "@/shared/ui/text-field";
 import {
@@ -88,15 +89,16 @@ export function UploadModal({
       // Beside the heading, never inside it: the dialog is named by that
       // heading, and a button in it is read out as part of the name.
       action={
-        <button
-          type="button"
-          onClick={leave}
-          aria-label={close}
-          title={close}
-          className="flex size-[26px] shrink-0 cursor-pointer items-center justify-center rounded-[7px] border border-line-2 bg-panel-2 text-fg transition-[color,background-color,border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          <Icon name="close" size={12} />
-        </button>
+        <Tooltip label={close}>
+          <button
+            type="button"
+            onClick={leave}
+            aria-label={close}
+            className="flex size-[26px] shrink-0 cursor-pointer items-center justify-center rounded-[7px] border border-line-2 bg-panel-2 text-fg transition-[color,background-color,border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <Icon name="close" size={12} />
+          </button>
+        </Tooltip>
       }
       footer={
         <div className="flex w-full items-center gap-4">
