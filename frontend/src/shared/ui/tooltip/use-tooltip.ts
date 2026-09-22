@@ -67,7 +67,20 @@ export function useTooltip() {
       close();
     };
     window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
+    // A fixed tooltip measured once cannot follow its trigger, so any scroll —
+    // a panel's too, hence capture — or resize closes it. Armed a frame late:
+    // a focus that scrolls its control into view fires that scroll next frame.
+    const moved = { capture: true, passive: true } as const;
+    const arm = requestAnimationFrame(() => {
+      window.addEventListener("scroll", close, moved);
+      window.addEventListener("resize", close);
+    });
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      cancelAnimationFrame(arm);
+      window.removeEventListener("scroll", close, moved);
+      window.removeEventListener("resize", close);
+    };
   }, [state.open, close]);
 
   const triggerProps = {
