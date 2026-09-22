@@ -1,11 +1,17 @@
 import { ThemeToggle } from "@/features/theme-toggle";
 import { Avatar } from "@/shared/ui/avatar";
+import { Button } from "@/shared/ui/button";
 import { viewerOf, type Principal } from "@/shared/session";
 
-export type AccountHeaderProps = { me: Principal };
+export type AccountHeaderProps = {
+  me: Principal;
+  onSignOut: () => void;
+  /** A sign-out is on its way: the button holds, spinning, until the page goes. */
+  signingOut: boolean;
+};
 
-/** The account screen's identity block: back link, overline, avatar, name, and the theme control. */
-export function AccountHeader({ me }: AccountHeaderProps) {
+/** The account screen's identity block: back link, overline, avatar, name, the theme control and Sign out. */
+export function AccountHeader({ me, onSignOut, signingOut }: AccountHeaderProps) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-5">
       <div className="min-w-0">
@@ -28,7 +34,12 @@ export function AccountHeader({ me }: AccountHeaderProps) {
           </div>
         </div>
       </div>
-      <ThemeToggle variant="compact" />
+      <div className="flex flex-wrap items-center gap-[9px]">
+        <ThemeToggle variant="compact" />
+        <Button variant="secondary" size="sm" loading={signingOut} onClick={onSignOut}>
+          Sign out
+        </Button>
+      </div>
     </div>
   );
 }

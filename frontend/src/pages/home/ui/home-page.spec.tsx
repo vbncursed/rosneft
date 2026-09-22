@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuditEntry } from "@/entities/audit";
 import type { JobCardModel } from "@/entities/conversion";
@@ -68,6 +69,7 @@ const base: HomePageProps = {
   activity: [entry(1, "auth.login")],
   activityLoading: false,
   onOpen: vi.fn(),
+  onSignOut: vi.fn(),
 };
 
 const page = (over: Partial<HomePageProps> = {}) => render(<HomePage {...base} {...over} />);
@@ -86,13 +88,24 @@ describe("HomePage", () => {
     expect(screen.getByText("4 territories · 57 models · 1 converting")).toBeInTheDocument();
   });
 
-  it("puts the reader's account pill in the header", () => {
+  it("puts the reader's account menu in the header", () => {
     page();
-    expect(screen.getByRole("link", { name: "Open account for a.ivanova" })).toHaveAttribute(
-      "href",
-      "/account",
-    );
+    expect(screen.getByRole("button", { name: "Account menu for a.ivanova" })).toBeInTheDocument();
     expect(screen.getByText("Company Owner")).toBeInTheDocument();
+  });
+
+  it("opens /account through onOpen and signs out through onSignOut", async () => {
+    const onOpen = vi.fn();
+    const onSignOut = vi.fn();
+    page({ onOpen, onSignOut });
+    const menu = screen.getByRole("button", { name: "Account menu for a.ivanova" });
+    await userEvent.click(menu);
+    await userEvent.click(screen.getByRole("menuitem", { name: "Account" }));
+    expect(onOpen).toHaveBeenCalledWith("/account");
+
+    await userEvent.click(menu);
+    await userEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
+    expect(onSignOut).toHaveBeenCalledOnce();
   });
 
   it("hides the strip with no jobs and names each job's link apart with two", () => {

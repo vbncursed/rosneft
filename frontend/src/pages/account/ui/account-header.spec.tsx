@@ -1,7 +1,12 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import type { Principal } from "@/shared/session";
-import { AccountHeader } from "./account-header";
+import { AccountHeader as Header, type AccountHeaderProps } from "./account-header";
+
+const AccountHeader = (p: Pick<AccountHeaderProps, "me"> & Partial<AccountHeaderProps>) => (
+  <Header onSignOut={vi.fn()} signingOut={false} {...p} />
+);
 
 const me = (over: Partial<Principal> = {}): Principal => ({
   id: "u-1",
@@ -45,6 +50,18 @@ describe("AccountHeader", () => {
 
     rerender(<AccountHeader me={me({ roleSlugs: [] })} />);
     expect(screen.getByText("a.ivanova@example.com · —")).toBeInTheDocument();
+  });
+
+  it("signs out from its Sign out button", async () => {
+    const onSignOut = vi.fn();
+    render(<AccountHeader me={me()} onSignOut={onSignOut} />);
+    await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    expect(onSignOut).toHaveBeenCalledOnce();
+  });
+
+  it("holds Sign out while one is on its way", () => {
+    render(<AccountHeader me={me()} signingOut />);
+    expect(screen.getByRole("button", { name: /Sign out/ })).toBeDisabled();
   });
 
   it("hosts the theme control", () => {

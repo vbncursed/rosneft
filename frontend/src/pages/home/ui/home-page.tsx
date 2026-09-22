@@ -27,6 +27,7 @@ export type HomePageProps = {
   activityLoading: boolean;
   /** Whole-card open; the title anchor routes itself through the shell's delegate. */
   onOpen: (href: string) => void;
+  onSignOut: () => void;
 };
 
 /** The landing screen: what is converting, what you can open, and what you did. */
@@ -41,7 +42,7 @@ export function HomePage(p: HomePageProps) {
         action={
           <div className="flex flex-wrap items-center gap-[9px]">
             <ThemeToggle variant="compact" />
-            <AccountPill {...p.viewer} />
+            <AccountPill {...p.viewer} onAccount={() => p.onOpen("/account")} onSignOut={p.onSignOut} />
           </div>
         }
       />

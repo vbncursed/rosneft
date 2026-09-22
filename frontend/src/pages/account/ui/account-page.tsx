@@ -41,6 +41,8 @@ export type AccountPageProps = {
   onRemovePasskey: (id: string, credential: { code?: string; password?: string }) => Promise<void>;
   onPasskeyAdded: () => void;
   onPage: (page: number) => void;
+  onSignOut: () => void;
+  signingOut: boolean;
 };
 
 /** The account screen's content: identity, posture, password, 2FA, passkeys, activity. Draws no chrome. */
@@ -59,7 +61,7 @@ export function AccountPage(props: AccountPageProps) {
 
   return (
     <div className="mx-auto flex w-full max-w-[880px] flex-col gap-5">
-      <AccountHeader me={props.me} />
+      <AccountHeader me={props.me} onSignOut={props.onSignOut} signingOut={props.signingOut} />
       <PostureCards
         cards={postureCards(props.twoFactor, props.passkeys?.length ?? null)}
         twoFactorLoading={props.twoFactorLoading}

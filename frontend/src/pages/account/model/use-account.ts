@@ -14,7 +14,8 @@ export type { AccountPageProps };
 export type AccountState =
   | { phase: "loading" }
   | { phase: "unavailable"; error: string }
-  | ({ phase: "ready" } & AccountPageProps);
+  // Sign-out is the screen's, from features/sign-out — not this container's.
+  | ({ phase: "ready" } & Omit<AccountPageProps, "onSignOut" | "signingOut">);
 
 /**
  * The account screen's data: the principal, the 2FA posture and the passkey

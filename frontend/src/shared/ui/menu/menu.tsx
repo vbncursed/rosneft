@@ -21,7 +21,10 @@ export type MenuProps = {
   /** Optional block above the items — the user menu's identity card. */
   header?: ReactNode;
   align?: "start" | "end";
+  /** Replaces the trigger's own look (border, padding, colours, press scale); the focus ring stays. */
   triggerClassName?: string;
+  /** `false` when the trigger shows its own text — the tooltip would only repeat it. */
+  triggerTooltip?: false;
   className?: string;
 };
 
@@ -40,6 +43,7 @@ export function Menu({
   header,
   align = "end",
   triggerClassName,
+  triggerTooltip,
   className,
 }: MenuProps) {
   const menuId = useId();
@@ -84,27 +88,32 @@ export function Menu({
     }
   };
 
+  const triggerButton = (
+    <button
+      ref={button}
+      type="button"
+      aria-haspopup="menu"
+      aria-expanded={open}
+      aria-controls={open ? menuId : undefined}
+      aria-label={triggerLabel}
+      onClick={() => setOpen((o) => !o)}
+      onKeyDown={onTriggerKeyDown}
+      className={cx(
+        "flex cursor-pointer items-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+        triggerClassName ??
+          cx(
+            "rounded-[7px] border px-2 py-1.5 transition-[color,background-color,border-color,scale] duration-150 ease-out active:scale-[0.95]",
+            open ? "border-accent-line bg-accent-soft text-accent" : "border-transparent text-muted hover:text-fg",
+          ),
+      )}
+    >
+      {trigger}
+    </button>
+  );
+
   return (
     <div ref={root} className={cx("relative w-fit", className)}>
-      <Tooltip label={triggerLabel}>
-        <button
-          ref={button}
-          type="button"
-          aria-haspopup="menu"
-          aria-expanded={open}
-          aria-controls={open ? menuId : undefined}
-          aria-label={triggerLabel}
-          onClick={() => setOpen((o) => !o)}
-          onKeyDown={onTriggerKeyDown}
-          className={cx(
-            "flex cursor-pointer items-center rounded-[7px] border px-2 py-1.5 transition-[color,background-color,border-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.95]",
-            open ? "border-accent-line bg-accent-soft text-accent" : "border-transparent text-muted hover:text-fg",
-            triggerClassName,
-          )}
-        >
-          {trigger}
-        </button>
-      </Tooltip>
+      {triggerTooltip === false ? triggerButton : <Tooltip label={triggerLabel}>{triggerButton}</Tooltip>}
 
       {open ? (
         <div
