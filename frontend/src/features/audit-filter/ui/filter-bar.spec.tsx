@@ -1,8 +1,9 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { FilterBar } from "./filter-bar";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 function Harness({ initial = "" }: { initial?: string }) {
   const [query, setQuery] = useState(initial);
@@ -131,15 +132,6 @@ describe("FilterBar · remove marks", () => {
     }
   });
 });
-
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
 
 describe("FilterBar · tooltip", () => {
   it("names each chip's remove button in a tooltip", () => {

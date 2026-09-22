@@ -1,8 +1,9 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Model } from "@/entities/model";
 import { ModelDetailPage, type ModelDetailPageProps } from "./model-detail-page";
+import { focusTip, hoverTip } from "@/shared/ui/tooltip/testing";
 
 const MODEL: Model = {
   slug: "valve-assembly",
@@ -87,11 +88,12 @@ describe("ModelDetailPage", () => {
   });
 });
 
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
+describe("ModelDetailPage · keyboard", () => {
+  it("names the delete icon Button the moment a keyboard focus lands on it", () => {
+    render(<ModelDetailPage {...props({ canDelete: true, model: { ...MODEL, usageCount: 0 } })} />);
+    const del = screen.getByRole("button", { name: "Delete model" });
+    const tip = focusTip(del);
+    expect(tip).toHaveTextContent("Delete model");
+    expect(del).toHaveAttribute("aria-describedby", tip!.id);
+  });
+});

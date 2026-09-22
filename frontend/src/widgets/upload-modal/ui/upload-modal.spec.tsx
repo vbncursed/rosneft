@@ -1,8 +1,9 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { FileUploadState } from "@/entities/upload";
 import { UploadModal, type UploadModalProps } from "./upload-modal";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const file = (name = "pump-house-south.jpg", size = 25_795_788) =>
   ({ name, size, type: "image/jpeg" }) as unknown as File;
@@ -235,15 +236,6 @@ describe("UploadModal", () => {
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
   });
 });
-
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
 
 describe("UploadModal · tooltip", () => {
   it("names its close button in a tooltip, not a native title", () => {

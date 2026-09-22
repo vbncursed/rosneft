@@ -1,9 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { EXIT, NUDGE_LABEL, OPACITY_LABEL, SAVE, YAW_SHORT } from "../model/copy";
 import { degToRad } from "../model/degrees";
 import { CalibrationCard, type CalibrationCardProps } from "./calibration-card";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const PROPS: CalibrationCardProps = {
   opacity: 0.65,
@@ -109,15 +110,6 @@ describe("CalibrationCard · nudge marks", () => {
     }
   });
 });
-
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
 
 describe("CalibrationCard · tooltip", () => {
   it("names each nudge arrow in a tooltip", () => {

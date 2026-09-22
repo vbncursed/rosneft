@@ -1,6 +1,7 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ViewportWindow } from "./viewport-window";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const GEO = { x: 10, y: 20, w: 560, h: 400 };
 const actions = (onClick = vi.fn()) => [{ name: "Exit document overlay", icon: "minus" as const, onClick }];
@@ -98,15 +99,6 @@ describe("ViewportWindow · drag handle", () => {
     expect(corner).not.toHaveClass("border-line-2");
   });
 });
-
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
 
 describe("ViewportWindow · tooltips", () => {
   it("names each action in a tooltip, not a native title", () => {

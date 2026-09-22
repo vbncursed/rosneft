@@ -1,9 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { RoleInspector, type RoleInspectorProps } from "./role-inspector";
 import type { Role } from "@/entities/role";
 import type { Permission } from "@/entities/permission";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const ALL: Permission[] = [
   { slug: "territory:read" },
@@ -244,15 +245,6 @@ describe("RoleInspector · close mark", () => {
     expect(close.textContent).toBe("");
   });
 });
-
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
 
 describe("RoleInspector · tooltip", () => {
   it("names its Close button in a tooltip, not a native title", () => {

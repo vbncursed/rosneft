@@ -1,8 +1,9 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { PermissionMatrix } from "./permission-matrix";
 import type { Permission } from "@/entities/permission";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const dotOf = (chip: HTMLElement) => chip.querySelector("span[aria-hidden]");
 
@@ -46,7 +47,8 @@ describe("PermissionMatrix", () => {
       />,
     );
 
-    const locked = screen.getByRole("button", { name: "territory:delete" });
+    // Disabled, so never focused: the reason is in the name, not only the tooltip.
+    const locked = screen.getByRole("button", { name: "territory:delete — you cannot grant a permission you do not have" });
     expect(locked).toBeDisabled();
     expect(locked).not.toHaveAttribute("title");
     expect(hoverTip(locked.parentElement!)).toHaveTextContent("You cannot grant a permission you do not have");
@@ -67,7 +69,7 @@ describe("PermissionMatrix", () => {
         grantable={new Set(["territory:read"])}
       />,
     );
-    const chip = screen.getByRole("button", { name: "territory:delete" });
+    const chip = screen.getByRole("button", { name: "territory:delete — you cannot grant a permission you do not have" });
     expect(chip).toHaveAttribute("aria-pressed", "true");
     expect(chip).toBeDisabled();
     expect(chip).toHaveClass("border-dashed", "border-accent", "bg-accent-soft", "text-accent");
@@ -184,11 +186,3 @@ describe("PermissionMatrix · naming", () => {
   });
 });
 
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}

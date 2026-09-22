@@ -1,8 +1,9 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { EXIT_PANORAMA, NOT_CALIBRATED, SHOW_IN } from "../model/copy";
 import { PanoramaRow, type PanoramaRowView } from "./panorama-row";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const ROW: PanoramaRowView = {
   id: 7,
@@ -105,15 +106,6 @@ describe("PanoramaRow", () => {
     for (const b of screen.getAllByRole("button")) expect(b.className).toMatch(/active:scale-/);
   });
 });
-
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
 
 describe("PanoramaRow · tooltip", () => {
   it("names its edit button in a tooltip, not a native title", () => {

@@ -1,8 +1,9 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { DatePicker } from "./date-picker";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 function Harness({ initial = "2026-08-24" }: { initial?: string }) {
   const [value, setValue] = useState(initial);
@@ -169,15 +170,6 @@ describe("DatePicker · month arrows", () => {
     }
   });
 });
-
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
 
 describe("DatePicker · tooltips", () => {
   it("names the month arrows in tooltips", async () => {

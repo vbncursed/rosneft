@@ -1,9 +1,10 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Document } from "@/entities/document";
 import type { PipGeometry } from "@/features/document-view";
 import { DocumentWindow, type DocumentWindowProps } from "./document-window";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const FILE = "plan-sheet-03.pdf";
 
@@ -122,15 +123,6 @@ describe("DocumentWindow", () => {
     expect(screen.getByTestId("drag-shield")).toBeInTheDocument();
   });
 });
-
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
 
 describe("DocumentWindow · tooltips", () => {
   // The accessible name carries the file; the tooltip sits beside the title

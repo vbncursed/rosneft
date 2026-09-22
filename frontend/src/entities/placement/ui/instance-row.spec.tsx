@@ -1,7 +1,8 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { InstanceRow } from "./instance-row";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const group = { model: { slug: "tank", title: "storage-tank-500" }, instances: [{ id: 2, index: 2, label: "Tank 2" }] };
 const instance = group.instances[0];
@@ -56,15 +57,6 @@ describe("InstanceRow", () => {
     expect(screen.getByRole("button", { name: "Focus storage-tank-500 #2" })).toHaveClass("active:scale-[0.97]", "ease-out");
   });
 });
-
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
 
 describe("InstanceRow · tooltip", () => {
   it("names Rename and Delete in tooltips, not native titles", () => {

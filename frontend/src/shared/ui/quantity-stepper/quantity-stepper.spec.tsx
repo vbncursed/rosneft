@@ -1,8 +1,9 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { QuantityStepper } from "./quantity-stepper";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 function Harness({ initial = 4, ...rest }: { initial?: number; min?: number; max?: number }) {
   const [value, setValue] = useState(initial);
@@ -70,15 +71,6 @@ describe("QuantityStepper · step marks", () => {
     }
   });
 });
-
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
 
 describe("QuantityStepper · tooltips", () => {
   it("names both steps, the one at its limit too", () => {
