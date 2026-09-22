@@ -314,7 +314,7 @@ none; the span is `contents` otherwise, so flipping `disabled` never remounts
 the button) and puts the reason in its accessible name too. Tooltips open after
 500 ms of mouse hover (instantly within 300 ms of the previous one), at once on
 a focus that follows Tab (and matches `:focus-visible`) — never on a focus a
-script hands back after Esc/Enter, which a browser rings too — never on touch; an open one takes the first Esc before any dialog does;
+script hands back after Esc/Enter, which a browser rings too — never on touch; Enter/Space on the trigger closes it like a press; Esc closes an open one, and is consumed only when it opened on keyboard focus — a hover-opened one lets the page's own Esc (leaving measure mode) run;
 placement is `tooltip-geometry.ts`. Specs drive them with `hoverTip`/`focusTip`
 from `shared/ui/tooltip/testing.ts`, which only specs import. Spec:
 `docs/superpowers/specs/2026-09-22-tooltip-design.md`.

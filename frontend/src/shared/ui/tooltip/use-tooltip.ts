@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FocusEvent, type PointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FocusEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent } from "react";
 
 export const OPEN_DELAY = 500;
 export const WARM_WINDOW = 300;
@@ -48,9 +48,9 @@ export function useTooltip() {
   const [state, setState] = useState<State>({ open: false, instant: false });
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const pressed = useRef(false);
-  // The element the tooltip names: whatever took the hover or the focus — the
-  // child itself, or the wrapper around a disabled one.
-  const anchor = useRef<Element | null>(null);
+  // A hover-opened tooltip is incidental to whatever the page does with Esc; a
+  // focus-opened one is what the keyboard user is reading, so it takes the Esc.
+  const byFocus = useRef(false);
 
   // Written with the state, not read from it: React runs updaters at render,
   // and the pointer can leave one trigger and enter the next before that.
@@ -77,12 +77,13 @@ export function useTooltip() {
     if (!state.open) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
+      close();
+      if (!byFocus.current) return;
       // Capture on window runs before any modal's own Esc handler: this Esc
       // belongs to the tooltip, the next one to whatever sits underneath.
       // preventDefault too: a native <dialog> closes on Esc as a default action.
       event.stopPropagation();
       event.preventDefault();
-      close();
     };
     window.addEventListener("keydown", onKey, true);
     // A fixed tooltip measured once cannot follow its trigger, so any scroll —
@@ -104,7 +105,7 @@ export function useTooltip() {
   const triggerProps = {
     onPointerEnter(event: PointerEvent) {
       if (event.pointerType !== "mouse") return;
-      anchor.current = event.currentTarget;
+      byFocus.current = false;
       clearTimeout(timer.current);
       if (Date.now() - lastClosedAt < WARM_WINDOW) {
         show(true);
@@ -120,9 +121,13 @@ export function useTooltip() {
       pressed.current = true;
       close();
     },
+    // Activating the control from the keyboard is the same as pressing it.
+    onKeyDown(event: ReactKeyboardEvent) {
+      if (event.key === "Enter" || event.key === " ") close();
+    },
     onFocus(event: FocusEvent) {
       if (pressed.current || !isTabFocus(event.target)) return;
-      anchor.current = event.currentTarget;
+      byFocus.current = true;
       show(true);
     },
     onBlur() {
@@ -131,5 +136,5 @@ export function useTooltip() {
     },
   };
 
-  return { ...state, anchor, triggerProps };
+  return { ...state, triggerProps };
 }
