@@ -1,9 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { Modal } from "@/shared/ui/modal";
 import { Menu, type MenuItem } from "./menu";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const items = (overrides: Partial<MenuItem>[] = []): MenuItem[] =>
   [
@@ -188,15 +189,6 @@ describe("Menu · states", () => {
     expect(screen.getByRole("menu").classList).toContain("origin-top-left");
   });
 });
-
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
 
 describe("Menu · tooltip", () => {
   it("names an icon trigger in a tooltip", () => {

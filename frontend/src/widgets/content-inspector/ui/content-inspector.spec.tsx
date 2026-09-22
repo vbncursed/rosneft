@@ -1,8 +1,9 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ContentInspector, type ContentInspectorProps } from "./content-inspector";
 import type { ContentItem } from "@/entities/content";
+import { focusTip, hoverTip } from "@/shared/ui/tooltip/testing";
 
 const item = (over: Partial<ContentItem> = {}): ContentItem => ({
   kind: "territory",
@@ -150,20 +151,21 @@ describe("ContentInspector · close mark", () => {
   });
 });
 
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
-
 describe("ContentInspector · tooltip", () => {
   it("names its Close button in a tooltip, not a native title", () => {
     render(<ContentInspector {...props()} />);
     const close = screen.getByRole("button", { name: "Close" });
     expect(close).not.toHaveAttribute("title");
     expect(hoverTip(close)).toHaveTextContent("Close");
+  });
+});
+
+describe("ContentInspector · keyboard", () => {
+  it("names its Close button the moment a keyboard focus lands on it", () => {
+    render(<ContentInspector {...props()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    const tip = focusTip(close);
+    expect(tip).toHaveTextContent("Close");
+    expect(close).toHaveAttribute("aria-describedby", tip!.id);
   });
 });

@@ -1,7 +1,8 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AlertInspector, type AlertInspectorProps, type FiringAlert } from "./alert-inspector";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const alert = (over: Partial<FiringAlert> = {}): FiringAlert => ({
   name: "HighErrorRate",
@@ -114,15 +115,6 @@ describe("AlertInspector · close mark", () => {
     expect(close.textContent).toBe("");
   });
 });
-
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
 
 describe("AlertInspector · tooltip", () => {
   it("names its Close button in a tooltip, not a native title", () => {

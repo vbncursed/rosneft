@@ -1,8 +1,9 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { Button } from "./button";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 /** The class list as tokens — `hover:bg-panel-2` must not read as `bg-panel-2`. */
 const classes = (el: HTMLElement) => el.className.split(/\s+/);
@@ -183,15 +184,6 @@ describe("Button", () => {
     expect(cls()).toContain("opacity-55");
   });
 });
-
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
 
 describe("Button · tooltip", () => {
   it("names an icon button from its aria-label, in exactly one tooltip", () => {

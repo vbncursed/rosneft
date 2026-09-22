@@ -1,8 +1,9 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AccessInspector, type AccessInspectorProps } from "./access-inspector";
 import type { AccessGrant, TerritoryAccess } from "@/entities/territory";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const territory: TerritoryAccess = {
   slug: "refinery-block-c",
@@ -149,15 +150,6 @@ describe("AccessInspector · close mark", () => {
     expect(close.textContent).toBe("");
   });
 });
-
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
 
 describe("AccessInspector · tooltip", () => {
   it("names its Close button in a tooltip, not a native title", () => {

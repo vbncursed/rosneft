@@ -1,7 +1,8 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { Toast } from "./toast";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 describe("Toast", () => {
   // A calm tone carries no role of its own: the host's polite live region
@@ -100,15 +101,6 @@ describe("Toast · dismiss mark", () => {
     expect(dismiss.textContent).toBe("");
   });
 });
-
-/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
-function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(500));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
-}
 
 describe("Toast · tooltip", () => {
   // The long accessible name tells stacked cards apart for a screen reader; a

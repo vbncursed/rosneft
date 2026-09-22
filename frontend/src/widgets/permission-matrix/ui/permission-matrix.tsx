@@ -85,13 +85,14 @@ export function PermissionMatrix({
                 const locked = grantable ? !grantable.has(permission.slug) : false;
                 const on = granted.includes(permission.slug);
                 const state = chipState(on, locked, readOnly);
-                const hint = locked && !readOnly ? LOCKED_TITLE : permission.description;
+                const isLocked = locked && !readOnly;
+                const hint = isLocked ? LOCKED_TITLE : permission.description;
 
                 const chip = (
                   <button
                     key={permission.slug}
                     type="button"
-                    disabled={locked && !readOnly}
+                    disabled={isLocked}
                     // Read-only chips stay focusable, so what they hold can
                     // still be read; they just do nothing when pressed.
                     aria-disabled={readOnly || undefined}
@@ -99,8 +100,10 @@ export function PermissionMatrix({
                     aria-pressed={on}
                     // The visible label is the action alone, so "write" appears
                     // once per group; the slug is what makes each chip's name
-                    // unique and says which resource it belongs to.
-                    aria-label={permission.slug}
+                    // unique and says which resource it belongs to. A locked chip
+                    // is disabled, so it never takes focus and its tooltip never
+                    // describes it: the reason rides in the name instead.
+                    aria-label={isLocked ? `${permission.slug} — ${LOCKED_TITLE.toLowerCase()}` : permission.slug}
                     className={cx(
                       "inline-flex items-center gap-[7px] rounded-control border px-[11px] py-1.5 font-mono text-[11px] transition-[color,background-color,border-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
                       CHIP[state],
