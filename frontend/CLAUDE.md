@@ -302,6 +302,19 @@ text. When a drawn plus leaves a bare noun as the visible label (`Model`,
 `Upload territory`). Spec: `docs/superpowers/specs/2026-09-22-runeicons-design.md`.
 Do not "restore" an icon to the mock.
 
+**Icon-only controls name themselves with `Tooltip` (`shared/ui/tooltip`), never
+`title`.** `Button shape="icon"` does it from its `aria-label` (its `tooltip`
+prop takes `{label, shortcut?}` to override, or `false` to opt out) — never wrap
+one in another `Tooltip`; a plain icon `<button>` is wrapped in
+`<Tooltip label=…>`. A disabled button explains itself through `Tooltip` (it
+wraps the button in an `inline-flex` span, since a disabled one gets no hover)
+and puts the reason in its accessible name too. Tooltips open after 500 ms of
+mouse hover (instantly within 300 ms of the previous one), at once on keyboard (`:focus-visible`)
+focus, never on touch; an open one takes the first Esc before any dialog does;
+placement is `tooltip-geometry.ts`. Specs drive them with `hoverTip`/`focusTip`
+from `shared/ui/tooltip/testing.ts`, which only specs import. Spec:
+`docs/superpowers/specs/2026-09-22-tooltip-design.md`.
+
 Known unresolved disagreements:
 
 - The design system's Users table has no avatar in the row; `Users.dc.html`
