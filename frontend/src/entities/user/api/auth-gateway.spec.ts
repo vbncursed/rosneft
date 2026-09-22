@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getCsrfToken } from "@/shared/api";
 import { isAuthed, markAuthed } from "@/shared/session";
-import { login, logout, verifyTwoFactor } from "./auth-gateway";
+import { login, logout, startSession, verifyTwoFactor } from "./auth-gateway";
 
 const jsonResponse = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -113,5 +114,13 @@ describe("auth gateway", () => {
     await expect(verifyTwoFactor("chal-1", "000000", true)).rejects.toThrow("invalid code");
 
     expect(assign).not.toHaveBeenCalled();
+  });
+
+  // The one post-login step every sign-in path shares — password, second
+  // factor and passkey — so the three cannot drift apart.
+  it("starts a session: marks it and keeps the CSRF token", () => {
+    startSession("csrf-1");
+    expect(isAuthed()).toBe(true);
+    expect(getCsrfToken()).toBe("csrf-1");
   });
 });
