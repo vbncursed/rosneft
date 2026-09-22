@@ -10,12 +10,12 @@ describe("Card", () => {
 
   it("shows a header with a title and its actions", () => {
     render(
-      <Card title="Users" actions={<button type="button">+ New user</button>}>
+      <Card title="Users" actions={<button type="button">New user</button>}>
         rows
       </Card>,
     );
     expect(screen.getByText("Users")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "+ New user" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New user" })).toBeInTheDocument();
     expect(screen.getByText("rows")).toBeInTheDocument();
   });
 

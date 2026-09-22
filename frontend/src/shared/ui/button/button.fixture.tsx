@@ -29,7 +29,7 @@ export default {
         </Button>
         <Button loading>Loading…</Button>
         <Button shape="icon" aria-label="Help">?</Button>
-        <Button shape="icon" size="xs" aria-label="Close">×</Button>
+        <Button shape="icon" size="xs" aria-label="Close"><Icon name="close" size={12} /></Button>
         <Button>
           Measure
           <kbd className="rounded border border-line-2 px-1.5 font-mono text-[10px] text-muted">M</kbd>

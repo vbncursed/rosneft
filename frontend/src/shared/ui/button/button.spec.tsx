@@ -107,16 +107,16 @@ describe("Button", () => {
   });
 
   it("keeps a secondary pill transparent — only the control shape is raised", () => {
-    const { rerender } = render(<Button shape="pill">+ Upload</Button>);
-    const pill = classes(screen.getByRole("button", { name: "+ Upload" }));
+    const { rerender } = render(<Button shape="pill">Upload</Button>);
+    const pill = classes(screen.getByRole("button", { name: "Upload" }));
     expect(pill).toContain("bg-transparent");
     // Not merely "transparent is also present": two background utilities on
     // one element are resolved by the compiled stylesheet's own source order,
     // not by clsx, so the resting ground has to be absent.
     expect(pill).not.toContain("bg-panel-2");
 
-    rerender(<Button>+ Upload</Button>);
-    expect(classes(screen.getByRole("button", { name: "+ Upload" }))).toContain("bg-panel-2");
+    rerender(<Button>Upload</Button>);
+    expect(classes(screen.getByRole("button", { name: "Upload" }))).toContain("bg-panel-2");
   });
 
   it("keeps the raised ground on a secondary icon button too", () => {

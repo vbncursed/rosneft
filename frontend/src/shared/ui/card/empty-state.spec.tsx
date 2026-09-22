@@ -17,13 +17,13 @@ describe("EmptyState", () => {
         description="Upload your first territory."
         action={
           <button type="button" onClick={onClick}>
-            + Upload
+            Upload
           </button>
         }
       />,
     );
     expect(screen.getByText("Upload your first territory.")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "+ Upload" }));
+    await userEvent.click(screen.getByRole("button", { name: "Upload" }));
     expect(onClick).toHaveBeenCalledOnce();
   });
 
