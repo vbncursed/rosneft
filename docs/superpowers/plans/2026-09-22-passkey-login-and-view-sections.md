@@ -54,7 +54,7 @@
 
 ---
 
-### Task C: Sign out (added 2026-09-22, approved in chat)
+### Task C: Sign out (added 2026-09-22, proposed — awaiting approval)
 
 **Why:** nothing in the app calls `logout()` (`entities/user/api/auth-gateway.ts`) — there is no way to sign out. The desktop proxy already clears its jar and keychain on a successful `POST /api/auth/logout` (`desktop/src-tauri/src/proxy.rs` `clears_session`).
 
