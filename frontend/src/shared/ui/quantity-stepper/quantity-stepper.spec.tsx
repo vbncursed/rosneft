@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -68,5 +68,24 @@ describe("QuantityStepper · step marks", () => {
       expect(step.querySelector("svg")).not.toBeNull();
       expect(step.textContent).toBe("");
     }
+  });
+});
+
+/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
+function hoverTip(el: Element) {
+  vi.useFakeTimers();
+  fireEvent.pointerEnter(el, { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(500));
+  vi.useRealTimers();
+  return screen.queryByRole("tooltip");
+}
+
+describe("QuantityStepper · tooltips", () => {
+  it("names both steps, the one at its limit too", () => {
+    render(<Harness initial={1} min={1} />);
+    expect(hoverTip(inc())).toHaveTextContent("Increase quantity");
+    fireEvent.pointerLeave(inc(), { pointerType: "mouse" });
+    // A disabled button takes no pointer events: the tooltip's wrapper does.
+    expect(hoverTip(dec().parentElement!)).toHaveTextContent("Decrease quantity");
   });
 });

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -174,5 +174,25 @@ describe("Drawer · close mark", () => {
     const close = screen.getByRole("button", { name: "Close" });
     expect(close.querySelector("svg")).not.toBeNull();
     expect(close.textContent).toBe("");
+  });
+});
+
+/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
+function hoverTip(el: Element) {
+  vi.useFakeTimers();
+  fireEvent.pointerEnter(el, { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(500));
+  vi.useRealTimers();
+  return screen.queryByRole("tooltip");
+}
+
+describe("Drawer · tooltip", () => {
+  it("names its close button in a tooltip", () => {
+    render(
+      <Drawer open onClose={() => {}} title="Panel">
+        <p>body</p>
+      </Drawer>,
+    );
+    expect(hoverTip(screen.getByRole("button", { name: "Close" }))).toHaveTextContent("Close");
   });
 });

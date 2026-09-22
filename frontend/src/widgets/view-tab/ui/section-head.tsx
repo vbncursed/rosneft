@@ -22,7 +22,6 @@ export function SectionHead({ overline, count, upload }: SectionHeadProps) {
             size="xs"
             onClick={upload.onClick}
             aria-label={upload.title}
-            title={upload.title}
             data-tour={upload.tourId}
           >
             <Icon name="arrow-up" size={12} />

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { PasswordField } from "./password-field";
@@ -95,5 +95,21 @@ describe("PasswordField", () => {
     expect(screen.getByRole("button", { name: "Show password" }).className.split(/\s+/)).toEqual(
       expect.arrayContaining(["enabled:active:scale-95", "transition-[color,scale]"]),
     );
+  });
+});
+
+/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
+function hoverTip(el: Element) {
+  vi.useFakeTimers();
+  fireEvent.pointerEnter(el, { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(500));
+  vi.useRealTimers();
+  return screen.queryByRole("tooltip");
+}
+
+describe("PasswordField · tooltip", () => {
+  it("names the eye in a tooltip that follows its state", async () => {
+    render(<PasswordField label="Password" />);
+    expect(hoverTip(screen.getByRole("button", { name: "Show password" }))).toHaveTextContent("Show password");
   });
 });

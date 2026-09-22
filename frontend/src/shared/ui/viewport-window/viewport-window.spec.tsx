@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ViewportWindow } from "./viewport-window";
 
@@ -17,9 +17,9 @@ describe("ViewportWindow", () => {
     const win = screen.getByRole("dialog", { name: "plan-sheet-03.pdf" });
     expect(win.style.left).toBe("10px");
     expect(win.style.width).toBe("560px");
-    fireEvent.pointerDown(screen.getByTitle("Drag to move"));
+    fireEvent.pointerDown(screen.getByTestId("drag-handle"));
     expect(onMoveStart).toHaveBeenCalledOnce();
-    fireEvent.pointerDown(screen.getByTitle("Resize"));
+    fireEvent.pointerDown(screen.getByTestId("resize-grip"));
     expect(onResizeStart).toHaveBeenCalledOnce();
   });
 
@@ -27,8 +27,8 @@ describe("ViewportWindow", () => {
     render(<ViewportWindow title="f.pdf" geometry={null} actions={actions()}><p>body</p></ViewportWindow>);
     const win = screen.getByRole("dialog");
     expect(win.className).toContain("inset-3.5");
-    expect(screen.queryByTitle("Drag to move")).toBeNull();
-    expect(screen.queryByTitle("Resize")).toBeNull();
+    expect(screen.queryByTestId("drag-handle")).toBeNull();
+    expect(screen.queryByTestId("resize-grip")).toBeNull();
   });
 
   it("draws every action as a named icon button, bad ones in the bad tone", () => {
@@ -64,8 +64,8 @@ describe("ViewportWindow", () => {
         <p>body</p>
       </ViewportWindow>,
     );
-    expect(screen.getByTitle("Drag to move")).toHaveClass("[touch-action:none]", "select-none");
-    expect(screen.getByTitle("Resize")).toHaveClass("[touch-action:none]", "size-5");
+    expect(screen.getByTestId("drag-handle")).toHaveClass("[touch-action:none]", "select-none");
+    expect(screen.getByTestId("resize-grip")).toHaveClass("[touch-action:none]", "size-5");
   });
 
   it("presses its action buttons", () => {
@@ -82,7 +82,7 @@ describe("ViewportWindow · drag handle", () => {
         <p>body</p>
       </ViewportWindow>,
     );
-    const handle = screen.getByTitle("Drag to move");
+    const handle = screen.getByTestId("drag-handle");
     expect(handle).toHaveClass("text-dim");
     expect(handle).not.toHaveClass("text-line-2");
   });
@@ -93,8 +93,41 @@ describe("ViewportWindow · drag handle", () => {
         <p>body</p>
       </ViewportWindow>,
     );
-    const corner = screen.getByTitle("Resize").firstElementChild;
+    const corner = screen.getByTestId("resize-grip").firstElementChild;
     expect(corner).toHaveClass("border-dim");
     expect(corner).not.toHaveClass("border-line-2");
+  });
+});
+
+/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
+function hoverTip(el: Element) {
+  vi.useFakeTimers();
+  fireEvent.pointerEnter(el, { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(500));
+  vi.useRealTimers();
+  return screen.queryByRole("tooltip");
+}
+
+describe("ViewportWindow · tooltips", () => {
+  it("names each action in a tooltip, not a native title", () => {
+    render(<ViewportWindow title="f.pdf" geometry={GEO} actions={actions()}><p>body</p></ViewportWindow>);
+    const exit = screen.getByRole("button", { name: "Exit document overlay" });
+    expect(exit).not.toHaveAttribute("title");
+    expect(hoverTip(exit)).toHaveTextContent("Exit document overlay");
+  });
+
+  it("explains the drag handle and the resize corner on hover", () => {
+    render(
+      <ViewportWindow title="f.pdf" geometry={GEO} actions={[]} onMoveStart={vi.fn()} onResizeStart={vi.fn()}>
+        <p>body</p>
+      </ViewportWindow>,
+    );
+    const handle = screen.getByTestId("drag-handle");
+    const corner = screen.getByTestId("resize-grip");
+    expect(handle).not.toHaveAttribute("title");
+    expect(corner).not.toHaveAttribute("title");
+    expect(hoverTip(handle)).toHaveTextContent("Drag to move");
+    fireEvent.pointerLeave(handle, { pointerType: "mouse" });
+    expect(hoverTip(corner)).toHaveTextContent("Resize");
   });
 });

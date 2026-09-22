@@ -26,7 +26,8 @@ describe("SectionHead", () => {
     );
 
     const button = screen.getByRole("button", { name: "Upload a panorama" });
-    expect(button).toHaveAttribute("title", "Upload a panorama");
+    // The shared Button names it in a tooltip; a native title would be a second one.
+    expect(button).not.toHaveAttribute("title");
     expect(button).toHaveAttribute("data-tour", "add-panorama");
     await userEvent.click(button);
     expect(onClick).toHaveBeenCalled();

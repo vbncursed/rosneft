@@ -53,8 +53,8 @@ describe("DocumentWindow", () => {
     render(<DocumentWindow {...props({ onWindow, onExit })} />);
 
     expect(screen.getByRole("dialog", { name: FILE })).toBeInTheDocument();
-    expect(screen.getByTitle("Drag to move")).toBeInTheDocument();
-    expect(screen.getByTitle("Resize")).toBeInTheDocument();
+    expect(screen.getByTestId("drag-handle")).toBeInTheDocument();
+    expect(screen.getByTestId("resize-grip")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: `Expand ${FILE}` }));
     expect(onWindow).toHaveBeenCalledWith("expanded");
@@ -79,7 +79,7 @@ describe("DocumentWindow", () => {
   it("expands to fill the viewport: Restore in place of Expand, no handle", () => {
     render(<DocumentWindow {...props({ window: "expanded" })} />);
 
-    expect(screen.queryByTitle("Drag to move")).toBeNull();
+    expect(screen.queryByTestId("drag-handle")).toBeNull();
     expect(screen.getByRole("button", { name: `Restore ${FILE} to a window` })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: `Expand ${FILE}` })).toBeNull();
     // Mock 12 lists four actions in every mode: Restore replaces Expand and
