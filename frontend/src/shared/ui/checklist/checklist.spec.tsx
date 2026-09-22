@@ -19,13 +19,13 @@ describe("Checklist", () => {
 
   it("draws a satisfied item with the check icon and full-strength text", () => {
     const { container } = render(<Checklist items={[{ label: "Titles are unique", ok: true }]} />);
-    expect(container.querySelector('path[d="M20 6 9 17l-5-5"]')).toBeInTheDocument();
+    expect(container.querySelector('path[d="M20 6L9 17L4 12"]')).toBeInTheDocument();
     expect(screen.getByText("Titles are unique").className).toContain("text-fg");
   });
 
   it("draws an unmet item with the minus icon and muted text", () => {
     const { container } = render(<Checklist items={[{ label: "Thumbnails are square", ok: false }]} />);
-    expect(container.querySelector('path[d="M6 12h12"]')).toBeInTheDocument();
+    expect(container.querySelector('path[d="M5 12H19"]')).toBeInTheDocument();
     expect(screen.getByText("Thumbnails are square").className).toContain("text-muted");
   });
 
