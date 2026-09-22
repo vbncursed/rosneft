@@ -6,15 +6,20 @@ import { OPEN_DELAY } from "./use-tooltip";
 
 /** A mouse resting on the control for the tooltip's delay; returns what opened. */
 export function hoverTip(el: Element) {
-  vi.useFakeTimers();
-  fireEvent.pointerEnter(el, { pointerType: "mouse" });
-  act(() => vi.advanceTimersByTime(OPEN_DELAY));
-  vi.useRealTimers();
-  return screen.queryByRole("tooltip");
+  const wasFake = vi.isFakeTimers();
+  if (!wasFake) vi.useFakeTimers();
+  try {
+    fireEvent.pointerEnter(el, { pointerType: "mouse" });
+    act(() => vi.advanceTimersByTime(OPEN_DELAY));
+    return screen.queryByRole("tooltip");
+  } finally {
+    if (!wasFake) vi.useRealTimers();
+  }
 }
 
 /**
- * A keyboard user tabbing onto the control; returns what opened. jsdom answers
+ * A keyboard user tabbing onto the control; returns what opened. The Tab comes
+ * first — only a focus that follows one opens a tooltip — and jsdom answers
  * `:focus-visible` with false for every focus, so this one says it is visible.
  */
 export function focusTip(el: HTMLElement) {
@@ -22,7 +27,11 @@ export function focusTip(el: HTMLElement) {
   const spy = vi.spyOn(Element.prototype, "matches").mockImplementation(function (this: Element, selector: string) {
     return selector === ":focus-visible" || matches.call(this, selector);
   });
-  fireEvent.focus(el);
-  spy.mockRestore();
-  return screen.queryByRole("tooltip");
+  try {
+    fireEvent.keyDown(el, { key: "Tab" });
+    fireEvent.focus(el);
+    return screen.queryByRole("tooltip");
+  } finally {
+    spy.mockRestore();
+  }
 }

@@ -10,13 +10,28 @@ let lastClosedAt = Number.NEGATIVE_INFINITY;
 /** Tests start cold: the clock is module state and would leak between them. */
 export function resetTooltipWarmup() {
   lastClosedAt = Number.NEGATIVE_INFINITY;
+  lastKey = "";
 }
 
 type State = { open: boolean; instant: boolean };
 
-// A focus the browser would not ring — a click's, or a dialog placing focus on
-// its first button — is not a keyboard user asking what the control is.
-function isFocusVisible(el: Element) {
+// The last key pressed anywhere, "" after a pointer press. A browser rings
+// `:focus-visible` on *any* focus after a key — a Menu handing focus back on
+// Esc, a dialog returning it to its opener on Enter — so only a focus that
+// follows Tab (Shift+Tab is still key "Tab") is a keyboard user arriving.
+let lastKey = "";
+let listening = false;
+
+function listenForKeys() {
+  if (listening || typeof document === "undefined") return;
+  listening = true;
+  const opts = { capture: true, passive: true } as const;
+  document.addEventListener("keydown", (event) => (lastKey = event.key), opts);
+  document.addEventListener("pointerdown", () => (lastKey = ""), opts);
+}
+
+function isTabFocus(el: Element) {
+  if (lastKey !== "Tab") return false;
   try {
     return el.matches(":focus-visible");
   } catch {
@@ -53,7 +68,10 @@ export function useTooltip() {
     setState({ open: false, instant: false });
   }, []);
 
-  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => {
+    listenForKeys();
+    return () => clearTimeout(timer.current);
+  }, []);
 
   useEffect(() => {
     if (!state.open) return;
@@ -103,7 +121,7 @@ export function useTooltip() {
       close();
     },
     onFocus(event: FocusEvent) {
-      if (pressed.current || !isFocusVisible(event.target)) return;
+      if (pressed.current || !isTabFocus(event.target)) return;
       anchor.current = event.currentTarget;
       show(true);
     },

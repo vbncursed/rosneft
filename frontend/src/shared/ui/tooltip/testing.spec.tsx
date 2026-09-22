@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Tooltip } from "./tooltip";
 import { focusTip, hoverTip } from "./testing";
 
@@ -20,5 +20,17 @@ describe("tooltip test helpers", () => {
       </Tooltip>,
     );
     expect(focusTip(screen.getByRole("button"))).toHaveTextContent("Close");
+  });
+
+  it("leaves a caller's fake timers on", () => {
+    vi.useFakeTimers();
+    render(
+      <Tooltip label="Close">
+        <button type="button">x</button>
+      </Tooltip>,
+    );
+    hoverTip(screen.getByRole("button"));
+    expect(vi.isFakeTimers()).toBe(true);
+    vi.useRealTimers();
   });
 });

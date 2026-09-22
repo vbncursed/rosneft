@@ -125,7 +125,8 @@ describe("OverlaysPanel", () => {
     const { rerender } = render(at(false));
     expect(screen.getByRole("complementary", { name: "Overlays" })).toHaveClass(...entering);
     rerender(at(true));
-    const rail = screen.getByRole("button", { name: "Expand Overlays panel" }).parentElement;
+    // The rail is the vertical label's parent; the button sits in its Tooltip's wrapper.
+    const rail = screen.getByText("Overlays").parentElement;
     expect(rail).toHaveClass(...entering);
   });
 

@@ -48,9 +48,10 @@ export function ToolRail({ tools, label, className }: ToolRailProps) {
       // its container, and only its parent being a flex column hid that.
       className={cx("inline-flex gap-1 rounded-[10px] border border-line-2 bg-panel p-1 shadow-elevation", className)}
     >
-      {/* Below the tile: the rail sits at the viewport's top edge. */}
+      {/* Above, the default: the viewer's rail has room over it, and the
+          placement flips below wherever a rail sits flush with the top. */}
       {tools.map(({ key, glyph, name, shortcut, state = "idle", toggle, onClick, dataTour }) => (
-        <Tooltip key={key} label={name} shortcut={shortcut} side="bottom">
+        <Tooltip key={key} label={name} shortcut={shortcut}>
           <button
             type="button"
             data-tour={dataTour}

@@ -25,6 +25,12 @@ afterEach(() => {
   delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
 });
 
+/** A keyboard user arriving: the Tab, then the focus it brings. */
+function tabTo(el: Element) {
+  fireEvent.keyDown(el, { key: "Tab" });
+  fireEvent.focus(el);
+}
+
 /** jsdom has no WAAPI; the drift is observed through this stand-in. */
 function stubAnimate() {
   const animate = vi.fn();
@@ -148,10 +154,10 @@ describe("Tooltip", () => {
     const animate = stubAnimate();
     const b = renderOne();
     fireEvent.pointerDown(b, mouse);
-    fireEvent.focus(b);
+    tabTo(b);
     expect(screen.queryByRole("tooltip")).toBeNull();
     fireEvent.blur(b);
-    fireEvent.focus(b);
+    tabTo(b);
     expect(screen.getByRole("tooltip")).toBeInTheDocument();
     expect(animate).not.toHaveBeenCalled();
   });
@@ -159,7 +165,7 @@ describe("Tooltip", () => {
   it("stays shut on a focus the browser does not ring, like a dialog placing it", () => {
     focusVisible = false;
     const b = renderOne();
-    fireEvent.focus(b);
+    tabTo(b);
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
@@ -167,15 +173,15 @@ describe("Tooltip", () => {
     const b = renderOne();
     fireEvent.pointerDown(b, mouse);
     fireEvent.pointerLeave(b, mouse);
-    fireEvent.focus(b);
+    tabTo(b);
     expect(screen.getByRole("tooltip")).toBeInTheDocument();
   });
 
   it("closes on Esc without letting the key reach listeners below", () => {
     const below = vi.fn();
-    document.addEventListener("keydown", below);
     const b = renderOne();
-    fireEvent.focus(b);
+    tabTo(b);
+    document.addEventListener("keydown", below);
     const handled = !fireEvent.keyDown(b, { key: "Escape" });
     expect(screen.queryByRole("tooltip")).toBeNull();
     expect(below).not.toHaveBeenCalled();
@@ -194,7 +200,7 @@ describe("Tooltip", () => {
       </Tooltip>,
     );
     const b = screen.getByRole("button", { name: "Go" });
-    fireEvent.focus(b);
+    tabTo(b);
     fireEvent.pointerDown(b, mouse);
     fireEvent.click(b);
     expect(screen.queryByRole("tooltip")).toBeNull();
@@ -219,7 +225,7 @@ describe("Tooltip", () => {
       </Tooltip>,
     );
     const b = screen.getByRole("button", { name: "Go" });
-    fireEvent.focus(b);
+    tabTo(b);
     expect(b.getAttribute("aria-describedby")).toBe(`hint ${screen.getByRole("tooltip").id}`);
     fireEvent.blur(b);
     expect(b.getAttribute("aria-describedby")).toBe("hint");
@@ -227,7 +233,7 @@ describe("Tooltip", () => {
 
   it("shows a shortcut as a keycap", () => {
     const b = renderOne("Measure", { shortcut: "M" });
-    fireEvent.focus(b);
+    tabTo(b);
     expect(screen.getByRole("tooltip").querySelector("kbd")).toHaveTextContent("M");
   });
 
@@ -240,12 +246,12 @@ describe("Tooltip", () => {
       </div>,
     );
     const b = screen.getByRole("button", { name: "Go" });
-    fireEvent.focus(b);
+    tabTo(b);
     act(() => vi.advanceTimersByTime(20));
     fireEvent.scroll(screen.getByTestId("panel"));
     expect(screen.queryByRole("tooltip")).toBeNull();
     fireEvent.blur(b);
-    fireEvent.focus(b);
+    tabTo(b);
     act(() => vi.advanceTimersByTime(20));
     fireEvent(window, new Event("resize"));
     expect(screen.queryByRole("tooltip")).toBeNull();
@@ -253,7 +259,7 @@ describe("Tooltip", () => {
 
   it("survives the scroll a focus brings, in the frame it opens", () => {
     const b = renderOne();
-    fireEvent.focus(b);
+    tabTo(b);
     fireEvent.scroll(document);
     expect(screen.getByRole("tooltip")).toBeInTheDocument();
   });
@@ -265,7 +271,7 @@ describe("Tooltip", () => {
         <button aria-label="Toggle" />
       </Tooltip>,
     );
-    fireEvent.focus(screen.getByRole("button", { name: "Toggle" }));
+    tabTo(screen.getByRole("button", { name: "Toggle" }));
     const before = screen.getByRole("tooltip").style.left;
     rerender(
       <Tooltip label="Off, and a good deal longer">
