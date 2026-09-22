@@ -288,6 +288,20 @@ yourself when a file starts to feel long.
 mocks (`Users v2`, `Roles v2`, …) are more specific and win for their own
 screen. Where they disagree, prefer the screen — but say so.
 
+**Icons do not follow `Design System.dc.html` § Icons (since 2026-09-22).** Every
+glyph in `shared/ui/icon` is a runeicons outline (Apache-2.0), the six it lacks
+from Lucide (ISC), all on one 24 grid at stroke 1.75 applied by `Icon` — the
+glyph files hold shape bodies only. `chevron-down` is in the set. Adding one:
+take the runeicons `public/normal/` SVG (Lucide only if runeicons has none),
+strip its stroke/fill attributes, add it under a name that says what it means
+here, and list it in `shared/ui/icon/NOTICE`. A `+`, `×` or arrow standing alone
+as button or indicator content is an `<Icon>`, never a typed character; one
+that reads as text (`← Home`, `a × b × c m`, the audit event operators) stays
+text. When a drawn plus leaves a bare noun as the visible label (`Model`,
+`Upload`), the button's `aria-label` keeps the verb (`New model`,
+`Upload territory`). Spec: `docs/superpowers/specs/2026-09-22-runeicons-design.md`.
+Do not "restore" an icon to the mock.
+
 Known unresolved disagreements:
 
 - The design system's Users table has no avatar in the row; `Users.dc.html`
