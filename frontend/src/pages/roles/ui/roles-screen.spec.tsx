@@ -171,7 +171,7 @@ describe("RolesScreen", () => {
   it("offers the create dialog only while the container says it is open", async () => {
     const s = showing();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "+ New role" }));
+    await userEvent.click(screen.getByRole("button", { name: "New role" }));
     expect(s.setCreating).toHaveBeenCalledWith(true);
 
     cleanup();
@@ -246,7 +246,7 @@ describe("RolesScreen", () => {
   // read-only too — an enabled Save there only earns a 403.
   it("hides every way in from someone who may not manage roles", () => {
     opened({ canManage: false });
-    expect(screen.queryByRole("button", { name: "+ New role" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "New role" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Create a role/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save permissions" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reset" })).not.toBeInTheDocument();

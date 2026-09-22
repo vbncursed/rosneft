@@ -103,7 +103,7 @@ describe("TerritoryAccessScreen", () => {
     await userEvent.click(screen.getByRole("button", { name: "Manage access to T 2" }));
     expect(s.select).toHaveBeenCalledWith("t-2");
     const aside = screen.getByRole("complementary", { name: "Access: T 1" });
-    await userEvent.click(within(aside).getByRole("button", { name: "+ add person" }));
+    await userEvent.click(within(aside).getByRole("button", { name: "add person" }));
     expect(s.setAdding).toHaveBeenCalledWith(true);
     await userEvent.click(within(aside).getByRole("button", { name: "Close" }));
     expect(s.select).toHaveBeenCalledWith(null);

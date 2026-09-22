@@ -1,9 +1,9 @@
 import { clsx as cx } from "clsx";
 import { Button } from "@/shared/ui/button";
 import { DetailList, type Detail } from "@/shared/ui/detail-list";
+import { Icon } from "@/shared/ui/icon";
 import { LineChart, type Series } from "@/shared/ui/line-chart";
 import { ProgressBar } from "@/shared/ui/progress-bar";
-import { Icon } from "@/shared/ui/icon";
 
 export type AlertContributor = {
   /** What is producing the errors, e.g. "GET /api/territories/:slug". */

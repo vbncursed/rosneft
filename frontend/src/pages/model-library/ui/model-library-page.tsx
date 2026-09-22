@@ -51,7 +51,8 @@ export function ModelLibraryPage({
             <ThemeToggle variant="compact" />
             {canUpload ? (
               <Button variant="primary" shape="pill" onClick={onUpload}>
-                + Upload
+                <Icon name="plus" size={14} />
+                Upload
               </Button>
             ) : null}
           </div>

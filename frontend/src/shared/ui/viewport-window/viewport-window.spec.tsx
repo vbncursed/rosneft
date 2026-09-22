@@ -86,4 +86,15 @@ describe("ViewportWindow · drag handle", () => {
     expect(handle).toHaveClass("text-dim");
     expect(handle).not.toHaveClass("text-line-2");
   });
+
+  it("draws its resize corner in the dim colour too", () => {
+    render(
+      <ViewportWindow title="f.pdf" geometry={GEO} actions={[]} onResizeStart={vi.fn()}>
+        <p>body</p>
+      </ViewportWindow>,
+    );
+    const corner = screen.getByTitle("Resize").firstElementChild;
+    expect(corner).toHaveClass("border-dim");
+    expect(corner).not.toHaveClass("border-line-2");
+  });
 });

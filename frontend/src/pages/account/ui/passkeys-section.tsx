@@ -4,6 +4,7 @@ import { AddPasskeyModal, removalFactor, RemovePasskeyModal } from "@/features/p
 import { Button } from "@/shared/ui/button";
 import { Callout } from "@/shared/ui/callout";
 import { EmptyState } from "@/shared/ui/card";
+import { Icon } from "@/shared/ui/icon";
 import { SectionHeading } from "@/shared/ui/section-heading";
 import { Skeleton } from "@/shared/ui/skeleton";
 
@@ -35,7 +36,8 @@ export function PasskeysSection({
 
   const add = supported ? (
     <Button variant="accent" shape="pill" size="sm" onClick={() => setAdding(true)}>
-      + Add passkey
+      <Icon name="plus" size={12} />
+      Add passkey
     </Button>
   ) : null;
 

@@ -6,6 +6,7 @@ import { FilterBar, type ExtraFilter } from "@/features/audit-filter";
 import { Button } from "@/shared/ui/button";
 import { CoverageMeter, type CoverageSegment } from "@/shared/ui/coverage-meter";
 import type { Detail } from "@/shared/ui/detail-list";
+import { Icon } from "@/shared/ui/icon";
 import { ContentGroups, type ContentGroup } from "@/widgets/content-groups";
 import { ContentInspector } from "@/widgets/content-inspector";
 import { PageHeader } from "@/widgets/page-header";
@@ -90,10 +91,14 @@ export function ContentPage({
         action={
           canManage ? (
             <div className="flex gap-2.5">
-              <Button onClick={onUploadModel}>+ Model</Button>
+              <Button onClick={onUploadModel}>
+                <Icon name="plus" size={14} />
+                Model
+              </Button>
               {onUploadTerritory ? (
                 <Button variant="primary" onClick={onUploadTerritory}>
-                  + Territory
+                  <Icon name="plus" size={14} />
+                  Territory
                 </Button>
               ) : null}
             </div>

@@ -140,7 +140,10 @@ describe("UsersPage", () => {
   it("creates a user", async () => {
     const onCreateUser = vi.fn();
     render(<UsersPage {...props({ onCreateUser })} />);
-    await userEvent.click(screen.getByRole("button", { name: "+ New user" }));
+    await userEvent.click(screen.getByRole("button", { name: "New user" }));
+    // A drawn plus, not a typed "+": the name and text carry the label alone.
+    expect(screen.getByRole("button", { name: "New user" }).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "New user" })).toHaveTextContent(/^New user$/);
     expect(onCreateUser).toHaveBeenCalledOnce();
   });
 
@@ -167,7 +170,7 @@ describe("UsersPage", () => {
         })}
       />,
     );
-    expect(screen.queryByRole("button", { name: "+ New user" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "New user" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
   });
 

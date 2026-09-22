@@ -89,7 +89,8 @@ export function RolesPage({
         action={
           canManage ? (
             <Button variant="primary" onClick={onCreateRole}>
-              + New role
+              <Icon name="plus" size={14} />
+              New role
             </Button>
           ) : undefined
         }

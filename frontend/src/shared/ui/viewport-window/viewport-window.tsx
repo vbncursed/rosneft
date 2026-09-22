@@ -76,7 +76,7 @@ export function ViewportWindow({ title, geometry, actions, onMoveStart, onResize
           onPointerDown={onResizeStart}
           className="absolute bottom-0 right-0 size-5 cursor-se-resize select-none [touch-action:none]"
         >
-          <span aria-hidden="true" className="absolute bottom-0 right-0 size-4 border-b-2 border-r-2 border-line-2" />
+          <span aria-hidden="true" className="absolute bottom-0 right-0 size-4 border-b-2 border-r-2 border-dim" />
         </span>
       ) : null}
     </section>
