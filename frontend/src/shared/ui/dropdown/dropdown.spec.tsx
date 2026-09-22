@@ -44,6 +44,19 @@ describe("Dropdown", () => {
     );
   });
 
+  // A drawn check on the chosen option; the others keep an empty box of the
+  // same width so their labels line up with it.
+  it("marks the selected option with a check and leaves the rest an empty slot", async () => {
+    render(<Harness />);
+    await userEvent.click(trigger());
+    const marker = (name: RegExp) => screen.getByRole("option", { name }).firstElementChild!;
+    expect(marker(/territory/).querySelector("svg")).not.toBeNull();
+    expect(marker(/model/).querySelector("svg")).toBeNull();
+    expect(marker(/model/)).toBeEmptyDOMElement();
+    expect(marker(/model/).className).toBe(marker(/territory/).className);
+    expect(screen.getByRole("listbox")).not.toHaveTextContent(/[●○]/);
+  });
+
   it("selects on click and closes", async () => {
     render(<Harness />);
     await userEvent.click(trigger());
