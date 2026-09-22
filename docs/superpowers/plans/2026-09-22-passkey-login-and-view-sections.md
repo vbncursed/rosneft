@@ -51,3 +51,21 @@
 **Live check** (local stack, `dji-wp46-cut` has 15 panoramas, 1 document; 1280×800, both themes): folded by default, open/close, reload keeps the choice, entering a panorama opens Panoramas, the guided tour steps 6/7/9/10/11/12 still land (reuse the harness in `scratchpad/live4`), the rail tiles open the sections. Screenshots to `scratchpad/sections-b/`. Reset/restore `admin`'s `onboarding_tours_seen` (`{viewer,panorama}` at the end).
 
 - [ ] failing tests → implement → tests + lint → live check → coverage → commit `feat(frontend): Panoramas and Documents fold like a Placements group`.
+
+---
+
+### Task C: Sign out (added 2026-09-22, approved in chat)
+
+**Why:** nothing in the app calls `logout()` (`entities/user/api/auth-gateway.ts`) — there is no way to sign out. The desktop proxy already clears its jar and keychain on a successful `POST /api/auth/logout` (`desktop/src-tauri/src/proxy.rs` `clears_session`).
+
+**Decisions:**
+- `features/sign-out`: `useSignOut()` → `logout()` (it swallows network errors and always clears the marker + CSRF token) → `queryClient.clear()` (no previous user's data may flash to the next) → navigate to `/login`. Exposes `{ signOut, pending }`; double-invocation guarded.
+- `/account` header (`pages/account/ui/account-header.tsx`): a secondary `sm` `Button` "Sign out" beside `ThemeToggle`, disabled while pending.
+- Home header: `widgets/account-pill` becomes a `Menu` trigger (align end): `header` = identity card (avatar, username, role title via `viewerOf`), items "Account" (router navigation to `/account`) and "Sign out". Trigger accessible name `Account menu for {username}`. The pill has visible text, so its Tooltip is redundant — give `Menu` a way to opt the trigger out of its Tooltip (e.g. `triggerTooltip?: false`) rather than showing a duplicate.
+- `frontend/CLAUDE.md`: replace the stale "Passkey sign-in is unwired, by decision" note (Task A wired it — the user asked for it back on 2026-09-22; `isPasskeySupported()` gates it, desktop off, `startSession` shared by password/2FA/passkey, a passkey session is always persistent) and document sign-out (where, what it clears).
+
+**Tests:** `useSignOut` order and effects (logout called, cache cleared, navigation to `/login`, guard); account header button; account pill menu (items, names, Account navigates, Sign out calls the hook); Menu tooltip opt-out; existing specs that pinned the pill's link name updated.
+
+**Live check** (local stack, `yarn dev --port 3000`, root `admin`/`change-me-now`, both themes): sign out from the account page and from the Home menu → `/login`; browser Back does not show an authed page with data; sign in again works; `GET /api/auth/me` after sign-out answers 401. Screenshots to `scratchpad/signout-c/`.
+
+- [ ] failing tests → implement → tests + lint → live check → coverage → commit `feat(frontend): sign out from the account page and the Home account menu` (`--no-verify`, frontend-only).
