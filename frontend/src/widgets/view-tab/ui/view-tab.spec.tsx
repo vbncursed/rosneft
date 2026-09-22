@@ -61,8 +61,15 @@ const base = (): ViewTabProps => ({
     onToggleMove: vi.fn(),
     link: { url: undefined, canEdit: false, saving: false, onSave: vi.fn(async () => true) },
     editor: null,
+    fold: { open: true, onToggle: vi.fn() },
   },
-  documents: { rows: [{ id: 3, name: "plan-sheet-03.pdf" }], canUpload: false, onUpload: vi.fn() , onOpen: vi.fn() },
+  documents: {
+    rows: [{ id: 3, name: "plan-sheet-03.pdf" }],
+    canUpload: false,
+    onUpload: vi.fn(),
+    onOpen: vi.fn(),
+    fold: { open: true, onToggle: vi.fn() },
+  },
   measurements: { saved: 3, show: true, onToggle: vi.fn() },
   footer: null,
 });
@@ -227,5 +234,53 @@ describe("ViewTab", () => {
     p.panoramas.canMovePoints = true;
     render(<ViewTab {...p} />);
     expect(screen.getByRole("button", { name: MOVE_POINTS })).toHaveClass("active:scale-[0.97]");
+  });
+
+  describe("folding", () => {
+    const folded = (p: ViewTabProps) => {
+      p.panoramas.fold.open = false;
+      p.documents.fold.open = false;
+    };
+    const head = (name: string) => screen.getByRole("button", { name: new RegExp(name) });
+
+    it("hides both lists behind their heads, and nothing else", () => {
+      const { container } = tab(folded);
+      const picker = container.querySelector("ul[data-tour='panorama-picker']");
+      expect(picker).not.toBeVisible();
+      expect(screen.getByRole("button", { name: "Open plan-sheet-03.pdf", hidden: true })).not.toBeVisible();
+      expect(head(PANORAMAS_OVERLINE)).toHaveAttribute("aria-expanded", "false");
+      expect(head(DOCUMENTS_OVERLINE)).toHaveAttribute("aria-expanded", "false");
+      // Section settings, not list items: they stay in reach.
+      expect(screen.getByRole("switch", { name: MARKERS_SWITCH })).toBeVisible();
+    });
+
+    it("points each head at its own list and shows the list when open", () => {
+      const { container } = tab();
+      const picker = container.querySelector("ul[data-tour='panorama-picker']")!;
+      expect(picker).toBeVisible();
+      expect(head(PANORAMAS_OVERLINE)).toHaveAttribute("aria-expanded", "true");
+      expect(head(PANORAMAS_OVERLINE)).toHaveAttribute("aria-controls", picker.id);
+      const docs = screen.getByRole("button", { name: "Open plan-sheet-03.pdf" }).closest("ul")!;
+      expect(head(DOCUMENTS_OVERLINE)).toHaveAttribute("aria-controls", docs.id);
+      expect(docs.id).not.toBe(picker.id);
+    });
+
+    it("hands each head's click to its own fold", async () => {
+      const { props } = tab(folded);
+      await userEvent.click(head(PANORAMAS_OVERLINE));
+      expect(props.panoramas.fold.onToggle).toHaveBeenCalledOnce();
+      expect(props.documents.fold.onToggle).not.toHaveBeenCalled();
+      await userEvent.click(head(DOCUMENTS_OVERLINE));
+      expect(props.documents.fold.onToggle).toHaveBeenCalledOnce();
+    });
+
+    it("draws no fold on an empty list: there is nothing to open", () => {
+      tab((p) => {
+        p.panoramas.rows = [];
+        p.documents.rows = [];
+      });
+      expect(screen.queryByRole("button", { name: new RegExp(PANORAMAS_OVERLINE) })).toBeNull();
+      expect(screen.queryByRole("button", { name: new RegExp(DOCUMENTS_OVERLINE) })).toBeNull();
+    });
   });
 });

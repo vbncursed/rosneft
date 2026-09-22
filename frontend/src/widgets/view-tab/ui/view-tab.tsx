@@ -17,6 +17,7 @@ import {
   UPLOAD_DOCUMENT_TITLE,
   UPLOAD_PANORAMA_TITLE,
 } from "../model/copy";
+import type { SectionFold } from "../model/use-section-folds";
 import { DocumentRow } from "./document-row";
 import { PanoramaRow, type PanoramaRowView } from "./panorama-row";
 import { SectionHead } from "./section-head";
@@ -44,12 +45,15 @@ export type ViewTabProps = {
     link: ExternalLinkProps;
     /** The anchor card, rendered under the rows. */
     editor: ReactNode;
+    /** Folds the rows only; the switches, the link and the editor stay. */
+    fold: SectionFold;
   };
   documents: {
     rows: { id: number; name: string }[];
     canUpload: boolean;
     onUpload: () => void;
     onOpen: (id: number) => void;
+    fold: SectionFold;
   };
   /**
    * The ruler's switch. Hiding it keeps every chain; measure mode draws them
@@ -74,10 +78,19 @@ const KBD = "rounded-[4px] border border-accent-line px-[5px] py-px font-mono te
  * The Panoramas and Documents sections carry an id: the tool rail's tiles
  * scroll to them (`pages/territory-viewer/model/reveal-section.ts`), and an
  * `aria-label` is not something `getElementById` can find.
+ *
+ * Their lists fold behind the heads (`useSectionFolds` owns the state). A
+ * folded list stays mounted but `hidden`, so its head's `aria-controls` always
+ * names a real element.
  */
 export function ViewTab({ details, panoramas, documents, measurements, footer }: ViewTabProps) {
   const markersId = useId();
   const rulerId = useId();
+  const panoramaListId = useId();
+  const documentListId = useId();
+  // An empty list has nothing to open, so its head stays a plain head.
+  const foldOf = (fold: SectionFold, id: string, rows: unknown[]) =>
+    rows.length > 0 ? { ...fold, controls: id } : undefined;
 
   return (
     <div className="flex flex-col gap-4">
@@ -87,6 +100,7 @@ export function ViewTab({ details, panoramas, documents, measurements, footer }:
         <SectionHead
           overline={PANORAMAS_OVERLINE}
           count={String(panoramas.rows.length)}
+          fold={foldOf(panoramas.fold, panoramaListId, panoramas.rows)}
           upload={
             panoramas.canUpload
               ? { title: UPLOAD_PANORAMA_TITLE, tourId: "add-panorama", onClick: panoramas.onUpload }
@@ -119,7 +133,13 @@ export function ViewTab({ details, panoramas, documents, measurements, footer }:
         ) : null}
 
         {panoramas.rows.length > 0 ? (
-          <ul role="list" data-tour="panorama-picker" className={LIST}>
+          <ul
+            id={panoramaListId}
+            hidden={!panoramas.fold.open}
+            role="list"
+            data-tour="panorama-picker"
+            className={LIST}
+          >
             {panoramas.rows.map((row) => (
               <li key={row.id}>
                 <PanoramaRow
@@ -173,6 +193,7 @@ export function ViewTab({ details, panoramas, documents, measurements, footer }:
         <SectionHead
           overline={DOCUMENTS_OVERLINE}
           count={documentsCount(documents.rows.length)}
+          fold={foldOf(documents.fold, documentListId, documents.rows)}
           upload={
             documents.canUpload
               ? { title: UPLOAD_DOCUMENT_TITLE, tourId: "add-document", onClick: documents.onUpload }
@@ -180,7 +201,7 @@ export function ViewTab({ details, panoramas, documents, measurements, footer }:
           }
         />
         {documents.rows.length > 0 ? (
-          <ul role="list" className={LIST}>
+          <ul id={documentListId} hidden={!documents.fold.open} role="list" className={LIST}>
             {documents.rows.map((row) => (
               <li key={row.id}>
                 <DocumentRow id={row.id} name={row.name} onOpen={documents.onOpen} />
