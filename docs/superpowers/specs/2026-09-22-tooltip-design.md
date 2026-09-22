@@ -16,11 +16,11 @@ chip, never on keyboard focus, never on a disabled button, and it does not match
 | T1 | Scope: the tool rail **and every icon-only control**, plus disabled buttons whose `title` explains why | One look wherever an icon has no label; the disabled reasons are the ones users cannot see today |
 | T2 | **Popover API + own placement function**, no dependency | The popover top layer escapes `overflow-hidden` (Overlays panel), stacking contexts and the canvas; placement is a pure, tested function like `tour-geometry.ts`. CSS anchor positioning is not safe in the desktop shell's WebKit on older macOS; a positioning library is a dependency for one component |
 | T3 | Hover: **500 ms** delay; a tooltip opened within **300 ms** of another one closing opens **instantly, without the enter animation** (shared warm-up) | No flicker when the pointer crosses the UI; the rail reads in one sweep |
-| T4 | Keyboard: opens **immediately on `:focus-visible`**, not on a focus that follows a mouse click | Keyboard users get the name; mouse users are not shown it twice |
+| T4 | Keyboard: opens **immediately on a focus that follows Tab** (Shift+Tab included) and matches `:focus-visible` — not on a focus that follows a mouse click, and not on one a script places after another key (a Menu handing focus back on Esc/Enter, a dialog returning it to its opener) | Keyboard users get the name; mouse users are not shown it twice; a browser rings `:focus-visible` on any focus after a key, so it alone reopened the tooltip on the trigger a menu had just left |
 | T5 | Closes on pointer leave, blur, **Esc** (consumed only when a tooltip is open — it must not also close the modal underneath) and on press of the trigger | Standard; a pressed control has done its job |
 | T6 | **No tooltips on touch** (`pointerType !== "mouse"` never opens one; hover-less devices) | No hover on touch; long-press belongs to the OS. The accessible name is unchanged |
 | T7 | Motion: enter 120 ms, opacity + 2 px translate away from the trigger, `ease-out` token; exit instant; reduced motion keeps opacity only | Tooltips are frequent, small UI — fast, directional, no exit animation |
-| T8 | Placement: `side` `"top"` (default) or `"bottom"`; flips when it does not fit; clamped 8 px inside the viewport; 6 px gap from the trigger | Rail sits at the top edge → `bottom`; everything else reads naturally above |
+| T8 | Placement: `side` `"top"` (default) or `"bottom"`; flips when it does not fit; clamped 8 px inside the viewport (the left edge wins when the tip is wider than it); 6 px gap from the trigger; width capped at `min(20rem, 100vw − 16px)`, a longer label wraps | Everything reads naturally above, the viewer's rail included — it has room over it, and the flip takes a rail flush with the top below |
 | T9 | Look: `panel-2` ground, `line-2` border, radius 6, 11 px text, `fg`; optional shortcut drawn with the existing keycap style | Matches the viewer's chrome; `Measure` + `M` teaches the key |
 | T10 | a11y: `role="tooltip"`; trigger gets `aria-describedby` **only while open**; accessible names unchanged; the native `title` is removed wherever a Tooltip replaces it (no double tooltip) | WAI-ARIA tooltip pattern; screen readers keep the name they have |
 
@@ -29,15 +29,16 @@ chip, never on keyboard focus, never on a disabled button, and it does not match
 `shared/ui/tooltip`:
 
 ```tsx
-<Tooltip label="Measure" shortcut="M" side="bottom">
+<Tooltip label="Measure" shortcut="M">
   <button aria-label="Measure" …>…</button>
 </Tooltip>
 ```
 
 - Wraps **one** element. It adds pointer/focus/key handlers and, while open, `aria-describedby`
   to that element (props merged, the child's own handlers still called).
-- A **disabled** child cannot receive pointer events, so Tooltip wraps it in a
-  `<span class="inline-flex">` that takes the hover; the tooltip still names the reason.
+- A **disabled** child cannot receive pointer events, so its wrapper `<span>` is `inline-flex`
+  and takes the hover; the tooltip still names the reason. The span is always there — `contents`
+  while the child is enabled, handlers on the child — so flipping `disabled` never remounts it.
 - Props: `label: string`, `shortcut?: string`, `side?: "top" | "bottom"`, `children: ReactElement`.
 - Files: `tooltip.tsx` (component + popover element), `use-tooltip.ts` (timers, shared warm-up
   clock, Esc), `model/tooltip-geometry.ts` (pure placement: trigger rect + tooltip size +
@@ -49,7 +50,7 @@ chip, never on keyboard focus, never on a disabled button, and it does not match
 
 | Component | Change |
 |---|---|
-| `shared/ui/tool-rail` | Each tile wrapped, `side="bottom"`; new `ToolRailItem.shortcut?: string` → tooltip keycap + `aria-keyshortcuts`; `title` removed. In `viewer-overlays.tsx` `"Measure (M)"` becomes name `"Measure"` + `shortcut: "M"` (update the tests and the tour/`aria-label` expectations that pin "Measure (M)") |
+| `shared/ui/tool-rail` | Each tile wrapped (default `side`, above); new `ToolRailItem.shortcut?: string` → tooltip keycap + `aria-keyshortcuts`; `title` removed. In `viewer-overlays.tsx` `"Measure (M)"` becomes name `"Measure"` + `shortcut: "M"` (update the tests and the tour/`aria-label` expectations that pin "Measure (M)") |
 | `shared/ui/button` `shape="icon"` | Shows a tooltip from its `aria-label` by default; `tooltip?: { label: string; shortcut?: string } \| false` overrides or disables. Covers: model-detail delete, territory-catalog replace/delete, model-library delete, upload queue remove, view-tab section-head upload |
 | `shared/ui/collapsed-rail` | Expand button wrapped; `title` removed |
 | `shared/ui/viewport-window` | Title-bar actions wrapped; drag handle "Drag to move" and resize corner "Resize" get tooltips (hover only — they are pointer-only spans); `title`s removed |

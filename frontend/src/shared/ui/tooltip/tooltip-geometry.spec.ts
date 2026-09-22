@@ -27,4 +27,8 @@ describe("placeTooltip", () => {
     expect(placeTooltip(at(400, 0), tip, vp, "top").left).toBe(EDGE);
     expect(placeTooltip(at(400, 990), tip, vp, "top").left).toBe(1000 - EDGE - 100);
   });
+  it("never puts a tip wider than a 360 px viewport off its left edge", () => {
+    const wide = { width: 500, height: 24 };
+    expect(placeTooltip(at(400, 300), wide, { width: 360, height: 800 }, "top").left).toBe(EDGE);
+  });
 });

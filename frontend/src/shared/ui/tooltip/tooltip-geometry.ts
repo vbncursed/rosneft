@@ -21,6 +21,7 @@ export function placeTooltip(
   const other: Side = side === "top" ? "bottom" : "top";
   const chosen = fits[side] || !fits[other] ? side : other;
   const centred = trigger.left + trigger.width / 2 - tip.width / 2;
-  const left = Math.min(Math.max(centred, EDGE), viewport.width - EDGE - tip.width);
+  // The left edge wins: a tip wider than the viewport is cut on the right, never lost off the left.
+  const left = Math.max(Math.min(centred, viewport.width - EDGE - tip.width), EDGE);
   return { top: chosen === "top" ? above : below, left, side: chosen };
 }

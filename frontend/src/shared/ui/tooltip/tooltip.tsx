@@ -43,8 +43,8 @@ function driftIn(el: HTMLElement, side: Side) {
 /**
  * Names an icon-only control on hover (after a beat) and on keyboard focus.
  * It lives in the popover top layer, so no `overflow-hidden` panel, stacking
- * context or canvas can clip it. A disabled child gets a wrapper to hover,
- * because a disabled button receives no pointer events.
+ * context or canvas can clip it. A long label wraps inside 20rem (and the
+ * viewport less its 8 px edges); placement measures it after it has wrapped.
  */
 export function Tooltip({ label, shortcut, side = "top", children }: TooltipProps) {
   const { open, instant, anchor, triggerProps } = useTooltip();
@@ -76,17 +76,21 @@ export function Tooltip({ label, shortcut, side = "top", children }: TooltipProp
   const own = child.props["aria-describedby"];
   const described = { "aria-describedby": open ? cx(own, id) : own };
 
-  const trigger = child.props.disabled ? (
-    <span className="inline-flex" {...triggerProps}>
-      {cloneElement(child, described)}
+  // One span, always, so flipping `disabled` never remounts the child (and drops
+  // its focus). A disabled child gets no pointer events, so the span takes the
+  // hover then; otherwise it is `contents` — no box, no hover — and the child
+  // takes the handlers. No `ref`: the child keeps its own.
+  const disabled = Boolean(child.props.disabled);
+  const trigger = (
+    <span className={disabled ? "inline-flex" : "contents"} {...(disabled ? triggerProps : {})}>
+      {cloneElement(child, disabled ? described : { ...mergeHandlers(child.props, triggerProps), ...described })}
     </span>
-  ) : (
-    // No `ref` here: the child keeps its own, and the hook reads the anchor off the event.
-    cloneElement(child, { ...mergeHandlers(child.props, triggerProps), ...described })
   );
 
   // The UA sheet gives `[popover]` `inset: 0; margin: auto` — `inset-auto m-0`
-  // undo it, so only the measured `top/left` place it.
+  // undo it, so only the measured `top/left` place it. `w-max` under the cap:
+  // a fixed box shrink-wraps to the room right of its `left`, so without it a
+  // tip placed near the right edge re-wrapped narrower than it was measured.
   const style: CSSProperties = place ? { top: place.top, left: place.left } : { top: 0, left: 0, visibility: "hidden" };
 
   return (
@@ -99,7 +103,7 @@ export function Tooltip({ label, shortcut, side = "top", children }: TooltipProp
           role="tooltip"
           popover="manual"
           style={style}
-          className="pointer-events-none fixed inset-auto m-0 inline-flex items-center gap-2 overflow-visible whitespace-nowrap rounded-[6px] border border-line-2 bg-panel-2 px-2 py-1 text-[11px] leading-4 text-fg shadow-elevation"
+          className="pointer-events-none fixed inset-auto m-0 inline-flex items-center gap-2 w-max max-w-[min(20rem,calc(100vw-16px))] overflow-visible rounded-[6px] border border-line-2 bg-panel-2 px-2 py-1 text-[11px] leading-4 text-fg shadow-elevation"
         >
           {label}
           {shortcut ? (
