@@ -10,7 +10,7 @@ function Harness({ onCreate }: { onCreate?: () => void } = {}) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button onClick={() => setOpen(true)}>+ New user</Button>
+      <Button onClick={() => setOpen(true)}>New user</Button>
       <Drawer
         open={open}
         onClose={() => setOpen(false)}
@@ -45,21 +45,21 @@ describe("Drawer", () => {
 
   it("opens named by its title and shows its body", async () => {
     render(<Harness />);
-    await userEvent.click(screen.getByRole("button", { name: "+ New user" }));
+    await userEvent.click(screen.getByRole("button", { name: "New user" }));
     expect(screen.getByRole("dialog", { name: "New user" })).toBeInTheDocument();
     expect(screen.getByLabelText("username")).toBeInTheDocument();
   });
 
   it("closes from its own × control", async () => {
     render(<Harness />);
-    await userEvent.click(screen.getByRole("button", { name: "+ New user" }));
+    await userEvent.click(screen.getByRole("button", { name: "New user" }));
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("closes on Escape", async () => {
     render(<Harness />);
-    await userEvent.click(screen.getByRole("button", { name: "+ New user" }));
+    await userEvent.click(screen.getByRole("button", { name: "New user" }));
     await userEvent.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -67,7 +67,7 @@ describe("Drawer", () => {
   it("submits through the footer action", async () => {
     const onCreate = vi.fn();
     render(<Harness onCreate={onCreate} />);
-    await userEvent.click(screen.getByRole("button", { name: "+ New user" }));
+    await userEvent.click(screen.getByRole("button", { name: "New user" }));
     await userEvent.type(screen.getByLabelText("username"), "d.smirnov");
     await userEvent.click(screen.getByRole("button", { name: "Create" }));
 
@@ -125,16 +125,16 @@ describe("Drawer · native cancel", () => {
 describe("Drawer · focus return", () => {
   it("returns focus to the trigger after its × control", async () => {
     render(<Harness />);
-    await userEvent.click(screen.getByRole("button", { name: "+ New user" }));
+    await userEvent.click(screen.getByRole("button", { name: "New user" }));
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
-    expect(screen.getByRole("button", { name: "+ New user" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "New user" })).toHaveFocus();
   });
 
   it("returns focus to the trigger after Escape", async () => {
     render(<Harness />);
-    await userEvent.click(screen.getByRole("button", { name: "+ New user" }));
+    await userEvent.click(screen.getByRole("button", { name: "New user" }));
     await userEvent.keyboard("{Escape}");
-    expect(screen.getByRole("button", { name: "+ New user" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "New user" })).toHaveFocus();
   });
 });
 

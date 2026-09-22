@@ -185,7 +185,7 @@ describe("ContentPage", () => {
         {...props({ canManage: false, selectedSlug: "terminal-yard-4", inspected: inspected() })}
       />,
     );
-    expect(screen.queryByRole("button", { name: /^\+ /})).not.toBeInTheDocument();
+    expect(screen.queryAllByRole("button", { name: /^New (model|territory)$/ })).toHaveLength(0);
     expect(screen.queryByRole("button", { name: /Upload an OBJ/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
   });

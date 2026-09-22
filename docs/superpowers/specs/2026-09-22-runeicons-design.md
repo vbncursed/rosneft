@@ -5,7 +5,7 @@
 
 ## Goal
 
-Replace every icon in the SPA — the 35 SVG glyphs in `shared/ui/icon` and the eight text
+Replace every icon in the SPA — the 35 SVG glyphs in `shared/ui/icon` and the text
 characters that stand in for icons — with the outline set of
 [runeicons](https://github.com/Nexvyn/runeicons), filling its gaps from
 [Lucide](https://lucide.dev) (the set runeicons' outline style is built on: same 24 grid, same
@@ -19,7 +19,7 @@ names, same construction). The tour's replay tile becomes a question mark.
 | D2 | **One stroke width, 1.75**, on a 24 grid, for every icon | Current glyphs mix 1.4–2.2; runeicons' native 2 reads heavier than the mono text at 13 px; 1.5 fades in the light theme at 13 px. Compared at 13/16/20 px in both themes |
 | D3 | Gaps filled from **Lucide** (ISC), not approximated from runeicons, not kept from the design system | Visually indistinguishable from runeicons outline; near-substitutes (menu for ⋮, move for ruler) change meaning |
 | D4 | **All icon-like characters** are replaced: the tool rail's ↺ ↔ ＋ ◎ ▤ ▶, `×` on a measurement chip, `●`/`○` in the dropdown, and later every standalone `×` `+` `−` `←` `→` `✓` `▾` and leading "+" (see Characters → icons). Typographic `→` and `·` inside sentences stay text (see Deliberately stays text) | The user asked for icons "everywhere"; arrows and separators in running text are typography, not icons |
-| D5 | Vendored as data inside the existing `Icon` component; **no new dependency** | runeicons' packages are `private: true`, not on npm; `lucide-react` for seven glyphs is a second source and a dependency for ~40 lines of paths |
+| D5 | Vendored as data inside the existing `Icon` component; **no new dependency** | runeicons' packages are `private: true`, not on npm; `lucide-react` for six glyphs is a second source and a dependency for ~40 lines of paths |
 | D6 | Semantic names stay (`cube`, `kebab`, `passkey`, `panorama`…); only drawings change | No churn at the ~50 call sites; a name says what the icon means here, not which library drew it |
 | D7 | Panorama = runeicons **camera**; maximize/minimize = Lucide **maximize/minimize** (corner brackets, like today); grip = runeicons **grip-horizontal** | Chosen from rendered options; closest in meaning / closest to the current drawing |
 

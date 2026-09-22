@@ -592,7 +592,7 @@ it, so only Root (`can`'s owner bypass) creates one. A Company Owner holds
 `:write` — it replaces a source and edits, and was walked through a whole
 upload to a 403 while the gate read `:write`. Home's grant, the catalog's
 `canUpload`, `/territories/new`'s callout and Content's `canCreateTerritory`
-(the `+ Territory` button and the drop target) all read `:create`; Content's
+(the Territory button — accessible name "New territory" — and the drop target) all read `:create`; Content's
 `canManage` and every replace-source gate stay on `:write`.
 The header carries `widgets/account-pill` instead: a link to `/account`
 with the avatar, username and role title, fed by `viewerOf(me)`. **`viewerOf`
@@ -993,7 +993,7 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   `measurement:create/write/delete` (`Grants.measure*`); without `create` the
   tool still measures, the chain stays local and the chip ends in
   ` · not saved` (`notSaved`, also for a failed save); a saved chain offers
-  its × only with all three grants and never while `saving` (`canRemove`).
+  its close button only with all three grants and never while `saving` (`canRemove`).
   **Which calls** a transition needs is the pure `syncPlan` in
   `entities/measurement`; `useMeasurementSync` (`features/measure`) only runs
   it. **It runs in the tool's dispatcher**, which keeps its own running copy of
