@@ -195,4 +195,18 @@ describe("Menu · tooltip", () => {
     render(<Menu trigger="⋮" triggerLabel="Row actions" items={items()} />);
     expect(hoverTip(trigger())).toHaveTextContent("Row actions");
   });
+
+  // A trigger with visible text names itself; a tip repeating it is noise.
+  it("draws no tooltip when the trigger opts out", () => {
+    render(<Menu trigger="a.ivanova" triggerLabel="Row actions" triggerTooltip={false} items={items()} />);
+    expect(hoverTip(trigger())).toBeNull();
+  });
+});
+
+describe("Menu · trigger look", () => {
+  it("lets the caller replace the trigger's own look but keeps its focus ring", () => {
+    render(<Menu trigger="⋮" triggerLabel="Row actions" triggerClassName="rounded-full px-5" items={items()} />);
+    expect(trigger()).toHaveClass("rounded-full", "px-5", "focus-visible:outline-accent");
+    expect(trigger()).not.toHaveClass("px-2", "rounded-[7px]", "active:scale-[0.95]");
+  });
 });

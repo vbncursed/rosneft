@@ -304,7 +304,9 @@ Do not "restore" an icon to the mock.
 
 **Icon-only controls name themselves with `Tooltip` (`shared/ui/tooltip`), never
 `title`.** `Button shape="icon"` does it from its `aria-label` (its `tooltip`
-prop takes `{label, shortcut?}` to override, or `false` to opt out) — never wrap
+prop takes `{label, shortcut?}` to override, or `false` to opt out; `Menu`'s
+`triggerTooltip={false}` does the same for a trigger that shows its own text,
+like the account pill) — never wrap
 one in another `Tooltip`; a plain icon `<button>` is wrapped in
 `<Tooltip label=…>`. A disabled button explains itself through `Tooltip` (its
 wrapper span turns `inline-flex` and takes the hover, since a disabled one gets
@@ -609,8 +611,10 @@ upload to a 403 while the gate read `:write`. Home's grant, the catalog's
 `canUpload`, `/territories/new`'s callout and Content's `canCreateTerritory`
 (the Territory button — accessible name "New territory" — and the drop target) all read `:create`; Content's
 `canManage` and every replace-source gate stay on `:write`.
-The header carries `widgets/account-pill` instead: a link to `/account`
-with the avatar, username and role title, fed by `viewerOf(me)`. **`viewerOf`
+The header carries `widgets/account-pill` instead: a `Menu` trigger (accessible
+name `Account menu for {username}`) with the avatar, username and role title,
+fed by `viewerOf(me)`; it opens an identity card over `Account` (router
+navigation to `/account` through the page's `onOpen`) and `Sign out`. **`viewerOf`
 has exactly one definition, `shared/session/principal.ts`** — it used to sit
 in `app/router/guard.ts`, which a page may not import, so `/account`'s
 header kept a hand-copied `roleTitleOf` beside it; the console shell, the
@@ -720,6 +724,22 @@ on that page, never linked directly. A principal with no console screen at
 all — a Viewer holds only `territory:read` and its siblings, and the sidebar
 never renders for it — gets in through the link on `NoConsoleAccess` instead.
 
+**Sign out** (2026-09-22) is `features/sign-out`'s `useSignOut()`, called by
+two screens: `/account`'s header (`Sign out`, a secondary `sm` button beside
+the theme control, spinning and disabled while one runs) and Home's account
+menu. It calls `logout()` — `POST /api/auth/logout`, which revokes the session
+and clears the cookie (the desktop proxy drops its jar and keychain entry on
+that 204); `logout` swallows a network error and always drops the
+`andrey.authed` marker and the CSRF token — then navigates to `/login`, then
+`queryClient.clear()`s every cached query so nothing of this user can flash in
+front of the next one. **Navigate before clearing, not after**: a clear while
+the catalog shell is still mounted leaves its `meQuery` observer with no data,
+it refetches, the gateway answers 401 and `client.ts`'s bounce hard-reloads
+the tab to `/login?next=%2Flogin` (seen live; the hook's spec pins the order).
+A second call while one runs does nothing. Pages stay props-only — the
+screens (`HomeScreen`, `AccountScreen`) call the hook and pass `onSignOut`
+down, so every fixture still renders without a router or a query client.
+
 **Every mutation on `/account` invalidates what another surface reads, and the
 journal is invalidated on both paths.** All three mutations in `use-account`
 — the password change, the 2FA disable, the passkey removal — hang
@@ -821,20 +841,22 @@ an entry (the backend does not record one), no ip/user-agent digest, no
 `failed:` filter, and the free-text part of the filter is ignored — the
 placeholder is all that says so. The backend follow-ups are filed, not built.
 
-**Passkey sign-in is unwired, by decision, not by origin.** `CredentialsForm`
-draws the button only when handed `onPasskey`, and `useLogin` does not hand
-it one. This once had a technical reason — the dev server ran on 3001 and
-`PASSKEY_RP_ORIGINS` listed only 3000 — but the dev server is on 3000 now
-and the conclusion stands on the spec alone: login passkeys are out of
-scope, not blocked. The "Keep me signed in on this device" checkbox is live:
-unticked, `login` and `verifyTwoFactor` send `remember: false` and the
-gateway issues a browser-session cookie (spec:
-`docs/superpowers/specs/2026-09-03-keep-me-signed-in-design.md`). An action
-with no endpoint is not rendered — that rule still hides the passkey button.
+**Passkey sign-in is wired again (2026-09-22, at the user's request).** It was
+once left unwired by decision; the user asked for it back. `useLogin` hands
+`CredentialsForm` its `onPasskey` only behind `isPasskeySupported()`, so the
+desktop shell (whose loopback origin `PASSKEY_RP_ORIGINS` never lists) draws
+no button. The ceremony is begin → `@github/webauthn-json` `get()` → finish,
+`credentialed` so an unknown key's 401 does not bounce; then the same
+`startSession()` (`entities/user`) that password and 2FA sign-in call — one
+function so the three cannot drift — and the same navigation to `next`. **A
+passkey session is always persistent**: the finish call sends no `remember`,
+so "Keep me signed in on this device" governs the password paths only. That
+checkbox is live there: unticked, `login` and `verifyTwoFactor` send
+`remember: false` and the gateway issues a browser-session cookie (spec:
+`docs/superpowers/specs/2026-09-03-keep-me-signed-in-design.md`).
 
-**`isPasskeySupported()` is the single gate on the passkey *management*
-surface** (`/account`'s Add/Remove, unrelated to the login button above —
-that one is unwired outright). One check, not two, because a second one
+**`isPasskeySupported()` is the single gate on every passkey surface** —
+the login button above and `/account`'s Add/Remove alike. One check, not two, because a second one
 elsewhere is how the two drift apart; it is `@github/webauthn-json`'s own
 `supported()` plus `!window.__DESKTOP__`. The desktop term is not about
 capability — the Tauri webview implements WebAuthn — its origin is a
@@ -843,8 +865,8 @@ there fails with
 an opaque client-side error and nothing in any server log. **The term is
 live**: the desktop shell embeds this SPA and sets `window.__DESKTOP__ = true`
 in its init script (`desktop/src-tauri/src/main.rs`, `INIT_SCRIPT`), so
-`/account` there draws no passkey controls. Only the unit test pins it from
-this side.
+neither the login screen nor `/account` there draws passkey controls. Only
+the unit test pins it from this side.
 
 `useJobStream` (territory conversion) is the only `EventSource` consumer
 here, and jsdom has none: `openJobStream` detects a missing `EventSource` and

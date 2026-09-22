@@ -112,6 +112,8 @@ const base: AccountPageProps = {
   onRemovePasskey: noop,
   onPasskeyAdded: () => {},
   onPage: () => {},
+  onSignOut: () => {},
+  signingOut: false,
 };
 
 const shell = (over: Partial<AccountPageProps>) => (

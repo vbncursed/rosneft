@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { useSignOut } from "@/features/sign-out";
 import { Callout } from "@/shared/ui/callout";
 import { PageSkeleton } from "@/shared/ui/skeleton";
 import type { ConsoleNavItem } from "@/widgets/console-nav";
@@ -18,6 +19,7 @@ export function HomeScreen({ consoleItems }: HomeScreenProps) {
   const s = useHome();
   const hints = useConsoleCounters(consoleItems);
   const navigate = useNavigate();
+  const { signOut } = useSignOut();
 
   if (s.status === "loading") {
     return (
@@ -52,6 +54,7 @@ export function HomeScreen({ consoleItems }: HomeScreenProps) {
       activity={s.activity}
       activityLoading={s.activityLoading}
       onOpen={(href) => void navigate({ href })}
+      onSignOut={() => void signOut()}
     />
   );
 }
