@@ -3,6 +3,7 @@ import type { Document } from "@/entities/document";
 import { useDocumentList, useDocumentView, usePipWindow } from "@/features/document-view";
 import { useDocumentUpload } from "@/features/document-upload";
 import type { DocumentParts } from "./overlay-parts";
+import type { Section } from "./reveal-section";
 
 export type ViewerDocumentsParams = {
   slug: string;
@@ -12,6 +13,8 @@ export type ViewerDocumentsParams = {
    */
   initial: Document[];
   onChanged: () => void;
+  /** Opens a folded section — a finished upload must not land in a hidden list. */
+  reveal: (section: Section) => void;
   /** Opening a PDF leaves whatever else was on screen — the page passes its exitPanorama. */
   onOpen: () => void;
 };
@@ -31,6 +34,7 @@ export function useViewerDocuments({
   slug,
   initial,
   onChanged,
+  reveal,
   onOpen,
 }: ViewerDocumentsParams): DocumentParts {
   const list = useDocumentList({ slug, initial, onChanged });
@@ -52,9 +56,10 @@ export function useViewerDocuments({
     onCreated: useCallback(
       (document: Document) => {
         add(document);
+        reveal("documents");
         setUploadOpen(false);
       },
-      [add],
+      [add, reveal],
     ),
   });
 

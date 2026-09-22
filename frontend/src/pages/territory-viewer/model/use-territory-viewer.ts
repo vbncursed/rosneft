@@ -22,11 +22,10 @@ import { useViewerMode } from "@/features/viewer-mode";
 import { HttpError, messageOf } from "@/shared/api";
 import { useMediaQuery } from "@/shared/lib/use-media-query";
 import { unanswered } from "@/shared/lib/unanswered";
-import { can } from "@/shared/session";
 import { useOverlaysPanel } from "@/widgets/overlays-panel";
 import { decodeImageBitmap } from "@/widgets/viewer-canvas";
 import { pageProps, type TerritoryViewerPageProps } from "./page-props";
-import { measureGrants } from "./viewer-view";
+import { grantsOf, measureGrants } from "./viewer-view";
 import { usePageHandlers } from "./use-page-handlers";
 import { usePlacementForm } from "./use-placement-form";
 import { useViewSections } from "./use-view-sections";
@@ -82,23 +81,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   const bundle = scene.data;
   const vm = useMemo(() => (bundle ? toSceneViewModel(bundle) : null), [bundle]);
 
-  const grants = useMemo(
-    () => ({
-      create: can(me.data ?? null, "placement:create"),
-      write: can(me.data ?? null, "placement:write"),
-      delete: can(me.data ?? null, "placement:delete"),
-      replace: can(me.data ?? null, "territory:write"),
-      panoramaCreate: can(me.data ?? null, "panorama:create"),
-      panoramaWrite: can(me.data ?? null, "panorama:write"),
-      panoramaDelete: can(me.data ?? null, "panorama:delete"),
-      documentWrite: can(me.data ?? null, "document:write"),
-      documentDelete: can(me.data ?? null, "document:delete"),
-      measureCreate: can(me.data ?? null, "measurement:create"),
-      measureWrite: can(me.data ?? null, "measurement:write"),
-      measureDelete: can(me.data ?? null, "measurement:delete"),
-    }),
-    [me.data],
-  );
+  const grants = useMemo(() => grantsOf(me.data ?? null), [me.data]);
 
   const compact = useMediaQuery(COMPACT);
   const onChanged = useCallback(() => {
@@ -123,49 +106,6 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     onCycle: useCallback(() => cycle.current(), []),
     beforeEscape: useCallback(() => beforeEscape.current(), []),
   });
-
-  const panoramas = useViewerPanoramas({
-    slug,
-    initial: vm?.panoramas ?? [],
-    mode: {
-      view: mode.state.view,
-      editingPanoramaId: mode.state.editingPanoramaId,
-      enterPanorama: mode.enterPanorama,
-      exitPanorama: mode.exitPanorama,
-      startEdit: mode.startEdit,
-      closeEdit: mode.closeEdit,
-    },
-    moving: mode.state.move,
-    sourceBbox: vm?.sourceBbox ?? null,
-    externalUrl: bundle?.territory.externalPanoramaUrl,
-    onChanged,
-    decode: decodeImageBitmap,
-  });
-  const documents = useViewerDocuments({
-    slug,
-    initial: vm?.documents ?? [],
-    onChanged,
-    // The two overlays do not stack: a PDF takes the viewport the sphere had.
-    onOpen: mode.exitPanorama,
-  });
-  useEffect(() => {
-    cycle.current = panoramas.onCycle;
-    beforeEscape.current = documents.escape;
-  });
-
-  const dims = vm?.metadata.dims ?? { x: 0, y: 0, z: 0 };
-  const editor = usePlacementsEditor({
-    slug,
-    initial: vm?.placements ?? [],
-    options: bundle?.modelOptions ?? [],
-    territoryMaxDim: Math.max(dims.x, dims.y, dims.z),
-    // Spec §6.1: a new object is visible everywhere the territory is loaded.
-    panoramaIds: panoramas.list.map((p) => p.id),
-    onChanged,
-  });
-  // The selection is what opens the form, and a reader without `placement:write`
-  // is handed none: that is the one state where the block only reports.
-  const form = usePlacementForm(editor, mode.select, grants.write ? mode.state.selectedId : null);
 
   const seen = me.data?.onboardingToursSeen.includes(VIEWER_TOUR) ?? true;
   // Ready waits for the principal as well as the scene. `useTour` reads `seen`
@@ -192,7 +132,53 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     tour.step?.tab ?? panoramaTour.step?.tab,
     tour.active || panoramaTour.active,
   );
+  // Above the two lists: a finished upload opens its own section (`reveal`).
   const sections = useViewSections(mode.state, tour.active || panoramaTour.active);
+
+  const panoramas = useViewerPanoramas({
+    slug,
+    initial: vm?.panoramas ?? [],
+    mode: {
+      view: mode.state.view,
+      editingPanoramaId: mode.state.editingPanoramaId,
+      enterPanorama: mode.enterPanorama,
+      exitPanorama: mode.exitPanorama,
+      startEdit: mode.startEdit,
+      closeEdit: mode.closeEdit,
+    },
+    moving: mode.state.move,
+    sourceBbox: vm?.sourceBbox ?? null,
+    externalUrl: bundle?.territory.externalPanoramaUrl,
+    onChanged,
+    reveal: sections.reveal,
+    decode: decodeImageBitmap,
+  });
+  const documents = useViewerDocuments({
+    slug,
+    initial: vm?.documents ?? [],
+    onChanged,
+    reveal: sections.reveal,
+    // The two overlays do not stack: a PDF takes the viewport the sphere had.
+    onOpen: mode.exitPanorama,
+  });
+  useEffect(() => {
+    cycle.current = panoramas.onCycle;
+    beforeEscape.current = documents.escape;
+  });
+
+  const dims = vm?.metadata.dims ?? { x: 0, y: 0, z: 0 };
+  const editor = usePlacementsEditor({
+    slug,
+    initial: vm?.placements ?? [],
+    options: bundle?.modelOptions ?? [],
+    territoryMaxDim: Math.max(dims.x, dims.y, dims.z),
+    // Spec §6.1: a new object is visible everywhere the territory is loaded.
+    panoramaIds: panoramas.list.map((p) => p.id),
+    onChanged,
+  });
+  // The selection is what opens the form, and a reader without `placement:write`
+  // is handed none: that is the one state where the block only reports.
+  const form = usePlacementForm(editor, mode.select, grants.write ? mode.state.selectedId : null);
 
   const { view, failedAt, on } = usePageHandlers({
     mode,

@@ -107,6 +107,19 @@ describe("SectionHead", () => {
       expect(onToggle).not.toHaveBeenCalled();
     });
 
+    it("brightens on hover only while the reader can press it", () => {
+      const { container, rerender } = render(
+        <SectionHead overline="Panoramas" count="2" fold={fold(true)} />,
+      );
+      const chevron = container.querySelector("svg")!;
+      expect(screen.getByText("Panoramas")).toHaveClass("group-hover:text-fg");
+      expect(chevron).toHaveClass("group-hover:text-fg");
+
+      rerender(<SectionHead overline="Panoramas" count="2" fold={fold(true, vi.fn(), true)} />);
+      expect(screen.getByText("Panoramas")).not.toHaveClass("group-hover:text-fg");
+      expect(chevron).not.toHaveClass("group-hover:text-fg");
+    });
+
     it("never nests the upload button inside the toggle", () => {
       render(
         <SectionHead
