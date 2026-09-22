@@ -1,6 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentPropsWithRef, ReactNode } from "react";
 import { clsx as cx } from "clsx";
+import { Tooltip } from "@/shared/ui/tooltip";
 
 // Tailwind v4's `scale-*` writes the `scale` property, not `transform`, so the
 // transition list names `scale`. The press depth lives on `size` (one property,
@@ -78,6 +79,11 @@ type BaseProps = Omit<ComponentPropsWithRef<"button">, "children"> &
   Omit<Variants, "shape" | "size"> & {
     /** Covers the label with a spinner, keeping the width, and blocks further clicks. */
     loading?: boolean;
+    /**
+     * An icon button is named in a tooltip from its `aria-label` unless this
+     * says otherwise; `false` opts out. Any other shape shows one only when given.
+     */
+    tooltip?: { label: string; shortcut?: string } | false;
   };
 
 export type ButtonProps =
@@ -94,9 +100,10 @@ export function Button({
   className,
   children,
   type = "button",
+  tooltip,
   ...rest
 }: ButtonProps) {
-  return (
+  const element = (
     <button
       type={type}
       disabled={disabled || loading}
@@ -124,5 +131,13 @@ export function Button({
         {children}
       </span>
     </button>
+  );
+  const named: ButtonProps["tooltip"] = tooltip ?? (shape === "icon" && { label: rest["aria-label"] as string });
+  return named ? (
+    <Tooltip label={named.label} shortcut={named.shortcut}>
+      {element}
+    </Tooltip>
+  ) : (
+    element
   );
 }

@@ -2,6 +2,7 @@ import { useId, useRef, useState } from "react";
 import { clsx as cx } from "clsx";
 import { useDismiss } from "@/shared/lib/use-dismiss";
 import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 import {
   WEEKDAYS,
   dayLabel,
@@ -106,25 +107,29 @@ export function DatePicker({
           )}
         >
           <div className="mb-2.5 flex items-center justify-between gap-4">
-            <button
-              type="button"
-              aria-label="Previous month"
-              onClick={() => setView((v) => shiftMonth(v.year, v.month, -1))}
-              className={MONTH_ARROW}
-            >
-              <Icon name="chevron-left" size={14} />
-            </button>
+            <Tooltip label="Previous month">
+              <button
+                type="button"
+                aria-label="Previous month"
+                onClick={() => setView((v) => shiftMonth(v.year, v.month, -1))}
+                className={MONTH_ARROW}
+              >
+                <Icon name="chevron-left" size={14} />
+              </button>
+            </Tooltip>
             <span aria-live="polite" className="text-[13px] font-semibold text-fg">
               {monthLabel(view.year, view.month)}
             </span>
-            <button
-              type="button"
-              aria-label="Next month"
-              onClick={() => setView((v) => shiftMonth(v.year, v.month, 1))}
-              className={MONTH_ARROW}
-            >
-              <Icon name="chevron-right" size={14} />
-            </button>
+            <Tooltip label="Next month">
+              <button
+                type="button"
+                aria-label="Next month"
+                onClick={() => setView((v) => shiftMonth(v.year, v.month, 1))}
+                className={MONTH_ARROW}
+              >
+                <Icon name="chevron-right" size={14} />
+              </button>
+            </Tooltip>
           </div>
 
           {/* Deliberately not role="grid": a real grid needs rows and roving

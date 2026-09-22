@@ -23,9 +23,9 @@ const CLEAR_NOTE =
  * `toggle` marks the two that are modes; Reset camera and Replay tour happen
  * once when pressed, and `aria-pressed` on those reads as a toggle that stays on.
  */
-const TILES: Record<RailTool, { icon: IconName; name: string; toggle?: boolean; dataTour?: string }> = {
+const TILES: Record<RailTool, { icon: IconName; name: string; shortcut?: string; toggle?: boolean; dataTour?: string }> = {
   reset: { icon: "reset", name: "Reset camera", dataTour: "reset-camera" },
-  measure: { icon: "ruler", name: "Measure (M)", toggle: true, dataTour: "measure" },
+  measure: { icon: "ruler", name: "Measure", shortcut: "M", toggle: true, dataTour: "measure" },
   add: { icon: "plus", name: "Add objects", toggle: true, dataTour: "add-object" },
   panoramas: { icon: "panorama", name: "Panoramas", toggle: true, dataTour: "panoramas" },
   documents: { icon: "documents", name: "Documents", toggle: true, dataTour: "documents" },

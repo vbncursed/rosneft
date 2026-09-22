@@ -1,5 +1,6 @@
 import { clsx as cx } from "clsx";
 import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 
 export type CollapsedRailProps = {
   /** The vertical overline, e.g. "Overlays". */
@@ -21,15 +22,16 @@ export function CollapsedRail({ label, badge, expandName, onExpand, className }:
         className,
       )}
     >
-      <button
-        type="button"
-        onClick={onExpand}
-        aria-label={expandName}
-        title={expandName}
-        className="flex size-7 cursor-pointer items-center justify-center rounded-[8px] border border-line-2 bg-panel-2 text-fg transition-[color,background-color,border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-      >
-        <Icon name="chevron-left" size={13} />
-      </button>
+      <Tooltip label={expandName}>
+        <button
+          type="button"
+          onClick={onExpand}
+          aria-label={expandName}
+          className="flex size-7 cursor-pointer items-center justify-center rounded-[8px] border border-line-2 bg-panel-2 text-fg transition-[color,background-color,border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          <Icon name="chevron-left" size={13} />
+        </button>
+      </Tooltip>
       <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-muted [writing-mode:vertical-rl]">{label}</span>
       {badge ? (
         <span className="rounded-full border border-line-2 bg-panel-2 px-[7px] py-[3px] font-mono text-[9px] text-fg [writing-mode:vertical-rl]">

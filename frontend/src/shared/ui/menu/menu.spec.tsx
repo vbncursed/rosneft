@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -186,5 +186,21 @@ describe("Menu · states", () => {
 
     rerender(<Menu trigger="⋮" triggerLabel="Row actions" items={items()} align="start" />);
     expect(screen.getByRole("menu").classList).toContain("origin-top-left");
+  });
+});
+
+/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
+function hoverTip(el: Element) {
+  vi.useFakeTimers();
+  fireEvent.pointerEnter(el, { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(500));
+  vi.useRealTimers();
+  return screen.queryByRole("tooltip");
+}
+
+describe("Menu · tooltip", () => {
+  it("names an icon trigger in a tooltip", () => {
+    render(<Menu trigger="⋮" triggerLabel="Row actions" items={items()} />);
+    expect(hoverTip(trigger())).toHaveTextContent("Row actions");
   });
 });

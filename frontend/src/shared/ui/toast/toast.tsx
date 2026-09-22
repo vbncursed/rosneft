@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { clsx as cx } from "clsx";
 import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 
 export type ToastTone = "error" | "warning" | "info" | "success";
 
@@ -12,7 +13,8 @@ export type ToastProps = {
   onDismiss?: () => void;
   /**
    * Overrides the dismiss button's accessible name. Two stacked toasts both
-   * named "Dismiss" are indistinguishable to a screen reader.
+   * named "Dismiss" are indistinguishable to a screen reader. The tooltip
+   * still says "Dismiss": a sighted reader has the card beside it.
    */
   dismissLabel?: string;
   /** A button beside the message; `name` keeps two stacked cards' buttons apart. */
@@ -64,16 +66,18 @@ export function Toast({
         </button>
       ) : null}
       {onDismiss ? (
-        <button
-          type="button"
-          onClick={onDismiss}
-          aria-label={dismissLabel}
-          // A 24px target (WCAG 2.5.8) around the glyph; the negative margins
-          // keep the row's height and the glyph where the padding put it.
-          className="-my-0.5 -mr-1.5 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          <Icon name="close" size={14} />
-        </button>
+        <Tooltip label="Dismiss">
+          <button
+            type="button"
+            onClick={onDismiss}
+            aria-label={dismissLabel}
+            // A 24px target (WCAG 2.5.8) around the glyph; the negative margins
+            // keep the row's height and the glyph where the padding put it.
+            className="-my-0.5 -mr-1.5 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <Icon name="close" size={14} />
+          </button>
+        </Tooltip>
       ) : null}
     </div>
   );

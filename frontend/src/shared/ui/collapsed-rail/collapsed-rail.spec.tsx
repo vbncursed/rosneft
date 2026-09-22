@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { CollapsedRail } from "./collapsed-rail";
@@ -25,5 +25,23 @@ describe("CollapsedRail", () => {
       expect.arrayContaining(["active:scale-95", "transition-[color,background-color,border-color,scale]", "ease-out"]),
     );
     expect(cls).not.toContain("transition-colors");
+  });
+});
+
+/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
+function hoverTip(el: Element) {
+  vi.useFakeTimers();
+  fireEvent.pointerEnter(el, { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(500));
+  vi.useRealTimers();
+  return screen.queryByRole("tooltip");
+}
+
+describe("CollapsedRail · tooltip", () => {
+  it("names the expand button in a tooltip, not a native title", () => {
+    render(<CollapsedRail label="Overlays" expandName="Expand Overlays panel" onExpand={vi.fn()} />);
+    const expand = screen.getByRole("button", { name: "Expand Overlays panel" });
+    expect(expand).not.toHaveAttribute("title");
+    expect(hoverTip(expand)).toHaveTextContent("Expand Overlays panel");
   });
 });

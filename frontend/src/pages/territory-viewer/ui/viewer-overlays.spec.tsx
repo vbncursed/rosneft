@@ -81,7 +81,7 @@ describe("ViewerOverlays · the tool rail", () => {
     const rail = screen.getByRole("toolbar", { name: "Viewer tools" });
     expect([...rail.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual([
       "Reset camera",
-      "Measure (M)",
+      "Measure",
       "Add objects",
       "Panoramas",
       "Documents",
@@ -89,10 +89,19 @@ describe("ViewerOverlays · the tool rail", () => {
     ]);
     // The lit tile is not a pressed toggle unless it names a mode.
     expect(screen.getByRole("button", { name: "Reset camera" })).not.toHaveAttribute("aria-pressed");
-    expect(screen.getByRole("button", { name: "Measure (M)" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Measure" })).toHaveAttribute(
       "aria-pressed",
       "false",
     );
+  });
+
+  // The key used to live in the name ("Measure (M)"); it is the tooltip's
+  // keycap now, and announced as a shortcut rather than read as part of the name.
+  it("names Measure plainly and announces M as its shortcut", () => {
+    render(<ViewerOverlays {...props()} />);
+    const measure = screen.getByRole("button", { name: "Measure" });
+    expect(measure).toHaveAccessibleName("Measure");
+    expect(measure).toHaveAttribute("aria-keyshortcuts", "M");
   });
 
   it("marks the two overlay tiles as the modes they are", () => {
@@ -129,7 +138,7 @@ describe("ViewerOverlays · the tool rail", () => {
     const { container } = render(<ViewerOverlays {...props()} />);
     for (const [anchor, name] of [
       ["reset-camera", "Reset camera"],
-      ["measure", "Measure (M)"],
+      ["measure", "Measure"],
       ["add-object", "Add objects"],
     ] as const) {
       expect(container.querySelector(`[data-tour="${anchor}"]`)).toBe(
@@ -146,7 +155,7 @@ describe("ViewerOverlays · the tool rail", () => {
   it("calls the handler the tile stands for", async () => {
     const onMeasure = vi.fn();
     render(<ViewerOverlays {...props({ onMeasure })} />);
-    await userEvent.click(screen.getByRole("button", { name: "Measure (M)" }));
+    await userEvent.click(screen.getByRole("button", { name: "Measure" }));
     expect(onMeasure).toHaveBeenCalledOnce();
   });
 

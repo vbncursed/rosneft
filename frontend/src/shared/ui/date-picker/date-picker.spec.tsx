@@ -1,7 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { DatePicker } from "./date-picker";
 
 function Harness({ initial = "2026-08-24" }: { initial?: string }) {
@@ -167,5 +167,24 @@ describe("DatePicker · month arrows", () => {
       expect(arrow.querySelector("svg")).not.toBeNull();
       expect(arrow.textContent).toBe("");
     }
+  });
+});
+
+/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
+function hoverTip(el: Element) {
+  vi.useFakeTimers();
+  fireEvent.pointerEnter(el, { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(500));
+  vi.useRealTimers();
+  return screen.queryByRole("tooltip");
+}
+
+describe("DatePicker · tooltips", () => {
+  it("names the month arrows in tooltips", async () => {
+    render(<Harness />);
+    await userEvent.click(field());
+    expect(hoverTip(screen.getByRole("button", { name: "Previous month" }))).toHaveTextContent("Previous month");
+    fireEvent.pointerLeave(screen.getByRole("button", { name: "Previous month" }), { pointerType: "mouse" });
+    expect(hoverTip(screen.getByRole("button", { name: "Next month" }))).toHaveTextContent("Next month");
   });
 });

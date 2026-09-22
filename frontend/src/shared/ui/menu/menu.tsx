@@ -2,6 +2,7 @@ import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from "rea
 import { clsx as cx } from "clsx";
 import { nextEnabled } from "@/shared/lib/roving";
 import { useDismiss } from "@/shared/lib/use-dismiss";
+import { Tooltip } from "@/shared/ui/tooltip";
 
 export type MenuItemTone = "default" | "accent" | "warn" | "ok" | "bad";
 
@@ -85,23 +86,25 @@ export function Menu({
 
   return (
     <div ref={root} className={cx("relative w-fit", className)}>
-      <button
-        ref={button}
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-        aria-label={triggerLabel}
-        onClick={() => setOpen((o) => !o)}
-        onKeyDown={onTriggerKeyDown}
-        className={cx(
-          "flex cursor-pointer items-center rounded-[7px] border px-2 py-1.5 transition-[color,background-color,border-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.95]",
-          open ? "border-accent-line bg-accent-soft text-accent" : "border-transparent text-muted hover:text-fg",
-          triggerClassName,
-        )}
-      >
-        {trigger}
-      </button>
+      <Tooltip label={triggerLabel}>
+        <button
+          ref={button}
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-controls={open ? menuId : undefined}
+          aria-label={triggerLabel}
+          onClick={() => setOpen((o) => !o)}
+          onKeyDown={onTriggerKeyDown}
+          className={cx(
+            "flex cursor-pointer items-center rounded-[7px] border px-2 py-1.5 transition-[color,background-color,border-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.95]",
+            open ? "border-accent-line bg-accent-soft text-accent" : "border-transparent text-muted hover:text-fg",
+            triggerClassName,
+          )}
+        >
+          {trigger}
+        </button>
+      </Tooltip>
 
       {open ? (
         <div
