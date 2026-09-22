@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/shared/ui/button";
+import { Icon } from "@/shared/ui/icon";
 import { CreateUserDialog } from "./ui/create-user-dialog";
 
 const ROLES = [
@@ -13,7 +14,8 @@ function Live() {
   return (
     <>
       <Button variant="primary" onClick={() => setOpen(true)}>
-        + New user
+        <Icon name="plus" size={14} />
+        New user
       </Button>
       {open && (
         <CreateUserDialog

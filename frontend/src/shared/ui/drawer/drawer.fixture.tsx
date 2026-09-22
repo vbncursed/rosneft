@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
+import { Icon } from "@/shared/ui/icon";
 import { TextField } from "@/shared/ui/text-field";
 import { Drawer } from "./drawer";
 
@@ -9,7 +10,8 @@ function CreateUser() {
   return (
     <>
       <Button shape="pill" variant="primary" onClick={() => setOpen(true)}>
-        + New user
+        <Icon name="plus" size={14} />
+        New user
       </Button>
       <Drawer
         open={open}

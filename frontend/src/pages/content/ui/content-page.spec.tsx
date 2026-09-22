@@ -153,8 +153,14 @@ describe("ContentPage", () => {
     const onUploadModel = vi.fn();
     render(<ContentPage {...props({ onUploadTerritory, onUploadModel })} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "+ Model" }));
-    await userEvent.click(screen.getByRole("button", { name: "+ Territory" }));
+    await userEvent.click(screen.getByRole("button", { name: "Model" }));
+    // A drawn plus, not a typed "+": the name and text carry the label alone.
+    expect(screen.getByRole("button", { name: "Model" }).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Model" })).toHaveTextContent(/^Model$/);
+    await userEvent.click(screen.getByRole("button", { name: "Territory" }));
+    // A drawn plus, not a typed "+": the name and text carry the label alone.
+    expect(screen.getByRole("button", { name: "Territory" }).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Territory" })).toHaveTextContent(/^Territory$/);
     expect(onUploadModel).toHaveBeenCalledOnce();
     expect(onUploadTerritory).toHaveBeenCalledOnce();
   });
@@ -168,8 +174,8 @@ describe("ContentPage", () => {
 
   it("offers no territory upload, button or drop target, without a handler for it", () => {
     render(<ContentPage {...props({ onUploadTerritory: undefined })} />);
-    expect(screen.getByRole("button", { name: "+ Model" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "+ Territory" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Model" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Territory" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Upload an OBJ/ })).not.toBeInTheDocument();
   });
 

@@ -141,9 +141,9 @@ describe("ModelLibraryPage", () => {
     expect(article).toHaveTextContent("26 MB");
   });
 
-  it("hides the theme-adjacent + Upload action and the footer CTA for a reader who may not upload", () => {
+  it("hides the theme-adjacent Upload action and the footer CTA for a reader who may not upload", () => {
     render(<ModelLibraryPage {...props({ canUpload: false })} />);
-    expect(screen.queryByRole("button", { name: "+ Upload" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Upload" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Upload models" })).not.toBeInTheDocument();
   });
 
@@ -154,7 +154,10 @@ describe("ModelLibraryPage", () => {
     expect(
       screen.getByText("Pick several ZIP archives at once — titles autofill from filenames."),
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "+ Upload" }));
+    await userEvent.click(screen.getByRole("button", { name: "Upload" }));
+    // A drawn plus, not a typed "+": the name and text carry the label alone.
+    expect(screen.getByRole("button", { name: "Upload" }).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Upload" })).toHaveTextContent(/^Upload$/);
     await userEvent.click(screen.getByRole("button", { name: "Upload models" }));
     expect(onUpload).toHaveBeenCalledTimes(2);
   });

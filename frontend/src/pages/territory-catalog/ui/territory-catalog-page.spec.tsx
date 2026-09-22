@@ -137,9 +137,9 @@ describe("TerritoryCatalogPage", () => {
     expect(screen.getAllByRole("button", { name: /^Delete /})).toHaveLength(2);
   });
 
-  it("hides the theme-adjacent + Upload action and the footer CTA for a reader who may not upload", () => {
+  it("hides the theme-adjacent Upload action and the footer CTA for a reader who may not upload", () => {
     render(<TerritoryCatalogPage {...props({ canUpload: false })} />);
-    expect(screen.queryByRole("button", { name: "+ Upload" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Upload" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Upload territory" })).not.toBeInTheDocument();
   });
 
@@ -147,7 +147,10 @@ describe("TerritoryCatalogPage", () => {
     const onUpload = vi.fn();
     render(<TerritoryCatalogPage {...props({ onUpload })} />);
     expect(screen.getByText("Add another territory")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "+ Upload" }));
+    await userEvent.click(screen.getByRole("button", { name: "Upload" }));
+    // A drawn plus, not a typed "+": the name and text carry the label alone.
+    expect(screen.getByRole("button", { name: "Upload" }).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Upload" })).toHaveTextContent(/^Upload$/);
     await userEvent.click(screen.getByRole("button", { name: "Upload territory" }));
     expect(onUpload).toHaveBeenCalledTimes(2);
   });

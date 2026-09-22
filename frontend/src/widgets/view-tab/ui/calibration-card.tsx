@@ -1,6 +1,7 @@
 import type { Vec3 } from "@/entities/placement";
 import { NUDGE_STEPS, type NudgeStep } from "@/features/panorama-view";
 import { Button } from "@/shared/ui/button";
+import { Icon } from "@/shared/ui/icon";
 import { Range } from "@/shared/ui/range";
 import { Segmented } from "@/shared/ui/segmented";
 import { AXES } from "@/shared/ui/vec3-field";
@@ -14,7 +15,6 @@ import {
   YAW_SHORT,
 } from "../model/copy";
 import { degToRad, printDegrees, radToDeg } from "../model/degrees";
-import { Icon } from "@/shared/ui/icon";
 
 export type CalibrationCardProps = {
   /** The ghosted photo over the mesh: 0.15–1, so it never disappears entirely. */

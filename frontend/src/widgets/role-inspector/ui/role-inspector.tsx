@@ -4,9 +4,9 @@ import type { Permission } from "@/entities/permission";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Callout } from "@/shared/ui/callout";
+import { Icon } from "@/shared/ui/icon";
 import { ProgressBar } from "@/shared/ui/progress-bar";
 import { PermissionMatrix } from "@/widgets/permission-matrix";
-import { Icon } from "@/shared/ui/icon";
 
 export type RoleInspectorProps = {
   role: Role;

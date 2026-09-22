@@ -2,8 +2,8 @@ import { clsx as cx } from "clsx";
 import { diffRows, type AuditEntry, type DiffKind, type Refs } from "@/entities/audit";
 import { Button } from "@/shared/ui/button";
 import { DetailList, type Detail } from "@/shared/ui/detail-list";
-import { inspectorValue } from "../model/inspector-value";
 import { Icon } from "@/shared/ui/icon";
+import { inspectorValue } from "../model/inspector-value";
 
 export type RecordInspectorProps = {
   entry: AuditEntry;

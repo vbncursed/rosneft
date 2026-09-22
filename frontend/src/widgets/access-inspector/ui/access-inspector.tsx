@@ -7,9 +7,9 @@ import {
 } from "@/entities/territory";
 import { Button } from "@/shared/ui/button";
 import { Callout } from "@/shared/ui/callout";
+import { Icon } from "@/shared/ui/icon";
 import { RadioCards } from "@/shared/ui/radio-card";
 import { GrantRow } from "./grant-row";
-import { Icon } from "@/shared/ui/icon";
 
 export type AccessInspectorProps = {
   territory: TerritoryAccess;
@@ -111,9 +111,10 @@ export function AccessInspector({
               <button
                 type="button"
                 onClick={onAddPerson}
-                className="cursor-pointer border-none bg-transparent p-0 font-mono text-[10px] text-accent transition-colors duration-150 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="inline-flex cursor-pointer items-center gap-1 border-none bg-transparent p-0 font-mono text-[10px] text-accent transition-colors duration-150 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
-                + add person
+                <Icon name="plus" size={10} />
+                add person
               </button>
             </div>
 

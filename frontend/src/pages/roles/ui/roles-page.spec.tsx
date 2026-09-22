@@ -164,14 +164,17 @@ describe("RolesPage", () => {
     const onCreateRole = vi.fn();
     render(<RolesPage {...props({ onCreateRole })} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "+ New role" }));
+    await userEvent.click(screen.getByRole("button", { name: "New role" }));
+    // A drawn plus, not a typed "+": the name and text carry the label alone.
+    expect(screen.getByRole("button", { name: "New role" }).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "New role" })).toHaveTextContent(/^New role$/);
     await userEvent.click(screen.getByRole("button", { name: /Create a role/ }));
     expect(onCreateRole).toHaveBeenCalledTimes(2);
   });
 
   it("hides both creation controls from a reader who may not manage roles", () => {
     render(<RolesPage {...props({ canManage: false })} />);
-    expect(screen.queryByRole("button", { name: "+ New role" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "New role" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Create a role/ })).not.toBeInTheDocument();
   });
 

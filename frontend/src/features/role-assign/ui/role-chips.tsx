@@ -20,7 +20,7 @@ export function RoleChips({
   onRemove,
   onAdd,
   readOnly = false,
-  addLabel = "+ add role",
+  addLabel = "add role",
 }: RoleChipsProps) {
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -47,8 +47,9 @@ export function RoleChips({
         <button
           type="button"
           onClick={onAdd}
-          className="cursor-pointer rounded-[7px] border border-dashed border-line-2 bg-transparent px-[11px] py-[5px] font-mono text-[11px] text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-[7px] border border-dashed border-line-2 bg-transparent px-[11px] py-[5px] font-mono text-[11px] text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
+          <Icon name="plus" size={11} />
           {addLabel}
         </button>
       )}
