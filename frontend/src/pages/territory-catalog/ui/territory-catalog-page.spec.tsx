@@ -139,19 +139,20 @@ describe("TerritoryCatalogPage", () => {
 
   it("hides the theme-adjacent Upload action and the footer CTA for a reader who may not upload", () => {
     render(<TerritoryCatalogPage {...props({ canUpload: false })} />);
-    expect(screen.queryByRole("button", { name: "Upload" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Upload territory" })).not.toBeInTheDocument();
+    expect(screen.queryAllByRole("button", { name: "Upload territory" })).toHaveLength(0);
   });
 
   it("offers the footer CTA and reaches the same upload handler", async () => {
     const onUpload = vi.fn();
     render(<TerritoryCatalogPage {...props({ onUpload })} />);
     expect(screen.getByText("Add another territory")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Upload" }));
-    // A drawn plus, not a typed "+": the name and text carry the label alone.
-    expect(screen.getByRole("button", { name: "Upload" }).querySelector("svg")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Upload" })).toHaveTextContent(/^Upload$/);
-    await userEvent.click(screen.getByRole("button", { name: "Upload territory" }));
+    // Header and footer both upload, so both say what they do; the header's visible
+    // text is the bare "Upload" behind a drawn plus, its aria-label keeps the object.
+    const [header, footer] = screen.getAllByRole("button", { name: "Upload territory" });
+    expect(header.querySelector("svg")).not.toBeNull();
+    expect(header).toHaveTextContent(/^Upload$/);
+    await userEvent.click(header);
+    await userEvent.click(footer);
     expect(onUpload).toHaveBeenCalledTimes(2);
   });
 
