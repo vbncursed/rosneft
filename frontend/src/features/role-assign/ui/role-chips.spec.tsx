@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { RoleChips } from "./role-chips";
@@ -75,5 +75,21 @@ describe("RoleChips · remove mark", () => {
     const remove = screen.getByRole("button", { name: "Remove role guest" });
     expect(remove.querySelector("svg")).not.toBeNull();
     expect(remove.textContent).toBe("");
+  });
+});
+
+/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
+function hoverTip(el: Element) {
+  vi.useFakeTimers();
+  fireEvent.pointerEnter(el, { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(500));
+  vi.useRealTimers();
+  return screen.queryByRole("tooltip");
+}
+
+describe("RoleChips · tooltip", () => {
+  it("names a chip's remove button in a tooltip", () => {
+    render(<RoleChips roles={ROLES} {...props} />);
+    expect(hoverTip(screen.getByRole("button", { name: "Remove role guest" }))).toHaveTextContent("Remove role guest");
   });
 });

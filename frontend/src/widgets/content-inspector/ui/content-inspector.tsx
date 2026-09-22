@@ -3,6 +3,7 @@ import type { ContentItem } from "@/entities/content";
 import { Button } from "@/shared/ui/button";
 import { DetailList, type Detail } from "@/shared/ui/detail-list";
 import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 import { ProgressBar } from "@/shared/ui/progress-bar";
 
 export type ContentInspectorProps = {
@@ -63,14 +64,16 @@ export function ContentInspector({
         <span className="absolute left-3.5 top-3.5">
           <ConversionBadge status={item.status} />
         </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="absolute right-3.5 top-3.5 -m-1 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent p-0 leading-none text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          <Icon name="close" size={14} />
-        </button>
+        <Tooltip label="Close">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="absolute right-3.5 top-3.5 -m-1 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent p-0 leading-none text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <Icon name="close" size={14} />
+          </button>
+        </Tooltip>
       </div>
 
       <div className="flex flex-col gap-4.5 p-4.5">

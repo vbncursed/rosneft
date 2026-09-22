@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -129,5 +129,25 @@ describe("FilterBar · remove marks", () => {
       expect(remove.querySelector("svg")).not.toBeNull();
       expect(remove.textContent).toBe("");
     }
+  });
+});
+
+/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
+function hoverTip(el: Element) {
+  vi.useFakeTimers();
+  fireEvent.pointerEnter(el, { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(500));
+  vi.useRealTimers();
+  return screen.queryByRole("tooltip");
+}
+
+describe("FilterBar · tooltip", () => {
+  it("names each chip's remove button in a tooltip", () => {
+    render(<FilterBar query="entity:territory" onChange={vi.fn()} extra={[{ label: "last 7 days", onRemove: vi.fn() }]} />);
+    const parsed = screen.getByRole("button", { name: "Remove filter entity:territory" });
+    expect(hoverTip(parsed)).toHaveTextContent("Remove filter entity:territory");
+    fireEvent.pointerLeave(parsed, { pointerType: "mouse" });
+    const extra = screen.getByRole("button", { name: "Remove filter last 7 days" });
+    expect(hoverTip(extra)).toHaveTextContent("Remove filter last 7 days");
   });
 });

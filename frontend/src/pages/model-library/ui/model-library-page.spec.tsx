@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { ModelCardModel } from "@/entities/model";
@@ -112,7 +112,9 @@ describe("ModelLibraryPage", () => {
     const button = screen.getByRole("button", { name: /remove its placements first/ });
     expect(button).toBeDisabled();
     expect(button).toHaveAccessibleName("Delete Pump Jack Unit — remove its placements first");
-    expect(button).toHaveAttribute("title", "Remove its placements first");
+    expect(button).not.toHaveAttribute("title");
+    // A disabled button takes no pointer events; the tooltip's wrapper does.
+    expect(hoverTip(button.parentElement!)).toHaveTextContent("Remove its placements first");
   });
 
   it("leaves Delete enabled for an unused model, with its plain name and no title", () => {
@@ -173,3 +175,12 @@ describe("ModelLibraryPage", () => {
     expect(screen.getByText("Nothing matches this filter.")).toBeInTheDocument();
   });
 });
+
+/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
+function hoverTip(el: Element) {
+  vi.useFakeTimers();
+  fireEvent.pointerEnter(el, { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(500));
+  vi.useRealTimers();
+  return screen.queryByRole("tooltip");
+}

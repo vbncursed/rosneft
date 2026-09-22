@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AlertInspector, type AlertInspectorProps, type FiringAlert } from "./alert-inspector";
@@ -112,5 +112,23 @@ describe("AlertInspector · close mark", () => {
     const close = screen.getByRole("button", { name: "Close" });
     expect(close.querySelector("svg")).not.toBeNull();
     expect(close.textContent).toBe("");
+  });
+});
+
+/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
+function hoverTip(el: Element) {
+  vi.useFakeTimers();
+  fireEvent.pointerEnter(el, { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(500));
+  vi.useRealTimers();
+  return screen.queryByRole("tooltip");
+}
+
+describe("AlertInspector · tooltip", () => {
+  it("names its Close button in a tooltip, not a native title", () => {
+    render(<AlertInspector {...props()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close).not.toHaveAttribute("title");
+    expect(hoverTip(close)).toHaveTextContent("Close");
   });
 });

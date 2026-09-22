@@ -1,5 +1,6 @@
 import { clsx as cx } from "clsx";
 import { actionOf, groupPermissions, type Permission } from "@/entities/permission";
+import { Tooltip } from "@/shared/ui/tooltip";
 
 export type PermissionMatrixProps = {
   all: Permission[];
@@ -84,8 +85,9 @@ export function PermissionMatrix({
                 const locked = grantable ? !grantable.has(permission.slug) : false;
                 const on = granted.includes(permission.slug);
                 const state = chipState(on, locked, readOnly);
+                const hint = locked && !readOnly ? LOCKED_TITLE : permission.description;
 
-                return (
+                const chip = (
                   <button
                     key={permission.slug}
                     type="button"
@@ -99,7 +101,6 @@ export function PermissionMatrix({
                     // once per group; the slug is what makes each chip's name
                     // unique and says which resource it belongs to.
                     aria-label={permission.slug}
-                    title={locked && !readOnly ? LOCKED_TITLE : permission.description}
                     className={cx(
                       "inline-flex items-center gap-[7px] rounded-control border px-[11px] py-1.5 font-mono text-[11px] transition-[color,background-color,border-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
                       CHIP[state],
@@ -111,6 +112,13 @@ export function PermissionMatrix({
                     />
                     {actionOf(permission.slug)}
                   </button>
+                );
+                return hint ? (
+                  <Tooltip key={permission.slug} label={hint}>
+                    {chip}
+                  </Tooltip>
+                ) : (
+                  chip
                 );
               })}
             </div>

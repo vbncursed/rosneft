@@ -5,6 +5,7 @@ import { Button } from "@/shared/ui/button";
 import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 import {
   anchorCounter,
   CALIBRATE,
@@ -104,15 +105,16 @@ function Draft({
               {anchorCounter(index.current, index.total)}
             </span>
           ) : null}
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={CLOSE_EDITOR}
-            title={CLOSE_EDITOR}
-            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-control-sm border border-line-2 bg-panel text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
-          >
-            <Icon name="close" size={12} />
-          </button>
+          <Tooltip label={CLOSE_EDITOR}>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={CLOSE_EDITOR}
+              className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-control-sm border border-line-2 bg-panel text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+            >
+              <Icon name="close" size={12} />
+            </button>
+          </Tooltip>
         </span>
       </div>
 

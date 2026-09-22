@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { overlaysWidthClass } from "../model/overlays-width";
@@ -250,5 +250,33 @@ describe("OverlaysPanel · the scrolled indicator", () => {
       "active:scale-95",
       "ease-out",
     );
+  });
+});
+
+/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
+function hoverTip(el: Element) {
+  vi.useFakeTimers();
+  fireEvent.pointerEnter(el, { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(500));
+  vi.useRealTimers();
+  return screen.queryByRole("tooltip");
+}
+
+describe("OverlaysPanel · tooltip", () => {
+  it("names its collapse button in a tooltip, not a native title", () => {
+    render(
+      <OverlaysPanel
+        tab="view"
+        onTabChange={vi.fn()}
+        collapsed={false}
+        onCollapsedChange={vi.fn()}
+        placementsCount={0}
+        view={<p>view body</p>}
+        placements={<p>placements body</p>}
+      />,
+    );
+    const collapse = screen.getByRole("button", { name: "Collapse Overlays panel" });
+    expect(collapse).not.toHaveAttribute("title");
+    expect(hoverTip(collapse)).toHaveTextContent("Collapse Overlays panel");
   });
 });
