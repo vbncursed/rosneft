@@ -198,7 +198,7 @@ describe("UsersScreen", () => {
 
   it("opens the create dialog from the header", async () => {
     const s = showing();
-    await userEvent.click(screen.getByRole("button", { name: "+ New user" }));
+    await userEvent.click(screen.getByRole("button", { name: "New user" }));
     expect(s.setCreating).toHaveBeenCalledWith(true);
   });
 
@@ -221,7 +221,7 @@ describe("UsersScreen", () => {
 
   it("opens the add-role dialog from the chip row, and Cancel closes it", async () => {
     const s = showing({ selected: USER });
-    await userEvent.click(screen.getByRole("button", { name: "+ add role" }));
+    await userEvent.click(screen.getByRole("button", { name: "add role" }));
     expect(s.setAddingRole).toHaveBeenCalledWith(true);
 
     cleanup();
@@ -256,7 +256,7 @@ describe("UsersScreen", () => {
 
   it("hides the management controls from a reader who may not manage people", () => {
     showing({ selected: USER, canManage: false });
-    expect(screen.queryByRole("button", { name: "+ New user" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "New user" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Remove role Guest")).not.toBeInTheDocument();
   });

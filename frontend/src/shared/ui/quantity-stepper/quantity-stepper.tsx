@@ -1,4 +1,6 @@
 import { clsx as cx } from "clsx";
+import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 
 export type QuantityStepperProps = {
   value: number;
@@ -29,30 +31,34 @@ export function QuantityStepper({
 
   return (
     <div className={cx("flex items-center gap-1.5", className)} role="group" aria-label={label}>
-      <button
-        type="button"
-        className={cell}
-        disabled={disabled || value <= min}
-        aria-label={`Decrease ${label.toLowerCase()}`}
-        onClick={() => onChange(clamp(value - step))}
-      >
-        −
-      </button>
+      <Tooltip label={`Decrease ${label.toLowerCase()}`}>
+        <button
+          type="button"
+          className={cell}
+          disabled={disabled || value <= min}
+          aria-label={`Decrease ${label.toLowerCase()}`}
+          onClick={() => onChange(clamp(value - step))}
+        >
+          <Icon name="minus" size={12} />
+        </button>
+      </Tooltip>
       <output
         aria-live="polite"
         className="flex h-7 w-11 items-center justify-center rounded-control-sm border border-line-2 bg-panel-2 font-mono text-[13px] text-fg"
       >
         {value}
       </output>
-      <button
-        type="button"
-        className={cell}
-        disabled={disabled || value >= max}
-        aria-label={`Increase ${label.toLowerCase()}`}
-        onClick={() => onChange(clamp(value + step))}
-      >
-        +
-      </button>
+      <Tooltip label={`Increase ${label.toLowerCase()}`}>
+        <button
+          type="button"
+          className={cell}
+          disabled={disabled || value >= max}
+          aria-label={`Increase ${label.toLowerCase()}`}
+          onClick={() => onChange(clamp(value + step))}
+        >
+          <Icon name="plus" size={12} />
+        </button>
+      </Tooltip>
     </div>
   );
 }

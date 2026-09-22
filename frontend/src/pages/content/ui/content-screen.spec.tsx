@@ -102,9 +102,9 @@ describe("ContentScreen", () => {
   it("routes the upload buttons to the v2 upload pages", async () => {
     useContent.mockReturnValue(state());
     render(<ContentScreen />);
-    await userEvent.click(screen.getByRole("button", { name: "+ Territory" }));
+    await userEvent.click(screen.getByRole("button", { name: "New territory" }));
     expect(navigate).toHaveBeenCalledWith({ to: "/territories/new" });
-    await userEvent.click(screen.getByRole("button", { name: "+ Model" }));
+    await userEvent.click(screen.getByRole("button", { name: "New model" }));
     expect(navigate).toHaveBeenCalledWith({ to: "/models/new" });
   });
 
@@ -167,9 +167,9 @@ describe("ContentScreen", () => {
   it("offers a Company Owner no territory upload but keeps the model upload and row menus", () => {
     useContent.mockReturnValue(state({ canCreateTerritory: false }));
     render(<ContentScreen />);
-    expect(screen.queryByRole("button", { name: "+ Territory" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "New territory" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Upload an OBJ/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "+ Model" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New model" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Row actions for T 1" })).toBeInTheDocument();
   });
 

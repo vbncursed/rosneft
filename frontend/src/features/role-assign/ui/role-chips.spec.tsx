@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { RoleChips } from "./role-chips";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const ROLES = [
   { slug: "field-operator", title: "field-operator" },
@@ -27,13 +28,19 @@ describe("RoleChips", () => {
   it("offers a way to grant another", async () => {
     const onAdd = vi.fn();
     render(<RoleChips roles={ROLES} {...props} onAdd={onAdd} />);
-    await userEvent.click(screen.getByRole("button", { name: "+ add role" }));
+    await userEvent.click(screen.getByRole("button", { name: "add role" }));
+    // A drawn plus, not a typed "+": the name and text carry the label alone.
+    expect(screen.getByRole("button", { name: "add role" }).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "add role" })).toHaveTextContent(/^add role$/);
     expect(onAdd).toHaveBeenCalledOnce();
   });
 
   it("takes a different label for the add control", () => {
-    render(<RoleChips roles={[]} {...props} addLabel="+ grant" />);
-    expect(screen.getByRole("button", { name: "+ grant" })).toBeInTheDocument();
+    render(<RoleChips roles={[]} {...props} addLabel="grant" />);
+    expect(screen.getByRole("button", { name: "grant" })).toBeInTheDocument();
+    // A drawn plus, not a typed "+": the name and text carry the label alone.
+    expect(screen.getByRole("button", { name: "grant" }).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "grant" })).toHaveTextContent(/^grant$/);
   });
 
   it("hides every control when the reader may not edit", () => {
@@ -49,7 +56,7 @@ describe("RoleChips", () => {
 
   it("still offers the add control when an editable person holds none", () => {
     render(<RoleChips roles={[]} {...props} />);
-    expect(screen.getByRole("button", { name: "+ add role" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "add role" })).toBeInTheDocument();
     expect(screen.queryByText("No roles granted.")).not.toBeInTheDocument();
   });
 
@@ -60,5 +67,21 @@ describe("RoleChips", () => {
       expect(button.className).toMatch(/active:scale-(95|\[0\.97\])/);
       expect(button).not.toHaveClass("transition-colors");
     }
+  });
+});
+
+describe("RoleChips · remove mark", () => {
+  it("draws the remove button as an icon, not a × character", () => {
+    render(<RoleChips roles={ROLES} {...props} />);
+    const remove = screen.getByRole("button", { name: "Remove role guest" });
+    expect(remove.querySelector("svg")).not.toBeNull();
+    expect(remove.textContent).toBe("");
+  });
+});
+
+describe("RoleChips · tooltip", () => {
+  it("names a chip's remove button in a tooltip", () => {
+    render(<RoleChips roles={ROLES} {...props} />);
+    expect(hoverTip(screen.getByRole("button", { name: "Remove role guest" }))).toHaveTextContent("Remove role guest");
   });
 });

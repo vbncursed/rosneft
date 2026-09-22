@@ -1,12 +1,25 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpError } from "@/shared/api";
-import { login, verifyTwoFactor } from "@/entities/user";
+import { beginLogin, finishLogin, getCredential } from "@/entities/passkey";
+import { login, startSession, verifyTwoFactor } from "@/entities/user";
 import { useLogin } from "./use-login";
 
 vi.mock("@/entities/user", () => ({
   login: vi.fn(),
   verifyTwoFactor: vi.fn(),
+  startSession: vi.fn(),
+}));
+
+// The real gate (isPasskeySupported) and the real isCancelled; only the
+// network and the OS ceremony are stubbed. jsdom has no WebAuthn, so the
+// library's own capability probe is what gets forced on.
+vi.mock("@github/webauthn-json", () => ({ supported: () => true }));
+vi.mock("@/entities/passkey", async (importActual) => ({
+  ...(await importActual<typeof import("@/entities/passkey")>()),
+  beginLogin: vi.fn(),
+  getCredential: vi.fn(),
+  finishLogin: vi.fn(),
 }));
 
 const navigate = vi.fn();
@@ -22,7 +35,14 @@ vi.mock("@tanstack/react-router", () => ({
 beforeEach(() => {
   vi.resetAllMocks();
   search = {};
+  delete window.__DESKTOP__;
 });
+
+const ceremony = () => {
+  vi.mocked(beginLogin).mockResolvedValue({ optionsJson: "{}", flowId: "flow-1" });
+  vi.mocked(getCredential).mockResolvedValue('{"id":"a"}');
+  vi.mocked(finishLogin).mockResolvedValue("csrf-1");
+};
 
 describe("useLogin", () => {
   it("starts on the credentials step", () => {
@@ -135,5 +155,68 @@ describe("useLogin", () => {
     await waitFor(() =>
       expect(navigate).toHaveBeenCalledWith({ href: "/console/audit?actor=a.ivanova" }),
     );
+  });
+
+  describe("passkey", () => {
+    it("offers a passkey where the browser supports one", () => {
+      const { result } = renderHook(() => useLogin());
+      expect(result.current.credentials.onPasskey).toBeTypeOf("function");
+    });
+
+    // The desktop shell's loopback origin is never an RP origin.
+    it("offers none in the desktop shell", () => {
+      window.__DESKTOP__ = true;
+      const { result } = renderHook(() => useLogin());
+      expect(result.current.credentials.onPasskey).toBeUndefined();
+    });
+
+    it("signs in through the password path's session step and goes to next", async () => {
+      search = { next: "/models" };
+      ceremony();
+      const { result } = renderHook(() => useLogin());
+
+      act(() => result.current.credentials.onPasskey!());
+
+      await waitFor(() => expect(navigate).toHaveBeenCalledWith({ href: "/models" }));
+      expect(getCredential).toHaveBeenCalledWith("{}");
+      expect(finishLogin).toHaveBeenCalledWith("flow-1", '{"id":"a"}');
+      expect(startSession).toHaveBeenCalledWith("csrf-1");
+    });
+
+    // Closing the OS dialog is a choice, not an error.
+    it("says nothing when the user cancels the system prompt", async () => {
+      ceremony();
+      vi.mocked(getCredential).mockRejectedValue(new DOMException("x", "NotAllowedError"));
+      const { result } = renderHook(() => useLogin());
+
+      act(() => result.current.credentials.onPasskey!());
+
+      await waitFor(() => expect(result.current.credentials.submitting).toBe(false));
+      expect(result.current.error).toBeUndefined();
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it("points to the password when the passkey fails", async () => {
+      ceremony();
+      vi.mocked(finishLogin).mockRejectedValue(new HttpError(401, null, "unknown credential"));
+      const { result } = renderHook(() => useLogin());
+
+      act(() => result.current.credentials.onPasskey!());
+
+      await waitFor(() =>
+        expect(result.current.error).toBe("Passkey sign-in failed. Try again or use your password."),
+      );
+      expect(startSession).not.toHaveBeenCalled();
+    });
+
+    it("does not start a second ceremony while one is open", () => {
+      vi.mocked(beginLogin).mockReturnValue(new Promise(() => {}) as never);
+      const { result } = renderHook(() => useLogin());
+
+      act(() => result.current.credentials.onPasskey!());
+      act(() => result.current.credentials.onPasskey!());
+
+      expect(beginLogin).toHaveBeenCalledTimes(1);
+    });
   });
 });

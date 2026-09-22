@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { PermissionMatrix } from "./permission-matrix";
 import type { Permission } from "@/entities/permission";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const dotOf = (chip: HTMLElement) => chip.querySelector("span[aria-hidden]");
 
@@ -46,9 +47,11 @@ describe("PermissionMatrix", () => {
       />,
     );
 
-    const locked = screen.getByRole("button", { name: "territory:delete" });
+    // Disabled, so never focused: the reason is in the name, not only the tooltip.
+    const locked = screen.getByRole("button", { name: "territory:delete — you cannot grant a permission you do not have" });
     expect(locked).toBeDisabled();
-    expect(locked).toHaveAttribute("title", "You cannot grant a permission you do not have");
+    expect(locked).not.toHaveAttribute("title");
+    expect(hoverTip(locked.parentElement!)).toHaveTextContent("You cannot grant a permission you do not have");
 
     await userEvent.click(locked);
     expect(onToggle).not.toHaveBeenCalled();
@@ -66,11 +69,11 @@ describe("PermissionMatrix", () => {
         grantable={new Set(["territory:read"])}
       />,
     );
-    const chip = screen.getByRole("button", { name: "territory:delete" });
+    const chip = screen.getByRole("button", { name: "territory:delete — you cannot grant a permission you do not have" });
     expect(chip).toHaveAttribute("aria-pressed", "true");
     expect(chip).toBeDisabled();
     expect(chip).toHaveClass("border-dashed", "border-accent", "bg-accent-soft", "text-accent");
-    expect(chip).toHaveAttribute("title", "You cannot grant a permission you do not have");
+    expect(hoverTip(chip.parentElement!)).toHaveTextContent("You cannot grant a permission you do not have");
     expect(dotOf(chip)).toHaveClass("bg-warn");
     await userEvent.click(chip);
     expect(onToggle).not.toHaveBeenCalled();
@@ -134,7 +137,8 @@ describe("PermissionMatrix", () => {
     expect(held).toHaveClass("border-accent");
     expect(held).not.toHaveClass("border-dashed");
     expect(dotOf(held)).toHaveClass("bg-accent");
-    expect(held).not.toHaveAttribute("title", "You cannot grant a permission you do not have");
+    // Read-only is not locked, and with no description there is nothing to say.
+    expect(hoverTip(held)).toBeNull();
   });
 
   it("counts what is granted in each group", () => {
@@ -161,10 +165,9 @@ describe("PermissionMatrix", () => {
 
   it("shows a permission's description as its tooltip", () => {
     render(<PermissionMatrix all={ALL} granted={[]} onToggle={() => {}} />);
-    expect(screen.getByRole("button", { name: "territory:read" })).toHaveAttribute(
-      "title",
-      "See territories",
-    );
+    const chip = screen.getByRole("button", { name: "territory:read" });
+    expect(chip).not.toHaveAttribute("title");
+    expect(hoverTip(chip)).toHaveTextContent("See territories");
   });
 });
 
@@ -182,3 +185,4 @@ describe("PermissionMatrix · naming", () => {
     expect(chip).not.toHaveClass("transition-colors");
   });
 });
+

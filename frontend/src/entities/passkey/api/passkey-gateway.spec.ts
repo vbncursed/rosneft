@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCsrfToken } from "@/shared/api";
-import { beginRegistration, finishRegistration, listPasskeys, removePasskey } from "./passkey-gateway";
+import {
+  beginLogin,
+  beginRegistration,
+  finishLogin,
+  finishRegistration,
+  listPasskeys,
+  removePasskey,
+} from "./passkey-gateway";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -89,5 +96,31 @@ describe("passkey gateway", () => {
       method: "POST",
       body: { flowId: "flow-1", credentialJson: '{"id":"cred"}', name: "iPhone 15" },
     });
+  });
+
+  it("begins a login with the server's options and flow id", async () => {
+    fetchMock.mockResolvedValueOnce(json({ optionsJson: '{"publicKey":{}}', flowId: "flow-9" }));
+    expect(await beginLogin()).toEqual({ optionsJson: '{"publicKey":{}}', flowId: "flow-9" });
+    expect(request()).toEqual({ url: "/api/auth/passkey/login/begin", method: "POST", body: undefined });
+  });
+
+  // The gateway names the field `assertionJson` here, not registration's
+  // `credentialJson`; the wrong name is a 400 at the gateway.
+  it("finishes a login with the assertion and hands back the CSRF token", async () => {
+    fetchMock.mockResolvedValueOnce(json({ token: "t", csrfToken: "csrf-9" }));
+    expect(await finishLogin("flow-9", '{"id":"a"}')).toBe("csrf-9");
+    expect(request()).toEqual({
+      url: "/api/auth/passkey/login/finish",
+      method: "POST",
+      body: { flowId: "flow-9", assertionJson: '{"id":"a"}' },
+    });
+  });
+
+  // An unknown key is a 401 that answers the credential, not a dead session:
+  // bouncing would reload the login page over the error the user needs.
+  it("does not bounce a 401 from finishing a login", async () => {
+    fetchMock.mockResolvedValueOnce(json({ message: "unknown credential" }, 401));
+    await expect(finishLogin("flow-9", "{}")).rejects.toThrow("unknown credential");
+    expect(assign).not.toHaveBeenCalled();
   });
 });

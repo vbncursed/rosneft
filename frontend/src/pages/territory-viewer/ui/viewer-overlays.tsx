@@ -1,6 +1,7 @@
 import { documentFileName } from "@/entities/document";
 import { Button } from "@/shared/ui/button";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { Icon, type IconName } from "@/shared/ui/icon";
 import { KeycapHint } from "@/shared/ui/keycap-hint";
 import { LodSwitcher } from "@/shared/ui/lod-switcher";
 import { ModeChip } from "@/shared/ui/mode-chip";
@@ -17,18 +18,18 @@ const CLEAR_NOTE =
   "Measurements are shared: this removes them for everyone who opens this territory. Your unsaved chains are cleared too.";
 
 /**
- * The mock's glyph, name and tour anchor per tile. The page decides the state.
+ * The tile's icon, name and tour anchor. The page decides the state.
  *
  * `toggle` marks the two that are modes; Reset camera and Replay tour happen
  * once when pressed, and `aria-pressed` on those reads as a toggle that stays on.
  */
-const TILES: Record<RailTool, { glyph: string; name: string; toggle?: boolean; dataTour?: string }> = {
-  reset: { glyph: "↺", name: "Reset camera", dataTour: "reset-camera" },
-  measure: { glyph: "↔", name: "Measure (M)", toggle: true, dataTour: "measure" },
-  add: { glyph: "＋", name: "Add objects", toggle: true, dataTour: "add-object" },
-  panoramas: { glyph: "◎", name: "Panoramas", toggle: true, dataTour: "panoramas" },
-  documents: { glyph: "▤", name: "Documents", toggle: true, dataTour: "documents" },
-  tour: { glyph: "▶", name: "Replay guided tour" },
+const TILES: Record<RailTool, { icon: IconName; name: string; shortcut?: string; toggle?: boolean; dataTour?: string }> = {
+  reset: { icon: "reset", name: "Reset camera", dataTour: "reset-camera" },
+  measure: { icon: "ruler", name: "Measure", shortcut: "M", toggle: true, dataTour: "measure" },
+  add: { icon: "plus", name: "Add objects", toggle: true, dataTour: "add-object" },
+  panoramas: { icon: "panorama", name: "Panoramas", toggle: true, dataTour: "panoramas" },
+  documents: { icon: "documents", name: "Documents", toggle: true, dataTour: "documents" },
+  tour: { icon: "help", name: "Replay guided tour" },
 };
 
 // The switcher and the hint bar both stop at the panel's edge; `--overlays-w`
@@ -128,12 +129,10 @@ export function ViewerOverlays({
     documents: onDocuments,
     tour: onReplayTour,
   };
-  const items: ToolRailItem[] = tools.map(({ key, state }) => ({
-    key,
-    state,
-    onClick: handlers[key],
-    ...TILES[key],
-  }));
+  const items: ToolRailItem[] = tools.map(({ key, state }) => {
+    const { icon, ...tile } = TILES[key];
+    return { key, state, onClick: handlers[key], glyph: <Icon name={icon} size={15} />, ...tile };
+  });
 
   return (
     <>

@@ -161,3 +161,18 @@ describe("ModelPickerCard", () => {
     expect(document.querySelector("svg")).toBeInTheDocument();
   });
 });
+
+describe("ModelPickerCard · selected badge", () => {
+  it("draws the selected badge as a check icon, not a ✓ character", () => {
+    const svgs = (selected: boolean) => {
+      const { container, unmount } = render(
+        <ModelPickerCard model={MODEL} selected={selected} onSelect={() => {}} />,
+      );
+      const count = container.querySelectorAll("svg").length;
+      expect(container).not.toHaveTextContent("✓");
+      unmount();
+      return count;
+    };
+    expect(svgs(true)).toBe(svgs(false) + 1);
+  });
+});

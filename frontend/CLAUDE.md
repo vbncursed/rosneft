@@ -288,6 +288,37 @@ yourself when a file starts to feel long.
 mocks (`Users v2`, `Roles v2`, …) are more specific and win for their own
 screen. Where they disagree, prefer the screen — but say so.
 
+**Icons do not follow `Design System.dc.html` § Icons (since 2026-09-22).** Every
+glyph in `shared/ui/icon` is a runeicons outline (Apache-2.0), the six it lacks
+from Lucide (ISC), all on one 24 grid at stroke 1.75 applied by `Icon` — the
+glyph files hold shape bodies only. `chevron-down` is in the set. Adding one:
+take the runeicons `public/normal/` SVG (Lucide only if runeicons has none),
+strip its stroke/fill attributes, add it under a name that says what it means
+here, and list it in `shared/ui/icon/NOTICE`. A `+`, `×` or arrow standing alone
+as button or indicator content is an `<Icon>`, never a typed character; one
+that reads as text (`← Home`, `a × b × c m`, the audit event operators) stays
+text. When a drawn plus leaves a bare noun as the visible label (`Model`,
+`Upload`), the button's `aria-label` keeps the verb (`New model`,
+`Upload territory`). Spec: `docs/superpowers/specs/2026-09-22-runeicons-design.md`.
+Do not "restore" an icon to the mock.
+
+**Icon-only controls name themselves with `Tooltip` (`shared/ui/tooltip`), never
+`title`.** `Button shape="icon"` does it from its `aria-label` (its `tooltip`
+prop takes `{label, shortcut?}` to override, or `false` to opt out; `Menu`'s
+`triggerTooltip={false}` does the same for a trigger that shows its own text,
+like the account pill) — never wrap
+one in another `Tooltip`; a plain icon `<button>` is wrapped in
+`<Tooltip label=…>`. A disabled button explains itself through `Tooltip` (its
+wrapper span turns `inline-flex` and takes the hover, since a disabled one gets
+none; the span is `contents` otherwise, so flipping `disabled` never remounts
+the button) and puts the reason in its accessible name too. Tooltips open after
+500 ms of mouse hover (instantly within 300 ms of the previous one), at once on
+a focus that follows Tab (and matches `:focus-visible`) — never on a focus a
+script hands back after Esc/Enter, which a browser rings too — never on touch; Enter/Space on the trigger closes it like a press; Esc closes an open one, and is consumed only when it opened on keyboard focus — a hover-opened one lets the page's own Esc (leaving measure mode) run;
+placement is `tooltip-geometry.ts`. Specs drive them with `hoverTip`/`focusTip`
+from `shared/ui/tooltip/testing.ts`, which only specs import. Spec:
+`docs/superpowers/specs/2026-09-22-tooltip-design.md`.
+
 Known unresolved disagreements:
 
 - The design system's Users table has no avatar in the row; `Users.dc.html`
@@ -578,10 +609,12 @@ it, so only Root (`can`'s owner bypass) creates one. A Company Owner holds
 `:write` — it replaces a source and edits, and was walked through a whole
 upload to a 403 while the gate read `:write`. Home's grant, the catalog's
 `canUpload`, `/territories/new`'s callout and Content's `canCreateTerritory`
-(the `+ Territory` button and the drop target) all read `:create`; Content's
+(the Territory button — accessible name "New territory" — and the drop target) all read `:create`; Content's
 `canManage` and every replace-source gate stay on `:write`.
-The header carries `widgets/account-pill` instead: a link to `/account`
-with the avatar, username and role title, fed by `viewerOf(me)`. **`viewerOf`
+The header carries `widgets/account-pill` instead: a `Menu` trigger (accessible
+name `Account menu for {username}`) with the avatar, username and role title,
+fed by `viewerOf(me)`; it opens an identity card over `Account` (router
+navigation to `/account` through the page's `onOpen`) and `Sign out`. **`viewerOf`
 has exactly one definition, `shared/session/principal.ts`** — it used to sit
 in `app/router/guard.ts`, which a page may not import, so `/account`'s
 header kept a hand-copied `roleTitleOf` beside it; the console shell, the
@@ -691,6 +724,22 @@ on that page, never linked directly. A principal with no console screen at
 all — a Viewer holds only `territory:read` and its siblings, and the sidebar
 never renders for it — gets in through the link on `NoConsoleAccess` instead.
 
+**Sign out** (2026-09-22) is `features/sign-out`'s `useSignOut()`, called by
+two screens: `/account`'s header (`Sign out`, a secondary `sm` button beside
+the theme control, spinning and disabled while one runs) and Home's account
+menu. It calls `logout()` — `POST /api/auth/logout`, which revokes the session
+and clears the cookie (the desktop proxy drops its jar and keychain entry on
+that 204); `logout` swallows a network error and always drops the
+`andrey.authed` marker and the CSRF token — then navigates to `/login`, then
+`queryClient.clear()`s every cached query so nothing of this user can flash in
+front of the next one. **Navigate before clearing, not after**: a clear while
+the catalog shell is still mounted leaves its `meQuery` observer with no data,
+it refetches, the gateway answers 401 and `client.ts`'s bounce hard-reloads
+the tab to `/login?next=%2Flogin` (seen live; the hook's spec pins the order).
+A second call while one runs does nothing. Pages stay props-only — the
+screens (`HomeScreen`, `AccountScreen`) call the hook and pass `onSignOut`
+down, so every fixture still renders without a router or a query client.
+
 **Every mutation on `/account` invalidates what another surface reads, and the
 journal is invalidated on both paths.** All three mutations in `use-account`
 — the password change, the 2FA disable, the passkey removal — hang
@@ -792,20 +841,22 @@ an entry (the backend does not record one), no ip/user-agent digest, no
 `failed:` filter, and the free-text part of the filter is ignored — the
 placeholder is all that says so. The backend follow-ups are filed, not built.
 
-**Passkey sign-in is unwired, by decision, not by origin.** `CredentialsForm`
-draws the button only when handed `onPasskey`, and `useLogin` does not hand
-it one. This once had a technical reason — the dev server ran on 3001 and
-`PASSKEY_RP_ORIGINS` listed only 3000 — but the dev server is on 3000 now
-and the conclusion stands on the spec alone: login passkeys are out of
-scope, not blocked. The "Keep me signed in on this device" checkbox is live:
-unticked, `login` and `verifyTwoFactor` send `remember: false` and the
-gateway issues a browser-session cookie (spec:
-`docs/superpowers/specs/2026-09-03-keep-me-signed-in-design.md`). An action
-with no endpoint is not rendered — that rule still hides the passkey button.
+**Passkey sign-in is wired again (2026-09-22, at the user's request).** It was
+once left unwired by decision; the user asked for it back. `useLogin` hands
+`CredentialsForm` its `onPasskey` only behind `isPasskeySupported()`, so the
+desktop shell (whose loopback origin `PASSKEY_RP_ORIGINS` never lists) draws
+no button. The ceremony is begin → `@github/webauthn-json` `get()` → finish,
+`credentialed` so an unknown key's 401 does not bounce; then the same
+`startSession()` (`entities/user`) that password and 2FA sign-in call — one
+function so the three cannot drift — and the same navigation to `next`. **A
+passkey session is always persistent**: the finish call sends no `remember`,
+so "Keep me signed in on this device" governs the password paths only. That
+checkbox is live there: unticked, `login` and `verifyTwoFactor` send
+`remember: false` and the gateway issues a browser-session cookie (spec:
+`docs/superpowers/specs/2026-09-03-keep-me-signed-in-design.md`).
 
-**`isPasskeySupported()` is the single gate on the passkey *management*
-surface** (`/account`'s Add/Remove, unrelated to the login button above —
-that one is unwired outright). One check, not two, because a second one
+**`isPasskeySupported()` is the single gate on every passkey surface** —
+the login button above and `/account`'s Add/Remove alike. One check, not two, because a second one
 elsewhere is how the two drift apart; it is `@github/webauthn-json`'s own
 `supported()` plus `!window.__DESKTOP__`. The desktop term is not about
 capability — the Tauri webview implements WebAuthn — its origin is a
@@ -814,8 +865,8 @@ there fails with
 an opaque client-side error and nothing in any server log. **The term is
 live**: the desktop shell embeds this SPA and sets `window.__DESKTOP__ = true`
 in its init script (`desktop/src-tauri/src/main.rs`, `INIT_SCRIPT`), so
-`/account` there draws no passkey controls. Only the unit test pins it from
-this side.
+neither the login screen nor `/account` there draws passkey controls. Only
+the unit test pins it from this side.
 
 `useJobStream` (territory conversion) is the only `EventSource` consumer
 here, and jsdom has none: `openJobStream` detects a missing `EventSource` and
@@ -979,7 +1030,7 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   `measurement:create/write/delete` (`Grants.measure*`); without `create` the
   tool still measures, the chain stays local and the chip ends in
   ` · not saved` (`notSaved`, also for a failed save); a saved chain offers
-  its × only with all three grants and never while `saving` (`canRemove`).
+  its close button only with all three grants and never while `saving` (`canRemove`).
   **Which calls** a transition needs is the pure `syncPlan` in
   `entities/measurement`; `useMeasurementSync` (`features/measure`) only runs
   it. **It runs in the tool's dispatcher**, which keeps its own running copy of
@@ -1021,6 +1072,21 @@ Package B (spec `docs/superpowers/specs/2026-09-14-territory-viewer-v2-package-b
 Two overlays over the same scene: equirect captures anchored in it, and PDFs
 floated above it.
 
+- **The View tab's Panoramas and Documents lists fold; nothing else there
+  does.** The switches, the territory link and the anchor editor stay put —
+  only the two lists sit behind their section heads
+  (`widgets/view-tab`'s `useSectionFolds`, lifted to the page by
+  `use-view-sections.ts`). Folded by default; an opened list is remembered
+  per browser in `localStorage` `andrey.view.panoramas` /
+  `andrey.view.documents` (absence means folded). The page forces a section
+  open — Panoramas while a capture is stood in or edited, both while a tour
+  runs — and a forced head is locked: `aria-disabled`, still focusable, no
+  hover brightening, and a click writes nothing, so the reader's own choice
+  survives. A rail tile and a finished upload `reveal` their section, which
+  opens *and* remembers it — an upload must not land in a hidden list. An
+  empty list has no fold at all. The folded list is `hidden`, not
+  unmounted, because the head's `aria-controls` must point at an element
+  that exists.
 - **The reducer owns where the camera is, not the list hooks.**
   `features/viewer-mode`'s state carries `view` (`{kind:"scene"}` or
   `{kind:"panorama", id}`), `move` (the scene-only sub-mode for dragging

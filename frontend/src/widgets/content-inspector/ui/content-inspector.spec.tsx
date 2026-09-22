@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ContentInspector, type ContentInspectorProps } from "./content-inspector";
 import type { ContentItem } from "@/entities/content";
+import { focusTip, hoverTip } from "@/shared/ui/tooltip/testing";
 
 const item = (over: Partial<ContentItem> = {}): ContentItem => ({
   kind: "territory",
@@ -138,5 +139,33 @@ describe("ContentInspector", () => {
     expect(screen.queryByRole("button", { name: "Replace source" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open in viewer" })).toBeInTheDocument();
+  });
+});
+
+describe("ContentInspector · close mark", () => {
+  it("draws its Close button as an icon, not a × character", () => {
+    render(<ContentInspector {...props()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close.querySelector("svg")).not.toBeNull();
+    expect(close.textContent).toBe("");
+  });
+});
+
+describe("ContentInspector · tooltip", () => {
+  it("names its Close button in a tooltip, not a native title", () => {
+    render(<ContentInspector {...props()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close).not.toHaveAttribute("title");
+    expect(hoverTip(close)).toHaveTextContent("Close");
+  });
+});
+
+describe("ContentInspector · keyboard", () => {
+  it("names its Close button the moment a keyboard focus lands on it", () => {
+    render(<ContentInspector {...props()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    const tip = focusTip(close);
+    expect(tip).toHaveTextContent("Close");
+    expect(close).toHaveAttribute("aria-describedby", tip!.id);
   });
 });

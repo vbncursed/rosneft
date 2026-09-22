@@ -52,8 +52,9 @@ const deps = (
     clear: vi.fn(),
   };
   const documents = over.documents ?? IDLE_DOCUMENTS;
+  const openSection = vi.fn();
   return {
-    spies: { mode, editor, panel, form, documents, measure },
+    spies: { mode, editor, panel, form, documents, measure, openSection },
     deps: {
       mode,
       measure,
@@ -62,6 +63,7 @@ const deps = (
       panel,
       tour: basePageParts().tour,
       documents,
+      openSection,
       canDeleteMeasurements: over.canDeleteMeasurements ?? true,
     } as unknown as HandlerDeps,
   };
@@ -174,6 +176,15 @@ describe("usePageHandlers", () => {
     act(() => result.current.on.onPanoramas());
     expect(spies.panel.setTab).toHaveBeenCalledWith("view");
     expect(spies.panel.setCollapsed).toHaveBeenCalledWith(false);
+  });
+
+  it("opens the folded list the rail tile names, and only that one", () => {
+    const { result, spies } = mount();
+    act(() => result.current.on.onPanoramas());
+    expect(spies.openSection).toHaveBeenCalledExactlyOnceWith("panoramas");
+    act(() => result.current.on.onDocuments());
+    expect(spies.openSection).toHaveBeenLastCalledWith("documents");
+    expect(spies.openSection).toHaveBeenCalledTimes(2);
   });
 
   it("brings a hidden document window back before it scrolls to the list", () => {

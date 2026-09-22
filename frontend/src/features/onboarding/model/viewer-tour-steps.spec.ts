@@ -61,6 +61,13 @@ describe("the viewer tour's steps", () => {
     for (const step of centred) expect(step.tab).toBeUndefined();
   });
 
+  // The rail's Replay tile draws the help icon, a question mark. A no-break
+  // space keeps the "?" off the start of a line, where it reads as punctuation.
+  it("points the shortcuts step at the ? button, never wrapping before it", () => {
+    const shortcuts = VIEWER_TOUR_STEPS.find((s) => s.id === "shortcuts")!;
+    expect(shortcuts.body).toMatch(/with the\u00a0\? button\.$/);
+  });
+
   // The id keys the persisted onboardingToursSeen set: renaming it replays the
   // tour for every user who has already seen it.
   it("pins the tour id literally", () => {

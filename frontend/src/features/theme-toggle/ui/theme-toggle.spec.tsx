@@ -95,14 +95,13 @@ describe("ThemeToggle · the ground is decided once", () => {
   });
 });
 
-// The moon's path starts here; the sun is a disc and rays.
-const MOON = "M21 12.8";
-const glyphOf = (button: HTMLElement) =>
-  button.querySelector("circle")
-    ? "sun"
-    : button.querySelector("path")?.getAttribute("d")?.startsWith(MOON)
-      ? "moon"
-      : "other";
+// Where each glyph's first path starts: the moon's crescent, the sun's top ray.
+const MOON = "M20.985 12.486";
+const SUN = "M12 2V4";
+const glyphOf = (button: HTMLElement) => {
+  const d = button.querySelector("path")?.getAttribute("d") ?? "";
+  return d.startsWith(MOON) ? "moon" : d.startsWith(SUN) ? "sun" : "other";
+};
 
 describe("ThemeToggle · the icon follows the theme", () => {
   it("draws a moon in the dark theme and a sun in the light one", async () => {

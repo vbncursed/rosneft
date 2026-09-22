@@ -1,10 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { fireEvent } from "@testing-library/dom";
 import { describe, expect, it, vi } from "vitest";
 import { EXIT, NUDGE_LABEL, OPACITY_LABEL, SAVE, YAW_SHORT } from "../model/copy";
 import { degToRad } from "../model/degrees";
 import { CalibrationCard, type CalibrationCardProps } from "./calibration-card";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const PROPS: CalibrationCardProps = {
   opacity: 0.65,
@@ -97,5 +97,26 @@ describe("CalibrationCard", () => {
       "active:scale-[0.97]",
       "ease-out",
     );
+  });
+});
+
+describe("CalibrationCard · nudge marks", () => {
+  it("draws the nudge arrows as minus and plus icons, not − + characters", () => {
+    calibration();
+    for (const name of ["Decrease X", "Increase X", "Decrease Y", "Increase Y", "Decrease Z", "Increase Z"]) {
+      const nudge = screen.getByRole("button", { name });
+      expect(nudge.querySelector("svg")).not.toBeNull();
+      expect(nudge.textContent).toBe("");
+    }
+  });
+});
+
+describe("CalibrationCard · tooltip", () => {
+  it("names each nudge arrow in a tooltip", () => {
+    calibration();
+    const less = screen.getByRole("button", { name: "Decrease X" });
+    expect(hoverTip(less)).toHaveTextContent("Decrease X");
+    fireEvent.pointerLeave(less, { pointerType: "mouse" });
+    expect(hoverTip(screen.getByRole("button", { name: "Increase Z" }))).toHaveTextContent("Increase Z");
   });
 });

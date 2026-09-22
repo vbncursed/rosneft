@@ -24,7 +24,7 @@ export default {
     <div className="flex justify-end rounded-card border border-line bg-panel p-6">
       <Menu
         triggerLabel="Account"
-        triggerClassName="rounded-full border-line-2 bg-panel-2 size-9 justify-center text-xs font-semibold text-fg"
+        triggerClassName="size-9 justify-center rounded-full border border-line-2 bg-panel-2 text-xs font-semibold text-fg transition-[border-color,scale] duration-150 ease-out hover:border-accent-line aria-expanded:border-accent-line active:scale-[0.97]"
         trigger="AI"
         header={
           <>

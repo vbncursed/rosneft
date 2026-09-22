@@ -79,7 +79,7 @@ export function QueueRowCard({ row, onTitle, onRemove, onThumbnail }: QueueRowPr
           onClick={onRemove}
           className="shrink-0"
         >
-          ×
+          <Icon name="close" size={14} />
         </Button>
       </div>
 

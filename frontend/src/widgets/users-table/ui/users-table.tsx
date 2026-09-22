@@ -7,7 +7,7 @@ export type UsersTableProps = {
   users: User[];
   /** The row's kebab menu, built per user by the caller. */
   renderActions?: (user: User) => ReactNode;
-  /** The header's primary action, e.g. "+ New user". */
+  /** The header's primary action, e.g. a plus icon and "New user". */
   action?: ReactNode;
   title?: string;
 };

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { ModelCardModel } from "@/entities/model";
 import { ModelLibraryPage, type ModelLibraryPageProps } from "./model-library-page";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const card = (slug: string, title: string, over: Partial<ModelCardModel> = {}): ModelCardModel => ({
   slug,
@@ -112,7 +113,9 @@ describe("ModelLibraryPage", () => {
     const button = screen.getByRole("button", { name: /remove its placements first/ });
     expect(button).toBeDisabled();
     expect(button).toHaveAccessibleName("Delete Pump Jack Unit — remove its placements first");
-    expect(button).toHaveAttribute("title", "Remove its placements first");
+    expect(button).not.toHaveAttribute("title");
+    // A disabled button takes no pointer events; the tooltip's wrapper does.
+    expect(hoverTip(button.parentElement!)).toHaveTextContent("Remove its placements first");
   });
 
   it("leaves Delete enabled for an unused model, with its plain name and no title", () => {
@@ -141,10 +144,9 @@ describe("ModelLibraryPage", () => {
     expect(article).toHaveTextContent("26 MB");
   });
 
-  it("hides the theme-adjacent + Upload action and the footer CTA for a reader who may not upload", () => {
+  it("hides the theme-adjacent Upload action and the footer CTA for a reader who may not upload", () => {
     render(<ModelLibraryPage {...props({ canUpload: false })} />);
-    expect(screen.queryByRole("button", { name: "+ Upload" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Upload models" })).not.toBeInTheDocument();
+    expect(screen.queryAllByRole("button", { name: "Upload models" })).toHaveLength(0);
   });
 
   it("offers the footer CTA and reaches the same upload handler", async () => {
@@ -154,8 +156,13 @@ describe("ModelLibraryPage", () => {
     expect(
       screen.getByText("Pick several ZIP archives at once — titles autofill from filenames."),
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "+ Upload" }));
-    await userEvent.click(screen.getByRole("button", { name: "Upload models" }));
+    // Header and footer both upload, so both say what they do; the header's visible
+    // text is the bare "Upload" behind a drawn plus, its aria-label keeps the object.
+    const [header, footer] = screen.getAllByRole("button", { name: "Upload models" });
+    expect(header.querySelector("svg")).not.toBeNull();
+    expect(header).toHaveTextContent(/^Upload$/);
+    await userEvent.click(header);
+    await userEvent.click(footer);
     expect(onUpload).toHaveBeenCalledTimes(2);
   });
 
@@ -169,3 +176,4 @@ describe("ModelLibraryPage", () => {
     expect(screen.getByText("Nothing matches this filter.")).toBeInTheDocument();
   });
 });
+

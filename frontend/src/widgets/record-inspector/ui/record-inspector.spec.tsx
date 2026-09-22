@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { RecordInspector } from "./record-inspector";
 import type { AuditEntry } from "@/entities/audit";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const entry = (over: Partial<AuditEntry> = {}): AuditEntry => ({
   id: 1,
@@ -127,5 +128,23 @@ describe("RecordInspector · dismissing", () => {
     expect(screen.getByRole("button", { name: "Close" })).toHaveClass("size-6", "active:scale-95");
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalledOnce();
+  });
+});
+
+describe("RecordInspector · close mark", () => {
+  it("draws its Close button as an icon, not a × character", () => {
+    render(<RecordInspector entry={entry()} {...props} onClose={vi.fn()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close.querySelector("svg")).not.toBeNull();
+    expect(close.textContent).toBe("");
+  });
+});
+
+describe("RecordInspector · tooltip", () => {
+  it("names its Close button in a tooltip, not a native title", () => {
+    render(<RecordInspector entry={entry()} {...props} onClose={vi.fn()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close).not.toHaveAttribute("title");
+    expect(hoverTip(close)).toHaveTextContent("Close");
   });
 });

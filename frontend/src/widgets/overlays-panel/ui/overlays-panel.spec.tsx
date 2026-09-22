@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { overlaysWidthClass } from "../model/overlays-width";
 import { OverlaysPanel } from "./overlays-panel";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 describe("OverlaysPanel", () => {
   it("is a named aside with two tabs and the placements count", async () => {
@@ -124,7 +125,8 @@ describe("OverlaysPanel", () => {
     const { rerender } = render(at(false));
     expect(screen.getByRole("complementary", { name: "Overlays" })).toHaveClass(...entering);
     rerender(at(true));
-    const rail = screen.getByRole("button", { name: "Expand Overlays panel" }).parentElement;
+    // The rail is the vertical label's parent; the button sits in its Tooltip's wrapper.
+    const rail = screen.getByText("Overlays").parentElement;
     expect(rail).toHaveClass(...entering);
   });
 
@@ -250,5 +252,24 @@ describe("OverlaysPanel · the scrolled indicator", () => {
       "active:scale-95",
       "ease-out",
     );
+  });
+});
+
+describe("OverlaysPanel · tooltip", () => {
+  it("names its collapse button in a tooltip, not a native title", () => {
+    render(
+      <OverlaysPanel
+        tab="view"
+        onTabChange={vi.fn()}
+        collapsed={false}
+        onCollapsedChange={vi.fn()}
+        placementsCount={0}
+        view={<p>view body</p>}
+        placements={<p>placements body</p>}
+      />,
+    );
+    const collapse = screen.getByRole("button", { name: "Collapse Overlays panel" });
+    expect(collapse).not.toHaveAttribute("title");
+    expect(hoverTip(collapse)).toHaveTextContent("Collapse Overlays panel");
   });
 });

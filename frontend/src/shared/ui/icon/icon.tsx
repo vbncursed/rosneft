@@ -8,18 +8,17 @@ export type IconProps = Omit<SVGProps<SVGSVGElement>, "name"> & {
   title?: string;
 };
 
+// Every glyph is a runeicons / Lucide outline on the same 24 grid, so the grid
+// and the stroke live here, once — see ./NOTICE for where each drawing is from.
 export function Icon({ name, size = 20, title, ...rest }: IconProps) {
-  const glyph = GLYPHS[name];
-  const filled = glyph.width === 0;
-
   return (
     <svg
       width={size}
       height={size}
-      viewBox={glyph.box}
-      fill={filled ? "currentColor" : "none"}
-      stroke={filled ? undefined : "currentColor"}
-      strokeWidth={filled ? undefined : glyph.width}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
       role={title ? "img" : undefined}
@@ -28,7 +27,7 @@ export function Icon({ name, size = 20, title, ...rest }: IconProps) {
       {...rest}
     >
       {title ? <title>{title}</title> : null}
-      {glyph.body}
+      {GLYPHS[name].body}
     </svg>
   );
 }

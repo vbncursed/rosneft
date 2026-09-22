@@ -1,4 +1,5 @@
 import { Button } from "@/shared/ui/button";
+import { Icon } from "@/shared/ui/icon";
 import { ProgressBar } from "@/shared/ui/progress-bar";
 import { Card } from "./card";
 import { EmptyState } from "./empty-state";
@@ -6,7 +7,7 @@ import { ErrorState } from "./error-state";
 
 export default (
   <div className="p-6 flex flex-col gap-4">
-    <Card title="Users" actions={<Button variant="primary" size="sm">+ New user</Button>}>
+    <Card title="Users" actions={<Button variant="primary" size="sm"><Icon name="plus" size={12} />New user</Button>}>
       <p className="m-0 text-[13px] text-muted">Table rows go here.</p>
     </Card>
     <Card overline="Progress · upload">
@@ -16,7 +17,7 @@ export default (
       <EmptyState
         title="Catalog is empty"
         description="Upload your first territory."
-        action={<Button variant="primary" size="sm">+ Upload</Button>}
+        action={<Button variant="primary" size="sm"><Icon name="plus" size={12} />Upload</Button>}
       />
       <ErrorState
         title="Could not load the journal"

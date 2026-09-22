@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/shared/ui/button";
+import { Icon } from "@/shared/ui/icon";
 import { AddRoleDialog } from "./ui/add-role-dialog";
 import { RoleChips } from "./ui/role-chips";
 
@@ -21,7 +22,7 @@ function AddRoleWithOptions() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button onClick={() => setOpen(true)}>+ add role</Button>
+      <Button onClick={() => setOpen(true)}><Icon name="plus" size={14} />add role</Button>
       {open && (
         <AddRoleDialog
           open={open}
@@ -41,7 +42,7 @@ function AddRoleExhausted() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button onClick={() => setOpen(true)}>+ add role (none left)</Button>
+      <Button onClick={() => setOpen(true)}><Icon name="plus" size={14} />add role (none left)</Button>
       {open && (
         <AddRoleDialog open={open} options={[]} onClose={() => setOpen(false)} onAdd={() => {}} />
       )}

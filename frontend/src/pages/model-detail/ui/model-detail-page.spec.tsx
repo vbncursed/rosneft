@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Model } from "@/entities/model";
 import { ModelDetailPage, type ModelDetailPageProps } from "./model-detail-page";
+import { focusTip, hoverTip } from "@/shared/ui/tooltip/testing";
 
 const MODEL: Model = {
   slug: "valve-assembly",
@@ -65,15 +66,13 @@ describe("ModelDetailPage", () => {
 
     const onDelete = vi.fn();
     rerender(<ModelDetailPage {...props({ canDelete: true, onDelete })} />);
-    const button = screen.getByRole("button", { name: "Delete model" });
+    const button = screen.getByRole("button", { name: "Delete model — in use on 2 territories" });
     expect(button).toBeDisabled();
-    expect(button).toHaveAttribute("title", "In use on 2 territories");
+    expect(button).not.toHaveAttribute("title");
+    expect(hoverTip(button.parentElement!)).toHaveTextContent("In use on 2 territories");
 
     rerender(<ModelDetailPage {...props({ canDelete: true, onDelete, model: { ...MODEL, usageCount: 1 } })} />);
-    expect(screen.getByRole("button", { name: "Delete model" })).toHaveAttribute(
-      "title",
-      "In use on 1 territory",
-    );
+    expect(screen.getByRole("button", { name: "Delete model — in use on 1 territory" })).toBeDisabled();
 
     rerender(<ModelDetailPage {...props({ canDelete: true, onDelete, model: { ...MODEL, usageCount: 0 } })} />);
     const enabled = screen.getByRole("button", { name: "Delete model" });
@@ -86,5 +85,15 @@ describe("ModelDetailPage", () => {
   it("presses on pointer-down", () => {
     render(<ModelDetailPage {...props()} />);
     expect(screen.getByRole("link", { name: /Download GLB/ })).toHaveClass("transition-[border-color,scale]", "duration-150", "ease-out", "active:scale-[0.97]");
+  });
+});
+
+describe("ModelDetailPage · keyboard", () => {
+  it("names the delete icon Button the moment a keyboard focus lands on it", () => {
+    render(<ModelDetailPage {...props({ canDelete: true, model: { ...MODEL, usageCount: 0 } })} />);
+    const del = screen.getByRole("button", { name: "Delete model" });
+    const tip = focusTip(del);
+    expect(tip).toHaveTextContent("Delete model");
+    expect(del).toHaveAttribute("aria-describedby", tip!.id);
   });
 });

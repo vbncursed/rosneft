@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { RoleInspector, type RoleInspectorProps } from "./role-inspector";
 import type { Role } from "@/entities/role";
 import type { Permission } from "@/entities/permission";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const ALL: Permission[] = [
   { slug: "territory:read" },
@@ -233,5 +234,23 @@ describe("RoleInspector", () => {
     render(<RoleInspector {...props({ role: custom({ users: 3 }) })} />);
     expect(screen.queryByRole("button", { name: "Delete role" })).not.toBeInTheDocument();
     expect(screen.queryByText(/reassign them first/)).not.toBeInTheDocument();
+  });
+});
+
+describe("RoleInspector · close mark", () => {
+  it("draws its Close button as an icon, not a × character", () => {
+    render(<RoleInspector {...props()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close.querySelector("svg")).not.toBeNull();
+    expect(close.textContent).toBe("");
+  });
+});
+
+describe("RoleInspector · tooltip", () => {
+  it("names its Close button in a tooltip, not a native title", () => {
+    render(<RoleInspector {...props()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close).not.toHaveAttribute("title");
+    expect(hoverTip(close)).toHaveTextContent("Close");
   });
 });

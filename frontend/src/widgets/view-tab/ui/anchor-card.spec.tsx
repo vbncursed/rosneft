@@ -1,5 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
-import { fireEvent } from "@testing-library/dom";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -23,6 +22,7 @@ import {
 } from "../model/copy";
 import { degToRad } from "../model/degrees";
 import { AnchorCard, type AnchorCardProps } from "./anchor-card";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const PANORAMA: Panorama = {
   id: 7,
@@ -258,5 +258,14 @@ describe("AnchorCard", () => {
     card();
     expect(screen.getByRole("button", { name: CLOSE_EDITOR })).toHaveClass("active:scale-95", "ease-out");
     expect(screen.getByRole("button", { name: DELETE_PANORAMA })).toHaveClass("active:scale-[0.97]");
+  });
+});
+
+describe("AnchorCard · tooltip", () => {
+  it("names its close button in a tooltip, not a native title", () => {
+    card();
+    const close = screen.getByRole("button", { name: CLOSE_EDITOR });
+    expect(close).not.toHaveAttribute("title");
+    expect(hoverTip(close)).toHaveTextContent(CLOSE_EDITOR);
   });
 });

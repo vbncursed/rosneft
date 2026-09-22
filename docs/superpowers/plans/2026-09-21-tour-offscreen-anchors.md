@@ -434,3 +434,31 @@ Update comments to match (the reveal comment's "start" rationale → "nearest").
 git add frontend/src/features/onboarding/ui/tour-overlay.tsx frontend/src/features/onboarding/ui/tour-overlay.spec.tsx
 git commit -m "fix(frontend): tour reveals only what is hidden and its spotlight follows a scroll 1:1"
 ```
+
+---
+
+### Task 5: Move the tour's pure geometry into `tour-geometry.ts`
+
+`tour-overlay.tsx` reached 193 of the 200-line cap (`frontend/CLAUDE.md`). Pure refactor, no
+behaviour change: move the DOM-free-of-React geometry — constants (`WIDTH`, `GAP`, `HEIGHT`,
+`HALO`), `Rect`, `clamp`, `CENTRED`, `cardStyle`, `dimStyle`, `haloStyle`, `CLIPS`,
+`visibleRect`, `scrollerOf` and any other pure helper the hooks call — into
+`frontend/src/features/onboarding/ui/tour-geometry.ts`, exported only as far as
+`tour-overlay.tsx` and the new spec need. Hooks (`useAnchorRect`, the wheel effect) and the
+component stay in `tour-overlay.tsx`. Comments travel with their code unchanged except where a
+comment points at "the component below"/"above" and now has to name the other file.
+
+**Files:**
+- Create: `frontend/src/features/onboarding/ui/tour-geometry.ts`
+- Create: `frontend/src/features/onboarding/ui/tour-geometry.spec.ts` — direct unit tests of `cardStyle` (right / left-of-panel / below / centred branches), `visibleRect` (clip, scroll-padding inset, fully-clipped park, `clipLeft`), `scrollerOf`; move tests out of `tour-overlay.spec.tsx` only where they test pure geometry and gain nothing from rendering — keep every behaviour test of the overlay where it is.
+- Modify: `frontend/src/features/onboarding/ui/tour-overlay.tsx`, `tour-overlay.spec.tsx` (imports only, plus any moved tests)
+
+- [ ] Step 1: create `tour-geometry.ts` by moving code verbatim; update imports.
+- [ ] Step 2: `cd frontend && yarn vitest run src/features/onboarding && yarn lint` — green, same test count or more.
+- [ ] Step 3: add `tour-geometry.spec.ts`; `yarn test:coverage` — thresholds met, both files ≤ 200 lines.
+- [ ] Step 4: live smoke (local stack, `dji-wp46-cut`, 1280×800): steps 6, 7, 14 and one panorama step look identical to `scratchpad/live4`; wheel on step 6 still scrolls.
+- [ ] Step 5: commit
+```bash
+git add frontend/src/features/onboarding/ui/tour-geometry.ts frontend/src/features/onboarding/ui/tour-geometry.spec.ts frontend/src/features/onboarding/ui/tour-overlay.tsx frontend/src/features/onboarding/ui/tour-overlay.spec.tsx
+git commit -m "refactor(frontend): tour geometry moves into tour-geometry.ts"
+```

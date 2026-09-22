@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { FileUploadState } from "@/entities/upload";
 import { UploadModal, type UploadModalProps } from "./upload-modal";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const file = (name = "pump-house-south.jpg", size = 25_795_788) =>
   ({ name, size, type: "image/jpeg" }) as unknown as File;
@@ -233,5 +234,14 @@ describe("UploadModal", () => {
     expect(screen.queryByRole("button", { name: "Cancel upload" })).toBeNull();
     expect(screen.queryByRole("progressbar")).toBeNull();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+  });
+});
+
+describe("UploadModal · tooltip", () => {
+  it("names its close button in a tooltip, not a native title", () => {
+    draw();
+    const close = screen.getByRole("button", { name: "Close panorama upload" });
+    expect(close).not.toHaveAttribute("title");
+    expect(hoverTip(close)).toHaveTextContent("Close panorama upload");
   });
 });

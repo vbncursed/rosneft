@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { PersonInspector } from "./person-inspector";
 import type { User } from "@/entities/user";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const user = (over: Partial<User> = {}): User => ({
   id: "u-2",
@@ -142,5 +143,23 @@ describe("PersonInspector", () => {
       </PersonInspector>,
     );
     expect(screen.getByText("role editor")).toBeInTheDocument();
+  });
+});
+
+describe("PersonInspector · close mark", () => {
+  it("draws its Close button as an icon, not a × character", () => {
+    render(<PersonInspector user={user()} {...handlers()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close.querySelector("svg")).not.toBeNull();
+    expect(close.textContent).toBe("");
+  });
+});
+
+describe("PersonInspector · tooltip", () => {
+  it("names its Close button in a tooltip, not a native title", () => {
+    render(<PersonInspector user={user()} {...handlers()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close).not.toHaveAttribute("title");
+    expect(hoverTip(close)).toHaveTextContent("Close");
   });
 });

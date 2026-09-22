@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { CollapsedRail } from "./collapsed-rail";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 describe("CollapsedRail", () => {
   it("names the expand button and shows the label and the badge", async () => {
@@ -25,5 +26,14 @@ describe("CollapsedRail", () => {
       expect.arrayContaining(["active:scale-95", "transition-[color,background-color,border-color,scale]", "ease-out"]),
     );
     expect(cls).not.toContain("transition-colors");
+  });
+});
+
+describe("CollapsedRail · tooltip", () => {
+  it("names the expand button in a tooltip, not a native title", () => {
+    render(<CollapsedRail label="Overlays" expandName="Expand Overlays panel" onExpand={vi.fn()} />);
+    const expand = screen.getByRole("button", { name: "Expand Overlays panel" });
+    expect(expand).not.toHaveAttribute("title");
+    expect(hoverTip(expand)).toHaveTextContent("Expand Overlays panel");
   });
 });

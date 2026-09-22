@@ -3,6 +3,7 @@ import { createRef } from "react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { Button } from "./button";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 /** The class list as tokens — `hover:bg-panel-2` must not read as `bg-panel-2`. */
 const classes = (el: HTMLElement) => el.className.split(/\s+/);
@@ -107,16 +108,16 @@ describe("Button", () => {
   });
 
   it("keeps a secondary pill transparent — only the control shape is raised", () => {
-    const { rerender } = render(<Button shape="pill">+ Upload</Button>);
-    const pill = classes(screen.getByRole("button", { name: "+ Upload" }));
+    const { rerender } = render(<Button shape="pill">Upload</Button>);
+    const pill = classes(screen.getByRole("button", { name: "Upload" }));
     expect(pill).toContain("bg-transparent");
     // Not merely "transparent is also present": two background utilities on
     // one element are resolved by the compiled stylesheet's own source order,
     // not by clsx, so the resting ground has to be absent.
     expect(pill).not.toContain("bg-panel-2");
 
-    rerender(<Button>+ Upload</Button>);
-    expect(classes(screen.getByRole("button", { name: "+ Upload" }))).toContain("bg-panel-2");
+    rerender(<Button>Upload</Button>);
+    expect(classes(screen.getByRole("button", { name: "Upload" }))).toContain("bg-panel-2");
   });
 
   it("keeps the raised ground on a secondary icon button too", () => {
@@ -181,5 +182,55 @@ describe("Button", () => {
 
     rerender(<Button disabled>Save</Button>);
     expect(cls()).toContain("opacity-55");
+  });
+});
+
+describe("Button · tooltip", () => {
+  it("names an icon button from its aria-label, in exactly one tooltip", () => {
+    render(
+      <Button shape="icon" aria-label="Delete model">
+        x
+      </Button>,
+    );
+    const tip = hoverTip(screen.getByRole("button", { name: "Delete model" }));
+    expect(tip).toHaveTextContent("Delete model");
+    expect(screen.getAllByRole("tooltip")).toHaveLength(1);
+  });
+
+  it("stays quiet when an icon button opts out", () => {
+    render(
+      <Button shape="icon" aria-label="Delete model" tooltip={false}>
+        x
+      </Button>,
+    );
+    expect(hoverTip(screen.getByRole("button", { name: "Delete model" }))).toBeNull();
+  });
+
+  it("shows the label it is given over the aria-label", () => {
+    render(
+      <Button shape="icon" aria-label="Delete model" tooltip={{ label: "In use on 2 territories" }}>
+        x
+      </Button>,
+    );
+    expect(hoverTip(screen.getByRole("button", { name: "Delete model" }))).toHaveTextContent("In use on 2 territories");
+  });
+
+  it("shows nothing on a labelled control unless asked, and the given label when asked", () => {
+    const { rerender } = render(<Button>Save</Button>);
+    expect(hoverTip(screen.getByRole("button", { name: "Save" }))).toBeNull();
+    rerender(<Button tooltip={{ label: "Saves the draft", shortcut: "S" }}>Save</Button>);
+    const tip = hoverTip(screen.getByRole("button", { name: "Save" }));
+    expect(tip).toHaveTextContent("Saves the draft");
+    expect(tip?.querySelector("kbd")).toHaveTextContent("S");
+  });
+
+  it("still names a disabled icon button", () => {
+    render(
+      <Button shape="icon" aria-label="Delete model" disabled>
+        x
+      </Button>,
+    );
+    const wrapper = screen.getByRole("button", { name: "Delete model" }).parentElement!;
+    expect(hoverTip(wrapper)).toHaveTextContent("Delete model");
   });
 });

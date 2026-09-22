@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Document } from "@/entities/document";
 import type { PipGeometry } from "@/features/document-view";
 import { DocumentWindow, type DocumentWindowProps } from "./document-window";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const FILE = "plan-sheet-03.pdf";
 
@@ -53,8 +54,8 @@ describe("DocumentWindow", () => {
     render(<DocumentWindow {...props({ onWindow, onExit })} />);
 
     expect(screen.getByRole("dialog", { name: FILE })).toBeInTheDocument();
-    expect(screen.getByTitle("Drag to move")).toBeInTheDocument();
-    expect(screen.getByTitle("Resize")).toBeInTheDocument();
+    expect(screen.getByTestId("drag-handle")).toBeInTheDocument();
+    expect(screen.getByTestId("resize-grip")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: `Expand ${FILE}` }));
     expect(onWindow).toHaveBeenCalledWith("expanded");
@@ -79,7 +80,7 @@ describe("DocumentWindow", () => {
   it("expands to fill the viewport: Restore in place of Expand, no handle", () => {
     render(<DocumentWindow {...props({ window: "expanded" })} />);
 
-    expect(screen.queryByTitle("Drag to move")).toBeNull();
+    expect(screen.queryByTestId("drag-handle")).toBeNull();
     expect(screen.getByRole("button", { name: `Restore ${FILE} to a window` })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: `Expand ${FILE}` })).toBeNull();
     // Mock 12 lists four actions in every mode: Restore replaces Expand and
@@ -120,5 +121,20 @@ describe("DocumentWindow", () => {
 
     rerender(<DocumentWindow {...props({ pip: pip(true) })} />);
     expect(screen.getByTestId("drag-shield")).toBeInTheDocument();
+  });
+});
+
+describe("DocumentWindow · tooltips", () => {
+  // The accessible name carries the file; the tooltip sits beside the title
+  // that already shows it, so it says only the verb.
+  it.each([
+    [props(), `Expand ${FILE}`, "Expand"],
+    [props(), `Hide ${FILE}`, "Hide"],
+    [props(), `Delete ${FILE}`, "Delete"],
+    [props({ window: "expanded" }), `Restore ${FILE} to a window`, "Restore"],
+    [props(), "Exit document overlay", "Exit document overlay"],
+  ])("names %#: %s as a short tooltip", (p, name, tip) => {
+    render(<DocumentWindow {...p} />);
+    expect(hoverTip(screen.getByRole("button", { name }))?.textContent).toBe(tip);
   });
 });

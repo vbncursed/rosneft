@@ -160,6 +160,7 @@ const base: HomePageProps = {
   activity: ACTIVITY,
   activityLoading: false,
   onOpen: noop,
+  onSignOut: noop,
 };
 
 const page = (over: Partial<HomePageProps>) => (

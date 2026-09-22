@@ -1,12 +1,15 @@
 import { clsx as cx } from "clsx";
 import type { ReactNode } from "react";
+import { Tooltip } from "@/shared/ui/tooltip";
 
 export type ToolRailItem = {
   key: string;
   /** A mono glyph or an <Icon>. */
   glyph: ReactNode;
-  /** The accessible name and the title — unique on screen. */
+  /** The accessible name and the tooltip — unique on screen. */
   name: string;
+  /** The key that fires it: drawn as a keycap in the tooltip and announced as `aria-keyshortcuts`. */
+  shortcut?: string;
   /** inert: drawn dim and unclickable, kept in place so the rail never shifts. */
   state?: "active" | "idle" | "inert";
   /**
@@ -45,24 +48,27 @@ export function ToolRail({ tools, label, className }: ToolRailProps) {
       // its container, and only its parent being a flex column hid that.
       className={cx("inline-flex gap-1 rounded-[10px] border border-line-2 bg-panel p-1 shadow-elevation", className)}
     >
-      {tools.map(({ key, glyph, name, state = "idle", toggle, onClick, dataTour }) => (
-        <button
-          key={key}
-          type="button"
-          data-tour={dataTour}
-          title={name}
-          aria-label={name}
-          aria-pressed={toggle ? state === "active" : undefined}
-          aria-disabled={state === "inert" || undefined}
-          tabIndex={state === "inert" ? -1 : 0}
-          onClick={state === "inert" ? undefined : onClick}
-          className={cx(
-            "flex size-[30px] items-center justify-center rounded-[7px] border-none font-mono text-[12px] transition-[color,background-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-            TILE[state],
-          )}
-        >
-          {glyph}
-        </button>
+      {/* Above, the default: the viewer's rail has room over it, and the
+          placement flips below wherever a rail sits flush with the top. */}
+      {tools.map(({ key, glyph, name, shortcut, state = "idle", toggle, onClick, dataTour }) => (
+        <Tooltip key={key} label={name} shortcut={shortcut}>
+          <button
+            type="button"
+            data-tour={dataTour}
+            aria-label={name}
+            aria-keyshortcuts={shortcut}
+            aria-pressed={toggle ? state === "active" : undefined}
+            aria-disabled={state === "inert" || undefined}
+            tabIndex={state === "inert" ? -1 : 0}
+            onClick={state === "inert" ? undefined : onClick}
+            className={cx(
+              "flex size-[30px] items-center justify-center rounded-[7px] border-none font-mono text-[12px] transition-[color,background-color,scale] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+              TILE[state],
+            )}
+          >
+            {glyph}
+          </button>
+        </Tooltip>
       ))}
     </div>
   );

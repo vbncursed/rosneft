@@ -1,8 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import { DatePicker } from "./date-picker";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 function Harness({ initial = "2026-08-24" }: { initial?: string }) {
   const [value, setValue] = useState(initial);
@@ -155,5 +156,27 @@ describe("DatePicker · states", () => {
     const calendar = screen.getByRole("dialog");
     expect(calendar.classList).toContain("origin-top-left");
     expect(calendar.classList).toContain("starting:opacity-0");
+  });
+});
+
+describe("DatePicker · month arrows", () => {
+  it("draws the month arrows as chevrons, not ← → characters", async () => {
+    render(<Harness />);
+    await userEvent.click(field());
+    for (const name of ["Previous month", "Next month"]) {
+      const arrow = screen.getByRole("button", { name });
+      expect(arrow.querySelector("svg")).not.toBeNull();
+      expect(arrow.textContent).toBe("");
+    }
+  });
+});
+
+describe("DatePicker · tooltips", () => {
+  it("names the month arrows in tooltips", async () => {
+    render(<Harness />);
+    await userEvent.click(field());
+    expect(hoverTip(screen.getByRole("button", { name: "Previous month" }))).toHaveTextContent("Previous month");
+    fireEvent.pointerLeave(screen.getByRole("button", { name: "Previous month" }), { pointerType: "mouse" });
+    expect(hoverTip(screen.getByRole("button", { name: "Next month" }))).toHaveTextContent("Next month");
   });
 });

@@ -1,3 +1,4 @@
+import { useSignOut } from "@/features/sign-out";
 import { ErrorState } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { useAccount } from "../model/use-account";
@@ -6,6 +7,7 @@ import { AccountPage } from "./account-page";
 /** Maps the container's phases onto the page: loading skeleton, error state, or the page itself. */
 export function AccountScreen() {
   const s = useAccount();
+  const { signOut, pending: signingOut } = useSignOut();
 
   if (s.phase === "loading") {
     return (
@@ -50,6 +52,8 @@ export function AccountScreen() {
       onRemovePasskey={s.onRemovePasskey}
       onPasskeyAdded={s.onPasskeyAdded}
       onPage={s.onPage}
+      onSignOut={() => void signOut()}
+      signingOut={signingOut}
     />
   );
 }

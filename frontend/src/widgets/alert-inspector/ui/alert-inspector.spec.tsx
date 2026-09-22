@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AlertInspector, type AlertInspectorProps, type FiringAlert } from "./alert-inspector";
+import { hoverTip } from "@/shared/ui/tooltip/testing";
 
 const alert = (over: Partial<FiringAlert> = {}): FiringAlert => ({
   name: "HighErrorRate",
@@ -103,5 +104,23 @@ describe("AlertInspector", () => {
       await userEvent.click(screen.getByRole("button", { name }));
       expect(fn).toHaveBeenCalledOnce();
     }
+  });
+});
+
+describe("AlertInspector · close mark", () => {
+  it("draws its Close button as an icon, not a × character", () => {
+    render(<AlertInspector {...props()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close.querySelector("svg")).not.toBeNull();
+    expect(close.textContent).toBe("");
+  });
+});
+
+describe("AlertInspector · tooltip", () => {
+  it("names its Close button in a tooltip, not a native title", () => {
+    render(<AlertInspector {...props()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close).not.toHaveAttribute("title");
+    expect(hoverTip(close)).toHaveTextContent("Close");
   });
 });
