@@ -9,7 +9,7 @@ export type SectionHeadProps = {
   /** The 24×24 upload button, drawn only for a reader who may add one. */
   upload?: { title: string; tourId: string; onClick: () => void };
   /** Makes the head the toggle of the list `controls` names. */
-  fold?: { open: boolean; onToggle: () => void; controls: string };
+  fold?: { open: boolean; locked: boolean; onToggle: () => void; controls: string };
 };
 
 const OVERLINE = "font-mono text-[9px] uppercase tracking-[0.2em] text-muted";
@@ -28,10 +28,17 @@ export function SectionHead({ overline, count, upload, fold }: SectionHeadProps)
       {fold ? (
         <button
           type="button"
-          onClick={fold.onToggle}
+          onClick={fold.locked ? undefined : fold.onToggle}
           aria-expanded={fold.open}
           aria-controls={fold.controls}
-          className="group flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 rounded-[4px] border-none bg-transparent p-0 text-left transition-[scale] duration-150 ease-out active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          // Held open by the page: still focusable and announced, not pressable.
+          aria-disabled={fold.locked || undefined}
+          className={cx(
+            "group flex min-w-0 flex-1 items-center justify-between gap-2 rounded-[4px] border-none bg-transparent p-0 text-left focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
+            fold.locked
+              ? "cursor-default"
+              : "cursor-pointer transition-[scale] duration-150 ease-out active:scale-[0.99]",
+          )}
         >
           <span className={cx(OVERLINE, "group-hover:text-fg")}>{overline}</span>
           <span className="flex items-center gap-2">

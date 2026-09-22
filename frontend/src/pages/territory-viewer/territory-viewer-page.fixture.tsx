@@ -203,7 +203,10 @@ export const basePageParts = (): PageParts => ({
   documents: IDLE_DOCUMENTS,
   panel: { tab: "placements", collapsed: false },
   // Open, so a fixture shows the lists; the fold itself is the View tab's own fixture.
-  sections: { panoramas: { open: true, onToggle: noop }, documents: { open: true, onToggle: noop } },
+  sections: {
+    panoramas: { open: true, locked: false, onToggle: noop },
+    documents: { open: true, locked: false, onToggle: noop },
+  },
   view: {
     report: { shown: 1, target: 1, percent: null, progressText: null, failure: null },
     targetLod: 1,

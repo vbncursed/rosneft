@@ -49,7 +49,12 @@ describe("SectionHead", () => {
   });
 
   describe("as a fold", () => {
-    const fold = (open: boolean, onToggle = vi.fn()) => ({ open, onToggle, controls: "list-1" });
+    const fold = (open: boolean, onToggle = vi.fn(), locked = false) => ({
+      open,
+      locked,
+      onToggle,
+      controls: "list-1",
+    });
 
     it("is a button that says whether its list is open and which list it is", () => {
       const { rerender } = render(<SectionHead overline="Panoramas" count="2" fold={fold(false)} />);
@@ -89,6 +94,17 @@ describe("SectionHead", () => {
 
       await userEvent.click(screen.getByRole("button", { name: /Panoramas/ }));
       expect(onToggle).toHaveBeenCalledOnce();
+    });
+
+    it("says a locked head is unavailable, stays focusable, and ignores a click", async () => {
+      const onToggle = vi.fn();
+      render(<SectionHead overline="Panoramas" count="2" fold={fold(true, onToggle, true)} />);
+      const head = screen.getByRole("button", { name: /Panoramas/ });
+      expect(head).toHaveAttribute("aria-disabled", "true");
+      expect(head).not.toBeDisabled();
+      expect(head).toHaveAttribute("aria-expanded", "true");
+      await userEvent.click(head);
+      expect(onToggle).not.toHaveBeenCalled();
     });
 
     it("never nests the upload button inside the toggle", () => {

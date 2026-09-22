@@ -50,6 +50,17 @@ describe("useSectionFolds", () => {
     expect(result.current.panoramas.open).toBe(false);
   });
 
+  it("locks a forced head: a click neither folds it nor rewrites the remembered choice", () => {
+    localStorage.setItem(PANORAMAS, "open");
+    const { result } = mount({ panoramas: true, documents: false });
+    expect(result.current.panoramas.locked).toBe(true);
+    expect(result.current.documents.locked).toBe(false);
+    act(() => result.current.panoramas.onToggle());
+    act(() => result.current.panoramas.onToggle());
+    expect(result.current.panoramas.open).toBe(true);
+    expect(localStorage.getItem(PANORAMAS)).toBe("open");
+  });
+
   it("opens a section for the rail tile and remembers it", () => {
     const { result } = mount();
     act(() => result.current.reveal("documents"));
