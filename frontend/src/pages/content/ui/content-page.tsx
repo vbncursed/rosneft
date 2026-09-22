@@ -91,12 +91,12 @@ export function ContentPage({
         action={
           canManage ? (
             <div className="flex gap-2.5">
-              <Button onClick={onUploadModel}>
+              <Button aria-label="New model" onClick={onUploadModel}>
                 <Icon name="plus" size={14} />
                 Model
               </Button>
               {onUploadTerritory ? (
-                <Button variant="primary" onClick={onUploadTerritory}>
+                <Button variant="primary" aria-label="New territory" onClick={onUploadTerritory}>
                   <Icon name="plus" size={14} />
                   Territory
                 </Button>

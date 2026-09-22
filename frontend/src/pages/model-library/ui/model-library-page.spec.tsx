@@ -143,8 +143,7 @@ describe("ModelLibraryPage", () => {
 
   it("hides the theme-adjacent Upload action and the footer CTA for a reader who may not upload", () => {
     render(<ModelLibraryPage {...props({ canUpload: false })} />);
-    expect(screen.queryByRole("button", { name: "Upload" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Upload models" })).not.toBeInTheDocument();
+    expect(screen.queryAllByRole("button", { name: "Upload models" })).toHaveLength(0);
   });
 
   it("offers the footer CTA and reaches the same upload handler", async () => {
@@ -154,11 +153,13 @@ describe("ModelLibraryPage", () => {
     expect(
       screen.getByText("Pick several ZIP archives at once — titles autofill from filenames."),
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Upload" }));
-    // A drawn plus, not a typed "+": the name and text carry the label alone.
-    expect(screen.getByRole("button", { name: "Upload" }).querySelector("svg")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Upload" })).toHaveTextContent(/^Upload$/);
-    await userEvent.click(screen.getByRole("button", { name: "Upload models" }));
+    // Header and footer both upload, so both say what they do; the header's visible
+    // text is the bare "Upload" behind a drawn plus, its aria-label keeps the object.
+    const [header, footer] = screen.getAllByRole("button", { name: "Upload models" });
+    expect(header.querySelector("svg")).not.toBeNull();
+    expect(header).toHaveTextContent(/^Upload$/);
+    await userEvent.click(header);
+    await userEvent.click(footer);
     expect(onUpload).toHaveBeenCalledTimes(2);
   });
 

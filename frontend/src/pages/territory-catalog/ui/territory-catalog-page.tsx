@@ -63,7 +63,7 @@ export function TerritoryCatalogPage({
           <div className="flex items-center gap-[9px]">
             <ThemeToggle variant="compact" />
             {canUpload ? (
-              <Button variant="primary" shape="pill" onClick={onUpload}>
+              <Button variant="primary" shape="pill" aria-label="Upload territory" onClick={onUpload}>
                 <Icon name="plus" size={14} />
                 Upload
               </Button>
