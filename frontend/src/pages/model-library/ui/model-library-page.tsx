@@ -109,7 +109,7 @@ export function ModelLibraryPage({
                         : `Delete ${card.title}`
                     }
                     disabled={card.usageCount > 0}
-                    title={card.usageCount > 0 ? "Remove its placements first" : undefined}
+                    tooltip={card.usageCount > 0 ? { label: "Remove its placements first" } : undefined}
                     onClick={() => onDelete(card.slug)}
                   >
                     <Icon name="trash" size={14} />

@@ -2,6 +2,7 @@ import type { Vec3 } from "@/entities/placement";
 import { NUDGE_STEPS, type NudgeStep } from "@/features/panorama-view";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 import { Range } from "@/shared/ui/range";
 import { Segmented } from "@/shared/ui/segmented";
 import { AXES } from "@/shared/ui/vec3-field";
@@ -93,23 +94,27 @@ export function CalibrationCard({
             <span aria-hidden="true" className="w-3.5 font-mono text-[11px] uppercase text-muted">
               {axis}
             </span>
-            <button
-              type="button"
-              aria-label={nudgeLabel(axis, false)}
-              onClick={() => onNudge(axis, -step)}
-              className={ARROW}
-            >
-              <Icon name="minus" size={12} />
-            </button>
+            <Tooltip label={nudgeLabel(axis, false)}>
+              <button
+                type="button"
+                aria-label={nudgeLabel(axis, false)}
+                onClick={() => onNudge(axis, -step)}
+                className={ARROW}
+              >
+                <Icon name="minus" size={12} />
+              </button>
+            </Tooltip>
             <span className="w-16 text-center font-mono text-[11px] text-fg">{dp3(position[axis])}</span>
-            <button
-              type="button"
-              aria-label={nudgeLabel(axis, true)}
-              onClick={() => onNudge(axis, step)}
-              className={ARROW}
-            >
-              <Icon name="plus" size={12} />
-            </button>
+            <Tooltip label={nudgeLabel(axis, true)}>
+              <button
+                type="button"
+                aria-label={nudgeLabel(axis, true)}
+                onClick={() => onNudge(axis, step)}
+                className={ARROW}
+              >
+                <Icon name="plus" size={12} />
+              </button>
+            </Tooltip>
           </div>
         ))}
       </div>

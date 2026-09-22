@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { EXIT_PANORAMA, NOT_CALIBRATED, SHOW_IN } from "../model/copy";
@@ -103,5 +103,23 @@ describe("PanoramaRow", () => {
     row({ canEdit: true });
     expect(screen.getByRole("button", { name: `Edit ${ROW.title}` })).toHaveClass("active:scale-95", "ease-out");
     for (const b of screen.getAllByRole("button")) expect(b.className).toMatch(/active:scale-/);
+  });
+});
+
+/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
+function hoverTip(el: Element) {
+  vi.useFakeTimers();
+  fireEvent.pointerEnter(el, { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(500));
+  vi.useRealTimers();
+  return screen.queryByRole("tooltip");
+}
+
+describe("PanoramaRow · tooltip", () => {
+  it("names its edit button in a tooltip, not a native title", () => {
+    row({ canEdit: true });
+    const edit = screen.getByRole("button", { name: "Edit Control room, north door" });
+    expect(edit).not.toHaveAttribute("title");
+    expect(hoverTip(edit)).toHaveTextContent("Edit Control room, north door");
   });
 });

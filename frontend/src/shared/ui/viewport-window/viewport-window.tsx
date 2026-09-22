@@ -3,7 +3,14 @@ import { clsx as cx } from "clsx";
 import { Icon, type IconName } from "@/shared/ui/icon";
 import { Tooltip } from "@/shared/ui/tooltip";
 
-export type ViewportWindowAction = { name: string; icon: IconName; tone?: "default" | "bad"; onClick: () => void };
+export type ViewportWindowAction = {
+  name: string;
+  /** What the tooltip says, when the name is longer than it needs to be beside the title. */
+  tooltip?: string;
+  icon: IconName;
+  tone?: "default" | "bad";
+  onClick: () => void;
+};
 
 export type ViewportWindowProps = {
   title: string;
@@ -57,7 +64,7 @@ export function ViewportWindow({ title, geometry, actions, onMoveStart, onResize
         ) : null}
         <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-fg">{title}</span>
         {actions.map((a) => (
-          <Tooltip key={a.name} label={a.name}>
+          <Tooltip key={a.name} label={a.tooltip ?? a.name}>
             <button
               type="button"
               aria-label={a.name}

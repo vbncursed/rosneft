@@ -4,6 +4,7 @@ import { Avatar } from "@/shared/ui/avatar";
 import { DetailList, type Detail } from "@/shared/ui/detail-list";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 
 export type PersonDetail = Detail;
 
@@ -49,14 +50,16 @@ export function PersonInspector({
             <p className="m-0 truncate text-base font-semibold text-fg">{user.username}</p>
             <p className="m-0 mt-[3px] truncate font-mono text-[11px] text-muted">{user.email}</p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="-m-1 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent p-0 leading-none text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            <Icon name="close" size={14} />
-          </button>
+          <Tooltip label="Close">
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="-m-1 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent p-0 leading-none text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              <Icon name="close" size={14} />
+            </button>
+          </Tooltip>
         </div>
 
         <DetailList

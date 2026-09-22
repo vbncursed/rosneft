@@ -1,5 +1,6 @@
 import { clsx as cx } from "clsx";
 import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 import { EXIT_PANORAMA, NOT_CALIBRATED, SHOW_IN } from "../model/copy";
 
 export type PanoramaRowView = {
@@ -77,15 +78,16 @@ export function PanoramaRow({ row, onEnter, onExit, onEdit }: PanoramaRowProps) 
       </span>
 
       {canEdit ? (
-        <button
-          type="button"
-          onClick={() => onEdit(id)}
-          aria-label={`Edit ${title}`}
-          title={`Edit ${title}`}
-          className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-control-sm border border-line-2 bg-panel text-fg transition-[color,border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
-        >
-          <Icon name="pencil" size={12} />
-        </button>
+        <Tooltip label={`Edit ${title}`}>
+          <button
+            type="button"
+            onClick={() => onEdit(id)}
+            aria-label={`Edit ${title}`}
+            className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-control-sm border border-line-2 bg-panel text-fg transition-[color,border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+          >
+            <Icon name="pencil" size={12} />
+          </button>
+        </Tooltip>
       ) : null}
     </div>
   );

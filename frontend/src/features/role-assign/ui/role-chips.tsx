@@ -1,4 +1,5 @@
 import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 
 export type RoleChip = {
   slug: string;
@@ -31,14 +32,16 @@ export function RoleChips({
         >
           {role.title}
           {readOnly ? null : (
-            <button
-              type="button"
-              onClick={() => onRemove(role.slug)}
-              aria-label={`Remove role ${role.title}`}
-              className="flex cursor-pointer border-none bg-transparent p-0 text-accent transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-              <Icon name="close" size={11} />
-            </button>
+            <Tooltip label={`Remove role ${role.title}`}>
+              <button
+                type="button"
+                onClick={() => onRemove(role.slug)}
+                aria-label={`Remove role ${role.title}`}
+                className="flex cursor-pointer border-none bg-transparent p-0 text-accent transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                <Icon name="close" size={11} />
+              </button>
+            </Tooltip>
           )}
         </span>
       ))}

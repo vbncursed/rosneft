@@ -1,5 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
-import { fireEvent } from "@testing-library/dom";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -258,5 +257,23 @@ describe("AnchorCard", () => {
     card();
     expect(screen.getByRole("button", { name: CLOSE_EDITOR })).toHaveClass("active:scale-95", "ease-out");
     expect(screen.getByRole("button", { name: DELETE_PANORAMA })).toHaveClass("active:scale-[0.97]");
+  });
+});
+
+/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
+function hoverTip(el: Element) {
+  vi.useFakeTimers();
+  fireEvent.pointerEnter(el, { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(500));
+  vi.useRealTimers();
+  return screen.queryByRole("tooltip");
+}
+
+describe("AnchorCard · tooltip", () => {
+  it("names its close button in a tooltip, not a native title", () => {
+    card();
+    const close = screen.getByRole("button", { name: CLOSE_EDITOR });
+    expect(close).not.toHaveAttribute("title");
+    expect(hoverTip(close)).toHaveTextContent(CLOSE_EDITOR);
   });
 });

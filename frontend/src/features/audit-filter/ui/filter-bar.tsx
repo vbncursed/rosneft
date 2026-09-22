@@ -1,6 +1,7 @@
 import { clsx as cx } from "clsx";
 import { useEffect, useRef } from "react";
 import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 import { parseFilters, removeToken } from "../model/query";
 
 export type ExtraFilter = {
@@ -70,14 +71,16 @@ export function FilterBar({
           className="flex shrink-0 items-center gap-[7px] rounded-full border border-accent bg-accent-soft px-[11px] py-1 font-mono text-[10px] text-accent"
         >
           {chip.token}
-          <button
-            type="button"
-            onClick={() => onChange(removeToken(query, chip.token))}
-            aria-label={`Remove filter ${chip.token}`}
-            className="flex cursor-pointer border-none bg-transparent p-0 text-accent transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            <Icon name="close" size={10} />
-          </button>
+          <Tooltip label={`Remove filter ${chip.token}`}>
+            <button
+              type="button"
+              onClick={() => onChange(removeToken(query, chip.token))}
+              aria-label={`Remove filter ${chip.token}`}
+              className="flex cursor-pointer border-none bg-transparent p-0 text-accent transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              <Icon name="close" size={10} />
+            </button>
+          </Tooltip>
         </span>
       ))}
 
@@ -87,14 +90,16 @@ export function FilterBar({
           className="flex shrink-0 items-center gap-[7px] rounded-full border border-accent bg-accent-soft px-[11px] py-1 font-mono text-[10px] text-accent"
         >
           {filter.label}
-          <button
-            type="button"
-            onClick={filter.onRemove}
-            aria-label={`Remove filter ${filter.label}`}
-            className="flex cursor-pointer border-none bg-transparent p-0 text-accent transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            <Icon name="close" size={10} />
-          </button>
+          <Tooltip label={`Remove filter ${filter.label}`}>
+            <button
+              type="button"
+              onClick={filter.onRemove}
+              aria-label={`Remove filter ${filter.label}`}
+              className="flex cursor-pointer border-none bg-transparent p-0 text-accent transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              <Icon name="close" size={10} />
+            </button>
+          </Tooltip>
         </span>
       ))}
 

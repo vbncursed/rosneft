@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { FileUploadState } from "@/entities/upload";
@@ -233,5 +233,23 @@ describe("UploadModal", () => {
     expect(screen.queryByRole("button", { name: "Cancel upload" })).toBeNull();
     expect(screen.queryByRole("progressbar")).toBeNull();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+  });
+});
+
+/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
+function hoverTip(el: Element) {
+  vi.useFakeTimers();
+  fireEvent.pointerEnter(el, { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(500));
+  vi.useRealTimers();
+  return screen.queryByRole("tooltip");
+}
+
+describe("UploadModal · tooltip", () => {
+  it("names its close button in a tooltip, not a native title", () => {
+    draw();
+    const close = screen.getByRole("button", { name: "Close panorama upload" });
+    expect(close).not.toHaveAttribute("title");
+    expect(hoverTip(close)).toHaveTextContent("Close panorama upload");
   });
 });

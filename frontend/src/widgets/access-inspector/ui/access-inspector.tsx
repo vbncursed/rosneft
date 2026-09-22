@@ -8,6 +8,7 @@ import {
 import { Button } from "@/shared/ui/button";
 import { Callout } from "@/shared/ui/callout";
 import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 import { RadioCards } from "@/shared/ui/radio-card";
 import { GrantRow } from "./grant-row";
 
@@ -68,14 +69,16 @@ export function AccessInspector({
           <p className="m-0 mt-2 truncate text-base font-semibold text-fg">{territory.title}</p>
           <p className="m-0 mt-[3px] truncate font-mono text-[11px] text-muted">{territory.slug}</p>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="-m-1 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent p-0 leading-none text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          <Icon name="close" size={14} />
-        </button>
+        <Tooltip label="Close">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="-m-1 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent p-0 leading-none text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <Icon name="close" size={14} />
+          </button>
+        </Tooltip>
       </div>
 
       <div className="flex flex-col gap-4.5 p-4.5">

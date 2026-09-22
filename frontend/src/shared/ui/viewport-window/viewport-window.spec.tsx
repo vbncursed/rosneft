@@ -116,6 +116,13 @@ describe("ViewportWindow · tooltips", () => {
     expect(hoverTip(exit)).toHaveTextContent("Exit document overlay");
   });
 
+  it("shows an action's short tooltip when it has one, keeping its full name", () => {
+    const short = [{ name: "Expand plan-sheet-03.pdf", tooltip: "Expand", icon: "maximize" as const, onClick: vi.fn() }];
+    render(<ViewportWindow title="f.pdf" geometry={GEO} actions={short}><p>body</p></ViewportWindow>);
+    const expand = screen.getByRole("button", { name: "Expand plan-sheet-03.pdf" });
+    expect(hoverTip(expand)?.textContent).toBe("Expand");
+  });
+
   it("explains the drag handle and the resize corner on hover", () => {
     render(
       <ViewportWindow title="f.pdf" geometry={GEO} actions={[]} onMoveStart={vi.fn()} onResizeStart={vi.fn()}>

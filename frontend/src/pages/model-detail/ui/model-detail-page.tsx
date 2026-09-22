@@ -63,9 +63,9 @@ export function ModelDetailPage({
               <Button
                 shape="icon"
                 variant="danger"
-                aria-label="Delete model"
+                aria-label={model.usageCount > 0 ? `Delete model — in use on ${placedIn(model.usageCount)}` : "Delete model"}
                 disabled={model.usageCount > 0}
-                title={model.usageCount > 0 ? `In use on ${placedIn(model.usageCount)}` : undefined}
+                tooltip={model.usageCount > 0 ? { label: `In use on ${placedIn(model.usageCount)}` } : undefined}
                 onClick={onDelete}
               >
                 <Icon name="trash" size={14} />

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { Model } from "@/entities/model";
@@ -65,15 +65,13 @@ describe("ModelDetailPage", () => {
 
     const onDelete = vi.fn();
     rerender(<ModelDetailPage {...props({ canDelete: true, onDelete })} />);
-    const button = screen.getByRole("button", { name: "Delete model" });
+    const button = screen.getByRole("button", { name: "Delete model — in use on 2 territories" });
     expect(button).toBeDisabled();
-    expect(button).toHaveAttribute("title", "In use on 2 territories");
+    expect(button).not.toHaveAttribute("title");
+    expect(hoverTip(button.parentElement!)).toHaveTextContent("In use on 2 territories");
 
     rerender(<ModelDetailPage {...props({ canDelete: true, onDelete, model: { ...MODEL, usageCount: 1 } })} />);
-    expect(screen.getByRole("button", { name: "Delete model" })).toHaveAttribute(
-      "title",
-      "In use on 1 territory",
-    );
+    expect(screen.getByRole("button", { name: "Delete model — in use on 1 territory" })).toBeDisabled();
 
     rerender(<ModelDetailPage {...props({ canDelete: true, onDelete, model: { ...MODEL, usageCount: 0 } })} />);
     const enabled = screen.getByRole("button", { name: "Delete model" });
@@ -88,3 +86,12 @@ describe("ModelDetailPage", () => {
     expect(screen.getByRole("link", { name: /Download GLB/ })).toHaveClass("transition-[border-color,scale]", "duration-150", "ease-out", "active:scale-[0.97]");
   });
 });
+
+/** A mouse resting on the control for the tooltip's 500 ms; returns what opened. */
+function hoverTip(el: Element) {
+  vi.useFakeTimers();
+  fireEvent.pointerEnter(el, { pointerType: "mouse" });
+  act(() => vi.advanceTimersByTime(500));
+  vi.useRealTimers();
+  return screen.queryByRole("tooltip");
+}

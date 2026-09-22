@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { CollapsedRail } from "@/shared/ui/collapsed-rail";
 import { Icon } from "@/shared/ui/icon";
+import { Tooltip } from "@/shared/ui/tooltip";
 import { Tabs } from "@/shared/ui/tabs";
 import { overlaysWidthClass } from "../model/overlays-width";
 import type { OverlaysTab } from "../model/use-overlays-panel";
@@ -88,15 +89,16 @@ export function OverlaysPanel({
             <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted">
               Overlays
             </span>
-            <button
-              type="button"
-              onClick={() => onCollapsedChange(true)}
-              aria-label="Collapse Overlays panel"
-              title="Collapse Overlays panel"
-              className="flex size-[26px] cursor-pointer items-center justify-center rounded-[7px] border border-line-2 bg-panel-2 text-fg transition-[color,border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-              <Icon name="chevron-right" size={13} />
-            </button>
+            <Tooltip label="Collapse Overlays panel">
+              <button
+                type="button"
+                onClick={() => onCollapsedChange(true)}
+                aria-label="Collapse Overlays panel"
+                className="flex size-[26px] cursor-pointer items-center justify-center rounded-[7px] border border-line-2 bg-panel-2 text-fg transition-[color,border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                <Icon name="chevron-right" size={13} />
+              </button>
+            </Tooltip>
           </div>
           <div data-tour={tourId}>
             <Tabs
