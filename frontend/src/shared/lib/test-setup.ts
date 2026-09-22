@@ -41,3 +41,16 @@ if (!("ResizeObserver" in globalThis)) {
     disconnect() {}
   } as unknown as typeof ResizeObserver;
 }
+
+// jsdom has no Popover API, yet its UA sheet already hides every `[popover]`
+// that is not `:popover-open` — which it can never be. A browser shows an open
+// one (`Tooltip`); the shim does the same with an inline `display`, the one
+// thing jsdom's cascade lets beat that rule.
+if (!HTMLElement.prototype.showPopover) {
+  HTMLElement.prototype.showPopover = function showPopover(this: HTMLElement) {
+    this.style.display = "block";
+  };
+  HTMLElement.prototype.hidePopover = function hidePopover(this: HTMLElement) {
+    this.style.removeProperty("display");
+  };
+}
