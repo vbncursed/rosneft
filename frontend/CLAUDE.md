@@ -1072,6 +1072,21 @@ Package B (spec `docs/superpowers/specs/2026-09-14-territory-viewer-v2-package-b
 Two overlays over the same scene: equirect captures anchored in it, and PDFs
 floated above it.
 
+- **The View tab's Panoramas and Documents lists fold; nothing else there
+  does.** The switches, the territory link and the anchor editor stay put —
+  only the two lists sit behind their section heads
+  (`widgets/view-tab`'s `useSectionFolds`, lifted to the page by
+  `use-view-sections.ts`). Folded by default; an opened list is remembered
+  per browser in `localStorage` `andrey.view.panoramas` /
+  `andrey.view.documents` (absence means folded). The page forces a section
+  open — Panoramas while a capture is stood in or edited, both while a tour
+  runs — and a forced head is locked: `aria-disabled`, still focusable, no
+  hover brightening, and a click writes nothing, so the reader's own choice
+  survives. A rail tile and a finished upload `reveal` their section, which
+  opens *and* remembers it — an upload must not land in a hidden list. An
+  empty list has no fold at all. The folded list is `hidden`, not
+  unmounted, because the head's `aria-controls` must point at an element
+  that exists.
 - **The reducer owns where the camera is, not the list hooks.**
   `features/viewer-mode`'s state carries `view` (`{kind:"scene"}` or
   `{kind:"panorama", id}`), `move` (the scene-only sub-mode for dragging

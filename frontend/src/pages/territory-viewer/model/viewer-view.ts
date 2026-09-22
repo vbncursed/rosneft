@@ -1,6 +1,7 @@
 import type { ViewerError } from "@/features/lod";
 import type { ViewerMode, ViewerView } from "@/features/viewer-mode";
 import { longDate } from "@/shared/lib/short-date";
+import { can, type Principal } from "@/shared/session";
 
 /**
  * Every string the viewer's chrome prints, in one place: the fixtures, the
@@ -50,6 +51,22 @@ export type Grants = {
   measureWrite: boolean;
   measureDelete: boolean;
 };
+
+/** What `me` may do on this page — `null` (not answered yet) may do nothing. */
+export const grantsOf = (me: Principal | null): Grants => ({
+  create: can(me, "placement:create"),
+  write: can(me, "placement:write"),
+  delete: can(me, "placement:delete"),
+  replace: can(me, "territory:write"),
+  panoramaCreate: can(me, "panorama:create"),
+  panoramaWrite: can(me, "panorama:write"),
+  panoramaDelete: can(me, "panorama:delete"),
+  documentWrite: can(me, "document:write"),
+  documentDelete: can(me, "document:delete"),
+  measureCreate: can(me, "measurement:create"),
+  measureWrite: can(me, "measurement:write"),
+  measureDelete: can(me, "measurement:delete"),
+});
 
 /** The three measurement grants, in the shape the sync plan reads. */
 export const measureGrants = (g: Grants) => ({

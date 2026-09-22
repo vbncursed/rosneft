@@ -15,6 +15,7 @@ import {
 import { usePanoramaUpload } from "@/features/panorama-upload";
 import { useTerritoryLink } from "@/features/territory-link";
 import type { PanoramaParts } from "./overlay-parts";
+import type { Section } from "./reveal-section";
 
 export type ViewerPanoramasParams = {
   slug: string;
@@ -30,6 +31,8 @@ export type ViewerPanoramasParams = {
   sourceBbox: SourceBbox | null;
   externalUrl: string | undefined;
   onChanged: () => void;
+  /** Opens a folded section — a finished upload must not land in a hidden list. */
+  reveal: (section: Section) => void;
   decode: TextureDecoder;
 };
 
@@ -54,6 +57,7 @@ export function useViewerPanoramas({
   sourceBbox,
   externalUrl,
   onChanged,
+  reveal,
   decode,
 }: ViewerPanoramasParams): PanoramaParts {
   const list = usePanoramaList({ slug, initial, onChanged });
@@ -122,9 +126,10 @@ export function useViewerPanoramas({
     onCreated: useCallback(
       (panorama: Panorama) => {
         add(panorama);
+        reveal("panoramas");
         setUploadOpen(false);
       },
-      [add],
+      [add, reveal],
     ),
   });
 

@@ -40,14 +40,15 @@ export function SectionHead({ overline, count, upload, fold }: SectionHeadProps)
               : "cursor-pointer transition-[scale] duration-150 ease-out active:scale-[0.99]",
           )}
         >
-          <span className={cx(OVERLINE, "group-hover:text-fg")}>{overline}</span>
+          <span className={cx(OVERLINE, !fold.locked && "group-hover:text-fg")}>{overline}</span>
           <span className="flex items-center gap-2">
             <span className={COUNT}>{count}</span>
             <Icon
               name="chevron-right"
               size={12}
               className={cx(
-                "shrink-0 text-muted transition-transform duration-150 ease-out motion-reduce:transition-none group-hover:text-fg",
+                "shrink-0 text-muted transition-transform duration-150 ease-out motion-reduce:transition-none",
+                !fold.locked && "group-hover:text-fg",
                 fold.open && "rotate-90",
               )}
             />

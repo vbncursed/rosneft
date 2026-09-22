@@ -2,6 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Panorama } from "@/entities/panorama";
 import type { PanoramaViewMode } from "@/features/panorama-view";
+import { useSectionFolds } from "@/widgets/view-tab";
 import { useViewerPanoramas } from "./use-viewer-panoramas";
 
 const { list, usePanoramaList, usePanoramaTexture, usePanoramaUpload, useTerritoryLink } =
@@ -72,6 +73,7 @@ const mount = (mode = modeStub(), moving = false) =>
         externalUrl: "https://tour.example",
         onChanged,
         decode,
+        reveal: vi.fn(),
       }),
     { initialProps: { mode, moving } },
   );
@@ -249,6 +251,30 @@ describe("useViewerPanoramas", () => {
     act(() => usePanoramaUpload.mock.calls.at(-1)![0].onCreated(created as never));
     expect(list.add).toHaveBeenCalledWith(created);
     expect(result.current.upload.open).toBe(false);
+  });
+
+  it("opens a folded Panoramas list on a finished upload, so the capture is not hidden", () => {
+    localStorage.clear();
+    const { result } = renderHook(() => {
+      const folds = useSectionFolds({ panoramas: false, documents: false });
+      const panoramas = useViewerPanoramas({
+        slug: "refinery-block-c",
+        initial: PANORAMAS,
+        mode: modeStub(),
+        moving: false,
+        sourceBbox: null,
+        externalUrl: undefined,
+        onChanged,
+        decode,
+        reveal: folds.reveal,
+      });
+      return { folds, panoramas };
+    });
+    expect(result.current.folds.panoramas.open).toBe(false);
+
+    act(() => usePanoramaUpload.mock.calls.at(-1)![0].onCreated(panorama(9) as never));
+    expect(result.current.folds.panoramas.open).toBe(true);
+    expect(result.current.folds.documents.open).toBe(false);
   });
 
   it("keeps every canvas-bound callback stable across a re-render", () => {
