@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Icon, type IconName } from "@/shared/ui/icon";
 import { Tooltip, type TooltipProps } from "./tooltip";
 
@@ -11,6 +12,22 @@ function Tile({ icon, label, disabled, ...tip }: Omit<TooltipProps, "children"> 
         <Icon name={icon} size={15} />
       </button>
     </Tooltip>
+  );
+}
+
+// Enter or Space keeps focus, so the tooltip stays and must re-measure: the
+// longer label, at the right edge, is clamped again rather than overrunning.
+function EdgeToggle() {
+  const [locked, setLocked] = useState(false);
+  const label = locked ? "Camera locked — press to free it" : "Lock";
+  return (
+    <div className="flex justify-end p-6 pt-12">
+      <Tooltip label={label}>
+        <button type="button" aria-label={label} aria-pressed={locked} className={TILE} onClick={() => setLocked((l) => !l)}>
+          <Icon name="lock" size={15} />
+        </button>
+      </Tooltip>
+    </div>
   );
 }
 
@@ -40,6 +57,20 @@ export default {
           <Icon name="trash" size={15} />
         </button>
       </Tooltip>
+    </div>
+  ),
+  toggle: EdgeToggle,
+  // Scrolling the panel closes an open tooltip; the last control is below the
+  // fold, and tabbing to it scrolls it in without closing its own tooltip.
+  scroll: (
+    <div className="p-6">
+      <div className="h-40 w-64 overflow-auto rounded-card border border-line bg-panel p-4 pt-10">
+        <div className="flex flex-col items-start gap-24">
+          <Tile icon="pencil" label="Rename" />
+          <Tile icon="eye" label="Show" />
+          <Tile icon="trash" label="Delete" />
+        </div>
+      </div>
     </div>
   ),
   // Each corner forces a flip (top row) or a clamp (every one of them).

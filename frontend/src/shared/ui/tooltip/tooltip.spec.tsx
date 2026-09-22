@@ -21,7 +21,24 @@ afterEach(() => {
   vi.runOnlyPendingTimers();
   vi.useRealTimers();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
 });
+
+/** jsdom has no WAAPI; the drift is observed through this stand-in. */
+function stubAnimate() {
+  const animate = vi.fn();
+  HTMLElement.prototype.animate = animate;
+  return animate;
+}
+
+// jsdom lays nothing out: the trigger gets `box`, the tooltip 10 px per character.
+function stubRects(box: { top: number; left: number; width: number; height: number }) {
+  vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+    const r = this.getAttribute("role") === "tooltip" ? { ...box, width: (this.textContent?.length ?? 0) * 10, height: 20 } : box;
+    return { ...r, x: r.left, y: r.top, right: r.left + r.width, bottom: r.top + r.height, toJSON: () => r } as DOMRect;
+  });
+}
 
 function renderOne(label = "Measure", extra: Partial<Parameters<typeof Tooltip>[0]> = {}) {
   render(
@@ -64,15 +81,16 @@ describe("Tooltip", () => {
         </Tooltip>
       </>,
     );
+    const animate = stubAnimate();
     const [a, b] = [screen.getByRole("button", { name: "A" }), screen.getByRole("button", { name: "B" })];
     fireEvent.pointerEnter(a, mouse);
     act(() => vi.advanceTimersByTime(500));
-    expect(screen.getByRole("tooltip").classList).toContain("starting:opacity-0");
+    expect(animate).toHaveBeenCalledTimes(1);
     fireEvent.pointerLeave(a, mouse);
     act(() => vi.advanceTimersByTime(100));
     fireEvent.pointerEnter(b, mouse);
     expect(screen.getByRole("tooltip")).toHaveTextContent("B");
-    expect(screen.getByRole("tooltip").classList).not.toContain("starting:opacity-0");
+    expect(animate).toHaveBeenCalledTimes(1);
   });
 
   it("stays warm when the pointer leaves one trigger and enters the next in the same tick", () => {
@@ -127,6 +145,7 @@ describe("Tooltip", () => {
   });
 
   it("opens at once, unanimated, on keyboard focus but not on the focus a click brings", () => {
+    const animate = stubAnimate();
     const b = renderOne();
     fireEvent.pointerDown(b, mouse);
     fireEvent.focus(b);
@@ -134,7 +153,7 @@ describe("Tooltip", () => {
     fireEvent.blur(b);
     fireEvent.focus(b);
     expect(screen.getByRole("tooltip")).toBeInTheDocument();
-    expect(screen.getByRole("tooltip").classList).not.toContain("starting:opacity-0");
+    expect(animate).not.toHaveBeenCalled();
   });
 
   it("stays shut on a focus the browser does not ring, like a dialog placing it", () => {
@@ -210,6 +229,90 @@ describe("Tooltip", () => {
     const b = renderOne("Measure", { shortcut: "M" });
     fireEvent.focus(b);
     expect(screen.getByRole("tooltip").querySelector("kbd")).toHaveTextContent("M");
+  });
+
+  it("closes when anything scrolls, a panel included, or the window resizes", () => {
+    render(
+      <div data-testid="panel">
+        <Tooltip label="Go">
+          <button aria-label="Go" />
+        </Tooltip>
+      </div>,
+    );
+    const b = screen.getByRole("button", { name: "Go" });
+    fireEvent.focus(b);
+    act(() => vi.advanceTimersByTime(20));
+    fireEvent.scroll(screen.getByTestId("panel"));
+    expect(screen.queryByRole("tooltip")).toBeNull();
+    fireEvent.blur(b);
+    fireEvent.focus(b);
+    act(() => vi.advanceTimersByTime(20));
+    fireEvent(window, new Event("resize"));
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("survives the scroll a focus brings, in the frame it opens", () => {
+    const b = renderOne();
+    fireEvent.focus(b);
+    fireEvent.scroll(document);
+    expect(screen.getByRole("tooltip")).toBeInTheDocument();
+  });
+
+  it("measures again when its label changes while open", () => {
+    stubRects({ top: 400, left: 900, width: 30, height: 30 });
+    const { rerender } = render(
+      <Tooltip label="On">
+        <button aria-label="Toggle" />
+      </Tooltip>,
+    );
+    fireEvent.focus(screen.getByRole("button", { name: "Toggle" }));
+    const before = screen.getByRole("tooltip").style.left;
+    rerender(
+      <Tooltip label="Off, and a good deal longer">
+        <button aria-label="Toggle" />
+      </Tooltip>,
+    );
+    expect(screen.getByRole("tooltip").style.left).not.toBe(before);
+    // 270 px wide now: centred it would overrun the right edge, so it is clamped.
+    expect(screen.getByRole("tooltip").style.left).toBe(`${window.innerWidth - 8 - 270}px`);
+  });
+
+  it("drifts in from the side it finally took, not the one it was asked for", () => {
+    stubRects({ top: 2, left: 400, width: 30, height: 30 });
+    const animate = stubAnimate();
+    const b = renderOne("Measure");
+    fireEvent.pointerEnter(b, mouse);
+    act(() => vi.advanceTimersByTime(500));
+    expect(animate).toHaveBeenCalledTimes(1);
+    expect(animate.mock.calls[0][0][0]).toEqual({ opacity: 0, translate: "0 -2px" });
+  });
+
+  it("does not play the drift again when it re-measures", () => {
+    stubRects({ top: 400, left: 400, width: 30, height: 30 });
+    const animate = stubAnimate();
+    const { rerender } = render(
+      <Tooltip label="On">
+        <button aria-label="Toggle" />
+      </Tooltip>,
+    );
+    fireEvent.pointerEnter(screen.getByRole("button", { name: "Toggle" }), mouse);
+    act(() => vi.advanceTimersByTime(500));
+    rerender(
+      <Tooltip label="Off">
+        <button aria-label="Toggle" />
+      </Tooltip>,
+    );
+    expect(animate).toHaveBeenCalledTimes(1);
+    expect(animate.mock.calls[0][0][0]).toEqual({ opacity: 0, translate: "0 2px" });
+  });
+
+  it("fades without drifting under reduced motion", () => {
+    const animate = stubAnimate();
+    vi.stubGlobal("matchMedia", () => ({ matches: true }));
+    const b = renderOne();
+    fireEvent.pointerEnter(b, mouse);
+    act(() => vi.advanceTimersByTime(500));
+    expect(animate.mock.calls[0][0][0]).toEqual({ opacity: 0, translate: "0 0" });
   });
 
   it("still explains a disabled button, through a wrapper that takes the hover", () => {
