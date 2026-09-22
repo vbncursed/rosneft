@@ -9,7 +9,7 @@ type Handler = (event: never) => void;
 type ChildProps = Record<string, unknown> & { disabled?: boolean; "aria-describedby"?: string };
 
 type TriggerProps = ReturnType<typeof useTooltip>["triggerProps"];
-const TRIGGER_EVENTS = ["onPointerEnter", "onPointerLeave", "onPointerDown", "onFocus", "onBlur"] as const;
+const TRIGGER_EVENTS = ["onPointerEnter", "onPointerLeave", "onPointerDown", "onKeyDown", "onFocus", "onBlur"] as const;
 
 /** Calls the child's own handler first, then the tooltip's, for every trigger event. */
 function mergeHandlers(own: ChildProps, ours: TriggerProps) {
@@ -47,9 +47,10 @@ function driftIn(el: HTMLElement, side: Side) {
  * viewport less its 8 px edges); placement measures it after it has wrapped.
  */
 export function Tooltip({ label, shortcut, side = "top", children }: TooltipProps) {
-  const { open, instant, anchor, triggerProps } = useTooltip();
+  const { open, instant, triggerProps } = useTooltip();
   const id = useId();
   const tip = useRef<HTMLDivElement>(null);
+  const wrap = useRef<HTMLSpanElement>(null);
   const [place, setPlace] = useState<{ top: number; left: number } | null>(null);
 
   const child = children as ReactElement<ChildProps>;
@@ -64,14 +65,17 @@ export function Tooltip({ label, shortcut, side = "top", children }: TooltipProp
   const entered = useRef(false);
   useLayoutEffect(() => {
     if (!open) entered.current = false;
-    if (!open || !tip.current || !anchor.current) return;
+    // The child, never the span: around an absolutely positioned child the
+    // span has no box of its own, even while it takes a disabled child's hover.
+    const anchor = wrap.current?.firstElementChild;
+    if (!open || !tip.current || !anchor) return;
     const viewport = { width: window.innerWidth, height: window.innerHeight };
-    const placed = placeTooltip(anchor.current.getBoundingClientRect(), tip.current.getBoundingClientRect(), viewport, side);
+    const placed = placeTooltip(anchor.getBoundingClientRect(), tip.current.getBoundingClientRect(), viewport, side);
     setPlace(placed);
     if (entered.current) return;
     entered.current = true;
     if (!instant) driftIn(tip.current, placed.side);
-  }, [open, instant, side, anchor, label, shortcut]);
+  }, [open, instant, side, label, shortcut]);
 
   const own = child.props["aria-describedby"];
   const described = { "aria-describedby": open ? cx(own, id) : own };
@@ -79,10 +83,11 @@ export function Tooltip({ label, shortcut, side = "top", children }: TooltipProp
   // One span, always, so flipping `disabled` never remounts the child (and drops
   // its focus). A disabled child gets no pointer events, so the span takes the
   // hover then; otherwise it is `contents` — no box, no hover — and the child
-  // takes the handlers. No `ref`: the child keeps its own.
+  // takes the handlers. The span's `ref` finds the child to measure; the child
+  // keeps its own.
   const disabled = Boolean(child.props.disabled);
   const trigger = (
-    <span className={disabled ? "inline-flex" : "contents"} {...(disabled ? triggerProps : {})}>
+    <span ref={wrap} className={disabled ? "inline-flex" : "contents"} {...(disabled ? triggerProps : {})}>
       {cloneElement(child, disabled ? described : { ...mergeHandlers(child.props, triggerProps), ...described })}
     </span>
   );
