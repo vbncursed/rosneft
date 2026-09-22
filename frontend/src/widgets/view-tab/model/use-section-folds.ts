@@ -3,8 +3,11 @@ import { useCallback, useState } from "react";
 /** The two View-tab sections whose list folds. */
 export type FoldedSection = "panoramas" | "documents";
 
-/** One section head's fold: whether the list shows, and the head's click. */
-export type SectionFold = { open: boolean; onToggle: () => void };
+/**
+ * One section head's fold: whether the list shows, whether the page holds it
+ * open (`locked` — the click does nothing), and the head's click.
+ */
+export type SectionFold = { open: boolean; locked: boolean; onToggle: () => void };
 
 const KEY: Record<FoldedSection, string> = {
   panoramas: "andrey.view.panoramas",
@@ -56,8 +59,10 @@ export function useSectionFolds(forced: Record<FoldedSection, boolean>) {
   const reveal = useCallback((section: FoldedSection) => set(section, true), [set]);
 
   const fold = (section: FoldedSection): SectionFold => {
-    const open = forced[section] || stored[section];
-    return { open, onToggle: () => set(section, !open) };
+    // A forced head is locked: toggling it would overwrite the reader's choice.
+    const locked = forced[section];
+    const open = locked || stored[section];
+    return { open, locked, onToggle: () => !locked && set(section, !open) };
   };
 
   return { panoramas: fold("panoramas"), documents: fold("documents"), reveal };
