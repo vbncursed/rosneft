@@ -327,3 +327,50 @@ Do not "restore" an icon to the mock.
 git add frontend/CLAUDE.md
 git commit -m "docs(frontend): icons follow runeicons, not the design system's Icons section"
 ```
+
+---
+
+### Task 4: Sweep the remaining icon-like characters (run before Task 3)
+
+Found by Task 2's review: spec D4 says *all* icon-like characters become icons, but the spec's
+table named only eight. The rest, each standing alone as button/indicator content:
+
+| file (approx. line) | char | becomes |
+|---|---|---|
+| `shared/ui/dropdown/dropdown.tsx` (~115) trigger caret | `▾` | `<Icon name="chevron-down" size={12} />` — keep the `rotate-180` open state; span gets `flex` |
+| `shared/ui/drawer/drawer.tsx` (~57) | `×` | `close` |
+| `shared/ui/toast/toast.tsx` (~74) | `×` | `close` |
+| `widgets/{content,role,record,person,access,alert}-inspector/ui/*-inspector.tsx` Close buttons | `×` | `close` |
+| `features/audit-filter/ui/filter-bar.tsx` (~79, ~96) remove-filter chips | `×` | `close` (~10 px) |
+| `features/role-assign/ui/role-chips.tsx` (~38) | `×` | `close` |
+| `pages/upload-models/ui/queue-row.tsx` (~82) | `×` | `close` |
+| `shared/ui/date-picker/date-picker.tsx` (~115, ~126) prev/next month | `←` `→` | `chevron-left` / `chevron-right` |
+| `shared/ui/quantity-stepper/quantity-stepper.tsx` (~39, ~54) | `−` `+` | `minus` / `plus` |
+| `widgets/view-tab/ui/calibration-card.tsx` (~101, ~110) | `−` `+` | `minus` / `plus` |
+| `entities/model/ui/model-picker-card.tsx` (~104) selected badge | `✓` | `check` |
+
+Plus: `shared/ui/viewport-window/viewport-window.tsx` (~48) grip `text-line-2` → `text-dim`
+(line-2 is a border token, ~1.6:1 on panel-2 in both themes; dim is ~5:1).
+
+Stays text (recorded rulings): `+ ± − →` event-kind operators in `entities/audit/ui/event-card.tsx`
+(deliberate, commented there); `⌘K` key legend; `→` between before/after values; arrows inside
+link labels (`← Home`, `Open →`); `…`; `/` breadcrumb separator; `×` in dimensions `a × b × c m`.
+
+**Files:** the ones in the table, their specs, `shared/ui/icon/glyph-extras.tsx` (+ `chevron-down`:
+`{ body: <path d="M6 9L12 15L18 9" /> }`, runeicons `arrows/chevron-down`), `glyphs.spec.ts` name
+list, `icon.spec.tsx` list, `shared/ui/icon/NOTICE` runeicons list.
+
+- [ ] Step 1: failing tests — for each touched component, the button/indicator contains an `svg`
+  and none of `▾ × ← → − + ✓` as its own text; the dropdown trigger's caret is an `svg` that still
+  rotates when open; `ICON_NAMES` includes `chevron-down`. Existing accessible names (aria-label /
+  title) must stay unchanged — assert them where a spec already does.
+- [ ] Step 2: run, expect FAIL: `cd frontend && yarn vitest run <touched dirs>`.
+- [ ] Step 3: implement. Icons decorative (`aria-hidden` default); the button keeps its name. Size
+  each icon to the character it replaces (close buttons ~14 px, chips ~10–11 px, steppers ~12 px),
+  optically centred.
+- [ ] Step 4: `yarn lint`, then `yarn test:coverage`.
+- [ ] Step 5: live check, both themes, 1280×800: a drawer, a toast, one inspector, audit filter
+  chips, role chips, upload queue row, date picker, quantity stepper, calibration card, model
+  picker card, dropdown open and closed, PDF window grip. Screenshots to `scratchpad/icons-t4/`;
+  look at each.
+- [ ] Step 6: commit by path: `feat(frontend): the remaining icon-like characters become icons`.
