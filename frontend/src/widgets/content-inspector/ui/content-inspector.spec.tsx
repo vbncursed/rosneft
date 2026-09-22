@@ -140,3 +140,12 @@ describe("ContentInspector", () => {
     expect(screen.getByRole("button", { name: "Open in viewer" })).toBeInTheDocument();
   });
 });
+
+describe("ContentInspector · close mark", () => {
+  it("draws its Close button as an icon, not a × character", () => {
+    render(<ContentInspector {...props()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close.querySelector("svg")).not.toBeNull();
+    expect(close.textContent).toBe("");
+  });
+});

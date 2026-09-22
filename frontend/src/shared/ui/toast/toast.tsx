@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { clsx as cx } from "clsx";
+import { Icon } from "@/shared/ui/icon";
 
 export type ToastTone = "error" | "warning" | "info" | "success";
 
@@ -71,7 +72,7 @@ export function Toast({
           // keep the row's height and the glyph where the padding put it.
           className="-my-0.5 -mr-1.5 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          ×
+          <Icon name="close" size={14} />
         </button>
       ) : null}
     </div>

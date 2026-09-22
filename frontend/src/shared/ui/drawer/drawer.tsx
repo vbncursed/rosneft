@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from "react";
 import { clsx as cx } from "clsx";
 import { useModalDialog } from "@/shared/ui/modal";
+import { Icon } from "@/shared/ui/icon";
 
 export type DrawerProps = {
   open: boolean;
@@ -54,7 +55,7 @@ export function Drawer({
               aria-label="Close"
               className="flex size-6 cursor-pointer items-center justify-center border-none bg-transparent p-0 text-muted transition-[color,scale] duration-150 ease-out hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.95]"
             >
-              ×
+              <Icon name="close" size={14} />
             </button>
           </div>
 

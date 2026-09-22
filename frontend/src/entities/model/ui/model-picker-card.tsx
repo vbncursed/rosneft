@@ -99,9 +99,9 @@ export function ModelPickerCard({
       {selected ? (
         <span
           aria-hidden="true"
-          className="absolute right-1.5 top-1.5 flex size-[18px] items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-fg"
+          className="absolute right-1.5 top-1.5 flex size-[18px] items-center justify-center rounded-full bg-accent text-accent-fg"
         >
-          ✓
+          <Icon name="check" size={12} />
         </span>
       ) : null}
     </div>

@@ -129,3 +129,12 @@ describe("RecordInspector · dismissing", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 });
+
+describe("RecordInspector · close mark", () => {
+  it("draws its Close button as an icon, not a × character", () => {
+    render(<RecordInspector entry={entry()} {...props} onClose={vi.fn()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close.querySelector("svg")).not.toBeNull();
+    expect(close.textContent).toBe("");
+  });
+});

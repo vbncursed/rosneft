@@ -1,4 +1,5 @@
 import { clsx as cx } from "clsx";
+import { Icon } from "@/shared/ui/icon";
 
 export type QuantityStepperProps = {
   value: number;
@@ -36,7 +37,7 @@ export function QuantityStepper({
         aria-label={`Decrease ${label.toLowerCase()}`}
         onClick={() => onChange(clamp(value - step))}
       >
-        −
+        <Icon name="minus" size={12} />
       </button>
       <output
         aria-live="polite"
@@ -51,7 +52,7 @@ export function QuantityStepper({
         aria-label={`Increase ${label.toLowerCase()}`}
         onClick={() => onChange(clamp(value + step))}
       >
-        +
+        <Icon name="plus" size={12} />
       </button>
     </div>
   );

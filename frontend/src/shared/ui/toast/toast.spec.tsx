@@ -87,3 +87,16 @@ describe("Toast", () => {
     expect(cls).not.toContain("p-0");
   });
 });
+
+describe("Toast · dismiss mark", () => {
+  it("draws its dismiss button as an icon, not a × character", () => {
+    render(
+      <Toast tone="info" onDismiss={vi.fn()}>
+        Saved.
+      </Toast>,
+    );
+    const dismiss = screen.getByRole("button", { name: "Dismiss" });
+    expect(dismiss.querySelector("svg")).not.toBeNull();
+    expect(dismiss.textContent).toBe("");
+  });
+});

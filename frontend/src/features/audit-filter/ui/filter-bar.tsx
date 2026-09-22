@@ -74,9 +74,9 @@ export function FilterBar({
             type="button"
             onClick={() => onChange(removeToken(query, chip.token))}
             aria-label={`Remove filter ${chip.token}`}
-            className="cursor-pointer border-none bg-transparent p-0 leading-none text-accent transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="flex cursor-pointer border-none bg-transparent p-0 text-accent transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            ×
+            <Icon name="close" size={10} />
           </button>
         </span>
       ))}
@@ -91,9 +91,9 @@ export function FilterBar({
             type="button"
             onClick={filter.onRemove}
             aria-label={`Remove filter ${filter.label}`}
-            className="cursor-pointer border-none bg-transparent p-0 leading-none text-accent transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="flex cursor-pointer border-none bg-transparent p-0 text-accent transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            ×
+            <Icon name="close" size={10} />
           </button>
         </span>
       ))}

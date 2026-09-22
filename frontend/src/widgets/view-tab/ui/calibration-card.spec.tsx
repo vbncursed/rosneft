@@ -99,3 +99,14 @@ describe("CalibrationCard", () => {
     );
   });
 });
+
+describe("CalibrationCard · nudge marks", () => {
+  it("draws the nudge arrows as minus and plus icons, not − + characters", () => {
+    calibration();
+    for (const name of ["Decrease X", "Increase X", "Decrease Y", "Increase Y", "Decrease Z", "Increase Z"]) {
+      const nudge = screen.getByRole("button", { name });
+      expect(nudge.querySelector("svg")).not.toBeNull();
+      expect(nudge.textContent).toBe("");
+    }
+  });
+});

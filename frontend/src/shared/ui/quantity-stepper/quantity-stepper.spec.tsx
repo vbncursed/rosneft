@@ -60,3 +60,13 @@ describe("QuantityStepper", () => {
     );
   });
 });
+
+describe("QuantityStepper · step marks", () => {
+  it("draws minus and plus as icons, not − + characters", () => {
+    render(<Harness />);
+    for (const step of [dec(), inc()]) {
+      expect(step.querySelector("svg")).not.toBeNull();
+      expect(step.textContent).toBe("");
+    }
+  });
+});

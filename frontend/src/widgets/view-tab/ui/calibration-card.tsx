@@ -14,6 +14,7 @@ import {
   YAW_SHORT,
 } from "../model/copy";
 import { degToRad, printDegrees, radToDeg } from "../model/degrees";
+import { Icon } from "@/shared/ui/icon";
 
 export type CalibrationCardProps = {
   /** The ghosted photo over the mesh: 0.15–1, so it never disappears entirely. */
@@ -34,7 +35,7 @@ export type CalibrationCardProps = {
 const OVERLINE = "font-mono text-[9px] uppercase tracking-[0.14em] text-muted";
 const LABEL_ROW = "flex items-center justify-between gap-2.5";
 const ARROW =
-  "h-6 flex-1 cursor-pointer rounded-control-sm border border-line-2 bg-panel text-xs text-fg transition-[color,border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
+  "flex h-6 flex-1 cursor-pointer items-center justify-center rounded-control-sm border border-line-2 bg-panel text-xs text-fg transition-[color,border-color,scale] duration-150 ease-out hover:border-accent-line active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
 
 const dp3 = (n: number) => n.toFixed(3);
 const stepLabel = (step: number): NudgeStep["label"] =>
@@ -98,7 +99,7 @@ export function CalibrationCard({
               onClick={() => onNudge(axis, -step)}
               className={ARROW}
             >
-              −
+              <Icon name="minus" size={12} />
             </button>
             <span className="w-16 text-center font-mono text-[11px] text-fg">{dp3(position[axis])}</span>
             <button
@@ -107,7 +108,7 @@ export function CalibrationCard({
               onClick={() => onNudge(axis, step)}
               className={ARROW}
             >
-              +
+              <Icon name="plus" size={12} />
             </button>
           </div>
         ))}

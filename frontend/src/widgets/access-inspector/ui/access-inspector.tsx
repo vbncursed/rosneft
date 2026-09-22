@@ -9,6 +9,7 @@ import { Button } from "@/shared/ui/button";
 import { Callout } from "@/shared/ui/callout";
 import { RadioCards } from "@/shared/ui/radio-card";
 import { GrantRow } from "./grant-row";
+import { Icon } from "@/shared/ui/icon";
 
 export type AccessInspectorProps = {
   territory: TerritoryAccess;
@@ -73,7 +74,7 @@ export function AccessInspector({
           aria-label="Close"
           className="-m-1 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent p-0 leading-none text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          ×
+          <Icon name="close" size={14} />
         </button>
       </div>
 

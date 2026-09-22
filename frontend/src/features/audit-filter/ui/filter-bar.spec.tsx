@@ -114,3 +114,20 @@ describe("FilterBar · chips the parser does not own", () => {
     expect(screen.getByRole("button", { name: "Remove filter entity:territory" })).toHaveClass("transition-[color,scale]", "duration-150", "ease-out", "active:scale-95");
   });
 });
+
+describe("FilterBar · remove marks", () => {
+  it("draws each chip's remove button as an icon, not a × character", () => {
+    render(
+      <FilterBar
+        query="entity:territory"
+        onChange={() => {}}
+        extra={[{ label: "from:2026-08-01", onRemove: () => {} }]}
+      />,
+    );
+    for (const name of ["Remove filter entity:territory", "Remove filter from:2026-08-01"]) {
+      const remove = screen.getByRole("button", { name });
+      expect(remove.querySelector("svg")).not.toBeNull();
+      expect(remove.textContent).toBe("");
+    }
+  });
+});

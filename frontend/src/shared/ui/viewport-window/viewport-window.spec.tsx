@@ -73,3 +73,17 @@ describe("ViewportWindow", () => {
     expect(screen.getByRole("button", { name: "Exit document overlay" })).toHaveClass("active:scale-95", "ease-out");
   });
 });
+
+describe("ViewportWindow · drag handle", () => {
+  // line-2 is a border token, ~1.6:1 on panel-2; dim reads at ~5:1.
+  it("draws its grip in the dim text colour, not a border colour", () => {
+    render(
+      <ViewportWindow title="f.pdf" geometry={GEO} actions={[]} onMoveStart={vi.fn()}>
+        <p>body</p>
+      </ViewportWindow>,
+    );
+    const handle = screen.getByTitle("Drag to move");
+    expect(handle).toHaveClass("text-dim");
+    expect(handle).not.toHaveClass("text-line-2");
+  });
+});
