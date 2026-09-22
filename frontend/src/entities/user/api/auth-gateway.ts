@@ -12,6 +12,13 @@ interface LoginResponse {
   csrfToken: string;
 }
 
+// What every sign-in path does once the gateway has set the session cookie —
+// password, second factor, passkey. One function so the three cannot drift.
+export function startSession(csrfToken: string): void {
+  markAuthed();
+  setCsrfToken(csrfToken);
+}
+
 // Password login. The session itself is the httpOnly cookie the gateway sets on
 // this response; all that is kept here is a marker so the route guard can bounce
 // an anonymous visitor without a round trip. When 2FA is required no session
@@ -30,10 +37,7 @@ export async function login(
     { identifier, password, remember },
     { credentialed: true },
   );
-  if (!r.twoFactorRequired) {
-    markAuthed();
-    setCsrfToken(r.csrfToken);
-  }
+  if (!r.twoFactorRequired) startSession(r.csrfToken);
   return { twoFactorRequired: r.twoFactorRequired, challengeToken: r.challengeToken };
 }
 
@@ -50,8 +54,7 @@ export async function verifyTwoFactor(
     { challengeToken, code, remember },
     { credentialed: true },
   );
-  markAuthed();
-  setCsrfToken(r.csrfToken);
+  startSession(r.csrfToken);
 }
 
 // Best-effort server logout — which is what actually revokes the session and

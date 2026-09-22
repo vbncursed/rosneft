@@ -1,4 +1,4 @@
-import { create } from "@github/webauthn-json";
+import { create, get } from "@github/webauthn-json";
 
 /**
  * Runs the browser's create() ceremony over the server's options and hands
@@ -8,6 +8,11 @@ import { create } from "@github/webauthn-json";
  */
 export async function createCredential(optionsJson: string): Promise<string> {
   return JSON.stringify(await create(JSON.parse(optionsJson) as Parameters<typeof create>[0]));
+}
+
+/** The sign-in twin of createCredential: get() over the login options. */
+export async function getCredential(optionsJson: string): Promise<string> {
+  return JSON.stringify(await get(JSON.parse(optionsJson) as Parameters<typeof get>[0]));
 }
 
 /**
