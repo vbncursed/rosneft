@@ -16,13 +16,19 @@ describe("Icon", () => {
     expect(screen.getByRole("img", { name: "Delete" })).toBeDefined();
   });
 
-  it("draws kebab filled and the stroke glyphs stroked", () => {
-    const { container: kebab } = render(<Icon name="kebab" />);
-    expect(kebab.querySelector("svg")!.getAttribute("fill")).toBe("currentColor");
+  it("draws every glyph on one 24 grid at one 1.75 stroke", () => {
+    for (const name of ICON_NAMES) {
+      const svg = render(<Icon name={name} />).container.querySelector("svg")!;
+      expect(svg.getAttribute("viewBox")).toBe("0 0 24 24");
+      expect(svg.getAttribute("fill")).toBe("none");
+      expect(svg.getAttribute("stroke")).toBe("currentColor");
+      expect(svg.getAttribute("stroke-width")).toBe("1.75");
+    }
+  });
 
-    const { container: ruler } = render(<Icon name="ruler" />);
-    expect(ruler.querySelector("svg")!.getAttribute("stroke")).toBe("currentColor");
-    expect(ruler.querySelector("svg")!.getAttribute("stroke-width")).toBe("1.6");
+  it("lets a caller override the stroke", () => {
+    const svg = render(<Icon name="cube" strokeWidth={0.7} />).container.querySelector("svg")!;
+    expect(svg.getAttribute("stroke-width")).toBe("0.7");
   });
 
   it("renders the newly added glyphs", () => {
@@ -41,7 +47,7 @@ describe("Icon", () => {
     }
   });
 
-  it.each(["panorama", "file", "maximize", "minimize", "grip", "arrow-up", "close"] as const)(
+  it.each(["panorama", "file", "maximize", "minimize", "grip", "arrow-up", "close", "reset", "documents", "help"] as const)(
     "draws the %s glyph",
     (name) => {
       const { container } = render(<Icon name={name} />);

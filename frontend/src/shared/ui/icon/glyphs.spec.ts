@@ -7,65 +7,20 @@ describe("the glyph registry", () => {
     expect(new Set(ICON_NAMES).size).toBe(ICON_NAMES.length);
   });
 
-  it("carries the glyphs the design system draws", () => {
+  it("carries every name the app draws", () => {
     expect([...ICON_NAMES].sort()).toEqual([
-      "arrow-right",
-      "arrow-up",
-      "calendar",
-      "check",
-      "chevron-left",
-      "chevron-right",
-      "chevron-up",
-      "close",
-      "cube",
-      "download",
-      "eye",
-      "eye-off",
-      "file",
-      "grid",
-      "grip",
-      "info",
-      "kebab",
-      "list",
-      "lock",
-      "magnet",
-      "maximize",
-      "minimize",
-      "minus",
-      "moon",
-      "panorama",
-      "passkey",
-      "pencil",
-      "plus",
-      "refresh",
-      "ruler",
-      "search",
-      "sun",
-      "trash",
-      "upload",
+      "arrow-right", "arrow-up", "calendar", "check", "chevron-left", "chevron-right", "chevron-up",
+      "close", "cube", "documents", "download", "eye", "eye-off", "file", "grid", "grip", "help",
+      "info", "kebab", "list", "lock", "magnet", "maximize", "minimize", "minus", "moon", "panorama",
+      "passkey", "pencil", "plus", "refresh", "reset", "ruler", "search", "sun", "trash", "upload",
       "warning",
     ]);
   });
 
-  it("gives every glyph a square viewBox anchored at the origin", () => {
+  it("gives every glyph a body and nothing else — grid and stroke are the component's", () => {
     for (const name of ICON_NAMES) {
-      const [minX, minY, width, height] = GLYPHS[name].box.split(" ").map(Number);
-      expect([minX, minY]).toEqual([0, 0]);
-      expect(width).toBe(height);
-    }
-  });
-
-  it("gives every glyph body content", () => {
-    for (const name of ICON_NAMES) {
+      expect(Object.keys(GLYPHS[name])).toEqual(["body"]);
       expect(GLYPHS[name].body).toBeTruthy();
-    }
-  });
-
-  it("marks exactly the filled glyphs with a zero stroke width", () => {
-    const filled = ICON_NAMES.filter((n) => GLYPHS[n].width === 0);
-    expect(filled).toEqual(["kebab"]);
-    for (const name of ICON_NAMES.filter((n) => n !== "kebab")) {
-      expect(GLYPHS[name].width).toBeGreaterThan(0);
     }
   });
 });
