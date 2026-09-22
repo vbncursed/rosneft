@@ -67,6 +67,15 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
 });
 
 describe("ViewerOverlays · the tool rail", () => {
+  it("draws every rail tile with an icon, not a character", () => {
+    render(<ViewerOverlays {...props()} />);
+    const rail = screen.getByRole("toolbar", { name: "Viewer tools" });
+    for (const button of rail.querySelectorAll("button")) {
+      expect(button.querySelector("svg")).not.toBeNull();
+      expect(button.textContent).not.toMatch(/[↺↔＋◎▤▶]/);
+    }
+  });
+
   it("names every tile and marks the active one", () => {
     render(<ViewerOverlays {...props()} />);
     const rail = screen.getByRole("toolbar", { name: "Viewer tools" });

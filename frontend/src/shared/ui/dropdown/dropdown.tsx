@@ -2,6 +2,7 @@ import { useId, useRef, useState, type KeyboardEvent } from "react";
 import { clsx as cx } from "clsx";
 import { nextEnabled } from "@/shared/lib/roving";
 import { useDismiss } from "@/shared/lib/use-dismiss";
+import { Icon } from "@/shared/ui/icon";
 
 export type DropdownOption<T extends string> = {
   value: T;
@@ -145,8 +146,8 @@ export function Dropdown<T extends string>({
                   index === active && !option.disabled && "outline-2 -outline-offset-2 outline-accent",
                 )}
               >
-                <span aria-hidden="true" className="text-[10px] text-accent">
-                  {isSelected ? "●" : "○"}
+                <span aria-hidden="true" className="flex w-3 justify-center text-accent">
+                  {isSelected ? <Icon name="check" size={12} /> : null}
                 </span>
                 <span className="flex-1">{option.label}</span>
                 {option.hint ? (

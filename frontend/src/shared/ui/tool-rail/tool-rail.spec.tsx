@@ -1,12 +1,13 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { Icon } from "@/shared/ui/icon";
 import { ToolRail } from "./tool-rail";
 
 const tools = (onReset = vi.fn(), onMeasure = vi.fn()) => [
-  { key: "reset", glyph: "↺", name: "Reset camera", state: "active" as const, onClick: onReset },
-  { key: "measure", glyph: "↔", name: "Measure (M)", toggle: true, onClick: onMeasure },
-  { key: "tour", glyph: "▶", name: "Replay guided tour", state: "inert" as const, onClick: vi.fn() },
+  { key: "reset", glyph: <Icon name="reset" size={15} />, name: "Reset camera", state: "active" as const, onClick: onReset },
+  { key: "measure", glyph: <Icon name="ruler" size={15} />, name: "Measure (M)", toggle: true, onClick: onMeasure },
+  { key: "tour", glyph: <Icon name="help" size={15} />, name: "Replay guided tour", state: "inert" as const, onClick: vi.fn() },
 ];
 
 describe("ToolRail", () => {
@@ -64,7 +65,7 @@ describe("ToolRail", () => {
     const { container } = render(
       <ToolRail
         label="Viewer tools"
-        tools={[{ key: "measure", glyph: "↔", name: "Measure (M)", dataTour: "measure" }]}
+        tools={[{ key: "measure", glyph: <Icon name="ruler" size={15} />, name: "Measure (M)", dataTour: "measure" }]}
       />,
     );
     expect(container.querySelector('[data-tour="measure"]')).toBe(

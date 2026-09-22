@@ -2,6 +2,7 @@ import { memo, useCallback, useMemo } from "react";
 import { Vector3 } from "three";
 import { Html, Line } from "@react-three/drei";
 import { decodeSegmentId, formatDistance, type Measurement } from "@/entities/measurement";
+import { Icon } from "@/shared/ui/icon";
 
 interface MeasurementSegmentProps {
   measurement: Measurement;
@@ -97,7 +98,7 @@ function MeasurementSegmentImpl({
             className={`${CHIP} cursor-pointer transition-[color,border-color,scale] duration-150 ease-out hover:border-bad hover:text-bad active:scale-[0.97]`}
           >
             <span>{label}</span>
-            <span aria-hidden="true">×</span>
+            <Icon name="close" size={11} />
           </button>
         ) : (
           <span className={CHIP}>{label}</span>

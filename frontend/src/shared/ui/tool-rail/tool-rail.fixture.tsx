@@ -1,12 +1,13 @@
+import { Icon } from "@/shared/ui/icon";
 import { ToolRail, type ToolRailItem } from "./tool-rail";
 
 const BASE_TOOLS: Omit<ToolRailItem, "state">[] = [
-  { key: "reset", glyph: "↺", name: "Reset camera" },
-  { key: "measure", glyph: "↔", name: "Measure (M)" },
-  { key: "add", glyph: "＋", name: "Add objects" },
-  { key: "panoramas", glyph: "◎", name: "Panoramas" },
-  { key: "documents", glyph: "▤", name: "Documents" },
-  { key: "tour", glyph: "▶", name: "Replay guided tour" },
+  { key: "reset", glyph: <Icon name="reset" size={15} />, name: "Reset camera" },
+  { key: "measure", glyph: <Icon name="ruler" size={15} />, name: "Measure (M)" },
+  { key: "add", glyph: <Icon name="plus" size={15} />, name: "Add objects" },
+  { key: "panoramas", glyph: <Icon name="panorama" size={15} />, name: "Panoramas" },
+  { key: "documents", glyph: <Icon name="documents" size={15} />, name: "Documents" },
+  { key: "tour", glyph: <Icon name="help" size={15} />, name: "Replay guided tour" },
 ];
 
 const withStates = (states: Record<string, ToolRailItem["state"]>): ToolRailItem[] =>
