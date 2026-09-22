@@ -108,11 +108,11 @@ export function Dropdown<T extends string>({
         <span
           aria-hidden="true"
           className={cx(
-            "inline-block transition-transform duration-150 ease-out motion-reduce:transition-none",
+            "flex transition-transform duration-150 ease-out motion-reduce:transition-none",
             open ? "rotate-180 text-accent" : "text-muted",
           )}
         >
-          ▾
+          <Icon name="chevron-down" size={12} />
         </span>
       </button>
 

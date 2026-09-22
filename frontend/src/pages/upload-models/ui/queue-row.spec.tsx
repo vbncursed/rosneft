@@ -150,3 +150,12 @@ describe("QueueRowCard", () => {
     expect(screen.getByText("failed")).toBeInTheDocument();
   });
 });
+
+describe("QueueRowCard · remove mark", () => {
+  it("draws the remove button as an icon, not a × character", () => {
+    render(<QueueRowCard row={row()} onTitle={() => {}} onRemove={() => {}} onThumbnail={() => {}} />);
+    const remove = screen.getByRole("button", { name: "Remove pump-jack-unit.zip" });
+    expect(remove.querySelector("svg")).not.toBeNull();
+    expect(remove.textContent).toBe("");
+  });
+});

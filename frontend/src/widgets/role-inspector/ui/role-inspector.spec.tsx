@@ -235,3 +235,12 @@ describe("RoleInspector", () => {
     expect(screen.queryByText(/reassign them first/)).not.toBeInTheDocument();
   });
 });
+
+describe("RoleInspector · close mark", () => {
+  it("draws its Close button as an icon, not a × character", () => {
+    render(<RoleInspector {...props()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close.querySelector("svg")).not.toBeNull();
+    expect(close.textContent).toBe("");
+  });
+});

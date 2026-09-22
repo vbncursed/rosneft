@@ -137,3 +137,12 @@ describe("AccessInspector", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 });
+
+describe("AccessInspector · close mark", () => {
+  it("draws its Close button as an icon, not a × character", () => {
+    render(<AccessInspector {...props()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close.querySelector("svg")).not.toBeNull();
+    expect(close.textContent).toBe("");
+  });
+});

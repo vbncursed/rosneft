@@ -62,3 +62,12 @@ describe("RoleChips", () => {
     }
   });
 });
+
+describe("RoleChips · remove mark", () => {
+  it("draws the remove button as an icon, not a × character", () => {
+    render(<RoleChips roles={ROLES} {...props} />);
+    const remove = screen.getByRole("button", { name: "Remove role guest" });
+    expect(remove.querySelector("svg")).not.toBeNull();
+    expect(remove.textContent).toBe("");
+  });
+});

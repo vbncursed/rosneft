@@ -144,3 +144,12 @@ describe("PersonInspector", () => {
     expect(screen.getByText("role editor")).toBeInTheDocument();
   });
 });
+
+describe("PersonInspector · close mark", () => {
+  it("draws its Close button as an icon, not a × character", () => {
+    render(<PersonInspector user={user()} {...handlers()} />);
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close.querySelector("svg")).not.toBeNull();
+    expect(close.textContent).toBe("");
+  });
+});

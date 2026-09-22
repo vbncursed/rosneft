@@ -157,3 +157,15 @@ describe("DatePicker · states", () => {
     expect(calendar.classList).toContain("starting:opacity-0");
   });
 });
+
+describe("DatePicker · month arrows", () => {
+  it("draws the month arrows as chevrons, not ← → characters", async () => {
+    render(<Harness />);
+    await userEvent.click(field());
+    for (const name of ["Previous month", "Next month"]) {
+      const arrow = screen.getByRole("button", { name });
+      expect(arrow.querySelector("svg")).not.toBeNull();
+      expect(arrow.textContent).toBe("");
+    }
+  });
+});

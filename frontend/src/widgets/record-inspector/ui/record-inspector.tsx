@@ -3,6 +3,7 @@ import { diffRows, type AuditEntry, type DiffKind, type Refs } from "@/entities/
 import { Button } from "@/shared/ui/button";
 import { DetailList, type Detail } from "@/shared/ui/detail-list";
 import { inspectorValue } from "../model/inspector-value";
+import { Icon } from "@/shared/ui/icon";
 
 export type RecordInspectorProps = {
   entry: AuditEntry;
@@ -56,7 +57,7 @@ export function RecordInspector({
             aria-label="Close"
             className="-m-1 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[6px] border-none bg-transparent p-0 leading-none text-muted transition-[color,scale] duration-150 ease-out hover:text-fg active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            ×
+            <Icon name="close" size={14} />
           </button>
         ) : null}
       </div>

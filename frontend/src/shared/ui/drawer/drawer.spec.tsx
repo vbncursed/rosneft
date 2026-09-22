@@ -163,3 +163,16 @@ describe("Drawer · closed element", () => {
     expect(close.classList).toContain("active:scale-[0.95]");
   });
 });
+
+describe("Drawer · close mark", () => {
+  it("draws its Close button as an icon, not a × character", () => {
+    render(
+      <Drawer open onClose={() => {}} title="Panel">
+        <p>body</p>
+      </Drawer>,
+    );
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close.querySelector("svg")).not.toBeNull();
+    expect(close.textContent).toBe("");
+  });
+});

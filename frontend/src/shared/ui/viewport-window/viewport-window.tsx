@@ -46,7 +46,7 @@ export function ViewportWindow({ title, geometry, actions, onMoveStart, onResize
           <span
             title="Drag to move"
             onPointerDown={onMoveStart}
-            className="flex cursor-grab select-none items-center text-line-2 [touch-action:none] active:cursor-grabbing"
+            className="flex cursor-grab select-none items-center text-dim [touch-action:none] active:cursor-grabbing"
           >
             <Icon name="grip" size={14} />
           </span>

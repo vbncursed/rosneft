@@ -28,6 +28,7 @@ export const EXTRA_GLYPHS = {
     ),
   },
   "arrow-right": { body: <path d="M5 12H19M12 19L19 12L12 5" /> },
+  "chevron-down": { body: <path d="M6 9L12 15L18 9" /> },
   "chevron-left": { body: <path d="M15 18L9 12L15 6" /> },
   "chevron-right": { body: <path d="M9 18L15 12L9 6" /> },
   "chevron-up": { body: <path d="M18 15L12 9L6 15" /> },

@@ -143,11 +143,13 @@ describe("Dropdown · states", () => {
 
   it("turns one arrow glyph instead of swapping it, and drops the list from the trigger", async () => {
     render(<Harness />);
+    // A drawn chevron, not the ▾ character it replaced.
     const arrow = trigger().querySelector("[aria-hidden]:last-child")!;
-    expect(arrow).toHaveTextContent("▾");
+    expect(arrow.querySelector("svg")).not.toBeNull();
+    expect(trigger()).not.toHaveTextContent("▾");
     expect(arrow.classList).not.toContain("rotate-180");
     await userEvent.click(trigger());
-    expect(arrow).toHaveTextContent("▾");
+    expect(trigger().querySelector("[aria-hidden]:last-child")).toBe(arrow);
     expect(arrow.classList).toContain("rotate-180");
     const list = screen.getByRole("listbox");
     expect(list.classList).toContain("origin-top");

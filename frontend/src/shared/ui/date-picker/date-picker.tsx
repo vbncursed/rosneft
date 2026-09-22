@@ -112,7 +112,7 @@ export function DatePicker({
               onClick={() => setView((v) => shiftMonth(v.year, v.month, -1))}
               className={MONTH_ARROW}
             >
-              ←
+              <Icon name="chevron-left" size={14} />
             </button>
             <span aria-live="polite" className="text-[13px] font-semibold text-fg">
               {monthLabel(view.year, view.month)}
@@ -123,7 +123,7 @@ export function DatePicker({
               onClick={() => setView((v) => shiftMonth(v.year, v.month, 1))}
               className={MONTH_ARROW}
             >
-              →
+              <Icon name="chevron-right" size={14} />
             </button>
           </div>
 
