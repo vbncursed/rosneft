@@ -44,6 +44,15 @@ const withPanoramas = (list: Panorama[], over: Partial<PageParts["panoramas"]> =
   return { ...p, panoramas: { ...p.panoramas, list, ...over } };
 };
 
+describe("viewTabProps · folds", () => {
+  it("hands each section the page's own fold", () => {
+    const p = basePageParts();
+    const props = viewTabProps(p);
+    expect(props.panoramas.fold).toBe(p.sections.panoramas);
+    expect(props.documents.fold).toBe(p.sections.documents);
+  });
+});
+
 describe("viewTabProps · panoramas", () => {
   it("builds one row per capture: its photo, whether it is entered, and whether it is calibrated", () => {
     const rows = viewTabProps(

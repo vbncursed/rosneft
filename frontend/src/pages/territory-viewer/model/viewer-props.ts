@@ -10,7 +10,7 @@ import type { PlaceObjectsModalProps } from "@/widgets/model-picker";
 import type { OverlaysTab } from "@/widgets/overlays-panel";
 import type { PlacementsPanelProps } from "@/widgets/placements-panel";
 import type { UploadModalProps } from "@/widgets/upload-modal";
-import type { ViewTabProps } from "@/widgets/view-tab";
+import type { FoldedSection, SectionFold, ViewTabProps } from "@/widgets/view-tab";
 import type { LodReport, ViewerCanvasProps } from "@/widgets/viewer-canvas";
 import type { DocumentParts, PanoramaParts } from "./overlay-parts";
 import type { PlacementFormView } from "./use-placement-form";
@@ -193,6 +193,8 @@ export type PageParts = {
   panoramas: PanoramaParts;
   documents: DocumentParts;
   panel: { tab: OverlaysTab; collapsed: boolean };
+  /** The View tab's Panoramas and Documents folds (`useViewSections`). */
+  sections: Record<FoldedSection, SectionFold>;
   view: PageViewState;
   on: PageHandlers;
 };

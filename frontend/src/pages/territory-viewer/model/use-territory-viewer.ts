@@ -29,6 +29,7 @@ import { pageProps, type TerritoryViewerPageProps } from "./page-props";
 import { measureGrants } from "./viewer-view";
 import { usePageHandlers } from "./use-page-handlers";
 import { usePlacementForm } from "./use-placement-form";
+import { useViewSections } from "./use-view-sections";
 import { useViewerDocuments } from "./use-viewer-documents";
 import { useViewerPanoramas } from "./use-viewer-panoramas";
 
@@ -191,6 +192,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     tour.step?.tab ?? panoramaTour.step?.tab,
     tour.active || panoramaTour.active,
   );
+  const sections = useViewSections(mode.state, tour.active || panoramaTour.active);
 
   const { view, failedAt, on } = usePageHandlers({
     mode,
@@ -200,6 +202,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     panel,
     tour,
     documents,
+    openSection: sections.reveal,
     canDeleteMeasurements: grants.measureDelete,
   });
 
@@ -243,6 +246,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
       panoramas,
       documents,
       panel: { tab: panel.tab, collapsed: panel.collapsed },
+      sections,
       view: {
         ...view,
         compact,

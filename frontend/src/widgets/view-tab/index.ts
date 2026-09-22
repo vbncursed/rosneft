@@ -1,4 +1,9 @@
 export { ViewTab, type ViewTabProps } from "./ui/view-tab";
+export {
+  useSectionFolds,
+  type FoldedSection,
+  type SectionFold,
+} from "./model/use-section-folds";
 export { AnchorCard, type AnchorCardProps } from "./ui/anchor-card";
 export { AnchorFields, type AnchorFieldsProps } from "./ui/anchor-fields";
 export { CalibrationCard, type CalibrationCardProps } from "./ui/calibration-card";

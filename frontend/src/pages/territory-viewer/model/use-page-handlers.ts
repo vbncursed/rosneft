@@ -19,6 +19,8 @@ export type HandlerDeps = {
   tour: Tour;
   /** Only the documents: every panorama callback is already the parts' own. */
   documents: DocumentParts;
+  /** Unfolds one View-tab list — the rail tile's "show me", remembered. */
+  openSection: (section: Section) => void;
   /** `measurement:delete`: Clear then deletes the saved chains too, after asking. */
   canDeleteMeasurements: boolean;
 };
@@ -60,7 +62,8 @@ const NO_LOD: LodState = { report: NO_REPORT, failedAt: null };
  * fresh identity re-runs the effects that attach to the scene.
  */
 export function usePageHandlers(d: HandlerDeps): PageInteraction {
-  const { mode, measure, editor, form, panel, tour, documents, canDeleteMeasurements } = d;
+  const { mode, measure, editor, form, panel, tour, documents, openSection, canDeleteMeasurements } =
+    d;
   const [targetLod, setTargetLod] = useState(0);
   const [retryVersion, setRetryVersion] = useState(0);
   const [resetVersion, setResetVersion] = useState(0);
@@ -117,9 +120,10 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
     (section: Section) => {
       panel.setTab("view");
       panel.setCollapsed(false);
+      openSection(section);
       revealSection(section);
     },
-    [panel],
+    [panel, openSection],
   );
   const onPanoramas = useCallback(() => reveal("panoramas"), [reveal]);
   const onDocuments = useCallback(() => {
