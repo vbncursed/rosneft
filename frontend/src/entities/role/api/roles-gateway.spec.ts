@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCsrfToken } from "@/shared/api";
-import { createRole, deleteRole, listRoles, renameRole, setRolePermissions } from "./roles-gateway";
+import { createRole, deleteRole, listRoles, updateRole } from "./roles-gateway";
 
 const role = { slug: "field-operator", title: "Field Operator", isSystem: false, permissionSlugs: [] };
 const json = (body: unknown, status = 200) =>
@@ -38,22 +38,31 @@ describe("roles gateway", () => {
     });
   });
 
-  it("renames a role, URL-encoding a slug with a space", async () => {
-    await renameRole("field operator", "Field Ops");
+  it("patches the title and the permission set in one call, URL-encoding the slug", async () => {
+    await updateRole("field operator", { title: "Field Ops", permissionSlugs: ["territory:read"] });
     expect(request()).toEqual({
       url: "/api/auth/roles/field%20operator",
       method: "PATCH",
-      body: { title: "Field Ops" },
+      body: { title: "Field Ops", permissionSlugs: ["territory:read"] },
     });
   });
 
-  it("replaces a role's permissions on its own route", async () => {
-    await setRolePermissions("field-operator", ["territory:read", "territory:write"]);
-    expect(request()).toEqual({
-      url: "/api/auth/roles/field-operator/permissions",
-      method: "PUT",
-      body: { permissionSlugs: ["territory:read", "territory:write"] },
-    });
+  it("sends an empty set as a set", async () => {
+    await updateRole("field-operator", { title: "Field operator", permissionSlugs: [] });
+    expect(request().body).toEqual({ title: "Field operator", permissionSlugs: [] });
+  });
+
+  it("sends a title-only patch without a permissionSlugs key", async () => {
+    await updateRole("field-operator", { title: "Field operator" });
+    expect(request().body).toEqual({ title: "Field operator" });
+  });
+
+  // A role with no grants comes back as permissionSlugs: null (a Go nil slice).
+  it("reads the gateway's null permission set as empty", async () => {
+    fetchMock.mockResolvedValueOnce(json({ ...role, permissionSlugs: null }));
+    const saved = await updateRole("field-operator", { title: "Field operator", permissionSlugs: [] });
+    expect(saved.permissionSlugs).toEqual([]);
+    expect(saved.grants).toBe(0);
   });
 
   it("deletes a role on its own route, URL-encoding the slug", async () => {
