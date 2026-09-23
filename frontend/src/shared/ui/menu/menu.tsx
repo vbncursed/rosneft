@@ -109,7 +109,7 @@ export function Menu({
         triggerClassName ??
           cx(
             "rounded-[7px] border px-2 py-1.5 transition-[color,background-color,border-color,scale] duration-150 ease-out enabled:active:scale-[0.95]",
-            open ? "border-accent-line bg-accent-soft text-accent" : "border-transparent text-muted hover:text-fg",
+            open ? "border-accent-line bg-accent-soft text-accent" : "border-transparent text-muted enabled:hover:text-fg",
           ),
       )}
     >

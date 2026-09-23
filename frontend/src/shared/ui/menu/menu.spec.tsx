@@ -237,6 +237,9 @@ describe("Menu · ids and a disabled trigger", () => {
     const trigger = screen.getByRole("button", { name: "Row actions" });
     expect(trigger).toBeDisabled();
     expect(trigger.classList).toContain("disabled:opacity-45");
+    // A greyed trigger must not brighten under the pointer as if it answered.
+    expect(trigger).toHaveClass("enabled:hover:text-fg");
+    expect(trigger).not.toHaveClass("hover:text-fg");
     await userEvent.click(trigger);
     expect(screen.queryByRole("menu")).toBeNull();
   });

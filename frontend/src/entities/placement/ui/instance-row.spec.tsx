@@ -54,7 +54,7 @@ describe("InstanceRow", () => {
   });
   it("presses Focus", () => {
     render(<InstanceRow group={group} instance={instance} selected={false} pending={false} canWrite={false} canDelete={false} {...handlers()} />);
-    expect(screen.getByRole("button", { name: "Focus storage-tank-500 #2" })).toHaveClass("active:scale-[0.97]", "ease-out");
+    expect(screen.getByRole("button", { name: "Focus storage-tank-500 #2" })).toHaveClass("enabled:active:scale-[0.97]", "ease-out");
   });
 });
 
@@ -75,5 +75,70 @@ describe("InstanceRow · tooltip", () => {
     const rename = screen.getByRole("button", { name: /^Rename / });
     expect(rename).toBeDisabled();
     expect(hoverTip(rename.parentElement!)).toHaveTextContent(rename.getAttribute("aria-label")!);
+  });
+});
+
+describe("InstanceRow · hiding and groups", () => {
+  const hidden = { ...instance, hidden: true };
+
+  it("leads with an eye for a writer, handing the next hidden value on", async () => {
+    const onHide = vi.fn();
+    render(<InstanceRow group={group} instance={instance} selected={false} pending={false} canWrite canDelete {...handlers()} onHide={onHide} />);
+    await userEvent.click(screen.getByRole("button", { name: "Hide storage-tank-500 #2" }));
+    expect(onHide).toHaveBeenCalledWith(2, true);
+  });
+
+  // Spec §1.5: a hidden row is dimmed but stays interactive — select, rename, un-hide.
+  it("dims a hidden row, keeps it selectable, and says hidden in its name", async () => {
+    const h = handlers();
+    render(<InstanceRow group={group} instance={hidden} selected={false} pending={false} canWrite canDelete {...h} onHide={vi.fn()} />);
+    const select = screen.getByRole("button", { name: "storage-tank-500 #2 · Tank 2 · hidden" });
+    expect(select).toHaveClass("opacity-55");
+    await userEvent.click(select);
+    expect(h.onSelect).toHaveBeenCalledWith(2);
+    expect(screen.getByRole("button", { name: "Hide storage-tank-500 #2" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("offers Move to group beside the pencil, with the territory's groups", async () => {
+    const onMove = vi.fn();
+    render(
+      <InstanceRow group={group} instance={instance} selected={false} pending={false} canWrite canDelete {...handlers()}
+        groups={[{ id: 4, title: "East yard" }]} onMove={onMove} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Move storage-tank-500 #2 to group" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "East yard" }));
+    expect(onMove).toHaveBeenCalledWith(2, 4);
+  });
+
+  // Controller ruling (GF5 review): the trigger keeps the focus it holds after
+  // a choice; the moves wait instead of the trigger.
+  it("keeps Move to group focusable while its write is in flight", async () => {
+    render(
+      <InstanceRow group={group} instance={instance} selected={false} pending canWrite canDelete {...handlers()}
+        groups={[{ id: 4, title: "East yard" }]} onMove={vi.fn()} />,
+    );
+    const move = screen.getByRole("button", { name: "Move storage-tank-500 #2 to group" });
+    expect(move).toBeEnabled();
+    await userEvent.click(move);
+    expect(screen.getByRole("menuitem", { name: "East yard" })).toBeDisabled();
+  });
+
+  it("gives a reader without write no eye and no move, only the hidden mark", () => {
+    const { container } = render(
+      <InstanceRow group={group} instance={hidden} selected={false} pending={false} canWrite={false} canDelete={false}
+        {...handlers()} onHide={vi.fn()} groups={[{ id: 4, title: "East yard" }]} onMove={vi.fn()} />,
+    );
+    expect(screen.queryByRole("button", { name: /^Hide/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Move/ })).toBeNull();
+    expect(container.querySelectorAll("svg")).toHaveLength(1);
+  });
+
+  // Nothing is drawn to frame (§1.7); the disabled button explains itself.
+  it("disables Focus on a hidden placement and says why", () => {
+    render(<InstanceRow group={group} instance={hidden} selected={false} pending={false} canWrite={false} canDelete={false} {...handlers()} />);
+    const focus = screen.getByRole("button", { name: "Focus storage-tank-500 #2 (hidden)" });
+    expect(focus).toBeDisabled();
+    expect(focus).not.toHaveAttribute("title");
+    expect(hoverTip(focus.parentElement!)).toHaveTextContent("storage-tank-500 #2 is hidden");
   });
 });

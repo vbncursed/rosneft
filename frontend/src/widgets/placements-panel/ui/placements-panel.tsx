@@ -1,5 +1,6 @@
 import {
   GroupRow,
+  groupLine,
   InstanceRow,
   matchesObjects,
   type ModelGroup,
@@ -112,9 +113,10 @@ export function PlacementsPanel({
             {shown.map((group) => (
               <li key={group.model.slug}>
                 <GroupRow
-                  group={group}
+                  title={group.model.title}
+                  line={groupLine(group, selectedId)}
                   expanded={isOpen(group)}
-                  selectedId={selectedId}
+                  holdsSelection={group.instances.some((i) => i.id === selectedId)}
                   onToggle={() => onToggleGroup(group.model.slug)}
                 />
                 {isOpen(group) ? (
