@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCsrfToken } from "@/shared/api";
-import { createPlacement, deletePlacement, setPlacementVisibility, updatePlacement } from "./placements-gateway";
+import { createPlacements, deletePlacement, setPlacementVisibility, updatePlacement } from "./placements-gateway";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -32,9 +32,14 @@ const request = (n = 0) => {
 };
 
 describe("placements gateway", () => {
-  it("POSTs the body under the territory and maps the answer", async () => {
-    await expect(createPlacement("north", BODY)).resolves.toMatchObject({ id: 7, label: "Tank A" });
-    expect(request()).toEqual({ url: "/api/territories/north/placements", method: "POST", body: BODY });
+  it("POSTs the whole batch to the batch route and maps every created row", async () => {
+    fetchMock.mockResolvedValueOnce(json([DTO, { ...DTO, id: 8 }]));
+    await expect(createPlacements("north", [BODY, BODY])).resolves.toMatchObject([{ id: 7 }, { id: 8 }]);
+    expect(request()).toEqual({
+      url: "/api/territories/north/placements/batch",
+      method: "POST",
+      body: { items: [BODY, BODY] },
+    });
   });
 
   it("PUTs to the id-scoped route and returns the server's updatedAt so the form re-keys", async () => {
@@ -60,7 +65,8 @@ describe("placements gateway", () => {
   });
 
   it("percent-encodes the territory slug in every route", async () => {
-    await createPlacement("a b/c", BODY);
+    fetchMock.mockResolvedValueOnce(json([DTO]));
+    await createPlacements("a b/c", [BODY]);
     await updatePlacement("a b/c", 7, BODY);
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
     await deletePlacement("a b/c", 7);

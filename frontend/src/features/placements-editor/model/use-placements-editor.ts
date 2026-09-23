@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
-  createPlacement,
+  createPlacements,
   deletePlacement,
   idle,
   creating,
@@ -30,14 +30,14 @@ export type PlacementsEditorParams = {
   onChanged: () => void;
 };
 
-/** How far a batch of N has got. Null when nothing is being placed. */
+/** How big the batch in flight is. Null when nothing is being placed. */
 export type Placing = { done: number; total: number };
 
 /**
- * The placement editor's state: the list, the in-flight mutation and the
- * batch-create progress. Mutations are optimistic — each swaps the
- * server-acknowledged placement into local state — and every success tells the
- * page, which marks the bundle stale so the next visit re-reads it.
+ * The placement editor's state: the list, the in-flight mutation and the batch
+ * being placed. Mutations are optimistic — each swaps the server-acknowledged
+ * placement into local state — and every success tells the page (`onChanged`),
+ * which marks the bundle stale so the next visit re-reads it.
  */
 export function usePlacementsEditor({
   slug,
@@ -65,7 +65,6 @@ export function usePlacementsEditor({
   const create = useCallback(
     async (modelSlug: string, count: number): Promise<number | null> => {
       const total = Math.max(1, Math.floor(count));
-      const created: ResolvedPlacement[] = [];
       setMutation(creating);
       setPlacing({ done: 0, total });
       try {
@@ -78,32 +77,23 @@ export function usePlacementsEditor({
           territoryMaxDim,
         );
         const step = 2 * scale * 1.1;
-        for (let i = 0; i < total; i++) {
-          // ponytail: N sequential POSTs; add a batch endpoint if N grows large.
-          const placement = await createPlacement(slug, {
-            modelSlug,
-            position: { x: i * step, y: 0, z: 0 },
-            scale: { x: scale, y: scale, z: scale },
-            visiblePanoramaIds: panoramaIds,
-          });
-          created.push(resolve(placement));
-          setPlacing({ done: i + 1, total });
-        }
-        return created[created.length - 1].id;
+        const items = Array.from({ length: total }, (_, i) => ({
+          modelSlug,
+          position: { x: i * step, y: 0, z: 0 },
+          scale: { x: scale, y: scale, z: scale },
+          visiblePanoramaIds: panoramaIds,
+        }));
+        // One transaction on the gateway: the batch lands whole or not at all,
+        // so a refusal leaves nothing to show and nothing to mark stale. The
+        // picker caps N at 99, under the endpoint's 100.
+        const created = (await createPlacements(slug, items)).map(resolve);
+        startTransition(() => setPlacements((prev) => [...prev, ...created]));
+        onChanged();
+        return created.at(-1)?.id ?? null;
       } catch (err) {
-        // A refusal part-way through a batch leaves the POSTs before it
-        // standing on the server. The rows that landed are shown, and the
-        // next visit's fresh bundle reconciles the rest; the answer is still
-        // null, because there is no last id to select.
         notify.error(messageOf(err));
         return null;
       } finally {
-        // Both paths: whatever the loop got through exists, so it belongs on
-        // screen, and onChanged marks the bundle stale for the next visit.
-        if (created.length > 0) {
-          startTransition(() => setPlacements((prev) => [...prev, ...created]));
-          onChanged();
-        }
         setPlacing(null);
         setMutation(idle);
       }
