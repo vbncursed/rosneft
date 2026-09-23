@@ -730,6 +730,13 @@ components:
       required: [title]
       properties:
         title: { type: string }
+        permissionSlugs:
+          type: array
+          items: { type: string }
+          description: >
+            Optional. Present (even as []) replaces the role's permissions in the
+            rename's transaction, under the same no-escalation check as
+            PUT …/permissions. Absent leaves them untouched.
     SetRolePermissionsRequest:
       type: object
       required: [permissionSlugs]
@@ -2428,7 +2435,7 @@ paths:
       - { in: path, name: slug, required: true, schema: { type: string } }
     patch:
       tags: [auth]
-      summary: Rename a role (requires roles:manage)
+      summary: Rename a role and optionally replace its permissions (requires roles:manage)
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -2441,6 +2448,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuthRole' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }

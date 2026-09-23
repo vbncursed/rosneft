@@ -284,7 +284,13 @@ message CreateRoleRequest {
 message UpdateRoleRequest {
   string slug = 1;
   string title = 2;
-  string token = 3; // actor; only the role's group (or Root) may rename it
+  string token = 3; // actor; only the role's group (or Root) may change it
+  // Applied only when replace_permissions is set, in the rename's transaction,
+  // under the same no-escalation check as SetRolePermissions. The flag exists
+  // because proto3 cannot tell an absent repeated field from an empty one, and
+  // an empty set must still mean "strip every grant".
+  repeated string permission_slugs = 4;
+  bool replace_permissions = 5;
 }
 message DeleteRoleRequest {
   string slug = 1;

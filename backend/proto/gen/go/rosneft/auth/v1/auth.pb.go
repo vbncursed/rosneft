@@ -2318,12 +2318,18 @@ func (x *CreateRoleRequest) GetToken() string {
 }
 
 type UpdateRoleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Slug          string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
-	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Token         string                 `protobuf:"bytes,3,opt,name=token,proto3" json:"token,omitempty"` // actor; only the role's group (or Root) may rename it
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Slug  string                 `protobuf:"bytes,1,opt,name=slug,proto3" json:"slug,omitempty"`
+	Title string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Token string                 `protobuf:"bytes,3,opt,name=token,proto3" json:"token,omitempty"` // actor; only the role's group (or Root) may change it
+	// Applied only when replace_permissions is set, in the rename's transaction,
+	// under the same no-escalation check as SetRolePermissions. The flag exists
+	// because proto3 cannot tell an absent repeated field from an empty one, and
+	// an empty set must still mean "strip every grant".
+	PermissionSlugs    []string `protobuf:"bytes,4,rep,name=permission_slugs,json=permissionSlugs,proto3" json:"permission_slugs,omitempty"`
+	ReplacePermissions bool     `protobuf:"varint,5,opt,name=replace_permissions,json=replacePermissions,proto3" json:"replace_permissions,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *UpdateRoleRequest) Reset() {
@@ -2375,6 +2381,20 @@ func (x *UpdateRoleRequest) GetToken() string {
 		return x.Token
 	}
 	return ""
+}
+
+func (x *UpdateRoleRequest) GetPermissionSlugs() []string {
+	if x != nil {
+		return x.PermissionSlugs
+	}
+	return nil
+}
+
+func (x *UpdateRoleRequest) GetReplacePermissions() bool {
+	if x != nil {
+		return x.ReplacePermissions
+	}
+	return false
 }
 
 type DeleteRoleRequest struct {
@@ -2764,11 +2784,13 @@ const file_rosneft_auth_v1_auth_proto_rawDesc = "" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12)\n" +
 	"\x10permission_slugs\x18\x03 \x03(\tR\x0fpermissionSlugs\x12\x14\n" +
-	"\x05token\x18\x04 \x01(\tR\x05token\"S\n" +
+	"\x05token\x18\x04 \x01(\tR\x05token\"\xaf\x01\n" +
 	"\x11UpdateRoleRequest\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x14\n" +
-	"\x05token\x18\x03 \x01(\tR\x05token\"=\n" +
+	"\x05token\x18\x03 \x01(\tR\x05token\x12)\n" +
+	"\x10permission_slugs\x18\x04 \x03(\tR\x0fpermissionSlugs\x12/\n" +
+	"\x13replace_permissions\x18\x05 \x01(\bR\x12replacePermissions\"=\n" +
 	"\x11DeleteRoleRequest\x12\x12\n" +
 	"\x04slug\x18\x01 \x01(\tR\x04slug\x12\x14\n" +
 	"\x05token\x18\x02 \x01(\tR\x05token\"\x14\n" +

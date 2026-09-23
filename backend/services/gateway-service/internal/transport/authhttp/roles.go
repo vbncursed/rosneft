@@ -32,11 +32,16 @@ func (h *Handlers) createRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) updateRole(w http.ResponseWriter, r *http.Request) {
-	var req struct{ Title string }
+	// A pointer keeps "absent" and [] apart: absent leaves the grants alone, []
+	// strips them all.
+	var req struct {
+		Title           string
+		PermissionSlugs *[]string
+	}
 	if !decode(w, r, &req) {
 		return
 	}
-	role, err := h.client.UpdateRole(r.Context(), sessionToken(r), chi.URLParam(r, "slug"), req.Title)
+	role, err := h.client.UpdateRole(r.Context(), sessionToken(r), chi.URLParam(r, "slug"), req.Title, req.PermissionSlugs)
 	if err != nil {
 		fail(w, err)
 		return

@@ -53,7 +53,7 @@ type UsersSvc interface {
 type RolesSvc interface {
 	List(ctx context.Context, scopeAdminID string, allAccess bool) ([]domain.Role, error)
 	Create(ctx context.Context, actorID, ownerAdminID, slug, title string, permSlugs []string) (domain.Role, error)
-	UpdateTitle(ctx context.Context, slug, title, scopeAdminID string, allAccess bool) (domain.Role, error)
+	Update(ctx context.Context, actorID string, u domain.RoleUpdate, scopeAdminID string, allAccess bool) (domain.Role, error)
 	Delete(ctx context.Context, slug, scopeAdminID string, allAccess bool) error
 	SetPermissions(ctx context.Context, actorID, slug string, permSlugs []string, scopeAdminID string, allAccess bool) (domain.Role, error)
 	ListPermissions(ctx context.Context) ([]domain.Permission, error)
