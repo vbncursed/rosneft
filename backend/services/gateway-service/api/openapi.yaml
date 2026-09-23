@@ -2282,6 +2282,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { description: Self-target guard }
+        '500': { $ref: '#/components/responses/Internal' }
 
   /api/auth/roles:
     get:

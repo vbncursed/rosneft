@@ -68,6 +68,7 @@ func (s *SchemaSuite) SetupTest() {
 			slug                  TEXT NOT NULL,
 			title                 TEXT NOT NULL DEFAULT '',
 			password_hash         TEXT NOT NULL DEFAULT 'hunter2',
+			password_changed_at   TIMESTAMPTZ,
 			onboarding_tours_seen TEXT[] NOT NULL DEFAULT '{}',
 			updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 		);
@@ -169,6 +170,32 @@ func (s *SchemaSuite) TestRealEditAlongsideBookkeepingIsCaptured() {
 	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT new_row::text FROM audit_log`).Scan(&newRow))
 	assert.Assert(s.T(), strings.Contains(newRow, "Beta"))
 	assert.Assert(s.T(), strings.Contains(newRow, "viewer"))
+}
+
+// A password change must reach the journal without its hash. Rewriting only
+// password_hash (redacted) and updated_at (ignored) compares equal and is
+// dropped, which is why users.password_changed_at exists: stamping it leaves
+// exactly one update whose snapshots carry the stamp and never the hash.
+func (s *SchemaSuite) TestPasswordChangeIsCapturedOnlyThroughItsStamp() {
+	ctx := s.T().Context()
+	_, err := s.pool.Exec(ctx, `INSERT INTO subjects (slug) VALUES ('alpha')`)
+	assert.NilError(s.T(), err)
+	s.truncateLog()
+
+	_, err = s.pool.Exec(ctx, `UPDATE subjects SET password_hash = 'x', updated_at = now() WHERE slug = 'alpha'`)
+	assert.NilError(s.T(), err)
+	var n int
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT count(*) FROM audit_log`).Scan(&n))
+	assert.Equal(s.T(), n, 0)
+
+	_, err = s.pool.Exec(ctx, `UPDATE subjects
+		SET password_hash = 'y', password_changed_at = now(), updated_at = now() WHERE slug = 'alpha'`)
+	assert.NilError(s.T(), err)
+	var action, newRow string
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT action, new_row::text FROM audit_log`).Scan(&action, &newRow))
+	assert.Equal(s.T(), action, "subject.update")
+	assert.Assert(s.T(), strings.Contains(newRow, "password_changed_at"))
+	assert.Assert(s.T(), !strings.Contains(newRow, "password_hash"))
 }
 
 func (s *SchemaSuite) TestRealUpdateIsCaptured() {

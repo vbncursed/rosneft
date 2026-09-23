@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/suite"
@@ -72,7 +73,12 @@ func (s *SetUserPasswordSuite) TestForwardsTargetPasswordAndSessionThenAnswers20
 	rec := s.put(stub, `{"password":"N3w-Passw0rd!"}`)
 
 	assert.Equal(s.T(), rec.Code, http.StatusNoContent)
-	got := <-stub.got
+	var got *authv1.SetUserPasswordRequest
+	select {
+	case got = <-stub.got:
+	case <-time.After(5 * time.Second):
+		s.T().Fatal("auth-service never received SetUserPassword")
+	}
 	assert.Equal(s.T(), got.GetToken(), "tok")
 	assert.Equal(s.T(), got.GetId(), "u-1")
 	assert.Equal(s.T(), got.GetPassword(), "N3w-Passw0rd!")
