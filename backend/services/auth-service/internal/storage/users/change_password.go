@@ -11,13 +11,17 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
-// ChangePassword sets a new password hash.
+// ChangePassword sets a new password hash and stamps password_changed_at.
 //
-// Wrapped in audittx.Run so the change is attributed. audit_capture() redacts
-// password_hash from both snapshots, so the journal records that the password
-// changed and by whom, never the hash itself.
+// The stamp is what reaches the journal. audit_capture() redacts password_hash
+// and ignores updated_at, so without it the UPDATE compared equal and nothing
+// was recorded. With it the trigger writes a user.update labelled with the
+// target's email, carrying password_changed_at and never the hash; audittx.Run
+// attributes it to the actor.
 func (s *Store) ChangePassword(ctx context.Context, id, hash string) error {
-	const q = `UPDATE users SET password_hash = $2, updated_at = now() WHERE id = $1 RETURNING id`
+	const q = `UPDATE users
+		SET password_hash = $2, password_changed_at = now(), updated_at = now()
+		WHERE id = $1 RETURNING id`
 
 	err := audittx.Run(ctx, s.pool, func(tx pgx.Tx) error {
 		var got string
