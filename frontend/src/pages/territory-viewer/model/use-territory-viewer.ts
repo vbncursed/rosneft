@@ -31,6 +31,7 @@ import { usePlacementForm } from "./use-placement-form";
 import { useViewSections } from "./use-view-sections";
 import { useViewerDocuments } from "./use-viewer-documents";
 import { useViewerPanoramas } from "./use-viewer-panoramas";
+import { dropOrOweScene, takeSceneDrop } from "./owed-scene-drop";
 
 export type TerritoryViewerState =
   | { status: "loading" }
@@ -92,22 +93,22 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   // next visit and never adopt the refetch. A ref, not the query's
   // `isInvalidated`: a rename's setQueryData clears that flag. A write that
   // lands after the page has gone drops the bundle itself (`left`) — unless a
-  // new visit is already reading it, which keeps it, marked stale.
+  // new visit is already reading it: that visit keeps it, marked stale, and
+  // owes the drop on its own way out (`owed-scene-drop.ts`).
   const changed = useRef(false);
   const left = useRef(false);
   const onChanged = useCallback(() => {
     changed.current = true;
     const keys = [["scene", slug], ["territory", slug], ["territories"], ["model"], ["models"]];
     for (const queryKey of keys) void client.invalidateQueries({ queryKey, refetchType: "none" });
-    // A new visit already reading the bundle keeps it: it was marked stale above.
-    const readers = client.getQueryCache().find({ queryKey: ["scene", slug], exact: true })?.getObserversCount();
-    if (left.current && !readers) client.removeQueries({ queryKey: ["scene", slug], exact: true });
+    if (left.current) dropOrOweScene(client, slug);
   }, [client, slug]);
   useEffect(() => {
     left.current = changed.current = false;
     return () => {
       left.current = true;
-      if (changed.current) client.removeQueries({ queryKey: ["scene", slug], exact: true });
+      // take first, so a debt is paid even when this visit changed something too.
+      if (takeSceneDrop(client, slug) || changed.current) client.removeQueries({ queryKey: ["scene", slug], exact: true });
     };
   }, [client, slug]);
 

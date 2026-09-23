@@ -501,7 +501,10 @@ carries `· 24h`; six console cards wrap at 1280 px on the mock's own
   rename's `setQueryData` clears that flag. A write that lands after the page
   has gone drops the bundle itself — unless a new visit already observes it
   (`getObserversCount() > 0`), where it only stays marked stale: removing it
-  would pull the bundle out from under that visit.
+  would pull the bundle out from under that visit. That visit then *owes* the
+  drop (`owed-scene-drop.ts`, per client): it changed nothing itself, but its
+  way out drops the bundle anyway, or the next visit seeds from the
+  pre-write one.
 
 ## Where things live
 
@@ -709,7 +712,10 @@ the RED panels rather than fetched; alerts are summarised from their own
 labels. A panel the gateway left out of an answered map failed on its own:
 one it answered on an earlier tick of the same range keeps those series,
 marked stale ("· stale — last answer kept"), so a transient failure does not
-flicker the card dark; only a panel never answered darkens its card
+flicker the card dark. Every reader of a kept answer says so in the same
+words: the panel card's meta, a headline tile's hint, the health meter's
+detail (when any of `services-up`/`red-*` is kept) and the alerts badge
+(even at zero); only a panel never answered darkens its card
 ("unavailable — Prometheus did not answer"). Only a request that failed
 outright makes the dashboard unavailable — one dead panel must not blank a
 working screen.
