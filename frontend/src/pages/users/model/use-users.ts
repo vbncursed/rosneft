@@ -20,6 +20,7 @@ import { notify } from "@/shared/lib/notify";
 import { unanswered } from "@/shared/lib/unanswered";
 import { can } from "@/shared/session";
 import { assignableRoles, canResetPassword } from "./people";
+import { putUser } from "./put-user";
 
 export type ActionKind =
   | "freeze"
@@ -43,7 +44,7 @@ const DONE: Record<ActionKind, string> = {
 // message; fixing the copy here keeps the field unnamed whatever it sends.
 const LOGIN_TAKEN = "That email or username is unavailable.";
 
-const run = ({ kind, user }: PendingAction): Promise<unknown> => {
+const run = ({ kind, user }: PendingAction): Promise<User | void> => {
   switch (kind) {
     case "freeze":
       return freezeUser(user.id);
@@ -97,8 +98,8 @@ export type UsersState = {
 /**
  * Everything the Users screen decides. Every state change goes through a
  * pending action the confirm dialog must answer; every outcome reports
- * through notify and invalidates the list so the cards redraw from the
- * gateway's answer rather than a guess.
+ * through notify and lands in the list from the gateway's own answer (a
+ * delete, which has none, refetches).
  */
 export function useUsers(): UsersState {
   const client = useQueryClient();
@@ -118,9 +119,10 @@ export function useUsers(): UsersState {
 
   const action = useMutation({
     mutationFn: run,
-    onSuccess: (_, { kind }) => {
+    onSuccess: (user, { kind }) => {
       notify.success(DONE[kind]);
-      void refresh();
+      if (user) putUser(client, user);
+      else void refresh();
     },
     onError: fail,
     onSettled: () => setPending(null),
@@ -132,7 +134,7 @@ export function useUsers(): UsersState {
       notify.success("User created");
       setCreating(false);
       setSelectedId(user.id);
-      void refresh();
+      putUser(client, user);
     },
     onError: (err) =>
       err instanceof HttpError && err.status === 409 ? notify.error(LOGIN_TAKEN) : fail(err),
@@ -141,10 +143,10 @@ export function useUsers(): UsersState {
   const roleChange = useMutation({
     mutationFn: ({ id, roleSlugs }: { id: string; roleSlugs: string[] }) =>
       setUserRoles(id, roleSlugs),
-    onSuccess: () => {
+    onSuccess: (user) => {
       notify.success("Roles updated");
       setAddingRole(false);
-      void refresh();
+      putUser(client, user);
       void client.invalidateQueries({ queryKey: ["me"] }); // the reader's own grants may have moved
     },
     onError: fail,
@@ -165,8 +167,8 @@ export function useUsers(): UsersState {
   // which `users:read` alone gets — every person would file under "No role"
   // and "Roles in use" would read 0: a confident wrong answer wearing a
   // loaded screen's clothes.
-  // Only a query that has never answered can make the screen unavailable: every
-  // mutation calls refresh(), and a refetch that trips must not replace a
+  // Only a query that has never answered can make the screen unavailable: a
+  // delete calls refresh(), and a refetch that trips must not replace a
   // working screen with an outage page.
   const failed = unanswered(users) ?? unanswered(roles);
 
