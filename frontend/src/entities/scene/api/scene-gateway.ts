@@ -81,6 +81,6 @@ export async function getSceneBundle(slug: string): Promise<SceneBundle> {
     panoramas: (d.panoramas ?? []).map(toPanorama),
     documents: (d.documents ?? []).map(toDocument),
     measurements: d.measurements.map(toStoredChain),
-    placementGroups: d.placementGroups.map(toPlacementGroup),
+    placementGroups: (d.placementGroups ?? []).map(toPlacementGroup),
   };
 }
