@@ -189,6 +189,11 @@ describe("canResetPassword", () => {
     expect(canResetPassword(me({ isOwner: true, permissions: [] }), make("c2", "c", ["admin"]))).toBe(true);
   });
 
+  it("hides it for a deleted account, but a frozen one may still be reset", () => {
+    expect(canResetPassword(me(), make("u1", "a", ["guest"], { status: "deleted" }))).toBe(false);
+    expect(canResetPassword(me(), make("u1", "a", ["guest"], { status: "frozen" }))).toBe(true);
+  });
+
   it("offers nothing without users:write, or with nobody open", () => {
     expect(canResetPassword(me({ permissions: ["users:read"] }), make("u1", "a", ["guest"]))).toBe(false);
     expect(canResetPassword(me(), null)).toBe(false);

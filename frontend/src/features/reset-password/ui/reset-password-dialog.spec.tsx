@@ -29,12 +29,33 @@ describe("ResetPasswordDialog", () => {
     expect(validatePassword(field().value)).toBeNull();
   });
 
-  it("replaces the password with a fresh one on Generate", async () => {
-    render(<ResetPasswordDialog {...props()} />);
+  it("replaces the password with a fresh one on Generate and copies it", async () => {
+    render(
+      <>
+        <Toaster />
+        <ResetPasswordDialog {...props()} />
+      </>,
+    );
     const first = field().value;
     await userEvent.click(screen.getByRole("button", { name: "Generate" }));
     expect(field().value).not.toBe(first);
     expect(validatePassword(field().value)).toBeNull();
+    expect(copyText).toHaveBeenCalledWith(field().value);
+    expect(await screen.findByText("Password copied")).toBeInTheDocument();
+  });
+
+  it("tells the reader to copy a generated password by hand when the clipboard refuses", async () => {
+    vi.mocked(copyText).mockResolvedValueOnce(false);
+    render(
+      <>
+        <Toaster />
+        <ResetPasswordDialog {...props()} />
+      </>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Generate" }));
+    expect(
+      await screen.findByText("Could not copy — select it and copy by hand"),
+    ).toBeInTheDocument();
   });
 
   it("copies the password on Copy and says so", async () => {
@@ -44,7 +65,7 @@ describe("ResetPasswordDialog", () => {
         <ResetPasswordDialog {...props()} />
       </>,
     );
-    await userEvent.click(screen.getByRole("button", { name: "Copy" }));
+    await userEvent.click(screen.getByRole("button", { name: "Copy password" }));
     expect(copyText).toHaveBeenCalledWith(field().value);
     expect(await screen.findByText("Password copied")).toBeInTheDocument();
   });
@@ -57,7 +78,7 @@ describe("ResetPasswordDialog", () => {
         <ResetPasswordDialog {...props()} />
       </>,
     );
-    await userEvent.click(screen.getByRole("button", { name: "Copy" }));
+    await userEvent.click(screen.getByRole("button", { name: "Copy password" }));
     expect(
       await screen.findByText("Could not copy — select it and copy by hand"),
     ).toBeInTheDocument();

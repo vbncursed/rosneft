@@ -27,8 +27,8 @@ export function ResetPasswordDialog({ open, username, busy = false, onClose, onS
   const [attempted, setAttempted] = useState(false);
   const rule = validatePassword(password);
 
-  const copy = () =>
-    void copyText(password).then((ok) =>
+  const copy = (text: string) =>
+    void copyText(text).then((ok) =>
       ok
         ? notify.success("Password copied")
         : notify.error("Could not copy — select it and copy by hand"),
@@ -70,12 +70,20 @@ export function ResetPasswordDialog({ open, username, busy = false, onClose, onS
           action={{
             label: "Generate",
             onClick: (reveal) => {
-              setPassword(generatePassword());
+              const next = generatePassword();
+              setPassword(next);
               reveal();
+              copy(next);
             },
           }}
         />
-        <Button size="sm" className="self-start" onClick={copy} disabled={busy}>
+        <Button
+          size="sm"
+          className="self-start"
+          aria-label="Copy password"
+          onClick={() => copy(password)}
+          disabled={busy}
+        >
           Copy
         </Button>
       </form>

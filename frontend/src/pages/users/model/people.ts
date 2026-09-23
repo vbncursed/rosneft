@@ -115,13 +115,15 @@ export function inspectorDetails(user: User): PersonDetail[] {
 
 /**
  * Whether this reader may set the open person's password. Never their own,
- * because /account asks for the old one. A Company Owner's or Root's only
+ * because /account asks for the old one, and never a deleted account's (a
+ * frozen one may be reset, ready for when it is thawed). A Company Owner's or Root's only
  * when the reader is Root. The gateway enforces all of it; this only keeps
  * the button off where the answer would be a refusal.
  */
 export const canResetPassword = (me: Principal | null, user: User | null): boolean =>
   !!me &&
   !!user &&
+  user.status !== "deleted" &&
   can(me, "users:write") &&
   user.id !== me.id &&
   (me.isOwner || !(user.isOwner || user.roleSlugs.includes("admin")));
