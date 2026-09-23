@@ -34,10 +34,13 @@ const placement = (id: number, over: Partial<ResolvedPlacement> = {}): ResolvedP
 });
 
 let onChanged: ReturnType<typeof vi.fn<() => void>>;
+/** Every render's view of the pending state and the placements, in order. */
+let renders: { mutation: MutationState; placements: ResolvedPlacement[] }[];
 const mount = (initial: ResolvedPlacement[]) =>
   renderHook(() => {
     const [placements, setPlacements] = useState(initial);
     const [mutation, setMutation] = useState<MutationState>(idle);
+    renders.push({ mutation, placements });
     return {
       placements,
       mutation,
@@ -50,6 +53,7 @@ beforeEach(() => {
   vi.mocked(setPlacementsHidden).mockReset();
   vi.mocked(setPlacementsGroup).mockReset();
   onChanged = vi.fn();
+  renders = [];
   clearNotices();
 });
 
@@ -73,6 +77,27 @@ describe("useBulkWrites", () => {
     expect(result.current.placements.map((p) => p.hidden)).toEqual([true, true, false]);
     expect(result.current.mutation).toEqual(idle);
     expect(onChanged).toHaveBeenCalledOnce();
+  });
+
+  // The eye is clickable again the moment the pending state clears. Cleared
+  // before the patch landed, a click in between read the old `hidden` and
+  // sent the value just written — the toggle did nothing.
+  it("releases the pending ids in the same render that applies the patch", async () => {
+    let release!: () => void;
+    vi.mocked(setPlacementsHidden).mockReturnValueOnce(new Promise((res) => (release = () => res(1))));
+    const { result } = mount([placement(1)]);
+    let done!: Promise<void>;
+    act(() => {
+      done = result.current.setHidden([1], true);
+    });
+    const pendingAt = renders.length;
+
+    await act(async () => {
+      release();
+      await done;
+    });
+    const released = renders.slice(pendingAt).filter((r) => r.mutation.kind === "idle");
+    expect(released.map((r) => r.placements[0].hidden)).toEqual([true]);
   });
 
   it("moves ids into a group, and back to No group with null", async () => {
