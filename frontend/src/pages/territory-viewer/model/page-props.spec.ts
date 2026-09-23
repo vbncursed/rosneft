@@ -526,11 +526,11 @@ describe("pageProps · panel", () => {
 });
 
 describe("pageProps · picker, tour and the loading gate", () => {
-  it("names the territory in the picker and reports the batch's progress", () => {
-    const { picker } = pageProps(parts({ placing: { done: 1, total: 2 } }));
+  it("names the territory in the picker and reports the batch in flight", () => {
+    const { picker } = pageProps(parts({ placing: { total: 2 } }));
     expect(picker.territoryTitle).toBe("Refinery Block C");
     expect(picker.options).toBe(OPTIONS);
-    expect(picker.placing).toEqual({ done: 1, total: 2 });
+    expect(picker.placing).toEqual({ total: 2 });
     expect(picker.open).toBe(false);
   });
 

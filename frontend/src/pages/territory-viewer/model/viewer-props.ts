@@ -191,7 +191,7 @@ export type PageParts = {
   };
   placements: ResolvedPlacement[];
   pendingIds: number[];
-  placing: { done: number; total: number } | null;
+  placing: { total: number } | null;
   form: PlacementFormView | null;
   tour: Tour;
   panoramaTour: Tour;

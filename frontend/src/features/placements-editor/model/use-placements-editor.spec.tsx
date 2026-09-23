@@ -104,7 +104,7 @@ describe("usePlacementsEditor", () => {
     act(() => {
       done = result.current.s.create("tank", 2);
     });
-    await waitFor(() => expect(result.current.s.placing).toEqual({ done: 0, total: 2 }));
+    await waitFor(() => expect(result.current.s.placing).toEqual({ total: 2 }));
 
     await act(async () => {
       release();
@@ -130,6 +130,24 @@ describe("usePlacementsEditor", () => {
     expect(onChanged).not.toHaveBeenCalled();
   });
 
+  // No HTTP answer means the gateway may have committed before the line
+  // dropped: the list stays as it was, but the bundle is marked stale so the
+  // next visit shows whatever really landed.
+  it("a batch lost to the network toasts and still marks the bundle stale", async () => {
+    vi.mocked(createPlacements).mockRejectedValue(new TypeError("Failed to fetch"));
+    const { result } = editor([placement(1)]);
+
+    let out: number | null = 7;
+    await act(async () => {
+      out = await result.current.s.create("tank", 2);
+    });
+
+    expect(out).toBeNull();
+    expect(result.current.s.placements.map((p) => p.id)).toEqual([1]);
+    expect(result.current.notices).toHaveLength(1);
+    expect(onChanged).toHaveBeenCalledOnce();
+  });
+
   it("commitTransform keeps the label; rename keeps the transform", async () => {
     vi.mocked(updatePlacement).mockImplementation(async (_slug, id, body) => ({ ...placement(id), ...body }));
     const { result } = editor([placement(1, { label: "Tank 4" })]);
@@ -146,7 +164,9 @@ describe("usePlacementsEditor", () => {
   });
 
   it("create sends visiblePanoramaIds from the editor's panoramaIds param", async () => {
-    vi.mocked(createPlacements).mockImplementation(async (_slug, items) => items.map((body) => ({ ...placement(1), ...body }) as Placement));
+    vi.mocked(createPlacements).mockImplementation(async (_slug, items) =>
+      items.map((body) => ({ ...placement(1), ...body }) as Placement),
+    );
     const { result } = editor([], [1, 2]);
 
     await act(async () => {
@@ -157,7 +177,9 @@ describe("usePlacementsEditor", () => {
   });
 
   it("create sends an empty visiblePanoramaIds when none are given", async () => {
-    vi.mocked(createPlacements).mockImplementation(async (_slug, items) => items.map((body) => ({ ...placement(1), ...body }) as Placement));
+    vi.mocked(createPlacements).mockImplementation(async (_slug, items) =>
+      items.map((body) => ({ ...placement(1), ...body }) as Placement),
+    );
     const { result } = editor([], []);
 
     await act(async () => {
