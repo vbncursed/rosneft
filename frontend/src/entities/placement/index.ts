@@ -1,4 +1,5 @@
 export {
+  GROUP_TITLE_MAX,
   IDENTITY_TRANSFORM,
   isShownIn,
   isVisibleIn,
@@ -6,6 +7,7 @@ export {
   toRadians,
   type Placement,
   type PlacementCreate,
+  type PlacementGroup,
   type PlacementTransform,
   type PlacementUpdate,
   type ResolvedPlacement,
@@ -15,9 +17,17 @@ export { toPlacement } from "./api/to-placement";
 export {
   createPlacements,
   deletePlacement,
+  setPlacementsGroup,
+  setPlacementsHidden,
   setPlacementVisibility,
   updatePlacement,
 } from "./api/placements-gateway";
+export {
+  createPlacementGroup,
+  deletePlacementGroup,
+  renamePlacementGroup,
+  toPlacementGroup,
+} from "./api/placement-groups-gateway";
 export {
   creating,
   idle,

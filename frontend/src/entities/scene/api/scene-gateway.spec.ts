@@ -58,6 +58,7 @@ const dto = {
       updatedAt: "u",
     },
   ],
+  placementGroups: [{ id: 2, title: "Tank farm", createdAt: "c", updatedAt: "u" }],
 };
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -78,6 +79,7 @@ describe("getSceneBundle", () => {
     expect(bundle.panoramas).toEqual([{ ...dto.panoramas[0], updatedAt: "" }]);
     expect(bundle.documents).toEqual([{ ...dto.documents[0], createdAt: "" }]);
     expect(bundle.measurements).toEqual([{ serverId: 5, points: dto.measurements[0].points, closed: false }]);
+    expect(bundle.placementGroups).toEqual([{ id: 2, title: "Tank farm" }]);
   });
 
   it("defaults panoramas and documents to [] when the DTO omits them", async () => {

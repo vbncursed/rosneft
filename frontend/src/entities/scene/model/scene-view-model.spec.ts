@@ -56,6 +56,7 @@ const bundle: SceneBundle = {
   panoramas: [panorama],
   documents: [document],
   measurements: [{ serverId: 5, points: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }], closed: false }],
+  placementGroups: [],
 };
 
 describe("sceneReady", () => {
