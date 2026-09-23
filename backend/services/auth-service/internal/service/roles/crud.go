@@ -27,11 +27,19 @@ func (s *Service) Create(ctx context.Context, actorID, ownerAdminID, slug, title
 	return s.store.Create(ctx, domain.Role{Slug: slug, Title: title, PermissionSlugs: permSlugs, OwnerAdminID: ownerAdminID})
 }
 
-func (s *Service) UpdateTitle(ctx context.Context, slug, title, scopeAdminID string, allAccess bool) (domain.Role, error) {
-	if slug == "" || title == "" {
-		return domain.Role{}, fmt.Errorf("roles.UpdateTitle: %w: slug and title required", domain.ErrInvalidInput)
+// Update renames a role and, when u.ReplacePermissions is set, replaces its
+// grants in the same store transaction. Grants are checked as SetPermissions
+// checks them: a non-owner cannot hand out what it lacks.
+func (s *Service) Update(ctx context.Context, actorID string, u domain.RoleUpdate, scopeAdminID string, allAccess bool) (domain.Role, error) {
+	if u.Slug == "" || u.Title == "" {
+		return domain.Role{}, fmt.Errorf("roles.Update: %w: slug and title required", domain.ErrInvalidInput)
 	}
-	return s.store.UpdateTitle(ctx, slug, title, scopeAdminID, allAccess)
+	if u.ReplacePermissions {
+		if err := s.assertCanGrant(ctx, actorID, u.PermissionSlugs); err != nil {
+			return domain.Role{}, err
+		}
+	}
+	return s.store.Update(ctx, u, scopeAdminID, allAccess)
 }
 
 func (s *Service) Delete(ctx context.Context, slug, scopeAdminID string, allAccess bool) error {

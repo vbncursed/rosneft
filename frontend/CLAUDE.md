@@ -465,6 +465,52 @@ carries `· 24h`; six console cards wrap at 1280 px on the mock's own
   after the rule, and `EmptyState` has a `layout="start"` variant, both
   reused rather than re-derived per page.
 
+## Query cache policy
+
+- **The defaults are `staleTime: 60_000` and `refetchOnWindowFocus: false`**
+  (`app/query/query-client.ts`). A mount inside the minute reads the cache and
+  asks nothing, so a query is only as fresh as the writes that touch it.
+- **A write must invalidate or `setQueryData` everything it changed** — every
+  list, detail and bundle holding a copy — or the stale copy is served for a
+  minute with nothing behind it to correct it.
+- **`cancelQueries` before `setQueryData`.** A refetch already in flight left
+  before the write and answers with the old data; landing after the write, it
+  puts the old value back. `putUser` (`pages/users/model/put-user.ts`), the
+  territory-access save and `mergeInto` (`features/edit-entity`) all await the
+  cancel first; their specs hold an in-flight refetch open across the write to
+  pin it.
+- **`setQueryData` clears `isInvalidated`.** A copy another write had already
+  marked stale must be re-marked after the merge, or the merge passes the
+  rest of it off as fresh — `mergeInto` in `features/edit-entity` is the
+  shape to copy. It bites harder after a `cancelQueries`: the refetch it
+  cancels may be the one an invalidation started (a delete's `refresh()`),
+  and cancel + write drop that mark together. `putUser` and the
+  territory-access save read `isInvalidated` *before* the cancel and, if it
+  was set, invalidate again after the write — a screen showing the list
+  re-reads it, after the write, so with it.
+- **Live routes use `staleTime: 0`**: `jobsQuery` (the route is `no-store`; a
+  job started elsewhere must show on mount), the audit journal and its
+  24-hour window (`auditQuery`, `auditWindowQuery`), the caller's own feed on
+  Home and `/account` (`myAuditQuery`), `consoleSummaryQuery`
+  and the metrics `panelsQuery`.
+- **The viewer marks, it does not refetch.** Its `onChanged`
+  (`use-territory-viewer.ts`) invalidates the scene, the territory and model
+  queries and both lists with `refetchType: "none"` — every list on the page
+  seeds once and is optimistic afterwards — and removes `["scene", slug]` on
+  the way out, since the lists would otherwise reseed from the old bundle on
+  the next visit. A ref records the change, not `isInvalidated`, because a
+  rename's `setQueryData` clears that flag. A write that lands after the page
+  has gone drops the bundle itself — unless a new visit already observes it
+  (`getObserversCount() > 0`), where it only stays marked stale: removing it
+  would pull the bundle out from under that visit. That visit then *owes* the
+  drop (`owed-scene-drop.ts`, per client): it changed nothing itself, but its
+  way out drops the bundle anyway, or the next visit seeds from the
+  pre-write one.
+  Every write the viewer makes goes through it, the tour-link save
+  (`useTerritoryLink`) included — the viewer seeds that link from
+  `bundle.territory.externalPanoramaUrl`, so a save that only invalidated the
+  list left a return visit showing the old link.
+
 ## Where things live
 
 See README for the full table. Shorthand: `shared/ui` has no domain knowledge;
@@ -494,22 +540,32 @@ beside it, and a pure module (`people.ts`, `roles-view.ts`, `catalog.ts`,
 console. Copy that split rather than re-deriving it — every screen here has
 the same shape, and the next one should too.
 
-**Content** is two lists, one artifacts query per row and one `GET /api/jobs`
-over all of them, and a row's status is read off its job and its artifacts —
-so the screen is ready only when every one of them has answered; guessing
-would print "pending" for something merely still loading. A conversion is
-visible while it runs: the row turns `converting` with the worker's percentage
-and stage, the inspector draws the bar and the note, a failure puts the
-worker's message at the top of the inspector, and a row whose job just left
-the live set re-reads its own artifacts (`finishedSince`) so LODs and size
-catch up.
+**Content** is two lists and one `GET /api/jobs` over all of them. Each list
+row carries its own `lods` (the LOD summaries the per-row artifacts query used
+to fetch — there is no per-row artifacts query any more), and a row's status
+is read off its job and those `lods`, so the screen is ready once the three
+queries have answered. A conversion is visible while it runs: the row turns
+`converting` with the worker's percentage and stage, the inspector draws the
+bar and the note, a failure puts the worker's message at the top of the
+inspector, and a row whose job just left the live set re-reads the list it
+sits in so LODs and size catch up. That effect is one hook,
+`useStaleOnFinish` (`entities/conversion`), shared by Content, both catalogs,
+Home, Model Detail and the conversion page: a finished territory marks its
+list and `["scene", slug]` stale, a finished *model* its list and
+`["artifacts", "model", slug]` (Model Detail still reads it); nothing reads a
+territory's artifacts, so nothing invalidates them. A query on screen
+refetches, one that is not is re-read on its next mount. The conversion page
+passes its streamed terminal job as `handled`: the stream already re-read the
+bundle, so the poll that follows does not ask again. The kind → list-key map
+is its `LIST_KEY`, which Content and `features/edit-entity` reuse.
 
-**The catalogs** (`/territories`, `/models`) share Content's shape — the list
-plus one artifacts query per row plus one `GET /api/jobs` — and layer them
-through the one shared rule, `conversionStatusOf` in `entities/content`: a
-failed job wins outright, a live job reads `converting`, otherwise the
-artifacts decide ready/pending. Both carry the `finishedSince` effect, without
-which a conversion finishing on screen flips the card backwards to "pending".
+**The catalogs** (`/territories`, `/models`) share Content's shape — the list,
+with `lods` on every row, plus one `GET /api/jobs` — and layer them through
+the one shared rule, `conversionStatusOf` in `entities/content`: a failed job
+wins outright, a live job reads `converting`, otherwise the `lods` decide
+ready/pending. Both call `useStaleOnFinish` (re-read the list),
+without which a conversion finishing on screen flips the card backwards to
+"pending".
 Every card is a link to its page — the conversion page is where a pending,
 converting or failed territory lands, so there is no longer a state a card has
 to refuse to open into, and no `openable` field to carry the answer.
@@ -543,9 +599,14 @@ from `HEAD /api/assets/{hash}`; a successful replace navigates to this page's
 own `/territories/{slug}?jobId={job.id}`, exactly like Upload Territory —
 neither leaves the SPA any more.
 
-**Territory conversion** (`/territories/{slug}`) is three queries plus one
-stream: the territory, its artifacts, `GET /api/jobs`, and — with `?jobId=` —
-the job's SSE channel (`openJobStream`/`useJobStream` in `entities/conversion`).
+**Territory conversion** (`/territories/{slug}`) is two queries plus one
+stream: the scene bundle the route already holds (`["scene", slug]` — the
+territory and `hasLod0 = sceneReady(bundle)`), `GET /api/jobs`, and — with
+`?jobId=` — the job's SSE channel (`openJobStream`/`useJobStream` in
+`entities/conversion`). The jobs poll (`jobsPoll`) is off while the stream
+delivers a live frame. Replace Source removes `["scene", slug]` before it
+navigates here: the replace deletes the old artifacts, and the loader's
+`ensureQueryData` would otherwise hand back a cached LOD0 as the result.
 The stream, once it has answered, outranks the polled row; when the channel
 is lost (the gateway's `event: error` for an unknown or foreign id, or a
 dropped connection) the hook forgets its frame so the poll wins again.
@@ -571,25 +632,26 @@ Territory and Replace Source navigate here instead of leaving; `leaveTo`
 last caller.
 
 **Home** (`/`, `pages/home`) is the landing screen. `useHome` owns three
-lists (territories, models, jobs), the jobs poll, one artifacts query per
-*shown* territory — the four most recently updated, `recent(...)` in
-`home-view.ts`, never the rest — and the first page of `myAuditQuery`
-sliced to `ACTIVITY_ROWS` (4). The feed never blocks the page: `activity` is
-`null` when unanswered (a Guest's 403), exactly the tri-state `/account`
-already reads. `finishedSince` invalidates a *shown* territory's artifacts
-when its job leaves the live set, same as Content and the catalogs.
-`useConsoleCounters` counts only the cards the reader can open — each query
-is `enabled: !item.disabled`, and reads `isLoading` rather than `isPending`
-because a disabled query stays pending forever (the Roles lesson); a locked
-or still-loading card reads `STATIC_HINTS[key]`, an open query that never
-answered reads "count unavailable", and Access fans out one `adminsQuery`
-per territory — the same shape `/console/access` already uses, so an owner's
-Access card costs one `adminsQuery` per territory on every mount, exactly what
-that screen costs. A background territories refetch that brings a *new*
-territory into the four mounts a new artifacts query, and the page drops to the
-skeleton for that one round-trip — the catalog's own trade-off, because a
-screen that is ready only when every artifacts query has answered is the one
-that never prints "pending" for something merely still loading. `viewerEmpty`
+lists (territories, models, jobs), the jobs poll, and the first page of
+`myAuditQuery` sliced to `ACTIVITY_ROWS` (4); the territory cards are the four
+most recently updated (`recent(...)` in `home-view.ts`) and read their `lods`
+off the list, so no card costs a request of its own. The feed never blocks the
+page: `activity` is `null` when unanswered (a Guest's 403), exactly the
+tri-state `/account` already reads. `useStaleOnFinish` re-reads each list a
+finished job sits in, same as Content and the catalogs.
+`useConsoleCounters` reads one call, `GET /api/console/summary`
+(`consoleSummaryQuery()`, `staleTime: 0` — the route is `no-store`). It sends
+`tzOffset` — minutes east of UTC, `0 - getTimezoneOffset()` so UTC keys as 0,
+not -0 — read per call and in the key, so `audit24h` counts the journal's own
+local-hour buckets. The gateway
+answers only the cards the caller may open and sends **numbers only**; every
+sentence on a card (`usersHint`, `rolesHint`, … in `console-hints.ts`) is
+worded here, on the frontend. The query is disabled when every card is
+locked, and reads `isLoading` rather than `isPending` because a disabled query
+stays pending forever (the Roles lesson); a locked or still-loading card reads
+`STATIC_HINTS[key]`, and a card the summary nulls or leaves out (its source
+failed), or a summary that never answered, reads "count unavailable".
+`viewerEmpty`
 (no territories, no upload right of either kind) hides Models and switches
 the header and territories meta lines. The console items come **down from
 the route**: `app/router/home-route.tsx` hands `consoleNav(me)` to
@@ -636,28 +698,74 @@ visible instance the user keeps. Only one "Console" text now shows inside
 the console sidebar.
 
 **Territory access** is the territories list, the users list and one
-admins query per territory; visibility is derived (anyone assigned →
+`territoryAdminsQuery` (`GET /api/territory-admins`, every visible
+territory's set in one map); visibility is derived (anyone assigned →
 `assigned`, nobody → `private`), every grant is `direct`, drafts are kept per
 slug so switching territories loses no edit, and Save is one PUT of the whole
-set followed by invalidating that territory's admins query alone.
+set. The PUT answers 204 and replaces the set, so on success the ids just
+sent are written into that slug's map entry with `setQueryData` and the draft
+dropped in the same tick — no re-read of the map, and no window where the
+panel shows the pre-save set.
 
 **Audit** is one infinite query keyed by the parsed filters, plus its own
 24-hour window query for the counters above the list — a filter narrows the
 journal and never moves them. It follows only while the first page is the only
 one: refetching N pages every 30 s is not "live", so paging older stops the
-poll, and a hidden tab sends nothing. **Metrics** is one query per panel, all
-keyed on the range the URL holds (`?range=`, validated in the route, `1h` by
-default), each polled every 30 s in a visible tab. The health list is
-synthesised from the `services-up` panel plus the RED panels rather than
-fetched; alerts are summarised from their own labels. A panel that failed is
-one dark card reading "unavailable — <message>", and only a dashboard where
-*every* panel failed is unavailable — one dead panel must not blank a working
-screen.
+poll, and a hidden tab sends nothing. **Metrics** is one multi-panel request
+per tick (`panelsQuery` asks for `ALL_PANELS`, the one list both it and
+`useMetrics` read; one cache entry keyed on the range the URL holds —
+`?range=`, validated in the route, `1h` by default), polled every 30 s in a
+visible tab. The health list is synthesised from the `services-up` panel plus
+the RED panels rather than fetched; alerts are summarised from their own
+labels. A panel the gateway left out of an answered map failed on its own:
+one it answered on an earlier tick of the same range keeps those series,
+marked stale ("· stale — last answer kept"), so a transient failure does not
+flicker the card dark. Every reader of a kept answer says so in the same
+words: the panel card's meta, a headline tile's hint, the health meter's
+detail (when any of `services-up`/`red-*` is kept) and the alerts badge
+(even at zero); only a panel never answered darkens its card
+("unavailable — Prometheus did not answer"). Only a request that failed
+outright makes the dashboard unavailable — one dead panel must not blank a
+working screen.
 
 Rulings from those screens that a later one will meet again:
 
-- **Reset password is not rendered.** No endpoint wires it, and an action with
-  no endpoint is not drawn.
+- **Reset password is drawn only where the gateway would allow it**
+  (`canResetPassword`, `pages/users/model/people.ts`): never on the reader's
+  own row (`/account` asks for the old password) or a deleted account (a
+  frozen one may be reset), and on a Company Owner's or Root's row only for
+  Root. `PUT /api/auth/users/{id}/password` signs the user
+  out everywhere; the dialog (`features/reset-password`) opens holding a
+  generated password, shown. The gateway also refuses (403) a non-Root reset
+  of anyone holding a permission the reader lacks — whoever sets a password
+  can sign in as that user. The list rows carry role slugs, not permissions,
+  so the button cannot predict that refusal and the toast explains it. The
+  mutation runs with `gcTime: 0`: its variables are the password in the clear.
+  **A success does not close the dialog** — it holds the only copy of the
+  password, so it turns to a done state ("Password changed. The user was
+  signed out everywhere."), the field read-only and revealed, `Copy password`
+  still there and `Done` the one way out (`resetDone`) — Escape and the
+  backdrop do nothing there; closing resets the mutation, so the next reset
+  opens on the form. Escape and the backdrop also wait for a reset in flight,
+  as Cancel does.
+- **Edit details** (`features/edit-entity`, `EditDetailsDialog`) renames a
+  model or territory — title and description, never the slug — from Model
+  Detail (`model:write`), the territory catalog and the viewer header
+  (`territory:write`). It sends only the fields that differ from the saved,
+  trimmed values, and writes the answer into every cached copy (the entity,
+  its list row, a territory's scene bundle, and a model's title in every
+  cached bundle whose picker offers it) instead of refetching — cancelling
+  each copy's in-flight refetch first (`mergeInto`). The cancel kills any
+  read, a mount's first fetch included, so a key that was fetching is
+  invalidated again after the write with the default `refetchType`: a screen
+  showing it re-reads (the answer carries the save), one nobody shows is only
+  marked. Escape waits
+  for a save in flight, as Cancel does; a refusal is a toast and an inline
+  alert in the dialog.
+- **The role pickers offer `admin` (Company Owner) to Root alone**
+  (`assignableRoles`, same file): the gateway answers anyone else's grant of it
+  with 403. Both the create-user dialog and the add-role dialog read
+  `assignableRoles`; `roles` stays whole because the groups and counts need it.
 - **No owner toggle** — not drawn in the mocks, so not built. The endpoint
   exists (`POST /api/auth/users/{id}/owner`) and is deliberately left unwired
   (plan ruling 5); this is not the "an action with no endpoint is not drawn"
@@ -681,8 +789,10 @@ Rulings from those screens that a later one will meet again:
 - **The draft is the inspector's truth until saved.** `dirty` is computed
   against the role as the gateway last returned it, so a successful save clears
   it by the refetch alone and a refusal leaves the edits on screen to retry.
-  Saving is two calls — `PUT …/permissions`, then `PATCH …` for the title —
-  because the gateway has no single "update role"; only what changed is sent.
+  Saving is one `PATCH /api/auth/roles/{slug}` carrying the title (required —
+  an unchanged one is a no-op rename) and `permissionSlugs` only when the set
+  changed; the gateway applies both in one transaction with the same grant
+  checks, and on success only the roles are refetched.
 
 Routes: `/login`; `/console/{users,roles,content,access,audit,metrics}` under
 `ConsoleShell` — Metrics alone carries a search param, `?range=`, validated by
@@ -946,9 +1056,19 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   deviation, found in review.
 - **Placements**: `groupByModel` (`entities/placement/model/groups.ts`) →
   rows per model with 1-based instances; `#N` is positional; a batch create
-  is N sequential `POST`s (`use-placements-editor.ts`), `Placing k of N…`
-  (`widgets/model-picker/ui/place-objects-modal.tsx`), a partial failure
-  keeps the rows that landed; the editor seeds from the bundle once and the
+  is one `POST …/placements/batch` (`createPlacements`, one transaction, 1–100
+  items; the picker caps N at 99) from `use-placements-editor.ts`, drawn as an
+  indeterminate `Placing N objects…`
+  (`widgets/model-picker/ui/place-objects-modal.tsx`); each placing action
+  carries an `Idempotency-Key` (`crypto.randomUUID()`), reused only when the
+  same model × count is placed again after a failure (the retry of a batch
+  whose answer was lost gets the stored rows back, not a second copy) and
+  dropped on success or a 409; a failure with no HTTP answer or a 5xx (a
+  proxy's 502/504 can arrive after the commit) keeps the key and still calls
+  `onChanged`, only a 4xx is a refusal; `messageOf` shows a 5xx as its fallback
+  sentence, never the server's text; nothing lands until
+  everything does, so there is no "k of N" to count and a refusal leaves
+  nothing behind; the editor seeds from the bundle once and the
   page remounts it via `use-scene-seeded` (one-shot) so a cold page is not
   empty.
 - **The Selected block is a form whenever a writer has something selected**
@@ -984,11 +1104,11 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
 - **Recorded deviations** (spec §6, plus those found in execution): no
   `Share`; `uploaded` date only; default LOD 0; groups expand into instances;
   guest sentence "You can look and measure."; h1 at the mock's `h2` size
-  (`viewer-header.tsx`); `Placing N × model` is N `POST`s
+  (`viewer-header.tsx`); `Placing N × model` is one batch `POST`
   (`use-placements-editor.ts`); binary MB one decimal (`lod-progress.ts`);
   the LOD switcher offset is one formula, `calc(var(--overlays-w) + 28px)`
-  (`viewer-overlays.tsx`), and lands 2 px off the mock at two widths;
-  `Placing 0 of 2…` on the first line
+  (`viewer-overlays.tsx`), and lands 2 px off the mock at two widths; the
+  placing line reads `Placing N objects…` with no count
   (`place-objects-modal.tsx`); the Add-objects primary reads a bare `Place`,
   not the mock's `Place N × model`, because the count is in the stepper beside
   it and the model on the card above (user request 2026-09-14); an unconverted
@@ -1001,8 +1121,8 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
 - **Deviations from the design review (2026-09-16):** the LOD loading line
   stays the viewer's own 2 px rule (filled by `scaleX`), not `ProgressBar
   thin`, whose track is 5 px; the Add-objects placing bar *is* `ProgressBar
-  thin` (5 px, the mock's 3) and reads `done/total`, so `Placing 1 of 2…`
-  sits at 0 %; the `scrolled · metadata above` strip reads `text-muted` and
+  thin` (5 px, the mock's 3), run indeterminate because the batch has no
+  partial progress to report; the `scrolled · metadata above` strip reads `text-muted` and
   overlays the panel body instead of pushing it; the LOD switcher's arrows
   only move focus (spec B §6.15) and no tile changes size (§6.16); a Vec3
   cell shows three decimals and selects its value on focus, so typing

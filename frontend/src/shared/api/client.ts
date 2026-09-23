@@ -7,8 +7,9 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 /** `credentialed`: this request is itself submitting a credential (a login,
  * a password change) — a 401 answers whether that credential was right, not
- * whether the session is still alive, so it must not bounce the app. */
-export type SendOpts = { credentialed?: boolean };
+ * whether the session is still alive, so it must not bounce the app.
+ * `headers`: extra request headers, e.g. a batch's `Idempotency-Key`. */
+export type SendOpts = { credentialed?: boolean; headers?: Record<string, string> };
 
 async function send<T>(
   path: string,
@@ -81,7 +82,7 @@ export function httpPost<T>(path: string, body?: unknown, opts?: SendOpts): Prom
     path,
     {
       method: "POST",
-      headers: hasBody ? { "Content-Type": "application/json" } : undefined,
+      headers: { ...(hasBody ? { "Content-Type": "application/json" } : {}), ...opts?.headers },
       body: hasBody ? JSON.stringify(body) : undefined,
     },
     "json",

@@ -1,6 +1,7 @@
 import type { Role } from "@/entities/role";
 import { knownLabel, knownTone, type Known, type User } from "@/entities/user";
 import { freeText, parseFilters } from "@/features/audit-filter";
+import { can, type Principal } from "@/shared/session";
 import type { CoverageSegment } from "@/shared/ui/coverage-meter";
 import type { PeopleGroup, Person } from "@/widgets/people-groups";
 import type { PersonDetail } from "@/widgets/person-inspector";
@@ -111,3 +112,25 @@ export function inspectorDetails(user: User): PersonDetail[] {
     { label: "2FA required", value: user.totpRequired ? "yes" : "no", tone: user.totpRequired ? "fg" : "dim" },
   ];
 }
+
+/**
+ * Whether this reader may set the open person's password. Never their own,
+ * because /account asks for the old one, and never a deleted account's (a
+ * frozen one may be reset, ready for when it is thawed). A Company Owner's or Root's only
+ * when the reader is Root. The gateway enforces all of it; this only keeps
+ * the button off where the answer would be a refusal.
+ */
+export const canResetPassword = (me: Principal | null, user: User | null): boolean =>
+  !!me &&
+  !!user &&
+  user.status !== "deleted" &&
+  can(me, "users:write") &&
+  user.id !== me.id &&
+  (me.isOwner || !(user.isOwner || user.roleSlugs.includes("admin")));
+
+/**
+ * The roles a picker may offer. Only Root may grant `admin` (Company Owner);
+ * the gateway answers anyone else 403, so the option is not drawn for them.
+ */
+export const assignableRoles = (me: Principal | null, roles: Role[]): Role[] =>
+  me?.isOwner ? roles : roles.filter((r) => r.slug !== "admin");

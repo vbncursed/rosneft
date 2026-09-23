@@ -10,9 +10,9 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
-// CreateModel inserts a new model under the exact slug given. Unlike
-// UpsertModel it never updates an existing row: a slug collision yields
-// ErrSlugConflict so the service can retry with the next candidate.
+// CreateModel inserts a new model under the exact slug given. It never
+// updates an existing row: a slug collision yields ErrSlugConflict, which the
+// service retries with the next candidate for a derived slug.
 //
 // Wrapped in audittx.Run so the audit trigger can attribute the insert.
 func (r *PG) CreateModel(ctx context.Context, m domain.Model) (domain.Model, error) {

@@ -18,6 +18,7 @@ export type ModelAsideProps = {
   thumbnailBusy: boolean;
   onThumbnail: (file: File) => void;
   onRemoveThumbnail: () => void;
+  onEdit?: () => void;
 };
 
 const OVERLINE = "font-mono text-[9px] uppercase tracking-[0.2em] text-muted";
@@ -119,11 +120,19 @@ export function ModelAside({
   thumbnailBusy,
   onThumbnail,
   onRemoveThumbnail,
+  onEdit,
 }: ModelAsideProps) {
   return (
     <div className="flex flex-col gap-3.5">
       <div className={`${CARD} gap-3.5`}>
-        <p className={`m-0 ${OVERLINE}`}>About</p>
+        <div className="flex items-baseline justify-between">
+          <p className={`m-0 ${OVERLINE}`}>About</p>
+          {canWrite && onEdit ? (
+            <button type="button" aria-label="Edit details" className={ACTION} onClick={onEdit}>
+              edit
+            </button>
+          ) : null}
+        </div>
         <p className={cx("m-0 text-[13px] leading-[1.6]", model.description ? "text-fg" : "text-muted")}>
           {model.description || "No description."}
         </p>

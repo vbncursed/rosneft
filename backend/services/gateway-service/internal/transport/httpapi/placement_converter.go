@@ -32,3 +32,22 @@ func placementToAPI(p domain.Placement) Placement {
 	out.VisiblePanoramaIds = &ids
 	return out
 }
+
+// placementFromCreate maps one PlacementCreate (alone, or an item of a batch)
+// onto a domain placement on slug.
+func placementFromCreate(slug string, body PlacementCreate) domain.Placement {
+	p := domain.Placement{
+		TerritorySlug: slug,
+		ModelSlug:     body.ModelSlug,
+		Position:      vec3PtrFromAPI(body.Position),
+		Rotation:      vec3PtrFromAPI(body.Rotation),
+		Scale:         vec3PtrFromAPI(body.Scale),
+	}
+	if body.Label != nil {
+		p.Label = *body.Label
+	}
+	if body.VisiblePanoramaIds != nil {
+		p.VisiblePanoramaIDs = *body.VisiblePanoramaIds
+	}
+	return p
+}

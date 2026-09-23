@@ -8,16 +8,19 @@ import {
   meQuery,
   restoreUser,
   setTwoFactorRequired,
+  setUserPassword,
   setUserRoles,
   unfreezeUser,
   usersQuery,
   type NewUser,
   type User,
 } from "@/entities/user";
-import { messageOf } from "@/shared/api";
+import { HttpError, messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
 import { unanswered } from "@/shared/lib/unanswered";
 import { can } from "@/shared/session";
+import { assignableRoles, canResetPassword } from "./people";
+import { putUser } from "./put-user";
 
 export type ActionKind =
   | "freeze"
@@ -37,7 +40,11 @@ const DONE: Record<ActionKind, string> = {
   "unrequire-2fa": "2FA no longer required",
 };
 
-const run = ({ kind, user }: PendingAction): Promise<unknown> => {
+// Every taken email or username is one line. The gateway already answers one
+// message; fixing the copy here keeps the field unnamed whatever it sends.
+const LOGIN_TAKEN = "That email or username is unavailable.";
+
+const run = ({ kind, user }: PendingAction): Promise<User | void> => {
   switch (kind) {
     case "freeze":
       return freezeUser(user.id);
@@ -59,6 +66,8 @@ export type UsersState = {
   error: string | null;
   users: User[] | null;
   roles: Role[];
+  /** The roles a picker may offer this reader: `admin` only to Root. */
+  assignableRoles: Role[];
   canManage: boolean;
   query: string;
   setQuery: (q: string) => void;
@@ -78,13 +87,21 @@ export type UsersState = {
   setAddingRole: (open: boolean) => void;
   setRoles: (roleSlugs: string[]) => void;
   rolesBusy: boolean;
+  /** Whether this reader may set the open person's password. */
+  canResetPassword: boolean;
+  resetting: boolean;
+  setResetting: (open: boolean) => void;
+  resetPassword: (password: string) => void;
+  resetBusy: boolean;
+  /** The reset landed; the dialog shows the password until it is closed. */
+  resetDone: boolean;
 };
 
 /**
  * Everything the Users screen decides. Every state change goes through a
  * pending action the confirm dialog must answer; every outcome reports
- * through notify and invalidates the list so the cards redraw from the
- * gateway's answer rather than a guess.
+ * through notify and lands in the list from the gateway's own answer (a
+ * delete, which has none, refetches).
  */
 export function useUsers(): UsersState {
   const client = useQueryClient();
@@ -96,6 +113,7 @@ export function useUsers(): UsersState {
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [creating, setCreating] = useState(false);
   const [addingRole, setAddingRole] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const selected = users.data?.find((u) => u.id === selectedId) ?? null;
   const refresh = () => client.invalidateQueries({ queryKey: ["users"] });
@@ -103,9 +121,10 @@ export function useUsers(): UsersState {
 
   const action = useMutation({
     mutationFn: run,
-    onSuccess: (_, { kind }) => {
+    onSuccess: (user, { kind }) => {
       notify.success(DONE[kind]);
-      void refresh();
+      if (user) void putUser(client, user);
+      else void refresh();
     },
     onError: fail,
     onSettled: () => setPending(null),
@@ -117,19 +136,33 @@ export function useUsers(): UsersState {
       notify.success("User created");
       setCreating(false);
       setSelectedId(user.id);
-      void refresh();
+      void putUser(client, user);
     },
-    onError: fail,
+    onError: (err) =>
+      err instanceof HttpError && err.status === 409 ? notify.error(LOGIN_TAKEN) : fail(err),
   });
 
   const roleChange = useMutation({
     mutationFn: ({ id, roleSlugs }: { id: string; roleSlugs: string[] }) =>
       setUserRoles(id, roleSlugs),
-    onSuccess: () => {
+    onSuccess: (user) => {
       notify.success("Roles updated");
       setAddingRole(false);
-      void refresh();
+      void putUser(client, user);
+      void client.invalidateQueries({ queryKey: ["me"] }); // the reader's own grants may have moved
     },
+    onError: fail,
+  });
+
+  // No refresh: nothing on the list changes when a password does. gcTime 0:
+  // the variables are the new password in the clear, and the cache must not
+  // keep them once the screen lets go of the mutation. A success does not
+  // close the dialog — it holds the only copy of the password and says so
+  // itself (`resetDone`); closing it forgets the finished mutation.
+  const reset = useMutation({
+    gcTime: 0,
+    mutationFn: ({ id, password }: { id: string; password: string }) =>
+      setUserPassword(id, password),
     onError: fail,
   });
 
@@ -137,8 +170,8 @@ export function useUsers(): UsersState {
   // which `users:read` alone gets — every person would file under "No role"
   // and "Roles in use" would read 0: a confident wrong answer wearing a
   // loaded screen's clothes.
-  // Only a query that has never answered can make the screen unavailable: every
-  // mutation calls refresh(), and a refetch that trips must not replace a
+  // Only a query that has never answered can make the screen unavailable: a
+  // delete calls refresh(), and a refetch that trips must not replace a
   // working screen with an outage page.
   const failed = unanswered(users) ?? unanswered(roles);
 
@@ -151,6 +184,7 @@ export function useUsers(): UsersState {
     error: failed ? messageOf(failed) : null,
     users: users.data ?? null,
     roles: roles.data ?? [],
+    assignableRoles: assignableRoles(me, roles.data ?? []),
     canManage: can(me, "users:write"),
     query,
     setQuery,
@@ -169,5 +203,14 @@ export function useUsers(): UsersState {
     setAddingRole,
     setRoles: (roleSlugs) => selected && roleChange.mutate({ id: selected.id, roleSlugs }),
     rolesBusy: roleChange.isPending,
+    canResetPassword: canResetPassword(me, selected),
+    resetting,
+    setResetting: (open) => {
+      reset.reset();
+      setResetting(open);
+    },
+    resetPassword: (password) => selected && reset.mutate({ id: selected.id, password }),
+    resetBusy: reset.isPending,
+    resetDone: reset.isSuccess,
   };
 }

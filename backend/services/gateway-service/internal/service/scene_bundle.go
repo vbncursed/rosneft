@@ -67,7 +67,7 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 		return nil
 	})
 	gr.Go(func() error {
-		m, err := g.catalog.ListModels(gctx)
+		m, err := g.catalog.ListModels(gctx, true)
 		if err != nil {
 			return err
 		}
@@ -103,7 +103,7 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 		a.LODs = lodChain(artifacts)
 		bundle.Artifact = &a
 	}
-	bundle.ModelOptions = g.buildModelOptions(ctx, models)
+	bundle.ModelOptions = buildModelOptions(models)
 	return bundle, nil
 }
 

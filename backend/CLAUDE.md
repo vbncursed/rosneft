@@ -133,7 +133,7 @@ Each entity has its own artifact family (`territory_artifacts` / `model_artifact
 ## Mesh conversion pipeline
 
 1. Frontend uploads a ZIP via `POST /api/uploads` (chunked) → `POST /api/uploads/{id}/finalize` returns a `blobHash`.
-2. Frontend `POST /api/territories` (or `/api/models`) with `{slug, title, description, sourceBlobHash}` → gateway upserts in catalog and calls `mesh-api.SubmitConversion(kind=TERRITORY|MODEL, slug)`. That either queues a conversion (Redis Stream + Postgres job row) **or**, when the target claim is already held, hands back the job already in flight for that target — the caller wanted a job to follow, and that is it. Response carries the `Job` either way, so the client can subscribe to SSE.
+2. Frontend `POST /api/territories` (or `/api/models`) with `{slug, title, description, sourceBlobHash}` → gateway creates it in catalog and calls `mesh-api.SubmitConversion(kind=TERRITORY|MODEL, slug)`. That either queues a conversion (Redis Stream + Postgres job row) **or**, when the target claim is already held, hands back the job already in flight for that target — the caller wanted a job to follow, and that is it. Response carries the `Job` either way, so the client can subscribe to SSE.
    - **A source replaced mid-conversion is re-queued when the running job finishes.** The in-flight job read `source_blob_hash` once, at its start, so it publishes artifacts built from the *old* bytes; `ProcessJob` re-reads the target after marking the job succeeded and submits again when the hash moved (`requeue_if_replaced.go`). Without that, the replacement never converted and nothing errored: `HasLOD0` was true, so the reconciler never retried.
 3. `mesh-worker` consumes the stream, calls catalog for `ConversionTarget` (kind+slug → source_blob_hash), fetches the ZIP from BlobStore by hash, extracts to a tmp dir, recursively finds the first `.obj`, and runs the converter.
 4. Converter: streaming OBJ parser (positions, UVs, faces, fan-triangulation, Z-up→Y-up, V-flip, `usemtl` grouping) → dedup `(v_idx, vt_idx)` pairs → MTL parser (`Kd`, `d`/`Tr`, `map_Kd`) → per-material glTF primitive sharing one position/UV buffer; PBR baseColorFactor (always) + baseColorTexture (when `map_Kd` exists). Texture cache deduplicates images shared across materials. Normalize (center, scale to maxDim=2). Emit GLB.
@@ -185,6 +185,7 @@ Endpoints (gateway):
 ```
 GET    /api/territories/{slug}/placements          → 200 [Placement…]
 POST   /api/territories/{slug}/placements          → 201 Placement
+POST   /api/territories/{slug}/placements/batch    → 201 [Placement…]  (1–100, one transaction; optional Idempotency-Key → 409 on a size mismatch)
 PUT    /api/territories/{slug}/placements/{id}     → 200 Placement
 DELETE /api/territories/{slug}/placements/{id}     → 204
 ```
@@ -195,6 +196,32 @@ Validation:
 - 400 `invalid_input` for empty IDs/slugs or non-positive scale
 - 404 `not_found` when the territory or model slug is missing
 - 404 `not_found` for unknown placement IDs
+
+**The batch is idempotent under `Idempotency-Key`, and the key lives in the
+catalog, not Redis.** Each row of a keyed batch carries `idempotency_key` and
+`batch_index` (migration 00018), under a partial unique index on
+`(territory_id, idempotency_key, batch_index)`. The service asks
+`PlacementBatch` first, before the panorama check, so a retry of a batch that
+landed is answered as stored even if one of its panoramas was deleted since;
+`storage.CreatePlacements` reads again inside its own transaction. Either read
+answers the key's rows in `batch_index` order when their count matches, and
+also when rows are missing below the highest `batch_index` (the batch landed
+and was edited since — what remains is the answer); an intact batch of another
+size is `ErrIdempotencyConflict` (gRPC `AlreadyExists`, HTTP 409). A batch whose
+*trailing* rows were deleted looks intact, so its replay is a 409 — the known
+ceiling, noted at `batchByKey`. Two requests racing on one
+key both miss that read; the loser's insert of item 0 waits on the winner's
+uncommitted row, fails on the index once the winner commits, rolls back, and
+answers the winner's rows from a fresh read. `create_placements_integration_test.go`
+drives that race with a barrier and was checked by switching the race branch
+off. Unkeyed rows keep both columns NULL and stay out of the index; nothing
+UPDATEs the columns, so the audit trigger's ignore list does not list them.
+
+**A refusal's gRPC message starts at its sentinel.** Catalog's and auth's
+`mapError` use `apperr.ToStatusAtSentinel`, which cuts everything before the
+matched sentinel's text, so the gateway can put the message in a 4xx body as it
+is. An `Internal` status keeps its whole text; the
+gateway never shows it (see **A 500 body** in the root CLAUDE.md).
 
 ## Audit journal
 
@@ -228,7 +255,8 @@ migration that `CREATE OR REPLACE`s `ensure_audit_triggers()`, not by editing
 
 `audit_capture()` redacts `password_hash` / `totp_secret` / `code_hash` from
 both snapshots, and drops any UPDATE that touched nothing but `updated_at`,
-`onboarding_tours_seen` or `rescale_baseline_max` — otherwise an idempotent
+`onboarding_tours_seen` or the rescale baseline (`rescale_baseline_max`,
+`rescale_baseline_center_{x,y,z}`) — otherwise an idempotent
 upsert or a dismissed tooltip would file an entry with an empty diff.
 
 Visibility: Root (`users.is_owner`) reads everything; everyone else is pinned to
@@ -294,15 +322,18 @@ Session events (login, logout, password change, 2FA, passkey) have no row to
 capture, so the gateway records them through `Record()`; see `authAuditActions`
 in `gateway-service/internal/transport/authhttp/audit.go`. Only events that
 change no table belong in that map: user and role mutations are already caught
-by the triggers, and listing them would double-write.
+by the triggers, and listing them would double-write. A password change is the
+one half-way case: its success stamps `users.password_changed_at` and reaches
+the journal as the trigger's `user.update`, so the gateway records
+`auth.password_change` only when the attempt **failed** (`triggerRecordsSuccess`).
 
 The trigger logic is SQL, so it is covered by integration tests:
 `services/audit-service/internal/migrate/*_integration_test.go`, behind the
 `integration` build tag. They are not the only ones in the repo —
 `catalog-service/internal/storage/*_integration_test.go` (blob scoping, the
 placement territory scope, model delete, list counts, the measurement territory
-scope and points constraint, and the rescale CTE over placements and
-measurements),
+scope and points constraint, and the rescale CTE over placements,
+measurements and panoramas),
 `content-service/internal/storage/territory_scope_integration_test.go` (panorama
 and document territory scope, including the allowlist scrub),
 `auth-service/internal/storage/users/set_totp_required_integration_test.go`,
@@ -365,6 +396,10 @@ first and then checks its slug; `visibleJob` filters the list. Both refuse in th
 404 shape ("job not found" / an absent row), both let models through — the
 library is shared — and both fail closed on an empty scope, for the reason the
 paragraph above gives.
+The same holds for `/api/territory-admins` (Root gate, set through the caller's
+scope; `ListTerritoryAdmins` itself fails closed on a scoped caller with an
+empty admin id) and `/api/console/summary` (each card reads with the caller's
+own token or scope; content and access fail closed on an empty scope).
 
 ### Blob scoping
 

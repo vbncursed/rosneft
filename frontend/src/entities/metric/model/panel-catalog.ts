@@ -36,6 +36,9 @@ export const PANELS: Record<PanelId, { title: string; meta: string; unit: Unit }
   alerts: { title: "Alerts", meta: "firing or pending", unit: "count" },
 };
 
+/** Every panel, in catalogue order — what the one metrics request asks for. */
+export const ALL_PANELS = Object.keys(PANELS) as PanelId[];
+
 export const STAT_IDS = ["stat-rps", "stat-errors", "stat-p99", "stat-queue"] as const satisfies readonly PanelId[];
 
 export const SECTIONS: { key: string; title: string; panelIds: PanelId[] }[] = [

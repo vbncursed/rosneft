@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -102,6 +103,11 @@ func ToStatus(err error, byCode map[codes.Code][]error) error {
 	return status.Errorf(codes.Internal, "internal: %v", err)
 }
 
+// InternalMessage is the whole message of every 5xx body. What failed inside
+// is for the server's log, never the browser: it names hosts, ports, SQL and
+// the functions it passed through.
+const InternalMessage = "internal error"
+
 // Body is the public JSON error envelope: {code, message}.
 type Body struct {
 	Code    string `json:"code"`
@@ -116,8 +122,35 @@ func Write(w http.ResponseWriter, httpStatus int, code, message string) {
 }
 
 // WriteStatus renders a gRPC status error as the {code, message} envelope,
-// translating the status code into its HTTP status and slug.
+// translating the status code into its HTTP status and slug. A 5xx answers
+// InternalMessage whatever the status said; logging the detail is the caller's.
 func WriteStatus(w http.ResponseWriter, err error) {
 	st := status.Convert(err)
-	Write(w, HTTPStatus(st.Code()), Slug(st.Code()), st.Message())
+	httpStatus, msg := HTTPStatus(st.Code()), st.Message()
+	if httpStatus >= http.StatusInternalServerError {
+		msg = InternalMessage
+	}
+	Write(w, httpStatus, Slug(st.Code()), msg)
+}
+
+// ToStatusAtSentinel is ToStatus for a service whose refusals the gateway
+// shows to the browser: a matched refusal's message starts at its sentinel's
+// text ("invalid input: panorama 5 is not on …"), so the "service.X:"
+// prefixes of the layers it passed through stay in that process. Internal
+// keeps its whole text; the gateway logs it and answers InternalMessage.
+func ToStatusAtSentinel(err error, byCode map[codes.Code][]error) error {
+	st := status.Convert(ToStatus(err, byCode))
+	if err == nil || st.Code() == codes.Internal {
+		return st.Err()
+	}
+	msg := err.Error()
+	for _, sentinel := range byCode[st.Code()] {
+		if !errors.Is(err, sentinel) {
+			continue
+		}
+		if _, rest, found := strings.Cut(msg, sentinel.Error()); found {
+			return status.Error(st.Code(), sentinel.Error()+rest)
+		}
+	}
+	return st.Err()
 }

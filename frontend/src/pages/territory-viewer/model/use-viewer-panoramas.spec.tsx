@@ -86,6 +86,7 @@ describe("useViewerPanoramas", () => {
     list.remove.mockReset();
     usePanoramaTexture.mockClear();
     useTerritoryLink.mockClear();
+    onChanged.mockReset();
   });
 
   it("seeds the list from the bundle and reports what it holds", () => {
@@ -251,6 +252,8 @@ describe("useViewerPanoramas", () => {
     act(() => usePanoramaUpload.mock.calls.at(-1)![0].onCreated(created as never));
     expect(list.add).toHaveBeenCalledWith(created);
     expect(result.current.upload.open).toBe(false);
+    // A create is a write like any other: the scene bundle is stale after it.
+    expect(onChanged).toHaveBeenCalledTimes(1);
   });
 
   it("opens a folded Panoramas list on a finished upload, so the capture is not hidden", () => {
@@ -298,8 +301,8 @@ describe("useViewerPanoramas", () => {
     expect(result.current.onSave).toBe(first.onSave);
   });
 
-  it("hands the tour link the territory's own URL", () => {
+  it("hands the tour link the territory's own URL and the viewer's onChanged", () => {
     mount();
-    expect(useTerritoryLink).toHaveBeenCalledWith("refinery-block-c", "https://tour.example");
+    expect(useTerritoryLink).toHaveBeenCalledWith("refinery-block-c", "https://tour.example", onChanged);
   });
 });

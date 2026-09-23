@@ -4,13 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
 // ListTerritories proxies to catalog, scoped to scopeAdminID (empty = all).
-func (g *Gateway) ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error) {
-	return g.catalog.ListTerritories(ctx, scopeAdminID)
+// withArtifacts asks for each LOD chain — only a caller that renders it should.
+func (g *Gateway) ListTerritories(ctx context.Context, scopeAdminID string, withArtifacts bool) ([]domain.Territory, error) {
+	return g.catalog.ListTerritories(ctx, scopeAdminID, withArtifacts)
 }
 
 // GetTerritory fetches a territory by slug, scoped to scopeAdminID (empty = no
@@ -22,13 +24,14 @@ func (g *Gateway) GetTerritory(ctx context.Context, slug, scopeAdminID string) (
 	return g.catalog.GetTerritory(ctx, slug, scopeAdminID)
 }
 
-// CreateTerritory upserts the territory in the catalog and queues a
+// CreateTerritory creates the territory in the catalog and queues a
 // conversion job. Returns both — the frontend uses the job ID to subscribe
 // to /api/jobs/{id}/events for progress.
 func (g *Gateway) CreateTerritory(ctx context.Context, t domain.Territory, scope domain.BlobScope) (domain.Territory, domain.Job, error) {
 	if err := validateEntity(t.Title, t.SourceBlobHash); err != nil {
 		return domain.Territory{}, domain.Job{}, err
 	}
+	t.Title, t.Description = strings.TrimSpace(t.Title), strings.TrimSpace(t.Description)
 	if err := g.authorizeBlobs(ctx, scope, t.SourceBlobHash); err != nil {
 		return domain.Territory{}, domain.Job{}, err
 	}
@@ -57,17 +60,14 @@ func (g *Gateway) ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHa
 	if err := g.authorizeBlobs(ctx, scope, sourceBlobHash); err != nil {
 		return domain.Territory{}, domain.Job{}, err
 	}
-	current, err := g.catalog.GetTerritory(ctx, slug, "") // mutation flow; gated by permission
-	if err != nil {
+	// The baseline goes first: failing after the hash swap would leave the
+	// territory on a new source with the old artifacts and no job.
+	if err := g.captureRescaleBaseline(ctx, slug); err != nil {
 		return domain.Territory{}, domain.Job{}, err
 	}
-	current.SourceBlobHash = sourceBlobHash
-	saved, err := g.catalog.UpsertTerritory(ctx, current)
+	saved, err := g.catalog.UpdateTerritory(ctx, slug, domain.TerritoryUpdate{SourceBlobHash: &sourceBlobHash})
 	if err != nil {
 		return domain.Territory{}, domain.Job{}, fmt.Errorf("replace territory source: %w", err)
-	}
-	if err := g.captureRescaleBaseline(ctx, slug); err != nil {
-		return saved, domain.Job{}, err
 	}
 	if err := g.catalog.DeleteTerritoryArtifacts(ctx, slug); err != nil {
 		return domain.Territory{}, domain.Job{}, fmt.Errorf("reset territory artifacts: %w", err)
@@ -80,17 +80,22 @@ func (g *Gateway) ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHa
 }
 
 // captureRescaleBaseline records the territory's current source-mesh
-// max-dimension so the post-conversion worker can rescale placements 1:1
-// against the replacement mesh's normalization. It must run before the old
-// artifacts are cleared. A territory with no LOD0 yet (still pending) has
-// nothing to anchor to and is skipped, preserving any baseline a prior
-// in-flight replace already set (the catalog writes it only once).
+// max-dimension and bbox center so the post-conversion worker can map
+// placements, measurements and panoramas 1:1 onto the replacement mesh's
+// normalization. It must run before the old artifacts are cleared. A territory
+// with no LOD0 yet (still pending) has nothing to anchor to and is skipped,
+// preserving any baseline a prior in-flight replace already set (the catalog
+// writes it only once).
+//
+// Assumes the old and new sources share one coordinate frame (a re-scan of the
+// same site in the same georeference). A source in another frame cannot be
+// aligned automatically; manual calibration is out of scope.
 func (g *Gateway) captureRescaleBaseline(ctx context.Context, slug string) error {
 	old, err := g.catalog.GetTerritoryArtifact(ctx, slug, 0)
 	switch {
 	case err == nil:
 		if m := artifactMaxAxis(old); m > 0 {
-			if err := g.catalog.SetTerritoryRescaleBaseline(ctx, slug, m); err != nil {
+			if err := g.catalog.SetTerritoryRescaleBaseline(ctx, slug, m, artifactCenter(old)); err != nil {
 				return fmt.Errorf("set rescale baseline: %w", err)
 			}
 		}
@@ -111,22 +116,32 @@ func artifactMaxAxis(a domain.Artifact) float64 {
 	return max(dx, dy, dz)
 }
 
+// artifactCenter returns the center of an artifact's source-mesh bbox — the
+// point the converter moves to the origin before scaling.
+func artifactCenter(a domain.Artifact) domain.Vec3 {
+	return domain.Vec3{
+		X: (a.BBoxMin.X + a.BBoxMax.X) / 2,
+		Y: (a.BBoxMin.Y + a.BBoxMax.Y) / 2,
+		Z: (a.BBoxMin.Z + a.BBoxMax.Z) / 2,
+	}
+}
+
 // UpdateTerritory patches a territory's mutable fields by slug without
-// touching the source archive or re-queuing a conversion. It is a
-// read-modify-write over the existing catalog RPCs: fetch, apply the
-// non-nil patch fields, upsert the merged row back.
+// touching the source archive or re-queuing a conversion. The catalog writes
+// only the non-nil fields, in one statement: reading the row and writing it
+// all back would revert a source replace that landed in between. The source
+// hash is dropped — it changes only through ReplaceTerritorySource, which
+// checks the caller may use the blob.
 func (g *Gateway) UpdateTerritory(ctx context.Context, slug string, update domain.TerritoryUpdate) (domain.Territory, error) {
 	if slug == "" {
 		return domain.Territory{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}
-	current, err := g.catalog.GetTerritory(ctx, slug, "") // mutation flow; gated by permission
-	if err != nil {
+	var err error
+	if update.Title, update.Description, err = trimDetails(update.Title, update.Description); err != nil {
 		return domain.Territory{}, err
 	}
-	if update.ExternalPanoramaURL != nil {
-		current.ExternalPanoramaURL = *update.ExternalPanoramaURL
-	}
-	saved, err := g.catalog.UpsertTerritory(ctx, current)
+	update.SourceBlobHash = nil
+	saved, err := g.catalog.UpdateTerritory(ctx, slug, update)
 	if err != nil {
 		return domain.Territory{}, fmt.Errorf("update territory: %w", err)
 	}
@@ -155,17 +170,4 @@ func (g *Gateway) GetTerritoryArtifact(ctx context.Context, slug string, lod uin
 		return domain.Artifact{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}
 	return g.catalog.GetTerritoryArtifact(ctx, slug, lod)
-}
-
-// validateEntity rejects EntityCreate-style inputs missing required fields.
-// The slug is no longer user-supplied — the catalog derives it from the
-// title — so only title and source hash are required here.
-func validateEntity(title, hash string) error {
-	switch {
-	case title == "":
-		return fmt.Errorf("%w: empty title", domain.ErrInvalidInput)
-	case hash == "":
-		return fmt.Errorf("%w: empty source_blob_hash", domain.ErrInvalidInput)
-	}
-	return nil
 }

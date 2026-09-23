@@ -11,11 +11,11 @@ func (s *Server) ListPanoramas(ctx context.Context, req ListPanoramasRequestObje
 	out, err := s.svc.ListPanoramas(ctx, req.Slug)
 	switch {
 	case isInvalid(err):
-		return ListPanoramas500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return ListPanoramas500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	case isNotFound(err):
 		return ListPanoramas404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return ListPanoramas500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return ListPanoramas500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	resp := make(ListPanoramas200JSONResponse, len(out))
 	for i, p := range out {
@@ -47,7 +47,7 @@ func (s *Server) CreatePanorama(ctx context.Context, req CreatePanoramaRequestOb
 	case isNotFound(err):
 		return CreatePanorama404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return CreatePanorama500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return CreatePanorama500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return CreatePanorama201JSONResponse(panoramaToAPI(p)), nil
 }
@@ -83,7 +83,7 @@ func (s *Server) UpdatePanorama(ctx context.Context, req UpdatePanoramaRequestOb
 	case isNotFound(err):
 		return UpdatePanorama404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return UpdatePanorama500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return UpdatePanorama500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return UpdatePanorama200JSONResponse(panoramaToAPI(p)), nil
 }
@@ -94,7 +94,7 @@ func (s *Server) DeletePanorama(ctx context.Context, req DeletePanoramaRequestOb
 	case isNotFound(err):
 		return DeletePanorama404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return DeletePanorama500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return DeletePanorama500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return DeletePanorama204Response{}, nil
 }

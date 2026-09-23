@@ -18,6 +18,16 @@ func (g *Gateway) ListPlacements(ctx context.Context, territorySlug string) ([]d
 // CreatePlacement validates input, fills in defaults (scale {1,1,1}), and
 // persists.
 func (g *Gateway) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
+	ready, err := preparePlacement(p)
+	if err != nil {
+		return domain.Placement{}, err
+	}
+	return g.catalog.CreatePlacement(ctx, ready)
+}
+
+// preparePlacement checks a new placement and fills the default scale: the
+// checks a single create and every batch item share.
+func preparePlacement(p domain.Placement) (domain.Placement, error) {
 	if p.TerritorySlug == "" || p.ModelSlug == "" {
 		return domain.Placement{}, fmt.Errorf("%w: territory and model slugs are required", domain.ErrInvalidInput)
 	}
@@ -25,7 +35,7 @@ func (g *Gateway) CreatePlacement(ctx context.Context, p domain.Placement) (doma
 	if p.Scale.X <= 0 || p.Scale.Y <= 0 || p.Scale.Z <= 0 {
 		return domain.Placement{}, fmt.Errorf("%w: scale components must be positive", domain.ErrInvalidInput)
 	}
-	return g.catalog.CreatePlacement(ctx, p)
+	return p, nil
 }
 
 // UpdatePlacement replaces the transform and label of an existing placement.

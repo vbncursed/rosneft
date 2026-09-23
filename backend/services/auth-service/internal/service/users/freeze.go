@@ -9,10 +9,11 @@ import (
 // Freeze sets status=frozen (owner scope + self/last-admin guards) and evicts
 // the user's sessions.
 func (s *Service) Freeze(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error) {
-	if _, err := s.ownership(ctx, actorID, scopeAll, id); err != nil {
+	target, err := s.ownership(ctx, actorID, scopeAll, id)
+	if err != nil {
 		return domain.User{}, err
 	}
-	if err := s.guard(ctx, actorID, id); err != nil {
+	if err := s.guard(ctx, actorID, target); err != nil {
 		return domain.User{}, err
 	}
 	u, err := s.store.SetStatus(ctx, id, domain.StatusFrozen, nil)

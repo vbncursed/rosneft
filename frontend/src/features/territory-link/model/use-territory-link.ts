@@ -6,9 +6,11 @@ import { notify } from "@/shared/lib/notify";
 /**
  * The territory's external panorama-tour URL, editable from the viewer. The
  * last acknowledged value is kept here so the link updates the moment a save
- * lands, without refetching the whole scene bundle.
+ * lands, without refetching the whole scene bundle. `onChanged` is the
+ * viewer's: it marks the bundle, the territory and the list stale and drops
+ * the bundle on the way out, so a return visit seeds the saved link.
  */
-export function useTerritoryLink(slug: string, initialUrl: string | undefined) {
+export function useTerritoryLink(slug: string, initialUrl: string | undefined, onChanged: () => void) {
   const [url, setUrl] = useState(initialUrl ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -20,6 +22,7 @@ export function useTerritoryLink(slug: string, initialUrl: string | undefined) {
       try {
         const territory = await updateTerritory(slug, { externalPanoramaUrl: next });
         setUrl(territory.externalPanoramaUrl ?? "");
+        onChanged();
         return true;
       } catch (err) {
         notify.error(`Failed to save the panorama tour link: ${messageOf(err)}`);
@@ -28,7 +31,7 @@ export function useTerritoryLink(slug: string, initialUrl: string | undefined) {
         setSaving(false);
       }
     },
-    [slug],
+    [slug, onChanged],
   );
 
   return { url, saving, save };

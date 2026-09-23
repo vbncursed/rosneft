@@ -58,7 +58,8 @@ Domain sentinel errors are mapped to gRPC codes centrally in `server.go`
 (`mapError`): invalid input → `InvalidArgument`, missing user/role →
 `NotFound`, bad credentials / invalid session / bad 2FA code →
 `Unauthenticated`, frozen/deleted/throttled/2FA-required → `PermissionDenied`,
-taken email/username/role-slug → `AlreadyExists`, last-admin / self-target /
+taken login (email or username — one message whichever collided, so the
+answer never confirms a hidden account) / role-slug → `AlreadyExists`, last-admin / self-target /
 system-role → `FailedPrecondition`.
 
 ### Session / login

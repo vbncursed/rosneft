@@ -40,6 +40,13 @@ type RepositoryMock struct {
 	beforeCreatePlacementCounter uint64
 	CreatePlacementMock          mRepositoryMockCreatePlacement
 
+	funcCreatePlacements          func(ctx context.Context, key string, ps []domain.Placement) (pa1 []domain.Placement, err error)
+	funcCreatePlacementsOrigin    string
+	inspectFuncCreatePlacements   func(ctx context.Context, key string, ps []domain.Placement)
+	afterCreatePlacementsCounter  uint64
+	beforeCreatePlacementsCounter uint64
+	CreatePlacementsMock          mRepositoryMockCreatePlacements
+
 	funcCreateTerritory          func(ctx context.Context, t domain.Territory) (t1 domain.Territory, err error)
 	funcCreateTerritoryOrigin    string
 	inspectFuncCreateTerritory   func(ctx context.Context, t domain.Territory)
@@ -138,9 +145,9 @@ type RepositoryMock struct {
 	beforeListModelArtifactsCounter uint64
 	ListModelArtifactsMock          mRepositoryMockListModelArtifacts
 
-	funcListModels          func(ctx context.Context) (ma1 []domain.Model, err error)
+	funcListModels          func(ctx context.Context, withArtifacts bool) (ma1 []domain.Model, err error)
 	funcListModelsOrigin    string
-	inspectFuncListModels   func(ctx context.Context)
+	inspectFuncListModels   func(ctx context.Context, withArtifacts bool)
 	afterListModelsCounter  uint64
 	beforeListModelsCounter uint64
 	ListModelsMock          mRepositoryMockListModels
@@ -159,12 +166,19 @@ type RepositoryMock struct {
 	beforeListPlacementsCounter uint64
 	ListPlacementsMock          mRepositoryMockListPlacements
 
-	funcListTerritories          func(ctx context.Context, scopeAdminID string) (ta1 []domain.Territory, err error)
+	funcListTerritories          func(ctx context.Context, scopeAdminID string, withArtifacts bool) (ta1 []domain.Territory, err error)
 	funcListTerritoriesOrigin    string
-	inspectFuncListTerritories   func(ctx context.Context, scopeAdminID string)
+	inspectFuncListTerritories   func(ctx context.Context, scopeAdminID string, withArtifacts bool)
 	afterListTerritoriesCounter  uint64
 	beforeListTerritoriesCounter uint64
 	ListTerritoriesMock          mRepositoryMockListTerritories
+
+	funcListTerritoryAdmins          func(ctx context.Context, slugs []string) (m1 map[string][]string, err error)
+	funcListTerritoryAdminsOrigin    string
+	inspectFuncListTerritoryAdmins   func(ctx context.Context, slugs []string)
+	afterListTerritoryAdminsCounter  uint64
+	beforeListTerritoryAdminsCounter uint64
+	ListTerritoryAdminsMock          mRepositoryMockListTerritoryAdmins
 
 	funcListTerritoryArtifacts          func(ctx context.Context, slug string) (aa1 []domain.Artifact, err error)
 	funcListTerritoryArtifactsOrigin    string
@@ -172,6 +186,13 @@ type RepositoryMock struct {
 	afterListTerritoryArtifactsCounter  uint64
 	beforeListTerritoryArtifactsCounter uint64
 	ListTerritoryArtifactsMock          mRepositoryMockListTerritoryArtifacts
+
+	funcPlacementBatch          func(ctx context.Context, territorySlug string, key string, size int) (pa1 []domain.Placement, err error)
+	funcPlacementBatchOrigin    string
+	inspectFuncPlacementBatch   func(ctx context.Context, territorySlug string, key string, size int)
+	afterPlacementBatchCounter  uint64
+	beforePlacementBatchCounter uint64
+	PlacementBatchMock          mRepositoryMockPlacementBatch
 
 	funcRegisterModelArtifact          func(ctx context.Context, a domain.Artifact) (a1 domain.Artifact, err error)
 	funcRegisterModelArtifactOrigin    string
@@ -187,9 +208,9 @@ type RepositoryMock struct {
 	beforeRegisterTerritoryArtifactCounter uint64
 	RegisterTerritoryArtifactMock          mRepositoryMockRegisterTerritoryArtifact
 
-	funcRescaleTerritoryPlacements          func(ctx context.Context, slug string, newMax float64) (i1 int, err error)
+	funcRescaleTerritoryPlacements          func(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) (i1 int, err error)
 	funcRescaleTerritoryPlacementsOrigin    string
-	inspectFuncRescaleTerritoryPlacements   func(ctx context.Context, slug string, newMax float64)
+	inspectFuncRescaleTerritoryPlacements   func(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3)
 	afterRescaleTerritoryPlacementsCounter  uint64
 	beforeRescaleTerritoryPlacementsCounter uint64
 	RescaleTerritoryPlacementsMock          mRepositoryMockRescaleTerritoryPlacements
@@ -229,9 +250,9 @@ type RepositoryMock struct {
 	beforeSetTerritoryAdminsCounter uint64
 	SetTerritoryAdminsMock          mRepositoryMockSetTerritoryAdmins
 
-	funcSetTerritoryRescaleBaseline          func(ctx context.Context, slug string, sourceMax float64) (err error)
+	funcSetTerritoryRescaleBaseline          func(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) (err error)
 	funcSetTerritoryRescaleBaselineOrigin    string
-	inspectFuncSetTerritoryRescaleBaseline   func(ctx context.Context, slug string, sourceMax float64)
+	inspectFuncSetTerritoryRescaleBaseline   func(ctx context.Context, slug string, sourceMax float64, center domain.Vec3)
 	afterSetTerritoryRescaleBaselineCounter  uint64
 	beforeSetTerritoryRescaleBaselineCounter uint64
 	SetTerritoryRescaleBaselineMock          mRepositoryMockSetTerritoryRescaleBaseline
@@ -243,6 +264,13 @@ type RepositoryMock struct {
 	beforeUpdateMeasurementCounter uint64
 	UpdateMeasurementMock          mRepositoryMockUpdateMeasurement
 
+	funcUpdateModel          func(ctx context.Context, slug string, p domain.ModelPatch) (m1 domain.Model, err error)
+	funcUpdateModelOrigin    string
+	inspectFuncUpdateModel   func(ctx context.Context, slug string, p domain.ModelPatch)
+	afterUpdateModelCounter  uint64
+	beforeUpdateModelCounter uint64
+	UpdateModelMock          mRepositoryMockUpdateModel
+
 	funcUpdatePlacement          func(ctx context.Context, p domain.Placement) (p1 domain.Placement, err error)
 	funcUpdatePlacementOrigin    string
 	inspectFuncUpdatePlacement   func(ctx context.Context, p domain.Placement)
@@ -250,19 +278,12 @@ type RepositoryMock struct {
 	beforeUpdatePlacementCounter uint64
 	UpdatePlacementMock          mRepositoryMockUpdatePlacement
 
-	funcUpsertModel          func(ctx context.Context, m domain.Model) (m1 domain.Model, err error)
-	funcUpsertModelOrigin    string
-	inspectFuncUpsertModel   func(ctx context.Context, m domain.Model)
-	afterUpsertModelCounter  uint64
-	beforeUpsertModelCounter uint64
-	UpsertModelMock          mRepositoryMockUpsertModel
-
-	funcUpsertTerritory          func(ctx context.Context, t domain.Territory) (t1 domain.Territory, err error)
-	funcUpsertTerritoryOrigin    string
-	inspectFuncUpsertTerritory   func(ctx context.Context, t domain.Territory)
-	afterUpsertTerritoryCounter  uint64
-	beforeUpsertTerritoryCounter uint64
-	UpsertTerritoryMock          mRepositoryMockUpsertTerritory
+	funcUpdateTerritory          func(ctx context.Context, slug string, p domain.TerritoryPatch) (t1 domain.Territory, err error)
+	funcUpdateTerritoryOrigin    string
+	inspectFuncUpdateTerritory   func(ctx context.Context, slug string, p domain.TerritoryPatch)
+	afterUpdateTerritoryCounter  uint64
+	beforeUpdateTerritoryCounter uint64
+	UpdateTerritoryMock          mRepositoryMockUpdateTerritory
 }
 
 // NewRepositoryMock returns a mock for mm_service.Repository
@@ -281,6 +302,9 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 
 	m.CreatePlacementMock = mRepositoryMockCreatePlacement{mock: m}
 	m.CreatePlacementMock.callArgs = []*RepositoryMockCreatePlacementParams{}
+
+	m.CreatePlacementsMock = mRepositoryMockCreatePlacements{mock: m}
+	m.CreatePlacementsMock.callArgs = []*RepositoryMockCreatePlacementsParams{}
 
 	m.CreateTerritoryMock = mRepositoryMockCreateTerritory{mock: m}
 	m.CreateTerritoryMock.callArgs = []*RepositoryMockCreateTerritoryParams{}
@@ -336,8 +360,14 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 	m.ListTerritoriesMock = mRepositoryMockListTerritories{mock: m}
 	m.ListTerritoriesMock.callArgs = []*RepositoryMockListTerritoriesParams{}
 
+	m.ListTerritoryAdminsMock = mRepositoryMockListTerritoryAdmins{mock: m}
+	m.ListTerritoryAdminsMock.callArgs = []*RepositoryMockListTerritoryAdminsParams{}
+
 	m.ListTerritoryArtifactsMock = mRepositoryMockListTerritoryArtifacts{mock: m}
 	m.ListTerritoryArtifactsMock.callArgs = []*RepositoryMockListTerritoryArtifactsParams{}
+
+	m.PlacementBatchMock = mRepositoryMockPlacementBatch{mock: m}
+	m.PlacementBatchMock.callArgs = []*RepositoryMockPlacementBatchParams{}
 
 	m.RegisterModelArtifactMock = mRepositoryMockRegisterModelArtifact{mock: m}
 	m.RegisterModelArtifactMock.callArgs = []*RepositoryMockRegisterModelArtifactParams{}
@@ -369,14 +399,14 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 	m.UpdateMeasurementMock = mRepositoryMockUpdateMeasurement{mock: m}
 	m.UpdateMeasurementMock.callArgs = []*RepositoryMockUpdateMeasurementParams{}
 
+	m.UpdateModelMock = mRepositoryMockUpdateModel{mock: m}
+	m.UpdateModelMock.callArgs = []*RepositoryMockUpdateModelParams{}
+
 	m.UpdatePlacementMock = mRepositoryMockUpdatePlacement{mock: m}
 	m.UpdatePlacementMock.callArgs = []*RepositoryMockUpdatePlacementParams{}
 
-	m.UpsertModelMock = mRepositoryMockUpsertModel{mock: m}
-	m.UpsertModelMock.callArgs = []*RepositoryMockUpsertModelParams{}
-
-	m.UpsertTerritoryMock = mRepositoryMockUpsertTerritory{mock: m}
-	m.UpsertTerritoryMock.callArgs = []*RepositoryMockUpsertTerritoryParams{}
+	m.UpdateTerritoryMock = mRepositoryMockUpdateTerritory{mock: m}
+	m.UpdateTerritoryMock.callArgs = []*RepositoryMockUpdateTerritoryParams{}
 
 	t.Cleanup(m.MinimockFinish)
 
@@ -1409,6 +1439,380 @@ func (m *RepositoryMock) MinimockCreatePlacementInspect() {
 	if !m.CreatePlacementMock.invocationsDone() && afterCreatePlacementCounter > 0 {
 		m.t.Errorf("Expected %d calls to RepositoryMock.CreatePlacement at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.CreatePlacementMock.expectedInvocations), m.CreatePlacementMock.expectedInvocationsOrigin, afterCreatePlacementCounter)
+	}
+}
+
+type mRepositoryMockCreatePlacements struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockCreatePlacementsExpectation
+	expectations       []*RepositoryMockCreatePlacementsExpectation
+
+	callArgs []*RepositoryMockCreatePlacementsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockCreatePlacementsExpectation specifies expectation struct of the Repository.CreatePlacements
+type RepositoryMockCreatePlacementsExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockCreatePlacementsParams
+	paramPtrs          *RepositoryMockCreatePlacementsParamPtrs
+	expectationOrigins RepositoryMockCreatePlacementsExpectationOrigins
+	results            *RepositoryMockCreatePlacementsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockCreatePlacementsParams contains parameters of the Repository.CreatePlacements
+type RepositoryMockCreatePlacementsParams struct {
+	ctx context.Context
+	key string
+	ps  []domain.Placement
+}
+
+// RepositoryMockCreatePlacementsParamPtrs contains pointers to parameters of the Repository.CreatePlacements
+type RepositoryMockCreatePlacementsParamPtrs struct {
+	ctx *context.Context
+	key *string
+	ps  *[]domain.Placement
+}
+
+// RepositoryMockCreatePlacementsResults contains results of the Repository.CreatePlacements
+type RepositoryMockCreatePlacementsResults struct {
+	pa1 []domain.Placement
+	err error
+}
+
+// RepositoryMockCreatePlacementsOrigins contains origins of expectations of the Repository.CreatePlacements
+type RepositoryMockCreatePlacementsExpectationOrigins struct {
+	origin    string
+	originCtx string
+	originKey string
+	originPs  string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) Optional() *mRepositoryMockCreatePlacements {
+	mmCreatePlacements.optional = true
+	return mmCreatePlacements
+}
+
+// Expect sets up expected params for Repository.CreatePlacements
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) Expect(ctx context.Context, key string, ps []domain.Placement) *mRepositoryMockCreatePlacements {
+	if mmCreatePlacements.mock.funcCreatePlacements != nil {
+		mmCreatePlacements.mock.t.Fatalf("RepositoryMock.CreatePlacements mock is already set by Set")
+	}
+
+	if mmCreatePlacements.defaultExpectation == nil {
+		mmCreatePlacements.defaultExpectation = &RepositoryMockCreatePlacementsExpectation{}
+	}
+
+	if mmCreatePlacements.defaultExpectation.paramPtrs != nil {
+		mmCreatePlacements.mock.t.Fatalf("RepositoryMock.CreatePlacements mock is already set by ExpectParams functions")
+	}
+
+	mmCreatePlacements.defaultExpectation.params = &RepositoryMockCreatePlacementsParams{ctx, key, ps}
+	mmCreatePlacements.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmCreatePlacements.expectations {
+		if minimock.Equal(e.params, mmCreatePlacements.defaultExpectation.params) {
+			mmCreatePlacements.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCreatePlacements.defaultExpectation.params)
+		}
+	}
+
+	return mmCreatePlacements
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.CreatePlacements
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) ExpectCtxParam1(ctx context.Context) *mRepositoryMockCreatePlacements {
+	if mmCreatePlacements.mock.funcCreatePlacements != nil {
+		mmCreatePlacements.mock.t.Fatalf("RepositoryMock.CreatePlacements mock is already set by Set")
+	}
+
+	if mmCreatePlacements.defaultExpectation == nil {
+		mmCreatePlacements.defaultExpectation = &RepositoryMockCreatePlacementsExpectation{}
+	}
+
+	if mmCreatePlacements.defaultExpectation.params != nil {
+		mmCreatePlacements.mock.t.Fatalf("RepositoryMock.CreatePlacements mock is already set by Expect")
+	}
+
+	if mmCreatePlacements.defaultExpectation.paramPtrs == nil {
+		mmCreatePlacements.defaultExpectation.paramPtrs = &RepositoryMockCreatePlacementsParamPtrs{}
+	}
+	mmCreatePlacements.defaultExpectation.paramPtrs.ctx = &ctx
+	mmCreatePlacements.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmCreatePlacements
+}
+
+// ExpectKeyParam2 sets up expected param key for Repository.CreatePlacements
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) ExpectKeyParam2(key string) *mRepositoryMockCreatePlacements {
+	if mmCreatePlacements.mock.funcCreatePlacements != nil {
+		mmCreatePlacements.mock.t.Fatalf("RepositoryMock.CreatePlacements mock is already set by Set")
+	}
+
+	if mmCreatePlacements.defaultExpectation == nil {
+		mmCreatePlacements.defaultExpectation = &RepositoryMockCreatePlacementsExpectation{}
+	}
+
+	if mmCreatePlacements.defaultExpectation.params != nil {
+		mmCreatePlacements.mock.t.Fatalf("RepositoryMock.CreatePlacements mock is already set by Expect")
+	}
+
+	if mmCreatePlacements.defaultExpectation.paramPtrs == nil {
+		mmCreatePlacements.defaultExpectation.paramPtrs = &RepositoryMockCreatePlacementsParamPtrs{}
+	}
+	mmCreatePlacements.defaultExpectation.paramPtrs.key = &key
+	mmCreatePlacements.defaultExpectation.expectationOrigins.originKey = minimock.CallerInfo(1)
+
+	return mmCreatePlacements
+}
+
+// ExpectPsParam3 sets up expected param ps for Repository.CreatePlacements
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) ExpectPsParam3(ps []domain.Placement) *mRepositoryMockCreatePlacements {
+	if mmCreatePlacements.mock.funcCreatePlacements != nil {
+		mmCreatePlacements.mock.t.Fatalf("RepositoryMock.CreatePlacements mock is already set by Set")
+	}
+
+	if mmCreatePlacements.defaultExpectation == nil {
+		mmCreatePlacements.defaultExpectation = &RepositoryMockCreatePlacementsExpectation{}
+	}
+
+	if mmCreatePlacements.defaultExpectation.params != nil {
+		mmCreatePlacements.mock.t.Fatalf("RepositoryMock.CreatePlacements mock is already set by Expect")
+	}
+
+	if mmCreatePlacements.defaultExpectation.paramPtrs == nil {
+		mmCreatePlacements.defaultExpectation.paramPtrs = &RepositoryMockCreatePlacementsParamPtrs{}
+	}
+	mmCreatePlacements.defaultExpectation.paramPtrs.ps = &ps
+	mmCreatePlacements.defaultExpectation.expectationOrigins.originPs = minimock.CallerInfo(1)
+
+	return mmCreatePlacements
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.CreatePlacements
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) Inspect(f func(ctx context.Context, key string, ps []domain.Placement)) *mRepositoryMockCreatePlacements {
+	if mmCreatePlacements.mock.inspectFuncCreatePlacements != nil {
+		mmCreatePlacements.mock.t.Fatalf("Inspect function is already set for RepositoryMock.CreatePlacements")
+	}
+
+	mmCreatePlacements.mock.inspectFuncCreatePlacements = f
+
+	return mmCreatePlacements
+}
+
+// Return sets up results that will be returned by Repository.CreatePlacements
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) Return(pa1 []domain.Placement, err error) *RepositoryMock {
+	if mmCreatePlacements.mock.funcCreatePlacements != nil {
+		mmCreatePlacements.mock.t.Fatalf("RepositoryMock.CreatePlacements mock is already set by Set")
+	}
+
+	if mmCreatePlacements.defaultExpectation == nil {
+		mmCreatePlacements.defaultExpectation = &RepositoryMockCreatePlacementsExpectation{mock: mmCreatePlacements.mock}
+	}
+	mmCreatePlacements.defaultExpectation.results = &RepositoryMockCreatePlacementsResults{pa1, err}
+	mmCreatePlacements.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmCreatePlacements.mock
+}
+
+// Set uses given function f to mock the Repository.CreatePlacements method
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) Set(f func(ctx context.Context, key string, ps []domain.Placement) (pa1 []domain.Placement, err error)) *RepositoryMock {
+	if mmCreatePlacements.defaultExpectation != nil {
+		mmCreatePlacements.mock.t.Fatalf("Default expectation is already set for the Repository.CreatePlacements method")
+	}
+
+	if len(mmCreatePlacements.expectations) > 0 {
+		mmCreatePlacements.mock.t.Fatalf("Some expectations are already set for the Repository.CreatePlacements method")
+	}
+
+	mmCreatePlacements.mock.funcCreatePlacements = f
+	mmCreatePlacements.mock.funcCreatePlacementsOrigin = minimock.CallerInfo(1)
+	return mmCreatePlacements.mock
+}
+
+// When sets expectation for the Repository.CreatePlacements which will trigger the result defined by the following
+// Then helper
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) When(ctx context.Context, key string, ps []domain.Placement) *RepositoryMockCreatePlacementsExpectation {
+	if mmCreatePlacements.mock.funcCreatePlacements != nil {
+		mmCreatePlacements.mock.t.Fatalf("RepositoryMock.CreatePlacements mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockCreatePlacementsExpectation{
+		mock:               mmCreatePlacements.mock,
+		params:             &RepositoryMockCreatePlacementsParams{ctx, key, ps},
+		expectationOrigins: RepositoryMockCreatePlacementsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmCreatePlacements.expectations = append(mmCreatePlacements.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.CreatePlacements return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockCreatePlacementsExpectation) Then(pa1 []domain.Placement, err error) *RepositoryMock {
+	e.results = &RepositoryMockCreatePlacementsResults{pa1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.CreatePlacements should be invoked
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) Times(n uint64) *mRepositoryMockCreatePlacements {
+	if n == 0 {
+		mmCreatePlacements.mock.t.Fatalf("Times of RepositoryMock.CreatePlacements mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmCreatePlacements.expectedInvocations, n)
+	mmCreatePlacements.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmCreatePlacements
+}
+
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) invocationsDone() bool {
+	if len(mmCreatePlacements.expectations) == 0 && mmCreatePlacements.defaultExpectation == nil && mmCreatePlacements.mock.funcCreatePlacements == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmCreatePlacements.mock.afterCreatePlacementsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmCreatePlacements.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// CreatePlacements implements mm_service.Repository
+func (mmCreatePlacements *RepositoryMock) CreatePlacements(ctx context.Context, key string, ps []domain.Placement) (pa1 []domain.Placement, err error) {
+	mm_atomic.AddUint64(&mmCreatePlacements.beforeCreatePlacementsCounter, 1)
+	defer mm_atomic.AddUint64(&mmCreatePlacements.afterCreatePlacementsCounter, 1)
+
+	mmCreatePlacements.t.Helper()
+
+	if mmCreatePlacements.inspectFuncCreatePlacements != nil {
+		mmCreatePlacements.inspectFuncCreatePlacements(ctx, key, ps)
+	}
+
+	mm_params := RepositoryMockCreatePlacementsParams{ctx, key, ps}
+
+	// Record call args
+	mmCreatePlacements.CreatePlacementsMock.mutex.Lock()
+	mmCreatePlacements.CreatePlacementsMock.callArgs = append(mmCreatePlacements.CreatePlacementsMock.callArgs, &mm_params)
+	mmCreatePlacements.CreatePlacementsMock.mutex.Unlock()
+
+	for _, e := range mmCreatePlacements.CreatePlacementsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.pa1, e.results.err
+		}
+	}
+
+	if mmCreatePlacements.CreatePlacementsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCreatePlacements.CreatePlacementsMock.defaultExpectation.Counter, 1)
+		mm_want := mmCreatePlacements.CreatePlacementsMock.defaultExpectation.params
+		mm_want_ptrs := mmCreatePlacements.CreatePlacementsMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockCreatePlacementsParams{ctx, key, ps}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmCreatePlacements.t.Errorf("RepositoryMock.CreatePlacements got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreatePlacements.CreatePlacementsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.key != nil && !minimock.Equal(*mm_want_ptrs.key, mm_got.key) {
+				mmCreatePlacements.t.Errorf("RepositoryMock.CreatePlacements got unexpected parameter key, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreatePlacements.CreatePlacementsMock.defaultExpectation.expectationOrigins.originKey, *mm_want_ptrs.key, mm_got.key, minimock.Diff(*mm_want_ptrs.key, mm_got.key))
+			}
+
+			if mm_want_ptrs.ps != nil && !minimock.Equal(*mm_want_ptrs.ps, mm_got.ps) {
+				mmCreatePlacements.t.Errorf("RepositoryMock.CreatePlacements got unexpected parameter ps, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreatePlacements.CreatePlacementsMock.defaultExpectation.expectationOrigins.originPs, *mm_want_ptrs.ps, mm_got.ps, minimock.Diff(*mm_want_ptrs.ps, mm_got.ps))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCreatePlacements.t.Errorf("RepositoryMock.CreatePlacements got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmCreatePlacements.CreatePlacementsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCreatePlacements.CreatePlacementsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCreatePlacements.t.Fatal("No results are set for the RepositoryMock.CreatePlacements")
+		}
+		return (*mm_results).pa1, (*mm_results).err
+	}
+	if mmCreatePlacements.funcCreatePlacements != nil {
+		return mmCreatePlacements.funcCreatePlacements(ctx, key, ps)
+	}
+	mmCreatePlacements.t.Fatalf("Unexpected call to RepositoryMock.CreatePlacements. %v %v %v", ctx, key, ps)
+	return
+}
+
+// CreatePlacementsAfterCounter returns a count of finished RepositoryMock.CreatePlacements invocations
+func (mmCreatePlacements *RepositoryMock) CreatePlacementsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCreatePlacements.afterCreatePlacementsCounter)
+}
+
+// CreatePlacementsBeforeCounter returns a count of RepositoryMock.CreatePlacements invocations
+func (mmCreatePlacements *RepositoryMock) CreatePlacementsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCreatePlacements.beforeCreatePlacementsCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.CreatePlacements.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) Calls() []*RepositoryMockCreatePlacementsParams {
+	mmCreatePlacements.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockCreatePlacementsParams, len(mmCreatePlacements.callArgs))
+	copy(argCopy, mmCreatePlacements.callArgs)
+
+	mmCreatePlacements.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCreatePlacementsDone returns true if the count of the CreatePlacements invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockCreatePlacementsDone() bool {
+	if m.CreatePlacementsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.CreatePlacementsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.CreatePlacementsMock.invocationsDone()
+}
+
+// MinimockCreatePlacementsInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockCreatePlacementsInspect() {
+	for _, e := range m.CreatePlacementsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.CreatePlacements at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterCreatePlacementsCounter := mm_atomic.LoadUint64(&m.afterCreatePlacementsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CreatePlacementsMock.defaultExpectation != nil && afterCreatePlacementsCounter < 1 {
+		if m.CreatePlacementsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.CreatePlacements at\n%s", m.CreatePlacementsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.CreatePlacements at\n%s with params: %#v", m.CreatePlacementsMock.defaultExpectation.expectationOrigins.origin, *m.CreatePlacementsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCreatePlacements != nil && afterCreatePlacementsCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.CreatePlacements at\n%s", m.funcCreatePlacementsOrigin)
+	}
+
+	if !m.CreatePlacementsMock.invocationsDone() && afterCreatePlacementsCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.CreatePlacements at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.CreatePlacementsMock.expectedInvocations), m.CreatePlacementsMock.expectedInvocationsOrigin, afterCreatePlacementsCounter)
 	}
 }
 
@@ -6390,12 +6794,14 @@ type RepositoryMockListModelsExpectation struct {
 
 // RepositoryMockListModelsParams contains parameters of the Repository.ListModels
 type RepositoryMockListModelsParams struct {
-	ctx context.Context
+	ctx           context.Context
+	withArtifacts bool
 }
 
 // RepositoryMockListModelsParamPtrs contains pointers to parameters of the Repository.ListModels
 type RepositoryMockListModelsParamPtrs struct {
-	ctx *context.Context
+	ctx           *context.Context
+	withArtifacts *bool
 }
 
 // RepositoryMockListModelsResults contains results of the Repository.ListModels
@@ -6406,8 +6812,9 @@ type RepositoryMockListModelsResults struct {
 
 // RepositoryMockListModelsOrigins contains origins of expectations of the Repository.ListModels
 type RepositoryMockListModelsExpectationOrigins struct {
-	origin    string
-	originCtx string
+	origin              string
+	originCtx           string
+	originWithArtifacts string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -6421,7 +6828,7 @@ func (mmListModels *mRepositoryMockListModels) Optional() *mRepositoryMockListMo
 }
 
 // Expect sets up expected params for Repository.ListModels
-func (mmListModels *mRepositoryMockListModels) Expect(ctx context.Context) *mRepositoryMockListModels {
+func (mmListModels *mRepositoryMockListModels) Expect(ctx context.Context, withArtifacts bool) *mRepositoryMockListModels {
 	if mmListModels.mock.funcListModels != nil {
 		mmListModels.mock.t.Fatalf("RepositoryMock.ListModels mock is already set by Set")
 	}
@@ -6434,7 +6841,7 @@ func (mmListModels *mRepositoryMockListModels) Expect(ctx context.Context) *mRep
 		mmListModels.mock.t.Fatalf("RepositoryMock.ListModels mock is already set by ExpectParams functions")
 	}
 
-	mmListModels.defaultExpectation.params = &RepositoryMockListModelsParams{ctx}
+	mmListModels.defaultExpectation.params = &RepositoryMockListModelsParams{ctx, withArtifacts}
 	mmListModels.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmListModels.expectations {
 		if minimock.Equal(e.params, mmListModels.defaultExpectation.params) {
@@ -6468,8 +6875,31 @@ func (mmListModels *mRepositoryMockListModels) ExpectCtxParam1(ctx context.Conte
 	return mmListModels
 }
 
+// ExpectWithArtifactsParam2 sets up expected param withArtifacts for Repository.ListModels
+func (mmListModels *mRepositoryMockListModels) ExpectWithArtifactsParam2(withArtifacts bool) *mRepositoryMockListModels {
+	if mmListModels.mock.funcListModels != nil {
+		mmListModels.mock.t.Fatalf("RepositoryMock.ListModels mock is already set by Set")
+	}
+
+	if mmListModels.defaultExpectation == nil {
+		mmListModels.defaultExpectation = &RepositoryMockListModelsExpectation{}
+	}
+
+	if mmListModels.defaultExpectation.params != nil {
+		mmListModels.mock.t.Fatalf("RepositoryMock.ListModels mock is already set by Expect")
+	}
+
+	if mmListModels.defaultExpectation.paramPtrs == nil {
+		mmListModels.defaultExpectation.paramPtrs = &RepositoryMockListModelsParamPtrs{}
+	}
+	mmListModels.defaultExpectation.paramPtrs.withArtifacts = &withArtifacts
+	mmListModels.defaultExpectation.expectationOrigins.originWithArtifacts = minimock.CallerInfo(1)
+
+	return mmListModels
+}
+
 // Inspect accepts an inspector function that has same arguments as the Repository.ListModels
-func (mmListModels *mRepositoryMockListModels) Inspect(f func(ctx context.Context)) *mRepositoryMockListModels {
+func (mmListModels *mRepositoryMockListModels) Inspect(f func(ctx context.Context, withArtifacts bool)) *mRepositoryMockListModels {
 	if mmListModels.mock.inspectFuncListModels != nil {
 		mmListModels.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ListModels")
 	}
@@ -6494,7 +6924,7 @@ func (mmListModels *mRepositoryMockListModels) Return(ma1 []domain.Model, err er
 }
 
 // Set uses given function f to mock the Repository.ListModels method
-func (mmListModels *mRepositoryMockListModels) Set(f func(ctx context.Context) (ma1 []domain.Model, err error)) *RepositoryMock {
+func (mmListModels *mRepositoryMockListModels) Set(f func(ctx context.Context, withArtifacts bool) (ma1 []domain.Model, err error)) *RepositoryMock {
 	if mmListModels.defaultExpectation != nil {
 		mmListModels.mock.t.Fatalf("Default expectation is already set for the Repository.ListModels method")
 	}
@@ -6510,14 +6940,14 @@ func (mmListModels *mRepositoryMockListModels) Set(f func(ctx context.Context) (
 
 // When sets expectation for the Repository.ListModels which will trigger the result defined by the following
 // Then helper
-func (mmListModels *mRepositoryMockListModels) When(ctx context.Context) *RepositoryMockListModelsExpectation {
+func (mmListModels *mRepositoryMockListModels) When(ctx context.Context, withArtifacts bool) *RepositoryMockListModelsExpectation {
 	if mmListModels.mock.funcListModels != nil {
 		mmListModels.mock.t.Fatalf("RepositoryMock.ListModels mock is already set by Set")
 	}
 
 	expectation := &RepositoryMockListModelsExpectation{
 		mock:               mmListModels.mock,
-		params:             &RepositoryMockListModelsParams{ctx},
+		params:             &RepositoryMockListModelsParams{ctx, withArtifacts},
 		expectationOrigins: RepositoryMockListModelsExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmListModels.expectations = append(mmListModels.expectations, expectation)
@@ -6552,17 +6982,17 @@ func (mmListModels *mRepositoryMockListModels) invocationsDone() bool {
 }
 
 // ListModels implements mm_service.Repository
-func (mmListModels *RepositoryMock) ListModels(ctx context.Context) (ma1 []domain.Model, err error) {
+func (mmListModels *RepositoryMock) ListModels(ctx context.Context, withArtifacts bool) (ma1 []domain.Model, err error) {
 	mm_atomic.AddUint64(&mmListModels.beforeListModelsCounter, 1)
 	defer mm_atomic.AddUint64(&mmListModels.afterListModelsCounter, 1)
 
 	mmListModels.t.Helper()
 
 	if mmListModels.inspectFuncListModels != nil {
-		mmListModels.inspectFuncListModels(ctx)
+		mmListModels.inspectFuncListModels(ctx, withArtifacts)
 	}
 
-	mm_params := RepositoryMockListModelsParams{ctx}
+	mm_params := RepositoryMockListModelsParams{ctx, withArtifacts}
 
 	// Record call args
 	mmListModels.ListModelsMock.mutex.Lock()
@@ -6581,13 +7011,18 @@ func (mmListModels *RepositoryMock) ListModels(ctx context.Context) (ma1 []domai
 		mm_want := mmListModels.ListModelsMock.defaultExpectation.params
 		mm_want_ptrs := mmListModels.ListModelsMock.defaultExpectation.paramPtrs
 
-		mm_got := RepositoryMockListModelsParams{ctx}
+		mm_got := RepositoryMockListModelsParams{ctx, withArtifacts}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
 				mmListModels.t.Errorf("RepositoryMock.ListModels got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmListModels.ListModelsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.withArtifacts != nil && !minimock.Equal(*mm_want_ptrs.withArtifacts, mm_got.withArtifacts) {
+				mmListModels.t.Errorf("RepositoryMock.ListModels got unexpected parameter withArtifacts, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListModels.ListModelsMock.defaultExpectation.expectationOrigins.originWithArtifacts, *mm_want_ptrs.withArtifacts, mm_got.withArtifacts, minimock.Diff(*mm_want_ptrs.withArtifacts, mm_got.withArtifacts))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
@@ -6602,9 +7037,9 @@ func (mmListModels *RepositoryMock) ListModels(ctx context.Context) (ma1 []domai
 		return (*mm_results).ma1, (*mm_results).err
 	}
 	if mmListModels.funcListModels != nil {
-		return mmListModels.funcListModels(ctx)
+		return mmListModels.funcListModels(ctx, withArtifacts)
 	}
-	mmListModels.t.Fatalf("Unexpected call to RepositoryMock.ListModels. %v", ctx)
+	mmListModels.t.Fatalf("Unexpected call to RepositoryMock.ListModels. %v %v", ctx, withArtifacts)
 	return
 }
 
@@ -7388,14 +7823,16 @@ type RepositoryMockListTerritoriesExpectation struct {
 
 // RepositoryMockListTerritoriesParams contains parameters of the Repository.ListTerritories
 type RepositoryMockListTerritoriesParams struct {
-	ctx          context.Context
-	scopeAdminID string
+	ctx           context.Context
+	scopeAdminID  string
+	withArtifacts bool
 }
 
 // RepositoryMockListTerritoriesParamPtrs contains pointers to parameters of the Repository.ListTerritories
 type RepositoryMockListTerritoriesParamPtrs struct {
-	ctx          *context.Context
-	scopeAdminID *string
+	ctx           *context.Context
+	scopeAdminID  *string
+	withArtifacts *bool
 }
 
 // RepositoryMockListTerritoriesResults contains results of the Repository.ListTerritories
@@ -7406,9 +7843,10 @@ type RepositoryMockListTerritoriesResults struct {
 
 // RepositoryMockListTerritoriesOrigins contains origins of expectations of the Repository.ListTerritories
 type RepositoryMockListTerritoriesExpectationOrigins struct {
-	origin             string
-	originCtx          string
-	originScopeAdminID string
+	origin              string
+	originCtx           string
+	originScopeAdminID  string
+	originWithArtifacts string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -7422,7 +7860,7 @@ func (mmListTerritories *mRepositoryMockListTerritories) Optional() *mRepository
 }
 
 // Expect sets up expected params for Repository.ListTerritories
-func (mmListTerritories *mRepositoryMockListTerritories) Expect(ctx context.Context, scopeAdminID string) *mRepositoryMockListTerritories {
+func (mmListTerritories *mRepositoryMockListTerritories) Expect(ctx context.Context, scopeAdminID string, withArtifacts bool) *mRepositoryMockListTerritories {
 	if mmListTerritories.mock.funcListTerritories != nil {
 		mmListTerritories.mock.t.Fatalf("RepositoryMock.ListTerritories mock is already set by Set")
 	}
@@ -7435,7 +7873,7 @@ func (mmListTerritories *mRepositoryMockListTerritories) Expect(ctx context.Cont
 		mmListTerritories.mock.t.Fatalf("RepositoryMock.ListTerritories mock is already set by ExpectParams functions")
 	}
 
-	mmListTerritories.defaultExpectation.params = &RepositoryMockListTerritoriesParams{ctx, scopeAdminID}
+	mmListTerritories.defaultExpectation.params = &RepositoryMockListTerritoriesParams{ctx, scopeAdminID, withArtifacts}
 	mmListTerritories.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmListTerritories.expectations {
 		if minimock.Equal(e.params, mmListTerritories.defaultExpectation.params) {
@@ -7492,8 +7930,31 @@ func (mmListTerritories *mRepositoryMockListTerritories) ExpectScopeAdminIDParam
 	return mmListTerritories
 }
 
+// ExpectWithArtifactsParam3 sets up expected param withArtifacts for Repository.ListTerritories
+func (mmListTerritories *mRepositoryMockListTerritories) ExpectWithArtifactsParam3(withArtifacts bool) *mRepositoryMockListTerritories {
+	if mmListTerritories.mock.funcListTerritories != nil {
+		mmListTerritories.mock.t.Fatalf("RepositoryMock.ListTerritories mock is already set by Set")
+	}
+
+	if mmListTerritories.defaultExpectation == nil {
+		mmListTerritories.defaultExpectation = &RepositoryMockListTerritoriesExpectation{}
+	}
+
+	if mmListTerritories.defaultExpectation.params != nil {
+		mmListTerritories.mock.t.Fatalf("RepositoryMock.ListTerritories mock is already set by Expect")
+	}
+
+	if mmListTerritories.defaultExpectation.paramPtrs == nil {
+		mmListTerritories.defaultExpectation.paramPtrs = &RepositoryMockListTerritoriesParamPtrs{}
+	}
+	mmListTerritories.defaultExpectation.paramPtrs.withArtifacts = &withArtifacts
+	mmListTerritories.defaultExpectation.expectationOrigins.originWithArtifacts = minimock.CallerInfo(1)
+
+	return mmListTerritories
+}
+
 // Inspect accepts an inspector function that has same arguments as the Repository.ListTerritories
-func (mmListTerritories *mRepositoryMockListTerritories) Inspect(f func(ctx context.Context, scopeAdminID string)) *mRepositoryMockListTerritories {
+func (mmListTerritories *mRepositoryMockListTerritories) Inspect(f func(ctx context.Context, scopeAdminID string, withArtifacts bool)) *mRepositoryMockListTerritories {
 	if mmListTerritories.mock.inspectFuncListTerritories != nil {
 		mmListTerritories.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ListTerritories")
 	}
@@ -7518,7 +7979,7 @@ func (mmListTerritories *mRepositoryMockListTerritories) Return(ta1 []domain.Ter
 }
 
 // Set uses given function f to mock the Repository.ListTerritories method
-func (mmListTerritories *mRepositoryMockListTerritories) Set(f func(ctx context.Context, scopeAdminID string) (ta1 []domain.Territory, err error)) *RepositoryMock {
+func (mmListTerritories *mRepositoryMockListTerritories) Set(f func(ctx context.Context, scopeAdminID string, withArtifacts bool) (ta1 []domain.Territory, err error)) *RepositoryMock {
 	if mmListTerritories.defaultExpectation != nil {
 		mmListTerritories.mock.t.Fatalf("Default expectation is already set for the Repository.ListTerritories method")
 	}
@@ -7534,14 +7995,14 @@ func (mmListTerritories *mRepositoryMockListTerritories) Set(f func(ctx context.
 
 // When sets expectation for the Repository.ListTerritories which will trigger the result defined by the following
 // Then helper
-func (mmListTerritories *mRepositoryMockListTerritories) When(ctx context.Context, scopeAdminID string) *RepositoryMockListTerritoriesExpectation {
+func (mmListTerritories *mRepositoryMockListTerritories) When(ctx context.Context, scopeAdminID string, withArtifacts bool) *RepositoryMockListTerritoriesExpectation {
 	if mmListTerritories.mock.funcListTerritories != nil {
 		mmListTerritories.mock.t.Fatalf("RepositoryMock.ListTerritories mock is already set by Set")
 	}
 
 	expectation := &RepositoryMockListTerritoriesExpectation{
 		mock:               mmListTerritories.mock,
-		params:             &RepositoryMockListTerritoriesParams{ctx, scopeAdminID},
+		params:             &RepositoryMockListTerritoriesParams{ctx, scopeAdminID, withArtifacts},
 		expectationOrigins: RepositoryMockListTerritoriesExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmListTerritories.expectations = append(mmListTerritories.expectations, expectation)
@@ -7576,17 +8037,17 @@ func (mmListTerritories *mRepositoryMockListTerritories) invocationsDone() bool 
 }
 
 // ListTerritories implements mm_service.Repository
-func (mmListTerritories *RepositoryMock) ListTerritories(ctx context.Context, scopeAdminID string) (ta1 []domain.Territory, err error) {
+func (mmListTerritories *RepositoryMock) ListTerritories(ctx context.Context, scopeAdminID string, withArtifacts bool) (ta1 []domain.Territory, err error) {
 	mm_atomic.AddUint64(&mmListTerritories.beforeListTerritoriesCounter, 1)
 	defer mm_atomic.AddUint64(&mmListTerritories.afterListTerritoriesCounter, 1)
 
 	mmListTerritories.t.Helper()
 
 	if mmListTerritories.inspectFuncListTerritories != nil {
-		mmListTerritories.inspectFuncListTerritories(ctx, scopeAdminID)
+		mmListTerritories.inspectFuncListTerritories(ctx, scopeAdminID, withArtifacts)
 	}
 
-	mm_params := RepositoryMockListTerritoriesParams{ctx, scopeAdminID}
+	mm_params := RepositoryMockListTerritoriesParams{ctx, scopeAdminID, withArtifacts}
 
 	// Record call args
 	mmListTerritories.ListTerritoriesMock.mutex.Lock()
@@ -7605,7 +8066,7 @@ func (mmListTerritories *RepositoryMock) ListTerritories(ctx context.Context, sc
 		mm_want := mmListTerritories.ListTerritoriesMock.defaultExpectation.params
 		mm_want_ptrs := mmListTerritories.ListTerritoriesMock.defaultExpectation.paramPtrs
 
-		mm_got := RepositoryMockListTerritoriesParams{ctx, scopeAdminID}
+		mm_got := RepositoryMockListTerritoriesParams{ctx, scopeAdminID, withArtifacts}
 
 		if mm_want_ptrs != nil {
 
@@ -7617,6 +8078,11 @@ func (mmListTerritories *RepositoryMock) ListTerritories(ctx context.Context, sc
 			if mm_want_ptrs.scopeAdminID != nil && !minimock.Equal(*mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID) {
 				mmListTerritories.t.Errorf("RepositoryMock.ListTerritories got unexpected parameter scopeAdminID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmListTerritories.ListTerritoriesMock.defaultExpectation.expectationOrigins.originScopeAdminID, *mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID, minimock.Diff(*mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID))
+			}
+
+			if mm_want_ptrs.withArtifacts != nil && !minimock.Equal(*mm_want_ptrs.withArtifacts, mm_got.withArtifacts) {
+				mmListTerritories.t.Errorf("RepositoryMock.ListTerritories got unexpected parameter withArtifacts, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListTerritories.ListTerritoriesMock.defaultExpectation.expectationOrigins.originWithArtifacts, *mm_want_ptrs.withArtifacts, mm_got.withArtifacts, minimock.Diff(*mm_want_ptrs.withArtifacts, mm_got.withArtifacts))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
@@ -7631,9 +8097,9 @@ func (mmListTerritories *RepositoryMock) ListTerritories(ctx context.Context, sc
 		return (*mm_results).ta1, (*mm_results).err
 	}
 	if mmListTerritories.funcListTerritories != nil {
-		return mmListTerritories.funcListTerritories(ctx, scopeAdminID)
+		return mmListTerritories.funcListTerritories(ctx, scopeAdminID, withArtifacts)
 	}
-	mmListTerritories.t.Fatalf("Unexpected call to RepositoryMock.ListTerritories. %v %v", ctx, scopeAdminID)
+	mmListTerritories.t.Fatalf("Unexpected call to RepositoryMock.ListTerritories. %v %v %v", ctx, scopeAdminID, withArtifacts)
 	return
 }
 
@@ -7702,6 +8168,349 @@ func (m *RepositoryMock) MinimockListTerritoriesInspect() {
 	if !m.ListTerritoriesMock.invocationsDone() && afterListTerritoriesCounter > 0 {
 		m.t.Errorf("Expected %d calls to RepositoryMock.ListTerritories at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.ListTerritoriesMock.expectedInvocations), m.ListTerritoriesMock.expectedInvocationsOrigin, afterListTerritoriesCounter)
+	}
+}
+
+type mRepositoryMockListTerritoryAdmins struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockListTerritoryAdminsExpectation
+	expectations       []*RepositoryMockListTerritoryAdminsExpectation
+
+	callArgs []*RepositoryMockListTerritoryAdminsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockListTerritoryAdminsExpectation specifies expectation struct of the Repository.ListTerritoryAdmins
+type RepositoryMockListTerritoryAdminsExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockListTerritoryAdminsParams
+	paramPtrs          *RepositoryMockListTerritoryAdminsParamPtrs
+	expectationOrigins RepositoryMockListTerritoryAdminsExpectationOrigins
+	results            *RepositoryMockListTerritoryAdminsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockListTerritoryAdminsParams contains parameters of the Repository.ListTerritoryAdmins
+type RepositoryMockListTerritoryAdminsParams struct {
+	ctx   context.Context
+	slugs []string
+}
+
+// RepositoryMockListTerritoryAdminsParamPtrs contains pointers to parameters of the Repository.ListTerritoryAdmins
+type RepositoryMockListTerritoryAdminsParamPtrs struct {
+	ctx   *context.Context
+	slugs *[]string
+}
+
+// RepositoryMockListTerritoryAdminsResults contains results of the Repository.ListTerritoryAdmins
+type RepositoryMockListTerritoryAdminsResults struct {
+	m1  map[string][]string
+	err error
+}
+
+// RepositoryMockListTerritoryAdminsOrigins contains origins of expectations of the Repository.ListTerritoryAdmins
+type RepositoryMockListTerritoryAdminsExpectationOrigins struct {
+	origin      string
+	originCtx   string
+	originSlugs string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) Optional() *mRepositoryMockListTerritoryAdmins {
+	mmListTerritoryAdmins.optional = true
+	return mmListTerritoryAdmins
+}
+
+// Expect sets up expected params for Repository.ListTerritoryAdmins
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) Expect(ctx context.Context, slugs []string) *mRepositoryMockListTerritoryAdmins {
+	if mmListTerritoryAdmins.mock.funcListTerritoryAdmins != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("RepositoryMock.ListTerritoryAdmins mock is already set by Set")
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation == nil {
+		mmListTerritoryAdmins.defaultExpectation = &RepositoryMockListTerritoryAdminsExpectation{}
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation.paramPtrs != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("RepositoryMock.ListTerritoryAdmins mock is already set by ExpectParams functions")
+	}
+
+	mmListTerritoryAdmins.defaultExpectation.params = &RepositoryMockListTerritoryAdminsParams{ctx, slugs}
+	mmListTerritoryAdmins.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmListTerritoryAdmins.expectations {
+		if minimock.Equal(e.params, mmListTerritoryAdmins.defaultExpectation.params) {
+			mmListTerritoryAdmins.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListTerritoryAdmins.defaultExpectation.params)
+		}
+	}
+
+	return mmListTerritoryAdmins
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.ListTerritoryAdmins
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) ExpectCtxParam1(ctx context.Context) *mRepositoryMockListTerritoryAdmins {
+	if mmListTerritoryAdmins.mock.funcListTerritoryAdmins != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("RepositoryMock.ListTerritoryAdmins mock is already set by Set")
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation == nil {
+		mmListTerritoryAdmins.defaultExpectation = &RepositoryMockListTerritoryAdminsExpectation{}
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation.params != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("RepositoryMock.ListTerritoryAdmins mock is already set by Expect")
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation.paramPtrs == nil {
+		mmListTerritoryAdmins.defaultExpectation.paramPtrs = &RepositoryMockListTerritoryAdminsParamPtrs{}
+	}
+	mmListTerritoryAdmins.defaultExpectation.paramPtrs.ctx = &ctx
+	mmListTerritoryAdmins.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmListTerritoryAdmins
+}
+
+// ExpectSlugsParam2 sets up expected param slugs for Repository.ListTerritoryAdmins
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) ExpectSlugsParam2(slugs []string) *mRepositoryMockListTerritoryAdmins {
+	if mmListTerritoryAdmins.mock.funcListTerritoryAdmins != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("RepositoryMock.ListTerritoryAdmins mock is already set by Set")
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation == nil {
+		mmListTerritoryAdmins.defaultExpectation = &RepositoryMockListTerritoryAdminsExpectation{}
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation.params != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("RepositoryMock.ListTerritoryAdmins mock is already set by Expect")
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation.paramPtrs == nil {
+		mmListTerritoryAdmins.defaultExpectation.paramPtrs = &RepositoryMockListTerritoryAdminsParamPtrs{}
+	}
+	mmListTerritoryAdmins.defaultExpectation.paramPtrs.slugs = &slugs
+	mmListTerritoryAdmins.defaultExpectation.expectationOrigins.originSlugs = minimock.CallerInfo(1)
+
+	return mmListTerritoryAdmins
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.ListTerritoryAdmins
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) Inspect(f func(ctx context.Context, slugs []string)) *mRepositoryMockListTerritoryAdmins {
+	if mmListTerritoryAdmins.mock.inspectFuncListTerritoryAdmins != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ListTerritoryAdmins")
+	}
+
+	mmListTerritoryAdmins.mock.inspectFuncListTerritoryAdmins = f
+
+	return mmListTerritoryAdmins
+}
+
+// Return sets up results that will be returned by Repository.ListTerritoryAdmins
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) Return(m1 map[string][]string, err error) *RepositoryMock {
+	if mmListTerritoryAdmins.mock.funcListTerritoryAdmins != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("RepositoryMock.ListTerritoryAdmins mock is already set by Set")
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation == nil {
+		mmListTerritoryAdmins.defaultExpectation = &RepositoryMockListTerritoryAdminsExpectation{mock: mmListTerritoryAdmins.mock}
+	}
+	mmListTerritoryAdmins.defaultExpectation.results = &RepositoryMockListTerritoryAdminsResults{m1, err}
+	mmListTerritoryAdmins.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmListTerritoryAdmins.mock
+}
+
+// Set uses given function f to mock the Repository.ListTerritoryAdmins method
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) Set(f func(ctx context.Context, slugs []string) (m1 map[string][]string, err error)) *RepositoryMock {
+	if mmListTerritoryAdmins.defaultExpectation != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("Default expectation is already set for the Repository.ListTerritoryAdmins method")
+	}
+
+	if len(mmListTerritoryAdmins.expectations) > 0 {
+		mmListTerritoryAdmins.mock.t.Fatalf("Some expectations are already set for the Repository.ListTerritoryAdmins method")
+	}
+
+	mmListTerritoryAdmins.mock.funcListTerritoryAdmins = f
+	mmListTerritoryAdmins.mock.funcListTerritoryAdminsOrigin = minimock.CallerInfo(1)
+	return mmListTerritoryAdmins.mock
+}
+
+// When sets expectation for the Repository.ListTerritoryAdmins which will trigger the result defined by the following
+// Then helper
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) When(ctx context.Context, slugs []string) *RepositoryMockListTerritoryAdminsExpectation {
+	if mmListTerritoryAdmins.mock.funcListTerritoryAdmins != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("RepositoryMock.ListTerritoryAdmins mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockListTerritoryAdminsExpectation{
+		mock:               mmListTerritoryAdmins.mock,
+		params:             &RepositoryMockListTerritoryAdminsParams{ctx, slugs},
+		expectationOrigins: RepositoryMockListTerritoryAdminsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmListTerritoryAdmins.expectations = append(mmListTerritoryAdmins.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.ListTerritoryAdmins return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockListTerritoryAdminsExpectation) Then(m1 map[string][]string, err error) *RepositoryMock {
+	e.results = &RepositoryMockListTerritoryAdminsResults{m1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.ListTerritoryAdmins should be invoked
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) Times(n uint64) *mRepositoryMockListTerritoryAdmins {
+	if n == 0 {
+		mmListTerritoryAdmins.mock.t.Fatalf("Times of RepositoryMock.ListTerritoryAdmins mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmListTerritoryAdmins.expectedInvocations, n)
+	mmListTerritoryAdmins.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmListTerritoryAdmins
+}
+
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) invocationsDone() bool {
+	if len(mmListTerritoryAdmins.expectations) == 0 && mmListTerritoryAdmins.defaultExpectation == nil && mmListTerritoryAdmins.mock.funcListTerritoryAdmins == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmListTerritoryAdmins.mock.afterListTerritoryAdminsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmListTerritoryAdmins.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ListTerritoryAdmins implements mm_service.Repository
+func (mmListTerritoryAdmins *RepositoryMock) ListTerritoryAdmins(ctx context.Context, slugs []string) (m1 map[string][]string, err error) {
+	mm_atomic.AddUint64(&mmListTerritoryAdmins.beforeListTerritoryAdminsCounter, 1)
+	defer mm_atomic.AddUint64(&mmListTerritoryAdmins.afterListTerritoryAdminsCounter, 1)
+
+	mmListTerritoryAdmins.t.Helper()
+
+	if mmListTerritoryAdmins.inspectFuncListTerritoryAdmins != nil {
+		mmListTerritoryAdmins.inspectFuncListTerritoryAdmins(ctx, slugs)
+	}
+
+	mm_params := RepositoryMockListTerritoryAdminsParams{ctx, slugs}
+
+	// Record call args
+	mmListTerritoryAdmins.ListTerritoryAdminsMock.mutex.Lock()
+	mmListTerritoryAdmins.ListTerritoryAdminsMock.callArgs = append(mmListTerritoryAdmins.ListTerritoryAdminsMock.callArgs, &mm_params)
+	mmListTerritoryAdmins.ListTerritoryAdminsMock.mutex.Unlock()
+
+	for _, e := range mmListTerritoryAdmins.ListTerritoryAdminsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.m1, e.results.err
+		}
+	}
+
+	if mmListTerritoryAdmins.ListTerritoryAdminsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmListTerritoryAdmins.ListTerritoryAdminsMock.defaultExpectation.Counter, 1)
+		mm_want := mmListTerritoryAdmins.ListTerritoryAdminsMock.defaultExpectation.params
+		mm_want_ptrs := mmListTerritoryAdmins.ListTerritoryAdminsMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockListTerritoryAdminsParams{ctx, slugs}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmListTerritoryAdmins.t.Errorf("RepositoryMock.ListTerritoryAdmins got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListTerritoryAdmins.ListTerritoryAdminsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.slugs != nil && !minimock.Equal(*mm_want_ptrs.slugs, mm_got.slugs) {
+				mmListTerritoryAdmins.t.Errorf("RepositoryMock.ListTerritoryAdmins got unexpected parameter slugs, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListTerritoryAdmins.ListTerritoryAdminsMock.defaultExpectation.expectationOrigins.originSlugs, *mm_want_ptrs.slugs, mm_got.slugs, minimock.Diff(*mm_want_ptrs.slugs, mm_got.slugs))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmListTerritoryAdmins.t.Errorf("RepositoryMock.ListTerritoryAdmins got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmListTerritoryAdmins.ListTerritoryAdminsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmListTerritoryAdmins.ListTerritoryAdminsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmListTerritoryAdmins.t.Fatal("No results are set for the RepositoryMock.ListTerritoryAdmins")
+		}
+		return (*mm_results).m1, (*mm_results).err
+	}
+	if mmListTerritoryAdmins.funcListTerritoryAdmins != nil {
+		return mmListTerritoryAdmins.funcListTerritoryAdmins(ctx, slugs)
+	}
+	mmListTerritoryAdmins.t.Fatalf("Unexpected call to RepositoryMock.ListTerritoryAdmins. %v %v", ctx, slugs)
+	return
+}
+
+// ListTerritoryAdminsAfterCounter returns a count of finished RepositoryMock.ListTerritoryAdmins invocations
+func (mmListTerritoryAdmins *RepositoryMock) ListTerritoryAdminsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListTerritoryAdmins.afterListTerritoryAdminsCounter)
+}
+
+// ListTerritoryAdminsBeforeCounter returns a count of RepositoryMock.ListTerritoryAdmins invocations
+func (mmListTerritoryAdmins *RepositoryMock) ListTerritoryAdminsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListTerritoryAdmins.beforeListTerritoryAdminsCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.ListTerritoryAdmins.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) Calls() []*RepositoryMockListTerritoryAdminsParams {
+	mmListTerritoryAdmins.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockListTerritoryAdminsParams, len(mmListTerritoryAdmins.callArgs))
+	copy(argCopy, mmListTerritoryAdmins.callArgs)
+
+	mmListTerritoryAdmins.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockListTerritoryAdminsDone returns true if the count of the ListTerritoryAdmins invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockListTerritoryAdminsDone() bool {
+	if m.ListTerritoryAdminsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ListTerritoryAdminsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ListTerritoryAdminsMock.invocationsDone()
+}
+
+// MinimockListTerritoryAdminsInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockListTerritoryAdminsInspect() {
+	for _, e := range m.ListTerritoryAdminsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.ListTerritoryAdmins at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterListTerritoryAdminsCounter := mm_atomic.LoadUint64(&m.afterListTerritoryAdminsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ListTerritoryAdminsMock.defaultExpectation != nil && afterListTerritoryAdminsCounter < 1 {
+		if m.ListTerritoryAdminsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.ListTerritoryAdmins at\n%s", m.ListTerritoryAdminsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.ListTerritoryAdmins at\n%s with params: %#v", m.ListTerritoryAdminsMock.defaultExpectation.expectationOrigins.origin, *m.ListTerritoryAdminsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcListTerritoryAdmins != nil && afterListTerritoryAdminsCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.ListTerritoryAdmins at\n%s", m.funcListTerritoryAdminsOrigin)
+	}
+
+	if !m.ListTerritoryAdminsMock.invocationsDone() && afterListTerritoryAdminsCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.ListTerritoryAdmins at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListTerritoryAdminsMock.expectedInvocations), m.ListTerritoryAdminsMock.expectedInvocationsOrigin, afterListTerritoryAdminsCounter)
 	}
 }
 
@@ -8045,6 +8854,411 @@ func (m *RepositoryMock) MinimockListTerritoryArtifactsInspect() {
 	if !m.ListTerritoryArtifactsMock.invocationsDone() && afterListTerritoryArtifactsCounter > 0 {
 		m.t.Errorf("Expected %d calls to RepositoryMock.ListTerritoryArtifacts at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.ListTerritoryArtifactsMock.expectedInvocations), m.ListTerritoryArtifactsMock.expectedInvocationsOrigin, afterListTerritoryArtifactsCounter)
+	}
+}
+
+type mRepositoryMockPlacementBatch struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockPlacementBatchExpectation
+	expectations       []*RepositoryMockPlacementBatchExpectation
+
+	callArgs []*RepositoryMockPlacementBatchParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockPlacementBatchExpectation specifies expectation struct of the Repository.PlacementBatch
+type RepositoryMockPlacementBatchExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockPlacementBatchParams
+	paramPtrs          *RepositoryMockPlacementBatchParamPtrs
+	expectationOrigins RepositoryMockPlacementBatchExpectationOrigins
+	results            *RepositoryMockPlacementBatchResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockPlacementBatchParams contains parameters of the Repository.PlacementBatch
+type RepositoryMockPlacementBatchParams struct {
+	ctx           context.Context
+	territorySlug string
+	key           string
+	size          int
+}
+
+// RepositoryMockPlacementBatchParamPtrs contains pointers to parameters of the Repository.PlacementBatch
+type RepositoryMockPlacementBatchParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	key           *string
+	size          *int
+}
+
+// RepositoryMockPlacementBatchResults contains results of the Repository.PlacementBatch
+type RepositoryMockPlacementBatchResults struct {
+	pa1 []domain.Placement
+	err error
+}
+
+// RepositoryMockPlacementBatchOrigins contains origins of expectations of the Repository.PlacementBatch
+type RepositoryMockPlacementBatchExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originKey           string
+	originSize          string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) Optional() *mRepositoryMockPlacementBatch {
+	mmPlacementBatch.optional = true
+	return mmPlacementBatch
+}
+
+// Expect sets up expected params for Repository.PlacementBatch
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) Expect(ctx context.Context, territorySlug string, key string, size int) *mRepositoryMockPlacementBatch {
+	if mmPlacementBatch.mock.funcPlacementBatch != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Set")
+	}
+
+	if mmPlacementBatch.defaultExpectation == nil {
+		mmPlacementBatch.defaultExpectation = &RepositoryMockPlacementBatchExpectation{}
+	}
+
+	if mmPlacementBatch.defaultExpectation.paramPtrs != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by ExpectParams functions")
+	}
+
+	mmPlacementBatch.defaultExpectation.params = &RepositoryMockPlacementBatchParams{ctx, territorySlug, key, size}
+	mmPlacementBatch.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmPlacementBatch.expectations {
+		if minimock.Equal(e.params, mmPlacementBatch.defaultExpectation.params) {
+			mmPlacementBatch.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmPlacementBatch.defaultExpectation.params)
+		}
+	}
+
+	return mmPlacementBatch
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.PlacementBatch
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) ExpectCtxParam1(ctx context.Context) *mRepositoryMockPlacementBatch {
+	if mmPlacementBatch.mock.funcPlacementBatch != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Set")
+	}
+
+	if mmPlacementBatch.defaultExpectation == nil {
+		mmPlacementBatch.defaultExpectation = &RepositoryMockPlacementBatchExpectation{}
+	}
+
+	if mmPlacementBatch.defaultExpectation.params != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Expect")
+	}
+
+	if mmPlacementBatch.defaultExpectation.paramPtrs == nil {
+		mmPlacementBatch.defaultExpectation.paramPtrs = &RepositoryMockPlacementBatchParamPtrs{}
+	}
+	mmPlacementBatch.defaultExpectation.paramPtrs.ctx = &ctx
+	mmPlacementBatch.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmPlacementBatch
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.PlacementBatch
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockPlacementBatch {
+	if mmPlacementBatch.mock.funcPlacementBatch != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Set")
+	}
+
+	if mmPlacementBatch.defaultExpectation == nil {
+		mmPlacementBatch.defaultExpectation = &RepositoryMockPlacementBatchExpectation{}
+	}
+
+	if mmPlacementBatch.defaultExpectation.params != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Expect")
+	}
+
+	if mmPlacementBatch.defaultExpectation.paramPtrs == nil {
+		mmPlacementBatch.defaultExpectation.paramPtrs = &RepositoryMockPlacementBatchParamPtrs{}
+	}
+	mmPlacementBatch.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmPlacementBatch.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmPlacementBatch
+}
+
+// ExpectKeyParam3 sets up expected param key for Repository.PlacementBatch
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) ExpectKeyParam3(key string) *mRepositoryMockPlacementBatch {
+	if mmPlacementBatch.mock.funcPlacementBatch != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Set")
+	}
+
+	if mmPlacementBatch.defaultExpectation == nil {
+		mmPlacementBatch.defaultExpectation = &RepositoryMockPlacementBatchExpectation{}
+	}
+
+	if mmPlacementBatch.defaultExpectation.params != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Expect")
+	}
+
+	if mmPlacementBatch.defaultExpectation.paramPtrs == nil {
+		mmPlacementBatch.defaultExpectation.paramPtrs = &RepositoryMockPlacementBatchParamPtrs{}
+	}
+	mmPlacementBatch.defaultExpectation.paramPtrs.key = &key
+	mmPlacementBatch.defaultExpectation.expectationOrigins.originKey = minimock.CallerInfo(1)
+
+	return mmPlacementBatch
+}
+
+// ExpectSizeParam4 sets up expected param size for Repository.PlacementBatch
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) ExpectSizeParam4(size int) *mRepositoryMockPlacementBatch {
+	if mmPlacementBatch.mock.funcPlacementBatch != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Set")
+	}
+
+	if mmPlacementBatch.defaultExpectation == nil {
+		mmPlacementBatch.defaultExpectation = &RepositoryMockPlacementBatchExpectation{}
+	}
+
+	if mmPlacementBatch.defaultExpectation.params != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Expect")
+	}
+
+	if mmPlacementBatch.defaultExpectation.paramPtrs == nil {
+		mmPlacementBatch.defaultExpectation.paramPtrs = &RepositoryMockPlacementBatchParamPtrs{}
+	}
+	mmPlacementBatch.defaultExpectation.paramPtrs.size = &size
+	mmPlacementBatch.defaultExpectation.expectationOrigins.originSize = minimock.CallerInfo(1)
+
+	return mmPlacementBatch
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.PlacementBatch
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) Inspect(f func(ctx context.Context, territorySlug string, key string, size int)) *mRepositoryMockPlacementBatch {
+	if mmPlacementBatch.mock.inspectFuncPlacementBatch != nil {
+		mmPlacementBatch.mock.t.Fatalf("Inspect function is already set for RepositoryMock.PlacementBatch")
+	}
+
+	mmPlacementBatch.mock.inspectFuncPlacementBatch = f
+
+	return mmPlacementBatch
+}
+
+// Return sets up results that will be returned by Repository.PlacementBatch
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) Return(pa1 []domain.Placement, err error) *RepositoryMock {
+	if mmPlacementBatch.mock.funcPlacementBatch != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Set")
+	}
+
+	if mmPlacementBatch.defaultExpectation == nil {
+		mmPlacementBatch.defaultExpectation = &RepositoryMockPlacementBatchExpectation{mock: mmPlacementBatch.mock}
+	}
+	mmPlacementBatch.defaultExpectation.results = &RepositoryMockPlacementBatchResults{pa1, err}
+	mmPlacementBatch.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmPlacementBatch.mock
+}
+
+// Set uses given function f to mock the Repository.PlacementBatch method
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) Set(f func(ctx context.Context, territorySlug string, key string, size int) (pa1 []domain.Placement, err error)) *RepositoryMock {
+	if mmPlacementBatch.defaultExpectation != nil {
+		mmPlacementBatch.mock.t.Fatalf("Default expectation is already set for the Repository.PlacementBatch method")
+	}
+
+	if len(mmPlacementBatch.expectations) > 0 {
+		mmPlacementBatch.mock.t.Fatalf("Some expectations are already set for the Repository.PlacementBatch method")
+	}
+
+	mmPlacementBatch.mock.funcPlacementBatch = f
+	mmPlacementBatch.mock.funcPlacementBatchOrigin = minimock.CallerInfo(1)
+	return mmPlacementBatch.mock
+}
+
+// When sets expectation for the Repository.PlacementBatch which will trigger the result defined by the following
+// Then helper
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) When(ctx context.Context, territorySlug string, key string, size int) *RepositoryMockPlacementBatchExpectation {
+	if mmPlacementBatch.mock.funcPlacementBatch != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockPlacementBatchExpectation{
+		mock:               mmPlacementBatch.mock,
+		params:             &RepositoryMockPlacementBatchParams{ctx, territorySlug, key, size},
+		expectationOrigins: RepositoryMockPlacementBatchExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmPlacementBatch.expectations = append(mmPlacementBatch.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.PlacementBatch return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockPlacementBatchExpectation) Then(pa1 []domain.Placement, err error) *RepositoryMock {
+	e.results = &RepositoryMockPlacementBatchResults{pa1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.PlacementBatch should be invoked
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) Times(n uint64) *mRepositoryMockPlacementBatch {
+	if n == 0 {
+		mmPlacementBatch.mock.t.Fatalf("Times of RepositoryMock.PlacementBatch mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmPlacementBatch.expectedInvocations, n)
+	mmPlacementBatch.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmPlacementBatch
+}
+
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) invocationsDone() bool {
+	if len(mmPlacementBatch.expectations) == 0 && mmPlacementBatch.defaultExpectation == nil && mmPlacementBatch.mock.funcPlacementBatch == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmPlacementBatch.mock.afterPlacementBatchCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmPlacementBatch.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// PlacementBatch implements mm_service.Repository
+func (mmPlacementBatch *RepositoryMock) PlacementBatch(ctx context.Context, territorySlug string, key string, size int) (pa1 []domain.Placement, err error) {
+	mm_atomic.AddUint64(&mmPlacementBatch.beforePlacementBatchCounter, 1)
+	defer mm_atomic.AddUint64(&mmPlacementBatch.afterPlacementBatchCounter, 1)
+
+	mmPlacementBatch.t.Helper()
+
+	if mmPlacementBatch.inspectFuncPlacementBatch != nil {
+		mmPlacementBatch.inspectFuncPlacementBatch(ctx, territorySlug, key, size)
+	}
+
+	mm_params := RepositoryMockPlacementBatchParams{ctx, territorySlug, key, size}
+
+	// Record call args
+	mmPlacementBatch.PlacementBatchMock.mutex.Lock()
+	mmPlacementBatch.PlacementBatchMock.callArgs = append(mmPlacementBatch.PlacementBatchMock.callArgs, &mm_params)
+	mmPlacementBatch.PlacementBatchMock.mutex.Unlock()
+
+	for _, e := range mmPlacementBatch.PlacementBatchMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.pa1, e.results.err
+		}
+	}
+
+	if mmPlacementBatch.PlacementBatchMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmPlacementBatch.PlacementBatchMock.defaultExpectation.Counter, 1)
+		mm_want := mmPlacementBatch.PlacementBatchMock.defaultExpectation.params
+		mm_want_ptrs := mmPlacementBatch.PlacementBatchMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockPlacementBatchParams{ctx, territorySlug, key, size}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmPlacementBatch.t.Errorf("RepositoryMock.PlacementBatch got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmPlacementBatch.PlacementBatchMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmPlacementBatch.t.Errorf("RepositoryMock.PlacementBatch got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmPlacementBatch.PlacementBatchMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.key != nil && !minimock.Equal(*mm_want_ptrs.key, mm_got.key) {
+				mmPlacementBatch.t.Errorf("RepositoryMock.PlacementBatch got unexpected parameter key, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmPlacementBatch.PlacementBatchMock.defaultExpectation.expectationOrigins.originKey, *mm_want_ptrs.key, mm_got.key, minimock.Diff(*mm_want_ptrs.key, mm_got.key))
+			}
+
+			if mm_want_ptrs.size != nil && !minimock.Equal(*mm_want_ptrs.size, mm_got.size) {
+				mmPlacementBatch.t.Errorf("RepositoryMock.PlacementBatch got unexpected parameter size, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmPlacementBatch.PlacementBatchMock.defaultExpectation.expectationOrigins.originSize, *mm_want_ptrs.size, mm_got.size, minimock.Diff(*mm_want_ptrs.size, mm_got.size))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmPlacementBatch.t.Errorf("RepositoryMock.PlacementBatch got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmPlacementBatch.PlacementBatchMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmPlacementBatch.PlacementBatchMock.defaultExpectation.results
+		if mm_results == nil {
+			mmPlacementBatch.t.Fatal("No results are set for the RepositoryMock.PlacementBatch")
+		}
+		return (*mm_results).pa1, (*mm_results).err
+	}
+	if mmPlacementBatch.funcPlacementBatch != nil {
+		return mmPlacementBatch.funcPlacementBatch(ctx, territorySlug, key, size)
+	}
+	mmPlacementBatch.t.Fatalf("Unexpected call to RepositoryMock.PlacementBatch. %v %v %v %v", ctx, territorySlug, key, size)
+	return
+}
+
+// PlacementBatchAfterCounter returns a count of finished RepositoryMock.PlacementBatch invocations
+func (mmPlacementBatch *RepositoryMock) PlacementBatchAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmPlacementBatch.afterPlacementBatchCounter)
+}
+
+// PlacementBatchBeforeCounter returns a count of RepositoryMock.PlacementBatch invocations
+func (mmPlacementBatch *RepositoryMock) PlacementBatchBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmPlacementBatch.beforePlacementBatchCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.PlacementBatch.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) Calls() []*RepositoryMockPlacementBatchParams {
+	mmPlacementBatch.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockPlacementBatchParams, len(mmPlacementBatch.callArgs))
+	copy(argCopy, mmPlacementBatch.callArgs)
+
+	mmPlacementBatch.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockPlacementBatchDone returns true if the count of the PlacementBatch invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockPlacementBatchDone() bool {
+	if m.PlacementBatchMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.PlacementBatchMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.PlacementBatchMock.invocationsDone()
+}
+
+// MinimockPlacementBatchInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockPlacementBatchInspect() {
+	for _, e := range m.PlacementBatchMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.PlacementBatch at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterPlacementBatchCounter := mm_atomic.LoadUint64(&m.afterPlacementBatchCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.PlacementBatchMock.defaultExpectation != nil && afterPlacementBatchCounter < 1 {
+		if m.PlacementBatchMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.PlacementBatch at\n%s", m.PlacementBatchMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.PlacementBatch at\n%s with params: %#v", m.PlacementBatchMock.defaultExpectation.expectationOrigins.origin, *m.PlacementBatchMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcPlacementBatch != nil && afterPlacementBatchCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.PlacementBatch at\n%s", m.funcPlacementBatchOrigin)
+	}
+
+	if !m.PlacementBatchMock.invocationsDone() && afterPlacementBatchCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.PlacementBatch at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.PlacementBatchMock.expectedInvocations), m.PlacementBatchMock.expectedInvocationsOrigin, afterPlacementBatchCounter)
 	}
 }
 
@@ -8760,16 +9974,18 @@ type RepositoryMockRescaleTerritoryPlacementsExpectation struct {
 
 // RepositoryMockRescaleTerritoryPlacementsParams contains parameters of the Repository.RescaleTerritoryPlacements
 type RepositoryMockRescaleTerritoryPlacementsParams struct {
-	ctx    context.Context
-	slug   string
-	newMax float64
+	ctx       context.Context
+	slug      string
+	newMax    float64
+	newCenter domain.Vec3
 }
 
 // RepositoryMockRescaleTerritoryPlacementsParamPtrs contains pointers to parameters of the Repository.RescaleTerritoryPlacements
 type RepositoryMockRescaleTerritoryPlacementsParamPtrs struct {
-	ctx    *context.Context
-	slug   *string
-	newMax *float64
+	ctx       *context.Context
+	slug      *string
+	newMax    *float64
+	newCenter *domain.Vec3
 }
 
 // RepositoryMockRescaleTerritoryPlacementsResults contains results of the Repository.RescaleTerritoryPlacements
@@ -8780,10 +9996,11 @@ type RepositoryMockRescaleTerritoryPlacementsResults struct {
 
 // RepositoryMockRescaleTerritoryPlacementsOrigins contains origins of expectations of the Repository.RescaleTerritoryPlacements
 type RepositoryMockRescaleTerritoryPlacementsExpectationOrigins struct {
-	origin       string
-	originCtx    string
-	originSlug   string
-	originNewMax string
+	origin          string
+	originCtx       string
+	originSlug      string
+	originNewMax    string
+	originNewCenter string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -8797,7 +10014,7 @@ func (mmRescaleTerritoryPlacements *mRepositoryMockRescaleTerritoryPlacements) O
 }
 
 // Expect sets up expected params for Repository.RescaleTerritoryPlacements
-func (mmRescaleTerritoryPlacements *mRepositoryMockRescaleTerritoryPlacements) Expect(ctx context.Context, slug string, newMax float64) *mRepositoryMockRescaleTerritoryPlacements {
+func (mmRescaleTerritoryPlacements *mRepositoryMockRescaleTerritoryPlacements) Expect(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) *mRepositoryMockRescaleTerritoryPlacements {
 	if mmRescaleTerritoryPlacements.mock.funcRescaleTerritoryPlacements != nil {
 		mmRescaleTerritoryPlacements.mock.t.Fatalf("RepositoryMock.RescaleTerritoryPlacements mock is already set by Set")
 	}
@@ -8810,7 +10027,7 @@ func (mmRescaleTerritoryPlacements *mRepositoryMockRescaleTerritoryPlacements) E
 		mmRescaleTerritoryPlacements.mock.t.Fatalf("RepositoryMock.RescaleTerritoryPlacements mock is already set by ExpectParams functions")
 	}
 
-	mmRescaleTerritoryPlacements.defaultExpectation.params = &RepositoryMockRescaleTerritoryPlacementsParams{ctx, slug, newMax}
+	mmRescaleTerritoryPlacements.defaultExpectation.params = &RepositoryMockRescaleTerritoryPlacementsParams{ctx, slug, newMax, newCenter}
 	mmRescaleTerritoryPlacements.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmRescaleTerritoryPlacements.expectations {
 		if minimock.Equal(e.params, mmRescaleTerritoryPlacements.defaultExpectation.params) {
@@ -8890,8 +10107,31 @@ func (mmRescaleTerritoryPlacements *mRepositoryMockRescaleTerritoryPlacements) E
 	return mmRescaleTerritoryPlacements
 }
 
+// ExpectNewCenterParam4 sets up expected param newCenter for Repository.RescaleTerritoryPlacements
+func (mmRescaleTerritoryPlacements *mRepositoryMockRescaleTerritoryPlacements) ExpectNewCenterParam4(newCenter domain.Vec3) *mRepositoryMockRescaleTerritoryPlacements {
+	if mmRescaleTerritoryPlacements.mock.funcRescaleTerritoryPlacements != nil {
+		mmRescaleTerritoryPlacements.mock.t.Fatalf("RepositoryMock.RescaleTerritoryPlacements mock is already set by Set")
+	}
+
+	if mmRescaleTerritoryPlacements.defaultExpectation == nil {
+		mmRescaleTerritoryPlacements.defaultExpectation = &RepositoryMockRescaleTerritoryPlacementsExpectation{}
+	}
+
+	if mmRescaleTerritoryPlacements.defaultExpectation.params != nil {
+		mmRescaleTerritoryPlacements.mock.t.Fatalf("RepositoryMock.RescaleTerritoryPlacements mock is already set by Expect")
+	}
+
+	if mmRescaleTerritoryPlacements.defaultExpectation.paramPtrs == nil {
+		mmRescaleTerritoryPlacements.defaultExpectation.paramPtrs = &RepositoryMockRescaleTerritoryPlacementsParamPtrs{}
+	}
+	mmRescaleTerritoryPlacements.defaultExpectation.paramPtrs.newCenter = &newCenter
+	mmRescaleTerritoryPlacements.defaultExpectation.expectationOrigins.originNewCenter = minimock.CallerInfo(1)
+
+	return mmRescaleTerritoryPlacements
+}
+
 // Inspect accepts an inspector function that has same arguments as the Repository.RescaleTerritoryPlacements
-func (mmRescaleTerritoryPlacements *mRepositoryMockRescaleTerritoryPlacements) Inspect(f func(ctx context.Context, slug string, newMax float64)) *mRepositoryMockRescaleTerritoryPlacements {
+func (mmRescaleTerritoryPlacements *mRepositoryMockRescaleTerritoryPlacements) Inspect(f func(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3)) *mRepositoryMockRescaleTerritoryPlacements {
 	if mmRescaleTerritoryPlacements.mock.inspectFuncRescaleTerritoryPlacements != nil {
 		mmRescaleTerritoryPlacements.mock.t.Fatalf("Inspect function is already set for RepositoryMock.RescaleTerritoryPlacements")
 	}
@@ -8916,7 +10156,7 @@ func (mmRescaleTerritoryPlacements *mRepositoryMockRescaleTerritoryPlacements) R
 }
 
 // Set uses given function f to mock the Repository.RescaleTerritoryPlacements method
-func (mmRescaleTerritoryPlacements *mRepositoryMockRescaleTerritoryPlacements) Set(f func(ctx context.Context, slug string, newMax float64) (i1 int, err error)) *RepositoryMock {
+func (mmRescaleTerritoryPlacements *mRepositoryMockRescaleTerritoryPlacements) Set(f func(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) (i1 int, err error)) *RepositoryMock {
 	if mmRescaleTerritoryPlacements.defaultExpectation != nil {
 		mmRescaleTerritoryPlacements.mock.t.Fatalf("Default expectation is already set for the Repository.RescaleTerritoryPlacements method")
 	}
@@ -8932,14 +10172,14 @@ func (mmRescaleTerritoryPlacements *mRepositoryMockRescaleTerritoryPlacements) S
 
 // When sets expectation for the Repository.RescaleTerritoryPlacements which will trigger the result defined by the following
 // Then helper
-func (mmRescaleTerritoryPlacements *mRepositoryMockRescaleTerritoryPlacements) When(ctx context.Context, slug string, newMax float64) *RepositoryMockRescaleTerritoryPlacementsExpectation {
+func (mmRescaleTerritoryPlacements *mRepositoryMockRescaleTerritoryPlacements) When(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) *RepositoryMockRescaleTerritoryPlacementsExpectation {
 	if mmRescaleTerritoryPlacements.mock.funcRescaleTerritoryPlacements != nil {
 		mmRescaleTerritoryPlacements.mock.t.Fatalf("RepositoryMock.RescaleTerritoryPlacements mock is already set by Set")
 	}
 
 	expectation := &RepositoryMockRescaleTerritoryPlacementsExpectation{
 		mock:               mmRescaleTerritoryPlacements.mock,
-		params:             &RepositoryMockRescaleTerritoryPlacementsParams{ctx, slug, newMax},
+		params:             &RepositoryMockRescaleTerritoryPlacementsParams{ctx, slug, newMax, newCenter},
 		expectationOrigins: RepositoryMockRescaleTerritoryPlacementsExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmRescaleTerritoryPlacements.expectations = append(mmRescaleTerritoryPlacements.expectations, expectation)
@@ -8974,17 +10214,17 @@ func (mmRescaleTerritoryPlacements *mRepositoryMockRescaleTerritoryPlacements) i
 }
 
 // RescaleTerritoryPlacements implements mm_service.Repository
-func (mmRescaleTerritoryPlacements *RepositoryMock) RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64) (i1 int, err error) {
+func (mmRescaleTerritoryPlacements *RepositoryMock) RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) (i1 int, err error) {
 	mm_atomic.AddUint64(&mmRescaleTerritoryPlacements.beforeRescaleTerritoryPlacementsCounter, 1)
 	defer mm_atomic.AddUint64(&mmRescaleTerritoryPlacements.afterRescaleTerritoryPlacementsCounter, 1)
 
 	mmRescaleTerritoryPlacements.t.Helper()
 
 	if mmRescaleTerritoryPlacements.inspectFuncRescaleTerritoryPlacements != nil {
-		mmRescaleTerritoryPlacements.inspectFuncRescaleTerritoryPlacements(ctx, slug, newMax)
+		mmRescaleTerritoryPlacements.inspectFuncRescaleTerritoryPlacements(ctx, slug, newMax, newCenter)
 	}
 
-	mm_params := RepositoryMockRescaleTerritoryPlacementsParams{ctx, slug, newMax}
+	mm_params := RepositoryMockRescaleTerritoryPlacementsParams{ctx, slug, newMax, newCenter}
 
 	// Record call args
 	mmRescaleTerritoryPlacements.RescaleTerritoryPlacementsMock.mutex.Lock()
@@ -9003,7 +10243,7 @@ func (mmRescaleTerritoryPlacements *RepositoryMock) RescaleTerritoryPlacements(c
 		mm_want := mmRescaleTerritoryPlacements.RescaleTerritoryPlacementsMock.defaultExpectation.params
 		mm_want_ptrs := mmRescaleTerritoryPlacements.RescaleTerritoryPlacementsMock.defaultExpectation.paramPtrs
 
-		mm_got := RepositoryMockRescaleTerritoryPlacementsParams{ctx, slug, newMax}
+		mm_got := RepositoryMockRescaleTerritoryPlacementsParams{ctx, slug, newMax, newCenter}
 
 		if mm_want_ptrs != nil {
 
@@ -9022,6 +10262,11 @@ func (mmRescaleTerritoryPlacements *RepositoryMock) RescaleTerritoryPlacements(c
 					mmRescaleTerritoryPlacements.RescaleTerritoryPlacementsMock.defaultExpectation.expectationOrigins.originNewMax, *mm_want_ptrs.newMax, mm_got.newMax, minimock.Diff(*mm_want_ptrs.newMax, mm_got.newMax))
 			}
 
+			if mm_want_ptrs.newCenter != nil && !minimock.Equal(*mm_want_ptrs.newCenter, mm_got.newCenter) {
+				mmRescaleTerritoryPlacements.t.Errorf("RepositoryMock.RescaleTerritoryPlacements got unexpected parameter newCenter, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmRescaleTerritoryPlacements.RescaleTerritoryPlacementsMock.defaultExpectation.expectationOrigins.originNewCenter, *mm_want_ptrs.newCenter, mm_got.newCenter, minimock.Diff(*mm_want_ptrs.newCenter, mm_got.newCenter))
+			}
+
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmRescaleTerritoryPlacements.t.Errorf("RepositoryMock.RescaleTerritoryPlacements got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 				mmRescaleTerritoryPlacements.RescaleTerritoryPlacementsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
@@ -9034,9 +10279,9 @@ func (mmRescaleTerritoryPlacements *RepositoryMock) RescaleTerritoryPlacements(c
 		return (*mm_results).i1, (*mm_results).err
 	}
 	if mmRescaleTerritoryPlacements.funcRescaleTerritoryPlacements != nil {
-		return mmRescaleTerritoryPlacements.funcRescaleTerritoryPlacements(ctx, slug, newMax)
+		return mmRescaleTerritoryPlacements.funcRescaleTerritoryPlacements(ctx, slug, newMax, newCenter)
 	}
-	mmRescaleTerritoryPlacements.t.Fatalf("Unexpected call to RepositoryMock.RescaleTerritoryPlacements. %v %v %v", ctx, slug, newMax)
+	mmRescaleTerritoryPlacements.t.Fatalf("Unexpected call to RepositoryMock.RescaleTerritoryPlacements. %v %v %v %v", ctx, slug, newMax, newCenter)
 	return
 }
 
@@ -10975,6 +12220,7 @@ type RepositoryMockSetTerritoryRescaleBaselineParams struct {
 	ctx       context.Context
 	slug      string
 	sourceMax float64
+	center    domain.Vec3
 }
 
 // RepositoryMockSetTerritoryRescaleBaselineParamPtrs contains pointers to parameters of the Repository.SetTerritoryRescaleBaseline
@@ -10982,6 +12228,7 @@ type RepositoryMockSetTerritoryRescaleBaselineParamPtrs struct {
 	ctx       *context.Context
 	slug      *string
 	sourceMax *float64
+	center    *domain.Vec3
 }
 
 // RepositoryMockSetTerritoryRescaleBaselineResults contains results of the Repository.SetTerritoryRescaleBaseline
@@ -10995,6 +12242,7 @@ type RepositoryMockSetTerritoryRescaleBaselineExpectationOrigins struct {
 	originCtx       string
 	originSlug      string
 	originSourceMax string
+	originCenter    string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -11008,7 +12256,7 @@ func (mmSetTerritoryRescaleBaseline *mRepositoryMockSetTerritoryRescaleBaseline)
 }
 
 // Expect sets up expected params for Repository.SetTerritoryRescaleBaseline
-func (mmSetTerritoryRescaleBaseline *mRepositoryMockSetTerritoryRescaleBaseline) Expect(ctx context.Context, slug string, sourceMax float64) *mRepositoryMockSetTerritoryRescaleBaseline {
+func (mmSetTerritoryRescaleBaseline *mRepositoryMockSetTerritoryRescaleBaseline) Expect(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) *mRepositoryMockSetTerritoryRescaleBaseline {
 	if mmSetTerritoryRescaleBaseline.mock.funcSetTerritoryRescaleBaseline != nil {
 		mmSetTerritoryRescaleBaseline.mock.t.Fatalf("RepositoryMock.SetTerritoryRescaleBaseline mock is already set by Set")
 	}
@@ -11021,7 +12269,7 @@ func (mmSetTerritoryRescaleBaseline *mRepositoryMockSetTerritoryRescaleBaseline)
 		mmSetTerritoryRescaleBaseline.mock.t.Fatalf("RepositoryMock.SetTerritoryRescaleBaseline mock is already set by ExpectParams functions")
 	}
 
-	mmSetTerritoryRescaleBaseline.defaultExpectation.params = &RepositoryMockSetTerritoryRescaleBaselineParams{ctx, slug, sourceMax}
+	mmSetTerritoryRescaleBaseline.defaultExpectation.params = &RepositoryMockSetTerritoryRescaleBaselineParams{ctx, slug, sourceMax, center}
 	mmSetTerritoryRescaleBaseline.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmSetTerritoryRescaleBaseline.expectations {
 		if minimock.Equal(e.params, mmSetTerritoryRescaleBaseline.defaultExpectation.params) {
@@ -11101,8 +12349,31 @@ func (mmSetTerritoryRescaleBaseline *mRepositoryMockSetTerritoryRescaleBaseline)
 	return mmSetTerritoryRescaleBaseline
 }
 
+// ExpectCenterParam4 sets up expected param center for Repository.SetTerritoryRescaleBaseline
+func (mmSetTerritoryRescaleBaseline *mRepositoryMockSetTerritoryRescaleBaseline) ExpectCenterParam4(center domain.Vec3) *mRepositoryMockSetTerritoryRescaleBaseline {
+	if mmSetTerritoryRescaleBaseline.mock.funcSetTerritoryRescaleBaseline != nil {
+		mmSetTerritoryRescaleBaseline.mock.t.Fatalf("RepositoryMock.SetTerritoryRescaleBaseline mock is already set by Set")
+	}
+
+	if mmSetTerritoryRescaleBaseline.defaultExpectation == nil {
+		mmSetTerritoryRescaleBaseline.defaultExpectation = &RepositoryMockSetTerritoryRescaleBaselineExpectation{}
+	}
+
+	if mmSetTerritoryRescaleBaseline.defaultExpectation.params != nil {
+		mmSetTerritoryRescaleBaseline.mock.t.Fatalf("RepositoryMock.SetTerritoryRescaleBaseline mock is already set by Expect")
+	}
+
+	if mmSetTerritoryRescaleBaseline.defaultExpectation.paramPtrs == nil {
+		mmSetTerritoryRescaleBaseline.defaultExpectation.paramPtrs = &RepositoryMockSetTerritoryRescaleBaselineParamPtrs{}
+	}
+	mmSetTerritoryRescaleBaseline.defaultExpectation.paramPtrs.center = &center
+	mmSetTerritoryRescaleBaseline.defaultExpectation.expectationOrigins.originCenter = minimock.CallerInfo(1)
+
+	return mmSetTerritoryRescaleBaseline
+}
+
 // Inspect accepts an inspector function that has same arguments as the Repository.SetTerritoryRescaleBaseline
-func (mmSetTerritoryRescaleBaseline *mRepositoryMockSetTerritoryRescaleBaseline) Inspect(f func(ctx context.Context, slug string, sourceMax float64)) *mRepositoryMockSetTerritoryRescaleBaseline {
+func (mmSetTerritoryRescaleBaseline *mRepositoryMockSetTerritoryRescaleBaseline) Inspect(f func(ctx context.Context, slug string, sourceMax float64, center domain.Vec3)) *mRepositoryMockSetTerritoryRescaleBaseline {
 	if mmSetTerritoryRescaleBaseline.mock.inspectFuncSetTerritoryRescaleBaseline != nil {
 		mmSetTerritoryRescaleBaseline.mock.t.Fatalf("Inspect function is already set for RepositoryMock.SetTerritoryRescaleBaseline")
 	}
@@ -11127,7 +12398,7 @@ func (mmSetTerritoryRescaleBaseline *mRepositoryMockSetTerritoryRescaleBaseline)
 }
 
 // Set uses given function f to mock the Repository.SetTerritoryRescaleBaseline method
-func (mmSetTerritoryRescaleBaseline *mRepositoryMockSetTerritoryRescaleBaseline) Set(f func(ctx context.Context, slug string, sourceMax float64) (err error)) *RepositoryMock {
+func (mmSetTerritoryRescaleBaseline *mRepositoryMockSetTerritoryRescaleBaseline) Set(f func(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) (err error)) *RepositoryMock {
 	if mmSetTerritoryRescaleBaseline.defaultExpectation != nil {
 		mmSetTerritoryRescaleBaseline.mock.t.Fatalf("Default expectation is already set for the Repository.SetTerritoryRescaleBaseline method")
 	}
@@ -11143,14 +12414,14 @@ func (mmSetTerritoryRescaleBaseline *mRepositoryMockSetTerritoryRescaleBaseline)
 
 // When sets expectation for the Repository.SetTerritoryRescaleBaseline which will trigger the result defined by the following
 // Then helper
-func (mmSetTerritoryRescaleBaseline *mRepositoryMockSetTerritoryRescaleBaseline) When(ctx context.Context, slug string, sourceMax float64) *RepositoryMockSetTerritoryRescaleBaselineExpectation {
+func (mmSetTerritoryRescaleBaseline *mRepositoryMockSetTerritoryRescaleBaseline) When(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) *RepositoryMockSetTerritoryRescaleBaselineExpectation {
 	if mmSetTerritoryRescaleBaseline.mock.funcSetTerritoryRescaleBaseline != nil {
 		mmSetTerritoryRescaleBaseline.mock.t.Fatalf("RepositoryMock.SetTerritoryRescaleBaseline mock is already set by Set")
 	}
 
 	expectation := &RepositoryMockSetTerritoryRescaleBaselineExpectation{
 		mock:               mmSetTerritoryRescaleBaseline.mock,
-		params:             &RepositoryMockSetTerritoryRescaleBaselineParams{ctx, slug, sourceMax},
+		params:             &RepositoryMockSetTerritoryRescaleBaselineParams{ctx, slug, sourceMax, center},
 		expectationOrigins: RepositoryMockSetTerritoryRescaleBaselineExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmSetTerritoryRescaleBaseline.expectations = append(mmSetTerritoryRescaleBaseline.expectations, expectation)
@@ -11185,17 +12456,17 @@ func (mmSetTerritoryRescaleBaseline *mRepositoryMockSetTerritoryRescaleBaseline)
 }
 
 // SetTerritoryRescaleBaseline implements mm_service.Repository
-func (mmSetTerritoryRescaleBaseline *RepositoryMock) SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64) (err error) {
+func (mmSetTerritoryRescaleBaseline *RepositoryMock) SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) (err error) {
 	mm_atomic.AddUint64(&mmSetTerritoryRescaleBaseline.beforeSetTerritoryRescaleBaselineCounter, 1)
 	defer mm_atomic.AddUint64(&mmSetTerritoryRescaleBaseline.afterSetTerritoryRescaleBaselineCounter, 1)
 
 	mmSetTerritoryRescaleBaseline.t.Helper()
 
 	if mmSetTerritoryRescaleBaseline.inspectFuncSetTerritoryRescaleBaseline != nil {
-		mmSetTerritoryRescaleBaseline.inspectFuncSetTerritoryRescaleBaseline(ctx, slug, sourceMax)
+		mmSetTerritoryRescaleBaseline.inspectFuncSetTerritoryRescaleBaseline(ctx, slug, sourceMax, center)
 	}
 
-	mm_params := RepositoryMockSetTerritoryRescaleBaselineParams{ctx, slug, sourceMax}
+	mm_params := RepositoryMockSetTerritoryRescaleBaselineParams{ctx, slug, sourceMax, center}
 
 	// Record call args
 	mmSetTerritoryRescaleBaseline.SetTerritoryRescaleBaselineMock.mutex.Lock()
@@ -11214,7 +12485,7 @@ func (mmSetTerritoryRescaleBaseline *RepositoryMock) SetTerritoryRescaleBaseline
 		mm_want := mmSetTerritoryRescaleBaseline.SetTerritoryRescaleBaselineMock.defaultExpectation.params
 		mm_want_ptrs := mmSetTerritoryRescaleBaseline.SetTerritoryRescaleBaselineMock.defaultExpectation.paramPtrs
 
-		mm_got := RepositoryMockSetTerritoryRescaleBaselineParams{ctx, slug, sourceMax}
+		mm_got := RepositoryMockSetTerritoryRescaleBaselineParams{ctx, slug, sourceMax, center}
 
 		if mm_want_ptrs != nil {
 
@@ -11233,6 +12504,11 @@ func (mmSetTerritoryRescaleBaseline *RepositoryMock) SetTerritoryRescaleBaseline
 					mmSetTerritoryRescaleBaseline.SetTerritoryRescaleBaselineMock.defaultExpectation.expectationOrigins.originSourceMax, *mm_want_ptrs.sourceMax, mm_got.sourceMax, minimock.Diff(*mm_want_ptrs.sourceMax, mm_got.sourceMax))
 			}
 
+			if mm_want_ptrs.center != nil && !minimock.Equal(*mm_want_ptrs.center, mm_got.center) {
+				mmSetTerritoryRescaleBaseline.t.Errorf("RepositoryMock.SetTerritoryRescaleBaseline got unexpected parameter center, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetTerritoryRescaleBaseline.SetTerritoryRescaleBaselineMock.defaultExpectation.expectationOrigins.originCenter, *mm_want_ptrs.center, mm_got.center, minimock.Diff(*mm_want_ptrs.center, mm_got.center))
+			}
+
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmSetTerritoryRescaleBaseline.t.Errorf("RepositoryMock.SetTerritoryRescaleBaseline got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 				mmSetTerritoryRescaleBaseline.SetTerritoryRescaleBaselineMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
@@ -11245,9 +12521,9 @@ func (mmSetTerritoryRescaleBaseline *RepositoryMock) SetTerritoryRescaleBaseline
 		return (*mm_results).err
 	}
 	if mmSetTerritoryRescaleBaseline.funcSetTerritoryRescaleBaseline != nil {
-		return mmSetTerritoryRescaleBaseline.funcSetTerritoryRescaleBaseline(ctx, slug, sourceMax)
+		return mmSetTerritoryRescaleBaseline.funcSetTerritoryRescaleBaseline(ctx, slug, sourceMax, center)
 	}
-	mmSetTerritoryRescaleBaseline.t.Fatalf("Unexpected call to RepositoryMock.SetTerritoryRescaleBaseline. %v %v %v", ctx, slug, sourceMax)
+	mmSetTerritoryRescaleBaseline.t.Fatalf("Unexpected call to RepositoryMock.SetTerritoryRescaleBaseline. %v %v %v %v", ctx, slug, sourceMax, center)
 	return
 }
 
@@ -11662,6 +12938,380 @@ func (m *RepositoryMock) MinimockUpdateMeasurementInspect() {
 	}
 }
 
+type mRepositoryMockUpdateModel struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockUpdateModelExpectation
+	expectations       []*RepositoryMockUpdateModelExpectation
+
+	callArgs []*RepositoryMockUpdateModelParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockUpdateModelExpectation specifies expectation struct of the Repository.UpdateModel
+type RepositoryMockUpdateModelExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockUpdateModelParams
+	paramPtrs          *RepositoryMockUpdateModelParamPtrs
+	expectationOrigins RepositoryMockUpdateModelExpectationOrigins
+	results            *RepositoryMockUpdateModelResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockUpdateModelParams contains parameters of the Repository.UpdateModel
+type RepositoryMockUpdateModelParams struct {
+	ctx  context.Context
+	slug string
+	p    domain.ModelPatch
+}
+
+// RepositoryMockUpdateModelParamPtrs contains pointers to parameters of the Repository.UpdateModel
+type RepositoryMockUpdateModelParamPtrs struct {
+	ctx  *context.Context
+	slug *string
+	p    *domain.ModelPatch
+}
+
+// RepositoryMockUpdateModelResults contains results of the Repository.UpdateModel
+type RepositoryMockUpdateModelResults struct {
+	m1  domain.Model
+	err error
+}
+
+// RepositoryMockUpdateModelOrigins contains origins of expectations of the Repository.UpdateModel
+type RepositoryMockUpdateModelExpectationOrigins struct {
+	origin     string
+	originCtx  string
+	originSlug string
+	originP    string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmUpdateModel *mRepositoryMockUpdateModel) Optional() *mRepositoryMockUpdateModel {
+	mmUpdateModel.optional = true
+	return mmUpdateModel
+}
+
+// Expect sets up expected params for Repository.UpdateModel
+func (mmUpdateModel *mRepositoryMockUpdateModel) Expect(ctx context.Context, slug string, p domain.ModelPatch) *mRepositoryMockUpdateModel {
+	if mmUpdateModel.mock.funcUpdateModel != nil {
+		mmUpdateModel.mock.t.Fatalf("RepositoryMock.UpdateModel mock is already set by Set")
+	}
+
+	if mmUpdateModel.defaultExpectation == nil {
+		mmUpdateModel.defaultExpectation = &RepositoryMockUpdateModelExpectation{}
+	}
+
+	if mmUpdateModel.defaultExpectation.paramPtrs != nil {
+		mmUpdateModel.mock.t.Fatalf("RepositoryMock.UpdateModel mock is already set by ExpectParams functions")
+	}
+
+	mmUpdateModel.defaultExpectation.params = &RepositoryMockUpdateModelParams{ctx, slug, p}
+	mmUpdateModel.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmUpdateModel.expectations {
+		if minimock.Equal(e.params, mmUpdateModel.defaultExpectation.params) {
+			mmUpdateModel.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdateModel.defaultExpectation.params)
+		}
+	}
+
+	return mmUpdateModel
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.UpdateModel
+func (mmUpdateModel *mRepositoryMockUpdateModel) ExpectCtxParam1(ctx context.Context) *mRepositoryMockUpdateModel {
+	if mmUpdateModel.mock.funcUpdateModel != nil {
+		mmUpdateModel.mock.t.Fatalf("RepositoryMock.UpdateModel mock is already set by Set")
+	}
+
+	if mmUpdateModel.defaultExpectation == nil {
+		mmUpdateModel.defaultExpectation = &RepositoryMockUpdateModelExpectation{}
+	}
+
+	if mmUpdateModel.defaultExpectation.params != nil {
+		mmUpdateModel.mock.t.Fatalf("RepositoryMock.UpdateModel mock is already set by Expect")
+	}
+
+	if mmUpdateModel.defaultExpectation.paramPtrs == nil {
+		mmUpdateModel.defaultExpectation.paramPtrs = &RepositoryMockUpdateModelParamPtrs{}
+	}
+	mmUpdateModel.defaultExpectation.paramPtrs.ctx = &ctx
+	mmUpdateModel.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmUpdateModel
+}
+
+// ExpectSlugParam2 sets up expected param slug for Repository.UpdateModel
+func (mmUpdateModel *mRepositoryMockUpdateModel) ExpectSlugParam2(slug string) *mRepositoryMockUpdateModel {
+	if mmUpdateModel.mock.funcUpdateModel != nil {
+		mmUpdateModel.mock.t.Fatalf("RepositoryMock.UpdateModel mock is already set by Set")
+	}
+
+	if mmUpdateModel.defaultExpectation == nil {
+		mmUpdateModel.defaultExpectation = &RepositoryMockUpdateModelExpectation{}
+	}
+
+	if mmUpdateModel.defaultExpectation.params != nil {
+		mmUpdateModel.mock.t.Fatalf("RepositoryMock.UpdateModel mock is already set by Expect")
+	}
+
+	if mmUpdateModel.defaultExpectation.paramPtrs == nil {
+		mmUpdateModel.defaultExpectation.paramPtrs = &RepositoryMockUpdateModelParamPtrs{}
+	}
+	mmUpdateModel.defaultExpectation.paramPtrs.slug = &slug
+	mmUpdateModel.defaultExpectation.expectationOrigins.originSlug = minimock.CallerInfo(1)
+
+	return mmUpdateModel
+}
+
+// ExpectPParam3 sets up expected param p for Repository.UpdateModel
+func (mmUpdateModel *mRepositoryMockUpdateModel) ExpectPParam3(p domain.ModelPatch) *mRepositoryMockUpdateModel {
+	if mmUpdateModel.mock.funcUpdateModel != nil {
+		mmUpdateModel.mock.t.Fatalf("RepositoryMock.UpdateModel mock is already set by Set")
+	}
+
+	if mmUpdateModel.defaultExpectation == nil {
+		mmUpdateModel.defaultExpectation = &RepositoryMockUpdateModelExpectation{}
+	}
+
+	if mmUpdateModel.defaultExpectation.params != nil {
+		mmUpdateModel.mock.t.Fatalf("RepositoryMock.UpdateModel mock is already set by Expect")
+	}
+
+	if mmUpdateModel.defaultExpectation.paramPtrs == nil {
+		mmUpdateModel.defaultExpectation.paramPtrs = &RepositoryMockUpdateModelParamPtrs{}
+	}
+	mmUpdateModel.defaultExpectation.paramPtrs.p = &p
+	mmUpdateModel.defaultExpectation.expectationOrigins.originP = minimock.CallerInfo(1)
+
+	return mmUpdateModel
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.UpdateModel
+func (mmUpdateModel *mRepositoryMockUpdateModel) Inspect(f func(ctx context.Context, slug string, p domain.ModelPatch)) *mRepositoryMockUpdateModel {
+	if mmUpdateModel.mock.inspectFuncUpdateModel != nil {
+		mmUpdateModel.mock.t.Fatalf("Inspect function is already set for RepositoryMock.UpdateModel")
+	}
+
+	mmUpdateModel.mock.inspectFuncUpdateModel = f
+
+	return mmUpdateModel
+}
+
+// Return sets up results that will be returned by Repository.UpdateModel
+func (mmUpdateModel *mRepositoryMockUpdateModel) Return(m1 domain.Model, err error) *RepositoryMock {
+	if mmUpdateModel.mock.funcUpdateModel != nil {
+		mmUpdateModel.mock.t.Fatalf("RepositoryMock.UpdateModel mock is already set by Set")
+	}
+
+	if mmUpdateModel.defaultExpectation == nil {
+		mmUpdateModel.defaultExpectation = &RepositoryMockUpdateModelExpectation{mock: mmUpdateModel.mock}
+	}
+	mmUpdateModel.defaultExpectation.results = &RepositoryMockUpdateModelResults{m1, err}
+	mmUpdateModel.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmUpdateModel.mock
+}
+
+// Set uses given function f to mock the Repository.UpdateModel method
+func (mmUpdateModel *mRepositoryMockUpdateModel) Set(f func(ctx context.Context, slug string, p domain.ModelPatch) (m1 domain.Model, err error)) *RepositoryMock {
+	if mmUpdateModel.defaultExpectation != nil {
+		mmUpdateModel.mock.t.Fatalf("Default expectation is already set for the Repository.UpdateModel method")
+	}
+
+	if len(mmUpdateModel.expectations) > 0 {
+		mmUpdateModel.mock.t.Fatalf("Some expectations are already set for the Repository.UpdateModel method")
+	}
+
+	mmUpdateModel.mock.funcUpdateModel = f
+	mmUpdateModel.mock.funcUpdateModelOrigin = minimock.CallerInfo(1)
+	return mmUpdateModel.mock
+}
+
+// When sets expectation for the Repository.UpdateModel which will trigger the result defined by the following
+// Then helper
+func (mmUpdateModel *mRepositoryMockUpdateModel) When(ctx context.Context, slug string, p domain.ModelPatch) *RepositoryMockUpdateModelExpectation {
+	if mmUpdateModel.mock.funcUpdateModel != nil {
+		mmUpdateModel.mock.t.Fatalf("RepositoryMock.UpdateModel mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockUpdateModelExpectation{
+		mock:               mmUpdateModel.mock,
+		params:             &RepositoryMockUpdateModelParams{ctx, slug, p},
+		expectationOrigins: RepositoryMockUpdateModelExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmUpdateModel.expectations = append(mmUpdateModel.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.UpdateModel return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockUpdateModelExpectation) Then(m1 domain.Model, err error) *RepositoryMock {
+	e.results = &RepositoryMockUpdateModelResults{m1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.UpdateModel should be invoked
+func (mmUpdateModel *mRepositoryMockUpdateModel) Times(n uint64) *mRepositoryMockUpdateModel {
+	if n == 0 {
+		mmUpdateModel.mock.t.Fatalf("Times of RepositoryMock.UpdateModel mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmUpdateModel.expectedInvocations, n)
+	mmUpdateModel.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmUpdateModel
+}
+
+func (mmUpdateModel *mRepositoryMockUpdateModel) invocationsDone() bool {
+	if len(mmUpdateModel.expectations) == 0 && mmUpdateModel.defaultExpectation == nil && mmUpdateModel.mock.funcUpdateModel == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmUpdateModel.mock.afterUpdateModelCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmUpdateModel.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// UpdateModel implements mm_service.Repository
+func (mmUpdateModel *RepositoryMock) UpdateModel(ctx context.Context, slug string, p domain.ModelPatch) (m1 domain.Model, err error) {
+	mm_atomic.AddUint64(&mmUpdateModel.beforeUpdateModelCounter, 1)
+	defer mm_atomic.AddUint64(&mmUpdateModel.afterUpdateModelCounter, 1)
+
+	mmUpdateModel.t.Helper()
+
+	if mmUpdateModel.inspectFuncUpdateModel != nil {
+		mmUpdateModel.inspectFuncUpdateModel(ctx, slug, p)
+	}
+
+	mm_params := RepositoryMockUpdateModelParams{ctx, slug, p}
+
+	// Record call args
+	mmUpdateModel.UpdateModelMock.mutex.Lock()
+	mmUpdateModel.UpdateModelMock.callArgs = append(mmUpdateModel.UpdateModelMock.callArgs, &mm_params)
+	mmUpdateModel.UpdateModelMock.mutex.Unlock()
+
+	for _, e := range mmUpdateModel.UpdateModelMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.m1, e.results.err
+		}
+	}
+
+	if mmUpdateModel.UpdateModelMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmUpdateModel.UpdateModelMock.defaultExpectation.Counter, 1)
+		mm_want := mmUpdateModel.UpdateModelMock.defaultExpectation.params
+		mm_want_ptrs := mmUpdateModel.UpdateModelMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockUpdateModelParams{ctx, slug, p}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmUpdateModel.t.Errorf("RepositoryMock.UpdateModel got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateModel.UpdateModelMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.slug != nil && !minimock.Equal(*mm_want_ptrs.slug, mm_got.slug) {
+				mmUpdateModel.t.Errorf("RepositoryMock.UpdateModel got unexpected parameter slug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateModel.UpdateModelMock.defaultExpectation.expectationOrigins.originSlug, *mm_want_ptrs.slug, mm_got.slug, minimock.Diff(*mm_want_ptrs.slug, mm_got.slug))
+			}
+
+			if mm_want_ptrs.p != nil && !minimock.Equal(*mm_want_ptrs.p, mm_got.p) {
+				mmUpdateModel.t.Errorf("RepositoryMock.UpdateModel got unexpected parameter p, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateModel.UpdateModelMock.defaultExpectation.expectationOrigins.originP, *mm_want_ptrs.p, mm_got.p, minimock.Diff(*mm_want_ptrs.p, mm_got.p))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmUpdateModel.t.Errorf("RepositoryMock.UpdateModel got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmUpdateModel.UpdateModelMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmUpdateModel.UpdateModelMock.defaultExpectation.results
+		if mm_results == nil {
+			mmUpdateModel.t.Fatal("No results are set for the RepositoryMock.UpdateModel")
+		}
+		return (*mm_results).m1, (*mm_results).err
+	}
+	if mmUpdateModel.funcUpdateModel != nil {
+		return mmUpdateModel.funcUpdateModel(ctx, slug, p)
+	}
+	mmUpdateModel.t.Fatalf("Unexpected call to RepositoryMock.UpdateModel. %v %v %v", ctx, slug, p)
+	return
+}
+
+// UpdateModelAfterCounter returns a count of finished RepositoryMock.UpdateModel invocations
+func (mmUpdateModel *RepositoryMock) UpdateModelAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateModel.afterUpdateModelCounter)
+}
+
+// UpdateModelBeforeCounter returns a count of RepositoryMock.UpdateModel invocations
+func (mmUpdateModel *RepositoryMock) UpdateModelBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateModel.beforeUpdateModelCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.UpdateModel.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmUpdateModel *mRepositoryMockUpdateModel) Calls() []*RepositoryMockUpdateModelParams {
+	mmUpdateModel.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockUpdateModelParams, len(mmUpdateModel.callArgs))
+	copy(argCopy, mmUpdateModel.callArgs)
+
+	mmUpdateModel.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockUpdateModelDone returns true if the count of the UpdateModel invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockUpdateModelDone() bool {
+	if m.UpdateModelMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.UpdateModelMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.UpdateModelMock.invocationsDone()
+}
+
+// MinimockUpdateModelInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockUpdateModelInspect() {
+	for _, e := range m.UpdateModelMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.UpdateModel at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterUpdateModelCounter := mm_atomic.LoadUint64(&m.afterUpdateModelCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.UpdateModelMock.defaultExpectation != nil && afterUpdateModelCounter < 1 {
+		if m.UpdateModelMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.UpdateModel at\n%s", m.UpdateModelMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.UpdateModel at\n%s with params: %#v", m.UpdateModelMock.defaultExpectation.expectationOrigins.origin, *m.UpdateModelMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcUpdateModel != nil && afterUpdateModelCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.UpdateModel at\n%s", m.funcUpdateModelOrigin)
+	}
+
+	if !m.UpdateModelMock.invocationsDone() && afterUpdateModelCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.UpdateModel at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.UpdateModelMock.expectedInvocations), m.UpdateModelMock.expectedInvocationsOrigin, afterUpdateModelCounter)
+	}
+}
+
 type mRepositoryMockUpdatePlacement struct {
 	optional           bool
 	mock               *RepositoryMock
@@ -12005,396 +13655,56 @@ func (m *RepositoryMock) MinimockUpdatePlacementInspect() {
 	}
 }
 
-type mRepositoryMockUpsertModel struct {
+type mRepositoryMockUpdateTerritory struct {
 	optional           bool
 	mock               *RepositoryMock
-	defaultExpectation *RepositoryMockUpsertModelExpectation
-	expectations       []*RepositoryMockUpsertModelExpectation
+	defaultExpectation *RepositoryMockUpdateTerritoryExpectation
+	expectations       []*RepositoryMockUpdateTerritoryExpectation
 
-	callArgs []*RepositoryMockUpsertModelParams
+	callArgs []*RepositoryMockUpdateTerritoryParams
 	mutex    sync.RWMutex
 
 	expectedInvocations       uint64
 	expectedInvocationsOrigin string
 }
 
-// RepositoryMockUpsertModelExpectation specifies expectation struct of the Repository.UpsertModel
-type RepositoryMockUpsertModelExpectation struct {
+// RepositoryMockUpdateTerritoryExpectation specifies expectation struct of the Repository.UpdateTerritory
+type RepositoryMockUpdateTerritoryExpectation struct {
 	mock               *RepositoryMock
-	params             *RepositoryMockUpsertModelParams
-	paramPtrs          *RepositoryMockUpsertModelParamPtrs
-	expectationOrigins RepositoryMockUpsertModelExpectationOrigins
-	results            *RepositoryMockUpsertModelResults
+	params             *RepositoryMockUpdateTerritoryParams
+	paramPtrs          *RepositoryMockUpdateTerritoryParamPtrs
+	expectationOrigins RepositoryMockUpdateTerritoryExpectationOrigins
+	results            *RepositoryMockUpdateTerritoryResults
 	returnOrigin       string
 	Counter            uint64
 }
 
-// RepositoryMockUpsertModelParams contains parameters of the Repository.UpsertModel
-type RepositoryMockUpsertModelParams struct {
-	ctx context.Context
-	m   domain.Model
+// RepositoryMockUpdateTerritoryParams contains parameters of the Repository.UpdateTerritory
+type RepositoryMockUpdateTerritoryParams struct {
+	ctx  context.Context
+	slug string
+	p    domain.TerritoryPatch
 }
 
-// RepositoryMockUpsertModelParamPtrs contains pointers to parameters of the Repository.UpsertModel
-type RepositoryMockUpsertModelParamPtrs struct {
-	ctx *context.Context
-	m   *domain.Model
+// RepositoryMockUpdateTerritoryParamPtrs contains pointers to parameters of the Repository.UpdateTerritory
+type RepositoryMockUpdateTerritoryParamPtrs struct {
+	ctx  *context.Context
+	slug *string
+	p    *domain.TerritoryPatch
 }
 
-// RepositoryMockUpsertModelResults contains results of the Repository.UpsertModel
-type RepositoryMockUpsertModelResults struct {
-	m1  domain.Model
-	err error
-}
-
-// RepositoryMockUpsertModelOrigins contains origins of expectations of the Repository.UpsertModel
-type RepositoryMockUpsertModelExpectationOrigins struct {
-	origin    string
-	originCtx string
-	originM   string
-}
-
-// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
-// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
-// Optional() makes method check to work in '0 or more' mode.
-// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
-// catch the problems when the expected method call is totally skipped during test run.
-func (mmUpsertModel *mRepositoryMockUpsertModel) Optional() *mRepositoryMockUpsertModel {
-	mmUpsertModel.optional = true
-	return mmUpsertModel
-}
-
-// Expect sets up expected params for Repository.UpsertModel
-func (mmUpsertModel *mRepositoryMockUpsertModel) Expect(ctx context.Context, m domain.Model) *mRepositoryMockUpsertModel {
-	if mmUpsertModel.mock.funcUpsertModel != nil {
-		mmUpsertModel.mock.t.Fatalf("RepositoryMock.UpsertModel mock is already set by Set")
-	}
-
-	if mmUpsertModel.defaultExpectation == nil {
-		mmUpsertModel.defaultExpectation = &RepositoryMockUpsertModelExpectation{}
-	}
-
-	if mmUpsertModel.defaultExpectation.paramPtrs != nil {
-		mmUpsertModel.mock.t.Fatalf("RepositoryMock.UpsertModel mock is already set by ExpectParams functions")
-	}
-
-	mmUpsertModel.defaultExpectation.params = &RepositoryMockUpsertModelParams{ctx, m}
-	mmUpsertModel.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
-	for _, e := range mmUpsertModel.expectations {
-		if minimock.Equal(e.params, mmUpsertModel.defaultExpectation.params) {
-			mmUpsertModel.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpsertModel.defaultExpectation.params)
-		}
-	}
-
-	return mmUpsertModel
-}
-
-// ExpectCtxParam1 sets up expected param ctx for Repository.UpsertModel
-func (mmUpsertModel *mRepositoryMockUpsertModel) ExpectCtxParam1(ctx context.Context) *mRepositoryMockUpsertModel {
-	if mmUpsertModel.mock.funcUpsertModel != nil {
-		mmUpsertModel.mock.t.Fatalf("RepositoryMock.UpsertModel mock is already set by Set")
-	}
-
-	if mmUpsertModel.defaultExpectation == nil {
-		mmUpsertModel.defaultExpectation = &RepositoryMockUpsertModelExpectation{}
-	}
-
-	if mmUpsertModel.defaultExpectation.params != nil {
-		mmUpsertModel.mock.t.Fatalf("RepositoryMock.UpsertModel mock is already set by Expect")
-	}
-
-	if mmUpsertModel.defaultExpectation.paramPtrs == nil {
-		mmUpsertModel.defaultExpectation.paramPtrs = &RepositoryMockUpsertModelParamPtrs{}
-	}
-	mmUpsertModel.defaultExpectation.paramPtrs.ctx = &ctx
-	mmUpsertModel.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
-
-	return mmUpsertModel
-}
-
-// ExpectMParam2 sets up expected param m for Repository.UpsertModel
-func (mmUpsertModel *mRepositoryMockUpsertModel) ExpectMParam2(m domain.Model) *mRepositoryMockUpsertModel {
-	if mmUpsertModel.mock.funcUpsertModel != nil {
-		mmUpsertModel.mock.t.Fatalf("RepositoryMock.UpsertModel mock is already set by Set")
-	}
-
-	if mmUpsertModel.defaultExpectation == nil {
-		mmUpsertModel.defaultExpectation = &RepositoryMockUpsertModelExpectation{}
-	}
-
-	if mmUpsertModel.defaultExpectation.params != nil {
-		mmUpsertModel.mock.t.Fatalf("RepositoryMock.UpsertModel mock is already set by Expect")
-	}
-
-	if mmUpsertModel.defaultExpectation.paramPtrs == nil {
-		mmUpsertModel.defaultExpectation.paramPtrs = &RepositoryMockUpsertModelParamPtrs{}
-	}
-	mmUpsertModel.defaultExpectation.paramPtrs.m = &m
-	mmUpsertModel.defaultExpectation.expectationOrigins.originM = minimock.CallerInfo(1)
-
-	return mmUpsertModel
-}
-
-// Inspect accepts an inspector function that has same arguments as the Repository.UpsertModel
-func (mmUpsertModel *mRepositoryMockUpsertModel) Inspect(f func(ctx context.Context, m domain.Model)) *mRepositoryMockUpsertModel {
-	if mmUpsertModel.mock.inspectFuncUpsertModel != nil {
-		mmUpsertModel.mock.t.Fatalf("Inspect function is already set for RepositoryMock.UpsertModel")
-	}
-
-	mmUpsertModel.mock.inspectFuncUpsertModel = f
-
-	return mmUpsertModel
-}
-
-// Return sets up results that will be returned by Repository.UpsertModel
-func (mmUpsertModel *mRepositoryMockUpsertModel) Return(m1 domain.Model, err error) *RepositoryMock {
-	if mmUpsertModel.mock.funcUpsertModel != nil {
-		mmUpsertModel.mock.t.Fatalf("RepositoryMock.UpsertModel mock is already set by Set")
-	}
-
-	if mmUpsertModel.defaultExpectation == nil {
-		mmUpsertModel.defaultExpectation = &RepositoryMockUpsertModelExpectation{mock: mmUpsertModel.mock}
-	}
-	mmUpsertModel.defaultExpectation.results = &RepositoryMockUpsertModelResults{m1, err}
-	mmUpsertModel.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmUpsertModel.mock
-}
-
-// Set uses given function f to mock the Repository.UpsertModel method
-func (mmUpsertModel *mRepositoryMockUpsertModel) Set(f func(ctx context.Context, m domain.Model) (m1 domain.Model, err error)) *RepositoryMock {
-	if mmUpsertModel.defaultExpectation != nil {
-		mmUpsertModel.mock.t.Fatalf("Default expectation is already set for the Repository.UpsertModel method")
-	}
-
-	if len(mmUpsertModel.expectations) > 0 {
-		mmUpsertModel.mock.t.Fatalf("Some expectations are already set for the Repository.UpsertModel method")
-	}
-
-	mmUpsertModel.mock.funcUpsertModel = f
-	mmUpsertModel.mock.funcUpsertModelOrigin = minimock.CallerInfo(1)
-	return mmUpsertModel.mock
-}
-
-// When sets expectation for the Repository.UpsertModel which will trigger the result defined by the following
-// Then helper
-func (mmUpsertModel *mRepositoryMockUpsertModel) When(ctx context.Context, m domain.Model) *RepositoryMockUpsertModelExpectation {
-	if mmUpsertModel.mock.funcUpsertModel != nil {
-		mmUpsertModel.mock.t.Fatalf("RepositoryMock.UpsertModel mock is already set by Set")
-	}
-
-	expectation := &RepositoryMockUpsertModelExpectation{
-		mock:               mmUpsertModel.mock,
-		params:             &RepositoryMockUpsertModelParams{ctx, m},
-		expectationOrigins: RepositoryMockUpsertModelExpectationOrigins{origin: minimock.CallerInfo(1)},
-	}
-	mmUpsertModel.expectations = append(mmUpsertModel.expectations, expectation)
-	return expectation
-}
-
-// Then sets up Repository.UpsertModel return parameters for the expectation previously defined by the When method
-func (e *RepositoryMockUpsertModelExpectation) Then(m1 domain.Model, err error) *RepositoryMock {
-	e.results = &RepositoryMockUpsertModelResults{m1, err}
-	return e.mock
-}
-
-// Times sets number of times Repository.UpsertModel should be invoked
-func (mmUpsertModel *mRepositoryMockUpsertModel) Times(n uint64) *mRepositoryMockUpsertModel {
-	if n == 0 {
-		mmUpsertModel.mock.t.Fatalf("Times of RepositoryMock.UpsertModel mock can not be zero")
-	}
-	mm_atomic.StoreUint64(&mmUpsertModel.expectedInvocations, n)
-	mmUpsertModel.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmUpsertModel
-}
-
-func (mmUpsertModel *mRepositoryMockUpsertModel) invocationsDone() bool {
-	if len(mmUpsertModel.expectations) == 0 && mmUpsertModel.defaultExpectation == nil && mmUpsertModel.mock.funcUpsertModel == nil {
-		return true
-	}
-
-	totalInvocations := mm_atomic.LoadUint64(&mmUpsertModel.mock.afterUpsertModelCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmUpsertModel.expectedInvocations)
-
-	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
-}
-
-// UpsertModel implements mm_service.Repository
-func (mmUpsertModel *RepositoryMock) UpsertModel(ctx context.Context, m domain.Model) (m1 domain.Model, err error) {
-	mm_atomic.AddUint64(&mmUpsertModel.beforeUpsertModelCounter, 1)
-	defer mm_atomic.AddUint64(&mmUpsertModel.afterUpsertModelCounter, 1)
-
-	mmUpsertModel.t.Helper()
-
-	if mmUpsertModel.inspectFuncUpsertModel != nil {
-		mmUpsertModel.inspectFuncUpsertModel(ctx, m)
-	}
-
-	mm_params := RepositoryMockUpsertModelParams{ctx, m}
-
-	// Record call args
-	mmUpsertModel.UpsertModelMock.mutex.Lock()
-	mmUpsertModel.UpsertModelMock.callArgs = append(mmUpsertModel.UpsertModelMock.callArgs, &mm_params)
-	mmUpsertModel.UpsertModelMock.mutex.Unlock()
-
-	for _, e := range mmUpsertModel.UpsertModelMock.expectations {
-		if minimock.Equal(*e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.m1, e.results.err
-		}
-	}
-
-	if mmUpsertModel.UpsertModelMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmUpsertModel.UpsertModelMock.defaultExpectation.Counter, 1)
-		mm_want := mmUpsertModel.UpsertModelMock.defaultExpectation.params
-		mm_want_ptrs := mmUpsertModel.UpsertModelMock.defaultExpectation.paramPtrs
-
-		mm_got := RepositoryMockUpsertModelParams{ctx, m}
-
-		if mm_want_ptrs != nil {
-
-			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
-				mmUpsertModel.t.Errorf("RepositoryMock.UpsertModel got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmUpsertModel.UpsertModelMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
-			}
-
-			if mm_want_ptrs.m != nil && !minimock.Equal(*mm_want_ptrs.m, mm_got.m) {
-				mmUpsertModel.t.Errorf("RepositoryMock.UpsertModel got unexpected parameter m, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmUpsertModel.UpsertModelMock.defaultExpectation.expectationOrigins.originM, *mm_want_ptrs.m, mm_got.m, minimock.Diff(*mm_want_ptrs.m, mm_got.m))
-			}
-
-		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmUpsertModel.t.Errorf("RepositoryMock.UpsertModel got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-				mmUpsertModel.UpsertModelMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmUpsertModel.UpsertModelMock.defaultExpectation.results
-		if mm_results == nil {
-			mmUpsertModel.t.Fatal("No results are set for the RepositoryMock.UpsertModel")
-		}
-		return (*mm_results).m1, (*mm_results).err
-	}
-	if mmUpsertModel.funcUpsertModel != nil {
-		return mmUpsertModel.funcUpsertModel(ctx, m)
-	}
-	mmUpsertModel.t.Fatalf("Unexpected call to RepositoryMock.UpsertModel. %v %v", ctx, m)
-	return
-}
-
-// UpsertModelAfterCounter returns a count of finished RepositoryMock.UpsertModel invocations
-func (mmUpsertModel *RepositoryMock) UpsertModelAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmUpsertModel.afterUpsertModelCounter)
-}
-
-// UpsertModelBeforeCounter returns a count of RepositoryMock.UpsertModel invocations
-func (mmUpsertModel *RepositoryMock) UpsertModelBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmUpsertModel.beforeUpsertModelCounter)
-}
-
-// Calls returns a list of arguments used in each call to RepositoryMock.UpsertModel.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmUpsertModel *mRepositoryMockUpsertModel) Calls() []*RepositoryMockUpsertModelParams {
-	mmUpsertModel.mutex.RLock()
-
-	argCopy := make([]*RepositoryMockUpsertModelParams, len(mmUpsertModel.callArgs))
-	copy(argCopy, mmUpsertModel.callArgs)
-
-	mmUpsertModel.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockUpsertModelDone returns true if the count of the UpsertModel invocations corresponds
-// the number of defined expectations
-func (m *RepositoryMock) MinimockUpsertModelDone() bool {
-	if m.UpsertModelMock.optional {
-		// Optional methods provide '0 or more' call count restriction.
-		return true
-	}
-
-	for _, e := range m.UpsertModelMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	return m.UpsertModelMock.invocationsDone()
-}
-
-// MinimockUpsertModelInspect logs each unmet expectation
-func (m *RepositoryMock) MinimockUpsertModelInspect() {
-	for _, e := range m.UpsertModelMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to RepositoryMock.UpsertModel at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
-		}
-	}
-
-	afterUpsertModelCounter := mm_atomic.LoadUint64(&m.afterUpsertModelCounter)
-	// if default expectation was set then invocations count should be greater than zero
-	if m.UpsertModelMock.defaultExpectation != nil && afterUpsertModelCounter < 1 {
-		if m.UpsertModelMock.defaultExpectation.params == nil {
-			m.t.Errorf("Expected call to RepositoryMock.UpsertModel at\n%s", m.UpsertModelMock.defaultExpectation.returnOrigin)
-		} else {
-			m.t.Errorf("Expected call to RepositoryMock.UpsertModel at\n%s with params: %#v", m.UpsertModelMock.defaultExpectation.expectationOrigins.origin, *m.UpsertModelMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcUpsertModel != nil && afterUpsertModelCounter < 1 {
-		m.t.Errorf("Expected call to RepositoryMock.UpsertModel at\n%s", m.funcUpsertModelOrigin)
-	}
-
-	if !m.UpsertModelMock.invocationsDone() && afterUpsertModelCounter > 0 {
-		m.t.Errorf("Expected %d calls to RepositoryMock.UpsertModel at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.UpsertModelMock.expectedInvocations), m.UpsertModelMock.expectedInvocationsOrigin, afterUpsertModelCounter)
-	}
-}
-
-type mRepositoryMockUpsertTerritory struct {
-	optional           bool
-	mock               *RepositoryMock
-	defaultExpectation *RepositoryMockUpsertTerritoryExpectation
-	expectations       []*RepositoryMockUpsertTerritoryExpectation
-
-	callArgs []*RepositoryMockUpsertTerritoryParams
-	mutex    sync.RWMutex
-
-	expectedInvocations       uint64
-	expectedInvocationsOrigin string
-}
-
-// RepositoryMockUpsertTerritoryExpectation specifies expectation struct of the Repository.UpsertTerritory
-type RepositoryMockUpsertTerritoryExpectation struct {
-	mock               *RepositoryMock
-	params             *RepositoryMockUpsertTerritoryParams
-	paramPtrs          *RepositoryMockUpsertTerritoryParamPtrs
-	expectationOrigins RepositoryMockUpsertTerritoryExpectationOrigins
-	results            *RepositoryMockUpsertTerritoryResults
-	returnOrigin       string
-	Counter            uint64
-}
-
-// RepositoryMockUpsertTerritoryParams contains parameters of the Repository.UpsertTerritory
-type RepositoryMockUpsertTerritoryParams struct {
-	ctx context.Context
-	t   domain.Territory
-}
-
-// RepositoryMockUpsertTerritoryParamPtrs contains pointers to parameters of the Repository.UpsertTerritory
-type RepositoryMockUpsertTerritoryParamPtrs struct {
-	ctx *context.Context
-	t   *domain.Territory
-}
-
-// RepositoryMockUpsertTerritoryResults contains results of the Repository.UpsertTerritory
-type RepositoryMockUpsertTerritoryResults struct {
+// RepositoryMockUpdateTerritoryResults contains results of the Repository.UpdateTerritory
+type RepositoryMockUpdateTerritoryResults struct {
 	t1  domain.Territory
 	err error
 }
 
-// RepositoryMockUpsertTerritoryOrigins contains origins of expectations of the Repository.UpsertTerritory
-type RepositoryMockUpsertTerritoryExpectationOrigins struct {
-	origin    string
-	originCtx string
-	originT   string
+// RepositoryMockUpdateTerritoryOrigins contains origins of expectations of the Repository.UpdateTerritory
+type RepositoryMockUpdateTerritoryExpectationOrigins struct {
+	origin     string
+	originCtx  string
+	originSlug string
+	originP    string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -12402,292 +13712,320 @@ type RepositoryMockUpsertTerritoryExpectationOrigins struct {
 // Optional() makes method check to work in '0 or more' mode.
 // It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
 // catch the problems when the expected method call is totally skipped during test run.
-func (mmUpsertTerritory *mRepositoryMockUpsertTerritory) Optional() *mRepositoryMockUpsertTerritory {
-	mmUpsertTerritory.optional = true
-	return mmUpsertTerritory
+func (mmUpdateTerritory *mRepositoryMockUpdateTerritory) Optional() *mRepositoryMockUpdateTerritory {
+	mmUpdateTerritory.optional = true
+	return mmUpdateTerritory
 }
 
-// Expect sets up expected params for Repository.UpsertTerritory
-func (mmUpsertTerritory *mRepositoryMockUpsertTerritory) Expect(ctx context.Context, t domain.Territory) *mRepositoryMockUpsertTerritory {
-	if mmUpsertTerritory.mock.funcUpsertTerritory != nil {
-		mmUpsertTerritory.mock.t.Fatalf("RepositoryMock.UpsertTerritory mock is already set by Set")
+// Expect sets up expected params for Repository.UpdateTerritory
+func (mmUpdateTerritory *mRepositoryMockUpdateTerritory) Expect(ctx context.Context, slug string, p domain.TerritoryPatch) *mRepositoryMockUpdateTerritory {
+	if mmUpdateTerritory.mock.funcUpdateTerritory != nil {
+		mmUpdateTerritory.mock.t.Fatalf("RepositoryMock.UpdateTerritory mock is already set by Set")
 	}
 
-	if mmUpsertTerritory.defaultExpectation == nil {
-		mmUpsertTerritory.defaultExpectation = &RepositoryMockUpsertTerritoryExpectation{}
+	if mmUpdateTerritory.defaultExpectation == nil {
+		mmUpdateTerritory.defaultExpectation = &RepositoryMockUpdateTerritoryExpectation{}
 	}
 
-	if mmUpsertTerritory.defaultExpectation.paramPtrs != nil {
-		mmUpsertTerritory.mock.t.Fatalf("RepositoryMock.UpsertTerritory mock is already set by ExpectParams functions")
+	if mmUpdateTerritory.defaultExpectation.paramPtrs != nil {
+		mmUpdateTerritory.mock.t.Fatalf("RepositoryMock.UpdateTerritory mock is already set by ExpectParams functions")
 	}
 
-	mmUpsertTerritory.defaultExpectation.params = &RepositoryMockUpsertTerritoryParams{ctx, t}
-	mmUpsertTerritory.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
-	for _, e := range mmUpsertTerritory.expectations {
-		if minimock.Equal(e.params, mmUpsertTerritory.defaultExpectation.params) {
-			mmUpsertTerritory.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpsertTerritory.defaultExpectation.params)
+	mmUpdateTerritory.defaultExpectation.params = &RepositoryMockUpdateTerritoryParams{ctx, slug, p}
+	mmUpdateTerritory.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmUpdateTerritory.expectations {
+		if minimock.Equal(e.params, mmUpdateTerritory.defaultExpectation.params) {
+			mmUpdateTerritory.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdateTerritory.defaultExpectation.params)
 		}
 	}
 
-	return mmUpsertTerritory
+	return mmUpdateTerritory
 }
 
-// ExpectCtxParam1 sets up expected param ctx for Repository.UpsertTerritory
-func (mmUpsertTerritory *mRepositoryMockUpsertTerritory) ExpectCtxParam1(ctx context.Context) *mRepositoryMockUpsertTerritory {
-	if mmUpsertTerritory.mock.funcUpsertTerritory != nil {
-		mmUpsertTerritory.mock.t.Fatalf("RepositoryMock.UpsertTerritory mock is already set by Set")
+// ExpectCtxParam1 sets up expected param ctx for Repository.UpdateTerritory
+func (mmUpdateTerritory *mRepositoryMockUpdateTerritory) ExpectCtxParam1(ctx context.Context) *mRepositoryMockUpdateTerritory {
+	if mmUpdateTerritory.mock.funcUpdateTerritory != nil {
+		mmUpdateTerritory.mock.t.Fatalf("RepositoryMock.UpdateTerritory mock is already set by Set")
 	}
 
-	if mmUpsertTerritory.defaultExpectation == nil {
-		mmUpsertTerritory.defaultExpectation = &RepositoryMockUpsertTerritoryExpectation{}
+	if mmUpdateTerritory.defaultExpectation == nil {
+		mmUpdateTerritory.defaultExpectation = &RepositoryMockUpdateTerritoryExpectation{}
 	}
 
-	if mmUpsertTerritory.defaultExpectation.params != nil {
-		mmUpsertTerritory.mock.t.Fatalf("RepositoryMock.UpsertTerritory mock is already set by Expect")
+	if mmUpdateTerritory.defaultExpectation.params != nil {
+		mmUpdateTerritory.mock.t.Fatalf("RepositoryMock.UpdateTerritory mock is already set by Expect")
 	}
 
-	if mmUpsertTerritory.defaultExpectation.paramPtrs == nil {
-		mmUpsertTerritory.defaultExpectation.paramPtrs = &RepositoryMockUpsertTerritoryParamPtrs{}
+	if mmUpdateTerritory.defaultExpectation.paramPtrs == nil {
+		mmUpdateTerritory.defaultExpectation.paramPtrs = &RepositoryMockUpdateTerritoryParamPtrs{}
 	}
-	mmUpsertTerritory.defaultExpectation.paramPtrs.ctx = &ctx
-	mmUpsertTerritory.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+	mmUpdateTerritory.defaultExpectation.paramPtrs.ctx = &ctx
+	mmUpdateTerritory.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
 
-	return mmUpsertTerritory
+	return mmUpdateTerritory
 }
 
-// ExpectTParam2 sets up expected param t for Repository.UpsertTerritory
-func (mmUpsertTerritory *mRepositoryMockUpsertTerritory) ExpectTParam2(t domain.Territory) *mRepositoryMockUpsertTerritory {
-	if mmUpsertTerritory.mock.funcUpsertTerritory != nil {
-		mmUpsertTerritory.mock.t.Fatalf("RepositoryMock.UpsertTerritory mock is already set by Set")
+// ExpectSlugParam2 sets up expected param slug for Repository.UpdateTerritory
+func (mmUpdateTerritory *mRepositoryMockUpdateTerritory) ExpectSlugParam2(slug string) *mRepositoryMockUpdateTerritory {
+	if mmUpdateTerritory.mock.funcUpdateTerritory != nil {
+		mmUpdateTerritory.mock.t.Fatalf("RepositoryMock.UpdateTerritory mock is already set by Set")
 	}
 
-	if mmUpsertTerritory.defaultExpectation == nil {
-		mmUpsertTerritory.defaultExpectation = &RepositoryMockUpsertTerritoryExpectation{}
+	if mmUpdateTerritory.defaultExpectation == nil {
+		mmUpdateTerritory.defaultExpectation = &RepositoryMockUpdateTerritoryExpectation{}
 	}
 
-	if mmUpsertTerritory.defaultExpectation.params != nil {
-		mmUpsertTerritory.mock.t.Fatalf("RepositoryMock.UpsertTerritory mock is already set by Expect")
+	if mmUpdateTerritory.defaultExpectation.params != nil {
+		mmUpdateTerritory.mock.t.Fatalf("RepositoryMock.UpdateTerritory mock is already set by Expect")
 	}
 
-	if mmUpsertTerritory.defaultExpectation.paramPtrs == nil {
-		mmUpsertTerritory.defaultExpectation.paramPtrs = &RepositoryMockUpsertTerritoryParamPtrs{}
+	if mmUpdateTerritory.defaultExpectation.paramPtrs == nil {
+		mmUpdateTerritory.defaultExpectation.paramPtrs = &RepositoryMockUpdateTerritoryParamPtrs{}
 	}
-	mmUpsertTerritory.defaultExpectation.paramPtrs.t = &t
-	mmUpsertTerritory.defaultExpectation.expectationOrigins.originT = minimock.CallerInfo(1)
+	mmUpdateTerritory.defaultExpectation.paramPtrs.slug = &slug
+	mmUpdateTerritory.defaultExpectation.expectationOrigins.originSlug = minimock.CallerInfo(1)
 
-	return mmUpsertTerritory
+	return mmUpdateTerritory
 }
 
-// Inspect accepts an inspector function that has same arguments as the Repository.UpsertTerritory
-func (mmUpsertTerritory *mRepositoryMockUpsertTerritory) Inspect(f func(ctx context.Context, t domain.Territory)) *mRepositoryMockUpsertTerritory {
-	if mmUpsertTerritory.mock.inspectFuncUpsertTerritory != nil {
-		mmUpsertTerritory.mock.t.Fatalf("Inspect function is already set for RepositoryMock.UpsertTerritory")
+// ExpectPParam3 sets up expected param p for Repository.UpdateTerritory
+func (mmUpdateTerritory *mRepositoryMockUpdateTerritory) ExpectPParam3(p domain.TerritoryPatch) *mRepositoryMockUpdateTerritory {
+	if mmUpdateTerritory.mock.funcUpdateTerritory != nil {
+		mmUpdateTerritory.mock.t.Fatalf("RepositoryMock.UpdateTerritory mock is already set by Set")
 	}
 
-	mmUpsertTerritory.mock.inspectFuncUpsertTerritory = f
+	if mmUpdateTerritory.defaultExpectation == nil {
+		mmUpdateTerritory.defaultExpectation = &RepositoryMockUpdateTerritoryExpectation{}
+	}
 
-	return mmUpsertTerritory
+	if mmUpdateTerritory.defaultExpectation.params != nil {
+		mmUpdateTerritory.mock.t.Fatalf("RepositoryMock.UpdateTerritory mock is already set by Expect")
+	}
+
+	if mmUpdateTerritory.defaultExpectation.paramPtrs == nil {
+		mmUpdateTerritory.defaultExpectation.paramPtrs = &RepositoryMockUpdateTerritoryParamPtrs{}
+	}
+	mmUpdateTerritory.defaultExpectation.paramPtrs.p = &p
+	mmUpdateTerritory.defaultExpectation.expectationOrigins.originP = minimock.CallerInfo(1)
+
+	return mmUpdateTerritory
 }
 
-// Return sets up results that will be returned by Repository.UpsertTerritory
-func (mmUpsertTerritory *mRepositoryMockUpsertTerritory) Return(t1 domain.Territory, err error) *RepositoryMock {
-	if mmUpsertTerritory.mock.funcUpsertTerritory != nil {
-		mmUpsertTerritory.mock.t.Fatalf("RepositoryMock.UpsertTerritory mock is already set by Set")
+// Inspect accepts an inspector function that has same arguments as the Repository.UpdateTerritory
+func (mmUpdateTerritory *mRepositoryMockUpdateTerritory) Inspect(f func(ctx context.Context, slug string, p domain.TerritoryPatch)) *mRepositoryMockUpdateTerritory {
+	if mmUpdateTerritory.mock.inspectFuncUpdateTerritory != nil {
+		mmUpdateTerritory.mock.t.Fatalf("Inspect function is already set for RepositoryMock.UpdateTerritory")
 	}
 
-	if mmUpsertTerritory.defaultExpectation == nil {
-		mmUpsertTerritory.defaultExpectation = &RepositoryMockUpsertTerritoryExpectation{mock: mmUpsertTerritory.mock}
-	}
-	mmUpsertTerritory.defaultExpectation.results = &RepositoryMockUpsertTerritoryResults{t1, err}
-	mmUpsertTerritory.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
-	return mmUpsertTerritory.mock
+	mmUpdateTerritory.mock.inspectFuncUpdateTerritory = f
+
+	return mmUpdateTerritory
 }
 
-// Set uses given function f to mock the Repository.UpsertTerritory method
-func (mmUpsertTerritory *mRepositoryMockUpsertTerritory) Set(f func(ctx context.Context, t domain.Territory) (t1 domain.Territory, err error)) *RepositoryMock {
-	if mmUpsertTerritory.defaultExpectation != nil {
-		mmUpsertTerritory.mock.t.Fatalf("Default expectation is already set for the Repository.UpsertTerritory method")
+// Return sets up results that will be returned by Repository.UpdateTerritory
+func (mmUpdateTerritory *mRepositoryMockUpdateTerritory) Return(t1 domain.Territory, err error) *RepositoryMock {
+	if mmUpdateTerritory.mock.funcUpdateTerritory != nil {
+		mmUpdateTerritory.mock.t.Fatalf("RepositoryMock.UpdateTerritory mock is already set by Set")
 	}
 
-	if len(mmUpsertTerritory.expectations) > 0 {
-		mmUpsertTerritory.mock.t.Fatalf("Some expectations are already set for the Repository.UpsertTerritory method")
+	if mmUpdateTerritory.defaultExpectation == nil {
+		mmUpdateTerritory.defaultExpectation = &RepositoryMockUpdateTerritoryExpectation{mock: mmUpdateTerritory.mock}
 	}
-
-	mmUpsertTerritory.mock.funcUpsertTerritory = f
-	mmUpsertTerritory.mock.funcUpsertTerritoryOrigin = minimock.CallerInfo(1)
-	return mmUpsertTerritory.mock
+	mmUpdateTerritory.defaultExpectation.results = &RepositoryMockUpdateTerritoryResults{t1, err}
+	mmUpdateTerritory.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmUpdateTerritory.mock
 }
 
-// When sets expectation for the Repository.UpsertTerritory which will trigger the result defined by the following
+// Set uses given function f to mock the Repository.UpdateTerritory method
+func (mmUpdateTerritory *mRepositoryMockUpdateTerritory) Set(f func(ctx context.Context, slug string, p domain.TerritoryPatch) (t1 domain.Territory, err error)) *RepositoryMock {
+	if mmUpdateTerritory.defaultExpectation != nil {
+		mmUpdateTerritory.mock.t.Fatalf("Default expectation is already set for the Repository.UpdateTerritory method")
+	}
+
+	if len(mmUpdateTerritory.expectations) > 0 {
+		mmUpdateTerritory.mock.t.Fatalf("Some expectations are already set for the Repository.UpdateTerritory method")
+	}
+
+	mmUpdateTerritory.mock.funcUpdateTerritory = f
+	mmUpdateTerritory.mock.funcUpdateTerritoryOrigin = minimock.CallerInfo(1)
+	return mmUpdateTerritory.mock
+}
+
+// When sets expectation for the Repository.UpdateTerritory which will trigger the result defined by the following
 // Then helper
-func (mmUpsertTerritory *mRepositoryMockUpsertTerritory) When(ctx context.Context, t domain.Territory) *RepositoryMockUpsertTerritoryExpectation {
-	if mmUpsertTerritory.mock.funcUpsertTerritory != nil {
-		mmUpsertTerritory.mock.t.Fatalf("RepositoryMock.UpsertTerritory mock is already set by Set")
+func (mmUpdateTerritory *mRepositoryMockUpdateTerritory) When(ctx context.Context, slug string, p domain.TerritoryPatch) *RepositoryMockUpdateTerritoryExpectation {
+	if mmUpdateTerritory.mock.funcUpdateTerritory != nil {
+		mmUpdateTerritory.mock.t.Fatalf("RepositoryMock.UpdateTerritory mock is already set by Set")
 	}
 
-	expectation := &RepositoryMockUpsertTerritoryExpectation{
-		mock:               mmUpsertTerritory.mock,
-		params:             &RepositoryMockUpsertTerritoryParams{ctx, t},
-		expectationOrigins: RepositoryMockUpsertTerritoryExpectationOrigins{origin: minimock.CallerInfo(1)},
+	expectation := &RepositoryMockUpdateTerritoryExpectation{
+		mock:               mmUpdateTerritory.mock,
+		params:             &RepositoryMockUpdateTerritoryParams{ctx, slug, p},
+		expectationOrigins: RepositoryMockUpdateTerritoryExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
-	mmUpsertTerritory.expectations = append(mmUpsertTerritory.expectations, expectation)
+	mmUpdateTerritory.expectations = append(mmUpdateTerritory.expectations, expectation)
 	return expectation
 }
 
-// Then sets up Repository.UpsertTerritory return parameters for the expectation previously defined by the When method
-func (e *RepositoryMockUpsertTerritoryExpectation) Then(t1 domain.Territory, err error) *RepositoryMock {
-	e.results = &RepositoryMockUpsertTerritoryResults{t1, err}
+// Then sets up Repository.UpdateTerritory return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockUpdateTerritoryExpectation) Then(t1 domain.Territory, err error) *RepositoryMock {
+	e.results = &RepositoryMockUpdateTerritoryResults{t1, err}
 	return e.mock
 }
 
-// Times sets number of times Repository.UpsertTerritory should be invoked
-func (mmUpsertTerritory *mRepositoryMockUpsertTerritory) Times(n uint64) *mRepositoryMockUpsertTerritory {
+// Times sets number of times Repository.UpdateTerritory should be invoked
+func (mmUpdateTerritory *mRepositoryMockUpdateTerritory) Times(n uint64) *mRepositoryMockUpdateTerritory {
 	if n == 0 {
-		mmUpsertTerritory.mock.t.Fatalf("Times of RepositoryMock.UpsertTerritory mock can not be zero")
+		mmUpdateTerritory.mock.t.Fatalf("Times of RepositoryMock.UpdateTerritory mock can not be zero")
 	}
-	mm_atomic.StoreUint64(&mmUpsertTerritory.expectedInvocations, n)
-	mmUpsertTerritory.expectedInvocationsOrigin = minimock.CallerInfo(1)
-	return mmUpsertTerritory
+	mm_atomic.StoreUint64(&mmUpdateTerritory.expectedInvocations, n)
+	mmUpdateTerritory.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmUpdateTerritory
 }
 
-func (mmUpsertTerritory *mRepositoryMockUpsertTerritory) invocationsDone() bool {
-	if len(mmUpsertTerritory.expectations) == 0 && mmUpsertTerritory.defaultExpectation == nil && mmUpsertTerritory.mock.funcUpsertTerritory == nil {
+func (mmUpdateTerritory *mRepositoryMockUpdateTerritory) invocationsDone() bool {
+	if len(mmUpdateTerritory.expectations) == 0 && mmUpdateTerritory.defaultExpectation == nil && mmUpdateTerritory.mock.funcUpdateTerritory == nil {
 		return true
 	}
 
-	totalInvocations := mm_atomic.LoadUint64(&mmUpsertTerritory.mock.afterUpsertTerritoryCounter)
-	expectedInvocations := mm_atomic.LoadUint64(&mmUpsertTerritory.expectedInvocations)
+	totalInvocations := mm_atomic.LoadUint64(&mmUpdateTerritory.mock.afterUpdateTerritoryCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmUpdateTerritory.expectedInvocations)
 
 	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
 }
 
-// UpsertTerritory implements mm_service.Repository
-func (mmUpsertTerritory *RepositoryMock) UpsertTerritory(ctx context.Context, t domain.Territory) (t1 domain.Territory, err error) {
-	mm_atomic.AddUint64(&mmUpsertTerritory.beforeUpsertTerritoryCounter, 1)
-	defer mm_atomic.AddUint64(&mmUpsertTerritory.afterUpsertTerritoryCounter, 1)
+// UpdateTerritory implements mm_service.Repository
+func (mmUpdateTerritory *RepositoryMock) UpdateTerritory(ctx context.Context, slug string, p domain.TerritoryPatch) (t1 domain.Territory, err error) {
+	mm_atomic.AddUint64(&mmUpdateTerritory.beforeUpdateTerritoryCounter, 1)
+	defer mm_atomic.AddUint64(&mmUpdateTerritory.afterUpdateTerritoryCounter, 1)
 
-	mmUpsertTerritory.t.Helper()
+	mmUpdateTerritory.t.Helper()
 
-	if mmUpsertTerritory.inspectFuncUpsertTerritory != nil {
-		mmUpsertTerritory.inspectFuncUpsertTerritory(ctx, t)
+	if mmUpdateTerritory.inspectFuncUpdateTerritory != nil {
+		mmUpdateTerritory.inspectFuncUpdateTerritory(ctx, slug, p)
 	}
 
-	mm_params := RepositoryMockUpsertTerritoryParams{ctx, t}
+	mm_params := RepositoryMockUpdateTerritoryParams{ctx, slug, p}
 
 	// Record call args
-	mmUpsertTerritory.UpsertTerritoryMock.mutex.Lock()
-	mmUpsertTerritory.UpsertTerritoryMock.callArgs = append(mmUpsertTerritory.UpsertTerritoryMock.callArgs, &mm_params)
-	mmUpsertTerritory.UpsertTerritoryMock.mutex.Unlock()
+	mmUpdateTerritory.UpdateTerritoryMock.mutex.Lock()
+	mmUpdateTerritory.UpdateTerritoryMock.callArgs = append(mmUpdateTerritory.UpdateTerritoryMock.callArgs, &mm_params)
+	mmUpdateTerritory.UpdateTerritoryMock.mutex.Unlock()
 
-	for _, e := range mmUpsertTerritory.UpsertTerritoryMock.expectations {
+	for _, e := range mmUpdateTerritory.UpdateTerritoryMock.expectations {
 		if minimock.Equal(*e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.t1, e.results.err
 		}
 	}
 
-	if mmUpsertTerritory.UpsertTerritoryMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmUpsertTerritory.UpsertTerritoryMock.defaultExpectation.Counter, 1)
-		mm_want := mmUpsertTerritory.UpsertTerritoryMock.defaultExpectation.params
-		mm_want_ptrs := mmUpsertTerritory.UpsertTerritoryMock.defaultExpectation.paramPtrs
+	if mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation.Counter, 1)
+		mm_want := mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation.params
+		mm_want_ptrs := mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation.paramPtrs
 
-		mm_got := RepositoryMockUpsertTerritoryParams{ctx, t}
+		mm_got := RepositoryMockUpdateTerritoryParams{ctx, slug, p}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
-				mmUpsertTerritory.t.Errorf("RepositoryMock.UpsertTerritory got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmUpsertTerritory.UpsertTerritoryMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+				mmUpdateTerritory.t.Errorf("RepositoryMock.UpdateTerritory got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
 			}
 
-			if mm_want_ptrs.t != nil && !minimock.Equal(*mm_want_ptrs.t, mm_got.t) {
-				mmUpsertTerritory.t.Errorf("RepositoryMock.UpsertTerritory got unexpected parameter t, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-					mmUpsertTerritory.UpsertTerritoryMock.defaultExpectation.expectationOrigins.originT, *mm_want_ptrs.t, mm_got.t, minimock.Diff(*mm_want_ptrs.t, mm_got.t))
+			if mm_want_ptrs.slug != nil && !minimock.Equal(*mm_want_ptrs.slug, mm_got.slug) {
+				mmUpdateTerritory.t.Errorf("RepositoryMock.UpdateTerritory got unexpected parameter slug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation.expectationOrigins.originSlug, *mm_want_ptrs.slug, mm_got.slug, minimock.Diff(*mm_want_ptrs.slug, mm_got.slug))
+			}
+
+			if mm_want_ptrs.p != nil && !minimock.Equal(*mm_want_ptrs.p, mm_got.p) {
+				mmUpdateTerritory.t.Errorf("RepositoryMock.UpdateTerritory got unexpected parameter p, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation.expectationOrigins.originP, *mm_want_ptrs.p, mm_got.p, minimock.Diff(*mm_want_ptrs.p, mm_got.p))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmUpsertTerritory.t.Errorf("RepositoryMock.UpsertTerritory got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
-				mmUpsertTerritory.UpsertTerritoryMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+			mmUpdateTerritory.t.Errorf("RepositoryMock.UpdateTerritory got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		mm_results := mmUpsertTerritory.UpsertTerritoryMock.defaultExpectation.results
+		mm_results := mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation.results
 		if mm_results == nil {
-			mmUpsertTerritory.t.Fatal("No results are set for the RepositoryMock.UpsertTerritory")
+			mmUpdateTerritory.t.Fatal("No results are set for the RepositoryMock.UpdateTerritory")
 		}
 		return (*mm_results).t1, (*mm_results).err
 	}
-	if mmUpsertTerritory.funcUpsertTerritory != nil {
-		return mmUpsertTerritory.funcUpsertTerritory(ctx, t)
+	if mmUpdateTerritory.funcUpdateTerritory != nil {
+		return mmUpdateTerritory.funcUpdateTerritory(ctx, slug, p)
 	}
-	mmUpsertTerritory.t.Fatalf("Unexpected call to RepositoryMock.UpsertTerritory. %v %v", ctx, t)
+	mmUpdateTerritory.t.Fatalf("Unexpected call to RepositoryMock.UpdateTerritory. %v %v %v", ctx, slug, p)
 	return
 }
 
-// UpsertTerritoryAfterCounter returns a count of finished RepositoryMock.UpsertTerritory invocations
-func (mmUpsertTerritory *RepositoryMock) UpsertTerritoryAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmUpsertTerritory.afterUpsertTerritoryCounter)
+// UpdateTerritoryAfterCounter returns a count of finished RepositoryMock.UpdateTerritory invocations
+func (mmUpdateTerritory *RepositoryMock) UpdateTerritoryAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateTerritory.afterUpdateTerritoryCounter)
 }
 
-// UpsertTerritoryBeforeCounter returns a count of RepositoryMock.UpsertTerritory invocations
-func (mmUpsertTerritory *RepositoryMock) UpsertTerritoryBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmUpsertTerritory.beforeUpsertTerritoryCounter)
+// UpdateTerritoryBeforeCounter returns a count of RepositoryMock.UpdateTerritory invocations
+func (mmUpdateTerritory *RepositoryMock) UpdateTerritoryBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateTerritory.beforeUpdateTerritoryCounter)
 }
 
-// Calls returns a list of arguments used in each call to RepositoryMock.UpsertTerritory.
+// Calls returns a list of arguments used in each call to RepositoryMock.UpdateTerritory.
 // The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmUpsertTerritory *mRepositoryMockUpsertTerritory) Calls() []*RepositoryMockUpsertTerritoryParams {
-	mmUpsertTerritory.mutex.RLock()
+func (mmUpdateTerritory *mRepositoryMockUpdateTerritory) Calls() []*RepositoryMockUpdateTerritoryParams {
+	mmUpdateTerritory.mutex.RLock()
 
-	argCopy := make([]*RepositoryMockUpsertTerritoryParams, len(mmUpsertTerritory.callArgs))
-	copy(argCopy, mmUpsertTerritory.callArgs)
+	argCopy := make([]*RepositoryMockUpdateTerritoryParams, len(mmUpdateTerritory.callArgs))
+	copy(argCopy, mmUpdateTerritory.callArgs)
 
-	mmUpsertTerritory.mutex.RUnlock()
+	mmUpdateTerritory.mutex.RUnlock()
 
 	return argCopy
 }
 
-// MinimockUpsertTerritoryDone returns true if the count of the UpsertTerritory invocations corresponds
+// MinimockUpdateTerritoryDone returns true if the count of the UpdateTerritory invocations corresponds
 // the number of defined expectations
-func (m *RepositoryMock) MinimockUpsertTerritoryDone() bool {
-	if m.UpsertTerritoryMock.optional {
+func (m *RepositoryMock) MinimockUpdateTerritoryDone() bool {
+	if m.UpdateTerritoryMock.optional {
 		// Optional methods provide '0 or more' call count restriction.
 		return true
 	}
 
-	for _, e := range m.UpsertTerritoryMock.expectations {
+	for _, e := range m.UpdateTerritoryMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
-	return m.UpsertTerritoryMock.invocationsDone()
+	return m.UpdateTerritoryMock.invocationsDone()
 }
 
-// MinimockUpsertTerritoryInspect logs each unmet expectation
-func (m *RepositoryMock) MinimockUpsertTerritoryInspect() {
-	for _, e := range m.UpsertTerritoryMock.expectations {
+// MinimockUpdateTerritoryInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockUpdateTerritoryInspect() {
+	for _, e := range m.UpdateTerritoryMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to RepositoryMock.UpsertTerritory at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+			m.t.Errorf("Expected call to RepositoryMock.UpdateTerritory at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
 		}
 	}
 
-	afterUpsertTerritoryCounter := mm_atomic.LoadUint64(&m.afterUpsertTerritoryCounter)
+	afterUpdateTerritoryCounter := mm_atomic.LoadUint64(&m.afterUpdateTerritoryCounter)
 	// if default expectation was set then invocations count should be greater than zero
-	if m.UpsertTerritoryMock.defaultExpectation != nil && afterUpsertTerritoryCounter < 1 {
-		if m.UpsertTerritoryMock.defaultExpectation.params == nil {
-			m.t.Errorf("Expected call to RepositoryMock.UpsertTerritory at\n%s", m.UpsertTerritoryMock.defaultExpectation.returnOrigin)
+	if m.UpdateTerritoryMock.defaultExpectation != nil && afterUpdateTerritoryCounter < 1 {
+		if m.UpdateTerritoryMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.UpdateTerritory at\n%s", m.UpdateTerritoryMock.defaultExpectation.returnOrigin)
 		} else {
-			m.t.Errorf("Expected call to RepositoryMock.UpsertTerritory at\n%s with params: %#v", m.UpsertTerritoryMock.defaultExpectation.expectationOrigins.origin, *m.UpsertTerritoryMock.defaultExpectation.params)
+			m.t.Errorf("Expected call to RepositoryMock.UpdateTerritory at\n%s with params: %#v", m.UpdateTerritoryMock.defaultExpectation.expectationOrigins.origin, *m.UpdateTerritoryMock.defaultExpectation.params)
 		}
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcUpsertTerritory != nil && afterUpsertTerritoryCounter < 1 {
-		m.t.Errorf("Expected call to RepositoryMock.UpsertTerritory at\n%s", m.funcUpsertTerritoryOrigin)
+	if m.funcUpdateTerritory != nil && afterUpdateTerritoryCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.UpdateTerritory at\n%s", m.funcUpdateTerritoryOrigin)
 	}
 
-	if !m.UpsertTerritoryMock.invocationsDone() && afterUpsertTerritoryCounter > 0 {
-		m.t.Errorf("Expected %d calls to RepositoryMock.UpsertTerritory at\n%s but found %d calls",
-			mm_atomic.LoadUint64(&m.UpsertTerritoryMock.expectedInvocations), m.UpsertTerritoryMock.expectedInvocationsOrigin, afterUpsertTerritoryCounter)
+	if !m.UpdateTerritoryMock.invocationsDone() && afterUpdateTerritoryCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.UpdateTerritory at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.UpdateTerritoryMock.expectedInvocations), m.UpdateTerritoryMock.expectedInvocationsOrigin, afterUpdateTerritoryCounter)
 	}
 }
 
@@ -12700,6 +14038,8 @@ func (m *RepositoryMock) MinimockFinish() {
 			m.MinimockCreateModelInspect()
 
 			m.MinimockCreatePlacementInspect()
+
+			m.MinimockCreatePlacementsInspect()
 
 			m.MinimockCreateTerritoryInspect()
 
@@ -12737,7 +14077,11 @@ func (m *RepositoryMock) MinimockFinish() {
 
 			m.MinimockListTerritoriesInspect()
 
+			m.MinimockListTerritoryAdminsInspect()
+
 			m.MinimockListTerritoryArtifactsInspect()
+
+			m.MinimockPlacementBatchInspect()
 
 			m.MinimockRegisterModelArtifactInspect()
 
@@ -12759,11 +14103,11 @@ func (m *RepositoryMock) MinimockFinish() {
 
 			m.MinimockUpdateMeasurementInspect()
 
+			m.MinimockUpdateModelInspect()
+
 			m.MinimockUpdatePlacementInspect()
 
-			m.MinimockUpsertModelInspect()
-
-			m.MinimockUpsertTerritoryInspect()
+			m.MinimockUpdateTerritoryInspect()
 		}
 	})
 }
@@ -12790,6 +14134,7 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockCreateMeasurementDone() &&
 		m.MinimockCreateModelDone() &&
 		m.MinimockCreatePlacementDone() &&
+		m.MinimockCreatePlacementsDone() &&
 		m.MinimockCreateTerritoryDone() &&
 		m.MinimockDeleteMeasurementDone() &&
 		m.MinimockDeleteMeasurementsDone() &&
@@ -12808,7 +14153,9 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockListPanoramaIDsDone() &&
 		m.MinimockListPlacementsDone() &&
 		m.MinimockListTerritoriesDone() &&
+		m.MinimockListTerritoryAdminsDone() &&
 		m.MinimockListTerritoryArtifactsDone() &&
+		m.MinimockPlacementBatchDone() &&
 		m.MinimockRegisterModelArtifactDone() &&
 		m.MinimockRegisterTerritoryArtifactDone() &&
 		m.MinimockRescaleTerritoryPlacementsDone() &&
@@ -12819,7 +14166,7 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockSetTerritoryAdminsDone() &&
 		m.MinimockSetTerritoryRescaleBaselineDone() &&
 		m.MinimockUpdateMeasurementDone() &&
+		m.MinimockUpdateModelDone() &&
 		m.MinimockUpdatePlacementDone() &&
-		m.MinimockUpsertModelDone() &&
-		m.MinimockUpsertTerritoryDone()
+		m.MinimockUpdateTerritoryDone()
 }

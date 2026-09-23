@@ -1,4 +1,4 @@
-import { httpDelete, httpGet, httpPatch, httpPost, httpPut } from "@/shared/api";
+import { httpDelete, httpGet, httpPatch, httpPost } from "@/shared/api";
 import type { components } from "@/shared/api/dto";
 import type { Role } from "../model/role";
 import { toRole } from "./to-role";
@@ -14,11 +14,10 @@ export const listRoles = async (): Promise<Role[]> =>
 export const createRole = async (title: string, permissionSlugs: string[]): Promise<Role> =>
   toRole(await httpPost<AuthRoleDto>("/api/auth/roles", { title, permissionSlugs }));
 
-export const renameRole = async (slug: string, title: string): Promise<Role> =>
-  toRole(await httpPatch<AuthRoleDto>(at(slug), { title }));
-
-/** Replaces the whole set. */
-export const setRolePermissions = async (slug: string, permissionSlugs: string[]): Promise<Role> =>
-  toRole(await httpPut<AuthRoleDto>(`${at(slug)}/permissions`, { permissionSlugs }));
+/** Title plus, optionally, the permission set, applied in one transaction; an omitted set is left alone. */
+export const updateRole = async (
+  slug: string,
+  patch: { title: string; permissionSlugs?: string[] },
+): Promise<Role> => toRole(await httpPatch<AuthRoleDto>(at(slug), patch));
 
 export const deleteRole = (slug: string): Promise<void> => httpDelete(at(slug));

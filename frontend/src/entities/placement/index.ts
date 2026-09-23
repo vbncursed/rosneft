@@ -12,7 +12,7 @@ export {
 } from "./model/placement";
 export { toPlacement } from "./api/to-placement";
 export {
-  createPlacement,
+  createPlacements,
   deletePlacement,
   setPlacementVisibility,
   updatePlacement,

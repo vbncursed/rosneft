@@ -17,6 +17,7 @@ func territoryToProto(t domain.Territory) *catalogv1.Territory {
 		CreatedAt:           timestamppb.New(t.CreatedAt),
 		UpdatedAt:           timestamppb.New(t.UpdatedAt),
 		PlacementCount:      uint32(t.PlacementCount),
+		Artifacts:           artifactsToProto(t.Artifacts, territoryArtifactToProto),
 	}
 }
 
@@ -41,6 +42,7 @@ func modelToProto(m domain.Model) *catalogv1.Model {
 		CreatedAt:         timestamppb.New(m.CreatedAt),
 		UpdatedAt:         timestamppb.New(m.UpdatedAt),
 		UsageCount:        uint32(m.UsageCount),
+		Artifacts:         artifactsToProto(m.Artifacts, modelArtifactToProto),
 	}
 }
 
@@ -147,5 +149,28 @@ func measurementToProto(m domain.Measurement) *catalogv1.Measurement {
 		Closed:        m.Closed,
 		CreatedAt:     timestamppb.New(m.CreatedAt),
 		UpdatedAt:     timestamppb.New(m.UpdatedAt),
+	}
+}
+
+// artifactsToProto maps a LOD chain with the per-kind converter.
+func artifactsToProto[P any](in []domain.Artifact, conv func(domain.Artifact) P) []P {
+	out := make([]P, len(in))
+	for i, a := range in {
+		out[i] = conv(a)
+	}
+	return out
+}
+
+// placementFromCreateRequest maps one create request (alone, or an item of a
+// batch) onto a domain placement.
+func placementFromCreateRequest(req *catalogv1.CreatePlacementRequest) domain.Placement {
+	return domain.Placement{
+		TerritorySlug:      req.GetTerritorySlug(),
+		ModelSlug:          req.GetModelSlug(),
+		Position:           vec3FromProto(req.GetPosition()),
+		Rotation:           vec3FromProto(req.GetRotation()),
+		Scale:              vec3FromProto(req.GetScale()),
+		Label:              req.GetLabel(),
+		VisiblePanoramaIDs: req.GetVisiblePanoramaIds(),
 	}
 }

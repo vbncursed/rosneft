@@ -1,11 +1,4 @@
-import { useQueries, useQuery } from "@tanstack/react-query";
-import { auditWindowQuery, windowStart } from "@/entities/audit";
-import { alertsOf, panelQuery } from "@/entities/metric";
-import { modelsQuery } from "@/entities/model";
-import { permissionsQuery } from "@/entities/permission";
-import { rolesQuery } from "@/entities/role";
-import { adminsQuery, territoriesQuery } from "@/entities/territory";
-import { usersQuery } from "@/entities/user";
+import { useQuery } from "@tanstack/react-query";
 import { unanswered } from "@/shared/lib/unanswered";
 import type { ConsoleNavItem } from "@/widgets/console-nav";
 import {
@@ -19,71 +12,35 @@ import {
   type ConsoleHint,
   type ConsoleKey,
 } from "./console-hints";
-
-type Q = { isLoading: boolean; data: unknown; error: unknown };
+import { consoleSummaryQuery, type ConsoleSummary } from "./console-summary";
 
 /**
- * One count per open console card, off the query its screen already uses.
- * A locked card asks nothing (`enabled: false`) — and a disabled query stays
- * `isPending` forever, so `isLoading` is what "loading" reads here.
+ * One count per open console card, all from `GET /api/console/summary`. A
+ * locked card reads its static line whatever the summary holds, and nothing
+ * is asked when every card is locked — a disabled query stays `isPending`
+ * forever, so `isLoading` is what "loading" reads here. A card the summary
+ * nulls (its source failed) or leaves out reads "count unavailable".
  */
 export function useConsoleCounters(items: ConsoleNavItem[]): Record<ConsoleKey, ConsoleHint> {
   const open = (key: string) => items.some((i) => i.key === key && !i.disabled);
+  const summary = useQuery({ ...consoleSummaryQuery(), enabled: items.some((i) => !i.disabled) });
+  const failed = unanswered(summary) !== null;
 
-  const users = useQuery({ ...usersQuery, enabled: open("users") });
-  const roles = useQuery({ ...rolesQuery, enabled: open("roles") });
-  const permissions = useQuery({ ...permissionsQuery, enabled: open("roles") });
-  const territories = useQuery({
-    ...territoriesQuery,
-    enabled: open("content") || open("access"),
-  });
-  const models = useQuery({ ...modelsQuery, enabled: open("content") });
-  const admins = useQueries({
-    queries: (open("access") ? (territories.data ?? []) : []).map((t) => adminsQuery(t.slug)),
-    // No territories is no grants, not an unknown count — `rs.length === 0`
-    // would otherwise leave an owner with an empty catalog reading
-    // "count unavailable". The card still waits on `territories` itself.
-    // Readiness is `data !== undefined`, the same gate `hint()` uses below:
-    // an empty answer is an answer.
-    combine: (rs) => ({
-      isLoading: rs.some((r) => r.isLoading),
-      data:
-        rs.length === 0
-          ? 0
-          : rs.every((r) => r.data !== undefined)
-            ? rs.reduce((n, r) => n + (r.data?.length ?? 0), 0)
-            : undefined,
-      error: rs.map(unanswered).find((e) => e !== null) ?? null,
-    }),
-  });
-  // Rounded to the hour inside windowStart, so the key is stable across renders.
-  const auditWindow = useQuery({ ...auditWindowQuery(windowStart()), enabled: open("audit") });
-  const alerts = useQuery({ ...panelQuery("alerts", "1h"), enabled: open("metrics") });
-  const now = new Date();
-
-  const hint = (key: string, qs: Q[], count: () => string | null): ConsoleHint =>
+  const hint = (key: ConsoleKey, count: (s: ConsoleSummary) => string | null): ConsoleHint =>
     hintOf(
       key,
-      {
-        locked: !open(key),
-        loading: qs.some((q) => q.isLoading),
-        failed: qs.some((q) => unanswered(q) !== null),
-      },
-      qs.every((q) => q.data !== undefined) ? count() : null,
+      { locked: !open(key), loading: summary.isLoading, failed },
+      summary.data ? count(summary.data) : null,
     );
 
   return {
-    users: hint("users", [users], () => usersHint(users.data ?? [])),
-    roles: hint("roles", [roles, permissions], () =>
-      rolesHint(roles.data ?? [], permissions.data ?? []),
+    users: hint("users", ({ users }) => (users ? usersHint(users.total, users.frozen) : null)),
+    roles: hint("roles", ({ roles }) => (roles ? rolesHint(roles.roles, roles.permissions) : null)),
+    content: hint("content", ({ content }) =>
+      content ? contentHint(content.territories, content.models) : null,
     ),
-    content: hint("content", [territories, models], () =>
-      contentHint(territories.data?.length ?? 0, models.data?.length ?? 0),
-    ),
-    access: hint("access", [territories, admins], () =>
-      admins.data === undefined ? null : accessHint(admins.data),
-    ),
-    audit: hint("audit", [auditWindow], () => auditHint(auditWindow.data?.entries ?? [], now)),
-    metrics: hint("metrics", [alerts], () => metricsHint(alertsOf(alerts.data ?? []))),
+    access: hint("access", ({ access }) => (access != null ? accessHint(access) : null)),
+    audit: hint("audit", ({ audit24h }) => (audit24h != null ? auditHint(audit24h) : null)),
+    metrics: hint("metrics", ({ alerts }) => (alerts != null ? metricsHint(alerts) : null)),
   };
 }

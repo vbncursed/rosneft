@@ -1,4 +1,4 @@
-import { httpDelete, httpGet, httpPatch, httpPost } from "@/shared/api";
+import { httpDelete, httpGet, httpPatch, httpPost, httpPut } from "@/shared/api";
 import type { components } from "@/shared/api/dto";
 import type { User } from "../model/user";
 import { toUser } from "./to-user";
@@ -36,3 +36,7 @@ export const restoreUser = async (id: string): Promise<User> =>
 // disable an enrolled factor.
 export const setTwoFactorRequired = async (id: string, required: boolean): Promise<User> =>
   toUser(await httpPost<AuthUserDto>(`${at(id)}/2fa/${required ? "require" : "unrequire"}`));
+
+/** 204. The gateway also signs the user out of every session. */
+export const setUserPassword = (id: string, password: string): Promise<void> =>
+  httpPut<void>(`${at(id)}/password`, { password });

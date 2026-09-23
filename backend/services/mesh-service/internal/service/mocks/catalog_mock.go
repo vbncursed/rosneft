@@ -47,9 +47,9 @@ type CatalogMock struct {
 	beforeRegisterArtifactCounter uint64
 	RegisterArtifactMock          mCatalogMockRegisterArtifact
 
-	funcRescaleTerritoryPlacements          func(ctx context.Context, slug string, newMax float64) (err error)
+	funcRescaleTerritoryPlacements          func(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) (err error)
 	funcRescaleTerritoryPlacementsOrigin    string
-	inspectFuncRescaleTerritoryPlacements   func(ctx context.Context, slug string, newMax float64)
+	inspectFuncRescaleTerritoryPlacements   func(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3)
 	afterRescaleTerritoryPlacementsCounter  uint64
 	beforeRescaleTerritoryPlacementsCounter uint64
 	RescaleTerritoryPlacementsMock          mCatalogMockRescaleTerritoryPlacements
@@ -1511,16 +1511,18 @@ type CatalogMockRescaleTerritoryPlacementsExpectation struct {
 
 // CatalogMockRescaleTerritoryPlacementsParams contains parameters of the Catalog.RescaleTerritoryPlacements
 type CatalogMockRescaleTerritoryPlacementsParams struct {
-	ctx    context.Context
-	slug   string
-	newMax float64
+	ctx       context.Context
+	slug      string
+	newMax    float64
+	newCenter domain.Vec3
 }
 
 // CatalogMockRescaleTerritoryPlacementsParamPtrs contains pointers to parameters of the Catalog.RescaleTerritoryPlacements
 type CatalogMockRescaleTerritoryPlacementsParamPtrs struct {
-	ctx    *context.Context
-	slug   *string
-	newMax *float64
+	ctx       *context.Context
+	slug      *string
+	newMax    *float64
+	newCenter *domain.Vec3
 }
 
 // CatalogMockRescaleTerritoryPlacementsResults contains results of the Catalog.RescaleTerritoryPlacements
@@ -1530,10 +1532,11 @@ type CatalogMockRescaleTerritoryPlacementsResults struct {
 
 // CatalogMockRescaleTerritoryPlacementsOrigins contains origins of expectations of the Catalog.RescaleTerritoryPlacements
 type CatalogMockRescaleTerritoryPlacementsExpectationOrigins struct {
-	origin       string
-	originCtx    string
-	originSlug   string
-	originNewMax string
+	origin          string
+	originCtx       string
+	originSlug      string
+	originNewMax    string
+	originNewCenter string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -1547,7 +1550,7 @@ func (mmRescaleTerritoryPlacements *mCatalogMockRescaleTerritoryPlacements) Opti
 }
 
 // Expect sets up expected params for Catalog.RescaleTerritoryPlacements
-func (mmRescaleTerritoryPlacements *mCatalogMockRescaleTerritoryPlacements) Expect(ctx context.Context, slug string, newMax float64) *mCatalogMockRescaleTerritoryPlacements {
+func (mmRescaleTerritoryPlacements *mCatalogMockRescaleTerritoryPlacements) Expect(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) *mCatalogMockRescaleTerritoryPlacements {
 	if mmRescaleTerritoryPlacements.mock.funcRescaleTerritoryPlacements != nil {
 		mmRescaleTerritoryPlacements.mock.t.Fatalf("CatalogMock.RescaleTerritoryPlacements mock is already set by Set")
 	}
@@ -1560,7 +1563,7 @@ func (mmRescaleTerritoryPlacements *mCatalogMockRescaleTerritoryPlacements) Expe
 		mmRescaleTerritoryPlacements.mock.t.Fatalf("CatalogMock.RescaleTerritoryPlacements mock is already set by ExpectParams functions")
 	}
 
-	mmRescaleTerritoryPlacements.defaultExpectation.params = &CatalogMockRescaleTerritoryPlacementsParams{ctx, slug, newMax}
+	mmRescaleTerritoryPlacements.defaultExpectation.params = &CatalogMockRescaleTerritoryPlacementsParams{ctx, slug, newMax, newCenter}
 	mmRescaleTerritoryPlacements.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmRescaleTerritoryPlacements.expectations {
 		if minimock.Equal(e.params, mmRescaleTerritoryPlacements.defaultExpectation.params) {
@@ -1640,8 +1643,31 @@ func (mmRescaleTerritoryPlacements *mCatalogMockRescaleTerritoryPlacements) Expe
 	return mmRescaleTerritoryPlacements
 }
 
+// ExpectNewCenterParam4 sets up expected param newCenter for Catalog.RescaleTerritoryPlacements
+func (mmRescaleTerritoryPlacements *mCatalogMockRescaleTerritoryPlacements) ExpectNewCenterParam4(newCenter domain.Vec3) *mCatalogMockRescaleTerritoryPlacements {
+	if mmRescaleTerritoryPlacements.mock.funcRescaleTerritoryPlacements != nil {
+		mmRescaleTerritoryPlacements.mock.t.Fatalf("CatalogMock.RescaleTerritoryPlacements mock is already set by Set")
+	}
+
+	if mmRescaleTerritoryPlacements.defaultExpectation == nil {
+		mmRescaleTerritoryPlacements.defaultExpectation = &CatalogMockRescaleTerritoryPlacementsExpectation{}
+	}
+
+	if mmRescaleTerritoryPlacements.defaultExpectation.params != nil {
+		mmRescaleTerritoryPlacements.mock.t.Fatalf("CatalogMock.RescaleTerritoryPlacements mock is already set by Expect")
+	}
+
+	if mmRescaleTerritoryPlacements.defaultExpectation.paramPtrs == nil {
+		mmRescaleTerritoryPlacements.defaultExpectation.paramPtrs = &CatalogMockRescaleTerritoryPlacementsParamPtrs{}
+	}
+	mmRescaleTerritoryPlacements.defaultExpectation.paramPtrs.newCenter = &newCenter
+	mmRescaleTerritoryPlacements.defaultExpectation.expectationOrigins.originNewCenter = minimock.CallerInfo(1)
+
+	return mmRescaleTerritoryPlacements
+}
+
 // Inspect accepts an inspector function that has same arguments as the Catalog.RescaleTerritoryPlacements
-func (mmRescaleTerritoryPlacements *mCatalogMockRescaleTerritoryPlacements) Inspect(f func(ctx context.Context, slug string, newMax float64)) *mCatalogMockRescaleTerritoryPlacements {
+func (mmRescaleTerritoryPlacements *mCatalogMockRescaleTerritoryPlacements) Inspect(f func(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3)) *mCatalogMockRescaleTerritoryPlacements {
 	if mmRescaleTerritoryPlacements.mock.inspectFuncRescaleTerritoryPlacements != nil {
 		mmRescaleTerritoryPlacements.mock.t.Fatalf("Inspect function is already set for CatalogMock.RescaleTerritoryPlacements")
 	}
@@ -1666,7 +1692,7 @@ func (mmRescaleTerritoryPlacements *mCatalogMockRescaleTerritoryPlacements) Retu
 }
 
 // Set uses given function f to mock the Catalog.RescaleTerritoryPlacements method
-func (mmRescaleTerritoryPlacements *mCatalogMockRescaleTerritoryPlacements) Set(f func(ctx context.Context, slug string, newMax float64) (err error)) *CatalogMock {
+func (mmRescaleTerritoryPlacements *mCatalogMockRescaleTerritoryPlacements) Set(f func(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) (err error)) *CatalogMock {
 	if mmRescaleTerritoryPlacements.defaultExpectation != nil {
 		mmRescaleTerritoryPlacements.mock.t.Fatalf("Default expectation is already set for the Catalog.RescaleTerritoryPlacements method")
 	}
@@ -1682,14 +1708,14 @@ func (mmRescaleTerritoryPlacements *mCatalogMockRescaleTerritoryPlacements) Set(
 
 // When sets expectation for the Catalog.RescaleTerritoryPlacements which will trigger the result defined by the following
 // Then helper
-func (mmRescaleTerritoryPlacements *mCatalogMockRescaleTerritoryPlacements) When(ctx context.Context, slug string, newMax float64) *CatalogMockRescaleTerritoryPlacementsExpectation {
+func (mmRescaleTerritoryPlacements *mCatalogMockRescaleTerritoryPlacements) When(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) *CatalogMockRescaleTerritoryPlacementsExpectation {
 	if mmRescaleTerritoryPlacements.mock.funcRescaleTerritoryPlacements != nil {
 		mmRescaleTerritoryPlacements.mock.t.Fatalf("CatalogMock.RescaleTerritoryPlacements mock is already set by Set")
 	}
 
 	expectation := &CatalogMockRescaleTerritoryPlacementsExpectation{
 		mock:               mmRescaleTerritoryPlacements.mock,
-		params:             &CatalogMockRescaleTerritoryPlacementsParams{ctx, slug, newMax},
+		params:             &CatalogMockRescaleTerritoryPlacementsParams{ctx, slug, newMax, newCenter},
 		expectationOrigins: CatalogMockRescaleTerritoryPlacementsExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmRescaleTerritoryPlacements.expectations = append(mmRescaleTerritoryPlacements.expectations, expectation)
@@ -1724,17 +1750,17 @@ func (mmRescaleTerritoryPlacements *mCatalogMockRescaleTerritoryPlacements) invo
 }
 
 // RescaleTerritoryPlacements implements mm_service.Catalog
-func (mmRescaleTerritoryPlacements *CatalogMock) RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64) (err error) {
+func (mmRescaleTerritoryPlacements *CatalogMock) RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) (err error) {
 	mm_atomic.AddUint64(&mmRescaleTerritoryPlacements.beforeRescaleTerritoryPlacementsCounter, 1)
 	defer mm_atomic.AddUint64(&mmRescaleTerritoryPlacements.afterRescaleTerritoryPlacementsCounter, 1)
 
 	mmRescaleTerritoryPlacements.t.Helper()
 
 	if mmRescaleTerritoryPlacements.inspectFuncRescaleTerritoryPlacements != nil {
-		mmRescaleTerritoryPlacements.inspectFuncRescaleTerritoryPlacements(ctx, slug, newMax)
+		mmRescaleTerritoryPlacements.inspectFuncRescaleTerritoryPlacements(ctx, slug, newMax, newCenter)
 	}
 
-	mm_params := CatalogMockRescaleTerritoryPlacementsParams{ctx, slug, newMax}
+	mm_params := CatalogMockRescaleTerritoryPlacementsParams{ctx, slug, newMax, newCenter}
 
 	// Record call args
 	mmRescaleTerritoryPlacements.RescaleTerritoryPlacementsMock.mutex.Lock()
@@ -1753,7 +1779,7 @@ func (mmRescaleTerritoryPlacements *CatalogMock) RescaleTerritoryPlacements(ctx 
 		mm_want := mmRescaleTerritoryPlacements.RescaleTerritoryPlacementsMock.defaultExpectation.params
 		mm_want_ptrs := mmRescaleTerritoryPlacements.RescaleTerritoryPlacementsMock.defaultExpectation.paramPtrs
 
-		mm_got := CatalogMockRescaleTerritoryPlacementsParams{ctx, slug, newMax}
+		mm_got := CatalogMockRescaleTerritoryPlacementsParams{ctx, slug, newMax, newCenter}
 
 		if mm_want_ptrs != nil {
 
@@ -1772,6 +1798,11 @@ func (mmRescaleTerritoryPlacements *CatalogMock) RescaleTerritoryPlacements(ctx 
 					mmRescaleTerritoryPlacements.RescaleTerritoryPlacementsMock.defaultExpectation.expectationOrigins.originNewMax, *mm_want_ptrs.newMax, mm_got.newMax, minimock.Diff(*mm_want_ptrs.newMax, mm_got.newMax))
 			}
 
+			if mm_want_ptrs.newCenter != nil && !minimock.Equal(*mm_want_ptrs.newCenter, mm_got.newCenter) {
+				mmRescaleTerritoryPlacements.t.Errorf("CatalogMock.RescaleTerritoryPlacements got unexpected parameter newCenter, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmRescaleTerritoryPlacements.RescaleTerritoryPlacementsMock.defaultExpectation.expectationOrigins.originNewCenter, *mm_want_ptrs.newCenter, mm_got.newCenter, minimock.Diff(*mm_want_ptrs.newCenter, mm_got.newCenter))
+			}
+
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmRescaleTerritoryPlacements.t.Errorf("CatalogMock.RescaleTerritoryPlacements got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 				mmRescaleTerritoryPlacements.RescaleTerritoryPlacementsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
@@ -1784,9 +1815,9 @@ func (mmRescaleTerritoryPlacements *CatalogMock) RescaleTerritoryPlacements(ctx 
 		return (*mm_results).err
 	}
 	if mmRescaleTerritoryPlacements.funcRescaleTerritoryPlacements != nil {
-		return mmRescaleTerritoryPlacements.funcRescaleTerritoryPlacements(ctx, slug, newMax)
+		return mmRescaleTerritoryPlacements.funcRescaleTerritoryPlacements(ctx, slug, newMax, newCenter)
 	}
-	mmRescaleTerritoryPlacements.t.Fatalf("Unexpected call to CatalogMock.RescaleTerritoryPlacements. %v %v %v", ctx, slug, newMax)
+	mmRescaleTerritoryPlacements.t.Fatalf("Unexpected call to CatalogMock.RescaleTerritoryPlacements. %v %v %v %v", ctx, slug, newMax, newCenter)
 	return
 }
 

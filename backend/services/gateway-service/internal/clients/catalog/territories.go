@@ -9,9 +9,12 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-// ListTerritories returns territories visible to scopeAdminID (empty = all).
-func (c *Client) ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error) {
-	resp, err := c.cc.ListTerritories(ctx, &catalogv1.ListTerritoriesRequest{ScopeAdminId: scopeAdminID})
+// ListTerritories returns territories visible to scopeAdminID (empty = all),
+// each with its LOD chain only when withArtifacts is set.
+func (c *Client) ListTerritories(ctx context.Context, scopeAdminID string, withArtifacts bool) ([]domain.Territory, error) {
+	resp, err := c.cc.ListTerritories(ctx, &catalogv1.ListTerritoriesRequest{
+		ScopeAdminId: scopeAdminID, WithArtifacts: withArtifacts,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("catalog.ListTerritories: %w", grpcerr.MapStatus(err, nil))
 	}
@@ -32,11 +35,29 @@ func (c *Client) GetTerritory(ctx context.Context, slug, scopeAdminID string) (d
 	return territoryFromProto(resp.GetTerritory()), nil
 }
 
-// UpsertTerritory creates or updates a territory by slug.
+// UpsertTerritory creates a territory (the RPC keeps its old name). The catalog
+// derives the slug from the title; it never rewrites an existing row — edits go
+// through UpdateTerritory.
 func (c *Client) UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error) {
 	resp, err := c.cc.UpsertTerritory(ctx, &catalogv1.UpsertTerritoryRequest{Territory: territoryToProto(t)})
 	if err != nil {
 		return domain.Territory{}, fmt.Errorf("catalog.UpsertTerritory: %w", grpcerr.MapStatus(err, nil))
+	}
+	return territoryFromProto(resp.GetTerritory()), nil
+}
+
+// UpdateTerritory writes only the fields u sets; a nil one is left off the
+// wire, and the catalog keeps that column as stored.
+func (c *Client) UpdateTerritory(ctx context.Context, slug string, u domain.TerritoryUpdate) (domain.Territory, error) {
+	resp, err := c.cc.UpdateTerritory(ctx, &catalogv1.UpdateTerritoryRequest{
+		Slug:                slug,
+		Title:               u.Title,
+		Description:         u.Description,
+		ExternalPanoramaUrl: u.ExternalPanoramaURL,
+		SourceBlobHash:      u.SourceBlobHash,
+	})
+	if err != nil {
+		return domain.Territory{}, fmt.Errorf("catalog.UpdateTerritory: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
 	}
 	return territoryFromProto(resp.GetTerritory()), nil
 }
@@ -62,12 +83,14 @@ func (c *Client) DeleteTerritoryArtifacts(ctx context.Context, slug string) erro
 }
 
 // SetTerritoryRescaleBaseline records the territory's current source-mesh
-// max-dimension before a source replacement clears its artifacts, so the
-// post-conversion rescale keeps placements 1:1 against the new normalization.
-func (c *Client) SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64) error {
+// max-dimension and bbox center before a source replacement clears its
+// artifacts, so the post-conversion rescale keeps placements 1:1 against the
+// new normalization.
+func (c *Client) SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) error {
 	_, err := c.cc.SetTerritoryRescaleBaseline(ctx, &catalogv1.SetTerritoryRescaleBaselineRequest{
 		TerritorySlug: slug,
 		SourceMax:     sourceMax,
+		SourceCenter:  vec3ToProto(center),
 	})
 	if err != nil {
 		return fmt.Errorf("catalog.SetTerritoryRescaleBaseline: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))

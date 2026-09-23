@@ -31,6 +31,7 @@ import { usePlacementForm } from "./use-placement-form";
 import { useViewSections } from "./use-view-sections";
 import { useViewerDocuments } from "./use-viewer-documents";
 import { useViewerPanoramas } from "./use-viewer-panoramas";
+import { dropOrOweScene, takeSceneDrop } from "./owed-scene-drop";
 
 export type TerritoryViewerState =
   | { status: "loading" }
@@ -64,13 +65,13 @@ const COMPACT = "(max-width: 1280px)";
  *
  * **Neither the editor nor the two overlay lists is re-keyed on the bundle.**
  * All three seed from `initial` once and are optimistic afterwards, so they and
- * a bundle refetched after one of *our own* mutations already agree; the screen
+ * a bundle re-read after one of *our own* mutations already agree; the screen
  * keys the whole body on whether the bundle is in hand
  * (`use-scene-seeded.ts`), which is what makes that one seed the real list
  * rather than an empty one. Remounting on the lists themselves would also
  * throw away the create form that `onPlace` opens one tick later, which is the
- * flow the picker exists for. A refetch carrying *another* reader's edits is
- * therefore not adopted until the page is reloaded; noted rather than solved,
+ * flow the picker exists for. A bundle carrying *another* reader's edits is
+ * therefore not adopted until the next visit; noted rather than solved,
  * because the fix belongs in the list hooks.
  */
 export function useTerritoryViewer(slug: string): TerritoryViewerState {
@@ -84,8 +85,31 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   const grants = useMemo(() => grantsOf(me.data ?? null), [me.data]);
 
   const compact = useMediaQuery(COMPACT);
+  // Marked stale, never refetched from here: every list on this page seeds
+  // once and is optimistic afterwards, so a refetch changes nothing on screen.
+  // The territory and model queries go stale too — a write here changes
+  // `placementCount` and `usageCount` on their lists and details. The bundle
+  // is dropped on the way out (below): the lists would seed from it on the
+  // next visit and never adopt the refetch. A ref, not the query's
+  // `isInvalidated`: a rename's setQueryData clears that flag. A write that
+  // lands after the page has gone drops the bundle itself (`left`) — unless a
+  // new visit is already reading it: that visit keeps it, marked stale, and
+  // owes the drop on its own way out (`owed-scene-drop.ts`).
+  const changed = useRef(false);
+  const left = useRef(false);
   const onChanged = useCallback(() => {
-    void client.invalidateQueries({ queryKey: ["scene", slug] });
+    changed.current = true;
+    const keys = [["scene", slug], ["territory", slug], ["territories"], ["model"], ["models"]];
+    for (const queryKey of keys) void client.invalidateQueries({ queryKey, refetchType: "none" });
+    if (left.current) dropOrOweScene(client, slug);
+  }, [client, slug]);
+  useEffect(() => {
+    left.current = changed.current = false;
+    return () => {
+      left.current = true;
+      // take first, so a debt is paid even when this visit changed something too.
+      if (takeSceneDrop(client, slug) || changed.current) client.removeQueries({ queryKey: ["scene", slug], exact: true });
+    };
   }, [client, slug]);
 
   const ruler = useMeasurementSwitch();
@@ -209,6 +233,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     ...pageProps({
       slug,
       title: bundle!.territory.title,
+      description: bundle!.territory.description,
       grants,
       vm,
       options: bundle!.modelOptions,

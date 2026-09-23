@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { HttpError } from "@/shared/api";
-import { shouldRetry } from "./query-client";
+import { queryClient, shouldRetry } from "./query-client";
 
 describe("shouldRetry", () => {
   it("retries a network failure once", () => {
@@ -18,5 +18,15 @@ describe("shouldRetry", () => {
 
   it("does retry a 503, which may well change", () => {
     expect(shouldRetry(0, new HttpError(503, null, "unavailable"))).toBe(true);
+  });
+});
+
+describe("queryClient defaults", () => {
+  it("trusts an answer for a minute and does not refetch on window focus", () => {
+    expect(queryClient.getDefaultOptions().queries).toMatchObject({
+      retry: shouldRetry,
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+    });
   });
 });

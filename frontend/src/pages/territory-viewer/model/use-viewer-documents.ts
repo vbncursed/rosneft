@@ -8,8 +8,8 @@ import type { Section } from "./reveal-section";
 export type ViewerDocumentsParams = {
   slug: string;
   /**
-   * The bundle's documents, seeded once. The page does NOT re-key this hook on
-   * a refetch — see `use-territory-viewer.ts` for why, and for what that costs.
+   * The bundle's documents, seeded once. A write marks the scene stale, to be
+   * re-read on the next visit, and never re-keys this hook — see `use-territory-viewer.ts` for why, and for what that costs.
    */
   initial: Document[];
   onChanged: () => void;
@@ -56,10 +56,11 @@ export function useViewerDocuments({
     onCreated: useCallback(
       (document: Document) => {
         add(document);
+        onChanged();
         reveal("documents");
         setUploadOpen(false);
       },
-      [add, reveal],
+      [add, onChanged, reveal],
     ),
   });
 

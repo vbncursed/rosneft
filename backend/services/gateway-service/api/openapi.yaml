@@ -66,6 +66,13 @@ components:
           type: integer
           minimum: 0
           description: Placements on this territory. Omitted when zero.
+        lods:
+          type: array
+          description: |
+            Every converted LOD, sorted by lod ascending. Always present on
+            GET /api/territories (`[]` before the first conversion lands);
+            absent from every other response carrying a Territory.
+          items: { $ref: '#/components/schemas/LodArtifact' }
 
     Model:
       type: object
@@ -87,6 +94,13 @@ components:
           type: integer
           minimum: 0
           description: Distinct territories placing this model, across every territory. Omitted when zero.
+        lods:
+          type: array
+          description: |
+            Every converted LOD, sorted by lod ascending. Always present on
+            GET /api/models (`[]` before the first conversion lands);
+            absent from every other response carrying a Model.
+          items: { $ref: '#/components/schemas/LodArtifact' }
 
     LodArtifact:
       type: object
@@ -194,6 +208,16 @@ components:
           type: array
           description: Initial panorama allowlist (e.g. the active panorama).
           items: { type: integer, format: int64 }
+
+    PlacementBatchCreate:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: '#/components/schemas/PlacementCreate' }
 
     PlacementUpdate:
       type: object
@@ -358,9 +382,14 @@ components:
       type: object
       description: |
         Body for PATCH /api/models/{slug}. Updates mutable fields only; the
-        source archive and conversion are untouched. Omitted fields are left
-        unchanged.
+        slug, the source archive and conversion are untouched. Omitted fields
+        are left unchanged.
       properties:
+        title:
+          type: string
+          minLength: 1
+          description: New title; a blank one is refused with 400. The slug does not follow it.
+        description: { type: string }
         thumbnailBlobHash:
           type: string
           pattern: '^([0-9a-f]{64})?$'
@@ -370,9 +399,14 @@ components:
       type: object
       description: |
         Body for PATCH /api/territories/{slug}. Updates mutable fields only;
-        the source archive and conversion are untouched. Omitted fields are
-        left unchanged.
+        the slug, the source archive and conversion are untouched. Omitted
+        fields are left unchanged.
       properties:
+        title:
+          type: string
+          minLength: 1
+          description: New title; a blank one is refused with 400. The slug does not follow it.
+        description: { type: string }
         externalPanoramaUrl: { type: string }
 
     TerritoryAdmins:
@@ -383,6 +417,15 @@ components:
           type: array
           items: { type: string }
           description: Admin user ids assigned to the territory (full set).
+
+    TerritoryAdminsMap:
+      type: object
+      description: >
+        Admin user ids per territory slug. Every territory the caller can see
+        has a key; `[]` when nobody is assigned.
+      additionalProperties:
+        type: array
+        items: { type: string }
 
     TerritorySourceReplace:
       type: object
@@ -687,6 +730,13 @@ components:
       required: [title]
       properties:
         title: { type: string }
+        permissionSlugs:
+          type: array
+          items: { type: string }
+          description: >
+            Optional. Present (even as []) replaces the role's permissions in the
+            rename's transaction, under the same no-escalation check as
+            PUT …/permissions. Absent leaves them untouched.
     SetRolePermissionsRequest:
       type: object
       required: [permissionSlugs]
@@ -714,6 +764,62 @@ components:
           description: >
             Raw Prometheus labels. Only the alerts panel needs them (to tell
             firing from pending); chart panels ignore them. Omitted when empty.
+
+    ConsoleSummary:
+      type: object
+      description: >
+        One key per console card the caller can open. A card they cannot open
+        is absent and its source is never asked. A card whose source failed is
+        null. The gates mirror the SPA's console screens.
+      properties:
+        users:
+          type: object
+          nullable: true
+          required: [total, frozen]
+          description: users:read. Live accounts (deleted excluded) and how many are frozen.
+          properties:
+            total: { type: integer, minimum: 0 }
+            frozen: { type: integer, minimum: 0 }
+        roles:
+          type: object
+          nullable: true
+          required: [roles, permissions]
+          description: roles:read. Roles the caller sees; size of the permission catalog.
+          properties:
+            roles: { type: integer, minimum: 0 }
+            permissions: { type: integer, minimum: 0 }
+        content:
+          type: object
+          nullable: true
+          required: [territories, models]
+          description: territory:write or model:write. The caller's visible territories; every model.
+          properties:
+            territories: { type: integer, minimum: 0 }
+            models: { type: integer, minimum: 0 }
+        access:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: Root. Territory-admin assignments summed over every territory.
+        audit24h:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: >
+            audit:read. Journal rows from the start of the hour 23 hours ago, in
+            the caller's audit scope: the 24 buckets the journal page draws.
+        alerts:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: Root. Alert rules firing (alertname/service/severity; replicas count once).
+
+    MetricsPanels:
+      type: object
+      description: Series per requested panel ID; a panel whose query failed is absent.
+      additionalProperties:
+        type: array
+        items: { $ref: '#/components/schemas/MetricSeries' }
 
     Health:
       type: object
@@ -1133,6 +1239,28 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
 
+  /api/territory-admins:
+    get:
+      operationId: listTerritoryAdmins
+      summary: Every visible territory's assigned admins in one call (Root only)
+      description: >
+        The batch form of GET /api/territories/{slug}/admins, with the same
+        Root-only gate. Not /api/territories/admins: chi would shadow a
+        territory whose slug is `admins`. It sits outside
+        /api/territories/{slug}, so RequireTerritoryAccess does not cover it;
+        the handler reads the territory set through the caller's scope, the
+        rule GET /api/territories applies.
+      tags: [territories]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TerritoryAdminsMap' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/Internal' }
+
   /api/territories/{slug}/source:
     parameters:
       - name: slug
@@ -1263,6 +1391,59 @@ paths:
               schema: { $ref: '#/components/schemas/Placement' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/territories/{slug}/placements/batch:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: createPlacements
+      summary: Add 1–100 placements to a territory in one transaction
+      description: >
+        All or nothing: one catalog transaction, so a bad item (unknown model,
+        non-positive scale, a panorama of another territory) leaves no rows.
+        Answers the created placements in `items` order. Needs
+        placement:create; covered by the territory gate like every route under
+        /api/territories/{slug}.
+
+
+        With `Idempotency-Key`, a retry is safe: a batch already stored under
+        that key on this territory is answered as stored — 201, the same rows in
+        the same order — and nothing is written, however long ago it was sent.
+        Two concurrent requests with one key write one batch and both answer it.
+        A key already naming a batch of another size is 409. Keys are per
+        territory; without the header every request writes.
+      tags: [placements]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: 1–64 characters of `[A-Za-z0-9-]`; anything else is 400.
+          schema: { type: string, minLength: 1, maxLength: 64, pattern: '^[A-Za-z0-9-]{1,64}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlacementBatchCreate' }
+      responses:
+        '201':
+          description: Created (or replayed), in items order
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Placement' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The Idempotency-Key already names a batch of another size on this territory
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '500': { $ref: '#/components/responses/Internal' }
 
   /api/territories/{slug}/placements/{id}:
@@ -2091,7 +2272,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '409': { description: Email or username already exists }
+        '409': { description: Email or username is unavailable }
 
   /api/auth/users/{id}:
     parameters:
@@ -2252,6 +2433,42 @@ paths:
         '403': { description: Caller is not an owner }
         '422': { description: Self-target guard }
 
+  /api/auth/users/{id}/password:
+    put:
+      tags: [auth]
+      summary: Set a user's password and sign them out everywhere (requires users:write)
+      description: >
+        No old password is asked. Root may set anyone's; everyone else only the
+        password of a user they created, and never an admin's or Root's. The
+        caller's own password goes through POST /api/auth/me/password, which
+        asks for the old one. An id outside the caller's scope answers 404,
+        like an unknown one. A non-Root caller is refused with 403 when the
+        target holds a permission the caller lacks or has been granted a
+        territory the caller cannot open — signing in as the target would hand
+        either over. A deleted account is refused with 403, Root included:
+        restore it first. A 500 after the write means the sign-out failed;
+        retrying is safe.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string, minLength: 8, maxLength: 256 }
+      responses:
+        '204': { description: Password set; every session of the user revoked }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { description: Self-target guard }
+        '500': { $ref: '#/components/responses/Internal' }
+
   /api/auth/roles:
     get:
       tags: [auth]
@@ -2290,7 +2507,7 @@ paths:
       - { in: path, name: slug, required: true, schema: { type: string } }
     patch:
       tags: [auth]
-      summary: Rename a role (requires roles:manage)
+      summary: Rename a role and optionally replace its permissions (requires roles:manage)
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -2303,6 +2520,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AuthRole' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -2431,11 +2649,11 @@ paths:
   /api/metrics/query:
     get:
       tags: [metrics]
-      summary: Owner-only Prometheus panel query
+      summary: Owner-only Prometheus query for one or more panels
       description: >
-        Resolves a dashboard panel ID to server-side PromQL and runs it against
+        Resolves each dashboard panel ID to server-side PromQL and runs it against
         Prometheus. The PromQL never leaves the server and no caller-supplied
-        expression reaches Prometheus — `panel` and `range` are both validated
+        expression reaches Prometheus — every `panel` and the `range` are validated
         against server-side allow-lists, so the endpoint is not an SSRF or query
         injection surface. Requires a valid session AND the owner flag; a
         non-owner with a valid token gets 403. Responses are `Cache-Control:
@@ -2445,19 +2663,25 @@ paths:
         - in: query
           name: panel
           required: true
+          style: form
+          explode: true
           description: >
-            Panel ID from the server-side registry, mirrored by the client's
-            panel-catalog. Instant (single-value) panels return one point per
-            series; the rest are range queries of roughly 200 points.
+            One or more panel IDs, repeated (`?panel=a&panel=b`); repeats collapse
+            to one key. Every ID is checked before any query runs. Instant panels
+            return one point per series; the rest are range queries of roughly
+            200 points.
           schema:
-            type: string
-            enum:
-              [stat-up, stat-rps, stat-errors, stat-p99, stat-queue, services-up,
-               red-rate, red-errors, red-latency, red-http,
-               domain-conversions, domain-conversion-p95, domain-queue,
-               domain-upload, domain-auth, domain-twofa,
-               runtime-memory, runtime-goroutines, runtime-gc, runtime-fds,
-               alerts]
+            type: array
+            minItems: 1
+            items:
+              type: string
+              enum:
+                [stat-up, stat-rps, stat-errors, stat-p99, stat-queue, services-up,
+                 red-rate, red-errors, red-latency, red-http,
+                 domain-conversions, domain-conversion-p95, domain-queue,
+                 domain-upload, domain-auth, domain-twofa,
+                 runtime-memory, runtime-goroutines, runtime-gc, runtime-fds,
+                 alerts]
         - in: query
           name: range
           required: true
@@ -2465,12 +2689,13 @@ paths:
           schema: { type: string, enum: [15m, 1h, 6h, 24h, 7d] }
       responses:
         '200':
-          description: One entry per time series
+          description: >
+            The series of every requested panel, keyed by panel ID. Panels run in
+            parallel, at most four at a time; a panel whose query failed is
+            absent from the map, and the answer is 502 only when every panel failed.
           content:
             application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/MetricSeries' }
+              schema: { $ref: '#/components/schemas/MetricsPanels' }
         '400':
           description: Unknown panel ID or unsupported range
           content:
@@ -2483,6 +2708,36 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+
+  /api/console/summary:
+    get:
+      tags: [console]
+      operationId: getConsoleSummary
+      summary: Home's console cards as numbers, in one request
+      description: >
+        Each card is read in parallel with the caller's own session and scope,
+        from the source its console screen reads. Answers `Cache-Control:
+        no-store`. A Viewer, who opens no console screen, gets `{}`.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: tzOffset
+          required: false
+          description: >
+            The browser's zone in minutes **east** of UTC — the negation of
+            JavaScript's `Date.prototype.getTimezoneOffset()`. `audit24h`
+            counts the 24 hourly buckets the journal page draws in local
+            hours, so its window starts on the caller's local hour (on :30 UTC
+            for a half-hour zone). Absent means UTC.
+          schema: { type: integer, minimum: -840, maximum: 840, default: 0 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConsoleSummary' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   /healthz:
     get:

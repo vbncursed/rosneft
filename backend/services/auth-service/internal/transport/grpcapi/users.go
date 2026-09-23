@@ -19,11 +19,11 @@ func (s *Server) CreateUser(ctx context.Context, req *authv1.CreateUserRequest) 
 }
 
 func (s *Server) ListUsers(ctx context.Context, req *authv1.ListUsersRequest) (*authv1.ListUsersResponse, error) {
-	actorID, scopeAll, err := s.actor(ctx, req.GetToken())
+	actorID, isOwner, scopeAll, err := s.ownerActor(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapError(err)
 	}
-	list, err := s.users.List(ctx, actorID, scopeAll, req.GetStatus(), req.GetIncludeDeleted())
+	list, err := s.users.List(ctx, actorID, isOwner, scopeAll, req.GetStatus(), req.GetIncludeDeleted())
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -43,7 +43,15 @@ func (s *Server) GetUser(ctx context.Context, req *authv1.GetUserRequest) (*auth
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return userToProto(u), nil
+	// Only GetUser carries the scope key: the gateway's password reset reads it
+	// for one target, and no list pays a created_by walk per row for it.
+	scope, err := s.auth.TerritoryScope(ctx, u)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	out := userToProto(u)
+	out.TerritoryScopeId = scope
+	return out, nil
 }
 
 func (s *Server) UpdateUser(ctx context.Context, req *authv1.UpdateUserRequest) (*authv1.User, error) {
@@ -127,4 +135,15 @@ func (s *Server) SetUserTOTPRequired(ctx context.Context, req *authv1.SetUserTOT
 		return nil, mapError(err)
 	}
 	return userToProto(u), nil
+}
+
+func (s *Server) SetUserPassword(ctx context.Context, req *authv1.SetUserPasswordRequest) (*authv1.SetUserPasswordResponse, error) {
+	actorID, scopeAll, err := s.actor(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	if err := s.users.SetPassword(ctx, actorID, scopeAll, req.GetId(), req.GetPassword()); err != nil {
+		return nil, mapError(err)
+	}
+	return &authv1.SetUserPasswordResponse{}, nil
 }

@@ -13,8 +13,8 @@ export {
 export { toTerritory } from "./api/to-territory";
 export { territoriesQuery } from "./api/territories-query";
 export { territoryQuery } from "./api/territory-query";
-export { getTerritoryAdmins, setTerritoryAdmins } from "./api/admins-gateway";
-export { adminsQuery } from "./api/admins-query";
+export { listTerritoryAdmins, setTerritoryAdmins } from "./api/admins-gateway";
+export { territoryAdminsQuery } from "./api/admins-query";
 export {
   grantAction,
   hasInheritedGrants,

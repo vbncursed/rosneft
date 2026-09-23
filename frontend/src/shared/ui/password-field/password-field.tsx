@@ -11,6 +11,8 @@ export type PasswordFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "id
   id?: string;
   /** A control beside the label — "Generate" on an admin form, "Forgot?" on login. */
   action?: { label: string; onClick: (reveal: () => void) => void };
+  /** Start with the value shown: a password the reader was just handed, not one they typed. */
+  defaultRevealed?: boolean;
   fieldClassName?: string;
 };
 
@@ -20,6 +22,7 @@ export function PasswordField({
   error,
   id,
   action,
+  defaultRevealed = false,
   className,
   fieldClassName,
   required,
@@ -28,7 +31,7 @@ export function PasswordField({
 }: PasswordFieldProps) {
   const autoId = useId();
   const fieldId = id ?? autoId;
-  const [shown, setShown] = useState(false);
+  const [shown, setShown] = useState(defaultRevealed);
 
   return (
     <Field

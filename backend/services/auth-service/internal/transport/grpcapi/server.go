@@ -15,6 +15,8 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
+//go:generate minimock -i AuthFlow,UsersSvc,RolesSvc -o ./mocks -s _mock.go
+
 // AuthFlow is the login/session surface.
 type AuthFlow interface {
 	Login(ctx context.Context, identifier, password string) (string, string, error)
@@ -27,13 +29,15 @@ type AuthFlow interface {
 	// and whether the session must enroll a second factor before doing anything
 	// else.
 	ValidateToken(ctx context.Context, token string) (string, []string, bool, string, string, bool, error)
+	// TerritoryScope is the territory key u's own session would carry.
+	TerritoryScope(ctx context.Context, u domain.User) (string, error)
 }
 
 // UsersSvc is the user surface (self + admin). The admin methods take the
 // acting user id and whether it may see/manage every user (scopeAll).
 type UsersSvc interface {
 	Create(ctx context.Context, actorID, email, username, password string, roleSlugs []string) (domain.User, error)
-	List(ctx context.Context, actorID string, scopeAll bool, status string, includeDeleted bool) ([]domain.User, error)
+	List(ctx context.Context, actorID string, isOwner, scopeAll bool, status string, includeDeleted bool) ([]domain.User, error)
 	Get(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
 	// No actorID or scope: this one labels ids the caller already sees.
 	ResolveLogins(ctx context.Context, ids []string) (map[string]string, error)
@@ -44,6 +48,7 @@ type UsersSvc interface {
 	Restore(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
 	SetOwner(ctx context.Context, actorID, id string, isOwner bool) (domain.User, error)
 	SetTOTPRequired(ctx context.Context, actorID string, scopeAll bool, id string, required bool) (domain.User, error)
+	SetPassword(ctx context.Context, actorID string, scopeAll bool, id, password string) error
 	ChangePassword(ctx context.Context, userID, oldPlain, newPlain string) error
 	MarkTourSeen(ctx context.Context, userID, tour string) error
 }
@@ -52,7 +57,7 @@ type UsersSvc interface {
 type RolesSvc interface {
 	List(ctx context.Context, scopeAdminID string, allAccess bool) ([]domain.Role, error)
 	Create(ctx context.Context, actorID, ownerAdminID, slug, title string, permSlugs []string) (domain.Role, error)
-	UpdateTitle(ctx context.Context, slug, title, scopeAdminID string, allAccess bool) (domain.Role, error)
+	Update(ctx context.Context, actorID string, u domain.RoleUpdate, scopeAdminID string, allAccess bool) (domain.Role, error)
 	Delete(ctx context.Context, slug, scopeAdminID string, allAccess bool) error
 	SetPermissions(ctx context.Context, actorID, slug string, permSlugs []string, scopeAdminID string, allAccess bool) (domain.Role, error)
 	ListPermissions(ctx context.Context) ([]domain.Permission, error)
@@ -97,11 +102,18 @@ func (s *Server) roleActor(ctx context.Context, token string) (actorID, owningAd
 // the caller holds users:read_all or is an owner — i.e. may see/manage every
 // user. Owners get scopeAll even after the admin role loses users:read_all.
 func (s *Server) actor(ctx context.Context, token string) (string, bool, error) {
+	uid, _, scopeAll, err := s.ownerActor(ctx, token)
+	return uid, scopeAll, err
+}
+
+// ownerActor is actor plus whether the caller is Root, for the one method that
+// needs it (ListUsers hides Root and the Company Owners from everyone else).
+func (s *Server) ownerActor(ctx context.Context, token string) (uid string, isOwner, scopeAll bool, err error) {
 	uid, perms, isOwner, _, _, _, err := s.auth.ValidateToken(ctx, token)
 	if err != nil {
-		return "", false, err
+		return "", false, false, err
 	}
-	return uid, isOwner || slices.Contains(perms, "users:read_all"), nil
+	return uid, isOwner, isOwner || slices.Contains(perms, "users:read_all"), nil
 }
 
 // statusByCode lists, per gRPC code, the domain sentinels that surface as it.
@@ -118,8 +130,7 @@ var statusByCode = map[codes.Code][]error{
 		domain.ErrOwnerOnly,
 	},
 	codes.AlreadyExists: {
-		domain.ErrEmailTaken,
-		domain.ErrUsernameTaken,
+		domain.ErrLoginTaken,
 		domain.ErrRoleSlugTaken,
 	},
 	codes.FailedPrecondition: {
@@ -130,5 +141,7 @@ var statusByCode = map[codes.Code][]error{
 	},
 }
 
-// mapError translates domain sentinels to gRPC status codes.
-func mapError(err error) error { return apperr.ToStatus(err, statusByCode) }
+// mapError translates domain sentinels to gRPC status codes; a refusal's
+// message starts at its sentinel (see apperr.ToStatusAtSentinel), so the
+// gateway's 4xx body carries no "auth.Login:"-style prefix.
+func mapError(err error) error { return apperr.ToStatusAtSentinel(err, statusByCode) }
