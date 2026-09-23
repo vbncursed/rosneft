@@ -7,11 +7,12 @@ type PlacementDto = components["schemas"]["Placement"];
 
 const base = (slug: string) => `/api/territories/${encodeURIComponent(slug)}/placements`;
 
-export async function createPlacement(
+/** One transaction for the whole batch (1–100 items); the answer is the created rows, in order. */
+export async function createPlacements(
   territorySlug: string,
-  body: PlacementCreate,
-): Promise<Placement> {
-  return toPlacement(await httpPost<PlacementDto>(base(territorySlug), body));
+  items: PlacementCreate[],
+): Promise<Placement[]> {
+  return (await httpPost<PlacementDto[]>(`${base(territorySlug)}/batch`, { items })).map(toPlacement);
 }
 
 /** The PUT carries the whole transform plus the label — a partial body would blank the rest. */

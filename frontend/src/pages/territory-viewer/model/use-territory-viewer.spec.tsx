@@ -11,7 +11,7 @@ import { useTerritoryViewer, type TerritoryViewerState } from "./use-territory-v
 const {
   getSceneBundle,
   getMe,
-  createPlacement,
+  createPlacements,
   updatePlacement,
   deletePlacement,
   setPlacementVisibility,
@@ -23,7 +23,7 @@ const {
   deleteMeasurements: vi.fn(),
   getSceneBundle: vi.fn(),
   getMe: vi.fn(),
-  createPlacement: vi.fn(),
+  createPlacements: vi.fn(),
   updatePlacement: vi.fn(),
   deletePlacement: vi.fn(),
   setPlacementVisibility: vi.fn(),
@@ -40,7 +40,7 @@ vi.mock("@/entities/user", async (importOriginal) => ({
 }));
 vi.mock("@/entities/placement", async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  createPlacement,
+  createPlacements,
   updatePlacement,
   deletePlacement,
   setPlacementVisibility,
@@ -192,7 +192,7 @@ describe("useTerritoryViewer", () => {
   beforeEach(() => {
     getSceneBundle.mockReset().mockResolvedValue(BUNDLE);
     getMe.mockReset().mockResolvedValue(principal({ isOwner: true }));
-    createPlacement.mockReset();
+    createPlacements.mockReset();
     setPlacementVisibility.mockReset();
     updatePlacement.mockReset();
     deletePlacement.mockReset();
@@ -488,10 +488,8 @@ describe("useTerritoryViewer", () => {
   });
 
   describe("placing objects", () => {
-    it("writes one placement per instance, opens the form on the last and closes the picker", async () => {
-      createPlacement
-        .mockResolvedValueOnce(placement(10))
-        .mockResolvedValueOnce(placement(11));
+    it("writes every instance in one batch, opens the form on the last and closes the picker", async () => {
+      createPlacements.mockResolvedValueOnce([placement(10), placement(11)]);
       const r = mount();
       const state = await ready(r);
       act(() => state.overlays.onAdd());
@@ -499,14 +497,14 @@ describe("useTerritoryViewer", () => {
 
       await act(async () => now(r).picker.onPlace("storage-tank-500", 2));
       const after = now(r);
-      expect(createPlacement).toHaveBeenCalledTimes(2);
+      expect(createPlacements).toHaveBeenCalledTimes(1);
       expect(after.picker.open).toBe(false);
       expect(after.canvas.selectedId).toBe(11);
       expect(after.panel?.placements.selected?.form?.kind).toBe("new");
     });
 
     it("marks the bundle and the catalogs stale, without refetching, once the batch has landed", async () => {
-      createPlacement.mockResolvedValue(placement(10));
+      createPlacements.mockResolvedValue([placement(10)]);
       const r = mount();
       client.setQueryData(["model", "storage-tank-500"], {});
       const state = await ready(r);
@@ -664,14 +662,13 @@ describe("useTerritoryViewer", () => {
     });
 
     it("makes a newly placed object visible in every panorama there is", async () => {
-      createPlacement.mockResolvedValue(placement(10));
+      createPlacements.mockResolvedValue([placement(10)]);
       const r = mount();
       const state = await ready(r);
       await act(async () => state.picker.onPlace("storage-tank-500", 1));
-      expect(createPlacement).toHaveBeenCalledWith(
-        SLUG,
+      expect(createPlacements).toHaveBeenCalledWith(SLUG, [
         expect.objectContaining({ visiblePanoramaIds: [1] }),
-      );
+      ]);
     });
 
     it("writes the selected object's allowlist from the block inside a panorama", async () => {

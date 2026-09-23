@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  createPlacement,
+  createPlacements,
   deletePlacement,
   setPlacementVisibility,
   updatePlacement,
@@ -15,7 +15,7 @@ import { usePlacementsEditor } from "./use-placements-editor";
 
 vi.mock("@/entities/placement", async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  createPlacement: vi.fn(),
+  createPlacements: vi.fn(),
   updatePlacement: vi.fn(),
   deletePlacement: vi.fn(),
   setPlacementVisibility: vi.fn(),
@@ -61,7 +61,7 @@ const editor = (initial: Placement[] = [], panoramaIds: number[] = []) =>
   }));
 
 beforeEach(() => {
-  vi.mocked(createPlacement).mockReset();
+  vi.mocked(createPlacements).mockReset();
   vi.mocked(updatePlacement).mockReset();
   vi.mocked(deletePlacement).mockReset();
   vi.mocked(setPlacementVisibility).mockReset();
@@ -70,12 +70,10 @@ beforeEach(() => {
 });
 
 describe("usePlacementsEditor", () => {
-  it("creates N instances in a row along X at the real-world scale and resolves to the last id", async () => {
-    let next = 100;
-    vi.mocked(createPlacement).mockImplementation(async (_slug, body) => ({
-      ...placement(next++),
-      ...body,
-    }) as Placement);
+  it("creates N instances in one batch, in a row along X at the real-world scale, and resolves to the last id", async () => {
+    vi.mocked(createPlacements).mockImplementation(async (_slug, items) =>
+      items.map((body, i) => ({ ...placement(100 + i), ...body }) as Placement),
+    );
     const { result } = editor();
 
     let last: number | null = null;
@@ -83,27 +81,23 @@ describe("usePlacementsEditor", () => {
       last = await result.current.s.create("tank", 2);
     });
 
-    const xs = vi.mocked(createPlacement).mock.calls.map(([, b]) => b.position?.x ?? 0);
-    expect(xs[0]).toBe(0);
+    expect(createPlacements).toHaveBeenCalledOnce();
+    const items = vi.mocked(createPlacements).mock.calls[0][1];
+    expect(items[0].position?.x).toBe(0);
     // 2 scene units per GLB times the 0.1 scale, plus a tenth for the gap.
-    expect(xs[1]).toBeCloseTo(0.22, 10);
-    expect(vi.mocked(createPlacement).mock.calls[0][1].scale).toEqual({ x: 0.1, y: 0.1, z: 0.1 });
+    expect(items[1].position?.x).toBeCloseTo(0.22, 10);
+    expect(items[0].scale).toEqual({ x: 0.1, y: 0.1, z: 0.1 });
     expect(result.current.s.placements).toHaveLength(2);
     expect(result.current.s.placements[0].chain).toEqual(CHAIN);
-    expect(last).toBe(result.current.s.placements[1].id);
+    expect(last).toBe(101);
     expect(onChanged).toHaveBeenCalledOnce();
   });
 
-  it("exposes placing progress while the loop runs", async () => {
-    let releaseFirst!: () => void;
-    let releaseSecond!: () => void;
-    vi.mocked(createPlacement)
-      .mockImplementationOnce(
-        () => new Promise<Placement>((res) => (releaseFirst = () => res(placement(1)))),
-      )
-      .mockImplementationOnce(
-        () => new Promise<Placement>((res) => (releaseSecond = () => res(placement(2)))),
-      );
+  it("exposes placing progress while the batch is in flight", async () => {
+    let release!: () => void;
+    vi.mocked(createPlacements).mockImplementationOnce(
+      () => new Promise<Placement[]>((res) => (release = () => res([placement(1), placement(2)]))),
+    );
     const { result } = editor();
 
     let done!: Promise<number | null>;
@@ -112,18 +106,16 @@ describe("usePlacementsEditor", () => {
     });
     await waitFor(() => expect(result.current.s.placing).toEqual({ done: 0, total: 2 }));
 
-    await act(async () => releaseFirst());
-    await waitFor(() => expect(result.current.s.placing).toEqual({ done: 1, total: 2 }));
-
     await act(async () => {
-      releaseSecond();
+      release();
       await done;
     });
     expect(result.current.s.placing).toBeNull();
   });
 
-  it("a refused create toasts and leaves the list as it was", async () => {
-    vi.mocked(createPlacement).mockRejectedValue(new HttpError(403, null, "You don't have permission to do this"));
+  // One transaction on the gateway: a refused batch created nothing.
+  it("a refused batch toasts and leaves the list as it was", async () => {
+    vi.mocked(createPlacements).mockRejectedValue(new HttpError(403, null, "You don't have permission to do this"));
     const { result } = editor([placement(1)]);
 
     let out: number | null = 7;
@@ -136,26 +128,6 @@ describe("usePlacementsEditor", () => {
     expect(result.current.s.placing).toBeNull();
     expect(result.current.notices[0]?.message).toBe("You don't have permission to do this");
     expect(onChanged).not.toHaveBeenCalled();
-  });
-
-  it("a batch that fails half-way keeps the rows that landed", async () => {
-    // The first POST succeeded server-side; hiding that row would show a list
-    // the gateway disagrees with until something remounts the editor.
-    vi.mocked(createPlacement)
-      .mockResolvedValueOnce(placement(11))
-      .mockRejectedValue(new HttpError(403, null, "You don't have permission to do this"));
-    const { result } = editor();
-
-    let out: number | null = 7;
-    await act(async () => {
-      out = await result.current.s.create("tank", 3);
-    });
-
-    expect(out).toBeNull();
-    expect(result.current.s.placements.map((p) => p.id)).toEqual([11]);
-    expect(result.current.notices).toHaveLength(1);
-    expect(onChanged).toHaveBeenCalledOnce();
-    expect(result.current.s.placing).toBeNull();
   });
 
   it("commitTransform keeps the label; rename keeps the transform", async () => {
@@ -174,31 +146,25 @@ describe("usePlacementsEditor", () => {
   });
 
   it("create sends visiblePanoramaIds from the editor's panoramaIds param", async () => {
-    vi.mocked(createPlacement).mockImplementation(async (_slug, body) => ({
-      ...placement(1),
-      ...body,
-    }) as Placement);
+    vi.mocked(createPlacements).mockImplementation(async (_slug, items) => items.map((body) => ({ ...placement(1), ...body }) as Placement));
     const { result } = editor([], [1, 2]);
 
     await act(async () => {
       await result.current.s.create("tank", 1);
     });
 
-    expect(vi.mocked(createPlacement).mock.calls[0][1].visiblePanoramaIds).toEqual([1, 2]);
+    expect(vi.mocked(createPlacements).mock.calls[0][1][0].visiblePanoramaIds).toEqual([1, 2]);
   });
 
   it("create sends an empty visiblePanoramaIds when none are given", async () => {
-    vi.mocked(createPlacement).mockImplementation(async (_slug, body) => ({
-      ...placement(1),
-      ...body,
-    }) as Placement);
+    vi.mocked(createPlacements).mockImplementation(async (_slug, items) => items.map((body) => ({ ...placement(1), ...body }) as Placement));
     const { result } = editor([], []);
 
     await act(async () => {
       await result.current.s.create("tank", 1);
     });
 
-    expect(vi.mocked(createPlacement).mock.calls[0][1].visiblePanoramaIds).toEqual([]);
+    expect(vi.mocked(createPlacements).mock.calls[0][1][0].visiblePanoramaIds).toEqual([]);
   });
 
   it("setVisibility PUTs the allowlist, swaps the row in and calls onChanged", async () => {
