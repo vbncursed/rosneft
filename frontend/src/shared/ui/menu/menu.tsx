@@ -154,7 +154,7 @@ export function Menu({
               }}
               onKeyDown={(e) => onItemKeyDown(index, e)}
               className={cx(
-                "block w-full cursor-pointer rounded-control-sm border-none bg-transparent px-2.5 py-[7px] text-left text-xs transition-[background-color,scale] duration-150 ease-out hover:bg-panel-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent enabled:active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45",
+                "block w-full cursor-pointer rounded-control-sm border-none bg-transparent px-2.5 py-[7px] text-left text-xs transition-[background-color,scale] duration-150 ease-out enabled:hover:bg-panel-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent enabled:active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45",
                 TONE[item.tone ?? "default"],
               )}
             >

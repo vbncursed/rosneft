@@ -1,4 +1,4 @@
-import { MathUtils, Spherical, Vector3 } from "three";
+import { MathUtils, PerspectiveCamera, Spherical, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import {
   type FlightPose,
@@ -6,10 +6,12 @@ import {
   HOLD_S,
   REVOLUTION_S,
   RISE_S,
+  coveredShare,
   fitDistance,
   flightPose,
   landingPivot,
   planFlight,
+  sideOffset,
 } from "./flight-pose";
 
 const CENTER = new Vector3(1, 2, 3);
@@ -171,6 +173,89 @@ describe("planFlight's rise", () => {
     expect(away.rise).toBeCloseTo(2 * RISE_S, 9);
     expect(flightPose(1.5 * RISE_S, away).phase).toBe("rise");
     expect(flightPose(2 * RISE_S, away).phase).toBe("hold");
+  });
+});
+
+// E7: the open Overlays panel hides the canvas's right quarter or so; the
+// flight centres the territory in what is left, not under the panel.
+describe("flightPose beside the Overlays panel", () => {
+  // Enough to make the visible part narrower than tall, so the fit changes.
+  const SHARE = 0.4;
+  const beside = (share = SHARE, reduced = false) =>
+    planFlight(
+      { position: new Vector3(6, 2, 3), target: new Vector3(0, 0, 0) },
+      { center: CENTER, radius: 2 },
+      { fov: 50, aspect: 1.5, share },
+      reduced,
+    );
+  /** Where the centre lands across the whole canvas, in NDC: -1 left edge, 1 right. */
+  const ndcX = (pose: FlightPose) => {
+    const cam = new PerspectiveCamera(50, 1.5);
+    cam.position.copy(pose.position);
+    cam.lookAt(pose.target);
+    cam.updateMatrixWorld();
+    return CENTER.clone().project(cam).x;
+  };
+  const TIMES = [0, TOP_AT / 2, TOP_AT, DOWN_AT + 0.7, ORBIT_AT, ORBIT_AT + 9];
+
+  it("changes nothing while the panel is folded", () => {
+    for (const t of TIMES) {
+      const a = flightPose(t, plan());
+      const b = flightPose(t, beside(0));
+      expect(b.position.distanceTo(a.position)).toBeLessThan(1e-9);
+      expect(b.target.distanceTo(a.target)).toBeLessThan(1e-9);
+    }
+  });
+
+  it("centres the territory in the part of the canvas the panel leaves", () => {
+    // The visible part spans NDC -1 … 1 - 2·share; its middle is -share.
+    for (const t of [TOP_AT, DOWN_AT + 0.7, ORBIT_AT, ORBIT_AT + 9]) {
+      expect(ndcX(flightPose(t, beside()))).toBeCloseTo(-SHARE, 9);
+    }
+  });
+
+  it("fits the circle to the visible width, not the canvas's", () => {
+    const pose = flightPose(ORBIT_AT + 3, beside());
+    const distance = 0.7 * fitDistance(2, 50, 1.5 * (1 - SHARE));
+    expect(pose.position.distanceTo(pose.target)).toBeCloseTo(distance, 9);
+  });
+
+  it("leaves from where the camera stood and eases aside over the rise, without a jump into the hold", () => {
+    const start = flightPose(0, beside());
+    expect(start.position.distanceTo(new Vector3(6, 2, 3))).toBeLessThan(1e-9);
+    expect(start.target.distanceTo(new Vector3(0, 0, 0))).toBeLessThan(1e-9);
+    const before = flightPose(TOP_AT - 1e-6, beside());
+    const after = flightPose(TOP_AT, beside());
+    expect(before.position.distanceTo(after.position)).toBeLessThan(1e-4);
+    expect(before.target.distanceTo(after.target)).toBeLessThan(1e-4);
+  });
+
+  it("stands beside the panel from the first frame under reduced motion", () => {
+    expect(ndcX(flightPose(0, beside(SHARE, true)))).toBeCloseTo(-SHARE, 9);
+  });
+
+  it("moves the target by the share of the half-width at the flight's distance", () => {
+    const half = Math.tan(MathUtils.degToRad(25)) * 1.5;
+    expect(sideOffset(10, { fov: 50, aspect: 1.5, share: SHARE })).toBeCloseTo(10 * half * SHARE, 9);
+    expect(sideOffset(10, { fov: 50, aspect: 1.5 })).toBe(0);
+  });
+});
+
+describe("coveredShare", () => {
+  const CANVAS = { left: 0, width: 1280 };
+
+  it("is the part of the canvas's width from the panel's left edge on", () => {
+    expect(coveredShare(CANVAS, 946)).toBeCloseTo(334 / 1280, 9);
+  });
+
+  it("is nothing with no panel, or one off the canvas", () => {
+    expect(coveredShare(CANVAS, null)).toBe(0);
+    expect(coveredShare(CANVAS, 1400)).toBe(0);
+    expect(coveredShare({ left: 0, width: 0 }, 10)).toBe(0);
+  });
+
+  it("never hides more than half the canvas", () => {
+    expect(coveredShare(CANVAS, 100)).toBe(0.5);
   });
 });
 

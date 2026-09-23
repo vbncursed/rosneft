@@ -159,6 +159,28 @@ describe("OverlaysPanel", () => {
     expect((container.firstElementChild as HTMLElement).className).toBe(overlaysWidthClass(true));
   });
 
+  // E7: the fly-around centres the territory in what the open panel leaves of
+  // the canvas; the rail hides next to nothing and carries no mark.
+  it("marks its open face, and only that, as covering the canvas", () => {
+    const at = (collapsed: boolean) => (
+      <OverlaysPanel
+        tab="view"
+        onTabChange={vi.fn()}
+        collapsed={collapsed}
+        onCollapsedChange={vi.fn()}
+        placementsCount={1}
+        view={null}
+        placements={null}
+      />
+    );
+    const { container, rerender } = render(at(false));
+    const covers = () => container.querySelectorAll("[data-canvas-cover]");
+    expect(covers()).toHaveLength(1);
+    expect(covers()[0]).toBe(screen.getByRole("complementary", { name: "Overlays" }));
+    rerender(at(true));
+    expect(covers()).toHaveLength(0);
+  });
+
   // The onboarding step explains the two tabs, and the overlay measures the
   // halo off whatever carries the attribute — so it has to be the strip inside
   // the aside, not a wrapper around a panel whose own box is zero-height.

@@ -31,14 +31,16 @@ export function CatalogShellRoute() {
     void navigate({ href });
   };
 
+  const viewer = isTerritoryPage(pathname);
   return (
     // role="presentation": the wrapper exists for the click delegate only and
     // adds nothing to the accessibility tree.
     <div role="presentation" onClickCapture={onClickCapture}>
-      <CatalogShell layout={isTerritoryPage(pathname) ? "viewport" : "page"}>
+      <CatalogShell layout={viewer ? "viewport" : "page"}>
         <Outlet />
       </CatalogShell>
-      <Toaster />
+      {/* The viewer's top-right corner is the Overlays panel's head. */}
+      <Toaster placement={viewer ? "bottom-center" : "top-right"} />
     </div>
   );
 }

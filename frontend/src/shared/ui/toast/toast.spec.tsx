@@ -115,3 +115,22 @@ describe("Toast · tooltip", () => {
     expect(tip?.textContent).toBe("Dismiss");
   });
 });
+
+// A 10–12 % tint alone let the viewer's chrome read through the card.
+describe("Toast · ground", () => {
+  it.each(["error", "warning", "info", "success"] as const)(
+    "lays the %s tint over an opaque panel",
+    (tone) => {
+      render(<Toast tone={tone}>Saved.</Toast>);
+      const cls = screen.getByText("Saved.").parentElement!.className.split(/\s+/);
+      const soft = { error: "bad", warning: "warn", info: "accent", success: "ok" }[tone];
+      expect(cls).toEqual(
+        expect.arrayContaining([
+          "bg-panel",
+          `bg-[image:linear-gradient(var(--${soft}-soft),var(--${soft}-soft))]`,
+        ]),
+      );
+      expect(cls).not.toContain(`bg-${soft}-soft`);
+    },
+  );
+});

@@ -158,41 +158,93 @@ describe("CameraRig · fly-around", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    document.querySelectorAll("[data-canvas-cover]").forEach((el) => el.remove());
   });
 
-  /** A frame clock the test turns: `at(ms)` runs every frame asked for so far. */
+  /**
+   * A frame clock the test turns: `at(ms)` runs every frame asked for so far,
+   * as one frame; `to(ms)` walks there in 16 ms frames, the way a display does
+   * (the flight's clock takes at most 100 ms from any one frame).
+   */
   const stubFrames = () => {
     const queued = new Map<number, FrameRequestCallback>();
     let id = 0;
+    let now: number | null = null;
     vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
       queued.set(++id, cb);
       return id;
     });
     vi.stubGlobal("cancelAnimationFrame", (n: number) => queued.delete(n));
+    const at = (ms: number) => {
+      now = ms;
+      const due = [...queued.values()];
+      queued.clear();
+      for (const cb of due) cb(ms);
+    };
     return {
       queued,
-      at: (ms: number) => {
-        const due = [...queued.values()];
-        queued.clear();
-        for (const cb of due) cb(ms);
+      at,
+      to: (ms: number) => {
+        if (now === null) return at(ms);
+        while (now < ms) at(Math.min(now + 16, ms));
       },
     };
   };
 
   const upness = () => camera!.position.y / camera!.position.length();
 
+  // E6: a hidden tab gets no frames, and a long task delays one; either way
+  // the flight picks up where it was instead of jumping by the time away.
+  it("slows the flight over a lost frame rather than skipping ahead", async () => {
+    const late = stubFrames();
+    const a = await ReactThreeTestRenderer.create(rig(0, { playing: true, sceneRef: territory() }));
+    late.at(1000);
+    late.at(6000);
+    const resumed = camera!.position.clone();
+    await a.unmount();
+    vi.unstubAllGlobals();
+
+    const steady = stubFrames();
+    await ReactThreeTestRenderer.create(rig(0, { playing: true, sceneRef: territory() }));
+    steady.at(1000);
+    steady.at(1100);
+    expect(camera!.position.distanceTo(resumed)).toBeLessThan(1e-9);
+  });
+
+  // E7: the open Overlays panel marks itself; the flight centres the
+  // territory in what the panel leaves of the canvas, and follows a fold.
+  it("circles beside the open Overlays panel, and recentres once it folds", async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getBoundingClientRect").mockReturnValue({ left: 0, width: 1280 } as DOMRect);
+    const cover = document.body.appendChild(document.createElement("div"));
+    cover.setAttribute("data-canvas-cover", "");
+    vi.spyOn(cover, "getBoundingClientRect").mockReturnValue({ left: 960 } as DOMRect);
+    const ndcX = () => {
+      camera!.updateMatrixWorld();
+      return new Vector3().project(camera!).x;
+    };
+    const frames = stubFrames();
+    await ReactThreeTestRenderer.create(rig(0, { playing: true, sceneRef: territory() }));
+    frames.to(1000);
+    frames.to(1000 + (RISE_S + HOLD_S + DESCEND_S) * 1000 + 500);
+    expect(ndcX()).toBeCloseTo(-320 / 1280, 6);
+
+    cover.remove();
+    frames.to(1000 + (RISE_S + HOLD_S + DESCEND_S) * 1000 + 3000);
+    expect(ndcX()).toBeCloseTo(0, 4);
+  });
+
   it("rises over the territory's centre, then circles it at 45°", async () => {
     const frames = stubFrames();
     await ReactThreeTestRenderer.create(rig(0, { playing: true, sceneRef: territory() }));
-    frames.at(1000); // the first frame is t = 0
-    frames.at(1000 + RISE_S * 1000);
+    frames.to(1000); // the first frame is t = 0
+    frames.to(1000 + RISE_S * 1000);
     // 30 % closer than the fit, all the way round.
     const distance = 0.7 * fitDistance(Math.sqrt(3), camera!.fov, camera!.aspect);
     expect(controls!.target.length()).toBeLessThan(1e-9);
     expect(camera!.position.length()).toBeCloseTo(distance, 6);
     expect(upness()).toBeGreaterThan(0.9999);
 
-    frames.at(1000 + (RISE_S + HOLD_S + DESCEND_S) * 1000 + 5000);
+    frames.to(1000 + (RISE_S + HOLD_S + DESCEND_S) * 1000 + 5000);
     expect(upness()).toBeCloseTo(Math.SQRT1_2, 6);
     expect(camera!.position.length()).toBeCloseTo(distance, 6);
   });
@@ -201,13 +253,13 @@ describe("CameraRig · fly-around", () => {
     const frames = stubFrames();
     const onPlayStop = vi.fn();
     await ReactThreeTestRenderer.create(rig(0, { playing: true, onPlayStop, sceneRef: territory() }));
-    frames.at(1000);
-    frames.at(1600);
+    frames.to(1000);
+    frames.to(1600);
     // Pointer, wheel and touch all open with "start" in three-stdlib.
     controls!.dispatchEvent({ type: "start" } as never);
     expect(onPlayStop).toHaveBeenCalledOnce();
     const caught = camera!.position.clone();
-    frames.at(9000);
+    frames.to(9000);
     expect(camera!.position.distanceTo(caught)).toBeLessThan(1e-6);
     controls!.dispatchEvent({ type: "start" } as never);
     expect(onPlayStop).toHaveBeenCalledOnce();
@@ -218,11 +270,11 @@ describe("CameraRig · fly-around", () => {
     const frames = stubFrames();
     const onPlayStop = vi.fn();
     await ReactThreeTestRenderer.create(rig(0, { playing: true, onPlayStop, sceneRef: territory() }));
-    frames.at(1000);
-    frames.at(1600);
+    frames.to(1000);
+    frames.to(1600);
     const caught = camera!.position.clone();
     controls!.enabled = false;
-    frames.at(2200);
+    frames.to(2200);
     expect(onPlayStop).toHaveBeenCalledOnce();
     expect(camera!.position.distanceTo(caught)).toBeLessThan(1e-6);
   });
@@ -241,8 +293,8 @@ describe("CameraRig · fly-around", () => {
       controls!.target.set(0, 0, -20);
       controls!.update();
       await r.update(rig(0, { playing: true, sceneRef }));
-      frames.at(1000);
-      frames.at(1000 + (RISE_S / 2) * 1000);
+      frames.to(1000);
+      frames.to(1000 + (RISE_S / 2) * 1000);
       expect(controls!.target.y).toBeLessThan(-2);
       const view = camera!.getWorldDirection(new Vector3());
 
@@ -262,13 +314,13 @@ describe("CameraRig · fly-around", () => {
     const sceneRef = territory();
     const r = await ReactThreeTestRenderer.create(rig(0, { playing: true, sceneRef }));
     const start = camera!.position.clone();
-    frames.at(1000);
-    frames.at(1600);
+    frames.to(1000);
+    frames.to(1600);
     expect(camera!.position.distanceTo(start)).toBeGreaterThan(0.01);
 
     // The page turns Play off and bumps resetVersion in one render.
     await r.update(rig(1, { playing: false, sceneRef }));
-    frames.at(5000);
+    frames.to(5000);
     expect(camera!.position.distanceTo(start)).toBeLessThan(1e-6);
   });
 
@@ -290,7 +342,7 @@ describe("CameraRig · fly-around", () => {
     const onPlayStop = vi.fn();
     await ReactThreeTestRenderer.create(rig(0, { playing: true, onPlayStop, sceneRef: sceneRef() }));
     const before = camera!.position.clone();
-    frames.at(1000);
+    frames.to(1000);
     expect(onPlayStop).toHaveBeenCalledOnce();
     expect(camera!.position.distanceTo(before)).toBeLessThan(1e-6);
   });
@@ -298,7 +350,7 @@ describe("CameraRig · fly-around", () => {
   it("leaves no frame running once it unmounts", async () => {
     const frames = stubFrames();
     const r = await ReactThreeTestRenderer.create(rig(0, { playing: true, sceneRef: territory() }));
-    frames.at(1000);
+    frames.to(1000);
     await r.unmount();
     expect(frames.queued.size).toBe(0);
   });
@@ -310,7 +362,7 @@ describe("CameraRig · fly-around", () => {
     );
     const frames = stubFrames();
     await ReactThreeTestRenderer.create(rig(0, { playing: true, sceneRef: territory() }));
-    frames.at(1000);
+    frames.to(1000);
     expect(upness()).toBeCloseTo(Math.SQRT1_2, 6);
     expect(controls!.target.length()).toBeLessThan(1e-9);
   });

@@ -52,6 +52,45 @@ describe("Toaster", () => {
     );
   });
 
+  // E11: in the viewer the top-right corner is the Overlays panel's head;
+  // there the stack sits bottom-centre, above the status strip, and rises.
+  it("sits bottom-centre when asked, its cards rising from that edge", () => {
+    render(<Toaster placement="bottom-center" />);
+    act(() => {
+      notify.success("Saved");
+    });
+    const host = region()!;
+    expect(host.className.split(/\s+/)).toEqual(
+      expect.arrayContaining(["fixed", "bottom-16", "left-1/2", "-translate-x-1/2"]),
+    );
+    expect(host).not.toHaveClass("top-4");
+    const card = host.firstElementChild!.className.split(/\s+/);
+    expect(card).toEqual(expect.arrayContaining(["starting:translate-y-2", "motion-reduce:starting:translate-y-0"]));
+    expect(card).not.toContain("starting:-translate-y-2");
+  });
+
+  // Anchored at the bottom, the newest card sits on that edge and the older
+  // ones stack above it; the hover bridge below each card skips the bottom one.
+  it("stacks bottom-up when anchored at the bottom, bridging every gap but the edge", () => {
+    render(<Toaster placement="bottom-center" />);
+    act(() => {
+      notify.error("first");
+      notify.error("second");
+    });
+    const host = region()!;
+    expect(host).toHaveClass("flex-col-reverse");
+    expect(host).not.toHaveClass("flex-col");
+    const [newest, older] = [...host.children];
+    expect(newest).toHaveTextContent("second");
+    expect(newest).toHaveClass("first:after:hidden");
+    expect(older).not.toHaveClass("last:after:hidden");
+  });
+
+  it("sits top-right by default", () => {
+    render(<Toaster />);
+    expect(region()!.className.split(/\s+/)).toEqual(expect.arrayContaining(["fixed", "right-4", "top-4", "flex-col"]));
+  });
+
   it("holds a confirmation while the pointer is on it", () => {
     vi.useFakeTimers();
     render(<Toaster />);

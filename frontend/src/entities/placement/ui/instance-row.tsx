@@ -68,7 +68,7 @@ export function InstanceRow({
         <EyeButton
           state={instance.hidden ? "hidden" : "visible"}
           subject={name}
-          disabled={pending}
+          busy={pending}
           onToggle={(hidden) => onHide(instance.id, hidden)}
         />
       ) : instance.hidden ? (
