@@ -37,6 +37,8 @@ message Panorama {
   google.protobuf.Timestamp created_at = 8;
   google.protobuf.Timestamp updated_at = 9;
   double default_yaw = 10;
+  // 256×128 JPEG content-service makes from the source; empty until it has.
+  string thumbnail_blob_hash = 11;
 }
 
 message ListPanoramasRequest {
