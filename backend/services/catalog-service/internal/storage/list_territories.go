@@ -9,7 +9,8 @@ import (
 
 // ListTerritories returns territories ordered by slug. When scopeAdminID is
 // non-empty, only territories assigned to that admin are returned; empty means
-// no filter (Root and internal callers see everything).
+// no filter (Root and internal callers see everything). Each territory carries
+// its LOD chain (one extra query for the whole list).
 func (r *PG) ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error) {
 	const q = `SELECT t.slug, t.title, t.description, t.source_blob_hash, t.external_panorama_url, t.created_at, t.updated_at,
        (SELECT COUNT(*) FROM placements p WHERE p.territory_id = t.id) AS placement_count
@@ -37,6 +38,18 @@ ORDER BY t.slug`
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("storage.ListTerritories: iter: %w", err)
+	}
+
+	slugs := make([]string, len(out))
+	for i, row := range out {
+		slugs[i] = row.Slug
+	}
+	chains, err := r.artifactsBySlug(ctx, territoryArtifactsBySlug, slugs)
+	if err != nil {
+		return nil, fmt.Errorf("storage.ListTerritories: %w", err)
+	}
+	for i := range out {
+		out[i].Artifacts = chains[out[i].Slug]
 	}
 	return out, nil
 }

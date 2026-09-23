@@ -2,6 +2,8 @@ package httpapi
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -82,4 +84,36 @@ func (s *ListCountsSuite) TestGetModelCarriesUsageCount() {
 	assert.Assert(s.T(), ok)
 	assert.Assert(s.T(), model.UsageCount != nil)
 	assert.Equal(s.T(), *model.UsageCount, 2)
+}
+
+// The list endpoints always carry the chain, as [] before a conversion lands:
+// the catalog pages stop asking /artifacts per row and must not have to guess
+// whether an absent key means "none" or "not sent". Encoded with v1
+// encoding/json because the strict handlers' Visit methods encode with it.
+func (s *ListCountsSuite) TestListTerritoriesCarriesTheLODChain() {
+	ctx := authhttp.NewTestContext(s.T().Context(), true, "")
+	stub := countsServiceStub{territories: []domain.Territory{
+		{Slug: "yard", LODs: []domain.LodArtifact{{LOD: 0, Hash: "h0", Size: 10}, {LOD: 1, Hash: "h1", Size: 4}}},
+		{Slug: "fresh"},
+	}}
+	resp, err := New(stub).ListTerritories(ctx, ListTerritoriesRequestObject{})
+	assert.NilError(s.T(), err)
+	list, ok := resp.(ListTerritories200JSONResponse)
+	assert.Assert(s.T(), ok)
+	assert.Equal(s.T(), len(*list[0].Lods), 2)
+	assert.Equal(s.T(), (*list[0].Lods)[1].Hash, "h1")
+	body, err := json.Marshal(list[1])
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), strings.Contains(string(body), `"lods":[]`), string(body))
+}
+
+func (s *ListCountsSuite) TestListModelsCarriesTheLODChain() {
+	stub := countsServiceStub{models: []domain.Model{
+		{Slug: "pump", LODs: []domain.LodArtifact{{LOD: 0, Hash: "m0", Size: 3}}},
+	}}
+	resp, err := New(stub).ListModels(s.T().Context(), ListModelsRequestObject{})
+	assert.NilError(s.T(), err)
+	list, ok := resp.(ListModels200JSONResponse)
+	assert.Assert(s.T(), ok)
+	assert.Equal(s.T(), (*list[0].Lods)[0].Hash, "m0")
 }

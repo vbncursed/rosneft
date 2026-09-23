@@ -20,6 +20,7 @@ func (s *Server) ListTerritories(ctx context.Context, _ ListTerritoriesRequestOb
 	resp := make(ListTerritories200JSONResponse, len(out))
 	for i, t := range out {
 		resp[i] = territoryToAPI(t)
+		resp[i].Lods = new(lodChainToAPI(t.LODs))
 	}
 	return resp, nil
 }

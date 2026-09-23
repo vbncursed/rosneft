@@ -17,6 +17,7 @@ func territoryToProto(t domain.Territory) *catalogv1.Territory {
 		CreatedAt:           timestamppb.New(t.CreatedAt),
 		UpdatedAt:           timestamppb.New(t.UpdatedAt),
 		PlacementCount:      uint32(t.PlacementCount),
+		Artifacts:           artifactsToProto(t.Artifacts, territoryArtifactToProto),
 	}
 }
 
@@ -41,6 +42,7 @@ func modelToProto(m domain.Model) *catalogv1.Model {
 		CreatedAt:         timestamppb.New(m.CreatedAt),
 		UpdatedAt:         timestamppb.New(m.UpdatedAt),
 		UsageCount:        uint32(m.UsageCount),
+		Artifacts:         artifactsToProto(m.Artifacts, modelArtifactToProto),
 	}
 }
 
@@ -148,4 +150,13 @@ func measurementToProto(m domain.Measurement) *catalogv1.Measurement {
 		CreatedAt:     timestamppb.New(m.CreatedAt),
 		UpdatedAt:     timestamppb.New(m.UpdatedAt),
 	}
+}
+
+// artifactsToProto maps a LOD chain with the per-kind converter.
+func artifactsToProto[P any](in []domain.Artifact, conv func(domain.Artifact) P) []P {
+	out := make([]P, len(in))
+	for i, a := range in {
+		out[i] = conv(a)
+	}
+	return out
 }

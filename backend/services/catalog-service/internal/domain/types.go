@@ -17,6 +17,9 @@ type Territory struct {
 	// PlacementCount is how many placements sit on this territory. Filled by
 	// both ListTerritories and GetTerritory.
 	PlacementCount int `yaml:"-"`
+	// Artifacts is the LOD chain, sorted by lod. Filled by ListTerritories only:
+	// the list pages need it and would otherwise ask once per row.
+	Artifacts []Artifact `yaml:"-"`
 }
 
 // Model is a placeable 3D asset overlaid on a territory.
@@ -31,6 +34,9 @@ type Model struct {
 	// UsageCount is how many distinct territories place this model. Filled by
 	// both ListModels and GetModel.
 	UsageCount int `yaml:"-"`
+	// Artifacts is the LOD chain, sorted by lod. Filled by ListModels only:
+	// the list pages need it and would otherwise ask once per row.
+	Artifacts []Artifact `yaml:"-"`
 }
 
 // TerritoryPatch names the territory columns a partial edit writes. Nil keeps

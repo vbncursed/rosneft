@@ -66,6 +66,13 @@ components:
           type: integer
           minimum: 0
           description: Placements on this territory. Omitted when zero.
+        lods:
+          type: array
+          description: |
+            Every converted LOD, sorted by lod ascending. Always present on
+            GET /api/territories (`[]` before the first conversion lands);
+            absent from every other response carrying a Territory.
+          items: { $ref: '#/components/schemas/LodArtifact' }
 
     Model:
       type: object
@@ -87,6 +94,13 @@ components:
           type: integer
           minimum: 0
           description: Distinct territories placing this model, across every territory. Omitted when zero.
+        lods:
+          type: array
+          description: |
+            Every converted LOD, sorted by lod ascending. Always present on
+            GET /api/models (`[]` before the first conversion lands);
+            absent from every other response carrying a Model.
+          items: { $ref: '#/components/schemas/LodArtifact' }
 
     LodArtifact:
       type: object
