@@ -1,13 +1,14 @@
-import { useQueries } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   alertsOf,
   PANELS,
-  panelQuery,
+  panelsQuery,
   servicesOf,
   type AlertSummary,
   type MetricsRange,
   type PanelId,
+  type PanelSeries,
   type ServiceHealth,
 } from "@/entities/metric";
 import { messageOf } from "@/shared/api";
@@ -15,6 +16,14 @@ import { unanswered } from "@/shared/lib/unanswered";
 import type { PanelResult } from "./dashboard";
 
 const ALL: PanelId[] = Object.keys(PANELS) as PanelId[];
+const NO_ANSWER = "Prometheus did not answer";
+
+/** A panel the gateway left out of an answered map failed on its own: one dark card. */
+const resultOf = (data: PanelSeries | undefined, id: PanelId): PanelResult => {
+  if (!data) return { kind: "loading" };
+  const series = data[id];
+  return series ? { kind: "value", series } : { kind: "unavailable", message: NO_ANSWER };
+};
 
 export type MetricsState = {
   status: "loading" | "ready" | "unavailable";
@@ -35,9 +44,9 @@ export type MetricsState = {
 };
 
 /**
- * Everything the Metrics screen decides. One query per panel, all keyed on
- * the range the route holds; a failed panel is one dark card, and only a
- * dashboard where every panel failed is unavailable.
+ * Everything the Metrics screen decides. One query for every panel, keyed on
+ * the range the route holds; a panel the gateway could not answer is one dark
+ * card, and only a request that never answered makes the dashboard unavailable.
  */
 export function useMetrics(range: MetricsRange): MetricsState {
   const [query, setQuery] = useState("");
@@ -45,38 +54,23 @@ export function useMetrics(range: MetricsRange): MetricsState {
   const [selectedPanel, selectPanel] = useState<string | null>(null);
   const [alertOpen, setAlertOpen] = useState(true);
 
-  const panels = useQueries({
-    queries: ALL.map((id) => panelQuery(id, range)),
-    // `combine` is inline for symmetry with use-content, where it must be:
-    // ALL is a module constant here, so hoisting it would be fine too.
-    combine: (rs) => ({
-      pending: rs.some((r) => r.isPending),
-      allFailed: rs.length > 0 && rs.every((r) => unanswered(r) !== null),
-      firstError: rs.map(unanswered).find((e) => e !== null) ?? null,
-      results: Object.fromEntries(
-        rs.map((r, i): [PanelId, PanelResult] => [
-          ALL[i],
-          r.data
-            ? { kind: "value", series: r.data }
-            : r.error
-              ? { kind: "unavailable", message: messageOf(r.error) }
-              : { kind: "loading" },
-        ]),
-      ) as Partial<Record<PanelId, PanelResult>>,
-    }),
-  });
+  const panels = useQuery(panelsQuery(range));
+  const failed = unanswered(panels);
+  const results = Object.fromEntries(ALL.map((id) => [id, resultOf(panels.data, id)])) as Partial<
+    Record<PanelId, PanelResult>
+  >;
 
   const series = (id: PanelId) => {
-    const r = panels.results[id];
+    const r = results[id];
     return r?.kind === "value" ? r.series : [];
   };
-  const alertsResult = panels.results.alerts;
+  const alertsResult = results.alerts;
   const alerts = alertsOf(series("alerts"));
 
   return {
-    status: panels.pending ? "loading" : panels.allFailed ? "unavailable" : "ready",
-    error: panels.allFailed && panels.firstError ? messageOf(panels.firstError) : null,
-    results: panels.results,
+    status: panels.isPending ? "loading" : failed ? "unavailable" : "ready",
+    error: failed ? messageOf(failed) : null,
+    results,
     services: servicesOf(
       series("services-up"),
       series("red-rate"),
