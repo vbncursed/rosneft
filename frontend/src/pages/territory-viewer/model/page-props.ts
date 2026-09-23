@@ -7,6 +7,7 @@ import {
   uploadProps,
   viewTabProps,
 } from "./page-props-b";
+import { memoLast } from "./memo-last";
 import { placementsPanelProps } from "./page-props-placements";
 import { loadingChip, measuringView, modeChip, stripItems } from "./strip-and-chips";
 import { errorCopy, headerMeta, headerPills, measureGrants, railTools } from "./viewer-view";
@@ -26,6 +27,10 @@ export type {
   ViewerOverlaysProps,
   ViewerPanelProps,
 } from "./viewer-props";
+
+// The same placements and options give the same groups: the canvas markers and
+// the Placements panel both take them, and neither should re-render on a fold.
+const groupsOf = memoLast(groupByModel);
 
 /**
  * Every prop the viewer page draws, assembled from the container's pieces.
@@ -49,7 +54,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
   const inside = mode.view.kind === "panorama";
 
   const levels = vm.parentLods.map((a) => a.lod).sort((a, b) => a - b);
-  const groups = groupByModel(p.placements, options);
+  const groups = groupsOf(p.placements, options);
 
   return {
     header: {

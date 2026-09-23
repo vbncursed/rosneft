@@ -1000,6 +1000,13 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   a module store behind `useSyncExternalStore`
   (`features/theme-toggle/model/use-theme.ts`) so the canvas hears the
   sidebar's toggle.
+  `ViewerCanvas` is `memo`: a page re-render (a fold, a keystroke) must not
+  reach `SceneCanvas`, so **every canvas prop keeps its identity unless its
+  value changed**. Callbacks are `useCallback`s at their hooks. Objects that
+  `pageProps` builds go through `memoLast`
+  (`pages/territory-viewer/model/memo-last.ts`), because `pageProps` is pure
+  and has no hooks. `use-territory-viewer.spec`'s "a folding list" fails, and
+  names the prop, when one does not.
 - **Three exempt files** — `gltf-loader-setup.ts`, `ktx2-init.tsx`,
   `glb-preloader.tsx` (`widgets/viewer-canvas/three/`, listed in
   `exempt-modules.ts`) — need real WebGL/a Worker. Everything else
