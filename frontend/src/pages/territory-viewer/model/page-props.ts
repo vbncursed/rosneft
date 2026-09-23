@@ -7,7 +7,7 @@ import {
   uploadProps,
   viewTabProps,
 } from "./page-props-b";
-import { selectedBlock, visibilityBlock } from "./page-props-selected";
+import { placementsPanelProps } from "./page-props-placements";
 import { loadingChip, measuringView, modeChip, stripItems } from "./strip-and-chips";
 import { errorCopy, headerMeta, headerPills, measureGrants, railTools } from "./viewer-view";
 import type { PageParts, TerritoryViewerPageProps } from "./viewer-props";
@@ -50,7 +50,6 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
 
   const levels = vm.parentLods.map((a) => a.lod).sort((a, b) => a - b);
   const groups = groupByModel(p.placements, options);
-  const selected = p.placements.find((x) => x.id === mode.selectedId) ?? null;
 
   return {
     header: {
@@ -187,25 +186,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
           onCollapsedChange: on.onCollapsed,
           placementsCount: p.placements.length,
           viewTab: viewTabProps(p),
-          placements: {
-            groups,
-            query: view.query,
-            onQuery: on.onQuery,
-            expandedModel: view.expandedModel,
-            onToggleGroup: on.onToggleGroup,
-            selectedId: mode.selectedId,
-            onSelect: on.onSelect,
-            pendingIds: p.pendingIds,
-            grants: { create: grants.create, write: grants.write, delete: grants.delete },
-            onAdd: on.onAdd,
-            onRename: on.onRename,
-            onDelete: on.onDelete,
-            onFocus: on.onFocus,
-            selected: selectedBlock(p, groups, selected),
-            // B-5: inside a panorama nothing is placed.
-            canAdd: !inside,
-            visibility: visibilityBlock(p, selected),
-          },
+          placements: placementsPanelProps(p, groups),
         },
 
     picker: {

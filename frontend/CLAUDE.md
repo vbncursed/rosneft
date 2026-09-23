@@ -1071,6 +1071,25 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   nothing behind; the editor seeds from the bundle once and the
   page remounts it via `use-scene-seeded` (one-shot) so a cold page is not
   empty.
+- **Hiding and user groups** (spec `docs/superpowers/specs/2026-09-23-placement-groups-play-thumbs-design.md` §1).
+  `hidden` and `groupId` are properties of the placement, shared by every
+  reader; the eyes and the groups are `placement:write`, a group's own `Add`
+  is `placement:create`. The panel is `groupPlacements(groupByModel(…), groups)`
+  — user groups alphabetically, then model rows holding only what no group
+  claims — and `#N` stays the *model's* numbering, so moving a placement never
+  renames it. A model row's eye covers every placement of that model, grouped
+  ones included (G-3); a group has no hidden flag, its eye is the aggregate
+  (`eyeState`: visible / hidden / mixed, `aria-pressed` true/false/"mixed").
+  Hiding is one bulk `PUT …/placements/hidden` (`use-bulk-writes.ts`, split
+  from the editor at the cap); a hidden selection is dropped
+  (`use-placement-handlers.ts`, split from `use-page-handlers.ts` at the cap,
+  which also holds the group a group's `Add` aims the picker at). The canvas
+  skips hidden placements at its two consumers — `PlacementsLayer` through
+  `isShownIn`, and `GlbPreloader` — and a hidden row's Focus is disabled.
+  Deleting a group ungroups its placements locally (`ungroup`, mirroring
+  `ON DELETE SET NULL`; the editor and the groups hook are wired together in
+  `use-viewer-placements.ts`). The panel's open-row key is a model slug or
+  `group:<id>` (`userGroupKey`).
 - **The Selected block is a form whenever a writer has something selected**
   (user request, 2026-09-14 — the mock's state 2 drew a read-only block). The
   label field, the Pos/Rot/Scl cells and Save are live for any selection

@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 import type { Chain, MeasurePoint } from "@/entities/measurement";
-import type { PlacementTransform, ResolvedPlacement } from "@/entities/placement";
+import type { PlacementGroup, PlacementTransform, ResolvedPlacement } from "@/entities/placement";
 import type { ModelOption, SceneViewModel } from "@/entities/scene";
 import type { ViewerError } from "@/features/lod";
 import type { Tour } from "@/features/onboarding";
@@ -153,6 +153,11 @@ export type PageHandlers = {
   onToggleMove: () => void;
   /** One checkbox of the selected placement's per-panorama allowlist. */
   onVisibility: (placementId: number, panoramaId: number, visible: boolean) => void;
+  /** Hides or shows many placements for everyone; a hidden selection is dropped (§1.7). */
+  onSetHidden: (ids: number[], hidden: boolean) => void;
+  onMoveToGroup: (ids: number[], groupId: number | null) => void;
+  /** Opens the picker aimed at one user group; the batch lands in it (G-4). */
+  onAddToGroup: (groupId: number) => void;
 };
 
 /** The page's own state, everything the hooks do not already own. */
@@ -192,6 +197,14 @@ export type PageParts = {
   placements: ResolvedPlacement[];
   pendingIds: number[];
   placing: { total: number } | null;
+  /** The territory's user groups and their writes (`usePlacementGroups`). */
+  placementGroups: {
+    list: PlacementGroup[];
+    busy: boolean;
+    create: (title: string) => void;
+    rename: (id: number, title: string) => void;
+    remove: (id: number) => void;
+  };
   form: PlacementFormView | null;
   tour: Tour;
   panoramaTour: Tour;

@@ -7,6 +7,7 @@ import type { useOverlaysPanel } from "@/widgets/overlays-panel";
 import type { LodReport } from "@/widgets/viewer-canvas";
 import type { DocumentParts } from "./overlay-parts";
 import { revealSection, type Section } from "./reveal-section";
+import { usePlacementHandlers } from "./use-placement-handlers";
 import type { usePlacementForm } from "./use-placement-form";
 import type { PageHandlers, PageViewState } from "./viewer-props";
 
@@ -103,15 +104,20 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
     mode.exitPlace();
     setPickerOpen(false);
   }, [mode]);
+  const { placeGroupId, onAdd, onAddToGroup, onSetHidden } = usePlacementHandlers({
+    mode,
+    editor,
+    openPicker,
+  });
   const onPlace = useCallback(
     async (modelSlug: string, count: number) => {
-      const id = await editor.create(modelSlug, count);
+      const id = await editor.create(modelSlug, count, placeGroupId);
       closePicker();
       // The batch already landed, so the new object is in the scene; the form
       // opens on the last of them to be named, and cancelling it deletes it.
       if (id !== null) form.openNew(id);
     },
-    [editor, form, closePicker],
+    [editor, form, closePicker, placeGroupId],
   );
 
   // A rail tile is a way to the panel's own controls: it shows the tab they
@@ -180,7 +186,7 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
       onLod,
       onReset,
       onMeasure: mode.toggleMeasure,
-      onAdd: openPicker,
+      onAdd,
       onPanoramas,
       onDocuments,
       onReplayTour: tour.restart,
@@ -202,6 +208,9 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
       onPlace,
       onClosePicker: closePicker,
       onVisibility,
+      onSetHidden,
+      onMoveToGroup: editor.moveToGroup,
+      onAddToGroup,
       onToggleMove: mode.toggleMove,
     },
   };
