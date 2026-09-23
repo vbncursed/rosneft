@@ -20,16 +20,17 @@ func vec3FromProto(v *contentv1.Vec3) domain.Vec3 {
 
 func panoramaToProto(p domain.Panorama) *contentv1.Panorama {
 	return &contentv1.Panorama{
-		Id:             p.ID,
-		TerritorySlug:  p.TerritorySlug,
-		Slug:           p.Slug,
-		Title:          p.Title,
-		SourceBlobHash: p.SourceBlobHash,
-		Position:       vec3ToProto(p.Position),
-		YawOffset:      p.YawOffset,
-		DefaultYaw:     p.DefaultYaw,
-		CreatedAt:      timestamppb.New(p.CreatedAt),
-		UpdatedAt:      timestamppb.New(p.UpdatedAt),
+		Id:                p.ID,
+		TerritorySlug:     p.TerritorySlug,
+		Slug:              p.Slug,
+		Title:             p.Title,
+		SourceBlobHash:    p.SourceBlobHash,
+		Position:          vec3ToProto(p.Position),
+		YawOffset:         p.YawOffset,
+		DefaultYaw:        p.DefaultYaw,
+		CreatedAt:         timestamppb.New(p.CreatedAt),
+		UpdatedAt:         timestamppb.New(p.UpdatedAt),
+		ThumbnailBlobHash: p.ThumbnailBlobHash,
 	}
 }
 
