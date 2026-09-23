@@ -88,12 +88,11 @@ export function useRoles(): RolesState {
   const fail = (err: unknown) => notify.error(messageOf(err));
 
   const saving = useMutation({
-    // One PATCH carries the title and, when it changed, the permission set; the gateway applies both
-    // in one transaction with the same grant checks.
+    // The gateway applies title and permissions in one transaction, with the same grant checks.
     mutationFn: async () => {
       if (!selected || !draft) return;
       await updateRole(selected.slug, {
-        title: draft.title, // the gateway requires it; an unchanged title is a no-op rename
+        title: draft.title, // required by the gateway, even unchanged
         ...(sameSet(draft.granted, selected.permissionSlugs) ? {} : { permissionSlugs: draft.granted }),
       });
     },
