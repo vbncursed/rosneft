@@ -32,6 +32,11 @@ func (s *SetPasswordSuite) TestSetPassword() {
 	foreign := domain.User{ID: "u2", RoleSlugs: []string{"guest"}, CreatedBy: new("other")}
 	ownAdmin := domain.User{ID: "a1", RoleSlugs: []string{"admin"}, CreatedBy: new("co")}
 	errRedis := errors.New("redis is down")
+	// A delegate holding users:write that created a user with wider access:
+	// resetting that password would hand the delegate the wider access.
+	delegate := domain.User{ID: "d1", Permissions: []string{"users:read", "users:write"}, CreatedBy: new("co")}
+	wider := domain.User{ID: "w1", Permissions: []string{"users:read", "roles:write"}, CreatedBy: new("d1")}
+	narrower := domain.User{ID: "n1", Permissions: []string{"users:read"}, CreatedBy: new("d1")}
 
 	tests := []struct {
 		name     string
@@ -71,6 +76,18 @@ func (s *SetPasswordSuite) TestSetPassword() {
 		{
 			name: "users:read_all does not reach root", actor: "co", scopeAll: true, target: "root", password: newPassword,
 			lookups: []domain.User{root, company}, want: domain.ErrUserNotFound,
+		},
+		{
+			name: "a delegate cannot reset a user holding more than it does", actor: "d1", target: "w1",
+			password: newPassword, lookups: []domain.User{wider, delegate}, want: domain.ErrPrivilegeEscalation,
+		},
+		{
+			name: "a delegate resets a user its own permissions cover", actor: "d1", target: "n1",
+			password: newPassword, lookups: []domain.User{narrower, delegate}, written: true,
+		},
+		{
+			name: "root resets a user with permissions", actor: "root", scopeAll: true, target: "w1",
+			password: newPassword, lookups: []domain.User{wider, root}, written: true,
 		},
 		{
 			name: "a weak password is refused", actor: "root", scopeAll: true, target: "u2", password: "short",
