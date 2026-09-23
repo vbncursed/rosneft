@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
+  ALL_PANELS,
   alertsOf,
-  PANELS,
   panelsQuery,
   servicesOf,
   type AlertSummary,
@@ -15,14 +15,22 @@ import { messageOf } from "@/shared/api";
 import { unanswered } from "@/shared/lib/unanswered";
 import type { PanelResult } from "./dashboard";
 
-const ALL: PanelId[] = Object.keys(PANELS) as PanelId[];
 const NO_ANSWER = "Prometheus did not answer";
 
-/** A panel the gateway left out of an answered map failed on its own: one dark card. */
-const resultOf = (data: PanelSeries | undefined, id: PanelId): PanelResult => {
+type Kept = { range: MetricsRange; answer: PanelSeries | undefined; series: PanelSeries };
+
+/**
+ * A panel the gateway left out of an answered map failed on its own. One it
+ * answered on an earlier tick keeps those series, marked stale, so a
+ * transient failure does not flicker the card dark; one never answered is a
+ * dark card.
+ */
+export const resultOf = (data: PanelSeries | undefined, kept: PanelSeries, id: PanelId): PanelResult => {
   if (!data) return { kind: "loading" };
   const series = data[id];
-  return series ? { kind: "value", series } : { kind: "unavailable", message: NO_ANSWER };
+  if (series) return { kind: "value", series };
+  const old = kept[id];
+  return old ? { kind: "value", series: old, stale: true } : { kind: "unavailable", message: NO_ANSWER };
 };
 
 export type MetricsState = {
@@ -45,8 +53,9 @@ export type MetricsState = {
 
 /**
  * Everything the Metrics screen decides. One query for every panel, keyed on
- * the range the route holds; a panel the gateway could not answer is one dark
- * card, and only a request that never answered makes the dashboard unavailable.
+ * the range the route holds; a panel this tick left out keeps its last series,
+ * marked stale, a panel never answered is one dark card, and only a request
+ * that never answered makes the dashboard unavailable.
  */
 export function useMetrics(range: MetricsRange): MetricsState {
   const [query, setQuery] = useState("");
@@ -56,7 +65,16 @@ export function useMetrics(range: MetricsRange): MetricsState {
 
   const panels = useQuery(panelsQuery(range));
   const failed = unanswered(panels);
-  const results = Object.fromEntries(ALL.map((id) => [id, resultOf(panels.data, id)])) as Partial<
+  // The last series each panel answered with, for this range only — folded in
+  // while rendering (React's "adjust state on a prop change"), so the tick
+  // that drops a panel already draws it stale rather than dark for a frame.
+  const [kept, setKept] = useState<Kept>({ range, answer: undefined, series: {} });
+  if (panels.data && (kept.answer !== panels.data || kept.range !== range)) {
+    const earlier = kept.range === range ? kept.series : {};
+    setKept({ range, answer: panels.data, series: { ...earlier, ...panels.data } });
+  }
+  const keptSeries = kept.range === range ? kept.series : {};
+  const results = Object.fromEntries(ALL_PANELS.map((id) => [id, resultOf(panels.data, keptSeries, id)])) as Partial<
     Record<PanelId, PanelResult>
   >;
 

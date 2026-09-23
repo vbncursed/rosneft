@@ -7,6 +7,7 @@ export {
   type ServiceState,
 } from "./model/service";
 export {
+  ALL_PANELS,
   formatValue,
   PANELS,
   SECTIONS,

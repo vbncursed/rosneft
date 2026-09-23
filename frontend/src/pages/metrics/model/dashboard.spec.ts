@@ -156,6 +156,14 @@ describe("panelEntry", () => {
     expect(e.lastTone).toBeUndefined();
   });
 
+  it("draws a stale panel's kept series and says it is stale", () => {
+    const series = [{ label: "gateway", points: [{ t: 1, v: 142 }], labels: {} }];
+    const entry = panelEntry("red-rate", { kind: "value", series, stale: true });
+    expect(entry.meta).toBe(`${PANELS["red-rate"].meta} · stale — last answer kept`);
+    expect(entry.series).toHaveLength(1);
+    expect(entry.last).not.toBe("—");
+  });
+
   it("keeps the red wording for a gRPC panel that failed", () => {
     const entry = panelEntry("red-rate", { kind: "unavailable", message: "Prometheus unreachable" });
     expect(entry.meta).toBe("unavailable — Prometheus unreachable");

@@ -19,7 +19,8 @@ import { focusSeries, shortGrpcLabel } from "./focus";
 /** What one panel query is in, as the screen reads it. */
 export type PanelResult =
   | { kind: "loading" }
-  | { kind: "value"; series: MetricSeries[] }
+  /** `stale`: this tick left the panel out, so these are the last answer's series. */
+  | { kind: "value"; series: MetricSeries[]; stale?: boolean }
   | { kind: "unavailable"; message: string };
 
 /**
@@ -119,10 +120,11 @@ export function panelEntry(
   const last = lastOf(focused.series);
   const tone = errorTone(id, last);
   const aligned = alignSeries(named);
+  const more = focused.hidden > 0 ? `${meta} · +${focused.hidden} more` : meta;
   return {
     key: id,
     title,
-    meta: focused.hidden > 0 ? `${meta} · +${focused.hidden} more` : meta,
+    meta: result.stale ? `${more} · stale — last answer kept` : more,
     unit,
     last: formatValue(last, unit),
     ...(tone ? { lastTone: tone } : {}),
