@@ -234,12 +234,37 @@ func (s *PlacementGroupsSuite) TestAGroupOfAnotherTerritoryCannotBeRenamedOrDele
 	assert.Equal(s.T(), listed[0].Title, "Theirs")
 }
 
-func (s *PlacementGroupsSuite) TestAnUnknownTerritoryIsNotFound() {
+// A create needs the territory. The list does not ask: the gateway's gate and
+// the scene's own territory read own "not found", so an unknown one lists [].
+func (s *PlacementGroupsSuite) TestAnUnknownTerritoryIsNotFoundOnCreateAndEmptyOnList() {
 	ctx := s.T().Context()
 	_, err := s.pg.CreatePlacementGroup(ctx, "nowhere", "x")
 	assert.ErrorIs(s.T(), err, domain.ErrTerritoryNotFound)
-	_, err = s.pg.ListPlacementGroups(ctx, "nowhere")
-	assert.ErrorIs(s.T(), err, domain.ErrTerritoryNotFound)
+	listed, err := s.pg.ListPlacementGroups(ctx, "nowhere")
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), listed != nil && len(listed) == 0, "no groups is [], not null")
+}
+
+// placement_groups_territory_title: a title is unique per territory, compared
+// case-insensitively after trimming, on create and on rename alike.
+func (s *PlacementGroupsSuite) TestATitleIsUniquePerTerritory() {
+	ctx := s.T().Context()
+	north, err := s.pg.CreatePlacementGroup(ctx, "a", "North")
+	assert.NilError(s.T(), err)
+	south, err := s.pg.CreatePlacementGroup(ctx, "a", "South")
+	assert.NilError(s.T(), err)
+
+	_, err = s.pg.CreatePlacementGroup(ctx, "a", "  nORTH ")
+	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+	assert.ErrorContains(s.T(), err, "a group with this title already exists")
+	_, err = s.pg.RenamePlacementGroup(ctx, "a", south.ID, "north")
+	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+	assert.ErrorContains(s.T(), err, "a group with this title already exists")
+
+	_, err = s.pg.RenamePlacementGroup(ctx, "a", north.ID, "NORTH")
+	assert.NilError(s.T(), err, "a group may be recased under its own title")
+	_, err = s.pg.CreatePlacementGroup(ctx, "b", "North")
+	assert.NilError(s.T(), err, "another territory may reuse the title")
 }
 
 // placement_groups_title_len is the backstop behind the service's own check;

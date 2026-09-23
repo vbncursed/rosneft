@@ -10,12 +10,10 @@ import (
 )
 
 // ListPlacementGroups returns every group on a territory in id order, [] when
-// there are none. An unknown territory is ErrTerritoryNotFound, not an empty
-// list.
+// there are none, and [] for an unknown territory too: the gateway's gate and
+// the scene bundle's own territory read answer "not found", so a second
+// existence query here would only cost a round trip.
 func (r *PG) ListPlacementGroups(ctx context.Context, territorySlug string) ([]domain.PlacementGroup, error) {
-	if _, err := r.GetTerritory(ctx, territorySlug, ""); err != nil { // existence check; scoped at gateway
-		return nil, err
-	}
 	rows, err := r.pool.Query(ctx, `SELECT `+placementGroupCols+`
 		FROM placement_groups g JOIN territories t ON t.id = g.territory_id
 		WHERE t.slug = $1
