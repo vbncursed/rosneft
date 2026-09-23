@@ -2265,6 +2265,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/console/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Home's console cards as numbers, in one request
+         * @description Each card is read in parallel with the caller's own session and scope, from the source its console screen reads. Answers `Cache-Control: no-store`. A Viewer, who opens no console screen, gets `{}`.
+         */
+        get: operations["getConsoleSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -2998,6 +3018,30 @@ export interface components {
             labels?: {
                 [key: string]: string;
             };
+        };
+        /** @description One key per console card the caller can open. A card they cannot open is absent and its source is never asked. A card whose source failed is null. The gates mirror the SPA's console screens. */
+        ConsoleSummary: {
+            /** @description users:read. Live accounts (deleted excluded) and how many are frozen. */
+            users?: {
+                total: number;
+                frozen: number;
+            } | null;
+            /** @description roles:read. Roles the caller sees; size of the permission catalog. */
+            roles?: {
+                roles: number;
+                permissions: number;
+            } | null;
+            /** @description territory:write or model:write. The caller's visible territories; every model. */
+            content?: {
+                territories: number;
+                models: number;
+            } | null;
+            /** @description Root. Territory-admin assignments summed over every territory. */
+            access?: number | null;
+            /** @description audit:read. Journal rows from the start of the hour 23 hours ago, in the caller's audit scope: the 24 buckets the journal page draws. */
+            audit24h?: number | null;
+            /** @description Root. Alert rules firing (alertname/service/severity; replicas count once). */
+            alerts?: number | null;
         };
         /** @description Series per requested panel ID; a panel whose query failed is absent. */
         MetricsPanels: {
@@ -4330,6 +4374,27 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["Internal"];
+        };
+    };
+    getConsoleSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsoleSummary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
 }

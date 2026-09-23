@@ -93,6 +93,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 
 	prom := InitPrometheus(cfg)
 	metricsHandler := InitMetricsHandler(prom, logger)
+	summaryHandler := InitConsoleSummary(svc, authClient, prom, logger)
 
 	backends := map[string]grpc.ClientConnInterface{
 		"catalog": cat.Conn(),
@@ -105,7 +106,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		"audit":   auditClient.Conn(),
 	}
 
-	router, hz := InitRouter(svc, assetProxy, metricsHandler, authH, logger, cfg, backends)
+	router, hz := InitRouter(svc, assetProxy, metricsHandler, summaryHandler, authH, logger, cfg, backends)
 
 	// gateway runs no gRPC server (Health stays nil) but is a Prometheus
 	// scrape target like every gRPC service, so it needs the same

@@ -36,6 +36,7 @@ var (
 //	  /api/jobs/{id}/events→ Authenticate → SSE (tenant-scoped per job)
 //	  /api/jobs           → Authenticate → tenant-filtered job list
 //	  /api/metrics/query   → Authenticate → owner check → Prometheus proxy
+//	  /api/console/summary → Authenticate → per-card gates → fan-out (no-store)
 //	  /api/audit.csv       → Authenticate → Require("audit:read") → CSV stream
 //	  /api/auth/*          → authhttp (login public; self/admin gated)
 //	  /api/* sub-router
@@ -55,6 +56,7 @@ func InitRouter(
 	svc *service.Gateway,
 	assetProxy http.Handler,
 	metricsHandler http.Handler,
+	summaryHandler http.Handler,
 	authH *authhttp.Handlers,
 	logger *slog.Logger,
 	cfg config.Config,
@@ -123,6 +125,11 @@ func InitRouter(
 	// outside the openapi strict handlers — it resolves a panel ID to
 	// server-side PromQL and proxies Prometheus, like the asset proxy for GLBs.
 	r.With(authH.Authenticate).Get("/api/metrics/query", metricsHandler.ServeHTTP)
+
+	// Home's console cards as numbers. Root router like /api/jobs: the answer is
+	// no-store, so the ETag chain would only hash it. Each card is gated and
+	// scoped inside the handler; see transport/summary.
+	r.With(authH.Authenticate).Get("/api/console/summary", summaryHandler.ServeHTTP)
 
 	// Audit CSV export. On the root router because ETagMiddleware hashes the
 	// whole response body — i.e. buffers it — which defeats a streaming export.

@@ -765,6 +765,55 @@ components:
             Raw Prometheus labels. Only the alerts panel needs them (to tell
             firing from pending); chart panels ignore them. Omitted when empty.
 
+    ConsoleSummary:
+      type: object
+      description: >
+        One key per console card the caller can open. A card they cannot open
+        is absent and its source is never asked. A card whose source failed is
+        null. The gates mirror the SPA's console screens.
+      properties:
+        users:
+          type: object
+          nullable: true
+          required: [total, frozen]
+          description: users:read. Live accounts (deleted excluded) and how many are frozen.
+          properties:
+            total: { type: integer, minimum: 0 }
+            frozen: { type: integer, minimum: 0 }
+        roles:
+          type: object
+          nullable: true
+          required: [roles, permissions]
+          description: roles:read. Roles the caller sees; size of the permission catalog.
+          properties:
+            roles: { type: integer, minimum: 0 }
+            permissions: { type: integer, minimum: 0 }
+        content:
+          type: object
+          nullable: true
+          required: [territories, models]
+          description: territory:write or model:write. The caller's visible territories; every model.
+          properties:
+            territories: { type: integer, minimum: 0 }
+            models: { type: integer, minimum: 0 }
+        access:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: Root. Territory-admin assignments summed over every territory.
+        audit24h:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: >
+            audit:read. Journal rows from the start of the hour 23 hours ago, in
+            the caller's audit scope: the 24 buckets the journal page draws.
+        alerts:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: Root. Alert rules firing (alertname/service/severity; replicas count once).
+
     MetricsPanels:
       type: object
       description: Series per requested panel ID; a panel whose query failed is absent.
@@ -2636,6 +2685,24 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+
+  /api/console/summary:
+    get:
+      tags: [console]
+      operationId: getConsoleSummary
+      summary: Home's console cards as numbers, in one request
+      description: >
+        Each card is read in parallel with the caller's own session and scope,
+        from the source its console screen reads. Answers `Cache-Control:
+        no-store`. A Viewer, who opens no console screen, gets `{}`.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConsoleSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   /healthz:
     get:

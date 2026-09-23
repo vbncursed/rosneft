@@ -367,6 +367,10 @@ first and then checks its slug; `visibleJob` filters the list. Both refuse in th
 404 shape ("job not found" / an absent row), both let models through — the
 library is shared — and both fail closed on an empty scope, for the reason the
 paragraph above gives.
+The same holds for `/api/territory-admins` (Root gate, set through the caller's
+scope; `ListTerritoryAdmins` itself fails closed on a scoped caller with an
+empty admin id) and `/api/console/summary` (each card reads with the caller's
+own token or scope; content and access fail closed on an empty scope).
 
 ### Blob scoping
 
