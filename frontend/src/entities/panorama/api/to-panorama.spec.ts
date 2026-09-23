@@ -10,6 +10,7 @@ const DTO = {
   position: { x: 1, y: 2, z: 3 },
   yawOffset: 0.5,
   defaultYaw: 1.2,
+  thumbnailBlobHash: "t",
   updatedAt: "2026-09-14T10:00:00Z",
 };
 
@@ -20,5 +21,9 @@ describe("toPanorama", () => {
 
   it("maps a missing updatedAt to an empty string", () => {
     expect(toPanorama({ ...DTO, updatedAt: undefined }).updatedAt).toBe("");
+  });
+
+  it("maps a thumbnail not made yet to null — the row draws the glyph", () => {
+    expect(toPanorama({ ...DTO, thumbnailBlobHash: undefined }).thumbnailBlobHash).toBeNull();
   });
 });

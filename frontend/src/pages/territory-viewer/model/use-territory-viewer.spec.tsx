@@ -119,6 +119,7 @@ const BUNDLE: SceneBundle = {
       position: { x: 1, y: 0, z: 2 },
       yawOffset: 0,
       defaultYaw: 0,
+      thumbnailBlobHash: null,
       updatedAt: "2026-09-14T10:00:00Z",
     },
   ],

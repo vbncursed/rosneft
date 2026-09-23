@@ -6,7 +6,7 @@ import { EXIT_PANORAMA, NOT_CALIBRATED, SHOW_IN } from "../model/copy";
 export type PanoramaRowView = {
   id: number;
   title: string;
-  /** The equirect photo, or null while there is nothing to show for it. */
+  /** The server-made 256×128 thumbnail; null until it exists, and the row draws the glyph. */
   thumbUrl: string | null;
   active: boolean;
   /** An anchor still at the origin: the row says so, above the way in. */
@@ -44,11 +44,16 @@ export function PanoramaRow({ row, onEnter, onExit, onEdit }: PanoramaRowProps) 
     >
       <span className={cx(THUMB, active ? "border-accent-line text-accent" : "border-line-2 text-dim")}>
         {thumbUrl ? (
-          // ponytail: the full equirect (4096x2048, 5-8 MB) for a 44x34 thumb.
-          // `lazy` keeps a capture the reader never scrolls to off the wire
-          // and `async` keeps the decode off the main thread; the ceiling is a
-          // server-side thumbnail, which is a gateway endpoint away.
-          <img src={thumbUrl} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
+          // The thumbnail's own size: the box reserves its ratio before the bytes land.
+          <img
+            src={thumbUrl}
+            alt=""
+            width={256}
+            height={128}
+            loading="lazy"
+            decoding="async"
+            className="size-full object-cover"
+          />
         ) : (
           <Icon name="panorama" size={16} />
         )}

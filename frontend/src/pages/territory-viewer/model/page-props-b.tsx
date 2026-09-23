@@ -60,7 +60,7 @@ export function viewTabProps(p: PageParts): ViewTabProps {
       rows: pan.list.map((panorama) => ({
         id: panorama.id,
         title: panorama.title,
-        thumbUrl: assetUrl(panorama.sourceBlobHash),
+        thumbUrl: panorama.thumbnailBlobHash ? assetUrl(panorama.thumbnailBlobHash) : null,
         active: panorama.id === inside,
         calibrated: isCalibrated(panorama),
         canEdit: grants.panoramaWrite,

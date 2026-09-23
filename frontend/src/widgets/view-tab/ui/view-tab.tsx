@@ -80,8 +80,9 @@ const KBD = "rounded-[4px] border border-accent-line px-[5px] py-px font-mono te
  * `aria-label` is not something `getElementById` can find.
  *
  * Their lists fold behind the heads (`useSectionFolds` owns the state). A
- * folded list stays mounted but `hidden`, so its head's `aria-controls` always
- * names a real element.
+ * folded list keeps its `<ul>`, empty and `hidden`, so its head's
+ * `aria-controls` always names a real element. It keeps none of its rows,
+ * because every row holds an `<img>` and each page render re-rendered them all.
  */
 export function ViewTab({ details, panoramas, documents, measurements, footer }: ViewTabProps) {
   const markersId = useId();
@@ -140,16 +141,18 @@ export function ViewTab({ details, panoramas, documents, measurements, footer }:
             data-tour="panorama-picker"
             className={LIST}
           >
-            {panoramas.rows.map((row) => (
-              <li key={row.id}>
-                <PanoramaRow
-                  row={row}
-                  onEnter={panoramas.onEnter}
-                  onExit={panoramas.onExit}
-                  onEdit={panoramas.onEdit}
-                />
-              </li>
-            ))}
+            {panoramas.fold.open
+              ? panoramas.rows.map((row) => (
+                  <li key={row.id}>
+                    <PanoramaRow
+                      row={row}
+                      onEnter={panoramas.onEnter}
+                      onExit={panoramas.onExit}
+                      onEdit={panoramas.onEdit}
+                    />
+                  </li>
+                ))
+              : null}
           </ul>
         ) : null}
 
@@ -202,11 +205,13 @@ export function ViewTab({ details, panoramas, documents, measurements, footer }:
         />
         {documents.rows.length > 0 ? (
           <ul id={documentListId} hidden={!documents.fold.open} role="list" className={LIST}>
-            {documents.rows.map((row) => (
-              <li key={row.id}>
-                <DocumentRow id={row.id} name={row.name} onOpen={documents.onOpen} />
-              </li>
-            ))}
+            {documents.fold.open
+              ? documents.rows.map((row) => (
+                  <li key={row.id}>
+                    <DocumentRow id={row.id} name={row.name} onOpen={documents.onOpen} />
+                  </li>
+                ))
+              : null}
           </ul>
         ) : null}
       </section>
