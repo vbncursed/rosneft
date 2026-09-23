@@ -87,6 +87,43 @@ func (s *BatchSuite) TestAKeyReusedForAnotherCountIsAConflict() {
 	assert.Equal(s.T(), s.countOn("idem-north"), 2)
 }
 
+// A batch that landed and later lost rows to deletes is still the batch the
+// key names: a replay answers what remains, 201, and is no conflict.
+func (s *BatchSuite) TestAReplayOfABatchThatLostRowsAnswersWhatRemains() {
+	ctx := s.T().Context()
+	s.seedTerritory(ctx, "idem-edited", s.admin)
+	s.seedModel(ctx, "idem-edited-pump")
+
+	first, err := s.pg.CreatePlacements(ctx, "key-e", batchOf("idem-edited", "idem-edited-pump", 3, 0))
+	assert.NilError(s.T(), err)
+	assert.NilError(s.T(), s.pg.DeletePlacement(ctx, "idem-edited", first[1].ID))
+
+	again, err := s.pg.CreatePlacements(ctx, "key-e", batchOf("idem-edited", "idem-edited-pump", 3, 0))
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), idsOf(again), []int64{first[0].ID, first[2].ID})
+	assert.Equal(s.T(), s.countOn("idem-edited"), 2)
+}
+
+// PlacementBatch is the replay read on its own, for the service to answer a
+// stored batch before it validates anything against today's territory.
+func (s *BatchSuite) TestPlacementBatchReadsWhatAKeyStored() {
+	ctx := s.T().Context()
+	s.seedTerritory(ctx, "idem-read", s.admin)
+	s.seedModel(ctx, "idem-read-pump")
+
+	none, err := s.pg.PlacementBatch(ctx, "idem-read", "key-r", 2)
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), none == nil)
+
+	first, err := s.pg.CreatePlacements(ctx, "key-r", batchOf("idem-read", "idem-read-pump", 2, 0))
+	assert.NilError(s.T(), err)
+	stored, err := s.pg.PlacementBatch(ctx, "idem-read", "key-r", 2)
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), idsOf(stored), idsOf(first))
+	_, err = s.pg.PlacementBatch(ctx, "idem-read", "key-r", 3)
+	assert.ErrorIs(s.T(), err, domain.ErrIdempotencyConflict)
+}
+
 // Without a key every call is its own batch, as before.
 func (s *BatchSuite) TestWithoutAKeyEveryCallWrites() {
 	ctx := s.T().Context()

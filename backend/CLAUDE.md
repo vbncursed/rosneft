@@ -200,10 +200,16 @@ Validation:
 **The batch is idempotent under `Idempotency-Key`, and the key lives in the
 catalog, not Redis.** Each row of a keyed batch carries `idempotency_key` and
 `batch_index` (migration 00018), under a partial unique index on
-`(territory_id, idempotency_key, batch_index)`. `storage.CreatePlacements`
-first reads the key's rows inside its own transaction and answers them, in
-`batch_index` order, when their count matches — or `ErrIdempotencyConflict`
-(gRPC `AlreadyExists`, HTTP 409) when it does not. Two requests racing on one
+`(territory_id, idempotency_key, batch_index)`. The service asks
+`PlacementBatch` first, before the panorama check, so a retry of a batch that
+landed is answered as stored even if one of its panoramas was deleted since;
+`storage.CreatePlacements` reads again inside its own transaction. Either read
+answers the key's rows in `batch_index` order when their count matches, and
+also when rows are missing below the highest `batch_index` (the batch landed
+and was edited since — what remains is the answer); an intact batch of another
+size is `ErrIdempotencyConflict` (gRPC `AlreadyExists`, HTTP 409). A batch whose
+*trailing* rows were deleted looks intact, so its replay is a 409 — the known
+ceiling, noted at `batchByKey`. Two requests racing on one
 key both miss that read; the loser's insert of item 0 waits on the winner's
 uncommitted row, fails on the index once the winner commits, rolls back, and
 answers the winner's rows from a fresh read. `create_placements_integration_test.go`
@@ -211,9 +217,10 @@ drives that race with a barrier and was checked by switching the race branch
 off. Unkeyed rows keep both columns NULL and stay out of the index; nothing
 UPDATEs the columns, so the audit trigger's ignore list does not list them.
 
-**A refusal's gRPC message starts at its sentinel.** The catalog's `mapError`
-cuts everything before the matched sentinel's text, so the gateway can put the
-message in a 4xx body as it is. An `Internal` status keeps its whole text; the
+**A refusal's gRPC message starts at its sentinel.** Catalog's and auth's
+`mapError` use `apperr.ToStatusAtSentinel`, which cuts everything before the
+matched sentinel's text, so the gateway can put the message in a 4xx body as it
+is. An `Internal` status keeps its whole text; the
 gateway never shows it (see **A 500 body** in the root CLAUDE.md).
 
 ## Audit journal

@@ -187,6 +187,13 @@ type RepositoryMock struct {
 	beforeListTerritoryArtifactsCounter uint64
 	ListTerritoryArtifactsMock          mRepositoryMockListTerritoryArtifacts
 
+	funcPlacementBatch          func(ctx context.Context, territorySlug string, key string, size int) (pa1 []domain.Placement, err error)
+	funcPlacementBatchOrigin    string
+	inspectFuncPlacementBatch   func(ctx context.Context, territorySlug string, key string, size int)
+	afterPlacementBatchCounter  uint64
+	beforePlacementBatchCounter uint64
+	PlacementBatchMock          mRepositoryMockPlacementBatch
+
 	funcRegisterModelArtifact          func(ctx context.Context, a domain.Artifact) (a1 domain.Artifact, err error)
 	funcRegisterModelArtifactOrigin    string
 	inspectFuncRegisterModelArtifact   func(ctx context.Context, a domain.Artifact)
@@ -358,6 +365,9 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 
 	m.ListTerritoryArtifactsMock = mRepositoryMockListTerritoryArtifacts{mock: m}
 	m.ListTerritoryArtifactsMock.callArgs = []*RepositoryMockListTerritoryArtifactsParams{}
+
+	m.PlacementBatchMock = mRepositoryMockPlacementBatch{mock: m}
+	m.PlacementBatchMock.callArgs = []*RepositoryMockPlacementBatchParams{}
 
 	m.RegisterModelArtifactMock = mRepositoryMockRegisterModelArtifact{mock: m}
 	m.RegisterModelArtifactMock.callArgs = []*RepositoryMockRegisterModelArtifactParams{}
@@ -8785,6 +8795,411 @@ func (m *RepositoryMock) MinimockListTerritoryArtifactsInspect() {
 	}
 }
 
+type mRepositoryMockPlacementBatch struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockPlacementBatchExpectation
+	expectations       []*RepositoryMockPlacementBatchExpectation
+
+	callArgs []*RepositoryMockPlacementBatchParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockPlacementBatchExpectation specifies expectation struct of the Repository.PlacementBatch
+type RepositoryMockPlacementBatchExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockPlacementBatchParams
+	paramPtrs          *RepositoryMockPlacementBatchParamPtrs
+	expectationOrigins RepositoryMockPlacementBatchExpectationOrigins
+	results            *RepositoryMockPlacementBatchResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockPlacementBatchParams contains parameters of the Repository.PlacementBatch
+type RepositoryMockPlacementBatchParams struct {
+	ctx           context.Context
+	territorySlug string
+	key           string
+	size          int
+}
+
+// RepositoryMockPlacementBatchParamPtrs contains pointers to parameters of the Repository.PlacementBatch
+type RepositoryMockPlacementBatchParamPtrs struct {
+	ctx           *context.Context
+	territorySlug *string
+	key           *string
+	size          *int
+}
+
+// RepositoryMockPlacementBatchResults contains results of the Repository.PlacementBatch
+type RepositoryMockPlacementBatchResults struct {
+	pa1 []domain.Placement
+	err error
+}
+
+// RepositoryMockPlacementBatchOrigins contains origins of expectations of the Repository.PlacementBatch
+type RepositoryMockPlacementBatchExpectationOrigins struct {
+	origin              string
+	originCtx           string
+	originTerritorySlug string
+	originKey           string
+	originSize          string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) Optional() *mRepositoryMockPlacementBatch {
+	mmPlacementBatch.optional = true
+	return mmPlacementBatch
+}
+
+// Expect sets up expected params for Repository.PlacementBatch
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) Expect(ctx context.Context, territorySlug string, key string, size int) *mRepositoryMockPlacementBatch {
+	if mmPlacementBatch.mock.funcPlacementBatch != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Set")
+	}
+
+	if mmPlacementBatch.defaultExpectation == nil {
+		mmPlacementBatch.defaultExpectation = &RepositoryMockPlacementBatchExpectation{}
+	}
+
+	if mmPlacementBatch.defaultExpectation.paramPtrs != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by ExpectParams functions")
+	}
+
+	mmPlacementBatch.defaultExpectation.params = &RepositoryMockPlacementBatchParams{ctx, territorySlug, key, size}
+	mmPlacementBatch.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmPlacementBatch.expectations {
+		if minimock.Equal(e.params, mmPlacementBatch.defaultExpectation.params) {
+			mmPlacementBatch.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmPlacementBatch.defaultExpectation.params)
+		}
+	}
+
+	return mmPlacementBatch
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.PlacementBatch
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) ExpectCtxParam1(ctx context.Context) *mRepositoryMockPlacementBatch {
+	if mmPlacementBatch.mock.funcPlacementBatch != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Set")
+	}
+
+	if mmPlacementBatch.defaultExpectation == nil {
+		mmPlacementBatch.defaultExpectation = &RepositoryMockPlacementBatchExpectation{}
+	}
+
+	if mmPlacementBatch.defaultExpectation.params != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Expect")
+	}
+
+	if mmPlacementBatch.defaultExpectation.paramPtrs == nil {
+		mmPlacementBatch.defaultExpectation.paramPtrs = &RepositoryMockPlacementBatchParamPtrs{}
+	}
+	mmPlacementBatch.defaultExpectation.paramPtrs.ctx = &ctx
+	mmPlacementBatch.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmPlacementBatch
+}
+
+// ExpectTerritorySlugParam2 sets up expected param territorySlug for Repository.PlacementBatch
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) ExpectTerritorySlugParam2(territorySlug string) *mRepositoryMockPlacementBatch {
+	if mmPlacementBatch.mock.funcPlacementBatch != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Set")
+	}
+
+	if mmPlacementBatch.defaultExpectation == nil {
+		mmPlacementBatch.defaultExpectation = &RepositoryMockPlacementBatchExpectation{}
+	}
+
+	if mmPlacementBatch.defaultExpectation.params != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Expect")
+	}
+
+	if mmPlacementBatch.defaultExpectation.paramPtrs == nil {
+		mmPlacementBatch.defaultExpectation.paramPtrs = &RepositoryMockPlacementBatchParamPtrs{}
+	}
+	mmPlacementBatch.defaultExpectation.paramPtrs.territorySlug = &territorySlug
+	mmPlacementBatch.defaultExpectation.expectationOrigins.originTerritorySlug = minimock.CallerInfo(1)
+
+	return mmPlacementBatch
+}
+
+// ExpectKeyParam3 sets up expected param key for Repository.PlacementBatch
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) ExpectKeyParam3(key string) *mRepositoryMockPlacementBatch {
+	if mmPlacementBatch.mock.funcPlacementBatch != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Set")
+	}
+
+	if mmPlacementBatch.defaultExpectation == nil {
+		mmPlacementBatch.defaultExpectation = &RepositoryMockPlacementBatchExpectation{}
+	}
+
+	if mmPlacementBatch.defaultExpectation.params != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Expect")
+	}
+
+	if mmPlacementBatch.defaultExpectation.paramPtrs == nil {
+		mmPlacementBatch.defaultExpectation.paramPtrs = &RepositoryMockPlacementBatchParamPtrs{}
+	}
+	mmPlacementBatch.defaultExpectation.paramPtrs.key = &key
+	mmPlacementBatch.defaultExpectation.expectationOrigins.originKey = minimock.CallerInfo(1)
+
+	return mmPlacementBatch
+}
+
+// ExpectSizeParam4 sets up expected param size for Repository.PlacementBatch
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) ExpectSizeParam4(size int) *mRepositoryMockPlacementBatch {
+	if mmPlacementBatch.mock.funcPlacementBatch != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Set")
+	}
+
+	if mmPlacementBatch.defaultExpectation == nil {
+		mmPlacementBatch.defaultExpectation = &RepositoryMockPlacementBatchExpectation{}
+	}
+
+	if mmPlacementBatch.defaultExpectation.params != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Expect")
+	}
+
+	if mmPlacementBatch.defaultExpectation.paramPtrs == nil {
+		mmPlacementBatch.defaultExpectation.paramPtrs = &RepositoryMockPlacementBatchParamPtrs{}
+	}
+	mmPlacementBatch.defaultExpectation.paramPtrs.size = &size
+	mmPlacementBatch.defaultExpectation.expectationOrigins.originSize = minimock.CallerInfo(1)
+
+	return mmPlacementBatch
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.PlacementBatch
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) Inspect(f func(ctx context.Context, territorySlug string, key string, size int)) *mRepositoryMockPlacementBatch {
+	if mmPlacementBatch.mock.inspectFuncPlacementBatch != nil {
+		mmPlacementBatch.mock.t.Fatalf("Inspect function is already set for RepositoryMock.PlacementBatch")
+	}
+
+	mmPlacementBatch.mock.inspectFuncPlacementBatch = f
+
+	return mmPlacementBatch
+}
+
+// Return sets up results that will be returned by Repository.PlacementBatch
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) Return(pa1 []domain.Placement, err error) *RepositoryMock {
+	if mmPlacementBatch.mock.funcPlacementBatch != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Set")
+	}
+
+	if mmPlacementBatch.defaultExpectation == nil {
+		mmPlacementBatch.defaultExpectation = &RepositoryMockPlacementBatchExpectation{mock: mmPlacementBatch.mock}
+	}
+	mmPlacementBatch.defaultExpectation.results = &RepositoryMockPlacementBatchResults{pa1, err}
+	mmPlacementBatch.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmPlacementBatch.mock
+}
+
+// Set uses given function f to mock the Repository.PlacementBatch method
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) Set(f func(ctx context.Context, territorySlug string, key string, size int) (pa1 []domain.Placement, err error)) *RepositoryMock {
+	if mmPlacementBatch.defaultExpectation != nil {
+		mmPlacementBatch.mock.t.Fatalf("Default expectation is already set for the Repository.PlacementBatch method")
+	}
+
+	if len(mmPlacementBatch.expectations) > 0 {
+		mmPlacementBatch.mock.t.Fatalf("Some expectations are already set for the Repository.PlacementBatch method")
+	}
+
+	mmPlacementBatch.mock.funcPlacementBatch = f
+	mmPlacementBatch.mock.funcPlacementBatchOrigin = minimock.CallerInfo(1)
+	return mmPlacementBatch.mock
+}
+
+// When sets expectation for the Repository.PlacementBatch which will trigger the result defined by the following
+// Then helper
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) When(ctx context.Context, territorySlug string, key string, size int) *RepositoryMockPlacementBatchExpectation {
+	if mmPlacementBatch.mock.funcPlacementBatch != nil {
+		mmPlacementBatch.mock.t.Fatalf("RepositoryMock.PlacementBatch mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockPlacementBatchExpectation{
+		mock:               mmPlacementBatch.mock,
+		params:             &RepositoryMockPlacementBatchParams{ctx, territorySlug, key, size},
+		expectationOrigins: RepositoryMockPlacementBatchExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmPlacementBatch.expectations = append(mmPlacementBatch.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.PlacementBatch return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockPlacementBatchExpectation) Then(pa1 []domain.Placement, err error) *RepositoryMock {
+	e.results = &RepositoryMockPlacementBatchResults{pa1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.PlacementBatch should be invoked
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) Times(n uint64) *mRepositoryMockPlacementBatch {
+	if n == 0 {
+		mmPlacementBatch.mock.t.Fatalf("Times of RepositoryMock.PlacementBatch mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmPlacementBatch.expectedInvocations, n)
+	mmPlacementBatch.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmPlacementBatch
+}
+
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) invocationsDone() bool {
+	if len(mmPlacementBatch.expectations) == 0 && mmPlacementBatch.defaultExpectation == nil && mmPlacementBatch.mock.funcPlacementBatch == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmPlacementBatch.mock.afterPlacementBatchCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmPlacementBatch.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// PlacementBatch implements mm_service.Repository
+func (mmPlacementBatch *RepositoryMock) PlacementBatch(ctx context.Context, territorySlug string, key string, size int) (pa1 []domain.Placement, err error) {
+	mm_atomic.AddUint64(&mmPlacementBatch.beforePlacementBatchCounter, 1)
+	defer mm_atomic.AddUint64(&mmPlacementBatch.afterPlacementBatchCounter, 1)
+
+	mmPlacementBatch.t.Helper()
+
+	if mmPlacementBatch.inspectFuncPlacementBatch != nil {
+		mmPlacementBatch.inspectFuncPlacementBatch(ctx, territorySlug, key, size)
+	}
+
+	mm_params := RepositoryMockPlacementBatchParams{ctx, territorySlug, key, size}
+
+	// Record call args
+	mmPlacementBatch.PlacementBatchMock.mutex.Lock()
+	mmPlacementBatch.PlacementBatchMock.callArgs = append(mmPlacementBatch.PlacementBatchMock.callArgs, &mm_params)
+	mmPlacementBatch.PlacementBatchMock.mutex.Unlock()
+
+	for _, e := range mmPlacementBatch.PlacementBatchMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.pa1, e.results.err
+		}
+	}
+
+	if mmPlacementBatch.PlacementBatchMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmPlacementBatch.PlacementBatchMock.defaultExpectation.Counter, 1)
+		mm_want := mmPlacementBatch.PlacementBatchMock.defaultExpectation.params
+		mm_want_ptrs := mmPlacementBatch.PlacementBatchMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockPlacementBatchParams{ctx, territorySlug, key, size}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmPlacementBatch.t.Errorf("RepositoryMock.PlacementBatch got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmPlacementBatch.PlacementBatchMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
+				mmPlacementBatch.t.Errorf("RepositoryMock.PlacementBatch got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmPlacementBatch.PlacementBatchMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.key != nil && !minimock.Equal(*mm_want_ptrs.key, mm_got.key) {
+				mmPlacementBatch.t.Errorf("RepositoryMock.PlacementBatch got unexpected parameter key, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmPlacementBatch.PlacementBatchMock.defaultExpectation.expectationOrigins.originKey, *mm_want_ptrs.key, mm_got.key, minimock.Diff(*mm_want_ptrs.key, mm_got.key))
+			}
+
+			if mm_want_ptrs.size != nil && !minimock.Equal(*mm_want_ptrs.size, mm_got.size) {
+				mmPlacementBatch.t.Errorf("RepositoryMock.PlacementBatch got unexpected parameter size, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmPlacementBatch.PlacementBatchMock.defaultExpectation.expectationOrigins.originSize, *mm_want_ptrs.size, mm_got.size, minimock.Diff(*mm_want_ptrs.size, mm_got.size))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmPlacementBatch.t.Errorf("RepositoryMock.PlacementBatch got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmPlacementBatch.PlacementBatchMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmPlacementBatch.PlacementBatchMock.defaultExpectation.results
+		if mm_results == nil {
+			mmPlacementBatch.t.Fatal("No results are set for the RepositoryMock.PlacementBatch")
+		}
+		return (*mm_results).pa1, (*mm_results).err
+	}
+	if mmPlacementBatch.funcPlacementBatch != nil {
+		return mmPlacementBatch.funcPlacementBatch(ctx, territorySlug, key, size)
+	}
+	mmPlacementBatch.t.Fatalf("Unexpected call to RepositoryMock.PlacementBatch. %v %v %v %v", ctx, territorySlug, key, size)
+	return
+}
+
+// PlacementBatchAfterCounter returns a count of finished RepositoryMock.PlacementBatch invocations
+func (mmPlacementBatch *RepositoryMock) PlacementBatchAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmPlacementBatch.afterPlacementBatchCounter)
+}
+
+// PlacementBatchBeforeCounter returns a count of RepositoryMock.PlacementBatch invocations
+func (mmPlacementBatch *RepositoryMock) PlacementBatchBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmPlacementBatch.beforePlacementBatchCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.PlacementBatch.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmPlacementBatch *mRepositoryMockPlacementBatch) Calls() []*RepositoryMockPlacementBatchParams {
+	mmPlacementBatch.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockPlacementBatchParams, len(mmPlacementBatch.callArgs))
+	copy(argCopy, mmPlacementBatch.callArgs)
+
+	mmPlacementBatch.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockPlacementBatchDone returns true if the count of the PlacementBatch invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockPlacementBatchDone() bool {
+	if m.PlacementBatchMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.PlacementBatchMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.PlacementBatchMock.invocationsDone()
+}
+
+// MinimockPlacementBatchInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockPlacementBatchInspect() {
+	for _, e := range m.PlacementBatchMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.PlacementBatch at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterPlacementBatchCounter := mm_atomic.LoadUint64(&m.afterPlacementBatchCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.PlacementBatchMock.defaultExpectation != nil && afterPlacementBatchCounter < 1 {
+		if m.PlacementBatchMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.PlacementBatch at\n%s", m.PlacementBatchMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.PlacementBatch at\n%s with params: %#v", m.PlacementBatchMock.defaultExpectation.expectationOrigins.origin, *m.PlacementBatchMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcPlacementBatch != nil && afterPlacementBatchCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.PlacementBatch at\n%s", m.funcPlacementBatchOrigin)
+	}
+
+	if !m.PlacementBatchMock.invocationsDone() && afterPlacementBatchCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.PlacementBatch at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.PlacementBatchMock.expectedInvocations), m.PlacementBatchMock.expectedInvocationsOrigin, afterPlacementBatchCounter)
+	}
+}
+
 type mRepositoryMockRegisterModelArtifact struct {
 	optional           bool
 	mock               *RepositoryMock
@@ -13604,6 +14019,8 @@ func (m *RepositoryMock) MinimockFinish() {
 
 			m.MinimockListTerritoryArtifactsInspect()
 
+			m.MinimockPlacementBatchInspect()
+
 			m.MinimockRegisterModelArtifactInspect()
 
 			m.MinimockRegisterTerritoryArtifactInspect()
@@ -13676,6 +14093,7 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockListTerritoriesDone() &&
 		m.MinimockListTerritoryAdminsDone() &&
 		m.MinimockListTerritoryArtifactsDone() &&
+		m.MinimockPlacementBatchDone() &&
 		m.MinimockRegisterModelArtifactDone() &&
 		m.MinimockRegisterTerritoryArtifactDone() &&
 		m.MinimockRescaleTerritoryPlacementsDone() &&
