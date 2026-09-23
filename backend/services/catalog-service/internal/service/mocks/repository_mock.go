@@ -145,9 +145,9 @@ type RepositoryMock struct {
 	beforeListModelArtifactsCounter uint64
 	ListModelArtifactsMock          mRepositoryMockListModelArtifacts
 
-	funcListModels          func(ctx context.Context) (ma1 []domain.Model, err error)
+	funcListModels          func(ctx context.Context, withArtifacts bool) (ma1 []domain.Model, err error)
 	funcListModelsOrigin    string
-	inspectFuncListModels   func(ctx context.Context)
+	inspectFuncListModels   func(ctx context.Context, withArtifacts bool)
 	afterListModelsCounter  uint64
 	beforeListModelsCounter uint64
 	ListModelsMock          mRepositoryMockListModels
@@ -166,9 +166,9 @@ type RepositoryMock struct {
 	beforeListPlacementsCounter uint64
 	ListPlacementsMock          mRepositoryMockListPlacements
 
-	funcListTerritories          func(ctx context.Context, scopeAdminID string) (ta1 []domain.Territory, err error)
+	funcListTerritories          func(ctx context.Context, scopeAdminID string, withArtifacts bool) (ta1 []domain.Territory, err error)
 	funcListTerritoriesOrigin    string
-	inspectFuncListTerritories   func(ctx context.Context, scopeAdminID string)
+	inspectFuncListTerritories   func(ctx context.Context, scopeAdminID string, withArtifacts bool)
 	afterListTerritoriesCounter  uint64
 	beforeListTerritoriesCounter uint64
 	ListTerritoriesMock          mRepositoryMockListTerritories
@@ -6794,12 +6794,14 @@ type RepositoryMockListModelsExpectation struct {
 
 // RepositoryMockListModelsParams contains parameters of the Repository.ListModels
 type RepositoryMockListModelsParams struct {
-	ctx context.Context
+	ctx           context.Context
+	withArtifacts bool
 }
 
 // RepositoryMockListModelsParamPtrs contains pointers to parameters of the Repository.ListModels
 type RepositoryMockListModelsParamPtrs struct {
-	ctx *context.Context
+	ctx           *context.Context
+	withArtifacts *bool
 }
 
 // RepositoryMockListModelsResults contains results of the Repository.ListModels
@@ -6810,8 +6812,9 @@ type RepositoryMockListModelsResults struct {
 
 // RepositoryMockListModelsOrigins contains origins of expectations of the Repository.ListModels
 type RepositoryMockListModelsExpectationOrigins struct {
-	origin    string
-	originCtx string
+	origin              string
+	originCtx           string
+	originWithArtifacts string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -6825,7 +6828,7 @@ func (mmListModels *mRepositoryMockListModels) Optional() *mRepositoryMockListMo
 }
 
 // Expect sets up expected params for Repository.ListModels
-func (mmListModels *mRepositoryMockListModels) Expect(ctx context.Context) *mRepositoryMockListModels {
+func (mmListModels *mRepositoryMockListModels) Expect(ctx context.Context, withArtifacts bool) *mRepositoryMockListModels {
 	if mmListModels.mock.funcListModels != nil {
 		mmListModels.mock.t.Fatalf("RepositoryMock.ListModels mock is already set by Set")
 	}
@@ -6838,7 +6841,7 @@ func (mmListModels *mRepositoryMockListModels) Expect(ctx context.Context) *mRep
 		mmListModels.mock.t.Fatalf("RepositoryMock.ListModels mock is already set by ExpectParams functions")
 	}
 
-	mmListModels.defaultExpectation.params = &RepositoryMockListModelsParams{ctx}
+	mmListModels.defaultExpectation.params = &RepositoryMockListModelsParams{ctx, withArtifacts}
 	mmListModels.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmListModels.expectations {
 		if minimock.Equal(e.params, mmListModels.defaultExpectation.params) {
@@ -6872,8 +6875,31 @@ func (mmListModels *mRepositoryMockListModels) ExpectCtxParam1(ctx context.Conte
 	return mmListModels
 }
 
+// ExpectWithArtifactsParam2 sets up expected param withArtifacts for Repository.ListModels
+func (mmListModels *mRepositoryMockListModels) ExpectWithArtifactsParam2(withArtifacts bool) *mRepositoryMockListModels {
+	if mmListModels.mock.funcListModels != nil {
+		mmListModels.mock.t.Fatalf("RepositoryMock.ListModels mock is already set by Set")
+	}
+
+	if mmListModels.defaultExpectation == nil {
+		mmListModels.defaultExpectation = &RepositoryMockListModelsExpectation{}
+	}
+
+	if mmListModels.defaultExpectation.params != nil {
+		mmListModels.mock.t.Fatalf("RepositoryMock.ListModels mock is already set by Expect")
+	}
+
+	if mmListModels.defaultExpectation.paramPtrs == nil {
+		mmListModels.defaultExpectation.paramPtrs = &RepositoryMockListModelsParamPtrs{}
+	}
+	mmListModels.defaultExpectation.paramPtrs.withArtifacts = &withArtifacts
+	mmListModels.defaultExpectation.expectationOrigins.originWithArtifacts = minimock.CallerInfo(1)
+
+	return mmListModels
+}
+
 // Inspect accepts an inspector function that has same arguments as the Repository.ListModels
-func (mmListModels *mRepositoryMockListModels) Inspect(f func(ctx context.Context)) *mRepositoryMockListModels {
+func (mmListModels *mRepositoryMockListModels) Inspect(f func(ctx context.Context, withArtifacts bool)) *mRepositoryMockListModels {
 	if mmListModels.mock.inspectFuncListModels != nil {
 		mmListModels.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ListModels")
 	}
@@ -6898,7 +6924,7 @@ func (mmListModels *mRepositoryMockListModels) Return(ma1 []domain.Model, err er
 }
 
 // Set uses given function f to mock the Repository.ListModels method
-func (mmListModels *mRepositoryMockListModels) Set(f func(ctx context.Context) (ma1 []domain.Model, err error)) *RepositoryMock {
+func (mmListModels *mRepositoryMockListModels) Set(f func(ctx context.Context, withArtifacts bool) (ma1 []domain.Model, err error)) *RepositoryMock {
 	if mmListModels.defaultExpectation != nil {
 		mmListModels.mock.t.Fatalf("Default expectation is already set for the Repository.ListModels method")
 	}
@@ -6914,14 +6940,14 @@ func (mmListModels *mRepositoryMockListModels) Set(f func(ctx context.Context) (
 
 // When sets expectation for the Repository.ListModels which will trigger the result defined by the following
 // Then helper
-func (mmListModels *mRepositoryMockListModels) When(ctx context.Context) *RepositoryMockListModelsExpectation {
+func (mmListModels *mRepositoryMockListModels) When(ctx context.Context, withArtifacts bool) *RepositoryMockListModelsExpectation {
 	if mmListModels.mock.funcListModels != nil {
 		mmListModels.mock.t.Fatalf("RepositoryMock.ListModels mock is already set by Set")
 	}
 
 	expectation := &RepositoryMockListModelsExpectation{
 		mock:               mmListModels.mock,
-		params:             &RepositoryMockListModelsParams{ctx},
+		params:             &RepositoryMockListModelsParams{ctx, withArtifacts},
 		expectationOrigins: RepositoryMockListModelsExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmListModels.expectations = append(mmListModels.expectations, expectation)
@@ -6956,17 +6982,17 @@ func (mmListModels *mRepositoryMockListModels) invocationsDone() bool {
 }
 
 // ListModels implements mm_service.Repository
-func (mmListModels *RepositoryMock) ListModels(ctx context.Context) (ma1 []domain.Model, err error) {
+func (mmListModels *RepositoryMock) ListModels(ctx context.Context, withArtifacts bool) (ma1 []domain.Model, err error) {
 	mm_atomic.AddUint64(&mmListModels.beforeListModelsCounter, 1)
 	defer mm_atomic.AddUint64(&mmListModels.afterListModelsCounter, 1)
 
 	mmListModels.t.Helper()
 
 	if mmListModels.inspectFuncListModels != nil {
-		mmListModels.inspectFuncListModels(ctx)
+		mmListModels.inspectFuncListModels(ctx, withArtifacts)
 	}
 
-	mm_params := RepositoryMockListModelsParams{ctx}
+	mm_params := RepositoryMockListModelsParams{ctx, withArtifacts}
 
 	// Record call args
 	mmListModels.ListModelsMock.mutex.Lock()
@@ -6985,13 +7011,18 @@ func (mmListModels *RepositoryMock) ListModels(ctx context.Context) (ma1 []domai
 		mm_want := mmListModels.ListModelsMock.defaultExpectation.params
 		mm_want_ptrs := mmListModels.ListModelsMock.defaultExpectation.paramPtrs
 
-		mm_got := RepositoryMockListModelsParams{ctx}
+		mm_got := RepositoryMockListModelsParams{ctx, withArtifacts}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
 				mmListModels.t.Errorf("RepositoryMock.ListModels got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmListModels.ListModelsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.withArtifacts != nil && !minimock.Equal(*mm_want_ptrs.withArtifacts, mm_got.withArtifacts) {
+				mmListModels.t.Errorf("RepositoryMock.ListModels got unexpected parameter withArtifacts, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListModels.ListModelsMock.defaultExpectation.expectationOrigins.originWithArtifacts, *mm_want_ptrs.withArtifacts, mm_got.withArtifacts, minimock.Diff(*mm_want_ptrs.withArtifacts, mm_got.withArtifacts))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
@@ -7006,9 +7037,9 @@ func (mmListModels *RepositoryMock) ListModels(ctx context.Context) (ma1 []domai
 		return (*mm_results).ma1, (*mm_results).err
 	}
 	if mmListModels.funcListModels != nil {
-		return mmListModels.funcListModels(ctx)
+		return mmListModels.funcListModels(ctx, withArtifacts)
 	}
-	mmListModels.t.Fatalf("Unexpected call to RepositoryMock.ListModels. %v", ctx)
+	mmListModels.t.Fatalf("Unexpected call to RepositoryMock.ListModels. %v %v", ctx, withArtifacts)
 	return
 }
 
@@ -7792,14 +7823,16 @@ type RepositoryMockListTerritoriesExpectation struct {
 
 // RepositoryMockListTerritoriesParams contains parameters of the Repository.ListTerritories
 type RepositoryMockListTerritoriesParams struct {
-	ctx          context.Context
-	scopeAdminID string
+	ctx           context.Context
+	scopeAdminID  string
+	withArtifacts bool
 }
 
 // RepositoryMockListTerritoriesParamPtrs contains pointers to parameters of the Repository.ListTerritories
 type RepositoryMockListTerritoriesParamPtrs struct {
-	ctx          *context.Context
-	scopeAdminID *string
+	ctx           *context.Context
+	scopeAdminID  *string
+	withArtifacts *bool
 }
 
 // RepositoryMockListTerritoriesResults contains results of the Repository.ListTerritories
@@ -7810,9 +7843,10 @@ type RepositoryMockListTerritoriesResults struct {
 
 // RepositoryMockListTerritoriesOrigins contains origins of expectations of the Repository.ListTerritories
 type RepositoryMockListTerritoriesExpectationOrigins struct {
-	origin             string
-	originCtx          string
-	originScopeAdminID string
+	origin              string
+	originCtx           string
+	originScopeAdminID  string
+	originWithArtifacts string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -7826,7 +7860,7 @@ func (mmListTerritories *mRepositoryMockListTerritories) Optional() *mRepository
 }
 
 // Expect sets up expected params for Repository.ListTerritories
-func (mmListTerritories *mRepositoryMockListTerritories) Expect(ctx context.Context, scopeAdminID string) *mRepositoryMockListTerritories {
+func (mmListTerritories *mRepositoryMockListTerritories) Expect(ctx context.Context, scopeAdminID string, withArtifacts bool) *mRepositoryMockListTerritories {
 	if mmListTerritories.mock.funcListTerritories != nil {
 		mmListTerritories.mock.t.Fatalf("RepositoryMock.ListTerritories mock is already set by Set")
 	}
@@ -7839,7 +7873,7 @@ func (mmListTerritories *mRepositoryMockListTerritories) Expect(ctx context.Cont
 		mmListTerritories.mock.t.Fatalf("RepositoryMock.ListTerritories mock is already set by ExpectParams functions")
 	}
 
-	mmListTerritories.defaultExpectation.params = &RepositoryMockListTerritoriesParams{ctx, scopeAdminID}
+	mmListTerritories.defaultExpectation.params = &RepositoryMockListTerritoriesParams{ctx, scopeAdminID, withArtifacts}
 	mmListTerritories.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmListTerritories.expectations {
 		if minimock.Equal(e.params, mmListTerritories.defaultExpectation.params) {
@@ -7896,8 +7930,31 @@ func (mmListTerritories *mRepositoryMockListTerritories) ExpectScopeAdminIDParam
 	return mmListTerritories
 }
 
+// ExpectWithArtifactsParam3 sets up expected param withArtifacts for Repository.ListTerritories
+func (mmListTerritories *mRepositoryMockListTerritories) ExpectWithArtifactsParam3(withArtifacts bool) *mRepositoryMockListTerritories {
+	if mmListTerritories.mock.funcListTerritories != nil {
+		mmListTerritories.mock.t.Fatalf("RepositoryMock.ListTerritories mock is already set by Set")
+	}
+
+	if mmListTerritories.defaultExpectation == nil {
+		mmListTerritories.defaultExpectation = &RepositoryMockListTerritoriesExpectation{}
+	}
+
+	if mmListTerritories.defaultExpectation.params != nil {
+		mmListTerritories.mock.t.Fatalf("RepositoryMock.ListTerritories mock is already set by Expect")
+	}
+
+	if mmListTerritories.defaultExpectation.paramPtrs == nil {
+		mmListTerritories.defaultExpectation.paramPtrs = &RepositoryMockListTerritoriesParamPtrs{}
+	}
+	mmListTerritories.defaultExpectation.paramPtrs.withArtifacts = &withArtifacts
+	mmListTerritories.defaultExpectation.expectationOrigins.originWithArtifacts = minimock.CallerInfo(1)
+
+	return mmListTerritories
+}
+
 // Inspect accepts an inspector function that has same arguments as the Repository.ListTerritories
-func (mmListTerritories *mRepositoryMockListTerritories) Inspect(f func(ctx context.Context, scopeAdminID string)) *mRepositoryMockListTerritories {
+func (mmListTerritories *mRepositoryMockListTerritories) Inspect(f func(ctx context.Context, scopeAdminID string, withArtifacts bool)) *mRepositoryMockListTerritories {
 	if mmListTerritories.mock.inspectFuncListTerritories != nil {
 		mmListTerritories.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ListTerritories")
 	}
@@ -7922,7 +7979,7 @@ func (mmListTerritories *mRepositoryMockListTerritories) Return(ta1 []domain.Ter
 }
 
 // Set uses given function f to mock the Repository.ListTerritories method
-func (mmListTerritories *mRepositoryMockListTerritories) Set(f func(ctx context.Context, scopeAdminID string) (ta1 []domain.Territory, err error)) *RepositoryMock {
+func (mmListTerritories *mRepositoryMockListTerritories) Set(f func(ctx context.Context, scopeAdminID string, withArtifacts bool) (ta1 []domain.Territory, err error)) *RepositoryMock {
 	if mmListTerritories.defaultExpectation != nil {
 		mmListTerritories.mock.t.Fatalf("Default expectation is already set for the Repository.ListTerritories method")
 	}
@@ -7938,14 +7995,14 @@ func (mmListTerritories *mRepositoryMockListTerritories) Set(f func(ctx context.
 
 // When sets expectation for the Repository.ListTerritories which will trigger the result defined by the following
 // Then helper
-func (mmListTerritories *mRepositoryMockListTerritories) When(ctx context.Context, scopeAdminID string) *RepositoryMockListTerritoriesExpectation {
+func (mmListTerritories *mRepositoryMockListTerritories) When(ctx context.Context, scopeAdminID string, withArtifacts bool) *RepositoryMockListTerritoriesExpectation {
 	if mmListTerritories.mock.funcListTerritories != nil {
 		mmListTerritories.mock.t.Fatalf("RepositoryMock.ListTerritories mock is already set by Set")
 	}
 
 	expectation := &RepositoryMockListTerritoriesExpectation{
 		mock:               mmListTerritories.mock,
-		params:             &RepositoryMockListTerritoriesParams{ctx, scopeAdminID},
+		params:             &RepositoryMockListTerritoriesParams{ctx, scopeAdminID, withArtifacts},
 		expectationOrigins: RepositoryMockListTerritoriesExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmListTerritories.expectations = append(mmListTerritories.expectations, expectation)
@@ -7980,17 +8037,17 @@ func (mmListTerritories *mRepositoryMockListTerritories) invocationsDone() bool 
 }
 
 // ListTerritories implements mm_service.Repository
-func (mmListTerritories *RepositoryMock) ListTerritories(ctx context.Context, scopeAdminID string) (ta1 []domain.Territory, err error) {
+func (mmListTerritories *RepositoryMock) ListTerritories(ctx context.Context, scopeAdminID string, withArtifacts bool) (ta1 []domain.Territory, err error) {
 	mm_atomic.AddUint64(&mmListTerritories.beforeListTerritoriesCounter, 1)
 	defer mm_atomic.AddUint64(&mmListTerritories.afterListTerritoriesCounter, 1)
 
 	mmListTerritories.t.Helper()
 
 	if mmListTerritories.inspectFuncListTerritories != nil {
-		mmListTerritories.inspectFuncListTerritories(ctx, scopeAdminID)
+		mmListTerritories.inspectFuncListTerritories(ctx, scopeAdminID, withArtifacts)
 	}
 
-	mm_params := RepositoryMockListTerritoriesParams{ctx, scopeAdminID}
+	mm_params := RepositoryMockListTerritoriesParams{ctx, scopeAdminID, withArtifacts}
 
 	// Record call args
 	mmListTerritories.ListTerritoriesMock.mutex.Lock()
@@ -8009,7 +8066,7 @@ func (mmListTerritories *RepositoryMock) ListTerritories(ctx context.Context, sc
 		mm_want := mmListTerritories.ListTerritoriesMock.defaultExpectation.params
 		mm_want_ptrs := mmListTerritories.ListTerritoriesMock.defaultExpectation.paramPtrs
 
-		mm_got := RepositoryMockListTerritoriesParams{ctx, scopeAdminID}
+		mm_got := RepositoryMockListTerritoriesParams{ctx, scopeAdminID, withArtifacts}
 
 		if mm_want_ptrs != nil {
 
@@ -8021,6 +8078,11 @@ func (mmListTerritories *RepositoryMock) ListTerritories(ctx context.Context, sc
 			if mm_want_ptrs.scopeAdminID != nil && !minimock.Equal(*mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID) {
 				mmListTerritories.t.Errorf("RepositoryMock.ListTerritories got unexpected parameter scopeAdminID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmListTerritories.ListTerritoriesMock.defaultExpectation.expectationOrigins.originScopeAdminID, *mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID, minimock.Diff(*mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID))
+			}
+
+			if mm_want_ptrs.withArtifacts != nil && !minimock.Equal(*mm_want_ptrs.withArtifacts, mm_got.withArtifacts) {
+				mmListTerritories.t.Errorf("RepositoryMock.ListTerritories got unexpected parameter withArtifacts, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListTerritories.ListTerritoriesMock.defaultExpectation.expectationOrigins.originWithArtifacts, *mm_want_ptrs.withArtifacts, mm_got.withArtifacts, minimock.Diff(*mm_want_ptrs.withArtifacts, mm_got.withArtifacts))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
@@ -8035,9 +8097,9 @@ func (mmListTerritories *RepositoryMock) ListTerritories(ctx context.Context, sc
 		return (*mm_results).ta1, (*mm_results).err
 	}
 	if mmListTerritories.funcListTerritories != nil {
-		return mmListTerritories.funcListTerritories(ctx, scopeAdminID)
+		return mmListTerritories.funcListTerritories(ctx, scopeAdminID, withArtifacts)
 	}
-	mmListTerritories.t.Fatalf("Unexpected call to RepositoryMock.ListTerritories. %v %v", ctx, scopeAdminID)
+	mmListTerritories.t.Fatalf("Unexpected call to RepositoryMock.ListTerritories. %v %v %v", ctx, scopeAdminID, withArtifacts)
 	return
 }
 

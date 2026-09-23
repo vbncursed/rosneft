@@ -760,7 +760,10 @@ type ListTerritoriesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// When non-empty, restrict the result to territories assigned to this admin.
 	// Empty means no filter (Root and internal callers see everything).
-	ScopeAdminId  string `protobuf:"bytes,1,opt,name=scope_admin_id,json=scopeAdminId,proto3" json:"scope_admin_id,omitempty"`
+	ScopeAdminId string `protobuf:"bytes,1,opt,name=scope_admin_id,json=scopeAdminId,proto3" json:"scope_admin_id,omitempty"`
+	// Attach each territory's LOD chain. Off by default: only the list screens
+	// render it, and every other caller would pay one query for nothing.
+	WithArtifacts bool `protobuf:"varint,2,opt,name=with_artifacts,json=withArtifacts,proto3" json:"with_artifacts,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -800,6 +803,13 @@ func (x *ListTerritoriesRequest) GetScopeAdminId() string {
 		return x.ScopeAdminId
 	}
 	return ""
+}
+
+func (x *ListTerritoriesRequest) GetWithArtifacts() bool {
+	if x != nil {
+		return x.WithArtifacts
+	}
+	return false
 }
 
 type ListTerritoriesResponse struct {
@@ -2459,7 +2469,9 @@ func (x *RescaleTerritoryPlacementsResponse) GetUpdated() uint32 {
 }
 
 type ListModelsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Attach each model's LOD chain; off by default, as on ListTerritoriesRequest.
+	WithArtifacts bool `protobuf:"varint,1,opt,name=with_artifacts,json=withArtifacts,proto3" json:"with_artifacts,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2492,6 +2504,13 @@ func (x *ListModelsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListModelsRequest.ProtoReflect.Descriptor instead.
 func (*ListModelsRequest) Descriptor() ([]byte, []int) {
 	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *ListModelsRequest) GetWithArtifacts() bool {
+	if x != nil {
+		return x.WithArtifacts
+	}
+	return false
 }
 
 type ListModelsResponse struct {
@@ -4407,9 +4426,10 @@ const file_rosneft_catalog_v1_catalog_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
-	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\">\n" +
+	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"e\n" +
 	"\x16ListTerritoriesRequest\x12$\n" +
-	"\x0escope_admin_id\x18\x01 \x01(\tR\fscopeAdminId\"Z\n" +
+	"\x0escope_admin_id\x18\x01 \x01(\tR\fscopeAdminId\x12%\n" +
+	"\x0ewith_artifacts\x18\x02 \x01(\bR\rwithArtifacts\"Z\n" +
 	"\x17ListTerritoriesResponse\x12?\n" +
 	"\vterritories\x18\x01 \x03(\v2\x1d.rosneft.catalog.v1.TerritoryR\vterritories\"0\n" +
 	"\x1cResolveTerritorySlugsRequest\x12\x10\n" +
@@ -4501,8 +4521,9 @@ const file_rosneft_catalog_v1_catalog_proto_rawDesc = "" +
 	"\x0enew_source_max\x18\x02 \x01(\x01R\fnewSourceMax\x12D\n" +
 	"\x11new_source_center\x18\x03 \x01(\v2\x18.rosneft.catalog.v1.Vec3R\x0fnewSourceCenter\">\n" +
 	"\"RescaleTerritoryPlacementsResponse\x12\x18\n" +
-	"\aupdated\x18\x01 \x01(\rR\aupdated\"\x13\n" +
-	"\x11ListModelsRequest\"G\n" +
+	"\aupdated\x18\x01 \x01(\rR\aupdated\":\n" +
+	"\x11ListModelsRequest\x12%\n" +
+	"\x0ewith_artifacts\x18\x01 \x01(\bR\rwithArtifacts\"G\n" +
 	"\x12ListModelsResponse\x121\n" +
 	"\x06models\x18\x01 \x03(\v2\x19.rosneft.catalog.v1.ModelR\x06models\"%\n" +
 	"\x0fGetModelRequest\x12\x12\n" +

@@ -8,7 +8,7 @@ import (
 )
 
 func (s *Server) ListModels(ctx context.Context, _ ListModelsRequestObject) (ListModelsResponseObject, error) {
-	out, err := s.svc.ListModels(ctx)
+	out, err := s.svc.ListModels(ctx, true)
 	if err != nil {
 		return ListModels500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}

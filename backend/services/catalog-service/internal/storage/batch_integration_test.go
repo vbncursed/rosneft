@@ -110,7 +110,7 @@ func (s *BatchSuite) TestListsCarryEachLODChainInOrder() {
 		assert.NilError(s.T(), err)
 	}
 
-	terrs, err := s.pg.ListTerritories(ctx, "")
+	terrs, err := s.pg.ListTerritories(ctx, "", true)
 	assert.NilError(s.T(), err)
 	bySlug := map[string]domain.Territory{}
 	for _, t := range terrs {
@@ -125,12 +125,25 @@ func (s *BatchSuite) TestListsCarryEachLODChainInOrder() {
 	assert.Assert(s.T(), listed, "lods-fresh is missing from the list")
 	assert.Equal(s.T(), len(fresh.Artifacts), 0)
 
-	models, err := s.pg.ListModels(ctx)
+	models, err := s.pg.ListModels(ctx, true)
 	assert.NilError(s.T(), err)
 	i := slices.IndexFunc(models, func(m domain.Model) bool { return m.Slug == "lods-pump" })
 	assert.Assert(s.T(), i >= 0)
 	assert.DeepEqual(s.T(), lodsOf(models[i].Artifacts), []uint32{0, 1, 2})
 	assert.Equal(s.T(), models[i].Artifacts[2].Hash, "m-2")
+
+	// Without the flag the rows are the same and carry no chain: the jobs
+	// list, the summary cards and the reconciler never read one.
+	bare, err := s.pg.ListTerritories(ctx, "", false)
+	assert.NilError(s.T(), err)
+	j := slices.IndexFunc(bare, func(t domain.Territory) bool { return t.Slug == "lods-yard" })
+	assert.Assert(s.T(), j >= 0)
+	assert.Equal(s.T(), len(bare[j].Artifacts), 0)
+	bareModels, err := s.pg.ListModels(ctx, false)
+	assert.NilError(s.T(), err)
+	k := slices.IndexFunc(bareModels, func(m domain.Model) bool { return m.Slug == "lods-pump" })
+	assert.Assert(s.T(), k >= 0)
+	assert.Equal(s.T(), len(bareModels[k].Artifacts), 0)
 }
 
 func (s *BatchSuite) TestTerritoryAdminsComeBackPerSlug() {

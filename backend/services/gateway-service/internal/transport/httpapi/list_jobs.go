@@ -29,7 +29,7 @@ func (s *Server) ListJobs(w http.ResponseWriter, r *http.Request) {
 	}
 	visible := map[string]bool{}
 	if !allAccess {
-		territories, err := s.svc.ListTerritories(ctx, scopeAdminID)
+		territories, err := s.svc.ListTerritories(ctx, scopeAdminID, false)
 		if err != nil {
 			writeInternal(w, r, err)
 			return

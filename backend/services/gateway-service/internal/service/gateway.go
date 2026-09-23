@@ -14,7 +14,7 @@ import (
 
 // Catalog is the catalog client surface this service calls.
 type Catalog interface {
-	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
+	ListTerritories(ctx context.Context, scopeAdminID string, withArtifacts bool) ([]domain.Territory, error)
 	ResolveTerritorySlugs(ctx context.Context, ids []int64) (map[int64]string, error)
 	ResolveBlobAccess(ctx context.Context, hash, scopeAdminID string) (bool, error)
 	ResolveLabels(ctx context.Context, refs []domain.LabelRef) (map[string]string, error)
@@ -30,7 +30,7 @@ type Catalog interface {
 	GetTerritoryAdmins(ctx context.Context, slug string) ([]string, error)
 	ListTerritoryAdmins(ctx context.Context, slugs []string) (map[string][]string, error)
 
-	ListModels(ctx context.Context) ([]domain.Model, error)
+	ListModels(ctx context.Context, withArtifacts bool) ([]domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)
 	UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error)
 	UpdateModel(ctx context.Context, slug string, u domain.ModelUpdate) (domain.Model, error)

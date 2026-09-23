@@ -99,7 +99,7 @@ func (s *ListCountsSuite) TestListsCarryPlacementAndUsageCounts() {
 	place("yard", "tank")
 	place("block", "pump")
 
-	terrs, err := s.pg.ListTerritories(ctx, "")
+	terrs, err := s.pg.ListTerritories(ctx, "", false)
 	assert.NilError(s.T(), err)
 	counts := map[string]int{}
 	for _, t := range terrs {
@@ -107,7 +107,7 @@ func (s *ListCountsSuite) TestListsCarryPlacementAndUsageCounts() {
 	}
 	assert.DeepEqual(s.T(), counts, map[string]int{"yard": 3, "block": 1})
 
-	models, err := s.pg.ListModels(ctx)
+	models, err := s.pg.ListModels(ctx, false)
 	assert.NilError(s.T(), err)
 	usage := map[string]int{}
 	for _, m := range models {

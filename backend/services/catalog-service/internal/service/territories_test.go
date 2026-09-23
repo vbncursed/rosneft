@@ -147,15 +147,15 @@ func (s *TerritoriesSuite) TestGetScopedForwardsAdminID() {
 }
 
 func (s *TerritoriesSuite) TestListReturnsEverything() {
-	s.repo.ListTerritoriesMock.Expect(s.ctx, "").Return([]domain.Territory{{Slug: "a"}, {Slug: "b"}, {Slug: "c"}}, nil)
-	got, err := s.svc.ListTerritories(s.ctx, "")
+	s.repo.ListTerritoriesMock.Expect(s.ctx, "", true).Return([]domain.Territory{{Slug: "a"}, {Slug: "b"}, {Slug: "c"}}, nil)
+	got, err := s.svc.ListTerritories(s.ctx, "", true)
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), cmp.Len(got, 3))
 }
 
 func (s *TerritoriesSuite) TestListScopedForwardsAdminID() {
-	s.repo.ListTerritoriesMock.Expect(s.ctx, "admin-1").Return([]domain.Territory{{Slug: "a"}}, nil)
-	got, err := s.svc.ListTerritories(s.ctx, "admin-1")
+	s.repo.ListTerritoriesMock.Expect(s.ctx, "admin-1", false).Return([]domain.Territory{{Slug: "a"}}, nil)
+	got, err := s.svc.ListTerritories(s.ctx, "admin-1", false)
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), cmp.Len(got, 1))
 }

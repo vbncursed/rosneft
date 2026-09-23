@@ -8,9 +8,9 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-// ListModels proxies to catalog.
-func (g *Gateway) ListModels(ctx context.Context) ([]domain.Model, error) {
-	return g.catalog.ListModels(ctx)
+// ListModels proxies to catalog; withArtifacts as on ListTerritories.
+func (g *Gateway) ListModels(ctx context.Context, withArtifacts bool) ([]domain.Model, error) {
+	return g.catalog.ListModels(ctx, withArtifacts)
 }
 
 // GetModel fetches a model by slug.

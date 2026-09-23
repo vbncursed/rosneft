@@ -33,7 +33,7 @@ func (s *TerritoryAdminsSuite) SetupTest() {
 // The access screen reads a missing key as "not loaded", so a territory nobody
 // is assigned to must answer [] rather than vanish.
 func (s *TerritoryAdminsSuite) TestEveryVisibleTerritoryGetsAKey() {
-	s.cat.ListTerritoriesMock.Expect(s.ctx, "admin-a").Return([]domain.Territory{{Slug: "a"}, {Slug: "b"}}, nil)
+	s.cat.ListTerritoriesMock.Expect(s.ctx, "admin-a", false).Return([]domain.Territory{{Slug: "a"}, {Slug: "b"}}, nil)
 	s.cat.ListTerritoryAdminsMock.Expect(s.ctx, []string{"a", "b"}).Return(map[string][]string{"a": {"u1"}}, nil)
 
 	got, err := s.svc.ListTerritoryAdmins(s.ctx, "admin-a", false)
@@ -43,7 +43,7 @@ func (s *TerritoryAdminsSuite) TestEveryVisibleTerritoryGetsAKey() {
 
 func (s *TerritoryAdminsSuite) TestACatalogFailureIsNotAnEmptyAnswer() {
 	boom := errors.New("catalog down")
-	s.cat.ListTerritoriesMock.Expect(s.ctx, "").Return(nil, boom)
+	s.cat.ListTerritoriesMock.Expect(s.ctx, "", false).Return(nil, boom)
 
 	_, err := s.svc.ListTerritoryAdmins(s.ctx, "", true)
 	assert.ErrorIs(s.T(), err, boom)
@@ -61,7 +61,7 @@ func (s *TerritoryAdminsSuite) TestAScopedCallerWithoutAnAdminSeesNothing() {
 // A failure of the second read is not an empty answer either.
 func (s *TerritoryAdminsSuite) TestAFailedAdminReadIsNotAnEmptyAnswer() {
 	boom := errors.New("catalog down")
-	s.cat.ListTerritoriesMock.Expect(s.ctx, "").Return([]domain.Territory{{Slug: "a"}}, nil)
+	s.cat.ListTerritoriesMock.Expect(s.ctx, "", false).Return([]domain.Territory{{Slug: "a"}}, nil)
 	s.cat.ListTerritoryAdminsMock.Expect(s.ctx, []string{"a"}).Return(nil, boom)
 
 	_, err := s.svc.ListTerritoryAdmins(s.ctx, "", true)
@@ -71,7 +71,7 @@ func (s *TerritoryAdminsSuite) TestAFailedAdminReadIsNotAnEmptyAnswer() {
 // Nothing visible, nothing to ask: ListTerritoryAdmins is not expected, so the
 // controller would fail the test on a call with an empty slug list.
 func (s *TerritoryAdminsSuite) TestNoVisibleTerritorySkipsTheAdminRead() {
-	s.cat.ListTerritoriesMock.Expect(s.ctx, "admin-a").Return(nil, nil)
+	s.cat.ListTerritoriesMock.Expect(s.ctx, "admin-a", false).Return(nil, nil)
 
 	got, err := s.svc.ListTerritoryAdmins(s.ctx, "admin-a", false)
 	assert.NilError(s.T(), err)

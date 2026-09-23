@@ -39,7 +39,7 @@ func (s *CountAuditDaySuite) TestCountsTheBucketsTheJournalDraws() {
 		CompanyID: "co-1", From: time.Date(2026, 9, 22, 15, 0, 0, 0, time.UTC), Limit: 1, IncludeTotal: true,
 	}).Return(domain.AuditPage{Total: 42}, nil)
 
-	n, err := s.svc.CountAuditDay(s.ctx, domain.AuditScope{Company: "co-1"}, now)
+	n, err := s.svc.CountAuditDay(s.ctx, domain.AuditScope{Company: "co-1"}, now, 0)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), n, int64(42))
 }
@@ -49,7 +49,30 @@ func (s *CountAuditDaySuite) TestRootCountsEveryCompany() {
 		AllCompanies: true, From: time.Date(2026, 9, 22, 15, 0, 0, 0, time.UTC), Limit: 1, IncludeTotal: true,
 	}).Return(domain.AuditPage{Total: 7}, nil)
 
-	n, err := s.svc.CountAuditDay(s.ctx, domain.AuditScope{All: true}, now)
+	n, err := s.svc.CountAuditDay(s.ctx, domain.AuditScope{All: true}, now, 0)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), n, int64(7))
+}
+
+// The journal buckets by the browser's local hours. At +5:30 it is 20:07
+// there, so bucket 0 starts at 21:00 local yesterday — 15:30 UTC, not 15:00.
+func (s *CountAuditDaySuite) TestAlignsToTheCallersLocalHour() {
+	s.audit.ListEntriesMock.Expect(s.ctx, domain.AuditQuery{
+		CompanyID: "co-1", From: time.Date(2026, 9, 22, 15, 30, 0, 0, time.UTC), Limit: 1, IncludeTotal: true,
+	}).Return(domain.AuditPage{Total: 3}, nil)
+
+	n, err := s.svc.CountAuditDay(s.ctx, domain.AuditScope{Company: "co-1"}, now, 330*time.Minute)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), n, int64(3))
+}
+
+// West of UTC too: at -9:30 it is 05:07 local, bucket 0 is 06:00 local
+// yesterday — 15:30 UTC.
+func (s *CountAuditDaySuite) TestAlignsWestOfUTC() {
+	s.audit.ListEntriesMock.Expect(s.ctx, domain.AuditQuery{
+		CompanyID: "co-1", From: time.Date(2026, 9, 22, 15, 30, 0, 0, time.UTC), Limit: 1, IncludeTotal: true,
+	}).Return(domain.AuditPage{Total: 1}, nil)
+
+	_, err := s.svc.CountAuditDay(s.ctx, domain.AuditScope{Company: "co-1"}, now, -570*time.Minute)
+	assert.NilError(s.T(), err)
 }

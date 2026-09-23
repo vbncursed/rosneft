@@ -17,7 +17,7 @@ import (
 
 // Service is the gateway surface this transport calls.
 type Service interface {
-	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
+	ListTerritories(ctx context.Context, scopeAdminID string, withArtifacts bool) ([]domain.Territory, error)
 	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
 	CreateTerritory(ctx context.Context, t domain.Territory, scope domain.BlobScope) (domain.Territory, domain.Job, error)
 	ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHash string, scope domain.BlobScope) (domain.Territory, domain.Job, error)
@@ -30,7 +30,7 @@ type Service interface {
 	GetTerritoryAdmins(ctx context.Context, slug string) ([]string, error)
 	ListTerritoryAdmins(ctx context.Context, scopeAdminID string, allAccess bool) (map[string][]string, error)
 
-	ListModels(ctx context.Context) ([]domain.Model, error)
+	ListModels(ctx context.Context, withArtifacts bool) ([]domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)
 	CreateModel(ctx context.Context, m domain.Model, scope domain.BlobScope) (domain.Model, domain.Job, error)
 	UpdateModel(ctx context.Context, slug string, update domain.ModelUpdate, scope domain.BlobScope) (domain.Model, error)

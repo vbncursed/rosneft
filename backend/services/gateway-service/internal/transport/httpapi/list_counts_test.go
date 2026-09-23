@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 
@@ -28,7 +29,12 @@ type countsServiceStub struct {
 	models      []domain.Model
 }
 
-func (c countsServiceStub) ListTerritories(context.Context, string) ([]domain.Territory, error) {
+// The list screens render the LOD chain, so their handlers must ask the
+// catalog for it: a stub that answers only when asked pins that.
+func (c countsServiceStub) ListTerritories(_ context.Context, _ string, withArtifacts bool) ([]domain.Territory, error) {
+	if !withArtifacts {
+		return nil, errors.New("GET /api/territories did not ask for the LOD chains")
+	}
 	return c.territories, nil
 }
 
@@ -37,7 +43,10 @@ func (c countsServiceStub) GetTerritory(context.Context, string, string) (domain
 	return domain.Territory{Slug: "yard", PlacementCount: 3, LODs: []domain.LodArtifact{{LOD: 0, Hash: "h0"}}}, nil
 }
 
-func (c countsServiceStub) ListModels(context.Context) ([]domain.Model, error) {
+func (c countsServiceStub) ListModels(_ context.Context, withArtifacts bool) ([]domain.Model, error) {
+	if !withArtifacts {
+		return nil, errors.New("GET /api/models did not ask for the LOD chains")
+	}
 	return c.models, nil
 }
 

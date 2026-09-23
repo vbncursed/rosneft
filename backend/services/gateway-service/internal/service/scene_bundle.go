@@ -67,7 +67,7 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 		return nil
 	})
 	gr.Go(func() error {
-		m, err := g.catalog.ListModels(gctx)
+		m, err := g.catalog.ListModels(gctx, true)
 		if err != nil {
 			return err
 		}

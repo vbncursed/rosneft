@@ -22,7 +22,7 @@ func (g *Gateway) ListTerritoryAdmins(ctx context.Context, scopeAdminID string, 
 	if !allAccess && scopeAdminID == "" {
 		return map[string][]string{}, nil
 	}
-	territories, err := g.catalog.ListTerritories(ctx, scopeAdminID)
+	territories, err := g.catalog.ListTerritories(ctx, scopeAdminID, false)
 	if err != nil {
 		return nil, err
 	}

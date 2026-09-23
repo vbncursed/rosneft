@@ -9,9 +9,12 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-// ListTerritories returns territories visible to scopeAdminID (empty = all).
-func (c *Client) ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error) {
-	resp, err := c.cc.ListTerritories(ctx, &catalogv1.ListTerritoriesRequest{ScopeAdminId: scopeAdminID})
+// ListTerritories returns territories visible to scopeAdminID (empty = all),
+// each with its LOD chain only when withArtifacts is set.
+func (c *Client) ListTerritories(ctx context.Context, scopeAdminID string, withArtifacts bool) ([]domain.Territory, error) {
+	resp, err := c.cc.ListTerritories(ctx, &catalogv1.ListTerritoriesRequest{
+		ScopeAdminId: scopeAdminID, WithArtifacts: withArtifacts,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("catalog.ListTerritories: %w", grpcerr.MapStatus(err, nil))
 	}

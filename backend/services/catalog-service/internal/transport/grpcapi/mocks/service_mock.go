@@ -131,9 +131,9 @@ type ServiceMock struct {
 	beforeListModelArtifactsCounter uint64
 	ListModelArtifactsMock          mServiceMockListModelArtifacts
 
-	funcListModels          func(ctx context.Context) (ma1 []domain.Model, err error)
+	funcListModels          func(ctx context.Context, withArtifacts bool) (ma1 []domain.Model, err error)
 	funcListModelsOrigin    string
-	inspectFuncListModels   func(ctx context.Context)
+	inspectFuncListModels   func(ctx context.Context, withArtifacts bool)
 	afterListModelsCounter  uint64
 	beforeListModelsCounter uint64
 	ListModelsMock          mServiceMockListModels
@@ -145,9 +145,9 @@ type ServiceMock struct {
 	beforeListPlacementsCounter uint64
 	ListPlacementsMock          mServiceMockListPlacements
 
-	funcListTerritories          func(ctx context.Context, scopeAdminID string) (ta1 []domain.Territory, err error)
+	funcListTerritories          func(ctx context.Context, scopeAdminID string, withArtifacts bool) (ta1 []domain.Territory, err error)
 	funcListTerritoriesOrigin    string
-	inspectFuncListTerritories   func(ctx context.Context, scopeAdminID string)
+	inspectFuncListTerritories   func(ctx context.Context, scopeAdminID string, withArtifacts bool)
 	afterListTerritoriesCounter  uint64
 	beforeListTerritoriesCounter uint64
 	ListTerritoriesMock          mServiceMockListTerritories
@@ -6119,12 +6119,14 @@ type ServiceMockListModelsExpectation struct {
 
 // ServiceMockListModelsParams contains parameters of the Service.ListModels
 type ServiceMockListModelsParams struct {
-	ctx context.Context
+	ctx           context.Context
+	withArtifacts bool
 }
 
 // ServiceMockListModelsParamPtrs contains pointers to parameters of the Service.ListModels
 type ServiceMockListModelsParamPtrs struct {
-	ctx *context.Context
+	ctx           *context.Context
+	withArtifacts *bool
 }
 
 // ServiceMockListModelsResults contains results of the Service.ListModels
@@ -6135,8 +6137,9 @@ type ServiceMockListModelsResults struct {
 
 // ServiceMockListModelsOrigins contains origins of expectations of the Service.ListModels
 type ServiceMockListModelsExpectationOrigins struct {
-	origin    string
-	originCtx string
+	origin              string
+	originCtx           string
+	originWithArtifacts string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -6150,7 +6153,7 @@ func (mmListModels *mServiceMockListModels) Optional() *mServiceMockListModels {
 }
 
 // Expect sets up expected params for Service.ListModels
-func (mmListModels *mServiceMockListModels) Expect(ctx context.Context) *mServiceMockListModels {
+func (mmListModels *mServiceMockListModels) Expect(ctx context.Context, withArtifacts bool) *mServiceMockListModels {
 	if mmListModels.mock.funcListModels != nil {
 		mmListModels.mock.t.Fatalf("ServiceMock.ListModels mock is already set by Set")
 	}
@@ -6163,7 +6166,7 @@ func (mmListModels *mServiceMockListModels) Expect(ctx context.Context) *mServic
 		mmListModels.mock.t.Fatalf("ServiceMock.ListModels mock is already set by ExpectParams functions")
 	}
 
-	mmListModels.defaultExpectation.params = &ServiceMockListModelsParams{ctx}
+	mmListModels.defaultExpectation.params = &ServiceMockListModelsParams{ctx, withArtifacts}
 	mmListModels.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmListModels.expectations {
 		if minimock.Equal(e.params, mmListModels.defaultExpectation.params) {
@@ -6197,8 +6200,31 @@ func (mmListModels *mServiceMockListModels) ExpectCtxParam1(ctx context.Context)
 	return mmListModels
 }
 
+// ExpectWithArtifactsParam2 sets up expected param withArtifacts for Service.ListModels
+func (mmListModels *mServiceMockListModels) ExpectWithArtifactsParam2(withArtifacts bool) *mServiceMockListModels {
+	if mmListModels.mock.funcListModels != nil {
+		mmListModels.mock.t.Fatalf("ServiceMock.ListModels mock is already set by Set")
+	}
+
+	if mmListModels.defaultExpectation == nil {
+		mmListModels.defaultExpectation = &ServiceMockListModelsExpectation{}
+	}
+
+	if mmListModels.defaultExpectation.params != nil {
+		mmListModels.mock.t.Fatalf("ServiceMock.ListModels mock is already set by Expect")
+	}
+
+	if mmListModels.defaultExpectation.paramPtrs == nil {
+		mmListModels.defaultExpectation.paramPtrs = &ServiceMockListModelsParamPtrs{}
+	}
+	mmListModels.defaultExpectation.paramPtrs.withArtifacts = &withArtifacts
+	mmListModels.defaultExpectation.expectationOrigins.originWithArtifacts = minimock.CallerInfo(1)
+
+	return mmListModels
+}
+
 // Inspect accepts an inspector function that has same arguments as the Service.ListModels
-func (mmListModels *mServiceMockListModels) Inspect(f func(ctx context.Context)) *mServiceMockListModels {
+func (mmListModels *mServiceMockListModels) Inspect(f func(ctx context.Context, withArtifacts bool)) *mServiceMockListModels {
 	if mmListModels.mock.inspectFuncListModels != nil {
 		mmListModels.mock.t.Fatalf("Inspect function is already set for ServiceMock.ListModels")
 	}
@@ -6223,7 +6249,7 @@ func (mmListModels *mServiceMockListModels) Return(ma1 []domain.Model, err error
 }
 
 // Set uses given function f to mock the Service.ListModels method
-func (mmListModels *mServiceMockListModels) Set(f func(ctx context.Context) (ma1 []domain.Model, err error)) *ServiceMock {
+func (mmListModels *mServiceMockListModels) Set(f func(ctx context.Context, withArtifacts bool) (ma1 []domain.Model, err error)) *ServiceMock {
 	if mmListModels.defaultExpectation != nil {
 		mmListModels.mock.t.Fatalf("Default expectation is already set for the Service.ListModels method")
 	}
@@ -6239,14 +6265,14 @@ func (mmListModels *mServiceMockListModels) Set(f func(ctx context.Context) (ma1
 
 // When sets expectation for the Service.ListModels which will trigger the result defined by the following
 // Then helper
-func (mmListModels *mServiceMockListModels) When(ctx context.Context) *ServiceMockListModelsExpectation {
+func (mmListModels *mServiceMockListModels) When(ctx context.Context, withArtifacts bool) *ServiceMockListModelsExpectation {
 	if mmListModels.mock.funcListModels != nil {
 		mmListModels.mock.t.Fatalf("ServiceMock.ListModels mock is already set by Set")
 	}
 
 	expectation := &ServiceMockListModelsExpectation{
 		mock:               mmListModels.mock,
-		params:             &ServiceMockListModelsParams{ctx},
+		params:             &ServiceMockListModelsParams{ctx, withArtifacts},
 		expectationOrigins: ServiceMockListModelsExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmListModels.expectations = append(mmListModels.expectations, expectation)
@@ -6281,17 +6307,17 @@ func (mmListModels *mServiceMockListModels) invocationsDone() bool {
 }
 
 // ListModels implements mm_grpcapi.Service
-func (mmListModels *ServiceMock) ListModels(ctx context.Context) (ma1 []domain.Model, err error) {
+func (mmListModels *ServiceMock) ListModels(ctx context.Context, withArtifacts bool) (ma1 []domain.Model, err error) {
 	mm_atomic.AddUint64(&mmListModels.beforeListModelsCounter, 1)
 	defer mm_atomic.AddUint64(&mmListModels.afterListModelsCounter, 1)
 
 	mmListModels.t.Helper()
 
 	if mmListModels.inspectFuncListModels != nil {
-		mmListModels.inspectFuncListModels(ctx)
+		mmListModels.inspectFuncListModels(ctx, withArtifacts)
 	}
 
-	mm_params := ServiceMockListModelsParams{ctx}
+	mm_params := ServiceMockListModelsParams{ctx, withArtifacts}
 
 	// Record call args
 	mmListModels.ListModelsMock.mutex.Lock()
@@ -6310,13 +6336,18 @@ func (mmListModels *ServiceMock) ListModels(ctx context.Context) (ma1 []domain.M
 		mm_want := mmListModels.ListModelsMock.defaultExpectation.params
 		mm_want_ptrs := mmListModels.ListModelsMock.defaultExpectation.paramPtrs
 
-		mm_got := ServiceMockListModelsParams{ctx}
+		mm_got := ServiceMockListModelsParams{ctx, withArtifacts}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
 				mmListModels.t.Errorf("ServiceMock.ListModels got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmListModels.ListModelsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.withArtifacts != nil && !minimock.Equal(*mm_want_ptrs.withArtifacts, mm_got.withArtifacts) {
+				mmListModels.t.Errorf("ServiceMock.ListModels got unexpected parameter withArtifacts, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListModels.ListModelsMock.defaultExpectation.expectationOrigins.originWithArtifacts, *mm_want_ptrs.withArtifacts, mm_got.withArtifacts, minimock.Diff(*mm_want_ptrs.withArtifacts, mm_got.withArtifacts))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
@@ -6331,9 +6362,9 @@ func (mmListModels *ServiceMock) ListModels(ctx context.Context) (ma1 []domain.M
 		return (*mm_results).ma1, (*mm_results).err
 	}
 	if mmListModels.funcListModels != nil {
-		return mmListModels.funcListModels(ctx)
+		return mmListModels.funcListModels(ctx, withArtifacts)
 	}
-	mmListModels.t.Fatalf("Unexpected call to ServiceMock.ListModels. %v", ctx)
+	mmListModels.t.Fatalf("Unexpected call to ServiceMock.ListModels. %v %v", ctx, withArtifacts)
 	return
 }
 
@@ -6774,14 +6805,16 @@ type ServiceMockListTerritoriesExpectation struct {
 
 // ServiceMockListTerritoriesParams contains parameters of the Service.ListTerritories
 type ServiceMockListTerritoriesParams struct {
-	ctx          context.Context
-	scopeAdminID string
+	ctx           context.Context
+	scopeAdminID  string
+	withArtifacts bool
 }
 
 // ServiceMockListTerritoriesParamPtrs contains pointers to parameters of the Service.ListTerritories
 type ServiceMockListTerritoriesParamPtrs struct {
-	ctx          *context.Context
-	scopeAdminID *string
+	ctx           *context.Context
+	scopeAdminID  *string
+	withArtifacts *bool
 }
 
 // ServiceMockListTerritoriesResults contains results of the Service.ListTerritories
@@ -6792,9 +6825,10 @@ type ServiceMockListTerritoriesResults struct {
 
 // ServiceMockListTerritoriesOrigins contains origins of expectations of the Service.ListTerritories
 type ServiceMockListTerritoriesExpectationOrigins struct {
-	origin             string
-	originCtx          string
-	originScopeAdminID string
+	origin              string
+	originCtx           string
+	originScopeAdminID  string
+	originWithArtifacts string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -6808,7 +6842,7 @@ func (mmListTerritories *mServiceMockListTerritories) Optional() *mServiceMockLi
 }
 
 // Expect sets up expected params for Service.ListTerritories
-func (mmListTerritories *mServiceMockListTerritories) Expect(ctx context.Context, scopeAdminID string) *mServiceMockListTerritories {
+func (mmListTerritories *mServiceMockListTerritories) Expect(ctx context.Context, scopeAdminID string, withArtifacts bool) *mServiceMockListTerritories {
 	if mmListTerritories.mock.funcListTerritories != nil {
 		mmListTerritories.mock.t.Fatalf("ServiceMock.ListTerritories mock is already set by Set")
 	}
@@ -6821,7 +6855,7 @@ func (mmListTerritories *mServiceMockListTerritories) Expect(ctx context.Context
 		mmListTerritories.mock.t.Fatalf("ServiceMock.ListTerritories mock is already set by ExpectParams functions")
 	}
 
-	mmListTerritories.defaultExpectation.params = &ServiceMockListTerritoriesParams{ctx, scopeAdminID}
+	mmListTerritories.defaultExpectation.params = &ServiceMockListTerritoriesParams{ctx, scopeAdminID, withArtifacts}
 	mmListTerritories.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmListTerritories.expectations {
 		if minimock.Equal(e.params, mmListTerritories.defaultExpectation.params) {
@@ -6878,8 +6912,31 @@ func (mmListTerritories *mServiceMockListTerritories) ExpectScopeAdminIDParam2(s
 	return mmListTerritories
 }
 
+// ExpectWithArtifactsParam3 sets up expected param withArtifacts for Service.ListTerritories
+func (mmListTerritories *mServiceMockListTerritories) ExpectWithArtifactsParam3(withArtifacts bool) *mServiceMockListTerritories {
+	if mmListTerritories.mock.funcListTerritories != nil {
+		mmListTerritories.mock.t.Fatalf("ServiceMock.ListTerritories mock is already set by Set")
+	}
+
+	if mmListTerritories.defaultExpectation == nil {
+		mmListTerritories.defaultExpectation = &ServiceMockListTerritoriesExpectation{}
+	}
+
+	if mmListTerritories.defaultExpectation.params != nil {
+		mmListTerritories.mock.t.Fatalf("ServiceMock.ListTerritories mock is already set by Expect")
+	}
+
+	if mmListTerritories.defaultExpectation.paramPtrs == nil {
+		mmListTerritories.defaultExpectation.paramPtrs = &ServiceMockListTerritoriesParamPtrs{}
+	}
+	mmListTerritories.defaultExpectation.paramPtrs.withArtifacts = &withArtifacts
+	mmListTerritories.defaultExpectation.expectationOrigins.originWithArtifacts = minimock.CallerInfo(1)
+
+	return mmListTerritories
+}
+
 // Inspect accepts an inspector function that has same arguments as the Service.ListTerritories
-func (mmListTerritories *mServiceMockListTerritories) Inspect(f func(ctx context.Context, scopeAdminID string)) *mServiceMockListTerritories {
+func (mmListTerritories *mServiceMockListTerritories) Inspect(f func(ctx context.Context, scopeAdminID string, withArtifacts bool)) *mServiceMockListTerritories {
 	if mmListTerritories.mock.inspectFuncListTerritories != nil {
 		mmListTerritories.mock.t.Fatalf("Inspect function is already set for ServiceMock.ListTerritories")
 	}
@@ -6904,7 +6961,7 @@ func (mmListTerritories *mServiceMockListTerritories) Return(ta1 []domain.Territ
 }
 
 // Set uses given function f to mock the Service.ListTerritories method
-func (mmListTerritories *mServiceMockListTerritories) Set(f func(ctx context.Context, scopeAdminID string) (ta1 []domain.Territory, err error)) *ServiceMock {
+func (mmListTerritories *mServiceMockListTerritories) Set(f func(ctx context.Context, scopeAdminID string, withArtifacts bool) (ta1 []domain.Territory, err error)) *ServiceMock {
 	if mmListTerritories.defaultExpectation != nil {
 		mmListTerritories.mock.t.Fatalf("Default expectation is already set for the Service.ListTerritories method")
 	}
@@ -6920,14 +6977,14 @@ func (mmListTerritories *mServiceMockListTerritories) Set(f func(ctx context.Con
 
 // When sets expectation for the Service.ListTerritories which will trigger the result defined by the following
 // Then helper
-func (mmListTerritories *mServiceMockListTerritories) When(ctx context.Context, scopeAdminID string) *ServiceMockListTerritoriesExpectation {
+func (mmListTerritories *mServiceMockListTerritories) When(ctx context.Context, scopeAdminID string, withArtifacts bool) *ServiceMockListTerritoriesExpectation {
 	if mmListTerritories.mock.funcListTerritories != nil {
 		mmListTerritories.mock.t.Fatalf("ServiceMock.ListTerritories mock is already set by Set")
 	}
 
 	expectation := &ServiceMockListTerritoriesExpectation{
 		mock:               mmListTerritories.mock,
-		params:             &ServiceMockListTerritoriesParams{ctx, scopeAdminID},
+		params:             &ServiceMockListTerritoriesParams{ctx, scopeAdminID, withArtifacts},
 		expectationOrigins: ServiceMockListTerritoriesExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmListTerritories.expectations = append(mmListTerritories.expectations, expectation)
@@ -6962,17 +7019,17 @@ func (mmListTerritories *mServiceMockListTerritories) invocationsDone() bool {
 }
 
 // ListTerritories implements mm_grpcapi.Service
-func (mmListTerritories *ServiceMock) ListTerritories(ctx context.Context, scopeAdminID string) (ta1 []domain.Territory, err error) {
+func (mmListTerritories *ServiceMock) ListTerritories(ctx context.Context, scopeAdminID string, withArtifacts bool) (ta1 []domain.Territory, err error) {
 	mm_atomic.AddUint64(&mmListTerritories.beforeListTerritoriesCounter, 1)
 	defer mm_atomic.AddUint64(&mmListTerritories.afterListTerritoriesCounter, 1)
 
 	mmListTerritories.t.Helper()
 
 	if mmListTerritories.inspectFuncListTerritories != nil {
-		mmListTerritories.inspectFuncListTerritories(ctx, scopeAdminID)
+		mmListTerritories.inspectFuncListTerritories(ctx, scopeAdminID, withArtifacts)
 	}
 
-	mm_params := ServiceMockListTerritoriesParams{ctx, scopeAdminID}
+	mm_params := ServiceMockListTerritoriesParams{ctx, scopeAdminID, withArtifacts}
 
 	// Record call args
 	mmListTerritories.ListTerritoriesMock.mutex.Lock()
@@ -6991,7 +7048,7 @@ func (mmListTerritories *ServiceMock) ListTerritories(ctx context.Context, scope
 		mm_want := mmListTerritories.ListTerritoriesMock.defaultExpectation.params
 		mm_want_ptrs := mmListTerritories.ListTerritoriesMock.defaultExpectation.paramPtrs
 
-		mm_got := ServiceMockListTerritoriesParams{ctx, scopeAdminID}
+		mm_got := ServiceMockListTerritoriesParams{ctx, scopeAdminID, withArtifacts}
 
 		if mm_want_ptrs != nil {
 
@@ -7003,6 +7060,11 @@ func (mmListTerritories *ServiceMock) ListTerritories(ctx context.Context, scope
 			if mm_want_ptrs.scopeAdminID != nil && !minimock.Equal(*mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID) {
 				mmListTerritories.t.Errorf("ServiceMock.ListTerritories got unexpected parameter scopeAdminID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmListTerritories.ListTerritoriesMock.defaultExpectation.expectationOrigins.originScopeAdminID, *mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID, minimock.Diff(*mm_want_ptrs.scopeAdminID, mm_got.scopeAdminID))
+			}
+
+			if mm_want_ptrs.withArtifacts != nil && !minimock.Equal(*mm_want_ptrs.withArtifacts, mm_got.withArtifacts) {
+				mmListTerritories.t.Errorf("ServiceMock.ListTerritories got unexpected parameter withArtifacts, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListTerritories.ListTerritoriesMock.defaultExpectation.expectationOrigins.originWithArtifacts, *mm_want_ptrs.withArtifacts, mm_got.withArtifacts, minimock.Diff(*mm_want_ptrs.withArtifacts, mm_got.withArtifacts))
 			}
 
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
@@ -7017,9 +7079,9 @@ func (mmListTerritories *ServiceMock) ListTerritories(ctx context.Context, scope
 		return (*mm_results).ta1, (*mm_results).err
 	}
 	if mmListTerritories.funcListTerritories != nil {
-		return mmListTerritories.funcListTerritories(ctx, scopeAdminID)
+		return mmListTerritories.funcListTerritories(ctx, scopeAdminID, withArtifacts)
 	}
-	mmListTerritories.t.Fatalf("Unexpected call to ServiceMock.ListTerritories. %v %v", ctx, scopeAdminID)
+	mmListTerritories.t.Fatalf("Unexpected call to ServiceMock.ListTerritories. %v %v %v", ctx, scopeAdminID, withArtifacts)
 	return
 }
 

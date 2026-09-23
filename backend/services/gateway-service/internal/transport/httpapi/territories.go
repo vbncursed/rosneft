@@ -13,7 +13,7 @@ func (s *Server) ListTerritories(ctx context.Context, _ ListTerritoriesRequestOb
 	if !allAccess && scopeAdminID == "" {
 		return ListTerritories200JSONResponse{}, nil // fail-closed: scoped caller with no resolvable admin sees nothing
 	}
-	out, err := s.svc.ListTerritories(ctx, scopeAdminID)
+	out, err := s.svc.ListTerritories(ctx, scopeAdminID, true)
 	if err != nil {
 		return ListTerritories500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}

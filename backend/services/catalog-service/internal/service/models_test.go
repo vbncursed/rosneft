@@ -142,8 +142,8 @@ func (s *ModelsSuite) TestGetReturnsExisting() {
 }
 
 func (s *ModelsSuite) TestListReturnsEverything() {
-	s.repo.ListModelsMock.Return([]domain.Model{{Slug: "a"}, {Slug: "b"}}, nil)
-	got, err := s.svc.ListModels(s.ctx)
+	s.repo.ListModelsMock.Expect(s.ctx, true).Return([]domain.Model{{Slug: "a"}, {Slug: "b"}}, nil)
+	got, err := s.svc.ListModels(s.ctx, true)
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), cmp.Len(got, 2))
 }

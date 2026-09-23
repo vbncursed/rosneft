@@ -18,7 +18,7 @@ type Repository interface {
 	UpdateTerritory(ctx context.Context, slug string, p domain.TerritoryPatch) (domain.Territory, error)
 	CreateTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
 	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
-	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
+	ListTerritories(ctx context.Context, scopeAdminID string, withArtifacts bool) ([]domain.Territory, error)
 	// Числовой id наружу не выставлен нигде, кроме этой выборки: сцене и
 	// каталогу он не нужен, а журналу аудита нужен, потому что снимок строки
 	// знает родителя размещения только числом.
@@ -41,7 +41,7 @@ type Repository interface {
 	UpdateModel(ctx context.Context, slug string, p domain.ModelPatch) (domain.Model, error)
 	CreateModel(ctx context.Context, m domain.Model) (domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)
-	ListModels(ctx context.Context) ([]domain.Model, error)
+	ListModels(ctx context.Context, withArtifacts bool) ([]domain.Model, error)
 	DeleteModel(ctx context.Context, slug string) error
 	RegisterModelArtifact(ctx context.Context, a domain.Artifact) (domain.Artifact, error)
 	GetModelArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)

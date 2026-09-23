@@ -187,6 +187,9 @@ message ListTerritoriesRequest {
   // When non-empty, restrict the result to territories assigned to this admin.
   // Empty means no filter (Root and internal callers see everything).
   string scope_admin_id = 1;
+  // Attach each territory's LOD chain. Off by default: only the list screens
+  // render it, and every other caller would pay one query for nothing.
+  bool with_artifacts = 2;
 }
 message ListTerritoriesResponse {
   repeated Territory territories = 1;
@@ -353,7 +356,10 @@ message RescaleTerritoryPlacementsResponse {
 
 // ─── Model RPCs ─────────────────────────────────────────────────────────────
 
-message ListModelsRequest {}
+message ListModelsRequest {
+  // Attach each model's LOD chain; off by default, as on ListTerritoriesRequest.
+  bool with_artifacts = 1;
+}
 message ListModelsResponse {
   repeated Model models = 1;
 }
