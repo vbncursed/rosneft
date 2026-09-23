@@ -15,6 +15,8 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
+//go:generate minimock -i AuthFlow,UsersSvc,RolesSvc -o ./mocks -s _mock.go
+
 // AuthFlow is the login/session surface.
 type AuthFlow interface {
 	Login(ctx context.Context, identifier, password string) (string, string, error)
@@ -33,7 +35,7 @@ type AuthFlow interface {
 // acting user id and whether it may see/manage every user (scopeAll).
 type UsersSvc interface {
 	Create(ctx context.Context, actorID, email, username, password string, roleSlugs []string) (domain.User, error)
-	List(ctx context.Context, actorID string, scopeAll bool, status string, includeDeleted bool) ([]domain.User, error)
+	List(ctx context.Context, actorID string, isOwner, scopeAll bool, status string, includeDeleted bool) ([]domain.User, error)
 	Get(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error)
 	// No actorID or scope: this one labels ids the caller already sees.
 	ResolveLogins(ctx context.Context, ids []string) (map[string]string, error)
@@ -98,11 +100,18 @@ func (s *Server) roleActor(ctx context.Context, token string) (actorID, owningAd
 // the caller holds users:read_all or is an owner — i.e. may see/manage every
 // user. Owners get scopeAll even after the admin role loses users:read_all.
 func (s *Server) actor(ctx context.Context, token string) (string, bool, error) {
+	uid, _, scopeAll, err := s.ownerActor(ctx, token)
+	return uid, scopeAll, err
+}
+
+// ownerActor is actor plus whether the caller is Root, for the one method that
+// needs it (ListUsers hides Root and the Company Owners from everyone else).
+func (s *Server) ownerActor(ctx context.Context, token string) (uid string, isOwner, scopeAll bool, err error) {
 	uid, perms, isOwner, _, _, _, err := s.auth.ValidateToken(ctx, token)
 	if err != nil {
-		return "", false, err
+		return "", false, false, err
 	}
-	return uid, isOwner || slices.Contains(perms, "users:read_all"), nil
+	return uid, isOwner, isOwner || slices.Contains(perms, "users:read_all"), nil
 }
 
 // statusByCode lists, per gRPC code, the domain sentinels that surface as it.

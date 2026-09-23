@@ -22,9 +22,10 @@ func TestSetPasswordSuite(t *testing.T) { suite.Run(t, new(SetPasswordSuite)) }
 const newPassword = "N3w-Passw0rd!"
 
 // Every refusal leaves the password and the sessions alone. minimock enforces
-// that: ChangePassword and DeleteUser are configured only when written is set,
-// so any other call fails the case. The GetByID lookups are exact, because an
-// unused When expectation fails the controller too.
+// that: ChangePassword is configured only when written is set, and DeleteUser
+// only when the write also succeeded, so any other call fails the case. The
+// GetByID lookups are exact, because an unused When expectation fails the
+// controller too; actorErr makes the actor's own lookup fail.
 func (s *SetPasswordSuite) TestSetPassword() {
 	root := domain.User{ID: "root", IsOwner: true}
 	company := domain.User{ID: "co", RoleSlugs: []string{"admin"}}
@@ -32,6 +33,7 @@ func (s *SetPasswordSuite) TestSetPassword() {
 	foreign := domain.User{ID: "u2", RoleSlugs: []string{"guest"}, CreatedBy: new("other")}
 	ownAdmin := domain.User{ID: "a1", RoleSlugs: []string{"admin"}, CreatedBy: new("co")}
 	errRedis := errors.New("redis is down")
+	errDB := errors.New("postgres is down")
 	// A delegate holding users:write that created a user with wider access:
 	// resetting that password would hand the delegate the wider access.
 	delegate := domain.User{ID: "d1", Permissions: []string{"users:read", "users:write"}, CreatedBy: new("co")}
@@ -45,7 +47,9 @@ func (s *SetPasswordSuite) TestSetPassword() {
 		target   string
 		password string
 		lookups  []domain.User
+		actorErr error
 		written  bool
+		writeErr error
 		signOut  error
 		want     error
 	}{
@@ -94,6 +98,14 @@ func (s *SetPasswordSuite) TestSetPassword() {
 			lookups: []domain.User{foreign}, want: domain.ErrInvalidInput,
 		},
 		{
+			name: "a failed actor lookup is returned before any write", actor: "d1", target: "n1",
+			password: newPassword, lookups: []domain.User{narrower}, actorErr: errDB, want: errDB,
+		},
+		{
+			name: "a failed write is returned and signs nobody out", actor: "root", scopeAll: true, target: "u2",
+			password: newPassword, lookups: []domain.User{foreign}, written: true, writeErr: errDB, want: errDB,
+		},
+		{
 			name: "a failed sign-out is reported after the write", actor: "root", scopeAll: true, target: "u2",
 			password: newPassword, lookups: []domain.User{foreign}, written: true, signOut: errRedis, want: errRedis,
 		},
@@ -106,14 +118,19 @@ func (s *SetPasswordSuite) TestSetPassword() {
 			for _, u := range tc.lookups {
 				st.GetByIDMock.When(ctx, u.ID).Then(u, nil)
 			}
+			if tc.actorErr != nil {
+				st.GetByIDMock.When(ctx, tc.actor).Then(domain.User{}, tc.actorErr)
+			}
 			if tc.written {
 				st.ChangePasswordMock.Set(func(_ context.Context, id, hash string) error {
 					assert.Equal(s.T(), id, tc.target)
 					ok, err := password.Verify(tc.password, hash)
 					assert.NilError(s.T(), err)
 					assert.Assert(s.T(), ok, "the stored hash must verify the new password")
-					return nil
+					return tc.writeErr
 				})
+			}
+			if tc.written && tc.writeErr == nil {
 				ss.DeleteUserMock.Times(1).Expect(ctx, tc.target).Return(tc.signOut)
 			}
 

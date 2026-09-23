@@ -17,7 +17,7 @@ func (s *Store) List(
 	ctx context.Context, status string, includeDeleted bool, ownerID, hidePrivilegedExcept string,
 ) ([]domain.User, error) {
 	q := `SELECT ` + userColumns + ` FROM users u WHERE 1=1`
-	args := make([]any, 0, 3)
+	args := make([]any, 0, 4)
 	if ownerID != "" {
 		args = append(args, ownerID)
 		// A Company Owner's own row is created by Root, not by the owner —
@@ -25,10 +25,10 @@ func (s *Store) List(
 		q += fmt.Sprintf(" AND (u.created_by = $%d OR u.id = $%d)", len(args), len(args))
 	}
 	if hidePrivilegedExcept != "" {
-		args = append(args, hidePrivilegedExcept)
+		args = append(args, hidePrivilegedExcept, domain.RoleAdmin)
 		q += fmt.Sprintf(` AND (u.id = $%d OR (NOT u.is_owner AND NOT EXISTS (
 			SELECT 1 FROM user_roles ur JOIN roles r ON r.id = ur.role_id
-			WHERE ur.user_id = u.id AND r.slug = 'admin')))`, len(args))
+			WHERE ur.user_id = u.id AND r.slug = $%d)))`, len(args)-1, len(args))
 	}
 	if status != "" {
 		args = append(args, status)

@@ -23,7 +23,7 @@ func (s *Service) assertCanGrant(ctx context.Context, actorID string, roleSlugs 
 	if actor.IsOwner {
 		return nil
 	}
-	if slices.Contains(roleSlugs, "admin") {
+	if slices.Contains(roleSlugs, domain.RoleAdmin) {
 		return domain.ErrAdminOwnerOnly
 	}
 	granted, err := s.store.PermissionsForRoles(ctx, roleSlugs)

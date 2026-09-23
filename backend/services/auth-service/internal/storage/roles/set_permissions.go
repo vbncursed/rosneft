@@ -40,7 +40,10 @@ func (s *Store) replacePermissions(ctx context.Context, slug string, permSlugs [
 	})
 }
 
-// writePermissions replaces one role's role_permissions rows inside tx.
+// writePermissions replaces one role's role_permissions rows inside tx. A slug
+// listed twice is one grant: ON CONFLICT skips the second insert instead of
+// failing the whole replace on the primary key. Both the PATCH and the PUT
+// path write through here.
 func writePermissions(ctx context.Context, tx pgx.Tx, roleID string, permSlugs []string) error {
 	if _, err := tx.Exec(ctx, `DELETE FROM role_permissions WHERE role_id = $1`, roleID); err != nil {
 		return fmt.Errorf("roles.writePermissions: clear: %w", err)
@@ -53,7 +56,7 @@ func writePermissions(ctx context.Context, tx pgx.Tx, roleID string, permSlugs [
 			}
 			return fmt.Errorf("roles.writePermissions: perm %q: %w", ps, err)
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO role_permissions (role_id, permission_id) VALUES ($1,$2)`, roleID, permID); err != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO role_permissions (role_id, permission_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`, roleID, permID); err != nil {
 			return fmt.Errorf("roles.writePermissions: insert: %w", err)
 		}
 	}

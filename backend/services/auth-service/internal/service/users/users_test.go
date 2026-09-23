@@ -3,6 +3,7 @@ package users_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/suite"
@@ -93,33 +94,80 @@ func (s *UsersSuite) TestFreezeKillsSessions() {
 	assert.Equal(s.T(), out.Status, domain.StatusFrozen)
 }
 
-// A non-Root actor never sees or touches Root or a Company Owner (admin slug),
-// whatever users:read_all says: every ownership()-routed operation reads the
-// target as missing, so no write and no sign-out runs. The refusal cases set no
-// write expectations, so minimock fails any SetStatus/ChangePassword/DeleteUser.
-func TestPrivilegedAccountsHiddenFromNonRoot(t *testing.T) {
-	root := domain.User{ID: "root", IsOwner: true}
-	company := domain.User{ID: "co", RoleSlugs: []string{"admin"}, CreatedBy: new("root")}
-	peer := domain.User{ID: "co2", RoleSlugs: []string{"admin"}, CreatedBy: new("co")}
-	reader := domain.User{ID: "reader", RoleSlugs: []string{"auditor"}}
-	own := domain.User{ID: "u1", RoleSlugs: []string{"guest"}, CreatedBy: new("co")}
+// privilegedOp is one ownership()-routed operation, plus the writes it must
+// make when the target is reachable. writes configures them without Optional,
+// so minimock fails a success case that skipped one.
+type privilegedOp struct {
+	name   string
+	call   func(svc *users.Service, ctx context.Context, actor string, all bool, id string) error
+	writes func(t *testing.T, st *mocks.StoreMock, ss *mocks.SessionsMock, target string)
+}
 
-	ops := map[string]func(*users.Service, context.Context, string, bool, string) error{
-		"get": func(svc *users.Service, ctx context.Context, actor string, all bool, id string) error {
+// statusWrite expects the one SetStatus to status and the sign-out after it.
+func statusWrite(t *testing.T, st *mocks.StoreMock, ss *mocks.SessionsMock, target, status string) {
+	st.SetStatusMock.Set(func(_ context.Context, id, got string, _ *time.Time) (domain.User, error) {
+		assert.Equal(t, id, target)
+		assert.Equal(t, got, status)
+		return domain.User{ID: id, Status: got}, nil
+	})
+	ss.DeleteUserMock.Expect(t.Context(), target).Return(nil)
+}
+
+var privilegedOps = []privilegedOp{
+	{
+		name: "get",
+		call: func(svc *users.Service, ctx context.Context, actor string, all bool, id string) error {
 			_, err := svc.Get(ctx, actor, all, id)
 			return err
 		},
-		"freeze": func(svc *users.Service, ctx context.Context, actor string, all bool, id string) error {
+		writes: func(*testing.T, *mocks.StoreMock, *mocks.SessionsMock, string) {},
+	},
+	{
+		name: "freeze",
+		call: func(svc *users.Service, ctx context.Context, actor string, all bool, id string) error {
 			_, err := svc.Freeze(ctx, actor, all, id)
 			return err
 		},
-		"soft delete": func(svc *users.Service, ctx context.Context, actor string, all bool, id string) error {
+		writes: func(t *testing.T, st *mocks.StoreMock, ss *mocks.SessionsMock, target string) {
+			statusWrite(t, st, ss, target, domain.StatusFrozen)
+		},
+	},
+	{
+		name: "soft delete",
+		call: func(svc *users.Service, ctx context.Context, actor string, all bool, id string) error {
 			return svc.SoftDelete(ctx, actor, all, id)
 		},
-		"set password": func(svc *users.Service, ctx context.Context, actor string, all bool, id string) error {
+		writes: func(t *testing.T, st *mocks.StoreMock, ss *mocks.SessionsMock, target string) {
+			statusWrite(t, st, ss, target, domain.StatusDeleted)
+		},
+	},
+	{
+		name: "set password",
+		call: func(svc *users.Service, ctx context.Context, actor string, all bool, id string) error {
 			return svc.SetPassword(ctx, actor, all, id, newPassword)
 		},
-	}
+		writes: func(t *testing.T, st *mocks.StoreMock, ss *mocks.SessionsMock, target string) {
+			st.ChangePasswordMock.Set(func(_ context.Context, id, _ string) error {
+				assert.Equal(t, id, target)
+				return nil
+			})
+			ss.DeleteUserMock.Expect(t.Context(), target).Return(nil)
+		},
+	},
+}
+
+// A non-Root actor never sees or touches Root or a Company Owner (admin slug),
+// whatever users:read_all says: every ownership()-routed operation reads the
+// target as missing, so no write and no sign-out runs. The refusal cases set no
+// write expectations, so minimock fails any SetStatus/ChangePassword/DeleteUser;
+// the success cases expect each write, so minimock fails one that was skipped.
+func TestPrivilegedAccountsHiddenFromNonRoot(t *testing.T) {
+	root := domain.User{ID: "root", IsOwner: true}
+	company := domain.User{ID: "co", RoleSlugs: []string{domain.RoleAdmin}, CreatedBy: new("root")}
+	peer := domain.User{ID: "co2", RoleSlugs: []string{domain.RoleAdmin}, CreatedBy: new("co")}
+	reader := domain.User{ID: "reader", RoleSlugs: []string{"auditor"}}
+	own := domain.User{ID: "u1", RoleSlugs: []string{"guest"}, CreatedBy: new("co")}
+
 	tests := []struct {
 		name     string
 		actor    string
@@ -150,30 +198,32 @@ func TestPrivilegedAccountsHiddenFromNonRoot(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		for op, call := range ops {
-			t.Run(tc.name+"/"+op, func(t *testing.T) {
-				mc := minimock.NewController(t)
-				st, ss := mocks.NewStoreMock(mc), mocks.NewSessionsMock(mc)
-				ctx := t.Context()
-				for _, u := range tc.lookups {
-					st.GetByIDMock.When(ctx, u.ID).Then(u, nil)
-				}
-				if tc.want == nil {
-					st.CountAdminsMock.Optional().Return(1, nil)
-					st.SetStatusMock.Optional().Return(domain.User{ID: tc.target}, nil)
-					st.ChangePasswordMock.Optional().Return(nil)
-					ss.DeleteUserMock.Optional().Return(nil)
-				}
+		t.Run(tc.name, func(t *testing.T) {
+			for _, op := range privilegedOps {
+				t.Run(op.name, func(t *testing.T) {
+					mc := minimock.NewController(t)
+					st, ss := mocks.NewStoreMock(mc), mocks.NewSessionsMock(mc)
+					ctx := t.Context()
+					for _, u := range tc.lookups {
+						st.GetByIDMock.When(ctx, u.ID).Then(u, nil)
+					}
+					if tc.want == nil {
+						// The last-admin guard asks only for an admin target,
+						// and set password skips it altogether.
+						st.CountAdminsMock.Optional().Return(1, nil)
+						op.writes(t, st, ss, tc.target)
+					}
 
-				err := call(users.New(st, ss), ctx, tc.actor, tc.scopeAll, tc.target)
+					err := op.call(users.New(st, ss), ctx, tc.actor, tc.scopeAll, tc.target)
 
-				if tc.want == nil {
-					assert.NilError(t, err)
-					return
-				}
-				assert.ErrorIs(t, err, tc.want)
-			})
-		}
+					if tc.want == nil {
+						assert.NilError(t, err)
+						return
+					}
+					assert.ErrorIs(t, err, tc.want)
+				})
+			}
+		})
 	}
 }
 
