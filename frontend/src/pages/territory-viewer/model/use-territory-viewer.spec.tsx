@@ -432,6 +432,33 @@ describe("useTerritoryViewer", () => {
       expect(now(second).canvas.chains).toMatchObject([{ serverId: 31 }]);
     });
 
+    // Visit B kept the bundle A's late write marked, but B changed nothing
+    // itself: B leaving must still drop it, or visit C seeds from the
+    // pre-write bundle.
+    it("drops a bundle a late write marked once the visit that kept it leaves", async () => {
+      let land!: (m: unknown) => void;
+      createMeasurement.mockImplementation(() => new Promise((resolve) => (land = resolve)));
+      const first = mount();
+      await ready(first);
+      measureAndFinish(first);
+      first.unmount();
+      const second = renderHook(() => useTerritoryViewer(SLUG), { wrapper });
+      await ready(second);
+      await act(async () => land({ serverId: 32, points: [], closed: false }));
+      second.unmount();
+      expect(client.getQueryData(["scene", SLUG])).toBeUndefined();
+
+      const calls = getSceneBundle.mock.calls.length;
+      const third = renderHook(() => useTerritoryViewer(SLUG), { wrapper });
+      await waitFor(() => expect(getSceneBundle.mock.calls.length).toBe(calls + 1));
+      third.unmount();
+      // Consumed: a later visit that changes nothing keeps its bundle.
+      const fourth = renderHook(() => useTerritoryViewer(SLUG), { wrapper });
+      await ready(fourth);
+      fourth.unmount();
+      expect(client.getQueryData(["scene", SLUG])).toBeDefined();
+    });
+
     it("keeps the cached bundle on unmount when nothing changed", async () => {
       const r = mount();
       await ready(r);
