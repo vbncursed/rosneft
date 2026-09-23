@@ -7,7 +7,8 @@ Copyright 2026 Runeicons. Licensed under the Apache License, Version 2.0
 stroke width changed to 1.75.
   arrow-right, arrow-up, calendar, check, chevron-down, chevron-left,
   chevron-right, chevron-up, close (x), cube (box), documents (file-text),
-  download (arrow-down-to-line), eye, eye-off, file, grid (layout-grid),
+  download (arrow-down-to-line), eye, eye-off, file, folder-move
+  (folder-input), folder-plus, grid (layout-grid),
   grip (grip-horizontal), help (circle-question-mark), info, lock, minus,
   moon, panorama (camera), passkey (fingerprint-pattern), pencil, plus,
   refresh (refresh-cw), reset (rotate-ccw), search, sun, trash (trash-2),
