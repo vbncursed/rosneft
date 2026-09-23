@@ -56,17 +56,30 @@ export function NewGroup({ busy, onCreate }: { busy: boolean; onCreate: (title: 
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   const closed = useRef(false);
+  // Counts openings: a create that lands after Cancel and a reopen answers the
+  // old field, and must not close the new one.
+  const session = useRef(0);
   // The field leaves the DOM with its focus; hand it back to the button or it falls to <body>.
   useEffect(() => {
     if (!open && closed.current) button.current?.focus();
   }, [open]);
-  const close = () => {
+  const close = (from = session.current) => {
+    if (from !== session.current) return;
     closed.current = true;
     setOpen(false);
   };
   if (!open) {
     return (
-      <Button ref={button} variant="secondary" size="sm" onClick={() => setOpen(true)} className="w-full">
+      <Button
+        ref={button}
+        variant="secondary"
+        size="sm"
+        onClick={() => {
+          session.current += 1;
+          setOpen(true);
+        }}
+        className="w-full"
+      >
         <Icon name="folder-plus" size={14} />
         {NEW_GROUP}
       </Button>
@@ -80,9 +93,10 @@ export function NewGroup({ busy, onCreate }: { busy: boolean; onCreate: (title: 
       compact
       // A refused create keeps the field and what was typed; the toast says why.
       onSubmit={async (title) => {
-        if (await onCreate(title)) close();
+        const from = session.current;
+        if (await onCreate(title)) close(from);
       }}
-      onCancel={close}
+      onCancel={() => close()}
     />
   );
 }
