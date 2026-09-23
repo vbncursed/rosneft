@@ -135,6 +135,7 @@ const BUNDLE: SceneBundle = {
       closed: false,
     },
   ],
+  placementGroups: [],
 };
 
 const principal = (over: Partial<Principal> = {}): Principal => ({

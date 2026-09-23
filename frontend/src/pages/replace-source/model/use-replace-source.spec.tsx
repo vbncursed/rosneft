@@ -51,6 +51,7 @@ const OLD_BUNDLE: SceneBundle = {
   panoramas: [],
   documents: [],
   measurements: [],
+  placementGroups: [],
 };
 
 const PRINCIPAL = {

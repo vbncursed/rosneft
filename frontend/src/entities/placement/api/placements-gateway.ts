@@ -46,3 +46,19 @@ export async function setPlacementVisibility(
     await httpPut<PlacementDto>(`${base(territorySlug)}/${id}/visibility`, { panoramaIds }),
   );
 }
+
+type UpdatedDto = components["schemas"]["PlacementsUpdated"];
+
+/** One transaction over every id (1–1000); the answer is how many rows changed. */
+export async function setPlacementsHidden(territorySlug: string, ids: number[], hidden: boolean): Promise<number> {
+  return (await httpPut<UpdatedDto>(`${base(territorySlug)}/hidden`, { ids, hidden })).updated;
+}
+
+/** `groupId: null` is "No group", sent explicitly (a missing key would ungroup too). */
+export async function setPlacementsGroup(
+  territorySlug: string,
+  ids: number[],
+  groupId: number | null,
+): Promise<number> {
+  return (await httpPut<UpdatedDto>(`${base(territorySlug)}/group`, { ids, groupId })).updated;
+}

@@ -1,6 +1,6 @@
 import { httpGet } from "@/shared/api";
 import type { components } from "@/shared/api/dto";
-import { toPlacement, type Placement, type Vec3 } from "@/entities/placement";
+import { toPlacement, toPlacementGroup, type Placement, type PlacementGroup, type Vec3 } from "@/entities/placement";
 import { toTerritory, type Territory } from "@/entities/territory";
 import { toPanorama, type Panorama } from "@/entities/panorama";
 import { toDocument, type Document } from "@/entities/document";
@@ -41,6 +41,8 @@ export type SceneBundle = {
   documents: Document[];
   /** The territory's saved measurement chains, shared by every reader. */
   measurements: StoredChain[];
+  /** The territory's user groups (G-2), `[]` when none; the scene is their only reader. */
+  placementGroups: PlacementGroup[];
 };
 
 const ZERO: Vec3 = { x: 0, y: 0, z: 0 };
@@ -79,5 +81,6 @@ export async function getSceneBundle(slug: string): Promise<SceneBundle> {
     panoramas: (d.panoramas ?? []).map(toPanorama),
     documents: (d.documents ?? []).map(toDocument),
     measurements: d.measurements.map(toStoredChain),
+    placementGroups: d.placementGroups.map(toPlacementGroup),
   };
 }

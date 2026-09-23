@@ -71,3 +71,9 @@ export type PlacementCreate = {
 
 /** The PUT body: the whole transform, plus the label, every time. */
 export type PlacementUpdate = PlacementTransform & { label: string };
+
+/** A user-made group on one territory (spec §1). A placement sits in at most one. */
+export type PlacementGroup = { id: number; title: string };
+
+/** The gateway's bound on a group title; the field stops typing there. */
+export const GROUP_TITLE_MAX = 120;
