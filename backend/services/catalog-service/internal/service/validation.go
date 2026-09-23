@@ -3,7 +3,9 @@ package service
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
@@ -62,3 +64,35 @@ func validateMeasurement(m domain.Measurement) error {
 }
 
 func isFinite(v float64) bool { return !math.IsNaN(v) && !math.IsInf(v, 0) }
+
+// maxBulkPlacementIDs bounds one bulk write: the ids as sent, before
+// de-duplication, as the gateway's OpenAPI states it.
+const maxBulkPlacementIDs = 1000
+
+// distinctPlacementIDs refuses an empty slug or an empty or oversized list and
+// answers each id once: storage counts the rows it updated against this
+// length, so a repeated id would read as a missing one.
+func distinctPlacementIDs(territorySlug string, ids []int64) ([]int64, error) {
+	switch {
+	case territorySlug == "":
+		return nil, fmt.Errorf("%w: empty territory slug", domain.ErrInvalidInput)
+	case len(ids) == 0 || len(ids) > maxBulkPlacementIDs:
+		return nil, fmt.Errorf("%w: a bulk update names 1 to %d placements, got %d",
+			domain.ErrInvalidInput, maxBulkPlacementIDs, len(ids))
+	}
+	return slices.Compact(slices.Sorted(slices.Values(ids))), nil
+}
+
+// maxGroupTitle is placement_groups_title_len's upper bound, in characters.
+const maxGroupTitle = 120
+
+// groupTitle trims title and refuses it unless 1 to 120 characters remain: the
+// placement_groups_title_len check, said as a 400 before the database says it.
+func groupTitle(title string) (string, error) {
+	t := strings.TrimSpace(title)
+	if n := utf8.RuneCountInString(t); n == 0 || n > maxGroupTitle {
+		return "", fmt.Errorf("%w: a group title is 1 to %d characters, got %d",
+			domain.ErrInvalidInput, maxGroupTitle, n)
+	}
+	return t, nil
+}

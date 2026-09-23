@@ -75,6 +75,19 @@ service CatalogService {
   rpc UpdateMeasurement(UpdateMeasurementRequest) returns (UpdateMeasurementResponse);
   rpc DeleteMeasurement(DeleteMeasurementRequest) returns (DeleteMeasurementResponse);
   rpc DeleteMeasurements(DeleteMeasurementsRequest) returns (DeleteMeasurementsResponse);
+
+  // Bulk placement writes: one UPDATE over ids on territory_slug in one
+  // transaction. Every id must be on the territory or nothing changes and the
+  // answer is NOT_FOUND; a repeated id counts once; 1–1000 ids.
+  rpc SetPlacementsHidden(SetPlacementsHiddenRequest) returns (SetPlacementsHiddenResponse);
+  rpc SetPlacementsGroup(SetPlacementsGroupRequest) returns (SetPlacementsGroupResponse);
+
+  // Placement groups are scoped by territory_slug like measurements: an id of
+  // another territory is NOT_FOUND, same as an unknown one.
+  rpc ListPlacementGroups(ListPlacementGroupsRequest) returns (ListPlacementGroupsResponse);
+  rpc CreatePlacementGroup(CreatePlacementGroupRequest) returns (CreatePlacementGroupResponse);
+  rpc RenamePlacementGroup(RenamePlacementGroupRequest) returns (RenamePlacementGroupResponse);
+  rpc DeletePlacementGroup(DeletePlacementGroupRequest) returns (DeletePlacementGroupResponse);
 }
 
 // Vec3 represents a point in 3D space (used for bounding-box corners
@@ -166,6 +179,11 @@ message Placement {
   // shown in (panorama mode only — the 3D view always shows every
   // placement). Empty means the placement is hidden in every panorama.
   repeated int64 visible_panorama_ids = 10;
+  // hidden is shared: a hidden placement is not drawn for anyone who opens
+  // the territory. Only SetPlacementsHidden changes it.
+  bool hidden = 11;
+  // group_id is the placement's user group; absent when it is in none.
+  optional int64 group_id = 12;
 }
 
 // Measurement is a saved ruler chain on a territory. points is flat —
@@ -179,6 +197,17 @@ message Measurement {
   bool closed = 4;
   google.protobuf.Timestamp created_at = 5;
   google.protobuf.Timestamp updated_at = 6;
+}
+
+// PlacementGroup is a user-made group of placements on a territory. A
+// placement is in at most one; deleting the group returns its placements to
+// no group.
+message PlacementGroup {
+  int64 id = 1;
+  string territory_slug = 2;
+  string title = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
 }
 
 // ─── Territory RPCs ─────────────────────────────────────────────────────────
@@ -435,6 +464,9 @@ message CreatePlacementRequest {
   // Initial panorama allowlist — a placement created while a panorama is
   // active carries that panorama so it shows where it was dropped.
   repeated int64 visible_panorama_ids = 7;
+  // Group the new placement lands in. A group of another territory is
+  // NOT_FOUND, like an unknown one.
+  optional int64 group_id = 8;
 }
 message CreatePlacementResponse {
   Placement placement = 1;
@@ -529,3 +561,56 @@ message DeleteMeasurementsRequest {
 message DeleteMeasurementsResponse {
   uint32 deleted = 1;
 }
+
+// ─── Placement group RPCs ───────────────────────────────────────────────────
+
+message SetPlacementsHiddenRequest {
+  string territory_slug = 1;
+  repeated int64 ids = 2;
+  bool hidden = 3;
+}
+message SetPlacementsHiddenResponse {
+  uint32 updated = 1;
+}
+
+// SetPlacementsGroupRequest moves ids into group_id, or out of any group when
+// it is absent.
+message SetPlacementsGroupRequest {
+  string territory_slug = 1;
+  repeated int64 ids = 2;
+  optional int64 group_id = 3;
+}
+message SetPlacementsGroupResponse {
+  uint32 updated = 1;
+}
+
+message ListPlacementGroupsRequest {
+  string territory_slug = 1;
+}
+message ListPlacementGroupsResponse {
+  repeated PlacementGroup groups = 1;
+}
+
+// The title is trimmed; 1–120 characters must remain.
+message CreatePlacementGroupRequest {
+  string territory_slug = 1;
+  string title = 2;
+}
+message CreatePlacementGroupResponse {
+  PlacementGroup group = 1;
+}
+
+message RenamePlacementGroupRequest {
+  string territory_slug = 1;
+  int64 id = 2;
+  string title = 3;
+}
+message RenamePlacementGroupResponse {
+  PlacementGroup group = 1;
+}
+
+message DeletePlacementGroupRequest {
+  string territory_slug = 1;
+  int64 id = 2;
+}
+message DeletePlacementGroupResponse {}

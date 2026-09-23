@@ -138,6 +138,8 @@ func placementToProto(p domain.Placement) *catalogv1.Placement {
 		CreatedAt:          timestamppb.New(p.CreatedAt),
 		UpdatedAt:          timestamppb.New(p.UpdatedAt),
 		VisiblePanoramaIds: p.VisiblePanoramaIDs,
+		Hidden:             p.Hidden,
+		GroupId:            p.GroupID,
 	}
 }
 
@@ -172,5 +174,16 @@ func placementFromCreateRequest(req *catalogv1.CreatePlacementRequest) domain.Pl
 		Scale:              vec3FromProto(req.GetScale()),
 		Label:              req.GetLabel(),
 		VisiblePanoramaIDs: req.GetVisiblePanoramaIds(),
+		GroupID:            req.GroupId,
+	}
+}
+
+func placementGroupToProto(g domain.PlacementGroup) *catalogv1.PlacementGroup {
+	return &catalogv1.PlacementGroup{
+		Id:            g.ID,
+		TerritorySlug: g.TerritorySlug,
+		Title:         g.Title,
+		CreatedAt:     timestamppb.New(g.CreatedAt),
+		UpdatedAt:     timestamppb.New(g.UpdatedAt),
 	}
 }
