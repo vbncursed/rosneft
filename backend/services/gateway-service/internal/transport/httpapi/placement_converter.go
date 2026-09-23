@@ -15,6 +15,8 @@ func placementToAPI(p domain.Placement) Placement {
 		Position:      vec3ToAPI(p.Position),
 		Rotation:      vec3ToAPI(p.Rotation),
 		Scale:         vec3ToAPI(p.Scale),
+		Hidden:        p.Hidden,
+		GroupId:       p.GroupID,
 	}
 	if p.Label != "" {
 		out.Label = &p.Label
@@ -42,6 +44,7 @@ func placementFromCreate(slug string, body PlacementCreate) domain.Placement {
 		Position:      vec3PtrFromAPI(body.Position),
 		Rotation:      vec3PtrFromAPI(body.Rotation),
 		Scale:         vec3PtrFromAPI(body.Scale),
+		GroupID:       body.GroupId,
 	}
 	if body.Label != nil {
 		p.Label = *body.Label

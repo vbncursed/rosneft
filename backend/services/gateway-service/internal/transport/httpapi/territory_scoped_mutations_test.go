@@ -47,6 +47,26 @@ func (r slugRecorder) DeleteMeasurement(_ context.Context, territorySlug string,
 	return nil
 }
 
+func (r slugRecorder) SetPlacementsHidden(_ context.Context, territorySlug string, _ []int64, _ bool) (int, error) {
+	*r.slug = territorySlug
+	return 0, nil
+}
+
+func (r slugRecorder) SetPlacementsGroup(_ context.Context, territorySlug string, _ []int64, _ *int64) (int, error) {
+	*r.slug = territorySlug
+	return 0, nil
+}
+
+func (r slugRecorder) RenamePlacementGroup(_ context.Context, territorySlug string, id int64, title string) (domain.PlacementGroup, error) {
+	*r.slug = territorySlug
+	return domain.PlacementGroup{ID: id, Title: title}, nil
+}
+
+func (r slugRecorder) DeletePlacementGroup(_ context.Context, territorySlug string, _ int64) error {
+	*r.slug = territorySlug
+	return nil
+}
+
 func (r slugRecorder) UpdatePanorama(_ context.Context, p domain.Panorama) (domain.Panorama, error) {
 	*r.slug = p.TerritorySlug
 	return p, nil
@@ -81,6 +101,22 @@ func (s *TerritoryScopedMutationsSuite) TestEveryMutationForwardsTheURLSlug() {
 		}},
 		{name: "delete measurement", call: func(ctx context.Context, srv *Server) error {
 			_, err := srv.DeleteMeasurement(ctx, DeleteMeasurementRequestObject{Slug: "yard", Id: 1})
+			return err
+		}},
+		{name: "hide placements", call: func(ctx context.Context, srv *Server) error {
+			_, err := srv.SetPlacementsHidden(ctx, SetPlacementsHiddenRequestObject{Slug: "yard", Body: &SetPlacementsHiddenJSONRequestBody{Ids: []int64{1}}})
+			return err
+		}},
+		{name: "move placements", call: func(ctx context.Context, srv *Server) error {
+			_, err := srv.SetPlacementsGroup(ctx, SetPlacementsGroupRequestObject{Slug: "yard", Body: &SetPlacementsGroupJSONRequestBody{Ids: []int64{1}}})
+			return err
+		}},
+		{name: "rename placement group", call: func(ctx context.Context, srv *Server) error {
+			_, err := srv.UpdatePlacementGroup(ctx, UpdatePlacementGroupRequestObject{Slug: "yard", Id: 1, Body: &UpdatePlacementGroupJSONRequestBody{Title: "x"}})
+			return err
+		}},
+		{name: "delete placement group", call: func(ctx context.Context, srv *Server) error {
+			_, err := srv.DeletePlacementGroup(ctx, DeletePlacementGroupRequestObject{Slug: "yard", Id: 1})
 			return err
 		}},
 		{name: "update panorama", call: func(ctx context.Context, srv *Server) error {
