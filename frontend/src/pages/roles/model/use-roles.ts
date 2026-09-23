@@ -4,9 +4,8 @@ import { permissionsQuery, type Permission } from "@/entities/permission";
 import {
   createRole,
   deleteRole,
-  renameRole,
   rolesQuery,
-  setRolePermissions,
+  updateRole,
   type Role,
 } from "@/entities/role";
 import { meQuery, usersQuery, type User } from "@/entities/user";
@@ -89,19 +88,22 @@ export function useRoles(): RolesState {
   const fail = (err: unknown) => notify.error(messageOf(err));
 
   const saving = useMutation({
-    // Two calls when both changed; the gateway has no single "update role".
+    // One PATCH carries the title and, when it changed, the permission set; the gateway applies both
+    // in one transaction with the same grant checks.
     mutationFn: async () => {
       if (!selected || !draft) return;
-      if (!sameSet(draft.granted, selected.permissionSlugs))
-        await setRolePermissions(selected.slug, draft.granted);
-      if (draft.title !== selected.title) await renameRole(selected.slug, draft.title);
+      await updateRole(selected.slug, {
+        title: draft.title, // the gateway requires it; an unchanged title is a no-op rename
+        ...(sameSet(draft.granted, selected.permissionSlugs) ? {} : { permissionSlugs: draft.granted }),
+      });
     },
     onSuccess: () => {
       notify.success("Role saved");
       void refresh();
-      // A role's title travels embedded in every person who holds it, so the
-      // Users screen keeps showing the old one until its list is refetched too.
-      void client.invalidateQueries({ queryKey: ["users"] });
+      // A role's title travels embedded in every person who holds it. Marked
+      // stale, not refetched: this screen reads the people only for counts,
+      // and the Users screen reads fresh on its next mount.
+      void client.invalidateQueries({ queryKey: ["users"], refetchType: "none" });
       // The reader may hold this role, and their nav gates read /api/auth/me.
       void client.invalidateQueries({ queryKey: ["me"] });
     },

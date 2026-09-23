@@ -198,7 +198,7 @@ describe("useRoles", () => {
     expect(result.current.dirty).toBe(false);
   });
 
-  it("saves the permissions and the title in two calls, then says so", async () => {
+  it("saves the permissions and the title in one PATCH, then says so", async () => {
     const { result } = renderHook(() => ({ roles: useRoles(), notices: useNotices() }), {
       wrapper,
     });
@@ -210,22 +210,22 @@ describe("useRoles", () => {
     act(() => result.current.roles.save());
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("Role saved"));
 
-    const put = fetchMock.mock.calls.find(([, i]) => (i as RequestInit | undefined)?.method === "PUT");
-    expect(String(put![0])).toBe("/api/auth/roles/ops/permissions");
-    expect(JSON.parse(String((put![1] as RequestInit).body))).toEqual({
-      permissionSlugs: ["users:read", "users:write"],
-    });
-    const patch = fetchMock.mock.calls.find(
+    const patches = fetchMock.mock.calls.filter(
       ([, i]) => (i as RequestInit | undefined)?.method === "PATCH",
     );
-    expect(String(patch![0])).toBe("/api/auth/roles/ops");
-    expect(JSON.parse(String((patch![1] as RequestInit).body))).toEqual({ title: "Field ops" });
+    expect(patches).toHaveLength(1);
+    expect(String(patches[0][0])).toBe("/api/auth/roles/ops");
+    expect(JSON.parse(String((patches[0][1] as RequestInit).body))).toEqual({
+      title: "Field ops",
+      permissionSlugs: ["users:read", "users:write"],
+    });
+    expect(called((_, i) => i?.method === "PUT")).toBe(false);
   });
 
   // roleTitles ride along in /api/auth/users, so a rename that only invalidated
   // ["roles"] left the Users screen showing the old title until something else
   // happened to refetch the people.
-  it("refreshes the people too, because a role's title is embedded in them", async () => {
+  it("marks the people stale without refetching them, because a role's title is embedded in them", async () => {
     const { result } = renderHook(() => ({ roles: useRoles(), notices: useNotices() }), {
       wrapper,
     });
@@ -233,19 +233,15 @@ describe("useRoles", () => {
     act(() => result.current.roles.select("ops"));
     act(() => result.current.roles.rename("Field ops"));
 
-    const before = fetchMock.mock.calls.filter(
-      ([u, i]) => String(u).startsWith("/api/auth/users") && !(i as RequestInit | undefined)?.method,
-    ).length;
+    const people = () =>
+      fetchMock.mock.calls.filter(
+        ([u, i]) => String(u).startsWith("/api/auth/users") && !(i as RequestInit | undefined)?.method,
+      ).length;
+    const before = people();
     act(() => result.current.roles.save());
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("Role saved"));
-    await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.filter(
-          ([u, i]) =>
-            String(u).startsWith("/api/auth/users") && !(i as RequestInit | undefined)?.method,
-        ).length,
-      ).toBeGreaterThan(before),
-    );
+    expect(client.getQueryState(["users"])?.isInvalidated).toBe(true);
+    expect(people()).toBe(before);
   });
 
   // The reader may hold the role that just changed; their nav gates read
@@ -271,8 +267,9 @@ describe("useRoles", () => {
 
     act(() => result.current.save());
     await waitFor(() => expect(result.current.saving).toBe(false));
+    const patch = fetchMock.mock.calls.find(([, i]) => (i as RequestInit | undefined)?.method === "PATCH");
+    expect(JSON.parse(String((patch![1] as RequestInit).body))).toEqual({ title: "Field ops" });
     expect(called((_, i) => i?.method === "PUT")).toBe(false);
-    expect(called((_, i) => i?.method === "PATCH")).toBe(true);
   });
 
   // The edits survive a refusal: the draft is the inspector's truth until saved.
@@ -302,7 +299,7 @@ describe("useRoles", () => {
     let finish: (r: Response) => void = () => {};
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
       const method = init?.method ?? "GET";
-      if (method === "PUT") return new Promise<Response>((resolve) => (finish = resolve));
+      if (method === "PATCH") return new Promise<Response>((resolve) => (finish = resolve));
       if (url === "/api/auth/roles" && method === "GET") return json([GUEST, OPS]);
       if (url === "/api/auth/permissions") return json(PERMISSIONS);
       return json([USER]);
