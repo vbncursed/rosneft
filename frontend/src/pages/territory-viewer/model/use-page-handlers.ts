@@ -7,6 +7,7 @@ import type { useOverlaysPanel } from "@/widgets/overlays-panel";
 import type { LodReport } from "@/widgets/viewer-canvas";
 import type { DocumentParts } from "./overlay-parts";
 import { revealSection, type Section } from "./reveal-section";
+import { useFlyAround } from "./use-fly-around";
 import { usePlacementHandlers } from "./use-placement-handlers";
 import type { usePlacementForm } from "./use-placement-form";
 import type { PageHandlers, PageViewState } from "./viewer-props";
@@ -89,9 +90,22 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
       })),
     [],
   );
-  const onReset = useCallback(() => setResetVersion((v) => v + 1), []);
+  const fly = useFlyAround(mode.state.mode, mode.state.view.kind);
+  const land = fly.stop;
+  // A reset lands the flight too, or the rig would fly on from the reset view.
+  const onReset = useCallback(() => {
+    land();
+    setResetVersion((v) => v + 1);
+  }, [land]);
   const onRetry = useCallback(() => setRetryVersion((v) => v + 1), []);
-  const onFocus = useCallback((id: number) => setFocusRequest([id]), []);
+  // So does a focus: the next flight frame would overwrite it.
+  const onFocus = useCallback(
+    (id: number) => {
+      land();
+      setFocusRequest([id]);
+    },
+    [land],
+  );
   const onToggleGroup = useCallback(
     (modelSlug: string) => setExpandedModel((open) => (open === modelSlug ? null : modelSlug)),
     [],
@@ -169,6 +183,7 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
       targetLod,
       retryVersion,
       resetVersion,
+      playing: fly.playing,
       focusRequest,
       pickerOpen,
       query,
@@ -185,6 +200,8 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
       onRemoveChain: measure.removeChain,
       onLod,
       onReset,
+      onPlay: fly.toggle,
+      onPlayStop: fly.stop,
       onMeasure: mode.toggleMeasure,
       onAdd,
       onPanoramas,

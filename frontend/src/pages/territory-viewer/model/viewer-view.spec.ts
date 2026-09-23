@@ -127,6 +127,7 @@ describe("railTools", () => {
       tourActive: false,
       view: SCENE,
       documentOpen: false,
+      playing: false,
       ...over,
     });
   const states = (over: Partial<Parameters<typeof railTools>[0]> = {}) =>
@@ -135,6 +136,7 @@ describe("railTools", () => {
   it("lights Reset while the pointer orbits a loaded scene, in the mock's order", () => {
     expect(tools()).toEqual([
       { key: "reset", state: "active" },
+      { key: "play", state: "idle" },
       { key: "measure", state: "idle" },
       { key: "add", state: "idle" },
       { key: "panoramas", state: "idle" },
@@ -154,6 +156,7 @@ describe("railTools", () => {
   it("drops Add entirely for a reader who cannot create placements", () => {
     expect(tools({ grants: GUEST }).map((t) => t.key)).toEqual([
       "reset",
+      "play",
       "measure",
       "panoramas",
       "documents",
@@ -168,6 +171,7 @@ describe("railTools", () => {
     // whatever the mesh is doing.
     expect(states({ loading: true })).toEqual({
       reset: "active",
+      play: "idle",
       measure: "inert",
       add: "inert",
       panoramas: "idle",
@@ -183,6 +187,7 @@ describe("railTools", () => {
   it("makes every tile inert without geometry, bar the two overlay tiles", () => {
     expect(states({ geometry: false })).toEqual({
       reset: "inert",
+      play: "inert",
       measure: "inert",
       add: "inert",
       panoramas: "idle",
@@ -196,6 +201,7 @@ describe("railTools", () => {
     // sphere, and the tour is as replayable as it is anywhere else.
     expect(states({ view: INSIDE })).toEqual({
       reset: "idle",
+      play: "inert",
       measure: "inert",
       add: "inert",
       panoramas: "active",
@@ -210,6 +216,23 @@ describe("railTools", () => {
       reset: "idle",
       panoramas: "idle",
     });
+  });
+
+  it("lights Play while the camera flies, beside the lit Reset", () => {
+    expect(states({ playing: true })).toMatchObject({ reset: "active", play: "active" });
+  });
+
+  it("makes Play inert while a pointer mode is using the view", () => {
+    expect(states({ mode: "measure" }).play).toBe("inert");
+    expect(states({ mode: "place" }).play).toBe("inert");
+  });
+
+  it("keeps a running flight stoppable from its tile while a level downloads", () => {
+    expect(states({ loading: true, playing: true }).play).toBe("active");
+  });
+
+  it("lights no Play while the tour runs, even mid-flight", () => {
+    expect(states({ tourActive: true, playing: true }).play).toBe("idle");
   });
 });
 

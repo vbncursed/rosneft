@@ -111,6 +111,7 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   activeChainId: null,
   unitRatio: 1,
   resetVersion: 0,
+  playing: false,
   retryVersion: 0,
   focusRequest: null,
   activePanorama: null,
@@ -138,6 +139,7 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   onRemoveSegment: vi.fn(),
   onRemoveChain: vi.fn(),
   onLod: vi.fn(),
+  onPlayStop: vi.fn(),
   ...over,
 });
 

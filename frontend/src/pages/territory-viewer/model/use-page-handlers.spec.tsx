@@ -27,7 +27,7 @@ const deps = (
   } = {},
 ) => {
   const mode = {
-    state: { selectedId: over.selectedId ?? null },
+    state: { mode: "orbit", view: { kind: "scene" }, selectedId: over.selectedId ?? null },
     enterPlace: vi.fn(),
     exitPlace: vi.fn(),
     select: vi.fn(),
@@ -121,6 +121,7 @@ describe("usePageHandlers", () => {
       targetLod: 0,
       retryVersion: 0,
       resetVersion: 0,
+      playing: false,
       focusRequest: null,
       pickerOpen: false,
       query: "",
@@ -243,13 +244,35 @@ describe("usePageHandlers", () => {
     expect(spies.editor.setVisibility).not.toHaveBeenCalled();
   });
 
+  it("flies on Play, and a reset or the rig's own stop lands it", () => {
+    const { result } = mount();
+    act(() => result.current.on.onPlay());
+    expect(result.current.view.playing).toBe(true);
+    act(() => result.current.on.onReset());
+    expect(result.current.view).toMatchObject({ playing: false, resetVersion: 1 });
+    act(() => result.current.on.onPlay());
+    act(() => result.current.on.onPlayStop());
+    expect(result.current.view.playing).toBe(false);
+  });
+
+  it("lands the flight when a placement is focused", () => {
+    const { result } = mount();
+    act(() => result.current.on.onPlay());
+    act(() => result.current.on.onFocus(7));
+    expect(result.current.view.playing).toBe(false);
+    expect(result.current.view.focusRequest).toEqual([7]);
+  });
+
   it("keeps every canvas-bound callback stable across a re-render", () => {
     const { result, rerender } = mount();
     const first = result.current.on;
     act(() => result.current.on.onReset());
+    act(() => result.current.on.onPlay());
     rerender();
     expect(result.current.on.onLod).toBe(first.onLod);
     expect(result.current.on.onReset).toBe(first.onReset);
+    expect(result.current.on.onPlay).toBe(first.onPlay);
+    expect(result.current.on.onPlayStop).toBe(first.onPlayStop);
     expect(result.current.view.resetVersion).toBe(1);
   });
 
