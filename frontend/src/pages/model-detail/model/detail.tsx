@@ -19,6 +19,8 @@ export type ModelDetailPageProps = {
   onDelete: () => void;
   onThumbnail: (file: File) => void;
   onRemoveThumbnail: () => void;
+  /** Opens the details editor; absent (a fixture) draws no button. */
+  onEdit?: () => void;
 };
 
 export const shortHash = (hash: string) => `sha256:${hash.slice(0, 4)}…${hash.slice(-4)}`;

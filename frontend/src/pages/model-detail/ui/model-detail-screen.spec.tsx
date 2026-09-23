@@ -11,6 +11,9 @@ const { useModelDetail, useParams } = vi.hoisted(() => ({
 }));
 vi.mock("../model/use-model-detail", () => ({ useModelDetail }));
 vi.mock("@tanstack/react-router", () => ({ useParams: () => useParams() }));
+vi.mock("@/features/edit-entity", () => ({
+  EditDetailsDialog: ({ title }: { title: string }) => <div role="dialog" aria-label={`Edit ${title}`} />,
+}));
 
 const MODEL: Model = { slug: "valve-assembly", title: "Valve Assembly", sourceBlobHash: "a".repeat(64), usageCount: 2 };
 
@@ -78,5 +81,18 @@ describe("ModelDetailScreen", () => {
     expect(confirm).toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(dismiss).toHaveBeenCalled();
+  });
+
+  it("opens the details editor from the aside", async () => {
+    useModelDetail.mockReturnValue(readyState());
+    render(<ModelDetailScreen />);
+    await userEvent.click(screen.getByRole("button", { name: "Edit details" }));
+    expect(screen.getByRole("dialog", { name: "Edit Valve Assembly" })).toBeInTheDocument();
+  });
+
+  it("offers no details editor without model:write", () => {
+    useModelDetail.mockReturnValue(readyState({ canWrite: false }));
+    render(<ModelDetailScreen />);
+    expect(screen.queryByRole("button", { name: "Edit details" })).not.toBeInTheDocument();
   });
 });

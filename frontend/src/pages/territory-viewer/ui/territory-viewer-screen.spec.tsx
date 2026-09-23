@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { TerritoryViewerState } from "../model/use-territory-viewer";
 import { viewerState } from "../territory-viewer-page.fixture";
@@ -12,6 +13,9 @@ const { useTerritoryViewer, useSceneSeeded, useParams } = vi.hoisted(() => ({
 vi.mock("../model/use-territory-viewer", () => ({ useTerritoryViewer }));
 vi.mock("../model/use-scene-seeded", () => ({ useSceneSeeded }));
 vi.mock("@tanstack/react-router", () => ({ useParams: () => useParams() }));
+vi.mock("@/features/edit-entity", () => ({
+  EditDetailsDialog: ({ title }: { title: string }) => <div role="dialog" aria-label={`Edit ${title}`} />,
+}));
 vi.mock("@/widgets/viewer-canvas", () => ({
   ViewerCanvas: () => <div data-testid="canvas" />,
   preloadViewer: vi.fn(),
@@ -84,5 +88,14 @@ describe("TerritoryViewerScreen", () => {
 
     rerender(<TerritoryViewerScreen />);
     expect(container.firstElementChild).toBe(after);
+  });
+
+  it("opens the details editor from the header", async () => {
+    useParams.mockReturnValue({ slug: "refinery-block-c" });
+    useSceneSeeded.mockReturnValue(true);
+    useTerritoryViewer.mockReturnValue(READY());
+    render(<TerritoryViewerScreen />);
+    await userEvent.click(screen.getByRole("button", { name: "Edit details" }));
+    expect(screen.getByRole("dialog", { name: "Edit Refinery Block C" })).toBeInTheDocument();
   });
 });

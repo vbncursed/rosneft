@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import type { ViewerHeaderProps } from "../model/page-props";
 import { ViewerHeader } from "./viewer-header";
 
@@ -85,5 +86,17 @@ describe("ViewerHeader", () => {
   it("says nothing of the sort to a reader who can edit", () => {
     render(<ViewerHeader {...props()} />);
     expect(screen.queryByText("You can look, measure and open documents.")).not.toBeInTheDocument();
+  });
+
+  it("offers Edit details to a writer once the screen wires it", async () => {
+    const onEdit = vi.fn();
+    render(<ViewerHeader {...props({ onEdit })} />);
+    await userEvent.click(screen.getByRole("button", { name: "Edit details" }));
+    expect(onEdit).toHaveBeenCalled();
+  });
+
+  it("offers no Edit details without the grant", () => {
+    render(<ViewerHeader {...props({ canReplace: false, onEdit: vi.fn() })} />);
+    expect(screen.queryByRole("button", { name: "Edit details" })).not.toBeInTheDocument();
   });
 });
