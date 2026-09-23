@@ -103,16 +103,17 @@ export function useContent(): ContentState {
   const loading = territories.isPending || models.isPending || jobs.isPending;
 
   // A row whose job just finished has new LODs, and they ride on its list:
-  // re-read each list a finished job sits in, once. The row's artifacts are
-  // marked stale too, for the model and conversion pages to reopen on.
+  // re-read each list a finished job sits in, once. A model's artifacts are
+  // marked stale too, for the model page to reopen on — nothing reads a
+  // territory's.
   const previousJobs = useRef<TargetJob[] | undefined>(undefined);
   useEffect(() => {
     if (!jobs.data) return;
     const finished = finishedSince(previousJobs.current, jobs.data);
     for (const kind of new Set(finished.map((j) => j.kind)))
       void client.invalidateQueries({ queryKey: LIST_KEY[kind] });
-    for (const { kind, slug } of finished)
-      void client.invalidateQueries({ queryKey: ["artifacts", kind, slug] });
+    for (const { slug } of finished.filter((j) => j.kind === "model"))
+      void client.invalidateQueries({ queryKey: ["artifacts", "model", slug] });
     previousJobs.current = jobs.data;
   }, [jobs.data, client]);
 

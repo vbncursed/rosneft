@@ -41,15 +41,16 @@ export function useTerritoryConversion(slug: string, jobId: string | null): Terr
   });
 
   // A target whose job just left the list has a new LOD chain (or, after a
-  // failure, the same old one). Stale what the catalog and Home build their
-  // cards from, and re-read the bundle the route branches on — a territory
-  // that finishes under the reader's eyes has to become the viewer, and this
-  // key is the only thing that tells the route so.
+  // failure, the same old one). Stale the lists the catalog and Home build
+  // their cards from, a model's artifacts for the model page, and re-read the
+  // bundle the route branches on — a territory that finishes under the
+  // reader's eyes has to become the viewer, and this key is the only thing
+  // that tells the route so.
   const previousJobs = useRef<TargetJob[] | undefined>(undefined);
   useEffect(() => {
     if (!jobs.data) return;
     for (const { kind, slug: targetSlug } of finishedSince(previousJobs.current, jobs.data)) {
-      void client.invalidateQueries({ queryKey: ["artifacts", kind, targetSlug] });
+      if (kind === "model") void client.invalidateQueries({ queryKey: ["artifacts", "model", targetSlug] });
       void client.invalidateQueries({
         queryKey: [kind === "territory" ? "territories" : "models"],
         refetchType: "none",

@@ -71,16 +71,16 @@ export function useTerritoryCatalog(): TerritoryCatalogState {
   // A territory whose job just finished has new LODs (or, after a failure,
   // the same old ones), and they ride on the list: re-read it once, however
   // many finished. /api/jobs drops a succeeded job on its next poll and
-  // nothing else would ever refetch the list. The row's artifacts are marked
-  // stale too, for the conversion page to reopen on.
+  // nothing else would ever refetch the list. A model's artifacts are marked
+  // stale too, for the model page to reopen on — nothing reads a territory's.
   const previousJobs = useRef<TargetJob[] | undefined>(undefined);
   useEffect(() => {
     if (!jobs.data) return;
     const finished = finishedSince(previousJobs.current, jobs.data);
     if (finished.some((j) => j.kind === "territory"))
       void client.invalidateQueries({ queryKey: ["territories"] });
-    for (const { kind, slug } of finished)
-      void client.invalidateQueries({ queryKey: ["artifacts", kind, slug] });
+    for (const { slug } of finished.filter((j) => j.kind === "model"))
+      void client.invalidateQueries({ queryKey: ["artifacts", "model", slug] });
     previousJobs.current = jobs.data;
   }, [jobs.data, client]);
 

@@ -208,8 +208,9 @@ describe("useTerritoryCatalog", () => {
     await waitFor(() =>
       expect(result.current.cards?.[0]).toMatchObject({ slug: "t-1", status: "ready" }),
     );
-    // A model/conversion page cached earlier must not reopen on the stale LODs.
-    expect(spy).toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t-1"] });
+    // Nothing reads a territory's artifacts any more: the conversion page and
+    // the viewer read the scene bundle, and the cards read the list.
+    expect(spy).not.toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t-1"] });
   });
 
   it("stays ready when a refetch fails on top of rows it already has", async () => {
