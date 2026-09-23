@@ -11,16 +11,20 @@ type Details = { slug: string; title: string; description?: string };
 
 /**
  * An in-flight refetch is cancelled first: it left before the save and would
- * land the old title back on top of it. `setQueryData` clears a query's
- * invalidated mark, so a copy another write had already marked stale (a
- * placement's count, say) gets the mark back — read before the cancel, which
- * may drop the refetch that invalidation started.
+ * land the old title back on top of it. The cancel kills any read, though —
+ * a mount's first fetch included — so a key that was fetching is asked again
+ * after the write (a screen showing it re-reads, and the answer carries the
+ * save; one nobody shows is only marked). `setQueryData` clears the
+ * invalidated mark, so a copy another write had already marked stale gets it
+ * back. Both are read before the cancel, which changes them.
  */
 async function mergeInto<T>(client: QueryClient, queryKey: unknown[], update: (old: T | undefined) => T | undefined) {
-  const wasStale = client.getQueryState(queryKey)?.isInvalidated ?? false;
+  const before = client.getQueryState(queryKey);
+  const wasFetching = before?.fetchStatus === "fetching";
   await client.cancelQueries({ queryKey, exact: true });
   client.setQueryData<T>(queryKey, update);
-  if (wasStale) void client.invalidateQueries({ queryKey, exact: true, refetchType: "none" });
+  if (wasFetching) void client.invalidateQueries({ queryKey, exact: true });
+  else if (before?.isInvalidated) void client.invalidateQueries({ queryKey, exact: true, refetchType: "none" });
 }
 
 type SceneCopy = { territory: Details; modelOptions?: { slug: string; title: string }[] };

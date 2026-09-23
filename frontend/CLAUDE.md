@@ -744,9 +744,10 @@ Rulings from those screens that a later one will meet again:
   **A success does not close the dialog** — it holds the only copy of the
   password, so it turns to a done state ("Password changed. The user was
   signed out everywhere."), the field read-only and revealed, `Copy password`
-  still there and `Done` the one way out (`resetDone`); closing resets the
-  mutation, so the next reset opens on the form. Escape and the backdrop wait
-  for a reset in flight, as Cancel does.
+  still there and `Done` the one way out (`resetDone`) — Escape and the
+  backdrop do nothing there; closing resets the mutation, so the next reset
+  opens on the form. Escape and the backdrop also wait for a reset in flight,
+  as Cancel does.
 - **Edit details** (`features/edit-entity`, `EditDetailsDialog`) renames a
   model or territory — title and description, never the slug — from Model
   Detail (`model:write`), the territory catalog and the viewer header
@@ -754,7 +755,11 @@ Rulings from those screens that a later one will meet again:
   trimmed values, and writes the answer into every cached copy (the entity,
   its list row, a territory's scene bundle, and a model's title in every
   cached bundle whose picker offers it) instead of refetching — cancelling
-  each copy's in-flight refetch first (`mergeInto`). Escape waits
+  each copy's in-flight refetch first (`mergeInto`). The cancel kills any
+  read, a mount's first fetch included, so a key that was fetching is
+  invalidated again after the write with the default `refetchType`: a screen
+  showing it re-reads (the answer carries the save), one nobody shows is only
+  marked. Escape waits
   for a save in flight, as Cancel does; a refusal is a toast and an inline
   alert in the dialog.
 - **The role pickers offer `admin` (Company Owner) to Root alone**

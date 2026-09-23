@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -102,6 +102,32 @@ describe("useEditDetails", () => {
     await new Promise((r) => setTimeout(r, 0));
 
     expect(client.getQueryData<{ title: string }[]>(["territories"])?.[0]?.title).toBe("North yard");
+    // Nobody is showing the list: the cancelled read is owed, not re-sent.
+    expect(client.getQueryState(["territories"])?.isInvalidated).toBe(true);
+    expect(client.getQueryState(["territories"])?.fetchStatus).toBe("idle");
+  });
+
+  // The cancel kills whatever read was in flight — a mount's first fetch
+  // included, which it reverts to nothing. A list on screen asks again after
+  // the write, and the answer already carries the new title.
+  it("re-reads a list on screen whose fetch the save cancelled", async () => {
+    const queryFn = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise(() => {}))
+      .mockImplementation(async () => [{ slug: "yard", title: "North yard" }]);
+    updateTerritory.mockResolvedValue({ slug: "yard", title: "North yard" });
+    const { result } = renderHook(
+      () => ({
+        list: useQuery({ queryKey: ["territories"], queryFn, retry: false }),
+        save: useEditDetails("territory", "yard"),
+      }),
+      { wrapper },
+    );
+    await waitFor(() => expect(queryFn).toHaveBeenCalledOnce());
+    await act(() => result.current.save.mutateAsync({ title: "North yard" }));
+
+    await waitFor(() => expect(result.current.list.data).toEqual([{ slug: "yard", title: "North yard" }]));
+    expect(queryFn).toHaveBeenCalledTimes(2);
   });
 
   it("renames a model in every cached scene bundle's model options, keeping stale marks", async () => {
