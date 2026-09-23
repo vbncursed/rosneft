@@ -31,7 +31,7 @@ var cards = []string{"access", "alerts", "audit24h", "content", "roles", "users"
 func answering(ran *sync.Map) summary.Counts {
 	out := summary.Counts{}
 	for _, key := range cards {
-		out[key] = func(context.Context) (any, error) {
+		out[key] = func(context.Context, summary.Params) (any, error) {
 			ran.Store(key, true)
 			return 1, nil
 		}
@@ -40,10 +40,14 @@ func answering(ran *sync.Map) summary.Counts {
 }
 
 func (s *SummarySuite) serve(p authhttp.TestPrincipal, counts summary.Counts) (*httptest.ResponseRecorder, map[string]any) {
+	return s.serveURL(p, counts, "/api/console/summary")
+}
+
+func (s *SummarySuite) serveURL(p authhttp.TestPrincipal, counts summary.Counts, url string) (*httptest.ResponseRecorder, map[string]any) {
 	ctx := authhttp.NewTestContextFor(s.T().Context(), p)
 	rec := httptest.NewRecorder()
 	summary.Handler(counts, slog.New(slog.DiscardHandler)).
-		ServeHTTP(rec, httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/console/summary", nil))
+		ServeHTTP(rec, httptest.NewRequestWithContext(ctx, http.MethodGet, url, nil))
 	var body map[string]any
 	assert.NilError(s.T(), json.Unmarshal(rec.Body.Bytes(), &body))
 	return rec, body
@@ -94,7 +98,7 @@ func (s *SummarySuite) TestAViewerGetsAnEmptyObject() {
 func (s *SummarySuite) TestAFailedSourceIsNullForItsCardOnly() {
 	var ran sync.Map
 	counts := answering(&ran)
-	counts["alerts"] = func(context.Context) (any, error) { return 3, errors.New("prometheus down") }
+	counts["alerts"] = func(context.Context, summary.Params) (any, error) { return 3, errors.New("prometheus down") }
 
 	rec, body := s.serve(authhttp.TestPrincipal{UserID: "root", IsOwner: true}, counts)
 	assert.Equal(s.T(), rec.Code, http.StatusOK)
@@ -112,7 +116,7 @@ func (s *SummarySuite) TestASlowSourceIsNullForItsCardOnly() {
 	synctest.Test(s.T(), func(t *testing.T) {
 		var ran sync.Map
 		counts := answering(&ran)
-		counts["alerts"] = func(ctx context.Context) (any, error) {
+		counts["alerts"] = func(ctx context.Context, _ summary.Params) (any, error) {
 			<-ctx.Done()
 			return nil, ctx.Err()
 		}
@@ -137,4 +141,55 @@ func (s *SummarySuite) TestTheAnswerIsNeverCached() {
 	rec, _ := s.serve(authhttp.TestPrincipal{UserID: "root", IsOwner: true}, answering(&ran))
 	assert.Equal(s.T(), rec.Header().Get("Cache-Control"), "no-store")
 	assert.Equal(s.T(), rec.Header().Get("Content-Type"), "application/json")
+}
+
+// tzOffset is minutes east of UTC, as the journal page buckets by local hours;
+// every source is handed it.
+func (s *SummarySuite) TestTheOffsetReachesTheSources() {
+	var got sync.Map
+	counts := summary.Counts{"audit24h": func(_ context.Context, p summary.Params) (any, error) {
+		got.Store("offset", p.TZOffset)
+		return 1, nil
+	}}
+	rec, _ := s.serveURL(authhttp.TestPrincipal{UserID: "root", IsOwner: true}, counts, "/api/console/summary?tzOffset=-330")
+	assert.Equal(s.T(), rec.Code, http.StatusOK)
+	v, _ := got.Load("offset")
+	assert.Equal(s.T(), v, -330*time.Minute)
+}
+
+func (s *SummarySuite) TestNoOffsetIsUTC() {
+	var got sync.Map
+	counts := summary.Counts{"audit24h": func(_ context.Context, p summary.Params) (any, error) {
+		got.Store("offset", p.TZOffset)
+		return 1, nil
+	}}
+	s.serve(authhttp.TestPrincipal{UserID: "root", IsOwner: true}, counts)
+	v, _ := got.Load("offset")
+	assert.Equal(s.T(), v, time.Duration(0))
+}
+
+// No zone is further than 14 hours from UTC; anything else is a bad request,
+// and no source runs for it.
+func (s *SummarySuite) TestABadOffsetIs400() {
+	for _, q := range []string{"abc", "841", "-841", "1.5"} {
+		s.Run(q, func() {
+			var ran sync.Map
+			rec := httptest.NewRecorder()
+			ctx := authhttp.NewTestContextFor(s.T().Context(), authhttp.TestPrincipal{UserID: "root", IsOwner: true})
+			summary.Handler(answering(&ran), slog.New(slog.DiscardHandler)).ServeHTTP(rec,
+				httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/console/summary?tzOffset="+q, nil))
+			assert.Equal(s.T(), rec.Code, http.StatusBadRequest, rec.Body.String())
+			assert.Equal(s.T(), len(ranKeys(&ran)), 0)
+		})
+	}
+}
+
+func (s *SummarySuite) TestTheEdgesOfTheRangeAreAccepted() {
+	for _, q := range []string{"840", "-840", "0"} {
+		s.Run(q, func() {
+			var ran sync.Map
+			rec, _ := s.serveURL(authhttp.TestPrincipal{UserID: "root", IsOwner: true}, answering(&ran), "/api/console/summary?tzOffset="+q)
+			assert.Equal(s.T(), rec.Code, http.StatusOK)
+		})
+	}
 }

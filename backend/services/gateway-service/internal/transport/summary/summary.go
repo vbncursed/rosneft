@@ -8,9 +8,11 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
+	"strconv"
 	"sync"
 	"time"
 
+	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
 
@@ -34,8 +36,32 @@ type Content struct {
 	Models      int `json:"models"`
 }
 
+// Params is what the request says about how to count, beyond who asks.
+type Params struct {
+	// TZOffset is the browser's zone, east of UTC: the journal page buckets
+	// by local hours, and audit24h counts the window those buckets cover.
+	TZOffset time.Duration
+}
+
 // Count reads one card's numbers with the caller's own session.
-type Count func(ctx context.Context) (any, error)
+type Count func(ctx context.Context, p Params) (any, error)
+
+// maxTZOffset bounds tzOffset: no zone is further than 14 hours from UTC.
+const maxTZOffset = 14 * 60
+
+// parseParams reads the query. An absent tzOffset is UTC; a present one must
+// be whole minutes within ±14 hours.
+func parseParams(r *http.Request) (Params, bool) {
+	raw := r.URL.Query().Get("tzOffset")
+	if raw == "" {
+		return Params{}, true
+	}
+	minutes, err := strconv.Atoi(raw)
+	if err != nil || minutes < -maxTZOffset || minutes > maxTZOffset {
+		return Params{}, false
+	}
+	return Params{TZOffset: time.Duration(minutes) * time.Minute}, true
+}
 
 // Counts maps a card key to its source.
 type Counts map[string]Count
@@ -64,10 +90,15 @@ var gates = map[string]func(principal) bool{
 func Handler(counts Counts, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		params, ok := parseParams(r)
+		if !ok {
+			apperr.Write(w, http.StatusBadRequest, apperr.SlugInvalidInput, "tzOffset must be whole minutes within ±840")
+			return
+		}
 		p := principal{owner: authhttp.IsOwner(ctx), perms: authhttp.Perms(ctx)}
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-store")
-		if err := json.MarshalWrite(w, collect(ctx, p, counts, logger)); err != nil {
+		if err := json.MarshalWrite(w, collect(ctx, p, params, counts, logger)); err != nil {
 			logger.Warn("console summary: encode failed", "err", err)
 		}
 	}
@@ -80,7 +111,7 @@ const cardTimeout = 5 * time.Second
 
 // collect runs every open card's source in parallel. A WaitGroup rather than
 // an errgroup: a failure is local to its card, so there is nothing to cancel.
-func collect(ctx context.Context, p principal, counts Counts, logger *slog.Logger) map[string]any {
+func collect(ctx context.Context, p principal, params Params, counts Counts, logger *slog.Logger) map[string]any {
 	var (
 		mu  sync.Mutex
 		wg  sync.WaitGroup
@@ -93,7 +124,7 @@ func collect(ctx context.Context, p principal, counts Counts, logger *slog.Logge
 		wg.Go(func() {
 			cardCtx, cancel := context.WithTimeout(ctx, cardTimeout)
 			defer cancel()
-			v, err := count(cardCtx)
+			v, err := count(cardCtx, params)
 			if err != nil {
 				logger.Warn("console summary: source failed", "card", key, "err", err)
 				v = nil

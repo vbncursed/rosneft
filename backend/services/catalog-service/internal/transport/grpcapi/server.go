@@ -22,7 +22,7 @@ type Service interface {
 	UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
 	UpdateTerritory(ctx context.Context, slug string, p domain.TerritoryPatch) (domain.Territory, error)
 	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
-	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
+	ListTerritories(ctx context.Context, scopeAdminID string, withArtifacts bool) ([]domain.Territory, error)
 	ResolveTerritorySlugs(ctx context.Context, ids []int64) (map[int64]string, error)
 	ResolveLabels(ctx context.Context, refs []domain.LabelRef) (map[string]string, error)
 	ResolveBlobAccess(ctx context.Context, hash, scopeAdminID string) (bool, error)
@@ -40,7 +40,7 @@ type Service interface {
 	UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error)
 	UpdateModel(ctx context.Context, slug string, p domain.ModelPatch) (domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)
-	ListModels(ctx context.Context) ([]domain.Model, error)
+	ListModels(ctx context.Context, withArtifacts bool) ([]domain.Model, error)
 	DeleteModel(ctx context.Context, slug string) error
 	RegisterModelArtifact(ctx context.Context, a domain.Artifact) (domain.Artifact, error)
 	GetModelArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)

@@ -24,14 +24,14 @@ func InitConsoleSummary(svc *service.Gateway, authClient *auth.Client, prom *met
 
 func consoleCounts(svc *service.Gateway, authClient *auth.Client, prom *metrics.Client) summary.Counts {
 	return summary.Counts{
-		"users": func(ctx context.Context) (any, error) {
+		"users": func(ctx context.Context, _ summary.Params) (any, error) {
 			list, err := authClient.ListUsers(ctx, authhttp.Token(ctx), "", false)
 			if err != nil {
 				return nil, err
 			}
 			return countUsers(list), nil
 		},
-		"roles": func(ctx context.Context) (any, error) {
+		"roles": func(ctx context.Context, _ summary.Params) (any, error) {
 			roles, err := authClient.ListRoles(ctx, authhttp.Token(ctx))
 			if err != nil {
 				return nil, err
@@ -42,8 +42,8 @@ func consoleCounts(svc *service.Gateway, authClient *auth.Client, prom *metrics.
 			}
 			return summary.Roles{Roles: len(roles), Permissions: len(perms)}, nil
 		},
-		"content": func(ctx context.Context) (any, error) { return countContent(ctx, svc) },
-		"access": func(ctx context.Context) (any, error) {
+		"content": func(ctx context.Context, _ summary.Params) (any, error) { return countContent(ctx, svc) },
+		"access": func(ctx context.Context, _ summary.Params) (any, error) {
 			scope, all := authhttp.Scope(ctx)
 			bySlug, err := svc.ListTerritoryAdmins(ctx, scope, all)
 			if err != nil {
@@ -55,15 +55,15 @@ func consoleCounts(svc *service.Gateway, authClient *auth.Client, prom *metrics.
 			}
 			return grants, nil
 		},
-		"audit24h": func(ctx context.Context) (any, error) {
+		"audit24h": func(ctx context.Context, p summary.Params) (any, error) {
 			sc, err := service.AuditScope(httpapi.AuditPrincipal(ctx))
 			if err != nil {
 				return nil, err
 			}
-			n, err := svc.CountAuditDay(ctx, sc, time.Now())
+			n, err := svc.CountAuditDay(ctx, sc, time.Now(), p.TZOffset)
 			return n, err
 		},
-		"alerts": func(ctx context.Context) (any, error) {
+		"alerts": func(ctx context.Context, _ summary.Params) (any, error) {
 			series, err := prom.Query(ctx, "alerts", "1h")
 			if err != nil {
 				return nil, err
@@ -91,13 +91,13 @@ func countUsers(list []*authv1.User) summary.Users {
 func countContent(ctx context.Context, svc *service.Gateway) (summary.Content, error) {
 	var c summary.Content
 	if scope, all := authhttp.Scope(ctx); all || scope != "" {
-		territories, err := svc.ListTerritories(ctx, scope)
+		territories, err := svc.ListTerritories(ctx, scope, false)
 		if err != nil {
 			return summary.Content{}, err
 		}
 		c.Territories = len(territories)
 	}
-	models, err := svc.ListModels(ctx)
+	models, err := svc.ListModels(ctx, false)
 	if err != nil {
 		return summary.Content{}, err
 	}

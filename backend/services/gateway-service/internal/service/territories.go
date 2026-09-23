@@ -10,8 +10,9 @@ import (
 )
 
 // ListTerritories proxies to catalog, scoped to scopeAdminID (empty = all).
-func (g *Gateway) ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error) {
-	return g.catalog.ListTerritories(ctx, scopeAdminID)
+// withArtifacts asks for each LOD chain — only a caller that renders it should.
+func (g *Gateway) ListTerritories(ctx context.Context, scopeAdminID string, withArtifacts bool) ([]domain.Territory, error) {
+	return g.catalog.ListTerritories(ctx, scopeAdminID, withArtifacts)
 }
 
 // GetTerritory fetches a territory by slug, scoped to scopeAdminID (empty = no

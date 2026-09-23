@@ -1759,7 +1759,7 @@ export interface paths {
         get?: never;
         /**
          * Set a user's password and sign them out everywhere (requires users:write)
-         * @description No old password is asked. Root may set anyone's; everyone else only the password of a user they created, and never an admin's or Root's. The caller's own password goes through POST /api/auth/me/password, which asks for the old one. An id outside the caller's scope answers 404, like an unknown one. A 500 after the write means the sign-out failed; retrying is safe.
+         * @description No old password is asked. Root may set anyone's; everyone else only the password of a user they created, and never an admin's or Root's. The caller's own password goes through POST /api/auth/me/password, which asks for the old one. An id outside the caller's scope answers 404, like an unknown one. A non-Root caller is refused with 403 when the target holds a permission the caller lacks or has been granted a territory the caller cannot open — signing in as the target would hand either over. A deleted account is refused with 403, Root included: restore it first. A 500 after the write means the sign-out failed; retrying is safe.
          */
         put: {
             parameters: {
@@ -4392,7 +4392,10 @@ export interface operations {
     };
     getConsoleSummary: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description The browser's zone in minutes **east** of UTC — the negation of JavaScript's `Date.prototype.getTimezoneOffset()`. `audit24h` counts the 24 hourly buckets the journal page draws in local hours, so its window starts on the caller's local hour (on :30 UTC for a half-hour zone). Absent means UTC. */
+                tzOffset?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4408,6 +4411,7 @@ export interface operations {
                     "application/json": components["schemas"]["ConsoleSummary"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
         };
     };

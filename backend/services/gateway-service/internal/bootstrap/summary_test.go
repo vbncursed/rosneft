@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/suite"
@@ -39,10 +40,10 @@ func (s *ConsoleCountsSuite) SetupTest() {
 // tenant-a's owner counts tenant-a's territories, never tenant-b's.
 func (s *ConsoleCountsSuite) TestContentCountsOnlyTheCallersTerritories() {
 	ctx := authhttp.NewTestContext(s.T().Context(), false, "admin-a")
-	s.cat.ListTerritoriesMock.Expect(ctx, "admin-a").Return([]domain.Territory{{Slug: "tenant-a-scene"}}, nil)
-	s.cat.ListModelsMock.Expect(ctx).Return([]domain.Model{{Slug: "pump"}, {Slug: "tank"}}, nil)
+	s.cat.ListTerritoriesMock.Expect(ctx, "admin-a", false).Return([]domain.Territory{{Slug: "tenant-a-scene"}}, nil)
+	s.cat.ListModelsMock.Expect(ctx, false).Return([]domain.Model{{Slug: "pump"}, {Slug: "tank"}}, nil)
 
-	got, err := consoleCounts(s.svc, nil, nil)["content"](ctx)
+	got, err := consoleCounts(s.svc, nil, nil)["content"](ctx, summary.Params{})
 	assert.NilError(s.T(), err)
 	assert.DeepEqual(s.T(), got, summary.Content{Territories: 1, Models: 2})
 }
@@ -51,20 +52,20 @@ func (s *ConsoleCountsSuite) TestContentCountsOnlyTheCallersTerritories() {
 // without one must count none, exactly as GET /api/territories answers [].
 func (s *ConsoleCountsSuite) TestContentFailsClosedOnAnEmptyScope() {
 	ctx := authhttp.NewTestContext(s.T().Context(), false, "")
-	s.cat.ListModelsMock.Expect(ctx).Return([]domain.Model{{Slug: "pump"}}, nil)
+	s.cat.ListModelsMock.Expect(ctx, false).Return([]domain.Model{{Slug: "pump"}}, nil)
 
-	got, err := consoleCounts(s.svc, nil, nil)["content"](ctx)
+	got, err := consoleCounts(s.svc, nil, nil)["content"](ctx, summary.Params{})
 	assert.NilError(s.T(), err)
 	assert.DeepEqual(s.T(), got, summary.Content{Territories: 0, Models: 1})
 }
 
 func (s *ConsoleCountsSuite) TestAccessSumsEveryTerritorysGrants() {
 	ctx := authhttp.NewTestContext(s.T().Context(), true, "")
-	s.cat.ListTerritoriesMock.Expect(ctx, "").Return([]domain.Territory{{Slug: "a"}, {Slug: "b"}}, nil)
+	s.cat.ListTerritoriesMock.Expect(ctx, "", false).Return([]domain.Territory{{Slug: "a"}, {Slug: "b"}}, nil)
 	s.cat.ListTerritoryAdminsMock.Expect(ctx, []string{"a", "b"}).
 		Return(map[string][]string{"a": {"u1", "u2"}, "b": {"u1"}}, nil)
 
-	got, err := consoleCounts(s.svc, nil, nil)["access"](ctx)
+	got, err := consoleCounts(s.svc, nil, nil)["access"](ctx, summary.Params{})
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), got, 3)
 }
@@ -74,7 +75,7 @@ func (s *ConsoleCountsSuite) TestAccessSumsEveryTerritorysGrants() {
 func (s *ConsoleCountsSuite) TestAccessFailsClosedOnAnEmptyScope() {
 	ctx := authhttp.NewTestContext(s.T().Context(), false, "")
 
-	got, err := consoleCounts(s.svc, nil, nil)["access"](ctx)
+	got, err := consoleCounts(s.svc, nil, nil)["access"](ctx, summary.Params{})
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), got, 0)
 }
@@ -93,10 +94,12 @@ func (s *ConsoleCountsSuite) TestAudit24hCountsTheCallersCompany() {
 	s.aud.ListEntriesMock.Set(func(_ context.Context, q domain.AuditQuery) (domain.AuditPage, error) {
 		assert.Equal(s.T(), q.CompanyID, "company-a")
 		assert.Assert(s.T(), !q.AllCompanies && q.ActorID == "" && q.IncludeTotal && q.Limit == 1, "%+v", q)
+		// The caller's +5:30 reaches the window: it starts on a local hour.
+		assert.Equal(s.T(), q.From.Minute(), 30, "%v", q.From)
 		return domain.AuditPage{Total: 7}, nil
 	})
 
-	got, err := consoleCounts(s.svc, nil, nil)["audit24h"](ctx)
+	got, err := consoleCounts(s.svc, nil, nil)["audit24h"](ctx, summary.Params{TZOffset: 330 * time.Minute})
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), got, int64(7))
 }

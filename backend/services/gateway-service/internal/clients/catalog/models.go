@@ -9,9 +9,10 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-// ListModels returns every model in the catalog.
-func (c *Client) ListModels(ctx context.Context) ([]domain.Model, error) {
-	resp, err := c.cc.ListModels(ctx, &catalogv1.ListModelsRequest{})
+// ListModels returns every model in the catalog, each with its LOD chain only
+// when withArtifacts is set.
+func (c *Client) ListModels(ctx context.Context, withArtifacts bool) ([]domain.Model, error) {
+	resp, err := c.cc.ListModels(ctx, &catalogv1.ListModelsRequest{WithArtifacts: withArtifacts})
 	if err != nil {
 		return nil, fmt.Errorf("catalog.ListModels: %w", grpcerr.MapStatus(err, nil))
 	}
