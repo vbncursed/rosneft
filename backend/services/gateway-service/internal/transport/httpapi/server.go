@@ -28,7 +28,7 @@ type Service interface {
 	GetSceneBundle(ctx context.Context, slug, scopeAdminID string) (domain.SceneBundle, error)
 	SetTerritoryAdmins(ctx context.Context, slug string, adminIDs []string) error
 	GetTerritoryAdmins(ctx context.Context, slug string) ([]string, error)
-	ListTerritoryAdmins(ctx context.Context, scopeAdminID string) (map[string][]string, error)
+	ListTerritoryAdmins(ctx context.Context, scopeAdminID string, allAccess bool) (map[string][]string, error)
 
 	ListModels(ctx context.Context) ([]domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)

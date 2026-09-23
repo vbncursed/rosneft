@@ -56,8 +56,8 @@ func (s *Server) ListTerritoryAdmins(ctx context.Context, _ ListTerritoryAdminsR
 	if !authhttp.IsOwner(ctx) {
 		return ListTerritoryAdmins403JSONResponse{ForbiddenJSONResponse: forbiddenRoot()}, nil
 	}
-	scopeAdminID, _ := authhttp.Scope(ctx)
-	bySlug, err := s.svc.ListTerritoryAdmins(ctx, scopeAdminID)
+	scopeAdminID, allAccess := authhttp.Scope(ctx)
+	bySlug, err := s.svc.ListTerritoryAdmins(ctx, scopeAdminID, allAccess)
 	if err != nil {
 		return ListTerritoryAdmins500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
 	}

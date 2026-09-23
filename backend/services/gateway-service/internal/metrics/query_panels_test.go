@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"maps"
 	"net/http"
 	"slices"
@@ -82,4 +83,24 @@ func (s *QuerySuite) TestQueryPanelsFailsOnlyWhenEveryPanelFails() {
 
 	_, err := c.QueryPanels(s.T().Context(), []string{"stat-up", "alerts"}, "1h")
 	assert.ErrorContains(s.T(), err, "502")
+}
+
+// A hung Prometheus must not keep the page dark for a per-query timeout per
+// wave of panels: the whole call shares one deadline, and a panel still
+// waiting for a slot when it passes gives up without asking.
+func (s *QuerySuite) TestQueryPanelsGivesUpTogetherUnderOneDeadline() {
+	var asked atomic.Int32
+	c := s.serving(func(_ http.ResponseWriter, r *http.Request) {
+		asked.Add(1)
+		<-r.Context().Done()
+	})
+	c.panelsTimeout = 100 * time.Millisecond
+
+	ids := slices.Collect(maps.Keys(panels))
+	assert.Assert(s.T(), len(ids) > maxParallelPanels, "needs panels left waiting for a slot")
+	start := time.Now()
+	_, err := c.QueryPanels(s.T().Context(), ids, "1h")
+	assert.ErrorIs(s.T(), err, context.DeadlineExceeded)
+	assert.Assert(s.T(), time.Since(start) < queryTimeout, "took %v", time.Since(start))
+	assert.Assert(s.T(), asked.Load() <= maxParallelPanels, "a queued panel still asked: %d", asked.Load())
 }

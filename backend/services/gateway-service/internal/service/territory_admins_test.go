@@ -36,7 +36,7 @@ func (s *TerritoryAdminsSuite) TestEveryVisibleTerritoryGetsAKey() {
 	s.cat.ListTerritoriesMock.Expect(s.ctx, "admin-a").Return([]domain.Territory{{Slug: "a"}, {Slug: "b"}}, nil)
 	s.cat.ListTerritoryAdminsMock.Expect(s.ctx, []string{"a", "b"}).Return(map[string][]string{"a": {"u1"}}, nil)
 
-	got, err := s.svc.ListTerritoryAdmins(s.ctx, "admin-a")
+	got, err := s.svc.ListTerritoryAdmins(s.ctx, "admin-a", false)
 	assert.NilError(s.T(), err)
 	assert.DeepEqual(s.T(), got, map[string][]string{"a": {"u1"}, "b": {}})
 }
@@ -45,6 +45,15 @@ func (s *TerritoryAdminsSuite) TestACatalogFailureIsNotAnEmptyAnswer() {
 	boom := errors.New("catalog down")
 	s.cat.ListTerritoriesMock.Expect(s.ctx, "").Return(nil, boom)
 
-	_, err := s.svc.ListTerritoryAdmins(s.ctx, "")
+	_, err := s.svc.ListTerritoryAdmins(s.ctx, "", true)
 	assert.ErrorIs(s.T(), err, boom)
+}
+
+// To the catalog an empty scope means every territory, so a scoped caller whose
+// admin id did not resolve must see none, and the catalog is never asked: the
+// controller would panic on an unexpected call.
+func (s *TerritoryAdminsSuite) TestAScopedCallerWithoutAnAdminSeesNothing() {
+	got, err := s.svc.ListTerritoryAdmins(s.ctx, "", false)
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), got, map[string][]string{})
 }

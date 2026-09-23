@@ -13,11 +13,15 @@ func (g *Gateway) GetTerritoryAdmins(ctx context.Context, slug string) ([]string
 	return g.catalog.GetTerritoryAdmins(ctx, slug)
 }
 
-// ListTerritoryAdmins returns the admin ids of every territory visible to
-// scopeAdminID (empty = all), keyed by slug: the set GET /api/territories
-// lists, resolved the same way. A territory nobody is assigned to maps to [],
-// never to a missing key.
-func (g *Gateway) ListTerritoryAdmins(ctx context.Context, scopeAdminID string) (map[string][]string, error) {
+// ListTerritoryAdmins returns the admin ids of every territory visible to the
+// scope authhttp.Scope resolved, keyed by slug: the set GET /api/territories
+// lists. A territory nobody is assigned to maps to [], never to a missing key.
+// It fails closed: a scoped caller with no admin id sees nothing, because the
+// catalog reads an empty scope as every territory.
+func (g *Gateway) ListTerritoryAdmins(ctx context.Context, scopeAdminID string, allAccess bool) (map[string][]string, error) {
+	if !allAccess && scopeAdminID == "" {
+		return map[string][]string{}, nil
+	}
 	territories, err := g.catalog.ListTerritories(ctx, scopeAdminID)
 	if err != nil {
 		return nil, err

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"slices"
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/config"
@@ -44,10 +45,25 @@ func InitMetricsHandler(client *metrics.Client, logger *slog.Logger) http.Handle
 			return
 		}
 
+		if missing := missingPanels(q["panel"], series); len(missing) > 0 {
+			logger.Warn("metrics: panels left out of a partial answer", "missing", missing)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-store")
 		if err := json.NewEncoder(w).Encode(series); err != nil {
 			logger.Warn("metrics: encode response failed", "err", err)
 		}
 	})
+}
+
+// missingPanels lists, once each, the requested ids a partial answer lacks: a
+// 200 carries no error, so the log is the only place a dark card is explained.
+func missingPanels(requested []string, got map[string][]metrics.Series) []string {
+	var missing []string
+	for _, id := range slices.Compact(slices.Sorted(slices.Values(requested))) {
+		if _, ok := got[id]; !ok {
+			missing = append(missing, id)
+		}
+	}
+	return missing
 }
