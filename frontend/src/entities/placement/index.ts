@@ -29,11 +29,13 @@ export {
   toPlacementGroup,
 } from "./api/placement-groups-gateway";
 export {
+  bulk,
   creating,
   idle,
   isCreating,
   isMutatingId,
   mutating,
+  pendingIdsOf,
   type MutationState,
 } from "./model/mutation-state";
 export {
@@ -49,3 +51,14 @@ export {
 } from "./model/groups";
 export { GroupRow, type GroupRowProps } from "./ui/group-row";
 export { InstanceRow, type InstanceRowProps } from "./ui/instance-row";
+export {
+  eyeState,
+  groupPlacements,
+  matchesUserGroup,
+  userGroupKey,
+  userGroupLine,
+  type EyeState,
+  type ModelSection,
+  type PlacementSections,
+  type UserGroupSection,
+} from "./model/sections";
