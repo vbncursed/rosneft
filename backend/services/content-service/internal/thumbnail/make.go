@@ -12,7 +12,6 @@ import (
 	"image/jpeg"
 	_ "image/png" // a panorama source is a JPEG or a PNG (the SPA sniffs both)
 	"io"
-	"sync"
 
 	"golang.org/x/image/draw"
 
@@ -26,27 +25,46 @@ const (
 	Height = 128
 )
 
-// MaxWidth and MaxHeight bound what Make agrees to decode. The header is read
-// first, and anything larger is refused before a byte of it is allocated.
+// MaxPixels is the decode budget. Make reads the header first and refuses a
+// larger image before any of it is allocated. The budget is an area, not a
+// pair of sides, because a decode's memory grows with the pixel count. The side
+// limits alone let 16384×8192 through, which is four times this area. At that
+// size a few-MB progressive JPEG could make the decoder use about 2.7 GB.
+//
+// Peak memory at MaxPixels (33.5 M px):
+//   - progressive CMYK JPEG, 20 B/px (4 coefficient planes of 4 B, plus the image): ~0.67 GB, the worst case
+//   - progressive 4:4:4 JPEG, 15 B/px (3 planes of 4 B, plus the image): ~0.50 GB
+//   - 16-bit RGBA PNG, 8 B/px (image.RGBA64): ~0.27 GB
+//   - baseline 4:4:4 JPEG, 3 B/px: ~0.10 GB
+//
+// MaxWidth and MaxHeight still bound each side, so a full-width strip is fine
+// but a full 16384×8192 source is not.
 const (
 	MaxWidth  = 16384
 	MaxHeight = 8192
+	MaxPixels = 8192 * 4096
 )
 
 const quality = 80
 
-// decoding serialises Make. A source at the limit decodes to ~400 MB, and a
-// create racing the backfill, or two creates, would hold two at once.
+// decoding is a one-slot semaphore that serialises Make. Without it, a create
+// racing the backfill, or two creates, would each hold a decode's peak
+// memory (see MaxPixels). It is a channel rather than a mutex so that a create
+// waiting behind the backfill gives up when its request is cancelled.
 // ponytail: one decode per process; a semaphore of N if uploads ever queue.
-var decoding sync.Mutex
+var decoding = make(chan struct{}, 1)
 
 // Make decodes the image blob srcHash and scales it to Width×Height. It stores
 // the result as a JPEG and returns the hash, which is the lowercase sha256 hex
 // of the JPEG bytes: the addressing upload-service and mesh-worker use. A rerun
 // therefore rewrites the same blob instead of adding another.
 func Make(ctx context.Context, store blobstore.Store, srcHash string) (string, error) {
-	decoding.Lock()
-	defer decoding.Unlock()
+	select {
+	case decoding <- struct{}{}:
+	case <-ctx.Done():
+		return "", ctx.Err()
+	}
+	defer func() { <-decoding }()
 
 	src, err := decode(ctx, store, srcHash)
 	if err != nil {
@@ -82,7 +100,8 @@ func decode(ctx context.Context, store blobstore.Store, hash string) (image.Imag
 	if err != nil {
 		return nil, fmt.Errorf("thumbnail: read header: %w", err)
 	}
-	if cfg.Width > MaxWidth || cfg.Height > MaxHeight {
+	// The sides are checked first, so the product cannot overflow.
+	if cfg.Width > MaxWidth || cfg.Height > MaxHeight || cfg.Width*cfg.Height > MaxPixels {
 		return nil, fmt.Errorf("thumbnail: %w: %d×%d", domain.ErrImageTooLarge, cfg.Width, cfg.Height)
 	}
 	img, _, err := image.Decode(io.MultiReader(&head, rc))
