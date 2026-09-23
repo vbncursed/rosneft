@@ -104,6 +104,22 @@ func (s *BatchSuite) TestAReplayOfABatchThatLostRowsAnswersWhatRemains() {
 	assert.Equal(s.T(), s.countOn("idem-edited"), 2)
 }
 
+// A batch that lost rows is still the size it landed at: a replay of another
+// count — even one matching what remains — is a conflict, and writes nothing.
+func (s *BatchSuite) TestAKeyReusedForAnotherCountOnABatchThatLostRowsIsAConflict() {
+	ctx := s.T().Context()
+	s.seedTerritory(ctx, "idem-shrunk", s.admin)
+	s.seedModel(ctx, "idem-shrunk-pump")
+
+	first, err := s.pg.CreatePlacements(ctx, "key-s", batchOf("idem-shrunk", "idem-shrunk-pump", 3, 0))
+	assert.NilError(s.T(), err)
+	assert.NilError(s.T(), s.pg.DeletePlacement(ctx, "idem-shrunk", first[1].ID))
+
+	_, err = s.pg.CreatePlacements(ctx, "key-s", batchOf("idem-shrunk", "idem-shrunk-pump", 2, 0))
+	assert.ErrorIs(s.T(), err, domain.ErrIdempotencyConflict)
+	assert.Equal(s.T(), s.countOn("idem-shrunk"), 2)
+}
+
 // PlacementBatch is the replay read on its own, for the service to answer a
 // stored batch before it validates anything against today's territory.
 func (s *BatchSuite) TestPlacementBatchReadsWhatAKeyStored() {
