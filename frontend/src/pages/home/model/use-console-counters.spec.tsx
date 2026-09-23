@@ -34,7 +34,7 @@ const urls = () => fetchMock.mock.calls.map(([u]) => String(u));
 beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   fetchMock = vi.fn(async (url: string) =>
-    url === "/api/console/summary" ? json(SUMMARY) : json({ code: "not_found", message: "no" }, 404),
+    url.startsWith("/api/console/summary?") ? json(SUMMARY) : json({ code: "not_found", message: "no" }, 404),
   );
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -52,7 +52,8 @@ describe("useConsoleCounters", () => {
     expect(result.current.access.text).toBe("2 grants");
     expect(result.current.audit.text).toBe("1 event · 24h");
     expect(result.current.metrics.text).toBe("1 alert firing");
-    expect(urls()).toEqual(["/api/console/summary"]);
+    expect(urls()).toHaveLength(1);
+    expect(urls()[0]).toMatch(/^\/api\/console\/summary\?tzOffset=-?\d+$/);
   });
 
   it("answers a locked card's static line whatever the summary holds", async () => {

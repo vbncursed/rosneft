@@ -640,7 +640,10 @@ page: `activity` is `null` when unanswered (a Guest's 403), exactly the
 tri-state `/account` already reads. `useStaleOnFinish` re-reads each list a
 finished job sits in, same as Content and the catalogs.
 `useConsoleCounters` reads one call, `GET /api/console/summary`
-(`consoleSummaryQuery`, `staleTime: 0` — the route is `no-store`). The gateway
+(`consoleSummaryQuery()`, `staleTime: 0` — the route is `no-store`). It sends
+`tzOffset` — minutes east of UTC, `0 - getTimezoneOffset()` so UTC keys as 0,
+not -0 — read per call and in the key, so `audit24h` counts the journal's own
+local-hour buckets. The gateway
 answers only the cards the caller may open and sends **numbers only**; every
 sentence on a card (`usersHint`, `rolesHint`, … in `console-hints.ts`) is
 worded here, on the frontend. The query is disabled when every card is
