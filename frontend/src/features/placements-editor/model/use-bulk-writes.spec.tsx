@@ -144,6 +144,34 @@ describe("useBulkWrites", () => {
     expect(result.current.pendingIds).toEqual([]);
   });
 
+  // Same ids, two writes: each holds its own copy, so the first to land must
+  // not release the other's hold on the row.
+  it("keeps an id pending while a second write of the same id is still in flight", async () => {
+    let releaseFirst!: () => void;
+    let releaseSecond!: () => void;
+    vi.mocked(setPlacementsHidden)
+      .mockReturnValueOnce(new Promise((res) => (releaseFirst = () => res(1))))
+      .mockReturnValueOnce(new Promise((res) => (releaseSecond = () => res(1))));
+    const { result } = mount([placement(1)]);
+    let first!: Promise<boolean>;
+    let second!: Promise<boolean>;
+    act(() => {
+      first = result.current.setHidden([1], true);
+      second = result.current.setHidden([1], false);
+    });
+    expect(result.current.pendingIds).toEqual([1, 1]);
+    await act(async () => {
+      releaseSecond();
+      await second;
+    });
+    expect(result.current.pendingIds).toEqual([1]);
+    await act(async () => {
+      releaseFirst();
+      await first;
+    });
+    expect(result.current.pendingIds).toEqual([]);
+  });
+
   // Mirrors ON DELETE SET NULL: the server already cleared the column.
   it("ungroups a deleted group's placements locally, and only those", () => {
     const { result } = mount([placement(1, { groupId: 4 }), placement(2, { groupId: 5 })]);
