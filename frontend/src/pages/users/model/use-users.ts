@@ -145,6 +145,7 @@ export function useUsers(): UsersState {
       notify.success("Roles updated");
       setAddingRole(false);
       void refresh();
+      void client.invalidateQueries({ queryKey: ["me"] }); // the reader's own grants may have moved
     },
     onError: fail,
   });

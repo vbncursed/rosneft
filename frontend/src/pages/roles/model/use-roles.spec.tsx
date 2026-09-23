@@ -248,6 +248,21 @@ describe("useRoles", () => {
     );
   });
 
+  // The reader may hold the role that just changed; their nav gates read
+  // /api/auth/me, which the client otherwise trusts for a minute.
+  it("marks the reader's own grants stale after a save", async () => {
+    const spy = vi.spyOn(client, "invalidateQueries");
+    const { result } = renderHook(() => ({ roles: useRoles(), notices: useNotices() }), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.roles.status).toBe("ready"));
+    act(() => result.current.roles.select("ops"));
+    act(() => result.current.roles.rename("Field ops"));
+    act(() => result.current.roles.save());
+    await waitFor(() => expect(result.current.notices[0]?.message).toBe("Role saved"));
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["me"] });
+  });
+
   it("sends nothing it did not change", async () => {
     const { result } = renderHook(() => useRoles(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));

@@ -126,10 +126,11 @@ export function useViewerPanoramas({
     onCreated: useCallback(
       (panorama: Panorama) => {
         add(panorama);
+        onChanged();
         reveal("panoramas");
         setUploadOpen(false);
       },
-      [add, reveal],
+      [add, onChanged, reveal],
     ),
   });
 

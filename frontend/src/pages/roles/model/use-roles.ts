@@ -102,6 +102,8 @@ export function useRoles(): RolesState {
       // A role's title travels embedded in every person who holds it, so the
       // Users screen keeps showing the old one until its list is refetched too.
       void client.invalidateQueries({ queryKey: ["users"] });
+      // The reader may hold this role, and their nav gates read /api/auth/me.
+      void client.invalidateQueries({ queryKey: ["me"] });
     },
     onError: fail,
   });

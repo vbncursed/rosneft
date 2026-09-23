@@ -1,4 +1,6 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { updateTerritory, type Territory } from "@/entities/territory";
 import { HttpError } from "@/shared/api";
@@ -18,13 +20,22 @@ const territory = (externalPanoramaUrl?: string): Territory => ({
   ...(externalPanoramaUrl === undefined ? {} : { externalPanoramaUrl }),
 });
 
+let client: QueryClient;
+const wrapper = ({ children }: { children: ReactNode }) => (
+  <QueryClientProvider client={client}>{children}</QueryClientProvider>
+);
+
 const link = (initial?: string) =>
-  renderHook(() => ({
-    s: useTerritoryLink("refinery-block-c", initial),
-    notices: useNotices(),
-  }));
+  renderHook(
+    () => ({
+      s: useTerritoryLink("refinery-block-c", initial),
+      notices: useNotices(),
+    }),
+    { wrapper },
+  );
 
 beforeEach(() => {
+  client = new QueryClient();
   vi.mocked(updateTerritory).mockReset();
   clearNotices();
 });
@@ -79,5 +90,32 @@ describe("useTerritoryLink", () => {
     expect(result.current.s.url).toBe("https://tour.example/a");
     expect(result.current.s.saving).toBe(false);
     expect(result.current.notices[0]?.message).toContain("not a url");
+  });
+
+  // The catalog and Home cards draw their panorama chip from the list; with a
+  // minute of trust they would go on showing the old link.
+  it("marks the territory list and the territory stale once the link is saved", async () => {
+    vi.mocked(updateTerritory).mockResolvedValue(territory());
+    const spy = vi.spyOn(client, "invalidateQueries");
+    const { result } = link("https://tour.example/a");
+
+    await act(async () => {
+      await result.current.s.save("");
+    });
+
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["territories"] });
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["territory", "refinery-block-c"] });
+  });
+
+  it("marks nothing stale when the save is refused", async () => {
+    vi.mocked(updateTerritory).mockRejectedValue(new Error("network drop"));
+    const spy = vi.spyOn(client, "invalidateQueries");
+    const { result } = link("https://tour.example/a");
+
+    await act(async () => {
+      await result.current.s.save("");
+    });
+
+    expect(spy).not.toHaveBeenCalled();
   });
 });

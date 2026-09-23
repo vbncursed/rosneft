@@ -118,6 +118,7 @@ describe("useReplaceSource", () => {
     expect(replaceTerritorySource).toHaveBeenCalledWith("t", "n".repeat(64));
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["jobs"] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["territories"] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["territory", "t"] });
   });
 
   it("toasts a rejected replace and returns to picked, without leaving", async () => {

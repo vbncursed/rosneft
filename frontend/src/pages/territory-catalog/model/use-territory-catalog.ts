@@ -68,6 +68,9 @@ export function useTerritoryCatalog(): TerritoryCatalogState {
     onSuccess: () => {
       notify.success("Territory deleted");
       void client.invalidateQueries({ queryKey: ["territories"] });
+      // Its placements go with it, so its models' usageCount drops.
+      void client.invalidateQueries({ queryKey: ["models"] });
+      void client.invalidateQueries({ queryKey: ["model"] });
     },
     onError: (err) => notify.error(messageOf(err)),
     onSettled: () => setPending(null),

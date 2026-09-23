@@ -260,6 +260,20 @@ describe("useUsers", () => {
     });
   });
 
+  // The reader may have just changed their own roles; their nav gates read
+  // /api/auth/me, which the client otherwise trusts for a minute.
+  it("marks the reader's own grants stale after a role change", async () => {
+    const spy = vi.spyOn(client, "invalidateQueries");
+    const { result } = renderHook(() => ({ users: useUsers(), notices: useNotices() }), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.users.status).toBe("ready"));
+    act(() => result.current.users.select("u-1"));
+    act(() => result.current.users.setRoles(["guest", "admin"]));
+    await waitFor(() => expect(result.current.notices[0]?.message).toBe("Roles updated"));
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["me"] });
+  });
+
   it("surfaces the gateway's refusal as an error notice", async () => {
     const { result } = renderHook(() => ({ users: useUsers(), notices: useNotices() }), {
       wrapper,
