@@ -9,8 +9,17 @@ import (
 )
 
 // These tests extend TerritoriesSuite (defined in territories_test.go) with the
-// multi-step ReplaceTerritorySource flow: get → upsert(new hash) → capture
+// multi-step ReplaceTerritorySource flow: update(new hash only) → capture
 // rescale baseline from the old LOD0 → clear artifacts → re-queue conversion.
+// No GetTerritory/UpsertTerritory is expected: a replace that wrote the whole
+// row back would revert a title edit made since it read it.
+
+// expectSourceSwap expects the one catalog write a replace makes: the source
+// hash of t1, and nothing else.
+func (s *TerritoriesSuite) expectSourceSwap() {
+	s.cat.UpdateTerritoryMock.Expect(s.ctx, "t1", domain.TerritoryUpdate{SourceBlobHash: new("new")}).
+		Return(domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "new"}, nil)
+}
 
 func (s *TerritoriesSuite) TestReplaceSourceRejectsEmptyInputs() {
 	_, _, err := s.svc.ReplaceTerritorySource(s.ctx, "", "h", rootScope)
@@ -20,16 +29,14 @@ func (s *TerritoriesSuite) TestReplaceSourceRejectsEmptyInputs() {
 }
 
 func (s *TerritoriesSuite) TestReplaceSourceReturnsNotFoundForUnknown() {
-	s.cat.GetTerritoryMock.Expect(s.ctx, "missing", "").Return(domain.Territory{}, domain.ErrTerritoryNotFound)
+	s.cat.UpdateTerritoryMock.Expect(s.ctx, "missing", domain.TerritoryUpdate{SourceBlobHash: new("h2")}).
+		Return(domain.Territory{}, domain.ErrTerritoryNotFound)
 	_, _, err := s.svc.ReplaceTerritorySource(s.ctx, "missing", "h2", rootScope)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrTerritoryNotFound))
 }
 
 func (s *TerritoriesSuite) TestReplaceSourceSwapsHashClearsArtifactsAndQueues() {
-	current := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "old"}
-	saved := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "new"}
-	s.cat.GetTerritoryMock.Expect(s.ctx, "t1", "").Return(current, nil)
-	s.cat.UpsertTerritoryMock.Expect(s.ctx, saved).Return(saved, nil)
+	s.expectSourceSwap()
 	// LOD0 exists but has no bbox → maxAxis 0 → no rescale baseline written.
 	s.cat.GetTerritoryArtifactMock.Expect(s.ctx, "t1", uint32(0)).
 		Return(domain.Artifact{Slug: "t1", LOD: 0, Hash: "oldglb"}, nil)
@@ -44,10 +51,7 @@ func (s *TerritoriesSuite) TestReplaceSourceSwapsHashClearsArtifactsAndQueues() 
 }
 
 func (s *TerritoriesSuite) TestReplaceSourceSetsRescaleBaselineFromOldLOD0() {
-	current := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "old"}
-	saved := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "new"}
-	s.cat.GetTerritoryMock.Expect(s.ctx, "t1", "").Return(current, nil)
-	s.cat.UpsertTerritoryMock.Expect(s.ctx, saved).Return(saved, nil)
+	s.expectSourceSwap()
 	// Old LOD0 source bbox: longest axis = 10 (the converter's pre-normalize max).
 	s.cat.GetTerritoryArtifactMock.Expect(s.ctx, "t1", uint32(0)).Return(domain.Artifact{
 		Slug: "t1", LOD: 0,
@@ -63,10 +67,7 @@ func (s *TerritoriesSuite) TestReplaceSourceSetsRescaleBaselineFromOldLOD0() {
 }
 
 func (s *TerritoriesSuite) TestReplaceSourceSkipsBaselineWhenNoLOD0() {
-	current := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "old"}
-	saved := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "new"}
-	s.cat.GetTerritoryMock.Expect(s.ctx, "t1", "").Return(current, nil)
-	s.cat.UpsertTerritoryMock.Expect(s.ctx, saved).Return(saved, nil)
+	s.expectSourceSwap()
 	// No LOD0 yet → nothing to anchor a rescale to; SetTerritoryRescaleBaseline
 	// is intentionally left unmocked, so any call would fail the test.
 	s.cat.GetTerritoryArtifactMock.Expect(s.ctx, "t1", uint32(0)).
@@ -79,10 +80,7 @@ func (s *TerritoriesSuite) TestReplaceSourceSkipsBaselineWhenNoLOD0() {
 }
 
 func (s *TerritoriesSuite) TestReplaceSourceSurfacesMeshErrorWithSavedTerritory() {
-	current := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "old"}
-	saved := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: "new"}
-	s.cat.GetTerritoryMock.Expect(s.ctx, "t1", "").Return(current, nil)
-	s.cat.UpsertTerritoryMock.Expect(s.ctx, saved).Return(saved, nil)
+	s.expectSourceSwap()
 	s.cat.GetTerritoryArtifactMock.Expect(s.ctx, "t1", uint32(0)).
 		Return(domain.Artifact{}, domain.ErrArtifactNotFound)
 	s.cat.DeleteTerritoryArtifactsMock.Expect(s.ctx, "t1").Return(nil)

@@ -41,6 +41,22 @@ func (c *Client) UpsertTerritory(ctx context.Context, t domain.Territory) (domai
 	return territoryFromProto(resp.GetTerritory()), nil
 }
 
+// UpdateTerritory writes only the fields u sets; a nil one is left off the
+// wire, and the catalog keeps that column as stored.
+func (c *Client) UpdateTerritory(ctx context.Context, slug string, u domain.TerritoryUpdate) (domain.Territory, error) {
+	resp, err := c.cc.UpdateTerritory(ctx, &catalogv1.UpdateTerritoryRequest{
+		Slug:                slug,
+		Title:               u.Title,
+		Description:         u.Description,
+		ExternalPanoramaUrl: u.ExternalPanoramaURL,
+		SourceBlobHash:      u.SourceBlobHash,
+	})
+	if err != nil {
+		return domain.Territory{}, fmt.Errorf("catalog.UpdateTerritory: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
+	}
+	return territoryFromProto(resp.GetTerritory()), nil
+}
+
 // DeleteTerritory removes a territory and cascade-deletes its artifacts +
 // placements.
 func (c *Client) DeleteTerritory(ctx context.Context, slug string) error {

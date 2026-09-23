@@ -20,6 +20,7 @@ type Catalog interface {
 	ResolveLabels(ctx context.Context, refs []domain.LabelRef) (map[string]string, error)
 	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
 	UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
+	UpdateTerritory(ctx context.Context, slug string, u domain.TerritoryUpdate) (domain.Territory, error)
 	DeleteTerritory(ctx context.Context, slug string) error
 	ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
 	GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
@@ -31,6 +32,7 @@ type Catalog interface {
 	ListModels(ctx context.Context) ([]domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)
 	UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error)
+	UpdateModel(ctx context.Context, slug string, u domain.ModelUpdate) (domain.Model, error)
 	DeleteModel(ctx context.Context, slug string) error
 	ListModelArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
 	GetModelArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)

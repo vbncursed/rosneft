@@ -41,9 +41,8 @@ func (g *Gateway) CreateModel(ctx context.Context, m domain.Model, scope domain.
 }
 
 // UpdateModel patches a model's mutable fields by slug without touching the
-// source archive or re-queuing a conversion. Read-modify-write over the
-// existing catalog RPCs (fetch, apply non-nil patch fields, upsert) —
-// mirrors UpdateTerritory.
+// source archive or re-queuing a conversion. The catalog writes only the
+// non-nil fields — see UpdateTerritory.
 func (g *Gateway) UpdateModel(ctx context.Context, slug string, update domain.ModelUpdate, scope domain.BlobScope) (domain.Model, error) {
 	if slug == "" {
 		return domain.Model{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
@@ -56,20 +55,7 @@ func (g *Gateway) UpdateModel(ctx context.Context, slug string, update domain.Mo
 			return domain.Model{}, err
 		}
 	}
-	current, err := g.catalog.GetModel(ctx, slug)
-	if err != nil {
-		return domain.Model{}, err
-	}
-	if update.Title != nil {
-		current.Title = *update.Title
-	}
-	if update.Description != nil {
-		current.Description = *update.Description
-	}
-	if update.ThumbnailBlobHash != nil {
-		current.ThumbnailBlobHash = *update.ThumbnailBlobHash
-	}
-	saved, err := g.catalog.UpsertModel(ctx, current)
+	saved, err := g.catalog.UpdateModel(ctx, slug, update)
 	if err != nil {
 		return domain.Model{}, fmt.Errorf("update model: %w", err)
 	}
@@ -102,8 +88,8 @@ func (g *Gateway) GetModelArtifact(ctx context.Context, slug string, lod uint32)
 }
 
 // validateTitlePatch refuses a title a PATCH sends blank; nil leaves the title
-// alone. Both update paths call it before reading the row, so a refusal costs
-// no catalog round trip. Last writer wins — no If-Match, by decision.
+// alone. Both update paths call it before any catalog call, so a refusal costs
+// no round trip. Last writer wins — no If-Match, by decision.
 func validateTitlePatch(title *string) error {
 	if title != nil && strings.TrimSpace(*title) == "" {
 		return fmt.Errorf("%w: empty title", domain.ErrInvalidInput)

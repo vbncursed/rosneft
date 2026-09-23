@@ -36,6 +36,7 @@ service CatalogService {
   rpc ResolveBlobAccess(ResolveBlobAccessRequest) returns (ResolveBlobAccessResponse);
   rpc GetTerritory(GetTerritoryRequest) returns (GetTerritoryResponse);
   rpc UpsertTerritory(UpsertTerritoryRequest) returns (UpsertTerritoryResponse);
+  rpc UpdateTerritory(UpdateTerritoryRequest) returns (UpdateTerritoryResponse);
   rpc DeleteTerritory(DeleteTerritoryRequest) returns (DeleteTerritoryResponse);
   rpc RegisterTerritoryArtifact(RegisterTerritoryArtifactRequest) returns (RegisterTerritoryArtifactResponse);
   rpc ListTerritoryArtifacts(ListTerritoryArtifactsRequest) returns (ListTerritoryArtifactsResponse);
@@ -49,6 +50,7 @@ service CatalogService {
   rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
   rpc GetModel(GetModelRequest) returns (GetModelResponse);
   rpc UpsertModel(UpsertModelRequest) returns (UpsertModelResponse);
+  rpc UpdateModel(UpdateModelRequest) returns (UpdateModelResponse);
   rpc DeleteModel(DeleteModelRequest) returns (DeleteModelResponse);
   rpc RegisterModelArtifact(RegisterModelArtifactRequest) returns (RegisterModelArtifactResponse);
   rpc ListModelArtifacts(ListModelArtifactsRequest) returns (ListModelArtifactsResponse);
@@ -242,6 +244,21 @@ message UpsertTerritoryResponse {
   Territory territory = 1;
 }
 
+// UpdateTerritory writes only the fields it carries, in one UPDATE: an absent
+// field keeps the stored value, a present empty one clears it. A partial edit
+// must not write back columns it read earlier, or it reverts a concurrent
+// source replace (or a concurrent title edit). Unknown slug is NOT_FOUND.
+message UpdateTerritoryRequest {
+  string slug = 1;
+  optional string title = 2;
+  optional string description = 3;
+  optional string external_panorama_url = 4;
+  optional string source_blob_hash = 5;
+}
+message UpdateTerritoryResponse {
+  Territory territory = 1;
+}
+
 message DeleteTerritoryRequest {
   string slug = 1;
 }
@@ -318,6 +335,17 @@ message UpsertModelRequest {
   Model model = 1;
 }
 message UpsertModelResponse {
+  Model model = 1;
+}
+
+// UpdateModel writes only the fields it carries — see UpdateTerritoryRequest.
+message UpdateModelRequest {
+  string slug = 1;
+  optional string title = 2;
+  optional string description = 3;
+  optional string thumbnail_blob_hash = 4;
+}
+message UpdateModelResponse {
   Model model = 1;
 }
 

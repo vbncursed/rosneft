@@ -93,32 +93,40 @@ func (s *TerritoriesSuite) TestArtifactsRejectEmptySlug() {
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
-func (s *TerritoriesSuite) TestUpdateMergesTitleAndDescription() {
-	current := domain.Territory{Slug: "t1", Title: "Site", Description: "old", SourceBlobHash: "h", ExternalPanoramaURL: "https://tour"}
-	s.cat.GetTerritoryMock.Expect(s.ctx, "t1", "").Return(current, nil)
-	merged := current
-	merged.Title = "North site"
-	merged.Description = "Pad and tanks"
-	s.cat.UpsertTerritoryMock.Expect(s.ctx, merged).Return(merged, nil)
+// A PATCH writes only what it sends, in one catalog call: no GetTerritory, no
+// UpsertTerritory (neither is expected, so either would fail the test). A
+// read-merge-upsert wrote the source hash it read back over a concurrent
+// source replace.
+func (s *TerritoriesSuite) TestUpdateSendsOnlyTheEditedFields() {
+	sent := domain.TerritoryUpdate{Title: new("North site"), Description: new("Pad and tanks")}
+	s.cat.UpdateTerritoryMock.Expect(s.ctx, "t1", sent).
+		Return(domain.Territory{Slug: "t1", Title: "North site", SourceBlobHash: "h"}, nil)
 
-	saved, err := s.svc.UpdateTerritory(s.ctx, "t1", domain.TerritoryUpdate{Title: new("North site"), Description: new("Pad and tanks")})
+	saved, err := s.svc.UpdateTerritory(s.ctx, "t1", sent)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), saved.Title, "North site")
 }
 
-func (s *TerritoriesSuite) TestUpdateLeavesOmittedDetailsUntouched() {
-	current := domain.Territory{Slug: "t1", Title: "Site", Description: "keep", SourceBlobHash: "h"}
-	s.cat.GetTerritoryMock.Expect(s.ctx, "t1", "").Return(current, nil)
-	merged := current
-	merged.ExternalPanoramaURL = "https://tour"
-	s.cat.UpsertTerritoryMock.Expect(s.ctx, merged).Return(merged, nil)
+func (s *TerritoriesSuite) TestUpdateSendsThePanoramaURLAlone() {
+	sent := domain.TerritoryUpdate{ExternalPanoramaURL: new("https://tour")}
+	s.cat.UpdateTerritoryMock.Expect(s.ctx, "t1", sent).Return(domain.Territory{Slug: "t1"}, nil)
 
-	_, err := s.svc.UpdateTerritory(s.ctx, "t1", domain.TerritoryUpdate{ExternalPanoramaURL: new("https://tour")})
+	_, err := s.svc.UpdateTerritory(s.ctx, "t1", sent)
 	assert.NilError(s.T(), err)
 }
 
-func (s *TerritoriesSuite) TestUpdateRejectsBlankTitleBeforeReading() {
-	// No catalog expectation: a GetTerritory call would fail the test.
+// The source hash changes only through ReplaceTerritorySource, which checks
+// the caller may use the blob; a PATCH that carried one would skip that.
+func (s *TerritoriesSuite) TestUpdateNeverForwardsASourceHash() {
+	s.cat.UpdateTerritoryMock.Expect(s.ctx, "t1", domain.TerritoryUpdate{Title: new("Yard")}).
+		Return(domain.Territory{Slug: "t1"}, nil)
+
+	_, err := s.svc.UpdateTerritory(s.ctx, "t1", domain.TerritoryUpdate{Title: new("Yard"), SourceBlobHash: new("foreign")})
+	assert.NilError(s.T(), err)
+}
+
+func (s *TerritoriesSuite) TestUpdateRejectsBlankTitleBeforeWriting() {
+	// No catalog expectation: any catalog call would fail the test.
 	_, err := s.svc.UpdateTerritory(s.ctx, "t1", domain.TerritoryUpdate{Title: new("")})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }

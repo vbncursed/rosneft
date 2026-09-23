@@ -16,6 +16,7 @@ import (
 // implicitly.
 type Repository interface {
 	UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
+	UpdateTerritory(ctx context.Context, slug string, p domain.TerritoryPatch) (domain.Territory, error)
 	CreateTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
 	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
 	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
@@ -38,6 +39,7 @@ type Repository interface {
 	RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64) (int, error)
 
 	UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error)
+	UpdateModel(ctx context.Context, slug string, p domain.ModelPatch) (domain.Model, error)
 	CreateModel(ctx context.Context, m domain.Model) (domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)
 	ListModels(ctx context.Context) ([]domain.Model, error)

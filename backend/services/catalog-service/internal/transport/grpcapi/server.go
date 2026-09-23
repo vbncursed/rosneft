@@ -20,6 +20,7 @@ import (
 // Service is the catalog surface this transport calls.
 type Service interface {
 	UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
+	UpdateTerritory(ctx context.Context, slug string, p domain.TerritoryPatch) (domain.Territory, error)
 	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
 	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
 	ResolveTerritorySlugs(ctx context.Context, ids []int64) (map[int64]string, error)
@@ -36,6 +37,7 @@ type Service interface {
 	RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64) (int, error)
 
 	UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error)
+	UpdateModel(ctx context.Context, slug string, p domain.ModelPatch) (domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)
 	ListModels(ctx context.Context) ([]domain.Model, error)
 	DeleteModel(ctx context.Context, slug string) error

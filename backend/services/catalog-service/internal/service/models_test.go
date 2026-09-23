@@ -155,3 +155,30 @@ func (s *ModelsSuite) TestDeleteRemovesExisting() {
 	s.repo.DeleteModelMock.Expect(s.ctx, "m1").Return(nil)
 	assert.NilError(s.T(), s.svc.DeleteModel(s.ctx, "m1"))
 }
+
+// An empty thumbnail is "no thumbnail", so clearing it is forwarded.
+func (s *ModelsSuite) TestUpdateForwardsThePatchAsIs() {
+	patch := domain.ModelPatch{Title: new("Crate"), ThumbnailBlobHash: new("")}
+	s.repo.UpdateModelMock.Expect(s.ctx, "m1", patch).Return(domain.Model{Slug: "m1", Title: "Crate"}, nil)
+	out, err := s.svc.UpdateModel(s.ctx, "m1", patch)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), out.Title, "Crate")
+}
+
+func (s *ModelsSuite) TestUpdateRefusesBadInputBeforeWriting() {
+	cases := []struct {
+		name  string
+		slug  string
+		patch domain.ModelPatch
+	}{
+		{name: "empty slug", slug: "", patch: domain.ModelPatch{Title: new("x")}},
+		{name: "blank title", slug: "m1", patch: domain.ModelPatch{Title: new("")}},
+		{name: "non-hex thumbnail", slug: "m1", patch: domain.ModelPatch{ThumbnailBlobHash: new("not-hex")}},
+	}
+	for _, tc := range cases {
+		s.Run(tc.name, func() {
+			_, err := s.svc.UpdateModel(s.ctx, tc.slug, tc.patch)
+			assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+		})
+	}
+}

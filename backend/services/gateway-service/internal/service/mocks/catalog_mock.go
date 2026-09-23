@@ -201,12 +201,26 @@ type CatalogMock struct {
 	beforeUpdateMeasurementCounter uint64
 	UpdateMeasurementMock          mCatalogMockUpdateMeasurement
 
+	funcUpdateModel          func(ctx context.Context, slug string, u domain.ModelUpdate) (m1 domain.Model, err error)
+	funcUpdateModelOrigin    string
+	inspectFuncUpdateModel   func(ctx context.Context, slug string, u domain.ModelUpdate)
+	afterUpdateModelCounter  uint64
+	beforeUpdateModelCounter uint64
+	UpdateModelMock          mCatalogMockUpdateModel
+
 	funcUpdatePlacement          func(ctx context.Context, p domain.Placement) (p1 domain.Placement, err error)
 	funcUpdatePlacementOrigin    string
 	inspectFuncUpdatePlacement   func(ctx context.Context, p domain.Placement)
 	afterUpdatePlacementCounter  uint64
 	beforeUpdatePlacementCounter uint64
 	UpdatePlacementMock          mCatalogMockUpdatePlacement
+
+	funcUpdateTerritory          func(ctx context.Context, slug string, u domain.TerritoryUpdate) (t1 domain.Territory, err error)
+	funcUpdateTerritoryOrigin    string
+	inspectFuncUpdateTerritory   func(ctx context.Context, slug string, u domain.TerritoryUpdate)
+	afterUpdateTerritoryCounter  uint64
+	beforeUpdateTerritoryCounter uint64
+	UpdateTerritoryMock          mCatalogMockUpdateTerritory
 
 	funcUpsertModel          func(ctx context.Context, m domain.Model) (m1 domain.Model, err error)
 	funcUpsertModelOrigin    string
@@ -309,8 +323,14 @@ func NewCatalogMock(t minimock.Tester) *CatalogMock {
 	m.UpdateMeasurementMock = mCatalogMockUpdateMeasurement{mock: m}
 	m.UpdateMeasurementMock.callArgs = []*CatalogMockUpdateMeasurementParams{}
 
+	m.UpdateModelMock = mCatalogMockUpdateModel{mock: m}
+	m.UpdateModelMock.callArgs = []*CatalogMockUpdateModelParams{}
+
 	m.UpdatePlacementMock = mCatalogMockUpdatePlacement{mock: m}
 	m.UpdatePlacementMock.callArgs = []*CatalogMockUpdatePlacementParams{}
+
+	m.UpdateTerritoryMock = mCatalogMockUpdateTerritory{mock: m}
+	m.UpdateTerritoryMock.callArgs = []*CatalogMockUpdateTerritoryParams{}
 
 	m.UpsertModelMock = mCatalogMockUpsertModel{mock: m}
 	m.UpsertModelMock.callArgs = []*CatalogMockUpsertModelParams{}
@@ -9513,6 +9533,380 @@ func (m *CatalogMock) MinimockUpdateMeasurementInspect() {
 	}
 }
 
+type mCatalogMockUpdateModel struct {
+	optional           bool
+	mock               *CatalogMock
+	defaultExpectation *CatalogMockUpdateModelExpectation
+	expectations       []*CatalogMockUpdateModelExpectation
+
+	callArgs []*CatalogMockUpdateModelParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// CatalogMockUpdateModelExpectation specifies expectation struct of the Catalog.UpdateModel
+type CatalogMockUpdateModelExpectation struct {
+	mock               *CatalogMock
+	params             *CatalogMockUpdateModelParams
+	paramPtrs          *CatalogMockUpdateModelParamPtrs
+	expectationOrigins CatalogMockUpdateModelExpectationOrigins
+	results            *CatalogMockUpdateModelResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// CatalogMockUpdateModelParams contains parameters of the Catalog.UpdateModel
+type CatalogMockUpdateModelParams struct {
+	ctx  context.Context
+	slug string
+	u    domain.ModelUpdate
+}
+
+// CatalogMockUpdateModelParamPtrs contains pointers to parameters of the Catalog.UpdateModel
+type CatalogMockUpdateModelParamPtrs struct {
+	ctx  *context.Context
+	slug *string
+	u    *domain.ModelUpdate
+}
+
+// CatalogMockUpdateModelResults contains results of the Catalog.UpdateModel
+type CatalogMockUpdateModelResults struct {
+	m1  domain.Model
+	err error
+}
+
+// CatalogMockUpdateModelOrigins contains origins of expectations of the Catalog.UpdateModel
+type CatalogMockUpdateModelExpectationOrigins struct {
+	origin     string
+	originCtx  string
+	originSlug string
+	originU    string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmUpdateModel *mCatalogMockUpdateModel) Optional() *mCatalogMockUpdateModel {
+	mmUpdateModel.optional = true
+	return mmUpdateModel
+}
+
+// Expect sets up expected params for Catalog.UpdateModel
+func (mmUpdateModel *mCatalogMockUpdateModel) Expect(ctx context.Context, slug string, u domain.ModelUpdate) *mCatalogMockUpdateModel {
+	if mmUpdateModel.mock.funcUpdateModel != nil {
+		mmUpdateModel.mock.t.Fatalf("CatalogMock.UpdateModel mock is already set by Set")
+	}
+
+	if mmUpdateModel.defaultExpectation == nil {
+		mmUpdateModel.defaultExpectation = &CatalogMockUpdateModelExpectation{}
+	}
+
+	if mmUpdateModel.defaultExpectation.paramPtrs != nil {
+		mmUpdateModel.mock.t.Fatalf("CatalogMock.UpdateModel mock is already set by ExpectParams functions")
+	}
+
+	mmUpdateModel.defaultExpectation.params = &CatalogMockUpdateModelParams{ctx, slug, u}
+	mmUpdateModel.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmUpdateModel.expectations {
+		if minimock.Equal(e.params, mmUpdateModel.defaultExpectation.params) {
+			mmUpdateModel.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdateModel.defaultExpectation.params)
+		}
+	}
+
+	return mmUpdateModel
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Catalog.UpdateModel
+func (mmUpdateModel *mCatalogMockUpdateModel) ExpectCtxParam1(ctx context.Context) *mCatalogMockUpdateModel {
+	if mmUpdateModel.mock.funcUpdateModel != nil {
+		mmUpdateModel.mock.t.Fatalf("CatalogMock.UpdateModel mock is already set by Set")
+	}
+
+	if mmUpdateModel.defaultExpectation == nil {
+		mmUpdateModel.defaultExpectation = &CatalogMockUpdateModelExpectation{}
+	}
+
+	if mmUpdateModel.defaultExpectation.params != nil {
+		mmUpdateModel.mock.t.Fatalf("CatalogMock.UpdateModel mock is already set by Expect")
+	}
+
+	if mmUpdateModel.defaultExpectation.paramPtrs == nil {
+		mmUpdateModel.defaultExpectation.paramPtrs = &CatalogMockUpdateModelParamPtrs{}
+	}
+	mmUpdateModel.defaultExpectation.paramPtrs.ctx = &ctx
+	mmUpdateModel.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmUpdateModel
+}
+
+// ExpectSlugParam2 sets up expected param slug for Catalog.UpdateModel
+func (mmUpdateModel *mCatalogMockUpdateModel) ExpectSlugParam2(slug string) *mCatalogMockUpdateModel {
+	if mmUpdateModel.mock.funcUpdateModel != nil {
+		mmUpdateModel.mock.t.Fatalf("CatalogMock.UpdateModel mock is already set by Set")
+	}
+
+	if mmUpdateModel.defaultExpectation == nil {
+		mmUpdateModel.defaultExpectation = &CatalogMockUpdateModelExpectation{}
+	}
+
+	if mmUpdateModel.defaultExpectation.params != nil {
+		mmUpdateModel.mock.t.Fatalf("CatalogMock.UpdateModel mock is already set by Expect")
+	}
+
+	if mmUpdateModel.defaultExpectation.paramPtrs == nil {
+		mmUpdateModel.defaultExpectation.paramPtrs = &CatalogMockUpdateModelParamPtrs{}
+	}
+	mmUpdateModel.defaultExpectation.paramPtrs.slug = &slug
+	mmUpdateModel.defaultExpectation.expectationOrigins.originSlug = minimock.CallerInfo(1)
+
+	return mmUpdateModel
+}
+
+// ExpectUParam3 sets up expected param u for Catalog.UpdateModel
+func (mmUpdateModel *mCatalogMockUpdateModel) ExpectUParam3(u domain.ModelUpdate) *mCatalogMockUpdateModel {
+	if mmUpdateModel.mock.funcUpdateModel != nil {
+		mmUpdateModel.mock.t.Fatalf("CatalogMock.UpdateModel mock is already set by Set")
+	}
+
+	if mmUpdateModel.defaultExpectation == nil {
+		mmUpdateModel.defaultExpectation = &CatalogMockUpdateModelExpectation{}
+	}
+
+	if mmUpdateModel.defaultExpectation.params != nil {
+		mmUpdateModel.mock.t.Fatalf("CatalogMock.UpdateModel mock is already set by Expect")
+	}
+
+	if mmUpdateModel.defaultExpectation.paramPtrs == nil {
+		mmUpdateModel.defaultExpectation.paramPtrs = &CatalogMockUpdateModelParamPtrs{}
+	}
+	mmUpdateModel.defaultExpectation.paramPtrs.u = &u
+	mmUpdateModel.defaultExpectation.expectationOrigins.originU = minimock.CallerInfo(1)
+
+	return mmUpdateModel
+}
+
+// Inspect accepts an inspector function that has same arguments as the Catalog.UpdateModel
+func (mmUpdateModel *mCatalogMockUpdateModel) Inspect(f func(ctx context.Context, slug string, u domain.ModelUpdate)) *mCatalogMockUpdateModel {
+	if mmUpdateModel.mock.inspectFuncUpdateModel != nil {
+		mmUpdateModel.mock.t.Fatalf("Inspect function is already set for CatalogMock.UpdateModel")
+	}
+
+	mmUpdateModel.mock.inspectFuncUpdateModel = f
+
+	return mmUpdateModel
+}
+
+// Return sets up results that will be returned by Catalog.UpdateModel
+func (mmUpdateModel *mCatalogMockUpdateModel) Return(m1 domain.Model, err error) *CatalogMock {
+	if mmUpdateModel.mock.funcUpdateModel != nil {
+		mmUpdateModel.mock.t.Fatalf("CatalogMock.UpdateModel mock is already set by Set")
+	}
+
+	if mmUpdateModel.defaultExpectation == nil {
+		mmUpdateModel.defaultExpectation = &CatalogMockUpdateModelExpectation{mock: mmUpdateModel.mock}
+	}
+	mmUpdateModel.defaultExpectation.results = &CatalogMockUpdateModelResults{m1, err}
+	mmUpdateModel.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmUpdateModel.mock
+}
+
+// Set uses given function f to mock the Catalog.UpdateModel method
+func (mmUpdateModel *mCatalogMockUpdateModel) Set(f func(ctx context.Context, slug string, u domain.ModelUpdate) (m1 domain.Model, err error)) *CatalogMock {
+	if mmUpdateModel.defaultExpectation != nil {
+		mmUpdateModel.mock.t.Fatalf("Default expectation is already set for the Catalog.UpdateModel method")
+	}
+
+	if len(mmUpdateModel.expectations) > 0 {
+		mmUpdateModel.mock.t.Fatalf("Some expectations are already set for the Catalog.UpdateModel method")
+	}
+
+	mmUpdateModel.mock.funcUpdateModel = f
+	mmUpdateModel.mock.funcUpdateModelOrigin = minimock.CallerInfo(1)
+	return mmUpdateModel.mock
+}
+
+// When sets expectation for the Catalog.UpdateModel which will trigger the result defined by the following
+// Then helper
+func (mmUpdateModel *mCatalogMockUpdateModel) When(ctx context.Context, slug string, u domain.ModelUpdate) *CatalogMockUpdateModelExpectation {
+	if mmUpdateModel.mock.funcUpdateModel != nil {
+		mmUpdateModel.mock.t.Fatalf("CatalogMock.UpdateModel mock is already set by Set")
+	}
+
+	expectation := &CatalogMockUpdateModelExpectation{
+		mock:               mmUpdateModel.mock,
+		params:             &CatalogMockUpdateModelParams{ctx, slug, u},
+		expectationOrigins: CatalogMockUpdateModelExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmUpdateModel.expectations = append(mmUpdateModel.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Catalog.UpdateModel return parameters for the expectation previously defined by the When method
+func (e *CatalogMockUpdateModelExpectation) Then(m1 domain.Model, err error) *CatalogMock {
+	e.results = &CatalogMockUpdateModelResults{m1, err}
+	return e.mock
+}
+
+// Times sets number of times Catalog.UpdateModel should be invoked
+func (mmUpdateModel *mCatalogMockUpdateModel) Times(n uint64) *mCatalogMockUpdateModel {
+	if n == 0 {
+		mmUpdateModel.mock.t.Fatalf("Times of CatalogMock.UpdateModel mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmUpdateModel.expectedInvocations, n)
+	mmUpdateModel.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmUpdateModel
+}
+
+func (mmUpdateModel *mCatalogMockUpdateModel) invocationsDone() bool {
+	if len(mmUpdateModel.expectations) == 0 && mmUpdateModel.defaultExpectation == nil && mmUpdateModel.mock.funcUpdateModel == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmUpdateModel.mock.afterUpdateModelCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmUpdateModel.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// UpdateModel implements mm_service.Catalog
+func (mmUpdateModel *CatalogMock) UpdateModel(ctx context.Context, slug string, u domain.ModelUpdate) (m1 domain.Model, err error) {
+	mm_atomic.AddUint64(&mmUpdateModel.beforeUpdateModelCounter, 1)
+	defer mm_atomic.AddUint64(&mmUpdateModel.afterUpdateModelCounter, 1)
+
+	mmUpdateModel.t.Helper()
+
+	if mmUpdateModel.inspectFuncUpdateModel != nil {
+		mmUpdateModel.inspectFuncUpdateModel(ctx, slug, u)
+	}
+
+	mm_params := CatalogMockUpdateModelParams{ctx, slug, u}
+
+	// Record call args
+	mmUpdateModel.UpdateModelMock.mutex.Lock()
+	mmUpdateModel.UpdateModelMock.callArgs = append(mmUpdateModel.UpdateModelMock.callArgs, &mm_params)
+	mmUpdateModel.UpdateModelMock.mutex.Unlock()
+
+	for _, e := range mmUpdateModel.UpdateModelMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.m1, e.results.err
+		}
+	}
+
+	if mmUpdateModel.UpdateModelMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmUpdateModel.UpdateModelMock.defaultExpectation.Counter, 1)
+		mm_want := mmUpdateModel.UpdateModelMock.defaultExpectation.params
+		mm_want_ptrs := mmUpdateModel.UpdateModelMock.defaultExpectation.paramPtrs
+
+		mm_got := CatalogMockUpdateModelParams{ctx, slug, u}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmUpdateModel.t.Errorf("CatalogMock.UpdateModel got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateModel.UpdateModelMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.slug != nil && !minimock.Equal(*mm_want_ptrs.slug, mm_got.slug) {
+				mmUpdateModel.t.Errorf("CatalogMock.UpdateModel got unexpected parameter slug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateModel.UpdateModelMock.defaultExpectation.expectationOrigins.originSlug, *mm_want_ptrs.slug, mm_got.slug, minimock.Diff(*mm_want_ptrs.slug, mm_got.slug))
+			}
+
+			if mm_want_ptrs.u != nil && !minimock.Equal(*mm_want_ptrs.u, mm_got.u) {
+				mmUpdateModel.t.Errorf("CatalogMock.UpdateModel got unexpected parameter u, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateModel.UpdateModelMock.defaultExpectation.expectationOrigins.originU, *mm_want_ptrs.u, mm_got.u, minimock.Diff(*mm_want_ptrs.u, mm_got.u))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmUpdateModel.t.Errorf("CatalogMock.UpdateModel got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmUpdateModel.UpdateModelMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmUpdateModel.UpdateModelMock.defaultExpectation.results
+		if mm_results == nil {
+			mmUpdateModel.t.Fatal("No results are set for the CatalogMock.UpdateModel")
+		}
+		return (*mm_results).m1, (*mm_results).err
+	}
+	if mmUpdateModel.funcUpdateModel != nil {
+		return mmUpdateModel.funcUpdateModel(ctx, slug, u)
+	}
+	mmUpdateModel.t.Fatalf("Unexpected call to CatalogMock.UpdateModel. %v %v %v", ctx, slug, u)
+	return
+}
+
+// UpdateModelAfterCounter returns a count of finished CatalogMock.UpdateModel invocations
+func (mmUpdateModel *CatalogMock) UpdateModelAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateModel.afterUpdateModelCounter)
+}
+
+// UpdateModelBeforeCounter returns a count of CatalogMock.UpdateModel invocations
+func (mmUpdateModel *CatalogMock) UpdateModelBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateModel.beforeUpdateModelCounter)
+}
+
+// Calls returns a list of arguments used in each call to CatalogMock.UpdateModel.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmUpdateModel *mCatalogMockUpdateModel) Calls() []*CatalogMockUpdateModelParams {
+	mmUpdateModel.mutex.RLock()
+
+	argCopy := make([]*CatalogMockUpdateModelParams, len(mmUpdateModel.callArgs))
+	copy(argCopy, mmUpdateModel.callArgs)
+
+	mmUpdateModel.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockUpdateModelDone returns true if the count of the UpdateModel invocations corresponds
+// the number of defined expectations
+func (m *CatalogMock) MinimockUpdateModelDone() bool {
+	if m.UpdateModelMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.UpdateModelMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.UpdateModelMock.invocationsDone()
+}
+
+// MinimockUpdateModelInspect logs each unmet expectation
+func (m *CatalogMock) MinimockUpdateModelInspect() {
+	for _, e := range m.UpdateModelMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to CatalogMock.UpdateModel at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterUpdateModelCounter := mm_atomic.LoadUint64(&m.afterUpdateModelCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.UpdateModelMock.defaultExpectation != nil && afterUpdateModelCounter < 1 {
+		if m.UpdateModelMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to CatalogMock.UpdateModel at\n%s", m.UpdateModelMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to CatalogMock.UpdateModel at\n%s with params: %#v", m.UpdateModelMock.defaultExpectation.expectationOrigins.origin, *m.UpdateModelMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcUpdateModel != nil && afterUpdateModelCounter < 1 {
+		m.t.Errorf("Expected call to CatalogMock.UpdateModel at\n%s", m.funcUpdateModelOrigin)
+	}
+
+	if !m.UpdateModelMock.invocationsDone() && afterUpdateModelCounter > 0 {
+		m.t.Errorf("Expected %d calls to CatalogMock.UpdateModel at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.UpdateModelMock.expectedInvocations), m.UpdateModelMock.expectedInvocationsOrigin, afterUpdateModelCounter)
+	}
+}
+
 type mCatalogMockUpdatePlacement struct {
 	optional           bool
 	mock               *CatalogMock
@@ -9853,6 +10247,380 @@ func (m *CatalogMock) MinimockUpdatePlacementInspect() {
 	if !m.UpdatePlacementMock.invocationsDone() && afterUpdatePlacementCounter > 0 {
 		m.t.Errorf("Expected %d calls to CatalogMock.UpdatePlacement at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.UpdatePlacementMock.expectedInvocations), m.UpdatePlacementMock.expectedInvocationsOrigin, afterUpdatePlacementCounter)
+	}
+}
+
+type mCatalogMockUpdateTerritory struct {
+	optional           bool
+	mock               *CatalogMock
+	defaultExpectation *CatalogMockUpdateTerritoryExpectation
+	expectations       []*CatalogMockUpdateTerritoryExpectation
+
+	callArgs []*CatalogMockUpdateTerritoryParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// CatalogMockUpdateTerritoryExpectation specifies expectation struct of the Catalog.UpdateTerritory
+type CatalogMockUpdateTerritoryExpectation struct {
+	mock               *CatalogMock
+	params             *CatalogMockUpdateTerritoryParams
+	paramPtrs          *CatalogMockUpdateTerritoryParamPtrs
+	expectationOrigins CatalogMockUpdateTerritoryExpectationOrigins
+	results            *CatalogMockUpdateTerritoryResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// CatalogMockUpdateTerritoryParams contains parameters of the Catalog.UpdateTerritory
+type CatalogMockUpdateTerritoryParams struct {
+	ctx  context.Context
+	slug string
+	u    domain.TerritoryUpdate
+}
+
+// CatalogMockUpdateTerritoryParamPtrs contains pointers to parameters of the Catalog.UpdateTerritory
+type CatalogMockUpdateTerritoryParamPtrs struct {
+	ctx  *context.Context
+	slug *string
+	u    *domain.TerritoryUpdate
+}
+
+// CatalogMockUpdateTerritoryResults contains results of the Catalog.UpdateTerritory
+type CatalogMockUpdateTerritoryResults struct {
+	t1  domain.Territory
+	err error
+}
+
+// CatalogMockUpdateTerritoryOrigins contains origins of expectations of the Catalog.UpdateTerritory
+type CatalogMockUpdateTerritoryExpectationOrigins struct {
+	origin     string
+	originCtx  string
+	originSlug string
+	originU    string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmUpdateTerritory *mCatalogMockUpdateTerritory) Optional() *mCatalogMockUpdateTerritory {
+	mmUpdateTerritory.optional = true
+	return mmUpdateTerritory
+}
+
+// Expect sets up expected params for Catalog.UpdateTerritory
+func (mmUpdateTerritory *mCatalogMockUpdateTerritory) Expect(ctx context.Context, slug string, u domain.TerritoryUpdate) *mCatalogMockUpdateTerritory {
+	if mmUpdateTerritory.mock.funcUpdateTerritory != nil {
+		mmUpdateTerritory.mock.t.Fatalf("CatalogMock.UpdateTerritory mock is already set by Set")
+	}
+
+	if mmUpdateTerritory.defaultExpectation == nil {
+		mmUpdateTerritory.defaultExpectation = &CatalogMockUpdateTerritoryExpectation{}
+	}
+
+	if mmUpdateTerritory.defaultExpectation.paramPtrs != nil {
+		mmUpdateTerritory.mock.t.Fatalf("CatalogMock.UpdateTerritory mock is already set by ExpectParams functions")
+	}
+
+	mmUpdateTerritory.defaultExpectation.params = &CatalogMockUpdateTerritoryParams{ctx, slug, u}
+	mmUpdateTerritory.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmUpdateTerritory.expectations {
+		if minimock.Equal(e.params, mmUpdateTerritory.defaultExpectation.params) {
+			mmUpdateTerritory.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdateTerritory.defaultExpectation.params)
+		}
+	}
+
+	return mmUpdateTerritory
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Catalog.UpdateTerritory
+func (mmUpdateTerritory *mCatalogMockUpdateTerritory) ExpectCtxParam1(ctx context.Context) *mCatalogMockUpdateTerritory {
+	if mmUpdateTerritory.mock.funcUpdateTerritory != nil {
+		mmUpdateTerritory.mock.t.Fatalf("CatalogMock.UpdateTerritory mock is already set by Set")
+	}
+
+	if mmUpdateTerritory.defaultExpectation == nil {
+		mmUpdateTerritory.defaultExpectation = &CatalogMockUpdateTerritoryExpectation{}
+	}
+
+	if mmUpdateTerritory.defaultExpectation.params != nil {
+		mmUpdateTerritory.mock.t.Fatalf("CatalogMock.UpdateTerritory mock is already set by Expect")
+	}
+
+	if mmUpdateTerritory.defaultExpectation.paramPtrs == nil {
+		mmUpdateTerritory.defaultExpectation.paramPtrs = &CatalogMockUpdateTerritoryParamPtrs{}
+	}
+	mmUpdateTerritory.defaultExpectation.paramPtrs.ctx = &ctx
+	mmUpdateTerritory.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmUpdateTerritory
+}
+
+// ExpectSlugParam2 sets up expected param slug for Catalog.UpdateTerritory
+func (mmUpdateTerritory *mCatalogMockUpdateTerritory) ExpectSlugParam2(slug string) *mCatalogMockUpdateTerritory {
+	if mmUpdateTerritory.mock.funcUpdateTerritory != nil {
+		mmUpdateTerritory.mock.t.Fatalf("CatalogMock.UpdateTerritory mock is already set by Set")
+	}
+
+	if mmUpdateTerritory.defaultExpectation == nil {
+		mmUpdateTerritory.defaultExpectation = &CatalogMockUpdateTerritoryExpectation{}
+	}
+
+	if mmUpdateTerritory.defaultExpectation.params != nil {
+		mmUpdateTerritory.mock.t.Fatalf("CatalogMock.UpdateTerritory mock is already set by Expect")
+	}
+
+	if mmUpdateTerritory.defaultExpectation.paramPtrs == nil {
+		mmUpdateTerritory.defaultExpectation.paramPtrs = &CatalogMockUpdateTerritoryParamPtrs{}
+	}
+	mmUpdateTerritory.defaultExpectation.paramPtrs.slug = &slug
+	mmUpdateTerritory.defaultExpectation.expectationOrigins.originSlug = minimock.CallerInfo(1)
+
+	return mmUpdateTerritory
+}
+
+// ExpectUParam3 sets up expected param u for Catalog.UpdateTerritory
+func (mmUpdateTerritory *mCatalogMockUpdateTerritory) ExpectUParam3(u domain.TerritoryUpdate) *mCatalogMockUpdateTerritory {
+	if mmUpdateTerritory.mock.funcUpdateTerritory != nil {
+		mmUpdateTerritory.mock.t.Fatalf("CatalogMock.UpdateTerritory mock is already set by Set")
+	}
+
+	if mmUpdateTerritory.defaultExpectation == nil {
+		mmUpdateTerritory.defaultExpectation = &CatalogMockUpdateTerritoryExpectation{}
+	}
+
+	if mmUpdateTerritory.defaultExpectation.params != nil {
+		mmUpdateTerritory.mock.t.Fatalf("CatalogMock.UpdateTerritory mock is already set by Expect")
+	}
+
+	if mmUpdateTerritory.defaultExpectation.paramPtrs == nil {
+		mmUpdateTerritory.defaultExpectation.paramPtrs = &CatalogMockUpdateTerritoryParamPtrs{}
+	}
+	mmUpdateTerritory.defaultExpectation.paramPtrs.u = &u
+	mmUpdateTerritory.defaultExpectation.expectationOrigins.originU = minimock.CallerInfo(1)
+
+	return mmUpdateTerritory
+}
+
+// Inspect accepts an inspector function that has same arguments as the Catalog.UpdateTerritory
+func (mmUpdateTerritory *mCatalogMockUpdateTerritory) Inspect(f func(ctx context.Context, slug string, u domain.TerritoryUpdate)) *mCatalogMockUpdateTerritory {
+	if mmUpdateTerritory.mock.inspectFuncUpdateTerritory != nil {
+		mmUpdateTerritory.mock.t.Fatalf("Inspect function is already set for CatalogMock.UpdateTerritory")
+	}
+
+	mmUpdateTerritory.mock.inspectFuncUpdateTerritory = f
+
+	return mmUpdateTerritory
+}
+
+// Return sets up results that will be returned by Catalog.UpdateTerritory
+func (mmUpdateTerritory *mCatalogMockUpdateTerritory) Return(t1 domain.Territory, err error) *CatalogMock {
+	if mmUpdateTerritory.mock.funcUpdateTerritory != nil {
+		mmUpdateTerritory.mock.t.Fatalf("CatalogMock.UpdateTerritory mock is already set by Set")
+	}
+
+	if mmUpdateTerritory.defaultExpectation == nil {
+		mmUpdateTerritory.defaultExpectation = &CatalogMockUpdateTerritoryExpectation{mock: mmUpdateTerritory.mock}
+	}
+	mmUpdateTerritory.defaultExpectation.results = &CatalogMockUpdateTerritoryResults{t1, err}
+	mmUpdateTerritory.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmUpdateTerritory.mock
+}
+
+// Set uses given function f to mock the Catalog.UpdateTerritory method
+func (mmUpdateTerritory *mCatalogMockUpdateTerritory) Set(f func(ctx context.Context, slug string, u domain.TerritoryUpdate) (t1 domain.Territory, err error)) *CatalogMock {
+	if mmUpdateTerritory.defaultExpectation != nil {
+		mmUpdateTerritory.mock.t.Fatalf("Default expectation is already set for the Catalog.UpdateTerritory method")
+	}
+
+	if len(mmUpdateTerritory.expectations) > 0 {
+		mmUpdateTerritory.mock.t.Fatalf("Some expectations are already set for the Catalog.UpdateTerritory method")
+	}
+
+	mmUpdateTerritory.mock.funcUpdateTerritory = f
+	mmUpdateTerritory.mock.funcUpdateTerritoryOrigin = minimock.CallerInfo(1)
+	return mmUpdateTerritory.mock
+}
+
+// When sets expectation for the Catalog.UpdateTerritory which will trigger the result defined by the following
+// Then helper
+func (mmUpdateTerritory *mCatalogMockUpdateTerritory) When(ctx context.Context, slug string, u domain.TerritoryUpdate) *CatalogMockUpdateTerritoryExpectation {
+	if mmUpdateTerritory.mock.funcUpdateTerritory != nil {
+		mmUpdateTerritory.mock.t.Fatalf("CatalogMock.UpdateTerritory mock is already set by Set")
+	}
+
+	expectation := &CatalogMockUpdateTerritoryExpectation{
+		mock:               mmUpdateTerritory.mock,
+		params:             &CatalogMockUpdateTerritoryParams{ctx, slug, u},
+		expectationOrigins: CatalogMockUpdateTerritoryExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmUpdateTerritory.expectations = append(mmUpdateTerritory.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Catalog.UpdateTerritory return parameters for the expectation previously defined by the When method
+func (e *CatalogMockUpdateTerritoryExpectation) Then(t1 domain.Territory, err error) *CatalogMock {
+	e.results = &CatalogMockUpdateTerritoryResults{t1, err}
+	return e.mock
+}
+
+// Times sets number of times Catalog.UpdateTerritory should be invoked
+func (mmUpdateTerritory *mCatalogMockUpdateTerritory) Times(n uint64) *mCatalogMockUpdateTerritory {
+	if n == 0 {
+		mmUpdateTerritory.mock.t.Fatalf("Times of CatalogMock.UpdateTerritory mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmUpdateTerritory.expectedInvocations, n)
+	mmUpdateTerritory.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmUpdateTerritory
+}
+
+func (mmUpdateTerritory *mCatalogMockUpdateTerritory) invocationsDone() bool {
+	if len(mmUpdateTerritory.expectations) == 0 && mmUpdateTerritory.defaultExpectation == nil && mmUpdateTerritory.mock.funcUpdateTerritory == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmUpdateTerritory.mock.afterUpdateTerritoryCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmUpdateTerritory.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// UpdateTerritory implements mm_service.Catalog
+func (mmUpdateTerritory *CatalogMock) UpdateTerritory(ctx context.Context, slug string, u domain.TerritoryUpdate) (t1 domain.Territory, err error) {
+	mm_atomic.AddUint64(&mmUpdateTerritory.beforeUpdateTerritoryCounter, 1)
+	defer mm_atomic.AddUint64(&mmUpdateTerritory.afterUpdateTerritoryCounter, 1)
+
+	mmUpdateTerritory.t.Helper()
+
+	if mmUpdateTerritory.inspectFuncUpdateTerritory != nil {
+		mmUpdateTerritory.inspectFuncUpdateTerritory(ctx, slug, u)
+	}
+
+	mm_params := CatalogMockUpdateTerritoryParams{ctx, slug, u}
+
+	// Record call args
+	mmUpdateTerritory.UpdateTerritoryMock.mutex.Lock()
+	mmUpdateTerritory.UpdateTerritoryMock.callArgs = append(mmUpdateTerritory.UpdateTerritoryMock.callArgs, &mm_params)
+	mmUpdateTerritory.UpdateTerritoryMock.mutex.Unlock()
+
+	for _, e := range mmUpdateTerritory.UpdateTerritoryMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.t1, e.results.err
+		}
+	}
+
+	if mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation.Counter, 1)
+		mm_want := mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation.params
+		mm_want_ptrs := mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation.paramPtrs
+
+		mm_got := CatalogMockUpdateTerritoryParams{ctx, slug, u}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmUpdateTerritory.t.Errorf("CatalogMock.UpdateTerritory got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.slug != nil && !minimock.Equal(*mm_want_ptrs.slug, mm_got.slug) {
+				mmUpdateTerritory.t.Errorf("CatalogMock.UpdateTerritory got unexpected parameter slug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation.expectationOrigins.originSlug, *mm_want_ptrs.slug, mm_got.slug, minimock.Diff(*mm_want_ptrs.slug, mm_got.slug))
+			}
+
+			if mm_want_ptrs.u != nil && !minimock.Equal(*mm_want_ptrs.u, mm_got.u) {
+				mmUpdateTerritory.t.Errorf("CatalogMock.UpdateTerritory got unexpected parameter u, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation.expectationOrigins.originU, *mm_want_ptrs.u, mm_got.u, minimock.Diff(*mm_want_ptrs.u, mm_got.u))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmUpdateTerritory.t.Errorf("CatalogMock.UpdateTerritory got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmUpdateTerritory.UpdateTerritoryMock.defaultExpectation.results
+		if mm_results == nil {
+			mmUpdateTerritory.t.Fatal("No results are set for the CatalogMock.UpdateTerritory")
+		}
+		return (*mm_results).t1, (*mm_results).err
+	}
+	if mmUpdateTerritory.funcUpdateTerritory != nil {
+		return mmUpdateTerritory.funcUpdateTerritory(ctx, slug, u)
+	}
+	mmUpdateTerritory.t.Fatalf("Unexpected call to CatalogMock.UpdateTerritory. %v %v %v", ctx, slug, u)
+	return
+}
+
+// UpdateTerritoryAfterCounter returns a count of finished CatalogMock.UpdateTerritory invocations
+func (mmUpdateTerritory *CatalogMock) UpdateTerritoryAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateTerritory.afterUpdateTerritoryCounter)
+}
+
+// UpdateTerritoryBeforeCounter returns a count of CatalogMock.UpdateTerritory invocations
+func (mmUpdateTerritory *CatalogMock) UpdateTerritoryBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateTerritory.beforeUpdateTerritoryCounter)
+}
+
+// Calls returns a list of arguments used in each call to CatalogMock.UpdateTerritory.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmUpdateTerritory *mCatalogMockUpdateTerritory) Calls() []*CatalogMockUpdateTerritoryParams {
+	mmUpdateTerritory.mutex.RLock()
+
+	argCopy := make([]*CatalogMockUpdateTerritoryParams, len(mmUpdateTerritory.callArgs))
+	copy(argCopy, mmUpdateTerritory.callArgs)
+
+	mmUpdateTerritory.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockUpdateTerritoryDone returns true if the count of the UpdateTerritory invocations corresponds
+// the number of defined expectations
+func (m *CatalogMock) MinimockUpdateTerritoryDone() bool {
+	if m.UpdateTerritoryMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.UpdateTerritoryMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.UpdateTerritoryMock.invocationsDone()
+}
+
+// MinimockUpdateTerritoryInspect logs each unmet expectation
+func (m *CatalogMock) MinimockUpdateTerritoryInspect() {
+	for _, e := range m.UpdateTerritoryMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to CatalogMock.UpdateTerritory at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterUpdateTerritoryCounter := mm_atomic.LoadUint64(&m.afterUpdateTerritoryCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.UpdateTerritoryMock.defaultExpectation != nil && afterUpdateTerritoryCounter < 1 {
+		if m.UpdateTerritoryMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to CatalogMock.UpdateTerritory at\n%s", m.UpdateTerritoryMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to CatalogMock.UpdateTerritory at\n%s with params: %#v", m.UpdateTerritoryMock.defaultExpectation.expectationOrigins.origin, *m.UpdateTerritoryMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcUpdateTerritory != nil && afterUpdateTerritoryCounter < 1 {
+		m.t.Errorf("Expected call to CatalogMock.UpdateTerritory at\n%s", m.funcUpdateTerritoryOrigin)
+	}
+
+	if !m.UpdateTerritoryMock.invocationsDone() && afterUpdateTerritoryCounter > 0 {
+		m.t.Errorf("Expected %d calls to CatalogMock.UpdateTerritory at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.UpdateTerritoryMock.expectedInvocations), m.UpdateTerritoryMock.expectedInvocationsOrigin, afterUpdateTerritoryCounter)
 	}
 }
 
@@ -10598,7 +11366,11 @@ func (m *CatalogMock) MinimockFinish() {
 
 			m.MinimockUpdateMeasurementInspect()
 
+			m.MinimockUpdateModelInspect()
+
 			m.MinimockUpdatePlacementInspect()
+
+			m.MinimockUpdateTerritoryInspect()
 
 			m.MinimockUpsertModelInspect()
 
@@ -10652,7 +11424,9 @@ func (m *CatalogMock) minimockDone() bool {
 		m.MinimockSetTerritoryAdminsDone() &&
 		m.MinimockSetTerritoryRescaleBaselineDone() &&
 		m.MinimockUpdateMeasurementDone() &&
+		m.MinimockUpdateModelDone() &&
 		m.MinimockUpdatePlacementDone() &&
+		m.MinimockUpdateTerritoryDone() &&
 		m.MinimockUpsertModelDone() &&
 		m.MinimockUpsertTerritoryDone()
 }

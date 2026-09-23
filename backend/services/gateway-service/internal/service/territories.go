@@ -57,12 +57,7 @@ func (g *Gateway) ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHa
 	if err := g.authorizeBlobs(ctx, scope, sourceBlobHash); err != nil {
 		return domain.Territory{}, domain.Job{}, err
 	}
-	current, err := g.catalog.GetTerritory(ctx, slug, "") // mutation flow; gated by permission
-	if err != nil {
-		return domain.Territory{}, domain.Job{}, err
-	}
-	current.SourceBlobHash = sourceBlobHash
-	saved, err := g.catalog.UpsertTerritory(ctx, current)
+	saved, err := g.catalog.UpdateTerritory(ctx, slug, domain.TerritoryUpdate{SourceBlobHash: &sourceBlobHash})
 	if err != nil {
 		return domain.Territory{}, domain.Job{}, fmt.Errorf("replace territory source: %w", err)
 	}
@@ -112,9 +107,11 @@ func artifactMaxAxis(a domain.Artifact) float64 {
 }
 
 // UpdateTerritory patches a territory's mutable fields by slug without
-// touching the source archive or re-queuing a conversion. It is a
-// read-modify-write over the existing catalog RPCs: fetch, apply the
-// non-nil patch fields, upsert the merged row back.
+// touching the source archive or re-queuing a conversion. The catalog writes
+// only the non-nil fields, in one statement: reading the row and writing it
+// all back would revert a source replace that landed in between. The source
+// hash is dropped — it changes only through ReplaceTerritorySource, which
+// checks the caller may use the blob.
 func (g *Gateway) UpdateTerritory(ctx context.Context, slug string, update domain.TerritoryUpdate) (domain.Territory, error) {
 	if slug == "" {
 		return domain.Territory{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
@@ -122,20 +119,8 @@ func (g *Gateway) UpdateTerritory(ctx context.Context, slug string, update domai
 	if err := validateTitlePatch(update.Title); err != nil {
 		return domain.Territory{}, err
 	}
-	current, err := g.catalog.GetTerritory(ctx, slug, "") // mutation flow; gated by permission
-	if err != nil {
-		return domain.Territory{}, err
-	}
-	if update.Title != nil {
-		current.Title = *update.Title
-	}
-	if update.Description != nil {
-		current.Description = *update.Description
-	}
-	if update.ExternalPanoramaURL != nil {
-		current.ExternalPanoramaURL = *update.ExternalPanoramaURL
-	}
-	saved, err := g.catalog.UpsertTerritory(ctx, current)
+	update.SourceBlobHash = nil
+	saved, err := g.catalog.UpdateTerritory(ctx, slug, update)
 	if err != nil {
 		return domain.Territory{}, fmt.Errorf("update territory: %w", err)
 	}
