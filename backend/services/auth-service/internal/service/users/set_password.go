@@ -16,11 +16,15 @@ import (
 // Root. It does not call guard(): the last-admin rule stops the system from
 // losing its admins, and a reset loses nobody.
 func (s *Service) SetPassword(ctx context.Context, actorID string, scopeAll bool, id, plain string) error {
-	if _, err := s.ownership(ctx, actorID, scopeAll, id); err != nil {
+	target, err := s.ownership(ctx, actorID, scopeAll, id)
+	if err != nil {
 		return err
 	}
 	if actorID == id {
 		return domain.ErrSelfTarget
+	}
+	if err := s.assertCovers(ctx, actorID, target); err != nil {
+		return err
 	}
 	if err := validate.Password(plain); err != nil {
 		return err
@@ -38,4 +42,20 @@ func (s *Service) SetPassword(ctx context.Context, actorID string, scopeAll bool
 		return fmt.Errorf("users.SetPassword: sign out: %w", err)
 	}
 	return nil
+}
+
+// assertCovers refuses a reset that would hand the actor more than it holds:
+// whoever sets a password can sign in as that user, so a non-owner may reset
+// only someone whose permissions are a subset of its own — the rule
+// assertCanGrant applies to role grants. A target with no permissions is
+// covered by anyone, and skips the actor lookup.
+func (s *Service) assertCovers(ctx context.Context, actorID string, target domain.User) error {
+	if len(target.Permissions) == 0 {
+		return nil
+	}
+	actor, err := s.store.GetByID(ctx, actorID)
+	if err != nil {
+		return err
+	}
+	return domain.AssertGrantable(actor.Permissions, target.Permissions, actor.IsOwner)
 }
