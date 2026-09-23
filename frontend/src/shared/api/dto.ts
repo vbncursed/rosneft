@@ -2742,7 +2742,7 @@ export interface components {
             updatedAt: string;
         };
         PlacementGroupWrite: {
-            /** @description Trimmed; 1 to 120 characters must remain, else 400. */
+            /** @description Trimmed; 1 to 120 characters must remain, and no other group on the territory may have it (compared case-insensitively), else 400. */
             title: string;
         };
         /**

@@ -27,3 +27,10 @@ func isGroupTitleViolation(err error) bool {
 	pgErr, ok := errors.AsType[*pgconn.PgError](err)
 	return ok && pgErr.Code == "23514" && pgErr.ConstraintName == "placement_groups_title_len"
 }
+
+// isGroupTitleTaken reports whether err is placement_groups_territory_title
+// firing: another group on the territory already has this title.
+func isGroupTitleTaken(err error) bool {
+	pgErr, ok := errors.AsType[*pgconn.PgError](err)
+	return ok && pgErr.Code == pgUniqueViolation && pgErr.ConstraintName == "placement_groups_territory_title"
+}

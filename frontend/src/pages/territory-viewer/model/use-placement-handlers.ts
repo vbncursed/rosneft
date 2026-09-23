@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { usePlacementsEditor } from "@/features/placements-editor";
 import type { useViewerMode } from "@/features/viewer-mode";
 
@@ -32,14 +32,22 @@ export function usePlacementHandlers({ mode, editor, openPicker }: PlacementHand
   );
 
   // §1.7: nothing hidden may stay selected — the gizmo would hold an object
-  // the scene no longer draws.
-  const selectedId = mode.state.selectedId;
+  // the scene no longer draws. Only once the hide has landed: a refused one
+  // leaves the object drawn, and its selection with it. Read through a ref,
+  // so a selection made while the write was in flight is judged, not the
+  // one the click saw.
+  const selectedId = useRef(mode.state.selectedId);
+  useEffect(() => {
+    selectedId.current = mode.state.selectedId;
+  }, [mode.state.selectedId]);
+  const { select } = mode;
   const onSetHidden = useCallback(
-    (ids: number[], hidden: boolean) => {
-      if (hidden && selectedId !== null && ids.includes(selectedId)) mode.select(null);
-      void editor.setHidden(ids, hidden);
+    async (ids: number[], hidden: boolean) => {
+      const landed = await editor.setHidden(ids, hidden);
+      const current = selectedId.current;
+      if (landed && hidden && current !== null && ids.includes(current)) select(null);
     },
-    [editor, mode, selectedId],
+    [editor, select],
   );
 
   return { placeGroupId, onAdd, onAddToGroup, onSetHidden };

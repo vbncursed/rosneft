@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { UserGroupSection } from "@/entities/placement";
@@ -15,8 +15,8 @@ const SECTION: UserGroupSection = {
 };
 const actions = (over: Partial<GroupActions> = {}): GroupActions => ({
   busy: false,
-  onCreate: vi.fn(),
-  onRename: vi.fn(),
+  onCreate: vi.fn(async () => true),
+  onRename: vi.fn(async () => true),
   onDelete: vi.fn(),
   ...over,
 });
@@ -61,8 +61,9 @@ describe("UserGroupItem", () => {
     expect(screen.queryByRole("button", { name: /Add objects to group/ })).toBeNull();
   });
 
-  it("renames inline from its menu", async () => {
-    const a = actions();
+  it("renames inline from its menu, and folds back once the rename lands", async () => {
+    let release!: (ok: boolean) => void;
+    const a = actions({ onRename: vi.fn(() => new Promise<boolean>((res) => (release = res))) });
     mount({ a });
     await userEvent.click(screen.getByRole("button", { name: "Actions for group East yard" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
@@ -70,7 +71,21 @@ describe("UserGroupItem", () => {
     await userEvent.clear(field);
     await userEvent.type(field, "North yard{Enter}");
     expect(a.onRename).toHaveBeenCalledWith(4, "North yard");
+    expect(screen.getByRole("textbox", { name: "Rename group East yard" })).toHaveValue("North yard");
+    await act(async () => release(true));
     expect(screen.getByRole("button", { name: "East yard" })).toHaveFocus();
+  });
+
+  it("keeps the rename field and its text when the rename is refused", async () => {
+    const a = actions({ onRename: vi.fn(async () => false) });
+    mount({ a });
+    await userEvent.click(screen.getByRole("button", { name: "Actions for group East yard" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
+    const field = screen.getByRole("textbox", { name: "Rename group East yard" });
+    await userEvent.clear(field);
+    await userEvent.type(field, "West yard{Enter}");
+    expect(a.onRename).toHaveBeenCalledWith(4, "West yard");
+    expect(screen.getByRole("textbox", { name: "Rename group East yard" })).toHaveValue("West yard");
   });
 
   it("writes nothing for an unchanged title, and hands focus back on Cancel", async () => {

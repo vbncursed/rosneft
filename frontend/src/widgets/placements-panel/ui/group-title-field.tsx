@@ -49,7 +49,7 @@ export function GroupTitleField({ label, submitLabel, initial = "", busy, onSubm
 }
 
 /** The panel's last control for a writer: a button that opens the title field in its place. */
-export function NewGroup({ busy, onCreate }: { busy: boolean; onCreate: (title: string) => void }) {
+export function NewGroup({ busy, onCreate }: { busy: boolean; onCreate: (title: string) => Promise<boolean> }) {
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   const closed = useRef(false);
@@ -74,9 +74,9 @@ export function NewGroup({ busy, onCreate }: { busy: boolean; onCreate: (title: 
       label="New group title"
       submitLabel="Create group"
       busy={busy}
-      onSubmit={(title) => {
-        onCreate(title);
-        close();
+      // A refused create keeps the field and what was typed; the toast says why.
+      onSubmit={async (title) => {
+        if (await onCreate(title)) close();
       }}
       onCancel={close}
     />

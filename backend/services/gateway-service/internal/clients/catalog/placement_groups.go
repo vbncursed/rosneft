@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/grpcerr"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
@@ -34,8 +37,13 @@ func (c *Client) SetPlacementsGroup(ctx context.Context, territorySlug string, i
 }
 
 // ListPlacementGroups returns the territory's groups, for the scene bundle.
+// A catalog without the RPC (a gateway deployed ahead of it, or a catalog
+// rolled back) answers Unimplemented, which is no groups: the scene still loads.
 func (c *Client) ListPlacementGroups(ctx context.Context, territorySlug string) ([]domain.PlacementGroup, error) {
 	resp, err := c.cc.ListPlacementGroups(ctx, &catalogv1.ListPlacementGroupsRequest{TerritorySlug: territorySlug})
+	if status.Code(err) == codes.Unimplemented {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("catalog.ListPlacementGroups: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
 	}

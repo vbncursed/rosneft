@@ -42,7 +42,7 @@ const deps = (
     remove: vi.fn(),
     commitTransform: vi.fn(),
     setVisibility: vi.fn(),
-    setHidden: vi.fn(),
+    setHidden: vi.fn(async () => true),
     moveToGroup: vi.fn(),
   };
   const panel = { setTab: vi.fn(), setCollapsed: vi.fn() };
@@ -277,9 +277,9 @@ describe("usePageHandlers", () => {
   });
 
   describe("hiding and groups", () => {
-    it("drops the selection when it is among the placements hidden", () => {
+    it("drops the selection when it is among the placements hidden", async () => {
       const { result, spies } = mount({ selectedId: 4 });
-      act(() => result.current.on.onSetHidden([4, 5], true));
+      await act(() => result.current.on.onSetHidden([4, 5], true));
       expect(spies.mode.select).toHaveBeenCalledWith(null);
       expect(spies.editor.setHidden).toHaveBeenCalledWith([4, 5], true);
     });
