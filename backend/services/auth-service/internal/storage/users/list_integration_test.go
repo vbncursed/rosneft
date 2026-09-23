@@ -4,6 +4,7 @@ package users_test
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -79,7 +80,7 @@ func (s *ListScopeSuite) TestOwnerScopeIncludesOwnAccount() {
 	u1 := s.createUser("u1@example.com", "u1", new(owner.ID))
 	s.createUser("u2@example.com", "u2", new(root.ID))
 
-	out, err := s.store.List(s.T().Context(), "", false, owner.ID)
+	out, err := s.store.List(s.T().Context(), "", false, owner.ID, "")
 	assert.NilError(s.T(), err)
 
 	ids := make([]string, len(out))
@@ -87,4 +88,49 @@ func (s *ListScopeSuite) TestOwnerScopeIncludesOwnAccount() {
 		ids[i] = u.ID
 	}
 	assert.DeepEqual(s.T(), ids, []string{owner.ID, u1.ID})
+}
+
+// Only Root sees Root and the Company Owners. With hidePrivilegedExcept set,
+// the list drops every is_owner row and every admin-role row except the
+// viewer's own; without it, nothing changes.
+func (s *ListScopeSuite) TestHidePrivilegedKeepsViewerOwnRow() {
+	ctx := s.T().Context()
+	root := s.createUser("hp-root@example.com", "hp-root", nil)
+	_, err := s.store.SetOwner(ctx, root.ID, true)
+	assert.NilError(s.T(), err)
+	viewer, err := s.store.Create(ctx, domain.User{
+		Email: "hp-co@example.com", Username: "hp-co", PasswordHash: "hash",
+		RoleSlugs: []string{"admin"}, CreatedBy: new(root.ID),
+	})
+	assert.NilError(s.T(), err)
+	peer, err := s.store.Create(ctx, domain.User{
+		Email: "hp-co2@example.com", Username: "hp-co2", PasswordHash: "hash",
+		RoleSlugs: []string{"admin"}, CreatedBy: new(viewer.ID),
+	})
+	assert.NilError(s.T(), err)
+	plain := s.createUser("hp-u1@example.com", "hp-u1", new(viewer.ID))
+
+	hidden := s.listIDs(ctx, "", viewer.ID)
+	assert.Assert(s.T(), slices.Contains(hidden, viewer.ID), "the viewer keeps their own row")
+	assert.Assert(s.T(), slices.Contains(hidden, plain.ID))
+	assert.Assert(s.T(), !slices.Contains(hidden, root.ID), "root is hidden")
+	assert.Assert(s.T(), !slices.Contains(hidden, peer.ID), "another admin is hidden")
+
+	scoped := s.listIDs(ctx, viewer.ID, viewer.ID)
+	assert.DeepEqual(s.T(), scoped, []string{viewer.ID, plain.ID})
+
+	all := s.listIDs(ctx, "", "")
+	for _, id := range []string{root.ID, viewer.ID, peer.ID, plain.ID} {
+		assert.Assert(s.T(), slices.Contains(all, id), "unrestricted list keeps %s", id)
+	}
+}
+
+func (s *ListScopeSuite) listIDs(ctx context.Context, ownerID, hidePrivilegedExcept string) []string {
+	out, err := s.store.List(ctx, "", false, ownerID, hidePrivilegedExcept)
+	assert.NilError(s.T(), err)
+	ids := make([]string, len(out))
+	for i, u := range out {
+		ids[i] = u.ID
+	}
+	return ids
 }

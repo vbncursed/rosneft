@@ -11,27 +11,16 @@ import (
 
 // SetPassword sets another user's password without asking for the old one and
 // signs them out everywhere. An out-of-scope id reads as missing, as it does in
-// every admin action. It does not call guard(): the last-admin rule stops the
-// system from losing its admins, and a reset loses nobody. Only the
-// admin-owner-only half applies. It also covers Root, because Root is marked by
-// is_owner and not necessarily by the admin slug; without that, a users:read_all
-// holder could take over Root.
+// every admin action — and to anyone but Root, Root and every Company Owner are
+// out of scope (see ownership), so a users:read_all holder cannot take over
+// Root. It does not call guard(): the last-admin rule stops the system from
+// losing its admins, and a reset loses nobody.
 func (s *Service) SetPassword(ctx context.Context, actorID string, scopeAll bool, id, plain string) error {
-	target, err := s.ownership(ctx, actorID, scopeAll, id)
-	if err != nil {
+	if _, err := s.ownership(ctx, actorID, scopeAll, id); err != nil {
 		return err
 	}
 	if actorID == id {
 		return domain.ErrSelfTarget
-	}
-	if isAdmin(target) || target.IsOwner {
-		actor, err := s.store.GetByID(ctx, actorID)
-		if err != nil {
-			return err
-		}
-		if !actor.IsOwner {
-			return domain.ErrAdminOwnerOnly
-		}
 	}
 	if err := validate.Password(plain); err != nil {
 		return err
