@@ -34,13 +34,16 @@ export function useBulkWrites({ slug, setPlacements, setMutation, onChanged }: B
       try {
         await send();
         const touched = new Set(ids);
-        startTransition(() =>
-          setPlacements((prev) => prev.map((p) => (touched.has(p.id) ? { ...p, ...patch } : p))),
-        );
+        // One transition for both: released on its own (urgent) lane, the row
+        // was clickable a render before the patch landed, and a click there
+        // sent the value just written.
+        startTransition(() => {
+          setPlacements((prev) => prev.map((p) => (touched.has(p.id) ? { ...p, ...patch } : p)));
+          setMutation(idle);
+        });
         onChanged();
       } catch (err) {
         notify.error(messageOf(err));
-      } finally {
         setMutation(idle);
       }
     },

@@ -1,5 +1,6 @@
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { Object3D } from "three";
+import { useThree } from "@react-three/fiber";
 import { TransformControls } from "@react-three/drei";
 import type { TransformControls as TransformControlsImpl } from "three-stdlib";
 import type { GizmoMode } from "@/features/viewer-mode";
@@ -57,6 +58,7 @@ export default function PlacementsLayer({
   onSelect,
   onCommit,
 }: PlacementsLayerProps) {
+  const invalidate = useThree((s) => s.invalidate);
   const [target, setTarget] = useState<Object3D | null>(null);
   const tcRef = useRef<TransformControlsImpl | null>(null);
 
@@ -74,6 +76,15 @@ export default function PlacementsLayer({
   // Hidden placements are not drawn anywhere (G-1); inside a panorama the
   // allowlist narrows the rest. The markers read this same list.
   const visible = placements.filter((p) => isShownIn(p, activePanoramaId));
+  const drawnKey = visible.map((p) => p.id).join(",");
+
+  // frameloop="demand", and an R3F removal never requests a frame (removeChild
+  // unlinks the parent before invalidateInstance, which bails without one): a
+  // hide, a delete or a narrowing panorama left the object on screen until the
+  // next pointer event. A mount does invalidate, so only the shrink needed it.
+  useEffect(() => {
+    invalidate();
+  }, [drawnKey, invalidate]);
   const gizmo = canEdit && !measureMode && selectedId != null && target !== null;
   // Without a gizmo — a guest, or an editor measuring — the selection would
   // show only in the panel. The panorama's ring and name mark it instead.
