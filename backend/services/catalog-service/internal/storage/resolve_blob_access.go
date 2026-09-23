@@ -31,9 +31,10 @@ import (
 func (r *PG) ResolveBlobAccess(ctx context.Context, hash, scopeAdminID string) (bool, error) {
 	// EXISTS over UNION ALL stops at the first matching row, so the six branches
 	// are not six scans. Models come first because in a typical scene most asset
-	// requests are placement GLBs.
+	// requests are placement GLBs. The leading guard refuses "": thumbnail
+	// columns hold '' until the thumbnail is made, so it would match those rows.
 	const q = `
-SELECT EXISTS (
+SELECT $1 <> '' AND EXISTS (
     SELECT 1 FROM model_artifacts WHERE hash = $1
     UNION ALL
     SELECT 1 FROM models WHERE source_blob_hash = $1 OR thumbnail_blob_hash = $1

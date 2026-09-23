@@ -176,3 +176,17 @@ func (s *BlobAccessSuite) TestASharedHashIsAllowedIfAnyReachableRowHasIt() {
 	assert.Assert(s.T(), s.allowed("hash-shared-doc", s.adminA))
 	assert.Assert(s.T(), s.allowed("hash-shared-doc", s.adminB))
 }
+
+// A thumbnail column (panoramas, models) holds the empty string until the
+// thumbnail is made, so "" must never resolve — not for a tenant with such a row
+// in scope, and not for Root either.
+func (s *BlobAccessSuite) TestEmptyHashIsRefused() {
+	_, err := s.pool.Exec(s.T().Context(),
+		`INSERT INTO panoramas (territory_id, slug, title, source_blob_hash)
+		 VALUES ($1,'no-thumb','no-thumb','hash-pano-no-thumb')`, s.terrA)
+	assert.NilError(s.T(), err)
+
+	for _, scope := range []string{s.adminA, s.adminB, ""} {
+		assert.Assert(s.T(), !s.allowed("", scope), "scope %q must NOT reach the empty hash", scope)
+	}
+}
