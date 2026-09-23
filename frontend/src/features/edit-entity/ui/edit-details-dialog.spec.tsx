@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpError } from "@/shared/api";
@@ -153,8 +153,22 @@ describe("EditDetailsDialog", () => {
     await userEvent.type(titleField(), "!");
     await userEvent.click(saveButton());
 
-    expect(await screen.findByText(/empty title/)).toBeInTheDocument();
+    expect(await within(screen.getByRole("dialog")).findByRole("alert")).toHaveTextContent("empty title");
+    expect(screen.getAllByText(/empty title/)).toHaveLength(2); // the toast stays too
     expect(onClose).not.toHaveBeenCalled();
     expect(titleField()).toHaveValue("Valve!");
+  });
+
+  it("does not close on Escape while the save is in flight", async () => {
+    let answer!: (m: typeof MODEL) => void;
+    updateModel.mockReturnValue(new Promise((resolve) => (answer = resolve)));
+    const onClose = open();
+    await userEvent.type(titleField(), "!");
+    await userEvent.click(saveButton());
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).not.toHaveBeenCalled();
+
+    answer({ ...MODEL, title: "Valve!" });
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
 });
