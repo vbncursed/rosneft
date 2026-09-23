@@ -31,6 +31,10 @@ export type ViewerHeaderProps = {
   meta: string | null;
   guest: boolean;
   canReplace: boolean;
+  /** What the details editor opens with; the header itself does not print it. */
+  description?: string;
+  /** Opens the details editor. The screen supplies it, so a fixture draws no button. */
+  onEdit?: () => void;
 };
 
 export type ViewerErrorProps = {
@@ -172,6 +176,7 @@ export type PageViewState = {
 export type PageParts = {
   slug: string;
   title: string;
+  description?: string;
   grants: Grants;
   vm: SceneViewModel;
   options: ModelOption[];

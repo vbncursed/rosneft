@@ -2654,19 +2654,25 @@ export interface components {
         };
         /**
          * @description Body for PATCH /api/models/{slug}. Updates mutable fields only; the
-         *     source archive and conversion are untouched. Omitted fields are left
-         *     unchanged.
+         *     slug, the source archive and conversion are untouched. Omitted fields
+         *     are left unchanged.
          */
         ModelUpdate: {
+            /** @description New title; a blank one is refused with 400. The slug does not follow it. */
+            title?: string;
+            description?: string;
             /** @description New thumbnail blob hash; empty string clears it. */
             thumbnailBlobHash?: string;
         };
         /**
          * @description Body for PATCH /api/territories/{slug}. Updates mutable fields only;
-         *     the source archive and conversion are untouched. Omitted fields are
-         *     left unchanged.
+         *     the slug, the source archive and conversion are untouched. Omitted
+         *     fields are left unchanged.
          */
         TerritoryUpdate: {
+            /** @description New title; a blank one is refused with 400. The slug does not follow it. */
+            title?: string;
+            description?: string;
             externalPanoramaUrl?: string;
         };
         TerritoryAdmins: {

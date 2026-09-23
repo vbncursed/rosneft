@@ -31,6 +31,7 @@ export function ModelDetailPage({
   onDelete,
   onThumbnail,
   onRemoveThumbnail,
+  onEdit,
 }: ModelDetailPageProps) {
   const base = lod0(artifacts);
 
@@ -85,6 +86,7 @@ export function ModelDetailPage({
           thumbnailBusy={thumbnailBusy}
           onThumbnail={onThumbnail}
           onRemoveThumbnail={onRemoveThumbnail}
+          onEdit={onEdit}
         />
       </div>
     </>

@@ -183,6 +183,10 @@ describe("pageProps · header", () => {
   it("offers the replace link to a reader who may write the territory", () => {
     expect(pageProps(parts()).header.canReplace).toBe(true);
   });
+
+  it("hands the description to the header, for the details editor it opens", () => {
+    expect(pageProps(parts({ description: "Tank farm" })).header.description).toBe("Tank farm");
+  });
 });
 
 describe("pageProps · canvas", () => {

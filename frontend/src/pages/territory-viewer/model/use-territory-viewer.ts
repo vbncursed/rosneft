@@ -209,6 +209,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
     ...pageProps({
       slug,
       title: bundle!.territory.title,
+      description: bundle!.territory.description,
       grants,
       vm,
       options: bundle!.modelOptions,

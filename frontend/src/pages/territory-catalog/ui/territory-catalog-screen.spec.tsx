@@ -12,6 +12,9 @@ const { useTerritoryCatalog, navigate } = vi.hoisted(() => ({
 vi.mock("../model/use-territory-catalog", () => ({ useTerritoryCatalog }));
 // A stand-in for the router context: the screen is rendered on its own.
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
+vi.mock("@/features/edit-entity", () => ({
+  EditDetailsDialog: ({ title }: { title: string }) => <div role="dialog" aria-label={`Edit ${title}`} />,
+}));
 
 const T1: TerritoryCardModel = {
   slug: "t-1",
@@ -136,5 +139,12 @@ describe("TerritoryCatalogScreen", () => {
     useTerritoryCatalog.mockReturnValue(state({ cards: [] }));
     render(<TerritoryCatalogScreen />);
     expect(screen.getByText("No territories yet — upload one to get started.")).toBeInTheDocument();
+  });
+
+  it("opens the details editor for the card whose pencil was pressed", async () => {
+    useTerritoryCatalog.mockReturnValue(state());
+    render(<TerritoryCatalogScreen />);
+    await userEvent.click(screen.getByRole("button", { name: "Edit details of T 1" }));
+    expect(screen.getByRole("dialog", { name: "Edit T 1" })).toBeInTheDocument();
   });
 });
