@@ -58,6 +58,16 @@ describe("InstanceRow", () => {
   });
 });
 
+describe("InstanceRow · showModel", () => {
+  // A user group mixes models, so `#1` alone names nothing there (spec §1.5).
+  it("prints the model title before the number when asked, and only then", () => {
+    const { rerender } = render(<InstanceRow group={group} instance={instance} selected={false} pending={false} canWrite canDelete {...handlers()} showModel />);
+    expect(screen.getByRole("button", { name: "storage-tank-500 #2 · Tank 2" })).toHaveTextContent(/^storage-tank-500 #2 · Tank 2$/);
+    rerender(<InstanceRow group={group} instance={instance} selected={false} pending={false} canWrite canDelete {...handlers()} />);
+    expect(screen.getByRole("button", { name: "storage-tank-500 #2 · Tank 2" })).toHaveTextContent(/^#2 · Tank 2$/);
+  });
+});
+
 describe("InstanceRow · tooltip", () => {
   it("names Rename and Delete in tooltips, not native titles", () => {
     render(<InstanceRow group={group} instance={instance} selected={false} pending={false} canWrite canDelete {...handlers()} />);

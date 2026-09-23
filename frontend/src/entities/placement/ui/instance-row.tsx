@@ -24,6 +24,8 @@ export type InstanceRowProps = {
   groups?: PlacementGroup[];
   /** The move menu is drawn only with this and `canWrite`. */
   onMove?: (id: number, groupId: number | null) => void;
+  /** Prints the model title before `#N` — a user group mixes models, so the number alone names nothing. */
+  showModel?: boolean;
 };
 
 const ICON_BUTTON =
@@ -44,6 +46,7 @@ export function InstanceRow({
   onHide,
   groups = [],
   onMove,
+  showModel = false,
 }: InstanceRowProps) {
   const name = instanceName(group, instance);
   // WCAG 2.5.3: the accessible name has to contain the visible text. The row
@@ -84,7 +87,7 @@ export function InstanceRow({
           instance.hidden && "opacity-55",
         )}
       >
-        {instanceLine(instance)}
+        {showModel ? `${group.model.title} ${instanceLine(instance)}` : instanceLine(instance)}
       </button>
       {canWrite && onMove ? (
         <MoveToGroupMenu

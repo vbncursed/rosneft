@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GROUP_TITLE_MAX } from "@/entities/placement";
 import { Button } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
@@ -51,9 +51,19 @@ export function GroupTitleField({ label, submitLabel, initial = "", busy, onSubm
 /** The panel's last control for a writer: a button that opens the title field in its place. */
 export function NewGroup({ busy, onCreate }: { busy: boolean; onCreate: (title: string) => void }) {
   const [open, setOpen] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
+  const closed = useRef(false);
+  // The field leaves the DOM with its focus; hand it back to the button or it falls to <body>.
+  useEffect(() => {
+    if (!open && closed.current) button.current?.focus();
+  }, [open]);
+  const close = () => {
+    closed.current = true;
+    setOpen(false);
+  };
   if (!open) {
     return (
-      <Button variant="secondary" size="sm" onClick={() => setOpen(true)} className="w-full">
+      <Button ref={button} variant="secondary" size="sm" onClick={() => setOpen(true)} className="w-full">
         <Icon name="folder-plus" size={14} />
         {NEW_GROUP}
       </Button>
@@ -66,9 +76,9 @@ export function NewGroup({ busy, onCreate }: { busy: boolean; onCreate: (title: 
       busy={busy}
       onSubmit={(title) => {
         onCreate(title);
-        setOpen(false);
+        close();
       }}
-      onCancel={() => setOpen(false)}
+      onCancel={close}
     />
   );
 }
