@@ -69,7 +69,9 @@ export function InstanceRow({
           onToggle={(hidden) => onHide(instance.id, hidden)}
         />
       ) : instance.hidden ? (
-        <Icon name="eye-off" size={12} className="shrink-0 text-muted" />
+        <span className="flex size-6 shrink-0 items-center justify-center">
+          <Icon name="eye-off" size={12} className="text-muted" />
+        </span>
       ) : null}
       <button
         type="button"

@@ -26,8 +26,14 @@ export function EyeButton({ state, subject, disabled = false, onToggle }: EyeBut
       aria-label={`Hide ${subject}`}
       aria-pressed={state === "mixed" ? "mixed" : hidden}
       tooltip={{ label: hidden ? `Show ${subject}` : `Hide ${subject}` }}
-      disabled={disabled}
-      onClick={() => onToggle(!hidden)}
+      // Waits through aria-disabled, not `disabled`: its own click starts the
+      // write, and a natively disabled button drops that focus to <body>.
+      // Button dims only a real `disabled`, so the dimming is spelled here.
+      aria-disabled={disabled || undefined}
+      className="aria-disabled:cursor-not-allowed aria-disabled:opacity-55"
+      onClick={() => {
+        if (!disabled) onToggle(!hidden);
+      }}
     >
       <Icon name={hidden ? "eye-off" : "eye"} size={12} />
       {state === "mixed" ? (

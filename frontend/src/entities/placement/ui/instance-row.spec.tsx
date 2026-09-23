@@ -123,6 +123,14 @@ describe("InstanceRow · hiding and groups", () => {
     expect(screen.getByRole("menuitem", { name: "East yard" })).toBeDisabled();
   });
 
+  // The reader's mark sits in the eye's 24px box, so row text lines up with a writer's.
+  it("boxes the reader's hidden mark at the eye's width", () => {
+    const { container } = render(
+      <InstanceRow group={group} instance={hidden} selected={false} pending={false} canWrite={false} canDelete={false} {...handlers()} />,
+    );
+    expect(container.querySelector("svg")!.parentElement).toHaveClass("size-6", "flex", "items-center", "justify-center");
+  });
+
   it("gives a reader without write no eye and no move, only the hidden mark", () => {
     const { container } = render(
       <InstanceRow group={group} instance={hidden} selected={false} pending={false} canWrite={false} canDelete={false}
