@@ -13,7 +13,8 @@ import {
 } from "./flight-pose";
 
 const CENTER = new Vector3(1, 2, 3);
-const DISTANCE = fitDistance(2, 50, 1.5);
+/** The flight flies 30 % closer than the fit (user request 2026-09-24). */
+const DISTANCE = 0.7 * fitDistance(2, 50, 1.5);
 
 // The camera stands 5 east of the centre, level with it, looking at the origin.
 const plan = (reduced = false) =>
@@ -63,7 +64,7 @@ describe("flightPose", () => {
     expect(pose.target.distanceTo(new Vector3(0, 0, 0))).toBeLessThan(1e-9);
   });
 
-  it("rises over the centre at the fitted distance, facing the way the reader faced", () => {
+  it("rises over the centre 30 % inside the fitted distance, facing the way the reader faced", () => {
     const top = flightPose(TOP_AT, plan());
     const v = offset(TOP_AT);
     expect(top.phase).toBe("hold");
@@ -119,6 +120,7 @@ describe("flightPose", () => {
     expect(pose.phase).toBe("orbit");
     expect(pose.target.distanceTo(CENTER)).toBeLessThan(1e-9);
     expect(upness(v)).toBeCloseTo(Math.SQRT1_2, 9);
+    expect(v.length()).toBeCloseTo(DISTANCE, 9);
     expect(yaw(pose)).toBeCloseTo(READER_YAW, 9);
     // Half a turn after one normal revolution, home after two.
     expect(offset(REVOLUTION_S, true).distanceTo(v)).toBeGreaterThan(1);
