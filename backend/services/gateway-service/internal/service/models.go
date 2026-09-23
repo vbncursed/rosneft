@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
@@ -47,6 +48,9 @@ func (g *Gateway) UpdateModel(ctx context.Context, slug string, update domain.Mo
 	if slug == "" {
 		return domain.Model{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}
+	if err := validateTitlePatch(update.Title); err != nil {
+		return domain.Model{}, err
+	}
 	if update.ThumbnailBlobHash != nil {
 		if err := g.authorizeBlobs(ctx, scope, *update.ThumbnailBlobHash); err != nil {
 			return domain.Model{}, err
@@ -55,6 +59,12 @@ func (g *Gateway) UpdateModel(ctx context.Context, slug string, update domain.Mo
 	current, err := g.catalog.GetModel(ctx, slug)
 	if err != nil {
 		return domain.Model{}, err
+	}
+	if update.Title != nil {
+		current.Title = *update.Title
+	}
+	if update.Description != nil {
+		current.Description = *update.Description
 	}
 	if update.ThumbnailBlobHash != nil {
 		current.ThumbnailBlobHash = *update.ThumbnailBlobHash
@@ -89,4 +99,14 @@ func (g *Gateway) GetModelArtifact(ctx context.Context, slug string, lod uint32)
 		return domain.Artifact{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}
 	return g.catalog.GetModelArtifact(ctx, slug, lod)
+}
+
+// validateTitlePatch refuses a title a PATCH sends blank; nil leaves the title
+// alone. Both update paths call it before reading the row, so a refusal costs
+// no catalog round trip. Last writer wins — no If-Match, by decision.
+func validateTitlePatch(title *string) error {
+	if title != nil && strings.TrimSpace(*title) == "" {
+		return fmt.Errorf("%w: empty title", domain.ErrInvalidInput)
+	}
+	return nil
 }

@@ -49,6 +49,8 @@ func (s *Server) UpdateModel(ctx context.Context, req UpdateModelRequestObject) 
 		return UpdateModel400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
 	m, err := s.svc.UpdateModel(ctx, req.Slug, domain.ModelUpdate{
+		Title:             req.Body.Title,
+		Description:       req.Body.Description,
 		ThumbnailBlobHash: req.Body.ThumbnailBlobHash,
 	}, blobScope(ctx))
 	switch {

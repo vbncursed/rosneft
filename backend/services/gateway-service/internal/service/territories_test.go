@@ -92,3 +92,33 @@ func (s *TerritoriesSuite) TestArtifactsRejectEmptySlug() {
 	_, err = s.svc.GetTerritoryArtifact(s.ctx, "", 0)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
+
+func (s *TerritoriesSuite) TestUpdateMergesTitleAndDescription() {
+	current := domain.Territory{Slug: "t1", Title: "Site", Description: "old", SourceBlobHash: "h", ExternalPanoramaURL: "https://tour"}
+	s.cat.GetTerritoryMock.Expect(s.ctx, "t1", "").Return(current, nil)
+	merged := current
+	merged.Title = "North site"
+	merged.Description = "Pad and tanks"
+	s.cat.UpsertTerritoryMock.Expect(s.ctx, merged).Return(merged, nil)
+
+	saved, err := s.svc.UpdateTerritory(s.ctx, "t1", domain.TerritoryUpdate{Title: new("North site"), Description: new("Pad and tanks")})
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), saved.Title, "North site")
+}
+
+func (s *TerritoriesSuite) TestUpdateLeavesOmittedDetailsUntouched() {
+	current := domain.Territory{Slug: "t1", Title: "Site", Description: "keep", SourceBlobHash: "h"}
+	s.cat.GetTerritoryMock.Expect(s.ctx, "t1", "").Return(current, nil)
+	merged := current
+	merged.ExternalPanoramaURL = "https://tour"
+	s.cat.UpsertTerritoryMock.Expect(s.ctx, merged).Return(merged, nil)
+
+	_, err := s.svc.UpdateTerritory(s.ctx, "t1", domain.TerritoryUpdate{ExternalPanoramaURL: new("https://tour")})
+	assert.NilError(s.T(), err)
+}
+
+func (s *TerritoriesSuite) TestUpdateRejectsBlankTitleBeforeReading() {
+	// No catalog expectation: a GetTerritory call would fail the test.
+	_, err := s.svc.UpdateTerritory(s.ctx, "t1", domain.TerritoryUpdate{Title: new("")})
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}

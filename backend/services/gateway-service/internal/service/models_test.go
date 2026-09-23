@@ -78,6 +78,36 @@ func (s *ModelsSuite) TestUpdateSetsThumbnailViaReadModifyWrite() {
 	assert.Equal(s.T(), saved.ThumbnailBlobHash, "thumb-hash")
 }
 
+func (s *ModelsSuite) TestUpdateMergesTitleAndDescription() {
+	current := domain.Model{Slug: "m1", Title: "Box", Description: "old", SourceBlobHash: "h", ThumbnailBlobHash: "t"}
+	s.cat.GetModelMock.Expect(s.ctx, "m1").Return(current, nil)
+	merged := current
+	merged.Title = "Crate"
+	merged.Description = ""
+	s.cat.UpsertModelMock.Expect(s.ctx, merged).Return(merged, nil)
+
+	saved, err := s.svc.UpdateModel(s.ctx, "m1", domain.ModelUpdate{Title: new("Crate"), Description: new("")}, rootScope)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), saved.Title, "Crate")
+}
+
+func (s *ModelsSuite) TestUpdateLeavesOmittedDetailsUntouched() {
+	current := domain.Model{Slug: "m1", Title: "Box", Description: "keep", SourceBlobHash: "h"}
+	s.cat.GetModelMock.Expect(s.ctx, "m1").Return(current, nil)
+	merged := current
+	merged.Title = "Crate"
+	s.cat.UpsertModelMock.Expect(s.ctx, merged).Return(merged, nil)
+
+	_, err := s.svc.UpdateModel(s.ctx, "m1", domain.ModelUpdate{Title: new("Crate")}, rootScope)
+	assert.NilError(s.T(), err)
+}
+
+func (s *ModelsSuite) TestUpdateRejectsBlankTitleBeforeReading() {
+	// No catalog expectation: a GetModel call would fail the test.
+	_, err := s.svc.UpdateModel(s.ctx, "m1", domain.ModelUpdate{Title: new("  ")}, rootScope)
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
 func (s *ModelsSuite) TestDeleteRejectsEmptySlug() {
 	err := s.svc.DeleteModel(s.ctx, "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))

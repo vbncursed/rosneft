@@ -74,6 +74,8 @@ func (s *Server) UpdateTerritory(ctx context.Context, req UpdateTerritoryRequest
 		return UpdateTerritory400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
 	t, err := s.svc.UpdateTerritory(ctx, req.Slug, domain.TerritoryUpdate{
+		Title:               req.Body.Title,
+		Description:         req.Body.Description,
 		ExternalPanoramaURL: req.Body.ExternalPanoramaUrl,
 	})
 	switch {
