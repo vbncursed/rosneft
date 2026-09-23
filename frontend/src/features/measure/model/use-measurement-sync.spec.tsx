@@ -127,7 +127,7 @@ describe("useMeasurementSync", () => {
     expect(result.current.notices).toHaveLength(1);
     expect(result.current.notices[0]).toMatchObject({
       tone: "error",
-      message: "Measurement not saved: database down",
+      message: "Measurement not saved: Something went wrong. Try again.",
       action: { label: "Retry" },
     });
     await act(async () => result.current.notices[0].action!.run());
@@ -163,7 +163,7 @@ describe("useMeasurementSync", () => {
     expect(api.deleteMeasurement).toHaveBeenCalledExactlyOnceWith("north", 9);
     await waitFor(() => expect(result.current.tool.chains).toEqual([chain]));
     expect(result.current.notices.map((n) => n.message)).toEqual([
-      "Measurement not deleted: catalog unavailable",
+      "Measurement not deleted: Something went wrong. Try again.",
     ]);
     await act(async () => result.current.notices[0].action!.run());
     expect(api.deleteMeasurement).toHaveBeenCalledTimes(2);
@@ -247,7 +247,7 @@ describe("useMeasurementSync", () => {
     act(() => result.current.tool.clear(false));
     expect(api.deleteMeasurements).toHaveBeenCalledExactlyOnceWith("north");
     await waitFor(() => expect(result.current.tool.chains.map((c) => c.serverId)).toEqual([9, 10]));
-    expect(result.current.notices.map((n) => n.message)).toEqual(["Measurements not cleared: boom"]);
+    expect(result.current.notices.map((n) => n.message)).toEqual(["Measurements not cleared: Something went wrong. Try again."]);
     // Review M6 m-1: no Retry — a repeat must ask again, and Clear is right there.
     expect(result.current.notices[0].action).toBeUndefined();
   });

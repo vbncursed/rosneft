@@ -196,7 +196,7 @@ describe("useContent", () => {
     );
     const { result } = renderHook(() => useContent(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("unavailable"));
-    expect(result.current.error).toBe("mesh is down");
+    expect(result.current.error).toBe("Something went wrong. Try again.");
   });
 
   it("re-reads the list a finished job's row sits in, and only that one", async () => {

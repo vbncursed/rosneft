@@ -182,6 +182,23 @@ describe("usePlacementsEditor", () => {
       expect(keyOf(1)).toBe(keyOf(0));
     });
 
+    // A 409 says the key names another batch: keeping it would refuse every
+    // identical placement after it, so the next one starts over.
+    it("drops the key the gateway refused as a conflict", async () => {
+      vi.mocked(createPlacements)
+        .mockRejectedValueOnce(new HttpError(409, null, "idempotency key reused with a different batch"))
+        .mockImplementation(echo);
+      const { result } = editor();
+
+      await act(async () => {
+        await result.current.s.create("tank", 3);
+        await result.current.s.create("tank", 3);
+      });
+
+      expect(keyOf(1)).toMatch(/^[A-Za-z0-9-]{1,64}$/);
+      expect(keyOf(1)).not.toBe(keyOf(0));
+    });
+
     it("gives a different action after a failure a new key", async () => {
       vi.mocked(createPlacements).mockRejectedValueOnce(new TypeError("Failed to fetch")).mockImplementation(echo);
       const { result } = editor();

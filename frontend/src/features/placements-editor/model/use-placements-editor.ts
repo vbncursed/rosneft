@@ -104,6 +104,9 @@ export function usePlacementsEditor({
         return created.at(-1)?.id ?? null;
       } catch (err) {
         notify.error(messageOf(err));
+        // A 409: the key already names another batch, and keeping it would
+        // refuse every identical placement after this one.
+        if (err instanceof HttpError && err.status === 409) unsettled.current = null;
         // No HTTP answer (a dropped line) means the gateway may have committed
         // the batch anyway: mark the bundle stale so the next visit shows it.
         if (!(err instanceof HttpError)) onChanged();

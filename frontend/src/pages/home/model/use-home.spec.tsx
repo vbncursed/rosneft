@@ -160,7 +160,7 @@ describe("useHome", () => {
     );
     const { result } = renderHook(() => useHome(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("unavailable"));
-    expect(result.current.error).toBe("down");
+    expect(result.current.error).toBe("Something went wrong. Try again.");
   });
 
   it("re-reads the territory list once a shown territory's job leaves the live set", async () => {

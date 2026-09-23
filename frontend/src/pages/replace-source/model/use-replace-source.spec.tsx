@@ -233,12 +233,12 @@ describe("useReplaceSource", () => {
     await waitFor(() => expect(result.current.status).toBe("missing"));
   });
 
-  it("reads any other failure as unavailable, with the gateway's own message", async () => {
+  it("reads any other failure as unavailable, a server failure in the fallback sentence", async () => {
     const { HttpError } = await import("@/shared/api");
     getTerritory.mockRejectedValue(new HttpError(503, null, "catalog unreachable"));
     const { result } = renderHook(() => useReplaceSource("t"), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("unavailable"));
-    expect(result.current.status === "unavailable" && result.current.error).toBe("catalog unreachable");
+    expect(result.current.status === "unavailable" && result.current.error).toBe("Something went wrong. Try again.");
   });
 
   it("says the whole page needs territory:write when the viewer lacks the grant", async () => {

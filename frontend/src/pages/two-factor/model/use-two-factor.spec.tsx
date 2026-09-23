@@ -102,11 +102,11 @@ describe("useTwoFactor", () => {
   // Not the confirm field's error: nothing is wrong with a code nobody typed,
   // and the pane it would sit under cannot succeed against a secret that was
   // never provisioned.
-  it("passes any other setup failure through with the gateway's own words, as retryable", async () => {
+  it("reads any other setup failure as retryable, a server failure in the fallback sentence", async () => {
     setup2FA.mockRejectedValue(new HttpError(500, null, "provisioning is down"));
     const { result } = renderHook(() => useTwoFactor("enable"), { wrapper });
     await waitFor(() =>
-      expect(result.current.setupError).toEqual({ message: "provisioning is down", retryable: true }),
+      expect(result.current.setupError).toEqual({ message: "Something went wrong. Try again.", retryable: true }),
     );
     expect(result.current.error).toBeNull();
   });
