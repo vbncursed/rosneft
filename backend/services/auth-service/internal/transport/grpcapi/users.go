@@ -43,7 +43,15 @@ func (s *Server) GetUser(ctx context.Context, req *authv1.GetUserRequest) (*auth
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return userToProto(u), nil
+	// Only GetUser carries the scope key: the gateway's password reset reads it
+	// for one target, and no list pays a created_by walk per row for it.
+	scope, err := s.auth.TerritoryScope(ctx, u)
+	if err != nil {
+		return nil, mapError(err)
+	}
+	out := userToProto(u)
+	out.TerritoryScopeId = scope
+	return out, nil
 }
 
 func (s *Server) UpdateUser(ctx context.Context, req *authv1.UpdateUserRequest) (*authv1.User, error) {

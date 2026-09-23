@@ -18,9 +18,11 @@ var errWiderTerritories = status.Error(codes.PermissionDenied, "you cannot grant
 // compares permissions but cannot see territory grants — they live in the
 // catalog — which is why this runs here, the one place that talks to both.
 //
-// The target's territories are ListTerritories scoped to its own id: the
-// catalog's scope filter is exactly "assigned to this admin id", and only
-// Guests and Company Owners, the self-keyed roles, are ever assigned any.
+// The target's territories are what its own session would list: the catalog
+// scoped to its territory key, which auth computes as ValidateToken does — its
+// own id for a guest, its Company Owner's for a member. Not its raw id: a
+// users:read_all caller reaches members of other companies, whose own id holds
+// no assignment while their company's territories are all open to them.
 func (h *Handlers) assertCoversTerritories(ctx context.Context, token, targetID string) error {
 	scope, allAccess := Scope(ctx)
 	if allAccess {
@@ -28,10 +30,14 @@ func (h *Handlers) assertCoversTerritories(ctx context.Context, token, targetID 
 	}
 	// Auth's own scope first: an id the caller cannot manage answers its 404,
 	// never a 403 that would confirm the account exists.
-	if _, err := h.client.GetUser(ctx, token, targetID); err != nil {
+	target, err := h.client.GetUser(ctx, token, targetID)
+	if err != nil {
 		return err
 	}
-	held, err := h.territories.ListTerritories(ctx, targetID, false)
+	if target.GetIsOwner() {
+		return errWiderTerritories // Root opens every territory
+	}
+	held, err := h.visibleSlugs(ctx, target.GetTerritoryScopeId())
 	if err != nil {
 		return status.Errorf(codes.Unavailable, "password reset: target territories: %v", err)
 	}
@@ -42,16 +48,17 @@ func (h *Handlers) assertCoversTerritories(ctx context.Context, token, targetID 
 	if err != nil {
 		return status.Errorf(codes.Unavailable, "password reset: caller territories: %v", err)
 	}
-	for _, t := range held {
-		if !visible[t.Slug] {
+	for slug := range held {
+		if !visible[slug] {
 			return errWiderTerritories
 		}
 	}
 	return nil
 }
 
-// visibleSlugs is the set GET /api/territories lists for a non-Root scope. An
-// empty scope sees nothing: to the catalog it would mean every territory.
+// visibleSlugs is the set GET /api/territories lists for a non-Root scope, the
+// caller's or the target's. An empty scope sees nothing: to the catalog it
+// would mean every territory.
 func (h *Handlers) visibleSlugs(ctx context.Context, scope string) (map[string]bool, error) {
 	visible := map[string]bool{}
 	if scope == "" {

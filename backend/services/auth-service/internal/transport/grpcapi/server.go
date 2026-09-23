@@ -29,6 +29,8 @@ type AuthFlow interface {
 	// and whether the session must enroll a second factor before doing anything
 	// else.
 	ValidateToken(ctx context.Context, token string) (string, []string, bool, string, string, bool, error)
+	// TerritoryScope is the territory key u's own session would carry.
+	TerritoryScope(ctx context.Context, u domain.User) (string, error)
 }
 
 // UsersSvc is the user surface (self + admin). The admin methods take the

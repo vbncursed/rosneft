@@ -11,6 +11,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
 // AuthFlowMock implements mm_grpcapi.AuthFlow
@@ -53,6 +54,13 @@ type AuthFlowMock struct {
 	beforePasskeyLoginFinishCounter uint64
 	PasskeyLoginFinishMock          mAuthFlowMockPasskeyLoginFinish
 
+	funcTerritoryScope          func(ctx context.Context, u domain.User) (s1 string, err error)
+	funcTerritoryScopeOrigin    string
+	inspectFuncTerritoryScope   func(ctx context.Context, u domain.User)
+	afterTerritoryScopeCounter  uint64
+	beforeTerritoryScopeCounter uint64
+	TerritoryScopeMock          mAuthFlowMockTerritoryScope
+
 	funcValidateToken          func(ctx context.Context, token string) (s1 string, sa1 []string, b1 bool, s2 string, s3 string, b2 bool, err error)
 	funcValidateTokenOrigin    string
 	inspectFuncValidateToken   func(ctx context.Context, token string)
@@ -90,6 +98,9 @@ func NewAuthFlowMock(t minimock.Tester) *AuthFlowMock {
 
 	m.PasskeyLoginFinishMock = mAuthFlowMockPasskeyLoginFinish{mock: m}
 	m.PasskeyLoginFinishMock.callArgs = []*AuthFlowMockPasskeyLoginFinishParams{}
+
+	m.TerritoryScopeMock = mAuthFlowMockTerritoryScope{mock: m}
+	m.TerritoryScopeMock.callArgs = []*AuthFlowMockTerritoryScopeParams{}
 
 	m.ValidateTokenMock = mAuthFlowMockValidateToken{mock: m}
 	m.ValidateTokenMock.callArgs = []*AuthFlowMockValidateTokenParams{}
@@ -1880,6 +1891,349 @@ func (m *AuthFlowMock) MinimockPasskeyLoginFinishInspect() {
 	}
 }
 
+type mAuthFlowMockTerritoryScope struct {
+	optional           bool
+	mock               *AuthFlowMock
+	defaultExpectation *AuthFlowMockTerritoryScopeExpectation
+	expectations       []*AuthFlowMockTerritoryScopeExpectation
+
+	callArgs []*AuthFlowMockTerritoryScopeParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// AuthFlowMockTerritoryScopeExpectation specifies expectation struct of the AuthFlow.TerritoryScope
+type AuthFlowMockTerritoryScopeExpectation struct {
+	mock               *AuthFlowMock
+	params             *AuthFlowMockTerritoryScopeParams
+	paramPtrs          *AuthFlowMockTerritoryScopeParamPtrs
+	expectationOrigins AuthFlowMockTerritoryScopeExpectationOrigins
+	results            *AuthFlowMockTerritoryScopeResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// AuthFlowMockTerritoryScopeParams contains parameters of the AuthFlow.TerritoryScope
+type AuthFlowMockTerritoryScopeParams struct {
+	ctx context.Context
+	u   domain.User
+}
+
+// AuthFlowMockTerritoryScopeParamPtrs contains pointers to parameters of the AuthFlow.TerritoryScope
+type AuthFlowMockTerritoryScopeParamPtrs struct {
+	ctx *context.Context
+	u   *domain.User
+}
+
+// AuthFlowMockTerritoryScopeResults contains results of the AuthFlow.TerritoryScope
+type AuthFlowMockTerritoryScopeResults struct {
+	s1  string
+	err error
+}
+
+// AuthFlowMockTerritoryScopeOrigins contains origins of expectations of the AuthFlow.TerritoryScope
+type AuthFlowMockTerritoryScopeExpectationOrigins struct {
+	origin    string
+	originCtx string
+	originU   string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmTerritoryScope *mAuthFlowMockTerritoryScope) Optional() *mAuthFlowMockTerritoryScope {
+	mmTerritoryScope.optional = true
+	return mmTerritoryScope
+}
+
+// Expect sets up expected params for AuthFlow.TerritoryScope
+func (mmTerritoryScope *mAuthFlowMockTerritoryScope) Expect(ctx context.Context, u domain.User) *mAuthFlowMockTerritoryScope {
+	if mmTerritoryScope.mock.funcTerritoryScope != nil {
+		mmTerritoryScope.mock.t.Fatalf("AuthFlowMock.TerritoryScope mock is already set by Set")
+	}
+
+	if mmTerritoryScope.defaultExpectation == nil {
+		mmTerritoryScope.defaultExpectation = &AuthFlowMockTerritoryScopeExpectation{}
+	}
+
+	if mmTerritoryScope.defaultExpectation.paramPtrs != nil {
+		mmTerritoryScope.mock.t.Fatalf("AuthFlowMock.TerritoryScope mock is already set by ExpectParams functions")
+	}
+
+	mmTerritoryScope.defaultExpectation.params = &AuthFlowMockTerritoryScopeParams{ctx, u}
+	mmTerritoryScope.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmTerritoryScope.expectations {
+		if minimock.Equal(e.params, mmTerritoryScope.defaultExpectation.params) {
+			mmTerritoryScope.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmTerritoryScope.defaultExpectation.params)
+		}
+	}
+
+	return mmTerritoryScope
+}
+
+// ExpectCtxParam1 sets up expected param ctx for AuthFlow.TerritoryScope
+func (mmTerritoryScope *mAuthFlowMockTerritoryScope) ExpectCtxParam1(ctx context.Context) *mAuthFlowMockTerritoryScope {
+	if mmTerritoryScope.mock.funcTerritoryScope != nil {
+		mmTerritoryScope.mock.t.Fatalf("AuthFlowMock.TerritoryScope mock is already set by Set")
+	}
+
+	if mmTerritoryScope.defaultExpectation == nil {
+		mmTerritoryScope.defaultExpectation = &AuthFlowMockTerritoryScopeExpectation{}
+	}
+
+	if mmTerritoryScope.defaultExpectation.params != nil {
+		mmTerritoryScope.mock.t.Fatalf("AuthFlowMock.TerritoryScope mock is already set by Expect")
+	}
+
+	if mmTerritoryScope.defaultExpectation.paramPtrs == nil {
+		mmTerritoryScope.defaultExpectation.paramPtrs = &AuthFlowMockTerritoryScopeParamPtrs{}
+	}
+	mmTerritoryScope.defaultExpectation.paramPtrs.ctx = &ctx
+	mmTerritoryScope.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmTerritoryScope
+}
+
+// ExpectUParam2 sets up expected param u for AuthFlow.TerritoryScope
+func (mmTerritoryScope *mAuthFlowMockTerritoryScope) ExpectUParam2(u domain.User) *mAuthFlowMockTerritoryScope {
+	if mmTerritoryScope.mock.funcTerritoryScope != nil {
+		mmTerritoryScope.mock.t.Fatalf("AuthFlowMock.TerritoryScope mock is already set by Set")
+	}
+
+	if mmTerritoryScope.defaultExpectation == nil {
+		mmTerritoryScope.defaultExpectation = &AuthFlowMockTerritoryScopeExpectation{}
+	}
+
+	if mmTerritoryScope.defaultExpectation.params != nil {
+		mmTerritoryScope.mock.t.Fatalf("AuthFlowMock.TerritoryScope mock is already set by Expect")
+	}
+
+	if mmTerritoryScope.defaultExpectation.paramPtrs == nil {
+		mmTerritoryScope.defaultExpectation.paramPtrs = &AuthFlowMockTerritoryScopeParamPtrs{}
+	}
+	mmTerritoryScope.defaultExpectation.paramPtrs.u = &u
+	mmTerritoryScope.defaultExpectation.expectationOrigins.originU = minimock.CallerInfo(1)
+
+	return mmTerritoryScope
+}
+
+// Inspect accepts an inspector function that has same arguments as the AuthFlow.TerritoryScope
+func (mmTerritoryScope *mAuthFlowMockTerritoryScope) Inspect(f func(ctx context.Context, u domain.User)) *mAuthFlowMockTerritoryScope {
+	if mmTerritoryScope.mock.inspectFuncTerritoryScope != nil {
+		mmTerritoryScope.mock.t.Fatalf("Inspect function is already set for AuthFlowMock.TerritoryScope")
+	}
+
+	mmTerritoryScope.mock.inspectFuncTerritoryScope = f
+
+	return mmTerritoryScope
+}
+
+// Return sets up results that will be returned by AuthFlow.TerritoryScope
+func (mmTerritoryScope *mAuthFlowMockTerritoryScope) Return(s1 string, err error) *AuthFlowMock {
+	if mmTerritoryScope.mock.funcTerritoryScope != nil {
+		mmTerritoryScope.mock.t.Fatalf("AuthFlowMock.TerritoryScope mock is already set by Set")
+	}
+
+	if mmTerritoryScope.defaultExpectation == nil {
+		mmTerritoryScope.defaultExpectation = &AuthFlowMockTerritoryScopeExpectation{mock: mmTerritoryScope.mock}
+	}
+	mmTerritoryScope.defaultExpectation.results = &AuthFlowMockTerritoryScopeResults{s1, err}
+	mmTerritoryScope.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmTerritoryScope.mock
+}
+
+// Set uses given function f to mock the AuthFlow.TerritoryScope method
+func (mmTerritoryScope *mAuthFlowMockTerritoryScope) Set(f func(ctx context.Context, u domain.User) (s1 string, err error)) *AuthFlowMock {
+	if mmTerritoryScope.defaultExpectation != nil {
+		mmTerritoryScope.mock.t.Fatalf("Default expectation is already set for the AuthFlow.TerritoryScope method")
+	}
+
+	if len(mmTerritoryScope.expectations) > 0 {
+		mmTerritoryScope.mock.t.Fatalf("Some expectations are already set for the AuthFlow.TerritoryScope method")
+	}
+
+	mmTerritoryScope.mock.funcTerritoryScope = f
+	mmTerritoryScope.mock.funcTerritoryScopeOrigin = minimock.CallerInfo(1)
+	return mmTerritoryScope.mock
+}
+
+// When sets expectation for the AuthFlow.TerritoryScope which will trigger the result defined by the following
+// Then helper
+func (mmTerritoryScope *mAuthFlowMockTerritoryScope) When(ctx context.Context, u domain.User) *AuthFlowMockTerritoryScopeExpectation {
+	if mmTerritoryScope.mock.funcTerritoryScope != nil {
+		mmTerritoryScope.mock.t.Fatalf("AuthFlowMock.TerritoryScope mock is already set by Set")
+	}
+
+	expectation := &AuthFlowMockTerritoryScopeExpectation{
+		mock:               mmTerritoryScope.mock,
+		params:             &AuthFlowMockTerritoryScopeParams{ctx, u},
+		expectationOrigins: AuthFlowMockTerritoryScopeExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmTerritoryScope.expectations = append(mmTerritoryScope.expectations, expectation)
+	return expectation
+}
+
+// Then sets up AuthFlow.TerritoryScope return parameters for the expectation previously defined by the When method
+func (e *AuthFlowMockTerritoryScopeExpectation) Then(s1 string, err error) *AuthFlowMock {
+	e.results = &AuthFlowMockTerritoryScopeResults{s1, err}
+	return e.mock
+}
+
+// Times sets number of times AuthFlow.TerritoryScope should be invoked
+func (mmTerritoryScope *mAuthFlowMockTerritoryScope) Times(n uint64) *mAuthFlowMockTerritoryScope {
+	if n == 0 {
+		mmTerritoryScope.mock.t.Fatalf("Times of AuthFlowMock.TerritoryScope mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmTerritoryScope.expectedInvocations, n)
+	mmTerritoryScope.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmTerritoryScope
+}
+
+func (mmTerritoryScope *mAuthFlowMockTerritoryScope) invocationsDone() bool {
+	if len(mmTerritoryScope.expectations) == 0 && mmTerritoryScope.defaultExpectation == nil && mmTerritoryScope.mock.funcTerritoryScope == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmTerritoryScope.mock.afterTerritoryScopeCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmTerritoryScope.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// TerritoryScope implements mm_grpcapi.AuthFlow
+func (mmTerritoryScope *AuthFlowMock) TerritoryScope(ctx context.Context, u domain.User) (s1 string, err error) {
+	mm_atomic.AddUint64(&mmTerritoryScope.beforeTerritoryScopeCounter, 1)
+	defer mm_atomic.AddUint64(&mmTerritoryScope.afterTerritoryScopeCounter, 1)
+
+	mmTerritoryScope.t.Helper()
+
+	if mmTerritoryScope.inspectFuncTerritoryScope != nil {
+		mmTerritoryScope.inspectFuncTerritoryScope(ctx, u)
+	}
+
+	mm_params := AuthFlowMockTerritoryScopeParams{ctx, u}
+
+	// Record call args
+	mmTerritoryScope.TerritoryScopeMock.mutex.Lock()
+	mmTerritoryScope.TerritoryScopeMock.callArgs = append(mmTerritoryScope.TerritoryScopeMock.callArgs, &mm_params)
+	mmTerritoryScope.TerritoryScopeMock.mutex.Unlock()
+
+	for _, e := range mmTerritoryScope.TerritoryScopeMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.s1, e.results.err
+		}
+	}
+
+	if mmTerritoryScope.TerritoryScopeMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmTerritoryScope.TerritoryScopeMock.defaultExpectation.Counter, 1)
+		mm_want := mmTerritoryScope.TerritoryScopeMock.defaultExpectation.params
+		mm_want_ptrs := mmTerritoryScope.TerritoryScopeMock.defaultExpectation.paramPtrs
+
+		mm_got := AuthFlowMockTerritoryScopeParams{ctx, u}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmTerritoryScope.t.Errorf("AuthFlowMock.TerritoryScope got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmTerritoryScope.TerritoryScopeMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.u != nil && !minimock.Equal(*mm_want_ptrs.u, mm_got.u) {
+				mmTerritoryScope.t.Errorf("AuthFlowMock.TerritoryScope got unexpected parameter u, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmTerritoryScope.TerritoryScopeMock.defaultExpectation.expectationOrigins.originU, *mm_want_ptrs.u, mm_got.u, minimock.Diff(*mm_want_ptrs.u, mm_got.u))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmTerritoryScope.t.Errorf("AuthFlowMock.TerritoryScope got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmTerritoryScope.TerritoryScopeMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmTerritoryScope.TerritoryScopeMock.defaultExpectation.results
+		if mm_results == nil {
+			mmTerritoryScope.t.Fatal("No results are set for the AuthFlowMock.TerritoryScope")
+		}
+		return (*mm_results).s1, (*mm_results).err
+	}
+	if mmTerritoryScope.funcTerritoryScope != nil {
+		return mmTerritoryScope.funcTerritoryScope(ctx, u)
+	}
+	mmTerritoryScope.t.Fatalf("Unexpected call to AuthFlowMock.TerritoryScope. %v %v", ctx, u)
+	return
+}
+
+// TerritoryScopeAfterCounter returns a count of finished AuthFlowMock.TerritoryScope invocations
+func (mmTerritoryScope *AuthFlowMock) TerritoryScopeAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmTerritoryScope.afterTerritoryScopeCounter)
+}
+
+// TerritoryScopeBeforeCounter returns a count of AuthFlowMock.TerritoryScope invocations
+func (mmTerritoryScope *AuthFlowMock) TerritoryScopeBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmTerritoryScope.beforeTerritoryScopeCounter)
+}
+
+// Calls returns a list of arguments used in each call to AuthFlowMock.TerritoryScope.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmTerritoryScope *mAuthFlowMockTerritoryScope) Calls() []*AuthFlowMockTerritoryScopeParams {
+	mmTerritoryScope.mutex.RLock()
+
+	argCopy := make([]*AuthFlowMockTerritoryScopeParams, len(mmTerritoryScope.callArgs))
+	copy(argCopy, mmTerritoryScope.callArgs)
+
+	mmTerritoryScope.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockTerritoryScopeDone returns true if the count of the TerritoryScope invocations corresponds
+// the number of defined expectations
+func (m *AuthFlowMock) MinimockTerritoryScopeDone() bool {
+	if m.TerritoryScopeMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.TerritoryScopeMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.TerritoryScopeMock.invocationsDone()
+}
+
+// MinimockTerritoryScopeInspect logs each unmet expectation
+func (m *AuthFlowMock) MinimockTerritoryScopeInspect() {
+	for _, e := range m.TerritoryScopeMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to AuthFlowMock.TerritoryScope at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterTerritoryScopeCounter := mm_atomic.LoadUint64(&m.afterTerritoryScopeCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.TerritoryScopeMock.defaultExpectation != nil && afterTerritoryScopeCounter < 1 {
+		if m.TerritoryScopeMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to AuthFlowMock.TerritoryScope at\n%s", m.TerritoryScopeMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to AuthFlowMock.TerritoryScope at\n%s with params: %#v", m.TerritoryScopeMock.defaultExpectation.expectationOrigins.origin, *m.TerritoryScopeMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcTerritoryScope != nil && afterTerritoryScopeCounter < 1 {
+		m.t.Errorf("Expected call to AuthFlowMock.TerritoryScope at\n%s", m.funcTerritoryScopeOrigin)
+	}
+
+	if !m.TerritoryScopeMock.invocationsDone() && afterTerritoryScopeCounter > 0 {
+		m.t.Errorf("Expected %d calls to AuthFlowMock.TerritoryScope at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.TerritoryScopeMock.expectedInvocations), m.TerritoryScopeMock.expectedInvocationsOrigin, afterTerritoryScopeCounter)
+	}
+}
+
 type mAuthFlowMockValidateToken struct {
 	optional           bool
 	mock               *AuthFlowMock
@@ -2616,6 +2970,8 @@ func (m *AuthFlowMock) MinimockFinish() {
 
 			m.MinimockPasskeyLoginFinishInspect()
 
+			m.MinimockTerritoryScopeInspect()
+
 			m.MinimockValidateTokenInspect()
 
 			m.MinimockVerifyPasswordInspect()
@@ -2647,6 +3003,7 @@ func (m *AuthFlowMock) minimockDone() bool {
 		m.MinimockLogoutDone() &&
 		m.MinimockPasskeyLoginBeginDone() &&
 		m.MinimockPasskeyLoginFinishDone() &&
+		m.MinimockTerritoryScopeDone() &&
 		m.MinimockValidateTokenDone() &&
 		m.MinimockVerifyPasswordDone()
 }

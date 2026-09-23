@@ -91,6 +91,11 @@ message User {
   // Policy: an administrator requires a second factor of this account.
   // totp_enabled (field 5) is the separate question of whether one is enrolled.
   bool totp_required = 13;
+  // The territory-visibility key this user's session would carry: its own id
+  // for a guest, its Company Owner's otherwise, "" when it has none. Set by
+  // GetUser only — the gateway's password reset compares it to the caller's
+  // territories — and never mapped into the gateway's user JSON.
+  string territory_scope_id = 14;
 }
 
 message Role {
