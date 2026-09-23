@@ -215,6 +215,7 @@ export const basePageParts = (): PageParts => ({
     targetLod: 1,
     retryVersion: 0,
     resetVersion: 0,
+    playing: false,
     focusRequest: null,
     pickerOpen: false,
     query: "",

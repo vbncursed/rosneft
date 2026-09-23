@@ -283,6 +283,7 @@ describe("useTerritoryViewer", () => {
       expect(state.header.guest).toBe(true);
       expect(state.overlays.tools.map((t) => t.key)).toEqual([
         "reset",
+        "play",
         "measure",
         "panoramas",
         "documents",

@@ -72,6 +72,8 @@ const HANDLERS: PageHandlers = {
   onRemoveChain: noop,
   onLod: noop,
   onReset: noop,
+  onPlay: noop,
+  onPlayStop: noop,
   onMeasure: noop,
   onAdd: noop,
   onPanoramas: noop,
@@ -142,6 +144,7 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
     targetLod: 1,
     retryVersion: 0,
     resetVersion: 0,
+    playing: false,
     focusRequest: null,
     pickerOpen: false,
     query: "",
@@ -239,6 +242,7 @@ describe("pageProps · overlays", () => {
   it("lights Reset and offers every tool an owner has", () => {
     expect(pageProps(parts()).overlays.tools).toEqual([
       { key: "reset", state: "active" },
+      { key: "play", state: "idle" },
       { key: "measure", state: "idle" },
       { key: "add", state: "idle" },
       { key: "panoramas", state: "idle" },
@@ -333,6 +337,15 @@ describe("pageProps · overlays", () => {
     });
     expect(overlays.chip).toEqual({ text: "measure · 2 segments · 20.55 m total" });
     expect(overlays.measuring).toMatchObject({ canClose: true });
+  });
+
+  it("hands the flight to the canvas and lights Play", () => {
+    const p = parts();
+    const props = pageProps({ ...p, view: { ...p.view, playing: true } });
+    expect(props.canvas.playing).toBe(true);
+    expect(props.canvas.onPlayStop).toBe(HANDLERS.onPlayStop);
+    expect(props.overlays.onPlay).toBe(HANDLERS.onPlay);
+    expect(props.overlays.tools.find((t) => t.key === "play")?.state).toBe("active");
   });
 });
 

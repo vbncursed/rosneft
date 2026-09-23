@@ -20,17 +20,22 @@ const CLEAR_NOTE =
 /**
  * The tile's icon, name and tour anchor. The page decides the state.
  *
- * `toggle` marks the two that are modes; Reset camera and Replay tour happen
+ * `toggle` marks the ones that stay on; Reset camera and Replay tour happen
  * once when pressed, and `aria-pressed` on those reads as a toggle that stays on.
+ * Play keeps its name while it runs; only its glyph turns to pause.
  */
 const TILES: Record<RailTool, { icon: IconName; name: string; shortcut?: string; toggle?: boolean; dataTour?: string }> = {
   reset: { icon: "reset", name: "Reset camera", dataTour: "reset-camera" },
+  play: { icon: "play", name: "Fly around", toggle: true },
   measure: { icon: "ruler", name: "Measure", shortcut: "M", toggle: true, dataTour: "measure" },
   add: { icon: "plus", name: "Add objects", toggle: true, dataTour: "add-object" },
   panoramas: { icon: "panorama", name: "Panoramas", toggle: true, dataTour: "panoramas" },
   documents: { icon: "documents", name: "Documents", toggle: true, dataTour: "documents" },
   tour: { icon: "help", name: "Replay guided tour" },
 };
+
+/** A running flight swaps only the glyph: a pressed toggle keeps its name (WAI-ARIA). */
+const PLAYING_ICON: IconName = "pause";
 
 // The switcher and the hint bar both stop at the panel's edge; `--overlays-w`
 // is declared on the viewport container by the page, from the same
@@ -105,6 +110,7 @@ const Key = ({ children }: { children: string }) => (
 export function ViewerOverlays({
   tools,
   onReset,
+  onPlay,
   onMeasure,
   onAdd,
   onPanoramas,
@@ -123,6 +129,7 @@ export function ViewerOverlays({
 }: ViewerOverlaysProps) {
   const handlers: Record<RailTool, () => void> = {
     reset: onReset,
+    play: onPlay,
     measure: onMeasure,
     add: onAdd,
     panoramas: onPanoramas,
@@ -131,7 +138,8 @@ export function ViewerOverlays({
   };
   const items: ToolRailItem[] = tools.map(({ key, state }) => {
     const { icon, ...tile } = TILES[key];
-    return { key, state, onClick: handlers[key], glyph: <Icon name={icon} size={15} />, ...tile };
+    const glyph = key === "play" && state === "active" ? PLAYING_ICON : icon;
+    return { key, state, onClick: handlers[key], glyph: <Icon name={glyph} size={15} />, ...tile };
   });
 
   return (

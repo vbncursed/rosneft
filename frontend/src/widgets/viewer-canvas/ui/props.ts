@@ -31,6 +31,8 @@ export type ViewerCanvasProps = {
   canEditMeasurements: boolean;
   unitRatio: number;
   resetVersion: number;
+  /** Play: the camera flies around the territory until the page or the rig stops it. */
+  playing: boolean;
   /** Bumped by the page's Retry: re-arms the boundary and clears the failure. */
   retryVersion: number;
   /** Instance ids to frame; a new array reference triggers a refit. */
@@ -84,4 +86,6 @@ export type ViewerCanvasProps = {
   onRemoveSegment: (chainId: number, index: number) => void;
   onRemoveChain: (chainId: number) => void;
   onLod: (report: LodReport) => void;
+  /** The rig ended the flight itself — a grab, or nothing to circle. */
+  onPlayStop: () => void;
 };

@@ -41,6 +41,7 @@ const STRIP = {
 const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => ({
   tools: [
     { key: "reset", state: "active" },
+    { key: "play", state: "idle" },
     { key: "measure", state: "idle" },
     { key: "add", state: "idle" },
     { key: "panoramas", state: "idle" },
@@ -48,6 +49,7 @@ const props = (over: Partial<ViewerOverlaysProps> = {}): ViewerOverlaysProps => 
     { key: "tour", state: "idle" },
   ],
   onReset: vi.fn(),
+  onPlay: vi.fn(),
   onMeasure: vi.fn(),
   onAdd: vi.fn(),
   onPanoramas: vi.fn(),
@@ -81,6 +83,7 @@ describe("ViewerOverlays · the tool rail", () => {
     const rail = screen.getByRole("toolbar", { name: "Viewer tools" });
     expect([...rail.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual([
       "Reset camera",
+      "Fly around",
       "Measure",
       "Add objects",
       "Panoramas",
@@ -168,6 +171,26 @@ describe("ViewerOverlays · the tool rail", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Reset camera" }));
     expect(onReset).not.toHaveBeenCalled();
+  });
+
+  it("draws Play as a toggle whose name stays put and whose glyph turns to pause while the camera flies", () => {
+    const { rerender } = render(<ViewerOverlays {...props()} />);
+    expect(screen.getByRole("button", { name: "Fly around" })).toHaveAttribute("aria-pressed", "false");
+    rerender(
+      <ViewerOverlays
+        {...props({
+          tools: props().tools.map((t) => (t.key === "play" ? { ...t, state: "active" as const } : t)),
+        })}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Fly around" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("toggles the flight from its tile", async () => {
+    const onPlay = vi.fn();
+    render(<ViewerOverlays {...props({ onPlay })} />);
+    await userEvent.click(screen.getByRole("button", { name: "Fly around" }));
+    expect(onPlay).toHaveBeenCalledOnce();
   });
 });
 

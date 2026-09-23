@@ -63,6 +63,8 @@ export type MeasuringView = {
 export type ViewerOverlaysProps = {
   tools: RailToolState[];
   onReset: () => void;
+  /** The fly-around tile: takes off, or lands a flight in progress. */
+  onPlay: () => void;
   onMeasure: () => void;
   onAdd: () => void;
   /** The two overlay tiles: reveal that section of the View tab (Task 15's `revealSection`). */
@@ -125,6 +127,9 @@ export type PageHandlers = {
   onRemoveChain: (chainId: number) => void;
   onLod: (report: LodReport) => void;
   onReset: () => void;
+  onPlay: () => void;
+  /** The canvas ended the flight itself: the reader grabbed the view. */
+  onPlayStop: () => void;
   onMeasure: () => void;
   onAdd: () => void;
   onPanoramas: () => void;
@@ -166,6 +171,8 @@ export type PageViewState = {
   targetLod: number;
   retryVersion: number;
   resetVersion: number;
+  /** The camera is flying around the territory (Play). */
+  playing: boolean;
   focusRequest: number[] | null;
   pickerOpen: boolean;
   query: string;

@@ -94,6 +94,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       canEditMeasurements: canEditSaved(measureGrants(grants)),
       unitRatio: computeUnitRatio(vm.metadata.dims),
       resetVersion: view.resetVersion,
+      playing: view.playing,
       retryVersion: view.retryVersion,
       focusRequest: view.focusRequest,
       ...panoramaCanvasProps(p, groups),
@@ -104,6 +105,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       onRemoveSegment: on.onRemoveSegment,
       onRemoveChain: on.onRemoveChain,
       onLod: on.onLod,
+      onPlayStop: on.onPlayStop,
     },
 
     overlays: {
@@ -118,8 +120,10 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
         tourActive: p.tour.active || p.panoramaTour.active,
         view: mode.view,
         documentOpen: docs.window !== null,
+        playing: view.playing,
       }),
       onReset: on.onReset,
+      onPlay: on.onPlay,
       onMeasure: on.onMeasure,
       onAdd: on.onAdd,
       onPanoramas: on.onPanoramas,
