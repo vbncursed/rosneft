@@ -176,7 +176,7 @@ describe("useTerritoryCatalog", () => {
     );
     const { result } = renderHook(() => useTerritoryCatalog(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("unavailable"));
-    expect(result.current.error).toBe("mesh is down");
+    expect(result.current.error).toBe("Something went wrong. Try again.");
   });
 
   it("re-reads the list once a row's job stops being live, turning the card ready", async () => {

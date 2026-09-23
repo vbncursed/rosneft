@@ -1043,7 +1043,8 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   carries an `Idempotency-Key` (`crypto.randomUUID()`), reused only when the
   same model × count is placed again after a failure (the retry of a batch
   whose answer was lost gets the stored rows back, not a second copy) and
-  dropped on success; nothing lands until
+  dropped on success or a 409; `messageOf` shows a 5xx as its fallback
+  sentence, never the server's text; nothing lands until
   everything does, so there is no "k of N" to count and a refusal leaves
   nothing behind; the editor seeds from the bundle once and the
   page remounts it via `use-scene-seeded` (one-shot) so a cold page is not

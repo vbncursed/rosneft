@@ -228,7 +228,7 @@ describe("useTerritoryViewer", () => {
       getSceneBundle.mockRejectedValue(new HttpError(503, null, "catalog is down"));
       const r = cold();
       await waitFor(() => expect(r.result.current.status).toBe("unavailable"));
-      expect(r.result.current).toMatchObject({ error: "catalog is down" });
+      expect(r.result.current).toMatchObject({ error: "Something went wrong. Try again." });
     });
 
     it("keeps the page when a background refetch fails — the bundle on screen is still good", async () => {

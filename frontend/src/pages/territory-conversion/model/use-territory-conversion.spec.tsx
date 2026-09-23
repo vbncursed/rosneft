@@ -99,7 +99,7 @@ describe("useTerritoryConversion", () => {
     // messageOf only surfaces an HttpError's own message; a bare Error reads as the generic sentence.
     listJobs.mockRejectedValue(new HttpError(503, null, "jobs down"));
     const r2 = render();
-    await waitFor(() => expect(r2.result.current).toEqual({ status: "unavailable", error: "jobs down" }));
+    await waitFor(() => expect(r2.result.current).toEqual({ status: "unavailable", error: "Something went wrong. Try again." }));
   });
 
   it("reads the phase off the polled row: running, and failed with the worker's message", async () => {

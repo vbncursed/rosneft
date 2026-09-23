@@ -194,7 +194,7 @@ describe("useMetrics", () => {
     allFail = true;
     const { result } = renderHook(() => useMetrics("1h"), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("unavailable"));
-    expect(result.current.error).toBe("Prometheus unreachable");
+    expect(result.current.error).toBe("Something went wrong. Try again.");
   });
 
   it("re-queries every panel on a range change", async () => {
