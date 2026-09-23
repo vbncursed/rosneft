@@ -12,7 +12,7 @@ import (
 func (h *Handlers) me(w http.ResponseWriter, r *http.Request) {
 	u, err := h.client.GetMe(r.Context(), sessionToken(r))
 	if err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	// auth-service does not own 2FA state, so the proto flag is always zero;
@@ -31,7 +31,7 @@ func (h *Handlers) changePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.client.ChangePassword(r.Context(), sessionToken(r), req.OldPassword, req.NewPassword); err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -41,7 +41,7 @@ func (h *Handlers) changePassword(w http.ResponseWriter, r *http.Request) {
 // path, and the service is idempotent.
 func (h *Handlers) markTourSeen(w http.ResponseWriter, r *http.Request) {
 	if err := h.client.MarkTourSeen(r.Context(), sessionToken(r), chi.URLParam(r, "tour")); err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

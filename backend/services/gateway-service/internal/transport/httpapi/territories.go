@@ -15,7 +15,7 @@ func (s *Server) ListTerritories(ctx context.Context, _ ListTerritoriesRequestOb
 	}
 	out, err := s.svc.ListTerritories(ctx, scopeAdminID)
 	if err != nil {
-		return ListTerritories500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return ListTerritories500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	resp := make(ListTerritories200JSONResponse, len(out))
 	for i, t := range out {
@@ -35,7 +35,7 @@ func (s *Server) GetTerritory(ctx context.Context, req GetTerritoryRequestObject
 	case isNotFound(err):
 		return GetTerritory404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return GetTerritory500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return GetTerritory500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return GetTerritory200JSONResponse(territoryToAPI(t)), nil
 }
@@ -49,7 +49,7 @@ func (s *Server) CreateTerritory(ctx context.Context, req CreateTerritoryRequest
 	case isInvalid(err):
 		return CreateTerritory400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
 	case err != nil:
-		return CreateTerritory500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return CreateTerritory500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return CreateTerritory202JSONResponse{Territory: territoryToAPI(t), Job: jobToAPI(job)}, nil
 }
@@ -65,7 +65,7 @@ func (s *Server) ReplaceTerritorySource(ctx context.Context, req ReplaceTerritor
 	case isInvalid(err):
 		return ReplaceTerritorySource400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
 	case err != nil:
-		return ReplaceTerritorySource500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return ReplaceTerritorySource500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return ReplaceTerritorySource202JSONResponse{Territory: territoryToAPI(t), Job: jobToAPI(job)}, nil
 }
@@ -85,7 +85,7 @@ func (s *Server) UpdateTerritory(ctx context.Context, req UpdateTerritoryRequest
 	case isInvalid(err):
 		return UpdateTerritory400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
 	case err != nil:
-		return UpdateTerritory500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return UpdateTerritory500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return UpdateTerritory200JSONResponse(territoryToAPI(t)), nil
 }
@@ -96,7 +96,7 @@ func (s *Server) DeleteTerritory(ctx context.Context, req DeleteTerritoryRequest
 	case isNotFound(err):
 		return DeleteTerritory404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return DeleteTerritory500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return DeleteTerritory500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return DeleteTerritory204Response{}, nil
 }
@@ -107,7 +107,7 @@ func (s *Server) ListTerritoryArtifacts(ctx context.Context, req ListTerritoryAr
 	case isNotFound(err):
 		return ListTerritoryArtifacts404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return ListTerritoryArtifacts500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return ListTerritoryArtifacts500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	resp := make(ListTerritoryArtifacts200JSONResponse, len(out))
 	for i, a := range out {
@@ -122,7 +122,7 @@ func (s *Server) GetTerritoryArtifact(ctx context.Context, req GetTerritoryArtif
 	case isNotFound(err):
 		return GetTerritoryArtifact404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return GetTerritoryArtifact500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return GetTerritoryArtifact500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return GetTerritoryArtifact200JSONResponse(artifactToAPI(a, false)), nil
 }
@@ -137,7 +137,7 @@ func (s *Server) GetSceneBundle(ctx context.Context, req GetSceneBundleRequestOb
 	case isNotFound(err):
 		return GetSceneBundle404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return GetSceneBundle500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return GetSceneBundle500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return GetSceneBundle200JSONResponse(sceneBundleToAPI(bundle)), nil
 }
@@ -161,26 +161,4 @@ func entityToTerritory(body EntityCreate) domain.Territory {
 		ExternalPanoramaURL: panoramaURL,
 		SourceBlobHash:      body.SourceBlobHash,
 	}
-}
-
-// errResp builds the bad-request Error envelope. Use the variants below
-// to populate not-found / internal envelopes — they are distinct nominal
-// types in the codegen even though all three share the same shape.
-func errResp(err error) BadRequestJSONResponse {
-	return BadRequestJSONResponse{Code: codeOf(err), Message: errMsg(err)}
-}
-
-func notFoundResp(err error) NotFoundJSONResponse {
-	return NotFoundJSONResponse{Code: codeOf(err), Message: errMsg(err)}
-}
-
-func internalResp(err error) InternalJSONResponse {
-	return InternalJSONResponse{Code: codeOf(err), Message: errMsg(err)}
-}
-
-func errMsg(err error) string {
-	if err == nil {
-		return "internal error"
-	}
-	return err.Error()
 }

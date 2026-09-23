@@ -25,7 +25,7 @@ func (s *Server) ListMyAudit(ctx context.Context, req ListMyAuditRequestObject) 
 			Message: "no audit scope for this principal",
 		}, nil
 	case err != nil:
-		return ListMyAudit500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return ListMyAudit500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 
 	q := myAuditQuery(req.Params)
@@ -45,7 +45,7 @@ func (s *Server) ListMyAudit(ctx context.Context, req ListMyAuditRequestObject) 
 	case isInvalid(err):
 		return ListMyAudit400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
 	case err != nil:
-		return ListMyAudit500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return ListMyAudit500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 
 	page := AuditPage{Entries: make([]AuditEntry, len(res.Entries)), Total: &res.Total}

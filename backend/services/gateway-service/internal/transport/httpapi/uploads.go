@@ -20,7 +20,7 @@ func (s *Server) InitiateUpload(ctx context.Context, req InitiateUploadRequestOb
 	case isInvalid(err):
 		return InitiateUpload400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
 	case err != nil:
-		return InitiateUpload500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return InitiateUpload500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	resp := InitiateUpload201JSONResponse{
 		Id:     out.ID,
@@ -44,7 +44,7 @@ func (s *Server) AppendUploadChunk(ctx context.Context, req AppendUploadChunkReq
 	case isNotFound(err):
 		return AppendUploadChunk404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return AppendUploadChunk500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return AppendUploadChunk500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return AppendUploadChunk204Response{Headers: AppendUploadChunk204ResponseHeaders{UploadOffset: &newOffset}}, nil
 }
@@ -55,7 +55,7 @@ func (s *Server) GetUploadStatus(ctx context.Context, req GetUploadStatusRequest
 	case isNotFound(err):
 		return GetUploadStatus404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return GetUploadStatus500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return GetUploadStatus500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return GetUploadStatus200Response{Headers: GetUploadStatus200ResponseHeaders{UploadOffset: new(out.Offset), UploadLength: new(out.Size)}}, nil
 }
@@ -68,7 +68,7 @@ func (s *Server) FinalizeUpload(ctx context.Context, req FinalizeUploadRequestOb
 	case isNotFound(err):
 		return FinalizeUpload404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return FinalizeUpload500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return FinalizeUpload500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return FinalizeUpload200JSONResponse{Hash: out.Hash, Size: out.Size}, nil
 }
@@ -79,7 +79,7 @@ func (s *Server) AbortUpload(ctx context.Context, req AbortUploadRequestObject) 
 	case isNotFound(err):
 		return AbortUpload404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return AbortUpload500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return AbortUpload500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return AbortUpload204Response{}, nil
 }

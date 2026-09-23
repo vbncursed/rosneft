@@ -15,8 +15,10 @@ const maxPlacementBatch = 100
 
 // CreatePlacements lands 1–100 placements on territorySlug in one transaction.
 // Each item is pinned to territorySlug; the panorama allowlists are checked
-// against the territory once for the whole batch.
-func (c *Catalog) CreatePlacements(ctx context.Context, territorySlug string, items []domain.Placement) ([]domain.Placement, error) {
+// against the territory once for the whole batch. A non-empty key makes the
+// batch idempotent on the territory — storage decides the replay, inside the
+// transaction that would otherwise write.
+func (c *Catalog) CreatePlacements(ctx context.Context, territorySlug, key string, items []domain.Placement) ([]domain.Placement, error) {
 	if len(items) == 0 || len(items) > maxPlacementBatch {
 		return nil, fmt.Errorf("service.CreatePlacements: %w: a batch holds 1 to %d placements, got %d",
 			domain.ErrInvalidInput, maxPlacementBatch, len(items))
@@ -42,5 +44,5 @@ func (c *Catalog) CreatePlacements(ctx context.Context, territorySlug string, it
 			return nil, fmt.Errorf("service.CreatePlacements: %w", err)
 		}
 	}
-	return c.repo.CreatePlacements(ctx, prepared)
+	return c.repo.CreatePlacements(ctx, key, prepared)
 }

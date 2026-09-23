@@ -13,7 +13,7 @@ import (
 func (h *Handlers) passkeyLoginBegin(w http.ResponseWriter, r *http.Request) {
 	opts, flowID, err := h.client.PasskeyLoginBegin(r.Context())
 	if err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"optionsJson": opts, "flowId": flowID})
@@ -30,7 +30,7 @@ func (h *Handlers) passkeyLoginFinish(w http.ResponseWriter, r *http.Request) {
 	token, err := h.client.PasskeyLoginFinish(r.Context(), req.FlowID, req.AssertionJSON)
 	if err != nil {
 		h.recordLogin(r, "auth.login_passkey", "")
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	h.recordLogin(r, "auth.login_passkey", token)
@@ -46,7 +46,7 @@ func (h *Handlers) passkeyLoginFinish(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) passkeyRegisterBegin(w http.ResponseWriter, r *http.Request) {
 	opts, flowID, err := h.passkey.BeginRegistration(r.Context(), sessionToken(r))
 	if err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"optionsJson": opts, "flowId": flowID})
@@ -63,7 +63,7 @@ func (h *Handlers) passkeyRegisterFinish(w http.ResponseWriter, r *http.Request)
 	}
 	c, err := h.passkey.FinishRegistration(r.Context(), sessionToken(r), req.FlowID, req.CredentialJSON, req.Name)
 	if err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, credToJSON(c))
@@ -72,7 +72,7 @@ func (h *Handlers) passkeyRegisterFinish(w http.ResponseWriter, r *http.Request)
 func (h *Handlers) passkeyList(w http.ResponseWriter, r *http.Request) {
 	creds, err := h.passkey.ListCredentials(r.Context(), sessionToken(r))
 	if err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	out := make([]any, 0, len(creds))
@@ -93,7 +93,7 @@ func (h *Handlers) passkeyDelete(w http.ResponseWriter, r *http.Request) {
 	uid := principalUserID(r.Context())
 	enabled, err := h.twofa.IsEnabled(r.Context(), uid)
 	if err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	var ok bool
@@ -103,7 +103,7 @@ func (h *Handlers) passkeyDelete(w http.ResponseWriter, r *http.Request) {
 		ok, err = h.client.VerifyPassword(r.Context(), sessionToken(r), req.Password)
 	}
 	if err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	if !ok {
@@ -111,7 +111,7 @@ func (h *Handlers) passkeyDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.passkey.DeleteCredential(r.Context(), sessionToken(r), chi.URLParam(r, "id")); err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

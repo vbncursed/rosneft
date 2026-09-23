@@ -33,9 +33,9 @@ type ServiceMock struct {
 	beforeCreatePlacementCounter uint64
 	CreatePlacementMock          mServiceMockCreatePlacement
 
-	funcCreatePlacements          func(ctx context.Context, territorySlug string, items []domain.Placement) (pa1 []domain.Placement, err error)
+	funcCreatePlacements          func(ctx context.Context, territorySlug string, key string, items []domain.Placement) (pa1 []domain.Placement, err error)
 	funcCreatePlacementsOrigin    string
-	inspectFuncCreatePlacements   func(ctx context.Context, territorySlug string, items []domain.Placement)
+	inspectFuncCreatePlacements   func(ctx context.Context, territorySlug string, key string, items []domain.Placement)
 	afterCreatePlacementsCounter  uint64
 	beforeCreatePlacementsCounter uint64
 	CreatePlacementsMock          mServiceMockCreatePlacements
@@ -1107,6 +1107,7 @@ type ServiceMockCreatePlacementsExpectation struct {
 type ServiceMockCreatePlacementsParams struct {
 	ctx           context.Context
 	territorySlug string
+	key           string
 	items         []domain.Placement
 }
 
@@ -1114,6 +1115,7 @@ type ServiceMockCreatePlacementsParams struct {
 type ServiceMockCreatePlacementsParamPtrs struct {
 	ctx           *context.Context
 	territorySlug *string
+	key           *string
 	items         *[]domain.Placement
 }
 
@@ -1128,6 +1130,7 @@ type ServiceMockCreatePlacementsExpectationOrigins struct {
 	origin              string
 	originCtx           string
 	originTerritorySlug string
+	originKey           string
 	originItems         string
 }
 
@@ -1142,7 +1145,7 @@ func (mmCreatePlacements *mServiceMockCreatePlacements) Optional() *mServiceMock
 }
 
 // Expect sets up expected params for Service.CreatePlacements
-func (mmCreatePlacements *mServiceMockCreatePlacements) Expect(ctx context.Context, territorySlug string, items []domain.Placement) *mServiceMockCreatePlacements {
+func (mmCreatePlacements *mServiceMockCreatePlacements) Expect(ctx context.Context, territorySlug string, key string, items []domain.Placement) *mServiceMockCreatePlacements {
 	if mmCreatePlacements.mock.funcCreatePlacements != nil {
 		mmCreatePlacements.mock.t.Fatalf("ServiceMock.CreatePlacements mock is already set by Set")
 	}
@@ -1155,7 +1158,7 @@ func (mmCreatePlacements *mServiceMockCreatePlacements) Expect(ctx context.Conte
 		mmCreatePlacements.mock.t.Fatalf("ServiceMock.CreatePlacements mock is already set by ExpectParams functions")
 	}
 
-	mmCreatePlacements.defaultExpectation.params = &ServiceMockCreatePlacementsParams{ctx, territorySlug, items}
+	mmCreatePlacements.defaultExpectation.params = &ServiceMockCreatePlacementsParams{ctx, territorySlug, key, items}
 	mmCreatePlacements.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmCreatePlacements.expectations {
 		if minimock.Equal(e.params, mmCreatePlacements.defaultExpectation.params) {
@@ -1212,8 +1215,31 @@ func (mmCreatePlacements *mServiceMockCreatePlacements) ExpectTerritorySlugParam
 	return mmCreatePlacements
 }
 
-// ExpectItemsParam3 sets up expected param items for Service.CreatePlacements
-func (mmCreatePlacements *mServiceMockCreatePlacements) ExpectItemsParam3(items []domain.Placement) *mServiceMockCreatePlacements {
+// ExpectKeyParam3 sets up expected param key for Service.CreatePlacements
+func (mmCreatePlacements *mServiceMockCreatePlacements) ExpectKeyParam3(key string) *mServiceMockCreatePlacements {
+	if mmCreatePlacements.mock.funcCreatePlacements != nil {
+		mmCreatePlacements.mock.t.Fatalf("ServiceMock.CreatePlacements mock is already set by Set")
+	}
+
+	if mmCreatePlacements.defaultExpectation == nil {
+		mmCreatePlacements.defaultExpectation = &ServiceMockCreatePlacementsExpectation{}
+	}
+
+	if mmCreatePlacements.defaultExpectation.params != nil {
+		mmCreatePlacements.mock.t.Fatalf("ServiceMock.CreatePlacements mock is already set by Expect")
+	}
+
+	if mmCreatePlacements.defaultExpectation.paramPtrs == nil {
+		mmCreatePlacements.defaultExpectation.paramPtrs = &ServiceMockCreatePlacementsParamPtrs{}
+	}
+	mmCreatePlacements.defaultExpectation.paramPtrs.key = &key
+	mmCreatePlacements.defaultExpectation.expectationOrigins.originKey = minimock.CallerInfo(1)
+
+	return mmCreatePlacements
+}
+
+// ExpectItemsParam4 sets up expected param items for Service.CreatePlacements
+func (mmCreatePlacements *mServiceMockCreatePlacements) ExpectItemsParam4(items []domain.Placement) *mServiceMockCreatePlacements {
 	if mmCreatePlacements.mock.funcCreatePlacements != nil {
 		mmCreatePlacements.mock.t.Fatalf("ServiceMock.CreatePlacements mock is already set by Set")
 	}
@@ -1236,7 +1262,7 @@ func (mmCreatePlacements *mServiceMockCreatePlacements) ExpectItemsParam3(items 
 }
 
 // Inspect accepts an inspector function that has same arguments as the Service.CreatePlacements
-func (mmCreatePlacements *mServiceMockCreatePlacements) Inspect(f func(ctx context.Context, territorySlug string, items []domain.Placement)) *mServiceMockCreatePlacements {
+func (mmCreatePlacements *mServiceMockCreatePlacements) Inspect(f func(ctx context.Context, territorySlug string, key string, items []domain.Placement)) *mServiceMockCreatePlacements {
 	if mmCreatePlacements.mock.inspectFuncCreatePlacements != nil {
 		mmCreatePlacements.mock.t.Fatalf("Inspect function is already set for ServiceMock.CreatePlacements")
 	}
@@ -1261,7 +1287,7 @@ func (mmCreatePlacements *mServiceMockCreatePlacements) Return(pa1 []domain.Plac
 }
 
 // Set uses given function f to mock the Service.CreatePlacements method
-func (mmCreatePlacements *mServiceMockCreatePlacements) Set(f func(ctx context.Context, territorySlug string, items []domain.Placement) (pa1 []domain.Placement, err error)) *ServiceMock {
+func (mmCreatePlacements *mServiceMockCreatePlacements) Set(f func(ctx context.Context, territorySlug string, key string, items []domain.Placement) (pa1 []domain.Placement, err error)) *ServiceMock {
 	if mmCreatePlacements.defaultExpectation != nil {
 		mmCreatePlacements.mock.t.Fatalf("Default expectation is already set for the Service.CreatePlacements method")
 	}
@@ -1277,14 +1303,14 @@ func (mmCreatePlacements *mServiceMockCreatePlacements) Set(f func(ctx context.C
 
 // When sets expectation for the Service.CreatePlacements which will trigger the result defined by the following
 // Then helper
-func (mmCreatePlacements *mServiceMockCreatePlacements) When(ctx context.Context, territorySlug string, items []domain.Placement) *ServiceMockCreatePlacementsExpectation {
+func (mmCreatePlacements *mServiceMockCreatePlacements) When(ctx context.Context, territorySlug string, key string, items []domain.Placement) *ServiceMockCreatePlacementsExpectation {
 	if mmCreatePlacements.mock.funcCreatePlacements != nil {
 		mmCreatePlacements.mock.t.Fatalf("ServiceMock.CreatePlacements mock is already set by Set")
 	}
 
 	expectation := &ServiceMockCreatePlacementsExpectation{
 		mock:               mmCreatePlacements.mock,
-		params:             &ServiceMockCreatePlacementsParams{ctx, territorySlug, items},
+		params:             &ServiceMockCreatePlacementsParams{ctx, territorySlug, key, items},
 		expectationOrigins: ServiceMockCreatePlacementsExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmCreatePlacements.expectations = append(mmCreatePlacements.expectations, expectation)
@@ -1319,17 +1345,17 @@ func (mmCreatePlacements *mServiceMockCreatePlacements) invocationsDone() bool {
 }
 
 // CreatePlacements implements mm_grpcapi.Service
-func (mmCreatePlacements *ServiceMock) CreatePlacements(ctx context.Context, territorySlug string, items []domain.Placement) (pa1 []domain.Placement, err error) {
+func (mmCreatePlacements *ServiceMock) CreatePlacements(ctx context.Context, territorySlug string, key string, items []domain.Placement) (pa1 []domain.Placement, err error) {
 	mm_atomic.AddUint64(&mmCreatePlacements.beforeCreatePlacementsCounter, 1)
 	defer mm_atomic.AddUint64(&mmCreatePlacements.afterCreatePlacementsCounter, 1)
 
 	mmCreatePlacements.t.Helper()
 
 	if mmCreatePlacements.inspectFuncCreatePlacements != nil {
-		mmCreatePlacements.inspectFuncCreatePlacements(ctx, territorySlug, items)
+		mmCreatePlacements.inspectFuncCreatePlacements(ctx, territorySlug, key, items)
 	}
 
-	mm_params := ServiceMockCreatePlacementsParams{ctx, territorySlug, items}
+	mm_params := ServiceMockCreatePlacementsParams{ctx, territorySlug, key, items}
 
 	// Record call args
 	mmCreatePlacements.CreatePlacementsMock.mutex.Lock()
@@ -1348,7 +1374,7 @@ func (mmCreatePlacements *ServiceMock) CreatePlacements(ctx context.Context, ter
 		mm_want := mmCreatePlacements.CreatePlacementsMock.defaultExpectation.params
 		mm_want_ptrs := mmCreatePlacements.CreatePlacementsMock.defaultExpectation.paramPtrs
 
-		mm_got := ServiceMockCreatePlacementsParams{ctx, territorySlug, items}
+		mm_got := ServiceMockCreatePlacementsParams{ctx, territorySlug, key, items}
 
 		if mm_want_ptrs != nil {
 
@@ -1360,6 +1386,11 @@ func (mmCreatePlacements *ServiceMock) CreatePlacements(ctx context.Context, ter
 			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
 				mmCreatePlacements.t.Errorf("ServiceMock.CreatePlacements got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmCreatePlacements.CreatePlacementsMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.key != nil && !minimock.Equal(*mm_want_ptrs.key, mm_got.key) {
+				mmCreatePlacements.t.Errorf("ServiceMock.CreatePlacements got unexpected parameter key, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreatePlacements.CreatePlacementsMock.defaultExpectation.expectationOrigins.originKey, *mm_want_ptrs.key, mm_got.key, minimock.Diff(*mm_want_ptrs.key, mm_got.key))
 			}
 
 			if mm_want_ptrs.items != nil && !minimock.Equal(*mm_want_ptrs.items, mm_got.items) {
@@ -1379,9 +1410,9 @@ func (mmCreatePlacements *ServiceMock) CreatePlacements(ctx context.Context, ter
 		return (*mm_results).pa1, (*mm_results).err
 	}
 	if mmCreatePlacements.funcCreatePlacements != nil {
-		return mmCreatePlacements.funcCreatePlacements(ctx, territorySlug, items)
+		return mmCreatePlacements.funcCreatePlacements(ctx, territorySlug, key, items)
 	}
-	mmCreatePlacements.t.Fatalf("Unexpected call to ServiceMock.CreatePlacements. %v %v %v", ctx, territorySlug, items)
+	mmCreatePlacements.t.Fatalf("Unexpected call to ServiceMock.CreatePlacements. %v %v %v %v", ctx, territorySlug, key, items)
 	return
 }
 

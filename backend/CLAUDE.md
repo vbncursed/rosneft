@@ -185,7 +185,7 @@ Endpoints (gateway):
 ```
 GET    /api/territories/{slug}/placements          → 200 [Placement…]
 POST   /api/territories/{slug}/placements          → 201 Placement
-POST   /api/territories/{slug}/placements/batch    → 201 [Placement…]  (1–100, one transaction)
+POST   /api/territories/{slug}/placements/batch    → 201 [Placement…]  (1–100, one transaction; optional Idempotency-Key → 409 on a size mismatch)
 PUT    /api/territories/{slug}/placements/{id}     → 200 Placement
 DELETE /api/territories/{slug}/placements/{id}     → 204
 ```
@@ -196,6 +196,25 @@ Validation:
 - 400 `invalid_input` for empty IDs/slugs or non-positive scale
 - 404 `not_found` when the territory or model slug is missing
 - 404 `not_found` for unknown placement IDs
+
+**The batch is idempotent under `Idempotency-Key`, and the key lives in the
+catalog, not Redis.** Each row of a keyed batch carries `idempotency_key` and
+`batch_index` (migration 00018), under a partial unique index on
+`(territory_id, idempotency_key, batch_index)`. `storage.CreatePlacements`
+first reads the key's rows inside its own transaction and answers them, in
+`batch_index` order, when their count matches — or `ErrIdempotencyConflict`
+(gRPC `AlreadyExists`, HTTP 409) when it does not. Two requests racing on one
+key both miss that read; the loser's insert of item 0 waits on the winner's
+uncommitted row, fails on the index once the winner commits, rolls back, and
+answers the winner's rows from a fresh read. `create_placements_integration_test.go`
+drives that race with a barrier and was checked by switching the race branch
+off. Unkeyed rows keep both columns NULL and stay out of the index; nothing
+UPDATEs the columns, so the audit trigger's ignore list does not list them.
+
+**A refusal's gRPC message starts at its sentinel.** The catalog's `mapError`
+cuts everything before the matched sentinel's text, so the gateway can put the
+message in a 4xx body as it is. An `Internal` status keeps its whole text; the
+gateway never shows it (see **A 500 body** in the root CLAUDE.md).
 
 ## Audit journal
 

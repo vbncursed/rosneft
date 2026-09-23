@@ -15,7 +15,7 @@ func (s *Server) CreatePlacements(ctx context.Context, req *catalogv1.CreatePlac
 	for i, it := range req.GetItems() {
 		items[i] = placementFromCreateRequest(it)
 	}
-	out, err := s.svc.CreatePlacements(ctx, req.GetTerritorySlug(), items)
+	out, err := s.svc.CreatePlacements(ctx, req.GetTerritorySlug(), req.GetIdempotencyKey(), items)
 	if err != nil {
 		return nil, itemStatus(err)
 	}

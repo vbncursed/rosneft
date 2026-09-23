@@ -438,6 +438,10 @@ message CreatePlacementsRequest {
   // 1–100. Each item's own territory_slug is ignored: the batch lands on the
   // territory above, the one the gateway's territory gate checked.
   repeated CreatePlacementRequest items = 2;
+  // Optional. A batch already stored under this key on the territory is
+  // answered as stored and nothing is written; one of another size is
+  // AlreadyExists. Empty means no idempotency, as before.
+  string idempotency_key = 3;
 }
 message CreatePlacementsResponse {
   repeated Placement placements = 1; // in items order

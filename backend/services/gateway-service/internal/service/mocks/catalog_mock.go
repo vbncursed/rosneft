@@ -33,9 +33,9 @@ type CatalogMock struct {
 	beforeCreatePlacementCounter uint64
 	CreatePlacementMock          mCatalogMockCreatePlacement
 
-	funcCreatePlacements          func(ctx context.Context, territorySlug string, ps []domain.Placement) (pa1 []domain.Placement, err error)
+	funcCreatePlacements          func(ctx context.Context, territorySlug string, key string, ps []domain.Placement) (pa1 []domain.Placement, err error)
 	funcCreatePlacementsOrigin    string
-	inspectFuncCreatePlacements   func(ctx context.Context, territorySlug string, ps []domain.Placement)
+	inspectFuncCreatePlacements   func(ctx context.Context, territorySlug string, key string, ps []domain.Placement)
 	afterCreatePlacementsCounter  uint64
 	beforeCreatePlacementsCounter uint64
 	CreatePlacementsMock          mCatalogMockCreatePlacements
@@ -1077,6 +1077,7 @@ type CatalogMockCreatePlacementsExpectation struct {
 type CatalogMockCreatePlacementsParams struct {
 	ctx           context.Context
 	territorySlug string
+	key           string
 	ps            []domain.Placement
 }
 
@@ -1084,6 +1085,7 @@ type CatalogMockCreatePlacementsParams struct {
 type CatalogMockCreatePlacementsParamPtrs struct {
 	ctx           *context.Context
 	territorySlug *string
+	key           *string
 	ps            *[]domain.Placement
 }
 
@@ -1098,6 +1100,7 @@ type CatalogMockCreatePlacementsExpectationOrigins struct {
 	origin              string
 	originCtx           string
 	originTerritorySlug string
+	originKey           string
 	originPs            string
 }
 
@@ -1112,7 +1115,7 @@ func (mmCreatePlacements *mCatalogMockCreatePlacements) Optional() *mCatalogMock
 }
 
 // Expect sets up expected params for Catalog.CreatePlacements
-func (mmCreatePlacements *mCatalogMockCreatePlacements) Expect(ctx context.Context, territorySlug string, ps []domain.Placement) *mCatalogMockCreatePlacements {
+func (mmCreatePlacements *mCatalogMockCreatePlacements) Expect(ctx context.Context, territorySlug string, key string, ps []domain.Placement) *mCatalogMockCreatePlacements {
 	if mmCreatePlacements.mock.funcCreatePlacements != nil {
 		mmCreatePlacements.mock.t.Fatalf("CatalogMock.CreatePlacements mock is already set by Set")
 	}
@@ -1125,7 +1128,7 @@ func (mmCreatePlacements *mCatalogMockCreatePlacements) Expect(ctx context.Conte
 		mmCreatePlacements.mock.t.Fatalf("CatalogMock.CreatePlacements mock is already set by ExpectParams functions")
 	}
 
-	mmCreatePlacements.defaultExpectation.params = &CatalogMockCreatePlacementsParams{ctx, territorySlug, ps}
+	mmCreatePlacements.defaultExpectation.params = &CatalogMockCreatePlacementsParams{ctx, territorySlug, key, ps}
 	mmCreatePlacements.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmCreatePlacements.expectations {
 		if minimock.Equal(e.params, mmCreatePlacements.defaultExpectation.params) {
@@ -1182,8 +1185,31 @@ func (mmCreatePlacements *mCatalogMockCreatePlacements) ExpectTerritorySlugParam
 	return mmCreatePlacements
 }
 
-// ExpectPsParam3 sets up expected param ps for Catalog.CreatePlacements
-func (mmCreatePlacements *mCatalogMockCreatePlacements) ExpectPsParam3(ps []domain.Placement) *mCatalogMockCreatePlacements {
+// ExpectKeyParam3 sets up expected param key for Catalog.CreatePlacements
+func (mmCreatePlacements *mCatalogMockCreatePlacements) ExpectKeyParam3(key string) *mCatalogMockCreatePlacements {
+	if mmCreatePlacements.mock.funcCreatePlacements != nil {
+		mmCreatePlacements.mock.t.Fatalf("CatalogMock.CreatePlacements mock is already set by Set")
+	}
+
+	if mmCreatePlacements.defaultExpectation == nil {
+		mmCreatePlacements.defaultExpectation = &CatalogMockCreatePlacementsExpectation{}
+	}
+
+	if mmCreatePlacements.defaultExpectation.params != nil {
+		mmCreatePlacements.mock.t.Fatalf("CatalogMock.CreatePlacements mock is already set by Expect")
+	}
+
+	if mmCreatePlacements.defaultExpectation.paramPtrs == nil {
+		mmCreatePlacements.defaultExpectation.paramPtrs = &CatalogMockCreatePlacementsParamPtrs{}
+	}
+	mmCreatePlacements.defaultExpectation.paramPtrs.key = &key
+	mmCreatePlacements.defaultExpectation.expectationOrigins.originKey = minimock.CallerInfo(1)
+
+	return mmCreatePlacements
+}
+
+// ExpectPsParam4 sets up expected param ps for Catalog.CreatePlacements
+func (mmCreatePlacements *mCatalogMockCreatePlacements) ExpectPsParam4(ps []domain.Placement) *mCatalogMockCreatePlacements {
 	if mmCreatePlacements.mock.funcCreatePlacements != nil {
 		mmCreatePlacements.mock.t.Fatalf("CatalogMock.CreatePlacements mock is already set by Set")
 	}
@@ -1206,7 +1232,7 @@ func (mmCreatePlacements *mCatalogMockCreatePlacements) ExpectPsParam3(ps []doma
 }
 
 // Inspect accepts an inspector function that has same arguments as the Catalog.CreatePlacements
-func (mmCreatePlacements *mCatalogMockCreatePlacements) Inspect(f func(ctx context.Context, territorySlug string, ps []domain.Placement)) *mCatalogMockCreatePlacements {
+func (mmCreatePlacements *mCatalogMockCreatePlacements) Inspect(f func(ctx context.Context, territorySlug string, key string, ps []domain.Placement)) *mCatalogMockCreatePlacements {
 	if mmCreatePlacements.mock.inspectFuncCreatePlacements != nil {
 		mmCreatePlacements.mock.t.Fatalf("Inspect function is already set for CatalogMock.CreatePlacements")
 	}
@@ -1231,7 +1257,7 @@ func (mmCreatePlacements *mCatalogMockCreatePlacements) Return(pa1 []domain.Plac
 }
 
 // Set uses given function f to mock the Catalog.CreatePlacements method
-func (mmCreatePlacements *mCatalogMockCreatePlacements) Set(f func(ctx context.Context, territorySlug string, ps []domain.Placement) (pa1 []domain.Placement, err error)) *CatalogMock {
+func (mmCreatePlacements *mCatalogMockCreatePlacements) Set(f func(ctx context.Context, territorySlug string, key string, ps []domain.Placement) (pa1 []domain.Placement, err error)) *CatalogMock {
 	if mmCreatePlacements.defaultExpectation != nil {
 		mmCreatePlacements.mock.t.Fatalf("Default expectation is already set for the Catalog.CreatePlacements method")
 	}
@@ -1247,14 +1273,14 @@ func (mmCreatePlacements *mCatalogMockCreatePlacements) Set(f func(ctx context.C
 
 // When sets expectation for the Catalog.CreatePlacements which will trigger the result defined by the following
 // Then helper
-func (mmCreatePlacements *mCatalogMockCreatePlacements) When(ctx context.Context, territorySlug string, ps []domain.Placement) *CatalogMockCreatePlacementsExpectation {
+func (mmCreatePlacements *mCatalogMockCreatePlacements) When(ctx context.Context, territorySlug string, key string, ps []domain.Placement) *CatalogMockCreatePlacementsExpectation {
 	if mmCreatePlacements.mock.funcCreatePlacements != nil {
 		mmCreatePlacements.mock.t.Fatalf("CatalogMock.CreatePlacements mock is already set by Set")
 	}
 
 	expectation := &CatalogMockCreatePlacementsExpectation{
 		mock:               mmCreatePlacements.mock,
-		params:             &CatalogMockCreatePlacementsParams{ctx, territorySlug, ps},
+		params:             &CatalogMockCreatePlacementsParams{ctx, territorySlug, key, ps},
 		expectationOrigins: CatalogMockCreatePlacementsExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmCreatePlacements.expectations = append(mmCreatePlacements.expectations, expectation)
@@ -1289,17 +1315,17 @@ func (mmCreatePlacements *mCatalogMockCreatePlacements) invocationsDone() bool {
 }
 
 // CreatePlacements implements mm_service.Catalog
-func (mmCreatePlacements *CatalogMock) CreatePlacements(ctx context.Context, territorySlug string, ps []domain.Placement) (pa1 []domain.Placement, err error) {
+func (mmCreatePlacements *CatalogMock) CreatePlacements(ctx context.Context, territorySlug string, key string, ps []domain.Placement) (pa1 []domain.Placement, err error) {
 	mm_atomic.AddUint64(&mmCreatePlacements.beforeCreatePlacementsCounter, 1)
 	defer mm_atomic.AddUint64(&mmCreatePlacements.afterCreatePlacementsCounter, 1)
 
 	mmCreatePlacements.t.Helper()
 
 	if mmCreatePlacements.inspectFuncCreatePlacements != nil {
-		mmCreatePlacements.inspectFuncCreatePlacements(ctx, territorySlug, ps)
+		mmCreatePlacements.inspectFuncCreatePlacements(ctx, territorySlug, key, ps)
 	}
 
-	mm_params := CatalogMockCreatePlacementsParams{ctx, territorySlug, ps}
+	mm_params := CatalogMockCreatePlacementsParams{ctx, territorySlug, key, ps}
 
 	// Record call args
 	mmCreatePlacements.CreatePlacementsMock.mutex.Lock()
@@ -1318,7 +1344,7 @@ func (mmCreatePlacements *CatalogMock) CreatePlacements(ctx context.Context, ter
 		mm_want := mmCreatePlacements.CreatePlacementsMock.defaultExpectation.params
 		mm_want_ptrs := mmCreatePlacements.CreatePlacementsMock.defaultExpectation.paramPtrs
 
-		mm_got := CatalogMockCreatePlacementsParams{ctx, territorySlug, ps}
+		mm_got := CatalogMockCreatePlacementsParams{ctx, territorySlug, key, ps}
 
 		if mm_want_ptrs != nil {
 
@@ -1330,6 +1356,11 @@ func (mmCreatePlacements *CatalogMock) CreatePlacements(ctx context.Context, ter
 			if mm_want_ptrs.territorySlug != nil && !minimock.Equal(*mm_want_ptrs.territorySlug, mm_got.territorySlug) {
 				mmCreatePlacements.t.Errorf("CatalogMock.CreatePlacements got unexpected parameter territorySlug, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmCreatePlacements.CreatePlacementsMock.defaultExpectation.expectationOrigins.originTerritorySlug, *mm_want_ptrs.territorySlug, mm_got.territorySlug, minimock.Diff(*mm_want_ptrs.territorySlug, mm_got.territorySlug))
+			}
+
+			if mm_want_ptrs.key != nil && !minimock.Equal(*mm_want_ptrs.key, mm_got.key) {
+				mmCreatePlacements.t.Errorf("CatalogMock.CreatePlacements got unexpected parameter key, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreatePlacements.CreatePlacementsMock.defaultExpectation.expectationOrigins.originKey, *mm_want_ptrs.key, mm_got.key, minimock.Diff(*mm_want_ptrs.key, mm_got.key))
 			}
 
 			if mm_want_ptrs.ps != nil && !minimock.Equal(*mm_want_ptrs.ps, mm_got.ps) {
@@ -1349,9 +1380,9 @@ func (mmCreatePlacements *CatalogMock) CreatePlacements(ctx context.Context, ter
 		return (*mm_results).pa1, (*mm_results).err
 	}
 	if mmCreatePlacements.funcCreatePlacements != nil {
-		return mmCreatePlacements.funcCreatePlacements(ctx, territorySlug, ps)
+		return mmCreatePlacements.funcCreatePlacements(ctx, territorySlug, key, ps)
 	}
-	mmCreatePlacements.t.Fatalf("Unexpected call to CatalogMock.CreatePlacements. %v %v %v", ctx, territorySlug, ps)
+	mmCreatePlacements.t.Fatalf("Unexpected call to CatalogMock.CreatePlacements. %v %v %v %v", ctx, territorySlug, key, ps)
 	return
 }
 

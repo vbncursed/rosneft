@@ -40,9 +40,9 @@ type RepositoryMock struct {
 	beforeCreatePlacementCounter uint64
 	CreatePlacementMock          mRepositoryMockCreatePlacement
 
-	funcCreatePlacements          func(ctx context.Context, ps []domain.Placement) (pa1 []domain.Placement, err error)
+	funcCreatePlacements          func(ctx context.Context, key string, ps []domain.Placement) (pa1 []domain.Placement, err error)
 	funcCreatePlacementsOrigin    string
-	inspectFuncCreatePlacements   func(ctx context.Context, ps []domain.Placement)
+	inspectFuncCreatePlacements   func(ctx context.Context, key string, ps []domain.Placement)
 	afterCreatePlacementsCounter  uint64
 	beforeCreatePlacementsCounter uint64
 	CreatePlacementsMock          mRepositoryMockCreatePlacements
@@ -1459,12 +1459,14 @@ type RepositoryMockCreatePlacementsExpectation struct {
 // RepositoryMockCreatePlacementsParams contains parameters of the Repository.CreatePlacements
 type RepositoryMockCreatePlacementsParams struct {
 	ctx context.Context
+	key string
 	ps  []domain.Placement
 }
 
 // RepositoryMockCreatePlacementsParamPtrs contains pointers to parameters of the Repository.CreatePlacements
 type RepositoryMockCreatePlacementsParamPtrs struct {
 	ctx *context.Context
+	key *string
 	ps  *[]domain.Placement
 }
 
@@ -1478,6 +1480,7 @@ type RepositoryMockCreatePlacementsResults struct {
 type RepositoryMockCreatePlacementsExpectationOrigins struct {
 	origin    string
 	originCtx string
+	originKey string
 	originPs  string
 }
 
@@ -1492,7 +1495,7 @@ func (mmCreatePlacements *mRepositoryMockCreatePlacements) Optional() *mReposito
 }
 
 // Expect sets up expected params for Repository.CreatePlacements
-func (mmCreatePlacements *mRepositoryMockCreatePlacements) Expect(ctx context.Context, ps []domain.Placement) *mRepositoryMockCreatePlacements {
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) Expect(ctx context.Context, key string, ps []domain.Placement) *mRepositoryMockCreatePlacements {
 	if mmCreatePlacements.mock.funcCreatePlacements != nil {
 		mmCreatePlacements.mock.t.Fatalf("RepositoryMock.CreatePlacements mock is already set by Set")
 	}
@@ -1505,7 +1508,7 @@ func (mmCreatePlacements *mRepositoryMockCreatePlacements) Expect(ctx context.Co
 		mmCreatePlacements.mock.t.Fatalf("RepositoryMock.CreatePlacements mock is already set by ExpectParams functions")
 	}
 
-	mmCreatePlacements.defaultExpectation.params = &RepositoryMockCreatePlacementsParams{ctx, ps}
+	mmCreatePlacements.defaultExpectation.params = &RepositoryMockCreatePlacementsParams{ctx, key, ps}
 	mmCreatePlacements.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmCreatePlacements.expectations {
 		if minimock.Equal(e.params, mmCreatePlacements.defaultExpectation.params) {
@@ -1539,8 +1542,31 @@ func (mmCreatePlacements *mRepositoryMockCreatePlacements) ExpectCtxParam1(ctx c
 	return mmCreatePlacements
 }
 
-// ExpectPsParam2 sets up expected param ps for Repository.CreatePlacements
-func (mmCreatePlacements *mRepositoryMockCreatePlacements) ExpectPsParam2(ps []domain.Placement) *mRepositoryMockCreatePlacements {
+// ExpectKeyParam2 sets up expected param key for Repository.CreatePlacements
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) ExpectKeyParam2(key string) *mRepositoryMockCreatePlacements {
+	if mmCreatePlacements.mock.funcCreatePlacements != nil {
+		mmCreatePlacements.mock.t.Fatalf("RepositoryMock.CreatePlacements mock is already set by Set")
+	}
+
+	if mmCreatePlacements.defaultExpectation == nil {
+		mmCreatePlacements.defaultExpectation = &RepositoryMockCreatePlacementsExpectation{}
+	}
+
+	if mmCreatePlacements.defaultExpectation.params != nil {
+		mmCreatePlacements.mock.t.Fatalf("RepositoryMock.CreatePlacements mock is already set by Expect")
+	}
+
+	if mmCreatePlacements.defaultExpectation.paramPtrs == nil {
+		mmCreatePlacements.defaultExpectation.paramPtrs = &RepositoryMockCreatePlacementsParamPtrs{}
+	}
+	mmCreatePlacements.defaultExpectation.paramPtrs.key = &key
+	mmCreatePlacements.defaultExpectation.expectationOrigins.originKey = minimock.CallerInfo(1)
+
+	return mmCreatePlacements
+}
+
+// ExpectPsParam3 sets up expected param ps for Repository.CreatePlacements
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) ExpectPsParam3(ps []domain.Placement) *mRepositoryMockCreatePlacements {
 	if mmCreatePlacements.mock.funcCreatePlacements != nil {
 		mmCreatePlacements.mock.t.Fatalf("RepositoryMock.CreatePlacements mock is already set by Set")
 	}
@@ -1563,7 +1589,7 @@ func (mmCreatePlacements *mRepositoryMockCreatePlacements) ExpectPsParam2(ps []d
 }
 
 // Inspect accepts an inspector function that has same arguments as the Repository.CreatePlacements
-func (mmCreatePlacements *mRepositoryMockCreatePlacements) Inspect(f func(ctx context.Context, ps []domain.Placement)) *mRepositoryMockCreatePlacements {
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) Inspect(f func(ctx context.Context, key string, ps []domain.Placement)) *mRepositoryMockCreatePlacements {
 	if mmCreatePlacements.mock.inspectFuncCreatePlacements != nil {
 		mmCreatePlacements.mock.t.Fatalf("Inspect function is already set for RepositoryMock.CreatePlacements")
 	}
@@ -1588,7 +1614,7 @@ func (mmCreatePlacements *mRepositoryMockCreatePlacements) Return(pa1 []domain.P
 }
 
 // Set uses given function f to mock the Repository.CreatePlacements method
-func (mmCreatePlacements *mRepositoryMockCreatePlacements) Set(f func(ctx context.Context, ps []domain.Placement) (pa1 []domain.Placement, err error)) *RepositoryMock {
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) Set(f func(ctx context.Context, key string, ps []domain.Placement) (pa1 []domain.Placement, err error)) *RepositoryMock {
 	if mmCreatePlacements.defaultExpectation != nil {
 		mmCreatePlacements.mock.t.Fatalf("Default expectation is already set for the Repository.CreatePlacements method")
 	}
@@ -1604,14 +1630,14 @@ func (mmCreatePlacements *mRepositoryMockCreatePlacements) Set(f func(ctx contex
 
 // When sets expectation for the Repository.CreatePlacements which will trigger the result defined by the following
 // Then helper
-func (mmCreatePlacements *mRepositoryMockCreatePlacements) When(ctx context.Context, ps []domain.Placement) *RepositoryMockCreatePlacementsExpectation {
+func (mmCreatePlacements *mRepositoryMockCreatePlacements) When(ctx context.Context, key string, ps []domain.Placement) *RepositoryMockCreatePlacementsExpectation {
 	if mmCreatePlacements.mock.funcCreatePlacements != nil {
 		mmCreatePlacements.mock.t.Fatalf("RepositoryMock.CreatePlacements mock is already set by Set")
 	}
 
 	expectation := &RepositoryMockCreatePlacementsExpectation{
 		mock:               mmCreatePlacements.mock,
-		params:             &RepositoryMockCreatePlacementsParams{ctx, ps},
+		params:             &RepositoryMockCreatePlacementsParams{ctx, key, ps},
 		expectationOrigins: RepositoryMockCreatePlacementsExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmCreatePlacements.expectations = append(mmCreatePlacements.expectations, expectation)
@@ -1646,17 +1672,17 @@ func (mmCreatePlacements *mRepositoryMockCreatePlacements) invocationsDone() boo
 }
 
 // CreatePlacements implements mm_service.Repository
-func (mmCreatePlacements *RepositoryMock) CreatePlacements(ctx context.Context, ps []domain.Placement) (pa1 []domain.Placement, err error) {
+func (mmCreatePlacements *RepositoryMock) CreatePlacements(ctx context.Context, key string, ps []domain.Placement) (pa1 []domain.Placement, err error) {
 	mm_atomic.AddUint64(&mmCreatePlacements.beforeCreatePlacementsCounter, 1)
 	defer mm_atomic.AddUint64(&mmCreatePlacements.afterCreatePlacementsCounter, 1)
 
 	mmCreatePlacements.t.Helper()
 
 	if mmCreatePlacements.inspectFuncCreatePlacements != nil {
-		mmCreatePlacements.inspectFuncCreatePlacements(ctx, ps)
+		mmCreatePlacements.inspectFuncCreatePlacements(ctx, key, ps)
 	}
 
-	mm_params := RepositoryMockCreatePlacementsParams{ctx, ps}
+	mm_params := RepositoryMockCreatePlacementsParams{ctx, key, ps}
 
 	// Record call args
 	mmCreatePlacements.CreatePlacementsMock.mutex.Lock()
@@ -1675,13 +1701,18 @@ func (mmCreatePlacements *RepositoryMock) CreatePlacements(ctx context.Context, 
 		mm_want := mmCreatePlacements.CreatePlacementsMock.defaultExpectation.params
 		mm_want_ptrs := mmCreatePlacements.CreatePlacementsMock.defaultExpectation.paramPtrs
 
-		mm_got := RepositoryMockCreatePlacementsParams{ctx, ps}
+		mm_got := RepositoryMockCreatePlacementsParams{ctx, key, ps}
 
 		if mm_want_ptrs != nil {
 
 			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
 				mmCreatePlacements.t.Errorf("RepositoryMock.CreatePlacements got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmCreatePlacements.CreatePlacementsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.key != nil && !minimock.Equal(*mm_want_ptrs.key, mm_got.key) {
+				mmCreatePlacements.t.Errorf("RepositoryMock.CreatePlacements got unexpected parameter key, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmCreatePlacements.CreatePlacementsMock.defaultExpectation.expectationOrigins.originKey, *mm_want_ptrs.key, mm_got.key, minimock.Diff(*mm_want_ptrs.key, mm_got.key))
 			}
 
 			if mm_want_ptrs.ps != nil && !minimock.Equal(*mm_want_ptrs.ps, mm_got.ps) {
@@ -1701,9 +1732,9 @@ func (mmCreatePlacements *RepositoryMock) CreatePlacements(ctx context.Context, 
 		return (*mm_results).pa1, (*mm_results).err
 	}
 	if mmCreatePlacements.funcCreatePlacements != nil {
-		return mmCreatePlacements.funcCreatePlacements(ctx, ps)
+		return mmCreatePlacements.funcCreatePlacements(ctx, key, ps)
 	}
-	mmCreatePlacements.t.Fatalf("Unexpected call to RepositoryMock.CreatePlacements. %v %v", ctx, ps)
+	mmCreatePlacements.t.Fatalf("Unexpected call to RepositoryMock.CreatePlacements. %v %v %v", ctx, key, ps)
 	return
 }
 

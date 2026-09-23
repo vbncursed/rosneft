@@ -84,7 +84,7 @@ func (s *Server) ListAudit(ctx context.Context, req ListAuditRequestObject) (Lis
 		// Refusal is the only thing AuditScope returns today, but collapsing
 		// every future error into 403 would tell a caller they lack a grant
 		// when the truth was something else.
-		return ListAudit500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return ListAudit500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	res, refs, err := s.svc.ListAudit(ctx,
 		auditQueryFromParams(req.Params), sc, authhttp.Token(ctx), true)
@@ -97,7 +97,7 @@ func (s *Server) ListAudit(ctx context.Context, req ListAuditRequestObject) (Lis
 	case isInvalid(err):
 		return ListAudit400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
 	case err != nil:
-		return ListAudit500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return ListAudit500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 
 	page := AuditPage{Entries: make([]AuditEntry, len(res.Entries))}
@@ -128,7 +128,7 @@ func (s *Server) ListAuditActors(ctx context.Context, _ ListAuditActorsRequestOb
 	case isInvalid(err):
 		return ListAuditActors400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
 	case err != nil:
-		return ListAuditActors500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return ListAuditActors500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	out := make([]AuditActor, len(actors))
 	for i, a := range actors {

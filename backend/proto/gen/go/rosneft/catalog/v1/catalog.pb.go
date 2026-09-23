@@ -3410,9 +3410,13 @@ type CreatePlacementsRequest struct {
 	TerritorySlug string                 `protobuf:"bytes,1,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
 	// 1–100. Each item's own territory_slug is ignored: the batch lands on the
 	// territory above, the one the gateway's territory gate checked.
-	Items         []*CreatePlacementRequest `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Items []*CreatePlacementRequest `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	// Optional. A batch already stored under this key on the territory is
+	// answered as stored and nothing is written; one of another size is
+	// AlreadyExists. Empty means no idempotency, as before.
+	IdempotencyKey string `protobuf:"bytes,3,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CreatePlacementsRequest) Reset() {
@@ -3457,6 +3461,13 @@ func (x *CreatePlacementsRequest) GetItems() []*CreatePlacementRequest {
 		return x.Items
 	}
 	return nil
+}
+
+func (x *CreatePlacementsRequest) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
 }
 
 type CreatePlacementsResponse struct {
@@ -4546,10 +4557,11 @@ const file_rosneft_catalog_v1_catalog_proto_rawDesc = "" +
 	"\x05label\x18\x06 \x01(\tR\x05label\x120\n" +
 	"\x14visible_panorama_ids\x18\a \x03(\x03R\x12visiblePanoramaIds\"V\n" +
 	"\x17CreatePlacementResponse\x12;\n" +
-	"\tplacement\x18\x01 \x01(\v2\x1d.rosneft.catalog.v1.PlacementR\tplacement\"\x82\x01\n" +
+	"\tplacement\x18\x01 \x01(\v2\x1d.rosneft.catalog.v1.PlacementR\tplacement\"\xab\x01\n" +
 	"\x17CreatePlacementsRequest\x12%\n" +
 	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\x12@\n" +
-	"\x05items\x18\x02 \x03(\v2*.rosneft.catalog.v1.CreatePlacementRequestR\x05items\"Y\n" +
+	"\x05items\x18\x02 \x03(\v2*.rosneft.catalog.v1.CreatePlacementRequestR\x05items\x12'\n" +
+	"\x0fidempotency_key\x18\x03 \x01(\tR\x0eidempotencyKey\"Y\n" +
 	"\x18CreatePlacementsResponse\x12=\n" +
 	"\n" +
 	"placements\x18\x01 \x03(\v2\x1d.rosneft.catalog.v1.PlacementR\n" +
