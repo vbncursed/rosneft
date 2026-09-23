@@ -336,4 +336,30 @@ describe("useUploadModels", () => {
     act(() => result.current.onRun());
     await waitFor(() => expect(result.current.failedNames).toEqual(["bad.zip"]));
   });
+
+  it("marks the model list and the jobs stale once a row is created", async () => {
+    runChunkedUpload.mockImplementation((f: File) => Promise.resolve({ hash: `h-${f.name}`, size: f.size }));
+    createModel.mockResolvedValue({ model: { slug: "a", title: "A" }, job: { id: "job-a" } });
+    const spy = vi.spyOn(client, "invalidateQueries");
+    const { result } = renderHook(() => useUploadModels(), { wrapper });
+    act(() => result.current.onFiles([file("a.zip")]));
+    act(() => result.current.onTitle(result.current.rows[0].id, "A"));
+
+    act(() => result.current.onRun());
+    await waitFor(() => expect(navigate).toHaveBeenCalled());
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["models"] });
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["jobs"] });
+  });
+
+  it("marks nothing stale when nothing was created", async () => {
+    runChunkedUpload.mockRejectedValue(new Error("network drop"));
+    const spy = vi.spyOn(client, "invalidateQueries");
+    const { result } = renderHook(() => useUploadModels(), { wrapper });
+    act(() => result.current.onFiles([file("a.zip")]));
+    act(() => result.current.onTitle(result.current.rows[0].id, "A"));
+
+    act(() => result.current.onRun());
+    await waitFor(() => expect(result.current.running).toBe(false));
+    expect(spy).not.toHaveBeenCalled();
+  });
 });

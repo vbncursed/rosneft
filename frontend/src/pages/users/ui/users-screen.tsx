@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { roleTitle } from "@/entities/user";
 import { CreateUserDialog } from "@/features/create-user";
 import { AddRoleDialog, RoleChips } from "@/features/role-assign";
+import { ResetPasswordDialog } from "@/features/reset-password";
 import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { PageSkeleton } from "@/shared/ui/skeleton";
@@ -114,6 +115,7 @@ export function UsersScreen() {
         }
         canManage={s.canManage}
         onCreateUser={() => s.setCreating(true)}
+        onResetPassword={s.canResetPassword ? () => s.setResetting(true) : undefined}
         onRequire2fa={() => s.ask(selected?.totpRequired ? "unrequire-2fa" : "require-2fa")}
         onFreeze={() => s.ask(selected?.status === "frozen" ? "unfreeze" : "freeze")}
         onDelete={() => s.ask(selected?.status === "deleted" ? "restore" : "delete")}
@@ -125,16 +127,25 @@ export function UsersScreen() {
       {s.creating ? (
         <CreateUserDialog
           open
-          roles={s.roles.map((r) => ({ slug: r.slug, title: r.title }))}
+          roles={s.assignableRoles.map((r) => ({ slug: r.slug, title: r.title }))}
           onClose={() => s.setCreating(false)}
           busy={s.createBusy}
           onCreate={s.create}
         />
       ) : null}
+      {s.resetting && selected ? (
+        <ResetPasswordDialog
+          open
+          username={selected.username}
+          busy={s.resetBusy}
+          onClose={() => s.setResetting(false)}
+          onSubmit={s.resetPassword}
+        />
+      ) : null}
       {s.addingRole && selected ? (
         <AddRoleDialog
           open
-          options={s.roles.filter((r) => !held.has(r.slug)).map((r) => ({ slug: r.slug, title: r.title }))}
+          options={s.assignableRoles.filter((r) => !held.has(r.slug)).map((r) => ({ slug: r.slug, title: r.title }))}
           busy={s.rolesBusy}
           onClose={() => s.setAddingRole(false)}
           onAdd={(slug) => s.setRoles([...selected.roleSlugs, slug])}

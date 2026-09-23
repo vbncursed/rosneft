@@ -44,6 +44,11 @@ service AuthService {
   rpc RestoreUser(RestoreUserRequest) returns (User);
   rpc SetUserOwner(SetUserOwnerRequest) returns (User);
   rpc SetUserTOTPRequired(SetUserTOTPRequiredRequest) returns (User);
+  // SetUserPassword sets another user's password without the old one and signs
+  // them out everywhere. Same owner scope as FreezeUser; only an owner may set an
+  // admin's or an owner's. The caller's own password goes through
+  // ChangePassword, which asks for the old one.
+  rpc SetUserPassword(SetUserPasswordRequest) returns (SetUserPasswordResponse);
 
   // --- roles / permissions ---
   rpc ListRoles(ListRolesRequest) returns (ListRolesResponse);
@@ -257,6 +262,13 @@ message SetUserTOTPRequiredRequest {
   bool required = 3;
 }
 
+message SetUserPasswordRequest {
+  string token = 1; // actor resolved server-side from the session
+  string id = 2;
+  string password = 3;
+}
+message SetUserPasswordResponse {}
+
 message ListRolesRequest {
   string token = 1; // actor; scopes visible roles to the caller's group
 }
@@ -272,7 +284,13 @@ message CreateRoleRequest {
 message UpdateRoleRequest {
   string slug = 1;
   string title = 2;
-  string token = 3; // actor; only the role's group (or Root) may rename it
+  string token = 3; // actor; only the role's group (or Root) may change it
+  // Applied only when replace_permissions is set, in the rename's transaction,
+  // under the same no-escalation check as SetRolePermissions. The flag exists
+  // because proto3 cannot tell an absent repeated field from an empty one, and
+  // an empty set must still mean "strip every grant".
+  repeated string permission_slugs = 4;
+  bool replace_permissions = 5;
 }
 message DeleteRoleRequest {
   string slug = 1;

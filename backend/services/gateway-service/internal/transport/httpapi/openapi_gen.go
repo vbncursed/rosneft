@@ -265,6 +265,36 @@ type ChangePasswordRequest struct {
 	OldPassword string `json:"oldPassword"`
 }
 
+// ConsoleSummary One key per console card the caller can open. A card they cannot open is absent and its source is never asked. A card whose source failed is null. The gates mirror the SPA's console screens.
+type ConsoleSummary struct {
+	// Access Root. Territory-admin assignments summed over every territory.
+	Access *int `json:"access,omitempty"`
+
+	// Alerts Root. Alert rules firing (alertname/service/severity; replicas count once).
+	Alerts *int `json:"alerts,omitempty"`
+
+	// Audit24h audit:read. Journal rows from the start of the hour 23 hours ago, in the caller's audit scope: the 24 buckets the journal page draws.
+	Audit24h *int `json:"audit24h,omitempty"`
+
+	// Content territory:write or model:write. The caller's visible territories; every model.
+	Content *struct {
+		Models      int `json:"models"`
+		Territories int `json:"territories"`
+	} `json:"content,omitempty"`
+
+	// Roles roles:read. Roles the caller sees; size of the permission catalog.
+	Roles *struct {
+		Permissions int `json:"permissions"`
+		Roles       int `json:"roles"`
+	} `json:"roles,omitempty"`
+
+	// Users users:read. Live accounts (deleted excluded) and how many are frozen.
+	Users *struct {
+		Frozen int `json:"frozen"`
+		Total  int `json:"total"`
+	} `json:"users,omitempty"`
+}
+
 // CreateRoleRequest defines model for CreateRoleRequest.
 type CreateRoleRequest struct {
 	PermissionSlugs *[]string `json:"permissionSlugs,omitempty"`
@@ -469,12 +499,20 @@ type MetricSeries struct {
 	Points []MetricPoint      `json:"points"`
 }
 
+// MetricsPanels Series per requested panel ID; a panel whose query failed is absent.
+type MetricsPanels map[string][]MetricSeries
+
 // Model defines model for Model.
 type Model struct {
-	CreatedAt      *time.Time `json:"createdAt,omitempty"`
-	Description    *string    `json:"description,omitempty"`
-	Slug           string     `json:"slug"`
-	SourceBlobHash string     `json:"sourceBlobHash"`
+	CreatedAt   *time.Time `json:"createdAt,omitempty"`
+	Description *string    `json:"description,omitempty"`
+
+	// Lods Every converted LOD, sorted by lod ascending. Always present on
+	// GET /api/models (`[]` before the first conversion lands);
+	// absent from every other response carrying a Model.
+	Lods           *[]LodArtifact `json:"lods,omitempty"`
+	Slug           string         `json:"slug"`
+	SourceBlobHash string         `json:"sourceBlobHash"`
 
 	// ThumbnailBlobHash Optional thumbnail image blob hash. Empty/absent = no thumbnail.
 	// Fetch the image from /api/assets/{thumbnailBlobHash}.
@@ -493,11 +531,16 @@ type ModelCreated struct {
 }
 
 // ModelUpdate Body for PATCH /api/models/{slug}. Updates mutable fields only; the
-// source archive and conversion are untouched. Omitted fields are left
-// unchanged.
+// slug, the source archive and conversion are untouched. Omitted fields
+// are left unchanged.
 type ModelUpdate struct {
+	Description *string `json:"description,omitempty"`
+
 	// ThumbnailBlobHash New thumbnail blob hash; empty string clears it.
 	ThumbnailBlobHash *string `json:"thumbnailBlobHash,omitempty"`
+
+	// Title New title; a blank one is refused with 400. The slug does not follow it.
+	Title *string `json:"title,omitempty"`
 }
 
 // Panorama Equirectangular panorama (Insta360 Pro source) anchored to a point
@@ -605,6 +648,11 @@ type Placement struct {
 	VisiblePanoramaIds *[]int64 `json:"visiblePanoramaIds,omitempty"`
 }
 
+// PlacementBatchCreate defines model for PlacementBatchCreate.
+type PlacementBatchCreate struct {
+	Items []PlacementCreate `json:"items"`
+}
+
 // PlacementCreate defines model for PlacementCreate.
 type PlacementCreate struct {
 	Label     *string `json:"label,omitempty"`
@@ -670,6 +718,11 @@ type Territory struct {
 	Description         *string    `json:"description,omitempty"`
 	ExternalPanoramaUrl *string    `json:"externalPanoramaUrl,omitempty"`
 
+	// Lods Every converted LOD, sorted by lod ascending. Always present on
+	// GET /api/territories (`[]` before the first conversion lands);
+	// absent from every other response carrying a Territory.
+	Lods *[]LodArtifact `json:"lods,omitempty"`
+
 	// PlacementCount Placements on this territory. Omitted when zero.
 	PlacementCount *int       `json:"placementCount,omitempty"`
 	Slug           string     `json:"slug"`
@@ -683,6 +736,9 @@ type TerritoryAdmins struct {
 	// UserIds Admin user ids assigned to the territory (full set).
 	UserIds []string `json:"userIds"`
 }
+
+// TerritoryAdminsMap Admin user ids per territory slug. Every territory the caller can see has a key; `[]` when nobody is assigned.
+type TerritoryAdminsMap map[string][]string
 
 // TerritoryCreated defines model for TerritoryCreated.
 type TerritoryCreated struct {
@@ -698,10 +754,14 @@ type TerritorySourceReplace struct {
 }
 
 // TerritoryUpdate Body for PATCH /api/territories/{slug}. Updates mutable fields only;
-// the source archive and conversion are untouched. Omitted fields are
-// left unchanged.
+// the slug, the source archive and conversion are untouched. Omitted
+// fields are left unchanged.
 type TerritoryUpdate struct {
+	Description         *string `json:"description,omitempty"`
 	ExternalPanoramaUrl *string `json:"externalPanoramaUrl,omitempty"`
+
+	// Title New title; a blank one is refused with 400. The slug does not follow it.
+	Title *string `json:"title,omitempty"`
 }
 
 // TokenResponse defines model for TokenResponse.
@@ -727,7 +787,9 @@ type TwoFactorStatus struct {
 
 // UpdateRoleRequest defines model for UpdateRoleRequest.
 type UpdateRoleRequest struct {
-	Title string `json:"title"`
+	// PermissionSlugs Optional. Present (even as []) replaces the role's permissions in the rename's transaction, under the same no-escalation check as PUT …/permissions. Absent leaves them untouched.
+	PermissionSlugs *[]string `json:"permissionSlugs,omitempty"`
+	Title           string    `json:"title"`
 }
 
 // UpdateUserRequest defines model for UpdateUserRequest.
@@ -818,6 +880,12 @@ type ListMyAuditParams struct {
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// CreatePlacementsParams defines parameters for CreatePlacements.
+type CreatePlacementsParams struct {
+	// IdempotencyKey 1–64 characters of `[A-Za-z0-9-]`; anything else is 400.
+	IdempotencyKey *string `json:"Idempotency-Key,omitempty"`
+}
+
 // AppendUploadChunkParams defines parameters for AppendUploadChunk.
 type AppendUploadChunkParams struct {
 	UploadOffset int64 `json:"Upload-Offset"`
@@ -855,6 +923,9 @@ type UpdatePanoramaJSONRequestBody = PanoramaUpdate
 
 // CreatePlacementJSONRequestBody defines body for CreatePlacement for application/json ContentType.
 type CreatePlacementJSONRequestBody = PlacementCreate
+
+// CreatePlacementsJSONRequestBody defines body for CreatePlacements for application/json ContentType.
+type CreatePlacementsJSONRequestBody = PlacementBatchCreate
 
 // UpdatePlacementJSONRequestBody defines body for UpdatePlacement for application/json ContentType.
 type UpdatePlacementJSONRequestBody = PlacementUpdate
@@ -969,6 +1040,9 @@ type ServerInterface interface {
 	// CreatePlacement Add a placement to a territory
 	// (POST /api/territories/{slug}/placements)
 	CreatePlacement(w http.ResponseWriter, r *http.Request, slug string)
+	// CreatePlacements Add 1–100 placements to a territory in one transaction
+	// (POST /api/territories/{slug}/placements/batch)
+	CreatePlacements(w http.ResponseWriter, r *http.Request, slug string, params CreatePlacementsParams)
 	// DeletePlacement Remove a placement
 	// (DELETE /api/territories/{slug}/placements/{id})
 	DeletePlacement(w http.ResponseWriter, r *http.Request, slug string, id int64)
@@ -984,6 +1058,9 @@ type ServerInterface interface {
 	// ReplaceTerritorySource Replace a territory's source archive and re-queue conversion
 	// (POST /api/territories/{slug}/source)
 	ReplaceTerritorySource(w http.ResponseWriter, r *http.Request, slug string)
+	// ListTerritoryAdmins Every visible territory's assigned admins in one call (Root only)
+	// (GET /api/territory-admins)
+	ListTerritoryAdmins(w http.ResponseWriter, r *http.Request)
 	// InitiateUpload Start a chunked upload session
 	// (POST /api/uploads)
 	InitiateUpload(w http.ResponseWriter, r *http.Request)
@@ -1203,6 +1280,12 @@ func (_ Unimplemented) CreatePlacement(w http.ResponseWriter, r *http.Request, s
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// CreatePlacements Add 1–100 placements to a territory in one transaction
+// (POST /api/territories/{slug}/placements/batch)
+func (_ Unimplemented) CreatePlacements(w http.ResponseWriter, r *http.Request, slug string, params CreatePlacementsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // DeletePlacement Remove a placement
 // (DELETE /api/territories/{slug}/placements/{id})
 func (_ Unimplemented) DeletePlacement(w http.ResponseWriter, r *http.Request, slug string, id int64) {
@@ -1230,6 +1313,12 @@ func (_ Unimplemented) GetSceneBundle(w http.ResponseWriter, r *http.Request, sl
 // ReplaceTerritorySource Replace a territory's source archive and re-queue conversion
 // (POST /api/territories/{slug}/source)
 func (_ Unimplemented) ReplaceTerritorySource(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListTerritoryAdmins Every visible territory's assigned admins in one call (Root only)
+// (GET /api/territory-admins)
+func (_ Unimplemented) ListTerritoryAdmins(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2290,6 +2379,56 @@ func (siw *ServerInterfaceWrapper) CreatePlacement(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// CreatePlacements operation middleware
+func (siw *ServerInterfaceWrapper) CreatePlacements(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreatePlacementsParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = &IdempotencyKey
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePlacements(w, r, slug, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeletePlacement operation middleware
 func (siw *ServerInterfaceWrapper) DeletePlacement(w http.ResponseWriter, r *http.Request) {
 
@@ -2438,6 +2577,20 @@ func (siw *ServerInterfaceWrapper) ReplaceTerritorySource(w http.ResponseWriter,
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ReplaceTerritorySource(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListTerritoryAdmins operation middleware
+func (siw *ServerInterfaceWrapper) ListTerritoryAdmins(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTerritoryAdmins(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2737,6 +2890,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Put(options.BaseURL+"/api/territories/{slug}/admins", wrapper.SetTerritoryAdmins)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/territory-admins", wrapper.ListTerritoryAdmins)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/territories/{slug}/source", wrapper.ReplaceTerritorySource)
 	})
 	r.Group(func(r chi.Router) {
@@ -2753,6 +2909,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/territories/{slug}/placements", wrapper.CreatePlacement)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/territories/{slug}/placements/batch", wrapper.CreatePlacements)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/territories/{slug}/placements/{id}", wrapper.DeletePlacement)
@@ -4812,6 +4971,100 @@ func (response CreatePlacement500JSONResponse) VisitCreatePlacementResponse(w ht
 	return err
 }
 
+type CreatePlacementsRequestObject struct {
+	Slug   string `json:"slug"`
+	Params CreatePlacementsParams
+	Body   *CreatePlacementsJSONRequestBody
+}
+
+type CreatePlacementsResponseObject interface {
+	VisitCreatePlacementsResponse(w http.ResponseWriter) error
+}
+
+type CreatePlacements201JSONResponse []Placement
+
+func (response CreatePlacements201JSONResponse) VisitCreatePlacementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePlacements400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreatePlacements400JSONResponse) VisitCreatePlacementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePlacements403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreatePlacements403JSONResponse) VisitCreatePlacementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePlacements404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreatePlacements404JSONResponse) VisitCreatePlacementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePlacements409JSONResponse Error
+
+func (response CreatePlacements409JSONResponse) VisitCreatePlacementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePlacements500JSONResponse struct{ InternalJSONResponse }
+
+func (response CreatePlacements500JSONResponse) VisitCreatePlacementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type DeletePlacementRequestObject struct {
 	Slug string `json:"slug"`
 	Id   int64  `json:"id"`
@@ -5093,6 +5346,69 @@ func (response ReplaceTerritorySource404JSONResponse) VisitReplaceTerritorySourc
 type ReplaceTerritorySource500JSONResponse struct{ InternalJSONResponse }
 
 func (response ReplaceTerritorySource500JSONResponse) VisitReplaceTerritorySourceResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTerritoryAdminsRequestObject struct {
+}
+
+type ListTerritoryAdminsResponseObject interface {
+	VisitListTerritoryAdminsResponse(w http.ResponseWriter) error
+}
+
+type ListTerritoryAdmins200JSONResponse TerritoryAdminsMap
+
+func (response ListTerritoryAdmins200JSONResponse) VisitListTerritoryAdminsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTerritoryAdmins401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListTerritoryAdmins401JSONResponse) VisitListTerritoryAdminsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTerritoryAdmins403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListTerritoryAdmins403JSONResponse) VisitListTerritoryAdminsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTerritoryAdmins500JSONResponse struct{ InternalJSONResponse }
+
+func (response ListTerritoryAdmins500JSONResponse) VisitListTerritoryAdminsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -5487,6 +5803,9 @@ type StrictServerInterface interface {
 	// CreatePlacement Add a placement to a territory
 	// (POST /api/territories/{slug}/placements)
 	CreatePlacement(ctx context.Context, request CreatePlacementRequestObject) (CreatePlacementResponseObject, error)
+	// CreatePlacements Add 1–100 placements to a territory in one transaction
+	// (POST /api/territories/{slug}/placements/batch)
+	CreatePlacements(ctx context.Context, request CreatePlacementsRequestObject) (CreatePlacementsResponseObject, error)
 	// DeletePlacement Remove a placement
 	// (DELETE /api/territories/{slug}/placements/{id})
 	DeletePlacement(ctx context.Context, request DeletePlacementRequestObject) (DeletePlacementResponseObject, error)
@@ -5502,6 +5821,9 @@ type StrictServerInterface interface {
 	// ReplaceTerritorySource Replace a territory's source archive and re-queue conversion
 	// (POST /api/territories/{slug}/source)
 	ReplaceTerritorySource(ctx context.Context, request ReplaceTerritorySourceRequestObject) (ReplaceTerritorySourceResponseObject, error)
+	// ListTerritoryAdmins Every visible territory's assigned admins in one call (Root only)
+	// (GET /api/territory-admins)
+	ListTerritoryAdmins(ctx context.Context, request ListTerritoryAdminsRequestObject) (ListTerritoryAdminsResponseObject, error)
 	// InitiateUpload Start a chunked upload session
 	// (POST /api/uploads)
 	InitiateUpload(ctx context.Context, request InitiateUploadRequestObject) (InitiateUploadResponseObject, error)
@@ -6490,6 +6812,40 @@ func (sh *strictHandler) CreatePlacement(w http.ResponseWriter, r *http.Request,
 	}
 }
 
+// CreatePlacements operation middleware
+func (sh *strictHandler) CreatePlacements(w http.ResponseWriter, r *http.Request, slug string, params CreatePlacementsParams) {
+	var request CreatePlacementsRequestObject
+
+	request.Slug = slug
+	request.Params = params
+
+	var body CreatePlacementsJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreatePlacements(ctx, request.(CreatePlacementsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreatePlacements")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreatePlacementsResponseObject); ok {
+		if err := validResponse.VisitCreatePlacementsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // DeletePlacement operation middleware
 func (sh *strictHandler) DeletePlacement(w http.ResponseWriter, r *http.Request, slug string, id int64) {
 	var request DeletePlacementRequestObject
@@ -6637,6 +6993,30 @@ func (sh *strictHandler) ReplaceTerritorySource(w http.ResponseWriter, r *http.R
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ReplaceTerritorySourceResponseObject); ok {
 		if err := validResponse.VisitReplaceTerritorySourceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListTerritoryAdmins operation middleware
+func (sh *strictHandler) ListTerritoryAdmins(w http.ResponseWriter, r *http.Request) {
+	var request ListTerritoryAdminsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTerritoryAdmins(ctx, request.(ListTerritoryAdminsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTerritoryAdmins")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTerritoryAdminsResponseObject); ok {
+		if err := validResponse.VisitListTerritoryAdminsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
@@ -16,6 +17,18 @@ func validateArtifact(a domain.Artifact) error {
 	}
 	if a.Hash == "" {
 		return fmt.Errorf("%w: empty hash", domain.ErrInvalidInput)
+	}
+	return nil
+}
+
+// validatePatch refuses what no partial edit may write: a row with no slug to
+// address it by, or a title sent blank. A nil title is left alone.
+func validatePatch(slug string, title *string) error {
+	switch {
+	case slug == "":
+		return fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
+	case title != nil && strings.TrimSpace(*title) == "":
+		return fmt.Errorf("%w: empty title", domain.ErrInvalidInput)
 	}
 	return nil
 }

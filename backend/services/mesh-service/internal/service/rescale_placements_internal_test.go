@@ -31,13 +31,17 @@ func (s *RescaleAfterConvertSuite) SetupTest() {
 	s.ctx = s.T().Context()
 }
 
-// lod0Result is a LOD0 result whose source bbox has longest axis = 10.
+// lod0Result is a LOD0 result whose source bbox has longest axis 10 and
+// center (3, 1, 3).
 func lod0Result() []domain.ConversionResult {
-	return []domain.ConversionResult{{BBoxMax: domain.Vec3{X: 10, Y: 2, Z: 5}}}
+	return []domain.ConversionResult{{
+		BBoxMin: domain.Vec3{X: -2, Y: 0, Z: 1},
+		BBoxMax: domain.Vec3{X: 8, Y: 2, Z: 5},
+	}}
 }
 
-func (s *RescaleAfterConvertSuite) TestTerritoryRescalesWithLOD0MaxAxis() {
-	s.cat.RescaleTerritoryPlacementsMock.Expect(s.ctx, "t1", 10.0).Return(nil)
+func (s *RescaleAfterConvertSuite) TestTerritoryRescalesWithLOD0MaxAxisAndCenter() {
+	s.cat.RescaleTerritoryPlacementsMock.Expect(s.ctx, "t1", 10.0, domain.Vec3{X: 3, Y: 1, Z: 3}).Return(nil)
 	err := s.m.rescaleAfterConvert(s.ctx, domain.KindTerritory, "t1", lod0Result())
 	assert.NilError(s.T(), err)
 }

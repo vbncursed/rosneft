@@ -13,10 +13,28 @@ import (
 func (s *UsersSuite) TestUpdateBlocksRoleEscalation() {
 	s.st.GetByIDMock.When(s.ctx, "u2").Then(domain.User{ID: "u2"}, nil)
 	s.st.GetByIDMock.When(s.ctx, "editor").Then(domain.User{ID: "editor", Permissions: []string{"placement:write"}}, nil)
-	s.st.PermissionsForRolesMock.Expect(s.ctx, []string{"admin"}).Return([]string{"territory:write", "users:write"}, nil)
+	s.st.PermissionsForRolesMock.Expect(s.ctx, []string{"manager"}).Return([]string{"territory:write", "users:write"}, nil)
 
-	_, err := s.svc.Update(s.ctx, "editor", true, "u2", []string{"admin"}, "", "")
+	_, err := s.svc.Update(s.ctx, "editor", true, "u2", []string{"manager"}, "", "")
 	assert.ErrorIs(s.T(), err, domain.ErrPrivilegeEscalation)
+}
+
+// A Company Owner holds every permission of the admin role, so the subset check
+// alone would let them mint another Company Owner — one they could then no
+// longer see. Only Root hands out the admin role.
+func (s *UsersSuite) TestUpdateRefusesAdminRoleFromNonRoot() {
+	s.st.GetByIDMock.When(s.ctx, "u2").Then(domain.User{ID: "u2", CreatedBy: new("co")}, nil)
+	s.st.GetByIDMock.When(s.ctx, "co").Then(domain.User{ID: "co", RoleSlugs: []string{"admin"}}, nil)
+
+	_, err := s.svc.Update(s.ctx, "co", false, "u2", []string{"guest", "admin"}, "", "")
+	assert.ErrorIs(s.T(), err, domain.ErrAdminOwnerOnly)
+}
+
+func (s *UsersSuite) TestCreateRefusesAdminRoleFromNonRoot() {
+	s.st.GetByIDMock.Expect(s.ctx, "co").Return(domain.User{ID: "co", RoleSlugs: []string{"admin"}}, nil)
+
+	_, err := s.svc.Create(s.ctx, "co", "new@example.com", "newbie", "Passw0rd!", []string{"admin"})
+	assert.ErrorIs(s.T(), err, domain.ErrAdminOwnerOnly)
 }
 
 // The owner bypasses the subset check and the assignment goes through.

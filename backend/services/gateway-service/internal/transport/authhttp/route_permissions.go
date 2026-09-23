@@ -34,12 +34,13 @@ var routePerms = map[string][]string{
 	"DELETE /api/territories/{slug}": {"territory:delete"},
 	// Replacing the source model is a write on the territory: it feeds a
 	// reconversion, same grant as PATCH.
-	"POST /api/territories/{slug}/source":         {"territory:write"},
-	"POST /api/models":                            {"model:write"},
-	"PATCH /api/models/{slug}":                    {"model:write"},
-	"DELETE /api/models/{slug}":                   {"model:delete"},
-	"POST /api/territories/{slug}/placements":     {"placement:create"},
-	"PUT /api/territories/{slug}/placements/{id}": {"placement:write"},
+	"POST /api/territories/{slug}/source":           {"territory:write"},
+	"POST /api/models":                              {"model:write"},
+	"PATCH /api/models/{slug}":                      {"model:write"},
+	"DELETE /api/models/{slug}":                     {"model:delete"},
+	"POST /api/territories/{slug}/placements":       {"placement:create"},
+	"POST /api/territories/{slug}/placements/batch": {"placement:create"},
+	"PUT /api/territories/{slug}/placements/{id}":   {"placement:write"},
 	// The panorama allowlist is part of the placement: same grant as the transform.
 	"PUT /api/territories/{slug}/placements/{id}/visibility": {"placement:write"},
 	"DELETE /api/territories/{slug}/placements/{id}":         {"placement:delete"},

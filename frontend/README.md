@@ -54,20 +54,22 @@ signed-in principal's permissions (`app/router/guard.ts`) and redirects to it.
 outcome as a toast — `shared/lib/notify`, whose Toaster
 `app/router/console-shell.tsx` mounts around the whole console. Audit is one
 infinite query that follows the newest page and stops following once you page
-back; Metrics is one query per panel, keyed on the range the URL holds
-(`?range=`, `1h` by default) and polled every 30 s in a visible tab, where a
-failed panel is one dark card rather than a blank dashboard. Content also
-watches `GET /api/jobs`, polled
-every five seconds only while a conversion is live, so a row shows its
-progress and stage as it converts and the worker's message when it fails.
+back; Metrics is one request for every panel, keyed on the range the URL
+holds (`?range=`, `1h` by default) and polled every 30 s in a visible tab; a
+panel missing from one answer keeps its last series, marked stale, and only a
+panel never answered is one dark card rather than a blank dashboard. Content
+also watches `GET /api/jobs`, polled every five seconds only while a
+conversion is live, so a row shows its progress and stage as it converts and
+the worker's message when it fails.
 
-Three rulings a reader would otherwise trip on. **Reset password is not
-rendered** — nothing can reset one yet, and an action with no endpoint is not
-drawn. **There is no owner toggle**: it is not drawn in the mocks, and
-although the gateway offers the endpoint it is deliberately left unwired.
-(Role delete, by contrast, is wired.) **A role's people count is unknown, not zero,
-without `users:read`** — the people list is never requested, so the card reads
-"— users" and the distribution meter says "unavailable".
+Three rulings a reader would otherwise trip on. **Reset password is drawn
+only where the gateway would allow it**: never on your own row or a deleted
+account, and on a Company Owner's or Root's only for Root. **There is no owner
+toggle**: it is not drawn in the mocks, and although the gateway offers the
+endpoint it is deliberately left unwired. (Role delete, by contrast, is
+wired.) **A role's people count is unknown, not zero, without `users:read`** —
+the people list is never requested, so the card reads "— users" and the
+distribution meter says "unavailable".
 
 **Passkey sign-in is not wired**, by decision of the spec (passkey
 *management* on `/account` is). `CredentialsForm` draws the button only when

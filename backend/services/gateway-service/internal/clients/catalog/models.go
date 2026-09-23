@@ -31,7 +31,23 @@ func (c *Client) GetModel(ctx context.Context, slug string) (domain.Model, error
 	return modelFromProto(resp.GetModel()), nil
 }
 
-// UpsertModel creates or updates a model by slug.
+// UpdateModel writes only the fields u sets — see UpdateTerritory.
+func (c *Client) UpdateModel(ctx context.Context, slug string, u domain.ModelUpdate) (domain.Model, error) {
+	resp, err := c.cc.UpdateModel(ctx, &catalogv1.UpdateModelRequest{
+		Slug:              slug,
+		Title:             u.Title,
+		Description:       u.Description,
+		ThumbnailBlobHash: u.ThumbnailBlobHash,
+	})
+	if err != nil {
+		return domain.Model{}, fmt.Errorf("catalog.UpdateModel: %w", grpcerr.MapStatus(err, domain.ErrModelNotFound))
+	}
+	return modelFromProto(resp.GetModel()), nil
+}
+
+// UpsertModel creates a model (the RPC keeps its old name). The catalog derives
+// the slug from the title; it never rewrites an existing row — edits go
+// through UpdateModel.
 func (c *Client) UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error) {
 	resp, err := c.cc.UpsertModel(ctx, &catalogv1.UpsertModelRequest{Model: modelToProto(m)})
 	if err != nil {

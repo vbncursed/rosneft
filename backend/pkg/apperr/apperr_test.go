@@ -2,6 +2,7 @@ package apperr_test
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -69,4 +70,44 @@ func (s *AppErrSuite) TestWriteStatus() {
 	assert.Equal(s.T(), rec.Code, http.StatusForbidden)
 	assert.Equal(s.T(), rec.Header().Get("Content-Type"), "application/json")
 	assert.Equal(s.T(), rec.Body.String(), `{"code":"forbidden","message":"nope"}`+"\n")
+}
+
+// A 5xx never carries the status text: it names hosts, SQL and call paths.
+func (s *AppErrSuite) TestWriteStatusHidesAServerErrorsText() {
+	for _, c := range []codes.Code{codes.Internal, codes.Unavailable, codes.Unknown} {
+		rec := httptest.NewRecorder()
+		apperr.WriteStatus(rec, status.Error(c, "dial tcp 10.0.0.7:9004: connection refused"))
+		assert.Equal(s.T(), rec.Code, http.StatusInternalServerError)
+		assert.Equal(s.T(), rec.Body.String(), `{"code":"internal","message":"internal error"}`+"\n")
+	}
+}
+
+// A refusal's message starts at its sentinel: the gateway shows it to the
+// browser, so the layers' "service.X:" prefixes stay behind. Internal keeps
+// its whole text for the gateway's log.
+func (s *AppErrSuite) TestToStatusAtSentinel() {
+	tests := []struct {
+		name string
+		err  error
+		code codes.Code
+		msg  string
+	}{
+		{
+			name: "wrapped refusal", err: fmt.Errorf("users.Create: %w", fmt.Errorf("%w: password too short", errBadInput)),
+			code: codes.InvalidArgument, msg: "bad input: password too short",
+		},
+		{name: "bare sentinel", err: errNotFound, code: codes.NotFound, msg: "thing not found"},
+		{
+			name: "internal keeps its detail", err: fmt.Errorf("store.Get: %w", errors.New("conn reset")),
+			code: codes.Internal, msg: "internal: store.Get: conn reset",
+		},
+	}
+	for _, tt := range tests {
+		s.Run(tt.name, func() {
+			st := status.Convert(apperr.ToStatusAtSentinel(tt.err, table))
+			assert.Equal(s.T(), st.Code(), tt.code)
+			assert.Equal(s.T(), st.Message(), tt.msg)
+		})
+	}
+	assert.NilError(s.T(), apperr.ToStatusAtSentinel(nil, table))
 }

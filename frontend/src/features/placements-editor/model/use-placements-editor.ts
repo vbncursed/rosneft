@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
-  createPlacement,
+  createPlacements,
   deletePlacement,
   idle,
   creating,
@@ -15,7 +15,7 @@ import {
   type ResolvedPlacement,
 } from "@/entities/placement";
 import type { ModelOption } from "@/entities/scene";
-import { messageOf } from "@/shared/api";
+import { HttpError, messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
 
 export type PlacementsEditorParams = {
@@ -26,18 +26,18 @@ export type PlacementsEditorParams = {
   territoryMaxDim: number;
   /** Panoramas a newly created object is visible in (spec §6.1: everywhere loaded). */
   panoramaIds: number[];
-  /** Every successful mutation calls this; the page refetches the scene bundle. */
+  /** Every successful mutation calls this; the page marks the scene bundle stale. */
   onChanged: () => void;
 };
 
-/** How far a batch of N has got. Null when nothing is being placed. */
-export type Placing = { done: number; total: number };
+/** How big the batch in flight is. Null when nothing is being placed. */
+export type Placing = { total: number };
 
 /**
- * The placement editor's state: the list, the in-flight mutation and the
- * batch-create progress. Mutations are optimistic — each swaps the
- * server-acknowledged placement into local state — and every success asks the
- * page to refetch, so the scene and the panel never disagree for long.
+ * The placement editor's state: the list, the in-flight mutation and the batch
+ * being placed. Mutations are optimistic — each swaps the server-acknowledged
+ * placement into local state — and every success tells the page (`onChanged`),
+ * which marks the bundle stale so the next visit re-reads it.
  */
 export function usePlacementsEditor({
   slug,
@@ -51,6 +51,11 @@ export function usePlacementsEditor({
   const [mutation, setMutation] = useState<MutationState>(idle);
   const [placing, setPlacing] = useState<Placing | null>(null);
   const [, startTransition] = useTransition();
+  // The key of the last placing action that did not come back with rows. The
+  // same model × count placed again is that action retried, and must carry its
+  // key: the batch may have landed with only the answer lost. Anything else, or
+  // anything after a success, is a new action and gets a new key.
+  const unsettled = useRef<{ modelSlug: string; total: number; key: string } | null>(null);
 
   const resolve = useCallback(
     (p: Placement): ResolvedPlacement => ({
@@ -65,9 +70,14 @@ export function usePlacementsEditor({
   const create = useCallback(
     async (modelSlug: string, count: number): Promise<number | null> => {
       const total = Math.max(1, Math.floor(count));
-      const created: ResolvedPlacement[] = [];
+      const retried = unsettled.current;
+      const action =
+        retried?.modelSlug === modelSlug && retried.total === total
+          ? retried
+          : { modelSlug, total, key: crypto.randomUUID() };
+      unsettled.current = action;
       setMutation(creating);
-      setPlacing({ done: 0, total });
+      setPlacing({ total });
       try {
         // Both GLBs are normalised to max-axis 2, so scale 1 would draw the
         // model as large as the whole territory. Lay the copies in a row along
@@ -78,32 +88,30 @@ export function usePlacementsEditor({
           territoryMaxDim,
         );
         const step = 2 * scale * 1.1;
-        for (let i = 0; i < total; i++) {
-          // ponytail: N sequential POSTs; add a batch endpoint if N grows large.
-          const placement = await createPlacement(slug, {
-            modelSlug,
-            position: { x: i * step, y: 0, z: 0 },
-            scale: { x: scale, y: scale, z: scale },
-            visiblePanoramaIds: panoramaIds,
-          });
-          created.push(resolve(placement));
-          setPlacing({ done: i + 1, total });
-        }
-        return created[created.length - 1].id;
+        const items = Array.from({ length: total }, (_, i) => ({
+          modelSlug,
+          position: { x: i * step, y: 0, z: 0 },
+          scale: { x: scale, y: scale, z: scale },
+          visiblePanoramaIds: panoramaIds,
+        }));
+        // One transaction on the gateway: the batch lands whole or not at all,
+        // so a refusal leaves nothing to show and nothing to mark stale. The
+        // picker caps N at 99, under the endpoint's 100.
+        const created = (await createPlacements(slug, items, action.key)).map(resolve);
+        unsettled.current = null;
+        startTransition(() => setPlacements((prev) => [...prev, ...created]));
+        onChanged();
+        return created.at(-1)?.id ?? null;
       } catch (err) {
-        // A refusal part-way through a batch leaves the POSTs before it
-        // standing on the server. The rows that landed are shown, and the
-        // refetch reconciles the rest; the answer is still null, because
-        // there is no last id to select.
         notify.error(messageOf(err));
+        // A 409: the key already names another batch, and keeping it would
+        // refuse every identical placement after this one.
+        if (err instanceof HttpError && err.status === 409) unsettled.current = null;
+        // No HTTP answer (a dropped line) means the gateway may have committed
+        // the batch anyway: mark the bundle stale so the next visit shows it.
+        if (!(err instanceof HttpError)) onChanged();
         return null;
       } finally {
-        // Both paths: whatever the loop got through exists, so it belongs on
-        // screen, and onChanged tells the page to refetch the bundle.
-        if (created.length > 0) {
-          startTransition(() => setPlacements((prev) => [...prev, ...created]));
-          onChanged();
-        }
         setPlacing(null);
         setMutation(idle);
       }
@@ -153,9 +161,9 @@ export function usePlacementsEditor({
         notify.error(messageOf(err));
       } finally {
         // Both ways: a refused delete may mean the row is already gone for
-        // another reason, and only the gateway can say. The page re-keys the
-        // editor on the bundle it refetches — this hook does not adopt a
-        // changed `initial` on its own.
+        // another reason, and only the gateway can say. The page marks the
+        // bundle stale and the next visit seeds from a fresh one — this hook
+        // does not adopt a changed `initial` on its own.
         onChanged();
         setMutation(idle);
       }

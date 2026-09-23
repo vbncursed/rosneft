@@ -18,5 +18,14 @@ export function shouldRetry(failureCount: number, error: unknown): boolean {
 }
 
 export const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: shouldRetry } },
+  defaultOptions: {
+    queries: {
+      retry: shouldRetry,
+      // A minute of trust: screens that share a list (the catalogs, Content,
+      // Home) stop re-asking on every navigation and every tab switch. Polls
+      // keep their own refetchInterval; a write invalidates what it changed.
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+    },
+  },
 });

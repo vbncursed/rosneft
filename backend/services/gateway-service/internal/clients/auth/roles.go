@@ -18,8 +18,15 @@ func (c *Client) CreateRole(ctx context.Context, token, slug, title string, perm
 	return c.cc.CreateRole(ctx, &authv1.CreateRoleRequest{Token: token, Slug: slug, Title: title, PermissionSlugs: perms})
 }
 
-func (c *Client) UpdateRole(ctx context.Context, token, slug, title string) (*authv1.Role, error) {
-	return c.cc.UpdateRole(ctx, &authv1.UpdateRoleRequest{Token: token, Slug: slug, Title: title})
+// UpdateRole renames a role; a non-nil perms also replaces its grants in the
+// same auth-service transaction. nil leaves them untouched; an empty list
+// strips them.
+func (c *Client) UpdateRole(ctx context.Context, token, slug, title string, perms *[]string) (*authv1.Role, error) {
+	req := &authv1.UpdateRoleRequest{Token: token, Slug: slug, Title: title}
+	if perms != nil {
+		req.PermissionSlugs, req.ReplacePermissions = *perms, true
+	}
+	return c.cc.UpdateRole(ctx, req)
 }
 
 func (c *Client) DeleteRole(ctx context.Context, token, slug string) error {

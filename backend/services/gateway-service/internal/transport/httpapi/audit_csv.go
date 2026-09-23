@@ -54,7 +54,7 @@ func (s *Server) ServeAuditCSV(w http.ResponseWriter, r *http.Request) {
 	// The export stays behind audit:read — it is the whole company's history in
 	// one file, which is not what a read_own grant opens. InitRouter applies
 	// that gate by hand; the principal here only carries the scope through.
-	p := auditPrincipal(ctx)
+	p := AuditPrincipal(ctx)
 	// Forwarded to auth so the exported rows carry logins next to the ids.
 	// Authenticate runs on this route by hand, so the token is on the context.
 	token := authhttp.Token(ctx)

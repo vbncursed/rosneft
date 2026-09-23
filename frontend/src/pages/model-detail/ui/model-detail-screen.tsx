@@ -1,4 +1,6 @@
 import { useParams } from "@tanstack/react-router";
+import { useState } from "react";
+import { EditDetailsDialog } from "@/features/edit-entity";
 import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { EmptyState } from "@/shared/ui/card";
@@ -10,6 +12,7 @@ import { ModelDetailPage } from "./model-detail-page";
 export function ModelDetailScreen() {
   const { slug } = useParams({ strict: false }) as { slug: string };
   const s = useModelDetail(slug);
+  const [editing, setEditing] = useState(false);
 
   if (s.phase === "loading") {
     return (
@@ -50,6 +53,7 @@ export function ModelDetailScreen() {
         onDelete={s.onDelete}
         onThumbnail={s.onThumbnail}
         onRemoveThumbnail={s.onRemoveThumbnail}
+        onEdit={() => setEditing(true)}
       />
       {s.pending ? (
         <ConfirmDialog
@@ -61,6 +65,15 @@ export function ModelDetailScreen() {
           busy={s.deleteBusy}
           onConfirm={s.confirm}
           onCancel={s.dismiss}
+        />
+      ) : null}
+      {editing ? (
+        <EditDetailsDialog
+          kind="model"
+          slug={s.model.slug}
+          title={s.model.title}
+          description={s.model.description}
+          onClose={() => setEditing(false)}
         />
       ) : null}
     </>

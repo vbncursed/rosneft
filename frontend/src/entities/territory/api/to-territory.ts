@@ -14,5 +14,6 @@ export function toTerritory(d: TerritoryDto): Territory {
     ...(d.createdAt ? { createdAt: d.createdAt } : {}),
     ...(d.updatedAt ? { updatedAt: d.updatedAt } : {}),
     placementCount: d.placementCount ?? 0,
+    ...(d.lods ? { lods: d.lods } : {}),
   };
 }

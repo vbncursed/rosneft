@@ -145,6 +145,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/territory-admins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every visible territory's assigned admins in one call (Root only)
+         * @description The batch form of GET /api/territories/{slug}/admins, with the same Root-only gate. Not /api/territories/admins: chi would shadow a territory whose slug is `admins`. It sits outside /api/territories/{slug}, so RequireTerritoryAccess does not cover it; the handler reads the territory set through the caller's scope, the rule GET /api/territories applies.
+         */
+        get: operations["listTerritoryAdmins"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/territories/{slug}/source": {
         parameters: {
             query?: never;
@@ -242,6 +262,30 @@ export interface paths {
         put?: never;
         /** Add a placement to a territory */
         post: operations["createPlacement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/territories/{slug}/placements/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add 1–100 placements to a territory in one transaction
+         * @description All or nothing: one catalog transaction, so a bad item (unknown model, non-positive scale, a panorama of another territory) leaves no rows. Answers the created placements in `items` order. Needs placement:create; covered by the territory gate like every route under /api/territories/{slug}.
+         *
+         *     With `Idempotency-Key`, a retry is safe: a batch already stored under that key on this territory is answered as stored — 201, the same rows in the same order — and nothing is written, however long ago it was sent. Two concurrent requests with one key write one batch and both answer it. A key already naming a batch of another size is 409. Keys are per territory; without the header every request writes.
+         */
+        post: operations["createPlacements"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1314,7 +1358,7 @@ export interface paths {
                 400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
-                /** @description Email or username already exists */
+                /** @description Email or username is unavailable */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -1705,6 +1749,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/users/{id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set a user's password and sign them out everywhere (requires users:write)
+         * @description No old password is asked. Root may set anyone's; everyone else only the password of a user they created, and never an admin's or Root's. The caller's own password goes through POST /api/auth/me/password, which asks for the old one. An id outside the caller's scope answers 404, like an unknown one. A 500 after the write means the sign-out failed; retrying is safe.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        password: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Password set; every session of the user revoked */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                /** @description Self-target guard */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                500: components["responses"]["Internal"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/roles": {
         parameters: {
             query?: never;
@@ -1822,7 +1923,7 @@ export interface paths {
         };
         options?: never;
         head?: never;
-        /** Rename a role (requires roles:manage) */
+        /** Rename a role and optionally replace its permissions (requires roles:manage) */
         patch: {
             parameters: {
                 query?: never;
@@ -1847,6 +1948,7 @@ export interface paths {
                         "application/json": components["schemas"]["AuthRole"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
@@ -2109,14 +2211,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Owner-only Prometheus panel query
-         * @description Resolves a dashboard panel ID to server-side PromQL and runs it against Prometheus. The PromQL never leaves the server and no caller-supplied expression reaches Prometheus — `panel` and `range` are both validated against server-side allow-lists, so the endpoint is not an SSRF or query injection surface. Requires a valid session AND the owner flag; a non-owner with a valid token gets 403. Responses are `Cache-Control: no-store`.
+         * Owner-only Prometheus query for one or more panels
+         * @description Resolves each dashboard panel ID to server-side PromQL and runs it against Prometheus. The PromQL never leaves the server and no caller-supplied expression reaches Prometheus — every `panel` and the `range` are validated against server-side allow-lists, so the endpoint is not an SSRF or query injection surface. Requires a valid session AND the owner flag; a non-owner with a valid token gets 403. Responses are `Cache-Control: no-store`.
          */
         get: {
             parameters: {
                 query: {
-                    /** @description Panel ID from the server-side registry, mirrored by the client's panel-catalog. Instant (single-value) panels return one point per series; the rest are range queries of roughly 200 points. */
-                    panel: "stat-up" | "stat-rps" | "stat-errors" | "stat-p99" | "stat-queue" | "services-up" | "red-rate" | "red-errors" | "red-latency" | "red-http" | "domain-conversions" | "domain-conversion-p95" | "domain-queue" | "domain-upload" | "domain-auth" | "domain-twofa" | "runtime-memory" | "runtime-goroutines" | "runtime-gc" | "runtime-fds" | "alerts";
+                    /** @description One or more panel IDs, repeated (`?panel=a&panel=b`); repeats collapse to one key. Every ID is checked before any query runs. Instant panels return one point per series; the rest are range queries of roughly 200 points. */
+                    panel: ("stat-up" | "stat-rps" | "stat-errors" | "stat-p99" | "stat-queue" | "services-up" | "red-rate" | "red-errors" | "red-latency" | "red-http" | "domain-conversions" | "domain-conversion-p95" | "domain-queue" | "domain-upload" | "domain-auth" | "domain-twofa" | "runtime-memory" | "runtime-goroutines" | "runtime-gc" | "runtime-fds" | "alerts")[];
                     /** @description Query window. Step is derived server-side (~200 points, rounded to whole 15s scrapes). */
                     range: "15m" | "1h" | "6h" | "24h" | "7d";
                 };
@@ -2126,13 +2228,13 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description One entry per time series */
+                /** @description The series of every requested panel, keyed by panel ID. Panels run in parallel, at most four at a time; a panel whose query failed is absent from the map, and the answer is 502 only when every panel failed. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MetricSeries"][];
+                        "application/json": components["schemas"]["MetricsPanels"];
                     };
                 };
                 /** @description Unknown panel ID or unsupported range */
@@ -2157,6 +2259,26 @@ export interface paths {
                 };
             };
         };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/console/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Home's console cards as numbers, in one request
+         * @description Each card is read in parallel with the caller's own session and scope, from the source its console screen reads. Answers `Cache-Control: no-store`. A Viewer, who opens no console screen, gets `{}`.
+         */
+        get: operations["getConsoleSummary"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2351,6 +2473,12 @@ export interface components {
             updatedAt?: string;
             /** @description Placements on this territory. Omitted when zero. */
             placementCount?: number;
+            /**
+             * @description Every converted LOD, sorted by lod ascending. Always present on
+             *     GET /api/territories (`[]` before the first conversion lands);
+             *     absent from every other response carrying a Territory.
+             */
+            lods?: components["schemas"]["LodArtifact"][];
         };
         Model: {
             slug: string;
@@ -2368,6 +2496,12 @@ export interface components {
             updatedAt?: string;
             /** @description Distinct territories placing this model, across every territory. Omitted when zero. */
             usageCount?: number;
+            /**
+             * @description Every converted LOD, sorted by lod ascending. Always present on
+             *     GET /api/models (`[]` before the first conversion lands);
+             *     absent from every other response carrying a Model.
+             */
+            lods?: components["schemas"]["LodArtifact"][];
         };
         /**
          * @description Minimal descriptor for one LOD level. Carries only size/geometry
@@ -2463,6 +2597,9 @@ export interface components {
             label?: string;
             /** @description Initial panorama allowlist (e.g. the active panorama). */
             visiblePanoramaIds?: number[];
+        };
+        PlacementBatchCreate: {
+            items: components["schemas"]["PlacementCreate"][];
         };
         PlacementUpdate: {
             position?: components["schemas"]["Vec3"];
@@ -2597,24 +2734,34 @@ export interface components {
         };
         /**
          * @description Body for PATCH /api/models/{slug}. Updates mutable fields only; the
-         *     source archive and conversion are untouched. Omitted fields are left
-         *     unchanged.
+         *     slug, the source archive and conversion are untouched. Omitted fields
+         *     are left unchanged.
          */
         ModelUpdate: {
+            /** @description New title; a blank one is refused with 400. The slug does not follow it. */
+            title?: string;
+            description?: string;
             /** @description New thumbnail blob hash; empty string clears it. */
             thumbnailBlobHash?: string;
         };
         /**
          * @description Body for PATCH /api/territories/{slug}. Updates mutable fields only;
-         *     the source archive and conversion are untouched. Omitted fields are
-         *     left unchanged.
+         *     the slug, the source archive and conversion are untouched. Omitted
+         *     fields are left unchanged.
          */
         TerritoryUpdate: {
+            /** @description New title; a blank one is refused with 400. The slug does not follow it. */
+            title?: string;
+            description?: string;
             externalPanoramaUrl?: string;
         };
         TerritoryAdmins: {
             /** @description Admin user ids assigned to the territory (full set). */
             userIds: string[];
+        };
+        /** @description Admin user ids per territory slug. Every territory the caller can see has a key; `[]` when nobody is assigned. */
+        TerritoryAdminsMap: {
+            [key: string]: string[];
         };
         /**
          * @description Body for POST /api/territories/{slug}/source. Carries the hash of a
@@ -2847,6 +2994,8 @@ export interface components {
         };
         UpdateRoleRequest: {
             title: string;
+            /** @description Optional. Present (even as []) replaces the role's permissions in the rename's transaction, under the same no-escalation check as PUT …/permissions. Absent leaves them untouched. */
+            permissionSlugs?: string[];
         };
         SetRolePermissionsRequest: {
             permissionSlugs: string[];
@@ -2871,6 +3020,34 @@ export interface components {
             labels?: {
                 [key: string]: string;
             };
+        };
+        /** @description One key per console card the caller can open. A card they cannot open is absent and its source is never asked. A card whose source failed is null. The gates mirror the SPA's console screens. */
+        ConsoleSummary: {
+            /** @description users:read. Live accounts (deleted excluded) and how many are frozen. */
+            users?: {
+                total: number;
+                frozen: number;
+            } | null;
+            /** @description roles:read. Roles the caller sees; size of the permission catalog. */
+            roles?: {
+                roles: number;
+                permissions: number;
+            } | null;
+            /** @description territory:write or model:write. The caller's visible territories; every model. */
+            content?: {
+                territories: number;
+                models: number;
+            } | null;
+            /** @description Root. Territory-admin assignments summed over every territory. */
+            access?: number | null;
+            /** @description audit:read. Journal rows from the start of the hour 23 hours ago, in the caller's audit scope: the 24 buckets the journal page draws. */
+            audit24h?: number | null;
+            /** @description Root. Alert rules firing (alertname/service/severity; replicas count once). */
+            alerts?: number | null;
+        };
+        /** @description Series per requested panel ID; a panel whose query failed is absent. */
+        MetricsPanels: {
+            [key: string]: components["schemas"]["MetricSeries"][];
         };
         Health: {
             /** @enum {string} */
@@ -3293,6 +3470,29 @@ export interface operations {
             500: components["responses"]["Internal"];
         };
     };
+    listTerritoryAdmins: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TerritoryAdminsMap"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["Internal"];
+        };
+    };
     replaceTerritorySource: {
         parameters: {
             query?: never;
@@ -3445,6 +3645,48 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    createPlacements: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description 1–64 characters of `[A-Za-z0-9-]`; anything else is 400. */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementBatchCreate"];
+            };
+        };
+        responses: {
+            /** @description Created (or replayed), in items order */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Placement"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description The Idempotency-Key already names a batch of another size on this territory */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             500: components["responses"]["Internal"];
         };
     };
@@ -4146,6 +4388,27 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["Internal"];
+        };
+    };
+    getConsoleSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsoleSummary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
         };
     };
 }

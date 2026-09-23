@@ -9,16 +9,27 @@ import (
 // Scope tests extend UsersSuite (defined in users_test.go) — owner-scoped
 // visibility of the user list and single-user fetches.
 
+// No GetByID expectation in the List tests: the transport already knows
+// whether the actor is Root, so a lookup would fail the controller.
 func (s *UsersSuite) TestListScopedToOwner() {
-	s.st.ListMock.Expect(s.ctx, "", false, "owner1").Return([]domain.User{{ID: "u2"}}, nil)
-	out, err := s.svc.List(s.ctx, "owner1", false, "", false)
+	s.st.ListMock.Expect(s.ctx, "", false, "owner1", "owner1").Return([]domain.User{{ID: "u2"}}, nil)
+	out, err := s.svc.List(s.ctx, "owner1", false, false, "", false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(out), 1)
 }
 
-func (s *UsersSuite) TestListAllForAdmin() {
-	s.st.ListMock.Expect(s.ctx, "", false, "").Return([]domain.User{{ID: "a"}, {ID: "b"}}, nil)
-	out, err := s.svc.List(s.ctx, "admin1", true, "", false)
+// users:read_all widens the list to every user, except Root and the Company
+// Owners: only Root sees those.
+func (s *UsersSuite) TestListAllHidesPrivilegedFromNonRoot() {
+	s.st.ListMock.Expect(s.ctx, "", false, "", "reader").Return([]domain.User{{ID: "a"}, {ID: "b"}}, nil)
+	out, err := s.svc.List(s.ctx, "reader", false, true, "", false)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(out), 2)
+}
+
+func (s *UsersSuite) TestListAllForRoot() {
+	s.st.ListMock.Expect(s.ctx, "", false, "", "").Return([]domain.User{{ID: "a"}, {ID: "b"}}, nil)
+	out, err := s.svc.List(s.ctx, "root", true, true, "", false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(out), 2)
 }

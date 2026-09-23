@@ -15,7 +15,7 @@ import (
 // Postgres implementation lives in internal/storage and satisfies this
 // implicitly.
 type Repository interface {
-	UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
+	UpdateTerritory(ctx context.Context, slug string, p domain.TerritoryPatch) (domain.Territory, error)
 	CreateTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
 	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
 	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
@@ -30,14 +30,15 @@ type Repository interface {
 	DeleteTerritory(ctx context.Context, slug string) error
 	SetTerritoryAdmins(ctx context.Context, slug string, adminIDs []string) error
 	GetTerritoryAdmins(ctx context.Context, slug string) ([]string, error)
+	ListTerritoryAdmins(ctx context.Context, slugs []string) (map[string][]string, error)
 	RegisterTerritoryArtifact(ctx context.Context, a domain.Artifact) (domain.Artifact, error)
 	GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
 	ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
 	DeleteTerritoryArtifacts(ctx context.Context, slug string) error
-	SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64) error
-	RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64) (int, error)
+	SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) error
+	RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) (int, error)
 
-	UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error)
+	UpdateModel(ctx context.Context, slug string, p domain.ModelPatch) (domain.Model, error)
 	CreateModel(ctx context.Context, m domain.Model) (domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)
 	ListModels(ctx context.Context) ([]domain.Model, error)
@@ -48,6 +49,8 @@ type Repository interface {
 
 	ListPlacements(ctx context.Context, territorySlug string) ([]domain.Placement, error)
 	CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
+	CreatePlacements(ctx context.Context, key string, ps []domain.Placement) ([]domain.Placement, error)
+	PlacementBatch(ctx context.Context, territorySlug, key string, size int) ([]domain.Placement, error)
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, territorySlug string, id int64) error

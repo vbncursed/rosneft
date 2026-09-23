@@ -11,7 +11,7 @@ import { notify } from "@/shared/lib/notify";
 export type PanoramaListParams = {
   slug: string;
   initial: Panorama[];
-  /** Every settled mutation calls this; the page refetches the scene bundle. */
+  /** Every settled mutation calls this; the page marks the scene bundle stale. */
   onChanged: () => void;
 };
 
@@ -87,9 +87,9 @@ export function usePanoramaList({ slug, initial, onChanged }: PanoramaListParams
         notify.error(`Failed to delete panorama: ${messageOf(err)}`);
       } finally {
         // Both ways: a refused delete may mean the row is already gone for
-        // another reason, and only the gateway can say. The page re-keys this
-        // hook on the bundle it refetches — nothing here adopts a changed
-        // `initial` on its own.
+        // another reason, and only the gateway can say. The page marks the
+        // bundle stale and the next visit seeds from a fresh one — nothing
+        // here adopts a changed `initial` on its own.
         onChanged();
         setPendingId(null);
       }

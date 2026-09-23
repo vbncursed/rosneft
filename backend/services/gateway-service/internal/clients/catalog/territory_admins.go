@@ -26,3 +26,17 @@ func (c *Client) GetTerritoryAdmins(ctx context.Context, slug string) ([]string,
 	}
 	return resp.GetAdminUserIds(), nil
 }
+
+// ListTerritoryAdmins returns the admin ids of each of slugs, grouped by slug.
+// A slug nobody is assigned to is absent.
+func (c *Client) ListTerritoryAdmins(ctx context.Context, slugs []string) (map[string][]string, error) {
+	resp, err := c.cc.ListTerritoryAdmins(ctx, &catalogv1.ListTerritoryAdminsRequest{Slugs: slugs})
+	if err != nil {
+		return nil, fmt.Errorf("catalog.ListTerritoryAdmins: %w", grpcerr.MapStatus(err, nil))
+	}
+	out := make(map[string][]string)
+	for _, a := range resp.GetAdmins() {
+		out[a.GetTerritorySlug()] = append(out[a.GetTerritorySlug()], a.GetAdminUserId())
+	}
+	return out, nil
+}

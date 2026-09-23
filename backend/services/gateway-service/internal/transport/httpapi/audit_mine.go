@@ -17,7 +17,7 @@ import (
 // overwrite. That is the whole difference from ListAudit, whose scope is the
 // company and which therefore does honour a submitted actor.
 func (s *Server) ListMyAudit(ctx context.Context, req ListMyAuditRequestObject) (ListMyAuditResponseObject, error) {
-	sc, err := service.AuditOwnScope(auditPrincipal(ctx))
+	sc, err := service.AuditOwnScope(AuditPrincipal(ctx))
 	switch {
 	case isForbidden(err):
 		return ListMyAudit403JSONResponse{
@@ -25,7 +25,7 @@ func (s *Server) ListMyAudit(ctx context.Context, req ListMyAuditRequestObject) 
 			Message: "no audit scope for this principal",
 		}, nil
 	case err != nil:
-		return ListMyAudit500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return ListMyAudit500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 
 	q := myAuditQuery(req.Params)
@@ -45,7 +45,7 @@ func (s *Server) ListMyAudit(ctx context.Context, req ListMyAuditRequestObject) 
 	case isInvalid(err):
 		return ListMyAudit400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
 	case err != nil:
-		return ListMyAudit500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return ListMyAudit500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 
 	page := AuditPage{Entries: make([]AuditEntry, len(res.Entries)), Total: &res.Total}

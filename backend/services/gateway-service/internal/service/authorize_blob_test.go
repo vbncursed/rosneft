@@ -166,10 +166,8 @@ func (s *AuthorizeBlobSuite) TestCatalogFailureIsNotInvalidInput() {
 
 // Clearing the thumbnail sends an empty hash; there is nothing to check.
 func (s *AuthorizeBlobSuite) TestClearingTheThumbnailNeedsNoLookup() {
-	current := domain.Model{Slug: "pump", ThumbnailBlobHash: ownHash}
-	cleared := domain.Model{Slug: "pump"}
-	s.cat.GetModelMock.Expect(s.ctx, "pump").Return(current, nil)
-	s.cat.UpsertModelMock.Expect(s.ctx, cleared).Return(cleared, nil)
+	s.cat.UpdateModelMock.Expect(s.ctx, "pump", domain.ModelUpdate{ThumbnailBlobHash: new("")}).
+		Return(domain.Model{Slug: "pump"}, nil)
 
 	_, err := s.svc.UpdateModel(s.ctx, "pump", domain.ModelUpdate{ThumbnailBlobHash: new("")}, s.company)
 	assert.NilError(s.T(), err)

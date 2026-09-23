@@ -13,7 +13,7 @@ func (s *Server) ListDocuments(ctx context.Context, req ListDocumentsRequestObje
 	case isNotFound(err):
 		return ListDocuments404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return ListDocuments500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return ListDocuments500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	resp := make(ListDocuments200JSONResponse, len(out))
 	for i, d := range out {
@@ -38,7 +38,7 @@ func (s *Server) CreateDocument(ctx context.Context, req CreateDocumentRequestOb
 	case isNotFound(err):
 		return CreateDocument404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return CreateDocument500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return CreateDocument500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return CreateDocument201JSONResponse(documentToAPI(d)), nil
 }
@@ -49,7 +49,7 @@ func (s *Server) DeleteDocument(ctx context.Context, req DeleteDocumentRequestOb
 	case isNotFound(err):
 		return DeleteDocument404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return DeleteDocument500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return DeleteDocument500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return DeleteDocument204Response{}, nil
 }

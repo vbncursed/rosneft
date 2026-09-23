@@ -24,14 +24,14 @@ func (s *Server) ListJobs(w http.ResponseWriter, r *http.Request) {
 	}
 	jobs, err := s.svc.ListTargetJobs(ctx)
 	if err != nil {
-		apperr.Write(w, http.StatusInternalServerError, apperr.SlugInternal, errMsg(err))
+		writeInternal(w, r, err)
 		return
 	}
 	visible := map[string]bool{}
 	if !allAccess {
 		territories, err := s.svc.ListTerritories(ctx, scopeAdminID)
 		if err != nil {
-			apperr.Write(w, http.StatusInternalServerError, apperr.SlugInternal, errMsg(err))
+			writeInternal(w, r, err)
 			return
 		}
 		for _, t := range territories {
@@ -78,4 +78,10 @@ func writeJobs(w http.ResponseWriter, jobs []domain.Job) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	_ = json.NewEncoder(w).Encode(resp)
+}
+
+// writeInternal is internalResp for the handlers outside the strict layer.
+func writeInternal(w http.ResponseWriter, r *http.Request, err error) {
+	body := internalResp(r.Context(), err)
+	apperr.Write(w, http.StatusInternalServerError, body.Code, body.Message)
 }

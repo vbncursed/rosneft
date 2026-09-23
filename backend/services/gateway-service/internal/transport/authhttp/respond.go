@@ -5,7 +5,11 @@ package authhttp
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
+
+	slogchi "github.com/samber/slog-chi"
+	"google.golang.org/grpc/status"
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 )
@@ -29,7 +33,12 @@ func decode(w http.ResponseWriter, r *http.Request, dst any) bool {
 }
 
 // fail renders a gRPC status error as the project-wide {code,message} body.
-func fail(w http.ResponseWriter, err error) {
+// A 5xx body says only apperr.InternalMessage, so its detail goes onto the
+// request's own log line (slog-chi's, at Error for a 5xx) — logged once.
+func fail(w http.ResponseWriter, r *http.Request, err error) {
+	if apperr.HTTPStatus(status.Code(err)) >= http.StatusInternalServerError {
+		slogchi.AddCustomAttributes(r, slog.String("error", err.Error()))
+	}
 	apperr.WriteStatus(w, err)
 }
 

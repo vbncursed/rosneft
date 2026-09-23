@@ -11,12 +11,9 @@ import (
 // and persists the placement. Defaults: scale {1,1,1}, position/rotation
 // zero, label empty.
 func (c *Catalog) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
-	if p.TerritorySlug == "" || p.ModelSlug == "" {
-		return domain.Placement{}, fmt.Errorf("service.CreatePlacement: %w: territory_slug and model_slug are required", domain.ErrInvalidInput)
-	}
-	p.Scale = defaultScale(p.Scale)
-	if p.Scale.X <= 0 || p.Scale.Y <= 0 || p.Scale.Z <= 0 {
-		return domain.Placement{}, fmt.Errorf("service.CreatePlacement: %w: scale components must be positive", domain.ErrInvalidInput)
+	p, err := preparePlacement(p)
+	if err != nil {
+		return domain.Placement{}, fmt.Errorf("service.CreatePlacement: %w", err)
 	}
 	if len(p.VisiblePanoramaIDs) > 0 {
 		if err := c.requirePanoramasOnTerritory(ctx, p.TerritorySlug, p.VisiblePanoramaIDs); err != nil {
@@ -24,6 +21,19 @@ func (c *Catalog) CreatePlacement(ctx context.Context, p domain.Placement) (doma
 		}
 	}
 	return c.repo.CreatePlacement(ctx, p)
+}
+
+// preparePlacement checks the slugs, fills the default scale and rejects a
+// non-positive one: the checks a single create and every batch item share.
+func preparePlacement(p domain.Placement) (domain.Placement, error) {
+	if p.TerritorySlug == "" || p.ModelSlug == "" {
+		return domain.Placement{}, fmt.Errorf("%w: territory_slug and model_slug are required", domain.ErrInvalidInput)
+	}
+	p.Scale = defaultScale(p.Scale)
+	if p.Scale.X <= 0 || p.Scale.Y <= 0 || p.Scale.Z <= 0 {
+		return domain.Placement{}, fmt.Errorf("%w: scale components must be positive", domain.ErrInvalidInput)
+	}
+	return p, nil
 }
 
 // defaultScale replaces a zero-value Vec3 with {1,1,1} (uniform unit scale).

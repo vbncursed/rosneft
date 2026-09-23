@@ -47,6 +47,8 @@ export type MetricsPageProps = {
 
   /** How many alerts are firing; the header stays quiet at zero, and says so at null. */
   firingCount?: number | null;
+  /** The count is the last answer's: this tick left the alerts panel out. */
+  alertsStale?: boolean;
   /** Replaces the health list's "no match" sentence when there is no filter to blame. */
   servicesHint?: string;
   /** Absent when nothing is firing, or while the detail is still loading. */
@@ -76,6 +78,7 @@ export function MetricsPage({
   selectedPanel,
   onSelectPanel,
   firingCount = 0,
+  alertsStale = false,
   servicesHint,
   alert,
   onCloseAlert,
@@ -99,6 +102,11 @@ export function MetricsPage({
               <Badge tone="bad" fill="soft" className="tracking-[0.12em]">
                 <span aria-hidden="true" className="size-1.5 rounded-full bg-bad" />
                 {firingCount} {firingCount === 1 ? "alert" : "alerts"}
+                {alertsStale ? " · stale — last answer kept" : null}
+              </Badge>
+            ) : alertsStale ? (
+              <Badge tone="dim" fill="soft" className="tracking-[0.12em]">
+                alerts stale — last answer kept
               </Badge>
             ) : null}
             <Segmented

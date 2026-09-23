@@ -12,7 +12,6 @@ import (
 
 func (s *SceneBundleSuite) TestBundleCarriesTheTerritorysMeasurements() {
 	s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
-	s.expectModelArtsM1()
 	saved := []domain.Measurement{{
 		ID: 4, TerritorySlug: "t1", Closed: true,
 		Points: []domain.Vec3{{X: 1}, {Y: 1}, {Z: 1}},
@@ -28,7 +27,6 @@ func (s *SceneBundleSuite) TestBundleCarriesTheTerritorysMeasurements() {
 // The client tells "no measurements" from a broken bundle by [] versus null.
 func (s *SceneBundleSuite) TestMeasurementsAreAlwaysASlice() {
 	s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
-	s.expectModelArtsM1()
 
 	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 
@@ -41,7 +39,6 @@ func (s *SceneBundleSuite) TestMeasurementsAreAlwaysASlice() {
 // list racing a delete must not turn it into something else.
 func (s *SceneBundleSuite) TestMissingTerritoryLeavesMeasurementsEmpty() {
 	s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
-	s.expectModelArtsM1()
 	s.cat.ListMeasurementsMock.Return(nil, fmt.Errorf("catalog.ListMeasurements: %w", domain.ErrTerritoryNotFound))
 
 	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")

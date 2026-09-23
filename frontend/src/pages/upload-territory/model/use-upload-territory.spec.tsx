@@ -232,4 +232,23 @@ describe("useUploadTerritory", () => {
     const { result } = renderHook(() => useUploadTerritory(), { wrapper });
     expect(result.current.canUpload).toBe(true);
   });
+
+  // The catalog and the jobs strip trust their lists for a minute, so a
+  // territory that exists only on the gateway would be missing from both.
+  it("marks the territory list and the jobs stale once the territory exists", async () => {
+    runChunkedUpload.mockResolvedValue({ hash: "h".repeat(64), size: 1024 });
+    createTerritory.mockResolvedValue({
+      territory: { slug: "refinery-block-c", title: "Refinery Block C" },
+      job: { id: "job-1" },
+    });
+    const spy = vi.spyOn(client, "invalidateQueries");
+    const { result } = renderHook(() => useUploadTerritory(), { wrapper });
+    act(() => result.current.onFiles([file()]));
+    act(() => result.current.onForm({ title: "Refinery Block C" }));
+
+    act(() => result.current.onSubmit());
+    await waitFor(() => expect(navigate).toHaveBeenCalled());
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["territories"] });
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["jobs"] });
+  });
 });
