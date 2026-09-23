@@ -22,11 +22,13 @@ export type ToastProps = {
   className?: string;
 };
 
+// The tint sits on an opaque panel: a card over the viewer's chrome must not
+// let the text beneath read through it (same ground as ModeChip).
 const TONE: Record<ToastTone, { label: string; skin: string }> = {
-  error: { label: "Error", skin: "border-bad bg-bad-soft text-bad" },
-  warning: { label: "Warning", skin: "border-warn bg-warn-soft text-warn" },
-  info: { label: "Info", skin: "border-accent-line bg-accent-soft text-accent" },
-  success: { label: "Success", skin: "border-ok bg-ok-soft text-ok" },
+  error: { label: "Error", skin: "border-bad bg-panel bg-[image:linear-gradient(var(--bad-soft),var(--bad-soft))] text-bad" },
+  warning: { label: "Warning", skin: "border-warn bg-panel bg-[image:linear-gradient(var(--warn-soft),var(--warn-soft))] text-warn" },
+  info: { label: "Info", skin: "border-accent-line bg-panel bg-[image:linear-gradient(var(--accent-soft),var(--accent-soft))] text-accent" },
+  success: { label: "Success", skin: "border-ok bg-panel bg-[image:linear-gradient(var(--ok-soft),var(--ok-soft))] text-ok" },
 };
 
 export function Toast({

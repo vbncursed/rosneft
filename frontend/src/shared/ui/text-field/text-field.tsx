@@ -10,6 +10,8 @@ export type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "id"> &
   mono?: boolean;
   id?: string;
   fieldClassName?: string;
+  /** A small button's height, for a field that opens in one's place. */
+  compact?: boolean;
 };
 
 export function TextField({
@@ -17,6 +19,7 @@ export function TextField({
   hint,
   error,
   mono = false,
+  compact = false,
   id,
   className,
   fieldClassName,
@@ -43,7 +46,7 @@ export function TextField({
         disabled={disabled}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(fieldId, hint, error)}
-        className={controlClass({ mono, invalid: Boolean(error), className })}
+        className={controlClass({ mono, compact, invalid: Boolean(error), className })}
         {...rest}
       />
     </Field>

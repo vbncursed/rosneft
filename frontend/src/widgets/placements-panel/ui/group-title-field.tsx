@@ -11,12 +11,14 @@ export type GroupTitleFieldProps = {
   submitLabel: string;
   initial?: string;
   busy: boolean;
+  /** At a small button's height — New group's field replaces one. */
+  compact?: boolean;
   onSubmit: (title: string) => void;
   onCancel: () => void;
 };
 
 /** A group title typed in place — New group's and Rename's one field. Enter saves, Escape leaves. */
-export function GroupTitleField({ label, submitLabel, initial = "", busy, onSubmit, onCancel }: GroupTitleFieldProps) {
+export function GroupTitleField({ label, submitLabel, initial = "", busy, compact, onSubmit, onCancel }: GroupTitleFieldProps) {
   const [title, setTitle] = useState(initial);
   const trimmed = title.trim();
   return (
@@ -36,9 +38,10 @@ export function GroupTitleField({ label, submitLabel, initial = "", busy, onSubm
         }}
         maxLength={GROUP_TITLE_MAX}
         autoFocus
+        compact={compact}
         fieldClassName="min-w-0 flex-1"
       />
-      <Button shape="icon" size="xs" variant="primary" type="submit" aria-label={submitLabel} disabled={!trimmed || busy}>
+      <Button shape="icon" size="xs" variant="primary" type="submit" aria-label={submitLabel} loading={busy} disabled={!trimmed}>
         <Icon name="check" size={12} />
       </Button>
       <Button shape="icon" size="xs" variant="ghost" aria-label="Cancel" onClick={onCancel}>
@@ -53,17 +56,30 @@ export function NewGroup({ busy, onCreate }: { busy: boolean; onCreate: (title: 
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   const closed = useRef(false);
+  // Counts openings: a create that lands after Cancel and a reopen answers the
+  // old field, and must not close the new one.
+  const session = useRef(0);
   // The field leaves the DOM with its focus; hand it back to the button or it falls to <body>.
   useEffect(() => {
     if (!open && closed.current) button.current?.focus();
   }, [open]);
-  const close = () => {
+  const close = (from = session.current) => {
+    if (from !== session.current) return;
     closed.current = true;
     setOpen(false);
   };
   if (!open) {
     return (
-      <Button ref={button} variant="secondary" size="sm" onClick={() => setOpen(true)} className="w-full">
+      <Button
+        ref={button}
+        variant="secondary"
+        size="sm"
+        onClick={() => {
+          session.current += 1;
+          setOpen(true);
+        }}
+        className="w-full"
+      >
         <Icon name="folder-plus" size={14} />
         {NEW_GROUP}
       </Button>
@@ -74,11 +90,13 @@ export function NewGroup({ busy, onCreate }: { busy: boolean; onCreate: (title: 
       label="New group title"
       submitLabel="Create group"
       busy={busy}
+      compact
       // A refused create keeps the field and what was typed; the toast says why.
       onSubmit={async (title) => {
-        if (await onCreate(title)) close();
+        const from = session.current;
+        if (await onCreate(title)) close(from);
       }}
-      onCancel={close}
+      onCancel={() => close()}
     />
   );
 }

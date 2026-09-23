@@ -34,17 +34,40 @@ export type UserGroupItemProps = {
   actions: GroupActions;
 };
 
+/**
+ * The row leaves once its delete lands, taking the focus Menu handed back to
+ * the kebab. Menu closes before it selects, so moving focus here wins: to the
+ * next (or previous) group's disclosure, else the nearest enclosing search
+ * field — the panel's own (SearchField names it by <label>, not aria-label).
+ */
+function focusNeighbour(li: HTMLLIElement | null) {
+  const sibling = li?.nextElementSibling ?? li?.previousElementSibling;
+  const next = sibling?.querySelector<HTMLButtonElement>("button[aria-expanded]");
+  if (next) return next.focus();
+  let around = li?.parentElement;
+  while (around && !around.querySelector('input[type="search"]')) around = around.parentElement;
+  around?.querySelector<HTMLInputElement>('input[type="search"]')?.focus();
+}
+
 /** One user group: its row (eye and menu for a writer), its members, then its own Add. */
 export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemProps) {
   const [renaming, setRenaming] = useState(false);
   const item = useRef<HTMLLIElement>(null);
   const renamed = useRef(false);
+  // Counts openings: a rename that lands after Cancel and a reopen answers the
+  // old field, and must not close the new one.
+  const session = useRef(0);
+  const startRenaming = () => {
+    session.current += 1;
+    setRenaming(true);
+  };
   // The field leaves the DOM with its focus; hand it back to the row's disclosure,
   // the first expandable button (the kebab after it is one too).
   useEffect(() => {
     if (!renaming && renamed.current) item.current?.querySelector<HTMLButtonElement>("button[aria-expanded]")?.focus();
   }, [renaming]);
-  const stopRenaming = () => {
+  const stopRenaming = (from = session.current) => {
+    if (from !== session.current) return;
     renamed.current = true;
     setRenaming(false);
   };
@@ -62,9 +85,10 @@ export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemPro
       onSubmit={async (title) => {
         // The field hands over a trimmed title; an unchanged one is not a write.
         // A refused rename keeps the field and what was typed; the toast says why.
-        if (title === group.title || (await actions.onRename(group.id, title))) stopRenaming();
+        const from = session.current;
+        if (title === group.title || (await actions.onRename(group.id, title))) stopRenaming(from);
       }}
-      onCancel={stopRenaming}
+      onCancel={() => stopRenaming()}
     />
   ) : (
     <GroupRow
@@ -79,16 +103,27 @@ export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemPro
             <EyeButton
               state={eyeState(members.map((m) => m.instance))}
               subject={`group ${group.title}`}
-              disabled={ids.length === 0 || ids.some((id) => ctx.pendingIds.includes(id))}
+              disabled={ids.length === 0}
+              busy={ids.some((id) => ctx.pendingIds.includes(id))}
               onToggle={(hidden) => ctx.onSetHidden(ids, hidden)}
             />
             <Menu
               triggerLabel={`Actions for group ${group.title}`}
               trigger={<Icon name="kebab" size={12} />}
-              disabled={actions.busy}
+              // The items grey while a group write is in flight, never the
+              // kebab: it holds focus when the write starts, and a natively
+              // disabled one drops that focus to <body>.
               items={[
-                { label: "Rename", onSelect: () => setRenaming(true) },
-                { label: DELETE_GROUP, tone: "bad", onSelect: () => actions.onDelete(group.id) },
+                { label: "Rename", disabled: actions.busy, onSelect: startRenaming },
+                {
+                  label: DELETE_GROUP,
+                  tone: "bad",
+                  disabled: actions.busy,
+                  onSelect: () => {
+                    focusNeighbour(item.current);
+                    actions.onDelete(group.id);
+                  },
+                },
               ]}
             />
           </>

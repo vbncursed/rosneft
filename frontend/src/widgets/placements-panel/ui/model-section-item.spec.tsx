@@ -51,6 +51,9 @@ describe("ModelSectionItem", () => {
 
   it("waits the eye while any of its placements is being written", () => {
     mount(ctx({ pendingIds: [1] }));
-    expect(screen.getByRole("button", { name: "Hide every storage-tank-500" })).toHaveAttribute("aria-disabled", "true");
+    const eye = screen.getByRole("button", { name: "Hide every storage-tank-500" });
+    expect(eye).toHaveAttribute("aria-disabled", "true");
+    expect(eye).toHaveAttribute("aria-busy", "true");
+    expect(eye).not.toHaveAttribute("data-dim");
   });
 });

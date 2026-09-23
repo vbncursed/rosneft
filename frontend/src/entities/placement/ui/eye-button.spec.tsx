@@ -37,13 +37,34 @@ describe("EyeButton", () => {
 
   // Controller ruling 3: a natively disabled eye drops the focus it holds to
   // <body> the moment its own write starts, so it waits through aria-disabled.
-  it("waits while a write is in flight, without leaving the tab order", async () => {
+  // Busy is not unavailable (E3): it neither dims nor answers hover or press (E10).
+  it("waits while a write is in flight, without dimming or leaving the tab order", async () => {
     const onToggle = vi.fn();
-    render(<EyeButton state="visible" subject="x" disabled onToggle={onToggle} />);
+    render(<EyeButton state="visible" subject="x" busy onToggle={onToggle} />);
     const eye = screen.getByRole("button", { name: "Hide x" });
     expect(eye).toBeEnabled();
     expect(eye).toHaveAttribute("aria-disabled", "true");
-    expect(eye).toHaveClass("aria-disabled:opacity-55", "aria-disabled:cursor-not-allowed");
+    expect(eye).toHaveAttribute("aria-busy", "true");
+    expect(eye).not.toHaveAttribute("data-dim");
+    expect(eye).toHaveClass(
+      "aria-busy:cursor-progress",
+      "aria-disabled:hover:bg-transparent",
+      "aria-disabled:active:scale-100",
+    );
+    expect(eye.className).not.toMatch(/aria-disabled:opacity/);
+    await userEvent.click(eye);
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  // Only nothing-to-toggle (an empty group) dims.
+  it("dims when there is nothing to toggle", async () => {
+    const onToggle = vi.fn();
+    render(<EyeButton state="visible" subject="x" disabled onToggle={onToggle} />);
+    const eye = screen.getByRole("button", { name: "Hide x" });
+    expect(eye).toHaveAttribute("aria-disabled", "true");
+    expect(eye).not.toHaveAttribute("aria-busy");
+    expect(eye).toHaveAttribute("data-dim", "true");
+    expect(eye).toHaveClass("data-[dim=true]:opacity-55", "data-[dim=true]:cursor-not-allowed");
     await userEvent.click(eye);
     expect(onToggle).not.toHaveBeenCalled();
   });
@@ -52,7 +73,7 @@ describe("EyeButton", () => {
     const { rerender } = render(<EyeButton state="visible" subject="x" onToggle={vi.fn()} />);
     const eye = screen.getByRole("button", { name: "Hide x" });
     eye.focus();
-    rerender(<EyeButton state="visible" subject="x" disabled onToggle={vi.fn()} />);
+    rerender(<EyeButton state="visible" subject="x" busy onToggle={vi.fn()} />);
     // jsdom keeps focus on an element that turns disabled; a browser does not,
     // so the focused eye also has to stay enabled.
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Hide x" }));

@@ -46,7 +46,17 @@ describe("UserGroupItem", () => {
 
   it("disables the eye on an empty group — there is nothing to hide", () => {
     mount({ section: { ...SECTION, members: [] } });
-    expect(screen.getByRole("button", { name: "Hide group East yard" })).toHaveAttribute("aria-disabled", "true");
+    const eye = screen.getByRole("button", { name: "Hide group East yard" });
+    expect(eye).toHaveAttribute("aria-disabled", "true");
+    expect(eye).toHaveAttribute("data-dim", "true");
+  });
+
+  // E3: a write in flight waits without dimming — busy is not unavailable.
+  it("waits the eye, undimmed, while a member is being written", () => {
+    mount({ c: ctx({ expanded: "group:4", pendingIds: [3] }) });
+    const eye = screen.getByRole("button", { name: "Hide group East yard" });
+    expect(eye).toHaveAttribute("aria-busy", "true");
+    expect(eye).not.toHaveAttribute("data-dim");
   });
 
   it("places into itself from its own Add", async () => {
@@ -64,7 +74,7 @@ describe("UserGroupItem", () => {
   it("renames inline from its menu, and folds back once the rename lands", async () => {
     let release!: (ok: boolean) => void;
     const a = actions({ onRename: vi.fn(() => new Promise<boolean>((res) => (release = res))) });
-    mount({ a });
+    const { rerender } = mount({ a });
     await userEvent.click(screen.getByRole("button", { name: "Actions for group East yard" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
     const field = screen.getByRole("textbox", { name: "Rename group East yard" });
@@ -72,8 +82,32 @@ describe("UserGroupItem", () => {
     await userEvent.type(field, "North yard{Enter}");
     expect(a.onRename).toHaveBeenCalledWith(4, "North yard");
     expect(screen.getByRole("textbox", { name: "Rename group East yard" })).toHaveValue("North yard");
+    // P3: the parent reports the write in flight; the save cannot fire twice.
+    rerender(
+      <ul>
+        <UserGroupItem section={SECTION} ctx={ctx({ expanded: "group:4" })} onAdd={vi.fn()} actions={{ ...a, busy: true }} />
+      </ul>,
+    );
+    expect(screen.getByRole("button", { name: "Save group title" })).toBeDisabled();
     await act(async () => release(true));
     expect(screen.getByRole("button", { name: "East yard" })).toHaveFocus();
+  });
+
+  // P1: a rename answered after Cancel and a reopen belongs to the old field.
+  it("keeps a reopened rename field open when the earlier rename lands late", async () => {
+    let release!: (ok: boolean) => void;
+    const a = actions({ onRename: vi.fn(() => new Promise<boolean>((res) => (release = res))) });
+    mount({ a });
+    const rename = async () => {
+      await userEvent.click(screen.getByRole("button", { name: "Actions for group East yard" }));
+      await userEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
+    };
+    await rename();
+    await userEvent.type(screen.getByRole("textbox", { name: "Rename group East yard" }), "2{Enter}");
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await rename();
+    await act(async () => release(true));
+    expect(screen.getByRole("textbox", { name: "Rename group East yard" })).toBeInTheDocument();
   });
 
   it("keeps the rename field and its text when the rename is refused", async () => {
@@ -108,6 +142,32 @@ describe("UserGroupItem", () => {
     await userEvent.click(screen.getByRole("button", { name: "Actions for group East yard" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "Delete group (placements stay)" }));
     expect(a.onDelete).toHaveBeenCalledWith(4);
+  });
+
+  // E4: the <li> leaves once the delete lands; focus must not fall to <body>.
+  it("hands focus to the next group's disclosure when it deletes itself", async () => {
+    const a = actions();
+    const west: UserGroupSection = { group: { id: 5, title: "West yard" }, members: [] };
+    render(
+      <ul>
+        <UserGroupItem section={SECTION} ctx={ctx()} onAdd={null} actions={a} />
+        <UserGroupItem section={west} ctx={ctx()} onAdd={null} actions={a} />
+      </ul>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Actions for group East yard" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Delete group (placements stay)" }));
+    expect(a.onDelete).toHaveBeenCalledWith(4);
+    expect(screen.getByRole("button", { name: "West yard" })).toHaveFocus();
+  });
+
+  // The kebab holds focus when a write starts; a natively disabled one drops it.
+  it("keeps the menu open-able while a group write is in flight, its actions greyed", async () => {
+    mount({ a: actions({ busy: true }) });
+    const kebab = screen.getByRole("button", { name: "Actions for group East yard" });
+    expect(kebab).toBeEnabled();
+    await userEvent.click(kebab);
+    expect(screen.getByRole("menuitem", { name: "Rename" })).toBeDisabled();
+    expect(screen.getByRole("menuitem", { name: "Delete group (placements stay)" })).toBeDisabled();
   });
 
   it("gives a reader without write no eye and no menu", () => {

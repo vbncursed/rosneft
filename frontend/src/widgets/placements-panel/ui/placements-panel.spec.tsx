@@ -261,6 +261,18 @@ describe("PlacementsPanel", () => {
       expect(screen.getByRole("separator")).toBeInTheDocument();
     });
 
+    // E4: deleting the only group leaves no neighbour; focus goes to the real
+    // search field rather than falling to <body> as the row leaves.
+    it("hands focus to the search when the only group is deleted", async () => {
+      const only = groupPlacements(groupByModel([make(1, "storage-tank-500", "", { groupId: 5 })], OPTIONS), [
+        { id: 5, title: "West yard" },
+      ]);
+      render(<PlacementsPanel {...base} sections={only} />);
+      await userEvent.click(screen.getByRole("button", { name: "Actions for group West yard" }));
+      await userEvent.click(screen.getByRole("menuitem", { name: "Delete group (placements stay)" }));
+      expect(screen.getByRole("searchbox", { name: "Search objects" })).toHaveFocus();
+    });
+
     it("finds a group by the title of a model inside it", () => {
       render(<PlacementsPanel {...base} sections={grouped} query="storage" />);
       expect(screen.getByRole("button", { name: "West yard" })).toBeInTheDocument();
