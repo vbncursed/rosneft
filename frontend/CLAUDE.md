@@ -481,7 +481,12 @@ carries `· 24h`; six console cards wrap at 1280 px on the mock's own
 - **`setQueryData` clears `isInvalidated`.** A copy another write had already
   marked stale must be re-marked after the merge, or the merge passes the
   rest of it off as fresh — `mergeInto` in `features/edit-entity` is the
-  shape to copy.
+  shape to copy. It bites harder after a `cancelQueries`: the refetch it
+  cancels may be the one an invalidation started (a delete's `refresh()`),
+  and cancel + write drop that mark together. `putUser` and the
+  territory-access save read `isInvalidated` *before* the cancel and, if it
+  was set, invalidate again after the write — a screen showing the list
+  re-reads it, after the write, so with it.
 - **Live routes use `staleTime: 0`**: `jobsQuery` (the route is `no-store`; a
   job started elsewhere must show on mount), the audit journal and its
   24-hour window (`auditQuery`, `auditWindowQuery`), `consoleSummaryQuery`

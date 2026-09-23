@@ -75,11 +75,16 @@ export function useTerritoryAccess(): AccessState {
     // saved set: written into the map in the same tick the draft is dropped,
     // there is no window where the panel falls back to the pre-save set, and
     // nothing re-reads the whole map for one territory's change. A map refetch
-    // already in flight is cancelled first, or its pre-save answer lands last.
+    // already in flight is cancelled first, or its pre-save answer lands last;
+    // if an invalidation had started it, the cancel and the write would drop
+    // that mark, so the map (on screen) is read again, after the PUT.
     onSuccess: async (_, { slug, ids }) => {
       notify.success("Access saved");
-      await client.cancelQueries({ queryKey: territoryAdminsQuery.queryKey });
-      client.setQueryData(territoryAdminsQuery.queryKey, (map) => map && { ...map, [slug]: ids });
+      const { queryKey } = territoryAdminsQuery;
+      const wasStale = client.getQueryState(queryKey)?.isInvalidated ?? false;
+      await client.cancelQueries({ queryKey });
+      client.setQueryData(queryKey, (map) => map && { ...map, [slug]: ids });
+      if (wasStale) void client.invalidateQueries({ queryKey, exact: true });
       dropDraft(slug);
     },
     onError: (err) => notify.error(messageOf(err)),
@@ -95,7 +100,7 @@ export function useTerritoryAccess(): AccessState {
     status: loading ? "loading" : failed ? "unavailable" : "ready",
     error: failed ? messageOf(failed) : null,
     territories: rows,
-    adminsBySlug: adminsBySlug,
+    adminsBySlug,
     grantsOf: (slug) => grantsOf(adminsBySlug[slug] ?? [], known),
     canManage: me?.isOwner ?? false,
     query,

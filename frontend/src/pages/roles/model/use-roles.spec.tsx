@@ -272,6 +272,23 @@ describe("useRoles", () => {
     expect(called((_, i) => i?.method === "PUT")).toBe(false);
   });
 
+  // The gateway requires a title on every PATCH, so a save that only moves
+  // permissions still carries the unchanged one.
+  it("sends the unchanged title along with a permissions-only save", async () => {
+    const { result } = renderHook(() => useRoles(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    act(() => result.current.select("ops"));
+    act(() => result.current.toggle("users:write"));
+
+    act(() => result.current.save());
+    await waitFor(() => expect(result.current.saving).toBe(false));
+    const patch = fetchMock.mock.calls.find(([, i]) => (i as RequestInit | undefined)?.method === "PATCH");
+    expect(JSON.parse(String((patch![1] as RequestInit).body))).toEqual({
+      title: OPS.title,
+      permissionSlugs: ["users:read", "users:write"],
+    });
+  });
+
   // The edits survive a refusal: the draft is the inspector's truth until saved.
   it("names the refusal and keeps the draft when the save is turned down", async () => {
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {

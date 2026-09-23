@@ -78,8 +78,9 @@ afterEach(() => {
 
 const puts = () => fetchMock.mock.calls.filter(([, i]) => (i as RequestInit | undefined)?.method === "PUT");
 const adminReads = () =>
-  fetchMock.mock.calls.filter(([u, i]) => u === "/api/territory-admins" && !(i as RequestInit | undefined)?.method)
-    .length;
+  fetchMock.mock.calls.filter(
+    ([u, i]) => u === "/api/territory-admins" && ((i as RequestInit | undefined)?.method ?? "GET") === "GET",
+  ).length;
 
 describe("useTerritoryAccess", () => {
   it("is loading until the admin map answered, then ready with rows and grants", async () => {
@@ -164,6 +165,36 @@ describe("useTerritoryAccess", () => {
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("Access saved"));
     await act(async () => stale(json({ "t-1": ["u-1"], "t-2": null })));
     expect(client.getQueryData(["territory-admins"])).toEqual({ "t-1": ["u-1", "u-2"], "t-2": [] });
+  });
+
+  // An invalidation (another write's refresh) started the refetch the save
+  // cancels; setQueryData would then pass the map off as fresh. The page is
+  // showing it, so it is read again — after the PUT, so with the saved set.
+  it("re-reads the map when the refetch it cancelled came from an invalidation", async () => {
+    const { result } = renderHook(() => ({ s: useTerritoryAccess(), notices: useNotices() }), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.s.status).toBe("ready"));
+    const answer = fetchMock.getMockImplementation() as (url: string, init?: RequestInit) => Promise<Response>;
+    let held = true;
+    fetchMock.mockImplementation((url: string, init?: RequestInit) =>
+      url === "/api/territory-admins" && !init?.method && held
+        ? new Promise<Response>(() => {})
+        : url === "/api/territory-admins" && !init?.method
+          ? Promise.resolve(json({ "t-1": ["u-1", "u-2"], "t-2": ["u-3"] }))
+          : answer(url, init),
+    );
+    void client.invalidateQueries({ queryKey: ["territory-admins"] });
+    await waitFor(() => expect(adminReads()).toBe(2));
+    held = false;
+    act(() => result.current.s.select("t-1"));
+    act(() => result.current.s.add("u-2"));
+    act(() => result.current.s.save());
+    await waitFor(() => expect(adminReads()).toBe(3));
+    await waitFor(() =>
+      expect(client.getQueryData(["territory-admins"])).toEqual({ "t-1": ["u-1", "u-2"], "t-2": ["u-3"] }),
+    );
+    expect(client.getQueryState(["territory-admins"])?.isInvalidated).toBe(false);
   });
 
   it("does nothing on save when nothing changed", async () => {
