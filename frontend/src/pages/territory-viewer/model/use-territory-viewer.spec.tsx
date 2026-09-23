@@ -711,9 +711,11 @@ describe("useTerritoryViewer", () => {
       const r = mount();
       const state = await ready(r);
       await act(async () => state.picker.onPlace("storage-tank-500", 1));
-      expect(createPlacements).toHaveBeenCalledWith(SLUG, [
-        expect.objectContaining({ visiblePanoramaIds: [1] }),
-      ]);
+      expect(createPlacements).toHaveBeenCalledWith(
+        SLUG,
+        [expect.objectContaining({ visiblePanoramaIds: [1] })],
+        expect.any(String),
+      );
     });
 
     it("writes the selected object's allowlist from the block inside a panorama", async () => {
