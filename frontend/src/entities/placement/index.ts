@@ -62,3 +62,5 @@ export {
   type PlacementSections,
   type UserGroupSection,
 } from "./model/sections";
+export { EyeButton, type EyeButtonProps } from "./ui/eye-button";
+export { MoveToGroupMenu, NO_GROUP, type MoveToGroupMenuProps } from "./ui/move-to-group-menu";
