@@ -143,6 +143,29 @@ describe("useTerritoryAccess", () => {
     expect(result.current.s.territories?.[0]?.peopleLabel).toBe("2 people");
   });
 
+  // A map refetch that left before the save answers with the set as it was;
+  // landing after the write it would put the pre-save set back.
+  it("cancels an in-flight admin-map refetch so it cannot overwrite the saved set", async () => {
+    const { result } = renderHook(() => ({ s: useTerritoryAccess(), notices: useNotices() }), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.s.status).toBe("ready"));
+    const answer = fetchMock.getMockImplementation() as (url: string, init?: RequestInit) => Promise<Response>;
+    let stale: (r: Response) => void = () => {};
+    fetchMock.mockImplementation((url: string, init?: RequestInit) =>
+      url === "/api/territory-admins" && !init?.method
+        ? new Promise<Response>((resolve) => (stale = resolve))
+        : answer(url, init),
+    );
+    void client.refetchQueries({ queryKey: ["territory-admins"] });
+    act(() => result.current.s.select("t-1"));
+    act(() => result.current.s.add("u-2"));
+    act(() => result.current.s.save());
+    await waitFor(() => expect(result.current.notices[0]?.message).toBe("Access saved"));
+    await act(async () => stale(json({ "t-1": ["u-1"], "t-2": null })));
+    expect(client.getQueryData(["territory-admins"])).toEqual({ "t-1": ["u-1", "u-2"], "t-2": [] });
+  });
+
   it("does nothing on save when nothing changed", async () => {
     const { result } = renderHook(() => useTerritoryAccess(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));

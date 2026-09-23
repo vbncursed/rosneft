@@ -25,8 +25,8 @@ function changedFields(draft: Draft, saved: Draft): DetailsPatch | null {
   const description = draft.description.trim();
   if (title === "") return null;
   const patch: DetailsPatch = {
-    ...(title !== saved.title ? { title } : {}),
-    ...(description !== saved.description ? { description } : {}),
+    ...(title !== saved.title.trim() ? { title } : {}),
+    ...(description !== saved.description.trim() ? { description } : {}),
   };
   return Object.keys(patch).length > 0 ? patch : null;
 }

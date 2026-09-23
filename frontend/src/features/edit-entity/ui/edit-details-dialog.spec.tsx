@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpError } from "@/shared/api";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
+import fixture from "../edit-entity.fixture";
 import { EditDetailsDialog, type EditDetailsDialogProps } from "./edit-details-dialog";
 
 const { updateModel, updateTerritory } = vi.hoisted(() => ({
@@ -65,6 +66,20 @@ describe("EditDetailsDialog", () => {
 
     await userEvent.type(titleField(), " B");
     expect(saveButton()).toBeEnabled();
+  });
+
+  // A whitespace-padded stored title trims to itself, so it is no change.
+  it("opens with Save disabled when the stored details carry stray spaces", () => {
+    open({ title: "  Valve ", description: "Gate valve. " });
+    expect(saveButton()).toBeDisabled();
+  });
+
+  // fixtures.spec renders the closed button only; the dialog's mutation hook
+  // needs a query client the moment it opens.
+  it("opens from its Cosmos fixture", async () => {
+    render(fixture);
+    await userEvent.click(screen.getByRole("button", { name: "Edit details" }));
+    expect(titleField()).toHaveValue("North Ridge Pad");
   });
 
   it("keeps Save disabled while the title is blank", async () => {

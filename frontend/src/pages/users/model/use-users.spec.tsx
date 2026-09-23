@@ -350,7 +350,7 @@ describe("useUsers", () => {
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) =>
       init?.method === "PUT" ? new Response(null, { status: 204 }) : answer(url, init),
     );
-    const { result } = renderHook(() => ({ users: useUsers(), notices: useNotices() }), {
+    const { result, unmount } = renderHook(() => ({ users: useUsers(), notices: useNotices() }), {
       wrapper,
     });
     await waitFor(() => expect(result.current.users.status).toBe("ready"));
@@ -368,6 +368,13 @@ describe("useUsers", () => {
     const put = fetchMock.mock.calls.find(([, i]) => (i as RequestInit | undefined)?.method === "PUT");
     expect(put![0]).toBe("/api/auth/users/u-1/password");
     expect(JSON.parse(String((put![1] as RequestInit).body))).toEqual({ password: "N3w-Passw0rd!" });
+
+    // The mutation's variables hold the new password in the clear; once the
+    // screen is gone nothing may keep them for the default five minutes.
+    unmount();
+    const holdsPassword = () =>
+      client.getMutationCache().getAll().some((m) => JSON.stringify(m.state.variables ?? null).includes("N3w-Passw0rd!"));
+    await waitFor(() => expect(holdsPassword()).toBe(false));
   });
 
   it("offers the Company Owner role for assignment to Root alone", async () => {

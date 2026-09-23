@@ -74,9 +74,11 @@ export function useTerritoryAccess(): AccessState {
     // The PUT is a full replace answering 204, so the ids just sent are the
     // saved set: written into the map in the same tick the draft is dropped,
     // there is no window where the panel falls back to the pre-save set, and
-    // nothing re-reads the whole map for one territory's change.
-    onSuccess: (_, { slug, ids }) => {
+    // nothing re-reads the whole map for one territory's change. A map refetch
+    // already in flight is cancelled first, or its pre-save answer lands last.
+    onSuccess: async (_, { slug, ids }) => {
       notify.success("Access saved");
+      await client.cancelQueries({ queryKey: territoryAdminsQuery.queryKey });
       client.setQueryData(territoryAdminsQuery.queryKey, (map) => map && { ...map, [slug]: ids });
       dropDraft(slug);
     },

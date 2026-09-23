@@ -121,7 +121,7 @@ export function useUsers(): UsersState {
     mutationFn: run,
     onSuccess: (user, { kind }) => {
       notify.success(DONE[kind]);
-      if (user) putUser(client, user);
+      if (user) void putUser(client, user);
       else void refresh();
     },
     onError: fail,
@@ -134,7 +134,7 @@ export function useUsers(): UsersState {
       notify.success("User created");
       setCreating(false);
       setSelectedId(user.id);
-      putUser(client, user);
+      void putUser(client, user);
     },
     onError: (err) =>
       err instanceof HttpError && err.status === 409 ? notify.error(LOGIN_TAKEN) : fail(err),
@@ -146,14 +146,17 @@ export function useUsers(): UsersState {
     onSuccess: (user) => {
       notify.success("Roles updated");
       setAddingRole(false);
-      putUser(client, user);
+      void putUser(client, user);
       void client.invalidateQueries({ queryKey: ["me"] }); // the reader's own grants may have moved
     },
     onError: fail,
   });
 
-  // No refresh: nothing on the list changes when a password does.
+  // No refresh: nothing on the list changes when a password does. gcTime 0:
+  // the variables are the new password in the clear, and the cache must not
+  // keep them once the screen lets go of the mutation.
   const reset = useMutation({
+    gcTime: 0,
     mutationFn: ({ id, password }: { id: string; password: string }) =>
       setUserPassword(id, password),
     onSuccess: () => {
