@@ -2,6 +2,7 @@ package thumbnail_test
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
@@ -12,6 +13,7 @@ import (
 	"image/png"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
@@ -124,12 +126,70 @@ func (s *MakeSuite) TestRefusesASourceWhoseHeaderIsOverTheLimit() {
 		{"too wide", thumbnail.MaxWidth + 1, 1},
 		{"too tall", 1, thumbnail.MaxHeight + 1},
 		{"a bomb", 100_000, 100_000},
+		{"within both sides but over the area", 8192, 4097},
+		{"the sides' own maximum", thumbnail.MaxWidth, thumbnail.MaxHeight},
 	} {
 		s.Run(tc.name, func() {
 			_, err := thumbnail.Make(s.T().Context(), s.store, s.put(pngHeader(tc.w, tc.h)))
 			assert.ErrorIs(s.T(), err, domain.ErrImageTooLarge)
 		})
 	}
+}
+
+// A header exactly at the area budget passes the guard, so the decode runs and
+// fails on the missing pixel data instead.
+func (s *MakeSuite) TestLetsASourceExactlyAtTheAreaBudgetThroughTheGuard() {
+	for _, tc := range []struct {
+		name string
+		w, h uint32
+	}{
+		{"8192×4096", 8192, 4096},
+		{"a full-width strip", thumbnail.MaxWidth, thumbnail.MaxPixels / thumbnail.MaxWidth},
+	} {
+		s.Run(tc.name, func() {
+			_, err := thumbnail.Make(s.T().Context(), s.store, s.put(pngHeader(tc.w, tc.h)))
+			assert.ErrorIs(s.T(), err, io.ErrUnexpectedEOF)
+		})
+	}
+}
+
+// gatedStore holds Make inside its decode slot until release is closed, and
+// says so on entered.
+type gatedStore struct {
+	*blobstore.FS
+	entered chan struct{}
+	release chan struct{}
+}
+
+func (g gatedStore) Get(ctx context.Context, hash string) (io.ReadCloser, blobstore.Blob, error) {
+	close(g.entered)
+	<-g.release
+	return g.FS.Get(ctx, hash)
+}
+
+// A create waiting behind the backfill's decode must give up when its request does.
+func (s *MakeSuite) TestAWaitForTheDecodeSlotHonoursCancellation() {
+	var src bytes.Buffer
+	assert.NilError(s.T(), jpeg.Encode(&src, gradient(512, 256), nil))
+	srcHash := s.put(src.Bytes())
+
+	gated := gatedStore{FS: s.store, entered: make(chan struct{}), release: make(chan struct{})}
+	held := make(chan error, 1)
+	go func() {
+		_, err := thumbnail.Make(s.T().Context(), gated, srcHash)
+		held <- err
+	}()
+	<-gated.entered
+
+	ctx, cancel := context.WithCancel(s.T().Context())
+	cancel()
+	start := time.Now()
+	_, err := thumbnail.Make(ctx, s.store, srcHash)
+	assert.ErrorIs(s.T(), err, context.Canceled)
+	assert.Assert(s.T(), time.Since(start) < time.Second, "returned without waiting for the slot")
+
+	close(gated.release)
+	assert.NilError(s.T(), <-held)
 }
 
 func (s *MakeSuite) TestRefusesWhatIsNotAnImage() {
