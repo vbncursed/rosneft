@@ -711,7 +711,10 @@ Rulings from those screens that a later one will meet again:
   Detail (`model:write`), the territory catalog and the viewer header
   (`territory:write`). It sends only the fields that differ from the saved,
   trimmed values, and writes the answer into every cached copy (the entity,
-  its list row and, for a territory, the scene bundle) instead of refetching.
+  its list row, a territory's scene bundle, and a model's title in every
+  cached bundle whose picker offers it) instead of refetching. Escape waits
+  for a save in flight, as Cancel does; a refusal is a toast and an inline
+  alert in the dialog.
 - **The role pickers offer `admin` (Company Owner) to Root alone**
   (`assignableRoles`, same file): the gateway answers anyone else's grant of it
   with 403. Both the create-user dialog and the add-role dialog read

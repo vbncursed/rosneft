@@ -86,6 +86,27 @@ describe("useEditDetails", () => {
     expect(client.getQueryState(["territory", "yard"])?.isInvalidated).toBe(false);
   });
 
+  it("renames a model in every cached scene bundle's model options, keeping stale marks", async () => {
+    const option = (slug: string, title: string) => ({ slug, title, chain: [] });
+    client.setQueryData(["scene", "yard"], { territory: { slug: "yard" }, modelOptions: [option("valve", "Valve"), option("pump", "Pump")] });
+    client.setQueryData(["scene", "plant"], { territory: { slug: "plant" }, modelOptions: [option("valve", "Valve")] });
+    const other = { territory: { slug: "shed" }, modelOptions: [option("pump", "Pump")] };
+    client.setQueryData(["scene", "shed"], other, { updatedAt: 1 });
+    await client.invalidateQueries({ queryKey: ["scene", "plant"], refetchType: "none" });
+    updateModel.mockResolvedValue({ slug: "valve", title: "Gate valve" });
+    const { result } = hook("model", "valve");
+    await act(() => result.current.save.mutateAsync({ title: "Gate valve" }));
+
+    type Bundle = { modelOptions: { slug: string; title: string }[] };
+    expect(client.getQueryData<Bundle>(["scene", "yard"])!.modelOptions.map((o) => o.title)).toEqual(["Gate valve", "Pump"]);
+    expect(client.getQueryData<Bundle>(["scene", "plant"])!.modelOptions[0]).toEqual(option("valve", "Gate valve"));
+    expect(client.getQueryState(["scene", "plant"])?.isInvalidated).toBe(true);
+    expect(client.getQueryState(["scene", "yard"])?.isInvalidated).toBe(false);
+    // A bundle that does not offer the model is not rewritten (nor made fresh).
+    expect(client.getQueryData(["scene", "shed"])).toBe(other);
+    expect(client.getQueryState(["scene", "shed"])?.dataUpdatedAt).toBe(1);
+  });
+
   it("toasts the gateway's reason when the save is refused", async () => {
     updateModel.mockRejectedValue(new HttpError(403, { code: "forbidden", message: "no grant" }, "no grant"));
     const { result } = hook("model", "valve");

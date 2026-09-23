@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react";
+import { messageOf } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
+import { Callout } from "@/shared/ui/callout";
 import { Modal } from "@/shared/ui/modal";
 import { Textarea, TextField } from "@/shared/ui/text-field";
 import { useEditDetails, type DetailsPatch, type EntityKind } from "../model/use-edit-details";
@@ -49,7 +51,9 @@ export function EditDetailsDialog({ kind, slug, title, description = "", onClose
   return (
     <Modal
       open
-      onClose={onClose}
+      // Escape waits for the save, as Cancel does: closing mid-flight would
+      // unmount the dialog that reports how the save went.
+      onClose={save.isPending ? () => {} : onClose}
       overline={kind === "model" ? "Model" : "Territory"}
       title="Edit details"
       description="The slug stays as it is, so links and placements keep working."
@@ -78,6 +82,7 @@ export function EditDetailsDialog({ kind, slug, title, description = "", onClose
           onChange={(e) => setDraft({ ...draft, description: e.target.value })}
           disabled={save.isPending}
         />
+        {save.isError ? <Callout tone="bad">{messageOf(save.error)}</Callout> : null}
       </form>
     </Modal>
   );

@@ -21,10 +21,14 @@ function mergeInto<T>(client: QueryClient, queryKey: unknown[], update: (old: T 
   if (wasStale) void client.invalidateQueries({ queryKey, exact: true, refetchType: "none" });
 }
 
+type SceneCopy = { territory: Details; modelOptions?: { slug: string; title: string }[] };
+
 /**
  * Writes a saved title and description into every cached copy of the entity —
- * its own query, its row in the list and, for a territory, the viewer's scene
- * bundle (the header reads its title from there) — so nothing refetches.
+ * its own query, its row in the list and the viewer's scene bundles: a
+ * territory's own (the header reads its title from there), and for a model
+ * every bundle whose picker offers it (an option carries the title alone) —
+ * so nothing refetches.
  */
 function writeBack(client: QueryClient, kind: EntityKind, saved: Details) {
   const merge = <T extends Details>(e: T): T =>
@@ -32,11 +36,20 @@ function writeBack(client: QueryClient, kind: EntityKind, saved: Details) {
   mergeInto<Details>(client, [kind, saved.slug], (old) => old && merge(old));
   mergeInto<Details[]>(client, [LIST_KEY[kind]], (old) => old?.map(merge));
   if (kind === "territory") {
-    mergeInto<{ territory: Details }>(client, ["scene", saved.slug], (old) => old && { ...old, territory: merge(old.territory) });
+    mergeInto<SceneCopy>(client, ["scene", saved.slug], (old) => old && { ...old, territory: merge(old.territory) });
+    return;
+  }
+  const rename = <T extends { slug: string; title: string }>(o: T): T =>
+    o.slug === saved.slug ? { ...o, title: saved.title } : o;
+  for (const [queryKey] of client.getQueriesData<SceneCopy>({ queryKey: ["scene"] })) {
+    // undefined leaves a bundle that does not offer the model untouched.
+    mergeInto<SceneCopy>(client, [...queryKey], (old) =>
+      old?.modelOptions?.some((o) => o.slug === saved.slug) ? { ...old, modelOptions: old.modelOptions.map(rename) } : undefined,
+    );
   }
 }
 
-/** PATCHes a model's or territory's title and description; a refusal is a toast. */
+/** PATCHes a model's or territory's title and description; a refusal is a toast (the dialog also shows it inline). */
 export function useEditDetails(kind: EntityKind, slug: string) {
   const client = useQueryClient();
   return useMutation({
