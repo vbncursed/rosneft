@@ -91,16 +91,17 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   // is dropped on the way out (below): the lists would seed from it on the
   // next visit and never adopt the refetch. A ref, not the query's
   // `isInvalidated`: a rename's setQueryData clears that flag. A write that
-  // lands after the page has gone drops the bundle itself (`left`).
+  // lands after the page has gone drops the bundle itself (`left`) — unless a
+  // new visit is already reading it, which keeps it, marked stale.
   const changed = useRef(false);
   const left = useRef(false);
   const onChanged = useCallback(() => {
     changed.current = true;
     const keys = [["scene", slug], ["territory", slug], ["territories"], ["model"], ["models"]];
-    for (const queryKey of keys) {
-      void client.invalidateQueries({ queryKey, refetchType: "none" });
-    }
-    if (left.current) client.removeQueries({ queryKey: ["scene", slug], exact: true });
+    for (const queryKey of keys) void client.invalidateQueries({ queryKey, refetchType: "none" });
+    // A new visit already reading the bundle keeps it: it was marked stale above.
+    const readers = client.getQueryCache().find({ queryKey: ["scene", slug], exact: true })?.getObserversCount();
+    if (left.current && !readers) client.removeQueries({ queryKey: ["scene", slug], exact: true });
   }, [client, slug]);
   useEffect(() => {
     left.current = changed.current = false;

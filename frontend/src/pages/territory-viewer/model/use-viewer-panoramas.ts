@@ -20,8 +20,8 @@ import type { Section } from "./reveal-section";
 export type ViewerPanoramasParams = {
   slug: string;
   /**
-   * The bundle's panoramas, seeded once. The page does NOT re-key this hook on
-   * a refetch — see `use-territory-viewer.ts` for why, and for what that costs.
+   * The bundle's panoramas, seeded once. A write marks the scene stale, to be
+   * re-read on the next visit, and never re-keys this hook — see `use-territory-viewer.ts` for why, and for what that costs.
    */
   initial: Panorama[];
   mode: PanoramaViewMode;
@@ -46,7 +46,7 @@ const DEFAULT_STEP = NUDGE_STEPS[1].value;
  * is being edited, whether markers are being dragged — in the viewer-mode
  * reducer; this hook holds what that state operates on, and writes every
  * change through `usePanoramaList`, which is optimistic and tells the page to
- * refetch. So a drag, a calibration and the anchor card's Save are three ways
+ * mark the scene stale (re-read on the next visit). So a drag, a calibration and the anchor card's Save are three ways
  * into one PUT rather than three paths that can disagree.
  */
 export function useViewerPanoramas({
