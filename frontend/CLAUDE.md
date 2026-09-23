@@ -489,7 +489,8 @@ carries `· 24h`; six console cards wrap at 1280 px on the mock's own
   re-reads it, after the write, so with it.
 - **Live routes use `staleTime: 0`**: `jobsQuery` (the route is `no-store`; a
   job started elsewhere must show on mount), the audit journal and its
-  24-hour window (`auditQuery`, `auditWindowQuery`), `consoleSummaryQuery`
+  24-hour window (`auditQuery`, `auditWindowQuery`), the caller's own feed on
+  Home and `/account` (`myAuditQuery`), `consoleSummaryQuery`
   and the metrics `panelsQuery`.
 - **The viewer marks, it does not refetch.** Its `onChanged`
   (`use-territory-viewer.ts`) invalidates the scene, the territory and model

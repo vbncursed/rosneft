@@ -11,6 +11,12 @@ describe("myAuditQuery", () => {
     expect(myAuditQuery.queryKey).toEqual(["audit", "mine"]);
   });
 
+  // A write elsewhere (a save on the console) must show on the next mount of
+  // Home or /account; the global 60 s staleTime would reopen the old feed.
+  it("is a live feed: every mount reads it afresh", () => {
+    expect(myAuditQuery.staleTime).toBe(0);
+  });
+
   it("starts with no cursor and pages by the one the last page reported", () => {
     expect(myAuditQuery.initialPageParam).toBeNull();
     expect(myAuditQuery.getNextPageParam({ entries: [], nextCursor: 12, refs: {}, total: null }, [], null, [])).toBe(12);
