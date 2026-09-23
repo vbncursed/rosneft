@@ -1,20 +1,20 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import type { PlacementGroup } from "@/entities/placement";
+import type { ModelGroup } from "@/entities/placement";
 import { GUEST_FOOTER, NO_DELETE_FOOTER } from "../model/panel-copy";
 import { PlacementsPanel, type PlacementsPanelProps } from "./placements-panel";
 
-const GROUPS: PlacementGroup[] = [
+const GROUPS: ModelGroup[] = [
   {
     model: { slug: "pipe-rack-12", title: "pipe-rack-12" },
-    instances: [{ id: 7, index: 1, label: "west run" }],
+    instances: [{ id: 7, index: 1, label: "west run", hidden: false, groupId: null }],
   },
   {
     model: { slug: "storage-tank-500", title: "storage-tank-500" },
     instances: [
-      { id: 1, index: 1, label: "" },
-      { id: 2, index: 2, label: "north row" },
+      { id: 1, index: 1, label: "", hidden: false, groupId: null },
+      { id: 2, index: 2, label: "north row", hidden: false, groupId: null },
     ],
   },
 ];

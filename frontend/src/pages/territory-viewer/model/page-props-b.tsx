@@ -1,7 +1,7 @@
 import { assetUrl } from "@/entities/content";
 import { documentFileName } from "@/entities/document";
 import { isCalibrated } from "@/entities/panorama";
-import { instanceName, isVisibleIn, type PlacementGroup } from "@/entities/placement";
+import { instanceName, isVisibleIn, type ModelGroup } from "@/entities/placement";
 import type { UploadModalProps } from "@/widgets/upload-modal";
 import { AnchorCard, insideFooter, LOADING_FOOTER, type ViewTabProps } from "@/widgets/view-tab";
 import type { DocumentWindowProps } from "@/widgets/document-window";
@@ -35,7 +35,7 @@ export function loadingLevel(view: PageViewState) {
 }
 
 /** The viewport markers' names, by placement id — the panel's numbering, exactly. */
-export const markerLabels = (groups: PlacementGroup[]): Record<number, string> =>
+export const markerLabels = (groups: ModelGroup[]): Record<number, string> =>
   Object.fromEntries(
     groups.flatMap((group) =>
       group.instances.map((instance) => [instance.id, instanceName(group, instance)]),
@@ -168,7 +168,7 @@ function anchorCard(p: PageParts) {
  * stays null: the rig never mounts, the camera stays free, and the photo hangs
  * around the scene as a backdrop the anchor ring is dragged against.
  */
-export function panoramaCanvasProps(p: PageParts, groups: PlacementGroup[]) {
+export function panoramaCanvasProps(p: PageParts, groups: ModelGroup[]) {
   const { panoramas: pan } = p;
   const { effective } = pan.calibration;
   return {

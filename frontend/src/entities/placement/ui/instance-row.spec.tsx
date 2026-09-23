@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { InstanceRow } from "./instance-row";
 import { hoverTip } from "@/shared/ui/tooltip/testing";
 
-const group = { model: { slug: "tank", title: "storage-tank-500" }, instances: [{ id: 2, index: 2, label: "Tank 2" }] };
+const group = { model: { slug: "tank", title: "storage-tank-500" }, instances: [{ id: 2, index: 2, label: "Tank 2", hidden: false, groupId: null }] };
 const instance = group.instances[0];
 const handlers = () => ({ onSelect: vi.fn(), onRename: vi.fn(), onDelete: vi.fn(), onFocus: vi.fn() });
 
