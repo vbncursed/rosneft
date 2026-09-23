@@ -32,7 +32,7 @@ func (s *RouterBodyLimitSuite) TestAnOversizedLoginIsRefusedBeforeTheHandler() {
 		mocks.NewUploadMock(mc), mocks.NewAuditMock(mc), mocks.NewAuthMock(mc))
 	discard := slog.New(slog.NewTextHandler(io.Discard, nil))
 	// nil auth clients: a request that reached the login handler would panic.
-	authH := authhttp.New(nil, nil, nil, nil, discard, authhttp.CookieOptions{}, []byte("test"))
+	authH := authhttp.New(nil, nil, nil, nil, nil, discard, authhttp.CookieOptions{}, []byte("test"))
 	r, _ := InitRouter(svc, http.NotFoundHandler(), http.NotFoundHandler(), http.NotFoundHandler(), authH, discard, config.Config{}, nil)
 
 	rec := httptest.NewRecorder()
