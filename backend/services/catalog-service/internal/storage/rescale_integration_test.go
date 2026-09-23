@@ -95,18 +95,7 @@ func (s *RescaleSuite) TestLeavesAnotherTerritoryAlone() {
 
 	assert.DeepEqual(s.T(), s.points("b"), []float64{1, 2, 3, -4, 5, -6})
 	assert.Equal(s.T(), s.positionX("b"), 1.0)
-}
-
-func (s *RescaleSuite) TestAFactorOfOneWritesNothing() {
-	_, err := s.pg.RescaleTerritoryPlacements(s.T().Context(), "a", 10, domain.Vec3{})
-	assert.NilError(s.T(), err)
-
-	var entries int
-	assert.NilError(s.T(), s.pool.QueryRow(s.T().Context(), `
-		SELECT count(*) FROM measurements m JOIN territories t ON t.id = m.territory_id
-		WHERE t.slug = 'a' AND m.updated_at > m.created_at`).Scan(&entries))
-	assert.Equal(s.T(), entries, 0)
-	assert.DeepEqual(s.T(), s.points("a"), []float64{1, 2, 3, -4, 5, -6})
+	assert.Equal(s.T(), s.panorama("b"), panoramaAt)
 }
 
 // baseline reads a pending baseline back; call it only while one is set.

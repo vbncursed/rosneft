@@ -4,6 +4,7 @@ package storage_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"testing"
@@ -118,7 +119,11 @@ func (s *BatchSuite) TestListsCarryEachLODChainInOrder() {
 	assert.DeepEqual(s.T(), lodsOf(bySlug["lods-yard"].Artifacts), []uint32{0, 1, 2})
 	assert.Equal(s.T(), bySlug["lods-yard"].Artifacts[0].Hash, "t-0")
 	assert.Equal(s.T(), bySlug["lods-yard"].Artifacts[0].Slug, "lods-yard")
-	assert.Equal(s.T(), len(bySlug["lods-fresh"].Artifacts), 0)
+	// A missing row reads as the zero Territory, whose chain is empty too: the
+	// row has to be there for its empty chain to mean anything.
+	fresh, listed := bySlug["lods-fresh"]
+	assert.Assert(s.T(), listed, "lods-fresh is missing from the list")
+	assert.Equal(s.T(), len(fresh.Artifacts), 0)
 
 	models, err := s.pg.ListModels(ctx)
 	assert.NilError(s.T(), err)
@@ -132,19 +137,23 @@ func (s *BatchSuite) TestTerritoryAdminsComeBackPerSlug() {
 	ctx := s.T().Context()
 	other := "22222222-2222-2222-2222-222222222222"
 	s.seedTerritory(ctx, "admins-a", s.admin)
-	s.seedTerritory(ctx, "admins-b", s.admin, other)
+	s.seedTerritory(ctx, "admins-b", other, s.admin) // other first: heap order is not id order
 	s.seedTerritory(ctx, "admins-none")
 	s.seedTerritory(ctx, "admins-unasked", other)
+	// The same instant for both, as two inserts can share a created_at to the
+	// microsecond: the admin id is what orders them then.
+	_, err := s.pool.Exec(ctx, `UPDATE territory_assignments SET created_at = '2026-01-01'`)
+	assert.NilError(s.T(), err)
 
 	got, err := s.pg.ListTerritoryAdmins(ctx, []string{"admins-a", "admins-b", "admins-none", "no-such"})
 	assert.NilError(s.T(), err)
-	// Two inserts can share a created_at to the microsecond; the contract under
-	// test is which ids land where, so compare sets.
-	slices.Sort(got["admins-b"])
 	assert.DeepEqual(s.T(), got, map[string][]string{
 		"admins-a": {s.admin},
 		"admins-b": {s.admin, other},
 	})
+	one, err := s.pg.GetTerritoryAdmins(ctx, "admins-b")
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), one, []string{s.admin, other})
 }
 
 func (s *BatchSuite) TestAPlacementBatchLandsWholeOrNotAtAll() {
@@ -167,8 +176,25 @@ func (s *BatchSuite) TestAPlacementBatchLandsWholeOrNotAtAll() {
 		{TerritorySlug: "batch-yard", ModelSlug: "batch-pump", Scale: unit},
 		{TerritorySlug: "batch-yard", ModelSlug: "no-such-model", Scale: unit},
 	})
-	assert.ErrorIs(s.T(), err, domain.ErrTerritoryNotFound)
+	assert.ErrorIs(s.T(), err, domain.ErrModelNotFound)
+	item, ok := errors.AsType[domain.ItemError](err)
+	assert.Assert(s.T(), ok, "%v", err)
+	assert.Equal(s.T(), item.Index, 1)
 	listed, err := s.pg.ListPlacements(ctx, "batch-yard")
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(listed), 2, "the refused batch must leave its first item behind nowhere")
+}
+
+// No row means one side of the territory/model match failed; the answer says
+// which, so the 404 is "model not found" rather than blaming the territory the
+// route's gate already found.
+func (s *BatchSuite) TestAMissingRowNamesWhatIsMissing() {
+	ctx := s.T().Context()
+	s.seedTerritory(ctx, "which-yard", s.admin)
+	s.seedModel(ctx, "which-pump")
+
+	_, err := s.pg.CreatePlacement(ctx, domain.Placement{TerritorySlug: "which-yard", ModelSlug: "no-such-model"})
+	assert.ErrorIs(s.T(), err, domain.ErrModelNotFound)
+	_, err = s.pg.CreatePlacement(ctx, domain.Placement{TerritorySlug: "no-such-yard", ModelSlug: "which-pump"})
+	assert.ErrorIs(s.T(), err, domain.ErrTerritoryNotFound)
 }

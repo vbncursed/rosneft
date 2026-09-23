@@ -74,7 +74,7 @@ func (s *ModelsSuite) TestUpsertRejectsShellMetacharactersInSourceHash() {
 // ModelUpdate.thumbnailBlobHash: "empty string clears it").
 func (s *ModelsSuite) TestUpsertAllowsEmptyThumbnailHash() {
 	in := domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: validBlobHash}
-	s.repo.UpsertModelMock.Expect(s.ctx, in).Return(in, nil)
+	s.repo.CreateModelMock.Expect(s.ctx, in).Return(in, nil)
 	_, err := s.svc.UpsertModel(s.ctx, in)
 	assert.NilError(s.T(), err)
 }
@@ -86,12 +86,20 @@ func (s *ModelsSuite) TestUpsertRejectsMalformedThumbnailHash() {
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
+// An explicit slug is a plain insert under that slug (see the territory test).
 func (s *ModelsSuite) TestUpsertForwardsValidInput() {
 	in := domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: validBlobHash}
-	s.repo.UpsertModelMock.Expect(s.ctx, in).Return(in, nil)
+	s.repo.CreateModelMock.Expect(s.ctx, in).Return(in, nil)
 	out, err := s.svc.UpsertModel(s.ctx, in)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), out.Slug, "m1")
+}
+
+func (s *ModelsSuite) TestAnExplicitSlugTakenIsAConflict() {
+	in := domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: validBlobHash}
+	s.repo.CreateModelMock.Expect(s.ctx, in).Return(domain.Model{}, domain.ErrSlugConflict)
+	_, err := s.svc.UpsertModel(s.ctx, in)
+	assert.ErrorIs(s.T(), err, domain.ErrSlugConflict)
 }
 
 func (s *ModelsSuite) TestCreateGeneratesSlugFromTitle() {

@@ -1,6 +1,7 @@
 package grpcapi_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
@@ -46,7 +47,37 @@ func (s *CreatePlacementsSuite) TestItemsTravelUnderTheBatchTerritoryInOrder() {
 	assert.Equal(s.T(), out.GetPlacements()[1].GetModelSlug(), "tank")
 }
 
-func (s *CreatePlacementsSuite) TestAnUnknownModelIsNotFound() {
+// A refused item answers with its index and the sentinel alone: the gateway
+// forwards this message to the browser, so the layers' wrapping stays out.
+func (s *CreatePlacementsSuite) TestARefusedItemNamesItsIndexAndNothingElse() {
+	for _, tc := range []struct {
+		name string
+		err  error
+		code codes.Code
+		msg  string
+	}{
+		{
+			name: "an unknown model",
+			err:  fmt.Errorf("storage.CreatePlacements: %w", domain.ItemError{Index: 2, Err: domain.ErrModelNotFound}),
+			code: codes.NotFound, msg: "item 2: model not found",
+		},
+		{
+			name: "a bad scale",
+			err: fmt.Errorf("service.CreatePlacements: %w",
+				domain.ItemError{Index: 0, Err: fmt.Errorf("%w: scale components must be positive", domain.ErrInvalidInput)}),
+			code: codes.InvalidArgument, msg: "item 0: invalid input: scale components must be positive",
+		},
+	} {
+		s.Run(tc.name, func() {
+			s.svc.CreatePlacementsMock.Return(nil, tc.err)
+			_, err := grpcapi.New(s.svc).CreatePlacements(s.T().Context(), &catalogv1.CreatePlacementsRequest{TerritorySlug: "yard"})
+			assert.Equal(s.T(), status.Code(err), tc.code)
+			assert.Equal(s.T(), status.Convert(err).Message(), tc.msg)
+		})
+	}
+}
+
+func (s *CreatePlacementsSuite) TestAnUnknownTerritoryIsNotFound() {
 	s.svc.CreatePlacementsMock.Return(nil, domain.ErrTerritoryNotFound)
 	_, err := grpcapi.New(s.svc).CreatePlacements(s.T().Context(), &catalogv1.CreatePlacementsRequest{TerritorySlug: "yard"})
 	assert.Equal(s.T(), status.Code(err), codes.NotFound)

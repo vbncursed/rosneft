@@ -75,9 +75,11 @@ func (s *TerritoriesSuite) TestUpsertRejectsShellMetacharactersInSourceHash() {
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
+// An explicit slug is a plain insert under that slug: nothing rewrites an
+// existing row whole any more (edits go through UpdateTerritory).
 func (s *TerritoriesSuite) TestUpsertForwardsValidInput() {
 	in := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: validBlobHash}
-	s.repo.UpsertTerritoryMock.Expect(s.ctx, in).Return(in, nil)
+	s.repo.CreateTerritoryMock.Expect(s.ctx, in).Return(in, nil)
 	out, err := s.svc.UpsertTerritory(s.ctx, in)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), out.Slug, "t1")
@@ -104,9 +106,17 @@ func (s *TerritoriesSuite) TestCreateResolvesSlugCollision() {
 	assert.Equal(s.T(), out.Slug, "moskva-2")
 }
 
+// A taken explicit slug is refused, not renamed: the caller named that slug.
+func (s *TerritoriesSuite) TestAnExplicitSlugTakenIsAConflict() {
+	in := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: validBlobHash}
+	s.repo.CreateTerritoryMock.Expect(s.ctx, in).Return(domain.Territory{}, domain.ErrSlugConflict)
+	_, err := s.svc.UpsertTerritory(s.ctx, in)
+	assert.ErrorIs(s.T(), err, domain.ErrSlugConflict)
+}
+
 func (s *TerritoriesSuite) TestUpsertPropagatesRepoError() {
 	in := domain.Territory{Slug: "t1", SourceBlobHash: validBlobHash}
-	s.repo.UpsertTerritoryMock.Expect(s.ctx, in).Return(domain.Territory{}, errors.New("db down"))
+	s.repo.CreateTerritoryMock.Expect(s.ctx, in).Return(domain.Territory{}, errors.New("db down"))
 	_, err := s.svc.UpsertTerritory(s.ctx, in)
 	assert.ErrorContains(s.T(), err, "db down")
 }

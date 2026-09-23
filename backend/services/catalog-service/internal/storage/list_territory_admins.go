@@ -6,14 +6,15 @@ import (
 )
 
 // ListTerritoryAdmins returns the admin ids assigned to each of slugs, in
-// assignment order: GetTerritoryAdmins for a whole page in one query. A slug
+// assignment order, the admin id breaking a tie so the answer is stable:
+// GetTerritoryAdmins for a whole page in one query. A slug
 // nobody is assigned to is absent, and so is an unknown one.
 func (r *PG) ListTerritoryAdmins(ctx context.Context, slugs []string) (map[string][]string, error) {
 	const q = `SELECT t.slug, a.admin_user_id::text
 FROM territory_assignments a
 JOIN territories t ON t.id = a.territory_id
 WHERE t.slug = ANY($1)
-ORDER BY a.created_at`
+ORDER BY a.created_at, a.admin_user_id`
 
 	rows, err := r.pool.Query(ctx, q, slugs)
 	if err != nil {

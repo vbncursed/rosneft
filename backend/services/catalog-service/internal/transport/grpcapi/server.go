@@ -79,6 +79,7 @@ func (s *Server) Register(srv *grpc.Server) {
 // statusByCode lists, per gRPC code, the domain sentinels that surface as it.
 var statusByCode = map[codes.Code][]error{
 	codes.InvalidArgument: {domain.ErrInvalidInput},
+	codes.AlreadyExists:   {domain.ErrSlugConflict},
 	codes.NotFound: {
 		domain.ErrTerritoryNotFound,
 		domain.ErrModelNotFound,
