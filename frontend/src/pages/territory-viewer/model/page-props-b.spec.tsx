@@ -5,12 +5,10 @@ import type { Document } from "@/entities/document";
 import type { Chain } from "@/entities/measurement";
 import type { Panorama } from "@/entities/panorama";
 import { groupByModel, type ResolvedPlacement } from "@/entities/placement";
-import type { ModelOption } from "@/entities/scene";
 import { insideFooter, LOADING_FOOTER } from "@/widgets/view-tab";
 import { basePageParts } from "../territory-viewer-page.fixture";
 import {
   documentProps,
-  markerLabels,
   panoramaCanvasProps,
   uploadProps,
   viewTabProps,
@@ -373,37 +371,6 @@ describe("panoramaCanvasProps", () => {
     expect(props.panoramas).toBe(moving.panoramas.list);
     expect(props.move).toEqual({ active: true, draggingId: 1, livePos: { x: 1, y: 2, z: 3 } });
     expect(props.panoramaStatus).toBe("idle");
-  });
-});
-
-describe("markerLabels", () => {
-  const OPTIONS: ModelOption[] = [
-    { slug: "storage-tank-500", title: "storage-tank-500", chain: [] },
-  ];
-  const placement = (id: number): ResolvedPlacement => ({
-    id,
-    territorySlug: "refinery-block-c",
-    modelSlug: "storage-tank-500",
-    label: "",
-    updatedAt: "2026-09-14T10:00:00Z",
-    visiblePanoramaIds: [],
-    hidden: false,
-    groupId: null,
-    position: { x: 0, y: 0, z: 0 },
-    rotation: { x: 0, y: 0, z: 0 },
-    scale: { x: 1, y: 1, z: 1 },
-    chain: [],
-  });
-
-  it("numbers two instances of one model the way the panel does", () => {
-    expect(markerLabels(groupByModel([placement(4), placement(9)], OPTIONS))).toEqual({
-      4: "storage-tank-500 #1",
-      9: "storage-tank-500 #2",
-    });
-  });
-
-  it("has nothing to label in an empty scene", () => {
-    expect(markerLabels([])).toEqual({});
   });
 });
 

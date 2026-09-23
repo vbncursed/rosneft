@@ -329,6 +329,25 @@ describe("useTerritoryViewer", () => {
       expect(second.canvas.onTransformCommit).toBe(first.canvas.onTransformCommit);
       expect(second.canvas.onLod).toBe(first.canvas.onLod);
     });
+
+    describe("a folding list", () => {
+      afterEach(() => localStorage.clear());
+
+      it("hands the canvas the very same props, so the 3D scene does not re-render", async () => {
+        // Fold state lives on the page, so a head click re-renders everything
+        // above the canvas. ViewerCanvas is memoised and skips SceneCanvas only
+        // if every prop keeps its identity.
+        const r = mount();
+        const first = await ready(r);
+        const fold = first.panel!.viewTab.panoramas.fold;
+        act(() => fold.onToggle());
+        const second = now(r);
+        expect(second.panel!.viewTab.panoramas.fold.open).toBe(!fold.open);
+        for (const key of Object.keys(first.canvas) as (keyof typeof first.canvas)[]) {
+          expect(second.canvas[key], key).toBe(first.canvas[key]);
+        }
+      });
+    });
   });
 
   describe("selection", () => {
