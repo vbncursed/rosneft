@@ -22,8 +22,7 @@ export function useJobStream(jobId: string | null, slug: string): TargetJob | nu
         setJob(next);
         if (!isLive(next)) {
           void client.invalidateQueries({ queryKey: ["scene", slug] });
-          // The catalog and Home build their cards from these, not the bundle.
-          void client.invalidateQueries({ queryKey: ["artifacts", "territory", slug] });
+          // The catalog and Home build their cards from the list, not the bundle.
           void client.invalidateQueries({ queryKey: ["territories"], refetchType: "none" });
           void client.invalidateQueries({ queryKey: ["jobs"] });
         }

@@ -194,7 +194,8 @@ describe("useContent", () => {
     });
     await waitFor(() => expect(gets("/api/territories")).toBe(territories + 1));
     expect(gets("/api/models")).toBe(models);
-    expect(spy).toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t-1"] });
+    // Nothing reads a territory's artifacts any more; only a model page does.
+    expect(spy).not.toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t-1"] });
   });
 
   it("asks for the two lists, the jobs and the principal — never once per row", async () => {

@@ -189,6 +189,7 @@ describe("useHome", () => {
     await waitFor(() =>
       expect(result.current.territories.cards[0]).toMatchObject({ slug: "t5", status: "ready" }),
     );
-    expect(spy).toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t5"] });
+    // Nothing reads a territory's artifacts any more; only a model page does.
+    expect(spy).not.toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t5"] });
   });
 });

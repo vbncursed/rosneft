@@ -150,8 +150,8 @@ describe("useTerritoryConversion", () => {
     await waitFor(() => expect(r.result.current).toMatchObject({ status: "ready", phase: "ready" }));
   });
 
-  // Until the catalog and Home read `lods` off the list, their cards are built
-  // from ["artifacts", kind, slug]: a finish seen here has to stale both.
+  // The cards read `lods` off the lists, so a finish stales both lists; the
+  // model page alone still reads ["artifacts", "model", slug].
   it("marks the catalog's status caches stale for every target that finished", async () => {
     const MODEL = { ...RUNNING, kind: "model", slug: "m" };
     listJobs.mockResolvedValue([RUNNING, MODEL]);
@@ -161,7 +161,7 @@ describe("useTerritoryConversion", () => {
     listJobs.mockResolvedValue([]);
     await client.refetchQueries({ queryKey: ["jobs"] });
     await waitFor(() => expect(spy).toHaveBeenCalledWith({ queryKey: ["artifacts", "model", "m"] }));
-    expect(spy).toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t"] });
+    expect(spy).not.toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t"] });
     expect(spy).toHaveBeenCalledWith({ queryKey: ["territories"], refetchType: "none" });
     expect(spy).toHaveBeenCalledWith({ queryKey: ["models"], refetchType: "none" });
     expect(spy).not.toHaveBeenCalledWith({ queryKey: ["scene", "m"] });

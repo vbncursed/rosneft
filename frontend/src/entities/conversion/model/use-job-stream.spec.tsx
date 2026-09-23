@@ -78,7 +78,7 @@ describe("useJobStream", () => {
     expect(spy).not.toHaveBeenCalled();
     act(() => handlers.onJob(job({ status: "succeeded" })));
     expect(spy).toHaveBeenCalledWith({ queryKey: ["scene", "t"] });
-    expect(spy).toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t"] });
+    expect(spy).not.toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t"] });
     expect(spy).toHaveBeenCalledWith({ queryKey: ["territories"], refetchType: "none" });
     expect(spy).toHaveBeenCalledWith({ queryKey: ["jobs"] });
   });
