@@ -102,12 +102,36 @@ const placementSelectCols = `pl.id, t.slug AS territory_slug, m.slug AS model_sl
 	pl.position_x, pl.position_y, pl.position_z,
 	pl.rotation_x, pl.rotation_y, pl.rotation_z,
 	pl.scale_x, pl.scale_y, pl.scale_z,
-	pl.label, pl.created_at, pl.updated_at, pl.visible_panorama_ids`
+	pl.label, pl.created_at, pl.updated_at, pl.visible_panorama_ids,
+	pl.hidden, pl.group_id`
 
 // placementJoin is the FROM clause used together with placementSelectCols.
 const placementJoin = `placements pl
 	JOIN territories t ON t.id = pl.territory_id
 	JOIN models m      ON m.id = pl.model_id`
+
+// placementWriteReturning is the RETURNING list of every placement write that
+// answers the row (the table aliased pl). The CTE it fills, named w, is read
+// back through placementFromWrite, so a new column is added here, there and in
+// placementSelectCols, and nowhere else.
+const placementWriteReturning = `pl.id, pl.territory_id, pl.model_id,
+	pl.position_x, pl.position_y, pl.position_z,
+	pl.rotation_x, pl.rotation_y, pl.rotation_z,
+	pl.scale_x, pl.scale_y, pl.scale_z,
+	pl.label, pl.created_at, pl.updated_at, pl.visible_panorama_ids,
+	pl.hidden, pl.group_id`
+
+// placementFromWrite resolves the slugs of the rows a write CTE named w
+// returned, in scanPlacement's column order.
+const placementFromWrite = `SELECT w.id, t.slug, m.slug,
+	w.position_x, w.position_y, w.position_z,
+	w.rotation_x, w.rotation_y, w.rotation_z,
+	w.scale_x, w.scale_y, w.scale_z,
+	w.label, w.created_at, w.updated_at, w.visible_panorama_ids,
+	w.hidden, w.group_id
+	FROM w
+	JOIN territories t ON t.id = w.territory_id
+	JOIN models m      ON m.id = w.model_id`
 
 func scanPlacement(r rowScanner) (domain.Placement, error) {
 	var p domain.Placement
@@ -117,8 +141,16 @@ func scanPlacement(r rowScanner) (domain.Placement, error) {
 		&p.Rotation.X, &p.Rotation.Y, &p.Rotation.Z,
 		&p.Scale.X, &p.Scale.Y, &p.Scale.Z,
 		&p.Label, &p.CreatedAt, &p.UpdatedAt, &p.VisiblePanoramaIDs,
+		&p.Hidden, &p.GroupID,
 	)
 	return p, err
+}
+
+// isGroupFKViolation reports whether err is placements_group_fk refusing a
+// group_id: the group does not exist, or it belongs to another territory.
+func isGroupFKViolation(err error) bool {
+	pgErr, ok := errors.AsType[*pgconn.PgError](err)
+	return ok && pgErr.Code == "23503" && pgErr.ConstraintName == "placements_group_fk"
 }
 
 // measurementCols reads a measurement aliased m joined to its territory t.
