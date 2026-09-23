@@ -133,7 +133,7 @@ Each entity has its own artifact family (`territory_artifacts` / `model_artifact
 ## Mesh conversion pipeline
 
 1. Frontend uploads a ZIP via `POST /api/uploads` (chunked) → `POST /api/uploads/{id}/finalize` returns a `blobHash`.
-2. Frontend `POST /api/territories` (or `/api/models`) with `{slug, title, description, sourceBlobHash}` → gateway upserts in catalog and calls `mesh-api.SubmitConversion(kind=TERRITORY|MODEL, slug)`. That either queues a conversion (Redis Stream + Postgres job row) **or**, when the target claim is already held, hands back the job already in flight for that target — the caller wanted a job to follow, and that is it. Response carries the `Job` either way, so the client can subscribe to SSE.
+2. Frontend `POST /api/territories` (or `/api/models`) with `{slug, title, description, sourceBlobHash}` → gateway creates it in catalog and calls `mesh-api.SubmitConversion(kind=TERRITORY|MODEL, slug)`. That either queues a conversion (Redis Stream + Postgres job row) **or**, when the target claim is already held, hands back the job already in flight for that target — the caller wanted a job to follow, and that is it. Response carries the `Job` either way, so the client can subscribe to SSE.
    - **A source replaced mid-conversion is re-queued when the running job finishes.** The in-flight job read `source_blob_hash` once, at its start, so it publishes artifacts built from the *old* bytes; `ProcessJob` re-reads the target after marking the job succeeded and submits again when the hash moved (`requeue_if_replaced.go`). Without that, the replacement never converted and nothing errored: `HasLOD0` was true, so the reconciler never retried.
 3. `mesh-worker` consumes the stream, calls catalog for `ConversionTarget` (kind+slug → source_blob_hash), fetches the ZIP from BlobStore by hash, extracts to a tmp dir, recursively finds the first `.obj`, and runs the converter.
 4. Converter: streaming OBJ parser (positions, UVs, faces, fan-triangulation, Z-up→Y-up, V-flip, `usemtl` grouping) → dedup `(v_idx, vt_idx)` pairs → MTL parser (`Kd`, `d`/`Tr`, `map_Kd`) → per-material glTF primitive sharing one position/UV buffer; PBR baseColorFactor (always) + baseColorTexture (when `map_Kd` exists). Texture cache deduplicates images shared across materials. Normalize (center, scale to maxDim=2). Emit GLB.
@@ -296,7 +296,10 @@ Session events (login, logout, password change, 2FA, passkey) have no row to
 capture, so the gateway records them through `Record()`; see `authAuditActions`
 in `gateway-service/internal/transport/authhttp/audit.go`. Only events that
 change no table belong in that map: user and role mutations are already caught
-by the triggers, and listing them would double-write.
+by the triggers, and listing them would double-write. A password change is the
+one half-way case: its success stamps `users.password_changed_at` and reaches
+the journal as the trigger's `user.update`, so the gateway records
+`auth.password_change` only when the attempt **failed** (`triggerRecordsSuccess`).
 
 The trigger logic is SQL, so it is covered by integration tests:
 `services/audit-service/internal/migrate/*_integration_test.go`, behind the
