@@ -10,9 +10,9 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
-// CreateTerritory inserts a new territory under the exact slug given. Unlike
-// UpsertTerritory it never updates an existing row: a slug collision yields
-// ErrSlugConflict so the service can retry with the next candidate.
+// CreateTerritory inserts a new territory under the exact slug given. It never
+// updates an existing row: a slug collision yields ErrSlugConflict, which the
+// service retries with the next candidate for a derived slug.
 //
 // Runs through audittx.Run so the audit_capture() trigger sees who made the
 // change. Outside that transaction the actor is invisible to the trigger and

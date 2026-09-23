@@ -5,9 +5,9 @@ import {
   matchesText,
   pipelineCounts,
   totalSize,
-  type Artifact,
   type ContentItem,
   type ContentKind,
+  type LodSummary,
 } from "@/entities/content";
 import { freeText, parseFilters } from "@/features/audit-filter";
 import { formatBytes } from "@/shared/lib/format-bytes";
@@ -27,7 +27,7 @@ type Entity = { slug: string; title: string; updatedAt?: string };
 export function toContentItem(
   kind: ContentKind,
   entity: Entity,
-  artifacts: Artifact[],
+  artifacts: LodSummary[],
   job?: TargetJob,
 ): ContentItem {
   const date = shortDate(entity.updatedAt);
@@ -138,7 +138,7 @@ const row = (label: string, value: string): Detail =>
 
 export function inspectorDetails(
   item: ContentItem,
-  artifacts: Artifact[],
+  artifacts: LodSummary[],
   updatedAt: string | undefined,
   job?: TargetJob,
 ): Detail[] {

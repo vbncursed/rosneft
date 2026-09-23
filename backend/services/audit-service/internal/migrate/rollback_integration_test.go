@@ -161,9 +161,10 @@ func (s *RollbackSuite) TestUpAgainAfterRollback() {
 	assert.Equal(s.T(), n, 1)
 }
 
-// One step back is 00005 alone: its trigger comes off measurements, and the
-// previous ensure_audit_triggers() body no longer picks the table up on boot.
-func (s *RollbackSuite) TestOneStepBackForgetsMeasurements() {
+// Two steps back undo 00006 (it only widens audit_capture's ignore list) and
+// then 00005: its trigger comes off measurements, and the previous
+// ensure_audit_triggers() body no longer picks the table up on boot.
+func (s *RollbackSuite) TestBackingOut00005ForgetsMeasurements() {
 	ctx := s.T().Context()
 	_, err := s.pool.Exec(ctx, `CREATE TABLE measurements (id BIGSERIAL PRIMARY KEY)`)
 	assert.NilError(s.T(), err)
@@ -173,7 +174,8 @@ func (s *RollbackSuite) TestOneStepBackForgetsMeasurements() {
 	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT ensure_audit_triggers()`).Scan(&attached))
 	assert.Equal(s.T(), attached, 1)
 
-	assert.NilError(s.T(), migrate.Down(ctx, s.dsn))
+	assert.NilError(s.T(), migrate.Down(ctx, s.dsn)) // 00006
+	assert.NilError(s.T(), migrate.Down(ctx, s.dsn)) // 00005
 	var trgs int
 	assert.NilError(s.T(), s.pool.QueryRow(ctx,
 		`SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal

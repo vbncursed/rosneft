@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import type { ConversionStage } from "@/entities/conversion";
@@ -42,6 +42,7 @@ const EMPTY_FORM: UploadForm = { title: "", description: "", panoramaUrl: "" };
  */
 export function useUploadTerritory(): UploadTerritoryState {
   const me = useQuery(meQuery).data ?? null;
+  const client = useQueryClient();
   const navigate = useNavigate();
   const [phase, setPhase] = useState<UploadPhase>("idle");
   const [file, setFile] = useState<File | null>(null);
@@ -98,9 +99,13 @@ export function useUploadTerritory(): UploadTerritoryState {
           sourceBlobHash: finalized.hash,
         });
       })
-      .then(({ territory, job }) =>
-        navigate({ href: `/territories/${encodeURIComponent(territory.slug)}?jobId=${job.id}` }),
-      )
+      .then(({ territory, job }) => {
+        // The catalog and the jobs strip trust their lists for a minute; this
+        // territory and its job are not in either yet.
+        void client.invalidateQueries({ queryKey: ["territories"] });
+        void client.invalidateQueries({ queryKey: ["jobs"] });
+        return navigate({ href: `/territories/${encodeURIComponent(territory.slug)}?jobId=${job.id}` });
+      })
       .catch((err: unknown) => {
         setPhase("picked");
         // A deliberate cancel is not a failure to report — only a genuine

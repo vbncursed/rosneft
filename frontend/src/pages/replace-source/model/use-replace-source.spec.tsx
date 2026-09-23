@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { SceneBundle } from "@/entities/scene";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useReplaceSource, type ReplaceSourceState } from "./use-replace-source";
 
@@ -29,6 +30,28 @@ vi.mock("@/entities/upload", async (importOriginal) => ({
 }));
 // A stand-in for the router context: the hook is rendered on its own.
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
+
+// A converted territory's bundle, the shape the conversion page's spec seeds:
+// the LOD0 is what a bundle from before the replace must not hand back.
+const ZERO = { x: 0, y: 0, z: 0 };
+const OLD_BUNDLE: SceneBundle = {
+  territory: { slug: "t", title: "Tenant A", sourceBlobHash: "o".repeat(64), placementCount: 0 },
+  artifact: {
+    lod: 0,
+    hash: "h0",
+    size: 1,
+    vertices: 1,
+    faces: 1,
+    bboxMin: ZERO,
+    bboxMax: { x: 1, y: 1, z: 1 },
+    chain: [{ lod: 0, hash: "h0", size: 1 }],
+  },
+  placements: [],
+  modelOptions: [],
+  panoramas: [],
+  documents: [],
+  measurements: [],
+};
 
 const PRINCIPAL = {
   id: "me",
@@ -118,6 +141,24 @@ describe("useReplaceSource", () => {
     expect(replaceTerritorySource).toHaveBeenCalledWith("t", "n".repeat(64));
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["jobs"] });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["territories"] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["territory", "t"] });
+  });
+
+  // The replace deletes the old artifacts, but a bundle cached from before it
+  // still holds a LOD0: the route's loader would hand it back and the
+  // conversion page would read the old revision as the converted result.
+  it("drops the scene bundle cached from before the replace", async () => {
+    runChunkedUpload.mockResolvedValue({ hash: "n".repeat(64), size: 2048 });
+    replaceTerritorySource.mockResolvedValue({ territory: { slug: "t" }, job: { id: "j-9" } });
+    const { result } = renderHook(() => useReplaceSource("t"), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    client.setQueryData(["scene", "t"], OLD_BUNDLE);
+
+    act(() => ready(result.current).onFiles([file()]));
+    act(() => ready(result.current).onSubmit());
+
+    await waitFor(() => expect(navigate).toHaveBeenCalled());
+    expect(client.getQueryData(["scene", "t"])).toBeUndefined();
   });
 
   it("toasts a rejected replace and returns to picked, without leaving", async () => {
@@ -132,6 +173,22 @@ describe("useReplaceSource", () => {
     await waitFor(() => expect(ready(result.current.s).phase).toBe("picked"));
     expect(result.current.notices[0]?.tone).toBe("error");
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  // The gateway may have deleted the artifacts before the call failed: a
+  // cached bundle would still point at a LOD0 that no longer exists.
+  it("drops the cached scene bundle even when the replace call fails", async () => {
+    runChunkedUpload.mockResolvedValue({ hash: "n".repeat(64), size: 2048 });
+    replaceTerritorySource.mockRejectedValue(new Error("nope"));
+    const { result } = renderHook(() => useReplaceSource("t"), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    client.setQueryData(["scene", "t"], OLD_BUNDLE);
+
+    act(() => ready(result.current).onFiles([file()]));
+    act(() => ready(result.current).onSubmit());
+
+    await waitFor(() => expect(ready(result.current).phase).toBe("picked"));
+    expect(client.getQueryData(["scene", "t"])).toBeUndefined();
   });
 
   // The navigate is the last link in the promise chain, so it must be returned
@@ -176,12 +233,12 @@ describe("useReplaceSource", () => {
     await waitFor(() => expect(result.current.status).toBe("missing"));
   });
 
-  it("reads any other failure as unavailable, with the gateway's own message", async () => {
+  it("reads any other failure as unavailable, a server failure in the fallback sentence", async () => {
     const { HttpError } = await import("@/shared/api");
     getTerritory.mockRejectedValue(new HttpError(503, null, "catalog unreachable"));
     const { result } = renderHook(() => useReplaceSource("t"), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("unavailable"));
-    expect(result.current.status === "unavailable" && result.current.error).toBe("catalog unreachable");
+    expect(result.current.status === "unavailable" && result.current.error).toBe("Something went wrong. Try again.");
   });
 
   it("says the whole page needs territory:write when the viewer lacks the grant", async () => {

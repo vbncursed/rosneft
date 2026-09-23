@@ -30,6 +30,7 @@ export type TerritoryCatalogPageProps = {
   onUpload: () => void;
   onOpen: (slug: string) => void;
   onReplace: (slug: string) => void;
+  onEdit: (slug: string) => void;
   onDelete: (slug: string) => void;
   /** What the list says when it is empty — a filter miss by default. */
   emptyHint?: string;
@@ -48,6 +49,7 @@ export function TerritoryCatalogPage({
   onUpload,
   onOpen,
   onReplace,
+  onEdit,
   onDelete,
   emptyHint,
 }: TerritoryCatalogPageProps) {
@@ -114,15 +116,26 @@ export function TerritoryCatalogPage({
                 canReplace || canDelete ? (
                   <>
                     {canReplace ? (
-                      <Button
-                        shape="icon"
-                        size="sm"
-                        variant="secondary"
-                        aria-label={`Replace source of ${card.title}`}
-                        onClick={() => onReplace(card.slug)}
-                      >
-                        <Icon name="refresh" size={14} />
-                      </Button>
+                      <>
+                        <Button
+                          shape="icon"
+                          size="sm"
+                          variant="secondary"
+                          aria-label={`Edit details of ${card.title}`}
+                          onClick={() => onEdit(card.slug)}
+                        >
+                          <Icon name="pencil" size={14} />
+                        </Button>
+                        <Button
+                          shape="icon"
+                          size="sm"
+                          variant="secondary"
+                          aria-label={`Replace source of ${card.title}`}
+                          onClick={() => onReplace(card.slug)}
+                        >
+                          <Icon name="refresh" size={14} />
+                        </Button>
+                      </>
                     ) : null}
                     {canDelete ? (
                       <Button

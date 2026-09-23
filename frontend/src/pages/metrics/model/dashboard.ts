@@ -19,7 +19,8 @@ import { focusSeries, shortGrpcLabel } from "./focus";
 /** What one panel query is in, as the screen reads it. */
 export type PanelResult =
   | { kind: "loading" }
-  | { kind: "value"; series: MetricSeries[] }
+  /** `stale`: this tick left the panel out, so these are the last answer's series. */
+  | { kind: "value"; series: MetricSeries[]; stale?: boolean }
   | { kind: "unavailable"; message: string };
 
 /**
@@ -79,6 +80,15 @@ export const ZERO_FILLED: ReadonlySet<PanelId> = new Set<PanelId>([
   "domain-twofa",
 ]);
 
+/** Appended wherever a kept answer is drawn: this tick left the panel out. */
+export const STALE = "stale — last answer kept";
+
+export const isStale = (result: PanelResult | undefined): boolean => result?.kind === "value" && !!result.stale;
+
+/** The health list and its meter are built from these panels; any kept one makes them stale. */
+export const servicesStale = (results: Partial<Record<PanelId, PanelResult>>): boolean =>
+  (["services-up", "red-rate", "red-errors", "red-latency"] as const).some((id) => isStale(results[id]));
+
 /** One panel card: its catalogue entry, plus whatever its query has to say. */
 export function panelEntry(
   id: PanelId,
@@ -119,10 +129,11 @@ export function panelEntry(
   const last = lastOf(focused.series);
   const tone = errorTone(id, last);
   const aligned = alignSeries(named);
+  const more = focused.hidden > 0 ? `${meta} · +${focused.hidden} more` : meta;
   return {
     key: id,
     title,
-    meta: focused.hidden > 0 ? `${meta} · +${focused.hidden} more` : meta,
+    meta: result.stale ? `${more} · ${STALE}` : more,
     unit,
     last: formatValue(last, unit),
     ...(tone ? { lastTone: tone } : {}),
@@ -159,7 +170,7 @@ export function statsOf(results: Partial<Record<PanelId, PanelResult>>): Metrics
     return {
       label: PANELS[id].title,
       state,
-      hint: HINTS[id],
+      hint: isStale(results[id]) ? `${HINTS[id]} · ${STALE}` : HINTS[id],
       ...(bad ? { tone: "bad" as const } : {}),
     };
   });

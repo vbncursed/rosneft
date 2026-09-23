@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TargetJob } from "@/entities/conversion";
-import { ledeOf, phaseOf, progressCard, shouldOpenViewer, STATUS_PILL } from "./conversion-view";
+import { jobsPoll, ledeOf, phaseOf, progressCard, shouldOpenViewer, STATUS_PILL } from "./conversion-view";
 
 const job = (over: Partial<TargetJob> = {}): TargetJob => ({
   kind: "territory",
@@ -95,5 +95,25 @@ describe("progressCard", () => {
     const waiting = { title: "Waiting for a worker", detail: "no progress reported" };
     expect(progressCard("queued", job({ status: "pending", progress: null, stage: null }))).toEqual(waiting);
     expect(progressCard("queued", null)).toEqual(waiting);
+  });
+});
+
+describe("jobsPoll", () => {
+  const at = (streamed: TargetJob | null, hasLod0 = false) => ({ slug: "t", hasLod0, streamed });
+
+  it("is off while the stream delivers a live frame, whatever the list says", () => {
+    expect(jobsPoll([job()], at(job()))).toBe(false);
+    expect(jobsPoll([], at(job({ status: "pending" })))).toBe(false);
+  });
+
+  it("is back on the catalog's rule once the stream is lost or finished", () => {
+    expect(jobsPoll([job()], at(null))).toBe(5000);
+    expect(jobsPoll([job()], at(job({ status: "succeeded" })))).toBe(5000);
+  });
+
+  it("waits for a job the reconciler has not queued yet, and stops once a LOD0 is there", () => {
+    expect(jobsPoll([], at(null))).toBe(5000);
+    expect(jobsPoll([], at(null, true))).toBe(false);
+    expect(jobsPoll(undefined, at(null))).toBe(5000);
   });
 });

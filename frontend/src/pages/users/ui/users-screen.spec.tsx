@@ -32,11 +32,14 @@ const ROLE: Role = {
   updated: "",
 };
 
+const OWNER_ROLE: Role = { ...ROLE, slug: "admin", title: "Company Owner" };
+
 const state = (over: Partial<UsersState> = {}): UsersState => ({
   status: "ready",
   error: null,
   users: [USER],
   roles: [ROLE],
+  assignableRoles: [ROLE],
   canManage: true,
   query: "",
   setQuery: vi.fn(),
@@ -55,6 +58,12 @@ const state = (over: Partial<UsersState> = {}): UsersState => ({
   setAddingRole: vi.fn(),
   setRoles: vi.fn(),
   rolesBusy: false,
+  canResetPassword: false,
+  resetting: false,
+  setResetting: vi.fn(),
+  resetPassword: vi.fn(),
+  resetBusy: false,
+  resetDone: false,
   ...over,
 });
 
@@ -179,7 +188,7 @@ describe("UsersScreen", () => {
     showing({
       selected: USER,
       addingRole: true,
-      roles: [ROLE, { ...ROLE, slug: "ops", title: "Ops", kind: "custom" }],
+      assignableRoles: [ROLE, { ...ROLE, slug: "ops", title: "Ops", kind: "custom" }],
     });
     expect(screen.getByRole("dialog", { name: "Add role" })).toBeInTheDocument();
 
@@ -213,7 +222,7 @@ describe("UsersScreen", () => {
     const s = showing({
       selected: USER,
       addingRole: true,
-      roles: [ROLE, { ...ROLE, slug: "ops", title: "Ops", kind: "custom" }],
+      assignableRoles: [ROLE, { ...ROLE, slug: "ops", title: "Ops", kind: "custom" }],
     });
     await userEvent.click(screen.getByRole("button", { name: "Add role" }));
     expect(s.setRoles).toHaveBeenCalledWith(["guest", "ops"]);
@@ -261,8 +270,51 @@ describe("UsersScreen", () => {
     expect(screen.queryByLabelText("Remove role Guest")).not.toBeInTheDocument();
   });
 
-  it("never offers a password reset — nothing can reset one yet", () => {
+  it("offers a password reset only where the container allows one", async () => {
     showing({ selected: USER });
     expect(screen.queryByRole("button", { name: "Reset password" })).not.toBeInTheDocument();
+    cleanup();
+
+    const s = showing({ selected: USER, canResetPassword: true });
+    await userEvent.click(screen.getByRole("button", { name: "Reset password" }));
+    expect(s.setResetting).toHaveBeenCalledWith(true);
+  });
+
+  it("sends the password the reset dialog holds for the person who is open", async () => {
+    const s = showing({ selected: USER, canResetPassword: true, resetting: true });
+    const dialog = screen.getByRole("dialog", { name: "New password for a.ivanova" });
+    const value = (within(dialog).getByLabelText(/^Password/) as HTMLInputElement).value;
+    await userEvent.click(within(dialog).getByRole("button", { name: "Change password" }));
+    expect(s.resetPassword).toHaveBeenCalledWith(value);
+  });
+
+  it("keeps the reset dialog open on its done state once the reset lands", async () => {
+    const s = showing({ selected: USER, canResetPassword: true, resetting: true, resetDone: true });
+    const dialog = screen.getByRole("dialog", { name: "New password for a.ivanova" });
+    expect(within(dialog).getByText("Password changed. The user was signed out everywhere.")).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Done" }));
+    expect(s.setResetting).toHaveBeenCalledWith(false);
+  });
+
+  // `roles` still carries Company Owner (the groups need it); the pickers read
+  // `assignableRoles`, which the container empties of it for anyone but Root.
+  it("offers the create dialog only the roles this reader may assign", () => {
+    showing({ creating: true, roles: [OWNER_ROLE, ROLE], assignableRoles: [ROLE] });
+    const dialog = within(screen.getByRole("dialog", { name: "Create user" }));
+    expect(dialog.getByRole("checkbox", { name: "Guest" })).toBeInTheDocument();
+    expect(dialog.queryByRole("checkbox", { name: "Company Owner" })).not.toBeInTheDocument();
+  });
+
+  it("offers the add-role dialog only the roles this reader may assign", async () => {
+    showing({
+      selected: { ...USER, roleSlugs: [] },
+      addingRole: true,
+      roles: [OWNER_ROLE, ROLE],
+      assignableRoles: [ROLE],
+    });
+    const dialog = within(screen.getByRole("dialog", { name: "Add role" }));
+    await userEvent.click(dialog.getByRole("button", { name: /Guest/ }));
+    const list = within(screen.getByRole("listbox", { name: "Role" }));
+    expect(list.getAllByRole("option").map((o) => o.textContent)).toEqual(["Guest"]);
   });
 });

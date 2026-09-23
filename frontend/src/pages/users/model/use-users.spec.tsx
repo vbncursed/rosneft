@@ -114,7 +114,7 @@ describe("useUsers", () => {
 
   // The confirm dialog is the only route to a state change; nothing freezes
   // on a single click.
-  it("freezes only after confirmation, then reports and refetches", async () => {
+  it("freezes only after confirmation, then writes the answer into the list without a refetch", async () => {
     const { result } = renderHook(() => ({ users: useUsers(), notices: useNotices() }), {
       wrapper,
     });
@@ -129,8 +129,8 @@ describe("useUsers", () => {
     await waitFor(() => expect(result.current.users.pending).toBeNull());
     expect(fetchMock.mock.calls.some(([u]) => String(u).endsWith("/freeze"))).toBe(true);
     expect(result.current.notices[0]?.message).toBe("Account frozen");
-    // The list was invalidated: a second GET went out.
-    await waitFor(() => expect(listCalls()).toBe(2));
+    expect(result.current.users.users?.[0].status).toBe("frozen");
+    expect(listCalls()).toBe(1);
   });
 
   it("dismisses the question without acting on it", async () => {
@@ -182,6 +182,33 @@ describe("useUsers", () => {
     );
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("User created"));
     expect(result.current.users.creating).toBe(false);
+    expect(result.current.users.users?.map((u) => u.id)).toEqual(["u-1", "u-2"]);
+    expect(result.current.users.selected?.id).toBe("u-2");
+    expect(listCalls()).toBe(1);
+  });
+
+  // Whichever field collided, and whoever holds it, the admin reads one line:
+  // naming the field would confirm an account they are not allowed to see.
+  it("answers any taken email or username with one neutral line", async () => {
+    for (const message of ["email already exists", "username already exists"]) {
+      clearNotices();
+      fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+        if (init?.method === "POST") return json({ code: "conflict", message }, 409);
+        if (url === "/api/auth/roles") return json([ROLE]);
+        return json([USER]);
+      });
+      const { result, unmount } = renderHook(
+        () => ({ users: useUsers(), notices: useNotices() }),
+        { wrapper },
+      );
+      await waitFor(() => expect(result.current.users.status).toBe("ready"));
+      act(() =>
+        result.current.users.create({ email: "a@x", username: "a", password: "Passw0rd!", roleSlugs: [] }),
+      );
+      await waitFor(() => expect(result.current.notices[0]?.tone).toBe("error"));
+      expect(result.current.notices[0].message).toBe("That email or username is unavailable.");
+      unmount();
+    }
   });
 
   it("stays busy while the account is being posted, so the dialog can lock its button", async () => {
@@ -234,6 +261,37 @@ describe("useUsers", () => {
     expect(JSON.parse(String((patch![1] as RequestInit).body))).toEqual({
       roleSlugs: ["guest", "admin"],
     });
+    expect(result.current.users.users?.[0].roleSlugs).toEqual(["guest", "admin"]);
+    expect(listCalls()).toBe(1);
+  });
+
+  // The reader may have just changed their own roles; their nav gates read
+  // /api/auth/me, which the client otherwise trusts for a minute.
+  it("marks the reader's own grants stale after a role change", async () => {
+    const spy = vi.spyOn(client, "invalidateQueries");
+    const { result } = renderHook(() => ({ users: useUsers(), notices: useNotices() }), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.users.status).toBe("ready"));
+    act(() => result.current.users.select("u-1"));
+    act(() => result.current.users.setRoles(["guest", "admin"]));
+    await waitFor(() => expect(result.current.notices[0]?.message).toBe("Roles updated"));
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["me"] });
+  });
+
+  // A delete answers 204: there is no user to write, and what a deleted
+  // account looks like is the gateway's to say.
+  it("refetches the list after a delete", async () => {
+    const base = fetchMock.getMockImplementation() as (u: string, i?: RequestInit) => Promise<Response>;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) =>
+      init?.method === "DELETE" ? new Response(null, { status: 204 }) : base(url, init),
+    );
+    const { result } = renderHook(() => useUsers(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    act(() => result.current.select("u-1"));
+    act(() => result.current.ask("delete"));
+    act(() => result.current.confirm());
+    await waitFor(() => expect(listCalls()).toBe(2));
   });
 
   it("surfaces the gateway's refusal as an error notice", async () => {
@@ -256,8 +314,8 @@ describe("useUsers", () => {
     expect(result.current.users).toBeNull();
   });
 
-  // The screen already holds the answer; a refetch that trips — the one every
-  // mutation fires — must not replace it with an outage page.
+  // The screen already holds the answer; a refetch that trips — the one a
+  // delete fires — must not replace it with an outage page.
   it("stays ready when a refetch fails on top of people it already has", async () => {
     const { result, rerender } = renderHook(() => useUsers(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
@@ -285,5 +343,70 @@ describe("useUsers", () => {
     const { result } = renderHook(() => useUsers(), { wrapper });
     await waitFor(() => expect(client.getQueryState(["users"])?.error).not.toBeNull());
     expect(result.current.status).toBe("loading");
+  });
+
+  it("resets the open person's password and keeps the dialog open on its done state", async () => {
+    const answer = fetchMock.getMockImplementation() as (url: string, init?: RequestInit) => Promise<Response>;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) =>
+      init?.method === "PUT" ? new Response(null, { status: 204 }) : answer(url, init),
+    );
+    const { result, unmount } = renderHook(() => ({ users: useUsers(), notices: useNotices() }), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.users.status).toBe("ready"));
+    act(() => result.current.users.select("u-1"));
+    expect(result.current.users.canResetPassword).toBe(true);
+    act(() => result.current.users.setResetting(true));
+    expect(result.current.users.resetDone).toBe(false);
+
+    act(() => result.current.users.resetPassword("N3w-Passw0rd!"));
+    // The dialog holds the only copy of the password; it must not vanish.
+    await waitFor(() => expect(result.current.users.resetDone).toBe(true));
+    expect(result.current.users.resetting).toBe(true);
+    expect(result.current.notices).toEqual([]);
+    const put = fetchMock.mock.calls.find(([, i]) => (i as RequestInit | undefined)?.method === "PUT");
+    expect(put![0]).toBe("/api/auth/users/u-1/password");
+    expect(JSON.parse(String((put![1] as RequestInit).body))).toEqual({ password: "N3w-Passw0rd!" });
+
+    // The mutation's variables hold the new password in the clear; once the
+    // screen is gone nothing may keep them for the default five minutes.
+    unmount();
+    const holdsPassword = () =>
+      client.getMutationCache().getAll().some((m) => JSON.stringify(m.state.variables ?? null).includes("N3w-Passw0rd!"));
+    await waitFor(() => expect(holdsPassword()).toBe(false));
+  });
+
+  it("forgets a finished reset when the dialog closes, so the next one opens on the form", async () => {
+    const answer = fetchMock.getMockImplementation() as (url: string, init?: RequestInit) => Promise<Response>;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) =>
+      init?.method === "PUT" ? new Response(null, { status: 204 }) : answer(url, init),
+    );
+    const { result } = renderHook(() => useUsers(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    act(() => result.current.select("u-1"));
+    act(() => result.current.setResetting(true));
+    act(() => result.current.resetPassword("N3w-Passw0rd!"));
+    await waitFor(() => expect(result.current.resetDone).toBe(true));
+
+    act(() => result.current.setResetting(false));
+    expect(result.current.resetDone).toBe(false);
+  });
+
+  it("offers the Company Owner role for assignment to Root alone", async () => {
+    const answer = fetchMock.getMockImplementation() as (url: string, init?: RequestInit) => Promise<Response>;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) =>
+      url === "/api/auth/roles"
+        ? json([{ ...ROLE, slug: "admin", title: "Company Owner" }, ROLE])
+        : answer(url, init),
+    );
+    const { result } = renderHook(() => useUsers(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.roles.map((r) => r.slug)).toEqual(["admin", "guest"]);
+    expect(result.current.assignableRoles.map((r) => r.slug)).toEqual(["guest"]);
+
+    act(() => client.setQueryData(["me"], { ...PRINCIPAL, isOwner: true }));
+    await waitFor(() =>
+      expect(result.current.assignableRoles.map((r) => r.slug)).toEqual(["admin", "guest"]),
+    );
   });
 });

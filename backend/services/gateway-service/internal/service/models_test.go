@@ -65,17 +65,54 @@ func (s *ModelsSuite) TestUpdateRejectsEmptySlug() {
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
-func (s *ModelsSuite) TestUpdateSetsThumbnailViaReadModifyWrite() {
-	current := domain.Model{Slug: "m1", Title: "Box", SourceBlobHash: "h"}
-	s.cat.GetModelMock.Expect(s.ctx, "m1").Return(current, nil)
-	// Upsert receives the merged model with the new thumbnail applied.
-	merged := current
-	merged.ThumbnailBlobHash = "thumb-hash"
-	s.cat.UpsertModelMock.Expect(s.ctx, merged).Return(merged, nil)
+// A PATCH writes only what it sends, in one catalog call: no GetModel, no
+// UpsertModel (neither is expected, so either would fail the test).
+func (s *ModelsSuite) TestUpdateSendsTheThumbnailAlone() {
+	sent := domain.ModelUpdate{ThumbnailBlobHash: new("thumb-hash")}
+	s.cat.UpdateModelMock.Expect(s.ctx, "m1", sent).
+		Return(domain.Model{Slug: "m1", ThumbnailBlobHash: "thumb-hash"}, nil)
 
-	saved, err := s.svc.UpdateModel(s.ctx, "m1", domain.ModelUpdate{ThumbnailBlobHash: new("thumb-hash")}, rootScope)
+	saved, err := s.svc.UpdateModel(s.ctx, "m1", sent, rootScope)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), saved.ThumbnailBlobHash, "thumb-hash")
+}
+
+func (s *ModelsSuite) TestUpdateSendsOnlyTheEditedFields() {
+	sent := domain.ModelUpdate{Title: new("Crate"), Description: new("")}
+	s.cat.UpdateModelMock.Expect(s.ctx, "m1", sent).Return(domain.Model{Slug: "m1", Title: "Crate"}, nil)
+
+	saved, err := s.svc.UpdateModel(s.ctx, "m1", sent, rootScope)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), saved.Title, "Crate")
+}
+
+// The catalog stores what it is sent, so padding typed around a name would
+// stay in the name. A description sent as spaces clears it.
+func (s *ModelsSuite) TestUpdateTrimsTheTitleAndDescription() {
+	s.cat.UpdateModelMock.Expect(s.ctx, "m1", domain.ModelUpdate{Title: new("Crate"), Description: new("")}).
+		Return(domain.Model{Slug: "m1", Title: "Crate"}, nil)
+
+	_, err := s.svc.UpdateModel(s.ctx, "m1", domain.ModelUpdate{Title: new("  Crate "), Description: new("   ")}, rootScope)
+	assert.NilError(s.T(), err)
+}
+
+// Create refuses a whitespace-only title as PATCH does, before any upload
+// check or catalog call, and trims what it does write.
+func (s *ModelsSuite) TestCreateRefusesABlankTitleAndTrimsTheRest() {
+	_, _, err := s.svc.CreateModel(s.ctx, domain.Model{Title: "   ", SourceBlobHash: "h"}, rootScope)
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+
+	want := domain.Model{Title: "Box", Description: "Steel", SourceBlobHash: "h"}
+	s.cat.UpsertModelMock.Expect(s.ctx, want).Return(domain.Model{Slug: "box", Title: "Box"}, nil)
+	s.mesh.SubmitConversionMock.Return(domain.Job{ID: "job-1"}, nil)
+	_, _, err = s.svc.CreateModel(s.ctx, domain.Model{Title: " Box ", Description: " Steel\n", SourceBlobHash: "h"}, rootScope)
+	assert.NilError(s.T(), err)
+}
+
+func (s *ModelsSuite) TestUpdateRejectsBlankTitleBeforeWriting() {
+	// No catalog expectation: any catalog call would fail the test.
+	_, err := s.svc.UpdateModel(s.ctx, "m1", domain.ModelUpdate{Title: new("  ")}, rootScope)
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *ModelsSuite) TestDeleteRejectsEmptySlug() {

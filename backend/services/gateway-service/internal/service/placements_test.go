@@ -132,3 +132,28 @@ func (s *PlacementsSuite) TestListRejectsEmptySlug() {
 	_, err := s.svc.ListPlacements(s.ctx, "")
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
+
+func (s *PlacementsSuite) TestCreateBatchPinsEveryItemToTheRouteTerritoryAndPassesTheKey() {
+	stray := validPlacement()
+	stray.TerritorySlug = "someone-elses"
+	want := []domain.Placement{validPlacement()}
+	s.cat.CreatePlacementsMock.Expect(s.ctx, "t1", "retry-1", want).Return(want, nil)
+
+	out, err := s.svc.CreatePlacements(s.ctx, "t1", "retry-1", []domain.Placement{stray})
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(out), 1)
+}
+
+func (s *PlacementsSuite) TestCreateBatchIsBoundedBeforeTheCatalogIsAsked() {
+	_, err := s.svc.CreatePlacements(s.ctx, "t1", "", nil)
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+	_, err = s.svc.CreatePlacements(s.ctx, "t1", "", make([]domain.Placement, 101))
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *PlacementsSuite) TestCreateBatchRejectsAnItemWithoutAModel() {
+	bad := validPlacement()
+	bad.ModelSlug = ""
+	_, err := s.svc.CreatePlacements(s.ctx, "t1", "", []domain.Placement{bad})
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}

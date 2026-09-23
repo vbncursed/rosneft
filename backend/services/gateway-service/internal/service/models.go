@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
-// ListModels proxies to catalog.
-func (g *Gateway) ListModels(ctx context.Context) ([]domain.Model, error) {
-	return g.catalog.ListModels(ctx)
+// ListModels proxies to catalog; withArtifacts as on ListTerritories.
+func (g *Gateway) ListModels(ctx context.Context, withArtifacts bool) ([]domain.Model, error) {
+	return g.catalog.ListModels(ctx, withArtifacts)
 }
 
 // GetModel fetches a model by slug.
@@ -20,11 +21,12 @@ func (g *Gateway) GetModel(ctx context.Context, slug string) (domain.Model, erro
 	return g.catalog.GetModel(ctx, slug)
 }
 
-// CreateModel upserts the model in the catalog and queues a conversion job.
+// CreateModel creates the model in the catalog and queues a conversion job.
 func (g *Gateway) CreateModel(ctx context.Context, m domain.Model, scope domain.BlobScope) (domain.Model, domain.Job, error) {
 	if err := validateEntity(m.Title, m.SourceBlobHash); err != nil {
 		return domain.Model{}, domain.Job{}, err
 	}
+	m.Title, m.Description = strings.TrimSpace(m.Title), strings.TrimSpace(m.Description)
 	if err := g.authorizeBlobs(ctx, scope, m.SourceBlobHash, m.ThumbnailBlobHash); err != nil {
 		return domain.Model{}, domain.Job{}, err
 	}
@@ -40,26 +42,22 @@ func (g *Gateway) CreateModel(ctx context.Context, m domain.Model, scope domain.
 }
 
 // UpdateModel patches a model's mutable fields by slug without touching the
-// source archive or re-queuing a conversion. Read-modify-write over the
-// existing catalog RPCs (fetch, apply non-nil patch fields, upsert) —
-// mirrors UpdateTerritory.
+// source archive or re-queuing a conversion. The catalog writes only the
+// non-nil fields — see UpdateTerritory.
 func (g *Gateway) UpdateModel(ctx context.Context, slug string, update domain.ModelUpdate, scope domain.BlobScope) (domain.Model, error) {
 	if slug == "" {
 		return domain.Model{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
+	}
+	var err error
+	if update.Title, update.Description, err = trimDetails(update.Title, update.Description); err != nil {
+		return domain.Model{}, err
 	}
 	if update.ThumbnailBlobHash != nil {
 		if err := g.authorizeBlobs(ctx, scope, *update.ThumbnailBlobHash); err != nil {
 			return domain.Model{}, err
 		}
 	}
-	current, err := g.catalog.GetModel(ctx, slug)
-	if err != nil {
-		return domain.Model{}, err
-	}
-	if update.ThumbnailBlobHash != nil {
-		current.ThumbnailBlobHash = *update.ThumbnailBlobHash
-	}
-	saved, err := g.catalog.UpsertModel(ctx, current)
+	saved, err := g.catalog.UpdateModel(ctx, slug, update)
 	if err != nil {
 		return domain.Model{}, fmt.Errorf("update model: %w", err)
 	}

@@ -18,6 +18,7 @@ func territoryFromProto(t *catalogv1.Territory) domain.Territory {
 		CreatedAt:           t.GetCreatedAt().AsTime(),
 		UpdatedAt:           t.GetUpdatedAt().AsTime(),
 		PlacementCount:      int(t.GetPlacementCount()),
+		LODs:                lodsFromProto(t.GetArtifacts()),
 	}
 }
 
@@ -36,6 +37,7 @@ func modelFromProto(m *catalogv1.Model) domain.Model {
 	if m == nil {
 		return domain.Model{}
 	}
+	bboxMin, bboxMax := lod0Bounds(m.GetArtifacts())
 	return domain.Model{
 		Slug:              m.GetSlug(),
 		Title:             m.GetTitle(),
@@ -45,7 +47,21 @@ func modelFromProto(m *catalogv1.Model) domain.Model {
 		CreatedAt:         m.GetCreatedAt().AsTime(),
 		UpdatedAt:         m.GetUpdatedAt().AsTime(),
 		UsageCount:        int(m.GetUsageCount()),
+		LODs:              lodsFromProto(m.GetArtifacts()),
+		BBoxMin:           bboxMin,
+		BBoxMax:           bboxMax,
 	}
+}
+
+// lod0Bounds reads LOD0's bounds off a model's artifact chain; both are nil
+// when LOD0 is missing.
+func lod0Bounds(arts []*catalogv1.ModelArtifact) (bboxMin, bboxMax *domain.Vec3) {
+	for _, a := range arts {
+		if a.GetLod() == 0 {
+			return new(vec3FromProto(a.GetBboxMin())), new(vec3FromProto(a.GetBboxMax()))
+		}
+	}
+	return nil, nil
 }
 
 func modelToProto(m domain.Model) *catalogv1.Model {
@@ -122,4 +138,24 @@ func placementFromProto(p *catalogv1.Placement) domain.Placement {
 		UpdatedAt:          p.GetUpdatedAt().AsTime(),
 		VisiblePanoramaIDs: p.GetVisiblePanoramaIds(),
 	}
+}
+
+// lodSource is what TerritoryArtifact and ModelArtifact share.
+type lodSource interface {
+	GetLod() uint32
+	GetHash() string
+	GetSize() int64
+	GetVertices() uint64
+	GetFaces() uint64
+}
+
+func lodsFromProto[A lodSource](in []A) []domain.LodArtifact {
+	out := make([]domain.LodArtifact, len(in))
+	for i, a := range in {
+		out[i] = domain.LodArtifact{
+			LOD: a.GetLod(), Hash: a.GetHash(), Size: a.GetSize(),
+			Vertices: a.GetVertices(), Faces: a.GetFaces(),
+		}
+	}
+	return out
 }

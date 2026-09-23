@@ -53,6 +53,10 @@ func (h *Handlers) Mount(r chi.Router) {
 			// The owner flag is granted owner-to-owner; this route gate is coarse,
 			// the real "actor must be an owner" check lives in the auth service.
 			pr.With(h.Require("users:write")).Post("/users/{id}/owner", h.setUserOwner)
+			// Setting someone else's password. The user scope (created_by, admin →
+			// Root only, never yourself) lives in auth-service, like freeze; the
+			// territory half runs in the handler (password_scope.go).
+			pr.With(h.Require("users:write")).Put("/users/{id}/password", h.setUserPassword)
 			pr.With(h.Require("roles:read")).Get("/roles", h.listRoles)
 			pr.With(h.Require("roles:manage")).Post("/roles", h.createRole)
 			pr.With(h.Require("roles:manage")).Patch("/roles/{slug}", h.updateRole)

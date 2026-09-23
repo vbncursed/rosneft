@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { artifactsQuery, conversionStatusOf, listArtifacts } from "@/entities/content";
-import { finishedSince, jobsQuery, listJobs, type TargetJob } from "@/entities/conversion";
+import { useStaleOnFinish, jobsQuery, listJobs } from "@/entities/conversion";
 import { deleteModel, getModel, modelQuery, updateModel } from "@/entities/model";
 import { runChunkedUpload } from "@/entities/upload";
 import { meQuery } from "@/entities/user";
@@ -44,17 +44,8 @@ export function useModelDetail(slug: string): ModelDetailState {
   const jobs = useQuery({ ...jobsQuery, queryFn: listJobs });
   const [pending, setPending] = useState(false);
 
-  // A row whose job just finished has new artifacts (or, after a failure, the
-  // same old ones): re-read that row's artifacts so its status catches up
-  // rather than staying "pending" on stale, empty cached data.
-  const previousJobs = useRef<TargetJob[] | undefined>(undefined);
-  useEffect(() => {
-    if (!jobs.data) return;
-    for (const { kind, slug: targetSlug } of finishedSince(previousJobs.current, jobs.data)) {
-      void client.invalidateQueries({ queryKey: ["artifacts", kind, targetSlug] });
-    }
-    previousJobs.current = jobs.data;
-  }, [jobs.data, client]);
+  // A finished job's new LODs ride on the lists, a model's on its artifacts.
+  useStaleOnFinish(jobs.data);
 
   const removal = useMutation({
     mutationFn: () => deleteModel(slug),

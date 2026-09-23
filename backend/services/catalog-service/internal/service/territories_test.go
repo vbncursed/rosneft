@@ -75,9 +75,11 @@ func (s *TerritoriesSuite) TestUpsertRejectsShellMetacharactersInSourceHash() {
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
+// An explicit slug is a plain insert under that slug: nothing rewrites an
+// existing row whole any more (edits go through UpdateTerritory).
 func (s *TerritoriesSuite) TestUpsertForwardsValidInput() {
 	in := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: validBlobHash}
-	s.repo.UpsertTerritoryMock.Expect(s.ctx, in).Return(in, nil)
+	s.repo.CreateTerritoryMock.Expect(s.ctx, in).Return(in, nil)
 	out, err := s.svc.UpsertTerritory(s.ctx, in)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), out.Slug, "t1")
@@ -104,9 +106,17 @@ func (s *TerritoriesSuite) TestCreateResolvesSlugCollision() {
 	assert.Equal(s.T(), out.Slug, "moskva-2")
 }
 
+// A taken explicit slug is refused, not renamed: the caller named that slug.
+func (s *TerritoriesSuite) TestAnExplicitSlugTakenIsAConflict() {
+	in := domain.Territory{Slug: "t1", Title: "Site", SourceBlobHash: validBlobHash}
+	s.repo.CreateTerritoryMock.Expect(s.ctx, in).Return(domain.Territory{}, domain.ErrSlugConflict)
+	_, err := s.svc.UpsertTerritory(s.ctx, in)
+	assert.ErrorIs(s.T(), err, domain.ErrSlugConflict)
+}
+
 func (s *TerritoriesSuite) TestUpsertPropagatesRepoError() {
 	in := domain.Territory{Slug: "t1", SourceBlobHash: validBlobHash}
-	s.repo.UpsertTerritoryMock.Expect(s.ctx, in).Return(domain.Territory{}, errors.New("db down"))
+	s.repo.CreateTerritoryMock.Expect(s.ctx, in).Return(domain.Territory{}, errors.New("db down"))
 	_, err := s.svc.UpsertTerritory(s.ctx, in)
 	assert.ErrorContains(s.T(), err, "db down")
 }
@@ -137,15 +147,15 @@ func (s *TerritoriesSuite) TestGetScopedForwardsAdminID() {
 }
 
 func (s *TerritoriesSuite) TestListReturnsEverything() {
-	s.repo.ListTerritoriesMock.Expect(s.ctx, "").Return([]domain.Territory{{Slug: "a"}, {Slug: "b"}, {Slug: "c"}}, nil)
-	got, err := s.svc.ListTerritories(s.ctx, "")
+	s.repo.ListTerritoriesMock.Expect(s.ctx, "", true).Return([]domain.Territory{{Slug: "a"}, {Slug: "b"}, {Slug: "c"}}, nil)
+	got, err := s.svc.ListTerritories(s.ctx, "", true)
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), cmp.Len(got, 3))
 }
 
 func (s *TerritoriesSuite) TestListScopedForwardsAdminID() {
-	s.repo.ListTerritoriesMock.Expect(s.ctx, "admin-1").Return([]domain.Territory{{Slug: "a"}}, nil)
-	got, err := s.svc.ListTerritories(s.ctx, "admin-1")
+	s.repo.ListTerritoriesMock.Expect(s.ctx, "admin-1", false).Return([]domain.Territory{{Slug: "a"}}, nil)
+	got, err := s.svc.ListTerritories(s.ctx, "admin-1", false)
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), cmp.Len(got, 1))
 }
@@ -187,4 +197,33 @@ func (s *TerritoriesSuite) TestDeleteReturnsNotFoundForUnknown() {
 func (s *TerritoriesSuite) TestDeleteRemovesExisting() {
 	s.repo.DeleteTerritoryMock.Expect(s.ctx, "t1").Return(nil)
 	assert.NilError(s.T(), s.svc.DeleteTerritory(s.ctx, "t1"))
+}
+
+func (s *TerritoriesSuite) TestUpdateForwardsThePatchAsIs() {
+	patch := domain.TerritoryPatch{Title: new("North"), Description: new(""), SourceBlobHash: new(validBlobHash)}
+	s.repo.UpdateTerritoryMock.Expect(s.ctx, "t1", patch).Return(domain.Territory{Slug: "t1", Title: "North"}, nil)
+	out, err := s.svc.UpdateTerritory(s.ctx, "t1", patch)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), out.Title, "North")
+}
+
+// Every refusal happens before the repository: it carries no expectation, so
+// reaching it fails the test.
+func (s *TerritoriesSuite) TestUpdateRefusesBadInputBeforeWriting() {
+	cases := []struct {
+		name  string
+		slug  string
+		patch domain.TerritoryPatch
+	}{
+		{name: "empty slug", slug: "", patch: domain.TerritoryPatch{Title: new("x")}},
+		{name: "blank title", slug: "t1", patch: domain.TerritoryPatch{Title: new("  ")}},
+		{name: "empty source hash", slug: "t1", patch: domain.TerritoryPatch{SourceBlobHash: new("")}},
+		{name: "non-hex source hash", slug: "t1", patch: domain.TerritoryPatch{SourceBlobHash: new("zz")}},
+	}
+	for _, tc := range cases {
+		s.Run(tc.name, func() {
+			_, err := s.svc.UpdateTerritory(s.ctx, tc.slug, tc.patch)
+			assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+		})
+	}
 }

@@ -119,3 +119,6 @@ var ErrUnknownPanel = errors.New("unknown panel")
 
 // ErrBadRange is returned for a range outside the allowed set.
 var ErrBadRange = errors.New("invalid range")
+
+// ErrUpstreamStatus is returned when Prometheus answers with a non-200 status.
+var ErrUpstreamStatus = errors.New("prometheus status")

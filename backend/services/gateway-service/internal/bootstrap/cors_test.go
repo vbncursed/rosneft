@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -48,4 +49,21 @@ func (s *CORSSuite) TestAConfiguredOriginIsStillEchoed() {
 func (s *CORSSuite) TestAnUnlistedOriginIsNotEchoed() {
 	assert.Equal(s.T(), s.probe([]string{"https://good.example"}).
 		Header().Get("Access-Control-Allow-Origin"), "")
+}
+
+// A cross-origin client retrying a placement batch sends Idempotency-Key; the
+// preflight must allow it or the browser never sends the POST.
+func (s *CORSSuite) TestThePreflightAllowsTheIdempotencyKey() {
+	r := newRouterWithCORS([]string{"https://good.example"})
+	r.Post("/probe", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodOptions, "/probe", nil)
+	req.Header.Set("Origin", "https://good.example")
+	req.Header.Set("Access-Control-Request-Method", http.MethodPost)
+	req.Header.Set("Access-Control-Request-Headers", "idempotency-key")
+	r.ServeHTTP(rec, req)
+
+	assert.Assert(s.T(), strings.EqualFold(rec.Header().Get("Access-Control-Allow-Headers"), "Idempotency-Key"),
+		rec.Header().Get("Access-Control-Allow-Headers"))
 }

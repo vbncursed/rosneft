@@ -1,6 +1,6 @@
 import { territoryPath } from "@/entities/territory";
 import { Badge } from "@/shared/ui/badge";
-import { linkButtonClass } from "@/shared/ui/button";
+import { Button, linkButtonClass } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
 import type { ViewerHeaderProps } from "../model/page-props";
 import { GUEST_SENTENCE, type HeaderPill } from "../model/viewer-view";
@@ -19,7 +19,7 @@ const fillOf = (tone: HeaderPill["tone"]) => (tone === "neutral" ? "outline" : "
  * (a guest's sentence, the measuring pill, a failure) and by CSS at 1280,
  * where the title alone already fills the row.
  */
-export function ViewerHeader({ slug, title, pills, meta, guest, canReplace }: ViewerHeaderProps) {
+export function ViewerHeader({ slug, title, pills, meta, guest, canReplace, onEdit }: ViewerHeaderProps) {
   return (
     <header className="flex shrink-0 items-center justify-between gap-6 border-b border-line bg-panel px-5 py-3.5 max-[1281px]:gap-5 max-[1281px]:px-[18px]">
       <div className="flex min-w-0 items-center gap-4 max-[1281px]:gap-[14px]">
@@ -50,6 +50,12 @@ export function ViewerHeader({ slug, title, pills, meta, guest, canReplace }: Vi
 
       <div className="flex shrink-0 items-center gap-[9px]">
         {guest ? <span className="font-mono text-[10px] text-muted">{GUEST_SENTENCE}</span> : null}
+        {canReplace && onEdit ? (
+          <Button variant="secondary" onClick={onEdit}>
+            <Icon name="pencil" size={14} className="mr-2" />
+            Edit details
+          </Button>
+        ) : null}
         {canReplace ? (
           <a href={`${territoryPath(slug)}/replace`} className={linkButtonClass("secondary")}>
             <Icon name="refresh" size={14} className="mr-2" />

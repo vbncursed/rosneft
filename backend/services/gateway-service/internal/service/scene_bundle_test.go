@@ -45,7 +45,13 @@ var (
 		{Slug: "t1", LOD: 1, Hash: "t1-lod1", Size: 500},
 		{Slug: "t1", LOD: 2, Hash: "t1-lod2", Size: 250},
 	}
-	sbModelsM1 = []domain.Model{{Slug: "m1", Title: "Box"}}
+	// ListModels carries each model's chain and LOD0 bounds: the bundle reads
+	// them off the list, so no test expects ListModelArtifacts.
+	sbModelsM1 = []domain.Model{{
+		Slug: "m1", Title: "Box", ThumbnailBlobHash: "thumb",
+		LODs:    []domain.LodArtifact{{LOD: 0, Hash: "m1-lod0"}, {LOD: 1, Hash: "m1-lod1"}},
+		BBoxMin: &domain.Vec3{X: -1, Y: -2, Z: -3}, BBoxMax: &domain.Vec3{X: 1, Y: 2, Z: 3},
+	}}
 )
 
 // expectFanOut wires the parallel reads of GetSceneBundle.
@@ -56,15 +62,8 @@ func (s *SceneBundleSuite) expectFanOut(terrArts []domain.Artifact, models []dom
 	s.cat.ListMeasurementsMock.Return(nil, nil)
 	s.con.ListPanoramasMock.Return(nil, nil)
 	s.con.ListDocumentsMock.Return(nil, nil)
-	s.cat.ListModelsMock.Return(models, nil)
-}
-
-// expectModelArtsM1 answers the per-model artifact lookup for m1.
-func (s *SceneBundleSuite) expectModelArtsM1() {
-	s.cat.ListModelArtifactsMock.When(minimock.AnyContext, "m1").Then([]domain.Artifact{
-		{Slug: "m1", LOD: 0, Hash: "m1-lod0"},
-		{Slug: "m1", LOD: 1, Hash: "m1-lod1"},
-	}, nil)
+	// The bundle reads each model's chain, so it must ask for it.
+	s.cat.ListModelsMock.Expect(minimock.AnyContext, true).Return(models, nil)
 }
 
 func (s *SceneBundleSuite) TestRejectsEmptySlug() {
@@ -86,7 +85,6 @@ func (s *SceneBundleSuite) TestPropagatesTerritoryNotFound() {
 
 func (s *SceneBundleSuite) TestReturnsTerritoryAndLOD0Artifact() {
 	s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
-	s.expectModelArtsM1()
 	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), got.Territory.Slug, "t1")
@@ -96,7 +94,6 @@ func (s *SceneBundleSuite) TestReturnsTerritoryAndLOD0Artifact() {
 
 func (s *SceneBundleSuite) TestArtifactCarriesFullLODChain() {
 	s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
-	s.expectModelArtsM1()
 	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), got.Artifact != nil)
@@ -109,7 +106,6 @@ func (s *SceneBundleSuite) TestArtifactNilWhenLOD0Missing() {
 	// Conversion still pending: only LOD1 exists → nil Artifact so the frontend
 	// renders the conversion-pending placeholder instead of crashing.
 	s.expectFanOut([]domain.Artifact{{Slug: "t1", LOD: 1, Hash: "lod1"}}, sbModelsM1, nil)
-	s.expectModelArtsM1()
 	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), got.Artifact == nil)
@@ -117,7 +113,6 @@ func (s *SceneBundleSuite) TestArtifactNilWhenLOD0Missing() {
 
 func (s *SceneBundleSuite) TestArtifactNilWhenNoArtifactsAtAll() {
 	s.expectFanOut(nil, sbModelsM1, nil)
-	s.expectModelArtsM1()
 	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), got.Artifact == nil)
@@ -126,7 +121,6 @@ func (s *SceneBundleSuite) TestArtifactNilWhenNoArtifactsAtAll() {
 func (s *SceneBundleSuite) TestPlacementsPreservedAndAlwaysSliceNotNil() {
 	// Frontend distinguishes empty-slice (no placements) from null (broken).
 	s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
-	s.expectModelArtsM1()
 	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), got.Placements != nil)
@@ -136,7 +130,6 @@ func (s *SceneBundleSuite) TestPlacementsPreservedAndAlwaysSliceNotNil() {
 func (s *SceneBundleSuite) TestPlacementsReturnsOnlyMatchingTerritory() {
 	// The catalog returns only the territory's placements; the gateway forwards.
 	s.expectFanOut(sbTerr3LOD, sbModelsM1, []domain.Placement{{ID: 1, TerritorySlug: "t1", ModelSlug: "m1"}})
-	s.expectModelArtsM1()
 	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), cmp.Len(got.Placements, 1))

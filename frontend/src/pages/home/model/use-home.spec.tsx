@@ -27,10 +27,10 @@ const TERRITORIES = [1, 2, 3, 4, 5].map((n) => ({
   title: `T${n}`,
   sourceBlobHash: String(n).repeat(64),
   placementCount: 0,
+  lods: n === 5 ? [{ lod: 0, hash: "h", size: 1024 }] : [],
   ...(n === 3 ? {} : { updatedAt: `2026-09-0${n}T00:00:00Z` }),
 }));
 const MODEL = { slug: "m", title: "M", sourceBlobHash: "m".repeat(64), usageCount: 0 };
-const LOD0 = { slug: "t5", lod: 0, hash: "h", contentType: "x", size: 1024 };
 const ENTRIES = [1, 2, 3, 4, 5, 6].map((id) => ({
   id,
   at: "2026-09-08T10:00:00Z",
@@ -52,8 +52,6 @@ const ROUTER = async (url: string): Promise<Response> => {
   if (url === "/api/territories") return json(TERRITORIES);
   if (url === "/api/models") return json([MODEL]);
   if (url === "/api/jobs") return json(JOBS);
-  if (url === "/api/territories/t5/artifacts") return json([LOD0]);
-  if (url.endsWith("/artifacts")) return json([]);
   if (url.startsWith("/api/audit/mine")) return json({ entries: ENTRIES, nextCursor: 0 });
   return json({ code: "forbidden", message: "You don't have permission to do this" }, 403);
 };
@@ -73,7 +71,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("useHome", () => {
-  it("is loading until territories, models, jobs and the shown artifacts answered, then ready", async () => {
+  it("is loading until territories, models and jobs answered, then ready", async () => {
     const { result } = renderHook(() => useHome(), { wrapper });
     expect(result.current.status).toBe("loading");
     await waitFor(() => expect(result.current.status).toBe("ready"));
@@ -82,8 +80,8 @@ describe("useHome", () => {
     expect(result.current.territories.meta).toBe("showing 4 of 5");
     expect(result.current.territories.cards[0].status).toBe("ready");
     expect(result.current.territories.cards[0].chips).toEqual([]);
-    // Only the four shown territories are asked for their artifacts.
-    expect(fetchMock.mock.calls.some(([u]) => u === "/api/territories/t3/artifacts")).toBe(false);
+    // The LODs ride on the list: no card asks for its own.
+    expect(fetchMock.mock.calls.some(([u]) => String(u).endsWith("/artifacts"))).toBe(false);
   });
 
   it("slices the feed to four rows and names the signed-in reader", async () => {
@@ -162,33 +160,36 @@ describe("useHome", () => {
     );
     const { result } = renderHook(() => useHome(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("unavailable"));
-    expect(result.current.error).toBe("down");
+    expect(result.current.error).toBe("Something went wrong. Try again.");
   });
 
-  it("re-reads a shown territory's artifacts once its job leaves the live set", async () => {
+  it("re-reads the territory list once a shown territory's job leaves the live set", async () => {
     JOBS = [
       { id: "j1", kind: "territory", slug: "t5", status: "running", progress: 0.5, stage: "parsing" },
     ];
-    let t5Calls = 0;
+    let listCalls = 0;
     fetchMock.mockImplementation(async (url: string) => {
-      if (url === "/api/territories/t5/artifacts") {
-        t5Calls += 1;
-        return json(t5Calls === 1 ? [] : [LOD0]);
+      if (url === "/api/territories") {
+        listCalls += 1;
+        return json(listCalls === 1 ? TERRITORIES.map((t) => ({ ...t, lods: [] })) : TERRITORIES);
       }
       return ROUTER(url);
     });
+    const spy = vi.spyOn(client, "invalidateQueries");
     const { result } = renderHook(() => useHome(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.territories.cards[0]).toMatchObject({ slug: "t5", status: "converting" });
-    expect(t5Calls).toBe(1);
+    expect(listCalls).toBe(1);
 
     JOBS = [];
     await act(async () => {
       await client.refetchQueries({ queryKey: ["jobs"] });
     });
-    await waitFor(() => expect(t5Calls).toBe(2));
+    await waitFor(() => expect(listCalls).toBe(2));
     await waitFor(() =>
       expect(result.current.territories.cards[0]).toMatchObject({ slug: "t5", status: "ready" }),
     );
+    // Nothing reads a territory's artifacts any more; only a model page does.
+    expect(spy).not.toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t5"] });
   });
 });

@@ -107,7 +107,7 @@ export function usePageHandlers(d: HandlerDeps): PageInteraction {
     async (modelSlug: string, count: number) => {
       const id = await editor.create(modelSlug, count);
       closePicker();
-      // The POSTs already landed, so the new object is in the scene; the form
+      // The batch already landed, so the new object is in the scene; the form
       // opens on the last of them to be named, and cancelling it deletes it.
       if (id !== null) form.openNew(id);
     },

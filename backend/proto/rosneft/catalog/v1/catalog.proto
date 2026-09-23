@@ -36,6 +36,7 @@ service CatalogService {
   rpc ResolveBlobAccess(ResolveBlobAccessRequest) returns (ResolveBlobAccessResponse);
   rpc GetTerritory(GetTerritoryRequest) returns (GetTerritoryResponse);
   rpc UpsertTerritory(UpsertTerritoryRequest) returns (UpsertTerritoryResponse);
+  rpc UpdateTerritory(UpdateTerritoryRequest) returns (UpdateTerritoryResponse);
   rpc DeleteTerritory(DeleteTerritoryRequest) returns (DeleteTerritoryResponse);
   rpc RegisterTerritoryArtifact(RegisterTerritoryArtifactRequest) returns (RegisterTerritoryArtifactResponse);
   rpc ListTerritoryArtifacts(ListTerritoryArtifactsRequest) returns (ListTerritoryArtifactsResponse);
@@ -45,10 +46,14 @@ service CatalogService {
   rpc RescaleTerritoryPlacements(RescaleTerritoryPlacementsRequest) returns (RescaleTerritoryPlacementsResponse);
   rpc SetTerritoryAdmins(SetTerritoryAdminsRequest) returns (SetTerritoryAdminsResponse);
   rpc GetTerritoryAdmins(GetTerritoryAdminsRequest) returns (GetTerritoryAdminsResponse);
+  // ListTerritoryAdmins is GetTerritoryAdmins for many territories in one
+  // query: the access screen used to ask once per territory.
+  rpc ListTerritoryAdmins(ListTerritoryAdminsRequest) returns (ListTerritoryAdminsResponse);
 
   rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
   rpc GetModel(GetModelRequest) returns (GetModelResponse);
   rpc UpsertModel(UpsertModelRequest) returns (UpsertModelResponse);
+  rpc UpdateModel(UpdateModelRequest) returns (UpdateModelResponse);
   rpc DeleteModel(DeleteModelRequest) returns (DeleteModelResponse);
   rpc RegisterModelArtifact(RegisterModelArtifactRequest) returns (RegisterModelArtifactResponse);
   rpc ListModelArtifacts(ListModelArtifactsRequest) returns (ListModelArtifactsResponse);
@@ -56,6 +61,9 @@ service CatalogService {
 
   rpc ListPlacements(ListPlacementsRequest) returns (ListPlacementsResponse);
   rpc CreatePlacement(CreatePlacementRequest) returns (CreatePlacementResponse);
+  // CreatePlacements lands 1–100 placements on one territory in one
+  // transaction: all of them, or none.
+  rpc CreatePlacements(CreatePlacementsRequest) returns (CreatePlacementsResponse);
   rpc UpdatePlacement(UpdatePlacementRequest) returns (UpdatePlacementResponse);
   rpc SetPlacementVisibility(SetPlacementVisibilityRequest) returns (SetPlacementVisibilityResponse);
   rpc DeletePlacement(DeletePlacementRequest) returns (DeletePlacementResponse);
@@ -91,6 +99,9 @@ message Territory {
   string external_panorama_url = 7;
   // How many placements sit on this territory.
   uint32 placement_count = 8;
+  // Every LOD artifact, sorted by lod. Filled by ListTerritories only: the list
+  // pages need the chain and would otherwise ask once per row.
+  repeated TerritoryArtifact artifacts = 9;
 }
 
 // Model is a placeable 3D asset overlaid on a territory.
@@ -105,6 +116,8 @@ message Model {
   string thumbnail_blob_hash = 7;
   // How many distinct territories place this model.
   uint32 usage_count = 8;
+  // Every LOD artifact, sorted by lod. Filled by ListModels only.
+  repeated ModelArtifact artifacts = 9;
 }
 
 // TerritoryArtifact is a converted GLB output for one territory + LOD.
@@ -174,6 +187,9 @@ message ListTerritoriesRequest {
   // When non-empty, restrict the result to territories assigned to this admin.
   // Empty means no filter (Root and internal callers see everything).
   string scope_admin_id = 1;
+  // Attach each territory's LOD chain. Off by default: only the list screens
+  // render it, and every other caller would pay one query for nothing.
+  bool with_artifacts = 2;
 }
 message ListTerritoriesResponse {
   repeated Territory territories = 1;
@@ -235,10 +251,40 @@ message GetTerritoryAdminsResponse {
   repeated string admin_user_ids = 1;
 }
 
+message ListTerritoryAdminsRequest {
+  repeated string slugs = 1;
+}
+// TerritoryAdmin is one assignment. Flat pairs rather than a map of lists: a
+// proto map cannot hold a repeated value without a wrapper message.
+message TerritoryAdmin {
+  string territory_slug = 1;
+  string admin_user_id = 2;
+}
+message ListTerritoryAdminsResponse {
+  // Grouped by territory, in assignment order within one. A slug nobody is
+  // assigned to, or that does not exist, contributes no pair.
+  repeated TerritoryAdmin admins = 1;
+}
+
 message UpsertTerritoryRequest {
   Territory territory = 1;
 }
 message UpsertTerritoryResponse {
+  Territory territory = 1;
+}
+
+// UpdateTerritory writes only the fields it carries, in one UPDATE: an absent
+// field keeps the stored value, a present empty one clears it. A partial edit
+// must not write back columns it read earlier, or it reverts a concurrent
+// source replace (or a concurrent title edit). Unknown slug is NOT_FOUND.
+message UpdateTerritoryRequest {
+  string slug = 1;
+  optional string title = 2;
+  optional string description = 3;
+  optional string external_panorama_url = 4;
+  optional string source_blob_hash = 5;
+}
+message UpdateTerritoryResponse {
   Territory territory = 1;
 }
 
@@ -277,24 +323,32 @@ message DeleteTerritoryArtifactsRequest {
 message DeleteTerritoryArtifactsResponse {}
 
 // SetTerritoryRescaleBaseline records the territory's current source-mesh
-// max-dimension before a source replacement clears its artifacts. The
-// post-conversion RescaleTerritoryPlacements reads it to keep placements 1:1
-// across the new normalization. Writes only when no baseline is already
-// pending, preserving the earliest value across chained replaces.
+// max-dimension and bbox center before a source replacement clears its
+// artifacts. The post-conversion RescaleTerritoryPlacements reads both to keep
+// placements 1:1 across the new normalization. Writes only when no baseline is
+// already pending, preserving the earliest values across chained replaces.
 message SetTerritoryRescaleBaselineRequest {
   string territory_slug = 1;
   double source_max = 2;
+  // Center of the same source bbox. Required; a request without it is refused
+  // (InvalidArgument).
+  Vec3 source_center = 3;
 }
 message SetTerritoryRescaleBaselineResponse {}
 
-// RescaleTerritoryPlacements applies a pending rescale baseline: it scales
-// every placement's position and scale, and every measurement point, by
-// old_max / new_source_max and clears the baseline, atomically. A no-op when no
-// baseline is set. The response reports how many placements were changed
-// (measurements are not counted).
+// RescaleTerritoryPlacements applies a pending rescale baseline: every
+// placement position, measurement point and panorama anchor becomes
+// s·(old_max/new_source_max) + (old_center − new_source_center)·2/new_source_max,
+// placement scale is multiplied by old_max/new_source_max, and the baseline
+// is cleared — atomically. A baseline with no center shifts nothing. A no-op
+// when no baseline is set. The response reports how many placements were
+// changed (measurements and panoramas are not counted).
 message RescaleTerritoryPlacementsRequest {
   string territory_slug = 1;
   double new_source_max = 2;
+  // Center of the new LOD0 source bbox. Required; a request without it is
+  // refused (InvalidArgument).
+  Vec3 new_source_center = 3;
 }
 message RescaleTerritoryPlacementsResponse {
   uint32 updated = 1;
@@ -302,7 +356,10 @@ message RescaleTerritoryPlacementsResponse {
 
 // ─── Model RPCs ─────────────────────────────────────────────────────────────
 
-message ListModelsRequest {}
+message ListModelsRequest {
+  // Attach each model's LOD chain; off by default, as on ListTerritoriesRequest.
+  bool with_artifacts = 1;
+}
 message ListModelsResponse {
   repeated Model models = 1;
 }
@@ -318,6 +375,17 @@ message UpsertModelRequest {
   Model model = 1;
 }
 message UpsertModelResponse {
+  Model model = 1;
+}
+
+// UpdateModel writes only the fields it carries — see UpdateTerritoryRequest.
+message UpdateModelRequest {
+  string slug = 1;
+  optional string title = 2;
+  optional string description = 3;
+  optional string thumbnail_blob_hash = 4;
+}
+message UpdateModelResponse {
   Model model = 1;
 }
 
@@ -370,6 +438,19 @@ message CreatePlacementRequest {
 }
 message CreatePlacementResponse {
   Placement placement = 1;
+}
+message CreatePlacementsRequest {
+  string territory_slug = 1;
+  // 1–100. Each item's own territory_slug is ignored: the batch lands on the
+  // territory above, the one the gateway's territory gate checked.
+  repeated CreatePlacementRequest items = 2;
+  // Optional. A batch already stored under this key on the territory is
+  // answered as stored and nothing is written; one of another size is
+  // AlreadyExists. Empty means no idempotency, as before.
+  string idempotency_key = 3;
+}
+message CreatePlacementsResponse {
+  repeated Placement placements = 1; // in items order
 }
 
 message UpdatePlacementRequest {

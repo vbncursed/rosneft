@@ -112,9 +112,9 @@ function send(ctx: Ctx, op: SyncOp): Promise<void> {
  * dispatcher — never in the reducer, whose StrictMode double run would send
  * every request twice.
  *
- * The saved chains are seeded once per territory, from the bundle; a refetch
- * already agrees with what this hook sent, and `onChanged` keeps the cache in
- * step for the next visit.
+ * The saved chains are seeded once per territory, from the bundle; `onChanged`
+ * has the page mark that bundle stale, and the next visit re-reads it rather
+ * than seed from one that predates what this hook sent.
  *
  * **One territory per hook.** The screen keys the body on the slug, so a new
  * territory is a new hook; the "not while saving" guard below only matters if

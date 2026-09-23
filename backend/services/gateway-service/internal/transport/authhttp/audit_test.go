@@ -60,3 +60,20 @@ func (s *AuthAuditActionsSuite) TestEveryActionIsNamespaced() {
 			"route %s maps to un-namespaced action %q", route, action)
 	}
 }
+
+// A successful password change already reaches the journal through the users
+// trigger (password_changed_at), so recording it here too wrote it twice. A
+// failed attempt changes no row, and this is the only place it can be written.
+func (s *AuthAuditActionsSuite) TestAPasswordChangeRecordsOnlyItsFailures() {
+	for _, tc := range []struct {
+		action, result string
+		want           bool
+	}{
+		{action: "auth.password_change", result: "ok", want: false},
+		{action: "auth.password_change", result: "failed", want: true},
+		{action: "auth.logout", result: "ok", want: true},
+		{action: "auth.2fa_enable", result: "failed", want: true},
+	} {
+		assert.Equal(s.T(), recordsOutcome(tc.action, tc.result), tc.want, "%s %s", tc.action, tc.result)
+	}
+}

@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  createPlacement,
+  createPlacements,
   deletePlacement,
   setPlacementVisibility,
   updatePlacement,
@@ -15,7 +15,7 @@ import { usePlacementsEditor } from "./use-placements-editor";
 
 vi.mock("@/entities/placement", async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  createPlacement: vi.fn(),
+  createPlacements: vi.fn(),
   updatePlacement: vi.fn(),
   deletePlacement: vi.fn(),
   setPlacementVisibility: vi.fn(),
@@ -61,7 +61,7 @@ const editor = (initial: Placement[] = [], panoramaIds: number[] = []) =>
   }));
 
 beforeEach(() => {
-  vi.mocked(createPlacement).mockReset();
+  vi.mocked(createPlacements).mockReset();
   vi.mocked(updatePlacement).mockReset();
   vi.mocked(deletePlacement).mockReset();
   vi.mocked(setPlacementVisibility).mockReset();
@@ -70,12 +70,10 @@ beforeEach(() => {
 });
 
 describe("usePlacementsEditor", () => {
-  it("creates N instances in a row along X at the real-world scale and resolves to the last id", async () => {
-    let next = 100;
-    vi.mocked(createPlacement).mockImplementation(async (_slug, body) => ({
-      ...placement(next++),
-      ...body,
-    }) as Placement);
+  it("creates N instances in one batch, in a row along X at the real-world scale, and resolves to the last id", async () => {
+    vi.mocked(createPlacements).mockImplementation(async (_slug, items) =>
+      items.map((body, i) => ({ ...placement(100 + i), ...body }) as Placement),
+    );
     const { result } = editor();
 
     let last: number | null = null;
@@ -83,47 +81,41 @@ describe("usePlacementsEditor", () => {
       last = await result.current.s.create("tank", 2);
     });
 
-    const xs = vi.mocked(createPlacement).mock.calls.map(([, b]) => b.position?.x ?? 0);
-    expect(xs[0]).toBe(0);
+    expect(createPlacements).toHaveBeenCalledOnce();
+    const items = vi.mocked(createPlacements).mock.calls[0][1];
+    expect(items[0].position?.x).toBe(0);
     // 2 scene units per GLB times the 0.1 scale, plus a tenth for the gap.
-    expect(xs[1]).toBeCloseTo(0.22, 10);
-    expect(vi.mocked(createPlacement).mock.calls[0][1].scale).toEqual({ x: 0.1, y: 0.1, z: 0.1 });
+    expect(items[1].position?.x).toBeCloseTo(0.22, 10);
+    expect(items[0].scale).toEqual({ x: 0.1, y: 0.1, z: 0.1 });
     expect(result.current.s.placements).toHaveLength(2);
     expect(result.current.s.placements[0].chain).toEqual(CHAIN);
-    expect(last).toBe(result.current.s.placements[1].id);
+    expect(last).toBe(101);
     expect(onChanged).toHaveBeenCalledOnce();
   });
 
-  it("exposes placing progress while the loop runs", async () => {
-    let releaseFirst!: () => void;
-    let releaseSecond!: () => void;
-    vi.mocked(createPlacement)
-      .mockImplementationOnce(
-        () => new Promise<Placement>((res) => (releaseFirst = () => res(placement(1)))),
-      )
-      .mockImplementationOnce(
-        () => new Promise<Placement>((res) => (releaseSecond = () => res(placement(2)))),
-      );
+  it("exposes placing progress while the batch is in flight", async () => {
+    let release!: () => void;
+    vi.mocked(createPlacements).mockImplementationOnce(
+      () => new Promise<Placement[]>((res) => (release = () => res([placement(1), placement(2)]))),
+    );
     const { result } = editor();
 
     let done!: Promise<number | null>;
     act(() => {
       done = result.current.s.create("tank", 2);
     });
-    await waitFor(() => expect(result.current.s.placing).toEqual({ done: 0, total: 2 }));
-
-    await act(async () => releaseFirst());
-    await waitFor(() => expect(result.current.s.placing).toEqual({ done: 1, total: 2 }));
+    await waitFor(() => expect(result.current.s.placing).toEqual({ total: 2 }));
 
     await act(async () => {
-      releaseSecond();
+      release();
       await done;
     });
     expect(result.current.s.placing).toBeNull();
   });
 
-  it("a refused create toasts and leaves the list as it was", async () => {
-    vi.mocked(createPlacement).mockRejectedValue(new HttpError(403, null, "You don't have permission to do this"));
+  // One transaction on the gateway: a refused batch created nothing.
+  it("a refused batch toasts and leaves the list as it was", async () => {
+    vi.mocked(createPlacements).mockRejectedValue(new HttpError(403, null, "You don't have permission to do this"));
     const { result } = editor([placement(1)]);
 
     let out: number | null = 7;
@@ -138,24 +130,118 @@ describe("usePlacementsEditor", () => {
     expect(onChanged).not.toHaveBeenCalled();
   });
 
-  it("a batch that fails half-way keeps the rows that landed", async () => {
-    // The first POST succeeded server-side; hiding that row would show a list
-    // the gateway disagrees with until something remounts the editor.
-    vi.mocked(createPlacement)
-      .mockResolvedValueOnce(placement(11))
-      .mockRejectedValue(new HttpError(403, null, "You don't have permission to do this"));
-    const { result } = editor();
+  // No HTTP answer means the gateway may have committed before the line
+  // dropped: the list stays as it was, but the bundle is marked stale so the
+  // next visit shows whatever really landed.
+  it("a batch lost to the network toasts and still marks the bundle stale", async () => {
+    vi.mocked(createPlacements).mockRejectedValue(new TypeError("Failed to fetch"));
+    const { result } = editor([placement(1)]);
 
     let out: number | null = 7;
     await act(async () => {
-      out = await result.current.s.create("tank", 3);
+      out = await result.current.s.create("tank", 2);
     });
 
     expect(out).toBeNull();
-    expect(result.current.s.placements.map((p) => p.id)).toEqual([11]);
+    expect(result.current.s.placements.map((p) => p.id)).toEqual([1]);
     expect(result.current.notices).toHaveLength(1);
     expect(onChanged).toHaveBeenCalledOnce();
-    expect(result.current.s.placing).toBeNull();
+  });
+
+  // A 5xx is not a refusal: a proxy's 502/504 can arrive after the catalog
+  // committed, so it is treated like a dropped line. A 4xx created nothing.
+  it.each([500, 502, 504])("a %i marks the bundle stale and keeps the key for a retry", async (status) => {
+    vi.mocked(createPlacements)
+      .mockRejectedValueOnce(new HttpError(status, null, "upstream timed out"))
+      .mockResolvedValue([]);
+    const { result } = editor([placement(1)]);
+
+    await act(async () => {
+      await result.current.s.create("tank", 2);
+    });
+
+    expect(result.current.notices).toHaveLength(1);
+    expect(onChanged).toHaveBeenCalledOnce();
+    await act(async () => {
+      await result.current.s.create("tank", 2);
+    });
+    const calls = vi.mocked(createPlacements).mock.calls;
+    expect(calls[1][2]).toBe(calls[0][2]);
+  });
+
+  it.each([400, 409])("a %i refusal does not mark the bundle stale", async (status) => {
+    vi.mocked(createPlacements).mockRejectedValue(new HttpError(status, null, "refused"));
+    const { result } = editor([placement(1)]);
+
+    await act(async () => {
+      await result.current.s.create("tank", 2);
+    });
+
+    expect(onChanged).not.toHaveBeenCalled();
+  });
+
+  // One key per placing action: the gateway answers a replayed key with the
+  // batch it already stored, so a retry after a dropped answer places once.
+  describe("idempotency key", () => {
+    const keyOf = (call: number) => vi.mocked(createPlacements).mock.calls[call][2];
+    const echo = async (_slug: string, items: { modelSlug: string }[]) =>
+      items.map((body, i) => ({ ...placement(200 + i), ...body }) as Placement);
+
+    it("sends a fresh key with each action", async () => {
+      vi.mocked(createPlacements).mockImplementation(echo);
+      const { result } = editor();
+
+      await act(async () => {
+        await result.current.s.create("tank", 2);
+        await result.current.s.create("tank", 2);
+      });
+
+      expect(keyOf(0)).toMatch(/^[A-Za-z0-9-]{1,64}$/);
+      expect(keyOf(1)).toMatch(/^[A-Za-z0-9-]{1,64}$/);
+      expect(keyOf(1)).not.toBe(keyOf(0));
+    });
+
+    it("reuses the key when the same action is retried after a failure", async () => {
+      vi.mocked(createPlacements).mockRejectedValueOnce(new TypeError("Failed to fetch")).mockImplementation(echo);
+      const { result } = editor();
+
+      await act(async () => {
+        await result.current.s.create("tank", 3);
+        await result.current.s.create("tank", 3);
+      });
+
+      expect(keyOf(0)).toMatch(/^[A-Za-z0-9-]{1,64}$/);
+      expect(keyOf(1)).toBe(keyOf(0));
+    });
+
+    // A 409 says the key names another batch: keeping it would refuse every
+    // identical placement after it, so the next one starts over.
+    it("drops the key the gateway refused as a conflict", async () => {
+      vi.mocked(createPlacements)
+        .mockRejectedValueOnce(new HttpError(409, null, "idempotency key reused with a different batch"))
+        .mockImplementation(echo);
+      const { result } = editor();
+
+      await act(async () => {
+        await result.current.s.create("tank", 3);
+        await result.current.s.create("tank", 3);
+      });
+
+      expect(keyOf(1)).toMatch(/^[A-Za-z0-9-]{1,64}$/);
+      expect(keyOf(1)).not.toBe(keyOf(0));
+    });
+
+    it("gives a different action after a failure a new key", async () => {
+      vi.mocked(createPlacements).mockRejectedValueOnce(new TypeError("Failed to fetch")).mockImplementation(echo);
+      const { result } = editor();
+
+      await act(async () => {
+        await result.current.s.create("tank", 3);
+        await result.current.s.create("tank", 4);
+      });
+
+      expect(keyOf(1)).not.toBe(keyOf(0));
+    });
   });
 
   it("commitTransform keeps the label; rename keeps the transform", async () => {
@@ -174,31 +260,29 @@ describe("usePlacementsEditor", () => {
   });
 
   it("create sends visiblePanoramaIds from the editor's panoramaIds param", async () => {
-    vi.mocked(createPlacement).mockImplementation(async (_slug, body) => ({
-      ...placement(1),
-      ...body,
-    }) as Placement);
+    vi.mocked(createPlacements).mockImplementation(async (_slug, items) =>
+      items.map((body) => ({ ...placement(1), ...body }) as Placement),
+    );
     const { result } = editor([], [1, 2]);
 
     await act(async () => {
       await result.current.s.create("tank", 1);
     });
 
-    expect(vi.mocked(createPlacement).mock.calls[0][1].visiblePanoramaIds).toEqual([1, 2]);
+    expect(vi.mocked(createPlacements).mock.calls[0][1][0].visiblePanoramaIds).toEqual([1, 2]);
   });
 
   it("create sends an empty visiblePanoramaIds when none are given", async () => {
-    vi.mocked(createPlacement).mockImplementation(async (_slug, body) => ({
-      ...placement(1),
-      ...body,
-    }) as Placement);
+    vi.mocked(createPlacements).mockImplementation(async (_slug, items) =>
+      items.map((body) => ({ ...placement(1), ...body }) as Placement),
+    );
     const { result } = editor([], []);
 
     await act(async () => {
       await result.current.s.create("tank", 1);
     });
 
-    expect(vi.mocked(createPlacement).mock.calls[0][1].visiblePanoramaIds).toEqual([]);
+    expect(vi.mocked(createPlacements).mock.calls[0][1][0].visiblePanoramaIds).toEqual([]);
   });
 
   it("setVisibility PUTs the allowlist, swaps the row in and calls onChanged", async () => {

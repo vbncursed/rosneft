@@ -6,7 +6,7 @@ import { notify } from "@/shared/lib/notify";
 export type DocumentListParams = {
   slug: string;
   initial: Document[];
-  /** Every settled mutation calls this; the page refetches the scene bundle. */
+  /** Every settled mutation calls this; the page marks the scene bundle stale. */
   onChanged: () => void;
 };
 
@@ -40,8 +40,8 @@ export function useDocumentList({ slug, initial, onChanged }: DocumentListParams
         notify.error(messageOf(err));
       } finally {
         // Both ways: a refused delete may mean the row is already gone for
-        // another reason, and only the gateway can say. The page re-keys this
-        // hook on the bundle it refetches.
+        // another reason, and only the gateway can say. The page marks the
+        // bundle stale and re-reads it on the next visit.
         onChanged();
         setPendingId(null);
       }

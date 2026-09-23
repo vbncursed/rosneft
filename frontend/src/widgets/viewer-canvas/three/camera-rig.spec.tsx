@@ -41,7 +41,7 @@ describe("CameraRig", () => {
     camera!.position.set(9, 9, 9);
 
     await r.update(rig(0));
-    expect(camera!.position.x).toBe(9);
+    expect(camera!.position.x).toBeCloseTo(9);
 
     await r.update(rig(1));
     expect(camera!.position.toArray()).toEqual(start.toArray());

@@ -1,9 +1,7 @@
-import { useInfiniteQuery, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { myAuditQuery, type AuditEntry } from "@/entities/audit";
-import { artifactsQuery } from "@/entities/content";
 import {
-  finishedSince,
+  useStaleOnFinish,
   jobsQuery,
   sortJobs,
   toJobCard,
@@ -47,12 +45,11 @@ export type HomeState = {
 };
 
 /**
- * Everything Home decides. Three lists, the jobs poll, one artifacts query per
- * *shown* territory (the four most recent — the rest are never asked), and the
- * first page of the reader's own journal. The feed never blocks the page.
+ * Everything Home decides. Three lists (each row carries its own LODs), the
+ * jobs poll and the first page of the reader's own journal — nothing per row.
+ * The feed never blocks the page.
  */
 export function useHome(): HomeState {
-  const client = useQueryClient();
   const me = useQuery(meQuery).data ?? null;
   const territories = useQuery(territoriesQuery);
   const models = useQuery(modelsQuery);
@@ -60,31 +57,12 @@ export function useHome(): HomeState {
   const feed = useInfiniteQuery(myAuditQuery);
 
   const shown = recent(territories.data ?? [], TERRITORY_CARDS);
-  const artifacts = useQueries({
-    queries: shown.map((t) => artifactsQuery("territory", t.slug)),
-    // Inline, not hoisted: it closes over `shown`, and only the array built in
-    // the same render lines up with `results` (see use-territory-catalog.ts).
-    combine: (results) => ({
-      pending: results.some((r) => r.isPending),
-      failed: results.map(unanswered).find((e) => e !== null) ?? null,
-      bySlug: new Map(results.map((r, i) => [shown[i].slug, r.data ?? []])),
-    }),
-  });
 
-  // A shown territory whose job just finished has new artifacts: re-read them,
-  // or the card flips back to pending. Ported from use-territory-catalog.
-  const previousJobs = useRef<TargetJob[] | undefined>(undefined);
-  useEffect(() => {
-    if (!jobs.data) return;
-    for (const { kind, slug } of finishedSince(previousJobs.current, jobs.data)) {
-      void client.invalidateQueries({ queryKey: ["artifacts", kind, slug] });
-    }
-    previousJobs.current = jobs.data;
-  }, [jobs.data, client]);
+  // A finished job's new LODs ride on the lists, a model's on its artifacts.
+  useStaleOnFinish(jobs.data);
 
-  const failed =
-    unanswered(territories) ?? unanswered(models) ?? unanswered(jobs) ?? artifacts.failed;
-  const loading = territories.isPending || models.isPending || jobs.isPending || artifacts.pending;
+  const failed = unanswered(territories) ?? unanswered(models) ?? unanswered(jobs);
+  const loading = territories.isPending || models.isPending || jobs.isPending;
 
   const allTerritories = territories.data ?? [];
   const allModels = models.data ?? [];
@@ -95,7 +73,7 @@ export function useHome(): HomeState {
   const canUploadModel = can(me, "model:write");
   const empty = viewerEmpty(allTerritories.length, canUploadTerritory, canUploadModel);
   const modelCards = recent(allModels, MODEL_CARDS).map((m) =>
-    toModelCard(m, [], jobOf("model", m.slug)),
+    toModelCard(m, m.lods ?? [], jobOf("model", m.slug)),
   );
   const title = titleOf(allTerritories, allModels);
 
@@ -108,9 +86,7 @@ export function useHome(): HomeState {
     jobsMeta: jobsMeta(allJobs),
     territories: {
       cards: shown.map((t) =>
-        bareCard(
-          toTerritoryCard(t, artifacts.bySlug.get(t.slug) ?? [], jobOf("territory", t.slug)),
-        ),
+        bareCard(toTerritoryCard(t, t.lods ?? [], jobOf("territory", t.slug))),
       ),
       total: allTerritories.length,
       meta: territoriesMeta(shown.length, allTerritories.length, empty),

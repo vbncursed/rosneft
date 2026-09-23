@@ -90,6 +90,14 @@ describe("MetricsPage", () => {
     expect(screen.getByText(/2 alerts/)).toBeInTheDocument();
   });
 
+  it("says a kept alert count is stale, and says so even at zero", () => {
+    const { rerender } = render(<MetricsPage {...props({ firingCount: 2, alertsStale: true })} />);
+    expect(screen.getByText(/2 alerts · stale — last answer kept/)).toBeInTheDocument();
+
+    rerender(<MetricsPage {...props({ firingCount: 0, alertsStale: true })} />);
+    expect(screen.getByText("alerts stale — last answer kept")).toBeInTheDocument();
+  });
+
   it("offers every range, with the current one chosen", () => {
     render(<MetricsPage {...props()} />);
     expect(screen.getByRole("radiogroup", { name: "Time range" })).toBeInTheDocument();

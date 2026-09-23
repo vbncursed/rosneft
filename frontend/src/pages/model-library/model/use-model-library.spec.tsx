@@ -28,7 +28,7 @@ const json = (body: unknown, status = 200) =>
 let fetchMock: ReturnType<typeof vi.fn>;
 let client: QueryClient;
 let JOBS: unknown[] = [];
-let M1_ARTIFACTS: unknown[] = [{ slug: "m-1", lod: 0, hash: "h", contentType: "x", size: 1024 }];
+let M1_LODS: unknown[] = [{ lod: 0, hash: "h", size: 1024 }];
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={client}>{children}</QueryClientProvider>
 );
@@ -39,13 +39,11 @@ beforeEach(() => {
   setCsrfToken("csrf");
   clearNotices();
   JOBS = [];
-  M1_ARTIFACTS = [{ slug: "m-1", lod: 0, hash: "h", contentType: "x", size: 1024 }];
+  M1_LODS = [{ lod: 0, hash: "h", size: 1024 }];
   fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? "GET";
-    if (url === "/api/models" && method === "GET") return json([M1, M2]);
+    if (url === "/api/models" && method === "GET") return json([{ ...M1, lods: M1_LODS }, { ...M2, lods: [] }]);
     if (url === "/api/jobs" && method === "GET") return json(JOBS);
-    if (url === "/api/models/m-1/artifacts") return json(M1_ARTIFACTS);
-    if (url === "/api/models/m-2/artifacts") return json([]);
     if (url === "/api/models/m-1" && method === "DELETE") return new Response(null, { status: 204 });
     if (url === "/api/models/m-2" && method === "DELETE")
       return json({ code: "invalid_input", message: "Model is still placed." }, 400);
@@ -59,7 +57,7 @@ afterEach(() => {
 });
 
 describe("useModelLibrary", () => {
-  it("is loading until every artifacts query answered, then ready with cards", async () => {
+  it("is loading until the list and the jobs answered, then ready with cards", async () => {
     const { result } = renderHook(() => useModelLibrary(), { wrapper });
     expect(result.current.status).toBe("loading");
     await waitFor(() => expect(result.current.status).toBe("ready"));
@@ -67,6 +65,14 @@ describe("useModelLibrary", () => {
       ["m-1", "ready"],
       ["m-2", "pending"],
     ]);
+  });
+
+  it("asks for the list once, never once per row", async () => {
+    const { result } = renderHook(() => useModelLibrary(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(
+      fetchMock.mock.calls.map(([u]) => String(u)).filter((u) => u.startsWith("/api/models")),
+    ).toEqual(["/api/models"]);
   });
 
   it("knows the viewer's grants", async () => {
@@ -144,18 +150,18 @@ describe("useModelLibrary", () => {
     expect(result.current.status).toBe("ready");
   });
 
-  it("re-reads a row's artifacts once its job leaves the live set, so the card catches up to ready", async () => {
+  it("re-reads the list once a row's job leaves the live set, so the card catches up to ready", async () => {
     // Nothing usable yet while the worker is still running.
-    M1_ARTIFACTS = [];
+    M1_LODS = [];
     JOBS = [{ id: "j1", kind: "model", slug: "m-1", status: "running", progress: 0.4, stage: "encoding" }];
     const { result } = renderHook(() => useModelLibrary(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.cards?.[0]).toMatchObject({ slug: "m-1", status: "converting" });
 
-    // The worker finishes and the gateway now serves the LOD0 artifact, but
-    // the client's cached artifacts query for m-1 is still the stale empty
-    // array — nothing refetches it on its own.
-    M1_ARTIFACTS = [{ slug: "m-1", lod: 0, hash: "h", contentType: "x", size: 1024 }];
+    // The worker finishes and the list now carries m-1's LOD0; nothing but
+    // the finished job refetches the list.
+    M1_LODS = [{ lod: 0, hash: "h", size: 1024 }];
+    const spy = vi.spyOn(client, "invalidateQueries");
     JOBS = [];
     await act(async () => {
       await client.refetchQueries({ queryKey: ["jobs"] });
@@ -163,5 +169,7 @@ describe("useModelLibrary", () => {
     await waitFor(() =>
       expect(result.current.cards?.[0]).toMatchObject({ slug: "m-1", status: "ready" }),
     );
+    // The model page, if cached earlier, must not reopen on the stale LODs.
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["artifacts", "model", "m-1"] });
   });
 });

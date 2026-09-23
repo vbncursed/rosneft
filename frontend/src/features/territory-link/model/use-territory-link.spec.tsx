@@ -1,4 +1,6 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { updateTerritory, type Territory } from "@/entities/territory";
 import { HttpError } from "@/shared/api";
@@ -18,13 +20,24 @@ const territory = (externalPanoramaUrl?: string): Territory => ({
   ...(externalPanoramaUrl === undefined ? {} : { externalPanoramaUrl }),
 });
 
+let client: QueryClient;
+let onChanged: ReturnType<typeof vi.fn<() => void>>;
+const wrapper = ({ children }: { children: ReactNode }) => (
+  <QueryClientProvider client={client}>{children}</QueryClientProvider>
+);
+
 const link = (initial?: string) =>
-  renderHook(() => ({
-    s: useTerritoryLink("refinery-block-c", initial),
-    notices: useNotices(),
-  }));
+  renderHook(
+    () => ({
+      s: useTerritoryLink("refinery-block-c", initial, onChanged),
+      notices: useNotices(),
+    }),
+    { wrapper },
+  );
 
 beforeEach(() => {
+  client = new QueryClient();
+  onChanged = vi.fn();
   vi.mocked(updateTerritory).mockReset();
   clearNotices();
 });
@@ -79,5 +92,30 @@ describe("useTerritoryLink", () => {
     expect(result.current.s.url).toBe("https://tour.example/a");
     expect(result.current.s.saving).toBe(false);
     expect(result.current.notices[0]?.message).toContain("not a url");
+  });
+
+  // The viewer seeds the link from the scene bundle, and the catalog and Home
+  // cards read it from the list: the viewer's onChanged marks all of them and
+  // drops the bundle on the way out, so a return visit seeds the new link.
+  it("tells the viewer the territory changed once the link is saved", async () => {
+    vi.mocked(updateTerritory).mockResolvedValue(territory());
+    const { result } = link("https://tour.example/a");
+
+    await act(async () => {
+      await result.current.s.save("");
+    });
+
+    expect(onChanged).toHaveBeenCalledOnce();
+  });
+
+  it("reports no change when the save is refused", async () => {
+    vi.mocked(updateTerritory).mockRejectedValue(new Error("network drop"));
+    const { result } = link("https://tour.example/a");
+
+    await act(async () => {
+      await result.current.s.save("");
+    });
+
+    expect(onChanged).not.toHaveBeenCalled();
   });
 });

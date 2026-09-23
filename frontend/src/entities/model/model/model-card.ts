@@ -1,4 +1,4 @@
-import { conversionStatusOf, lodLabel, totalSize, type Artifact } from "@/entities/content";
+import { conversionStatusOf, lodLabel, totalSize, type LodSummary } from "@/entities/content";
 import { type ConversionStatus, type TargetJob } from "@/entities/conversion";
 import { formatBytes } from "@/shared/lib/format-bytes";
 import { thumbnailUrl as urlOf, type Model } from "./model";
@@ -29,7 +29,7 @@ const TRAILING_OVERRIDE: Partial<Record<ConversionStatus, ModelCardModel["traili
 };
 
 /** Maps a model plus its artifacts and (maybe) live job onto one catalog card. */
-export function toModelCard(model: Model, artifacts: Artifact[], job?: TargetJob): ModelCardModel {
+export function toModelCard(model: Model, artifacts: LodSummary[], job?: TargetJob): ModelCardModel {
   const status = conversionStatusOf(artifacts.length > 0, job);
 
   return {

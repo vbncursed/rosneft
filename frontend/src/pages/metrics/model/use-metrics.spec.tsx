@@ -54,8 +54,8 @@ let client: QueryClient;
 let allFail = false;
 let failing = new Set<string>();
 
-const panelOf = (url: string) => new URL(url, "http://x").searchParams.get("panel") ?? "";
 const rangeOf = (url: string) => new URL(url, "http://x").searchParams.get("range") ?? "";
+const panelsOf = (url: string) => new URL(url, "http://x").searchParams.getAll("panel");
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -69,9 +69,10 @@ beforeEach(() => {
   failing = new Set();
   fetchMock = vi.fn(async (url: string) => {
     if (allFail) return json(UNREACHABLE, 502);
-    const panel = panelOf(url);
-    if (panel === "stat-errors" || failing.has(panel)) return json(UNREACHABLE, 502);
-    return json(PANEL_BODY[panel] ?? [dto(panel, [0.5, 1])]);
+    const answered = new URL(url, "http://x").searchParams
+      .getAll("panel")
+      .filter((panel) => panel !== "stat-errors" && !failing.has(panel));
+    return json(Object.fromEntries(answered.map((p) => [p, PANEL_BODY[p] ?? [dto(p, [0.5, 1])]])));
   });
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -120,26 +121,60 @@ describe("useMetrics", () => {
     expect(result.current.error).toBeNull();
     expect(result.current.results["stat-errors"]).toEqual({
       kind: "unavailable",
-      message: "Prometheus unreachable",
+      message: "Prometheus did not answer",
     });
     expect(statsOf(result.current.results)[1].state).toEqual({ kind: "unavailable" });
   });
 
-  it("keeps a panel's last data on screen when its refetch fails — stale beats empty", async () => {
+  it("keeps the last dashboard on screen when a refetch fails — stale beats empty", async () => {
     const { result } = renderHook(() => useMetrics("1h"), { wrapper });
     await waitFor(() => expect(result.current.results["red-rate"]?.kind).toBe("value"));
 
-    failing.add("red-rate");
-    await act(() => client.refetchQueries({ queryKey: ["metrics", "red-rate", "1h"] }));
+    allFail = true;
+    await act(() => client.refetchQueries({ queryKey: ["metrics", "1h"] }));
 
-    // The refetch really happened and really failed — otherwise the
-    // assertion below would pass just as well if the query key had drifted
-    // and refetchQueries silently matched nothing.
-    expect(client.getQueryState(["metrics", "red-rate", "1h"])?.status).toBe("error");
+    // The refetch really happened and really failed — otherwise the assertion
+    // below would pass just as well if the query key had drifted.
+    expect(client.getQueryState(["metrics", "1h"])?.status).toBe("error");
+    expect(result.current.status).toBe("ready");
     expect(result.current.results["red-rate"]).toEqual({
       kind: "value",
       series: [{ label: "gateway", points: points(140, 142), labels: {} }],
     });
+  });
+
+  // A transient single-panel failure must not flicker its card dark.
+  it("keeps a panel's last series, marked stale, when one tick leaves it out", async () => {
+    const { result } = renderHook(() => useMetrics("1h"), { wrapper });
+    await waitFor(() => expect(result.current.results["red-rate"]?.kind).toBe("value"));
+
+    failing.add("red-rate");
+    await act(() => client.refetchQueries({ queryKey: ["metrics", "1h"] }));
+    await waitFor(() =>
+      expect(result.current.results["red-rate"]).toEqual({
+        kind: "value",
+        series: [{ label: "gateway", points: points(140, 142), labels: {} }],
+        stale: true,
+      }),
+    );
+    // Never answered at all: dark, not stale.
+    expect(result.current.results["stat-errors"]?.kind).toBe("unavailable");
+
+    failing.clear();
+    await act(() => client.refetchQueries({ queryKey: ["metrics", "1h"] }));
+    await waitFor(() => expect(result.current.results["red-rate"]).not.toHaveProperty("stale"));
+  });
+
+  it("does not carry one range's series into another", async () => {
+    const { result, rerender } = renderHook(
+      ({ range }: { range: MetricsRange }) => useMetrics(range),
+      { wrapper, initialProps: { range: "1h" as MetricsRange } },
+    );
+    await waitFor(() => expect(result.current.results["red-rate"]?.kind).toBe("value"));
+    failing.add("red-rate");
+    rerender({ range: "6h" });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    await waitFor(() => expect(result.current.results["red-rate"]?.kind).toBe("unavailable"));
   });
 
   it("does not count 0 firing when the alerts panel failed — it knows nothing", async () => {
@@ -149,13 +184,13 @@ describe("useMetrics", () => {
 
     expect(result.current.results.alerts).toEqual({
       kind: "unavailable",
-      message: "Prometheus unreachable",
+      message: "Prometheus did not answer",
     });
     expect(result.current.alerts).toEqual([]);
     expect(result.current.firingCount).toBeNull();
   });
 
-  it("is unavailable only when every panel failed", async () => {
+  it("is unavailable when the request never answered", async () => {
     allFail = true;
     const { result } = renderHook(() => useMetrics("1h"), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("unavailable"));
@@ -173,7 +208,7 @@ describe("useMetrics", () => {
         fetchMock.mock.calls
           .map(([url]) => url as string)
           .filter((url) => rangeOf(url) === range)
-          .map(panelOf),
+          .flatMap(panelsOf),
       );
     const hourly = asked("1h");
     expect(hourly.size).toBe(20);
@@ -181,6 +216,16 @@ describe("useMetrics", () => {
 
     rerender({ range: "6h" });
     await waitFor(() => expect(asked("6h")).toEqual(hourly));
+  });
+
+  it("asks once per tick, for every panel", async () => {
+    const { result } = renderHook(() => useMetrics("1h"), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(panelsOf(fetchMock.mock.calls[0][0] as string)).toHaveLength(20);
+
+    await act(() => client.refetchQueries({ queryKey: ["metrics", "1h"] }));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("narrows nothing by itself — the query is state the screen filters with", async () => {

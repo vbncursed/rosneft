@@ -56,6 +56,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
     header: {
       slug,
       title,
+      description: p.description,
       pills: headerPills({
         ready: true,
         grants,
