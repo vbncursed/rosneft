@@ -71,9 +71,11 @@ func (s *UpdateSuite) TestRenamesAndRegrantsTogether() {
 	assert.DeepEqual(s.T(), got.PermissionSlugs, []string{"territory:read"})
 }
 
-func (s *UpdateSuite) TestARefusedGrantLeavesTheOldTitle() {
+// The refused replace had already deleted the old grants when it hit the
+// unknown slug; the rollback must bring them back with the title.
+func (s *UpdateSuite) TestARefusedGrantLeavesTheOldTitleAndGrants() {
 	ctx := s.T().Context()
-	_, err := s.store.Create(ctx, domain.Role{Slug: "auditor", Title: "Auditor"})
+	_, err := s.store.Create(ctx, domain.Role{Slug: "auditor", Title: "Auditor", PermissionSlugs: []string{"territory:read"}})
 	assert.NilError(s.T(), err)
 
 	_, err = s.store.Update(ctx, domain.RoleUpdate{
@@ -83,6 +85,26 @@ func (s *UpdateSuite) TestARefusedGrantLeavesTheOldTitle() {
 	got, err := s.store.Get(ctx, "auditor")
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), got.Title, "Auditor")
+	assert.DeepEqual(s.T(), got.PermissionSlugs, []string{"territory:read"})
+}
+
+// A slug listed twice is one grant, on both the PATCH and the PUT path, not a
+// primary-key violation answered as a 500.
+func (s *UpdateSuite) TestASlugListedTwiceIsGrantedOnce() {
+	ctx := s.T().Context()
+	twice := []string{"territory:read", "territory:read"}
+	_, err := s.store.Create(ctx, domain.Role{Slug: "twice", Title: "Twice"})
+	assert.NilError(s.T(), err)
+
+	got, err := s.store.Update(ctx, domain.RoleUpdate{
+		Slug: "twice", Title: "Twice", PermissionSlugs: twice, ReplacePermissions: true,
+	}, "", true)
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), got.PermissionSlugs, []string{"territory:read"})
+
+	got, err = s.store.SetPermissions(ctx, "twice", twice, "", true)
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), got.PermissionSlugs, []string{"territory:read"})
 }
 
 func (s *UpdateSuite) TestATitleOnlyUpdateKeepsTheGrants() {

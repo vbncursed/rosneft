@@ -37,11 +37,11 @@ func (s *Store) CountAdmins(ctx context.Context, excludeUserID string) (int, err
 	q := `SELECT count(DISTINCT ur.user_id)
 		FROM user_roles ur JOIN roles r ON r.id = ur.role_id
 		JOIN users u ON u.id = ur.user_id
-		WHERE r.slug = 'admin' AND u.status <> 'deleted'`
-	args := []any{}
+		WHERE r.slug = $1 AND u.status <> 'deleted'`
+	args := []any{domain.RoleAdmin}
 	if excludeUserID != "" {
 		args = append(args, excludeUserID)
-		q += " AND ur.user_id <> $1"
+		q += " AND ur.user_id <> $2"
 	}
 	var n int
 	if err := s.pool.QueryRow(ctx, q, args...).Scan(&n); err != nil {

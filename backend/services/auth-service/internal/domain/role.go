@@ -1,5 +1,9 @@
 package domain
 
+// RoleAdmin is the Company Owner role's slug. Holding it hides an account from
+// everyone but Root, and only Root may grant it.
+const RoleAdmin = "admin"
+
 // Role groups permissions. System roles cannot be modified via the API.
 type Role struct {
 	Slug            string

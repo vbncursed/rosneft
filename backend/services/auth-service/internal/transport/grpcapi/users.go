@@ -19,11 +19,11 @@ func (s *Server) CreateUser(ctx context.Context, req *authv1.CreateUserRequest) 
 }
 
 func (s *Server) ListUsers(ctx context.Context, req *authv1.ListUsersRequest) (*authv1.ListUsersResponse, error) {
-	actorID, scopeAll, err := s.actor(ctx, req.GetToken())
+	actorID, isOwner, scopeAll, err := s.ownerActor(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapError(err)
 	}
-	list, err := s.users.List(ctx, actorID, scopeAll, req.GetStatus(), req.GetIncludeDeleted())
+	list, err := s.users.List(ctx, actorID, isOwner, scopeAll, req.GetStatus(), req.GetIncludeDeleted())
 	if err != nil {
 		return nil, mapError(err)
 	}

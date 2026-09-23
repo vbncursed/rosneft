@@ -72,7 +72,7 @@ func (s *Service) guard(ctx context.Context, actorID string, target domain.User)
 }
 
 func isAdmin(u domain.User) bool {
-	return slices.Contains(u.RoleSlugs, "admin")
+	return slices.Contains(u.RoleSlugs, domain.RoleAdmin)
 }
 
 // ownership returns the target user after enforcing the owner scope: an actor

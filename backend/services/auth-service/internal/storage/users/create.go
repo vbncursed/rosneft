@@ -24,11 +24,7 @@ func (s *Store) Create(ctx context.Context, u domain.User) (domain.User, error) 
 	var id string
 	err := audittx.Run(ctx, s.pool, func(tx pgx.Tx) error {
 		if err := tx.QueryRow(ctx, ins, u.Email, u.Username, u.PasswordHash, u.CreatedBy, u.IsOwner).Scan(&id); err != nil {
-			switch constraintOf(err) {
-			case "users_email_key", "users_username_key":
-				return domain.ErrLoginTaken
-			}
-			return fmt.Errorf("users.Create: insert: %w", err)
+			return createError(err)
 		}
 		return bindRoles(ctx, tx, id, u.RoleSlugs)
 	})
@@ -36,6 +32,16 @@ func (s *Store) Create(ctx context.Context, u domain.User) (domain.User, error) 
 		return domain.User{}, err
 	}
 	return s.GetByID(ctx, id)
+}
+
+// createError maps a refused insert: either login constraint is the one
+// neutral ErrLoginTaken, which does not say which of the two is taken.
+func createError(err error) error {
+	switch constraintOf(err) {
+	case "users_email_key", "users_username_key":
+		return domain.ErrLoginTaken
+	}
+	return fmt.Errorf("users.Create: insert: %w", err)
 }
 
 // bindRoles resolves role slugs to ids and inserts user_roles rows. Unknown
