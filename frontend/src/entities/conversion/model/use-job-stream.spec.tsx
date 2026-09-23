@@ -71,13 +71,13 @@ describe("useJobStream", () => {
     expect(result.current).toEqual(job());
   });
 
-  it("re-reads the artifacts and the jobs list on a terminal frame", () => {
+  it("re-reads the scene bundle and the jobs list on a terminal frame", () => {
     const spy = vi.spyOn(client, "invalidateQueries");
     renderHook(() => useJobStream("j1", "t"), { wrapper });
     act(() => handlers.onJob(job()));
     expect(spy).not.toHaveBeenCalled();
     act(() => handlers.onJob(job({ status: "succeeded" })));
-    expect(spy).toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t"] });
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["scene", "t"] });
     expect(spy).toHaveBeenCalledWith({ queryKey: ["jobs"] });
   });
 

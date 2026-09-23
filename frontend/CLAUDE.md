@@ -543,9 +543,14 @@ from `HEAD /api/assets/{hash}`; a successful replace navigates to this page's
 own `/territories/{slug}?jobId={job.id}`, exactly like Upload Territory —
 neither leaves the SPA any more.
 
-**Territory conversion** (`/territories/{slug}`) is three queries plus one
-stream: the territory, its artifacts, `GET /api/jobs`, and — with `?jobId=` —
-the job's SSE channel (`openJobStream`/`useJobStream` in `entities/conversion`).
+**Territory conversion** (`/territories/{slug}`) is two queries plus one
+stream: the scene bundle the route already holds (`["scene", slug]` — the
+territory and `hasLod0 = sceneReady(bundle)`), `GET /api/jobs`, and — with
+`?jobId=` — the job's SSE channel (`openJobStream`/`useJobStream` in
+`entities/conversion`). The jobs poll (`jobsPoll`) is off while the stream
+delivers a live frame. Replace Source removes `["scene", slug]` before it
+navigates here: the replace deletes the old artifacts, and the loader's
+`ensureQueryData` would otherwise hand back a cached LOD0 as the result.
 The stream, once it has answered, outranks the polled row; when the channel
 is lost (the gateway's `event: error` for an unknown or foreign id, or a
 dropped connection) the hook forgets its frame so the poll wins again.

@@ -5,21 +5,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpError } from "@/shared/api";
 import { useTerritoryConversion } from "./use-territory-conversion";
 
-const { getTerritory, listArtifacts, listJobs, useJobStream, navigate } = vi.hoisted(() => ({
-  getTerritory: vi.fn(),
-  listArtifacts: vi.fn(),
+const { getSceneBundle, listJobs, useJobStream, navigate } = vi.hoisted(() => ({
+  getSceneBundle: vi.fn(),
   listJobs: vi.fn(),
   useJobStream: vi.fn(),
   navigate: vi.fn(),
 }));
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
-vi.mock("@/entities/territory", async (importOriginal) => ({
+vi.mock("@/entities/scene", async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  getTerritory,
-}));
-vi.mock("@/entities/content", async (importOriginal) => ({
-  ...(await importOriginal<object>()),
-  listArtifacts,
+  getSceneBundle,
 }));
 vi.mock("@/entities/conversion", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -28,7 +23,26 @@ vi.mock("@/entities/conversion", async (importOriginal) => ({
 }));
 
 const TERRITORY = { slug: "t", title: "Tenant A", sourceBlobHash: "a".repeat(64), placementCount: 0 };
-const LOD0 = { lod: 0, hash: "h0", size: 1, faces: 1, vertices: 1, bboxMin: { x: 0, y: 0, z: 0 }, bboxMax: { x: 1, y: 1, z: 1 } };
+const ZERO = { x: 0, y: 0, z: 0 };
+const LOD0 = {
+  lod: 0,
+  hash: "h0",
+  size: 1,
+  vertices: 1,
+  faces: 1,
+  bboxMin: ZERO,
+  bboxMax: { x: 1, y: 1, z: 1 },
+  chain: [{ lod: 0, hash: "h0", size: 1 }],
+};
+const bundle = (artifact: typeof LOD0 | null = null) => ({
+  territory: TERRITORY,
+  artifact,
+  placements: [],
+  modelOptions: [],
+  panoramas: [],
+  documents: [],
+  measurements: [],
+});
 const RUNNING = { kind: "territory", slug: "t", status: "running", progress: 0.4, stage: "parsing", errorMessage: null };
 const FAILED = { kind: "territory", slug: "t", status: "failed", progress: null, stage: null, errorMessage: "blob not found" };
 
@@ -51,14 +65,13 @@ const ready = async (r: ReturnType<typeof render>) => {
 
 describe("useTerritoryConversion", () => {
   beforeEach(() => {
-    getTerritory.mockReset().mockResolvedValue(TERRITORY);
-    listArtifacts.mockReset().mockResolvedValue([]);
+    getSceneBundle.mockReset().mockResolvedValue(bundle());
     listJobs.mockReset().mockResolvedValue([]);
     useJobStream.mockReset().mockReturnValue(null);
     navigate.mockReset();
   });
 
-  it("is loading until all three have answered, then queued with no record and no artifacts", async () => {
+  it("is loading until the bundle and the jobs answered, then queued with no record and no LOD0", async () => {
     const r = render();
     expect(r.result.current.status).toBe("loading");
     const s = await ready(r);
@@ -68,12 +81,21 @@ describe("useTerritoryConversion", () => {
     expect(s.territory).toEqual(TERRITORY);
   });
 
+  // The territory and its LOD chain come from the bundle the route already
+  // holds; the page asks for nothing per territory beyond it.
+  it("asks for the bundle and the jobs, and nothing else", async () => {
+    await ready(render());
+    expect(getSceneBundle).toHaveBeenCalledTimes(1);
+    expect(getSceneBundle).toHaveBeenCalledWith("t");
+    expect(listJobs).toHaveBeenCalledTimes(1);
+  });
+
   it("is missing on a 404, unavailable on any other first failure", async () => {
-    getTerritory.mockRejectedValue(new HttpError(404, null, "Territory not found"));
+    getSceneBundle.mockRejectedValue(new HttpError(404, null, "Territory not found"));
     const r = render();
     await waitFor(() => expect(r.result.current.status).toBe("missing"));
 
-    getTerritory.mockResolvedValue(TERRITORY);
+    getSceneBundle.mockResolvedValue(bundle());
     // messageOf only surfaces an HttpError's own message; a bare Error reads as the generic sentence.
     listJobs.mockRejectedValue(new HttpError(503, null, "jobs down"));
     const r2 = render();
@@ -85,7 +107,7 @@ describe("useTerritoryConversion", () => {
     expect((await ready(render())).phase).toBe("running");
 
     listJobs.mockResolvedValue([FAILED]);
-    listArtifacts.mockResolvedValue([LOD0]);
+    getSceneBundle.mockResolvedValue(bundle(LOD0));
     const s = await ready(render());
     expect(s.phase).toBe("failed");
     expect(s.job?.errorMessage).toBe("blob not found");
@@ -99,35 +121,33 @@ describe("useTerritoryConversion", () => {
     expect(useJobStream).toHaveBeenCalledWith("j1", "t");
     expect(s.job?.progress).toBe(0.9);
 
-    // The terminal frame lands a round trip before the artifacts do; the page
+    // The terminal frame lands a round trip before the bundle does; the page
     // must draw the last step rather than flash back to "queued".
     useJobStream.mockReturnValue({ ...RUNNING, status: "succeeded", stage: "registering", progress: 1 });
     expect((await ready(render("j1"))).phase).toBe("running");
   });
 
   it("reads a mount that is already ready without navigating or touching the scene cache", async () => {
-    listArtifacts.mockResolvedValue([LOD0]);
+    getSceneBundle.mockResolvedValue(bundle(LOD0));
     const r = render();
-    client.setQueryData(["scene", "t"], { artifact: null });
     expect((await ready(r)).phase).toBe("ready");
     expect(client.getQueryState(["scene", "t"])?.isInvalidated).toBe(false);
     expect(navigate).not.toHaveBeenCalled();
   });
 
   // There is no handoff to another app: the route reads ["scene", slug] and
-  // branches on it, so a finish watched from this page has to stale that key
+  // branches on it, so a finish watched from this page has to re-read that key
   // or the reader sits on a "ready" conversion page forever.
-  it("invalidates the scene bundle when a running conversion finishes on this page", async () => {
+  it("re-reads the scene bundle when a running conversion finishes on this page", async () => {
     listJobs.mockResolvedValue([RUNNING]);
     const r = render();
-    client.setQueryData(["scene", "t"], { artifact: null });
     expect((await ready(r)).phase).toBe("running");
 
     listJobs.mockResolvedValue([]);
-    listArtifacts.mockResolvedValue([LOD0]);
+    getSceneBundle.mockResolvedValue(bundle(LOD0));
     await client.refetchQueries({ queryKey: ["jobs"] });
-    await waitFor(() => expect(client.getQueryState(["scene", "t"])?.isInvalidated).toBe(true));
-    expect(listArtifacts).toHaveBeenCalledTimes(2); // finishedSince re-read the artifacts
+    await waitFor(() => expect(getSceneBundle).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(r.result.current).toMatchObject({ status: "ready", phase: "ready" }));
   });
 
   // A finish watched on this page opens the viewer, in-app and exactly once.
@@ -140,16 +160,12 @@ describe("useTerritoryConversion", () => {
     expect(navigate).not.toHaveBeenCalled();
 
     listJobs.mockResolvedValue([]);
-    listArtifacts.mockResolvedValue([LOD0]);
+    getSceneBundle.mockResolvedValue(bundle(LOD0));
     await client.refetchQueries({ queryKey: ["jobs"] });
     await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: "/territories/t" }));
     expect(navigate).toHaveBeenCalledTimes(1);
   });
 
-  // A territory with no job row and no LOD0 is waiting for the reconciler to
-  // queue one; the catalog's pollInterval has nothing live to poll on, so the
-  // page overrides it or the promise "this page opens the viewer by itself"
-  // is never kept.
   const jobsRefetchInterval = () => {
     const q = client.getQueryCache().find({ queryKey: ["jobs"] })!;
     // refetchInterval lives on the observer's options, which QueryOptions does not declare.
@@ -161,14 +177,21 @@ describe("useTerritoryConversion", () => {
     await ready(render());
     expect(jobsRefetchInterval()).toBe(5000);
 
-    listArtifacts.mockResolvedValue([LOD0]);
+    getSceneBundle.mockResolvedValue(bundle(LOD0));
     await ready(render());
     expect(jobsRefetchInterval()).toBe(false);
 
-    listArtifacts.mockResolvedValue([]);
+    getSceneBundle.mockResolvedValue(bundle());
     listJobs.mockResolvedValue([RUNNING]);
     await ready(render());
     expect(jobsRefetchInterval()).toBe(5000);
+  });
+
+  it("leaves the jobs to the stream while it delivers a live frame", async () => {
+    listJobs.mockResolvedValue([RUNNING]);
+    useJobStream.mockReturnValue(RUNNING);
+    await ready(render("j1"));
+    expect(jobsRefetchInterval()).toBe(false);
   });
 
   it("keeps the page when a background refetch fails", async () => {
