@@ -1039,7 +1039,11 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   is one `POST …/placements/batch` (`createPlacements`, one transaction, 1–100
   items; the picker caps N at 99) from `use-placements-editor.ts`, drawn as an
   indeterminate `Placing N objects…`
-  (`widgets/model-picker/ui/place-objects-modal.tsx`) — nothing lands until
+  (`widgets/model-picker/ui/place-objects-modal.tsx`); each placing action
+  carries an `Idempotency-Key` (`crypto.randomUUID()`), reused only when the
+  same model × count is placed again after a failure (the retry of a batch
+  whose answer was lost gets the stored rows back, not a second copy) and
+  dropped on success; nothing lands until
   everything does, so there is no "k of N" to count and a refusal leaves
   nothing behind; the editor seeds from the bundle once and the
   page remounts it via `use-scene-seeded` (one-shot) so a cold page is not

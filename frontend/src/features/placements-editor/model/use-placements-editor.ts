@@ -51,6 +51,11 @@ export function usePlacementsEditor({
   const [mutation, setMutation] = useState<MutationState>(idle);
   const [placing, setPlacing] = useState<Placing | null>(null);
   const [, startTransition] = useTransition();
+  // The key of the last placing action that did not come back with rows. The
+  // same model × count placed again is that action retried, and must carry its
+  // key: the batch may have landed with only the answer lost. Anything else, or
+  // anything after a success, is a new action and gets a new key.
+  const unsettled = useRef<{ modelSlug: string; total: number; key: string } | null>(null);
 
   const resolve = useCallback(
     (p: Placement): ResolvedPlacement => ({
@@ -65,6 +70,12 @@ export function usePlacementsEditor({
   const create = useCallback(
     async (modelSlug: string, count: number): Promise<number | null> => {
       const total = Math.max(1, Math.floor(count));
+      const retried = unsettled.current;
+      const action =
+        retried?.modelSlug === modelSlug && retried.total === total
+          ? retried
+          : { modelSlug, total, key: crypto.randomUUID() };
+      unsettled.current = action;
       setMutation(creating);
       setPlacing({ total });
       try {
@@ -86,7 +97,8 @@ export function usePlacementsEditor({
         // One transaction on the gateway: the batch lands whole or not at all,
         // so a refusal leaves nothing to show and nothing to mark stale. The
         // picker caps N at 99, under the endpoint's 100.
-        const created = (await createPlacements(slug, items)).map(resolve);
+        const created = (await createPlacements(slug, items, action.key)).map(resolve);
+        unsettled.current = null;
         startTransition(() => setPlacements((prev) => [...prev, ...created]));
         onChanged();
         return created.at(-1)?.id ?? null;

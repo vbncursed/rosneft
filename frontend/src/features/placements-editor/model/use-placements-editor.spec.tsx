@@ -148,6 +148,53 @@ describe("usePlacementsEditor", () => {
     expect(onChanged).toHaveBeenCalledOnce();
   });
 
+  // One key per placing action: the gateway answers a replayed key with the
+  // batch it already stored, so a retry after a dropped answer places once.
+  describe("idempotency key", () => {
+    const keyOf = (call: number) => vi.mocked(createPlacements).mock.calls[call][2];
+    const echo = async (_slug: string, items: { modelSlug: string }[]) =>
+      items.map((body, i) => ({ ...placement(200 + i), ...body }) as Placement);
+
+    it("sends a fresh key with each action", async () => {
+      vi.mocked(createPlacements).mockImplementation(echo);
+      const { result } = editor();
+
+      await act(async () => {
+        await result.current.s.create("tank", 2);
+        await result.current.s.create("tank", 2);
+      });
+
+      expect(keyOf(0)).toMatch(/^[A-Za-z0-9-]{1,64}$/);
+      expect(keyOf(1)).toMatch(/^[A-Za-z0-9-]{1,64}$/);
+      expect(keyOf(1)).not.toBe(keyOf(0));
+    });
+
+    it("reuses the key when the same action is retried after a failure", async () => {
+      vi.mocked(createPlacements).mockRejectedValueOnce(new TypeError("Failed to fetch")).mockImplementation(echo);
+      const { result } = editor();
+
+      await act(async () => {
+        await result.current.s.create("tank", 3);
+        await result.current.s.create("tank", 3);
+      });
+
+      expect(keyOf(0)).toMatch(/^[A-Za-z0-9-]{1,64}$/);
+      expect(keyOf(1)).toBe(keyOf(0));
+    });
+
+    it("gives a different action after a failure a new key", async () => {
+      vi.mocked(createPlacements).mockRejectedValueOnce(new TypeError("Failed to fetch")).mockImplementation(echo);
+      const { result } = editor();
+
+      await act(async () => {
+        await result.current.s.create("tank", 3);
+        await result.current.s.create("tank", 4);
+      });
+
+      expect(keyOf(1)).not.toBe(keyOf(0));
+    });
+  });
+
   it("commitTransform keeps the label; rename keeps the transform", async () => {
     vi.mocked(updatePlacement).mockImplementation(async (_slug, id, body) => ({ ...placement(id), ...body }));
     const { result } = editor([placement(1, { label: "Tank 4" })]);
