@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bulk, creating, idle, isCreating, isMutatingId, mutating, pendingIdsOf } from "./mutation-state";
+import { creating, idle, isCreating, isMutatingId, mutating, pendingIdsOf } from "./mutation-state";
 
 describe("MutationState", () => {
   it("isCreating is true only in the creating state", () => {
@@ -15,14 +15,9 @@ describe("MutationState", () => {
     expect(isMutatingId(idle, 5)).toBe(false);
   });
 
-  it("isMutatingId is false during a bulk write — the form saves one placement, not many", () => {
-    expect(isMutatingId(bulk([5, 6]), 5)).toBe(false);
-  });
-
-  it("pendingIdsOf names every id a write holds", () => {
+  it("pendingIdsOf names the one id a single write holds", () => {
     expect(pendingIdsOf(idle)).toEqual([]);
     expect(pendingIdsOf(creating)).toEqual([]);
     expect(pendingIdsOf(mutating(5))).toEqual([5]);
-    expect(pendingIdsOf(bulk([5, 6]))).toEqual([5, 6]);
   });
 });

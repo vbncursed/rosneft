@@ -393,7 +393,7 @@ describe("usePlacementsEditor", () => {
     let release!: () => void;
     vi.mocked(setPlacementsHidden).mockReturnValueOnce(new Promise((res) => (release = () => res(2))));
     const { result } = editor([placement(1), placement(2)]);
-    let done!: Promise<void>;
+    let done!: Promise<boolean>;
     act(() => {
       done = result.current.s.setHidden([1, 2], true);
     });
@@ -404,5 +404,44 @@ describe("usePlacementsEditor", () => {
     });
     expect(result.current.s.pendingIds).toEqual([]);
     expect(result.current.s.placements.every((p) => p.hidden)).toBe(true);
+  });
+
+  // A bulk write has its own pending state: finishing it must not end a
+  // create still in flight (the picker would go live mid-batch).
+  it("keeps a create in flight when a bulk hide finishes under it", async () => {
+    let placed!: () => void;
+    vi.mocked(createPlacements).mockReturnValueOnce(new Promise((res) => (placed = () => res([placement(9)]))));
+    vi.mocked(setPlacementsHidden).mockResolvedValueOnce(1);
+    const { result } = editor([placement(1)]);
+    let creatingDone!: Promise<number | null>;
+    act(() => {
+      creatingDone = result.current.s.create("tank", 1);
+    });
+    await act(() => result.current.s.setHidden([1], true));
+    expect(result.current.s.mutation).toEqual({ kind: "creating" });
+    expect(result.current.s.placing).toEqual({ total: 1 });
+    await act(async () => {
+      placed();
+      await creatingDone;
+    });
+    expect(result.current.s.mutation).toEqual({ kind: "idle" });
+  });
+
+  it("keeps a bulk write's ids pending when a single rename finishes under it", async () => {
+    let release!: () => void;
+    vi.mocked(setPlacementsHidden).mockReturnValueOnce(new Promise((res) => (release = () => res(2))));
+    vi.mocked(updatePlacement).mockResolvedValueOnce(placement(3, { label: "B" }));
+    const { result } = editor([placement(1), placement(2), placement(3)]);
+    let done!: Promise<boolean>;
+    act(() => {
+      done = result.current.s.setHidden([1, 2], true);
+    });
+    await act(() => result.current.s.rename(3, "B"));
+    expect(result.current.s.pendingIds).toEqual([1, 2]);
+    await act(async () => {
+      release();
+      await done;
+    });
+    expect(result.current.s.pendingIds).toEqual([]);
   });
 });

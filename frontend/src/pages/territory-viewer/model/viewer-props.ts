@@ -208,8 +208,8 @@ export type PageParts = {
   placementGroups: {
     list: PlacementGroup[];
     busy: boolean;
-    create: (title: string) => void;
-    rename: (id: number, title: string) => void;
+    create: (title: string) => Promise<boolean>;
+    rename: (id: number, title: string) => Promise<boolean>;
     remove: (id: number) => void;
   };
   form: PlacementFormView | null;
