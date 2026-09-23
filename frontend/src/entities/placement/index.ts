@@ -1,5 +1,6 @@
 export {
   IDENTITY_TRANSFORM,
+  isShownIn,
   isVisibleIn,
   toDegrees,
   toRadians,

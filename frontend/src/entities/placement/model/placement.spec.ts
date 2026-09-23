@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isVisibleIn, toDegrees, toRadians, type Placement } from "./placement";
+import { isShownIn, isVisibleIn, toDegrees, toRadians, type Placement } from "./placement";
 
 const placement = (visiblePanoramaIds: number[] = []): Placement => ({
   id: 1,
@@ -50,5 +50,18 @@ describe("toDegrees / toRadians", () => {
 
   it("rounds to two decimals, so the form does not show float noise", () => {
     expect(toDegrees(1)).toBe(57.3);
+  });
+});
+
+describe("isShownIn", () => {
+  it("draws nothing hidden, in the 3D view or in any panorama", () => {
+    expect(isShownIn({ ...placement([4]), hidden: true }, null)).toBe(false);
+    expect(isShownIn({ ...placement([4]), hidden: true }, 4)).toBe(false);
+  });
+
+  it("otherwise follows the panorama allowlist", () => {
+    expect(isShownIn(placement([4]), null)).toBe(true);
+    expect(isShownIn(placement([4]), 4)).toBe(true);
+    expect(isShownIn(placement([4]), 9)).toBe(false);
   });
 });

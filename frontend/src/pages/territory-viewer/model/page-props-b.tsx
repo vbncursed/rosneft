@@ -1,7 +1,7 @@
 import { assetUrl } from "@/entities/content";
 import { documentFileName } from "@/entities/document";
 import { isCalibrated } from "@/entities/panorama";
-import { instanceName, isVisibleIn, type ModelGroup } from "@/entities/placement";
+import { instanceName, isShownIn, type ModelGroup } from "@/entities/placement";
 import type { UploadModalProps } from "@/widgets/upload-modal";
 import { AnchorCard, insideFooter, LOADING_FOOTER, type ViewTabProps } from "@/widgets/view-tab";
 import type { DocumentWindowProps } from "@/widgets/document-window";
@@ -108,7 +108,7 @@ export function viewTabProps(p: PageParts): ViewTabProps {
         ? LOADING_FOOTER
         : inside === null
           ? null
-          : insideFooter(p.placements.filter((x) => isVisibleIn(x, inside)).length),
+          : insideFooter(p.placements.filter((x) => isShownIn(x, inside)).length),
   };
 }
 

@@ -43,6 +43,10 @@ export function isVisibleIn(placement: Placement, panoramaId: number | null): bo
   return placement.visiblePanoramaIds.includes(panoramaId);
 }
 
+/** Whether the scene draws it at all: never when hidden (G-1), otherwise per the panorama allowlist. */
+export const isShownIn = (placement: Placement, panoramaId: number | null): boolean =>
+  !placement.hidden && isVisibleIn(placement, panoramaId);
+
 const DEGREES = 180 / Math.PI;
 
 /** Radians are what the scene stores; degrees are what a person types. */

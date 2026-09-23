@@ -3,7 +3,7 @@ import type { Object3D } from "three";
 import { TransformControls } from "@react-three/drei";
 import type { TransformControls as TransformControlsImpl } from "three-stdlib";
 import type { GizmoMode } from "@/features/viewer-mode";
-import { isVisibleIn, type PlacementTransform, type ResolvedPlacement } from "@/entities/placement";
+import { isShownIn, type PlacementTransform, type ResolvedPlacement } from "@/entities/placement";
 import PlacementInstance from "./placement-instance";
 import PlacementMarkers from "./placement-markers";
 import { useGizmoEvents } from "./use-gizmo-events";
@@ -27,7 +27,7 @@ interface PlacementsLayerProps {
   // The panorama being looked at, or null for the 3D view. Inside a panorama a
   // placement renders only if its allowlist names that panorama — equipment
   // dropped for one panorama must not leak into the others. The 3D view always
-  // shows every placement, so the editor can never lose one.
+  // shows every placement, so the editor can never lose one that is not hidden.
   activePanoramaId: number | null;
   /** `storage-tank-500 #1` by id, for the labels inside a panorama. */
   markerLabels: Record<number, string>;
@@ -71,7 +71,9 @@ export default function PlacementsLayer({
     return patchScaleGizmo(tc);
   }, [target]);
 
-  const visible = placements.filter((p) => isVisibleIn(p, activePanoramaId));
+  // Hidden placements are not drawn anywhere (G-1); inside a panorama the
+  // allowlist narrows the rest. The markers read this same list.
+  const visible = placements.filter((p) => isShownIn(p, activePanoramaId));
   const gizmo = canEdit && !measureMode && selectedId != null && target !== null;
   // Without a gizmo — a guest, or an editor measuring — the selection would
   // show only in the panel. The panorama's ring and name mark it instead.
