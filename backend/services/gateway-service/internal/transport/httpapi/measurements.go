@@ -15,7 +15,7 @@ func (s *Server) ListMeasurements(ctx context.Context, req ListMeasurementsReque
 	case isNotFound(err):
 		return ListMeasurements404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return ListMeasurements500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return ListMeasurements500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return ListMeasurements200JSONResponse(measurementsToAPI(out)), nil
 }
@@ -31,7 +31,7 @@ func (s *Server) CreateMeasurement(ctx context.Context, req CreateMeasurementReq
 	case isNotFound(err):
 		return CreateMeasurement404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return CreateMeasurement500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return CreateMeasurement500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return CreateMeasurement201JSONResponse(measurementToAPI(m)), nil
 }
@@ -47,7 +47,7 @@ func (s *Server) UpdateMeasurement(ctx context.Context, req UpdateMeasurementReq
 	case isNotFound(err):
 		return UpdateMeasurement404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return UpdateMeasurement500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return UpdateMeasurement500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return UpdateMeasurement200JSONResponse(measurementToAPI(m)), nil
 }
@@ -60,7 +60,7 @@ func (s *Server) DeleteMeasurement(ctx context.Context, req DeleteMeasurementReq
 	case isNotFound(err):
 		return DeleteMeasurement404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return DeleteMeasurement500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return DeleteMeasurement500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return DeleteMeasurement204Response{}, nil
 }
@@ -73,7 +73,7 @@ func (s *Server) DeleteMeasurements(ctx context.Context, req DeleteMeasurementsR
 	case isNotFound(err):
 		return DeleteMeasurements404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return DeleteMeasurements500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return DeleteMeasurements500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return DeleteMeasurements200JSONResponse{Deleted: n}, nil
 }

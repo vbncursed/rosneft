@@ -7,6 +7,7 @@ import {
   listUsers,
   restoreUser,
   setTwoFactorRequired,
+  setUserPassword,
   setUserRoles,
   unfreezeUser,
 } from "./users-gateway";
@@ -63,5 +64,15 @@ describe("users gateway", () => {
       "POST /api/auth/users/u-1/2fa/unrequire",
       "DELETE /api/auth/users/u-1",
     ]);
+  });
+
+  it("puts a new password on the user's own route and expects no body back", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await expect(setUserPassword("u 1", "N3w-Passw0rd!")).resolves.toBeUndefined();
+    expect(request()).toEqual({
+      url: "/api/auth/users/u%201/password",
+      method: "PUT",
+      body: { password: "N3w-Passw0rd!" },
+    });
   });
 });

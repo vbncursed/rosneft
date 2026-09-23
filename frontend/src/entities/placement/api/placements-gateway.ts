@@ -7,11 +7,20 @@ type PlacementDto = components["schemas"]["Placement"];
 
 const base = (slug: string) => `/api/territories/${encodeURIComponent(slug)}/placements`;
 
-export async function createPlacement(
+/**
+ * One transaction for the whole batch (1–100 items); the answer is the created rows, in order.
+ * `idempotencyKey` names the placing action: the gateway answers a key it has seen on this
+ * territory with the rows it already stored, so a retry after a lost answer places once.
+ */
+export async function createPlacements(
   territorySlug: string,
-  body: PlacementCreate,
-): Promise<Placement> {
-  return toPlacement(await httpPost<PlacementDto>(base(territorySlug), body));
+  items: PlacementCreate[],
+  idempotencyKey: string,
+): Promise<Placement[]> {
+  const created = await httpPost<PlacementDto[]>(`${base(territorySlug)}/batch`, { items }, {
+    headers: { "Idempotency-Key": idempotencyKey },
+  });
+  return created.map(toPlacement);
 }
 
 /** The PUT carries the whole transform plus the label — a partial body would blank the rest. */

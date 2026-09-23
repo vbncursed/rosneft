@@ -20,6 +20,7 @@ import (
 // Service is the catalog surface this transport calls.
 type Service interface {
 	UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
+	UpdateTerritory(ctx context.Context, slug string, p domain.TerritoryPatch) (domain.Territory, error)
 	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
 	ListTerritories(ctx context.Context, scopeAdminID string) ([]domain.Territory, error)
 	ResolveTerritorySlugs(ctx context.Context, ids []int64) (map[int64]string, error)
@@ -28,14 +29,16 @@ type Service interface {
 	DeleteTerritory(ctx context.Context, slug string) error
 	SetTerritoryAdmins(ctx context.Context, slug string, adminIDs []string) error
 	GetTerritoryAdmins(ctx context.Context, slug string) ([]string, error)
+	ListTerritoryAdmins(ctx context.Context, slugs []string) (map[string][]string, error)
 	RegisterTerritoryArtifact(ctx context.Context, a domain.Artifact) (domain.Artifact, error)
 	GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
 	ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
 	DeleteTerritoryArtifacts(ctx context.Context, slug string) error
-	SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64) error
-	RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64) (int, error)
+	SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) error
+	RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) (int, error)
 
 	UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error)
+	UpdateModel(ctx context.Context, slug string, p domain.ModelPatch) (domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)
 	ListModels(ctx context.Context) ([]domain.Model, error)
 	DeleteModel(ctx context.Context, slug string) error
@@ -45,6 +48,7 @@ type Service interface {
 
 	ListPlacements(ctx context.Context, territorySlug string) ([]domain.Placement, error)
 	CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
+	CreatePlacements(ctx context.Context, territorySlug, key string, items []domain.Placement) ([]domain.Placement, error)
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, territorySlug string, id int64) error
@@ -75,6 +79,7 @@ func (s *Server) Register(srv *grpc.Server) {
 // statusByCode lists, per gRPC code, the domain sentinels that surface as it.
 var statusByCode = map[codes.Code][]error{
 	codes.InvalidArgument: {domain.ErrInvalidInput},
+	codes.AlreadyExists:   {domain.ErrSlugConflict, domain.ErrIdempotencyConflict},
 	codes.NotFound: {
 		domain.ErrTerritoryNotFound,
 		domain.ErrModelNotFound,
@@ -84,5 +89,6 @@ var statusByCode = map[codes.Code][]error{
 	},
 }
 
-// mapError translates service-layer errors to gRPC status codes.
-func mapError(err error) error { return apperr.ToStatus(err, statusByCode) }
+// mapError translates service-layer errors to gRPC status codes; a refusal's
+// message starts at its sentinel (see apperr.ToStatusAtSentinel).
+func mapError(err error) error { return apperr.ToStatusAtSentinel(err, statusByCode) }

@@ -20,7 +20,7 @@ func (h *Handlers) login(w http.ResponseWriter, r *http.Request) {
 	token, challenge, twoFA, err := h.client.Login(r.Context(), req.Identifier, req.Password)
 	if err != nil {
 		h.recordLogin(r, "auth.login", "")
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	// A 2FA challenge is not a completed login: the cookie is issued only once a
@@ -51,7 +51,7 @@ func (h *Handlers) login2FA(w http.ResponseWriter, r *http.Request) {
 	token, err := h.client.LoginVerify2FA(r.Context(), req.ChallengeToken, req.Code)
 	if err != nil {
 		h.recordLogin(r, "auth.login_2fa", "")
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	h.recordLogin(r, "auth.login_2fa", token)
@@ -86,7 +86,7 @@ func (h *Handlers) logout(w http.ResponseWriter, r *http.Request) {
 	// not a fresh header map. handlers_test.go pins both halves.
 	h.clearSession(w)
 	if err := h.client.Logout(r.Context(), sessionToken(r)); err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

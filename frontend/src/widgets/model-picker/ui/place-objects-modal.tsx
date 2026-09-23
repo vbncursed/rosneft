@@ -12,8 +12,8 @@ export type PlaceObjectsModalProps = {
   onClose: () => void;
   territoryTitle: string;
   options: ModelOption[];
-  /** Non-null while the placements are being written, one after another. */
-  placing: { done: number; total: number } | null;
+  /** Non-null while the batch is being written, in one request. */
+  placing: { total: number } | null;
   onPlace: (slug: string, count: number) => void;
 };
 
@@ -153,19 +153,16 @@ function PlaceObjectsBody({
   );
 }
 
-function PlacingLine({ done, total }: { done: number; total: number }) {
-  // `done` counts the POSTs that landed, and one is always in flight while this
-  // line is drawn — so the object being placed is `done + 1`, and the first
-  // frame read "Placing 0 of 2…". The bar counts what landed, so the last POST
-  // in flight never reads as a full bar (the mock drew "1 of 2" at half).
-  const current = Math.min(done + 1, Math.max(total, 1));
-  const pct = total === 0 ? 0 : Math.round((done / total) * 100);
-
+function PlacingLine({ total }: { total: number }) {
+  // One batch, one transaction: nothing lands until everything does, so there
+  // is no "1 of N" to count — the thin meter runs indeterminate instead.
   return (
     // A div, not a p: the meter is a div, and a p may not hold one.
     <div className="flex items-center gap-2">
-      <ProgressBar variant="thin" value={pct} ariaLabel="Placing" className="w-[70px] shrink-0" />
-      <span className="font-mono text-[10px] text-accent">{`Placing ${current} of ${total}…`}</span>
+      <ProgressBar variant="thin" ariaLabel="Placing" className="w-[70px] shrink-0" />
+      <span className="font-mono text-[10px] text-accent">
+        {`Placing ${total} ${total === 1 ? "object" : "objects"}…`}
+      </span>
     </div>
   );
 }

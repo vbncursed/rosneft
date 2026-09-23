@@ -60,6 +60,7 @@ func (s *RoutePermsSuite) TestEveryContentMutationRouteIsGated() {
 		"PATCH /api/models/{slug}",
 		"DELETE /api/models/{slug}",
 		"POST /api/territories/{slug}/placements",
+		"POST /api/territories/{slug}/placements/batch",
 		"PUT /api/territories/{slug}/placements/{id}",
 		"PUT /api/territories/{slug}/placements/{id}/visibility", // was missing too
 		"DELETE /api/territories/{slug}/placements/{id}",
@@ -185,4 +186,11 @@ func (s *RoutePermsSuite) serve(r http.Handler, perms []string, method, path str
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)
 	return rec.Code
+}
+
+// A batch create is N single creates: anything weaker would let a caller
+// without placement:create place models through the batch door.
+func (s *RoutePermsSuite) TestABatchCreateNeedsTheSingleCreateGrant() {
+	assert.DeepEqual(s.T(), routePerms["POST /api/territories/{slug}/placements/batch"],
+		routePerms["POST /api/territories/{slug}/placements"])
 }

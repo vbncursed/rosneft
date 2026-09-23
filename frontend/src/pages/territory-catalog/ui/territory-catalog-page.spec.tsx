@@ -38,6 +38,7 @@ const props = (over: Partial<TerritoryCatalogPageProps> = {}): TerritoryCatalogP
   onUpload: vi.fn(),
   onOpen: vi.fn(),
   onReplace: vi.fn(),
+  onEdit: vi.fn(),
   onDelete: vi.fn(),
   ...over,
 });
@@ -177,5 +178,17 @@ describe("TerritoryCatalogPage preload", () => {
     expect(preloadViewer).not.toHaveBeenCalled();
     await userEvent.hover(screen.getByRole("article", { name: "North Ridge Pad" }));
     expect(preloadViewer).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers Edit details on each card to a writer and hands up the slug", async () => {
+    const onEdit = vi.fn();
+    render(<TerritoryCatalogPage {...props({ onEdit })} />);
+    await userEvent.click(screen.getByRole("button", { name: "Edit details of North Ridge Pad" }));
+    expect(onEdit).toHaveBeenCalledWith("north-ridge-pad");
+  });
+
+  it("offers no Edit details without territory:write", () => {
+    render(<TerritoryCatalogPage {...props({ canReplace: false })} />);
+    expect(screen.queryByRole("button", { name: /Edit details of/ })).not.toBeInTheDocument();
   });
 });

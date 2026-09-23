@@ -11,8 +11,11 @@ export type Artifact = {
   bboxMax: Vec3;
 };
 
+/** One LOD as the list payloads carry it — the level and the bytes are all a catalog reads. */
+export type LodSummary = Pick<Artifact, "lod" | "size">;
+
 /** "LOD 0-2", "LOD 0", or "—" when nothing has been converted. */
-export function lodLabel(artifacts: Artifact[]): string {
+export function lodLabel(artifacts: LodSummary[]): string {
   if (artifacts.length === 0) return "—";
   const lods = artifacts.map((a) => a.lod);
   const lo = Math.min(...lods);
@@ -20,5 +23,5 @@ export function lodLabel(artifacts: Artifact[]): string {
   return lo === hi ? `LOD ${lo}` : `LOD ${lo}-${hi}`;
 }
 
-export const totalSize = (artifacts: Artifact[]): number =>
+export const totalSize = (artifacts: LodSummary[]): number =>
   artifacts.reduce((sum, a) => sum + a.size, 0);

@@ -1,5 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
-import { territoryPath } from "@/entities/territory";
+import { useState } from "react";
+import { territoryPath, type TerritoryCardModel } from "@/entities/territory";
+import { EditDetailsDialog } from "@/features/edit-entity";
 import { Callout } from "@/shared/ui/callout";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { PageSkeleton } from "@/shared/ui/skeleton";
@@ -11,6 +13,7 @@ import { TerritoryCatalogPage } from "./territory-catalog-page";
 export function TerritoryCatalogScreen() {
   const s = useTerritoryCatalog();
   const navigate = useNavigate();
+  const [editing, setEditing] = useState<TerritoryCardModel | null>(null);
 
   if (s.status === "loading") {
     return (
@@ -40,6 +43,7 @@ export function TerritoryCatalogScreen() {
         onUpload={() => void navigate({ to: "/territories/new" })}
         onOpen={(slug) => void navigate({ href: territoryPath(slug) })}
         onReplace={(slug) => void navigate({ href: `/territories/${encodeURIComponent(slug)}/replace` })}
+        onEdit={(slug) => setEditing(filtered.find((c) => c.slug === slug) ?? null)}
         onDelete={s.ask}
         {...(s.cards.length === 0
           ? { emptyHint: "No territories yet — upload one to get started." }
@@ -56,6 +60,15 @@ export function TerritoryCatalogScreen() {
           busy={s.busy}
           onConfirm={s.confirm}
           onCancel={s.dismiss}
+        />
+      ) : null}
+      {editing ? (
+        <EditDetailsDialog
+          kind="territory"
+          slug={editing.slug}
+          title={editing.title}
+          description={editing.description}
+          onClose={() => setEditing(null)}
         />
       ) : null}
     </>

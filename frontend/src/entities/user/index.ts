@@ -19,6 +19,7 @@ export {
   listUsers,
   restoreUser,
   setTwoFactorRequired,
+  setUserPassword,
   setUserRoles,
   unfreezeUser,
   type NewUser,

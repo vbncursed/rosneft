@@ -64,6 +64,7 @@ describe("useViewerDocuments", () => {
     list.add.mockReset();
     list.remove.mockReset();
     onOpen.mockReset();
+    onChanged.mockReset();
   });
 
   it("seeds the list from the bundle and reports what it holds", () => {
@@ -145,6 +146,8 @@ describe("useViewerDocuments", () => {
     act(() => useDocumentUpload.mock.calls.at(-1)![0].onCreated(created as never));
     expect(list.add).toHaveBeenCalledWith(created);
     expect(result.current.upload.open).toBe(false);
+    // A create is a write like any other: the scene bundle is stale after it.
+    expect(onChanged).toHaveBeenCalledTimes(1);
   });
 
   it("opens a folded Documents list on a finished upload, so the PDF is not hidden", () => {

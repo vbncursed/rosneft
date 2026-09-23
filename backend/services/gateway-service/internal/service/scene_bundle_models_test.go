@@ -2,8 +2,8 @@ package service_test
 
 import (
 	"errors"
+	"slices"
 
-	"github.com/gojuno/minimock/v3"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/cmp"
 
@@ -13,30 +13,29 @@ import (
 // Model-options and fan-out-error tests for SceneBundleSuite (defined in
 // scene_bundle_test.go).
 
+// Each option is read off the model list — chain, LOD0 bounds, thumbnail — in
+// the list's order, with no per-model artifact call (none is expected, so one
+// would fail the controller).
 func (s *SceneBundleSuite) TestModelOptionsCarryLODChainPerModel() {
 	s.expectFanOut(sbTerr3LOD, sbModelsM1, nil)
-	s.expectModelArtsM1()
 	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 	assert.NilError(s.T(), err)
-	assert.Assert(s.T(), cmp.Len(got.ModelOptions, 1))
-	assert.Equal(s.T(), got.ModelOptions[0].Slug, "m1")
-	assert.Assert(s.T(), cmp.Len(got.ModelOptions[0].LODs, 2))
+	m := sbModelsM1[0]
+	assert.DeepEqual(s.T(), got.ModelOptions, []domain.AssetOption{{
+		Slug: m.Slug, Title: m.Title, ThumbnailBlobHash: m.ThumbnailBlobHash,
+		BBoxMin: m.BBoxMin, BBoxMax: m.BBoxMax, LODs: m.LODs,
+	}})
 }
 
 func (s *SceneBundleSuite) TestModelOptionsKeepsModelsWithoutArtifacts() {
 	// A failed-conversion model still appears in the picker (greyed out) so the
 	// user can re-trigger it — the picker does NOT silently hide broken models.
-	s.expectFanOut(sbTerr3LOD, []domain.Model{{Slug: "m1", Title: "Box"}, {Slug: "m2", Title: "Broken"}}, nil)
-	s.expectModelArtsM1()
-	s.cat.ListModelArtifactsMock.When(minimock.AnyContext, "m2").Then(nil, nil)
+	// Its chain is [] and its bounds absent, as when it was looked up alone.
+	s.expectFanOut(sbTerr3LOD, append(slices.Clone(sbModelsM1), domain.Model{Slug: "m2", Title: "Broken"}), nil)
 	got, err := s.svc.GetSceneBundle(s.ctx, "t1", "")
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), cmp.Len(got.ModelOptions, 2))
-	for _, opt := range got.ModelOptions {
-		if opt.Slug == "m2" {
-			assert.Assert(s.T(), cmp.Len(opt.LODs, 0))
-		}
-	}
+	assert.DeepEqual(s.T(), got.ModelOptions[1], domain.AssetOption{Slug: "m2", Title: "Broken", LODs: []domain.LodArtifact{}})
 }
 
 func (s *SceneBundleSuite) TestModelOptionsEmptyWhenNoModels() {

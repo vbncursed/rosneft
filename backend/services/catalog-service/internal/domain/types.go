@@ -17,6 +17,9 @@ type Territory struct {
 	// PlacementCount is how many placements sit on this territory. Filled by
 	// both ListTerritories and GetTerritory.
 	PlacementCount int `yaml:"-"`
+	// Artifacts is the LOD chain, sorted by lod. Filled by ListTerritories only:
+	// the list pages need it and would otherwise ask once per row.
+	Artifacts []Artifact `yaml:"-"`
 }
 
 // Model is a placeable 3D asset overlaid on a territory.
@@ -31,6 +34,26 @@ type Model struct {
 	// UsageCount is how many distinct territories place this model. Filled by
 	// both ListModels and GetModel.
 	UsageCount int `yaml:"-"`
+	// Artifacts is the LOD chain, sorted by lod. Filled by ListModels only:
+	// the list pages need it and would otherwise ask once per row.
+	Artifacts []Artifact `yaml:"-"`
+}
+
+// TerritoryPatch names the territory columns a partial edit writes. Nil keeps
+// the stored value; a pointer to "" clears it. Writing only these columns is
+// what keeps one edit from reverting another made since it read the row.
+type TerritoryPatch struct {
+	Title               *string
+	Description         *string
+	ExternalPanoramaURL *string
+	SourceBlobHash      *string
+}
+
+// ModelPatch names the model columns a partial edit writes — see TerritoryPatch.
+type ModelPatch struct {
+	Title             *string
+	Description       *string
+	ThumbnailBlobHash *string
 }
 
 // Vec3 is a 3D point used for bounding-box corners and placement transforms.

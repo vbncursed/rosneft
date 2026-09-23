@@ -8,16 +8,27 @@ import (
 )
 
 // List returns users filtered by status (empty = any) and, unless
-// includeDeleted, hides soft-deleted rows. Roles/permissions are NOT hydrated
-// here (list views don't need the per-user permission fan-out).
-func (s *Store) List(ctx context.Context, status string, includeDeleted bool, ownerID string) ([]domain.User, error) {
+// includeDeleted, hides soft-deleted rows. A non-empty ownerID keeps only the
+// users it created plus its own row. A non-empty hidePrivilegedExcept drops
+// Root (is_owner) and every admin-role holder except that id's own row — only
+// Root may see them. Roles/permissions are NOT hydrated here (list views don't
+// need the per-user permission fan-out).
+func (s *Store) List(
+	ctx context.Context, status string, includeDeleted bool, ownerID, hidePrivilegedExcept string,
+) ([]domain.User, error) {
 	q := `SELECT ` + userColumns + ` FROM users u WHERE 1=1`
-	args := make([]any, 0, 3)
+	args := make([]any, 0, 4)
 	if ownerID != "" {
 		args = append(args, ownerID)
 		// A Company Owner's own row is created by Root, not by the owner —
 		// created_by alone would hide the owner from their own list.
 		q += fmt.Sprintf(" AND (u.created_by = $%d OR u.id = $%d)", len(args), len(args))
+	}
+	if hidePrivilegedExcept != "" {
+		args = append(args, hidePrivilegedExcept, domain.RoleAdmin)
+		q += fmt.Sprintf(` AND (u.id = $%d OR (NOT u.is_owner AND NOT EXISTS (
+			SELECT 1 FROM user_roles ur JOIN roles r ON r.id = ur.role_id
+			WHERE ur.user_id = u.id AND r.slug = $%d)))`, len(args)-1, len(args))
 	}
 	if status != "" {
 		args = append(args, status)

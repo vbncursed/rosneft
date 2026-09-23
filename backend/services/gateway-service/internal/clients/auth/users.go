@@ -58,3 +58,10 @@ func (c *Client) RestoreUser(ctx context.Context, token, id string) (*authv1.Use
 func (c *Client) SetUserOwner(ctx context.Context, token, id string, isOwner bool) (*authv1.User, error) {
 	return c.cc.SetUserOwner(ctx, &authv1.SetUserOwnerRequest{Token: token, Id: id, IsOwner: isOwner})
 }
+
+// SetUserPassword passes the actor's session token; auth-service resolves the
+// actor from it, applies the owner scope and signs the target out everywhere.
+func (c *Client) SetUserPassword(ctx context.Context, token, id, password string) error {
+	_, err := c.cc.SetUserPassword(ctx, &authv1.SetUserPasswordRequest{Token: token, Id: id, Password: password})
+	return err
+}

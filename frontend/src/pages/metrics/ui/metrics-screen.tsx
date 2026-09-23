@@ -8,7 +8,10 @@ import {
   matchesSection,
   matchesServiceQuery,
   panelEntry,
+  isStale,
   servicesHint,
+  servicesStale,
+  STALE,
   statsOf,
 } from "../model/dashboard";
 import { useMetrics } from "../model/use-metrics";
@@ -55,7 +58,7 @@ export function MetricsScreen() {
           label: "Service health",
           // The meter counts services by name, not scrape targets: a replicated
           // service is several targets and one row in the health list.
-          detail: `${healthy} of ${s.services.length} up`,
+          detail: `${healthy} of ${s.services.length} up${servicesStale(s.results) ? ` · ${STALE}` : ""}`,
           ...(healthy === s.services.length ? {} : { detailTone: "warn" as const }),
           segments: SERVICE_SEGMENTS.map(({ state, tone, label }) => ({
             tone,
@@ -86,6 +89,7 @@ export function MetricsScreen() {
       selectedPanel={s.selectedPanel}
       onSelectPanel={s.selectPanel}
       firingCount={s.firingCount}
+      alertsStale={isStale(s.results.alerts)}
       servicesHint={servicesHint(up)}
       alert={
         s.alertOpen && firing

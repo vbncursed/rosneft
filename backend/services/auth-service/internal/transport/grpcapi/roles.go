@@ -4,6 +4,7 @@ import (
 	"context"
 
 	authv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/auth/v1"
+	"github.com/vbncursed/rosneft/backend/services/auth-service/internal/domain"
 )
 
 func (s *Server) ListRoles(ctx context.Context, req *authv1.ListRolesRequest) (*authv1.ListRolesResponse, error) {
@@ -35,11 +36,16 @@ func (s *Server) CreateRole(ctx context.Context, req *authv1.CreateRoleRequest) 
 }
 
 func (s *Server) UpdateRole(ctx context.Context, req *authv1.UpdateRoleRequest) (*authv1.Role, error) {
-	_, owningAdmin, allAccess, err := s.roleActor(ctx, req.GetToken())
+	actorID, owningAdmin, allAccess, err := s.roleActor(ctx, req.GetToken())
 	if err != nil {
 		return nil, mapError(err)
 	}
-	r, err := s.roles.UpdateTitle(ctx, req.GetSlug(), req.GetTitle(), owningAdmin, allAccess)
+	r, err := s.roles.Update(ctx, actorID, domain.RoleUpdate{
+		Slug:               req.GetSlug(),
+		Title:              req.GetTitle(),
+		PermissionSlugs:    req.GetPermissionSlugs(),
+		ReplacePermissions: req.GetReplacePermissions(),
+	}, owningAdmin, allAccess)
 	if err != nil {
 		return nil, mapError(err)
 	}

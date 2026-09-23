@@ -1,4 +1,6 @@
 import { useParams } from "@tanstack/react-router";
+import { useState } from "react";
+import { EditDetailsDialog } from "@/features/edit-entity";
 import { Callout } from "@/shared/ui/callout";
 import { EmptyState } from "@/shared/ui/card";
 import { ViewerSkeleton } from "@/widgets/viewer-skeleton";
@@ -20,6 +22,7 @@ export function ViewerLoading() {
 /** Maps the container onto the page — loading, not-found, unavailable, or the viewer. */
 function ViewerBody({ slug }: { slug: string }) {
   const state = useTerritoryViewer(slug);
+  const [editing, setEditing] = useState(false);
 
   if (state.status === "loading") return <ViewerLoading />;
 
@@ -49,7 +52,20 @@ function ViewerBody({ slug }: { slug: string }) {
     );
   }
 
-  return <TerritoryViewerPage {...state} />;
+  return (
+    <>
+      <TerritoryViewerPage {...state} header={{ ...state.header, onEdit: () => setEditing(true) }} />
+      {editing ? (
+        <EditDetailsDialog
+          kind="territory"
+          slug={slug}
+          title={state.header.title}
+          description={state.header.description}
+          onClose={() => setEditing(false)}
+        />
+      ) : null}
+    </>
+  );
 }
 
 /**

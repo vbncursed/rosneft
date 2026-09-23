@@ -10,10 +10,11 @@ import (
 // SoftDelete marks the account deleted (owner scope + self/last-admin guards)
 // and evicts its sessions.
 func (s *Service) SoftDelete(ctx context.Context, actorID string, scopeAll bool, id string) error {
-	if _, err := s.ownership(ctx, actorID, scopeAll, id); err != nil {
+	target, err := s.ownership(ctx, actorID, scopeAll, id)
+	if err != nil {
 		return err
 	}
-	if err := s.guard(ctx, actorID, id); err != nil {
+	if err := s.guard(ctx, actorID, target); err != nil {
 		return err
 	}
 	if _, err := s.store.SetStatus(ctx, id, domain.StatusDeleted, new(time.Now())); err != nil {

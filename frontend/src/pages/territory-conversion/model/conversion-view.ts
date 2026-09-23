@@ -1,5 +1,5 @@
 import { conversionStatusOf } from "@/entities/content";
-import { stageLabel, type PipelinePhase, type TargetJob } from "@/entities/conversion";
+import { isLive, pollInterval, stageLabel, type PipelinePhase, type TargetJob } from "@/entities/conversion";
 import type { Territory } from "@/entities/territory";
 
 /** One union, named at its source: the pipeline draws exactly these four. */
@@ -32,6 +32,24 @@ export function phaseOf(hasLod0: boolean, job: TargetJob | undefined): Phase {
  */
 export const shouldOpenViewer = (prev: Phase | null, next: Phase): boolean =>
   next === "ready" && (prev === "queued" || prev === "running");
+
+const WAIT_MS = 5000;
+
+/**
+ * The page's jobs poll. Off while the SSE stream delivers a live frame — it
+ * is the fresher source and the poll would only repeat it — and back the
+ * moment the stream is lost, finishes or never answers (the stream hook is
+ * null then). Otherwise the catalog's rule, plus a wait for a job the
+ * reconciler has not queued yet: nothing else would bring that row into view.
+ */
+export function jobsPoll(
+  jobs: TargetJob[] | undefined,
+  { slug, hasLod0, streamed }: { slug: string; hasLod0: boolean; streamed: TargetJob | null },
+): number | false {
+  if (streamed && isLive(streamed)) return false;
+  const waiting = !hasLod0 && !jobs?.some((j) => j.kind === "territory" && j.slug === slug);
+  return pollInterval(jobs) || (waiting ? WAIT_MS : false);
+}
 
 export function ledeOf(phase: Phase, { hasJob, hasLod0 }: { hasJob: boolean; hasLod0: boolean }): string {
   switch (phase) {

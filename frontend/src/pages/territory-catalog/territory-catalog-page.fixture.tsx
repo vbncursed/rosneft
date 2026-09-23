@@ -82,6 +82,7 @@ function Live() {
         onUpload={noop}
         onOpen={noop}
         onReplace={noop}
+        onEdit={noop}
         onDelete={noop}
       />
     </CatalogShell>
@@ -105,6 +106,7 @@ export default {
         onUpload={noop}
         onOpen={noop}
         onReplace={noop}
+        onEdit={noop}
         onDelete={noop}
       />
     </CatalogShell>

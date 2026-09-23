@@ -13,7 +13,7 @@ export type PersonInspectorProps = {
   /** Extra rows under the status, e.g. created / last seen / sessions. */
   details?: PersonDetail[];
   onClose: () => void;
-  /** Absent while no endpoint exists for it — the button is then not drawn. */
+  /** Absent when this reader may not reset this person's password — the button is then not drawn. */
   onResetPassword?: () => void;
   onRequire2fa: () => void;
   onFreeze: () => void;

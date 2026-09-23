@@ -1,5 +1,8 @@
 import { queryOptions } from "@tanstack/react-query";
-import { getTerritoryAdmins } from "./admins-gateway";
+import { listTerritoryAdmins } from "./admins-gateway";
 
-export const adminsQuery = (slug: string) =>
-  queryOptions({ queryKey: ["territory-admins", slug], queryFn: () => getTerritoryAdmins(slug) });
+/** One cache entry for every territory's admin set. */
+export const territoryAdminsQuery = queryOptions({
+  queryKey: ["territory-admins"],
+  queryFn: listTerritoryAdmins,
+});

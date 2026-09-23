@@ -7,9 +7,11 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
 
-// UpsertModel creates or updates a model. An empty slug is the create
-// signal: the slug is generated from the title and resolved to a unique
-// value. A non-empty slug upserts the row as-is.
+// UpsertModel creates a model; the name is the RPC's, which predates the
+// partial edit. It never touches an existing row: edits go through
+// UpdateModel. An empty slug is the usual case — the slug is generated from the
+// title and resolved to a unique value. A non-empty slug is inserted as given,
+// and a taken one is ErrSlugConflict (AlreadyExists), never renamed.
 func (c *Catalog) UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error) {
 	if err := validateBlobHash(m.SourceBlobHash, true); err != nil {
 		return domain.Model{}, fmt.Errorf("service.UpsertModel: %w", err)
@@ -18,7 +20,7 @@ func (c *Catalog) UpsertModel(ctx context.Context, m domain.Model) (domain.Model
 		return domain.Model{}, fmt.Errorf("service.UpsertModel: %w", err)
 	}
 	if m.Slug != "" {
-		return c.repo.UpsertModel(ctx, m)
+		return c.repo.CreateModel(ctx, m)
 	}
 	if m.Title == "" {
 		return domain.Model{}, fmt.Errorf("service.UpsertModel: %w: empty title", domain.ErrInvalidInput)

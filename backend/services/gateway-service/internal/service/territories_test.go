@@ -92,3 +92,64 @@ func (s *TerritoriesSuite) TestArtifactsRejectEmptySlug() {
 	_, err = s.svc.GetTerritoryArtifact(s.ctx, "", 0)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
+
+// A PATCH writes only what it sends, in one catalog call: no GetTerritory, no
+// UpsertTerritory (neither is expected, so either would fail the test). A
+// read-merge-upsert wrote the source hash it read back over a concurrent
+// source replace.
+func (s *TerritoriesSuite) TestUpdateSendsOnlyTheEditedFields() {
+	sent := domain.TerritoryUpdate{Title: new("North site"), Description: new("Pad and tanks")}
+	s.cat.UpdateTerritoryMock.Expect(s.ctx, "t1", sent).
+		Return(domain.Territory{Slug: "t1", Title: "North site", SourceBlobHash: "h"}, nil)
+
+	saved, err := s.svc.UpdateTerritory(s.ctx, "t1", sent)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), saved.Title, "North site")
+}
+
+func (s *TerritoriesSuite) TestUpdateSendsThePanoramaURLAlone() {
+	sent := domain.TerritoryUpdate{ExternalPanoramaURL: new("https://tour")}
+	s.cat.UpdateTerritoryMock.Expect(s.ctx, "t1", sent).Return(domain.Territory{Slug: "t1"}, nil)
+
+	_, err := s.svc.UpdateTerritory(s.ctx, "t1", sent)
+	assert.NilError(s.T(), err)
+}
+
+// The source hash changes only through ReplaceTerritorySource, which checks
+// the caller may use the blob; a PATCH that carried one would skip that.
+func (s *TerritoriesSuite) TestUpdateNeverForwardsASourceHash() {
+	s.cat.UpdateTerritoryMock.Expect(s.ctx, "t1", domain.TerritoryUpdate{Title: new("Yard")}).
+		Return(domain.Territory{Slug: "t1"}, nil)
+
+	_, err := s.svc.UpdateTerritory(s.ctx, "t1", domain.TerritoryUpdate{Title: new("Yard"), SourceBlobHash: new("foreign")})
+	assert.NilError(s.T(), err)
+}
+
+func (s *TerritoriesSuite) TestUpdateTrimsTheTitleAndDescription() {
+	s.cat.UpdateTerritoryMock.Expect(s.ctx, "t1", domain.TerritoryUpdate{Title: new("Yard"), Description: new("North pad")}).
+		Return(domain.Territory{Slug: "t1", Title: "Yard"}, nil)
+
+	_, err := s.svc.UpdateTerritory(s.ctx, "t1", domain.TerritoryUpdate{Title: new(" Yard\t"), Description: new("  North pad ")})
+	assert.NilError(s.T(), err)
+}
+
+// An empty description is a clear, not an absent field: it reaches the
+// catalog as "", which the catalog writes over the old text.
+func (s *TerritoriesSuite) TestUpdateClearsTheDescription() {
+	s.cat.UpdateTerritoryMock.Expect(s.ctx, "t1", domain.TerritoryUpdate{Description: new("")}).
+		Return(domain.Territory{Slug: "t1"}, nil)
+
+	_, err := s.svc.UpdateTerritory(s.ctx, "t1", domain.TerritoryUpdate{Description: new("")})
+	assert.NilError(s.T(), err)
+}
+
+func (s *TerritoriesSuite) TestCreateRefusesAWhitespaceTitle() {
+	_, _, err := s.svc.CreateTerritory(s.ctx, domain.Territory{Title: " \t ", SourceBlobHash: "h"}, rootScope)
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *TerritoriesSuite) TestUpdateRejectsBlankTitleBeforeWriting() {
+	// No catalog expectation: any catalog call would fail the test.
+	_, err := s.svc.UpdateTerritory(s.ctx, "t1", domain.TerritoryUpdate{Title: new("")})
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}

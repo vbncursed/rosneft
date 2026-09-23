@@ -24,7 +24,7 @@ func (s *Server) GetTerritoryAdmins(ctx context.Context, req GetTerritoryAdminsR
 	case isInvalid(err):
 		return GetTerritoryAdmins404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return GetTerritoryAdmins500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return GetTerritoryAdmins500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return GetTerritoryAdmins200JSONResponse{UserIds: ids}, nil
 }
@@ -43,7 +43,23 @@ func (s *Server) SetTerritoryAdmins(ctx context.Context, req SetTerritoryAdminsR
 	case isInvalid(err):
 		return SetTerritoryAdmins400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
 	case err != nil:
-		return SetTerritoryAdmins500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return SetTerritoryAdmins500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return SetTerritoryAdmins204Response{}, nil
+}
+
+// ListTerritoryAdmins answers every visible territory's admins in one call.
+// Root only, the same gate as GetTerritoryAdmins. The route is outside
+// /api/territories/{slug}, so the territory gate never sees it; the set comes
+// from the caller's scope, as on GET /api/territories.
+func (s *Server) ListTerritoryAdmins(ctx context.Context, _ ListTerritoryAdminsRequestObject) (ListTerritoryAdminsResponseObject, error) {
+	if !authhttp.IsOwner(ctx) {
+		return ListTerritoryAdmins403JSONResponse{ForbiddenJSONResponse: forbiddenRoot()}, nil
+	}
+	scopeAdminID, allAccess := authhttp.Scope(ctx)
+	bySlug, err := s.svc.ListTerritoryAdmins(ctx, scopeAdminID, allAccess)
+	if err != nil {
+		return ListTerritoryAdmins500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
+	}
+	return ListTerritoryAdmins200JSONResponse(bySlug), nil
 }
