@@ -29,7 +29,20 @@ describe("GroupTitleField", () => {
 
   it("waits while a group write is in flight", async () => {
     render(<GroupTitleField label="t" submitLabel="Save group title" initial="East yard" busy onSubmit={vi.fn()} onCancel={vi.fn()} />);
-    expect(screen.getByRole("button", { name: "Save group title" })).toBeDisabled();
+    const save = screen.getByRole("button", { name: "Save group title" });
+    expect(save).toBeDisabled();
+    // E9: saving reads as busy (a spinner, undimmed), not as "cannot save".
+    expect(save).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByTestId("button-spinner")).toBeInTheDocument();
+    expect(save).not.toHaveClass("opacity-55");
+  });
+
+  it("dims the check only when there is no title to save", () => {
+    render(<GroupTitleField label="t" submitLabel="Save group title" busy={false} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+    const save = screen.getByRole("button", { name: "Save group title" });
+    expect(save).toBeDisabled();
+    expect(save).not.toHaveAttribute("aria-busy");
+    expect(save).toHaveClass("opacity-55");
   });
 });
 
@@ -50,6 +63,16 @@ describe("NewGroup", () => {
   });
 
   // The toast says why (a duplicate title, say); the typed title stays to be fixed.
+  // E14: the field takes the button's 30 px, so nothing below it jumps.
+  it("opens a field as tall as the button it replaces", async () => {
+    render(<NewGroup busy={false} onCreate={vi.fn(async () => true)} />);
+    expect(screen.getByRole("button", { name: "New group" })).toHaveClass("py-1.5");
+    await userEvent.click(screen.getByRole("button", { name: "New group" }));
+    const field = screen.getByRole("textbox", { name: "New group title" });
+    expect(field).toHaveClass("py-1");
+    expect(field).not.toHaveClass("py-2.5");
+  });
+
   it("keeps the field and its text when the create is refused", async () => {
     const onCreate = vi.fn(async () => false);
     render(<NewGroup busy={false} onCreate={onCreate} />);
