@@ -114,7 +114,7 @@ describe("useUsers", () => {
 
   // The confirm dialog is the only route to a state change; nothing freezes
   // on a single click.
-  it("freezes only after confirmation, then reports and refetches", async () => {
+  it("freezes only after confirmation, then writes the answer into the list without a refetch", async () => {
     const { result } = renderHook(() => ({ users: useUsers(), notices: useNotices() }), {
       wrapper,
     });
@@ -129,8 +129,8 @@ describe("useUsers", () => {
     await waitFor(() => expect(result.current.users.pending).toBeNull());
     expect(fetchMock.mock.calls.some(([u]) => String(u).endsWith("/freeze"))).toBe(true);
     expect(result.current.notices[0]?.message).toBe("Account frozen");
-    // The list was invalidated: a second GET went out.
-    await waitFor(() => expect(listCalls()).toBe(2));
+    expect(result.current.users.users?.[0].status).toBe("frozen");
+    expect(listCalls()).toBe(1);
   });
 
   it("dismisses the question without acting on it", async () => {
@@ -182,6 +182,9 @@ describe("useUsers", () => {
     );
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("User created"));
     expect(result.current.users.creating).toBe(false);
+    expect(result.current.users.users?.map((u) => u.id)).toEqual(["u-1", "u-2"]);
+    expect(result.current.users.selected?.id).toBe("u-2");
+    expect(listCalls()).toBe(1);
   });
 
   // Whichever field collided, and whoever holds it, the admin reads one line:
@@ -258,6 +261,8 @@ describe("useUsers", () => {
     expect(JSON.parse(String((patch![1] as RequestInit).body))).toEqual({
       roleSlugs: ["guest", "admin"],
     });
+    expect(result.current.users.users?.[0].roleSlugs).toEqual(["guest", "admin"]);
+    expect(listCalls()).toBe(1);
   });
 
   // The reader may have just changed their own roles; their nav gates read
@@ -272,6 +277,21 @@ describe("useUsers", () => {
     act(() => result.current.users.setRoles(["guest", "admin"]));
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("Roles updated"));
     expect(spy).toHaveBeenCalledWith({ queryKey: ["me"] });
+  });
+
+  // A delete answers 204: there is no user to write, and what a deleted
+  // account looks like is the gateway's to say.
+  it("refetches the list after a delete", async () => {
+    const base = fetchMock.getMockImplementation() as (u: string, i?: RequestInit) => Promise<Response>;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) =>
+      init?.method === "DELETE" ? new Response(null, { status: 204 }) : base(url, init),
+    );
+    const { result } = renderHook(() => useUsers(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    act(() => result.current.select("u-1"));
+    act(() => result.current.ask("delete"));
+    act(() => result.current.confirm());
+    await waitFor(() => expect(listCalls()).toBe(2));
   });
 
   it("surfaces the gateway's refusal as an error notice", async () => {
@@ -294,8 +314,8 @@ describe("useUsers", () => {
     expect(result.current.users).toBeNull();
   });
 
-  // The screen already holds the answer; a refetch that trips — the one every
-  // mutation fires — must not replace it with an outage page.
+  // The screen already holds the answer; a refetch that trips — the one a
+  // delete fires — must not replace it with an outage page.
   it("stays ready when a refetch fails on top of people it already has", async () => {
     const { result, rerender } = renderHook(() => useUsers(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
