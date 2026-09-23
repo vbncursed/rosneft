@@ -4,6 +4,7 @@ import {
   createPlacements,
   deletePlacement,
   setPlacementVisibility,
+  setPlacementsHidden,
   updatePlacement,
   IDENTITY_TRANSFORM,
   type Placement,
@@ -19,6 +20,7 @@ vi.mock("@/entities/placement", async (importOriginal) => ({
   updatePlacement: vi.fn(),
   deletePlacement: vi.fn(),
   setPlacementVisibility: vi.fn(),
+  setPlacementsHidden: vi.fn(),
 }));
 
 const CHAIN = [{ lod: 0, hash: "h0", size: 30 }];
@@ -67,6 +69,7 @@ beforeEach(() => {
   vi.mocked(updatePlacement).mockReset();
   vi.mocked(deletePlacement).mockReset();
   vi.mocked(setPlacementVisibility).mockReset();
+  vi.mocked(setPlacementsHidden).mockReset();
   onChanged = vi.fn();
   clearNotices();
 });
@@ -353,5 +356,53 @@ describe("usePlacementsEditor", () => {
     expect(result.current.s.placements.map((p) => p.id)).toEqual([1]);
     expect(result.current.s.pendingIds).toEqual([]);
     expect(onChanged).toHaveBeenCalledOnce();
+  });
+  it("places into the group it is given, and keeps a group-less place free of one", async () => {
+    vi.mocked(createPlacements).mockImplementation(async (_slug, items) =>
+      items.map((body, i) => ({ ...placement(100 + i), ...body, groupId: body.groupId ?? null }) as Placement),
+    );
+    const { result } = editor();
+    await act(async () => {
+      await result.current.s.create("tank", 1, 5);
+    });
+    expect(vi.mocked(createPlacements).mock.calls[0][1][0].groupId).toBe(5);
+    expect(result.current.s.placements[0].groupId).toBe(5);
+
+    await act(async () => {
+      await result.current.s.create("tank", 1);
+    });
+    expect(vi.mocked(createPlacements).mock.calls[1][1][0]).not.toHaveProperty("groupId");
+  });
+
+  // The key names one placing action; the same model and count into another
+  // group is another action and must not replay the first one's rows.
+  it("mints a new idempotency key when a failed batch is retried into another group", async () => {
+    vi.mocked(createPlacements).mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValue([placement(1)]);
+    const { result } = editor();
+    await act(async () => {
+      await result.current.s.create("tank", 1, 5);
+    });
+    await act(async () => {
+      await result.current.s.create("tank", 1, 6);
+    });
+    const [first, second] = vi.mocked(createPlacements).mock.calls.map((c) => c[2]);
+    expect(second).not.toBe(first);
+  });
+
+  it("holds every id of a bulk write pending", async () => {
+    let release!: () => void;
+    vi.mocked(setPlacementsHidden).mockReturnValueOnce(new Promise((res) => (release = () => res(2))));
+    const { result } = editor([placement(1), placement(2)]);
+    let done!: Promise<void>;
+    act(() => {
+      done = result.current.s.setHidden([1, 2], true);
+    });
+    expect(result.current.s.pendingIds).toEqual([1, 2]);
+    await act(async () => {
+      release();
+      await done;
+    });
+    expect(result.current.s.pendingIds).toEqual([]);
+    expect(result.current.s.placements.every((p) => p.hidden)).toBe(true);
   });
 });
