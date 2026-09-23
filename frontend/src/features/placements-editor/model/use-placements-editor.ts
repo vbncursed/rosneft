@@ -15,7 +15,7 @@ import {
   type ResolvedPlacement,
 } from "@/entities/placement";
 import type { ModelOption } from "@/entities/scene";
-import { messageOf } from "@/shared/api";
+import { HttpError, messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
 
 export type PlacementsEditorParams = {
@@ -31,7 +31,7 @@ export type PlacementsEditorParams = {
 };
 
 /** How big the batch in flight is. Null when nothing is being placed. */
-export type Placing = { done: number; total: number };
+export type Placing = { total: number };
 
 /**
  * The placement editor's state: the list, the in-flight mutation and the batch
@@ -66,7 +66,7 @@ export function usePlacementsEditor({
     async (modelSlug: string, count: number): Promise<number | null> => {
       const total = Math.max(1, Math.floor(count));
       setMutation(creating);
-      setPlacing({ done: 0, total });
+      setPlacing({ total });
       try {
         // Both GLBs are normalised to max-axis 2, so scale 1 would draw the
         // model as large as the whole territory. Lay the copies in a row along
@@ -92,6 +92,9 @@ export function usePlacementsEditor({
         return created.at(-1)?.id ?? null;
       } catch (err) {
         notify.error(messageOf(err));
+        // No HTTP answer (a dropped line) means the gateway may have committed
+        // the batch anyway: mark the bundle stale so the next visit shows it.
+        if (!(err instanceof HttpError)) onChanged();
         return null;
       } finally {
         setPlacing(null);

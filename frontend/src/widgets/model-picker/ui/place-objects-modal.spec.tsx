@@ -101,54 +101,40 @@ describe("PlaceObjectsModal", () => {
     expect(screen.queryByRole("button", { name: /not-yet/ })).not.toBeInTheDocument();
   });
 
-  it("shows the placing line and keeps the primary busy", () => {
+  // One batch, one transaction: there is no "1 of N" to report, so the line
+  // names the whole batch and the bar runs indeterminate on the thin meter.
+  it("names the whole batch on an indeterminate bar and keeps the primary busy", () => {
     render(
       <PlaceObjectsModal
         open
         onClose={vi.fn()}
         territoryTitle="T"
         options={options}
-        placing={{ done: 0, total: 2 }}
+        placing={{ total: 2 }}
         onPlace={vi.fn()}
       />,
     );
 
-    // Nothing has landed yet and the first POST is in flight: the line names
-    // the object being placed, never "0 of 2".
-    expect(screen.getByText("Placing 1 of 2…")).toBeInTheDocument();
+    expect(screen.getByText("Placing 2 objects…")).toBeInTheDocument();
+    expect(screen.queryByText(/ of /)).not.toBeInTheDocument();
+    const bar = screen.getByRole("progressbar", { name: "Placing" });
+    expect(bar).not.toHaveAttribute("aria-valuenow");
+    expect(bar).toHaveClass("h-[5px]");
     expect(screen.getByRole("button", { name: "Place" })).toHaveAttribute("aria-busy", "true");
   });
 
-  // The bar counts what has landed: the last POST still in flight must not
-  // read as a full bar.
-  it("fills the bar with the placements that landed, on the shared thin meter", () => {
-    const { rerender } = render(
+  it("says object, singular, for a batch of one", () => {
+    render(
       <PlaceObjectsModal
         open
         onClose={vi.fn()}
         territoryTitle="T"
         options={options}
-        placing={{ done: 0, total: 2 }}
+        placing={{ total: 1 }}
         onPlace={vi.fn()}
       />,
     );
-    const bar = () => screen.getByRole("progressbar", { name: "Placing" });
-    expect(bar()).toHaveAttribute("aria-valuenow", "0");
-
-    rerender(
-      <PlaceObjectsModal
-        open
-        onClose={vi.fn()}
-        territoryTitle="T"
-        options={options}
-        placing={{ done: 1, total: 2 }}
-        onPlace={vi.fn()}
-      />,
-    );
-    expect(screen.getByText("Placing 2 of 2…")).toBeInTheDocument();
-    expect(bar()).toHaveAttribute("aria-valuenow", "50");
-    expect(bar()).toHaveClass("h-[5px]");
-    expect((bar().firstElementChild as HTMLElement).style.transform).toBe("scaleX(0.5)");
+    expect(screen.getByText("Placing 1 object…")).toBeInTheDocument();
   });
 
   it("cannot place with nothing selected", () => {
