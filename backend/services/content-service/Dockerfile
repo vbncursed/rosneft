@@ -30,8 +30,14 @@ RUN --mount=type=cache,target=/go/pkg/mod \
         -trimpath -ldflags="-s -w" \
         -o /out/content ./cmd/content
 
+# Pre-create the BlobStore mount point as nonroot, as upload-service does: a
+# named volume mounted over a path the image lacks comes up root-owned, and
+# content writes panorama thumbnails into it.
+RUN mkdir -p /out/blob
+
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/content /content
+COPY --from=build --chown=nonroot:nonroot /out/blob /var/blob
 USER nonroot:nonroot
 EXPOSE 9007
 ENTRYPOINT ["/content"]
