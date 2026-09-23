@@ -198,6 +198,7 @@ export const basePageParts = (): PageParts => ({
   placements: PLACEMENTS,
   pendingIds: [],
   placing: null,
+  placementGroups: { list: [], busy: false, create: noop, rename: noop, remove: noop },
   form: null,
   tour: IDLE_TOUR,
   panoramaTour: IDLE_TOUR,
@@ -295,6 +296,15 @@ export default {
   })),
 
   "7 empty": page((p) => ({ ...p, placements: [], vm: { ...VM, placements: [] } })),
+
+  "7b groups, one hidden": page((p) => ({
+    ...p,
+    placements: p.placements.map((x) =>
+      x.id === 3 ? { ...x, hidden: true } : x.id === 4 ? { ...x, groupId: 1 } : x,
+    ),
+    placementGroups: { ...p.placementGroups, list: [{ id: 1, title: "Valve bank" }] },
+    view: { ...p.view, expandedModel: "storage-tank-500" },
+  })),
 
   "14 create form, saving": page((p) => {
     const q = selected(p);

@@ -95,6 +95,9 @@ const HANDLERS: PageHandlers = {
   onPlace: noop,
   onClosePicker: noop,
   onVisibility: noop,
+  onSetHidden: vi.fn(),
+  onMoveToGroup: vi.fn(),
+  onAddToGroup: vi.fn(),
   onToggleMove: noop,
 };
 
@@ -123,6 +126,7 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
   placements: [TANK],
   pendingIds: [],
   placing: null,
+  placementGroups: { list: [], busy: false, create: vi.fn(), rename: vi.fn(), remove: vi.fn() },
   form: null,
   tour: TOUR,
   panoramaTour: TOUR,
@@ -441,7 +445,7 @@ describe("pageProps · panel", () => {
   it("groups the placements by model and counts them for the tab", () => {
     const { panel } = pageProps(parts());
     expect(panel?.placementsCount).toBe(1);
-    expect(panel?.placements.groups[0].model.title).toBe("storage-tank-500");
+    expect(panel?.placements.sections.modelGroups[0].group.model.title).toBe("storage-tank-500");
   });
 
   it("prints the territory's facts on the View tab, the slug in the accent", () => {

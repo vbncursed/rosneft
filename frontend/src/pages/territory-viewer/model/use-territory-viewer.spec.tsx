@@ -15,6 +15,8 @@ const {
   updatePlacement,
   deletePlacement,
   setPlacementVisibility,
+  setPlacementsHidden,
+  createPlacementGroup,
   markTourSeen,
   createMeasurement,
   deleteMeasurements,
@@ -27,6 +29,8 @@ const {
   updatePlacement: vi.fn(),
   deletePlacement: vi.fn(),
   setPlacementVisibility: vi.fn(),
+  setPlacementsHidden: vi.fn(),
+  createPlacementGroup: vi.fn(),
   markTourSeen: vi.fn(),
 }));
 
@@ -44,6 +48,8 @@ vi.mock("@/entities/placement", async (importOriginal) => ({
   updatePlacement,
   deletePlacement,
   setPlacementVisibility,
+  setPlacementsHidden,
+  createPlacementGroup,
 }));
 vi.mock("@/entities/measurement", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -197,6 +203,8 @@ describe("useTerritoryViewer", () => {
     getMe.mockReset().mockResolvedValue(principal({ isOwner: true }));
     createPlacements.mockReset();
     setPlacementVisibility.mockReset();
+    setPlacementsHidden.mockReset();
+    createPlacementGroup.mockReset();
     updatePlacement.mockReset();
     deletePlacement.mockReset();
     markTourSeen.mockReset().mockResolvedValue(undefined);
@@ -823,6 +831,28 @@ describe("useTerritoryViewer", () => {
 
       expect(now(r).panel?.tab).toBe("view");
       expect(now(r).panel?.collapsed).toBe(false);
+    });
+  });
+
+  describe("hiding and groups", () => {
+    it("hides a placement for everyone, leaves it in the list, and clears the selection that was on it", async () => {
+      setPlacementsHidden.mockResolvedValue(1);
+      const r = mount();
+      const state = await ready(r);
+      act(() => state.canvas.onPick(4));
+      await act(async () => now(r).panel!.placements.onSetHidden([4], true));
+      expect(setPlacementsHidden).toHaveBeenCalledWith(SLUG, [4], true);
+      expect(now(r).canvas.selectedId).toBeNull();
+      expect(now(r).canvas.placements.find((p) => p.id === 4)?.hidden).toBe(true);
+      expect(client.getQueryState(["scene", SLUG])?.isInvalidated).toBe(true);
+    });
+
+    it("creates a group and lists it above the model rows", async () => {
+      createPlacementGroup.mockResolvedValue({ id: 9, title: "Tank farm" });
+      const r = mount();
+      await ready(r);
+      await act(async () => now(r).panel!.placements.groupActions.onCreate("Tank farm"));
+      expect(now(r).panel!.placements.sections.userGroups.map((s) => s.group.title)).toEqual(["Tank farm"]);
     });
   });
 });

@@ -23,9 +23,11 @@ const deps = (
     placements?: ResolvedPlacement[];
     chains?: Chain[];
     canDeleteMeasurements?: boolean;
+    selectedId?: number | null;
   } = {},
 ) => {
   const mode = {
+    state: { selectedId: over.selectedId ?? null },
     enterPlace: vi.fn(),
     exitPlace: vi.fn(),
     select: vi.fn(),
@@ -40,6 +42,8 @@ const deps = (
     remove: vi.fn(),
     commitTransform: vi.fn(),
     setVisibility: vi.fn(),
+    setHidden: vi.fn(),
+    moveToGroup: vi.fn(),
   };
   const panel = { setTab: vi.fn(), setCollapsed: vi.fn() };
   const form = { openNew: vi.fn(), openRename: vi.fn() };
@@ -166,7 +170,7 @@ describe("usePageHandlers", () => {
   it("opens the new object's form once the batch has landed", async () => {
     const { result, spies } = mount();
     await act(async () => result.current.on.onPlace("storage-tank-500", 2));
-    expect(spies.editor.create).toHaveBeenCalledWith("storage-tank-500", 2);
+    expect(spies.editor.create).toHaveBeenCalledWith("storage-tank-500", 2, null);
     expect(spies.form.openNew).toHaveBeenCalledWith(11);
     expect(result.current.view.pickerOpen).toBe(false);
   });
@@ -247,5 +251,31 @@ describe("usePageHandlers", () => {
     expect(result.current.on.onLod).toBe(first.onLod);
     expect(result.current.on.onReset).toBe(first.onReset);
     expect(result.current.view.resetVersion).toBe(1);
+  });
+
+  describe("hiding and groups", () => {
+    it("drops the selection when it is among the placements hidden", () => {
+      const { result, spies } = mount({ selectedId: 4 });
+      act(() => result.current.on.onSetHidden([4, 5], true));
+      expect(spies.mode.select).toHaveBeenCalledWith(null);
+      expect(spies.editor.setHidden).toHaveBeenCalledWith([4, 5], true);
+    });
+
+    it("places into the group whose Add opened the picker, and nowhere after a plain Add", async () => {
+      const { result, spies } = mount();
+      act(() => result.current.on.onAddToGroup(7));
+      expect(result.current.view.pickerOpen).toBe(true);
+      await act(async () => result.current.on.onPlace("tank", 2));
+      expect(spies.editor.create).toHaveBeenLastCalledWith("tank", 2, 7);
+
+      act(() => result.current.on.onAdd());
+      await act(async () => result.current.on.onPlace("tank", 1));
+      expect(spies.editor.create).toHaveBeenLastCalledWith("tank", 1, null);
+    });
+
+    it("moves through the editor unchanged", () => {
+      const { result, spies } = mount();
+      expect(result.current.on.onMoveToGroup).toBe(spies.editor.moveToGroup);
+    });
   });
 });

@@ -17,7 +17,6 @@ import {
   VIEWER_TOUR,
   VIEWER_TOUR_STEPS,
 } from "@/features/onboarding";
-import { usePlacementsEditor } from "@/features/placements-editor";
 import { useViewerMode } from "@/features/viewer-mode";
 import { HttpError, messageOf } from "@/shared/api";
 import { useMediaQuery } from "@/shared/lib/use-media-query";
@@ -31,6 +30,7 @@ import { usePlacementForm } from "./use-placement-form";
 import { useViewSections } from "./use-view-sections";
 import { useViewerDocuments } from "./use-viewer-documents";
 import { useViewerPanoramas } from "./use-viewer-panoramas";
+import { useViewerPlacements } from "./use-viewer-placements";
 import { dropOrOweScene, takeSceneDrop } from "./owed-scene-drop";
 
 export type TerritoryViewerState =
@@ -191,11 +191,10 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   });
 
   const dims = vm?.metadata.dims ?? { x: 0, y: 0, z: 0 };
-  const editor = usePlacementsEditor({
+  const { editor, groups } = useViewerPlacements({
     slug,
-    initial: vm?.placements ?? [],
-    options: bundle?.modelOptions ?? [],
-    territoryMaxDim: Math.max(dims.x, dims.y, dims.z),
+    bundle,
+    vm,
     // Spec §6.1: a new object is visible everywhere the territory is loaded.
     panoramaIds: panoramas.list.map((p) => p.id),
     onChanged,
@@ -251,6 +250,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
       placements: editor.placements,
       pendingIds: editor.pendingIds,
       placing: editor.placing,
+      placementGroups: groups,
       form: form.form,
       tour,
       panoramaTour,

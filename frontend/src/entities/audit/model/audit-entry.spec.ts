@@ -51,6 +51,12 @@ describe("formatAt", () => {
 });
 
 describe("entityName", () => {
+  // spec §1.2: the trigger records the group's title as its label, so the journal
+  // names a placement_group row with no special case.
+  it("names a placement group by the title its trigger recorded", () => {
+    expect(entityName(entry({ entity: "placement_group", entityId: "3", entityLabel: "Tank farm" }))).toBe("Tank farm");
+  });
+
   it("is the label the journal recorded", () => {
     expect(entityName(entry())).toBe("Refinery Block C");
   });
