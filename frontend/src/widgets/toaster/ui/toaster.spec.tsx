@@ -69,9 +69,26 @@ describe("Toaster", () => {
     expect(card).not.toContain("starting:-translate-y-2");
   });
 
+  // Anchored at the bottom, the newest card sits on that edge and the older
+  // ones stack above it; the hover bridge below each card skips the bottom one.
+  it("stacks bottom-up when anchored at the bottom, bridging every gap but the edge", () => {
+    render(<Toaster placement="bottom-center" />);
+    act(() => {
+      notify.error("first");
+      notify.error("second");
+    });
+    const host = region()!;
+    expect(host).toHaveClass("flex-col-reverse");
+    expect(host).not.toHaveClass("flex-col");
+    const [newest, older] = [...host.children];
+    expect(newest).toHaveTextContent("second");
+    expect(newest).toHaveClass("first:after:hidden");
+    expect(older).not.toHaveClass("last:after:hidden");
+  });
+
   it("sits top-right by default", () => {
     render(<Toaster />);
-    expect(region()!.className.split(/\s+/)).toEqual(expect.arrayContaining(["fixed", "right-4", "top-4"]));
+    expect(region()!.className.split(/\s+/)).toEqual(expect.arrayContaining(["fixed", "right-4", "top-4", "flex-col"]));
   });
 
   it("holds a confirmation while the pointer is on it", () => {

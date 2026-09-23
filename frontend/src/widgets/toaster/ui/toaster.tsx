@@ -5,12 +5,17 @@ import { Toast } from "@/shared/ui/toast";
 
 export type ToasterPlacement = "top-right" | "bottom-center";
 
-// Where the stack is anchored, and the edge its cards enter from. The viewer
-// keeps its top-right corner for the Overlays panel's head, so there the stack
-// sits bottom-centre, above the status strip.
-const PLACEMENT: Record<ToasterPlacement, { host: string; enter: string }> = {
-  "top-right": { host: "right-4 top-4", enter: "starting:-translate-y-2" },
-  "bottom-center": { host: "bottom-16 left-1/2 -translate-x-1/2", enter: "starting:translate-y-2" },
+// Where the stack is anchored, which way it grows, the edge its cards enter
+// from, and which card's hover bridge (the ::after below it) has nothing below
+// to reach. The newest card always sits at the anchored edge. The viewer keeps
+// its top-right corner for the Overlays panel's head, so there the stack sits
+// bottom-centre, above the status strip.
+const PLACEMENT: Record<ToasterPlacement, { host: string; card: string }> = {
+  "top-right": { host: "right-4 top-4 flex-col", card: "starting:-translate-y-2 last:after:hidden" },
+  "bottom-center": {
+    host: "bottom-16 left-1/2 -translate-x-1/2 flex-col-reverse",
+    card: "starting:translate-y-2 first:after:hidden",
+  },
 };
 
 const onVisibility = () =>
@@ -25,7 +30,7 @@ const onVisibility = () =>
  * read unreliably. Errors and warnings still carry their own `alert`.
  */
 export function Toaster({ placement = "top-right" }: { placement?: ToasterPlacement }) {
-  const { host, enter } = PLACEMENT[placement];
+  const { host, card } = PLACEMENT[placement];
   const notices = useNotices();
   const empty = notices.length === 0;
 
@@ -80,7 +85,7 @@ export function Toaster({ placement = "top-right" }: { placement?: ToasterPlacem
       ref={region}
       onFocus={onFocus}
       onBlur={onBlur}
-      className={cx("pointer-events-none fixed z-50 flex w-[min(92vw,22rem)] flex-col gap-2", host)}
+      className={cx("pointer-events-none fixed z-50 flex w-[min(92vw,22rem)] gap-2", host)}
     >
       {notices.map((notice) => (
         <Toast
@@ -99,11 +104,11 @@ export function Toaster({ placement = "top-right" }: { placement?: ToasterPlacem
             }
           }
           // Enters from the edge the stack is anchored to; the exit is instant.
-          // The ::after bridges the gap-2 below every card but the last, so
-          // crossing from one card to the next never leaves the stack.
+          // The ::after bridges the gap-2 below every card but the bottom one,
+          // so crossing from one card to the next never leaves the stack.
           className={cx(
-            "pointer-events-auto relative shadow-elevation transition-[opacity,translate] duration-200 ease-out starting:opacity-0 motion-reduce:starting:translate-y-0 after:absolute after:inset-x-0 after:top-full after:h-2 last:after:hidden",
-            enter,
+            "pointer-events-auto relative shadow-elevation transition-[opacity,translate] duration-200 ease-out starting:opacity-0 motion-reduce:starting:translate-y-0 after:absolute after:inset-x-0 after:top-full after:h-2",
+            card,
           )}
         >
           {notice.message}
