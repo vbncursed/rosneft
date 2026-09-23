@@ -3,28 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { ModelGroup } from "@/entities/placement";
 import { InstanceItem, type RowContext } from "./instance-item";
+import { ctx } from "./testing";
 
 const MODEL: ModelGroup = {
   model: { slug: "tank", title: "storage-tank-500" },
   instances: [{ id: 2, index: 2, label: "", hidden: false, groupId: null }],
 };
-
-export const ctx = (over: Partial<RowContext> = {}): RowContext => ({
-  expanded: null,
-  onToggleGroup: vi.fn(),
-  selectedId: null,
-  pendingIds: [],
-  grants: { create: true, write: true, delete: true },
-  groups: [{ id: 4, title: "East yard" }],
-  visibility: null,
-  onSelect: vi.fn(),
-  onRename: vi.fn(),
-  onDelete: vi.fn(),
-  onFocus: vi.fn(),
-  onSetHidden: vi.fn(),
-  onMoveToGroup: vi.fn(),
-  ...over,
-});
 
 const item = (c: RowContext) => (
   <ul>

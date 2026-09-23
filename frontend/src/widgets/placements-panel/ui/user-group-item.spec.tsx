@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { UserGroupSection } from "@/entities/placement";
-import { ctx } from "./instance-item.spec";
+import { ctx } from "./testing";
 import { UserGroupItem, type GroupActions } from "./user-group-item";
 
 const TANK = { model: { slug: "tank", title: "storage-tank-500" }, instances: [] };

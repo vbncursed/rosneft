@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import type { ModelSection } from "@/entities/placement";
-import { ctx } from "./instance-item.spec";
+import { ctx } from "./testing";
 import { ModelSectionItem } from "./model-section-item";
 
 const SECTION: ModelSection = {
