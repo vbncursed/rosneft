@@ -143,6 +143,9 @@ func panoramaToAPI(p domain.Panorama) Panorama {
 	if !p.UpdatedAt.IsZero() {
 		out.UpdatedAt = &p.UpdatedAt
 	}
+	if p.ThumbnailBlobHash != "" {
+		out.ThumbnailBlobHash = &p.ThumbnailBlobHash
+	}
 	return out
 }
 
