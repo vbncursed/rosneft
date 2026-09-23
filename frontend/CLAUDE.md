@@ -465,6 +465,35 @@ carries `· 24h`; six console cards wrap at 1280 px on the mock's own
   after the rule, and `EmptyState` has a `layout="start"` variant, both
   reused rather than re-derived per page.
 
+## Query cache policy
+
+- **The defaults are `staleTime: 60_000` and `refetchOnWindowFocus: false`**
+  (`app/query/query-client.ts`). A mount inside the minute reads the cache and
+  asks nothing, so a query is only as fresh as the writes that touch it.
+- **A write must invalidate or `setQueryData` everything it changed** — every
+  list, detail and bundle holding a copy — or the stale copy is served for a
+  minute with nothing behind it to correct it.
+- **`cancelQueries` before `setQueryData`.** A refetch already in flight left
+  before the write and answers with the old data; landing after the write, it
+  puts the old value back. `putUser` (`pages/users/model/put-user.ts`) and the
+  territory-access save both await the cancel first; their specs hold an
+  in-flight refetch open across the write to pin it.
+- **`setQueryData` clears `isInvalidated`.** A copy another write had already
+  marked stale must be re-marked after the merge, or the merge passes the
+  rest of it off as fresh — `mergeInto` in `features/edit-entity` is the
+  shape to copy.
+- **Live routes use `staleTime: 0`**: `jobsQuery` (the route is `no-store`; a
+  job started elsewhere must show on mount), the audit journal and its
+  24-hour window (`auditQuery`, `auditWindowQuery`), `consoleSummaryQuery`
+  and the metrics `panelsQuery`.
+- **The viewer marks, it does not refetch.** Its `onChanged`
+  (`use-territory-viewer.ts`) invalidates the scene, the territory and model
+  queries and both lists with `refetchType: "none"` — every list on the page
+  seeds once and is optimistic afterwards — and removes `["scene", slug]` on
+  the way out, since the lists would otherwise reseed from the old bundle on
+  the next visit. A ref records the change, not `isInvalidated`, because a
+  rename's `setQueryData` clears that flag.
+
 ## Where things live
 
 See README for the full table. Shorthand: `shared/ui` has no domain knowledge;
@@ -494,22 +523,25 @@ beside it, and a pure module (`people.ts`, `roles-view.ts`, `catalog.ts`,
 console. Copy that split rather than re-deriving it — every screen here has
 the same shape, and the next one should too.
 
-**Content** is two lists, one artifacts query per row and one `GET /api/jobs`
-over all of them, and a row's status is read off its job and its artifacts —
-so the screen is ready only when every one of them has answered; guessing
-would print "pending" for something merely still loading. A conversion is
-visible while it runs: the row turns `converting` with the worker's percentage
-and stage, the inspector draws the bar and the note, a failure puts the
-worker's message at the top of the inspector, and a row whose job just left
-the live set re-reads its own artifacts (`finishedSince`) so LODs and size
-catch up.
+**Content** is two lists and one `GET /api/jobs` over all of them. Each list
+row carries its own `lods` (the LOD summaries the per-row artifacts query used
+to fetch — there is no per-row artifacts query any more), and a row's status
+is read off its job and those `lods`, so the screen is ready once the three
+queries have answered. A conversion is visible while it runs: the row turns
+`converting` with the worker's percentage and stage, the inspector draws the
+bar and the note, a failure puts the worker's message at the top of the
+inspector, and a row whose job just left the live set re-reads the list it
+sits in (`finishedSince`) so LODs and size catch up. A finished *model* also
+marks `["artifacts", "model", slug]` stale, because Model Detail still reads
+it; nothing reads a territory's artifacts, so nothing invalidates them.
 
-**The catalogs** (`/territories`, `/models`) share Content's shape — the list
-plus one artifacts query per row plus one `GET /api/jobs` — and layer them
-through the one shared rule, `conversionStatusOf` in `entities/content`: a
-failed job wins outright, a live job reads `converting`, otherwise the
-artifacts decide ready/pending. Both carry the `finishedSince` effect, without
-which a conversion finishing on screen flips the card backwards to "pending".
+**The catalogs** (`/territories`, `/models`) share Content's shape — the list,
+with `lods` on every row, plus one `GET /api/jobs` — and layer them through
+the one shared rule, `conversionStatusOf` in `entities/content`: a failed job
+wins outright, a live job reads `converting`, otherwise the `lods` decide
+ready/pending. Both carry the `finishedSince` effect (re-read the list),
+without which a conversion finishing on screen flips the card backwards to
+"pending".
 Every card is a link to its page — the conversion page is where a pending,
 converting or failed territory lands, so there is no longer a state a card has
 to refuse to open into, and no `openable` field to carry the answer.
@@ -576,25 +608,23 @@ Territory and Replace Source navigate here instead of leaving; `leaveTo`
 last caller.
 
 **Home** (`/`, `pages/home`) is the landing screen. `useHome` owns three
-lists (territories, models, jobs), the jobs poll, one artifacts query per
-*shown* territory — the four most recently updated, `recent(...)` in
-`home-view.ts`, never the rest — and the first page of `myAuditQuery`
-sliced to `ACTIVITY_ROWS` (4). The feed never blocks the page: `activity` is
-`null` when unanswered (a Guest's 403), exactly the tri-state `/account`
-already reads. `finishedSince` invalidates a *shown* territory's artifacts
-when its job leaves the live set, same as Content and the catalogs.
-`useConsoleCounters` counts only the cards the reader can open — each query
-is `enabled: !item.disabled`, and reads `isLoading` rather than `isPending`
-because a disabled query stays pending forever (the Roles lesson); a locked
-or still-loading card reads `STATIC_HINTS[key]`, an open query that never
-answered reads "count unavailable", and Access fans out one `adminsQuery`
-per territory — the same shape `/console/access` already uses, so an owner's
-Access card costs one `adminsQuery` per territory on every mount, exactly what
-that screen costs. A background territories refetch that brings a *new*
-territory into the four mounts a new artifacts query, and the page drops to the
-skeleton for that one round-trip — the catalog's own trade-off, because a
-screen that is ready only when every artifacts query has answered is the one
-that never prints "pending" for something merely still loading. `viewerEmpty`
+lists (territories, models, jobs), the jobs poll, and the first page of
+`myAuditQuery` sliced to `ACTIVITY_ROWS` (4); the territory cards are the four
+most recently updated (`recent(...)` in `home-view.ts`) and read their `lods`
+off the list, so no card costs a request of its own. The feed never blocks the
+page: `activity` is `null` when unanswered (a Guest's 403), exactly the
+tri-state `/account` already reads. `finishedSince` re-reads each list a
+finished job sits in, same as Content and the catalogs.
+`useConsoleCounters` reads one call, `GET /api/console/summary`
+(`consoleSummaryQuery`, `staleTime: 0` — the route is `no-store`). The gateway
+answers only the cards the caller may open and sends **numbers only**; every
+sentence on a card (`usersHint`, `rolesHint`, … in `console-hints.ts`) is
+worded here, on the frontend. The query is disabled when every card is
+locked, and reads `isLoading` rather than `isPending` because a disabled query
+stays pending forever (the Roles lesson); a locked or still-loading card reads
+`STATIC_HINTS[key]`, and a card the summary nulls or leaves out (its source
+failed), or a summary that never answered, reads "count unavailable".
+`viewerEmpty`
 (no territories, no upload right of either kind) hides Models and switches
 the header and territories meta lines. The console items come **down from
 the route**: `app/router/home-route.tsx` hands `consoleNav(me)` to
@@ -654,14 +684,15 @@ panel shows the pre-save set.
 24-hour window query for the counters above the list — a filter narrows the
 journal and never moves them. It follows only while the first page is the only
 one: refetching N pages every 30 s is not "live", so paging older stops the
-poll, and a hidden tab sends nothing. **Metrics** is one query per panel, all
-keyed on the range the URL holds (`?range=`, validated in the route, `1h` by
-default), each polled every 30 s in a visible tab. The health list is
-synthesised from the `services-up` panel plus the RED panels rather than
-fetched; alerts are summarised from their own labels. A panel that failed is
-one dark card reading "unavailable — <message>", and only a dashboard where
-*every* panel failed is unavailable — one dead panel must not blank a working
-screen.
+poll, and a hidden tab sends nothing. **Metrics** is one multi-panel request
+per tick (`panelsQuery`, one cache entry keyed on the range the URL holds —
+`?range=`, validated in the route, `1h` by default), polled every 30 s in a
+visible tab. The health list is synthesised from the `services-up` panel plus
+the RED panels rather than fetched; alerts are summarised from their own
+labels. A panel the gateway left out of an answered map failed on its own and
+darkens only its card ("unavailable — Prometheus did not answer"); only a
+request that failed outright makes the dashboard unavailable — one dead panel
+must not blank a working screen.
 
 Rulings from those screens that a later one will meet again:
 
@@ -669,7 +700,18 @@ Rulings from those screens that a later one will meet again:
   (`canResetPassword`, `pages/users/model/people.ts`): never on the reader's
   own row (`/account` asks for the old password), and on a Company Owner's or
   Root's row only for Root. `PUT /api/auth/users/{id}/password` signs the user
-  out everywhere; the dialog opens holding a generated password, shown.
+  out everywhere; the dialog (`features/reset-password`) opens holding a
+  generated password, shown. The gateway also refuses (403) a non-Root reset
+  of anyone holding a permission the reader lacks — whoever sets a password
+  can sign in as that user. The list rows carry role slugs, not permissions,
+  so the button cannot predict that refusal and the toast explains it. The
+  mutation runs with `gcTime: 0`: its variables are the password in the clear.
+- **Edit details** (`features/edit-entity`, `EditDetailsDialog`) renames a
+  model or territory — title and description, never the slug — from Model
+  Detail (`model:write`), the territory catalog and the viewer header
+  (`territory:write`). It sends only the fields that differ from the saved,
+  trimmed values, and writes the answer into every cached copy (the entity,
+  its list row and, for a territory, the scene bundle) instead of refetching.
 - **The role pickers offer `admin` (Company Owner) to Root alone**
   (`assignableRoles`, same file): the gateway answers anyone else's grant of it
   with 403. Both the create-user dialog and the add-role dialog read
@@ -697,8 +739,10 @@ Rulings from those screens that a later one will meet again:
 - **The draft is the inspector's truth until saved.** `dirty` is computed
   against the role as the gateway last returned it, so a successful save clears
   it by the refetch alone and a refusal leaves the edits on screen to retry.
-  Saving is two calls — `PUT …/permissions`, then `PATCH …` for the title —
-  because the gateway has no single "update role"; only what changed is sent.
+  Saving is one `PATCH /api/auth/roles/{slug}` carrying the title (required —
+  an unchanged one is a no-op rename) and `permissionSlugs` only when the set
+  changed; the gateway applies both in one transaction with the same grant
+  checks, and on success only the roles are refetched.
 
 Routes: `/login`; `/console/{users,roles,content,access,audit,metrics}` under
 `ConsoleShell` — Metrics alone carries a search param, `?range=`, validated by
@@ -962,9 +1006,12 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   deviation, found in review.
 - **Placements**: `groupByModel` (`entities/placement/model/groups.ts`) →
   rows per model with 1-based instances; `#N` is positional; a batch create
-  is N sequential `POST`s (`use-placements-editor.ts`), `Placing k of N…`
-  (`widgets/model-picker/ui/place-objects-modal.tsx`), a partial failure
-  keeps the rows that landed; the editor seeds from the bundle once and the
+  is one `POST …/placements/batch` (`createPlacements`, one transaction, 1–100
+  items; the picker caps N at 99) from `use-placements-editor.ts`, drawn as an
+  indeterminate `Placing N objects…`
+  (`widgets/model-picker/ui/place-objects-modal.tsx`) — nothing lands until
+  everything does, so there is no "k of N" to count and a refusal leaves
+  nothing behind; the editor seeds from the bundle once and the
   page remounts it via `use-scene-seeded` (one-shot) so a cold page is not
   empty.
 - **The Selected block is a form whenever a writer has something selected**
@@ -1000,11 +1047,11 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
 - **Recorded deviations** (spec §6, plus those found in execution): no
   `Share`; `uploaded` date only; default LOD 0; groups expand into instances;
   guest sentence "You can look and measure."; h1 at the mock's `h2` size
-  (`viewer-header.tsx`); `Placing N × model` is N `POST`s
+  (`viewer-header.tsx`); `Placing N × model` is one batch `POST`
   (`use-placements-editor.ts`); binary MB one decimal (`lod-progress.ts`);
   the LOD switcher offset is one formula, `calc(var(--overlays-w) + 28px)`
-  (`viewer-overlays.tsx`), and lands 2 px off the mock at two widths;
-  `Placing 0 of 2…` on the first line
+  (`viewer-overlays.tsx`), and lands 2 px off the mock at two widths; the
+  placing line reads `Placing N objects…` with no count
   (`place-objects-modal.tsx`); the Add-objects primary reads a bare `Place`,
   not the mock's `Place N × model`, because the count is in the stepper beside
   it and the model on the card above (user request 2026-09-14); an unconverted
@@ -1017,8 +1064,8 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
 - **Deviations from the design review (2026-09-16):** the LOD loading line
   stays the viewer's own 2 px rule (filled by `scaleX`), not `ProgressBar
   thin`, whose track is 5 px; the Add-objects placing bar *is* `ProgressBar
-  thin` (5 px, the mock's 3) and reads `done/total`, so `Placing 1 of 2…`
-  sits at 0 %; the `scrolled · metadata above` strip reads `text-muted` and
+  thin` (5 px, the mock's 3), run indeterminate because the batch has no
+  partial progress to report; the `scrolled · metadata above` strip reads `text-muted` and
   overlays the panel body instead of pushing it; the LOD switcher's arrows
   only move focus (spec B §6.15) and no tile changes size (§6.16); a Vec3
   cell shows three decimals and selects its value on focus, so typing
