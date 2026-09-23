@@ -59,8 +59,13 @@ const emit = () => listeners.forEach((listen) => listen());
 
 function push(tone: ToastTone, message: string, action?: NoticeAction): number {
   // The same failure twice is one card: a repeated click must not build a wall.
-  // A card with an action never folds — each Retry closes over its own attempt.
-  const same = notices.find((n) => n.tone === tone && n.message === message && !n.action && !action);
+  // Only a card that waits for the reader folds — a confirmation goes by itself
+  // and a repeat is its own event — and never one with an action: each Retry
+  // closes over its own attempt.
+  const same =
+    LIFETIME[tone] === null &&
+    !action &&
+    notices.find((n) => n.tone === tone && n.message === message && !n.action);
   if (same) return same.id;
   const id = nextId++;
   // Newest first, so the host draws it on top.

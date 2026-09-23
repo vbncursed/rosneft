@@ -42,6 +42,24 @@ describe("notify", () => {
     expect(result.current).toHaveLength(3);
   });
 
+  // Only a card that waits for the reader folds; a repeated confirmation is a
+  // new event and gets its own card and its own four seconds.
+  it("gives a repeated confirmation its own card and countdown", () => {
+    const { result } = renderHook(() => useNotices());
+    act(() => {
+      notify.success("Saved");
+    });
+    act(() => vi.advanceTimersByTime(3000));
+    act(() => {
+      notify.success("Saved");
+    });
+    expect(result.current).toHaveLength(2);
+    act(() => vi.advanceTimersByTime(1000));
+    expect(result.current).toHaveLength(1);
+    act(() => vi.advanceTimersByTime(3000));
+    expect(result.current).toEqual([]);
+  });
+
   it("stacks the newest notice on top", () => {
     const { result } = renderHook(() => useNotices());
 
