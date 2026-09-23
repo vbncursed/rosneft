@@ -42,8 +42,11 @@ describe("InstanceRow", () => {
     expect(h.onFocus).toHaveBeenCalledWith(2);
   });
   it("waits while a mutation is in flight", () => {
-    render(<InstanceRow group={group} instance={instance} selected pending canWrite canDelete {...handlers()} />);
+    render(<InstanceRow group={group} instance={instance} selected pending canWrite canDelete {...handlers()} onHide={vi.fn()} />);
     expect(screen.getByRole("button", { name: "Delete storage-tank-500 #2" })).toBeDisabled();
+    const eye = screen.getByRole("button", { name: "Hide storage-tank-500 #2" });
+    expect(eye).toHaveAttribute("aria-busy", "true");
+    expect(eye).not.toHaveAttribute("data-dim");
   });
 
   it("presses its buttons, and repaints a selection without a tween", () => {

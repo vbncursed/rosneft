@@ -46,7 +46,17 @@ describe("UserGroupItem", () => {
 
   it("disables the eye on an empty group — there is nothing to hide", () => {
     mount({ section: { ...SECTION, members: [] } });
-    expect(screen.getByRole("button", { name: "Hide group East yard" })).toHaveAttribute("aria-disabled", "true");
+    const eye = screen.getByRole("button", { name: "Hide group East yard" });
+    expect(eye).toHaveAttribute("aria-disabled", "true");
+    expect(eye).toHaveAttribute("data-dim", "true");
+  });
+
+  // E3: a write in flight waits without dimming — busy is not unavailable.
+  it("waits the eye, undimmed, while a member is being written", () => {
+    mount({ c: ctx({ expanded: "group:4", pendingIds: [3] }) });
+    const eye = screen.getByRole("button", { name: "Hide group East yard" });
+    expect(eye).toHaveAttribute("aria-busy", "true");
+    expect(eye).not.toHaveAttribute("data-dim");
   });
 
   it("places into itself from its own Add", async () => {
