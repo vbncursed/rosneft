@@ -152,6 +152,19 @@ describe("MetricsScreen", () => {
     expect(panel).not.toHaveTextContent("gateway");
   });
 
+  it("says the health meter and the alert count are the last answer when their panels are stale", () => {
+    const kept = (id: PanelId): PanelResult => ({ kind: "value", series: [series(id, 1, 2)], stale: true });
+    useMetrics.mockReturnValue(
+      state({
+        services: [{ name: "gateway", state: "up", meta: "", samples: [], latency: "—", errors: "—" }],
+        results: { ...RESULTS, "red-rate": kept("red-rate"), alerts: kept("alerts") },
+      }),
+    );
+    render(<MetricsScreen />);
+    expect(screen.getByText("1 of 1 up · stale — last answer kept")).toBeInTheDocument();
+    expect(screen.getByText(/1 alert · stale — last answer kept/)).toBeInTheDocument();
+  });
+
   it("counts what is firing", () => {
     useMetrics.mockReturnValue(state());
     render(<MetricsScreen />);

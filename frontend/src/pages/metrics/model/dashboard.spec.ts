@@ -7,6 +7,7 @@ import {
   matchesServiceQuery,
   panelEntry,
   servicesHint,
+  servicesStale,
   statsOf,
   type PanelResult,
 } from "./dashboard";
@@ -285,6 +286,13 @@ describe("statsOf", () => {
     expect(stats[3].state).toEqual({ kind: "loading" });
   });
 
+  it("keeps a stale tile's value and says it is stale in the hint", () => {
+    const kept = { kind: "value", series: [series("rps", 142)], stale: true } satisfies PanelResult;
+    const tile = statsOf(results({ "stat-rps": kept }))[0];
+    expect(tile.state.kind).toBe("value");
+    expect(tile.hint).toBe("per second · all HTTP · stale — last answer kept");
+  });
+
   it("calls a tile whose query has not been made yet loading", () => {
     expect(statsOf({}).map((s) => s.state)).toEqual([
       { kind: "loading" },
@@ -292,6 +300,21 @@ describe("statsOf", () => {
       { kind: "loading" },
       { kind: "loading" },
     ]);
+  });
+});
+
+describe("servicesStale", () => {
+  const fresh = { kind: "value", series: [] } satisfies PanelResult;
+  const kept = { kind: "value", series: [], stale: true } satisfies PanelResult;
+
+  it("is stale when any panel the health list is built from is", () => {
+    for (const id of ["services-up", "red-rate", "red-errors", "red-latency"] as const) {
+      expect(servicesStale({ "services-up": fresh, [id]: kept })).toBe(true);
+    }
+  });
+
+  it("is fresh when those are, whatever another panel says", () => {
+    expect(servicesStale({ "services-up": fresh, "runtime-gc": kept })).toBe(false);
   });
 });
 
