@@ -64,13 +64,13 @@ const COMPACT = "(max-width: 1280px)";
  *
  * **Neither the editor nor the two overlay lists is re-keyed on the bundle.**
  * All three seed from `initial` once and are optimistic afterwards, so they and
- * a bundle refetched after one of *our own* mutations already agree; the screen
+ * a bundle re-read after one of *our own* mutations already agree; the screen
  * keys the whole body on whether the bundle is in hand
  * (`use-scene-seeded.ts`), which is what makes that one seed the real list
  * rather than an empty one. Remounting on the lists themselves would also
  * throw away the create form that `onPlace` opens one tick later, which is the
- * flow the picker exists for. A refetch carrying *another* reader's edits is
- * therefore not adopted until the page is reloaded; noted rather than solved,
+ * flow the picker exists for. A bundle carrying *another* reader's edits is
+ * therefore not adopted until the next visit; noted rather than solved,
  * because the fix belongs in the list hooks.
  */
 export function useTerritoryViewer(slug: string): TerritoryViewerState {
@@ -90,23 +90,25 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
   // `placementCount` and `usageCount` on their lists and details. The bundle
   // is dropped on the way out (below): the lists would seed from it on the
   // next visit and never adopt the refetch. A ref, not the query's
-  // `isInvalidated`: a rename's setQueryData clears that flag.
+  // `isInvalidated`: a rename's setQueryData clears that flag. A write that
+  // lands after the page has gone drops the bundle itself (`left`).
   const changed = useRef(false);
+  const left = useRef(false);
   const onChanged = useCallback(() => {
     changed.current = true;
     const keys = [["scene", slug], ["territory", slug], ["territories"], ["model"], ["models"]];
     for (const queryKey of keys) {
       void client.invalidateQueries({ queryKey, refetchType: "none" });
     }
+    if (left.current) client.removeQueries({ queryKey: ["scene", slug], exact: true });
   }, [client, slug]);
-  useEffect(
-    () => () => {
-      if (!changed.current) return;
-      changed.current = false;
-      client.removeQueries({ queryKey: ["scene", slug], exact: true });
-    },
-    [client, slug],
-  );
+  useEffect(() => {
+    left.current = changed.current = false;
+    return () => {
+      left.current = true;
+      if (changed.current) client.removeQueries({ queryKey: ["scene", slug], exact: true });
+    };
+  }, [client, slug]);
 
   const ruler = useMeasurementSwitch();
   const measure = useMeasurementSync({
