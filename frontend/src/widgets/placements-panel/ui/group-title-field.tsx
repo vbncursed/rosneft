@@ -11,12 +11,14 @@ export type GroupTitleFieldProps = {
   submitLabel: string;
   initial?: string;
   busy: boolean;
+  /** At a small button's height — New group's field replaces one. */
+  compact?: boolean;
   onSubmit: (title: string) => void;
   onCancel: () => void;
 };
 
 /** A group title typed in place — New group's and Rename's one field. Enter saves, Escape leaves. */
-export function GroupTitleField({ label, submitLabel, initial = "", busy, onSubmit, onCancel }: GroupTitleFieldProps) {
+export function GroupTitleField({ label, submitLabel, initial = "", busy, compact, onSubmit, onCancel }: GroupTitleFieldProps) {
   const [title, setTitle] = useState(initial);
   const trimmed = title.trim();
   return (
@@ -36,9 +38,10 @@ export function GroupTitleField({ label, submitLabel, initial = "", busy, onSubm
         }}
         maxLength={GROUP_TITLE_MAX}
         autoFocus
+        compact={compact}
         fieldClassName="min-w-0 flex-1"
       />
-      <Button shape="icon" size="xs" variant="primary" type="submit" aria-label={submitLabel} disabled={!trimmed || busy}>
+      <Button shape="icon" size="xs" variant="primary" type="submit" aria-label={submitLabel} loading={busy} disabled={!trimmed}>
         <Icon name="check" size={12} />
       </Button>
       <Button shape="icon" size="xs" variant="ghost" aria-label="Cancel" onClick={onCancel}>
@@ -74,6 +77,7 @@ export function NewGroup({ busy, onCreate }: { busy: boolean; onCreate: (title: 
       label="New group title"
       submitLabel="Create group"
       busy={busy}
+      compact
       // A refused create keeps the field and what was typed; the toast says why.
       onSubmit={async (title) => {
         if (await onCreate(title)) close();
