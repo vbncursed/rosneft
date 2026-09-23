@@ -23,7 +23,7 @@ import { consoleSummaryQuery, type ConsoleSummary } from "./console-summary";
  */
 export function useConsoleCounters(items: ConsoleNavItem[]): Record<ConsoleKey, ConsoleHint> {
   const open = (key: string) => items.some((i) => i.key === key && !i.disabled);
-  const summary = useQuery({ ...consoleSummaryQuery, enabled: items.some((i) => !i.disabled) });
+  const summary = useQuery({ ...consoleSummaryQuery(), enabled: items.some((i) => !i.disabled) });
   const failed = unanswered(summary) !== null;
 
   const hint = (key: ConsoleKey, count: (s: ConsoleSummary) => string | null): ConsoleHint =>
