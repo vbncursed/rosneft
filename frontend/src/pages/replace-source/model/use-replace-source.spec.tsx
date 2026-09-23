@@ -121,6 +121,23 @@ describe("useReplaceSource", () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["territory", "t"] });
   });
 
+  // The replace deletes the old artifacts, but a bundle cached from before it
+  // still holds a LOD0: the route's loader would hand it back and the
+  // conversion page would read the old revision as the converted result.
+  it("drops the scene bundle cached from before the replace", async () => {
+    runChunkedUpload.mockResolvedValue({ hash: "n".repeat(64), size: 2048 });
+    replaceTerritorySource.mockResolvedValue({ territory: { slug: "t" }, job: { id: "j-9" } });
+    const { result } = renderHook(() => useReplaceSource("t"), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    client.setQueryData(["scene", "t"], { artifact: { lod: 0 } });
+
+    act(() => ready(result.current).onFiles([file()]));
+    act(() => ready(result.current).onSubmit());
+
+    await waitFor(() => expect(navigate).toHaveBeenCalled());
+    expect(client.getQueryData(["scene", "t"])).toBeUndefined();
+  });
+
   it("toasts a rejected replace and returns to picked, without leaving", async () => {
     runChunkedUpload.mockResolvedValue({ hash: "n".repeat(64), size: 2048 });
     replaceTerritorySource.mockRejectedValue(new Error("nope"));
