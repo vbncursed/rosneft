@@ -24,4 +24,9 @@ type Placement struct {
 	// in (panorama mode only; the 3D view always shows every placement).
 	// Empty means hidden in every panorama.
 	VisiblePanoramaIDs []int64
+	// Hidden is shared: a hidden placement is not drawn for anyone who opens
+	// the territory. Only SetPlacementsHidden writes it.
+	Hidden bool
+	// GroupID is the user group the placement sits in; nil when it is in none.
+	GroupID *int64
 }
