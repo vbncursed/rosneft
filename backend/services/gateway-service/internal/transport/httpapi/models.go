@@ -15,6 +15,7 @@ func (s *Server) ListModels(ctx context.Context, _ ListModelsRequestObject) (Lis
 	resp := make(ListModels200JSONResponse, len(out))
 	for i, m := range out {
 		resp[i] = modelToAPI(m)
+		resp[i].Lods = new(lodChainToAPI(m.LODs))
 	}
 	return resp, nil
 }

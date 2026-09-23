@@ -40,6 +40,8 @@ type Territory struct {
 	// PlacementCount is how many placements sit on this territory. Filled on
 	// both the list endpoint and a single-territory GET.
 	PlacementCount int
+	// LODs is the artifact chain, sorted by lod. Filled on the list endpoint only.
+	LODs []LodArtifact
 }
 
 // TerritoryUpdate carries the fields one partial edit writes, and only those
@@ -75,6 +77,8 @@ type Model struct {
 	// UsageCount is how many distinct territories place this model. Filled on
 	// both the list endpoint and a single-model GET.
 	UsageCount int
+	// LODs is the artifact chain, sorted by lod. Filled on the list endpoint only.
+	LODs []LodArtifact
 }
 
 // LodArtifact is the minimal descriptor for one LOD level.

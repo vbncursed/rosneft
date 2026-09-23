@@ -2408,6 +2408,12 @@ export interface components {
             updatedAt?: string;
             /** @description Placements on this territory. Omitted when zero. */
             placementCount?: number;
+            /**
+             * @description Every converted LOD, sorted by lod ascending. Always present on
+             *     GET /api/territories (`[]` before the first conversion lands);
+             *     absent from every other response carrying a Territory.
+             */
+            lods?: components["schemas"]["LodArtifact"][];
         };
         Model: {
             slug: string;
@@ -2425,6 +2431,12 @@ export interface components {
             updatedAt?: string;
             /** @description Distinct territories placing this model, across every territory. Omitted when zero. */
             usageCount?: number;
+            /**
+             * @description Every converted LOD, sorted by lod ascending. Always present on
+             *     GET /api/models (`[]` before the first conversion lands);
+             *     absent from every other response carrying a Model.
+             */
+            lods?: components["schemas"]["LodArtifact"][];
         };
         /**
          * @description Minimal descriptor for one LOD level. Carries only size/geometry

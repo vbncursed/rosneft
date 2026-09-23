@@ -18,6 +18,7 @@ func territoryFromProto(t *catalogv1.Territory) domain.Territory {
 		CreatedAt:           t.GetCreatedAt().AsTime(),
 		UpdatedAt:           t.GetUpdatedAt().AsTime(),
 		PlacementCount:      int(t.GetPlacementCount()),
+		LODs:                lodsFromProto(t.GetArtifacts()),
 	}
 }
 
@@ -45,6 +46,7 @@ func modelFromProto(m *catalogv1.Model) domain.Model {
 		CreatedAt:         m.GetCreatedAt().AsTime(),
 		UpdatedAt:         m.GetUpdatedAt().AsTime(),
 		UsageCount:        int(m.GetUsageCount()),
+		LODs:              lodsFromProto(m.GetArtifacts()),
 	}
 }
 
@@ -122,4 +124,24 @@ func placementFromProto(p *catalogv1.Placement) domain.Placement {
 		UpdatedAt:          p.GetUpdatedAt().AsTime(),
 		VisiblePanoramaIDs: p.GetVisiblePanoramaIds(),
 	}
+}
+
+// lodSource is what TerritoryArtifact and ModelArtifact share.
+type lodSource interface {
+	GetLod() uint32
+	GetHash() string
+	GetSize() int64
+	GetVertices() uint64
+	GetFaces() uint64
+}
+
+func lodsFromProto[A lodSource](in []A) []domain.LodArtifact {
+	out := make([]domain.LodArtifact, len(in))
+	for i, a := range in {
+		out[i] = domain.LodArtifact{
+			LOD: a.GetLod(), Hash: a.GetHash(), Size: a.GetSize(),
+			Vertices: a.GetVertices(), Faces: a.GetFaces(),
+		}
+	}
+	return out
 }

@@ -93,6 +93,9 @@ message Territory {
   string external_panorama_url = 7;
   // How many placements sit on this territory.
   uint32 placement_count = 8;
+  // Every LOD artifact, sorted by lod. Filled by ListTerritories only: the list
+  // pages need the chain and would otherwise ask once per row.
+  repeated TerritoryArtifact artifacts = 9;
 }
 
 // Model is a placeable 3D asset overlaid on a territory.
@@ -107,6 +110,8 @@ message Model {
   string thumbnail_blob_hash = 7;
   // How many distinct territories place this model.
   uint32 usage_count = 8;
+  // Every LOD artifact, sorted by lod. Filled by ListModels only.
+  repeated ModelArtifact artifacts = 9;
 }
 
 // TerritoryArtifact is a converted GLB output for one territory + LOD.

@@ -471,10 +471,15 @@ type MetricSeries struct {
 
 // Model defines model for Model.
 type Model struct {
-	CreatedAt      *time.Time `json:"createdAt,omitempty"`
-	Description    *string    `json:"description,omitempty"`
-	Slug           string     `json:"slug"`
-	SourceBlobHash string     `json:"sourceBlobHash"`
+	CreatedAt   *time.Time `json:"createdAt,omitempty"`
+	Description *string    `json:"description,omitempty"`
+
+	// Lods Every converted LOD, sorted by lod ascending. Always present on
+	// GET /api/models (`[]` before the first conversion lands);
+	// absent from every other response carrying a Model.
+	Lods           *[]LodArtifact `json:"lods,omitempty"`
+	Slug           string         `json:"slug"`
+	SourceBlobHash string         `json:"sourceBlobHash"`
 
 	// ThumbnailBlobHash Optional thumbnail image blob hash. Empty/absent = no thumbnail.
 	// Fetch the image from /api/assets/{thumbnailBlobHash}.
@@ -674,6 +679,11 @@ type Territory struct {
 	CreatedAt           *time.Time `json:"createdAt,omitempty"`
 	Description         *string    `json:"description,omitempty"`
 	ExternalPanoramaUrl *string    `json:"externalPanoramaUrl,omitempty"`
+
+	// Lods Every converted LOD, sorted by lod ascending. Always present on
+	// GET /api/territories (`[]` before the first conversion lands);
+	// absent from every other response carrying a Territory.
+	Lods *[]LodArtifact `json:"lods,omitempty"`
 
 	// PlacementCount Placements on this territory. Omitted when zero.
 	PlacementCount *int       `json:"placementCount,omitempty"`
