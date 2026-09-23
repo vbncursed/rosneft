@@ -469,6 +469,9 @@ type MetricSeries struct {
 	Points []MetricPoint      `json:"points"`
 }
 
+// MetricsPanels Series per requested panel ID; a panel whose query failed is absent.
+type MetricsPanels map[string][]MetricSeries
+
 // Model defines model for Model.
 type Model struct {
 	CreatedAt   *time.Time `json:"createdAt,omitempty"`
