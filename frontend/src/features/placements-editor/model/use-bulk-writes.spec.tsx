@@ -3,10 +3,8 @@ import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   IDENTITY_TRANSFORM,
-  idle,
   setPlacementsGroup,
   setPlacementsHidden,
-  type MutationState,
   type ResolvedPlacement,
 } from "@/entities/placement";
 import { HttpError } from "@/shared/api";
@@ -35,18 +33,13 @@ const placement = (id: number, over: Partial<ResolvedPlacement> = {}): ResolvedP
 
 let onChanged: ReturnType<typeof vi.fn<() => void>>;
 /** Every render's view of the pending state and the placements, in order. */
-let renders: { mutation: MutationState; placements: ResolvedPlacement[] }[];
+let renders: { pendingIds: number[]; placements: ResolvedPlacement[] }[];
 const mount = (initial: ResolvedPlacement[]) =>
   renderHook(() => {
     const [placements, setPlacements] = useState(initial);
-    const [mutation, setMutation] = useState<MutationState>(idle);
-    renders.push({ mutation, placements });
-    return {
-      placements,
-      mutation,
-      notices: useNotices(),
-      ...useBulkWrites({ slug: "t", setPlacements, setMutation, onChanged }),
-    };
+    const writes = useBulkWrites({ slug: "t", setPlacements, onChanged });
+    renders.push({ pendingIds: writes.pendingIds, placements });
+    return { placements, notices: useNotices(), ...writes };
   });
 
 beforeEach(() => {
@@ -63,19 +56,21 @@ describe("useBulkWrites", () => {
     vi.mocked(setPlacementsHidden).mockReturnValueOnce(new Promise((res) => (release = () => res(2))));
     const { result } = mount([placement(1), placement(2), placement(3)]);
 
-    let done!: Promise<void>;
+    let done!: Promise<boolean>;
     act(() => {
       done = result.current.setHidden([1, 2], true);
     });
-    expect(result.current.mutation).toEqual({ kind: "bulk", ids: [1, 2] });
+    expect(result.current.pendingIds).toEqual([1, 2]);
 
+    let ok: boolean | undefined;
     await act(async () => {
       release();
-      await done;
+      ok = await done;
     });
+    expect(ok).toBe(true);
     expect(setPlacementsHidden).toHaveBeenCalledWith("t", [1, 2], true);
     expect(result.current.placements.map((p) => p.hidden)).toEqual([true, true, false]);
-    expect(result.current.mutation).toEqual(idle);
+    expect(result.current.pendingIds).toEqual([]);
     expect(onChanged).toHaveBeenCalledOnce();
   });
 
@@ -86,7 +81,7 @@ describe("useBulkWrites", () => {
     let release!: () => void;
     vi.mocked(setPlacementsHidden).mockReturnValueOnce(new Promise((res) => (release = () => res(1))));
     const { result } = mount([placement(1)]);
-    let done!: Promise<void>;
+    let done!: Promise<boolean>;
     act(() => {
       done = result.current.setHidden([1], true);
     });
@@ -96,7 +91,7 @@ describe("useBulkWrites", () => {
       release();
       await done;
     });
-    const released = renders.slice(pendingAt).filter((r) => r.mutation.kind === "idle");
+    const released = renders.slice(pendingAt).filter((r) => r.pendingIds.length === 0);
     expect(released.map((r) => r.placements[0].hidden)).toEqual([true]);
   });
 
@@ -113,11 +108,40 @@ describe("useBulkWrites", () => {
   it("changes nothing on a refusal and says why", async () => {
     vi.mocked(setPlacementsHidden).mockRejectedValue(new HttpError(404, null, "placement not found"));
     const { result } = mount([placement(1)]);
-    await act(() => result.current.setHidden([1], true));
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.setHidden([1], true);
+    });
+    expect(ok).toBe(false);
     expect(result.current.placements[0].hidden).toBe(false);
     expect(result.current.notices[0]?.message).toBe("placement not found");
-    expect(result.current.mutation).toEqual(idle);
+    expect(result.current.pendingIds).toEqual([]);
     expect(onChanged).not.toHaveBeenCalled();
+  });
+
+  it("lets each of two overlapping writes release only its own ids", async () => {
+    let releaseHide!: () => void;
+    let releaseMove!: () => void;
+    vi.mocked(setPlacementsHidden).mockReturnValueOnce(new Promise((res) => (releaseHide = () => res(2))));
+    vi.mocked(setPlacementsGroup).mockReturnValueOnce(new Promise((res) => (releaseMove = () => res(1))));
+    const { result } = mount([placement(1), placement(2), placement(3)]);
+    let hide!: Promise<boolean>;
+    let move!: Promise<boolean>;
+    act(() => {
+      hide = result.current.setHidden([1, 2], true);
+      move = result.current.moveToGroup([3], 4);
+    });
+    expect(result.current.pendingIds).toEqual([1, 2, 3]);
+    await act(async () => {
+      releaseMove();
+      await move;
+    });
+    expect(result.current.pendingIds).toEqual([1, 2]);
+    await act(async () => {
+      releaseHide();
+      await hide;
+    });
+    expect(result.current.pendingIds).toEqual([]);
   });
 
   // Mirrors ON DELETE SET NULL: the server already cleared the column.

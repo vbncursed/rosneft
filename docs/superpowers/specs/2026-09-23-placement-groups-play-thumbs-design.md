@@ -219,11 +219,13 @@ which opens an inline title field.
   `pkg/blobstore.FS` (config `CONTENT_BLOB_DIR`).
 - New package `content-service/internal/thumbnail`:
   `Make(ctx, store, srcHash) (hash string, err error)`:
-  1. `image.DecodeConfig` first; refuse anything over 16384×8192 pixels
-     (decompression-bomb guard) or of an unregistered format.
+  1. `image.DecodeConfig` first; refuse a side over 16384×8192, a decode
+     estimated from the header to allocate over 768 MiB
+     (`thumbnail.MaxDecodeBytes`: bytes per pixel by format, colour model and,
+     for a JPEG, progressive or not), or an unregistered format.
   2. Decode (stdlib `image/jpeg`, `image/png`).
-  3. Scale to 256×128 with `golang.org/x/image/draw.ApproxBiLinear` (new
-     dependency).
+  3. Scale to 256×128 with `golang.org/x/image/draw.BiLinear` (new
+     dependency; its kernel widens with the downscale factor, so no aliasing).
   4. Encode JPEG q80, hash sha256, `store.Put` (content-addressed, so a rerun
      is idempotent).
 - `CreatePanorama` calls `Make` after the insert and stores the hash; a

@@ -24,9 +24,12 @@ with catalog, isolated by its own `content_goose_db_version` table; the
   into the shared `blob-data` volume, mounted read-write at `CONTENT_BLOB_DIR`
   (default `/var/blob`). It is made at create time, where a failure is logged
   and the panorama still created, and by a startup backfill of every row whose
-  `thumbnail_blob_hash` is `''`, one at a time. A source over 8192×4096 px
-  (by area, `thumbnail.MaxPixels`) never gets a thumbnail: the row keeps
-  showing the panorama glyph, and the backfill logs one WARN for it per boot.
+  `thumbnail_blob_hash` is `''`, one at a time. A source whose decode would
+  allocate over 768 MiB (`thumbnail.MaxDecodeBytes`, estimated from the header:
+  a baseline 11968×5984 JPEG is ~215 MB and passes, the same size progressive
+  is ~1.07 GB and does not), or with a side over 16384×8192, never gets a
+  thumbnail: the row keeps showing the panorama glyph, and the backfill logs
+  one WARN for it per boot.
 
 ## Layout
 

@@ -203,12 +203,12 @@ export function usePlacementsEditor({
     [update],
   );
 
-  const bulkWrites = useBulkWrites({ slug, setPlacements, setMutation, onChanged });
+  const { pendingIds: bulkPendingIds, ...bulkWrites } = useBulkWrites({ slug, setPlacements, onChanged });
 
   return {
     placements,
     mutation,
-    pendingIds: pendingIdsOf(mutation),
+    pendingIds: [...pendingIdsOf(mutation), ...bulkPendingIds],
     placing,
     create,
     update,

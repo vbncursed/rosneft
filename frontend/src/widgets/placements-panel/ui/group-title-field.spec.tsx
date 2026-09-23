@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { GroupTitleField, NewGroup } from "./group-title-field";
@@ -34,13 +34,29 @@ describe("GroupTitleField", () => {
 });
 
 describe("NewGroup", () => {
-  it("opens the inline field, creates, and folds back to the button", async () => {
-    const onCreate = vi.fn();
-    render(<NewGroup busy={false} onCreate={onCreate} />);
+  it("opens the inline field, creates, and folds back to the button once the group exists", async () => {
+    let release!: (ok: boolean) => void;
+    const onCreate = vi.fn(() => new Promise<boolean>((res) => (release = res)));
+    const { rerender } = render(<NewGroup busy={false} onCreate={onCreate} />);
     await userEvent.click(screen.getByRole("button", { name: "New group" }));
     await userEvent.type(screen.getByRole("textbox", { name: "New group title" }), "West yard{Enter}");
     expect(onCreate).toHaveBeenCalledWith("West yard");
+    rerender(<NewGroup busy onCreate={onCreate} />);
+    expect(screen.getByRole("textbox", { name: "New group title" })).toHaveValue("West yard");
+    expect(screen.getByRole("button", { name: "Create group" })).toBeDisabled();
+    await act(async () => release(true));
+    expect(screen.queryByRole("textbox")).toBeNull();
     expect(screen.getByRole("button", { name: "New group" })).toHaveFocus();
+  });
+
+  // The toast says why (a duplicate title, say); the typed title stays to be fixed.
+  it("keeps the field and its text when the create is refused", async () => {
+    const onCreate = vi.fn(async () => false);
+    render(<NewGroup busy={false} onCreate={onCreate} />);
+    await userEvent.click(screen.getByRole("button", { name: "New group" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "New group title" }), "East yard{Enter}");
+    expect(onCreate).toHaveBeenCalledWith("East yard");
+    expect(screen.getByRole("textbox", { name: "New group title" })).toHaveValue("East yard");
   });
 
   it("folds back without creating on Cancel", async () => {
