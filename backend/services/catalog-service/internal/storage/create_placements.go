@@ -96,9 +96,9 @@ func (r *PG) PlacementBatch(ctx context.Context, territorySlug, key string, size
 
 // batchByKey reads the batch stored under key on territorySlug, in batch
 // order, for a request of size items. nil: nothing is stored under the key.
-// A batch missing rows it once had (a gap below its highest index) landed and
-// was edited since, so what remains is the answer. An intact batch of another
-// size is ErrIdempotencyConflict.
+// A batch that landed at another size is ErrIdempotencyConflict. One that
+// landed at this size and lost rows since (a gap below its highest index) was
+// edited, so what remains is the answer.
 //
 // ponytail: a batch whose trailing rows were deleted looks intact and smaller,
 // so its replay is a conflict; a stored batch_size column would tell the two
@@ -117,9 +117,7 @@ func batchByKey(ctx context.Context, q querier, territorySlug, key string, size 
 		return nil, fmt.Errorf("read batch by key: %w", err)
 	case len(prior) == 0:
 		return nil, nil
-	case len(prior) < landed:
-		return prior, nil
-	case len(prior) != size:
+	case landed != size:
 		return nil, domain.ErrIdempotencyConflict
 	}
 	return prior, nil
