@@ -261,6 +261,11 @@ func (s *PlacementGroupsSuite) TestATitleIsUniquePerTerritory() {
 	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
 	assert.ErrorContains(s.T(), err, "a group with this title already exists")
 
+	_, err = s.pg.CreatePlacementGroup(ctx, "a", "Север")
+	assert.NilError(s.T(), err)
+	_, err = s.pg.CreatePlacementGroup(ctx, "a", "север")
+	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput, "lower() folds Cyrillic too (UTF-8 database)")
+
 	_, err = s.pg.RenamePlacementGroup(ctx, "a", north.ID, "NORTH")
 	assert.NilError(s.T(), err, "a group may be recased under its own title")
 	_, err = s.pg.CreatePlacementGroup(ctx, "b", "North")
