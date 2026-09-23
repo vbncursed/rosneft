@@ -19,17 +19,18 @@ func TestTerritoryAdminsSuite(t *testing.T) { suite.Run(t, new(TerritoryAdminsSu
 type adminsStub struct {
 	Service
 	scope  *string
+	all    *bool
 	bySlug map[string][]string
 }
 
-func (a adminsStub) ListTerritoryAdmins(_ context.Context, scope string) (map[string][]string, error) {
-	*a.scope = scope
+func (a adminsStub) ListTerritoryAdmins(_ context.Context, scope string, all bool) (map[string][]string, error) {
+	*a.scope, *a.all = scope, all
 	return a.bySlug, nil
 }
 
 func (s *TerritoryAdminsSuite) TestRootReadsEveryTerritory() {
-	scope := "unset"
-	stub := adminsStub{scope: &scope, bySlug: map[string][]string{"tenant-a-scene": {"u1"}, "tenant-b-scene": {}}}
+	scope, all := "unset", false
+	stub := adminsStub{scope: &scope, all: &all, bySlug: map[string][]string{"tenant-a-scene": {"u1"}, "tenant-b-scene": {}}}
 	ctx := authhttp.NewTestContext(s.T().Context(), true, "")
 
 	resp, err := New(stub).ListTerritoryAdmins(ctx, ListTerritoryAdminsRequestObject{})
@@ -38,6 +39,7 @@ func (s *TerritoryAdminsSuite) TestRootReadsEveryTerritory() {
 	assert.Assert(s.T(), ok)
 	assert.DeepEqual(s.T(), map[string][]string(got), stub.bySlug)
 	assert.Equal(s.T(), scope, "")
+	assert.Assert(s.T(), all, "Root reads with all access")
 }
 
 // A Company Owner is refused exactly as on the per-slug read: the batch must

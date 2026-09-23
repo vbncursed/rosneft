@@ -1,12 +1,14 @@
 package bootstrap
 
 import (
+	"bytes"
 	"encoding/json/v2"
 	"log/slog"
 	"maps"
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -65,4 +67,24 @@ func (s *MetricsHandlerSuite) TestAnUpstreamFailureIsABadGateway() {
 		w.WriteHeader(http.StatusInternalServerError)
 	}), true, "panel=stat-up&range=1h")
 	assert.Equal(s.T(), rec.Code, http.StatusBadGateway)
+}
+
+// A partial answer is a 200, so the log is the only place a dark card is
+// explained: the handler names the panels Prometheus did not answer.
+func (s *MetricsHandlerSuite) TestAPartialAnswerLogsTheMissingPanels() {
+	var logs bytes.Buffer
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Query().Get("query"), "ALERTS") {
+			w.WriteHeader(http.StatusBadGateway)
+			return
+		}
+		emptyPromVector(w, r)
+	}))
+	s.T().Cleanup(srv.Close)
+	h := InitMetricsHandler(metrics.NewClient(srv.URL), slog.New(slog.NewTextHandler(&logs, nil)))
+
+	rec := s.get(h, true, "panel=stat-up&panel=alerts&panel=alerts&range=1h")
+	assert.Equal(s.T(), rec.Code, http.StatusOK)
+	assert.Assert(s.T(), strings.Contains(logs.String(), "level=WARN"), logs.String())
+	assert.Assert(s.T(), strings.Contains(logs.String(), "missing=[alerts]"), logs.String())
 }

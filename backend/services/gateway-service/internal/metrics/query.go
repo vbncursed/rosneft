@@ -42,6 +42,8 @@ func stepSeconds(windowSeconds int) int {
 type Client struct {
 	base string
 	http *http.Client
+	// panelsTimeout bounds one QueryPanels call as a whole.
+	panelsTimeout time.Duration
 }
 
 // NewClient builds a Prometheus client against base (e.g. http://prometheus:9090).
@@ -50,7 +52,8 @@ func NewClient(base string) *Client {
 		base: strings.TrimRight(base, "/"),
 		// The per-query context already bounds each call; the client timeout is
 		// the backstop for a base URL that connects but never answers.
-		http: &http.Client{Timeout: queryTimeout},
+		http:          &http.Client{Timeout: queryTimeout},
+		panelsTimeout: 2 * queryTimeout,
 	}
 }
 
