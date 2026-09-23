@@ -400,6 +400,20 @@ describe("useTerritoryViewer", () => {
       expect(client.getQueryData(["scene", SLUG])).toBeUndefined();
     });
 
+    // The reader finishes a chain and leaves before the POST answers: the
+    // cleanup already ran, so the late write must drop the bundle itself.
+    it("drops the cached bundle when a save lands after the page has unmounted", async () => {
+      let land!: (m: unknown) => void;
+      createMeasurement.mockImplementation(() => new Promise((resolve) => (land = resolve)));
+      const r = mount();
+      await ready(r);
+      measureAndFinish(r);
+      r.unmount();
+      expect(client.getQueryData(["scene", SLUG])).toBe(BUNDLE);
+      await act(async () => land({ serverId: 32, points: [], closed: false }));
+      expect(client.getQueryData(["scene", SLUG])).toBeUndefined();
+    });
+
     it("keeps the cached bundle on unmount when nothing changed", async () => {
       const r = mount();
       await ready(r);

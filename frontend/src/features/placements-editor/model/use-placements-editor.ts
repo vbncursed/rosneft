@@ -26,7 +26,7 @@ export type PlacementsEditorParams = {
   territoryMaxDim: number;
   /** Panoramas a newly created object is visible in (spec §6.1: everywhere loaded). */
   panoramaIds: number[];
-  /** Every successful mutation calls this; the page refetches the scene bundle. */
+  /** Every successful mutation calls this; the page marks the scene bundle stale. */
   onChanged: () => void;
 };
 
@@ -36,8 +36,8 @@ export type Placing = { done: number; total: number };
 /**
  * The placement editor's state: the list, the in-flight mutation and the
  * batch-create progress. Mutations are optimistic — each swaps the
- * server-acknowledged placement into local state — and every success asks the
- * page to refetch, so the scene and the panel never disagree for long.
+ * server-acknowledged placement into local state — and every success tells the
+ * page, which marks the bundle stale so the next visit re-reads it.
  */
 export function usePlacementsEditor({
   slug,
@@ -93,13 +93,13 @@ export function usePlacementsEditor({
       } catch (err) {
         // A refusal part-way through a batch leaves the POSTs before it
         // standing on the server. The rows that landed are shown, and the
-        // refetch reconciles the rest; the answer is still null, because
-        // there is no last id to select.
+        // next visit's fresh bundle reconciles the rest; the answer is still
+        // null, because there is no last id to select.
         notify.error(messageOf(err));
         return null;
       } finally {
         // Both paths: whatever the loop got through exists, so it belongs on
-        // screen, and onChanged tells the page to refetch the bundle.
+        // screen, and onChanged marks the bundle stale for the next visit.
         if (created.length > 0) {
           startTransition(() => setPlacements((prev) => [...prev, ...created]));
           onChanged();
@@ -153,9 +153,9 @@ export function usePlacementsEditor({
         notify.error(messageOf(err));
       } finally {
         // Both ways: a refused delete may mean the row is already gone for
-        // another reason, and only the gateway can say. The page re-keys the
-        // editor on the bundle it refetches — this hook does not adopt a
-        // changed `initial` on its own.
+        // another reason, and only the gateway can say. The page marks the
+        // bundle stale and the next visit seeds from a fresh one — this hook
+        // does not adopt a changed `initial` on its own.
         onChanged();
         setMutation(idle);
       }
