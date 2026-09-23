@@ -13,74 +13,35 @@ const ITEMS: ConsoleNavItem[] = [
   { key: "audit", label: "Audit journal", href: "/console/audit" },
   { key: "metrics", label: "Metrics", href: "/console/metrics" },
 ];
+const SUMMARY = {
+  users: { total: 2, frozen: 1 },
+  roles: { roles: 2, permissions: 3 },
+  content: { territories: 2, models: 1 },
+  access: 2,
+  audit24h: 1,
+  alerts: 1,
+};
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
-const user = (id: string, status = "active") => ({
-  id,
-  username: id,
-  email: "",
-  status,
-  totpRequired: false,
-  roleSlugs: [],
-  roleTitles: {},
-  isOwner: false,
-});
-const alertSeries = (instance: string) => ({
-  label: "ConversionFailures",
-  points: [],
-  labels: {
-    alertname: "ConversionFailures",
-    alertstate: "firing",
-    service: "mesh-worker",
-    severity: "warning",
-    instance,
-  },
-});
-const event = (id: number) => ({
-  id,
-  at: new Date().toISOString(),
-  actorId: "a",
-  action: "x",
-  entity: "y",
-  result: "ok",
-});
 
 let client: QueryClient;
 let fetchMock: ReturnType<typeof vi.fn>;
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={client}>{children}</QueryClientProvider>
 );
+const urls = () => fetchMock.mock.calls.map(([u]) => String(u));
 
 beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  fetchMock = vi.fn(async (url: string) => {
-    if (url.startsWith("/api/auth/users"))
-      return json([user("a"), user("b", "frozen"), user("c", "deleted")]);
-    if (url === "/api/auth/roles")
-      return json([
-        { slug: "r1", title: "R1", isSystem: true, permissionSlugs: [] },
-        { slug: "r2", title: "R2", isSystem: false, permissionSlugs: [] },
-      ]);
-    if (url === "/api/auth/permissions") return json([{ slug: "a:b" }, { slug: "c:d" }, { slug: "e:f" }]);
-    if (url === "/api/territories")
-      return json([
-        { slug: "t1", title: "T1", sourceBlobHash: "x" },
-        { slug: "t2", title: "T2", sourceBlobHash: "x" },
-      ]);
-    if (url === "/api/models") return json([{ slug: "m", title: "M", sourceBlobHash: "x" }]);
-    if (url === "/api/territories/t1/admins") return json({ userIds: ["a", "b"] });
-    if (url === "/api/territories/t2/admins") return json({ userIds: null });
-    if (url.startsWith("/api/audit?")) return json({ entries: [event(1)], nextCursor: 0 });
-    if (url.startsWith("/api/metrics/query?panel=alerts"))
-      return json([alertSeries("i1"), alertSeries("i2")]);
-    return json({ code: "not_found", message: "no" }, 404);
-  });
+  fetchMock = vi.fn(async (url: string) =>
+    url === "/api/console/summary" ? json(SUMMARY) : json({ code: "not_found", message: "no" }, 404),
+  );
   vi.stubGlobal("fetch", fetchMock);
 });
 afterEach(() => vi.unstubAllGlobals());
 
 describe("useConsoleCounters", () => {
-  it("counts every open card off its own query", async () => {
+  it("counts every open card off one summary call", async () => {
     const { result } = renderHook(() => useConsoleCounters(ITEMS), { wrapper });
     await waitFor(() =>
       expect(Object.values(result.current).every((h) => h.kind === "count")).toBe(true),
@@ -91,27 +52,30 @@ describe("useConsoleCounters", () => {
     expect(result.current.access.text).toBe("2 grants");
     expect(result.current.audit.text).toBe("1 event · 24h");
     expect(result.current.metrics.text).toBe("1 alert firing");
+    expect(urls()).toEqual(["/api/console/summary"]);
   });
 
-  it("asks nothing for a locked card and answers its static line", async () => {
+  it("answers a locked card's static line whatever the summary holds", async () => {
     const locked = ITEMS.map((i) =>
       i.key === "users" || i.key === "metrics" ? { ...i, disabled: true } : i,
     );
     const { result } = renderHook(() => useConsoleCounters(locked), { wrapper });
     await waitFor(() => expect(result.current.roles.kind).toBe("count"));
     expect(result.current.users).toEqual({ kind: "static", text: "people and roles" });
-    expect(result.current.metrics).toEqual({
-      kind: "static",
-      text: "conversion health and alerts",
-    });
-    expect(fetchMock.mock.calls.some(([u]) => String(u).startsWith("/api/auth/users"))).toBe(false);
-    expect(fetchMock.mock.calls.some(([u]) => String(u).startsWith("/api/metrics"))).toBe(false);
+    expect(result.current.metrics).toEqual({ kind: "static", text: "conversion health and alerts" });
   });
 
-  it("is static while loading and unavailable when an open query never answered", async () => {
-    fetchMock.mockImplementation(async (url: string) =>
-      url.startsWith("/api/auth/users") ? json({ code: "internal", message: "down" }, 500) : json([]),
+  it("asks nothing when every card is locked", () => {
+    const { result } = renderHook(
+      () => useConsoleCounters(ITEMS.map((i) => ({ ...i, disabled: true }))),
+      { wrapper },
     );
+    expect(result.current.users).toEqual({ kind: "static", text: "people and roles" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("is static while loading and unavailable when the summary never answered", async () => {
+    fetchMock.mockImplementation(async () => json({ code: "internal", message: "down" }, 500));
     const { result } = renderHook(() => useConsoleCounters(ITEMS.slice(0, 1)), { wrapper });
     expect(result.current.users).toEqual({ kind: "static", text: "people and roles" });
     await waitFor(() =>
@@ -119,36 +83,18 @@ describe("useConsoleCounters", () => {
     );
   });
 
-  it("caps the audit count at the window limit", async () => {
-    fetchMock.mockImplementation(async (url: string) =>
-      url.startsWith("/api/audit?")
-        ? json({ entries: Array.from({ length: 200 }, (_, i) => event(i)), nextCursor: 0 })
-        : json([]),
-    );
-    const { result } = renderHook(() => useConsoleCounters(ITEMS.filter((i) => i.key === "audit")), {
-      wrapper,
-    });
-    await waitFor(() => expect(result.current.audit.text).toBe("200+ events · 24h"));
+  // A source that failed is null for its card only; a card the gateway left
+  // out is one it would not answer for. Neither is a zero.
+  it("reads a nulled or missing card as count unavailable and counts the rest", async () => {
+    fetchMock.mockImplementation(async () => json({ ...SUMMARY, users: null, alerts: undefined }));
+    const { result } = renderHook(() => useConsoleCounters(ITEMS), { wrapper });
+    await waitFor(() => expect(result.current.roles.kind).toBe("count"));
+    expect(result.current.users).toEqual({ kind: "unavailable", text: "count unavailable" });
+    expect(result.current.metrics).toEqual({ kind: "unavailable", text: "count unavailable" });
   });
 
-  it("reads a zero-length admins answer as no grants, not as not-yet", async () => {
-    fetchMock.mockImplementation(async (url: string) =>
-      url === "/api/territories"
-        ? json([
-            { slug: "t1", title: "T1", sourceBlobHash: "x" },
-            { slug: "t2", title: "T2", sourceBlobHash: "x" },
-          ])
-        : json({ userIds: [] }),
-    );
-    const { result } = renderHook(
-      () => useConsoleCounters(ITEMS.filter((i) => i.key === "access")),
-      { wrapper },
-    );
-    await waitFor(() => expect(result.current.access).toEqual({ kind: "count", text: "0 grants" }));
-  });
-
-  it("reads no grants at all, not an unavailable count, when there are no territories", async () => {
-    fetchMock.mockImplementation(async () => json([]));
+  it("reads zero grants as a count, not as not-yet", async () => {
+    fetchMock.mockImplementation(async () => json({ access: 0 }));
     const { result } = renderHook(
       () => useConsoleCounters(ITEMS.filter((i) => i.key === "access")),
       { wrapper },
