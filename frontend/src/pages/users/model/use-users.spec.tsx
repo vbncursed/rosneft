@@ -184,6 +184,30 @@ describe("useUsers", () => {
     expect(result.current.users.creating).toBe(false);
   });
 
+  // Whichever field collided, and whoever holds it, the admin reads one line:
+  // naming the field would confirm an account they are not allowed to see.
+  it("answers any taken email or username with one neutral line", async () => {
+    for (const message of ["email already exists", "username already exists"]) {
+      clearNotices();
+      fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+        if (init?.method === "POST") return json({ code: "conflict", message }, 409);
+        if (url === "/api/auth/roles") return json([ROLE]);
+        return json([USER]);
+      });
+      const { result, unmount } = renderHook(
+        () => ({ users: useUsers(), notices: useNotices() }),
+        { wrapper },
+      );
+      await waitFor(() => expect(result.current.users.status).toBe("ready"));
+      act(() =>
+        result.current.users.create({ email: "a@x", username: "a", password: "Passw0rd!", roleSlugs: [] }),
+      );
+      await waitFor(() => expect(result.current.notices[0]?.tone).toBe("error"));
+      expect(result.current.notices[0].message).toBe("That email or username is unavailable.");
+      unmount();
+    }
+  });
+
   it("stays busy while the account is being posted, so the dialog can lock its button", async () => {
     let finish: (r: Response) => void = () => {};
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {

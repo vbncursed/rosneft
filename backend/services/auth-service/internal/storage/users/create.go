@@ -25,10 +25,8 @@ func (s *Store) Create(ctx context.Context, u domain.User) (domain.User, error) 
 	err := audittx.Run(ctx, s.pool, func(tx pgx.Tx) error {
 		if err := tx.QueryRow(ctx, ins, u.Email, u.Username, u.PasswordHash, u.CreatedBy, u.IsOwner).Scan(&id); err != nil {
 			switch constraintOf(err) {
-			case "users_email_key":
-				return domain.ErrEmailTaken
-			case "users_username_key":
-				return domain.ErrUsernameTaken
+			case "users_email_key", "users_username_key":
+				return domain.ErrLoginTaken
 			}
 			return fmt.Errorf("users.Create: insert: %w", err)
 		}

@@ -119,8 +119,7 @@ var statusByCode = map[codes.Code][]error{
 		domain.ErrOwnerOnly,
 	},
 	codes.AlreadyExists: {
-		domain.ErrEmailTaken,
-		domain.ErrUsernameTaken,
+		domain.ErrLoginTaken,
 		domain.ErrRoleSlugTaken,
 	},
 	codes.FailedPrecondition: {
