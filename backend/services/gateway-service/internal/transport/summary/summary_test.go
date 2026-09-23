@@ -11,6 +11,8 @@ import (
 	"slices"
 	"sync"
 	"testing"
+	"testing/synctest"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 	"gotest.tools/v3/assert"
@@ -79,6 +81,7 @@ func (s *SummarySuite) TestModelWriteAloneOpensContent() {
 	var ran sync.Map
 	_, body := s.serve(authhttp.TestPrincipal{UserID: "m", Perms: []string{"model:write"}}, answering(&ran))
 	assert.DeepEqual(s.T(), slices.Sorted(maps.Keys(body)), []string{"content"})
+	assert.DeepEqual(s.T(), ranKeys(&ran), []string{"content"})
 }
 
 func (s *SummarySuite) TestAViewerGetsAnEmptyObject() {
@@ -99,6 +102,34 @@ func (s *SummarySuite) TestAFailedSourceIsNullForItsCardOnly() {
 	assert.Assert(s.T(), ok, "a failed card stays in the answer")
 	assert.Assert(s.T(), v == nil, "as null, got %v", v)
 	assert.Equal(s.T(), body["users"], 1.0)
+}
+
+// One source that never answers darkens its own card, not the page: it gets
+// its own deadline, and the rest answer on time. Inside a synctest bubble the
+// deadline passes in fake time; without one the blocked source is a deadlock
+// the bubble reports.
+func (s *SummarySuite) TestASlowSourceIsNullForItsCardOnly() {
+	synctest.Test(s.T(), func(t *testing.T) {
+		var ran sync.Map
+		counts := answering(&ran)
+		counts["alerts"] = func(ctx context.Context) (any, error) {
+			<-ctx.Done()
+			return nil, ctx.Err()
+		}
+
+		start := time.Now()
+		ctx := authhttp.NewTestContextFor(t.Context(), authhttp.TestPrincipal{UserID: "root", IsOwner: true})
+		rec := httptest.NewRecorder()
+		summary.Handler(counts, slog.New(slog.DiscardHandler)).
+			ServeHTTP(rec, httptest.NewRequestWithContext(ctx, http.MethodGet, "/api/console/summary", nil))
+
+		var body map[string]any
+		assert.NilError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+		v, ok := body["alerts"]
+		assert.Assert(t, ok && v == nil, "the slow card is null, got %v", v)
+		assert.Equal(t, body["users"], 1.0)
+		assert.Assert(t, time.Since(start) <= 5*time.Second, "took %v", time.Since(start))
+	})
 }
 
 func (s *SummarySuite) TestTheAnswerIsNeverCached() {

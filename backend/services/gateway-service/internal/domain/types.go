@@ -79,6 +79,10 @@ type Model struct {
 	UsageCount int
 	// LODs is the artifact chain, sorted by lod. Filled on the list endpoint only.
 	LODs []LodArtifact
+	// BBoxMin/BBoxMax are LOD0's source-unit bounds, shared by every LOD.
+	// Filled on the list endpoint only, and nil until LOD0 exists.
+	BBoxMin *Vec3
+	BBoxMax *Vec3
 }
 
 // LodArtifact is the minimal descriptor for one LOD level.

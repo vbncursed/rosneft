@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -85,6 +86,24 @@ func (s *MetricsHandlerSuite) TestAPartialAnswerLogsTheMissingPanels() {
 
 	rec := s.get(h, true, "panel=stat-up&panel=alerts&panel=alerts&range=1h")
 	assert.Equal(s.T(), rec.Code, http.StatusOK)
+	var body map[string][]metrics.Series
+	assert.NilError(s.T(), json.Unmarshal(rec.Body.Bytes(), &body))
+	assert.DeepEqual(s.T(), slices.Sorted(maps.Keys(body)), []string{"stat-up"})
 	assert.Assert(s.T(), strings.Contains(logs.String(), "level=WARN"), logs.String())
 	assert.Assert(s.T(), strings.Contains(logs.String(), "missing=[alerts]"), logs.String())
+}
+
+// A panel listed twice is asked once and answered under one key.
+func (s *MetricsHandlerSuite) TestARepeatedPanelIsAskedOnce() {
+	var asked atomic.Int32
+	rec := s.get(s.handler(func(w http.ResponseWriter, r *http.Request) {
+		asked.Add(1)
+		emptyPromVector(w, r)
+	}), true, "panel=stat-up&panel=stat-up&range=1h")
+
+	assert.Equal(s.T(), rec.Code, http.StatusOK, rec.Body.String())
+	var body map[string][]metrics.Series
+	assert.NilError(s.T(), json.Unmarshal(rec.Body.Bytes(), &body))
+	assert.DeepEqual(s.T(), slices.Sorted(maps.Keys(body)), []string{"stat-up"})
+	assert.Equal(s.T(), asked.Load(), int32(1))
 }

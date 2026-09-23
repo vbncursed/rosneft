@@ -3,6 +3,10 @@ package catalog
 import (
 	"context"
 	"fmt"
+	"strings"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/clients/grpcerr"
@@ -26,7 +30,7 @@ func (c *Client) ListPlacements(ctx context.Context, territorySlug string) ([]do
 func (c *Client) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
 	resp, err := c.cc.CreatePlacement(ctx, createPlacementRequest(p))
 	if err != nil {
-		return domain.Placement{}, fmt.Errorf("catalog.CreatePlacement: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
+		return domain.Placement{}, createRefusal("catalog.CreatePlacement", err)
 	}
 	return placementFromProto(resp.GetPlacement()), nil
 }
@@ -39,13 +43,44 @@ func (c *Client) CreatePlacements(ctx context.Context, territorySlug string, ps 
 	}
 	resp, err := c.cc.CreatePlacements(ctx, &catalogv1.CreatePlacementsRequest{TerritorySlug: territorySlug, Items: items})
 	if err != nil {
-		return nil, fmt.Errorf("catalog.CreatePlacements: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
+		return nil, createRefusal("catalog.CreatePlacements", err)
 	}
 	out := make([]domain.Placement, len(resp.GetPlacements()))
 	for i, p := range resp.GetPlacements() {
 		out[i] = placementFromProto(p)
 	}
 	return out, nil
+}
+
+// refusal is a create the catalog refused, told in the catalog's own words
+// ("item 2: model not found"): the handler puts Error() in the 4xx body, so the
+// gRPC framing must not be in it. Unwrap names the sentinel for the status.
+type refusal struct {
+	msg      string
+	sentinel error
+}
+
+func (r refusal) Error() string { return r.msg }
+
+func (r refusal) Unwrap() error { return r.sentinel }
+
+// createRefusal maps a failed placement create. NotFound is the model unless
+// the message says otherwise — the route's gate has already found the
+// territory; InvalidArgument is a refused item. Anything else is wrapped with
+// op as an internal error.
+func createRefusal(op string, err error) error {
+	st, ok := status.FromError(err)
+	switch {
+	case !ok:
+		return fmt.Errorf("%s: %w", op, err)
+	case st.Code() == codes.NotFound && strings.HasSuffix(st.Message(), domain.ErrTerritoryNotFound.Error()):
+		return refusal{st.Message(), domain.ErrTerritoryNotFound}
+	case st.Code() == codes.NotFound:
+		return refusal{st.Message(), domain.ErrModelNotFound}
+	case st.Code() == codes.InvalidArgument:
+		return refusal{st.Message(), domain.ErrInvalidInput}
+	}
+	return fmt.Errorf("%s: %w", op, err)
 }
 
 // createPlacementRequest maps a domain placement onto one create request.

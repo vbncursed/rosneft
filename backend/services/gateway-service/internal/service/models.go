@@ -21,11 +21,12 @@ func (g *Gateway) GetModel(ctx context.Context, slug string) (domain.Model, erro
 	return g.catalog.GetModel(ctx, slug)
 }
 
-// CreateModel upserts the model in the catalog and queues a conversion job.
+// CreateModel creates the model in the catalog and queues a conversion job.
 func (g *Gateway) CreateModel(ctx context.Context, m domain.Model, scope domain.BlobScope) (domain.Model, domain.Job, error) {
 	if err := validateEntity(m.Title, m.SourceBlobHash); err != nil {
 		return domain.Model{}, domain.Job{}, err
 	}
+	m.Title, m.Description = strings.TrimSpace(m.Title), strings.TrimSpace(m.Description)
 	if err := g.authorizeBlobs(ctx, scope, m.SourceBlobHash, m.ThumbnailBlobHash); err != nil {
 		return domain.Model{}, domain.Job{}, err
 	}
@@ -47,7 +48,8 @@ func (g *Gateway) UpdateModel(ctx context.Context, slug string, update domain.Mo
 	if slug == "" {
 		return domain.Model{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}
-	if err := validateTitlePatch(update.Title); err != nil {
+	var err error
+	if update.Title, update.Description, err = trimDetails(update.Title, update.Description); err != nil {
 		return domain.Model{}, err
 	}
 	if update.ThumbnailBlobHash != nil {
@@ -85,14 +87,4 @@ func (g *Gateway) GetModelArtifact(ctx context.Context, slug string, lod uint32)
 		return domain.Artifact{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}
 	return g.catalog.GetModelArtifact(ctx, slug, lod)
-}
-
-// validateTitlePatch refuses a title a PATCH sends blank; nil leaves the title
-// alone. Both update paths call it before any catalog call, so a refusal costs
-// no round trip. Last writer wins — no If-Match, by decision.
-func validateTitlePatch(title *string) error {
-	if title != nil && strings.TrimSpace(*title) == "" {
-		return fmt.Errorf("%w: empty title", domain.ErrInvalidInput)
-	}
-	return nil
 }

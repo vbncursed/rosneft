@@ -16,7 +16,8 @@ import (
 // users / user_roles / roles / role_permissions, which audit_capture() already
 // captures — listing them here would write each change twice. 2FA setup is
 // absent for a related reason: it hands out a secret but changes no state, so
-// there is nothing to record until enable or disable.
+// there is nothing to record until enable or disable. A password change is
+// listed for its failures alone (see triggerRecordsSuccess).
 var authAuditActions = map[string]string{
 	"POST /api/auth/login":                      "auth.login",
 	"POST /api/auth/login/2fa":                  "auth.login_2fa",
@@ -28,6 +29,18 @@ var authAuditActions = map[string]string{
 	"POST /api/auth/2fa/recovery/regenerate":    "auth.2fa_recovery_regenerate",
 	"POST /api/auth/passkey/register/finish":    "auth.passkey_register",
 	"DELETE /api/auth/passkey/credentials/{id}": "auth.passkey_delete",
+}
+
+// triggerRecordsSuccess lists the actions whose success a trigger already
+// journals. A password change stamps users.password_changed_at, which the
+// users trigger records as user.update under the actor; a failed attempt
+// changes no row, so only the failure is recorded here.
+var triggerRecordsSuccess = map[string]bool{"auth.password_change": true}
+
+// recordsOutcome reports whether this middleware journals action ending in
+// result: everything but a success the trigger already wrote.
+func recordsOutcome(action, result string) bool {
+	return result == "failed" || !triggerRecordsSuccess[action]
 }
 
 // AuditAuthEvents records the outcome of an authenticated security action.
@@ -49,6 +62,9 @@ func (h *Handlers) AuditAuthEvents(next http.Handler) http.Handler {
 		result := "ok"
 		if ww.Status() >= http.StatusBadRequest {
 			result = "failed"
+		}
+		if !recordsOutcome(action, result) {
+			return
 		}
 		h.recordAuth(r, action, principalUserID(r.Context()), AuditCompany(r.Context()), result)
 	})

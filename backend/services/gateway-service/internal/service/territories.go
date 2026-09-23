@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
@@ -22,13 +23,14 @@ func (g *Gateway) GetTerritory(ctx context.Context, slug, scopeAdminID string) (
 	return g.catalog.GetTerritory(ctx, slug, scopeAdminID)
 }
 
-// CreateTerritory upserts the territory in the catalog and queues a
+// CreateTerritory creates the territory in the catalog and queues a
 // conversion job. Returns both — the frontend uses the job ID to subscribe
 // to /api/jobs/{id}/events for progress.
 func (g *Gateway) CreateTerritory(ctx context.Context, t domain.Territory, scope domain.BlobScope) (domain.Territory, domain.Job, error) {
 	if err := validateEntity(t.Title, t.SourceBlobHash); err != nil {
 		return domain.Territory{}, domain.Job{}, err
 	}
+	t.Title, t.Description = strings.TrimSpace(t.Title), strings.TrimSpace(t.Description)
 	if err := g.authorizeBlobs(ctx, scope, t.SourceBlobHash); err != nil {
 		return domain.Territory{}, domain.Job{}, err
 	}
@@ -133,7 +135,8 @@ func (g *Gateway) UpdateTerritory(ctx context.Context, slug string, update domai
 	if slug == "" {
 		return domain.Territory{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}
-	if err := validateTitlePatch(update.Title); err != nil {
+	var err error
+	if update.Title, update.Description, err = trimDetails(update.Title, update.Description); err != nil {
 		return domain.Territory{}, err
 	}
 	update.SourceBlobHash = nil
@@ -166,17 +169,4 @@ func (g *Gateway) GetTerritoryArtifact(ctx context.Context, slug string, lod uin
 		return domain.Artifact{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}
 	return g.catalog.GetTerritoryArtifact(ctx, slug, lod)
-}
-
-// validateEntity rejects EntityCreate-style inputs missing required fields.
-// The slug is no longer user-supplied — the catalog derives it from the
-// title — so only title and source hash are required here.
-func validateEntity(title, hash string) error {
-	switch {
-	case title == "":
-		return fmt.Errorf("%w: empty title", domain.ErrInvalidInput)
-	case hash == "":
-		return fmt.Errorf("%w: empty source_blob_hash", domain.ErrInvalidInput)
-	}
-	return nil
 }

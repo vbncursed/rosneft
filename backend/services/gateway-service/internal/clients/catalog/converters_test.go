@@ -30,3 +30,17 @@ func (s *ConvertersSuite) TestAModelCarriesItsLODChain() {
 	}})
 	assert.DeepEqual(s.T(), got.LODs, wantLODs)
 }
+
+// The scene's model picker reads LOD0's bounds off the list, so the list must
+// carry them — whatever order the chain arrives in — and none without a LOD0.
+func (s *ConvertersSuite) TestAModelCarriesItsLOD0Bounds() {
+	got := modelFromProto(&catalogv1.Model{Slug: "pump", Artifacts: []*catalogv1.ModelArtifact{
+		{Lod: 1, BboxMin: &catalogv1.Vec3{X: 9}, BboxMax: &catalogv1.Vec3{X: 9}},
+		{Lod: 0, BboxMin: &catalogv1.Vec3{X: -1, Y: -2, Z: -3}, BboxMax: &catalogv1.Vec3{X: 1, Y: 2, Z: 3}},
+	}})
+	assert.DeepEqual(s.T(), got.BBoxMin, &domain.Vec3{X: -1, Y: -2, Z: -3})
+	assert.DeepEqual(s.T(), got.BBoxMax, &domain.Vec3{X: 1, Y: 2, Z: 3})
+
+	bare := modelFromProto(&catalogv1.Model{Slug: "broken"})
+	assert.Assert(s.T(), bare.BBoxMin == nil && bare.BBoxMax == nil)
+}

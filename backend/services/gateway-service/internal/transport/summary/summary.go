@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
@@ -72,6 +73,11 @@ func Handler(counts Counts, logger *slog.Logger) http.HandlerFunc {
 	}
 }
 
+// cardTimeout bounds one card's source. Every source is a gRPC or Prometheus
+// call that honours its context, so one hung backend nulls its own card at
+// this deadline instead of holding the whole answer.
+const cardTimeout = 5 * time.Second
+
 // collect runs every open card's source in parallel. A WaitGroup rather than
 // an errgroup: a failure is local to its card, so there is nothing to cancel.
 func collect(ctx context.Context, p principal, counts Counts, logger *slog.Logger) map[string]any {
@@ -85,7 +91,9 @@ func collect(ctx context.Context, p principal, counts Counts, logger *slog.Logge
 			continue
 		}
 		wg.Go(func() {
-			v, err := count(ctx)
+			cardCtx, cancel := context.WithTimeout(ctx, cardTimeout)
+			defer cancel()
+			v, err := count(cardCtx)
 			if err != nil {
 				logger.Warn("console summary: source failed", "card", key, "err", err)
 				v = nil

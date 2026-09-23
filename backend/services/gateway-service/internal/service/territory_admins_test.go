@@ -57,3 +57,23 @@ func (s *TerritoryAdminsSuite) TestAScopedCallerWithoutAnAdminSeesNothing() {
 	assert.NilError(s.T(), err)
 	assert.DeepEqual(s.T(), got, map[string][]string{})
 }
+
+// A failure of the second read is not an empty answer either.
+func (s *TerritoryAdminsSuite) TestAFailedAdminReadIsNotAnEmptyAnswer() {
+	boom := errors.New("catalog down")
+	s.cat.ListTerritoriesMock.Expect(s.ctx, "").Return([]domain.Territory{{Slug: "a"}}, nil)
+	s.cat.ListTerritoryAdminsMock.Expect(s.ctx, []string{"a"}).Return(nil, boom)
+
+	_, err := s.svc.ListTerritoryAdmins(s.ctx, "", true)
+	assert.ErrorIs(s.T(), err, boom)
+}
+
+// Nothing visible, nothing to ask: ListTerritoryAdmins is not expected, so the
+// controller would fail the test on a call with an empty slug list.
+func (s *TerritoryAdminsSuite) TestNoVisibleTerritorySkipsTheAdminRead() {
+	s.cat.ListTerritoriesMock.Expect(s.ctx, "admin-a").Return(nil, nil)
+
+	got, err := s.svc.ListTerritoryAdmins(s.ctx, "admin-a", false)
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), got, map[string][]string{})
+}

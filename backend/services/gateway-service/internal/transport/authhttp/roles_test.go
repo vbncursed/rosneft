@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/suite"
@@ -54,7 +55,15 @@ func (s *RolesSuite) patch(body string) (*httptest.ResponseRecorder, *authv1.Upd
 	req := httptest.NewRequestWithContext(s.T().Context(), http.MethodPatch, "/api/auth/roles/viewer", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(rec, req)
-	return rec, <-stub.got
+	// A handler that never reached the service would block a bare receive
+	// until the package timeout; fail this test instead, with the answer.
+	select {
+	case got := <-stub.got:
+		return rec, got
+	case <-time.After(5 * time.Second):
+		s.T().Fatalf("UpdateRole never reached auth-service; the handler answered %d %s", rec.Code, rec.Body)
+		return nil, nil
+	}
 }
 
 func (s *RolesSuite) TestATitleAloneLeavesTheGrants() {
@@ -74,7 +83,8 @@ func (s *RolesSuite) TestPermissionsTravelWithTheTitle() {
 
 // [] is a real request, "strip every grant", and must not read as "absent".
 func (s *RolesSuite) TestAnEmptyListStillReplaces() {
-	_, got := s.patch(`{"title":"Viewer","permissionSlugs":[]}`)
+	rec, got := s.patch(`{"title":"Viewer","permissionSlugs":[]}`)
+	assert.Equal(s.T(), rec.Code, http.StatusOK, rec.Body.String())
 	assert.Assert(s.T(), got.GetReplacePermissions())
 	assert.Equal(s.T(), len(got.GetPermissionSlugs()), 0)
 }

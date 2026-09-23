@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -53,4 +54,22 @@ func (s *TerritoryAdminsSuite) TestACompanyOwnerIsRefused() {
 	_, ok := resp.(ListTerritoryAdmins403JSONResponse)
 	assert.Assert(s.T(), ok, "got %T", resp)
 	assert.Equal(s.T(), scope, "unset", "the service must not be asked")
+}
+
+// failingAdmins answers the batch read with a failure.
+type failingAdmins struct{ Service }
+
+func (failingAdmins) ListTerritoryAdmins(context.Context, string, bool) (map[string][]string, error) {
+	return nil, errors.New("catalog down")
+}
+
+// A failed read is a 500, never a 200 with an empty map: the access screen
+// would read that as "nobody is assigned anywhere".
+func (s *TerritoryAdminsSuite) TestAFailedReadIsAnInternalError() {
+	ctx := authhttp.NewTestContext(s.T().Context(), true, "")
+
+	resp, err := New(failingAdmins{}).ListTerritoryAdmins(ctx, ListTerritoryAdminsRequestObject{})
+	assert.NilError(s.T(), err)
+	_, ok := resp.(ListTerritoryAdmins500JSONResponse)
+	assert.Assert(s.T(), ok, "got %T", resp)
 }

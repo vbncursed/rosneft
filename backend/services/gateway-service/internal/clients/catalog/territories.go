@@ -32,7 +32,9 @@ func (c *Client) GetTerritory(ctx context.Context, slug, scopeAdminID string) (d
 	return territoryFromProto(resp.GetTerritory()), nil
 }
 
-// UpsertTerritory creates or updates a territory by slug.
+// UpsertTerritory creates a territory (the RPC keeps its old name). The catalog
+// derives the slug from the title; it never rewrites an existing row — edits go
+// through UpdateTerritory.
 func (c *Client) UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error) {
 	resp, err := c.cc.UpsertTerritory(ctx, &catalogv1.UpsertTerritoryRequest{Territory: territoryToProto(t)})
 	if err != nil {

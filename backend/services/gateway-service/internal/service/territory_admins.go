@@ -26,6 +26,9 @@ func (g *Gateway) ListTerritoryAdmins(ctx context.Context, scopeAdminID string, 
 	if err != nil {
 		return nil, err
 	}
+	if len(territories) == 0 {
+		return map[string][]string{}, nil
+	}
 	slugs := make([]string, len(territories))
 	for i, t := range territories {
 		slugs[i] = t.Slug
