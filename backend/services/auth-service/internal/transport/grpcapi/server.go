@@ -139,5 +139,7 @@ var statusByCode = map[codes.Code][]error{
 	},
 }
 
-// mapError translates domain sentinels to gRPC status codes.
-func mapError(err error) error { return apperr.ToStatus(err, statusByCode) }
+// mapError translates domain sentinels to gRPC status codes; a refusal's
+// message starts at its sentinel (see apperr.ToStatusAtSentinel), so the
+// gateway's 4xx body carries no "auth.Login:"-style prefix.
+func mapError(err error) error { return apperr.ToStatusAtSentinel(err, statusByCode) }

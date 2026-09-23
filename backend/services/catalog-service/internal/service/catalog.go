@@ -50,6 +50,7 @@ type Repository interface {
 	ListPlacements(ctx context.Context, territorySlug string) ([]domain.Placement, error)
 	CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	CreatePlacements(ctx context.Context, key string, ps []domain.Placement) ([]domain.Placement, error)
+	PlacementBatch(ctx context.Context, territorySlug, key string, size int) ([]domain.Placement, error)
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, territorySlug string, id int64) error

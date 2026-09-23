@@ -147,7 +147,7 @@ func newRouterWithCORS(origins []string) chi.Router {
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   origins,
 		AllowedMethods:   []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions},
-		AllowedHeaders:   []string{"Content-Type", "If-None-Match", "Authorization", "Upload-Offset", "X-CSRF-Token"},
+		AllowedHeaders:   []string{"Content-Type", "If-None-Match", "Authorization", "Upload-Offset", "X-CSRF-Token", "Idempotency-Key"},
 		ExposedHeaders:   []string{"ETag", "Content-Length", "Content-Range", "X-Next-Cursor", "Upload-Offset", "Upload-Length"},
 		AllowCredentials: true,
 		MaxAge:           300,

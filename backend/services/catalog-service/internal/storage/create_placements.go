@@ -16,13 +16,16 @@ import (
 // batch_index) — migration 00018.
 const keyIndex = "placements_idempotency_key"
 
-const batchByKeyQuery = `SELECT ` + placementSelectCols + `
+// batchByKeyQuery also answers the size the batch had when it landed, as far
+// as its rows still show it: the highest batch_index + 1.
+const batchByKeyQuery = `SELECT ` + placementSelectCols + `, max(pl.batch_index) OVER () + 1
 	FROM ` + placementJoin + `
 	WHERE t.slug = $1 AND pl.idempotency_key = $2
 	ORDER BY pl.batch_index`
 
 // querier is what batchByKey reads through: the create's own transaction, or
-// the pool once that transaction has lost a key race and rolled back.
+// the pool — for PlacementBatch, and once a create has lost a key race and
+// rolled back.
 type querier interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 }
@@ -33,8 +36,8 @@ type querier interface {
 // naming that item.
 //
 // A non-empty key makes the batch idempotent on its territory: a batch already
-// stored under the key is answered as it was stored and nothing is written,
-// or refused with ErrIdempotencyConflict when its size differs. Two requests
+// stored under the key is answered as it was stored and nothing is written
+// (batchByKey says when it is refused instead). Two requests
 // racing on one key collide on keyIndex; the loser rolls back and answers the
 // winner's rows.
 //
@@ -51,7 +54,7 @@ func (r *PG) CreatePlacements(ctx context.Context, key string, ps []domain.Place
 		return err
 	})
 	if isKeyRace(err) {
-		out, err = batchByKey(ctx, r.pool, key, ps)
+		out, err = batchByKey(ctx, r.pool, ps[0].TerritorySlug, key, len(ps))
 		if err == nil && out == nil {
 			err = errors.New("the batch that won the key race is gone")
 		}
@@ -65,7 +68,7 @@ func (r *PG) CreatePlacements(ctx context.Context, key string, ps []domain.Place
 // createBatch answers the batch key already names, or inserts ps under key.
 func createBatch(ctx context.Context, tx pgx.Tx, key string, ps []domain.Placement) ([]domain.Placement, error) {
 	if key != "" {
-		if prior, err := batchByKey(ctx, tx, key, ps); err != nil || prior != nil {
+		if prior, err := batchByKey(ctx, tx, ps[0].TerritorySlug, key, len(ps)); err != nil || prior != nil {
 			return prior, err
 		}
 	}
@@ -80,27 +83,56 @@ func createBatch(ctx context.Context, tx pgx.Tx, key string, ps []domain.Placeme
 	return out, nil
 }
 
-// batchByKey reads the batch stored under key on ps's territory, in batch
-// order: nil when there is none, ErrIdempotencyConflict when its size is not
-// len(ps).
-func batchByKey(ctx context.Context, q querier, key string, ps []domain.Placement) ([]domain.Placement, error) {
-	rows, err := q.Query(ctx, batchByKeyQuery, ps[0].TerritorySlug, key)
+// PlacementBatch reads the batch stored under key on territorySlug, as
+// batchByKey answers it for a request of size items. The service asks it
+// before validating anything against the territory as it is now.
+func (r *PG) PlacementBatch(ctx context.Context, territorySlug, key string, size int) ([]domain.Placement, error) {
+	out, err := batchByKey(ctx, r.pool, territorySlug, key, size)
+	if err != nil {
+		return nil, createPlacementError("storage.PlacementBatch", err)
+	}
+	return out, nil
+}
+
+// batchByKey reads the batch stored under key on territorySlug, in batch
+// order, for a request of size items. nil: nothing is stored under the key.
+// A batch missing rows it once had (a gap below its highest index) landed and
+// was edited since, so what remains is the answer. An intact batch of another
+// size is ErrIdempotencyConflict.
+//
+// ponytail: a batch whose trailing rows were deleted looks intact and smaller,
+// so its replay is a conflict; a stored batch_size column would tell the two
+// apart if that retry ever matters.
+func batchByKey(ctx context.Context, q querier, territorySlug, key string, size int) ([]domain.Placement, error) {
+	rows, err := q.Query(ctx, batchByKeyQuery, territorySlug, key)
 	if err != nil {
 		return nil, fmt.Errorf("read batch by key: %w", err)
 	}
+	var landed int
 	prior, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (domain.Placement, error) {
-		return scanPlacement(row)
+		return scanPlacement(withTrailing{row, []any{&landed}})
 	})
 	switch {
 	case err != nil:
 		return nil, fmt.Errorf("read batch by key: %w", err)
 	case len(prior) == 0:
 		return nil, nil
-	case len(prior) != len(ps):
+	case len(prior) < landed:
+		return prior, nil
+	case len(prior) != size:
 		return nil, domain.ErrIdempotencyConflict
 	}
 	return prior, nil
 }
+
+// withTrailing scans a row into scanPlacement's columns plus the extra ones
+// the query appends after them.
+type withTrailing struct {
+	rowScanner
+	extra []any
+}
+
+func (w withTrailing) Scan(dst ...any) error { return w.rowScanner.Scan(append(dst, w.extra...)...) }
 
 // isKeyRace reports whether a batch insert lost to a concurrent one under the
 // same key.

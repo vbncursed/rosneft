@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -130,4 +131,26 @@ func WriteStatus(w http.ResponseWriter, err error) {
 		msg = InternalMessage
 	}
 	Write(w, httpStatus, Slug(st.Code()), msg)
+}
+
+// ToStatusAtSentinel is ToStatus for a service whose refusals the gateway
+// shows to the browser: a matched refusal's message starts at its sentinel's
+// text ("invalid input: panorama 5 is not on …"), so the "service.X:"
+// prefixes of the layers it passed through stay in that process. Internal
+// keeps its whole text; the gateway logs it and answers InternalMessage.
+func ToStatusAtSentinel(err error, byCode map[codes.Code][]error) error {
+	st := status.Convert(ToStatus(err, byCode))
+	if err == nil || st.Code() == codes.Internal {
+		return st.Err()
+	}
+	msg := err.Error()
+	for _, sentinel := range byCode[st.Code()] {
+		if !errors.Is(err, sentinel) {
+			continue
+		}
+		if _, rest, found := strings.Cut(msg, sentinel.Error()); found {
+			return status.Error(st.Code(), sentinel.Error()+rest)
+		}
+	}
+	return st.Err()
 }

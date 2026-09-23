@@ -6,12 +6,9 @@ package grpcapi
 
 import (
 	"context"
-	"errors"
-	"strings"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
@@ -92,29 +89,6 @@ var statusByCode = map[codes.Code][]error{
 	},
 }
 
-// mapError translates service-layer errors to gRPC status codes. A refusal's
-// message starts at its sentinel ("invalid input: panorama 5 is not on …"):
-// the gateway hands it to the browser, so the layers' "service.X:" prefixes
-// stay in this process. An internal error keeps its whole text — the gateway
-// logs it and answers a fixed body.
-func mapError(err error) error {
-	st := status.Convert(apperr.ToStatus(err, statusByCode))
-	if err == nil || st.Code() == codes.Internal {
-		return st.Err()
-	}
-	return status.Error(st.Code(), fromSentinel(err, statusByCode[st.Code()]))
-}
-
-// fromSentinel is err's text from the first of sentinels it wraps onward.
-func fromSentinel(err error, sentinels []error) string {
-	msg := err.Error()
-	for _, sentinel := range sentinels {
-		if !errors.Is(err, sentinel) {
-			continue
-		}
-		if _, rest, found := strings.Cut(msg, sentinel.Error()); found {
-			return sentinel.Error() + rest
-		}
-	}
-	return msg
-}
+// mapError translates service-layer errors to gRPC status codes; a refusal's
+// message starts at its sentinel (see apperr.ToStatusAtSentinel).
+func mapError(err error) error { return apperr.ToStatusAtSentinel(err, statusByCode) }
