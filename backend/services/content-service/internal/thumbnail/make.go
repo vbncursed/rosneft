@@ -75,7 +75,7 @@ func Make(ctx context.Context, store blobstore.Store, srcHash string) (string, e
 		return "", err
 	}
 	dst := image.NewRGBA(image.Rect(0, 0, Width, Height))
-	draw.ApproxBiLinear.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Src, nil)
+	draw.BiLinear.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Src, nil)
 
 	var out bytes.Buffer
 	if err := jpeg.Encode(&out, dst, &jpeg.Options{Quality: quality}); err != nil {
