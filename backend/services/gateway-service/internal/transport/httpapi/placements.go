@@ -28,24 +28,7 @@ func (s *Server) CreatePlacement(ctx context.Context, req CreatePlacementRequest
 	if req.Body == nil {
 		return CreatePlacement400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
 	}
-	body := *req.Body
-	label := ""
-	if body.Label != nil {
-		label = *body.Label
-	}
-	var visibleIDs []int64
-	if body.VisiblePanoramaIds != nil {
-		visibleIDs = *body.VisiblePanoramaIds
-	}
-	p, err := s.svc.CreatePlacement(ctx, domain.Placement{
-		TerritorySlug:      req.Slug,
-		ModelSlug:          body.ModelSlug,
-		Position:           vec3PtrFromAPI(body.Position),
-		Rotation:           vec3PtrFromAPI(body.Rotation),
-		Scale:              vec3PtrFromAPI(body.Scale),
-		Label:              label,
-		VisiblePanoramaIDs: visibleIDs,
-	})
+	p, err := s.svc.CreatePlacement(ctx, placementFromCreate(req.Slug, *req.Body))
 	switch {
 	case isInvalid(err):
 		return CreatePlacement400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
@@ -55,6 +38,30 @@ func (s *Server) CreatePlacement(ctx context.Context, req CreatePlacementRequest
 		return CreatePlacement500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
 	}
 	return CreatePlacement201JSONResponse(placementToAPI(p)), nil
+}
+
+func (s *Server) CreatePlacements(ctx context.Context, req CreatePlacementsRequestObject) (CreatePlacementsResponseObject, error) {
+	if req.Body == nil {
+		return CreatePlacements400JSONResponse{Code: apperr.SlugInvalidInput, Message: "missing body"}, nil
+	}
+	items := make([]domain.Placement, len(req.Body.Items))
+	for i, it := range req.Body.Items {
+		items[i] = placementFromCreate(req.Slug, it)
+	}
+	out, err := s.svc.CreatePlacements(ctx, req.Slug, items)
+	switch {
+	case isInvalid(err):
+		return CreatePlacements400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
+	case isNotFound(err):
+		return CreatePlacements404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
+	case err != nil:
+		return CreatePlacements500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+	}
+	resp := make(CreatePlacements201JSONResponse, len(out))
+	for i, p := range out {
+		resp[i] = placementToAPI(p)
+	}
+	return resp, nil
 }
 
 func (s *Server) UpdatePlacement(ctx context.Context, req UpdatePlacementRequestObject) (UpdatePlacementResponseObject, error) {

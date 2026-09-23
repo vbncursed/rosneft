@@ -268,6 +268,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/territories/{slug}/placements/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add 1–100 placements to a territory in one transaction
+         * @description All or nothing: one catalog transaction, so a bad item (unknown model, non-positive scale, a panorama of another territory) leaves no rows. Answers the created placements in `items` order. Needs placement:create; covered by the territory gate like every route under /api/territories/{slug}.
+         */
+        post: operations["createPlacements"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/territories/{slug}/placements/{id}": {
         parameters: {
             query?: never;
@@ -2553,6 +2575,9 @@ export interface components {
             /** @description Initial panorama allowlist (e.g. the active panorama). */
             visiblePanoramaIds?: number[];
         };
+        PlacementBatchCreate: {
+            items: components["schemas"]["PlacementCreate"][];
+        };
         PlacementUpdate: {
             position?: components["schemas"]["Vec3"];
             rotation?: components["schemas"]["Vec3"];
@@ -3570,6 +3595,36 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    createPlacements: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementBatchCreate"];
+            };
+        };
+        responses: {
+            /** @description Created, in items order */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Placement"][];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["Internal"];
         };

@@ -146,3 +146,29 @@ func (s *BatchSuite) TestTerritoryAdminsComeBackPerSlug() {
 		"admins-b": {s.admin, other},
 	})
 }
+
+func (s *BatchSuite) TestAPlacementBatchLandsWholeOrNotAtAll() {
+	ctx := s.T().Context()
+	s.seedTerritory(ctx, "batch-yard", s.admin)
+	s.seedModel(ctx, "batch-pump")
+	unit := domain.Vec3{X: 1, Y: 1, Z: 1}
+
+	got, err := s.pg.CreatePlacements(ctx, []domain.Placement{
+		{TerritorySlug: "batch-yard", ModelSlug: "batch-pump", Scale: unit},
+		{TerritorySlug: "batch-yard", ModelSlug: "batch-pump", Position: domain.Vec3{X: 2}, Scale: unit},
+	})
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(got), 2)
+	assert.Equal(s.T(), got[1].Position.X, 2.0)
+	assert.Equal(s.T(), got[0].TerritorySlug, "batch-yard")
+	assert.Assert(s.T(), got[0].ID < got[1].ID, "answered in items order")
+
+	_, err = s.pg.CreatePlacements(ctx, []domain.Placement{
+		{TerritorySlug: "batch-yard", ModelSlug: "batch-pump", Scale: unit},
+		{TerritorySlug: "batch-yard", ModelSlug: "no-such-model", Scale: unit},
+	})
+	assert.ErrorIs(s.T(), err, domain.ErrTerritoryNotFound)
+	listed, err := s.pg.ListPlacements(ctx, "batch-yard")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(listed), 2, "the refused batch must leave its first item behind nowhere")
+}

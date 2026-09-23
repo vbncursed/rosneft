@@ -160,3 +160,17 @@ func artifactsToProto[P any](in []domain.Artifact, conv func(domain.Artifact) P)
 	}
 	return out
 }
+
+// placementFromCreateRequest maps one create request (alone, or an item of a
+// batch) onto a domain placement.
+func placementFromCreateRequest(req *catalogv1.CreatePlacementRequest) domain.Placement {
+	return domain.Placement{
+		TerritorySlug:      req.GetTerritorySlug(),
+		ModelSlug:          req.GetModelSlug(),
+		Position:           vec3FromProto(req.GetPosition()),
+		Rotation:           vec3FromProto(req.GetRotation()),
+		Scale:              vec3FromProto(req.GetScale()),
+		Label:              req.GetLabel(),
+		VisiblePanoramaIDs: req.GetVisiblePanoramaIds(),
+	}
+}
