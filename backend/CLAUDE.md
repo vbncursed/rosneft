@@ -302,8 +302,8 @@ The trigger logic is SQL, so it is covered by integration tests:
 `integration` build tag. They are not the only ones in the repo —
 `catalog-service/internal/storage/*_integration_test.go` (blob scoping, the
 placement territory scope, model delete, list counts, the measurement territory
-scope and points constraint, and the rescale CTE over placements and
-measurements),
+scope and points constraint, and the rescale CTE over placements,
+measurements and panoramas),
 `content-service/internal/storage/territory_scope_integration_test.go` (panorama
 and document territory scope, including the allowlist scrub),
 `auth-service/internal/storage/users/set_totp_required_integration_test.go`,

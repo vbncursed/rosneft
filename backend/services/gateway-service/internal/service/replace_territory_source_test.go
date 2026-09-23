@@ -9,8 +9,8 @@ import (
 )
 
 // These tests extend TerritoriesSuite (defined in territories_test.go) with the
-// multi-step ReplaceTerritorySource flow: update(new hash only) → capture
-// rescale baseline from the old LOD0 → clear artifacts → re-queue conversion.
+// multi-step ReplaceTerritorySource flow: capture rescale baseline from the old
+// LOD0 → update(new hash only) → clear artifacts → re-queue conversion.
 // No GetTerritory/UpsertTerritory is expected: a replace that wrote the whole
 // row back would revert a title edit made since it read it.
 
@@ -29,6 +29,8 @@ func (s *TerritoriesSuite) TestReplaceSourceRejectsEmptyInputs() {
 }
 
 func (s *TerritoriesSuite) TestReplaceSourceReturnsNotFoundForUnknown() {
+	s.cat.GetTerritoryArtifactMock.Expect(s.ctx, "missing", uint32(0)).
+		Return(domain.Artifact{}, domain.ErrArtifactNotFound)
 	s.cat.UpdateTerritoryMock.Expect(s.ctx, "missing", domain.TerritoryUpdate{SourceBlobHash: new("h2")}).
 		Return(domain.Territory{}, domain.ErrTerritoryNotFound)
 	_, _, err := s.svc.ReplaceTerritorySource(s.ctx, "missing", "h2", rootScope)
@@ -91,4 +93,18 @@ func (s *TerritoriesSuite) TestReplaceSourceSurfacesMeshErrorWithSavedTerritory(
 	assert.ErrorContains(s.T(), err, "redis down")
 	assert.Equal(s.T(), out.SourceBlobHash, "new")
 	assert.Equal(s.T(), job.ID, "")
+}
+
+// The baseline is captured before the hash is swapped: a failure there must
+// leave the territory on its old source rather than on a new hash with the old
+// artifacts and no job. UpdateTerritory is left unmocked, so any call fails.
+func (s *TerritoriesSuite) TestReplaceSourceBaselineFailureLeavesTheSourceAlone() {
+	s.cat.GetTerritoryArtifactMock.Expect(s.ctx, "t1", uint32(0)).Return(domain.Artifact{
+		BBoxMin: domain.Vec3{X: 2, Y: -1, Z: 0},
+		BBoxMax: domain.Vec3{X: 12, Y: 3, Z: 4},
+	}, nil)
+	s.cat.SetTerritoryRescaleBaselineMock.Return(errors.New("catalog down"))
+
+	_, _, err := s.svc.ReplaceTerritorySource(s.ctx, "t1", "new", rootScope)
+	assert.ErrorContains(s.T(), err, "catalog down")
 }

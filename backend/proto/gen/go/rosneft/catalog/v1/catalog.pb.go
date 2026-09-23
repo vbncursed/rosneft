@@ -2088,7 +2088,8 @@ type SetTerritoryRescaleBaselineRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TerritorySlug string                 `protobuf:"bytes,1,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
 	SourceMax     float64                `protobuf:"fixed64,2,opt,name=source_max,json=sourceMax,proto3" json:"source_max,omitempty"`
-	// Center of the same source bbox. Unset reads as the origin.
+	// Center of the same source bbox. Required; a request without it is refused
+	// (InvalidArgument).
 	SourceCenter  *Vec3 `protobuf:"bytes,3,opt,name=source_center,json=sourceCenter,proto3" json:"source_center,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2181,17 +2182,22 @@ func (*SetTerritoryRescaleBaselineResponse) Descriptor() ([]byte, []int) {
 	return file_rosneft_catalog_v1_catalog_proto_rawDescGZIP(), []int{37}
 }
 
-// RescaleTerritoryPlacements applies a pending rescale baseline: it scales
-// every placement's position and scale, and every measurement point, by
-// old_max / new_source_max and clears the baseline, atomically. A no-op when no
-// baseline is set. The response reports how many placements were changed
-// (measurements are not counted).
+// RescaleTerritoryPlacements applies a pending rescale baseline: every
+// placement position, measurement point and panorama anchor becomes
+// s·(old_max/new_source_max) + (old_center − new_source_center)·2/new_source_max,
+// placement scale is multiplied by old_max/new_source_max, and the baseline
+// is cleared — atomically. A baseline with no center shifts nothing. A no-op
+// when no baseline is set. The response reports how many placements were
+// changed (measurements and panoramas are not counted).
 type RescaleTerritoryPlacementsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TerritorySlug string                 `protobuf:"bytes,1,opt,name=territory_slug,json=territorySlug,proto3" json:"territory_slug,omitempty"`
 	NewSourceMax  float64                `protobuf:"fixed64,2,opt,name=new_source_max,json=newSourceMax,proto3" json:"new_source_max,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Center of the new LOD0 source bbox. Required; a request without it is
+	// refused (InvalidArgument).
+	NewSourceCenter *Vec3 `protobuf:"bytes,3,opt,name=new_source_center,json=newSourceCenter,proto3" json:"new_source_center,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *RescaleTerritoryPlacementsRequest) Reset() {
@@ -2236,6 +2242,13 @@ func (x *RescaleTerritoryPlacementsRequest) GetNewSourceMax() float64 {
 		return x.NewSourceMax
 	}
 	return 0
+}
+
+func (x *RescaleTerritoryPlacementsRequest) GetNewSourceCenter() *Vec3 {
+	if x != nil {
+		return x.NewSourceCenter
+	}
+	return nil
 }
 
 type RescaleTerritoryPlacementsResponse struct {
@@ -4201,10 +4214,11 @@ const file_rosneft_catalog_v1_catalog_proto_rawDesc = "" +
 	"\n" +
 	"source_max\x18\x02 \x01(\x01R\tsourceMax\x12=\n" +
 	"\rsource_center\x18\x03 \x01(\v2\x18.rosneft.catalog.v1.Vec3R\fsourceCenter\"%\n" +
-	"#SetTerritoryRescaleBaselineResponse\"p\n" +
+	"#SetTerritoryRescaleBaselineResponse\"\xb6\x01\n" +
 	"!RescaleTerritoryPlacementsRequest\x12%\n" +
 	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\x12$\n" +
-	"\x0enew_source_max\x18\x02 \x01(\x01R\fnewSourceMax\">\n" +
+	"\x0enew_source_max\x18\x02 \x01(\x01R\fnewSourceMax\x12D\n" +
+	"\x11new_source_center\x18\x03 \x01(\v2\x18.rosneft.catalog.v1.Vec3R\x0fnewSourceCenter\">\n" +
 	"\"RescaleTerritoryPlacementsResponse\x12\x18\n" +
 	"\aupdated\x18\x01 \x01(\rR\aupdated\"\x13\n" +
 	"\x11ListModelsRequest\"G\n" +
@@ -4469,101 +4483,102 @@ var file_rosneft_catalog_v1_catalog_proto_depIdxs = []int32{
 	3,  // 27: rosneft.catalog.v1.ListTerritoryArtifactsResponse.artifacts:type_name -> rosneft.catalog.v1.TerritoryArtifact
 	3,  // 28: rosneft.catalog.v1.GetTerritoryArtifactResponse.artifact:type_name -> rosneft.catalog.v1.TerritoryArtifact
 	0,  // 29: rosneft.catalog.v1.SetTerritoryRescaleBaselineRequest.source_center:type_name -> rosneft.catalog.v1.Vec3
-	2,  // 30: rosneft.catalog.v1.ListModelsResponse.models:type_name -> rosneft.catalog.v1.Model
-	2,  // 31: rosneft.catalog.v1.GetModelResponse.model:type_name -> rosneft.catalog.v1.Model
-	2,  // 32: rosneft.catalog.v1.UpsertModelRequest.model:type_name -> rosneft.catalog.v1.Model
-	2,  // 33: rosneft.catalog.v1.UpsertModelResponse.model:type_name -> rosneft.catalog.v1.Model
-	2,  // 34: rosneft.catalog.v1.UpdateModelResponse.model:type_name -> rosneft.catalog.v1.Model
-	4,  // 35: rosneft.catalog.v1.RegisterModelArtifactRequest.artifact:type_name -> rosneft.catalog.v1.ModelArtifact
-	4,  // 36: rosneft.catalog.v1.RegisterModelArtifactResponse.artifact:type_name -> rosneft.catalog.v1.ModelArtifact
-	4,  // 37: rosneft.catalog.v1.ListModelArtifactsResponse.artifacts:type_name -> rosneft.catalog.v1.ModelArtifact
-	4,  // 38: rosneft.catalog.v1.GetModelArtifactResponse.artifact:type_name -> rosneft.catalog.v1.ModelArtifact
-	5,  // 39: rosneft.catalog.v1.ListPlacementsResponse.placements:type_name -> rosneft.catalog.v1.Placement
-	0,  // 40: rosneft.catalog.v1.CreatePlacementRequest.position:type_name -> rosneft.catalog.v1.Vec3
-	0,  // 41: rosneft.catalog.v1.CreatePlacementRequest.rotation:type_name -> rosneft.catalog.v1.Vec3
-	0,  // 42: rosneft.catalog.v1.CreatePlacementRequest.scale:type_name -> rosneft.catalog.v1.Vec3
-	5,  // 43: rosneft.catalog.v1.CreatePlacementResponse.placement:type_name -> rosneft.catalog.v1.Placement
-	0,  // 44: rosneft.catalog.v1.UpdatePlacementRequest.position:type_name -> rosneft.catalog.v1.Vec3
-	0,  // 45: rosneft.catalog.v1.UpdatePlacementRequest.rotation:type_name -> rosneft.catalog.v1.Vec3
-	0,  // 46: rosneft.catalog.v1.UpdatePlacementRequest.scale:type_name -> rosneft.catalog.v1.Vec3
-	5,  // 47: rosneft.catalog.v1.UpdatePlacementResponse.placement:type_name -> rosneft.catalog.v1.Placement
-	5,  // 48: rosneft.catalog.v1.SetPlacementVisibilityResponse.placement:type_name -> rosneft.catalog.v1.Placement
-	6,  // 49: rosneft.catalog.v1.ListMeasurementsResponse.measurements:type_name -> rosneft.catalog.v1.Measurement
-	6,  // 50: rosneft.catalog.v1.CreateMeasurementResponse.measurement:type_name -> rosneft.catalog.v1.Measurement
-	6,  // 51: rosneft.catalog.v1.UpdateMeasurementResponse.measurement:type_name -> rosneft.catalog.v1.Measurement
-	7,  // 52: rosneft.catalog.v1.CatalogService.ListTerritories:input_type -> rosneft.catalog.v1.ListTerritoriesRequest
-	9,  // 53: rosneft.catalog.v1.CatalogService.ResolveTerritorySlugs:input_type -> rosneft.catalog.v1.ResolveTerritorySlugsRequest
-	14, // 54: rosneft.catalog.v1.CatalogService.ResolveLabels:input_type -> rosneft.catalog.v1.ResolveLabelsRequest
-	12, // 55: rosneft.catalog.v1.CatalogService.ResolveBlobAccess:input_type -> rosneft.catalog.v1.ResolveBlobAccessRequest
-	16, // 56: rosneft.catalog.v1.CatalogService.GetTerritory:input_type -> rosneft.catalog.v1.GetTerritoryRequest
-	22, // 57: rosneft.catalog.v1.CatalogService.UpsertTerritory:input_type -> rosneft.catalog.v1.UpsertTerritoryRequest
-	24, // 58: rosneft.catalog.v1.CatalogService.UpdateTerritory:input_type -> rosneft.catalog.v1.UpdateTerritoryRequest
-	26, // 59: rosneft.catalog.v1.CatalogService.DeleteTerritory:input_type -> rosneft.catalog.v1.DeleteTerritoryRequest
-	28, // 60: rosneft.catalog.v1.CatalogService.RegisterTerritoryArtifact:input_type -> rosneft.catalog.v1.RegisterTerritoryArtifactRequest
-	30, // 61: rosneft.catalog.v1.CatalogService.ListTerritoryArtifacts:input_type -> rosneft.catalog.v1.ListTerritoryArtifactsRequest
-	32, // 62: rosneft.catalog.v1.CatalogService.GetTerritoryArtifact:input_type -> rosneft.catalog.v1.GetTerritoryArtifactRequest
-	34, // 63: rosneft.catalog.v1.CatalogService.DeleteTerritoryArtifacts:input_type -> rosneft.catalog.v1.DeleteTerritoryArtifactsRequest
-	36, // 64: rosneft.catalog.v1.CatalogService.SetTerritoryRescaleBaseline:input_type -> rosneft.catalog.v1.SetTerritoryRescaleBaselineRequest
-	38, // 65: rosneft.catalog.v1.CatalogService.RescaleTerritoryPlacements:input_type -> rosneft.catalog.v1.RescaleTerritoryPlacementsRequest
-	18, // 66: rosneft.catalog.v1.CatalogService.SetTerritoryAdmins:input_type -> rosneft.catalog.v1.SetTerritoryAdminsRequest
-	20, // 67: rosneft.catalog.v1.CatalogService.GetTerritoryAdmins:input_type -> rosneft.catalog.v1.GetTerritoryAdminsRequest
-	40, // 68: rosneft.catalog.v1.CatalogService.ListModels:input_type -> rosneft.catalog.v1.ListModelsRequest
-	42, // 69: rosneft.catalog.v1.CatalogService.GetModel:input_type -> rosneft.catalog.v1.GetModelRequest
-	44, // 70: rosneft.catalog.v1.CatalogService.UpsertModel:input_type -> rosneft.catalog.v1.UpsertModelRequest
-	46, // 71: rosneft.catalog.v1.CatalogService.UpdateModel:input_type -> rosneft.catalog.v1.UpdateModelRequest
-	48, // 72: rosneft.catalog.v1.CatalogService.DeleteModel:input_type -> rosneft.catalog.v1.DeleteModelRequest
-	50, // 73: rosneft.catalog.v1.CatalogService.RegisterModelArtifact:input_type -> rosneft.catalog.v1.RegisterModelArtifactRequest
-	52, // 74: rosneft.catalog.v1.CatalogService.ListModelArtifacts:input_type -> rosneft.catalog.v1.ListModelArtifactsRequest
-	54, // 75: rosneft.catalog.v1.CatalogService.GetModelArtifact:input_type -> rosneft.catalog.v1.GetModelArtifactRequest
-	56, // 76: rosneft.catalog.v1.CatalogService.ListPlacements:input_type -> rosneft.catalog.v1.ListPlacementsRequest
-	58, // 77: rosneft.catalog.v1.CatalogService.CreatePlacement:input_type -> rosneft.catalog.v1.CreatePlacementRequest
-	60, // 78: rosneft.catalog.v1.CatalogService.UpdatePlacement:input_type -> rosneft.catalog.v1.UpdatePlacementRequest
-	62, // 79: rosneft.catalog.v1.CatalogService.SetPlacementVisibility:input_type -> rosneft.catalog.v1.SetPlacementVisibilityRequest
-	64, // 80: rosneft.catalog.v1.CatalogService.DeletePlacement:input_type -> rosneft.catalog.v1.DeletePlacementRequest
-	66, // 81: rosneft.catalog.v1.CatalogService.ListMeasurements:input_type -> rosneft.catalog.v1.ListMeasurementsRequest
-	68, // 82: rosneft.catalog.v1.CatalogService.CreateMeasurement:input_type -> rosneft.catalog.v1.CreateMeasurementRequest
-	70, // 83: rosneft.catalog.v1.CatalogService.UpdateMeasurement:input_type -> rosneft.catalog.v1.UpdateMeasurementRequest
-	72, // 84: rosneft.catalog.v1.CatalogService.DeleteMeasurement:input_type -> rosneft.catalog.v1.DeleteMeasurementRequest
-	74, // 85: rosneft.catalog.v1.CatalogService.DeleteMeasurements:input_type -> rosneft.catalog.v1.DeleteMeasurementsRequest
-	8,  // 86: rosneft.catalog.v1.CatalogService.ListTerritories:output_type -> rosneft.catalog.v1.ListTerritoriesResponse
-	10, // 87: rosneft.catalog.v1.CatalogService.ResolveTerritorySlugs:output_type -> rosneft.catalog.v1.ResolveTerritorySlugsResponse
-	15, // 88: rosneft.catalog.v1.CatalogService.ResolveLabels:output_type -> rosneft.catalog.v1.ResolveLabelsResponse
-	13, // 89: rosneft.catalog.v1.CatalogService.ResolveBlobAccess:output_type -> rosneft.catalog.v1.ResolveBlobAccessResponse
-	17, // 90: rosneft.catalog.v1.CatalogService.GetTerritory:output_type -> rosneft.catalog.v1.GetTerritoryResponse
-	23, // 91: rosneft.catalog.v1.CatalogService.UpsertTerritory:output_type -> rosneft.catalog.v1.UpsertTerritoryResponse
-	25, // 92: rosneft.catalog.v1.CatalogService.UpdateTerritory:output_type -> rosneft.catalog.v1.UpdateTerritoryResponse
-	27, // 93: rosneft.catalog.v1.CatalogService.DeleteTerritory:output_type -> rosneft.catalog.v1.DeleteTerritoryResponse
-	29, // 94: rosneft.catalog.v1.CatalogService.RegisterTerritoryArtifact:output_type -> rosneft.catalog.v1.RegisterTerritoryArtifactResponse
-	31, // 95: rosneft.catalog.v1.CatalogService.ListTerritoryArtifacts:output_type -> rosneft.catalog.v1.ListTerritoryArtifactsResponse
-	33, // 96: rosneft.catalog.v1.CatalogService.GetTerritoryArtifact:output_type -> rosneft.catalog.v1.GetTerritoryArtifactResponse
-	35, // 97: rosneft.catalog.v1.CatalogService.DeleteTerritoryArtifacts:output_type -> rosneft.catalog.v1.DeleteTerritoryArtifactsResponse
-	37, // 98: rosneft.catalog.v1.CatalogService.SetTerritoryRescaleBaseline:output_type -> rosneft.catalog.v1.SetTerritoryRescaleBaselineResponse
-	39, // 99: rosneft.catalog.v1.CatalogService.RescaleTerritoryPlacements:output_type -> rosneft.catalog.v1.RescaleTerritoryPlacementsResponse
-	19, // 100: rosneft.catalog.v1.CatalogService.SetTerritoryAdmins:output_type -> rosneft.catalog.v1.SetTerritoryAdminsResponse
-	21, // 101: rosneft.catalog.v1.CatalogService.GetTerritoryAdmins:output_type -> rosneft.catalog.v1.GetTerritoryAdminsResponse
-	41, // 102: rosneft.catalog.v1.CatalogService.ListModels:output_type -> rosneft.catalog.v1.ListModelsResponse
-	43, // 103: rosneft.catalog.v1.CatalogService.GetModel:output_type -> rosneft.catalog.v1.GetModelResponse
-	45, // 104: rosneft.catalog.v1.CatalogService.UpsertModel:output_type -> rosneft.catalog.v1.UpsertModelResponse
-	47, // 105: rosneft.catalog.v1.CatalogService.UpdateModel:output_type -> rosneft.catalog.v1.UpdateModelResponse
-	49, // 106: rosneft.catalog.v1.CatalogService.DeleteModel:output_type -> rosneft.catalog.v1.DeleteModelResponse
-	51, // 107: rosneft.catalog.v1.CatalogService.RegisterModelArtifact:output_type -> rosneft.catalog.v1.RegisterModelArtifactResponse
-	53, // 108: rosneft.catalog.v1.CatalogService.ListModelArtifacts:output_type -> rosneft.catalog.v1.ListModelArtifactsResponse
-	55, // 109: rosneft.catalog.v1.CatalogService.GetModelArtifact:output_type -> rosneft.catalog.v1.GetModelArtifactResponse
-	57, // 110: rosneft.catalog.v1.CatalogService.ListPlacements:output_type -> rosneft.catalog.v1.ListPlacementsResponse
-	59, // 111: rosneft.catalog.v1.CatalogService.CreatePlacement:output_type -> rosneft.catalog.v1.CreatePlacementResponse
-	61, // 112: rosneft.catalog.v1.CatalogService.UpdatePlacement:output_type -> rosneft.catalog.v1.UpdatePlacementResponse
-	63, // 113: rosneft.catalog.v1.CatalogService.SetPlacementVisibility:output_type -> rosneft.catalog.v1.SetPlacementVisibilityResponse
-	65, // 114: rosneft.catalog.v1.CatalogService.DeletePlacement:output_type -> rosneft.catalog.v1.DeletePlacementResponse
-	67, // 115: rosneft.catalog.v1.CatalogService.ListMeasurements:output_type -> rosneft.catalog.v1.ListMeasurementsResponse
-	69, // 116: rosneft.catalog.v1.CatalogService.CreateMeasurement:output_type -> rosneft.catalog.v1.CreateMeasurementResponse
-	71, // 117: rosneft.catalog.v1.CatalogService.UpdateMeasurement:output_type -> rosneft.catalog.v1.UpdateMeasurementResponse
-	73, // 118: rosneft.catalog.v1.CatalogService.DeleteMeasurement:output_type -> rosneft.catalog.v1.DeleteMeasurementResponse
-	75, // 119: rosneft.catalog.v1.CatalogService.DeleteMeasurements:output_type -> rosneft.catalog.v1.DeleteMeasurementsResponse
-	86, // [86:120] is the sub-list for method output_type
-	52, // [52:86] is the sub-list for method input_type
-	52, // [52:52] is the sub-list for extension type_name
-	52, // [52:52] is the sub-list for extension extendee
-	0,  // [0:52] is the sub-list for field type_name
+	0,  // 30: rosneft.catalog.v1.RescaleTerritoryPlacementsRequest.new_source_center:type_name -> rosneft.catalog.v1.Vec3
+	2,  // 31: rosneft.catalog.v1.ListModelsResponse.models:type_name -> rosneft.catalog.v1.Model
+	2,  // 32: rosneft.catalog.v1.GetModelResponse.model:type_name -> rosneft.catalog.v1.Model
+	2,  // 33: rosneft.catalog.v1.UpsertModelRequest.model:type_name -> rosneft.catalog.v1.Model
+	2,  // 34: rosneft.catalog.v1.UpsertModelResponse.model:type_name -> rosneft.catalog.v1.Model
+	2,  // 35: rosneft.catalog.v1.UpdateModelResponse.model:type_name -> rosneft.catalog.v1.Model
+	4,  // 36: rosneft.catalog.v1.RegisterModelArtifactRequest.artifact:type_name -> rosneft.catalog.v1.ModelArtifact
+	4,  // 37: rosneft.catalog.v1.RegisterModelArtifactResponse.artifact:type_name -> rosneft.catalog.v1.ModelArtifact
+	4,  // 38: rosneft.catalog.v1.ListModelArtifactsResponse.artifacts:type_name -> rosneft.catalog.v1.ModelArtifact
+	4,  // 39: rosneft.catalog.v1.GetModelArtifactResponse.artifact:type_name -> rosneft.catalog.v1.ModelArtifact
+	5,  // 40: rosneft.catalog.v1.ListPlacementsResponse.placements:type_name -> rosneft.catalog.v1.Placement
+	0,  // 41: rosneft.catalog.v1.CreatePlacementRequest.position:type_name -> rosneft.catalog.v1.Vec3
+	0,  // 42: rosneft.catalog.v1.CreatePlacementRequest.rotation:type_name -> rosneft.catalog.v1.Vec3
+	0,  // 43: rosneft.catalog.v1.CreatePlacementRequest.scale:type_name -> rosneft.catalog.v1.Vec3
+	5,  // 44: rosneft.catalog.v1.CreatePlacementResponse.placement:type_name -> rosneft.catalog.v1.Placement
+	0,  // 45: rosneft.catalog.v1.UpdatePlacementRequest.position:type_name -> rosneft.catalog.v1.Vec3
+	0,  // 46: rosneft.catalog.v1.UpdatePlacementRequest.rotation:type_name -> rosneft.catalog.v1.Vec3
+	0,  // 47: rosneft.catalog.v1.UpdatePlacementRequest.scale:type_name -> rosneft.catalog.v1.Vec3
+	5,  // 48: rosneft.catalog.v1.UpdatePlacementResponse.placement:type_name -> rosneft.catalog.v1.Placement
+	5,  // 49: rosneft.catalog.v1.SetPlacementVisibilityResponse.placement:type_name -> rosneft.catalog.v1.Placement
+	6,  // 50: rosneft.catalog.v1.ListMeasurementsResponse.measurements:type_name -> rosneft.catalog.v1.Measurement
+	6,  // 51: rosneft.catalog.v1.CreateMeasurementResponse.measurement:type_name -> rosneft.catalog.v1.Measurement
+	6,  // 52: rosneft.catalog.v1.UpdateMeasurementResponse.measurement:type_name -> rosneft.catalog.v1.Measurement
+	7,  // 53: rosneft.catalog.v1.CatalogService.ListTerritories:input_type -> rosneft.catalog.v1.ListTerritoriesRequest
+	9,  // 54: rosneft.catalog.v1.CatalogService.ResolveTerritorySlugs:input_type -> rosneft.catalog.v1.ResolveTerritorySlugsRequest
+	14, // 55: rosneft.catalog.v1.CatalogService.ResolveLabels:input_type -> rosneft.catalog.v1.ResolveLabelsRequest
+	12, // 56: rosneft.catalog.v1.CatalogService.ResolveBlobAccess:input_type -> rosneft.catalog.v1.ResolveBlobAccessRequest
+	16, // 57: rosneft.catalog.v1.CatalogService.GetTerritory:input_type -> rosneft.catalog.v1.GetTerritoryRequest
+	22, // 58: rosneft.catalog.v1.CatalogService.UpsertTerritory:input_type -> rosneft.catalog.v1.UpsertTerritoryRequest
+	24, // 59: rosneft.catalog.v1.CatalogService.UpdateTerritory:input_type -> rosneft.catalog.v1.UpdateTerritoryRequest
+	26, // 60: rosneft.catalog.v1.CatalogService.DeleteTerritory:input_type -> rosneft.catalog.v1.DeleteTerritoryRequest
+	28, // 61: rosneft.catalog.v1.CatalogService.RegisterTerritoryArtifact:input_type -> rosneft.catalog.v1.RegisterTerritoryArtifactRequest
+	30, // 62: rosneft.catalog.v1.CatalogService.ListTerritoryArtifacts:input_type -> rosneft.catalog.v1.ListTerritoryArtifactsRequest
+	32, // 63: rosneft.catalog.v1.CatalogService.GetTerritoryArtifact:input_type -> rosneft.catalog.v1.GetTerritoryArtifactRequest
+	34, // 64: rosneft.catalog.v1.CatalogService.DeleteTerritoryArtifacts:input_type -> rosneft.catalog.v1.DeleteTerritoryArtifactsRequest
+	36, // 65: rosneft.catalog.v1.CatalogService.SetTerritoryRescaleBaseline:input_type -> rosneft.catalog.v1.SetTerritoryRescaleBaselineRequest
+	38, // 66: rosneft.catalog.v1.CatalogService.RescaleTerritoryPlacements:input_type -> rosneft.catalog.v1.RescaleTerritoryPlacementsRequest
+	18, // 67: rosneft.catalog.v1.CatalogService.SetTerritoryAdmins:input_type -> rosneft.catalog.v1.SetTerritoryAdminsRequest
+	20, // 68: rosneft.catalog.v1.CatalogService.GetTerritoryAdmins:input_type -> rosneft.catalog.v1.GetTerritoryAdminsRequest
+	40, // 69: rosneft.catalog.v1.CatalogService.ListModels:input_type -> rosneft.catalog.v1.ListModelsRequest
+	42, // 70: rosneft.catalog.v1.CatalogService.GetModel:input_type -> rosneft.catalog.v1.GetModelRequest
+	44, // 71: rosneft.catalog.v1.CatalogService.UpsertModel:input_type -> rosneft.catalog.v1.UpsertModelRequest
+	46, // 72: rosneft.catalog.v1.CatalogService.UpdateModel:input_type -> rosneft.catalog.v1.UpdateModelRequest
+	48, // 73: rosneft.catalog.v1.CatalogService.DeleteModel:input_type -> rosneft.catalog.v1.DeleteModelRequest
+	50, // 74: rosneft.catalog.v1.CatalogService.RegisterModelArtifact:input_type -> rosneft.catalog.v1.RegisterModelArtifactRequest
+	52, // 75: rosneft.catalog.v1.CatalogService.ListModelArtifacts:input_type -> rosneft.catalog.v1.ListModelArtifactsRequest
+	54, // 76: rosneft.catalog.v1.CatalogService.GetModelArtifact:input_type -> rosneft.catalog.v1.GetModelArtifactRequest
+	56, // 77: rosneft.catalog.v1.CatalogService.ListPlacements:input_type -> rosneft.catalog.v1.ListPlacementsRequest
+	58, // 78: rosneft.catalog.v1.CatalogService.CreatePlacement:input_type -> rosneft.catalog.v1.CreatePlacementRequest
+	60, // 79: rosneft.catalog.v1.CatalogService.UpdatePlacement:input_type -> rosneft.catalog.v1.UpdatePlacementRequest
+	62, // 80: rosneft.catalog.v1.CatalogService.SetPlacementVisibility:input_type -> rosneft.catalog.v1.SetPlacementVisibilityRequest
+	64, // 81: rosneft.catalog.v1.CatalogService.DeletePlacement:input_type -> rosneft.catalog.v1.DeletePlacementRequest
+	66, // 82: rosneft.catalog.v1.CatalogService.ListMeasurements:input_type -> rosneft.catalog.v1.ListMeasurementsRequest
+	68, // 83: rosneft.catalog.v1.CatalogService.CreateMeasurement:input_type -> rosneft.catalog.v1.CreateMeasurementRequest
+	70, // 84: rosneft.catalog.v1.CatalogService.UpdateMeasurement:input_type -> rosneft.catalog.v1.UpdateMeasurementRequest
+	72, // 85: rosneft.catalog.v1.CatalogService.DeleteMeasurement:input_type -> rosneft.catalog.v1.DeleteMeasurementRequest
+	74, // 86: rosneft.catalog.v1.CatalogService.DeleteMeasurements:input_type -> rosneft.catalog.v1.DeleteMeasurementsRequest
+	8,  // 87: rosneft.catalog.v1.CatalogService.ListTerritories:output_type -> rosneft.catalog.v1.ListTerritoriesResponse
+	10, // 88: rosneft.catalog.v1.CatalogService.ResolveTerritorySlugs:output_type -> rosneft.catalog.v1.ResolveTerritorySlugsResponse
+	15, // 89: rosneft.catalog.v1.CatalogService.ResolveLabels:output_type -> rosneft.catalog.v1.ResolveLabelsResponse
+	13, // 90: rosneft.catalog.v1.CatalogService.ResolveBlobAccess:output_type -> rosneft.catalog.v1.ResolveBlobAccessResponse
+	17, // 91: rosneft.catalog.v1.CatalogService.GetTerritory:output_type -> rosneft.catalog.v1.GetTerritoryResponse
+	23, // 92: rosneft.catalog.v1.CatalogService.UpsertTerritory:output_type -> rosneft.catalog.v1.UpsertTerritoryResponse
+	25, // 93: rosneft.catalog.v1.CatalogService.UpdateTerritory:output_type -> rosneft.catalog.v1.UpdateTerritoryResponse
+	27, // 94: rosneft.catalog.v1.CatalogService.DeleteTerritory:output_type -> rosneft.catalog.v1.DeleteTerritoryResponse
+	29, // 95: rosneft.catalog.v1.CatalogService.RegisterTerritoryArtifact:output_type -> rosneft.catalog.v1.RegisterTerritoryArtifactResponse
+	31, // 96: rosneft.catalog.v1.CatalogService.ListTerritoryArtifacts:output_type -> rosneft.catalog.v1.ListTerritoryArtifactsResponse
+	33, // 97: rosneft.catalog.v1.CatalogService.GetTerritoryArtifact:output_type -> rosneft.catalog.v1.GetTerritoryArtifactResponse
+	35, // 98: rosneft.catalog.v1.CatalogService.DeleteTerritoryArtifacts:output_type -> rosneft.catalog.v1.DeleteTerritoryArtifactsResponse
+	37, // 99: rosneft.catalog.v1.CatalogService.SetTerritoryRescaleBaseline:output_type -> rosneft.catalog.v1.SetTerritoryRescaleBaselineResponse
+	39, // 100: rosneft.catalog.v1.CatalogService.RescaleTerritoryPlacements:output_type -> rosneft.catalog.v1.RescaleTerritoryPlacementsResponse
+	19, // 101: rosneft.catalog.v1.CatalogService.SetTerritoryAdmins:output_type -> rosneft.catalog.v1.SetTerritoryAdminsResponse
+	21, // 102: rosneft.catalog.v1.CatalogService.GetTerritoryAdmins:output_type -> rosneft.catalog.v1.GetTerritoryAdminsResponse
+	41, // 103: rosneft.catalog.v1.CatalogService.ListModels:output_type -> rosneft.catalog.v1.ListModelsResponse
+	43, // 104: rosneft.catalog.v1.CatalogService.GetModel:output_type -> rosneft.catalog.v1.GetModelResponse
+	45, // 105: rosneft.catalog.v1.CatalogService.UpsertModel:output_type -> rosneft.catalog.v1.UpsertModelResponse
+	47, // 106: rosneft.catalog.v1.CatalogService.UpdateModel:output_type -> rosneft.catalog.v1.UpdateModelResponse
+	49, // 107: rosneft.catalog.v1.CatalogService.DeleteModel:output_type -> rosneft.catalog.v1.DeleteModelResponse
+	51, // 108: rosneft.catalog.v1.CatalogService.RegisterModelArtifact:output_type -> rosneft.catalog.v1.RegisterModelArtifactResponse
+	53, // 109: rosneft.catalog.v1.CatalogService.ListModelArtifacts:output_type -> rosneft.catalog.v1.ListModelArtifactsResponse
+	55, // 110: rosneft.catalog.v1.CatalogService.GetModelArtifact:output_type -> rosneft.catalog.v1.GetModelArtifactResponse
+	57, // 111: rosneft.catalog.v1.CatalogService.ListPlacements:output_type -> rosneft.catalog.v1.ListPlacementsResponse
+	59, // 112: rosneft.catalog.v1.CatalogService.CreatePlacement:output_type -> rosneft.catalog.v1.CreatePlacementResponse
+	61, // 113: rosneft.catalog.v1.CatalogService.UpdatePlacement:output_type -> rosneft.catalog.v1.UpdatePlacementResponse
+	63, // 114: rosneft.catalog.v1.CatalogService.SetPlacementVisibility:output_type -> rosneft.catalog.v1.SetPlacementVisibilityResponse
+	65, // 115: rosneft.catalog.v1.CatalogService.DeletePlacement:output_type -> rosneft.catalog.v1.DeletePlacementResponse
+	67, // 116: rosneft.catalog.v1.CatalogService.ListMeasurements:output_type -> rosneft.catalog.v1.ListMeasurementsResponse
+	69, // 117: rosneft.catalog.v1.CatalogService.CreateMeasurement:output_type -> rosneft.catalog.v1.CreateMeasurementResponse
+	71, // 118: rosneft.catalog.v1.CatalogService.UpdateMeasurement:output_type -> rosneft.catalog.v1.UpdateMeasurementResponse
+	73, // 119: rosneft.catalog.v1.CatalogService.DeleteMeasurement:output_type -> rosneft.catalog.v1.DeleteMeasurementResponse
+	75, // 120: rosneft.catalog.v1.CatalogService.DeleteMeasurements:output_type -> rosneft.catalog.v1.DeleteMeasurementsResponse
+	87, // [87:121] is the sub-list for method output_type
+	53, // [53:87] is the sub-list for method input_type
+	53, // [53:53] is the sub-list for extension type_name
+	53, // [53:53] is the sub-list for extension extendee
+	0,  // [0:53] is the sub-list for field type_name
 }
 
 func init() { file_rosneft_catalog_v1_catalog_proto_init() }
