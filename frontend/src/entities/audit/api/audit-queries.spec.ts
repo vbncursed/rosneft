@@ -26,4 +26,11 @@ describe("audit queries", () => {
     expect(auditActorsQuery.queryKey).toEqual(["audit", "actors"]);
     expect(auditWindowQuery("2026-09-01T00:00:00Z").queryKey).toEqual(["audit", "window", "2026-09-01T00:00:00Z"]);
   });
+
+  // The journal is a live route: the global 60 s staleTime would open a
+  // remounted journal on a minute-old page with no refetch behind it.
+  it("treats the journal and the 24h window as always stale", () => {
+    expect(auditQuery({}).staleTime).toBe(0);
+    expect(auditWindowQuery("2026-09-22T00:00:00Z").staleTime).toBe(0);
+  });
 });

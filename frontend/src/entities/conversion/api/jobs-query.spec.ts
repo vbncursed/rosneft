@@ -11,4 +11,9 @@ describe("jobsQuery", () => {
     expect(jobsQuery.refetchIntervalInBackground).toBe(false);
     expect(typeof jobsQuery.refetchInterval).toBe("function");
   });
+
+  // The route is no-store: a job started in another tab has to show on mount.
+  it("is always stale, so every mount asks again", () => {
+    expect(jobsQuery.staleTime).toBe(0);
+  });
 });

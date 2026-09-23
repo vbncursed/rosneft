@@ -25,6 +25,8 @@ export const auditQuery = (filters: AuditFilters) =>
     placeholderData: keepPreviousData,
     refetchInterval: (query) => followInterval(query.state.data?.pages.length ?? 0),
     refetchIntervalInBackground: false,
+    // A live journal: the global 60 s staleTime would reopen it on an old page.
+    staleTime: 0,
   });
 
 export const auditActorsQuery = queryOptions({
@@ -37,4 +39,5 @@ export const auditWindowQuery = (from: string) =>
   queryOptions({
     queryKey: ["audit", "window", from],
     queryFn: () => listAudit({ from }, null, WINDOW_LIMIT),
+    staleTime: 0,
   });
