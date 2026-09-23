@@ -37,8 +37,15 @@ const (
 //     planes; +4 for an RGB or CMYK stream, which is converted into a second
 //     4 B/px image after the decode; and, if progressive (SOF2), +4c for the
 //     [64]int32 coefficient block per 8×8 of each component, kept between scans
-//   - PNG: RGBA64/NRGBA64 8, RGBA/NRGBA 4, Gray16 2, Gray and paletted 1,
-//     anything else 8
+//   - PNG: RGBA64/NRGBA64 8, RGBA/NRGBA 4, paletted 1, anything else 8.
+//     Grey counts as 4 and Gray16 as 8: DecodeConfig stops at IHDR, so it
+//     cannot see a tRNS chunk, which makes Decode allocate NRGBA/NRGBA64
+//     instead. An Adam7-interlaced PNG (IHDR's interlace byte) counts twice:
+//     Decode allocates the full image plus one per pass.
+//
+// Outside the budget, draw.BiLinear's scaler allocates a dw·sh [4]float64
+// temporary (~50 MB at 11968×5984, ~67 MB at 8192 rows, ~400 ms). Accepted:
+// decodes are serialised, so there is one at a time.
 //
 // So 11968×5984 (the largest source in prod), baseline YCbCr: ~215 MB, passes;
 // the same size progressive: ~1.07 GB, refused. The worst case, progressive
@@ -125,7 +132,11 @@ func decode(ctx context.Context, store blobstore.Store, hash string) (image.Imag
 func decodeBytes(cfg image.Config, format string, head []byte) int {
 	pixels := cfg.Width * cfg.Height
 	if format != "jpeg" {
-		return pixels * pngBytesPerPixel(cfg.ColorModel)
+		perPixel := pngBytesPerPixel(cfg.ColorModel)
+		if pngInterlaced(head) {
+			perPixel *= 2
+		}
+		return pixels * perPixel
 	}
 	components, converted := 3, 0
 	switch cfg.ColorModel {
@@ -148,15 +159,19 @@ func pngBytesPerPixel(m color.Model) int {
 		return 1
 	}
 	switch m {
-	case color.GrayModel:
-		return 1
-	case color.Gray16Model:
-		return 2
-	case color.RGBAModel, color.NRGBAModel:
+	case color.GrayModel, color.RGBAModel, color.NRGBAModel: // grey: NRGBA with tRNS
 		return 4
-	default:
+	default: // Gray16: NRGBA64 with tRNS
 		return 8
 	}
+}
+
+// pngInterlaced reports IHDR's interlace method byte: the 8-byte signature,
+// the chunk's length and type, then width, height, depth, colour type,
+// compression and filter precede it.
+func pngInterlaced(head []byte) bool {
+	const interlaceAt = 8 + 4 + 4 + 12
+	return len(head) <= interlaceAt || head[interlaceAt] != 0
 }
 
 // jpegProgressive reports whether the frame is progressive (SOF2). It walks

@@ -57,18 +57,21 @@ func gradient(w, h int) image.Image {
 	return img
 }
 
-// PNG colour types and bit depths the guard tells apart.
+// PNG colour types and interlace methods the guard tells apart.
 const (
 	pngGray = 0
 	pngRGBA = 6
+
+	noInterlace = 0
+	adam7       = 1
 )
 
 // pngHeader is a PNG signature plus a valid IHDR and nothing else. That is all
 // DecodeConfig reads, so it can claim any size without the bytes existing.
-func pngHeader(w, h uint32, depth, colorType byte) []byte {
+func pngHeader(w, h uint32, depth, colorType, interlace byte) []byte {
 	ihdr := binary.BigEndian.AppendUint32(nil, w)
 	ihdr = binary.BigEndian.AppendUint32(ihdr, h)
-	ihdr = append(ihdr, depth, colorType, 0, 0, 0) // deflate, no filter, no interlace
+	ihdr = append(ihdr, depth, colorType, 0, 0, interlace) // deflate, no filter
 	chunk := append([]byte("IHDR"), ihdr...)
 	out := []byte("\x89PNG\r\n\x1a\n")
 	out = binary.BigEndian.AppendUint32(out, uint32(len(ihdr)))
@@ -156,11 +159,15 @@ func (s *MakeSuite) TestRefusesASourceWhoseHeaderIsOverTheLimit() {
 		name   string
 		header []byte
 	}{
-		{"too wide", pngHeader(thumbnail.MaxWidth+1, 1, 8, pngGray)},
-		{"too tall", pngHeader(1, thumbnail.MaxHeight+1, 8, pngGray)},
-		{"a bomb", pngHeader(100_000, 100_000, 8, pngGray)},
-		{"16-bit RGBA PNG at the sides' maximum, 8 B/px", pngHeader(thumbnail.MaxWidth, thumbnail.MaxHeight, 16, pngRGBA)},
+		{"too wide", pngHeader(thumbnail.MaxWidth+1, 1, 8, pngGray, noInterlace)},
+		{"too tall", pngHeader(1, thumbnail.MaxHeight+1, 8, pngGray, noInterlace)},
+		{"a bomb", pngHeader(100_000, 100_000, 8, pngGray, noInterlace)},
+		{"16-bit RGBA PNG at the sides' maximum, 8 B/px", pngHeader(thumbnail.MaxWidth, thumbnail.MaxHeight, 16, pngRGBA, noInterlace)},
 		{"progressive JPEG 11968×5984, 15 B/px", jpegHeader(11968, 5984, sof2)},
+		// DecodeConfig stops at IHDR, so a tRNS chunk that turns grey into
+		// NRGBA64 cannot be seen: 16-bit grey counts as 8 B/px.
+		{"16-bit grey PNG at the sides' maximum, 8 B/px if it has tRNS", pngHeader(thumbnail.MaxWidth, thumbnail.MaxHeight, 16, pngGray, noInterlace)},
+		{"interlaced 8-bit grey PNG at the sides' maximum, twice 4 B/px", pngHeader(thumbnail.MaxWidth, thumbnail.MaxHeight, 8, pngGray, adam7)},
 	} {
 		s.Run(tc.name, func() {
 			_, err := thumbnail.Make(s.T().Context(), s.store, s.put(tc.header))
@@ -181,8 +188,9 @@ func (s *MakeSuite) TestLetsASourceWithinTheDecodeBudgetThroughTheGuard() {
 	}{
 		{"baseline JPEG 11968×5984, 3 B/px", jpegHeader(11968, 5984, sof0)},
 		{"baseline JPEG with SOF2 bytes inside an APP1", jpegHeader(11968, 5984, sof0, sof2InPayload)},
-		{"8-bit RGBA PNG 8192×8192, 4 B/px", pngHeader(8192, 8192, 8, pngRGBA)},
-		{"8-bit grey PNG at the sides' maximum, 1 B/px", pngHeader(thumbnail.MaxWidth, thumbnail.MaxHeight, 8, pngGray)},
+		{"8-bit RGBA PNG 8192×8192, 4 B/px", pngHeader(8192, 8192, 8, pngRGBA, noInterlace)},
+		{"interlaced 8-bit RGBA PNG 8192×8192, twice 4 B/px", pngHeader(8192, 8192, 8, pngRGBA, adam7)},
+		{"8-bit grey PNG at the sides' maximum, 4 B/px if it has tRNS", pngHeader(thumbnail.MaxWidth, thumbnail.MaxHeight, 8, pngGray, noInterlace)},
 	} {
 		s.Run(tc.name, func() {
 			_, err := thumbnail.Make(s.T().Context(), s.store, s.put(tc.header))
