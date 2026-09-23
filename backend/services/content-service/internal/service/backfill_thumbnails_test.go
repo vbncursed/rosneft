@@ -95,3 +95,21 @@ func (s *BackfillSuite) TestStopsWhenTheContextEnds() {
 
 	assert.Equal(s.T(), calls, 1)
 }
+
+// A context already dead between two panoramas must not start the next
+// decode, even when every step before it answered without an error.
+func (s *BackfillSuite) TestStartsNoDecodeOnADeadContext() {
+	ctx, cancel := context.WithCancel(s.T().Context())
+	cancel()
+	s.repo.ListPanoramasWithoutThumbnailMock.Return(pending, nil)
+	// SetPanoramaThumbnail is left unset: minimock fails the test on any call.
+	calls := 0
+	thumb := func(context.Context, string) (string, error) {
+		calls++
+		return "t", nil
+	}
+
+	service.New(s.repo, thumb).BackfillThumbnails(ctx)
+
+	assert.Equal(s.T(), calls, 0)
+}
