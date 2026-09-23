@@ -70,6 +70,10 @@ func (s *SchemaSuite) SetupTest() {
 			password_hash         TEXT NOT NULL DEFAULT 'hunter2',
 			password_changed_at   TIMESTAMPTZ,
 			onboarding_tours_seen TEXT[] NOT NULL DEFAULT '{}',
+			rescale_baseline_max      DOUBLE PRECISION,
+			rescale_baseline_center_x DOUBLE PRECISION,
+			rescale_baseline_center_y DOUBLE PRECISION,
+			rescale_baseline_center_z DOUBLE PRECISION,
 			updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 		);
 		CREATE TRIGGER audit_subjects AFTER INSERT OR UPDATE OR DELETE ON subjects
@@ -147,6 +151,24 @@ func (s *SchemaSuite) TestUpdateTouchingOnlyBookkeepingColumnsIsSkipped() {
 
 	_, err = s.pool.Exec(ctx,
 		`UPDATE subjects SET onboarding_tours_seen = ARRAY['viewer'] WHERE slug = 'alpha'`)
+	assert.NilError(s.T(), err)
+
+	var n int
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT count(*) FROM audit_log`).Scan(&n))
+	assert.Equal(s.T(), n, 0)
+}
+
+// A source replace records the old mesh's max axis and center; that is
+// plumbing of the rescale, not an edit anyone made.
+func (s *SchemaSuite) TestUpdateTouchingOnlyTheRescaleBaselineIsSkipped() {
+	ctx := s.T().Context()
+	_, err := s.pool.Exec(ctx, `INSERT INTO subjects (slug, title) VALUES ('alpha', 'Alpha')`)
+	assert.NilError(s.T(), err)
+	s.truncateLog()
+
+	_, err = s.pool.Exec(ctx, `UPDATE subjects SET rescale_baseline_max = 8,
+		rescale_baseline_center_x = 1, rescale_baseline_center_y = 2, rescale_baseline_center_z = 3
+		WHERE slug = 'alpha'`)
 	assert.NilError(s.T(), err)
 
 	var n int

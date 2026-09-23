@@ -228,7 +228,8 @@ migration that `CREATE OR REPLACE`s `ensure_audit_triggers()`, not by editing
 
 `audit_capture()` redacts `password_hash` / `totp_secret` / `code_hash` from
 both snapshots, and drops any UPDATE that touched nothing but `updated_at`,
-`onboarding_tours_seen` or `rescale_baseline_max` — otherwise an idempotent
+`onboarding_tours_seen` or the rescale baseline (`rescale_baseline_max`,
+`rescale_baseline_center_{x,y,z}`) — otherwise an idempotent
 upsert or a dismissed tooltip would file an entry with an empty diff.
 
 Visibility: Root (`users.is_owner`) reads everything; everyone else is pinned to

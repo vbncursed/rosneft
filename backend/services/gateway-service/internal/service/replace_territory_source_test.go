@@ -52,13 +52,14 @@ func (s *TerritoriesSuite) TestReplaceSourceSwapsHashClearsArtifactsAndQueues() 
 
 func (s *TerritoriesSuite) TestReplaceSourceSetsRescaleBaselineFromOldLOD0() {
 	s.expectSourceSwap()
-	// Old LOD0 source bbox: longest axis = 10 (the converter's pre-normalize max).
+	// Old LOD0 source bbox: longest axis 10 (the converter's pre-normalize max),
+	// center (7, 1, 2) — the point the converter moved to the origin.
 	s.cat.GetTerritoryArtifactMock.Expect(s.ctx, "t1", uint32(0)).Return(domain.Artifact{
 		Slug: "t1", LOD: 0,
-		BBoxMin: domain.Vec3{X: 0, Y: 0, Z: 0},
-		BBoxMax: domain.Vec3{X: 10, Y: 3, Z: 4},
+		BBoxMin: domain.Vec3{X: 2, Y: -1, Z: 0},
+		BBoxMax: domain.Vec3{X: 12, Y: 3, Z: 4},
 	}, nil)
-	s.cat.SetTerritoryRescaleBaselineMock.Expect(s.ctx, "t1", 10.0).Return(nil)
+	s.cat.SetTerritoryRescaleBaselineMock.Expect(s.ctx, "t1", 10.0, domain.Vec3{X: 7, Y: 1, Z: 2}).Return(nil)
 	s.cat.DeleteTerritoryArtifactsMock.Expect(s.ctx, "t1").Return(nil)
 	s.mesh.SubmitConversionMock.Return(domain.Job{ID: "job-1"}, nil)
 

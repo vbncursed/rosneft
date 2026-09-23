@@ -78,12 +78,14 @@ func (c *Client) DeleteTerritoryArtifacts(ctx context.Context, slug string) erro
 }
 
 // SetTerritoryRescaleBaseline records the territory's current source-mesh
-// max-dimension before a source replacement clears its artifacts, so the
-// post-conversion rescale keeps placements 1:1 against the new normalization.
-func (c *Client) SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64) error {
+// max-dimension and bbox center before a source replacement clears its
+// artifacts, so the post-conversion rescale keeps placements 1:1 against the
+// new normalization.
+func (c *Client) SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) error {
 	_, err := c.cc.SetTerritoryRescaleBaseline(ctx, &catalogv1.SetTerritoryRescaleBaselineRequest{
 		TerritorySlug: slug,
 		SourceMax:     sourceMax,
+		SourceCenter:  vec3ToProto(center),
 	})
 	if err != nil {
 		return fmt.Errorf("catalog.SetTerritoryRescaleBaseline: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))

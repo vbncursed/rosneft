@@ -75,17 +75,22 @@ func (g *Gateway) ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHa
 }
 
 // captureRescaleBaseline records the territory's current source-mesh
-// max-dimension so the post-conversion worker can rescale placements 1:1
-// against the replacement mesh's normalization. It must run before the old
-// artifacts are cleared. A territory with no LOD0 yet (still pending) has
-// nothing to anchor to and is skipped, preserving any baseline a prior
-// in-flight replace already set (the catalog writes it only once).
+// max-dimension and bbox center so the post-conversion worker can map
+// placements, measurements and panoramas 1:1 onto the replacement mesh's
+// normalization. It must run before the old artifacts are cleared. A territory
+// with no LOD0 yet (still pending) has nothing to anchor to and is skipped,
+// preserving any baseline a prior in-flight replace already set (the catalog
+// writes it only once).
+//
+// Assumes the old and new sources share one coordinate frame (a re-scan of the
+// same site in the same georeference). A source in another frame cannot be
+// aligned automatically; manual calibration is out of scope.
 func (g *Gateway) captureRescaleBaseline(ctx context.Context, slug string) error {
 	old, err := g.catalog.GetTerritoryArtifact(ctx, slug, 0)
 	switch {
 	case err == nil:
 		if m := artifactMaxAxis(old); m > 0 {
-			if err := g.catalog.SetTerritoryRescaleBaseline(ctx, slug, m); err != nil {
+			if err := g.catalog.SetTerritoryRescaleBaseline(ctx, slug, m, artifactCenter(old)); err != nil {
 				return fmt.Errorf("set rescale baseline: %w", err)
 			}
 		}
@@ -104,6 +109,16 @@ func artifactMaxAxis(a domain.Artifact) float64 {
 	dy := a.BBoxMax.Y - a.BBoxMin.Y
 	dz := a.BBoxMax.Z - a.BBoxMin.Z
 	return max(dx, dy, dz)
+}
+
+// artifactCenter returns the center of an artifact's source-mesh bbox — the
+// point the converter moves to the origin before scaling.
+func artifactCenter(a domain.Artifact) domain.Vec3 {
+	return domain.Vec3{
+		X: (a.BBoxMin.X + a.BBoxMax.X) / 2,
+		Y: (a.BBoxMin.Y + a.BBoxMax.Y) / 2,
+		Z: (a.BBoxMin.Z + a.BBoxMax.Z) / 2,
+	}
 }
 
 // UpdateTerritory patches a territory's mutable fields by slug without

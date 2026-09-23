@@ -294,13 +294,15 @@ message DeleteTerritoryArtifactsRequest {
 message DeleteTerritoryArtifactsResponse {}
 
 // SetTerritoryRescaleBaseline records the territory's current source-mesh
-// max-dimension before a source replacement clears its artifacts. The
-// post-conversion RescaleTerritoryPlacements reads it to keep placements 1:1
-// across the new normalization. Writes only when no baseline is already
-// pending, preserving the earliest value across chained replaces.
+// max-dimension and bbox center before a source replacement clears its
+// artifacts. The post-conversion RescaleTerritoryPlacements reads both to keep
+// placements 1:1 across the new normalization. Writes only when no baseline is
+// already pending, preserving the earliest values across chained replaces.
 message SetTerritoryRescaleBaselineRequest {
   string territory_slug = 1;
   double source_max = 2;
+  // Center of the same source bbox. Unset reads as the origin.
+  Vec3 source_center = 3;
 }
 message SetTerritoryRescaleBaselineResponse {}
 
