@@ -46,6 +46,7 @@ const (
 	CatalogService_GetModelArtifact_FullMethodName            = "/rosneft.catalog.v1.CatalogService/GetModelArtifact"
 	CatalogService_ListPlacements_FullMethodName              = "/rosneft.catalog.v1.CatalogService/ListPlacements"
 	CatalogService_CreatePlacement_FullMethodName             = "/rosneft.catalog.v1.CatalogService/CreatePlacement"
+	CatalogService_CreatePlacements_FullMethodName            = "/rosneft.catalog.v1.CatalogService/CreatePlacements"
 	CatalogService_UpdatePlacement_FullMethodName             = "/rosneft.catalog.v1.CatalogService/UpdatePlacement"
 	CatalogService_SetPlacementVisibility_FullMethodName      = "/rosneft.catalog.v1.CatalogService/SetPlacementVisibility"
 	CatalogService_DeletePlacement_FullMethodName             = "/rosneft.catalog.v1.CatalogService/DeletePlacement"
@@ -113,6 +114,9 @@ type CatalogServiceClient interface {
 	GetModelArtifact(ctx context.Context, in *GetModelArtifactRequest, opts ...grpc.CallOption) (*GetModelArtifactResponse, error)
 	ListPlacements(ctx context.Context, in *ListPlacementsRequest, opts ...grpc.CallOption) (*ListPlacementsResponse, error)
 	CreatePlacement(ctx context.Context, in *CreatePlacementRequest, opts ...grpc.CallOption) (*CreatePlacementResponse, error)
+	// CreatePlacements lands 1–100 placements on one territory in one
+	// transaction: all of them, or none.
+	CreatePlacements(ctx context.Context, in *CreatePlacementsRequest, opts ...grpc.CallOption) (*CreatePlacementsResponse, error)
 	UpdatePlacement(ctx context.Context, in *UpdatePlacementRequest, opts ...grpc.CallOption) (*UpdatePlacementResponse, error)
 	SetPlacementVisibility(ctx context.Context, in *SetPlacementVisibilityRequest, opts ...grpc.CallOption) (*SetPlacementVisibilityResponse, error)
 	DeletePlacement(ctx context.Context, in *DeletePlacementRequest, opts ...grpc.CallOption) (*DeletePlacementResponse, error)
@@ -403,6 +407,16 @@ func (c *catalogServiceClient) CreatePlacement(ctx context.Context, in *CreatePl
 	return out, nil
 }
 
+func (c *catalogServiceClient) CreatePlacements(ctx context.Context, in *CreatePlacementsRequest, opts ...grpc.CallOption) (*CreatePlacementsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreatePlacementsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_CreatePlacements_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *catalogServiceClient) UpdatePlacement(ctx context.Context, in *UpdatePlacementRequest, opts ...grpc.CallOption) (*UpdatePlacementResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdatePlacementResponse)
@@ -540,6 +554,9 @@ type CatalogServiceServer interface {
 	GetModelArtifact(context.Context, *GetModelArtifactRequest) (*GetModelArtifactResponse, error)
 	ListPlacements(context.Context, *ListPlacementsRequest) (*ListPlacementsResponse, error)
 	CreatePlacement(context.Context, *CreatePlacementRequest) (*CreatePlacementResponse, error)
+	// CreatePlacements lands 1–100 placements on one territory in one
+	// transaction: all of them, or none.
+	CreatePlacements(context.Context, *CreatePlacementsRequest) (*CreatePlacementsResponse, error)
 	UpdatePlacement(context.Context, *UpdatePlacementRequest) (*UpdatePlacementResponse, error)
 	SetPlacementVisibility(context.Context, *SetPlacementVisibilityRequest) (*SetPlacementVisibilityResponse, error)
 	DeletePlacement(context.Context, *DeletePlacementRequest) (*DeletePlacementResponse, error)
@@ -640,6 +657,9 @@ func (UnimplementedCatalogServiceServer) ListPlacements(context.Context, *ListPl
 }
 func (UnimplementedCatalogServiceServer) CreatePlacement(context.Context, *CreatePlacementRequest) (*CreatePlacementResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreatePlacement not implemented")
+}
+func (UnimplementedCatalogServiceServer) CreatePlacements(context.Context, *CreatePlacementsRequest) (*CreatePlacementsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreatePlacements not implemented")
 }
 func (UnimplementedCatalogServiceServer) UpdatePlacement(context.Context, *UpdatePlacementRequest) (*UpdatePlacementResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdatePlacement not implemented")
@@ -1172,6 +1192,24 @@ func _CatalogService_CreatePlacement_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CatalogService_CreatePlacements_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreatePlacementsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).CreatePlacements(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_CreatePlacements_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).CreatePlacements(ctx, req.(*CreatePlacementsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CatalogService_UpdatePlacement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdatePlacementRequest)
 	if err := dec(in); err != nil {
@@ -1430,6 +1468,10 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreatePlacement",
 			Handler:    _CatalogService_CreatePlacement_Handler,
+		},
+		{
+			MethodName: "CreatePlacements",
+			Handler:    _CatalogService_CreatePlacements_Handler,
 		},
 		{
 			MethodName: "UpdatePlacement",

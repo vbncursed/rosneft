@@ -618,6 +618,11 @@ type Placement struct {
 	VisiblePanoramaIds *[]int64 `json:"visiblePanoramaIds,omitempty"`
 }
 
+// PlacementBatchCreate defines model for PlacementBatchCreate.
+type PlacementBatchCreate struct {
+	Items []PlacementCreate `json:"items"`
+}
+
 // PlacementCreate defines model for PlacementCreate.
 type PlacementCreate struct {
 	Label     *string `json:"label,omitempty"`
@@ -881,6 +886,9 @@ type UpdatePanoramaJSONRequestBody = PanoramaUpdate
 // CreatePlacementJSONRequestBody defines body for CreatePlacement for application/json ContentType.
 type CreatePlacementJSONRequestBody = PlacementCreate
 
+// CreatePlacementsJSONRequestBody defines body for CreatePlacements for application/json ContentType.
+type CreatePlacementsJSONRequestBody = PlacementBatchCreate
+
 // UpdatePlacementJSONRequestBody defines body for UpdatePlacement for application/json ContentType.
 type UpdatePlacementJSONRequestBody = PlacementUpdate
 
@@ -994,6 +1002,9 @@ type ServerInterface interface {
 	// CreatePlacement Add a placement to a territory
 	// (POST /api/territories/{slug}/placements)
 	CreatePlacement(w http.ResponseWriter, r *http.Request, slug string)
+	// CreatePlacements Add 1–100 placements to a territory in one transaction
+	// (POST /api/territories/{slug}/placements/batch)
+	CreatePlacements(w http.ResponseWriter, r *http.Request, slug string)
 	// DeletePlacement Remove a placement
 	// (DELETE /api/territories/{slug}/placements/{id})
 	DeletePlacement(w http.ResponseWriter, r *http.Request, slug string, id int64)
@@ -1228,6 +1239,12 @@ func (_ Unimplemented) ListPlacements(w http.ResponseWriter, r *http.Request, sl
 // CreatePlacement Add a placement to a territory
 // (POST /api/territories/{slug}/placements)
 func (_ Unimplemented) CreatePlacement(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreatePlacements Add 1–100 placements to a territory in one transaction
+// (POST /api/territories/{slug}/placements/batch)
+func (_ Unimplemented) CreatePlacements(w http.ResponseWriter, r *http.Request, slug string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2324,6 +2341,32 @@ func (siw *ServerInterfaceWrapper) CreatePlacement(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// CreatePlacements operation middleware
+func (siw *ServerInterfaceWrapper) CreatePlacements(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "slug" -------------
+	var slug string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "slug", chi.URLParam(r, "slug"), &slug, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "slug", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreatePlacements(w, r, slug)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeletePlacement operation middleware
 func (siw *ServerInterfaceWrapper) DeletePlacement(w http.ResponseWriter, r *http.Request) {
 
@@ -2804,6 +2847,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/territories/{slug}/placements", wrapper.CreatePlacement)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/territories/{slug}/placements/batch", wrapper.CreatePlacements)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/territories/{slug}/placements/{id}", wrapper.DeletePlacement)
@@ -4863,6 +4909,85 @@ func (response CreatePlacement500JSONResponse) VisitCreatePlacementResponse(w ht
 	return err
 }
 
+type CreatePlacementsRequestObject struct {
+	Slug string `json:"slug"`
+	Body *CreatePlacementsJSONRequestBody
+}
+
+type CreatePlacementsResponseObject interface {
+	VisitCreatePlacementsResponse(w http.ResponseWriter) error
+}
+
+type CreatePlacements201JSONResponse []Placement
+
+func (response CreatePlacements201JSONResponse) VisitCreatePlacementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePlacements400JSONResponse struct{ BadRequestJSONResponse }
+
+func (response CreatePlacements400JSONResponse) VisitCreatePlacementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePlacements403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response CreatePlacements403JSONResponse) VisitCreatePlacementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePlacements404JSONResponse struct{ NotFoundJSONResponse }
+
+func (response CreatePlacements404JSONResponse) VisitCreatePlacementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePlacements500JSONResponse struct{ InternalJSONResponse }
+
+func (response CreatePlacements500JSONResponse) VisitCreatePlacementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type DeletePlacementRequestObject struct {
 	Slug string `json:"slug"`
 	Id   int64  `json:"id"`
@@ -5601,6 +5726,9 @@ type StrictServerInterface interface {
 	// CreatePlacement Add a placement to a territory
 	// (POST /api/territories/{slug}/placements)
 	CreatePlacement(ctx context.Context, request CreatePlacementRequestObject) (CreatePlacementResponseObject, error)
+	// CreatePlacements Add 1–100 placements to a territory in one transaction
+	// (POST /api/territories/{slug}/placements/batch)
+	CreatePlacements(ctx context.Context, request CreatePlacementsRequestObject) (CreatePlacementsResponseObject, error)
 	// DeletePlacement Remove a placement
 	// (DELETE /api/territories/{slug}/placements/{id})
 	DeletePlacement(ctx context.Context, request DeletePlacementRequestObject) (DeletePlacementResponseObject, error)
@@ -6600,6 +6728,39 @@ func (sh *strictHandler) CreatePlacement(w http.ResponseWriter, r *http.Request,
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreatePlacementResponseObject); ok {
 		if err := validResponse.VisitCreatePlacementResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreatePlacements operation middleware
+func (sh *strictHandler) CreatePlacements(w http.ResponseWriter, r *http.Request, slug string) {
+	var request CreatePlacementsRequestObject
+
+	request.Slug = slug
+
+	var body CreatePlacementsJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreatePlacements(ctx, request.(CreatePlacementsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreatePlacements")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreatePlacementsResponseObject); ok {
+		if err := validResponse.VisitCreatePlacementsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

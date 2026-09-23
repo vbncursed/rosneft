@@ -61,6 +61,9 @@ service CatalogService {
 
   rpc ListPlacements(ListPlacementsRequest) returns (ListPlacementsResponse);
   rpc CreatePlacement(CreatePlacementRequest) returns (CreatePlacementResponse);
+  // CreatePlacements lands 1–100 placements on one territory in one
+  // transaction: all of them, or none.
+  rpc CreatePlacements(CreatePlacementsRequest) returns (CreatePlacementsResponse);
   rpc UpdatePlacement(UpdatePlacementRequest) returns (UpdatePlacementResponse);
   rpc SetPlacementVisibility(SetPlacementVisibilityRequest) returns (SetPlacementVisibilityResponse);
   rpc DeletePlacement(DeletePlacementRequest) returns (DeletePlacementResponse);
@@ -429,6 +432,15 @@ message CreatePlacementRequest {
 }
 message CreatePlacementResponse {
   Placement placement = 1;
+}
+message CreatePlacementsRequest {
+  string territory_slug = 1;
+  // 1–100. Each item's own territory_slug is ignored: the batch lands on the
+  // territory above, the one the gateway's territory gate checked.
+  repeated CreatePlacementRequest items = 2;
+}
+message CreatePlacementsResponse {
+  repeated Placement placements = 1; // in items order
 }
 
 message UpdatePlacementRequest {

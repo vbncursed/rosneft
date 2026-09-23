@@ -199,3 +199,51 @@ func (s *PlacementsSuite) TestListReturnsOnlyMatchingTerritory() {
 	assert.Assert(s.T(), cmp.Len(got, 1))
 	assert.Equal(s.T(), got[0].TerritorySlug, "alpha")
 }
+
+// Every item lands on the batch's territory, whatever it carried: the gateway
+// gate checked that territory and no other.
+func (s *PlacementsSuite) TestCreateBatchPinsEveryItemToTheTerritory() {
+	stray := validPlacement()
+	stray.TerritorySlug = "someone-elses"
+	stray.Scale = domain.Vec3{}
+	want := []domain.Placement{validPlacement(), validPlacement()}
+	s.repo.CreatePlacementsMock.Expect(s.ctx, want).Return(want, nil)
+
+	out, err := s.svc.CreatePlacements(s.ctx, "t1", []domain.Placement{stray, validPlacement()})
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(out), 2)
+}
+
+func (s *PlacementsSuite) TestCreateBatchRejectsAnEmptyOrOversizedBatch() {
+	_, err := s.svc.CreatePlacements(s.ctx, "t1", nil)
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+	_, err = s.svc.CreatePlacements(s.ctx, "t1", make([]domain.Placement, 101))
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+func (s *PlacementsSuite) TestCreateBatchRejectsABadItem() {
+	bad := validPlacement()
+	bad.Scale = domain.Vec3{X: 2, Y: 0, Z: 0}
+	_, err := s.svc.CreatePlacements(s.ctx, "t1", []domain.Placement{validPlacement(), bad})
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
+// One allowlist lookup for the whole batch, not one per item.
+func (s *PlacementsSuite) TestCreateBatchChecksPanoramasOnce() {
+	a, b := validPlacement(), validPlacement()
+	a.VisiblePanoramaIDs, b.VisiblePanoramaIDs = []int64{1}, []int64{2}
+	s.repo.ListPanoramaIDsMock.Expect(s.ctx, "t1").Times(1).Return([]int64{1, 2}, nil)
+	s.repo.CreatePlacementsMock.Expect(s.ctx, []domain.Placement{a, b}).Return([]domain.Placement{a, b}, nil)
+
+	_, err := s.svc.CreatePlacements(s.ctx, "t1", []domain.Placement{a, b})
+	assert.NilError(s.T(), err)
+}
+
+func (s *PlacementsSuite) TestCreateBatchRejectsAPanoramaOfAnotherTerritory() {
+	a := validPlacement()
+	a.VisiblePanoramaIDs = []int64{9}
+	s.repo.ListPanoramaIDsMock.Expect(s.ctx, "t1").Return([]int64{1}, nil)
+
+	_, err := s.svc.CreatePlacements(s.ctx, "t1", []domain.Placement{a})
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}

@@ -24,7 +24,33 @@ func (c *Client) ListPlacements(ctx context.Context, territorySlug string) ([]do
 
 // CreatePlacement adds a new placement.
 func (c *Client) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
-	resp, err := c.cc.CreatePlacement(ctx, &catalogv1.CreatePlacementRequest{
+	resp, err := c.cc.CreatePlacement(ctx, createPlacementRequest(p))
+	if err != nil {
+		return domain.Placement{}, fmt.Errorf("catalog.CreatePlacement: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
+	}
+	return placementFromProto(resp.GetPlacement()), nil
+}
+
+// CreatePlacements lands a batch on territorySlug in one catalog transaction.
+func (c *Client) CreatePlacements(ctx context.Context, territorySlug string, ps []domain.Placement) ([]domain.Placement, error) {
+	items := make([]*catalogv1.CreatePlacementRequest, len(ps))
+	for i, p := range ps {
+		items[i] = createPlacementRequest(p)
+	}
+	resp, err := c.cc.CreatePlacements(ctx, &catalogv1.CreatePlacementsRequest{TerritorySlug: territorySlug, Items: items})
+	if err != nil {
+		return nil, fmt.Errorf("catalog.CreatePlacements: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
+	}
+	out := make([]domain.Placement, len(resp.GetPlacements()))
+	for i, p := range resp.GetPlacements() {
+		out[i] = placementFromProto(p)
+	}
+	return out, nil
+}
+
+// createPlacementRequest maps a domain placement onto one create request.
+func createPlacementRequest(p domain.Placement) *catalogv1.CreatePlacementRequest {
+	return &catalogv1.CreatePlacementRequest{
 		TerritorySlug:      p.TerritorySlug,
 		ModelSlug:          p.ModelSlug,
 		Position:           vec3ToProto(p.Position),
@@ -32,11 +58,7 @@ func (c *Client) CreatePlacement(ctx context.Context, p domain.Placement) (domai
 		Scale:              vec3ToProto(p.Scale),
 		Label:              p.Label,
 		VisiblePanoramaIds: p.VisiblePanoramaIDs,
-	})
-	if err != nil {
-		return domain.Placement{}, fmt.Errorf("catalog.CreatePlacement: %w", grpcerr.MapStatus(err, domain.ErrTerritoryNotFound))
 	}
-	return placementFromProto(resp.GetPlacement()), nil
 }
 
 // SetPlacementVisibility replaces a placement's panorama allowlist.

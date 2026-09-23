@@ -185,6 +185,7 @@ Endpoints (gateway):
 ```
 GET    /api/territories/{slug}/placements          → 200 [Placement…]
 POST   /api/territories/{slug}/placements          → 201 Placement
+POST   /api/territories/{slug}/placements/batch    → 201 [Placement…]  (1–100, one transaction)
 PUT    /api/territories/{slug}/placements/{id}     → 200 Placement
 DELETE /api/territories/{slug}/placements/{id}     → 204
 ```
