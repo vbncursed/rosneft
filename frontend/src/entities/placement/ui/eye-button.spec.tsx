@@ -35,8 +35,27 @@ describe("EyeButton", () => {
     expect(onToggle).toHaveBeenCalledWith(true);
   });
 
-  it("waits while a write is in flight", () => {
-    render(<EyeButton state="visible" subject="x" disabled onToggle={vi.fn()} />);
-    expect(screen.getByRole("button", { name: "Hide x" })).toBeDisabled();
+  // Controller ruling 3: a natively disabled eye drops the focus it holds to
+  // <body> the moment its own write starts, so it waits through aria-disabled.
+  it("waits while a write is in flight, without leaving the tab order", async () => {
+    const onToggle = vi.fn();
+    render(<EyeButton state="visible" subject="x" disabled onToggle={onToggle} />);
+    const eye = screen.getByRole("button", { name: "Hide x" });
+    expect(eye).toBeEnabled();
+    expect(eye).toHaveAttribute("aria-disabled", "true");
+    expect(eye).toHaveClass("aria-disabled:opacity-55", "aria-disabled:cursor-not-allowed");
+    await userEvent.click(eye);
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it("keeps the focus when its write starts", () => {
+    const { rerender } = render(<EyeButton state="visible" subject="x" onToggle={vi.fn()} />);
+    const eye = screen.getByRole("button", { name: "Hide x" });
+    eye.focus();
+    rerender(<EyeButton state="visible" subject="x" disabled onToggle={vi.fn()} />);
+    // jsdom keeps focus on an element that turns disabled; a browser does not,
+    // so the focused eye also has to stay enabled.
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Hide x" }));
+    expect(document.activeElement).toBeEnabled();
   });
 });
