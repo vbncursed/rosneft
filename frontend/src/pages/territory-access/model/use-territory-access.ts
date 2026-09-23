@@ -1,9 +1,9 @@
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
-  adminsQuery,
   setTerritoryAdmins,
   territoriesQuery,
+  territoryAdminsQuery,
   type AccessGrant,
   type TerritoryAccess,
 } from "@/entities/territory";
@@ -39,7 +39,7 @@ export type AccessState = {
 };
 
 /**
- * Everything the Territory access screen decides. One admins query per
+ * Everything the Territory access screen decides. One admin map for every
  * territory; drafts are kept per slug so switching territories loses
  * nothing; save is one PUT of the whole set.
  */
@@ -53,30 +53,16 @@ export function useTerritoryAccess(): AccessState {
   const [drafts, setDrafts] = useState<Record<string, string[]>>({});
   const [adding, setAdding] = useState(false);
 
-  const slugs = (territories.data ?? []).map((t) => t.slug);
-  const admins = useQueries({
-    queries: slugs.map(adminsQuery),
-    // `combine` stays inline: it closes over `slugs`, and only the array built
-    // in the same render lines up with `results`. Hoisting it into a
-    // useCallback would pair one render's results with another's slugs and
-    // mis-key `bySlug`.
-    combine: (results) => ({
-      pending: results.some((r) => r.isPending),
-      failed: results.map(unanswered).find((e) => e !== null) ?? null,
-      bySlug: Object.fromEntries(results.map((r, i) => [slugs[i], r.data ?? []])) as Record<
-        string,
-        string[]
-      >,
-    }),
-  });
+  const admins = useQuery(territoryAdminsQuery);
+  const adminsBySlug = admins.data ?? {};
 
   const known = users.data ?? [];
   const rows =
     territories.data && users.data
-      ? territories.data.map((t) => toTerritoryAccess(t, admins.bySlug[t.slug] ?? [], known))
+      ? territories.data.map((t) => toTerritoryAccess(t, adminsBySlug[t.slug] ?? [], known))
       : null;
   const selected = rows?.find((t) => t.slug === selectedSlug) ?? null;
-  const savedIds = selectedSlug ? (admins.bySlug[selectedSlug] ?? []) : [];
+  const savedIds = selectedSlug ? (adminsBySlug[selectedSlug] ?? []) : [];
   const draftIds = selectedSlug ? (drafts[selectedSlug] ?? savedIds) : [];
   const dirty = selectedSlug !== null && !sameSet(draftIds, savedIds);
 
@@ -85,30 +71,30 @@ export function useTerritoryAccess(): AccessState {
 
   const saving = useMutation({
     mutationFn: ({ slug, ids }: { slug: string; ids: string[] }) => setTerritoryAdmins(slug, ids),
-    // The draft stays until the refetch lands. Dropping it here would fall
-    // back to the pre-save set for as long as the GET is in flight — the
-    // panel would lose the person just added, and an edit made in that window
-    // would build on the stale set, so the next PUT (a full replace) would
-    // silently revoke the grant that was just saved.
-    onSuccess: (_, { slug }) => {
+    // The PUT is a full replace answering 204, so the ids just sent are the
+    // saved set: written into the map in the same tick the draft is dropped,
+    // there is no window where the panel falls back to the pre-save set, and
+    // nothing re-reads the whole map for one territory's change.
+    onSuccess: (_, { slug, ids }) => {
       notify.success("Access saved");
-      void client.invalidateQueries({ queryKey: ["territory-admins", slug] });
+      client.setQueryData(territoryAdminsQuery.queryKey, (map) => map && { ...map, [slug]: ids });
+      dropDraft(slug);
     },
     onError: (err) => notify.error(messageOf(err)),
   });
 
   // Only a query that has never answered can make the screen unavailable: a
-  // save invalidates one admins query, and a refetch that trips must not
-  // replace a populated list with an outage page.
-  const failed = unanswered(territories) ?? unanswered(users) ?? admins.failed;
-  const loading = territories.isPending || users.isPending || admins.pending;
+  // background refetch that trips must not replace a populated list with an
+  // outage page.
+  const failed = unanswered(territories) ?? unanswered(users) ?? unanswered(admins);
+  const loading = territories.isPending || users.isPending || admins.isPending;
 
   return {
     status: loading ? "loading" : failed ? "unavailable" : "ready",
     error: failed ? messageOf(failed) : null,
     territories: rows,
-    adminsBySlug: admins.bySlug,
-    grantsOf: (slug) => grantsOf(admins.bySlug[slug] ?? [], known),
+    adminsBySlug: adminsBySlug,
+    grantsOf: (slug) => grantsOf(adminsBySlug[slug] ?? [], known),
     canManage: me?.isOwner ?? false,
     query,
     setQuery,
