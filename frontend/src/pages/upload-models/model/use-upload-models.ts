@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { createModel, modelPath } from "@/entities/model";
@@ -47,6 +47,7 @@ export type UploadModelsState = {
  */
 export function useUploadModels(): UploadModelsState {
   const me = useQuery(meQuery).data ?? null;
+  const client = useQueryClient();
   const navigate = useNavigate();
   const [rows, setRows] = useState<QueueRow[]>([]);
   const [running, setRunning] = useState(false);
@@ -150,6 +151,12 @@ export function useUploadModels(): UploadModelsState {
     setRunning(false);
     setCurrentId(null);
     setProgress(null);
+    if (created.length > 0) {
+      // The library and the jobs strip trust their lists for a minute; these
+      // rows and their jobs are not in either yet.
+      void client.invalidateQueries({ queryKey: ["models"] });
+      void client.invalidateQueries({ queryKey: ["jobs"] });
+    }
     if (cancelled) return;
     if (created.length === 1) void navigate({ href: `${modelPath(created[0].slug)}?jobId=${created[0].jobId}` });
     else if (created.length > 1) void navigate({ to: "/models" });
