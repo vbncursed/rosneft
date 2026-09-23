@@ -9,6 +9,7 @@
 #   - audit-export → streaming CSV handler (ServeAuditCSV); the JSON
 #     GET /api/audit keeps its generated stub under the plain `audit` tag
 #   - metrics → owner-gated Prometheus proxy (InitMetricsHandler)
+#   - console → Home's console summary (InitConsoleSummary)
 #   - ops     → healthz/readyz probes + /docs + /openapi.json
 # The FULL embedded spec (all tags, for Swagger) is generated separately by
 # oapi-codegen-spec.yaml so the served docs stay complete.
@@ -29,4 +30,5 @@ output-options:
     - jobs
     - audit-export
     - metrics
+    - console
     - ops

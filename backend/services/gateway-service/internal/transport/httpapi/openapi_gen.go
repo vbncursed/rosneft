@@ -265,6 +265,36 @@ type ChangePasswordRequest struct {
 	OldPassword string `json:"oldPassword"`
 }
 
+// ConsoleSummary One key per console card the caller can open. A card they cannot open is absent and its source is never asked. A card whose source failed is null. The gates mirror the SPA's console screens.
+type ConsoleSummary struct {
+	// Access Root. Territory-admin assignments summed over every territory.
+	Access *int `json:"access,omitempty"`
+
+	// Alerts Root. Alert rules firing (alertname/service/severity; replicas count once).
+	Alerts *int `json:"alerts,omitempty"`
+
+	// Audit24h audit:read. Journal rows from the start of the hour 23 hours ago, in the caller's audit scope: the 24 buckets the journal page draws.
+	Audit24h *int `json:"audit24h,omitempty"`
+
+	// Content territory:write or model:write. The caller's visible territories; every model.
+	Content *struct {
+		Models      int `json:"models"`
+		Territories int `json:"territories"`
+	} `json:"content,omitempty"`
+
+	// Roles roles:read. Roles the caller sees; size of the permission catalog.
+	Roles *struct {
+		Permissions int `json:"permissions"`
+		Roles       int `json:"roles"`
+	} `json:"roles,omitempty"`
+
+	// Users users:read. Live accounts (deleted excluded) and how many are frozen.
+	Users *struct {
+		Frozen int `json:"frozen"`
+		Total  int `json:"total"`
+	} `json:"users,omitempty"`
+}
+
 // CreateRoleRequest defines model for CreateRoleRequest.
 type CreateRoleRequest struct {
 	PermissionSlugs *[]string `json:"permissionSlugs,omitempty"`

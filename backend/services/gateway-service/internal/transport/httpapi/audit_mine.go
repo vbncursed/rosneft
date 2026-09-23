@@ -17,7 +17,7 @@ import (
 // overwrite. That is the whole difference from ListAudit, whose scope is the
 // company and which therefore does honour a submitted actor.
 func (s *Server) ListMyAudit(ctx context.Context, req ListMyAuditRequestObject) (ListMyAuditResponseObject, error) {
-	sc, err := service.AuditOwnScope(auditPrincipal(ctx))
+	sc, err := service.AuditOwnScope(AuditPrincipal(ctx))
 	switch {
 	case isForbidden(err):
 		return ListMyAudit403JSONResponse{
