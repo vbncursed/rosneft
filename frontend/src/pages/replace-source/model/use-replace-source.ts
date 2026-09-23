@@ -81,12 +81,14 @@ export function useReplaceSource(slug: string): ReplaceSourceState {
     })
       .then((finalized) => {
         setPhase("replacing");
-        return replaceTerritorySource(slug, finalized.hash);
+        // The replace deletes the old artifacts — possibly before a failure
+        // answers — and a bundle cached before it still holds a LOD0 the
+        // route's loader would hand back as the result: drop it either way.
+        return replaceTerritorySource(slug, finalized.hash).finally(() =>
+          client.removeQueries({ queryKey: ["scene", slug] }),
+        );
       })
       .then(async ({ territory: replaced, job }) => {
-        // The replace deleted the old artifacts; a bundle cached before it
-        // still holds a LOD0 the route's loader would hand back as the result.
-        client.removeQueries({ queryKey: ["scene", slug] });
         await Promise.all([
           client.invalidateQueries({ queryKey: ["jobs"] }),
           client.invalidateQueries({ queryKey: ["territories"] }),
