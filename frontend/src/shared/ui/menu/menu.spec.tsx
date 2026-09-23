@@ -176,6 +176,15 @@ describe("Menu · states", () => {
     expect(item.className).not.toContain("focus-visible:bg-");
   });
 
+  // E15: a greyed action must not light up under the pointer as if available.
+  it("lights an action on hover only while it is enabled", async () => {
+    render(<Menu trigger="⋮" triggerLabel="Row actions" items={items()} />);
+    await userEvent.click(trigger());
+    const cls = screen.getByRole("menuitem", { name: "Edit roles" }).className.split(/\s+/);
+    expect(cls).toContain("enabled:hover:bg-panel-2");
+    expect(cls).not.toContain("hover:bg-panel-2");
+  });
+
   it("grows out of the trigger's corner and answers a press", async () => {
     const { rerender } = render(<Menu trigger="⋮" triggerLabel="Row actions" items={items()} />);
     expect(trigger().classList).toContain("enabled:active:scale-[0.95]");
