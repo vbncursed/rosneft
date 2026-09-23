@@ -119,9 +119,18 @@ func (g *Gateway) UpdateTerritory(ctx context.Context, slug string, update domai
 	if slug == "" {
 		return domain.Territory{}, fmt.Errorf("%w: empty slug", domain.ErrInvalidInput)
 	}
+	if err := validateTitlePatch(update.Title); err != nil {
+		return domain.Territory{}, err
+	}
 	current, err := g.catalog.GetTerritory(ctx, slug, "") // mutation flow; gated by permission
 	if err != nil {
 		return domain.Territory{}, err
+	}
+	if update.Title != nil {
+		current.Title = *update.Title
+	}
+	if update.Description != nil {
+		current.Description = *update.Description
 	}
 	if update.ExternalPanoramaURL != nil {
 		current.ExternalPanoramaURL = *update.ExternalPanoramaURL

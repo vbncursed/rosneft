@@ -44,14 +44,19 @@ type Territory struct {
 
 // TerritoryUpdate carries the mutable fields of PATCH /api/territories/{slug}.
 // Each field is a pointer: nil means "leave unchanged", so a caller can clear
-// a value (empty string) distinctly from not touching it.
+// a value (empty string) distinctly from not touching it. The slug is not
+// among them: URLs, job keys and the territory gate all key on it.
 type TerritoryUpdate struct {
+	Title               *string
+	Description         *string
 	ExternalPanoramaURL *string
 }
 
 // ModelUpdate carries the mutable model fields a PATCH may set. Nil = leave
 // unchanged (read-modify-write over UpsertModel, mirroring TerritoryUpdate).
 type ModelUpdate struct {
+	Title             *string
+	Description       *string
 	ThumbnailBlobHash *string
 }
 

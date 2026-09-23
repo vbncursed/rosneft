@@ -358,9 +358,14 @@ components:
       type: object
       description: |
         Body for PATCH /api/models/{slug}. Updates mutable fields only; the
-        source archive and conversion are untouched. Omitted fields are left
-        unchanged.
+        slug, the source archive and conversion are untouched. Omitted fields
+        are left unchanged.
       properties:
+        title:
+          type: string
+          minLength: 1
+          description: New title; a blank one is refused with 400. The slug does not follow it.
+        description: { type: string }
         thumbnailBlobHash:
           type: string
           pattern: '^([0-9a-f]{64})?$'
@@ -370,9 +375,14 @@ components:
       type: object
       description: |
         Body for PATCH /api/territories/{slug}. Updates mutable fields only;
-        the source archive and conversion are untouched. Omitted fields are
-        left unchanged.
+        the slug, the source archive and conversion are untouched. Omitted
+        fields are left unchanged.
       properties:
+        title:
+          type: string
+          minLength: 1
+          description: New title; a blank one is refused with 400. The slug does not follow it.
+        description: { type: string }
         externalPanoramaUrl: { type: string }
 
     TerritoryAdmins:
