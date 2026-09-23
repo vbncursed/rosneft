@@ -62,26 +62,53 @@ func (r *PG) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Pl
 	return out, nil
 }
 
-// insertPlacement runs createPlacementQuery for one placement inside tx.
+// createPlacementError keeps a domain refusal bare, so the sentinel's own text
+// is what the caller sees, and wraps anything else with op.
+func createPlacementError(op string, err error) error {
+	if errors.Is(err, domain.ErrTerritoryNotFound) || errors.Is(err, domain.ErrModelNotFound) ||
+		errors.Is(err, domain.ErrInvalidInput) {
+		return err
+	}
+	return fmt.Errorf("%s: %w", op, err)
+}
+
+// insertPlacement runs createPlacementQuery for one placement inside tx and
+// maps a refusal onto the domain (see missingSide, placementRefusal).
 func insertPlacement(ctx context.Context, tx pgx.Tx, p domain.Placement) (domain.Placement, error) {
-	return scanPlacement(tx.QueryRow(ctx, createPlacementQuery,
+	out, err := scanPlacement(tx.QueryRow(ctx, createPlacementQuery,
 		p.TerritorySlug, p.ModelSlug,
 		p.Position.X, p.Position.Y, p.Position.Z,
 		p.Rotation.X, p.Rotation.Y, p.Rotation.Z,
 		p.Scale.X, p.Scale.Y, p.Scale.Z,
 		p.Label, p.VisiblePanoramaIDs,
 	))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Placement{}, missingSide(ctx, tx, p.TerritorySlug)
+	}
+	return out, placementRefusal(err)
 }
 
-// createPlacementError maps an insert failure onto the domain. No row means one
-// side of the territory/model WHERE did not match; the not-found signal is
-// enough for transport to answer 404.
-func createPlacementError(op string, err error) error {
-	if errors.Is(err, pgx.ErrNoRows) {
-		return domain.ErrTerritoryNotFound
+// missingSide says which side of the territory/model match found no row. The
+// route's gate has already found the territory, so this is almost always the
+// model; the one extra query runs on the refusal path only. An empty SELECT
+// does not abort tx, so it can still ask.
+func missingSide(ctx context.Context, tx pgx.Tx, territorySlug string) error {
+	var territoryExists bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM territories WHERE slug = $1)`,
+		territorySlug).Scan(&territoryExists); err != nil {
+		return fmt.Errorf("placement insert matched no row: %w", err)
 	}
+	if territoryExists {
+		return domain.ErrModelNotFound
+	}
+	return domain.ErrTerritoryNotFound
+}
+
+// placementRefusal maps the scale CHECK onto ErrInvalidInput; any other
+// failure passes through for the caller to wrap.
+func placementRefusal(err error) error {
 	if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23514" && pgErr.ConstraintName == "placements_scale_positive" {
-		return fmt.Errorf("%s: %w: scale must be positive", op, domain.ErrInvalidInput)
+		return fmt.Errorf("%w: scale must be positive", domain.ErrInvalidInput)
 	}
-	return fmt.Errorf("%s: %w", op, err)
+	return err
 }

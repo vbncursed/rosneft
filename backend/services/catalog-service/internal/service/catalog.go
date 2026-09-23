@@ -15,7 +15,6 @@ import (
 // Postgres implementation lives in internal/storage and satisfies this
 // implicitly.
 type Repository interface {
-	UpsertTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
 	UpdateTerritory(ctx context.Context, slug string, p domain.TerritoryPatch) (domain.Territory, error)
 	CreateTerritory(ctx context.Context, t domain.Territory) (domain.Territory, error)
 	GetTerritory(ctx context.Context, slug, scopeAdminID string) (domain.Territory, error)
@@ -39,7 +38,6 @@ type Repository interface {
 	SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) error
 	RescaleTerritoryPlacements(ctx context.Context, slug string, newMax float64, newCenter domain.Vec3) (int, error)
 
-	UpsertModel(ctx context.Context, m domain.Model) (domain.Model, error)
 	UpdateModel(ctx context.Context, slug string, p domain.ModelPatch) (domain.Model, error)
 	CreateModel(ctx context.Context, m domain.Model) (domain.Model, error)
 	GetModel(ctx context.Context, slug string) (domain.Model, error)

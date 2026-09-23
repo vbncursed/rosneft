@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/vbncursed/rosneft/backend/services/catalog-service/internal/domain"
 )
@@ -20,18 +22,23 @@ func (c *Catalog) CreatePlacements(ctx context.Context, territorySlug string, it
 			domain.ErrInvalidInput, maxPlacementBatch, len(items))
 	}
 	prepared := make([]domain.Placement, len(items))
-	var panoramaIDs []int64
+	// A set: copies of one object share their allowlist, so a batch names the
+	// same panorama many times and the check needs each id once.
+	panoramaIDs := map[int64]struct{}{}
 	for i, p := range items {
 		p.TerritorySlug = territorySlug
 		ready, err := preparePlacement(p)
 		if err != nil {
-			return nil, fmt.Errorf("service.CreatePlacements: item %d: %w", i, err)
+			return nil, fmt.Errorf("service.CreatePlacements: %w", domain.ItemError{Index: i, Err: err})
 		}
 		prepared[i] = ready
-		panoramaIDs = append(panoramaIDs, ready.VisiblePanoramaIDs...)
+		for _, id := range ready.VisiblePanoramaIDs {
+			panoramaIDs[id] = struct{}{}
+		}
 	}
 	if len(panoramaIDs) > 0 {
-		if err := c.requirePanoramasOnTerritory(ctx, territorySlug, panoramaIDs); err != nil {
+		ids := slices.Collect(maps.Keys(panoramaIDs))
+		if err := c.requirePanoramasOnTerritory(ctx, territorySlug, ids); err != nil {
 			return nil, fmt.Errorf("service.CreatePlacements: %w", err)
 		}
 	}

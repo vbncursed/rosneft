@@ -5,13 +5,14 @@ import (
 	"fmt"
 )
 
-// GetTerritoryAdmins returns the admin user ids assigned to a territory.
+// GetTerritoryAdmins returns the admin user ids assigned to a territory, in
+// assignment order, the admin id breaking a tie so the answer is stable.
 func (r *PG) GetTerritoryAdmins(ctx context.Context, slug string) ([]string, error) {
 	const q = `SELECT a.admin_user_id::text
 FROM territory_assignments a
 JOIN territories t ON t.id = a.territory_id
 WHERE t.slug = $1
-ORDER BY a.created_at`
+ORDER BY a.created_at, a.admin_user_id`
 
 	rows, err := r.pool.Query(ctx, q, slug)
 	if err != nil {

@@ -34,3 +34,12 @@ func TestUpdateTerritoryOfAnUnknownSlugIsNotFound(t *testing.T) {
 	_, err := grpcapi.New(svc).UpdateTerritory(t.Context(), &catalogv1.UpdateTerritoryRequest{Slug: "x"})
 	assert.Equal(t, status.Code(err), codes.NotFound)
 }
+
+// A create under a slug already taken is AlreadyExists, not Internal.
+func TestUpsertTerritoryOfATakenSlugAlreadyExists(t *testing.T) {
+	svc := mocks.NewServiceMock(minimock.NewController(t))
+	svc.UpsertTerritoryMock.Return(domain.Territory{}, domain.ErrSlugConflict)
+	_, err := grpcapi.New(svc).UpsertTerritory(t.Context(),
+		&catalogv1.UpsertTerritoryRequest{Territory: &catalogv1.Territory{Slug: "t1"}})
+	assert.Equal(t, status.Code(err), codes.AlreadyExists)
+}

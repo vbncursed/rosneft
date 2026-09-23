@@ -45,12 +45,21 @@ var (
 	}
 )
 
-// SetupTest resets both rows: the upsert rewrites every column on conflict.
-func (s *PartialUpdateSuite) SetupTest() {
+// SetupTest and SetupSubTest put both rows back as seeded before every test
+// and every case: each edits them, and the next expects the seed.
+func (s *PartialUpdateSuite) SetupTest() { s.reseed() }
+
+func (s *PartialUpdateSuite) SetupSubTest() { s.reseed() }
+
+func (s *PartialUpdateSuite) reseed() {
 	ctx := s.T().Context()
-	_, err := s.pg.UpsertTerritory(ctx, seedTerritory)
+	_, err := s.pool.Exec(ctx, `DELETE FROM territories WHERE slug = $1`, seedTerritory.Slug)
 	assert.NilError(s.T(), err)
-	_, err = s.pg.UpsertModel(ctx, seedModel)
+	_, err = s.pool.Exec(ctx, `DELETE FROM models WHERE slug = $1`, seedModel.Slug)
+	assert.NilError(s.T(), err)
+	_, err = s.pg.CreateTerritory(ctx, seedTerritory)
+	assert.NilError(s.T(), err)
+	_, err = s.pg.CreateModel(ctx, seedModel)
 	assert.NilError(s.T(), err)
 }
 
@@ -78,7 +87,6 @@ func (s *PartialUpdateSuite) TestUpdateTerritoryWritesOnlyTheFieldsItCarries() {
 	}
 	for _, tc := range cases {
 		s.Run(tc.name, func() {
-			s.SetupTest()
 			ctx := s.T().Context()
 			want := seedTerritory
 			tc.apply(&want)
@@ -122,7 +130,6 @@ func (s *PartialUpdateSuite) TestUpdateModelWritesOnlyTheFieldsItCarries() {
 	}
 	for _, tc := range cases {
 		s.Run(tc.name, func() {
-			s.SetupTest()
 			ctx := s.T().Context()
 			want := seedModel
 			tc.apply(&want)
