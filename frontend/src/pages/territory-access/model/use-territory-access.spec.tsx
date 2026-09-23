@@ -64,8 +64,7 @@ beforeEach(() => {
     const method = init?.method ?? "GET";
     if (url === "/api/territories") return json([T1, T2]);
     if (url.startsWith("/api/auth/users")) return json(USERS);
-    if (url === "/api/territories/t-1/admins" && method === "GET") return json({ userIds: ["u-1"] });
-    if (url === "/api/territories/t-2/admins" && method === "GET") return json({ userIds: null });
+    if (url === "/api/territory-admins" && method === "GET") return json({ "t-1": ["u-1"], "t-2": null });
     if (url === "/api/territories/t-1/admins" && method === "PUT")
       return new Response(null, { status: 204 });
     return json({ code: "forbidden", message: "You don't have permission to do this" }, 403);
@@ -78,9 +77,12 @@ afterEach(() => {
 });
 
 const puts = () => fetchMock.mock.calls.filter(([, i]) => (i as RequestInit | undefined)?.method === "PUT");
+const adminReads = () =>
+  fetchMock.mock.calls.filter(([u, i]) => u === "/api/territory-admins" && !(i as RequestInit | undefined)?.method)
+    .length;
 
 describe("useTerritoryAccess", () => {
-  it("is loading until every admins query answered, then ready with rows and grants", async () => {
+  it("is loading until the admin map answered, then ready with rows and grants", async () => {
     const { result } = renderHook(() => useTerritoryAccess(), { wrapper });
     expect(result.current.status).toBe("loading");
     await waitFor(() => expect(result.current.status).toBe("ready"));
@@ -91,6 +93,8 @@ describe("useTerritoryAccess", () => {
     expect(result.current.grantsOf("t-1").map((g) => g.username)).toEqual(["a.ivanova"]);
     expect(result.current.grantsOf("t-2")).toEqual([]);
     expect(result.current.canManage).toBe(true);
+    expect(adminReads()).toBe(1);
+    expect(fetchMock.mock.calls.some(([u]) => /\/api\/territories\/[^/]+\/admins$/.test(String(u)))).toBe(false);
   });
 
   it("edits a draft per territory, keeps it across a switch, and cancels one", async () => {
@@ -119,7 +123,7 @@ describe("useTerritoryAccess", () => {
     expect(result.current.candidates.map((c) => c.id)).toEqual(["u-2"]);
   });
 
-  it("saves the whole draft with one PUT, toasts and refetches that territory only", async () => {
+  it("saves the whole draft with one PUT, toasts and writes the saved set into the map without a re-read", async () => {
     const { result } = renderHook(() => ({ s: useTerritoryAccess(), notices: useNotices() }), {
       wrapper,
     });
@@ -130,56 +134,13 @@ describe("useTerritoryAccess", () => {
     await waitFor(() => expect(result.current.notices[0]?.message).toBe("Access saved"));
     expect(puts()).toHaveLength(1);
     expect(JSON.parse(puts()[0][1].body as string)).toEqual({ userIds: ["u-1", "u-2"] });
-    await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.filter(
-          ([u, i]) => u === "/api/territories/t-1/admins" && !(i as RequestInit | undefined)?.method,
-        ),
-      ).toHaveLength(2),
-    );
-    expect(
-      fetchMock.mock.calls.filter(
-        ([u, i]) => u === "/api/territories/t-2/admins" && !(i as RequestInit | undefined)?.method,
-      ),
-    ).toHaveLength(1);
-  });
-
-  it("keeps the saved draft on screen until the refetch lands", async () => {
-    let release: () => void = () => {};
-    const held = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    const base = fetchMock.getMockImplementation() as (u: string, i?: RequestInit) => Promise<Response>;
-    let refetches = 0;
-    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
-      if (url === "/api/territories/t-1/admins" && (init?.method ?? "GET") === "GET") {
-        refetches += 1;
-        if (refetches > 1) {
-          await held;
-          return json({ userIds: ["u-1", "u-2"] });
-        }
-      }
-      return base(url, init);
-    });
-
-    const { result } = renderHook(() => ({ s: useTerritoryAccess(), notices: useNotices() }), {
-      wrapper,
-    });
-    await waitFor(() => expect(result.current.s.status).toBe("ready"));
-    act(() => result.current.s.select("t-1"));
-    act(() => result.current.s.add("u-2"));
-    act(() => result.current.s.save());
-    await waitFor(() => expect(result.current.notices[0]?.message).toBe("Access saved"));
-    // The refetch is still in flight: the panel must not fall back to the
-    // pre-save set, or an edit made now would build on it and the next PUT
-    // would drop the grant just saved.
+    // The PUT is a full replace answering 204, so the set just sent is the
+    // saved set: written straight into the one map entry, nothing re-read.
+    expect(client.getQueryData(["territory-admins"])).toEqual({ "t-1": ["u-1", "u-2"], "t-2": [] });
+    expect(adminReads()).toBe(1);
+    expect(result.current.s.dirty).toBe(false);
     expect(result.current.s.draft.map((g) => g.userId)).toEqual(["u-1", "u-2"]);
-    await act(async () => {
-      release();
-      await held;
-    });
-    await waitFor(() => expect(result.current.s.dirty).toBe(false));
-    expect(result.current.s.draft.map((g) => g.userId)).toEqual(["u-1", "u-2"]);
+    expect(result.current.s.territories?.[0]?.peopleLabel).toBe("2 people");
   });
 
   it("does nothing on save when nothing changed", async () => {

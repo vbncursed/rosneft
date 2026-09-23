@@ -641,10 +641,14 @@ visible instance the user keeps. Only one "Console" text now shows inside
 the console sidebar.
 
 **Territory access** is the territories list, the users list and one
-admins query per territory; visibility is derived (anyone assigned →
+`territoryAdminsQuery` (`GET /api/territory-admins`, every visible
+territory's set in one map); visibility is derived (anyone assigned →
 `assigned`, nobody → `private`), every grant is `direct`, drafts are kept per
 slug so switching territories loses no edit, and Save is one PUT of the whole
-set followed by invalidating that territory's admins query alone.
+set. The PUT answers 204 and replaces the set, so on success the ids just
+sent are written into that slug's map entry with `setQueryData` and the draft
+dropped in the same tick — no re-read of the map, and no window where the
+panel shows the pre-save set.
 
 **Audit** is one infinite query keyed by the parsed filters, plus its own
 24-hour window query for the counters above the list — a filter narrows the
