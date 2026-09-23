@@ -39,7 +39,8 @@ func (s *RescaleSuite) TearDownSuite() { stopCatalogDB(s.ctr, s.pool) }
 func (s *RescaleSuite) SetupTest() {
 	ctx := s.T().Context()
 	_, err := s.pool.Exec(ctx, `DELETE FROM measurements; DELETE FROM placements;
-		UPDATE territories SET rescale_baseline_max = NULL`)
+		UPDATE territories SET rescale_baseline_max = NULL, rescale_baseline_center_x = NULL,
+			rescale_baseline_center_y = NULL, rescale_baseline_center_z = NULL`)
 	assert.NilError(s.T(), err)
 	for _, slug := range []string{"a", "b"} {
 		_, err = s.pg.CreatePlacement(ctx, domain.Placement{
@@ -52,7 +53,7 @@ func (s *RescaleSuite) SetupTest() {
 			Points:        []domain.Vec3{{X: 1, Y: 2, Z: 3}, {X: -4, Y: 5, Z: -6}},
 		})
 		assert.NilError(s.T(), err)
-		assert.NilError(s.T(), s.pg.SetTerritoryRescaleBaseline(ctx, slug, 10))
+		assert.NilError(s.T(), s.pg.SetTerritoryRescaleBaseline(ctx, slug, 10, domain.Vec3{}))
 	}
 }
 
@@ -99,4 +100,30 @@ func (s *RescaleSuite) TestAFactorOfOneWritesNothing() {
 		WHERE t.slug = 'a' AND m.updated_at > m.created_at`).Scan(&entries))
 	assert.Equal(s.T(), entries, 0)
 	assert.DeepEqual(s.T(), s.points("a"), []float64{1, 2, 3, -4, 5, -6})
+}
+
+// baseline reads a pending baseline back; call it only while one is set.
+func (s *RescaleSuite) baseline(slug string) (float64, domain.Vec3) {
+	var m float64
+	var c domain.Vec3
+	assert.NilError(s.T(), s.pool.QueryRow(s.T().Context(), `
+		SELECT rescale_baseline_max, rescale_baseline_center_x,
+		       rescale_baseline_center_y, rescale_baseline_center_z
+		FROM territories WHERE slug = $1`, slug).Scan(&m, &c.X, &c.Y, &c.Z))
+	return m, c
+}
+
+// A second replace before the first converted keeps the first's baseline, its
+// center included: both describe the mesh the placements were positioned on.
+func (s *RescaleSuite) TestTheFirstBaselineKeepsItsCenter() {
+	ctx := s.T().Context()
+	_, err := s.pool.Exec(ctx, `UPDATE territories SET rescale_baseline_max = NULL WHERE slug = 'a'`)
+	assert.NilError(s.T(), err)
+
+	assert.NilError(s.T(), s.pg.SetTerritoryRescaleBaseline(ctx, "a", 8, domain.Vec3{X: 1, Y: 2, Z: 3}))
+	assert.NilError(s.T(), s.pg.SetTerritoryRescaleBaseline(ctx, "a", 4, domain.Vec3{X: 9, Y: 9, Z: 9}))
+
+	m, c := s.baseline("a")
+	assert.Equal(s.T(), m, 8.0)
+	assert.Equal(s.T(), c, domain.Vec3{X: 1, Y: 2, Z: 3})
 }

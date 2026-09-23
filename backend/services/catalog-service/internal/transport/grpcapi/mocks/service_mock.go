@@ -208,9 +208,9 @@ type ServiceMock struct {
 	beforeSetTerritoryAdminsCounter uint64
 	SetTerritoryAdminsMock          mServiceMockSetTerritoryAdmins
 
-	funcSetTerritoryRescaleBaseline          func(ctx context.Context, slug string, sourceMax float64) (err error)
+	funcSetTerritoryRescaleBaseline          func(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) (err error)
 	funcSetTerritoryRescaleBaselineOrigin    string
-	inspectFuncSetTerritoryRescaleBaseline   func(ctx context.Context, slug string, sourceMax float64)
+	inspectFuncSetTerritoryRescaleBaseline   func(ctx context.Context, slug string, sourceMax float64, center domain.Vec3)
 	afterSetTerritoryRescaleBaselineCounter  uint64
 	beforeSetTerritoryRescaleBaselineCounter uint64
 	SetTerritoryRescaleBaselineMock          mServiceMockSetTerritoryRescaleBaseline
@@ -9936,6 +9936,7 @@ type ServiceMockSetTerritoryRescaleBaselineParams struct {
 	ctx       context.Context
 	slug      string
 	sourceMax float64
+	center    domain.Vec3
 }
 
 // ServiceMockSetTerritoryRescaleBaselineParamPtrs contains pointers to parameters of the Service.SetTerritoryRescaleBaseline
@@ -9943,6 +9944,7 @@ type ServiceMockSetTerritoryRescaleBaselineParamPtrs struct {
 	ctx       *context.Context
 	slug      *string
 	sourceMax *float64
+	center    *domain.Vec3
 }
 
 // ServiceMockSetTerritoryRescaleBaselineResults contains results of the Service.SetTerritoryRescaleBaseline
@@ -9956,6 +9958,7 @@ type ServiceMockSetTerritoryRescaleBaselineExpectationOrigins struct {
 	originCtx       string
 	originSlug      string
 	originSourceMax string
+	originCenter    string
 }
 
 // Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
@@ -9969,7 +9972,7 @@ func (mmSetTerritoryRescaleBaseline *mServiceMockSetTerritoryRescaleBaseline) Op
 }
 
 // Expect sets up expected params for Service.SetTerritoryRescaleBaseline
-func (mmSetTerritoryRescaleBaseline *mServiceMockSetTerritoryRescaleBaseline) Expect(ctx context.Context, slug string, sourceMax float64) *mServiceMockSetTerritoryRescaleBaseline {
+func (mmSetTerritoryRescaleBaseline *mServiceMockSetTerritoryRescaleBaseline) Expect(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) *mServiceMockSetTerritoryRescaleBaseline {
 	if mmSetTerritoryRescaleBaseline.mock.funcSetTerritoryRescaleBaseline != nil {
 		mmSetTerritoryRescaleBaseline.mock.t.Fatalf("ServiceMock.SetTerritoryRescaleBaseline mock is already set by Set")
 	}
@@ -9982,7 +9985,7 @@ func (mmSetTerritoryRescaleBaseline *mServiceMockSetTerritoryRescaleBaseline) Ex
 		mmSetTerritoryRescaleBaseline.mock.t.Fatalf("ServiceMock.SetTerritoryRescaleBaseline mock is already set by ExpectParams functions")
 	}
 
-	mmSetTerritoryRescaleBaseline.defaultExpectation.params = &ServiceMockSetTerritoryRescaleBaselineParams{ctx, slug, sourceMax}
+	mmSetTerritoryRescaleBaseline.defaultExpectation.params = &ServiceMockSetTerritoryRescaleBaselineParams{ctx, slug, sourceMax, center}
 	mmSetTerritoryRescaleBaseline.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmSetTerritoryRescaleBaseline.expectations {
 		if minimock.Equal(e.params, mmSetTerritoryRescaleBaseline.defaultExpectation.params) {
@@ -10062,8 +10065,31 @@ func (mmSetTerritoryRescaleBaseline *mServiceMockSetTerritoryRescaleBaseline) Ex
 	return mmSetTerritoryRescaleBaseline
 }
 
+// ExpectCenterParam4 sets up expected param center for Service.SetTerritoryRescaleBaseline
+func (mmSetTerritoryRescaleBaseline *mServiceMockSetTerritoryRescaleBaseline) ExpectCenterParam4(center domain.Vec3) *mServiceMockSetTerritoryRescaleBaseline {
+	if mmSetTerritoryRescaleBaseline.mock.funcSetTerritoryRescaleBaseline != nil {
+		mmSetTerritoryRescaleBaseline.mock.t.Fatalf("ServiceMock.SetTerritoryRescaleBaseline mock is already set by Set")
+	}
+
+	if mmSetTerritoryRescaleBaseline.defaultExpectation == nil {
+		mmSetTerritoryRescaleBaseline.defaultExpectation = &ServiceMockSetTerritoryRescaleBaselineExpectation{}
+	}
+
+	if mmSetTerritoryRescaleBaseline.defaultExpectation.params != nil {
+		mmSetTerritoryRescaleBaseline.mock.t.Fatalf("ServiceMock.SetTerritoryRescaleBaseline mock is already set by Expect")
+	}
+
+	if mmSetTerritoryRescaleBaseline.defaultExpectation.paramPtrs == nil {
+		mmSetTerritoryRescaleBaseline.defaultExpectation.paramPtrs = &ServiceMockSetTerritoryRescaleBaselineParamPtrs{}
+	}
+	mmSetTerritoryRescaleBaseline.defaultExpectation.paramPtrs.center = &center
+	mmSetTerritoryRescaleBaseline.defaultExpectation.expectationOrigins.originCenter = minimock.CallerInfo(1)
+
+	return mmSetTerritoryRescaleBaseline
+}
+
 // Inspect accepts an inspector function that has same arguments as the Service.SetTerritoryRescaleBaseline
-func (mmSetTerritoryRescaleBaseline *mServiceMockSetTerritoryRescaleBaseline) Inspect(f func(ctx context.Context, slug string, sourceMax float64)) *mServiceMockSetTerritoryRescaleBaseline {
+func (mmSetTerritoryRescaleBaseline *mServiceMockSetTerritoryRescaleBaseline) Inspect(f func(ctx context.Context, slug string, sourceMax float64, center domain.Vec3)) *mServiceMockSetTerritoryRescaleBaseline {
 	if mmSetTerritoryRescaleBaseline.mock.inspectFuncSetTerritoryRescaleBaseline != nil {
 		mmSetTerritoryRescaleBaseline.mock.t.Fatalf("Inspect function is already set for ServiceMock.SetTerritoryRescaleBaseline")
 	}
@@ -10088,7 +10114,7 @@ func (mmSetTerritoryRescaleBaseline *mServiceMockSetTerritoryRescaleBaseline) Re
 }
 
 // Set uses given function f to mock the Service.SetTerritoryRescaleBaseline method
-func (mmSetTerritoryRescaleBaseline *mServiceMockSetTerritoryRescaleBaseline) Set(f func(ctx context.Context, slug string, sourceMax float64) (err error)) *ServiceMock {
+func (mmSetTerritoryRescaleBaseline *mServiceMockSetTerritoryRescaleBaseline) Set(f func(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) (err error)) *ServiceMock {
 	if mmSetTerritoryRescaleBaseline.defaultExpectation != nil {
 		mmSetTerritoryRescaleBaseline.mock.t.Fatalf("Default expectation is already set for the Service.SetTerritoryRescaleBaseline method")
 	}
@@ -10104,14 +10130,14 @@ func (mmSetTerritoryRescaleBaseline *mServiceMockSetTerritoryRescaleBaseline) Se
 
 // When sets expectation for the Service.SetTerritoryRescaleBaseline which will trigger the result defined by the following
 // Then helper
-func (mmSetTerritoryRescaleBaseline *mServiceMockSetTerritoryRescaleBaseline) When(ctx context.Context, slug string, sourceMax float64) *ServiceMockSetTerritoryRescaleBaselineExpectation {
+func (mmSetTerritoryRescaleBaseline *mServiceMockSetTerritoryRescaleBaseline) When(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) *ServiceMockSetTerritoryRescaleBaselineExpectation {
 	if mmSetTerritoryRescaleBaseline.mock.funcSetTerritoryRescaleBaseline != nil {
 		mmSetTerritoryRescaleBaseline.mock.t.Fatalf("ServiceMock.SetTerritoryRescaleBaseline mock is already set by Set")
 	}
 
 	expectation := &ServiceMockSetTerritoryRescaleBaselineExpectation{
 		mock:               mmSetTerritoryRescaleBaseline.mock,
-		params:             &ServiceMockSetTerritoryRescaleBaselineParams{ctx, slug, sourceMax},
+		params:             &ServiceMockSetTerritoryRescaleBaselineParams{ctx, slug, sourceMax, center},
 		expectationOrigins: ServiceMockSetTerritoryRescaleBaselineExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmSetTerritoryRescaleBaseline.expectations = append(mmSetTerritoryRescaleBaseline.expectations, expectation)
@@ -10146,17 +10172,17 @@ func (mmSetTerritoryRescaleBaseline *mServiceMockSetTerritoryRescaleBaseline) in
 }
 
 // SetTerritoryRescaleBaseline implements mm_grpcapi.Service
-func (mmSetTerritoryRescaleBaseline *ServiceMock) SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64) (err error) {
+func (mmSetTerritoryRescaleBaseline *ServiceMock) SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) (err error) {
 	mm_atomic.AddUint64(&mmSetTerritoryRescaleBaseline.beforeSetTerritoryRescaleBaselineCounter, 1)
 	defer mm_atomic.AddUint64(&mmSetTerritoryRescaleBaseline.afterSetTerritoryRescaleBaselineCounter, 1)
 
 	mmSetTerritoryRescaleBaseline.t.Helper()
 
 	if mmSetTerritoryRescaleBaseline.inspectFuncSetTerritoryRescaleBaseline != nil {
-		mmSetTerritoryRescaleBaseline.inspectFuncSetTerritoryRescaleBaseline(ctx, slug, sourceMax)
+		mmSetTerritoryRescaleBaseline.inspectFuncSetTerritoryRescaleBaseline(ctx, slug, sourceMax, center)
 	}
 
-	mm_params := ServiceMockSetTerritoryRescaleBaselineParams{ctx, slug, sourceMax}
+	mm_params := ServiceMockSetTerritoryRescaleBaselineParams{ctx, slug, sourceMax, center}
 
 	// Record call args
 	mmSetTerritoryRescaleBaseline.SetTerritoryRescaleBaselineMock.mutex.Lock()
@@ -10175,7 +10201,7 @@ func (mmSetTerritoryRescaleBaseline *ServiceMock) SetTerritoryRescaleBaseline(ct
 		mm_want := mmSetTerritoryRescaleBaseline.SetTerritoryRescaleBaselineMock.defaultExpectation.params
 		mm_want_ptrs := mmSetTerritoryRescaleBaseline.SetTerritoryRescaleBaselineMock.defaultExpectation.paramPtrs
 
-		mm_got := ServiceMockSetTerritoryRescaleBaselineParams{ctx, slug, sourceMax}
+		mm_got := ServiceMockSetTerritoryRescaleBaselineParams{ctx, slug, sourceMax, center}
 
 		if mm_want_ptrs != nil {
 
@@ -10194,6 +10220,11 @@ func (mmSetTerritoryRescaleBaseline *ServiceMock) SetTerritoryRescaleBaseline(ct
 					mmSetTerritoryRescaleBaseline.SetTerritoryRescaleBaselineMock.defaultExpectation.expectationOrigins.originSourceMax, *mm_want_ptrs.sourceMax, mm_got.sourceMax, minimock.Diff(*mm_want_ptrs.sourceMax, mm_got.sourceMax))
 			}
 
+			if mm_want_ptrs.center != nil && !minimock.Equal(*mm_want_ptrs.center, mm_got.center) {
+				mmSetTerritoryRescaleBaseline.t.Errorf("ServiceMock.SetTerritoryRescaleBaseline got unexpected parameter center, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSetTerritoryRescaleBaseline.SetTerritoryRescaleBaselineMock.defaultExpectation.expectationOrigins.originCenter, *mm_want_ptrs.center, mm_got.center, minimock.Diff(*mm_want_ptrs.center, mm_got.center))
+			}
+
 		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmSetTerritoryRescaleBaseline.t.Errorf("ServiceMock.SetTerritoryRescaleBaseline got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 				mmSetTerritoryRescaleBaseline.SetTerritoryRescaleBaselineMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
@@ -10206,9 +10237,9 @@ func (mmSetTerritoryRescaleBaseline *ServiceMock) SetTerritoryRescaleBaseline(ct
 		return (*mm_results).err
 	}
 	if mmSetTerritoryRescaleBaseline.funcSetTerritoryRescaleBaseline != nil {
-		return mmSetTerritoryRescaleBaseline.funcSetTerritoryRescaleBaseline(ctx, slug, sourceMax)
+		return mmSetTerritoryRescaleBaseline.funcSetTerritoryRescaleBaseline(ctx, slug, sourceMax, center)
 	}
-	mmSetTerritoryRescaleBaseline.t.Fatalf("Unexpected call to ServiceMock.SetTerritoryRescaleBaseline. %v %v %v", ctx, slug, sourceMax)
+	mmSetTerritoryRescaleBaseline.t.Fatalf("Unexpected call to ServiceMock.SetTerritoryRescaleBaseline. %v %v %v %v", ctx, slug, sourceMax, center)
 	return
 }
 

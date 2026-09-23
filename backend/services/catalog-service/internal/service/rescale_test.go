@@ -37,20 +37,21 @@ func (s *RescaleSuite) SetupTest() {
 }
 
 func (s *RescaleSuite) TestSetBaselineRejectsEmptySlug() {
-	err := s.svc.SetTerritoryRescaleBaseline(s.ctx, "", 4)
+	err := s.svc.SetTerritoryRescaleBaseline(s.ctx, "", 4, domain.Vec3{})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *RescaleSuite) TestSetBaselineRejectsNonPositiveMax() {
-	err := s.svc.SetTerritoryRescaleBaseline(s.ctx, "t1", 0)
+	err := s.svc.SetTerritoryRescaleBaseline(s.ctx, "t1", 0, domain.Vec3{})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
-	err = s.svc.SetTerritoryRescaleBaseline(s.ctx, "t1", -2)
+	err = s.svc.SetTerritoryRescaleBaseline(s.ctx, "t1", -2, domain.Vec3{})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
-func (s *RescaleSuite) TestSetBaselineDelegates() {
-	s.repo.SetTerritoryRescaleBaselineMock.Expect(s.ctx, "t1", 10.0).Return(nil)
-	err := s.svc.SetTerritoryRescaleBaseline(s.ctx, "t1", 10)
+func (s *RescaleSuite) TestSetBaselineDelegatesWithCenter() {
+	center := domain.Vec3{X: 1, Y: 2, Z: 3}
+	s.repo.SetTerritoryRescaleBaselineMock.Expect(s.ctx, "t1", 10.0, center).Return(nil)
+	err := s.svc.SetTerritoryRescaleBaseline(s.ctx, "t1", 10, center)
 	assert.NilError(s.T(), err)
 }
 

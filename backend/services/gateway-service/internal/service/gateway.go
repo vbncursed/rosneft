@@ -25,7 +25,7 @@ type Catalog interface {
 	ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)
 	GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
 	DeleteTerritoryArtifacts(ctx context.Context, slug string) error
-	SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64) error
+	SetTerritoryRescaleBaseline(ctx context.Context, slug string, sourceMax float64, center domain.Vec3) error
 	SetTerritoryAdmins(ctx context.Context, slug string, adminIDs []string) error
 	GetTerritoryAdmins(ctx context.Context, slug string) ([]string, error)
 
