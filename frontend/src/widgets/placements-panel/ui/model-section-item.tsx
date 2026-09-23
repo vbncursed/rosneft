@@ -26,7 +26,7 @@ export function ModelSectionItem({ section, ctx }: { section: ModelSection; ctx:
             <EyeButton
               state={eyeState(group.instances)}
               subject={`every ${group.model.title}`}
-              disabled={all.some((id) => ctx.pendingIds.includes(id))}
+              busy={all.some((id) => ctx.pendingIds.includes(id))}
               onToggle={(hidden) => ctx.onSetHidden(all, hidden)}
             />
           ) : undefined

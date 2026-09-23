@@ -79,7 +79,8 @@ export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemPro
             <EyeButton
               state={eyeState(members.map((m) => m.instance))}
               subject={`group ${group.title}`}
-              disabled={ids.length === 0 || ids.some((id) => ctx.pendingIds.includes(id))}
+              disabled={ids.length === 0}
+              busy={ids.some((id) => ctx.pendingIds.includes(id))}
               onToggle={(hidden) => ctx.onSetHidden(ids, hidden)}
             />
             <Menu
