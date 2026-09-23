@@ -9,6 +9,13 @@ export const HOLD_S = 0.3;
 export const DESCEND_S = 1.5;
 export const REVOLUTION_S = 40;
 
+/**
+ * The flight circles this much of the fitted distance: 30 % closer, over the
+ * top and round alike. The user, 2026-09-24: "при показе территории можно
+ * сделать зум на 30% от начального, как сверху так и во время вращения".
+ */
+const FLIGHT_ZOOM = 0.7;
+
 /** Bounds' own margin, so the circle frames the territory the way the first fit did. */
 const MARGIN = 1.2;
 /**
@@ -68,7 +75,7 @@ export function planFlight(
   const heading = vertical ? from.theta : Math.atan2(-look.x, -look.z);
   return {
     center: sphere.center.clone(),
-    distance: fitDistance(sphere.radius, view.fov, view.aspect),
+    distance: fitDistance(sphere.radius, view.fov, view.aspect) * FLIGHT_ZOOM,
     from,
     fromTarget: camera.target.clone(),
     heading,

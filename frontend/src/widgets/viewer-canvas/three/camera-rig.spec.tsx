@@ -186,7 +186,8 @@ describe("CameraRig · fly-around", () => {
     await ReactThreeTestRenderer.create(rig(0, { playing: true, sceneRef: territory() }));
     frames.at(1000); // the first frame is t = 0
     frames.at(1000 + RISE_S * 1000);
-    const distance = fitDistance(Math.sqrt(3), camera!.fov, camera!.aspect);
+    // 30 % closer than the fit, all the way round.
+    const distance = 0.7 * fitDistance(Math.sqrt(3), camera!.fov, camera!.aspect);
     expect(controls!.target.length()).toBeLessThan(1e-9);
     expect(camera!.position.length()).toBeCloseTo(distance, 6);
     expect(upness()).toBeGreaterThan(0.9999);
