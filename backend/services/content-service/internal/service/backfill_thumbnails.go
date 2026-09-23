@@ -34,6 +34,9 @@ func (c *Content) BackfillThumbnails(ctx context.Context) {
 	slog.InfoContext(ctx, "content: thumbnail backfill started", "pending", len(pending))
 	made := 0
 	for _, p := range pending {
+		if ctx.Err() != nil {
+			return // a dead context must not start a decode
+		}
 		if err := c.backfillOne(ctx, p); err != nil {
 			if ctx.Err() != nil {
 				return // shutting down; the rest waits for the next boot
