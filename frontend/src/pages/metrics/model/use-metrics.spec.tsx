@@ -143,6 +143,40 @@ describe("useMetrics", () => {
     });
   });
 
+  // A transient single-panel failure must not flicker its card dark.
+  it("keeps a panel's last series, marked stale, when one tick leaves it out", async () => {
+    const { result } = renderHook(() => useMetrics("1h"), { wrapper });
+    await waitFor(() => expect(result.current.results["red-rate"]?.kind).toBe("value"));
+
+    failing.add("red-rate");
+    await act(() => client.refetchQueries({ queryKey: ["metrics", "1h"] }));
+    await waitFor(() =>
+      expect(result.current.results["red-rate"]).toEqual({
+        kind: "value",
+        series: [{ label: "gateway", points: points(140, 142), labels: {} }],
+        stale: true,
+      }),
+    );
+    // Never answered at all: dark, not stale.
+    expect(result.current.results["stat-errors"]?.kind).toBe("unavailable");
+
+    failing.clear();
+    await act(() => client.refetchQueries({ queryKey: ["metrics", "1h"] }));
+    await waitFor(() => expect(result.current.results["red-rate"]).not.toHaveProperty("stale"));
+  });
+
+  it("does not carry one range's series into another", async () => {
+    const { result, rerender } = renderHook(
+      ({ range }: { range: MetricsRange }) => useMetrics(range),
+      { wrapper, initialProps: { range: "1h" as MetricsRange } },
+    );
+    await waitFor(() => expect(result.current.results["red-rate"]?.kind).toBe("value"));
+    failing.add("red-rate");
+    rerender({ range: "6h" });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    await waitFor(() => expect(result.current.results["red-rate"]?.kind).toBe("unavailable"));
+  });
+
   it("does not count 0 firing when the alerts panel failed — it knows nothing", async () => {
     failing.add("alerts");
     const { result } = renderHook(() => useMetrics("1h"), { wrapper });

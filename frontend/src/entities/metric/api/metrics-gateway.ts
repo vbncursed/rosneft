@@ -16,11 +16,11 @@ const toSeries = (s: SeriesDto): MetricSeries => ({
   labels: s.labels ?? {},
 });
 
-/** Every asked panel over one range, in one request. A null panel is no series. */
+/** Every asked panel over one range, in one request. A null panel is no series; a null body, no panel. */
 export async function fetchPanels(panels: PanelId[], range: MetricsRange): Promise<PanelSeries> {
   const query = new URLSearchParams([...panels.map((p) => ["panel", p]), ["range", range]]);
   const body = await httpGet<PanelsDto>(`/api/metrics/query?${query.toString()}`);
   return Object.fromEntries(
-    Object.entries(body).map(([id, series]) => [id, (series ?? []).map(toSeries)]),
+    Object.entries(body ?? {}).map(([id, series]) => [id, (series ?? []).map(toSeries)]),
   );
 }

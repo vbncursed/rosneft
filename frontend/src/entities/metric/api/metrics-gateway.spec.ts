@@ -39,6 +39,11 @@ describe("metrics gateway", () => {
     });
   });
 
+  it("reads a null body as no panel answered rather than throwing", async () => {
+    fetchMock.mockResolvedValueOnce(json(null));
+    await expect(fetchPanels(["red-rate"], "1h")).resolves.toEqual({});
+  });
+
   it("leaves a panel the gateway could not answer out of the map", async () => {
     fetchMock.mockResolvedValueOnce(json({ "red-rate": [series] }));
     expect(await fetchPanels(["red-rate", "alerts"], "1h")).not.toHaveProperty("alerts");

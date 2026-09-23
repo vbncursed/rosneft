@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ConsoleNavItem } from "@/widgets/console-nav";
@@ -65,11 +65,14 @@ describe("useConsoleCounters", () => {
     expect(result.current.metrics).toEqual({ kind: "static", text: "conversion health and alerts" });
   });
 
-  it("asks nothing when every card is locked", () => {
+  it("asks nothing when every card is locked", async () => {
     const { result } = renderHook(
       () => useConsoleCounters(ITEMS.map((i) => ({ ...i, disabled: true }))),
       { wrapper },
     );
+    // A query fires its fetch after mount; asserting synchronously would pass
+    // even with the gate gone. Let the effects and a macrotask run first.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
     expect(result.current.users).toEqual({ kind: "static", text: "people and roles" });
     expect(fetchMock).not.toHaveBeenCalled();
   });

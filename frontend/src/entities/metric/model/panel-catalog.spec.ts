@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { formatValue, PANELS, SECTIONS, STAT_IDS } from "./panel-catalog";
+import { ALL_PANELS, formatValue, PANELS, SECTIONS, STAT_IDS } from "./panel-catalog";
 
 describe("panel catalogue", () => {
+  it("lists every panel once, for the one request that asks for them all", () => {
+    expect(ALL_PANELS).toEqual(Object.keys(PANELS));
+    expect(ALL_PANELS).toHaveLength(20);
+  });
+
   it("covers every id the gateway registers, once", () => {
     const ids = Object.keys(PANELS).sort();
     expect(ids).toEqual([

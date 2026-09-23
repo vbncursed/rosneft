@@ -695,21 +695,26 @@ panel shows the pre-save set.
 journal and never moves them. It follows only while the first page is the only
 one: refetching N pages every 30 s is not "live", so paging older stops the
 poll, and a hidden tab sends nothing. **Metrics** is one multi-panel request
-per tick (`panelsQuery`, one cache entry keyed on the range the URL holds —
+per tick (`panelsQuery` asks for `ALL_PANELS`, the one list both it and
+`useMetrics` read; one cache entry keyed on the range the URL holds —
 `?range=`, validated in the route, `1h` by default), polled every 30 s in a
 visible tab. The health list is synthesised from the `services-up` panel plus
 the RED panels rather than fetched; alerts are summarised from their own
-labels. A panel the gateway left out of an answered map failed on its own and
-darkens only its card ("unavailable — Prometheus did not answer"); only a
-request that failed outright makes the dashboard unavailable — one dead panel
-must not blank a working screen.
+labels. A panel the gateway left out of an answered map failed on its own:
+one it answered on an earlier tick of the same range keeps those series,
+marked stale ("· stale — last answer kept"), so a transient failure does not
+flicker the card dark; only a panel never answered darkens its card
+("unavailable — Prometheus did not answer"). Only a request that failed
+outright makes the dashboard unavailable — one dead panel must not blank a
+working screen.
 
 Rulings from those screens that a later one will meet again:
 
 - **Reset password is drawn only where the gateway would allow it**
   (`canResetPassword`, `pages/users/model/people.ts`): never on the reader's
-  own row (`/account` asks for the old password), and on a Company Owner's or
-  Root's row only for Root. `PUT /api/auth/users/{id}/password` signs the user
+  own row (`/account` asks for the old password) or a deleted account (a
+  frozen one may be reset), and on a Company Owner's or Root's row only for
+  Root. `PUT /api/auth/users/{id}/password` signs the user
   out everywhere; the dialog (`features/reset-password`) opens holding a
   generated password, shown. The gateway also refuses (403) a non-Root reset
   of anyone holding a permission the reader lacks — whoever sets a password
