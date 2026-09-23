@@ -2186,14 +2186,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Owner-only Prometheus panel query
-         * @description Resolves a dashboard panel ID to server-side PromQL and runs it against Prometheus. The PromQL never leaves the server and no caller-supplied expression reaches Prometheus — `panel` and `range` are both validated against server-side allow-lists, so the endpoint is not an SSRF or query injection surface. Requires a valid session AND the owner flag; a non-owner with a valid token gets 403. Responses are `Cache-Control: no-store`.
+         * Owner-only Prometheus query for one or more panels
+         * @description Resolves each dashboard panel ID to server-side PromQL and runs it against Prometheus. The PromQL never leaves the server and no caller-supplied expression reaches Prometheus — every `panel` and the `range` are validated against server-side allow-lists, so the endpoint is not an SSRF or query injection surface. Requires a valid session AND the owner flag; a non-owner with a valid token gets 403. Responses are `Cache-Control: no-store`.
          */
         get: {
             parameters: {
                 query: {
-                    /** @description Panel ID from the server-side registry, mirrored by the client's panel-catalog. Instant (single-value) panels return one point per series; the rest are range queries of roughly 200 points. */
-                    panel: "stat-up" | "stat-rps" | "stat-errors" | "stat-p99" | "stat-queue" | "services-up" | "red-rate" | "red-errors" | "red-latency" | "red-http" | "domain-conversions" | "domain-conversion-p95" | "domain-queue" | "domain-upload" | "domain-auth" | "domain-twofa" | "runtime-memory" | "runtime-goroutines" | "runtime-gc" | "runtime-fds" | "alerts";
+                    /** @description One or more panel IDs, repeated (`?panel=a&panel=b`); repeats collapse to one key. Every ID is checked before any query runs. Instant panels return one point per series; the rest are range queries of roughly 200 points. */
+                    panel: ("stat-up" | "stat-rps" | "stat-errors" | "stat-p99" | "stat-queue" | "services-up" | "red-rate" | "red-errors" | "red-latency" | "red-http" | "domain-conversions" | "domain-conversion-p95" | "domain-queue" | "domain-upload" | "domain-auth" | "domain-twofa" | "runtime-memory" | "runtime-goroutines" | "runtime-gc" | "runtime-fds" | "alerts")[];
                     /** @description Query window. Step is derived server-side (~200 points, rounded to whole 15s scrapes). */
                     range: "15m" | "1h" | "6h" | "24h" | "7d";
                 };
@@ -2203,13 +2203,13 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description One entry per time series */
+                /** @description The series of every requested panel, keyed by panel ID. Panels run in parallel, at most four at a time; a panel whose query failed is absent from the map, and the answer is 502 only when every panel failed. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MetricSeries"][];
+                        "application/json": components["schemas"]["MetricsPanels"];
                     };
                 };
                 /** @description Unknown panel ID or unsupported range */
@@ -2970,6 +2970,10 @@ export interface components {
             labels?: {
                 [key: string]: string;
             };
+        };
+        /** @description Series per requested panel ID; a panel whose query failed is absent. */
+        MetricsPanels: {
+            [key: string]: components["schemas"]["MetricSeries"][];
         };
         Health: {
             /** @enum {string} */

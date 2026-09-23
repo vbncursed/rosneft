@@ -91,7 +91,8 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("init asset proxy: %w", err)
 	}
 
-	metricsHandler := InitMetricsHandler(cfg, logger)
+	prom := InitPrometheus(cfg)
+	metricsHandler := InitMetricsHandler(prom, logger)
 
 	backends := map[string]grpc.ClientConnInterface{
 		"catalog": cat.Conn(),

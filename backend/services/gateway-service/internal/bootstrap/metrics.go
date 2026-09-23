@@ -12,22 +12,26 @@ import (
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/transport/authhttp"
 )
 
-// InitMetricsHandler builds the owner-only Prometheus proxy handler behind
-// /api/metrics/query. It mirrors InitAssetProxy: a plain http.Handler mounted
-// on the root router (wrapped with Authenticate for the owner check), outside
-// the openapi strict handlers. The client sends a panel ID + range; the metrics
-// client resolves the ID to server-side PromQL, so no query reaches Prometheus
-// as free-form input.
-func InitMetricsHandler(cfg config.Config, logger *slog.Logger) http.Handler {
-	client := metrics.NewClient(cfg.PrometheusURL)
+// InitPrometheus builds the one Prometheus client the metrics proxy and the
+// console summary's alerts card share.
+func InitPrometheus(cfg config.Config) *metrics.Client {
+	return metrics.NewClient(cfg.PrometheusURL)
+}
+
+// InitMetricsHandler builds the owner-only Prometheus proxy behind
+// /api/metrics/query: a plain http.Handler on the root router (wrapped with
+// Authenticate for the owner check), outside the openapi strict handlers. The
+// client sends panel IDs plus one range; the metrics client resolves each ID to
+// server-side PromQL, so no query reaches Prometheus as free-form input.
+func InitMetricsHandler(client *metrics.Client, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !authhttp.IsOwner(r.Context()) {
 			apperr.Write(w, http.StatusForbidden, apperr.SlugForbidden, "root only")
 			return
 		}
 
-		panel := r.URL.Query().Get("panel")
-		series, err := client.Query(r.Context(), panel, r.URL.Query().Get("range"))
+		q := r.URL.Query()
+		series, err := client.QueryPanels(r.Context(), q["panel"], q.Get("range"))
 		switch {
 		case errors.Is(err, metrics.ErrUnknownPanel) || errors.Is(err, metrics.ErrBadRange):
 			apperr.Write(w, http.StatusBadRequest, apperr.SlugInvalidInput, "unknown panel or range")
@@ -35,7 +39,7 @@ func InitMetricsHandler(cfg config.Config, logger *slog.Logger) http.Handler {
 		case err != nil:
 			// Log the upstream detail once; return a generic error so Prometheus
 			// internals never leak to the browser.
-			logger.Warn("metrics: prometheus query failed", "panel", panel, "err", err)
+			logger.Warn("metrics: prometheus query failed", "panels", q["panel"], "err", err)
 			apperr.Write(w, http.StatusBadGateway, apperr.SlugInternal, "metric upstream unavailable")
 			return
 		}
