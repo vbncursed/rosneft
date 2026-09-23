@@ -162,4 +162,22 @@ describe("PlacementsLayer", () => {
     const editing = await ReactThreeTestRenderer.create(layer({ markerLabels: { 2: "b" } }));
     expect(markers(editing)).toHaveLength(0);
   });
+
+  // G-1: hidden is hidden for everyone. The selected one going with it takes
+  // the gizmo too — the ref callback hands the gizmo null on unmount.
+  it("draws no hidden placement, and no gizmo when the hidden one is the selection", async () => {
+    const r = await ReactThreeTestRenderer.create(
+      layer({ placements: [fakePlacement(1), { ...fakePlacement(2), hidden: true }], selectedId: 2 }),
+    );
+    expect(instances(r).map((g) => g.instance.userData.placementId)).toEqual([1]);
+    expect(gizmos(r)).toHaveLength(0);
+  });
+
+  it("marks no hidden placement inside a panorama", async () => {
+    const [one, two] = inPanorama();
+    const r = await ReactThreeTestRenderer.create(
+      layer({ placements: [{ ...one, hidden: true }, { ...two, visiblePanoramaIds: [3] }], activePanoramaId: 3, selectedId: null }),
+    );
+    expect(markers(r)[0].instance.userData.ids).toEqual([2]);
+  });
 });

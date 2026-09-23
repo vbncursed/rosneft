@@ -30,6 +30,8 @@ export default function GlbPreloader({ parentLods, placements }: GlbPreloaderPro
       useGLTF.preload(assetUrl(first.hash), true, true, extendGltfLoader);
     }
     for (const p of placements) {
+      // A hidden placement is not drawn, so its GLB is not worth the wire.
+      if (p.hidden) continue;
       const pick = pickCoarsest(p.chain);
       if (pick) {
         useGLTF.preload(assetUrl(pick.hash), true, true, extendGltfLoader);
