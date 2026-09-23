@@ -2252,6 +2252,37 @@ paths:
         '403': { description: Caller is not an owner }
         '422': { description: Self-target guard }
 
+  /api/auth/users/{id}/password:
+    put:
+      tags: [auth]
+      summary: Set a user's password and sign them out everywhere (requires users:write)
+      description: >
+        No old password is asked. Root may set anyone's; everyone else only the
+        password of a user they created, and never an admin's or Root's. The
+        caller's own password goes through POST /api/auth/me/password, which
+        asks for the old one. An id outside the caller's scope answers 404,
+        like an unknown one. A 500 after the write means the sign-out failed;
+        retrying is safe.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string, minLength: 8, maxLength: 256 }
+      responses:
+        '204': { description: Password set; every session of the user revoked }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { description: Self-target guard }
+
   /api/auth/roles:
     get:
       tags: [auth]

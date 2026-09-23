@@ -51,6 +51,7 @@ var ungatedMutations = map[string]string{
 	"POST /api/auth/users/{id}/2fa/unrequire": "users:write in mount.go",
 	"POST /api/auth/users/{id}/restore":       "users:delete in mount.go",
 	"POST /api/auth/users/{id}/owner":         "users:write in mount.go, owner check in auth",
+	"PUT /api/auth/users/{id}/password":       "users:write in mount.go, owner scope in auth",
 	"POST /api/auth/roles":                    "roles:manage in mount.go",
 	"PATCH /api/auth/roles/{slug}":            "roles:manage in mount.go",
 	"DELETE /api/auth/roles/{slug}":           "roles:manage in mount.go",

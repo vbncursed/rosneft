@@ -121,3 +121,15 @@ func (h *Handlers) setUserOwner(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, h.userJSON(r.Context(), u))
 }
+
+func (h *Handlers) setUserPassword(w http.ResponseWriter, r *http.Request) {
+	var req struct{ Password string }
+	if !decode(w, r, &req) {
+		return
+	}
+	if err := h.client.SetUserPassword(r.Context(), sessionToken(r), chi.URLParam(r, "id"), req.Password); err != nil {
+		fail(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
