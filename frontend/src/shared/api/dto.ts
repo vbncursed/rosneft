@@ -145,6 +145,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/territory-admins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every visible territory's assigned admins in one call (Root only)
+         * @description The batch form of GET /api/territories/{slug}/admins, with the same Root-only gate. Not /api/territories/admins: chi would shadow a territory whose slug is `admins`. It sits outside /api/territories/{slug}, so RequireTerritoryAccess does not cover it; the handler reads the territory set through the caller's scope, the rule GET /api/territories applies.
+         */
+        get: operations["listTerritoryAdmins"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/territories/{slug}/source": {
         parameters: {
             query?: never;
@@ -2691,6 +2711,10 @@ export interface components {
             /** @description Admin user ids assigned to the territory (full set). */
             userIds: string[];
         };
+        /** @description Admin user ids per territory slug. Every territory the caller can see has a key; `[]` when nobody is assigned. */
+        TerritoryAdminsMap: {
+            [key: string]: string[];
+        };
         /**
          * @description Body for POST /api/territories/{slug}/source. Carries the hash of a
          *     freshly uploaded ZIP (via /api/uploads); the territory's source is
@@ -3365,6 +3389,29 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    listTerritoryAdmins: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TerritoryAdminsMap"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             500: components["responses"]["Internal"];
         };
     };
