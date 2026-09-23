@@ -103,6 +103,15 @@ describe("ResetPasswordDialog", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  // Escape and the backdrop share the Modal's onClose; Done is the only way out
+  // once the dialog holds the only copy of the password.
+  it("does not close on Escape once the reset has landed", async () => {
+    const onClose = vi.fn();
+    render(<ResetPasswordDialog {...props({ onClose, done: true })} />);
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("does not close on Escape while the reset is in flight", async () => {
     const onClose = vi.fn();
     render(<ResetPasswordDialog {...props({ onClose, busy: true })} />);

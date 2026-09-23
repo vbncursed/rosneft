@@ -55,8 +55,9 @@ export function ResetPasswordDialog({
   return (
     <Modal
       open={open}
-      // Escape and the backdrop wait for the reset, as Cancel does.
-      onClose={busy ? () => {} : onClose}
+      // Escape and the backdrop wait for the reset, as Cancel does, and once
+      // it lands only Done closes: the password on screen is the only copy.
+      onClose={busy || done ? () => {} : onClose}
       overline="Reset password"
       title={`New password for ${username}`}
       description={
