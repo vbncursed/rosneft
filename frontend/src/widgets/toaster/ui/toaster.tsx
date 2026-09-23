@@ -1,6 +1,17 @@
 import { useEffect, useRef, type FocusEvent } from "react";
+import { clsx as cx } from "clsx";
 import { dismiss, holdNotices, releaseNotices, useNotices } from "@/shared/lib/notify";
 import { Toast } from "@/shared/ui/toast";
+
+export type ToasterPlacement = "top-right" | "bottom-center";
+
+// Where the stack is anchored, and the edge its cards enter from. The viewer
+// keeps its top-right corner for the Overlays panel's head, so there the stack
+// sits bottom-centre, above the status strip.
+const PLACEMENT: Record<ToasterPlacement, { host: string; enter: string }> = {
+  "top-right": { host: "right-4 top-4", enter: "starting:-translate-y-2" },
+  "bottom-center": { host: "bottom-16 left-1/2 -translate-x-1/2", enter: "starting:translate-y-2" },
+};
 
 const onVisibility = () =>
   document.hidden ? holdNotices("hidden") : releaseNotices("hidden");
@@ -13,7 +24,8 @@ const onVisibility = () =>
  * changes after it exists, so one created together with the first notice is
  * read unreliably. Errors and warnings still carry their own `alert`.
  */
-export function Toaster() {
+export function Toaster({ placement = "top-right" }: { placement?: ToasterPlacement }) {
+  const { host, enter } = PLACEMENT[placement];
   const notices = useNotices();
   const empty = notices.length === 0;
 
@@ -68,7 +80,7 @@ export function Toaster() {
       ref={region}
       onFocus={onFocus}
       onBlur={onBlur}
-      className="pointer-events-none fixed right-4 top-4 z-50 flex w-[min(92vw,22rem)] flex-col gap-2"
+      className={cx("pointer-events-none fixed z-50 flex w-[min(92vw,22rem)] flex-col gap-2", host)}
     >
       {notices.map((notice) => (
         <Toast
@@ -86,10 +98,13 @@ export function Toaster() {
               },
             }
           }
-          // Enters from above, where the stack is anchored; the exit is instant.
+          // Enters from the edge the stack is anchored to; the exit is instant.
           // The ::after bridges the gap-2 below every card but the last, so
           // crossing from one card to the next never leaves the stack.
-          className="pointer-events-auto relative shadow-elevation transition-[opacity,translate] duration-200 ease-out starting:opacity-0 starting:-translate-y-2 motion-reduce:starting:translate-y-0 after:absolute after:inset-x-0 after:top-full after:h-2 last:after:hidden"
+          className={cx(
+            "pointer-events-auto relative shadow-elevation transition-[opacity,translate] duration-200 ease-out starting:opacity-0 motion-reduce:starting:translate-y-0 after:absolute after:inset-x-0 after:top-full after:h-2 last:after:hidden",
+            enter,
+          )}
         >
           {notice.message}
         </Toast>
