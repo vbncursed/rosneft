@@ -21,6 +21,9 @@ var (
 	// ErrMeasurementNotFound also covers an id that exists under another
 	// territory: the catalog scopes every id-addressed call by slug.
 	ErrMeasurementNotFound = errors.New("measurement not found")
+	// ErrPlacementGroupNotFound also covers a group of another territory: the
+	// catalog scopes every group id by slug.
+	ErrPlacementGroupNotFound = errors.New("placement group not found")
 	// ErrIdempotencyConflict is a batch create whose Idempotency-Key already
 	// names a stored batch of another size on the territory — a 409.
 	ErrIdempotencyConflict = errors.New("idempotency key reused with a different batch")
