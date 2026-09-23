@@ -414,6 +414,24 @@ describe("useTerritoryViewer", () => {
       expect(client.getQueryData(["scene", SLUG])).toBeUndefined();
     });
 
+    // The reader left and came straight back: the old page's late write must
+    // not pull the bundle out from under the new visit, only mark it stale.
+    it("marks the bundle stale, not dropped, when a late save lands while a new visit reads it", async () => {
+      let land!: (m: unknown) => void;
+      createMeasurement.mockImplementation(() => new Promise((resolve) => (land = resolve)));
+      const first = mount();
+      await ready(first);
+      measureAndFinish(first);
+      first.unmount();
+      // Same client: an SPA navigation back, not a page load.
+      const second = renderHook(() => useTerritoryViewer(SLUG), { wrapper });
+      await ready(second);
+      await act(async () => land({ serverId: 32, points: [], closed: false }));
+      expect(client.getQueryData(["scene", SLUG])).toBe(BUNDLE);
+      expect(client.getQueryState(["scene", SLUG])?.isInvalidated).toBe(true);
+      expect(now(second).canvas.chains).toMatchObject([{ serverId: 31 }]);
+    });
+
     it("keeps the cached bundle on unmount when nothing changed", async () => {
       const r = mount();
       await ready(r);

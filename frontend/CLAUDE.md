@@ -492,7 +492,10 @@ carries `· 24h`; six console cards wrap at 1280 px on the mock's own
   seeds once and is optimistic afterwards — and removes `["scene", slug]` on
   the way out, since the lists would otherwise reseed from the old bundle on
   the next visit. A ref records the change, not `isInvalidated`, because a
-  rename's `setQueryData` clears that flag.
+  rename's `setQueryData` clears that flag. A write that lands after the page
+  has gone drops the bundle itself — unless a new visit already observes it
+  (`getObserversCount() > 0`), where it only stays marked stale: removing it
+  would pull the bundle out from under that visit.
 
 ## Where things live
 
