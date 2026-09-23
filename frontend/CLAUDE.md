@@ -1000,6 +1000,13 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   a module store behind `useSyncExternalStore`
   (`features/theme-toggle/model/use-theme.ts`) so the canvas hears the
   sidebar's toggle.
+  `ViewerCanvas` is `memo`: a page re-render (a fold, a keystroke) must not
+  reach `SceneCanvas`, so **every canvas prop keeps its identity unless its
+  value changed**. Callbacks are `useCallback`s at their hooks. Objects that
+  `pageProps` builds go through `memoLast`
+  (`pages/territory-viewer/model/memo-last.ts`), because `pageProps` is pure
+  and has no hooks. `use-territory-viewer.spec`'s "a folding list" fails, and
+  names the prop, when one does not.
 - **Three exempt files** — `gltf-loader-setup.ts`, `ktx2-init.tsx`,
   `glb-preloader.tsx` (`widgets/viewer-canvas/three/`, listed in
   `exempt-modules.ts`) — need real WebGL/a Worker. Everything else
@@ -1071,6 +1078,25 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   nothing behind; the editor seeds from the bundle once and the
   page remounts it via `use-scene-seeded` (one-shot) so a cold page is not
   empty.
+- **Hiding and user groups** (spec `docs/superpowers/specs/2026-09-23-placement-groups-play-thumbs-design.md` §1).
+  `hidden` and `groupId` are properties of the placement, shared by every
+  reader; the eyes and the groups are `placement:write`, a group's own `Add`
+  is `placement:create`. The panel is `groupPlacements(groupByModel(…), groups)`
+  — user groups alphabetically, then model rows holding only what no group
+  claims — and `#N` stays the *model's* numbering, so moving a placement never
+  renames it. A model row's eye covers every placement of that model, grouped
+  ones included (G-3); a group has no hidden flag, its eye is the aggregate
+  (`eyeState`: visible / hidden / mixed, `aria-pressed` true/false/"mixed").
+  Hiding is one bulk `PUT …/placements/hidden` (`use-bulk-writes.ts`, split
+  from the editor at the cap); a hidden selection is dropped
+  (`use-placement-handlers.ts`, split from `use-page-handlers.ts` at the cap,
+  which also holds the group a group's `Add` aims the picker at). The canvas
+  skips hidden placements at its two consumers — `PlacementsLayer` through
+  `isShownIn`, and `GlbPreloader` — and a hidden row's Focus is disabled.
+  Deleting a group ungroups its placements locally (`ungroup`, mirroring
+  `ON DELETE SET NULL`; the editor and the groups hook are wired together in
+  `use-viewer-placements.ts`). The panel's open-row key is a model slug or
+  `group:<id>` (`userGroupKey`).
 - **The Selected block is a form whenever a writer has something selected**
   (user request, 2026-09-14 — the mock's state 2 drew a read-only block). The
   label field, the Pos/Rot/Scl cells and Save are live for any selection
@@ -1131,11 +1157,26 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   (`dampingFactor` 0.08, off under reduced motion) and `stop-coast.ts` kills
   the coast before a reset or a drag; the Overlays panel and rail fade in
   with an 8 px slide, and the LOD switcher and measure bar glide on `right`
-  (one absolute element each) while the PDF layer does not move.
+  (one absolute element each) while the PDF layer does not move. Play
+  (`flight-pose.ts`, `camera-rig.tsx`) flies the camera on its own rAF loop.
+  Its rise stretches with the turn round to the reader's heading
+  (`Flight.rise`, twice `RISE_S` for a half turn); a fixed 1.2 s swung a
+  reader facing away through 180° in a whip. The flight ends on
+  OrbitControls `start` or on `controls.enabled` going false, because a
+  gizmo or marker drag switches the controls off without a `start`. However
+  it ends, the orbit pivots on the view ray's point nearest the territory
+  (`landingPivot`): the rise's own target can sit below the ground. A
+  territory with no finite, non-zero bounds is refused at once. The page
+  lands it on Reset and Focus (`use-page-handlers.ts`) and on a pointer mode
+  or a panorama (`use-fly-around.ts`).
 - **Loading-state rail tiles are `inert`, as mock state 3 draws them** — dimmed
-  and out of the Tab order, except the active tile and the Panoramas/Documents
-  tiles, which never go inert (`viewer-view.ts`'s `railTools`). An earlier
-  note here recorded them as `idle`; the code and the mock both say `inert`.
+  and out of the Tab order, except the active tile, Play, and the
+  Panoramas/Documents tiles (`viewer-view.ts`'s `railTools`). Panoramas and
+  Documents never go inert. Play is exempt from the loading dim only, so a
+  flight caught mid-download stays stoppable; it is still inert without
+  geometry, inside a panorama, and in a pointer mode (place or measure). An
+  earlier note here recorded the loading tiles as `idle`; the code and the
+  mock both say `inert`.
 - **`WAITING_NOTE` copy caveat** (`territory-conversion-page.tsx`): "opens the
   viewer by itself" is true for a finish watched on that page
   (`shouldOpenViewer`, `conversion-view.ts`).
@@ -1204,9 +1245,12 @@ floated above it.
   hover brightening, and a click writes nothing, so the reader's own choice
   survives. A rail tile and a finished upload `reveal` their section, which
   opens *and* remembers it — an upload must not land in a hidden list. An
-  empty list has no fold at all. The folded list is `hidden`, not
-  unmounted, because the head's `aria-controls` must point at an element
-  that exists.
+  empty list has no fold at all. A folded list keeps its `<ul>`, `hidden` and
+  empty, because the head's `aria-controls` must point at an element that
+  exists. Its rows unmount, so a folded list costs nothing on a re-render. A
+  row's thumbnail is the server-made 256×128 JPEG (`thumbnailBlobHash`,
+  content-service `internal/thumbnail`), never the equirect; without one the
+  row draws the glyph.
 - **The reducer owns where the camera is, not the list hooks.**
   `features/viewer-mode`'s state carries `view` (`{kind:"scene"}` or
   `{kind:"panorama", id}`), `move` (the scene-only sub-mode for dragging

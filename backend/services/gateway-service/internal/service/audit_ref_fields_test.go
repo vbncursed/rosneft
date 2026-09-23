@@ -97,3 +97,17 @@ func hasRef(refs []domain.LabelRef, kind, id string) bool {
 	}
 	return false
 }
+
+func TestCollectRefsNamesGroups(t *testing.T) {
+	// A move between groups changes placements.group_id; the group's entry
+	// itself points at its territory.
+	entries := []domain.AuditEntry{
+		{Entity: "placement", OldRow: `{"group_id":null}`, NewRow: `{"group_id":4}`},
+		{Entity: "placement_group", NewRow: `{"id":4,"territory_id":12,"title":"North"}`},
+	}
+
+	got := collectRefs(entries)
+
+	assert.Assert(t, hasRef(got, "placement_group", "4"))
+	assert.Assert(t, hasRef(got, "territory", "12"))
+}

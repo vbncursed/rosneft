@@ -60,6 +60,7 @@ func (s *SceneBundleSuite) expectFanOut(terrArts []domain.Artifact, models []dom
 	s.cat.ListTerritoryArtifactsMock.Return(terrArts, nil)
 	s.cat.ListPlacementsMock.Return(placements, nil)
 	s.cat.ListMeasurementsMock.Return(nil, nil)
+	s.cat.ListPlacementGroupsMock.Return(nil, nil)
 	s.con.ListPanoramasMock.Return(nil, nil)
 	s.con.ListDocumentsMock.Return(nil, nil)
 	// The bundle reads each model's chain, so it must ask for it.
@@ -76,6 +77,7 @@ func (s *SceneBundleSuite) TestPropagatesTerritoryNotFound() {
 	s.cat.ListTerritoryArtifactsMock.Return(nil, nil)
 	s.cat.ListPlacementsMock.Return(nil, nil)
 	s.cat.ListMeasurementsMock.Return(nil, nil)
+	s.cat.ListPlacementGroupsMock.Return(nil, nil)
 	s.con.ListPanoramasMock.Return(nil, nil)
 	s.con.ListDocumentsMock.Return(nil, nil)
 	s.cat.ListModelsMock.Return(nil, nil)

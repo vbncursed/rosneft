@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/vbncursed/rosneft/backend/services/content-service/internal/domain"
 )
@@ -21,8 +22,22 @@ func (c *Content) CreatePanorama(ctx context.Context, p domain.Panorama) (domain
 	if p.SourceBlobHash == "" {
 		return domain.Panorama{}, fmt.Errorf("service.CreatePanorama: %w: source_blob_hash is required", domain.ErrInvalidInput)
 	}
+	p.ThumbnailBlobHash = c.thumbnail(ctx, p.SourceBlobHash)
 	return resolveSlug(p.Title, "panorama", func(s string) (domain.Panorama, error) {
 		p.Slug = s
 		return c.repo.CreatePanorama(ctx, p)
 	})
+}
+
+// thumbnail makes the row's thumbnail, or answers "". A panorama without one is
+// still a panorama: the row shows a glyph, and the startup backfill tries
+// again. It is made once, before the slug loop, so a retry does not decode the
+// source twice.
+func (c *Content) thumbnail(ctx context.Context, srcHash string) string {
+	hash, err := c.thumb(ctx, srcHash)
+	if err != nil {
+		slog.WarnContext(ctx, "content: thumbnail failed", "source", srcHash, "err", err)
+		return ""
+	}
+	return hash
 }

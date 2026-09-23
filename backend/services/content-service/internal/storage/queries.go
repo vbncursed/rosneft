@@ -28,7 +28,8 @@ type rowScanner interface {
 const panoramaSelectCols = `pa.id, t.slug AS territory_slug, pa.slug, pa.title,
 	pa.source_blob_hash,
 	pa.position_x, pa.position_y, pa.position_z,
-	pa.yaw_offset, pa.default_yaw, pa.created_at, pa.updated_at`
+	pa.yaw_offset, pa.default_yaw, pa.created_at, pa.updated_at,
+	pa.thumbnail_blob_hash`
 
 // panoramaJoin is the FROM clause used together with panoramaSelectCols.
 const panoramaJoin = `panoramas pa
@@ -41,6 +42,7 @@ func scanPanorama(r rowScanner) (domain.Panorama, error) {
 		&p.SourceBlobHash,
 		&p.Position.X, &p.Position.Y, &p.Position.Z,
 		&p.YawOffset, &p.DefaultYaw, &p.CreatedAt, &p.UpdatedAt,
+		&p.ThumbnailBlobHash,
 	)
 	return p, err
 }

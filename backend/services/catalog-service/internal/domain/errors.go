@@ -16,7 +16,10 @@ var (
 	// ErrMeasurementNotFound also covers a measurement id that exists under
 	// another territory: the caller only ever names the one in its URL.
 	ErrMeasurementNotFound = errors.New("measurement not found")
-	ErrInvalidInput        = errors.New("invalid input")
+	// ErrPlacementGroupNotFound also covers a group of another territory: the
+	// caller only ever names the one in its URL.
+	ErrPlacementGroupNotFound = errors.New("placement group not found")
+	ErrInvalidInput           = errors.New("invalid input")
 	// ErrSlugConflict means the proposed slug is already taken. For a derived
 	// slug the service retries with the next numbered candidate; an explicit
 	// slug has no candidate, so it reaches transport as AlreadyExists.

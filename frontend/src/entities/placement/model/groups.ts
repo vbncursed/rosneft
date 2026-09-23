@@ -1,35 +1,37 @@
 import type { Placement, Vec3 } from "./placement";
 
-export type PlacementInstance = { id: number; index: number; label: string };
-export type PlacementGroup = { model: { slug: string; title: string }; instances: PlacementInstance[] };
+export type PlacementInstance = { id: number; index: number; label: string; hidden: boolean; groupId: number | null };
+export type ModelGroup = { model: { slug: string; title: string }; instances: PlacementInstance[] };
 
 /** The panel's list: one row per model, its instances numbered by creation (id) order. */
-export function groupByModel(placements: Placement[], options: { slug: string; title: string }[]): PlacementGroup[] {
+export function groupByModel(placements: Placement[], options: { slug: string; title: string }[]): ModelGroup[] {
   const titles = new Map(options.map((o) => [o.slug, o.title]));
   const bySlug = new Map<string, Placement[]>();
   for (const p of placements) bySlug.set(p.modelSlug, [...(bySlug.get(p.modelSlug) ?? []), p]);
   return [...bySlug.entries()]
     .map(([slug, list]) => ({
       model: { slug, title: titles.get(slug) ?? slug },
-      instances: [...list].sort((a, b) => a.id - b.id).map((p, i) => ({ id: p.id, index: i + 1, label: p.label })),
+      instances: [...list]
+        .sort((a, b) => a.id - b.id)
+        .map((p, i) => ({ id: p.id, index: i + 1, label: p.label, hidden: p.hidden, groupId: p.groupId })),
     }))
     .sort((a, b) => a.model.title.localeCompare(b.model.title));
 }
 
-export const instanceName = (group: PlacementGroup, instance: PlacementInstance) =>
+export const instanceName = (group: ModelGroup, instance: PlacementInstance) =>
   `${group.model.title} #${instance.index}`;
 
 export const instanceLine = (instance: PlacementInstance) =>
   instance.label ? `#${instance.index} · ${instance.label}` : `#${instance.index}`;
 
-export function groupLine(group: PlacementGroup, selectedId: number | null): string {
+export function groupLine(group: ModelGroup, selectedId: number | null): string {
   const n = group.instances.length;
   const count = `${n} ${n === 1 ? "instance" : "instances"}`;
   const selected = group.instances.find((i) => i.id === selectedId);
   return selected ? `${count} · #${selected.index} selected` : count;
 }
 
-export function matchesObjects(group: PlacementGroup, query: string): boolean {
+export function matchesObjects(group: ModelGroup, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
   return (

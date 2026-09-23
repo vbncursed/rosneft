@@ -22,9 +22,13 @@ export type Placement = PlacementTransform & {
   updatedAt: string;
   /**
    * Panorama ids this placement shows in — panorama mode only; the 3D view
-   * always shows every placement. Empty means hidden in every panorama.
+   * shows every placement that is not `hidden`. Empty means hidden in every panorama.
    */
   visiblePanoramaIds: number[];
+  /** Hidden for everyone who opens the territory (G-1): not drawn, not preloaded, not framed. */
+  hidden: boolean;
+  /** The user group it sits in (at most one, G-2); null is "No group". */
+  groupId: number | null;
 };
 
 export const IDENTITY_TRANSFORM: PlacementTransform = {
@@ -38,6 +42,10 @@ export function isVisibleIn(placement: Placement, panoramaId: number | null): bo
   if (panoramaId === null) return true;
   return placement.visiblePanoramaIds.includes(panoramaId);
 }
+
+/** Whether the scene draws it at all: never when hidden (G-1), otherwise per the panorama allowlist. */
+export const isShownIn = (placement: Placement, panoramaId: number | null): boolean =>
+  !placement.hidden && isVisibleIn(placement, panoramaId);
 
 const DEGREES = 180 / Math.PI;
 
@@ -57,7 +65,15 @@ export type PlacementCreate = {
   label?: string;
   /** Initial panorama allowlist (e.g. the active panorama). */
   visiblePanoramaIds?: number[];
+  /** The user group it is placed into — a group's own Add (G-4). */
+  groupId?: number;
 };
 
 /** The PUT body: the whole transform, plus the label, every time. */
 export type PlacementUpdate = PlacementTransform & { label: string };
+
+/** A user-made group on one territory (spec §1). A placement sits in at most one. */
+export type PlacementGroup = { id: number; title: string };
+
+/** The gateway's bound on a group title; the field stops typing there. */
+export const GROUP_TITLE_MAX = 120;

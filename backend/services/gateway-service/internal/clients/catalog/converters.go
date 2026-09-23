@@ -137,6 +137,8 @@ func placementFromProto(p *catalogv1.Placement) domain.Placement {
 		CreatedAt:          p.GetCreatedAt().AsTime(),
 		UpdatedAt:          p.GetUpdatedAt().AsTime(),
 		VisiblePanoramaIDs: p.GetVisiblePanoramaIds(),
+		Hidden:             p.GetHidden(),
+		GroupID:            p.GroupId,
 	}
 }
 

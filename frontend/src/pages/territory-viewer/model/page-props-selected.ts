@@ -1,6 +1,6 @@
 import {
   instanceName,
-  type PlacementGroup,
+  type ModelGroup,
   type ResolvedPlacement,
 } from "@/entities/placement";
 import { groupDigits, type SceneViewModel } from "@/entities/scene";
@@ -40,7 +40,7 @@ export const detailsOf = (slug: string, vm: SceneViewModel, inside = false): Det
  */
 export function selectedBlock(
   p: PageParts,
-  groups: PlacementGroup[],
+  groups: ModelGroup[],
   selected: ResolvedPlacement | null,
 ): SelectedBlockProps | null {
   if (!selected) return null;

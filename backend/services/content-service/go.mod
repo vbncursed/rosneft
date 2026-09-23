@@ -13,6 +13,7 @@ require (
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.44.0
 	github.com/vbncursed/rosneft/backend/pkg v0.0.0
 	github.com/vbncursed/rosneft/backend/proto v0.0.0
+	golang.org/x/image v0.46.0
 	google.golang.org/grpc v1.83.2
 	google.golang.org/protobuf v1.36.12
 	gotest.tools/v3 v3.5.2

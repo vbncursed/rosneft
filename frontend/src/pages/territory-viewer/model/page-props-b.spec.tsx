@@ -5,12 +5,10 @@ import type { Document } from "@/entities/document";
 import type { Chain } from "@/entities/measurement";
 import type { Panorama } from "@/entities/panorama";
 import { groupByModel, type ResolvedPlacement } from "@/entities/placement";
-import type { ModelOption } from "@/entities/scene";
 import { insideFooter, LOADING_FOOTER } from "@/widgets/view-tab";
 import { basePageParts } from "../territory-viewer-page.fixture";
 import {
   documentProps,
-  markerLabels,
   panoramaCanvasProps,
   uploadProps,
   viewTabProps,
@@ -26,6 +24,7 @@ const panorama = (id: number, over: Partial<Panorama> = {}): Panorama => ({
   position: { x: 1, y: 0, z: 2 },
   yawOffset: 0,
   defaultYaw: 0,
+  thumbnailBlobHash: `t${id}`,
   updatedAt: "2026-09-14T10:00:00Z",
   ...over,
 });
@@ -54,16 +53,19 @@ describe("viewTabProps · folds", () => {
 });
 
 describe("viewTabProps · panoramas", () => {
-  it("builds one row per capture: its photo, whether it is entered, and whether it is calibrated", () => {
+  it("builds one row per capture: its thumbnail (never the original), whether it is entered, and whether it is calibrated", () => {
     const rows = viewTabProps(
-      withPanoramas([panorama(1), panorama(2, { position: { x: 0, y: 0, z: 0 } })]),
+      withPanoramas([
+        panorama(1),
+        panorama(2, { position: { x: 0, y: 0, z: 0 }, thumbnailBlobHash: null }),
+      ]),
     ).panoramas.rows;
 
     expect(rows).toEqual([
       {
         id: 1,
         title: "Capture 1",
-        thumbUrl: assetUrl("p1"),
+        thumbUrl: assetUrl("t1"),
         active: false,
         calibrated: true,
         canEdit: true,
@@ -72,7 +74,7 @@ describe("viewTabProps · panoramas", () => {
       {
         id: 2,
         title: "Capture 2",
-        thumbUrl: assetUrl("p2"),
+        thumbUrl: null,
         active: false,
         // Nothing has moved this anchor off the origin, so it cannot be entered.
         calibrated: false,
@@ -236,6 +238,16 @@ describe("viewTabProps · documents and the footer", () => {
     ).toBe(insideFooter(2));
   });
 
+  it("does not count a hidden placement among those the panorama marks", () => {
+    const p = withPanoramas([panorama(1)]);
+    const seen: ResolvedPlacement[] = p.placements.map((x, i) =>
+      i < 2 ? { ...x, visiblePanoramaIds: [1], hidden: i === 0 } : x,
+    );
+    expect(
+      viewTabProps({ ...p, placements: seen, mode: { ...p.mode, view: { kind: "panorama", id: 1 } } }).footer,
+    ).toBe(insideFooter(1));
+  });
+
   it("says nothing under the sections in the 3D view", () => {
     expect(viewTabProps(basePageParts()).footer).toBeNull();
   });
@@ -359,35 +371,6 @@ describe("panoramaCanvasProps", () => {
     expect(props.panoramas).toBe(moving.panoramas.list);
     expect(props.move).toEqual({ active: true, draggingId: 1, livePos: { x: 1, y: 2, z: 3 } });
     expect(props.panoramaStatus).toBe("idle");
-  });
-});
-
-describe("markerLabels", () => {
-  const OPTIONS: ModelOption[] = [
-    { slug: "storage-tank-500", title: "storage-tank-500", chain: [] },
-  ];
-  const placement = (id: number): ResolvedPlacement => ({
-    id,
-    territorySlug: "refinery-block-c",
-    modelSlug: "storage-tank-500",
-    label: "",
-    updatedAt: "2026-09-14T10:00:00Z",
-    visiblePanoramaIds: [],
-    position: { x: 0, y: 0, z: 0 },
-    rotation: { x: 0, y: 0, z: 0 },
-    scale: { x: 1, y: 1, z: 1 },
-    chain: [],
-  });
-
-  it("numbers two instances of one model the way the panel does", () => {
-    expect(markerLabels(groupByModel([placement(4), placement(9)], OPTIONS))).toEqual({
-      4: "storage-tank-500 #1",
-      9: "storage-tank-500 #2",
-    });
-  });
-
-  it("has nothing to label in an empty scene", () => {
-    expect(markerLabels([])).toEqual({});
   });
 });
 

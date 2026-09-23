@@ -58,6 +58,7 @@ const dto = {
       updatedAt: "u",
     },
   ],
+  placementGroups: [{ id: 2, title: "Tank farm", createdAt: "c", updatedAt: "u" }],
 };
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -75,9 +76,10 @@ describe("getSceneBundle", () => {
     expect(bundle.artifact?.bboxMax).toEqual({ x: 2, y: 1, z: 2 });
     expect(bundle.placements[0]).toMatchObject({ id: 1, label: "", updatedAt: "", visiblePanoramaIds: [] });
     expect(bundle.modelOptions[0].chain).toEqual([]);
-    expect(bundle.panoramas).toEqual([{ ...dto.panoramas[0], updatedAt: "" }]);
+    expect(bundle.panoramas).toEqual([{ ...dto.panoramas[0], updatedAt: "", thumbnailBlobHash: null }]);
     expect(bundle.documents).toEqual([{ ...dto.documents[0], createdAt: "" }]);
     expect(bundle.measurements).toEqual([{ serverId: 5, points: dto.measurements[0].points, closed: false }]);
+    expect(bundle.placementGroups).toEqual([{ id: 2, title: "Tank farm" }]);
   });
 
   it("defaults panoramas and documents to [] when the DTO omits them", async () => {
@@ -86,6 +88,12 @@ describe("getSceneBundle", () => {
     const bundle = await getSceneBundle("t");
     expect(bundle.panoramas).toEqual([]);
     expect(bundle.documents).toEqual([]);
+  });
+
+  it("defaults placementGroups to [] for a snapshot saved before groups existed", async () => {
+    const { placementGroups: _g, ...beforeGroups } = dto;
+    fetchMock.mockResolvedValueOnce(json(beforeGroups));
+    expect((await getSceneBundle("t")).placementGroups).toEqual([]);
   });
 
   it("falls back to a one-entry chain when /scene carries no artifacts[]", async () => {

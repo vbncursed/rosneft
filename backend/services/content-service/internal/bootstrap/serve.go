@@ -16,6 +16,7 @@ import (
 	"github.com/vbncursed/rosneft/backend/pkg/metrics"
 	contentv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/content/v1"
 	"github.com/vbncursed/rosneft/backend/services/content-service/internal/config"
+	"github.com/vbncursed/rosneft/backend/services/content-service/internal/transport/grpcapi"
 )
 
 // RunServe is the full lifecycle of `content serve`.
@@ -39,8 +40,15 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	defer pool.Close()
 
-	handler := InitService(pool)
-	grpcSrv, healthSrv := InitGRPCServer(handler, logger)
+	blobs, err := InitBlobStore(cfg)
+	if err != nil {
+		return fmt.Errorf("blob store: %w", err)
+	}
+	content := InitService(pool, blobs)
+	grpcSrv, healthSrv := InitGRPCServer(grpcapi.New(content), logger)
+	// Rows older than the thumbnail column, and any whose create-time
+	// thumbnail failed. One at a time, for as long as the process lives.
+	go content.BackfillThumbnails(rootCtx)
 
 	go grpcutil.WatchReadiness(rootCtx, grpcutil.ReadinessConfig{
 		Service: "content",

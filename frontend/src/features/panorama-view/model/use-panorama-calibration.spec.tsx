@@ -12,6 +12,7 @@ const panorama = (id: number, over: Partial<Panorama> = {}): Panorama => ({
   position: { x: 1, y: 2, z: 3 },
   yawOffset: 0.25,
   defaultYaw: 0,
+  thumbnailBlobHash: null,
   updatedAt: "t0",
   ...over,
 });
