@@ -60,7 +60,7 @@ func (s *EnsureTriggersSuite) TearDownSuite() {
 // Each test starts from "audit has migrated, nobody else has". Dropping the
 // table drops its trigger with it.
 func (s *EnsureTriggersSuite) SetupTest() {
-	_, err := s.pool.Exec(s.T().Context(), `DROP TABLE IF EXISTS territories, measurements`)
+	_, err := s.pool.Exec(s.T().Context(), `DROP TABLE IF EXISTS territories, measurements, placement_groups`)
 	assert.NilError(s.T(), err)
 }
 
@@ -154,4 +154,33 @@ func (s *EnsureTriggersSuite) TestAttachesToMeasurementsWithAnIDAndNoLabel() {
 	assert.Equal(s.T(), entityID, id)
 	assert.Assert(s.T(), label == nil)
 	assert.Equal(s.T(), points, "[1, 2, 3, 4, 5, 6]")
+}
+
+// placement_groups carries its title as the entry's label, so the journal
+// names a group without reading the snapshot.
+func (s *EnsureTriggersSuite) TestAttachesToPlacementGroupsWithTheTitleAsLabel() {
+	ctx := s.T().Context()
+	_, err := s.pool.Exec(ctx, `
+		CREATE TABLE placement_groups (
+			id BIGSERIAL PRIMARY KEY,
+			title TEXT NOT NULL,
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)`)
+	assert.NilError(s.T(), err)
+
+	var attached int
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT ensure_audit_triggers()`).Scan(&attached))
+	assert.Equal(s.T(), attached, 1)
+
+	var id string
+	assert.NilError(s.T(), s.pool.QueryRow(ctx,
+		`INSERT INTO placement_groups (title) VALUES ('North') RETURNING id::text`).Scan(&id))
+
+	var action, entityID, label string
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `
+		SELECT action, entity_id, entity_label
+		FROM audit_log WHERE entity = 'placement_group'`).Scan(&action, &entityID, &label))
+	assert.Equal(s.T(), action, "placement_group.insert")
+	assert.Equal(s.T(), entityID, id)
+	assert.Equal(s.T(), label, "North")
 }
