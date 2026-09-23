@@ -1,1 +1,1 @@
-export { Toaster } from "./ui/toaster";
+export { Toaster, type ToasterPlacement } from "./ui/toaster";

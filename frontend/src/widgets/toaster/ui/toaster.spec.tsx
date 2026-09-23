@@ -52,6 +52,28 @@ describe("Toaster", () => {
     );
   });
 
+  // E11: in the viewer the top-right corner is the Overlays panel's head;
+  // there the stack sits bottom-centre, above the status strip, and rises.
+  it("sits bottom-centre when asked, its cards rising from that edge", () => {
+    render(<Toaster placement="bottom-center" />);
+    act(() => {
+      notify.success("Saved");
+    });
+    const host = region()!;
+    expect(host.className.split(/\s+/)).toEqual(
+      expect.arrayContaining(["fixed", "bottom-16", "left-1/2", "-translate-x-1/2"]),
+    );
+    expect(host).not.toHaveClass("top-4");
+    const card = host.firstElementChild!.className.split(/\s+/);
+    expect(card).toEqual(expect.arrayContaining(["starting:translate-y-2", "motion-reduce:starting:translate-y-0"]));
+    expect(card).not.toContain("starting:-translate-y-2");
+  });
+
+  it("sits top-right by default", () => {
+    render(<Toaster />);
+    expect(region()!.className.split(/\s+/)).toEqual(expect.arrayContaining(["fixed", "right-4", "top-4"]));
+  });
+
   it("holds a confirmation while the pointer is on it", () => {
     vi.useFakeTimers();
     render(<Toaster />);
