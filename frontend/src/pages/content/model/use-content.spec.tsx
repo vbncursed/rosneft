@@ -25,8 +25,9 @@ const TERRITORY = {
   title: "T 1",
   sourceBlobHash: "a".repeat(64),
   updatedAt: "2026-08-31T00:00:00Z",
+  lods: [{ lod: 0, hash: "h", size: 1024 }],
 };
-const MODEL = { slug: "m-1", title: "M 1", sourceBlobHash: "b".repeat(64) };
+const MODEL = { slug: "m-1", title: "M 1", sourceBlobHash: "b".repeat(64), lods: [] };
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
@@ -48,9 +49,6 @@ beforeEach(() => {
     if (url === "/api/territories" && method === "GET") return json([TERRITORY]);
     if (url === "/api/models" && method === "GET") return json([MODEL]);
     if (url === "/api/jobs" && method === "GET") return json(JOBS);
-    if (url === "/api/territories/t-1/artifacts")
-      return json([{ slug: "t-1", lod: 0, hash: "h", contentType: "x", size: 1024 }]);
-    if (url === "/api/models/m-1/artifacts") return json([]);
     if (url === "/api/territories/t-1" && method === "DELETE")
       return new Response(null, { status: 204 });
     if (url === "/api/models/m-1" && method === "DELETE")
@@ -65,7 +63,7 @@ afterEach(() => {
 });
 
 describe("useContent", () => {
-  it("is loading until every artifacts query answered, then ready with rows and storage", async () => {
+  it("is loading until the lists and the jobs answered, then ready with rows and storage", async () => {
     const { result } = renderHook(() => useContent(), { wrapper });
     expect(result.current.status).toBe("loading");
     await waitFor(() => expect(result.current.status).toBe("ready"));
@@ -97,9 +95,7 @@ describe("useContent", () => {
     await waitFor(() => expect(result.current.status).toBe("ready"));
     act(() => result.current.select("territory", "t-1"));
     expect(result.current.selected?.slug).toBe("t-1");
-    expect(result.current.artifactsOf("territory", "t-1")).toEqual([
-      { lod: 0, hash: "h", size: 1024, vertices: 0, faces: 0, bboxMin: { x: 0, y: 0, z: 0 }, bboxMax: { x: 0, y: 0, z: 0 } },
-    ]);
+    expect(result.current.artifactsOf("territory", "t-1")).toEqual([{ lod: 0, hash: "h", size: 1024 }]);
     expect(result.current.updatedAtOf("territory", "t-1")).toBe("2026-08-31T00:00:00Z");
   });
 
@@ -184,22 +180,40 @@ describe("useContent", () => {
     expect(result.current.error).toBe("mesh is down");
   });
 
-  it("re-reads a row's artifacts once its job stops being live", async () => {
+  it("re-reads the list a finished job's row sits in, and only that one", async () => {
     JOBS = [{ id: "j1", kind: "territory", slug: "t-1", status: "running" }];
+    const spy = vi.spyOn(client, "invalidateQueries");
     const { result } = renderHook(() => useContent(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
-    const before = fetchMock.mock.calls.filter(
-      ([u]) => u === "/api/territories/t-1/artifacts",
-    ).length;
+    const gets = (url: string) => fetchMock.mock.calls.filter(([u]) => u === url).length;
+    const territories = gets("/api/territories");
+    const models = gets("/api/models");
     JOBS = [];
     await act(async () => {
       await client.refetchQueries({ queryKey: ["jobs"] });
     });
-    await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.filter(([u]) => u === "/api/territories/t-1/artifacts").length,
-      ).toBe(before + 1),
-    );
+    await waitFor(() => expect(gets("/api/territories")).toBe(territories + 1));
+    expect(gets("/api/models")).toBe(models);
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t-1"] });
+  });
+
+  it("asks for the two lists, the jobs and the principal — never once per row", async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === "/api/territories") return json(["a", "b", "c"].map((slug) => ({ ...TERRITORY, slug })));
+      if (url === "/api/models") return json(["x", "y"].map((slug) => ({ ...MODEL, slug })));
+      if (url === "/api/jobs") return json([]);
+      return json(PRINCIPAL);
+    });
+    const { result } = renderHook(() => useContent(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.items).toHaveLength(5);
+    expect(result.current.storageBytes).toBe(3 * 1024);
+    expect(fetchMock.mock.calls.map(([u]) => String(u)).toSorted()).toEqual([
+      "/api/auth/me",
+      "/api/jobs",
+      "/api/models",
+      "/api/territories",
+    ]);
   });
 
   it("stays ready when a refetch fails on top of rows it already has", async () => {

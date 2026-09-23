@@ -1,12 +1,6 @@
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import {
-  artifactsQuery,
-  totalSize,
-  type Artifact,
-  type ContentItem,
-  type ContentKind,
-} from "@/entities/content";
+import { totalSize, type ContentItem, type ContentKind, type LodSummary } from "@/entities/content";
 import { finishedSince, jobsQuery, type TargetJob } from "@/entities/conversion";
 import { deleteModel, modelsQuery } from "@/entities/model";
 import { deleteTerritory, territoriesQuery } from "@/entities/territory";
@@ -29,7 +23,7 @@ export type ContentState = {
   /** `territory:create` — Root alone; `territory:write` edits but creates nothing. */
   canCreateTerritory: boolean;
   canDelete: (kind: ContentKind) => boolean;
-  artifactsOf: (kind: ContentKind, slug: string) => Artifact[];
+  artifactsOf: (kind: ContentKind, slug: string) => LodSummary[];
   /** The target's live or failed conversion, or undefined when it has none. */
   jobOf: (kind: ContentKind, slug: string) => TargetJob | undefined;
   updatedAtOf: (kind: ContentKind, slug: string) => string | undefined;
@@ -53,10 +47,8 @@ const DONE: Record<ContentKind, string> = {
 const LIST_KEY: Record<ContentKind, string[]> = { territory: ["territories"], model: ["models"] };
 
 /**
- * Everything the Content screen decides. The catalog is two lists plus one
- * artifacts query per row; the screen is ready only when all have answered,
- * because a row's status is read off its artifacts and a guess would print
- * "pending" for something that is merely still loading.
+ * Everything the Content screen decides. Two lists — each row carries its own
+ * LODs — and the jobs poll; ready once all three have answered.
  */
 export function useContent(): ContentState {
   const client = useQueryClient();
@@ -68,41 +60,21 @@ export function useContent(): ContentState {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [pending, setPending] = useState<ContentItem | null>(null);
 
-  const refs: Ref[] = [
-    ...(territories.data ?? []).map((t) => ({ kind: "territory" as const, slug: t.slug })),
-    ...(models.data ?? []).map((m) => ({ kind: "model" as const, slug: m.slug })),
-  ];
-  const artifacts = useQueries({
-    queries: refs.map((r) => artifactsQuery(r.kind, r.slug)),
-    // `combine` stays inline: it closes over `refs`, and only the array built
-    // in the same render lines up with `results`. Hoisting it into a
-    // useCallback would pair one render's results with another's refs and
-    // mis-key `bySlug`.
-    combine: (results) => ({
-      pending: results.some((r) => r.isPending),
-      failed: results.map(unanswered).find((e) => e !== null) ?? null,
-      bySlug: new Map(results.map((r, i) => [keyOf(refs[i]), r.data ?? []])),
-    }),
-  });
-
-  const artifactsOf = (kind: ContentKind, slug: string) =>
-    artifacts.bySlug.get(keyOf({ kind, slug })) ?? [];
   const jobOf = (kind: ContentKind, slug: string) =>
     jobs.data?.find((j) => j.kind === kind && j.slug === slug);
   const entityOf = (kind: ContentKind, slug: string) =>
     kind === "territory"
       ? territories.data?.find((t) => t.slug === slug)
       : models.data?.find((m) => m.slug === slug);
+  const artifactsOf = (kind: ContentKind, slug: string) => entityOf(kind, slug)?.lods ?? [];
 
   const listed = territories.data && models.data;
   const items = listed
     ? [
         ...territories.data.map((t) =>
-          toContentItem("territory", t, artifactsOf("territory", t.slug), jobOf("territory", t.slug)),
+          toContentItem("territory", t, t.lods ?? [], jobOf("territory", t.slug)),
         ),
-        ...models.data.map((m) =>
-          toContentItem("model", m, artifactsOf("model", m.slug), jobOf("model", m.slug)),
-        ),
+        ...models.data.map((m) => toContentItem("model", m, m.lods ?? [], jobOf("model", m.slug))),
       ]
     : null;
   const selected = items?.find((i) => keyOf(i) === selectedKey) ?? null;
@@ -127,19 +99,20 @@ export function useContent(): ContentState {
   // Only a query that has never answered can make the screen unavailable: a
   // delete invalidates the list, and a refetch that trips must not replace a
   // populated catalog with an outage page.
-  const failed =
-    unanswered(territories) ?? unanswered(models) ?? artifacts.failed ?? unanswered(jobs);
-  const loading =
-    territories.isPending || models.isPending || artifacts.pending || jobs.isPending;
+  const failed = unanswered(territories) ?? unanswered(models) ?? unanswered(jobs);
+  const loading = territories.isPending || models.isPending || jobs.isPending;
 
-  // A row whose job just finished has new artifacts (or, after a failure, the
-  // same old ones): re-read that row's artifacts so LODs and size catch up.
+  // A row whose job just finished has new LODs, and they ride on its list:
+  // re-read each list a finished job sits in, once. The row's artifacts are
+  // marked stale too, for the model and conversion pages to reopen on.
   const previousJobs = useRef<TargetJob[] | undefined>(undefined);
   useEffect(() => {
     if (!jobs.data) return;
-    for (const { kind, slug } of finishedSince(previousJobs.current, jobs.data)) {
+    const finished = finishedSince(previousJobs.current, jobs.data);
+    for (const kind of new Set(finished.map((j) => j.kind)))
+      void client.invalidateQueries({ queryKey: LIST_KEY[kind] });
+    for (const { kind, slug } of finished)
       void client.invalidateQueries({ queryKey: ["artifacts", kind, slug] });
-    }
     previousJobs.current = jobs.data;
   }, [jobs.data, client]);
 
@@ -147,7 +120,10 @@ export function useContent(): ContentState {
     status: loading ? "loading" : failed ? "unavailable" : "ready",
     error: failed ? messageOf(failed) : null,
     items,
-    storageBytes: [...artifacts.bySlug.values()].reduce((sum, a) => sum + totalSize(a), 0),
+    storageBytes: [...(territories.data ?? []), ...(models.data ?? [])].reduce(
+      (sum, e) => sum + totalSize(e.lods ?? []),
+      0,
+    ),
     canManage: can(me, "territory:write") || can(me, "model:write"),
     canCreateTerritory: can(me, "territory:create"),
     canDelete: (kind) => can(me, kind === "territory" ? "territory:delete" : "model:delete"),

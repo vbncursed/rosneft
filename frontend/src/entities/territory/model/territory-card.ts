@@ -1,4 +1,4 @@
-import { conversionStatusOf, lodLabel, totalSize, type Artifact } from "@/entities/content";
+import { conversionStatusOf, lodLabel, totalSize, type LodSummary } from "@/entities/content";
 import { isLive, stageLabel, type ConversionStatus, type TargetJob } from "@/entities/conversion";
 import type { CatalogChip } from "@/shared/ui/catalog-card";
 import { formatBytes } from "@/shared/lib/format-bytes";
@@ -30,15 +30,15 @@ const placementChip = (count: number): CatalogChip => ({
   tone: "plain",
 });
 
-const sizeChip = (artifacts: Artifact[]): CatalogChip => ({
+const sizeChip = (artifacts: LodSummary[]): CatalogChip => ({
   label: artifacts.length > 0 ? formatBytes(totalSize(artifacts)) : "—",
   tone: "plain",
 });
 
-/** Maps a territory plus its artifacts and (maybe) live job onto one catalog card. */
+/** Maps a territory plus its LODs and (maybe) live job onto one catalog card. */
 export function toTerritoryCard(
   t: Territory,
-  artifacts: Artifact[],
+  artifacts: LodSummary[],
   job?: TargetJob,
 ): TerritoryCardModel {
   const status = conversionStatusOf(artifacts.length > 0, job);
