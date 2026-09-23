@@ -22,6 +22,9 @@ import (
 // here mirrors ListPanoramaIDs: same shared database, read-only, and the
 // alternative is a second RPC on the hot path of every asset request.
 //
+// A panorama's thumbnail is its territory's, exactly like its source: it is
+// made from those bytes, so the same scope filter answers for both.
+//
 // Added a table with a hash column? Add a branch here and a case to
 // resolve_blob_access_integration_test.go, or the new asset type is either
 // reachable by nobody or by everybody — and nothing else will notice.
@@ -46,7 +49,7 @@ SELECT EXISTS (
         WHERE a.territory_id = t.id AND a.admin_user_id = $2::uuid))
     UNION ALL
     SELECT 1 FROM panoramas p
-      WHERE p.source_blob_hash = $1 AND ($2 = '' OR EXISTS (
+      WHERE (p.source_blob_hash = $1 OR p.thumbnail_blob_hash = $1) AND ($2 = '' OR EXISTS (
         SELECT 1 FROM territory_assignments a
         WHERE a.territory_id = p.territory_id AND a.admin_user_id = $2::uuid))
     UNION ALL

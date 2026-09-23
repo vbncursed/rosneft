@@ -92,8 +92,8 @@ func (s *BlobAccessSuite) seedTerritory(ctx context.Context, name, srcHash, admi
 	assert.NilError(s.T(), err)
 
 	_, err = s.pool.Exec(ctx,
-		`INSERT INTO panoramas (territory_id, slug, title, source_blob_hash)
-		 VALUES ($1,'p','p',$2)`, id, "hash-pano-"+name)
+		`INSERT INTO panoramas (territory_id, slug, title, source_blob_hash, thumbnail_blob_hash)
+		 VALUES ($1,'p','p',$2,$3)`, id, "hash-pano-"+name, "hash-pano-thumb-"+name)
 	assert.NilError(s.T(), err)
 
 	_, err = s.pool.Exec(ctx,
@@ -127,10 +127,11 @@ func (s *BlobAccessSuite) allowed(hash, scope string) bool {
 // shows up here and nowhere else.
 func (s *BlobAccessSuite) TestEachTerritoryBranchIsScoped() {
 	for _, h := range []string{
-		"hash-terr-a-src", // territories.source_blob_hash
-		"hash-artifact-a", // territory_artifacts.hash
-		"hash-pano-a",     // panoramas.source_blob_hash
-		"hash-doc-a",      // territory_documents.source_blob_hash
+		"hash-terr-a-src",   // territories.source_blob_hash
+		"hash-artifact-a",   // territory_artifacts.hash
+		"hash-pano-a",       // panoramas.source_blob_hash
+		"hash-pano-thumb-a", // panoramas.thumbnail_blob_hash
+		"hash-doc-a",        // territory_documents.source_blob_hash
 	} {
 		assert.Assert(s.T(), s.allowed(h, s.adminA), "owner must reach %s", h)
 		assert.Assert(s.T(), !s.allowed(h, s.adminB), "another tenant must NOT reach %s", h)
