@@ -1,19 +1,11 @@
-import { useCallback, useTransition, type Dispatch, type SetStateAction } from "react";
-import {
-  bulk,
-  idle,
-  setPlacementsGroup,
-  setPlacementsHidden,
-  type MutationState,
-  type ResolvedPlacement,
-} from "@/entities/placement";
+import { useCallback, useState, useTransition, type Dispatch, type SetStateAction } from "react";
+import { setPlacementsGroup, setPlacementsHidden, type ResolvedPlacement } from "@/entities/placement";
 import { messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
 
 export type BulkWritesParams = {
   slug: string;
   setPlacements: Dispatch<SetStateAction<ResolvedPlacement[]>>;
-  setMutation: Dispatch<SetStateAction<MutationState>>;
   onChanged: () => void;
 };
 
@@ -24,13 +16,22 @@ type Patch = Partial<Pick<ResolvedPlacement, "hidden" | "groupId">>;
  * to a group (G-4) — plus the local ungroup a deleted group leaves behind.
  * Split out of `usePlacementsEditor` at the 200-line cap. The gateway answers
  * only a count, so a success applies the patch it was sent.
+ *
+ * Their pending ids are their own, apart from the editor's single `mutation`:
+ * sharing that slot let a finishing bulk write end a create still in flight,
+ * and a finishing rename release a bulk write's rows. Each write holds its own
+ * copy of the ids and drops exactly that copy, so two overlapping writes never
+ * release each other's. Resolves to whether the write landed.
  */
-export function useBulkWrites({ slug, setPlacements, setMutation, onChanged }: BulkWritesParams) {
+export function useBulkWrites({ slug, setPlacements, onChanged }: BulkWritesParams) {
+  const [inFlight, setInFlight] = useState<readonly number[][]>([]);
   const [, startTransition] = useTransition();
 
   const write = useCallback(
-    async (ids: number[], send: () => Promise<number>, patch: Patch) => {
-      setMutation(bulk(ids));
+    async (ids: number[], send: () => Promise<number>, patch: Patch): Promise<boolean> => {
+      const held = [...ids];
+      const release = () => setInFlight((prev) => prev.filter((h) => h !== held));
+      setInFlight((prev) => [...prev, held]);
       try {
         await send();
         const touched = new Set(ids);
@@ -39,15 +40,17 @@ export function useBulkWrites({ slug, setPlacements, setMutation, onChanged }: B
         // sent the value just written.
         startTransition(() => {
           setPlacements((prev) => prev.map((p) => (touched.has(p.id) ? { ...p, ...patch } : p)));
-          setMutation(idle);
+          release();
         });
         onChanged();
+        return true;
       } catch (err) {
         notify.error(messageOf(err));
-        setMutation(idle);
+        release();
+        return false;
       }
     },
-    [setPlacements, setMutation, onChanged],
+    [setPlacements, onChanged],
   );
 
   const setHidden = useCallback(
@@ -68,5 +71,5 @@ export function useBulkWrites({ slug, setPlacements, setMutation, onChanged }: B
     [setPlacements],
   );
 
-  return { setHidden, moveToGroup, ungroup };
+  return { pendingIds: inFlight.flat(), setHidden, moveToGroup, ungroup };
 }

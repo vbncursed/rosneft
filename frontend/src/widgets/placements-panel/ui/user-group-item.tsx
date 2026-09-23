@@ -14,11 +14,15 @@ import { ADD_TO_GROUP, DELETE_GROUP } from "../model/panel-copy";
 import { GroupTitleField } from "./group-title-field";
 import { InstanceItem, type RowContext } from "./instance-item";
 
-/** The three group writes, and whether one is in flight. All `placement:write` (G-5). */
+/**
+ * The three group writes, and whether one is in flight. All `placement:write`
+ * (G-5). Create and rename resolve to whether they landed: the field closes
+ * only then.
+ */
 export type GroupActions = {
   busy: boolean;
-  onCreate: (title: string) => void;
-  onRename: (id: number, title: string) => void;
+  onCreate: (title: string) => Promise<boolean>;
+  onRename: (id: number, title: string) => Promise<boolean>;
   onDelete: (id: number) => void;
 };
 
@@ -55,10 +59,10 @@ export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemPro
       submitLabel="Save group title"
       initial={group.title}
       busy={actions.busy}
-      onSubmit={(title) => {
+      onSubmit={async (title) => {
         // The field hands over a trimmed title; an unchanged one is not a write.
-        if (title !== group.title) actions.onRename(group.id, title);
-        stopRenaming();
+        // A refused rename keeps the field and what was typed; the toast says why.
+        if (title === group.title || (await actions.onRename(group.id, title))) stopRenaming();
       }}
       onCancel={stopRenaming}
     />

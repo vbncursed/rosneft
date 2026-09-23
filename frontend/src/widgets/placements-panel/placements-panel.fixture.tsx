@@ -90,7 +90,7 @@ function Live({
         onSetHidden={() => {}}
         onMoveToGroup={() => {}}
         onAddToGroup={() => {}}
-        groupActions={{ busy: false, onCreate: () => {}, onRename: () => {}, onDelete: () => {} }}
+        groupActions={{ busy: false, onCreate: async () => true, onRename: async () => true, onDelete: () => {} }}
         selected={selected ? { ...selected, gizmo, onGizmo: setGizmo, snap, onSnap: setSnap } : null}
         visibility={
           visibility

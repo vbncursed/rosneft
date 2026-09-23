@@ -29,7 +29,6 @@ export {
   toPlacementGroup,
 } from "./api/placement-groups-gateway";
 export {
-  bulk,
   creating,
   idle,
   isCreating,
