@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"context"
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
@@ -21,6 +22,7 @@ import (
 type ConsoleCountsSuite struct {
 	suite.Suite
 	cat *mocks.CatalogMock
+	aud *mocks.AuditMock
 	svc *service.Gateway
 }
 
@@ -29,8 +31,9 @@ func TestConsoleCountsSuite(t *testing.T) { suite.Run(t, new(ConsoleCountsSuite)
 func (s *ConsoleCountsSuite) SetupTest() {
 	mc := minimock.NewController(s.T())
 	s.cat = mocks.NewCatalogMock(mc)
+	s.aud = mocks.NewAuditMock(mc)
 	s.svc = service.New(s.cat, mocks.NewContentMock(mc), mocks.NewMeshMock(mc),
-		mocks.NewUploadMock(mc), mocks.NewAuditMock(mc), mocks.NewAuthMock(mc))
+		mocks.NewUploadMock(mc), s.aud, mocks.NewAuthMock(mc))
 }
 
 // tenant-a's owner counts tenant-a's territories, never tenant-b's.
@@ -79,4 +82,21 @@ func (s *ConsoleCountsSuite) TestAccessFailsClosedOnAnEmptyScope() {
 func (s *ConsoleCountsSuite) TestUsersCountsTheFrozenAmongTheLive() {
 	got := countUsers([]*authv1.User{{Status: "active"}, {Status: "frozen"}, {Status: "active"}})
 	assert.DeepEqual(s.T(), got, summary.Users{Total: 3, Frozen: 1})
+}
+
+// A Company Owner's audit card counts its own company's day, as /console/audit
+// shows it: the scope comes from the session, and only the total is read.
+func (s *ConsoleCountsSuite) TestAudit24hCountsTheCallersCompany() {
+	ctx := authhttp.NewTestContextFor(s.T().Context(), authhttp.TestPrincipal{
+		UserID: "co", AuditCompany: "company-a", Perms: []string{"audit:read"},
+	})
+	s.aud.ListEntriesMock.Set(func(_ context.Context, q domain.AuditQuery) (domain.AuditPage, error) {
+		assert.Equal(s.T(), q.CompanyID, "company-a")
+		assert.Assert(s.T(), !q.AllCompanies && q.ActorID == "" && q.IncludeTotal && q.Limit == 1, "%+v", q)
+		return domain.AuditPage{Total: 7}, nil
+	})
+
+	got, err := consoleCounts(s.svc, nil, nil)["audit24h"](ctx)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), got, int64(7))
 }

@@ -1,5 +1,5 @@
 // In-package test: it substitutes the unexported gRPC stub on Client
-// (updateCC lives in territories_test.go).
+// (updateCC lives in stub_test.go).
 package catalog
 
 import (

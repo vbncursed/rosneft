@@ -33,7 +33,8 @@ func (c countsServiceStub) ListTerritories(context.Context, string) ([]domain.Te
 }
 
 func (c countsServiceStub) GetTerritory(context.Context, string, string) (domain.Territory, error) {
-	return domain.Territory{Slug: "yard", PlacementCount: 3}, nil
+	// A chain the single GET must not pass on: see TestTheSingleGETsCarryNoLODChain.
+	return domain.Territory{Slug: "yard", PlacementCount: 3, LODs: []domain.LodArtifact{{LOD: 0, Hash: "h0"}}}, nil
 }
 
 func (c countsServiceStub) ListModels(context.Context) ([]domain.Model, error) {
@@ -41,7 +42,7 @@ func (c countsServiceStub) ListModels(context.Context) ([]domain.Model, error) {
 }
 
 func (c countsServiceStub) GetModel(context.Context, string) (domain.Model, error) {
-	return domain.Model{Slug: "pump", UsageCount: 2}, nil
+	return domain.Model{Slug: "pump", UsageCount: 2, LODs: []domain.LodArtifact{{LOD: 0, Hash: "m0"}}}, nil
 }
 
 func (s *ListCountsSuite) TestListTerritoriesCarriesPlacementCount() {
@@ -110,10 +111,30 @@ func (s *ListCountsSuite) TestListTerritoriesCarriesTheLODChain() {
 func (s *ListCountsSuite) TestListModelsCarriesTheLODChain() {
 	stub := countsServiceStub{models: []domain.Model{
 		{Slug: "pump", LODs: []domain.LodArtifact{{LOD: 0, Hash: "m0", Size: 3}}},
+		{Slug: "fresh"},
 	}}
 	resp, err := New(stub).ListModels(s.T().Context(), ListModelsRequestObject{})
 	assert.NilError(s.T(), err)
 	list, ok := resp.(ListModels200JSONResponse)
 	assert.Assert(s.T(), ok)
 	assert.Equal(s.T(), (*list[0].Lods)[0].Hash, "m0")
+	body, err := json.Marshal(list[1])
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), strings.Contains(string(body), `"lods":[]`), string(body))
+}
+
+// The chain belongs to the lists alone: a single GET that carried it would
+// be a second, unasked-for place to keep it right. The stub hands the chain
+// in; the response must still leave the key out.
+func (s *ListCountsSuite) TestTheSingleGETsCarryNoLODChain() {
+	ctx := authhttp.NewTestContext(s.T().Context(), true, "")
+	territory, err := New(countsServiceStub{}).GetTerritory(ctx, GetTerritoryRequestObject{Slug: "yard"})
+	assert.NilError(s.T(), err)
+	model, err := New(countsServiceStub{}).GetModel(ctx, GetModelRequestObject{Slug: "pump"})
+	assert.NilError(s.T(), err)
+	for _, resp := range []any{territory, model} {
+		body, err := json.Marshal(resp)
+		assert.NilError(s.T(), err)
+		assert.Assert(s.T(), !strings.Contains(string(body), `"lods"`), string(body))
+	}
 }

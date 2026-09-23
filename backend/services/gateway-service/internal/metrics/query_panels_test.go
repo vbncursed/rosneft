@@ -82,7 +82,7 @@ func (s *QuerySuite) TestQueryPanelsFailsOnlyWhenEveryPanelFails() {
 	})
 
 	_, err := c.QueryPanels(s.T().Context(), []string{"stat-up", "alerts"}, "1h")
-	assert.ErrorContains(s.T(), err, "502")
+	assert.ErrorIs(s.T(), err, ErrUpstreamStatus)
 }
 
 // A hung Prometheus must not keep the page dark for a per-query timeout per

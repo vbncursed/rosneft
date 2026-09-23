@@ -99,7 +99,7 @@ func (c *Client) Query(ctx context.Context, panelID, rng string) ([]Series, erro
 		return nil, fmt.Errorf("prometheus response exceeds %d bytes", maxResponseBytes)
 	}
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("prometheus status %d", res.StatusCode)
+		return nil, fmt.Errorf("%w %d", ErrUpstreamStatus, res.StatusCode)
 	}
 	return parseProm(body)
 }

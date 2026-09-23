@@ -103,7 +103,7 @@ func (g *Gateway) GetSceneBundle(ctx context.Context, slug, scopeAdminID string)
 		a.LODs = lodChain(artifacts)
 		bundle.Artifact = &a
 	}
-	bundle.ModelOptions = g.buildModelOptions(ctx, models)
+	bundle.ModelOptions = buildModelOptions(models)
 	return bundle, nil
 }
 

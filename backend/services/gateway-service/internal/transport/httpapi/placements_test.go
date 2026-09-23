@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -60,20 +61,66 @@ func (s *PlacementBatchSuite) TestTheBatchLandsOnTheRouteTerritoryInOrder() {
 	assert.Equal(s.T(), created[1].Id, int64(2))
 }
 
+// Each refusal keeps its status, and a 404 says which item named which
+// missing model, in the words the catalog client left it in.
 func (s *PlacementBatchSuite) TestRefusalsKeepTheirStatus() {
 	for _, tc := range []struct {
+		name string
+		err  error
+		want string
+		msg  string
+	}{
+		{
+			name: "an oversized batch", err: fmt.Errorf("%w: a batch holds 1 to 100", domain.ErrInvalidInput),
+			want: "CreatePlacements400JSONResponse",
+		},
+		{
+			name: "an unknown model", err: fmt.Errorf("item 2: %w", domain.ErrModelNotFound),
+			want: "CreatePlacements404JSONResponse", msg: "item 2: model not found",
+		},
+		{name: "an unknown territory", err: domain.ErrTerritoryNotFound, want: "CreatePlacements404JSONResponse"},
+		{name: "a catalog failure", err: errors.New("catalog down"), want: "CreatePlacements500JSONResponse"},
+	} {
+		s.Run(tc.name, func() {
+			var slug string
+			var items []domain.Placement
+			resp, err := New(batchStub{slug: &slug, items: &items, err: tc.err}).CreatePlacements(s.T().Context(),
+				CreatePlacementsRequestObject{Slug: "yard", Body: &PlacementBatchCreate{Items: []PlacementCreate{{ModelSlug: "pump"}}}})
+			assert.NilError(s.T(), err)
+			assert.Equal(s.T(), fmt.Sprintf("%T", resp), "httpapi."+tc.want)
+			if nf, ok := resp.(CreatePlacements404JSONResponse); ok && tc.msg != "" {
+				assert.Equal(s.T(), nf.Message, tc.msg)
+			}
+		})
+	}
+}
+
+// singleStub answers the one-placement create with err.
+type singleStub struct {
+	Service
+	err error
+}
+
+func (c singleStub) CreatePlacement(context.Context, domain.Placement) (domain.Placement, error) {
+	return domain.Placement{}, c.err
+}
+
+func (s *PlacementBatchSuite) TestASingleCreateKeepsItsStatus() {
+	for _, tc := range []struct {
+		name string
 		err  error
 		want string
 	}{
-		{fmt.Errorf("%w: a batch holds 1 to 100", domain.ErrInvalidInput), "CreatePlacements400JSONResponse"},
-		{domain.ErrTerritoryNotFound, "CreatePlacements404JSONResponse"},
+		{name: "an unknown model", err: domain.ErrModelNotFound, want: "CreatePlacement404JSONResponse"},
+		{name: "a bad scale", err: domain.ErrInvalidInput, want: "CreatePlacement400JSONResponse"},
+		{name: "a catalog failure", err: errors.New("catalog down"), want: "CreatePlacement500JSONResponse"},
 	} {
-		var slug string
-		var items []domain.Placement
-		resp, err := New(batchStub{slug: &slug, items: &items, err: tc.err}).CreatePlacements(s.T().Context(),
-			CreatePlacementsRequestObject{Slug: "yard", Body: &PlacementBatchCreate{Items: []PlacementCreate{{ModelSlug: "pump"}}}})
-		assert.NilError(s.T(), err)
-		assert.Equal(s.T(), fmt.Sprintf("%T", resp), "httpapi."+tc.want)
+		s.Run(tc.name, func() {
+			resp, err := New(singleStub{err: tc.err}).CreatePlacement(s.T().Context(),
+				CreatePlacementRequestObject{Slug: "yard", Body: &PlacementCreate{ModelSlug: "pump"}})
+			assert.NilError(s.T(), err)
+			assert.Equal(s.T(), fmt.Sprintf("%T", resp), "httpapi."+tc.want)
+		})
 	}
 }
 

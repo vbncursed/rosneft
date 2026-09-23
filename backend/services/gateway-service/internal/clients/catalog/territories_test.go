@@ -1,40 +1,16 @@
-// In-package test: it substitutes the unexported gRPC stub on Client.
+// In-package test: it substitutes the unexported gRPC stub on Client
+// (updateCC lives in stub_test.go).
 package catalog
 
 import (
-	"context"
 	"testing"
 
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gotest.tools/v3/assert"
 
-	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
-
-// updateCC records the last partial-edit request and answers with err.
-type updateCC struct {
-	catalogv1.CatalogServiceClient
-	err       error
-	territory *catalogv1.UpdateTerritoryRequest
-	model     *catalogv1.UpdateModelRequest
-}
-
-func (u *updateCC) UpdateTerritory(
-	_ context.Context, in *catalogv1.UpdateTerritoryRequest, _ ...grpc.CallOption,
-) (*catalogv1.UpdateTerritoryResponse, error) {
-	u.territory = in
-	return &catalogv1.UpdateTerritoryResponse{Territory: &catalogv1.Territory{Slug: in.GetSlug()}}, u.err
-}
-
-func (u *updateCC) UpdateModel(
-	_ context.Context, in *catalogv1.UpdateModelRequest, _ ...grpc.CallOption,
-) (*catalogv1.UpdateModelResponse, error) {
-	u.model = in
-	return &catalogv1.UpdateModelResponse{Model: &catalogv1.Model{Slug: in.GetSlug()}}, u.err
-}
 
 // Absent stays absent on the wire: that is what keeps the catalog's column.
 func TestUpdateTerritorySendsOnlyTheSetFields(t *testing.T) {

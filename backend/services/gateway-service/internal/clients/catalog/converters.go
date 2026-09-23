@@ -37,6 +37,7 @@ func modelFromProto(m *catalogv1.Model) domain.Model {
 	if m == nil {
 		return domain.Model{}
 	}
+	bboxMin, bboxMax := lod0Bounds(m.GetArtifacts())
 	return domain.Model{
 		Slug:              m.GetSlug(),
 		Title:             m.GetTitle(),
@@ -47,7 +48,20 @@ func modelFromProto(m *catalogv1.Model) domain.Model {
 		UpdatedAt:         m.GetUpdatedAt().AsTime(),
 		UsageCount:        int(m.GetUsageCount()),
 		LODs:              lodsFromProto(m.GetArtifacts()),
+		BBoxMin:           bboxMin,
+		BBoxMax:           bboxMax,
 	}
+}
+
+// lod0Bounds reads LOD0's bounds off a model's artifact chain; both are nil
+// when LOD0 is missing.
+func lod0Bounds(arts []*catalogv1.ModelArtifact) (bboxMin, bboxMax *domain.Vec3) {
+	for _, a := range arts {
+		if a.GetLod() == 0 {
+			return new(vec3FromProto(a.GetBboxMin())), new(vec3FromProto(a.GetBboxMax()))
+		}
+	}
+	return nil, nil
 }
 
 func modelToProto(m domain.Model) *catalogv1.Model {

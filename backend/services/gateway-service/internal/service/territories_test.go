@@ -125,6 +125,29 @@ func (s *TerritoriesSuite) TestUpdateNeverForwardsASourceHash() {
 	assert.NilError(s.T(), err)
 }
 
+func (s *TerritoriesSuite) TestUpdateTrimsTheTitleAndDescription() {
+	s.cat.UpdateTerritoryMock.Expect(s.ctx, "t1", domain.TerritoryUpdate{Title: new("Yard"), Description: new("North pad")}).
+		Return(domain.Territory{Slug: "t1", Title: "Yard"}, nil)
+
+	_, err := s.svc.UpdateTerritory(s.ctx, "t1", domain.TerritoryUpdate{Title: new(" Yard\t"), Description: new("  North pad ")})
+	assert.NilError(s.T(), err)
+}
+
+// An empty description is a clear, not an absent field: it reaches the
+// catalog as "", which the catalog writes over the old text.
+func (s *TerritoriesSuite) TestUpdateClearsTheDescription() {
+	s.cat.UpdateTerritoryMock.Expect(s.ctx, "t1", domain.TerritoryUpdate{Description: new("")}).
+		Return(domain.Territory{Slug: "t1"}, nil)
+
+	_, err := s.svc.UpdateTerritory(s.ctx, "t1", domain.TerritoryUpdate{Description: new("")})
+	assert.NilError(s.T(), err)
+}
+
+func (s *TerritoriesSuite) TestCreateRefusesAWhitespaceTitle() {
+	_, _, err := s.svc.CreateTerritory(s.ctx, domain.Territory{Title: " \t ", SourceBlobHash: "h"}, rootScope)
+	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
+}
+
 func (s *TerritoriesSuite) TestUpdateRejectsBlankTitleBeforeWriting() {
 	// No catalog expectation: any catalog call would fail the test.
 	_, err := s.svc.UpdateTerritory(s.ctx, "t1", domain.TerritoryUpdate{Title: new("")})
