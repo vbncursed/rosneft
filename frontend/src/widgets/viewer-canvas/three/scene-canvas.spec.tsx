@@ -88,6 +88,7 @@ const PANO: Panorama = {
   position: { x: 0, y: 0, z: 0 },
   yawOffset: 0,
   defaultYaw: 0,
+  thumbnailBlobHash: null,
   updatedAt: "",
 };
 
@@ -111,6 +112,7 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   activeChainId: null,
   unitRatio: 1,
   resetVersion: 0,
+  playing: false,
   retryVersion: 0,
   focusRequest: null,
   activePanorama: null,
@@ -138,6 +140,7 @@ const props = (over: Partial<ViewerCanvasProps> = {}): ViewerCanvasProps => ({
   onRemoveSegment: vi.fn(),
   onRemoveChain: vi.fn(),
   onLod: vi.fn(),
+  onPlayStop: vi.fn(),
   ...over,
 });
 
@@ -316,6 +319,12 @@ describe("SceneCanvas", () => {
     const wrapper = r.scene.findAll((n) => n.props.onClick !== undefined)[0];
     await r.fireEvent(wrapper, "click", clickEvent({ x: 1, y: 2, z: 3 }));
     expect(onMeasurePoint).not.toHaveBeenCalled();
+  });
+
+  it("hands Play to the camera rig, which lands at once with no mesh to circle", async () => {
+    const onPlayStop = vi.fn();
+    await mount({ playing: true, onPlayStop });
+    expect(onPlayStop).toHaveBeenCalledOnce();
   });
 });
 

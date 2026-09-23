@@ -12,5 +12,6 @@ export const toPanorama = (d: PanoramaDto): Panorama => ({
   position: d.position,
   yawOffset: d.yawOffset,
   defaultYaw: d.defaultYaw,
+  thumbnailBlobHash: d.thumbnailBlobHash ?? null,
   updatedAt: d.updatedAt ?? "",
 });

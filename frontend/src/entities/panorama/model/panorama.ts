@@ -10,6 +10,8 @@ export type Panorama = {
   position: Vec3;
   yawOffset: number;
   defaultYaw: number;
+  /** The 256×128 JPEG the server made from the equirect; null until it has, and the row draws the glyph. */
+  thumbnailBlobHash: string | null;
   updatedAt: string;
 };
 

@@ -67,9 +67,29 @@ func (r refusal) Error() string { return r.msg }
 
 func (r refusal) Unwrap() error { return r.sentinel }
 
-// createRefusal maps a failed placement create. NotFound is the model unless
-// the message says otherwise — the route's gate has already found the
-// territory; InvalidArgument is a refused item; AlreadyExists is an
+// notFoundSentinels are the catalog NotFound answers told apart by the sentinel
+// text the message carries: at its start, or after "item N: " in a batch.
+// "placement group not found" does not contain "placement not found", so the
+// order does not matter.
+var notFoundSentinels = []error{
+	domain.ErrPlacementGroupNotFound, domain.ErrPlacementNotFound,
+	domain.ErrTerritoryNotFound, domain.ErrModelNotFound,
+}
+
+// notFoundSentinel names the sentinel a catalog NotFound message is about, or
+// fallback when it names none.
+func notFoundSentinel(msg string, fallback error) error {
+	for _, s := range notFoundSentinels {
+		if strings.Contains(msg, s.Error()) {
+			return s
+		}
+	}
+	return fallback
+}
+
+// createRefusal maps a failed placement create. NotFound is what the message
+// names, the model when it names nothing (the route's gate has already found
+// the territory); InvalidArgument is a refused item; AlreadyExists is an
 // idempotency key reused for another batch. Anything else is wrapped with op
 // as an internal error.
 func createRefusal(op string, err error) error {
@@ -77,10 +97,8 @@ func createRefusal(op string, err error) error {
 	switch {
 	case !ok:
 		return fmt.Errorf("%s: %w", op, err)
-	case st.Code() == codes.NotFound && strings.HasSuffix(st.Message(), domain.ErrTerritoryNotFound.Error()):
-		return refusal{st.Message(), domain.ErrTerritoryNotFound}
 	case st.Code() == codes.NotFound:
-		return refusal{st.Message(), domain.ErrModelNotFound}
+		return refusal{st.Message(), notFoundSentinel(st.Message(), domain.ErrModelNotFound)}
 	case st.Code() == codes.InvalidArgument:
 		return refusal{st.Message(), domain.ErrInvalidInput}
 	case st.Code() == codes.AlreadyExists:
@@ -89,15 +107,15 @@ func createRefusal(op string, err error) error {
 	return fmt.Errorf("%s: %w", op, err)
 }
 
-// editRefusal maps a failed placement update, visibility change or delete the
-// way createRefusal maps a create: the catalog's own words for NotFound
-// (placement or territory, the message says which) and InvalidArgument, and
-// an internal error, wrapped with op, for anything else.
+// editRefusal maps a failed placement or group edit the way createRefusal maps
+// a create: the catalog's own words for NotFound (placement, group or
+// territory, whichever the message names) and InvalidArgument, and an
+// internal error, wrapped with op, for anything else.
 func editRefusal(op string, err error) error {
 	st, ok := status.FromError(err)
 	switch {
 	case ok && st.Code() == codes.NotFound:
-		return refusal{st.Message(), domain.ErrPlacementNotFound}
+		return refusal{st.Message(), notFoundSentinel(st.Message(), domain.ErrPlacementNotFound)}
 	case ok && st.Code() == codes.InvalidArgument:
 		return refusal{st.Message(), domain.ErrInvalidInput}
 	}
@@ -114,6 +132,7 @@ func createPlacementRequest(p domain.Placement) *catalogv1.CreatePlacementReques
 		Scale:              vec3ToProto(p.Scale),
 		Label:              p.Label,
 		VisiblePanoramaIds: p.VisiblePanoramaIDs,
+		GroupId:            p.GroupID,
 	}
 }
 

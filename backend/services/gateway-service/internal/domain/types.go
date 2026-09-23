@@ -147,13 +147,14 @@ type AssetOption struct {
 // shows them as toggleable alternate camera modes that reuse the same
 // placement set.
 type SceneBundle struct {
-	Territory    Territory
-	Artifact     *Artifact
-	Placements   []Placement
-	ModelOptions []AssetOption
-	Panoramas    []Panorama
-	Documents    []Document
-	Measurements []Measurement
+	Territory       Territory
+	Artifact        *Artifact
+	Placements      []Placement
+	ModelOptions    []AssetOption
+	Panoramas       []Panorama
+	Documents       []Document
+	Measurements    []Measurement
+	PlacementGroups []PlacementGroup
 }
 
 // Placement is the gateway view of a positioned model on a territory.
@@ -170,6 +171,10 @@ type Placement struct {
 	// VisiblePanoramaIDs is the allowlist of panoramas this placement shows
 	// in (panorama mode only; the 3D view always shows every placement).
 	VisiblePanoramaIDs []int64
+	// Hidden is shared: hidden for one reader is hidden for everyone.
+	Hidden bool
+	// GroupID is the placement's user group; nil when it is in none.
+	GroupID *int64
 }
 
 // UploadSession mirrors the upload-service session for the frontend.

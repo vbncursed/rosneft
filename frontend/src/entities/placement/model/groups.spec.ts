@@ -2,19 +2,26 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_SCALE, groupByModel, groupLine, instanceLine, instanceName, matchesObjects, realWorldScale } from "./groups";
 import { IDENTITY_TRANSFORM, type Placement } from "./placement";
 
-const p = (id: number, modelSlug: string, label = ""): Placement =>
-  ({ id, territorySlug: "t", modelSlug, label, updatedAt: "", visiblePanoramaIds: [], ...IDENTITY_TRANSFORM });
+const p = (id: number, modelSlug: string, label = "", over: Partial<Placement> = {}): Placement =>
+  ({ id, territorySlug: "t", modelSlug, label, updatedAt: "", visiblePanoramaIds: [], hidden: false, groupId: null, ...IDENTITY_TRANSFORM, ...over });
 const options = [{ slug: "tank", title: "storage-tank-500" }, { slug: "pump", title: "Насос НМ-1250" }];
 
 describe("groupByModel", () => {
   it("groups by model, titles sorted, instances numbered by id order", () => {
     const groups = groupByModel([p(9, "pump"), p(3, "tank", "Tank 3"), p(1, "tank"), p(5, "pump")], options);
     expect(groups.map((g) => g.model.title)).toEqual(["storage-tank-500", "Насос НМ-1250"]);
-    expect(groups[0].instances).toEqual([{ id: 1, index: 1, label: "" }, { id: 3, index: 2, label: "Tank 3" }]);
+    expect(groups[0].instances).toEqual([
+      { id: 1, index: 1, label: "", hidden: false, groupId: null },
+      { id: 3, index: 2, label: "Tank 3", hidden: false, groupId: null },
+    ]);
     expect(groups[1].instances.map((i) => i.id)).toEqual([5, 9]);
   });
   it("keeps a placement whose model is unknown, titled by its slug", () => {
     expect(groupByModel([p(1, "gone")], options)[0].model).toEqual({ slug: "gone", title: "gone" });
+  });
+  it("carries each placement's hidden flag and group onto its instance", () => {
+    const [tank] = groupByModel([p(1, "tank", "", { hidden: true, groupId: 4 })], options);
+    expect(tank.instances[0]).toMatchObject({ hidden: true, groupId: 4 });
   });
   it("is empty for no placements", () => {
     expect(groupByModel([], options)).toEqual([]);

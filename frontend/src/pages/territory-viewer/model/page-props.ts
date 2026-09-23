@@ -7,7 +7,8 @@ import {
   uploadProps,
   viewTabProps,
 } from "./page-props-b";
-import { selectedBlock, visibilityBlock } from "./page-props-selected";
+import { memoLast } from "./memo-last";
+import { placementsPanelProps } from "./page-props-placements";
 import { loadingChip, measuringView, modeChip, stripItems } from "./strip-and-chips";
 import { errorCopy, headerMeta, headerPills, measureGrants, railTools } from "./viewer-view";
 import type { PageParts, TerritoryViewerPageProps } from "./viewer-props";
@@ -26,6 +27,10 @@ export type {
   ViewerOverlaysProps,
   ViewerPanelProps,
 } from "./viewer-props";
+
+// The same placements and options give the same groups: the canvas markers and
+// the Placements panel both take them, and neither should re-render on a fold.
+const groupsOf = memoLast(groupByModel);
 
 /**
  * Every prop the viewer page draws, assembled from the container's pieces.
@@ -49,8 +54,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
   const inside = mode.view.kind === "panorama";
 
   const levels = vm.parentLods.map((a) => a.lod).sort((a, b) => a - b);
-  const groups = groupByModel(p.placements, options);
-  const selected = p.placements.find((x) => x.id === mode.selectedId) ?? null;
+  const groups = groupsOf(p.placements, options);
 
   return {
     header: {
@@ -95,6 +99,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       canEditMeasurements: canEditSaved(measureGrants(grants)),
       unitRatio: computeUnitRatio(vm.metadata.dims),
       resetVersion: view.resetVersion,
+      playing: view.playing,
       retryVersion: view.retryVersion,
       focusRequest: view.focusRequest,
       ...panoramaCanvasProps(p, groups),
@@ -105,6 +110,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
       onRemoveSegment: on.onRemoveSegment,
       onRemoveChain: on.onRemoveChain,
       onLod: on.onLod,
+      onPlayStop: on.onPlayStop,
     },
 
     overlays: {
@@ -119,8 +125,10 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
         tourActive: p.tour.active || p.panoramaTour.active,
         view: mode.view,
         documentOpen: docs.window !== null,
+        playing: view.playing,
       }),
       onReset: on.onReset,
+      onPlay: on.onPlay,
       onMeasure: on.onMeasure,
       onAdd: on.onAdd,
       onPanoramas: on.onPanoramas,
@@ -187,25 +195,7 @@ export function pageProps(p: PageParts): TerritoryViewerPageProps {
           onCollapsedChange: on.onCollapsed,
           placementsCount: p.placements.length,
           viewTab: viewTabProps(p),
-          placements: {
-            groups,
-            query: view.query,
-            onQuery: on.onQuery,
-            expandedModel: view.expandedModel,
-            onToggleGroup: on.onToggleGroup,
-            selectedId: mode.selectedId,
-            onSelect: on.onSelect,
-            pendingIds: p.pendingIds,
-            grants: { create: grants.create, write: grants.write, delete: grants.delete },
-            onAdd: on.onAdd,
-            onRename: on.onRename,
-            onDelete: on.onDelete,
-            onFocus: on.onFocus,
-            selected: selectedBlock(p, groups, selected),
-            // B-5: inside a panorama nothing is placed.
-            canAdd: !inside,
-            visibility: visibilityBlock(p, selected),
-          },
+          placements: placementsPanelProps(p, groups),
         },
 
     picker: {

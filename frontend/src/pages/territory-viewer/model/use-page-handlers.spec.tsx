@@ -23,9 +23,11 @@ const deps = (
     placements?: ResolvedPlacement[];
     chains?: Chain[];
     canDeleteMeasurements?: boolean;
+    selectedId?: number | null;
   } = {},
 ) => {
   const mode = {
+    state: { mode: "orbit", view: { kind: "scene" }, selectedId: over.selectedId ?? null },
     enterPlace: vi.fn(),
     exitPlace: vi.fn(),
     select: vi.fn(),
@@ -40,6 +42,8 @@ const deps = (
     remove: vi.fn(),
     commitTransform: vi.fn(),
     setVisibility: vi.fn(),
+    setHidden: vi.fn(),
+    moveToGroup: vi.fn(),
   };
   const panel = { setTab: vi.fn(), setCollapsed: vi.fn() };
   const form = { openNew: vi.fn(), openRename: vi.fn() };
@@ -117,6 +121,7 @@ describe("usePageHandlers", () => {
       targetLod: 0,
       retryVersion: 0,
       resetVersion: 0,
+      playing: false,
       focusRequest: null,
       pickerOpen: false,
       query: "",
@@ -166,7 +171,7 @@ describe("usePageHandlers", () => {
   it("opens the new object's form once the batch has landed", async () => {
     const { result, spies } = mount();
     await act(async () => result.current.on.onPlace("storage-tank-500", 2));
-    expect(spies.editor.create).toHaveBeenCalledWith("storage-tank-500", 2);
+    expect(spies.editor.create).toHaveBeenCalledWith("storage-tank-500", 2, null);
     expect(spies.form.openNew).toHaveBeenCalledWith(11);
     expect(result.current.view.pickerOpen).toBe(false);
   });
@@ -239,13 +244,61 @@ describe("usePageHandlers", () => {
     expect(spies.editor.setVisibility).not.toHaveBeenCalled();
   });
 
+  it("flies on Play, and a reset or the rig's own stop lands it", () => {
+    const { result } = mount();
+    act(() => result.current.on.onPlay());
+    expect(result.current.view.playing).toBe(true);
+    act(() => result.current.on.onReset());
+    expect(result.current.view).toMatchObject({ playing: false, resetVersion: 1 });
+    act(() => result.current.on.onPlay());
+    act(() => result.current.on.onPlayStop());
+    expect(result.current.view.playing).toBe(false);
+  });
+
+  it("lands the flight when a placement is focused", () => {
+    const { result } = mount();
+    act(() => result.current.on.onPlay());
+    act(() => result.current.on.onFocus(7));
+    expect(result.current.view.playing).toBe(false);
+    expect(result.current.view.focusRequest).toEqual([7]);
+  });
+
   it("keeps every canvas-bound callback stable across a re-render", () => {
     const { result, rerender } = mount();
     const first = result.current.on;
     act(() => result.current.on.onReset());
+    act(() => result.current.on.onPlay());
     rerender();
     expect(result.current.on.onLod).toBe(first.onLod);
     expect(result.current.on.onReset).toBe(first.onReset);
+    expect(result.current.on.onPlay).toBe(first.onPlay);
+    expect(result.current.on.onPlayStop).toBe(first.onPlayStop);
     expect(result.current.view.resetVersion).toBe(1);
+  });
+
+  describe("hiding and groups", () => {
+    it("drops the selection when it is among the placements hidden", () => {
+      const { result, spies } = mount({ selectedId: 4 });
+      act(() => result.current.on.onSetHidden([4, 5], true));
+      expect(spies.mode.select).toHaveBeenCalledWith(null);
+      expect(spies.editor.setHidden).toHaveBeenCalledWith([4, 5], true);
+    });
+
+    it("places into the group whose Add opened the picker, and nowhere after a plain Add", async () => {
+      const { result, spies } = mount();
+      act(() => result.current.on.onAddToGroup(7));
+      expect(result.current.view.pickerOpen).toBe(true);
+      await act(async () => result.current.on.onPlace("tank", 2));
+      expect(spies.editor.create).toHaveBeenLastCalledWith("tank", 2, 7);
+
+      act(() => result.current.on.onAdd());
+      await act(async () => result.current.on.onPlace("tank", 1));
+      expect(spies.editor.create).toHaveBeenLastCalledWith("tank", 1, null);
+    });
+
+    it("moves through the editor unchanged", () => {
+      const { result, spies } = mount();
+      expect(result.current.on.onMoveToGroup).toBe(spies.editor.moveToGroup);
+    });
   });
 });

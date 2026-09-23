@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setCsrfToken } from "@/shared/api";
-import { createPlacements, deletePlacement, setPlacementVisibility, updatePlacement } from "./placements-gateway";
+import {
+  createPlacements,
+  deletePlacement,
+  setPlacementsGroup,
+  setPlacementsHidden,
+  setPlacementVisibility,
+  updatePlacement,
+} from "./placements-gateway";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -80,5 +87,27 @@ describe("placements gateway", () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
     await deletePlacement("a b/c", 7);
     for (const n of [0, 1, 2]) expect(request(n).url).toContain("a%20b%2Fc");
+  });
+
+  it("PUTs a bulk hide to the hidden route and resolves to how many rows changed", async () => {
+    fetchMock.mockResolvedValueOnce(json({ updated: 2 }));
+    await expect(setPlacementsHidden("north", [4, 5], true)).resolves.toBe(2);
+    expect(request()).toEqual({
+      url: "/api/territories/north/placements/hidden",
+      method: "PUT",
+      body: { ids: [4, 5], hidden: true },
+    });
+  });
+
+  // null is "No group" and is sent explicitly. The gateway would read a missing
+  // groupId as null too and ungroup, but the contract names the key, so say it.
+  it("PUTs a move to the group route, sending null for No group", async () => {
+    fetchMock.mockResolvedValueOnce(json({ updated: 1 }));
+    await expect(setPlacementsGroup("north", [4], null)).resolves.toBe(1);
+    expect(request()).toEqual({
+      url: "/api/territories/north/placements/group",
+      method: "PUT",
+      body: { ids: [4], groupId: null },
+    });
   });
 });

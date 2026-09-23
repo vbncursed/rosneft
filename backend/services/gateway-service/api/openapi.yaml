@@ -176,7 +176,7 @@ components:
 
     Placement:
       type: object
-      required: [id, territorySlug, modelSlug, position, rotation, scale]
+      required: [id, territorySlug, modelSlug, position, rotation, scale, hidden]
       properties:
         id: { type: integer, format: int64 }
         territorySlug: { type: string }
@@ -194,6 +194,15 @@ components:
             mode only — the 3D view always shows every placement). Empty means
             hidden in every panorama.
           items: { type: integer, format: int64 }
+        hidden:
+          type: boolean
+          description: >
+            Shared: a hidden placement is not drawn for anyone who opens the
+            territory. Changed only through PUT …/placements/hidden.
+        groupId:
+          type: integer
+          format: int64
+          description: The placement's group; omitted when it is in none.
 
     PlacementCreate:
       type: object
@@ -208,6 +217,10 @@ components:
           type: array
           description: Initial panorama allowlist (e.g. the active panorama).
           items: { type: integer, format: int64 }
+        groupId:
+          type: integer
+          format: int64
+          description: Group the new placement lands in; a group of another territory is 404.
 
     PlacementBatchCreate:
       type: object
@@ -235,6 +248,70 @@ components:
           type: array
           description: Full replacement allowlist of panorama ids.
           items: { type: integer, format: int64 }
+
+    PlacementsHiddenUpdate:
+      type: object
+      required: [ids, hidden]
+      description: >
+        Hide or show every listed placement of the territory, all or none: an
+        id that is unknown or on another territory answers 404 and nothing
+        changes. A repeated id counts once.
+      properties:
+        ids:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items: { type: integer, format: int64 }
+        hidden: { type: boolean }
+
+    PlacementsGroupUpdate:
+      type: object
+      required: [ids, groupId]
+      description: >
+        Move every listed placement into groupId, or out of any group when it
+        is null, all or none. A group of another territory is 404, like an
+        unknown one.
+      properties:
+        ids:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items: { type: integer, format: int64 }
+        groupId:
+          type: integer
+          format: int64
+          nullable: true
+
+    PlacementsUpdated:
+      type: object
+      required: [updated]
+      properties:
+        updated:
+          type: integer
+          minimum: 0
+          description: How many placements were written.
+
+    PlacementGroup:
+      type: object
+      required: [id, title, createdAt, updatedAt]
+      description: >
+        A user-made group of placements on a territory. A placement is in at
+        most one; deleting a group returns its placements to no group.
+      properties:
+        id: { type: integer, format: int64 }
+        title: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    PlacementGroupWrite:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: Trimmed; 1 to 120 characters must remain, else 400.
 
     Measurement:
       type: object
@@ -296,6 +373,12 @@ components:
         sourceBlobHash:
           type: string
           description: BlobStore hash for the equirect JPG/PNG; served via /api/assets/{hash}.
+        thumbnailBlobHash:
+          type: string
+          description: |
+            256×128 JPEG content-service makes from the source; served via
+            /api/assets/{hash} under the same territory scope. Omitted until it
+            has been made, and the SPA draws the panorama glyph instead.
         position: { $ref: '#/components/schemas/Vec3' }
         yawOffset:
           type: number
@@ -481,7 +564,7 @@ components:
 
     SceneBundle:
       type: object
-      required: [territory, placements, modelOptions, measurements]
+      required: [territory, placements, modelOptions, measurements, placementGroups]
       description: |
         Single-shot bundle for the viewer page. Includes the requested
         territory, its current LOD0 artifact (when present), all
@@ -511,6 +594,10 @@ components:
           type: array
           description: Saved measurement chains on this territory, by id; empty when none.
           items: { $ref: '#/components/schemas/Measurement' }
+        placementGroups:
+          type: array
+          description: The territory's placement groups, by id; empty when none.
+          items: { $ref: '#/components/schemas/PlacementGroup' }
 
     UploadInitiate:
       type: object
@@ -1509,6 +1596,139 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Placement' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/territories/{slug}/placements/hidden:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      operationId: setPlacementsHidden
+      summary: Hide or show placements, all or none
+      description: >
+        Requires placement:write. One catalog transaction over 1–1000 ids:
+        an id that is unknown or on another territory answers 404 and nothing
+        changes. Hiding is shared by everyone who opens the territory.
+      tags: [placements]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlacementsHiddenUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlacementsUpdated' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/territories/{slug}/placements/group:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    put:
+      operationId: setPlacementsGroup
+      summary: Move placements into a group, or out of every group
+      description: >
+        Requires placement:write. One catalog transaction over 1–1000 ids,
+        all or none; groupId null means "No group". A placement id or group
+        id that is unknown or on another territory answers 404.
+      tags: [placements]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlacementsGroupUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlacementsUpdated' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/territories/{slug}/placement-groups:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: createPlacementGroup
+      summary: Create a placement group
+      description: Requires placement:write. The groups are read through the scene bundle.
+      tags: [placements]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlacementGroupWrite' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlacementGroup' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+
+  /api/territories/{slug}/placement-groups/{id}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
+    patch:
+      operationId: updatePlacementGroup
+      summary: Rename a placement group
+      description: >
+        Requires placement:write. An id that belongs to another territory
+        answers 404, the same as an unknown id.
+      tags: [placements]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlacementGroupWrite' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlacementGroup' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/Internal' }
+    delete:
+      operationId: deletePlacementGroup
+      summary: Delete a placement group; its placements stay, in no group
+      description: >
+        Requires placement:write. An id that belongs to another territory
+        answers 404, the same as an unknown id.
+      tags: [placements]
+      responses:
+        '204': { description: Deleted }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/Internal' }
 

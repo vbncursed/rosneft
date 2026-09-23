@@ -243,11 +243,18 @@ describe("ViewTab", () => {
     };
     const head = (name: string) => screen.getByRole("button", { name: new RegExp(name) });
 
-    it("hides both lists behind their heads, and nothing else", () => {
+    it("folds both lists to empty elements the heads still point at, and nothing else", () => {
+      // A folded list mounts no rows: fifteen rows each held an <img>, and every
+      // page render re-rendered them. The <ul> stays, empty and hidden, because
+      // a head's aria-controls must name an element that exists.
       const { container } = tab(folded);
-      const picker = container.querySelector("ul[data-tour='panorama-picker']");
+      const picker = container.querySelector("ul[data-tour='panorama-picker']")!;
       expect(picker).not.toBeVisible();
-      expect(screen.getByRole("button", { name: "Open plan-sheet-03.pdf", hidden: true })).not.toBeVisible();
+      expect(picker).toBeEmptyDOMElement();
+      expect(head(PANORAMAS_OVERLINE)).toHaveAttribute("aria-controls", picker.id);
+      expect(screen.queryByRole("button", { name: "Open plan-sheet-03.pdf", hidden: true })).toBeNull();
+      const docs = document.getElementById(head(DOCUMENTS_OVERLINE).getAttribute("aria-controls")!);
+      expect(docs).toBeEmptyDOMElement();
       expect(head(PANORAMAS_OVERLINE)).toHaveAttribute("aria-expanded", "false");
       expect(head(DOCUMENTS_OVERLINE)).toHaveAttribute("aria-expanded", "false");
       // Section settings, not list items: they stay in reach.

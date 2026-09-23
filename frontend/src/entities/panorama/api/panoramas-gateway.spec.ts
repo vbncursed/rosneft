@@ -14,7 +14,7 @@ describe("panoramas gateway", () => {
     http.httpGet.mockResolvedValue([DTO]);
     const out = await listPanoramas("t/1");
     expect(http.httpGet).toHaveBeenCalledWith("/api/territories/t%2F1/panoramas");
-    expect(out[0]).toEqual({ ...DTO, territorySlug: "t" });
+    expect(out[0]).toEqual({ ...DTO, territorySlug: "t", thumbnailBlobHash: null });
   });
 
   it("creates with the body as given", async () => {

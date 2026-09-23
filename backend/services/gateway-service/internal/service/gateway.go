@@ -45,6 +45,13 @@ type Catalog interface {
 	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, territorySlug string, id int64) error
 
+	SetPlacementsHidden(ctx context.Context, territorySlug string, ids []int64, hidden bool) (int, error)
+	SetPlacementsGroup(ctx context.Context, territorySlug string, ids []int64, groupID *int64) (int, error)
+	ListPlacementGroups(ctx context.Context, territorySlug string) ([]domain.PlacementGroup, error)
+	CreatePlacementGroup(ctx context.Context, territorySlug, title string) (domain.PlacementGroup, error)
+	RenamePlacementGroup(ctx context.Context, territorySlug string, id int64, title string) (domain.PlacementGroup, error)
+	DeletePlacementGroup(ctx context.Context, territorySlug string, id int64) error
+
 	ListMeasurements(ctx context.Context, territorySlug string) ([]domain.Measurement, error)
 	CreateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)
 	UpdateMeasurement(ctx context.Context, m domain.Measurement) (domain.Measurement, error)

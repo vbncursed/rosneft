@@ -11,6 +11,8 @@ const DTO = {
   label: "Tank A",
   updatedAt: "t1",
   visiblePanoramaIds: [4, 5],
+  hidden: true,
+  groupId: 5,
 };
 
 describe("toPlacement", () => {
@@ -24,5 +26,10 @@ describe("toPlacement", () => {
   it("gives the optional fields renderable defaults", () => {
     const p = toPlacement({ ...DTO, label: undefined, updatedAt: undefined, visiblePanoramaIds: undefined });
     expect(p).toMatchObject({ label: "", updatedAt: "", visiblePanoramaIds: [] });
+  });
+
+  // The gateway omits groupId for a placement in no group; the domain says so with null.
+  it("reads a missing group as No group", () => {
+    expect(toPlacement({ ...DTO, groupId: undefined }).groupId).toBeNull();
   });
 });

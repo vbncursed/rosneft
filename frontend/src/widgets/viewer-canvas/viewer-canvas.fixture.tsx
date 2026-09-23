@@ -41,6 +41,7 @@ const Canvas = ({ chains = [], showMeasurements = true, measuring = false }: Can
         activeChainId={null}
         unitRatio={1}
         resetVersion={0}
+        playing={false}
         retryVersion={0}
         focusRequest={null}
         activePanorama={null}
@@ -58,6 +59,7 @@ const Canvas = ({ chains = [], showMeasurements = true, measuring = false }: Can
         cameraPositionRef={{ current: null }}
         cameraYawRef={{ current: null }}
         onPick={noop}
+        onPlayStop={noop}
         onActivatePanorama={noop}
         onMarkerGrab={noop}
         onMarkerMove={noop}

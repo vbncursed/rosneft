@@ -35,9 +35,10 @@ only integration tests.
   redacts `password_hash` / `totp_secret` / `code_hash` unconditionally and
   drops writes that touched only bookkeeping columns.
 - **`ensure_audit_triggers()`** — attaches the trigger to every audited table
-  that exists, skipping the rest. Called on each boot, so this service needs no
-  ordering against catalog / auth / content migrations, and picks up a table
-  created later.
+  that exists, skipping the rest. Called only at boot: a table catalog / auth /
+  content create after this service booted stays unjournaled until it is
+  recreated (`docker compose up -d --build --force-recreate audit`, so the image
+  carries the audit migration that registers the table) or restarted.
 - **`ListEntries`** — a page of the journal, cursor-paged over descending id.
   Refuses a tenant-scoped read with an empty company id rather than executing
   it, since that query would match exactly the Root and system rows.

@@ -20,26 +20,15 @@ import (
 // Wrapped in audittx.Run so the audit trigger can attribute the change.
 func (r *PG) SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error) {
 	const q = `
-		WITH updated AS (
+		WITH w AS (
 			UPDATE placements pl SET
 				visible_panorama_ids = COALESCE($3::bigint[], '{}'),
 				updated_at = NOW()
 			FROM territories t
 			WHERE pl.id = $2 AND pl.territory_id = t.id AND t.slug = $1
-			RETURNING pl.id, pl.territory_id, pl.model_id,
-				pl.position_x, pl.position_y, pl.position_z,
-				pl.rotation_x, pl.rotation_y, pl.rotation_z,
-				pl.scale_x, pl.scale_y, pl.scale_z,
-				pl.label, pl.created_at, pl.updated_at, pl.visible_panorama_ids
+			RETURNING ` + placementWriteReturning + `
 		)
-		SELECT u.id, t.slug, m.slug,
-			u.position_x, u.position_y, u.position_z,
-			u.rotation_x, u.rotation_y, u.rotation_z,
-			u.scale_x, u.scale_y, u.scale_z,
-			u.label, u.created_at, u.updated_at, u.visible_panorama_ids
-		FROM updated u
-		JOIN territories t ON t.id = u.territory_id
-		JOIN models m      ON m.id = u.model_id`
+		` + placementFromWrite
 
 	var out domain.Placement
 	err := audittx.Run(ctx, r.pool, func(tx pgx.Tx) error {

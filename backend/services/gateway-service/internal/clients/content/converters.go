@@ -21,16 +21,17 @@ func panoramaFromProto(p *contentv1.Panorama) domain.Panorama {
 		return domain.Panorama{}
 	}
 	return domain.Panorama{
-		ID:             p.GetId(),
-		TerritorySlug:  p.GetTerritorySlug(),
-		Slug:           p.GetSlug(),
-		Title:          p.GetTitle(),
-		SourceBlobHash: p.GetSourceBlobHash(),
-		Position:       vec3FromProto(p.GetPosition()),
-		YawOffset:      p.GetYawOffset(),
-		DefaultYaw:     p.GetDefaultYaw(),
-		CreatedAt:      p.GetCreatedAt().AsTime(),
-		UpdatedAt:      p.GetUpdatedAt().AsTime(),
+		ID:                p.GetId(),
+		TerritorySlug:     p.GetTerritorySlug(),
+		Slug:              p.GetSlug(),
+		Title:             p.GetTitle(),
+		SourceBlobHash:    p.GetSourceBlobHash(),
+		Position:          vec3FromProto(p.GetPosition()),
+		YawOffset:         p.GetYawOffset(),
+		DefaultYaw:        p.GetDefaultYaw(),
+		CreatedAt:         p.GetCreatedAt().AsTime(),
+		UpdatedAt:         p.GetUpdatedAt().AsTime(),
+		ThumbnailBlobHash: p.GetThumbnailBlobHash(),
 	}
 }
 

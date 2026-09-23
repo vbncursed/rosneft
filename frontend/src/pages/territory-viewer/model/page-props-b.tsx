@@ -1,11 +1,12 @@
 import { assetUrl } from "@/entities/content";
 import { documentFileName } from "@/entities/document";
 import { isCalibrated } from "@/entities/panorama";
-import { instanceName, isVisibleIn, type PlacementGroup } from "@/entities/placement";
+import { isShownIn, type ModelGroup } from "@/entities/placement";
 import type { UploadModalProps } from "@/widgets/upload-modal";
 import { AnchorCard, insideFooter, LOADING_FOOTER, type ViewTabProps } from "@/widgets/view-tab";
 import type { DocumentWindowProps } from "@/widgets/document-window";
 import type { ViewerCanvasProps } from "@/widgets/viewer-canvas";
+import { labelsOf, moveOf } from "./canvas-memo";
 import { detailsOf } from "./page-props-selected";
 import { DOC_EXPANDED_META, DOC_OPEN_META } from "./viewer-view";
 import type { PageParts, PageViewState } from "./viewer-props";
@@ -34,14 +35,6 @@ export function loadingLevel(view: PageViewState) {
   };
 }
 
-/** The viewport markers' names, by placement id — the panel's numbering, exactly. */
-export const markerLabels = (groups: PlacementGroup[]): Record<number, string> =>
-  Object.fromEntries(
-    groups.flatMap((group) =>
-      group.instances.map((instance) => [instance.id, instanceName(group, instance)]),
-    ),
-  );
-
 /**
  * The Overlays panel's View tab: the scene's facts, every capture anchored in
  * it, the PDFs laid over it, and the anchor card when one is open.
@@ -60,7 +53,7 @@ export function viewTabProps(p: PageParts): ViewTabProps {
       rows: pan.list.map((panorama) => ({
         id: panorama.id,
         title: panorama.title,
-        thumbUrl: assetUrl(panorama.sourceBlobHash),
+        thumbUrl: panorama.thumbnailBlobHash ? assetUrl(panorama.thumbnailBlobHash) : null,
         active: panorama.id === inside,
         calibrated: isCalibrated(panorama),
         canEdit: grants.panoramaWrite,
@@ -108,7 +101,7 @@ export function viewTabProps(p: PageParts): ViewTabProps {
         ? LOADING_FOOTER
         : inside === null
           ? null
-          : insideFooter(p.placements.filter((x) => isVisibleIn(x, inside)).length),
+          : insideFooter(p.placements.filter((x) => isShownIn(x, inside)).length),
   };
 }
 
@@ -168,7 +161,7 @@ function anchorCard(p: PageParts) {
  * stays null: the rig never mounts, the camera stays free, and the photo hangs
  * around the scene as a backdrop the anchor ring is dragged against.
  */
-export function panoramaCanvasProps(p: PageParts, groups: PlacementGroup[]) {
+export function panoramaCanvasProps(p: PageParts, groups: ModelGroup[]) {
   const { panoramas: pan } = p;
   const { effective } = pan.calibration;
   return {
@@ -181,8 +174,8 @@ export function panoramaCanvasProps(p: PageParts, groups: PlacementGroup[]) {
     calibrating: pan.calibration.active,
     panoramas: pan.list,
     showMarkers: pan.showMarkers,
-    markerLabels: markerLabels(groups),
-    move: { active: p.mode.move, draggingId: pan.drag.draggingId, livePos: pan.drag.livePos },
+    markerLabels: labelsOf(groups),
+    move: moveOf(p.mode.move, pan.drag.draggingId, pan.drag.livePos),
     cameraPositionRef: pan.cameraPositionRef,
     cameraYawRef: pan.cameraYawRef,
     onActivatePanorama: pan.onEnter,

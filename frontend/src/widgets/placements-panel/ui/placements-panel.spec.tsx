@@ -1,26 +1,25 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import type { PlacementGroup } from "@/entities/placement";
+import { groupByModel, groupPlacements, IDENTITY_TRANSFORM, type Placement } from "@/entities/placement";
 import { GUEST_FOOTER, NO_DELETE_FOOTER } from "../model/panel-copy";
 import { PlacementsPanel, type PlacementsPanelProps } from "./placements-panel";
 
-const GROUPS: PlacementGroup[] = [
-  {
-    model: { slug: "pipe-rack-12", title: "pipe-rack-12" },
-    instances: [{ id: 7, index: 1, label: "west run" }],
-  },
-  {
-    model: { slug: "storage-tank-500", title: "storage-tank-500" },
-    instances: [
-      { id: 1, index: 1, label: "" },
-      { id: 2, index: 2, label: "north row" },
-    ],
-  },
+const make = (id: number, modelSlug: string, label = "", over: Partial<Placement> = {}): Placement => ({
+  id, territorySlug: "t", modelSlug, label, updatedAt: "", visiblePanoramaIds: [], hidden: false, groupId: null, ...IDENTITY_TRANSFORM, ...over,
+});
+const OPTIONS = [
+  { slug: "pipe-rack-12", title: "pipe-rack-12" },
+  { slug: "storage-tank-500", title: "storage-tank-500" },
 ];
+const SECTIONS = groupPlacements(
+  groupByModel([make(7, "pipe-rack-12", "west run"), make(1, "storage-tank-500"), make(2, "storage-tank-500", "north row")], OPTIONS),
+  [],
+);
+const EMPTY = { userGroups: [], modelGroups: [] };
 
 const base: PlacementsPanelProps = {
-  groups: GROUPS,
+  sections: SECTIONS,
   query: "",
   onQuery: vi.fn(),
   expandedModel: null,
@@ -34,6 +33,10 @@ const base: PlacementsPanelProps = {
   onDelete: vi.fn(),
   onFocus: vi.fn(),
   selected: null,
+  onSetHidden: vi.fn(),
+  onMoveToGroup: vi.fn(),
+  onAddToGroup: vi.fn(),
+  groupActions: { busy: false, onCreate: vi.fn(), onRename: vi.fn(), onDelete: vi.fn() },
 };
 
 const SELECTED = {
@@ -98,7 +101,7 @@ describe("PlacementsPanel", () => {
   });
 
   it("answers an empty territory with the sentence and the way forward", () => {
-    render(<PlacementsPanel {...base} groups={[]} />);
+    render(<PlacementsPanel {...base} sections={EMPTY} />);
     expect(screen.getByText("No objects placed yet")).toBeInTheDocument();
     expect(screen.getByText(/each instance keeps its own position/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Add objects to territory/ })).toBeInTheDocument();
@@ -107,7 +110,7 @@ describe("PlacementsPanel", () => {
 
   it("leaves an empty territory without a way forward when the reader cannot place", () => {
     render(
-      <PlacementsPanel {...base} groups={[]} grants={{ create: false, write: false, delete: false }} />,
+      <PlacementsPanel {...base} sections={EMPTY} grants={{ create: false, write: false, delete: false }} />,
     );
     expect(screen.getByText("No objects placed yet")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Add objects to territory/ })).toBeNull();
@@ -236,8 +239,66 @@ describe("PlacementsPanel", () => {
     });
 
     it("keeps the empty state's own action off too", () => {
-      render(<PlacementsPanel {...base} groups={[]} canAdd={false} />);
+      render(<PlacementsPanel {...base} sections={EMPTY} canAdd={false} />);
       expect(screen.queryByRole("button", { name: /Add objects to territory/ })).toBeNull();
+    });
+  });
+
+  describe("groups", () => {
+    const grouped = groupPlacements(
+      groupByModel([make(1, "storage-tank-500", "", { groupId: 5 }), make(2, "storage-tank-500"), make(7, "pipe-rack-12")], OPTIONS),
+      [{ id: 5, title: "West yard" }, { id: 6, title: "East yard" }],
+    );
+
+    it("lists user groups alphabetically above the model rows, a rule between", () => {
+      render(<PlacementsPanel {...base} sections={grouped} />);
+      const lists = screen.getAllByRole("list");
+      expect(lists[0]).toHaveAccessibleName("Groups");
+      expect(lists[1]).toHaveAccessibleName("Objects");
+      // By position in the Groups list: "yard" also ends the eye's and the menu's names.
+      const text = lists[0].textContent ?? "";
+      expect(text.indexOf("East yard")).toBeLessThan(text.indexOf("West yard"));
+      expect(screen.getByRole("separator")).toBeInTheDocument();
+    });
+
+    it("finds a group by the title of a model inside it", () => {
+      render(<PlacementsPanel {...base} sections={grouped} query="storage" />);
+      expect(screen.getByRole("button", { name: "West yard" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "East yard" })).toBeNull();
+    });
+
+    it("opens a user group on its key and reports its toggle", async () => {
+      const onToggleGroup = vi.fn();
+      const { rerender } = render(<PlacementsPanel {...base} sections={grouped} onToggleGroup={onToggleGroup} />);
+      await userEvent.click(screen.getByRole("button", { name: "West yard" }));
+      expect(onToggleGroup).toHaveBeenCalledWith("group:5");
+      rerender(<PlacementsPanel {...base} sections={grouped} expandedModel="group:5" />);
+      expect(screen.getByRole("button", { name: "storage-tank-500 #1" })).toBeInTheDocument();
+    });
+
+    it("offers New group to a writer, even on an empty territory, and creates through the actions", async () => {
+      const onCreate = vi.fn();
+      render(<PlacementsPanel {...base} sections={EMPTY} groupActions={{ ...base.groupActions, onCreate }} />);
+      await userEvent.click(screen.getByRole("button", { name: "New group" }));
+      await userEvent.type(screen.getByRole("textbox", { name: "New group title" }), "Tank farm{Enter}");
+      expect(onCreate).toHaveBeenCalledWith("Tank farm");
+    });
+
+    it("offers no New group without write", () => {
+      render(<PlacementsPanel {...base} grants={{ create: true, write: false, delete: false }} />);
+      expect(screen.queryByRole("button", { name: "New group" })).toBeNull();
+    });
+
+    it("keeps a group's own Add off inside a panorama", () => {
+      render(<PlacementsPanel {...base} sections={grouped} expandedModel="group:5" canAdd={false} />);
+      expect(screen.queryByRole("button", { name: /Add objects to group/ })).toBeNull();
+    });
+
+    it("hands a group's Add its id", async () => {
+      const onAddToGroup = vi.fn();
+      render(<PlacementsPanel {...base} sections={grouped} expandedModel="group:5" onAddToGroup={onAddToGroup} />);
+      await userEvent.click(screen.getByRole("button", { name: "Add objects to group West yard" }));
+      expect(onAddToGroup).toHaveBeenCalledWith(5);
     });
   });
 });

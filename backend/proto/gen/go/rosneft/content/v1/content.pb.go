@@ -94,8 +94,10 @@ type Panorama struct {
 	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt      *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	DefaultYaw     float64                `protobuf:"fixed64,10,opt,name=default_yaw,json=defaultYaw,proto3" json:"default_yaw,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// 256×128 JPEG content-service makes from the source; empty until it has.
+	ThumbnailBlobHash string `protobuf:"bytes,11,opt,name=thumbnail_blob_hash,json=thumbnailBlobHash,proto3" json:"thumbnail_blob_hash,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Panorama) Reset() {
@@ -196,6 +198,13 @@ func (x *Panorama) GetDefaultYaw() float64 {
 		return x.DefaultYaw
 	}
 	return 0
+}
+
+func (x *Panorama) GetThumbnailBlobHash() string {
+	if x != nil {
+		return x.ThumbnailBlobHash
+	}
+	return ""
 }
 
 type ListPanoramasRequest struct {
@@ -999,7 +1008,7 @@ const file_rosneft_content_v1_content_proto_rawDesc = "" +
 	"\x04Vec3\x12\f\n" +
 	"\x01x\x18\x01 \x01(\x01R\x01x\x12\f\n" +
 	"\x01y\x18\x02 \x01(\x01R\x01y\x12\f\n" +
-	"\x01z\x18\x03 \x01(\x01R\x01z\"\x81\x03\n" +
+	"\x01z\x18\x03 \x01(\x01R\x01z\"\xb1\x03\n" +
 	"\bPanorama\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12%\n" +
 	"\x0eterritory_slug\x18\x02 \x01(\tR\rterritorySlug\x12\x12\n" +
@@ -1015,7 +1024,8 @@ const file_rosneft_content_v1_content_proto_rawDesc = "" +
 	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x1f\n" +
 	"\vdefault_yaw\x18\n" +
 	" \x01(\x01R\n" +
-	"defaultYaw\"=\n" +
+	"defaultYaw\x12.\n" +
+	"\x13thumbnail_blob_hash\x18\v \x01(\tR\x11thumbnailBlobHash\"=\n" +
 	"\x14ListPanoramasRequest\x12%\n" +
 	"\x0eterritory_slug\x18\x01 \x01(\tR\rterritorySlug\"S\n" +
 	"\x15ListPanoramasResponse\x12:\n" +

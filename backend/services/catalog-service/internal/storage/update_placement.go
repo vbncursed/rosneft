@@ -21,7 +21,7 @@ import (
 // is the write behind every gizmo drag, so it is the busiest audited path.
 func (r *PG) UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error) {
 	const q = `
-		WITH updated AS (
+		WITH w AS (
 			UPDATE placements pl SET
 				position_x = $2, position_y = $3, position_z = $4,
 				rotation_x = $5, rotation_y = $6, rotation_z = $7,
@@ -30,20 +30,9 @@ func (r *PG) UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Pl
 				updated_at = NOW()
 			FROM territories t
 			WHERE pl.id = $1 AND pl.territory_id = t.id AND t.slug = $12
-			RETURNING pl.id, pl.territory_id, pl.model_id,
-				pl.position_x, pl.position_y, pl.position_z,
-				pl.rotation_x, pl.rotation_y, pl.rotation_z,
-				pl.scale_x, pl.scale_y, pl.scale_z,
-				pl.label, pl.created_at, pl.updated_at, pl.visible_panorama_ids
+			RETURNING ` + placementWriteReturning + `
 		)
-		SELECT u.id, t.slug, m.slug,
-			u.position_x, u.position_y, u.position_z,
-			u.rotation_x, u.rotation_y, u.rotation_z,
-			u.scale_x, u.scale_y, u.scale_z,
-			u.label, u.created_at, u.updated_at, u.visible_panorama_ids
-		FROM updated u
-		JOIN territories t ON t.id = u.territory_id
-		JOIN models m      ON m.id = u.model_id`
+		` + placementFromWrite
 
 	var out domain.Placement
 	err := audittx.Run(ctx, r.pool, func(tx pgx.Tx) error {

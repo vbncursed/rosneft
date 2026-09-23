@@ -30,6 +30,8 @@ const placement = {
   label: "",
   updatedAt: "",
   visiblePanoramaIds: [],
+  hidden: false,
+  groupId: null,
   position: { x: 0, y: 0, z: 0 },
   rotation: { x: 0, y: 0, z: 0 },
   scale: { x: 1, y: 1, z: 1 },
@@ -43,6 +45,7 @@ const panorama = {
   position: { x: 0, y: 0, z: 0 },
   yawOffset: 0,
   defaultYaw: 0,
+  thumbnailBlobHash: null,
   updatedAt: "",
 };
 const document = { id: 8, territorySlug: "t", title: "Plot plan.pdf", sourceBlobHash: "d", createdAt: "" };
@@ -54,6 +57,7 @@ const bundle: SceneBundle = {
   panoramas: [panorama],
   documents: [document],
   measurements: [{ serverId: 5, points: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }], closed: false }],
+  placementGroups: [],
 };
 
 describe("sceneReady", () => {
