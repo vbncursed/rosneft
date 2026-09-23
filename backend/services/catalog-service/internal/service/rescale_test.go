@@ -56,18 +56,19 @@ func (s *RescaleSuite) TestSetBaselineDelegatesWithCenter() {
 }
 
 func (s *RescaleSuite) TestRescaleRejectsEmptySlug() {
-	_, err := s.svc.RescaleTerritoryPlacements(s.ctx, "", 4)
+	_, err := s.svc.RescaleTerritoryPlacements(s.ctx, "", 4, domain.Vec3{})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *RescaleSuite) TestRescaleRejectsNonPositiveMax() {
-	_, err := s.svc.RescaleTerritoryPlacements(s.ctx, "t1", 0)
+	_, err := s.svc.RescaleTerritoryPlacements(s.ctx, "t1", 0, domain.Vec3{})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
-func (s *RescaleSuite) TestRescaleDelegatesAndReturnsCount() {
-	s.repo.RescaleTerritoryPlacementsMock.Expect(s.ctx, "t1", 5.0).Return(3, nil)
-	n, err := s.svc.RescaleTerritoryPlacements(s.ctx, "t1", 5)
+func (s *RescaleSuite) TestRescaleDelegatesWithCenterAndReturnsCount() {
+	center := domain.Vec3{X: 4, Y: 5, Z: 6}
+	s.repo.RescaleTerritoryPlacementsMock.Expect(s.ctx, "t1", 5.0, center).Return(3, nil)
+	n, err := s.svc.RescaleTerritoryPlacements(s.ctx, "t1", 5, center)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), n, 3)
 }

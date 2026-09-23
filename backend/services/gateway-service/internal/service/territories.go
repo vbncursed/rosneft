@@ -57,12 +57,14 @@ func (g *Gateway) ReplaceTerritorySource(ctx context.Context, slug, sourceBlobHa
 	if err := g.authorizeBlobs(ctx, scope, sourceBlobHash); err != nil {
 		return domain.Territory{}, domain.Job{}, err
 	}
+	// The baseline goes first: failing after the hash swap would leave the
+	// territory on a new source with the old artifacts and no job.
+	if err := g.captureRescaleBaseline(ctx, slug); err != nil {
+		return domain.Territory{}, domain.Job{}, err
+	}
 	saved, err := g.catalog.UpdateTerritory(ctx, slug, domain.TerritoryUpdate{SourceBlobHash: &sourceBlobHash})
 	if err != nil {
 		return domain.Territory{}, domain.Job{}, fmt.Errorf("replace territory source: %w", err)
-	}
-	if err := g.captureRescaleBaseline(ctx, slug); err != nil {
-		return saved, domain.Job{}, err
 	}
 	if err := g.catalog.DeleteTerritoryArtifacts(ctx, slug); err != nil {
 		return domain.Territory{}, domain.Job{}, fmt.Errorf("reset territory artifacts: %w", err)

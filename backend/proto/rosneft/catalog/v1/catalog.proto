@@ -301,19 +301,25 @@ message DeleteTerritoryArtifactsResponse {}
 message SetTerritoryRescaleBaselineRequest {
   string territory_slug = 1;
   double source_max = 2;
-  // Center of the same source bbox. Unset reads as the origin.
+  // Center of the same source bbox. Required; a request without it is refused
+  // (InvalidArgument).
   Vec3 source_center = 3;
 }
 message SetTerritoryRescaleBaselineResponse {}
 
-// RescaleTerritoryPlacements applies a pending rescale baseline: it scales
-// every placement's position and scale, and every measurement point, by
-// old_max / new_source_max and clears the baseline, atomically. A no-op when no
-// baseline is set. The response reports how many placements were changed
-// (measurements are not counted).
+// RescaleTerritoryPlacements applies a pending rescale baseline: every
+// placement position, measurement point and panorama anchor becomes
+// s·(old_max/new_source_max) + (old_center − new_source_center)·2/new_source_max,
+// placement scale is multiplied by old_max/new_source_max, and the baseline
+// is cleared — atomically. A baseline with no center shifts nothing. A no-op
+// when no baseline is set. The response reports how many placements were
+// changed (measurements and panoramas are not counted).
 message RescaleTerritoryPlacementsRequest {
   string territory_slug = 1;
   double new_source_max = 2;
+  // Center of the new LOD0 source bbox. Required; a request without it is
+  // refused (InvalidArgument).
+  Vec3 new_source_center = 3;
 }
 message RescaleTerritoryPlacementsResponse {
   uint32 updated = 1;
