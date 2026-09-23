@@ -64,6 +64,11 @@ func (s *RoutePermsSuite) TestEveryContentMutationRouteIsGated() {
 		"PUT /api/territories/{slug}/placements/{id}",
 		"PUT /api/territories/{slug}/placements/{id}/visibility", // was missing too
 		"DELETE /api/territories/{slug}/placements/{id}",
+		"PUT /api/territories/{slug}/placements/hidden",
+		"PUT /api/territories/{slug}/placements/group",
+		"POST /api/territories/{slug}/placement-groups",
+		"PATCH /api/territories/{slug}/placement-groups/{id}",
+		"DELETE /api/territories/{slug}/placement-groups/{id}",
 		"POST /api/territories/{slug}/panoramas",
 		"PUT /api/territories/{slug}/panoramas/{id}",
 		"DELETE /api/territories/{slug}/panoramas/{id}",
@@ -193,4 +198,53 @@ func (s *RoutePermsSuite) serve(r http.Handler, perms []string, method, path str
 func (s *RoutePermsSuite) TestABatchCreateNeedsTheSingleCreateGrant() {
 	assert.DeepEqual(s.T(), routePerms["POST /api/territories/{slug}/placements/batch"],
 		routePerms["POST /api/territories/{slug}/placements"])
+}
+
+// Hiding and grouping change what everyone sees on the territory, so every one
+// of them is a placement write (spec G-5: no new grants). The static
+// /placements/hidden and /placements/group sit beside PUT /placements/{id};
+// chi matches the static segment first, so the gate keys on their own pattern.
+func (s *RoutePermsSuite) TestHidingAndGroupingNeedPlacementWrite() {
+	routes := []struct{ method, pattern, path string }{
+		{http.MethodPut, "/api/territories/{slug}/placements/hidden", "/api/territories/yard/placements/hidden"},
+		{http.MethodPut, "/api/territories/{slug}/placements/group", "/api/territories/yard/placements/group"},
+		{http.MethodPost, "/api/territories/{slug}/placement-groups", "/api/territories/yard/placement-groups"},
+		{http.MethodPatch, "/api/territories/{slug}/placement-groups/{id}", "/api/territories/yard/placement-groups/7"},
+		{http.MethodDelete, "/api/territories/{slug}/placement-groups/{id}", "/api/territories/yard/placement-groups/7"},
+	}
+	ok := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Pattern", chi.RouteContext(r.Context()).RoutePattern())
+		w.WriteHeader(http.StatusNoContent)
+	}
+	r := chi.NewRouter()
+	gated := r.With(RequirePermissionForRoute)
+	gated.Put("/api/territories/{slug}/placements/{id}", ok)
+	for _, rt := range routes {
+		gated.Method(rt.method, rt.pattern, http.HandlerFunc(ok))
+		assert.DeepEqual(s.T(), routePerms[rt.method+" "+rt.pattern], []string{"placement:write"})
+	}
+
+	for _, tc := range []struct {
+		name     string
+		perms    []string
+		expected int
+	}{
+		{name: "viewer", perms: []string{"territory:read", "placement:read"}, expected: http.StatusForbidden},
+		{name: "placer without write", perms: []string{"territory:read", "placement:create"}, expected: http.StatusForbidden},
+		{name: "editor", perms: []string{"territory:read", "placement:write"}, expected: http.StatusNoContent},
+	} {
+		for _, rt := range routes {
+			s.Run(tc.name+" "+rt.method+" "+rt.path, func() {
+				req := httptest.NewRequestWithContext(
+					withPrincipal(s.T().Context(), "u1", tc.perms, false, "admin", "admin"),
+					rt.method, rt.path, http.NoBody)
+				rec := httptest.NewRecorder()
+				r.ServeHTTP(rec, req)
+				assert.Equal(s.T(), rec.Code, tc.expected)
+				if tc.expected == http.StatusNoContent {
+					assert.Equal(s.T(), rec.Header().Get("X-Pattern"), rt.pattern)
+				}
+			})
+		}
+	}
 }
