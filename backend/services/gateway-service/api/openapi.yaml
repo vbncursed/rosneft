@@ -2091,7 +2091,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '409': { description: Email or username already exists }
+        '409': { description: Email or username is unavailable }
 
   /api/auth/users/{id}:
     parameters:

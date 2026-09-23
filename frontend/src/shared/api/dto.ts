@@ -1314,7 +1314,7 @@ export interface paths {
                 400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
-                /** @description Email or username already exists */
+                /** @description Email or username is unavailable */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -1699,6 +1699,63 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/users/{id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set a user's password and sign them out everywhere (requires users:write)
+         * @description No old password is asked. Root may set anyone's; everyone else only the password of a user they created, and never an admin's or Root's. The caller's own password goes through POST /api/auth/me/password, which asks for the old one. An id outside the caller's scope answers 404, like an unknown one. A 500 after the write means the sign-out failed; retrying is safe.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        password: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Password set; every session of the user revoked */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                /** @description Self-target guard */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                500: components["responses"]["Internal"];
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;

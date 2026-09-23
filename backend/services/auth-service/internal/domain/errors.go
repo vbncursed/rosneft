@@ -8,9 +8,11 @@ var (
 	ErrUserNotFound      = errors.New("user not found")
 	ErrRoleNotFound      = errors.New("role not found")
 	ErrPermissionUnknown = errors.New("unknown permission")
-	ErrEmailTaken        = errors.New("email already exists")
-	ErrUsernameTaken     = errors.New("username already exists")
 	ErrRoleSlugTaken     = errors.New("role slug already exists")
+	// ErrLoginTaken is every collision on email or username alike: naming the
+	// field, or answering differently for an account the caller cannot see,
+	// would confirm that account exists and which identifier it signs in with.
+	ErrLoginTaken        = errors.New("email or username is unavailable")
 	ErrInvalidCredential = errors.New("invalid credentials")
 	ErrAccountFrozen     = errors.New("account is frozen")
 	ErrAccountDeleted    = errors.New("account is deleted")

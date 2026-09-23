@@ -79,7 +79,7 @@ func EnsureBootstrapAdmin(ctx context.Context, store *userstore.Store, cfg confi
 		Email: domain.Fold(cfg.BootstrapEmail), Username: username,
 		PasswordHash: hash, RoleSlugs: []string{"admin"}, IsOwner: true,
 	})
-	if err != nil && !errors.Is(err, domain.ErrEmailTaken) && !errors.Is(err, domain.ErrUsernameTaken) {
+	if err != nil && !errors.Is(err, domain.ErrLoginTaken) {
 		return fmt.Errorf("bootstrap admin: create: %w", err)
 	}
 	return nil

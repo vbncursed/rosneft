@@ -14,7 +14,7 @@ import {
   type NewUser,
   type User,
 } from "@/entities/user";
-import { messageOf } from "@/shared/api";
+import { HttpError, messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
 import { unanswered } from "@/shared/lib/unanswered";
 import { can } from "@/shared/session";
@@ -36,6 +36,10 @@ const DONE: Record<ActionKind, string> = {
   "require-2fa": "2FA now required",
   "unrequire-2fa": "2FA no longer required",
 };
+
+// Every taken email or username is one line. The gateway already answers one
+// message; fixing the copy here keeps the field unnamed whatever it sends.
+const LOGIN_TAKEN = "That email or username is unavailable.";
 
 const run = ({ kind, user }: PendingAction): Promise<unknown> => {
   switch (kind) {
@@ -119,7 +123,8 @@ export function useUsers(): UsersState {
       setSelectedId(user.id);
       void refresh();
     },
-    onError: fail,
+    onError: (err) =>
+      err instanceof HttpError && err.status === 409 ? notify.error(LOGIN_TAKEN) : fail(err),
   });
 
   const roleChange = useMutation({
