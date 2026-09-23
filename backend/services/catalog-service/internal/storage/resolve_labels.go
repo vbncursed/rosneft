@@ -13,9 +13,10 @@ import (
 // visibility allowlists (see ListPanoramaIDs); naming one of its rows is the
 // same kind of read, and it saves the audit path a second client.
 var labelQueries = map[string]string{
-	"territory": `SELECT id, slug FROM territories WHERE id = ANY($1)`,
-	"model":     `SELECT id, slug FROM models WHERE id = ANY($1)`,
-	"panorama":  `SELECT id, slug FROM panoramas WHERE id = ANY($1)`,
+	"territory":       `SELECT id, slug FROM territories WHERE id = ANY($1)`,
+	"model":           `SELECT id, slug FROM models WHERE id = ANY($1)`,
+	"panorama":        `SELECT id, slug FROM panoramas WHERE id = ANY($1)`,
+	"placement_group": `SELECT id, title FROM placement_groups WHERE id = ANY($1)`,
 }
 
 // ResolveLabels names ids per kind, keyed "<kind>:<id>". The service has

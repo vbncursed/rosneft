@@ -3,6 +3,8 @@
 package storage_test
 
 import (
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -187,4 +189,113 @@ func (s *PlacementGroupsSuite) TestOtherPlacementWritesKeepHiddenAndGroup() {
 	assert.NilError(s.T(), err)
 	assert.Assert(s.T(), listed[0].Hidden)
 	assert.DeepEqual(s.T(), listed[0].GroupID, &g)
+}
+
+func (s *PlacementGroupsSuite) TestAGroupIsCreatedListedRenamedAndDeleted() {
+	ctx := s.T().Context()
+	g, err := s.pg.CreatePlacementGroup(ctx, "a", "North")
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), g.ID > 0)
+	assert.Equal(s.T(), g.TerritorySlug, "a")
+	assert.Equal(s.T(), g.Title, "North")
+	assert.Assert(s.T(), !g.CreatedAt.IsZero())
+
+	listed, err := s.pg.ListPlacementGroups(ctx, "a")
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), listed, []domain.PlacementGroup{g})
+	onB, err := s.pg.ListPlacementGroups(ctx, "b")
+	assert.NilError(s.T(), err)
+	assert.Assert(s.T(), onB != nil && len(onB) == 0, "no groups is [], not null")
+
+	renamed, err := s.pg.RenamePlacementGroup(ctx, "a", g.ID, "South")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), renamed.ID, g.ID)
+	assert.Equal(s.T(), renamed.Title, "South")
+
+	assert.NilError(s.T(), s.pg.DeletePlacementGroup(ctx, "a", g.ID))
+	listed, err = s.pg.ListPlacementGroups(ctx, "a")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(listed), 0)
+}
+
+// The gateway's gate checks the slug in the URL only; the id is scoped in SQL.
+func (s *PlacementGroupsSuite) TestAGroupOfAnotherTerritoryCannotBeRenamedOrDeleted() {
+	ctx := s.T().Context()
+	g, err := s.pg.CreatePlacementGroup(ctx, "b", "Theirs")
+	assert.NilError(s.T(), err)
+
+	_, err = s.pg.RenamePlacementGroup(ctx, "a", g.ID, "Mine")
+	assert.ErrorIs(s.T(), err, domain.ErrPlacementGroupNotFound)
+	assert.ErrorIs(s.T(), s.pg.DeletePlacementGroup(ctx, "a", g.ID), domain.ErrPlacementGroupNotFound)
+	assert.ErrorIs(s.T(), s.pg.DeletePlacementGroup(ctx, "b", 999999), domain.ErrPlacementGroupNotFound)
+
+	listed, err := s.pg.ListPlacementGroups(ctx, "b")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), listed[0].Title, "Theirs")
+}
+
+func (s *PlacementGroupsSuite) TestAnUnknownTerritoryIsNotFound() {
+	ctx := s.T().Context()
+	_, err := s.pg.CreatePlacementGroup(ctx, "nowhere", "x")
+	assert.ErrorIs(s.T(), err, domain.ErrTerritoryNotFound)
+	_, err = s.pg.ListPlacementGroups(ctx, "nowhere")
+	assert.ErrorIs(s.T(), err, domain.ErrTerritoryNotFound)
+}
+
+// placement_groups_title_len is the backstop behind the service's own check;
+// the bound counts characters, not bytes.
+func (s *PlacementGroupsSuite) TestTheTitleCheckRefusesBlankAndLongTitles() {
+	ctx := s.T().Context()
+	for _, title := range []string{"   ", strings.Repeat("я", 121)} {
+		_, err := s.pg.CreatePlacementGroup(ctx, "a", title)
+		assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+	}
+	g, err := s.pg.CreatePlacementGroup(ctx, "a", strings.Repeat("я", 120))
+	assert.NilError(s.T(), err)
+	_, err = s.pg.RenamePlacementGroup(ctx, "a", g.ID, " ")
+	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+}
+
+// Deleting a group never deletes placements: ON DELETE SET NULL (group_id)
+// returns them to no group.
+func (s *PlacementGroupsSuite) TestDeletingAGroupKeepsItsPlacements() {
+	ctx := s.T().Context()
+	g, err := s.pg.CreatePlacementGroup(ctx, "a", "North")
+	assert.NilError(s.T(), err)
+	_, err = s.pg.SetPlacementsGroup(ctx, "a", []int64{s.p1.ID, s.p2.ID}, &g.ID)
+	assert.NilError(s.T(), err)
+
+	assert.NilError(s.T(), s.pg.DeletePlacementGroup(ctx, "a", g.ID))
+	listed, err := s.pg.ListPlacements(ctx, "a")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(listed), 2)
+	for _, p := range listed {
+		assert.Assert(s.T(), p.GroupID == nil)
+	}
+}
+
+// A territory delete cascades to its groups and its placements in one
+// statement; the groups' SET NULL onto placements being deleted must not trip.
+func (s *PlacementGroupsSuite) TestDeletingATerritoryTakesItsGroups() {
+	ctx := s.T().Context()
+	_, err := s.pool.Exec(ctx, `INSERT INTO territories (slug, title, source_blob_hash) VALUES ('c', 'c', 'c')`)
+	assert.NilError(s.T(), err)
+	g, err := s.pg.CreatePlacementGroup(ctx, "c", "North")
+	assert.NilError(s.T(), err)
+	s.place("c", &g.ID)
+
+	assert.NilError(s.T(), s.pg.DeleteTerritory(ctx, "c"))
+	var groups int
+	assert.NilError(s.T(), s.pool.QueryRow(ctx, `SELECT count(*) FROM placement_groups`).Scan(&groups))
+	assert.Equal(s.T(), groups, 0)
+}
+
+// The journal names a placement's group_id by the group's title.
+func (s *PlacementGroupsSuite) TestResolveLabelsNamesAGroupByItsTitle() {
+	ctx := s.T().Context()
+	g, err := s.pg.CreatePlacementGroup(ctx, "a", "North")
+	assert.NilError(s.T(), err)
+	got, err := s.pg.ResolveLabels(ctx, map[string][]int64{"placement_group": {g.ID}})
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), got["placement_group:"+strconv.FormatInt(g.ID, 10)], "North")
 }
