@@ -21,6 +21,7 @@ const territory = (externalPanoramaUrl?: string): Territory => ({
 });
 
 let client: QueryClient;
+let onChanged: ReturnType<typeof vi.fn<() => void>>;
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={client}>{children}</QueryClientProvider>
 );
@@ -28,7 +29,7 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 const link = (initial?: string) =>
   renderHook(
     () => ({
-      s: useTerritoryLink("refinery-block-c", initial),
+      s: useTerritoryLink("refinery-block-c", initial, onChanged),
       notices: useNotices(),
     }),
     { wrapper },
@@ -36,6 +37,7 @@ const link = (initial?: string) =>
 
 beforeEach(() => {
   client = new QueryClient();
+  onChanged = vi.fn();
   vi.mocked(updateTerritory).mockReset();
   clearNotices();
 });
@@ -92,30 +94,28 @@ describe("useTerritoryLink", () => {
     expect(result.current.notices[0]?.message).toContain("not a url");
   });
 
-  // The catalog and Home cards draw their panorama chip from the list; with a
-  // minute of trust they would go on showing the old link.
-  it("marks the territory list and the territory stale once the link is saved", async () => {
+  // The viewer seeds the link from the scene bundle, and the catalog and Home
+  // cards read it from the list: the viewer's onChanged marks all of them and
+  // drops the bundle on the way out, so a return visit seeds the new link.
+  it("tells the viewer the territory changed once the link is saved", async () => {
     vi.mocked(updateTerritory).mockResolvedValue(territory());
-    const spy = vi.spyOn(client, "invalidateQueries");
     const { result } = link("https://tour.example/a");
 
     await act(async () => {
       await result.current.s.save("");
     });
 
-    expect(spy).toHaveBeenCalledWith({ queryKey: ["territories"] });
-    expect(spy).toHaveBeenCalledWith({ queryKey: ["territory", "refinery-block-c"] });
+    expect(onChanged).toHaveBeenCalledOnce();
   });
 
-  it("marks nothing stale when the save is refused", async () => {
+  it("reports no change when the save is refused", async () => {
     vi.mocked(updateTerritory).mockRejectedValue(new Error("network drop"));
-    const spy = vi.spyOn(client, "invalidateQueries");
     const { result } = link("https://tour.example/a");
 
     await act(async () => {
       await result.current.s.save("");
     });
 
-    expect(spy).not.toHaveBeenCalled();
+    expect(onChanged).not.toHaveBeenCalled();
   });
 });

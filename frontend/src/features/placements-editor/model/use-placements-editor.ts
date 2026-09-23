@@ -107,9 +107,10 @@ export function usePlacementsEditor({
         // A 409: the key already names another batch, and keeping it would
         // refuse every identical placement after this one.
         if (err instanceof HttpError && err.status === 409) unsettled.current = null;
-        // No HTTP answer (a dropped line) means the gateway may have committed
-        // the batch anyway: mark the bundle stale so the next visit shows it.
-        if (!(err instanceof HttpError)) onChanged();
+        // No HTTP answer (a dropped line) or a 5xx (a proxy timing out after
+        // the commit) means the batch may have landed anyway: mark the bundle
+        // stale so the next visit shows it. Only a 4xx is a refusal.
+        if (!(err instanceof HttpError) || err.status >= 500) onChanged();
         return null;
       } finally {
         setPlacing(null);

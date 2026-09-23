@@ -93,6 +93,8 @@ export type UsersState = {
   setResetting: (open: boolean) => void;
   resetPassword: (password: string) => void;
   resetBusy: boolean;
+  /** The reset landed; the dialog shows the password until it is closed. */
+  resetDone: boolean;
 };
 
 /**
@@ -154,15 +156,13 @@ export function useUsers(): UsersState {
 
   // No refresh: nothing on the list changes when a password does. gcTime 0:
   // the variables are the new password in the clear, and the cache must not
-  // keep them once the screen lets go of the mutation.
+  // keep them once the screen lets go of the mutation. A success does not
+  // close the dialog — it holds the only copy of the password and says so
+  // itself (`resetDone`); closing it forgets the finished mutation.
   const reset = useMutation({
     gcTime: 0,
     mutationFn: ({ id, password }: { id: string; password: string }) =>
       setUserPassword(id, password),
-    onSuccess: () => {
-      notify.success("Password changed. The user was signed out everywhere.");
-      setResetting(false);
-    },
     onError: fail,
   });
 
@@ -205,8 +205,12 @@ export function useUsers(): UsersState {
     rolesBusy: roleChange.isPending,
     canResetPassword: canResetPassword(me, selected),
     resetting,
-    setResetting,
+    setResetting: (open) => {
+      reset.reset();
+      setResetting(open);
+    },
     resetPassword: (password) => selected && reset.mutate({ id: selected.id, password }),
     resetBusy: reset.isPending,
+    resetDone: reset.isSuccess,
   };
 }

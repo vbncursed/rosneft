@@ -475,9 +475,10 @@ carries `· 24h`; six console cards wrap at 1280 px on the mock's own
   minute with nothing behind it to correct it.
 - **`cancelQueries` before `setQueryData`.** A refetch already in flight left
   before the write and answers with the old data; landing after the write, it
-  puts the old value back. `putUser` (`pages/users/model/put-user.ts`) and the
-  territory-access save both await the cancel first; their specs hold an
-  in-flight refetch open across the write to pin it.
+  puts the old value back. `putUser` (`pages/users/model/put-user.ts`), the
+  territory-access save and `mergeInto` (`features/edit-entity`) all await the
+  cancel first; their specs hold an in-flight refetch open across the write to
+  pin it.
 - **`setQueryData` clears `isInvalidated`.** A copy another write had already
   marked stale must be re-marked after the merge, or the merge passes the
   rest of it off as fresh — `mergeInto` in `features/edit-entity` is the
@@ -505,6 +506,10 @@ carries `· 24h`; six console cards wrap at 1280 px on the mock's own
   drop (`owed-scene-drop.ts`, per client): it changed nothing itself, but its
   way out drops the bundle anyway, or the next visit seeds from the
   pre-write one.
+  Every write the viewer makes goes through it, the tour-link save
+  (`useTerritoryLink`) included — the viewer seeds that link from
+  `bundle.territory.externalPanoramaUrl`, so a save that only invalidated the
+  list left a return visit showing the old link.
 
 ## Where things live
 
@@ -733,13 +738,20 @@ Rulings from those screens that a later one will meet again:
   can sign in as that user. The list rows carry role slugs, not permissions,
   so the button cannot predict that refusal and the toast explains it. The
   mutation runs with `gcTime: 0`: its variables are the password in the clear.
+  **A success does not close the dialog** — it holds the only copy of the
+  password, so it turns to a done state ("Password changed. The user was
+  signed out everywhere."), the field read-only and revealed, `Copy password`
+  still there and `Done` the one way out (`resetDone`); closing resets the
+  mutation, so the next reset opens on the form. Escape and the backdrop wait
+  for a reset in flight, as Cancel does.
 - **Edit details** (`features/edit-entity`, `EditDetailsDialog`) renames a
   model or territory — title and description, never the slug — from Model
   Detail (`model:write`), the territory catalog and the viewer header
   (`territory:write`). It sends only the fields that differ from the saved,
   trimmed values, and writes the answer into every cached copy (the entity,
   its list row, a territory's scene bundle, and a model's title in every
-  cached bundle whose picker offers it) instead of refetching. Escape waits
+  cached bundle whose picker offers it) instead of refetching — cancelling
+  each copy's in-flight refetch first (`mergeInto`). Escape waits
   for a save in flight, as Cancel does; a refusal is a toast and an inline
   alert in the dialog.
 - **The role pickers offer `admin` (Company Owner) to Root alone**
@@ -1043,7 +1055,9 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   carries an `Idempotency-Key` (`crypto.randomUUID()`), reused only when the
   same model × count is placed again after a failure (the retry of a batch
   whose answer was lost gets the stored rows back, not a second copy) and
-  dropped on success or a 409; `messageOf` shows a 5xx as its fallback
+  dropped on success or a 409; a failure with no HTTP answer or a 5xx (a
+  proxy's 502/504 can arrive after the commit) keeps the key and still calls
+  `onChanged`, only a 4xx is a refusal; `messageOf` shows a 5xx as its fallback
   sentence, never the server's text; nothing lands until
   everything does, so there is no "k of N" to count and a refusal leaves
   nothing behind; the editor seeds from the bundle once and the

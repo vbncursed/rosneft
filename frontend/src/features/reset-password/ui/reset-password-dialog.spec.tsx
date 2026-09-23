@@ -102,4 +102,35 @@ describe("ResetPasswordDialog", () => {
     expect(screen.getByText(/Password needs an upper-/)).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
+
+  it("does not close on Escape while the reset is in flight", async () => {
+    const onClose = vi.fn();
+    render(<ResetPasswordDialog {...props({ onClose, busy: true })} />);
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  // The dialog holds the only copy of the password: once the reset lands it
+  // stays on screen, revealed and copyable, until the reader closes it.
+  it("keeps the password on screen once the reset lands, and closes only on Done", async () => {
+    const onClose = vi.fn();
+    const onSubmit = vi.fn();
+    const { rerender } = render(<ResetPasswordDialog {...props({ onClose, onSubmit })} />);
+    const value = field().value;
+    rerender(<ResetPasswordDialog {...props({ onClose, onSubmit, done: true })} />);
+
+    expect(screen.getByText("Password changed. The user was signed out everywhere.")).toBeInTheDocument();
+    expect(field().value).toBe(value);
+    expect(field().type).toBe("text");
+    expect(field()).toHaveAttribute("readonly");
+    expect(screen.queryByRole("button", { name: "Change password" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Copy password" }));
+    expect(copyText).toHaveBeenCalledWith(value);
+    await userEvent.type(field(), "{Enter}");
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
 });

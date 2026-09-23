@@ -301,8 +301,8 @@ describe("useViewerPanoramas", () => {
     expect(result.current.onSave).toBe(first.onSave);
   });
 
-  it("hands the tour link the territory's own URL", () => {
+  it("hands the tour link the territory's own URL and the viewer's onChanged", () => {
     mount();
-    expect(useTerritoryLink).toHaveBeenCalledWith("refinery-block-c", "https://tour.example");
+    expect(useTerritoryLink).toHaveBeenCalledWith("refinery-block-c", "https://tour.example", onChanged);
   });
 });

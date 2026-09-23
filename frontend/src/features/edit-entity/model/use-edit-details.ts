@@ -10,12 +10,15 @@ export type DetailsPatch = { title?: string; description?: string };
 type Details = { slug: string; title: string; description?: string };
 
 /**
- * `setQueryData` clears a query's invalidated mark. A copy another write had
- * already marked stale (a placement's count, say) gets the mark back, so the
- * merged title does not pass the rest of it off as fresh.
+ * An in-flight refetch is cancelled first: it left before the save and would
+ * land the old title back on top of it. `setQueryData` clears a query's
+ * invalidated mark, so a copy another write had already marked stale (a
+ * placement's count, say) gets the mark back — read before the cancel, which
+ * may drop the refetch that invalidation started.
  */
-function mergeInto<T>(client: QueryClient, queryKey: unknown[], update: (old: T | undefined) => T | undefined) {
+async function mergeInto<T>(client: QueryClient, queryKey: unknown[], update: (old: T | undefined) => T | undefined) {
   const wasStale = client.getQueryState(queryKey)?.isInvalidated ?? false;
+  await client.cancelQueries({ queryKey, exact: true });
   client.setQueryData<T>(queryKey, update);
   if (wasStale) void client.invalidateQueries({ queryKey, exact: true, refetchType: "none" });
 }
@@ -29,20 +32,20 @@ type SceneCopy = { territory: Details; modelOptions?: { slug: string; title: str
  * every bundle whose picker offers it (an option carries the title alone) —
  * so nothing refetches.
  */
-function writeBack(client: QueryClient, kind: EntityKind, saved: Details) {
+async function writeBack(client: QueryClient, kind: EntityKind, saved: Details) {
   const merge = <T extends Details>(e: T): T =>
     e.slug === saved.slug ? { ...e, title: saved.title, description: saved.description } : e;
-  mergeInto<Details>(client, [kind, saved.slug], (old) => old && merge(old));
-  mergeInto<Details[]>(client, [LIST_KEY[kind]], (old) => old?.map(merge));
+  await mergeInto<Details>(client, [kind, saved.slug], (old) => old && merge(old));
+  await mergeInto<Details[]>(client, [LIST_KEY[kind]], (old) => old?.map(merge));
   if (kind === "territory") {
-    mergeInto<SceneCopy>(client, ["scene", saved.slug], (old) => old && { ...old, territory: merge(old.territory) });
+    await mergeInto<SceneCopy>(client, ["scene", saved.slug], (old) => old && { ...old, territory: merge(old.territory) });
     return;
   }
   const rename = <T extends { slug: string; title: string }>(o: T): T =>
     o.slug === saved.slug ? { ...o, title: saved.title } : o;
   for (const [queryKey] of client.getQueriesData<SceneCopy>({ queryKey: ["scene"] })) {
     // undefined leaves a bundle that does not offer the model untouched.
-    mergeInto<SceneCopy>(client, [...queryKey], (old) =>
+    await mergeInto<SceneCopy>(client, [...queryKey], (old) =>
       old?.modelOptions?.some((o) => o.slug === saved.slug) ? { ...old, modelOptions: old.modelOptions.map(rename) } : undefined,
     );
   }
@@ -54,8 +57,8 @@ export function useEditDetails(kind: EntityKind, slug: string) {
   return useMutation({
     mutationFn: (patch: DetailsPatch): Promise<Details> =>
       kind === "model" ? updateModel(slug, patch) : updateTerritory(slug, patch),
-    onSuccess: (saved) => {
-      writeBack(client, kind, saved);
+    onSuccess: async (saved) => {
+      await writeBack(client, kind, saved);
       notify.success("Changes saved");
     },
     onError: (err) => notify.error(messageOf(err)),
