@@ -1,6 +1,9 @@
 import { MathUtils, Quaternion, Spherical, Vector3 } from "three";
 
-/** Seconds: the rise over the centre, the pause there, the drop to 45°, one full circle. */
+/**
+ * Seconds: the rise over the centre (for a reader already facing it — see
+ * `Flight.rise`), the pause there, the drop to 45°, one full circle.
+ */
 export const RISE_S = 1.2;
 export const HOLD_S = 0.3;
 export const DESCEND_S = 1.5;
@@ -31,6 +34,12 @@ export type Flight = {
    * view, so looking back at the centre faces the way the reader faced.
    */
   heading: number;
+  /**
+   * Seconds the rise takes: `RISE_S`, stretched by the turn round to
+   * `heading` — up to twice as long for a half turn. A reader facing away
+   * from the centre was swung 180° in 1.2 s, which reads as a whip.
+   */
+  rise: number;
   reduced: boolean;
 };
 
@@ -56,12 +65,14 @@ export function planFlight(
   const from = new Spherical().setFromVector3(camera.position.clone().sub(sphere.center));
   const look = camera.target.clone().sub(camera.position);
   const vertical = look.x === 0 && look.z === 0;
+  const heading = vertical ? from.theta : Math.atan2(-look.x, -look.z);
   return {
     center: sphere.center.clone(),
     distance: fitDistance(sphere.radius, view.fov, view.aspect),
     from,
     fromTarget: camera.target.clone(),
-    heading: vertical ? from.theta : Math.atan2(-look.x, -look.z),
+    heading,
+    rise: RISE_S * (1 + Math.abs(turnOf(from.theta, heading)) / Math.PI),
     reduced,
   };
 }
@@ -76,9 +87,9 @@ export function planFlight(
 export function flightPose(t: number, f: Flight): FlightPose {
   const { heading } = f;
   if (f.reduced) return around(f, ORBIT, heading + (RATE / 2) * t, "orbit");
-  if (t < RISE_S) return rise(f, MathUtils.smootherstep(t, 0, RISE_S));
-  if (t < RISE_S + HOLD_S) return around(f, TOP, heading, "hold");
-  const d = t - RISE_S - HOLD_S;
+  if (t < f.rise) return rise(f, MathUtils.smootherstep(t, 0, f.rise));
+  if (t < f.rise + HOLD_S) return around(f, TOP, heading, "hold");
+  const d = t - f.rise - HOLD_S;
   if (d < DESCEND_S) {
     const polar = MathUtils.lerp(TOP, ORBIT, MathUtils.smootherstep(d, 0, DESCEND_S));
     return around(f, polar, heading + (RATE * d * d) / (2 * DESCEND_S), "descend");
@@ -94,7 +105,7 @@ export function flightPose(t: number, f: Flight): FlightPose {
  * however the reader faced (a lerped target swung it through straight down).
  */
 function rise(f: Flight, k: number): FlightPose {
-  const turn = MathUtils.euclideanModulo(f.heading - f.from.theta + Math.PI, 2 * Math.PI) - Math.PI;
+  const turn = turnOf(f.from.theta, f.heading);
   const spot = new Spherical(
     MathUtils.lerp(f.from.radius, f.distance, k),
     MathUtils.lerp(f.from.phi, TOP, k),
@@ -113,10 +124,30 @@ function rise(f: Flight, k: number): FlightPose {
   return { position, target: look.multiplyScalar(reach).add(position), phase: "rise" };
 }
 
+/** The short way round from one azimuth to another, in [-π, π). */
+function turnOf(from: number, to: number): number {
+  return MathUtils.euclideanModulo(to - from + Math.PI, 2 * Math.PI) - Math.PI;
+}
+
 function around(f: Flight, polar: number, azimuth: number, phase: FlightPhase): FlightPose {
   return {
     position: new Vector3().setFromSphericalCoords(f.distance, polar, azimuth).add(f.center),
     target: f.center.clone(),
     phase,
   };
+}
+
+/**
+ * Where the orbit pivots once a flight stops: the point of the view nearest
+ * the centre, and never less than a radius ahead. Mid-rise the flight's own
+ * target can sit far below the ground, and orbiting that swung the territory
+ * off screen. On the view ray, so handing it over moves nothing on screen.
+ */
+export function landingPivot(
+  position: Vector3,
+  direction: Vector3,
+  sphere: { center: Vector3; radius: number },
+): Vector3 {
+  const ahead = Math.max(sphere.center.clone().sub(position).dot(direction), sphere.radius);
+  return position.clone().addScaledVector(direction, ahead);
 }
