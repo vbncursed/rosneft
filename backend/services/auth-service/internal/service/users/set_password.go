@@ -20,6 +20,11 @@ func (s *Service) SetPassword(ctx context.Context, actorID string, scopeAll bool
 	if err != nil {
 		return err
 	}
+	// A deleted account is restored first, Root included: a password set now
+	// would sign in the moment it is restored, with credentials nobody chose.
+	if target.Status == domain.StatusDeleted {
+		return domain.ErrAccountDeleted
+	}
 	if actorID == id {
 		return domain.ErrSelfTarget
 	}

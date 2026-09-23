@@ -39,6 +39,7 @@ func (s *SetPasswordSuite) TestSetPassword() {
 	delegate := domain.User{ID: "d1", Permissions: []string{"users:read", "users:write"}, CreatedBy: new("co")}
 	wider := domain.User{ID: "w1", Permissions: []string{"users:read", "roles:write"}, CreatedBy: new("d1")}
 	narrower := domain.User{ID: "n1", Permissions: []string{"users:read"}, CreatedBy: new("d1")}
+	deleted := domain.User{ID: "x1", Status: domain.StatusDeleted, RoleSlugs: []string{"guest"}, CreatedBy: new("co")}
 
 	tests := []struct {
 		name     string
@@ -92,6 +93,12 @@ func (s *SetPasswordSuite) TestSetPassword() {
 		{
 			name: "root resets a user with permissions", actor: "root", scopeAll: true, target: "w1",
 			password: newPassword, lookups: []domain.User{wider, root}, written: true,
+		},
+		{
+			// A password on a deleted account would sign in the moment it is
+			// restored, with credentials its owner never chose: restore first.
+			name: "a deleted account is refused, by root too", actor: "root", scopeAll: true, target: "x1",
+			password: newPassword, lookups: []domain.User{deleted}, want: domain.ErrAccountDeleted,
 		},
 		{
 			name: "a weak password is refused", actor: "root", scopeAll: true, target: "u2", password: "short",
