@@ -264,9 +264,11 @@ services:
       # the digest boundary is a watermark one tick old.
       AUDIT_CHECKPOINT_INTERVAL: "5m"
       AUDIT_DIGEST_FILE: "/var/audit/digests.jsonl"
-      # No depends_on beyond postgres on purpose: ensure_audit_triggers() skips
-      # tables the other services have not migrated yet and re-attaches on the
-      # next boot, so this service needs no ordering against them.
+      # No depends_on beyond postgres, but ordering still matters:
+      # ensure_audit_triggers() runs only at boot, so a table another service
+      # creates after audit booted stays unjournaled until audit is recreated
+      # (`up -d --build --force-recreate audit`, so the image carries the audit
+      # migration that registers it) or restarted.
     healthcheck:
       test: ["CMD", "/audit", "healthcheck"]
       interval: 10s

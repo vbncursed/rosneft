@@ -261,7 +261,11 @@ which opens an inline title field.
 
 1. Bring catalog up and wait until it is healthy, so 00019 and 00020 are
    applied (`placement_groups` exists).
-2. `docker compose restart audit`. Audit attaches its triggers only at boot
+2. `docker compose up -d --build --force-recreate audit`, once catalog is
+   healthy. `restart` would reuse the old image, which does not carry
+   migration 00007, so `placement_groups` would stay off the audited list;
+   the rebuilt container applies 00007 on its boot and then attaches the
+   triggers. Audit attaches its triggers only at boot
    (`ensure_audit_triggers()` in its bootstrap) and has no `depends_on`
    catalog, so a one-shot `docker compose up -d --build catalog audit content
    gateway` can boot audit before 00019 creates `placement_groups`, and every
