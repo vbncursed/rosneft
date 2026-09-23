@@ -21,15 +21,23 @@ import (
 )
 
 // passwordAuth is an in-process auth-service that records the request it is
-// sent and answers with err.
+// sent and answers with err. GetUser answers getErr, or the user when nil.
 type passwordAuth struct {
 	authv1.UnimplementedAuthServiceServer
-	got chan *authv1.SetUserPasswordRequest
-	err error
+	got    chan *authv1.SetUserPasswordRequest
+	err    error
+	getErr error
 }
 
 func newPasswordAuth(err error) passwordAuth {
 	return passwordAuth{got: make(chan *authv1.SetUserPasswordRequest, 1), err: err}
+}
+
+func (p passwordAuth) GetUser(_ context.Context, req *authv1.GetUserRequest) (*authv1.User, error) {
+	if p.getErr != nil {
+		return nil, p.getErr
+	}
+	return &authv1.User{Id: req.GetId()}, nil
 }
 
 func (p passwordAuth) SetUserPassword(_ context.Context, req *authv1.SetUserPasswordRequest) (*authv1.SetUserPasswordResponse, error) {
@@ -44,10 +52,17 @@ type SetUserPasswordSuite struct{ suite.Suite }
 
 func TestSetUserPasswordSuite(t *testing.T) { suite.Run(t, new(SetUserPasswordSuite)) }
 
-// put sends one PUT through the handler on its real route pattern, with
-// auth-service answering from stub over loopback. Authenticate, CSRF and the
-// users:write gate belong to Mount and are not what this suite tests.
+// put is putAs for Root, who skips the territory comparison: the tests that use
+// it are about forwarding and refusals, not scope.
 func (s *SetUserPasswordSuite) put(stub passwordAuth, body string) *httptest.ResponseRecorder {
+	return s.putAs(stub, nil, TestPrincipal{UserID: "root", IsOwner: true}, body)
+}
+
+// putAs sends one PUT through the handler on its real route pattern as p, with
+// auth-service answering from stub over loopback and the catalog from cat.
+// Authenticate, CSRF and the users:write gate belong to Mount and are not what
+// this suite tests.
+func (s *SetUserPasswordSuite) putAs(stub passwordAuth, cat territoryLister, p TestPrincipal, body string) *httptest.ResponseRecorder {
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	assert.NilError(s.T(), err)
 	srv := grpc.NewServer()
@@ -59,8 +74,9 @@ func (s *SetUserPasswordSuite) put(stub passwordAuth, body string) *httptest.Res
 	s.T().Cleanup(func() { _ = client.Close() })
 
 	r := chi.NewRouter()
-	r.Put("/api/auth/users/{id}/password", (&Handlers{client: client}).setUserPassword)
-	req := httptest.NewRequest(http.MethodPut, "/api/auth/users/u-1/password", strings.NewReader(body))
+	r.Put("/api/auth/users/{id}/password", (&Handlers{client: client, territories: cat}).setUserPassword)
+	req := httptest.NewRequestWithContext(NewTestContextFor(s.T().Context(), p),
+		http.MethodPut, "/api/auth/users/u-1/password", strings.NewReader(body))
 	req.Header.Set("Authorization", "Bearer tok")
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, req)

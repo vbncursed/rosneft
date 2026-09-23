@@ -82,7 +82,7 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	defer func() { _ = auditClient.Close() }()
 
 	svc := InitService(cat, con, m, up, auditClient, authClient)
-	authH := authhttp.New(authClient, twofaClient, passkeyClient, auditClient, logger,
+	authH := authhttp.New(authClient, twofaClient, passkeyClient, auditClient, cat, logger,
 		authhttp.CookieOptions{Secure: cfg.CookieSecure, TTL: cfg.SessionCookieTTL},
 		[]byte(cfg.CSRFSecret))
 

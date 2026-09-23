@@ -127,7 +127,12 @@ func (h *Handlers) setUserPassword(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	if err := h.client.SetUserPassword(r.Context(), sessionToken(r), chi.URLParam(r, "id"), req.Password); err != nil {
+	id := chi.URLParam(r, "id")
+	if err := h.assertCoversTerritories(r.Context(), sessionToken(r), id); err != nil {
+		fail(w, r, err)
+		return
+	}
+	if err := h.client.SetUserPassword(r.Context(), sessionToken(r), id, req.Password); err != nil {
 		fail(w, r, err)
 		return
 	}
