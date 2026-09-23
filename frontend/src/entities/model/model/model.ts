@@ -1,3 +1,5 @@
+import type { LodSummary } from "@/entities/content";
+
 /**
  * A placeable 3D asset overlaid onto a territory at a given transform.
  * Conversion produces one artifact per LOD level; the picker greys out a model
@@ -14,6 +16,8 @@ export type Model = {
   updatedAt?: string;
   /** Distinct territories placing this model. Both the list and the Get endpoint fill it. */
   usageCount: number;
+  /** Converted LODs, sorted by level. Only the list endpoint fills it. */
+  lods?: LodSummary[];
 };
 
 export const modelPath = (slug: string) => `/models/${encodeURIComponent(slug)}`;

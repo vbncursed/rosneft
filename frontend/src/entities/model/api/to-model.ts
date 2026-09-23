@@ -13,5 +13,6 @@ export function toModel(d: ModelDto): Model {
     ...(d.createdAt ? { createdAt: d.createdAt } : {}),
     ...(d.updatedAt ? { updatedAt: d.updatedAt } : {}),
     usageCount: d.usageCount ?? 0,
+    ...(d.lods ? { lods: d.lods } : {}),
   };
 }

@@ -20,8 +20,8 @@ const PRINCIPAL = {
   isOwner: false,
   onboardingToursSeen: [],
 };
-const T1 = { slug: "t-1", title: "T 1", sourceBlobHash: "a".repeat(64), placementCount: 3 };
-const T2 = { slug: "t-2", title: "T 2", sourceBlobHash: "b".repeat(64), placementCount: 0 };
+const T1 = { slug: "t-1", title: "T 1", sourceBlobHash: "a".repeat(64), placementCount: 3, lods: [{ lod: 0, hash: "h", size: 1024 }] };
+const T2 = { slug: "t-2", title: "T 2", sourceBlobHash: "b".repeat(64), placementCount: 0, lods: [] };
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
@@ -42,9 +42,6 @@ beforeEach(() => {
     const method = init?.method ?? "GET";
     if (url === "/api/territories" && method === "GET") return json([T1, T2]);
     if (url === "/api/jobs" && method === "GET") return json(JOBS);
-    if (url === "/api/territories/t-1/artifacts")
-      return json([{ slug: "t-1", lod: 0, hash: "h", contentType: "x", size: 1024 }]);
-    if (url === "/api/territories/t-2/artifacts") return json([]);
     if (url === "/api/territories/t-1" && method === "DELETE")
       return new Response(null, { status: 204 });
     if (url === "/api/territories/t-2" && method === "DELETE")
@@ -59,7 +56,7 @@ afterEach(() => {
 });
 
 describe("useTerritoryCatalog", () => {
-  it("is loading until every artifacts query answered, then ready with cards", async () => {
+  it("is loading until the list and the jobs answered, then ready with cards", async () => {
     const { result } = renderHook(() => useTerritoryCatalog(), { wrapper });
     expect(result.current.status).toBe("loading");
     await waitFor(() => expect(result.current.status).toBe("ready"));
@@ -67,6 +64,14 @@ describe("useTerritoryCatalog", () => {
       ["t-1", "ready"],
       ["t-2", "pending"],
     ]);
+  });
+
+  it("asks for the list once, never once per row", async () => {
+    const { result } = renderHook(() => useTerritoryCatalog(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(
+      fetchMock.mock.calls.map(([u]) => String(u)).filter((u) => u.startsWith("/api/territories")),
+    ).toEqual(["/api/territories"]);
   });
 
   it("knows the viewer's grants: write replaces a source but creates nothing", async () => {
@@ -174,38 +179,37 @@ describe("useTerritoryCatalog", () => {
     expect(result.current.error).toBe("mesh is down");
   });
 
-  it("re-reads a row's artifacts once its job stops being live, turning the card ready", async () => {
+  it("re-reads the list once a row's job stops being live, turning the card ready", async () => {
     JOBS = [
       { id: "j1", kind: "territory", slug: "t-1", status: "running", progress: 0.5, stage: "parsing" },
     ];
-    let artifactsCalls = 0;
+    let listCalls = 0;
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
       const method = init?.method ?? "GET";
-      if (url === "/api/territories" && method === "GET") return json([T1, T2]);
-      if (url === "/api/jobs" && method === "GET") return json(JOBS);
-      if (url === "/api/territories/t-1/artifacts") {
-        artifactsCalls += 1;
-        return json(
-          artifactsCalls === 1 ? [] : [{ slug: "t-1", lod: 0, hash: "h", contentType: "x", size: 1024 }],
-        );
+      if (url === "/api/territories" && method === "GET") {
+        listCalls += 1;
+        return json([listCalls === 1 ? { ...T1, lods: [] } : T1, T2]);
       }
-      if (url === "/api/territories/t-2/artifacts") return json([]);
+      if (url === "/api/jobs" && method === "GET") return json(JOBS);
       return json({ code: "forbidden", message: "You don't have permission to do this" }, 403);
     });
+    const spy = vi.spyOn(client, "invalidateQueries");
 
     const { result } = renderHook(() => useTerritoryCatalog(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
     expect(result.current.cards?.[0]).toMatchObject({ slug: "t-1", status: "converting" });
-    expect(artifactsCalls).toBe(1);
+    expect(listCalls).toBe(1);
 
     JOBS = [];
     await act(async () => {
       await client.refetchQueries({ queryKey: ["jobs"] });
     });
-    await waitFor(() => expect(artifactsCalls).toBe(2));
+    await waitFor(() => expect(listCalls).toBe(2));
     await waitFor(() =>
       expect(result.current.cards?.[0]).toMatchObject({ slug: "t-1", status: "ready" }),
     );
+    // A model/conversion page cached earlier must not reopen on the stale LODs.
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t-1"] });
   });
 
   it("stays ready when a refetch fails on top of rows it already has", async () => {

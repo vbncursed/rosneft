@@ -48,4 +48,10 @@ describe("toModel", () => {
       toModel({ slug: "m", title: "M", sourceBlobHash: "a".repeat(64), usageCount: 3 }).usageCount,
     ).toBe(3);
   });
+
+  it("keeps the list payload's LODs, and leaves them out when the answer has none", () => {
+    const lods = [{ lod: 0, hash: "h0", size: 30 }];
+    expect(toModel({ slug: "m", title: "M", sourceBlobHash: "b".repeat(64), lods }).lods).toEqual(lods);
+    expect(toModel({ slug: "m", title: "M", sourceBlobHash: "b".repeat(64) })).not.toHaveProperty("lods");
+  });
 });
