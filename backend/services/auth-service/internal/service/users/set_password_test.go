@@ -66,11 +66,11 @@ func (s *SetPasswordSuite) TestSetPassword() {
 		},
 		{
 			name: "only root resets an admin", actor: "co", target: "a1", password: newPassword,
-			lookups: []domain.User{ownAdmin, company}, want: domain.ErrAdminOwnerOnly,
+			lookups: []domain.User{ownAdmin, company}, want: domain.ErrUserNotFound,
 		},
 		{
 			name: "users:read_all does not reach root", actor: "co", scopeAll: true, target: "root", password: newPassword,
-			lookups: []domain.User{root, company}, want: domain.ErrAdminOwnerOnly,
+			lookups: []domain.User{root, company}, want: domain.ErrUserNotFound,
 		},
 		{
 			name: "a weak password is refused", actor: "root", scopeAll: true, target: "u2", password: "short",

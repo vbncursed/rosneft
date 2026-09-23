@@ -15,7 +15,7 @@ import (
 type Store interface {
 	Create(ctx context.Context, u domain.User) (domain.User, error)
 	GetByID(ctx context.Context, id string) (domain.User, error)
-	List(ctx context.Context, status string, includeDeleted bool, ownerID string) ([]domain.User, error)
+	List(ctx context.Context, status string, includeDeleted bool, ownerID, hidePrivilegedExcept string) ([]domain.User, error)
 	SetStatus(ctx context.Context, id, status string, deletedAt *time.Time) (domain.User, error)
 	SetRoles(ctx context.Context, id string, roleSlugs []string) (domain.User, error)
 	SetOwner(ctx context.Context, id string, isOwner bool) (domain.User, error)
@@ -52,34 +52,21 @@ func New(store Store, sessions Sessions) *Service {
 	return &Service{store: store, sessions: sessions}
 }
 
-// guard enforces the self-target, owner-only-manages-admins, and last-admin
-// invariants shared by freeze and soft-delete.
-func (s *Service) guard(ctx context.Context, actorID, id string) error {
-	if actorID == id {
+// guard enforces the self-target and last-admin invariants shared by freeze
+// and soft-delete. Who may reach an admin at all is ownership()'s call.
+func (s *Service) guard(ctx context.Context, actorID string, target domain.User) error {
+	if actorID == target.ID {
 		return domain.ErrSelfTarget
 	}
-	target, err := s.store.GetByID(ctx, id)
+	if !isAdmin(target) {
+		return nil
+	}
+	n, err := s.store.CountAdmins(ctx, target.ID)
 	if err != nil {
 		return err
 	}
-	if isAdmin(target) {
-		// Only the owner may delete/freeze an admin account. (The owner is
-		// itself an admin, so this also makes the owner untouchable: a
-		// non-owner is rejected here, and the owner hits the self-target guard.)
-		actor, err := s.store.GetByID(ctx, actorID)
-		if err != nil {
-			return err
-		}
-		if !actor.IsOwner {
-			return domain.ErrAdminOwnerOnly
-		}
-		n, err := s.store.CountAdmins(ctx, id)
-		if err != nil {
-			return err
-		}
-		if n == 0 {
-			return domain.ErrLastAdmin
-		}
+	if n == 0 {
+		return domain.ErrLastAdmin
 	}
 	return nil
 }
@@ -92,6 +79,10 @@ func isAdmin(u domain.User) bool {
 // without users:read_all may only touch users they created, or themselves —
 // a Company Owner's own account is created by Root, so CreatedBy alone would
 // hide the owner from their own account.
+//
+// On top of that, only Root sees Root and Company Owners (the admin slug) other
+// than itself, whatever scopeAll says. Out-of-reach reads as missing, never as
+// forbidden: a 403 would confirm the account exists.
 func (s *Service) ownership(ctx context.Context, actorID string, scopeAll bool, id string) (domain.User, error) {
 	u, err := s.store.GetByID(ctx, id)
 	if err != nil {
@@ -100,5 +91,21 @@ func (s *Service) ownership(ctx context.Context, actorID string, scopeAll bool, 
 	if !scopeAll && u.ID != actorID && (u.CreatedBy == nil || *u.CreatedBy != actorID) {
 		return domain.User{}, domain.ErrUserNotFound
 	}
+	if u.ID == actorID || !isPrivileged(u) {
+		return u, nil
+	}
+	actor, err := s.store.GetByID(ctx, actorID)
+	if err != nil {
+		return domain.User{}, err
+	}
+	if !actor.IsOwner {
+		return domain.User{}, domain.ErrUserNotFound
+	}
 	return u, nil
+}
+
+// isPrivileged reports whether u is Root or a Company Owner. Root is marked by
+// is_owner, not necessarily by the admin slug, so both are checked.
+func isPrivileged(u domain.User) bool {
+	return u.IsOwner || isAdmin(u)
 }

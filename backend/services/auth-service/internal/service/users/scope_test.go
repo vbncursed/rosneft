@@ -10,15 +10,27 @@ import (
 // visibility of the user list and single-user fetches.
 
 func (s *UsersSuite) TestListScopedToOwner() {
-	s.st.ListMock.Expect(s.ctx, "", false, "owner1").Return([]domain.User{{ID: "u2"}}, nil)
+	s.st.GetByIDMock.Expect(s.ctx, "owner1").Return(domain.User{ID: "owner1", RoleSlugs: []string{"admin"}}, nil)
+	s.st.ListMock.Expect(s.ctx, "", false, "owner1", "owner1").Return([]domain.User{{ID: "u2"}}, nil)
 	out, err := s.svc.List(s.ctx, "owner1", false, "", false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(out), 1)
 }
 
-func (s *UsersSuite) TestListAllForAdmin() {
-	s.st.ListMock.Expect(s.ctx, "", false, "").Return([]domain.User{{ID: "a"}, {ID: "b"}}, nil)
-	out, err := s.svc.List(s.ctx, "admin1", true, "", false)
+// users:read_all widens the list to every user, except Root and the Company
+// Owners: only Root sees those.
+func (s *UsersSuite) TestListAllHidesPrivilegedFromNonRoot() {
+	s.st.GetByIDMock.Expect(s.ctx, "reader").Return(domain.User{ID: "reader"}, nil)
+	s.st.ListMock.Expect(s.ctx, "", false, "", "reader").Return([]domain.User{{ID: "a"}, {ID: "b"}}, nil)
+	out, err := s.svc.List(s.ctx, "reader", true, "", false)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(out), 2)
+}
+
+func (s *UsersSuite) TestListAllForRoot() {
+	s.st.GetByIDMock.Expect(s.ctx, "root").Return(domain.User{ID: "root", IsOwner: true}, nil)
+	s.st.ListMock.Expect(s.ctx, "", false, "", "").Return([]domain.User{{ID: "a"}, {ID: "b"}}, nil)
+	out, err := s.svc.List(s.ctx, "root", true, "", false)
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(out), 2)
 }
