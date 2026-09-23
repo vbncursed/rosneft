@@ -87,7 +87,7 @@ export function useMetrics(range: MetricsRange): MetricsState {
 
   return {
     status: panels.isPending ? "loading" : failed ? "unavailable" : "ready",
-    error: failed ? messageOf(failed) : null,
+    error: failed ? messageOf(failed, "Prometheus unreachable") : null,
     results,
     services: servicesOf(
       series("services-up"),
