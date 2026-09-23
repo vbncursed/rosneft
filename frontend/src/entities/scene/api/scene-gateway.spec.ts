@@ -90,6 +90,12 @@ describe("getSceneBundle", () => {
     expect(bundle.documents).toEqual([]);
   });
 
+  it("defaults placementGroups to [] for a snapshot saved before groups existed", async () => {
+    const { placementGroups: _g, ...beforeGroups } = dto;
+    fetchMock.mockResolvedValueOnce(json(beforeGroups));
+    expect((await getSceneBundle("t")).placementGroups).toEqual([]);
+  });
+
   it("falls back to a one-entry chain when /scene carries no artifacts[]", async () => {
     const { artifacts: _a, ...single } = dto.artifact;
     fetchMock.mockResolvedValueOnce(json({ ...dto, artifact: single }));
