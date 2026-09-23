@@ -64,6 +64,15 @@ func (g *groupCC) DeletePlacementGroup(
 	return &catalogv1.DeletePlacementGroupResponse{}, g.err
 }
 
+func (g *groupCC) ListPlacementGroups(
+	context.Context, *catalogv1.ListPlacementGroupsRequest, ...grpc.CallOption,
+) (*catalogv1.ListPlacementGroupsResponse, error) {
+	if g.err != nil {
+		return nil, g.err
+	}
+	return &catalogv1.ListPlacementGroupsResponse{Groups: []*catalogv1.PlacementGroup{wireGroup}}, nil
+}
+
 type PlacementGroupsSuite struct{ suite.Suite }
 
 func TestPlacementGroupsSuite(t *testing.T) { suite.Run(t, new(PlacementGroupsSuite)) }
@@ -151,4 +160,19 @@ func (s *PlacementGroupsSuite) TestAPlacementCarriesHiddenAndItsGroup() {
 
 	req := createPlacementRequest(domain.Placement{ModelSlug: "pump", GroupID: new(int64(4))})
 	assert.Equal(s.T(), req.GetGroupId(), int64(4))
+}
+
+// A catalog that predates groups (a gateway deployed first, or a catalog
+// rolled back) answers Unimplemented. The scene must still load, groupless.
+func (s *PlacementGroupsSuite) TestListingOnACatalogWithoutGroupsIsNoGroups() {
+	c := &Client{cc: &groupCC{err: status.Error(codes.Unimplemented, "unknown method ListPlacementGroups")}}
+	groups, err := c.ListPlacementGroups(s.T().Context(), "yard")
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), len(groups), 0)
+}
+
+func (s *PlacementGroupsSuite) TestAListingFailureOtherThanUnimplementedPassesThrough() {
+	c := &Client{cc: &groupCC{err: status.Error(codes.Unavailable, "catalog down")}}
+	_, err := c.ListPlacementGroups(s.T().Context(), "yard")
+	assert.Equal(s.T(), status.Code(err), codes.Unavailable)
 }
