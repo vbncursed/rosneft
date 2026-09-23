@@ -120,6 +120,40 @@ describe("UserGroupItem", () => {
     expect(a.onDelete).toHaveBeenCalledWith(4);
   });
 
+  // E4: the <li> leaves once the delete lands; focus must not fall to <body>.
+  it("hands focus to the next group's disclosure when it deletes itself", async () => {
+    const a = actions();
+    const west: UserGroupSection = { group: { id: 5, title: "West yard" }, members: [] };
+    render(
+      <ul>
+        <UserGroupItem section={SECTION} ctx={ctx()} onAdd={null} actions={a} />
+        <UserGroupItem section={west} ctx={ctx()} onAdd={null} actions={a} />
+      </ul>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Actions for group East yard" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Delete group (placements stay)" }));
+    expect(a.onDelete).toHaveBeenCalledWith(4);
+    expect(screen.getByRole("button", { name: "West yard" })).toHaveFocus();
+  });
+
+  it("hands focus to the search when it deletes the only group", async () => {
+    render(<input type="search" aria-label="Search objects" />, { container: document.body.appendChild(document.createElement("div")) });
+    mount();
+    await userEvent.click(screen.getByRole("button", { name: "Actions for group East yard" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Delete group (placements stay)" }));
+    expect(screen.getByRole("searchbox", { name: "Search objects" })).toHaveFocus();
+  });
+
+  // The kebab holds focus when a write starts; a natively disabled one drops it.
+  it("keeps the menu open-able while a group write is in flight, its actions greyed", async () => {
+    mount({ a: actions({ busy: true }) });
+    const kebab = screen.getByRole("button", { name: "Actions for group East yard" });
+    expect(kebab).toBeEnabled();
+    await userEvent.click(kebab);
+    expect(screen.getByRole("menuitem", { name: "Rename" })).toBeDisabled();
+    expect(screen.getByRole("menuitem", { name: "Delete group (placements stay)" })).toBeDisabled();
+  });
+
   it("gives a reader without write no eye and no menu", () => {
     mount({ c: ctx({ expanded: "group:4", grants: { create: false, write: false, delete: false } }) });
     expect(screen.queryByRole("button", { name: /^Hide/ })).toBeNull();
