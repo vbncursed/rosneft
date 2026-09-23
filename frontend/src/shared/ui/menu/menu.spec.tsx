@@ -178,7 +178,7 @@ describe("Menu · states", () => {
 
   it("grows out of the trigger's corner and answers a press", async () => {
     const { rerender } = render(<Menu trigger="⋮" triggerLabel="Row actions" items={items()} />);
-    expect(trigger().classList).toContain("active:scale-[0.95]");
+    expect(trigger().classList).toContain("enabled:active:scale-[0.95]");
     await userEvent.click(trigger());
     const menu = screen.getByRole("menu");
     expect(menu.classList).toContain("origin-top-right");
@@ -208,5 +208,36 @@ describe("Menu · trigger look", () => {
     render(<Menu trigger="⋮" triggerLabel="Row actions" triggerClassName="rounded-full px-5" items={items()} />);
     expect(trigger()).toHaveClass("rounded-full", "px-5", "focus-visible:outline-accent");
     expect(trigger()).not.toHaveClass("px-2", "rounded-[7px]", "active:scale-[0.95]");
+  });
+});
+
+describe("Menu · ids and a disabled trigger", () => {
+  // Group titles are the reader's own words and may repeat; a label key made
+  // React drop one of two same-named items.
+  it("keys items by id, so two with one label both render without a key warning", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    render(
+      <Menu
+        triggerLabel="Move to group"
+        trigger="…"
+        items={[
+          { id: "group-1", label: "Yard", onSelect: vi.fn() },
+          { id: "group-2", label: "Yard", onSelect: vi.fn() },
+        ]}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Move to group" }));
+    expect(screen.getAllByRole("menuitem", { name: "Yard" })).toHaveLength(2);
+    expect(error).not.toHaveBeenCalled();
+    error.mockRestore();
+  });
+
+  it("does not open from a disabled trigger", async () => {
+    render(<Menu triggerLabel="Row actions" trigger="…" items={[{ label: "Rename", onSelect: vi.fn() }]} disabled />);
+    const trigger = screen.getByRole("button", { name: "Row actions" });
+    expect(trigger).toBeDisabled();
+    expect(trigger.classList).toContain("disabled:opacity-45");
+    await userEvent.click(trigger);
+    expect(screen.queryByRole("menu")).toBeNull();
   });
 });
