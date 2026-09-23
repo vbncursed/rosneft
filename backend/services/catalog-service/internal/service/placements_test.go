@@ -207,24 +207,34 @@ func (s *PlacementsSuite) TestCreateBatchPinsEveryItemToTheTerritory() {
 	stray.TerritorySlug = "someone-elses"
 	stray.Scale = domain.Vec3{}
 	want := []domain.Placement{validPlacement(), validPlacement()}
-	s.repo.CreatePlacementsMock.Expect(s.ctx, want).Return(want, nil)
+	s.repo.CreatePlacementsMock.Expect(s.ctx, "", want).Return(want, nil)
 
-	out, err := s.svc.CreatePlacements(s.ctx, "t1", []domain.Placement{stray, validPlacement()})
+	out, err := s.svc.CreatePlacements(s.ctx, "t1", "", []domain.Placement{stray, validPlacement()})
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), len(out), 2)
 }
 
+// The idempotency key rides to storage untouched: the replay is decided there,
+// inside the transaction that would otherwise write.
+func (s *PlacementsSuite) TestCreateBatchHandsTheKeyToStorage() {
+	want := []domain.Placement{validPlacement()}
+	s.repo.CreatePlacementsMock.Expect(s.ctx, "retry-1", want).Return(want, nil)
+
+	_, err := s.svc.CreatePlacements(s.ctx, "t1", "retry-1", want)
+	assert.NilError(s.T(), err)
+}
+
 func (s *PlacementsSuite) TestCreateBatchRejectsAnEmptyOrOversizedBatch() {
-	_, err := s.svc.CreatePlacements(s.ctx, "t1", nil)
+	_, err := s.svc.CreatePlacements(s.ctx, "t1", "", nil)
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
-	_, err = s.svc.CreatePlacements(s.ctx, "t1", make([]domain.Placement, 101))
+	_, err = s.svc.CreatePlacements(s.ctx, "t1", "", make([]domain.Placement, 101))
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
 func (s *PlacementsSuite) TestCreateBatchRejectsABadItem() {
 	bad := validPlacement()
 	bad.Scale = domain.Vec3{X: 2, Y: 0, Z: 0}
-	_, err := s.svc.CreatePlacements(s.ctx, "t1", []domain.Placement{validPlacement(), bad})
+	_, err := s.svc.CreatePlacements(s.ctx, "t1", "", []domain.Placement{validPlacement(), bad})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }
 
@@ -233,9 +243,9 @@ func (s *PlacementsSuite) TestCreateBatchChecksPanoramasOnce() {
 	a, b := validPlacement(), validPlacement()
 	a.VisiblePanoramaIDs, b.VisiblePanoramaIDs = []int64{1}, []int64{2}
 	s.repo.ListPanoramaIDsMock.Expect(s.ctx, "t1").Times(1).Return([]int64{1, 2}, nil)
-	s.repo.CreatePlacementsMock.Expect(s.ctx, []domain.Placement{a, b}).Return([]domain.Placement{a, b}, nil)
+	s.repo.CreatePlacementsMock.Expect(s.ctx, "", []domain.Placement{a, b}).Return([]domain.Placement{a, b}, nil)
 
-	_, err := s.svc.CreatePlacements(s.ctx, "t1", []domain.Placement{a, b})
+	_, err := s.svc.CreatePlacements(s.ctx, "t1", "", []domain.Placement{a, b})
 	assert.NilError(s.T(), err)
 }
 
@@ -244,6 +254,6 @@ func (s *PlacementsSuite) TestCreateBatchRejectsAPanoramaOfAnotherTerritory() {
 	a.VisiblePanoramaIDs = []int64{9}
 	s.repo.ListPanoramaIDsMock.Expect(s.ctx, "t1").Return([]int64{1}, nil)
 
-	_, err := s.svc.CreatePlacements(s.ctx, "t1", []domain.Placement{a})
+	_, err := s.svc.CreatePlacements(s.ctx, "t1", "", []domain.Placement{a})
 	assert.Assert(s.T(), errors.Is(err, domain.ErrInvalidInput))
 }

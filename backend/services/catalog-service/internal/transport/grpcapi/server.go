@@ -6,9 +6,12 @@ package grpcapi
 
 import (
 	"context"
+	"errors"
+	"strings"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/vbncursed/rosneft/backend/pkg/apperr"
 	catalogv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/catalog/v1"
@@ -48,7 +51,7 @@ type Service interface {
 
 	ListPlacements(ctx context.Context, territorySlug string) ([]domain.Placement, error)
 	CreatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
-	CreatePlacements(ctx context.Context, territorySlug string, items []domain.Placement) ([]domain.Placement, error)
+	CreatePlacements(ctx context.Context, territorySlug, key string, items []domain.Placement) ([]domain.Placement, error)
 	UpdatePlacement(ctx context.Context, p domain.Placement) (domain.Placement, error)
 	SetPlacementVisibility(ctx context.Context, territorySlug string, placementID int64, panoramaIDs []int64) (domain.Placement, error)
 	DeletePlacement(ctx context.Context, territorySlug string, id int64) error
@@ -79,7 +82,7 @@ func (s *Server) Register(srv *grpc.Server) {
 // statusByCode lists, per gRPC code, the domain sentinels that surface as it.
 var statusByCode = map[codes.Code][]error{
 	codes.InvalidArgument: {domain.ErrInvalidInput},
-	codes.AlreadyExists:   {domain.ErrSlugConflict},
+	codes.AlreadyExists:   {domain.ErrSlugConflict, domain.ErrIdempotencyConflict},
 	codes.NotFound: {
 		domain.ErrTerritoryNotFound,
 		domain.ErrModelNotFound,
@@ -89,5 +92,29 @@ var statusByCode = map[codes.Code][]error{
 	},
 }
 
-// mapError translates service-layer errors to gRPC status codes.
-func mapError(err error) error { return apperr.ToStatus(err, statusByCode) }
+// mapError translates service-layer errors to gRPC status codes. A refusal's
+// message starts at its sentinel ("invalid input: panorama 5 is not on …"):
+// the gateway hands it to the browser, so the layers' "service.X:" prefixes
+// stay in this process. An internal error keeps its whole text — the gateway
+// logs it and answers a fixed body.
+func mapError(err error) error {
+	st := status.Convert(apperr.ToStatus(err, statusByCode))
+	if err == nil || st.Code() == codes.Internal {
+		return st.Err()
+	}
+	return status.Error(st.Code(), fromSentinel(err, statusByCode[st.Code()]))
+}
+
+// fromSentinel is err's text from the first of sentinels it wraps onward.
+func fromSentinel(err error, sentinels []error) string {
+	msg := err.Error()
+	for _, sentinel := range sentinels {
+		if !errors.Is(err, sentinel) {
+			continue
+		}
+		if _, rest, found := strings.Cut(msg, sentinel.Error()); found {
+			return sentinel.Error() + rest
+		}
+	}
+	return msg
+}

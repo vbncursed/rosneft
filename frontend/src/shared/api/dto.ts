@@ -282,6 +282,8 @@ export interface paths {
         /**
          * Add 1–100 placements to a territory in one transaction
          * @description All or nothing: one catalog transaction, so a bad item (unknown model, non-positive scale, a panorama of another territory) leaves no rows. Answers the created placements in `items` order. Needs placement:create; covered by the territory gate like every route under /api/territories/{slug}.
+         *
+         *     With `Idempotency-Key`, a retry is safe: a batch already stored under that key on this territory is answered as stored — 201, the same rows in the same order — and nothing is written, however long ago it was sent. Two concurrent requests with one key write one batch and both answer it. A key already naming a batch of another size is 409. Keys are per territory; without the header every request writes.
          */
         post: operations["createPlacements"];
         delete?: never;
@@ -3649,7 +3651,10 @@ export interface operations {
     createPlacements: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description 1–64 characters of `[A-Za-z0-9-]`; anything else is 400. */
+                "Idempotency-Key"?: string;
+            };
             path: {
                 slug: string;
             };
@@ -3661,7 +3666,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Created, in items order */
+            /** @description Created (or replayed), in items order */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -3673,6 +3678,15 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            /** @description The Idempotency-Key already names a batch of another size on this territory */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             500: components["responses"]["Internal"];
         };
     };

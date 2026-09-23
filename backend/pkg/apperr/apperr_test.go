@@ -70,3 +70,13 @@ func (s *AppErrSuite) TestWriteStatus() {
 	assert.Equal(s.T(), rec.Header().Get("Content-Type"), "application/json")
 	assert.Equal(s.T(), rec.Body.String(), `{"code":"forbidden","message":"nope"}`+"\n")
 }
+
+// A 5xx never carries the status text: it names hosts, SQL and call paths.
+func (s *AppErrSuite) TestWriteStatusHidesAServerErrorsText() {
+	for _, c := range []codes.Code{codes.Internal, codes.Unavailable, codes.Unknown} {
+		rec := httptest.NewRecorder()
+		apperr.WriteStatus(rec, status.Error(c, "dial tcp 10.0.0.7:9004: connection refused"))
+		assert.Equal(s.T(), rec.Code, http.StatusInternalServerError)
+		assert.Equal(s.T(), rec.Body.String(), `{"code":"internal","message":"internal error"}`+"\n")
+	}
+}

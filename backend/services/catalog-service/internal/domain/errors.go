@@ -21,6 +21,9 @@ var (
 	// slug the service retries with the next numbered candidate; an explicit
 	// slug has no candidate, so it reaches transport as AlreadyExists.
 	ErrSlugConflict = errors.New("slug already exists")
+	// ErrIdempotencyConflict means a batch's idempotency key already names a
+	// stored batch of another size on the territory: not a retry of it.
+	ErrIdempotencyConflict = errors.New("idempotency key reused with a different batch")
 )
 
 // ItemError names the batch item a refusal is about. It unwraps to the

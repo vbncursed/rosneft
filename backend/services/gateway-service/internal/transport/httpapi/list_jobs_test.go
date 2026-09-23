@@ -108,4 +108,5 @@ func (s *ListJobsSuite) TestScopedCallerWithNoAdminSeesNothing() {
 func (s *ListJobsSuite) TestMeshOutageIsA500NotAnEmptyList() {
 	rec := s.get(jobsServiceStub{listErr: context.DeadlineExceeded}, authhttp.NewTestContext(context.Background(), true, ""))
 	assert.Equal(s.T(), rec.Code, http.StatusInternalServerError)
+	assert.Equal(s.T(), rec.Body.String(), `{"code":"internal","message":"internal error"}`+"\n")
 }

@@ -24,7 +24,7 @@ func (s *Server) GetTerritoryAdmins(ctx context.Context, req GetTerritoryAdminsR
 	case isInvalid(err):
 		return GetTerritoryAdmins404JSONResponse{NotFoundJSONResponse: notFoundResp(err)}, nil
 	case err != nil:
-		return GetTerritoryAdmins500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return GetTerritoryAdmins500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return GetTerritoryAdmins200JSONResponse{UserIds: ids}, nil
 }
@@ -43,7 +43,7 @@ func (s *Server) SetTerritoryAdmins(ctx context.Context, req SetTerritoryAdminsR
 	case isInvalid(err):
 		return SetTerritoryAdmins400JSONResponse{BadRequestJSONResponse: errResp(err)}, nil
 	case err != nil:
-		return SetTerritoryAdmins500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return SetTerritoryAdmins500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return SetTerritoryAdmins204Response{}, nil
 }
@@ -59,7 +59,7 @@ func (s *Server) ListTerritoryAdmins(ctx context.Context, _ ListTerritoryAdminsR
 	scopeAdminID, allAccess := authhttp.Scope(ctx)
 	bySlug, err := s.svc.ListTerritoryAdmins(ctx, scopeAdminID, allAccess)
 	if err != nil {
-		return ListTerritoryAdmins500JSONResponse{InternalJSONResponse: internalResp(err)}, nil
+		return ListTerritoryAdmins500JSONResponse{InternalJSONResponse: internalResp(ctx, err)}, nil
 	}
 	return ListTerritoryAdmins200JSONResponse(bySlug), nil
 }

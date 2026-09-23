@@ -32,7 +32,7 @@ func (u *updateCC) UpdateModel(
 	return &catalogv1.UpdateModelResponse{Model: &catalogv1.Model{Slug: in.GetSlug()}}, u.err
 }
 
-// refusingCC answers both placement creates with err.
+// refusingCC answers every placement mutation with err.
 type refusingCC struct {
 	catalogv1.CatalogServiceClient
 	err error
@@ -47,5 +47,23 @@ func (r refusingCC) CreatePlacement(
 func (r refusingCC) CreatePlacements(
 	context.Context, *catalogv1.CreatePlacementsRequest, ...grpc.CallOption,
 ) (*catalogv1.CreatePlacementsResponse, error) {
+	return nil, r.err
+}
+
+func (r refusingCC) UpdatePlacement(
+	context.Context, *catalogv1.UpdatePlacementRequest, ...grpc.CallOption,
+) (*catalogv1.UpdatePlacementResponse, error) {
+	return nil, r.err
+}
+
+func (r refusingCC) SetPlacementVisibility(
+	context.Context, *catalogv1.SetPlacementVisibilityRequest, ...grpc.CallOption,
+) (*catalogv1.SetPlacementVisibilityResponse, error) {
+	return nil, r.err
+}
+
+func (r refusingCC) DeletePlacement(
+	context.Context, *catalogv1.DeletePlacementRequest, ...grpc.CallOption,
+) (*catalogv1.DeletePlacementResponse, error) {
 	return nil, r.err
 }

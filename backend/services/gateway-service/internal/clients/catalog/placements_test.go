@@ -38,12 +38,13 @@ func TestPlacementBatchSuite(t *testing.T) { suite.Run(t, new(PlacementBatchSuit
 
 func (s *PlacementBatchSuite) TestTheBatchTravelsUnderItsTerritory() {
 	cc := &placementBatchCC{}
-	got, err := (&Client{cc: cc}).CreatePlacements(s.T().Context(), "yard", []domain.Placement{
+	got, err := (&Client{cc: cc}).CreatePlacements(s.T().Context(), "yard", "retry-1", []domain.Placement{
 		{ModelSlug: "pump", Scale: domain.Vec3{X: 1, Y: 1, Z: 1}},
 		{ModelSlug: "tank", Position: domain.Vec3{X: 2}, Scale: domain.Vec3{X: 1, Y: 1, Z: 1}},
 	})
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), cc.got.GetTerritorySlug(), "yard")
+	assert.Equal(s.T(), cc.got.GetIdempotencyKey(), "retry-1")
 	assert.Equal(s.T(), cc.got.GetItems()[1].GetPosition().GetX(), 2.0)
 	assert.Equal(s.T(), len(got), 2)
 	assert.Equal(s.T(), got[1].ModelSlug, "tank")
@@ -71,10 +72,14 @@ func (s *PlacementBatchSuite) TestARefusalCarriesTheCatalogsMessageAlone() {
 			name: "a refused item", err: status.Error(codes.InvalidArgument, "item 0: invalid input: scale must be positive"),
 			want: domain.ErrInvalidInput, msg: "item 0: invalid input: scale must be positive",
 		},
+		{
+			name: "a key reused for another batch", err: status.Error(codes.AlreadyExists, "idempotency key reused with a different batch"),
+			want: domain.ErrIdempotencyConflict, msg: "idempotency key reused with a different batch",
+		},
 	} {
 		s.Run(tc.name, func() {
 			client := &Client{cc: refusingCC{err: tc.err}}
-			_, err := client.CreatePlacements(s.T().Context(), "yard", []domain.Placement{{ModelSlug: "pump"}})
+			_, err := client.CreatePlacements(s.T().Context(), "yard", "", []domain.Placement{{ModelSlug: "pump"}})
 			assert.ErrorIs(s.T(), err, tc.want)
 			assert.Equal(s.T(), err.Error(), tc.msg)
 			_, err = client.CreatePlacement(s.T().Context(), domain.Placement{TerritorySlug: "yard", ModelSlug: "pump"})
@@ -86,7 +91,38 @@ func (s *PlacementBatchSuite) TestARefusalCarriesTheCatalogsMessageAlone() {
 
 func (s *PlacementBatchSuite) TestAnInternalFailureIsNoRefusal() {
 	_, err := (&Client{cc: refusingCC{err: status.Error(codes.Internal, "db down")}}).
-		CreatePlacements(s.T().Context(), "yard", []domain.Placement{{ModelSlug: "pump"}})
+		CreatePlacements(s.T().Context(), "yard", "", []domain.Placement{{ModelSlug: "pump"}})
 	assert.Assert(s.T(), !errors.Is(err, domain.ErrInvalidInput) && !errors.Is(err, domain.ErrModelNotFound) &&
 		!errors.Is(err, domain.ErrTerritoryNotFound), "%v", err)
+}
+
+// An edit refused by the catalog reaches the browser in the catalog's words
+// alone — not "catalog.SetPlacementVisibility: invalid input\nrpc error: …".
+func (s *PlacementBatchSuite) TestAnEditRefusalCarriesTheCatalogsMessageAlone() {
+	for _, tc := range []struct {
+		name string
+		err  error
+		want error
+	}{
+		{
+			name: "a panorama of another territory",
+			err:  status.Error(codes.InvalidArgument, `invalid input: panorama 5 is not on territory "yard"`),
+			want: domain.ErrInvalidInput,
+		},
+		{name: "an unknown placement", err: status.Error(codes.NotFound, "placement not found"), want: domain.ErrPlacementNotFound},
+	} {
+		s.Run(tc.name, func() {
+			client := &Client{cc: refusingCC{err: tc.err}}
+			msg := status.Convert(tc.err).Message()
+			_, err := client.SetPlacementVisibility(s.T().Context(), "yard", 1, []int64{5})
+			assert.ErrorIs(s.T(), err, tc.want)
+			assert.Equal(s.T(), err.Error(), msg)
+			_, err = client.UpdatePlacement(s.T().Context(), domain.Placement{ID: 1, TerritorySlug: "yard"})
+			assert.ErrorIs(s.T(), err, tc.want)
+			assert.Equal(s.T(), err.Error(), msg)
+			err = client.DeletePlacement(s.T().Context(), "yard", 1)
+			assert.ErrorIs(s.T(), err, tc.want)
+			assert.Equal(s.T(), err.Error(), msg)
+		})
+	}
 }

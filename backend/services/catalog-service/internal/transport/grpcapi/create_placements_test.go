@@ -29,14 +29,15 @@ func (s *CreatePlacementsSuite) SetupTest() {
 
 func (s *CreatePlacementsSuite) TestItemsTravelUnderTheBatchTerritoryInOrder() {
 	s.svc.CreatePlacementsMock.
-		Expect(s.T().Context(), "yard", []domain.Placement{
+		Expect(s.T().Context(), "yard", "retry-1", []domain.Placement{
 			{TerritorySlug: "stray", ModelSlug: "pump"},
 			{ModelSlug: "tank", Position: domain.Vec3{X: 2}, VisiblePanoramaIDs: []int64{7}},
 		}).
 		Return([]domain.Placement{{ID: 1, ModelSlug: "pump"}, {ID: 2, ModelSlug: "tank"}}, nil)
 
 	out, err := grpcapi.New(s.svc).CreatePlacements(s.T().Context(), &catalogv1.CreatePlacementsRequest{
-		TerritorySlug: "yard",
+		TerritorySlug:  "yard",
+		IdempotencyKey: "retry-1",
 		Items: []*catalogv1.CreatePlacementRequest{
 			{TerritorySlug: "stray", ModelSlug: "pump"},
 			{ModelSlug: "tank", Position: &catalogv1.Vec3{X: 2}, VisiblePanoramaIds: []int64{7}},
@@ -66,6 +67,36 @@ func (s *CreatePlacementsSuite) TestARefusedItemNamesItsIndexAndNothingElse() {
 			err: fmt.Errorf("service.CreatePlacements: %w",
 				domain.ItemError{Index: 0, Err: fmt.Errorf("%w: scale components must be positive", domain.ErrInvalidInput)}),
 			code: codes.InvalidArgument, msg: "item 0: invalid input: scale components must be positive",
+		},
+	} {
+		s.Run(tc.name, func() {
+			s.svc.CreatePlacementsMock.Return(nil, tc.err)
+			_, err := grpcapi.New(s.svc).CreatePlacements(s.T().Context(), &catalogv1.CreatePlacementsRequest{TerritorySlug: "yard"})
+			assert.Equal(s.T(), status.Code(err), tc.code)
+			assert.Equal(s.T(), status.Convert(err).Message(), tc.msg)
+		})
+	}
+}
+
+// A batch refused as a whole answers its sentinel's words, without the
+// "service.CreatePlacements:" the layers wrapped it in.
+func (s *CreatePlacementsSuite) TestABatchRefusalCarriesNoFunctionNames() {
+	for _, tc := range []struct {
+		name string
+		err  error
+		code codes.Code
+		msg  string
+	}{
+		{
+			name: "a key reused for another batch",
+			err:  fmt.Errorf("storage.CreatePlacements: %w", domain.ErrIdempotencyConflict),
+			code: codes.AlreadyExists, msg: "idempotency key reused with a different batch",
+		},
+		{
+			name: "a panorama of another territory",
+			err: fmt.Errorf("service.CreatePlacements: %w",
+				fmt.Errorf("%w: panorama 5 is not on territory %q", domain.ErrInvalidInput, "yard")),
+			code: codes.InvalidArgument, msg: `invalid input: panorama 5 is not on territory "yard"`,
 		},
 	} {
 		s.Run(tc.name, func() {

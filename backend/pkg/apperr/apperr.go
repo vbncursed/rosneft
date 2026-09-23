@@ -102,6 +102,11 @@ func ToStatus(err error, byCode map[codes.Code][]error) error {
 	return status.Errorf(codes.Internal, "internal: %v", err)
 }
 
+// InternalMessage is the whole message of every 5xx body. What failed inside
+// is for the server's log, never the browser: it names hosts, ports, SQL and
+// the functions it passed through.
+const InternalMessage = "internal error"
+
 // Body is the public JSON error envelope: {code, message}.
 type Body struct {
 	Code    string `json:"code"`
@@ -116,8 +121,13 @@ func Write(w http.ResponseWriter, httpStatus int, code, message string) {
 }
 
 // WriteStatus renders a gRPC status error as the {code, message} envelope,
-// translating the status code into its HTTP status and slug.
+// translating the status code into its HTTP status and slug. A 5xx answers
+// InternalMessage whatever the status said; logging the detail is the caller's.
 func WriteStatus(w http.ResponseWriter, err error) {
 	st := status.Convert(err)
-	Write(w, HTTPStatus(st.Code()), Slug(st.Code()), st.Message())
+	httpStatus, msg := HTTPStatus(st.Code()), st.Message()
+	if httpStatus >= http.StatusInternalServerError {
+		msg = InternalMessage
+	}
+	Write(w, httpStatus, Slug(st.Code()), msg)
 }

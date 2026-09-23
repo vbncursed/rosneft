@@ -880,6 +880,12 @@ type ListMyAuditParams struct {
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// CreatePlacementsParams defines parameters for CreatePlacements.
+type CreatePlacementsParams struct {
+	// IdempotencyKey 1–64 characters of `[A-Za-z0-9-]`; anything else is 400.
+	IdempotencyKey *string `json:"Idempotency-Key,omitempty"`
+}
+
 // AppendUploadChunkParams defines parameters for AppendUploadChunk.
 type AppendUploadChunkParams struct {
 	UploadOffset int64 `json:"Upload-Offset"`
@@ -1036,7 +1042,7 @@ type ServerInterface interface {
 	CreatePlacement(w http.ResponseWriter, r *http.Request, slug string)
 	// CreatePlacements Add 1–100 placements to a territory in one transaction
 	// (POST /api/territories/{slug}/placements/batch)
-	CreatePlacements(w http.ResponseWriter, r *http.Request, slug string)
+	CreatePlacements(w http.ResponseWriter, r *http.Request, slug string, params CreatePlacementsParams)
 	// DeletePlacement Remove a placement
 	// (DELETE /api/territories/{slug}/placements/{id})
 	DeletePlacement(w http.ResponseWriter, r *http.Request, slug string, id int64)
@@ -1276,7 +1282,7 @@ func (_ Unimplemented) CreatePlacement(w http.ResponseWriter, r *http.Request, s
 
 // CreatePlacements Add 1–100 placements to a territory in one transaction
 // (POST /api/territories/{slug}/placements/batch)
-func (_ Unimplemented) CreatePlacements(w http.ResponseWriter, r *http.Request, slug string) {
+func (_ Unimplemented) CreatePlacements(w http.ResponseWriter, r *http.Request, slug string, params CreatePlacementsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2388,8 +2394,32 @@ func (siw *ServerInterfaceWrapper) CreatePlacements(w http.ResponseWriter, r *ht
 		return
 	}
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreatePlacementsParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = &IdempotencyKey
+
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreatePlacements(w, r, slug)
+		siw.Handler.CreatePlacements(w, r, slug, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4942,8 +4972,9 @@ func (response CreatePlacement500JSONResponse) VisitCreatePlacementResponse(w ht
 }
 
 type CreatePlacementsRequestObject struct {
-	Slug string `json:"slug"`
-	Body *CreatePlacementsJSONRequestBody
+	Slug   string `json:"slug"`
+	Params CreatePlacementsParams
+	Body   *CreatePlacementsJSONRequestBody
 }
 
 type CreatePlacementsResponseObject interface {
@@ -5002,6 +5033,20 @@ func (response CreatePlacements404JSONResponse) VisitCreatePlacementsResponse(w 
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreatePlacements409JSONResponse Error
+
+func (response CreatePlacements409JSONResponse) VisitCreatePlacementsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -6768,10 +6813,11 @@ func (sh *strictHandler) CreatePlacement(w http.ResponseWriter, r *http.Request,
 }
 
 // CreatePlacements operation middleware
-func (sh *strictHandler) CreatePlacements(w http.ResponseWriter, r *http.Request, slug string) {
+func (sh *strictHandler) CreatePlacements(w http.ResponseWriter, r *http.Request, slug string, params CreatePlacementsParams) {
 	var request CreatePlacementsRequestObject
 
 	request.Slug = slug
+	request.Params = params
 
 	var body CreatePlacementsJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {

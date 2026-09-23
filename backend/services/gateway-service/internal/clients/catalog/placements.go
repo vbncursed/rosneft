@@ -35,13 +35,16 @@ func (c *Client) CreatePlacement(ctx context.Context, p domain.Placement) (domai
 	return placementFromProto(resp.GetPlacement()), nil
 }
 
-// CreatePlacements lands a batch on territorySlug in one catalog transaction.
-func (c *Client) CreatePlacements(ctx context.Context, territorySlug string, ps []domain.Placement) ([]domain.Placement, error) {
+// CreatePlacements lands a batch on territorySlug in one catalog transaction,
+// idempotently under key when it is not empty.
+func (c *Client) CreatePlacements(ctx context.Context, territorySlug, key string, ps []domain.Placement) ([]domain.Placement, error) {
 	items := make([]*catalogv1.CreatePlacementRequest, len(ps))
 	for i, p := range ps {
 		items[i] = createPlacementRequest(p)
 	}
-	resp, err := c.cc.CreatePlacements(ctx, &catalogv1.CreatePlacementsRequest{TerritorySlug: territorySlug, Items: items})
+	resp, err := c.cc.CreatePlacements(ctx, &catalogv1.CreatePlacementsRequest{
+		TerritorySlug: territorySlug, Items: items, IdempotencyKey: key,
+	})
 	if err != nil {
 		return nil, createRefusal("catalog.CreatePlacements", err)
 	}
@@ -66,8 +69,9 @@ func (r refusal) Unwrap() error { return r.sentinel }
 
 // createRefusal maps a failed placement create. NotFound is the model unless
 // the message says otherwise — the route's gate has already found the
-// territory; InvalidArgument is a refused item. Anything else is wrapped with
-// op as an internal error.
+// territory; InvalidArgument is a refused item; AlreadyExists is an
+// idempotency key reused for another batch. Anything else is wrapped with op
+// as an internal error.
 func createRefusal(op string, err error) error {
 	st, ok := status.FromError(err)
 	switch {
@@ -78,6 +82,23 @@ func createRefusal(op string, err error) error {
 	case st.Code() == codes.NotFound:
 		return refusal{st.Message(), domain.ErrModelNotFound}
 	case st.Code() == codes.InvalidArgument:
+		return refusal{st.Message(), domain.ErrInvalidInput}
+	case st.Code() == codes.AlreadyExists:
+		return refusal{st.Message(), domain.ErrIdempotencyConflict}
+	}
+	return fmt.Errorf("%s: %w", op, err)
+}
+
+// editRefusal maps a failed placement update, visibility change or delete the
+// way createRefusal maps a create: the catalog's own words for NotFound
+// (placement or territory, the message says which) and InvalidArgument, and
+// an internal error, wrapped with op, for anything else.
+func editRefusal(op string, err error) error {
+	st, ok := status.FromError(err)
+	switch {
+	case ok && st.Code() == codes.NotFound:
+		return refusal{st.Message(), domain.ErrPlacementNotFound}
+	case ok && st.Code() == codes.InvalidArgument:
 		return refusal{st.Message(), domain.ErrInvalidInput}
 	}
 	return fmt.Errorf("%s: %w", op, err)
@@ -104,7 +125,7 @@ func (c *Client) SetPlacementVisibility(ctx context.Context, territorySlug strin
 		PanoramaIds:   panoramaIDs,
 	})
 	if err != nil {
-		return domain.Placement{}, fmt.Errorf("catalog.SetPlacementVisibility: %w", grpcerr.MapStatus(err, domain.ErrPlacementNotFound))
+		return domain.Placement{}, editRefusal("catalog.SetPlacementVisibility", err)
 	}
 	return placementFromProto(resp.GetPlacement()), nil
 }
@@ -120,7 +141,7 @@ func (c *Client) UpdatePlacement(ctx context.Context, p domain.Placement) (domai
 		Label:         p.Label,
 	})
 	if err != nil {
-		return domain.Placement{}, fmt.Errorf("catalog.UpdatePlacement: %w", grpcerr.MapStatus(err, domain.ErrPlacementNotFound))
+		return domain.Placement{}, editRefusal("catalog.UpdatePlacement", err)
 	}
 	return placementFromProto(resp.GetPlacement()), nil
 }
@@ -129,7 +150,7 @@ func (c *Client) UpdatePlacement(ctx context.Context, p domain.Placement) (domai
 func (c *Client) DeletePlacement(ctx context.Context, territorySlug string, id int64) error {
 	_, err := c.cc.DeletePlacement(ctx, &catalogv1.DeletePlacementRequest{Id: id, TerritorySlug: territorySlug})
 	if err != nil {
-		return fmt.Errorf("catalog.DeletePlacement: %w", grpcerr.MapStatus(err, domain.ErrPlacementNotFound))
+		return editRefusal("catalog.DeletePlacement", err)
 	}
 	return nil
 }

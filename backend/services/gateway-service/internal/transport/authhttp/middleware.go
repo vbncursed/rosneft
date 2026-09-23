@@ -39,7 +39,7 @@ func authenticate(validate validateFunc, next http.Handler) http.Handler {
 		}
 		uid, perms, isOwner, owningAdmin, auditCompany, mustEnroll, err := validate(r.Context(), token)
 		if err != nil {
-			fail(w, err) // maps Unauthenticated → 401
+			fail(w, r, err) // maps Unauthenticated → 401
 			return
 		}
 		// A session that owes a second factor may enroll one and nothing else.

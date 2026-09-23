@@ -162,7 +162,7 @@ func (s *BatchSuite) TestAPlacementBatchLandsWholeOrNotAtAll() {
 	s.seedModel(ctx, "batch-pump")
 	unit := domain.Vec3{X: 1, Y: 1, Z: 1}
 
-	got, err := s.pg.CreatePlacements(ctx, []domain.Placement{
+	got, err := s.pg.CreatePlacements(ctx, "", []domain.Placement{
 		{TerritorySlug: "batch-yard", ModelSlug: "batch-pump", Scale: unit},
 		{TerritorySlug: "batch-yard", ModelSlug: "batch-pump", Position: domain.Vec3{X: 2}, Scale: unit},
 	})
@@ -172,7 +172,7 @@ func (s *BatchSuite) TestAPlacementBatchLandsWholeOrNotAtAll() {
 	assert.Equal(s.T(), got[0].TerritorySlug, "batch-yard")
 	assert.Assert(s.T(), got[0].ID < got[1].ID, "answered in items order")
 
-	_, err = s.pg.CreatePlacements(ctx, []domain.Placement{
+	_, err = s.pg.CreatePlacements(ctx, "", []domain.Placement{
 		{TerritorySlug: "batch-yard", ModelSlug: "batch-pump", Scale: unit},
 		{TerritorySlug: "batch-yard", ModelSlug: "no-such-model", Scale: unit},
 	})

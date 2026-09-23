@@ -9,7 +9,7 @@ import (
 func (h *Handlers) listRoles(w http.ResponseWriter, r *http.Request) {
 	list, err := h.client.ListRoles(r.Context(), sessionToken(r))
 	if err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, rolesToJSON(list))
@@ -25,7 +25,7 @@ func (h *Handlers) createRole(w http.ResponseWriter, r *http.Request) {
 	}
 	role, err := h.client.CreateRole(r.Context(), sessionToken(r), req.Slug, req.Title, req.PermissionSlugs)
 	if err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, roleToJSON(role))
@@ -43,7 +43,7 @@ func (h *Handlers) updateRole(w http.ResponseWriter, r *http.Request) {
 	}
 	role, err := h.client.UpdateRole(r.Context(), sessionToken(r), chi.URLParam(r, "slug"), req.Title, req.PermissionSlugs)
 	if err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, roleToJSON(role))
@@ -51,7 +51,7 @@ func (h *Handlers) updateRole(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) deleteRole(w http.ResponseWriter, r *http.Request) {
 	if err := h.client.DeleteRole(r.Context(), sessionToken(r), chi.URLParam(r, "slug")); err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -66,7 +66,7 @@ func (h *Handlers) setRolePermissions(w http.ResponseWriter, r *http.Request) {
 	}
 	role, err := h.client.SetRolePermissions(r.Context(), sessionToken(r), chi.URLParam(r, "slug"), req.PermissionSlugs)
 	if err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, roleToJSON(role))
@@ -75,7 +75,7 @@ func (h *Handlers) setRolePermissions(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) listPermissions(w http.ResponseWriter, r *http.Request) {
 	list, err := h.client.ListPermissions(r.Context())
 	if err != nil {
-		fail(w, err)
+		fail(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, permissionsToJSON(list))
