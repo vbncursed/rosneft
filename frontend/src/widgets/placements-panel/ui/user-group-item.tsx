@@ -37,12 +37,16 @@ export type UserGroupItemProps = {
 /**
  * The row leaves once its delete lands, taking the focus Menu handed back to
  * the kebab. Menu closes before it selects, so moving focus here wins: to the
- * next (or previous) group's disclosure, else the panel's search.
+ * next (or previous) group's disclosure, else the nearest enclosing search
+ * field — the panel's own (SearchField names it by <label>, not aria-label).
  */
 function focusNeighbour(li: HTMLLIElement | null) {
   const sibling = li?.nextElementSibling ?? li?.previousElementSibling;
   const next = sibling?.querySelector<HTMLButtonElement>("button[aria-expanded]");
-  (next ?? document.querySelector<HTMLElement>('[aria-label="Search objects"]'))?.focus();
+  if (next) return next.focus();
+  let around = li?.parentElement;
+  while (around && !around.querySelector('input[type="search"]')) around = around.parentElement;
+  around?.querySelector<HTMLInputElement>('input[type="search"]')?.focus();
 }
 
 /** One user group: its row (eye and menu for a writer), its members, then its own Add. */

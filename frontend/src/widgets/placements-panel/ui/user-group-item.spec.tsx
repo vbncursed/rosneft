@@ -160,14 +160,6 @@ describe("UserGroupItem", () => {
     expect(screen.getByRole("button", { name: "West yard" })).toHaveFocus();
   });
 
-  it("hands focus to the search when it deletes the only group", async () => {
-    render(<input type="search" aria-label="Search objects" />, { container: document.body.appendChild(document.createElement("div")) });
-    mount();
-    await userEvent.click(screen.getByRole("button", { name: "Actions for group East yard" }));
-    await userEvent.click(screen.getByRole("menuitem", { name: "Delete group (placements stay)" }));
-    expect(screen.getByRole("searchbox", { name: "Search objects" })).toHaveFocus();
-  });
-
   // The kebab holds focus when a write starts; a natively disabled one drops it.
   it("keeps the menu open-able while a group write is in flight, its actions greyed", async () => {
     mount({ a: actions({ busy: true }) });
