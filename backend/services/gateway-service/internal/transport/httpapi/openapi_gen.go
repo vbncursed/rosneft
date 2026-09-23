@@ -699,6 +699,9 @@ type TerritoryAdmins struct {
 	UserIds []string `json:"userIds"`
 }
 
+// TerritoryAdminsMap Admin user ids per territory slug. Every territory the caller can see has a key; `[]` when nobody is assigned.
+type TerritoryAdminsMap map[string][]string
+
 // TerritoryCreated defines model for TerritoryCreated.
 type TerritoryCreated struct {
 	Job       Job       `json:"job"`
@@ -1003,6 +1006,9 @@ type ServerInterface interface {
 	// ReplaceTerritorySource Replace a territory's source archive and re-queue conversion
 	// (POST /api/territories/{slug}/source)
 	ReplaceTerritorySource(w http.ResponseWriter, r *http.Request, slug string)
+	// ListTerritoryAdmins Every visible territory's assigned admins in one call (Root only)
+	// (GET /api/territory-admins)
+	ListTerritoryAdmins(w http.ResponseWriter, r *http.Request)
 	// InitiateUpload Start a chunked upload session
 	// (POST /api/uploads)
 	InitiateUpload(w http.ResponseWriter, r *http.Request)
@@ -1249,6 +1255,12 @@ func (_ Unimplemented) GetSceneBundle(w http.ResponseWriter, r *http.Request, sl
 // ReplaceTerritorySource Replace a territory's source archive and re-queue conversion
 // (POST /api/territories/{slug}/source)
 func (_ Unimplemented) ReplaceTerritorySource(w http.ResponseWriter, r *http.Request, slug string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListTerritoryAdmins Every visible territory's assigned admins in one call (Root only)
+// (GET /api/territory-admins)
+func (_ Unimplemented) ListTerritoryAdmins(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2466,6 +2478,20 @@ func (siw *ServerInterfaceWrapper) ReplaceTerritorySource(w http.ResponseWriter,
 	handler.ServeHTTP(w, r)
 }
 
+// ListTerritoryAdmins operation middleware
+func (siw *ServerInterfaceWrapper) ListTerritoryAdmins(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTerritoryAdmins(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // InitiateUpload operation middleware
 func (siw *ServerInterfaceWrapper) InitiateUpload(w http.ResponseWriter, r *http.Request) {
 
@@ -2754,6 +2780,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/territories/{slug}/admins", wrapper.SetTerritoryAdmins)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/territory-admins", wrapper.ListTerritoryAdmins)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/territories/{slug}/source", wrapper.ReplaceTerritorySource)
@@ -5123,6 +5152,69 @@ func (response ReplaceTerritorySource500JSONResponse) VisitReplaceTerritorySourc
 	return err
 }
 
+type ListTerritoryAdminsRequestObject struct {
+}
+
+type ListTerritoryAdminsResponseObject interface {
+	VisitListTerritoryAdminsResponse(w http.ResponseWriter) error
+}
+
+type ListTerritoryAdmins200JSONResponse TerritoryAdminsMap
+
+func (response ListTerritoryAdmins200JSONResponse) VisitListTerritoryAdminsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTerritoryAdmins401JSONResponse struct{ UnauthorizedJSONResponse }
+
+func (response ListTerritoryAdmins401JSONResponse) VisitListTerritoryAdminsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTerritoryAdmins403JSONResponse struct{ ForbiddenJSONResponse }
+
+func (response ListTerritoryAdmins403JSONResponse) VisitListTerritoryAdminsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTerritoryAdmins500JSONResponse struct{ InternalJSONResponse }
+
+func (response ListTerritoryAdmins500JSONResponse) VisitListTerritoryAdminsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type InitiateUploadRequestObject struct {
 	Body *InitiateUploadJSONRequestBody
 }
@@ -5521,6 +5613,9 @@ type StrictServerInterface interface {
 	// ReplaceTerritorySource Replace a territory's source archive and re-queue conversion
 	// (POST /api/territories/{slug}/source)
 	ReplaceTerritorySource(ctx context.Context, request ReplaceTerritorySourceRequestObject) (ReplaceTerritorySourceResponseObject, error)
+	// ListTerritoryAdmins Every visible territory's assigned admins in one call (Root only)
+	// (GET /api/territory-admins)
+	ListTerritoryAdmins(ctx context.Context, request ListTerritoryAdminsRequestObject) (ListTerritoryAdminsResponseObject, error)
 	// InitiateUpload Start a chunked upload session
 	// (POST /api/uploads)
 	InitiateUpload(ctx context.Context, request InitiateUploadRequestObject) (InitiateUploadResponseObject, error)
@@ -6656,6 +6751,30 @@ func (sh *strictHandler) ReplaceTerritorySource(w http.ResponseWriter, r *http.R
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ReplaceTerritorySourceResponseObject); ok {
 		if err := validResponse.VisitReplaceTerritorySourceResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListTerritoryAdmins operation middleware
+func (sh *strictHandler) ListTerritoryAdmins(w http.ResponseWriter, r *http.Request) {
+	var request ListTerritoryAdminsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTerritoryAdmins(ctx, request.(ListTerritoryAdminsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTerritoryAdmins")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTerritoryAdminsResponseObject); ok {
+		if err := validResponse.VisitListTerritoryAdminsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

@@ -46,6 +46,9 @@ service CatalogService {
   rpc RescaleTerritoryPlacements(RescaleTerritoryPlacementsRequest) returns (RescaleTerritoryPlacementsResponse);
   rpc SetTerritoryAdmins(SetTerritoryAdminsRequest) returns (SetTerritoryAdminsResponse);
   rpc GetTerritoryAdmins(GetTerritoryAdminsRequest) returns (GetTerritoryAdminsResponse);
+  // ListTerritoryAdmins is GetTerritoryAdmins for many territories in one
+  // query: the access screen used to ask once per territory.
+  rpc ListTerritoryAdmins(ListTerritoryAdminsRequest) returns (ListTerritoryAdminsResponse);
 
   rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
   rpc GetModel(GetModelRequest) returns (GetModelResponse);
@@ -240,6 +243,21 @@ message GetTerritoryAdminsRequest {
 }
 message GetTerritoryAdminsResponse {
   repeated string admin_user_ids = 1;
+}
+
+message ListTerritoryAdminsRequest {
+  repeated string slugs = 1;
+}
+// TerritoryAdmin is one assignment. Flat pairs rather than a map of lists: a
+// proto map cannot hold a repeated value without a wrapper message.
+message TerritoryAdmin {
+  string territory_slug = 1;
+  string admin_user_id = 2;
+}
+message ListTerritoryAdminsResponse {
+  // Grouped by territory, in assignment order within one. A slug nobody is
+  // assigned to, or that does not exist, contributes no pair.
+  repeated TerritoryAdmin admins = 1;
 }
 
 message UpsertTerritoryRequest {

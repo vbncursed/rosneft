@@ -166,6 +166,13 @@ type RepositoryMock struct {
 	beforeListTerritoriesCounter uint64
 	ListTerritoriesMock          mRepositoryMockListTerritories
 
+	funcListTerritoryAdmins          func(ctx context.Context, slugs []string) (m1 map[string][]string, err error)
+	funcListTerritoryAdminsOrigin    string
+	inspectFuncListTerritoryAdmins   func(ctx context.Context, slugs []string)
+	afterListTerritoryAdminsCounter  uint64
+	beforeListTerritoryAdminsCounter uint64
+	ListTerritoryAdminsMock          mRepositoryMockListTerritoryAdmins
+
 	funcListTerritoryArtifacts          func(ctx context.Context, slug string) (aa1 []domain.Artifact, err error)
 	funcListTerritoryArtifactsOrigin    string
 	inspectFuncListTerritoryArtifacts   func(ctx context.Context, slug string)
@@ -349,6 +356,9 @@ func NewRepositoryMock(t minimock.Tester) *RepositoryMock {
 
 	m.ListTerritoriesMock = mRepositoryMockListTerritories{mock: m}
 	m.ListTerritoriesMock.callArgs = []*RepositoryMockListTerritoriesParams{}
+
+	m.ListTerritoryAdminsMock = mRepositoryMockListTerritoryAdmins{mock: m}
+	m.ListTerritoryAdminsMock.callArgs = []*RepositoryMockListTerritoryAdminsParams{}
 
 	m.ListTerritoryArtifactsMock = mRepositoryMockListTerritoryArtifacts{mock: m}
 	m.ListTerritoryArtifactsMock.callArgs = []*RepositoryMockListTerritoryArtifactsParams{}
@@ -7725,6 +7735,349 @@ func (m *RepositoryMock) MinimockListTerritoriesInspect() {
 	}
 }
 
+type mRepositoryMockListTerritoryAdmins struct {
+	optional           bool
+	mock               *RepositoryMock
+	defaultExpectation *RepositoryMockListTerritoryAdminsExpectation
+	expectations       []*RepositoryMockListTerritoryAdminsExpectation
+
+	callArgs []*RepositoryMockListTerritoryAdminsParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// RepositoryMockListTerritoryAdminsExpectation specifies expectation struct of the Repository.ListTerritoryAdmins
+type RepositoryMockListTerritoryAdminsExpectation struct {
+	mock               *RepositoryMock
+	params             *RepositoryMockListTerritoryAdminsParams
+	paramPtrs          *RepositoryMockListTerritoryAdminsParamPtrs
+	expectationOrigins RepositoryMockListTerritoryAdminsExpectationOrigins
+	results            *RepositoryMockListTerritoryAdminsResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// RepositoryMockListTerritoryAdminsParams contains parameters of the Repository.ListTerritoryAdmins
+type RepositoryMockListTerritoryAdminsParams struct {
+	ctx   context.Context
+	slugs []string
+}
+
+// RepositoryMockListTerritoryAdminsParamPtrs contains pointers to parameters of the Repository.ListTerritoryAdmins
+type RepositoryMockListTerritoryAdminsParamPtrs struct {
+	ctx   *context.Context
+	slugs *[]string
+}
+
+// RepositoryMockListTerritoryAdminsResults contains results of the Repository.ListTerritoryAdmins
+type RepositoryMockListTerritoryAdminsResults struct {
+	m1  map[string][]string
+	err error
+}
+
+// RepositoryMockListTerritoryAdminsOrigins contains origins of expectations of the Repository.ListTerritoryAdmins
+type RepositoryMockListTerritoryAdminsExpectationOrigins struct {
+	origin      string
+	originCtx   string
+	originSlugs string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) Optional() *mRepositoryMockListTerritoryAdmins {
+	mmListTerritoryAdmins.optional = true
+	return mmListTerritoryAdmins
+}
+
+// Expect sets up expected params for Repository.ListTerritoryAdmins
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) Expect(ctx context.Context, slugs []string) *mRepositoryMockListTerritoryAdmins {
+	if mmListTerritoryAdmins.mock.funcListTerritoryAdmins != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("RepositoryMock.ListTerritoryAdmins mock is already set by Set")
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation == nil {
+		mmListTerritoryAdmins.defaultExpectation = &RepositoryMockListTerritoryAdminsExpectation{}
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation.paramPtrs != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("RepositoryMock.ListTerritoryAdmins mock is already set by ExpectParams functions")
+	}
+
+	mmListTerritoryAdmins.defaultExpectation.params = &RepositoryMockListTerritoryAdminsParams{ctx, slugs}
+	mmListTerritoryAdmins.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmListTerritoryAdmins.expectations {
+		if minimock.Equal(e.params, mmListTerritoryAdmins.defaultExpectation.params) {
+			mmListTerritoryAdmins.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmListTerritoryAdmins.defaultExpectation.params)
+		}
+	}
+
+	return mmListTerritoryAdmins
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Repository.ListTerritoryAdmins
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) ExpectCtxParam1(ctx context.Context) *mRepositoryMockListTerritoryAdmins {
+	if mmListTerritoryAdmins.mock.funcListTerritoryAdmins != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("RepositoryMock.ListTerritoryAdmins mock is already set by Set")
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation == nil {
+		mmListTerritoryAdmins.defaultExpectation = &RepositoryMockListTerritoryAdminsExpectation{}
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation.params != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("RepositoryMock.ListTerritoryAdmins mock is already set by Expect")
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation.paramPtrs == nil {
+		mmListTerritoryAdmins.defaultExpectation.paramPtrs = &RepositoryMockListTerritoryAdminsParamPtrs{}
+	}
+	mmListTerritoryAdmins.defaultExpectation.paramPtrs.ctx = &ctx
+	mmListTerritoryAdmins.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmListTerritoryAdmins
+}
+
+// ExpectSlugsParam2 sets up expected param slugs for Repository.ListTerritoryAdmins
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) ExpectSlugsParam2(slugs []string) *mRepositoryMockListTerritoryAdmins {
+	if mmListTerritoryAdmins.mock.funcListTerritoryAdmins != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("RepositoryMock.ListTerritoryAdmins mock is already set by Set")
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation == nil {
+		mmListTerritoryAdmins.defaultExpectation = &RepositoryMockListTerritoryAdminsExpectation{}
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation.params != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("RepositoryMock.ListTerritoryAdmins mock is already set by Expect")
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation.paramPtrs == nil {
+		mmListTerritoryAdmins.defaultExpectation.paramPtrs = &RepositoryMockListTerritoryAdminsParamPtrs{}
+	}
+	mmListTerritoryAdmins.defaultExpectation.paramPtrs.slugs = &slugs
+	mmListTerritoryAdmins.defaultExpectation.expectationOrigins.originSlugs = minimock.CallerInfo(1)
+
+	return mmListTerritoryAdmins
+}
+
+// Inspect accepts an inspector function that has same arguments as the Repository.ListTerritoryAdmins
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) Inspect(f func(ctx context.Context, slugs []string)) *mRepositoryMockListTerritoryAdmins {
+	if mmListTerritoryAdmins.mock.inspectFuncListTerritoryAdmins != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("Inspect function is already set for RepositoryMock.ListTerritoryAdmins")
+	}
+
+	mmListTerritoryAdmins.mock.inspectFuncListTerritoryAdmins = f
+
+	return mmListTerritoryAdmins
+}
+
+// Return sets up results that will be returned by Repository.ListTerritoryAdmins
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) Return(m1 map[string][]string, err error) *RepositoryMock {
+	if mmListTerritoryAdmins.mock.funcListTerritoryAdmins != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("RepositoryMock.ListTerritoryAdmins mock is already set by Set")
+	}
+
+	if mmListTerritoryAdmins.defaultExpectation == nil {
+		mmListTerritoryAdmins.defaultExpectation = &RepositoryMockListTerritoryAdminsExpectation{mock: mmListTerritoryAdmins.mock}
+	}
+	mmListTerritoryAdmins.defaultExpectation.results = &RepositoryMockListTerritoryAdminsResults{m1, err}
+	mmListTerritoryAdmins.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmListTerritoryAdmins.mock
+}
+
+// Set uses given function f to mock the Repository.ListTerritoryAdmins method
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) Set(f func(ctx context.Context, slugs []string) (m1 map[string][]string, err error)) *RepositoryMock {
+	if mmListTerritoryAdmins.defaultExpectation != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("Default expectation is already set for the Repository.ListTerritoryAdmins method")
+	}
+
+	if len(mmListTerritoryAdmins.expectations) > 0 {
+		mmListTerritoryAdmins.mock.t.Fatalf("Some expectations are already set for the Repository.ListTerritoryAdmins method")
+	}
+
+	mmListTerritoryAdmins.mock.funcListTerritoryAdmins = f
+	mmListTerritoryAdmins.mock.funcListTerritoryAdminsOrigin = minimock.CallerInfo(1)
+	return mmListTerritoryAdmins.mock
+}
+
+// When sets expectation for the Repository.ListTerritoryAdmins which will trigger the result defined by the following
+// Then helper
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) When(ctx context.Context, slugs []string) *RepositoryMockListTerritoryAdminsExpectation {
+	if mmListTerritoryAdmins.mock.funcListTerritoryAdmins != nil {
+		mmListTerritoryAdmins.mock.t.Fatalf("RepositoryMock.ListTerritoryAdmins mock is already set by Set")
+	}
+
+	expectation := &RepositoryMockListTerritoryAdminsExpectation{
+		mock:               mmListTerritoryAdmins.mock,
+		params:             &RepositoryMockListTerritoryAdminsParams{ctx, slugs},
+		expectationOrigins: RepositoryMockListTerritoryAdminsExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmListTerritoryAdmins.expectations = append(mmListTerritoryAdmins.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Repository.ListTerritoryAdmins return parameters for the expectation previously defined by the When method
+func (e *RepositoryMockListTerritoryAdminsExpectation) Then(m1 map[string][]string, err error) *RepositoryMock {
+	e.results = &RepositoryMockListTerritoryAdminsResults{m1, err}
+	return e.mock
+}
+
+// Times sets number of times Repository.ListTerritoryAdmins should be invoked
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) Times(n uint64) *mRepositoryMockListTerritoryAdmins {
+	if n == 0 {
+		mmListTerritoryAdmins.mock.t.Fatalf("Times of RepositoryMock.ListTerritoryAdmins mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmListTerritoryAdmins.expectedInvocations, n)
+	mmListTerritoryAdmins.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmListTerritoryAdmins
+}
+
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) invocationsDone() bool {
+	if len(mmListTerritoryAdmins.expectations) == 0 && mmListTerritoryAdmins.defaultExpectation == nil && mmListTerritoryAdmins.mock.funcListTerritoryAdmins == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmListTerritoryAdmins.mock.afterListTerritoryAdminsCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmListTerritoryAdmins.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// ListTerritoryAdmins implements mm_service.Repository
+func (mmListTerritoryAdmins *RepositoryMock) ListTerritoryAdmins(ctx context.Context, slugs []string) (m1 map[string][]string, err error) {
+	mm_atomic.AddUint64(&mmListTerritoryAdmins.beforeListTerritoryAdminsCounter, 1)
+	defer mm_atomic.AddUint64(&mmListTerritoryAdmins.afterListTerritoryAdminsCounter, 1)
+
+	mmListTerritoryAdmins.t.Helper()
+
+	if mmListTerritoryAdmins.inspectFuncListTerritoryAdmins != nil {
+		mmListTerritoryAdmins.inspectFuncListTerritoryAdmins(ctx, slugs)
+	}
+
+	mm_params := RepositoryMockListTerritoryAdminsParams{ctx, slugs}
+
+	// Record call args
+	mmListTerritoryAdmins.ListTerritoryAdminsMock.mutex.Lock()
+	mmListTerritoryAdmins.ListTerritoryAdminsMock.callArgs = append(mmListTerritoryAdmins.ListTerritoryAdminsMock.callArgs, &mm_params)
+	mmListTerritoryAdmins.ListTerritoryAdminsMock.mutex.Unlock()
+
+	for _, e := range mmListTerritoryAdmins.ListTerritoryAdminsMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.m1, e.results.err
+		}
+	}
+
+	if mmListTerritoryAdmins.ListTerritoryAdminsMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmListTerritoryAdmins.ListTerritoryAdminsMock.defaultExpectation.Counter, 1)
+		mm_want := mmListTerritoryAdmins.ListTerritoryAdminsMock.defaultExpectation.params
+		mm_want_ptrs := mmListTerritoryAdmins.ListTerritoryAdminsMock.defaultExpectation.paramPtrs
+
+		mm_got := RepositoryMockListTerritoryAdminsParams{ctx, slugs}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmListTerritoryAdmins.t.Errorf("RepositoryMock.ListTerritoryAdmins got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListTerritoryAdmins.ListTerritoryAdminsMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.slugs != nil && !minimock.Equal(*mm_want_ptrs.slugs, mm_got.slugs) {
+				mmListTerritoryAdmins.t.Errorf("RepositoryMock.ListTerritoryAdmins got unexpected parameter slugs, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmListTerritoryAdmins.ListTerritoryAdminsMock.defaultExpectation.expectationOrigins.originSlugs, *mm_want_ptrs.slugs, mm_got.slugs, minimock.Diff(*mm_want_ptrs.slugs, mm_got.slugs))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmListTerritoryAdmins.t.Errorf("RepositoryMock.ListTerritoryAdmins got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmListTerritoryAdmins.ListTerritoryAdminsMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmListTerritoryAdmins.ListTerritoryAdminsMock.defaultExpectation.results
+		if mm_results == nil {
+			mmListTerritoryAdmins.t.Fatal("No results are set for the RepositoryMock.ListTerritoryAdmins")
+		}
+		return (*mm_results).m1, (*mm_results).err
+	}
+	if mmListTerritoryAdmins.funcListTerritoryAdmins != nil {
+		return mmListTerritoryAdmins.funcListTerritoryAdmins(ctx, slugs)
+	}
+	mmListTerritoryAdmins.t.Fatalf("Unexpected call to RepositoryMock.ListTerritoryAdmins. %v %v", ctx, slugs)
+	return
+}
+
+// ListTerritoryAdminsAfterCounter returns a count of finished RepositoryMock.ListTerritoryAdmins invocations
+func (mmListTerritoryAdmins *RepositoryMock) ListTerritoryAdminsAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListTerritoryAdmins.afterListTerritoryAdminsCounter)
+}
+
+// ListTerritoryAdminsBeforeCounter returns a count of RepositoryMock.ListTerritoryAdmins invocations
+func (mmListTerritoryAdmins *RepositoryMock) ListTerritoryAdminsBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmListTerritoryAdmins.beforeListTerritoryAdminsCounter)
+}
+
+// Calls returns a list of arguments used in each call to RepositoryMock.ListTerritoryAdmins.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmListTerritoryAdmins *mRepositoryMockListTerritoryAdmins) Calls() []*RepositoryMockListTerritoryAdminsParams {
+	mmListTerritoryAdmins.mutex.RLock()
+
+	argCopy := make([]*RepositoryMockListTerritoryAdminsParams, len(mmListTerritoryAdmins.callArgs))
+	copy(argCopy, mmListTerritoryAdmins.callArgs)
+
+	mmListTerritoryAdmins.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockListTerritoryAdminsDone returns true if the count of the ListTerritoryAdmins invocations corresponds
+// the number of defined expectations
+func (m *RepositoryMock) MinimockListTerritoryAdminsDone() bool {
+	if m.ListTerritoryAdminsMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.ListTerritoryAdminsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.ListTerritoryAdminsMock.invocationsDone()
+}
+
+// MinimockListTerritoryAdminsInspect logs each unmet expectation
+func (m *RepositoryMock) MinimockListTerritoryAdminsInspect() {
+	for _, e := range m.ListTerritoryAdminsMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to RepositoryMock.ListTerritoryAdmins at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterListTerritoryAdminsCounter := mm_atomic.LoadUint64(&m.afterListTerritoryAdminsCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.ListTerritoryAdminsMock.defaultExpectation != nil && afterListTerritoryAdminsCounter < 1 {
+		if m.ListTerritoryAdminsMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to RepositoryMock.ListTerritoryAdmins at\n%s", m.ListTerritoryAdminsMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to RepositoryMock.ListTerritoryAdmins at\n%s with params: %#v", m.ListTerritoryAdminsMock.defaultExpectation.expectationOrigins.origin, *m.ListTerritoryAdminsMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcListTerritoryAdmins != nil && afterListTerritoryAdminsCounter < 1 {
+		m.t.Errorf("Expected call to RepositoryMock.ListTerritoryAdmins at\n%s", m.funcListTerritoryAdminsOrigin)
+	}
+
+	if !m.ListTerritoryAdminsMock.invocationsDone() && afterListTerritoryAdminsCounter > 0 {
+		m.t.Errorf("Expected %d calls to RepositoryMock.ListTerritoryAdmins at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.ListTerritoryAdminsMock.expectedInvocations), m.ListTerritoryAdminsMock.expectedInvocationsOrigin, afterListTerritoryAdminsCounter)
+	}
+}
+
 type mRepositoryMockListTerritoryArtifacts struct {
 	optional           bool
 	mock               *RepositoryMock
@@ -13567,6 +13920,8 @@ func (m *RepositoryMock) MinimockFinish() {
 
 			m.MinimockListTerritoriesInspect()
 
+			m.MinimockListTerritoryAdminsInspect()
+
 			m.MinimockListTerritoryArtifactsInspect()
 
 			m.MinimockRegisterModelArtifactInspect()
@@ -13642,6 +13997,7 @@ func (m *RepositoryMock) minimockDone() bool {
 		m.MinimockListPanoramaIDsDone() &&
 		m.MinimockListPlacementsDone() &&
 		m.MinimockListTerritoriesDone() &&
+		m.MinimockListTerritoryAdminsDone() &&
 		m.MinimockListTerritoryArtifactsDone() &&
 		m.MinimockRegisterModelArtifactDone() &&
 		m.MinimockRegisterTerritoryArtifactDone() &&

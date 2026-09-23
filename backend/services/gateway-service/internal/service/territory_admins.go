@@ -12,3 +12,28 @@ func (g *Gateway) SetTerritoryAdmins(ctx context.Context, slug string, adminIDs 
 func (g *Gateway) GetTerritoryAdmins(ctx context.Context, slug string) ([]string, error) {
 	return g.catalog.GetTerritoryAdmins(ctx, slug)
 }
+
+// ListTerritoryAdmins returns the admin ids of every territory visible to
+// scopeAdminID (empty = all), keyed by slug: the set GET /api/territories
+// lists, resolved the same way. A territory nobody is assigned to maps to [],
+// never to a missing key.
+func (g *Gateway) ListTerritoryAdmins(ctx context.Context, scopeAdminID string) (map[string][]string, error) {
+	territories, err := g.catalog.ListTerritories(ctx, scopeAdminID)
+	if err != nil {
+		return nil, err
+	}
+	slugs := make([]string, len(territories))
+	for i, t := range territories {
+		slugs[i] = t.Slug
+	}
+	assigned, err := g.catalog.ListTerritoryAdmins(ctx, slugs)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string][]string, len(slugs))
+	for _, slug := range slugs {
+		// Not slices.Clone: it keeps nil, and nil marshals as null, not [].
+		out[slug] = append([]string{}, assigned[slug]...)
+	}
+	return out, nil
+}

@@ -127,3 +127,22 @@ func (s *BatchSuite) TestListsCarryEachLODChainInOrder() {
 	assert.DeepEqual(s.T(), lodsOf(models[i].Artifacts), []uint32{0, 1, 2})
 	assert.Equal(s.T(), models[i].Artifacts[2].Hash, "m-2")
 }
+
+func (s *BatchSuite) TestTerritoryAdminsComeBackPerSlug() {
+	ctx := s.T().Context()
+	other := "22222222-2222-2222-2222-222222222222"
+	s.seedTerritory(ctx, "admins-a", s.admin)
+	s.seedTerritory(ctx, "admins-b", s.admin, other)
+	s.seedTerritory(ctx, "admins-none")
+	s.seedTerritory(ctx, "admins-unasked", other)
+
+	got, err := s.pg.ListTerritoryAdmins(ctx, []string{"admins-a", "admins-b", "admins-none", "no-such"})
+	assert.NilError(s.T(), err)
+	// Two inserts can share a created_at to the microsecond; the contract under
+	// test is which ids land where, so compare sets.
+	slices.Sort(got["admins-b"])
+	assert.DeepEqual(s.T(), got, map[string][]string{
+		"admins-a": {s.admin},
+		"admins-b": {s.admin, other},
+	})
+}

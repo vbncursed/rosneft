@@ -31,6 +31,7 @@ type Repository interface {
 	DeleteTerritory(ctx context.Context, slug string) error
 	SetTerritoryAdmins(ctx context.Context, slug string, adminIDs []string) error
 	GetTerritoryAdmins(ctx context.Context, slug string) ([]string, error)
+	ListTerritoryAdmins(ctx context.Context, slugs []string) (map[string][]string, error)
 	RegisterTerritoryArtifact(ctx context.Context, a domain.Artifact) (domain.Artifact, error)
 	GetTerritoryArtifact(ctx context.Context, slug string, lod uint32) (domain.Artifact, error)
 	ListTerritoryArtifacts(ctx context.Context, slug string) ([]domain.Artifact, error)

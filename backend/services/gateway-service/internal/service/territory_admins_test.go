@@ -1,0 +1,50 @@
+package service_test
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/suite"
+	"gotest.tools/v3/assert"
+
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/service"
+	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/service/mocks"
+)
+
+type TerritoryAdminsSuite struct {
+	suite.Suite
+	cat *mocks.CatalogMock
+	svc *service.Gateway
+	ctx context.Context
+}
+
+func TestTerritoryAdminsSuite(t *testing.T) { suite.Run(t, new(TerritoryAdminsSuite)) }
+
+func (s *TerritoryAdminsSuite) SetupTest() {
+	mc := minimock.NewController(s.T())
+	s.cat = mocks.NewCatalogMock(mc)
+	s.svc = service.New(s.cat, mocks.NewContentMock(mc), mocks.NewMeshMock(mc), mocks.NewUploadMock(mc), mocks.NewAuditMock(mc), mocks.NewAuthMock(mc))
+	s.ctx = s.T().Context()
+}
+
+// The access screen reads a missing key as "not loaded", so a territory nobody
+// is assigned to must answer [] rather than vanish.
+func (s *TerritoryAdminsSuite) TestEveryVisibleTerritoryGetsAKey() {
+	s.cat.ListTerritoriesMock.Expect(s.ctx, "admin-a").Return([]domain.Territory{{Slug: "a"}, {Slug: "b"}}, nil)
+	s.cat.ListTerritoryAdminsMock.Expect(s.ctx, []string{"a", "b"}).Return(map[string][]string{"a": {"u1"}}, nil)
+
+	got, err := s.svc.ListTerritoryAdmins(s.ctx, "admin-a")
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), got, map[string][]string{"a": {"u1"}, "b": {}})
+}
+
+func (s *TerritoryAdminsSuite) TestACatalogFailureIsNotAnEmptyAnswer() {
+	boom := errors.New("catalog down")
+	s.cat.ListTerritoriesMock.Expect(s.ctx, "").Return(nil, boom)
+
+	_, err := s.svc.ListTerritoryAdmins(s.ctx, "")
+	assert.ErrorIs(s.T(), err, boom)
+}

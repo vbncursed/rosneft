@@ -35,6 +35,7 @@ const (
 	CatalogService_RescaleTerritoryPlacements_FullMethodName  = "/rosneft.catalog.v1.CatalogService/RescaleTerritoryPlacements"
 	CatalogService_SetTerritoryAdmins_FullMethodName          = "/rosneft.catalog.v1.CatalogService/SetTerritoryAdmins"
 	CatalogService_GetTerritoryAdmins_FullMethodName          = "/rosneft.catalog.v1.CatalogService/GetTerritoryAdmins"
+	CatalogService_ListTerritoryAdmins_FullMethodName         = "/rosneft.catalog.v1.CatalogService/ListTerritoryAdmins"
 	CatalogService_ListModels_FullMethodName                  = "/rosneft.catalog.v1.CatalogService/ListModels"
 	CatalogService_GetModel_FullMethodName                    = "/rosneft.catalog.v1.CatalogService/GetModel"
 	CatalogService_UpsertModel_FullMethodName                 = "/rosneft.catalog.v1.CatalogService/UpsertModel"
@@ -99,6 +100,9 @@ type CatalogServiceClient interface {
 	RescaleTerritoryPlacements(ctx context.Context, in *RescaleTerritoryPlacementsRequest, opts ...grpc.CallOption) (*RescaleTerritoryPlacementsResponse, error)
 	SetTerritoryAdmins(ctx context.Context, in *SetTerritoryAdminsRequest, opts ...grpc.CallOption) (*SetTerritoryAdminsResponse, error)
 	GetTerritoryAdmins(ctx context.Context, in *GetTerritoryAdminsRequest, opts ...grpc.CallOption) (*GetTerritoryAdminsResponse, error)
+	// ListTerritoryAdmins is GetTerritoryAdmins for many territories in one
+	// query: the access screen used to ask once per territory.
+	ListTerritoryAdmins(ctx context.Context, in *ListTerritoryAdminsRequest, opts ...grpc.CallOption) (*ListTerritoryAdminsResponse, error)
 	ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error)
 	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*GetModelResponse, error)
 	UpsertModel(ctx context.Context, in *UpsertModelRequest, opts ...grpc.CallOption) (*UpsertModelResponse, error)
@@ -283,6 +287,16 @@ func (c *catalogServiceClient) GetTerritoryAdmins(ctx context.Context, in *GetTe
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetTerritoryAdminsResponse)
 	err := c.cc.Invoke(ctx, CatalogService_GetTerritoryAdmins_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) ListTerritoryAdmins(ctx context.Context, in *ListTerritoryAdminsRequest, opts ...grpc.CallOption) (*ListTerritoryAdminsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListTerritoryAdminsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListTerritoryAdmins_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -513,6 +527,9 @@ type CatalogServiceServer interface {
 	RescaleTerritoryPlacements(context.Context, *RescaleTerritoryPlacementsRequest) (*RescaleTerritoryPlacementsResponse, error)
 	SetTerritoryAdmins(context.Context, *SetTerritoryAdminsRequest) (*SetTerritoryAdminsResponse, error)
 	GetTerritoryAdmins(context.Context, *GetTerritoryAdminsRequest) (*GetTerritoryAdminsResponse, error)
+	// ListTerritoryAdmins is GetTerritoryAdmins for many territories in one
+	// query: the access screen used to ask once per territory.
+	ListTerritoryAdmins(context.Context, *ListTerritoryAdminsRequest) (*ListTerritoryAdminsResponse, error)
 	ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error)
 	GetModel(context.Context, *GetModelRequest) (*GetModelResponse, error)
 	UpsertModel(context.Context, *UpsertModelRequest) (*UpsertModelResponse, error)
@@ -590,6 +607,9 @@ func (UnimplementedCatalogServiceServer) SetTerritoryAdmins(context.Context, *Se
 }
 func (UnimplementedCatalogServiceServer) GetTerritoryAdmins(context.Context, *GetTerritoryAdminsRequest) (*GetTerritoryAdminsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetTerritoryAdmins not implemented")
+}
+func (UnimplementedCatalogServiceServer) ListTerritoryAdmins(context.Context, *ListTerritoryAdminsRequest) (*ListTerritoryAdminsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTerritoryAdmins not implemented")
 }
 func (UnimplementedCatalogServiceServer) ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListModels not implemented")
@@ -950,6 +970,24 @@ func _CatalogService_GetTerritoryAdmins_Handler(srv interface{}, ctx context.Con
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CatalogServiceServer).GetTerritoryAdmins(ctx, req.(*GetTerritoryAdminsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_ListTerritoryAdmins_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTerritoryAdminsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ListTerritoryAdmins(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ListTerritoryAdmins_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ListTerritoryAdmins(ctx, req.(*ListTerritoryAdminsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1348,6 +1386,10 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetTerritoryAdmins",
 			Handler:    _CatalogService_GetTerritoryAdmins_Handler,
+		},
+		{
+			MethodName: "ListTerritoryAdmins",
+			Handler:    _CatalogService_ListTerritoryAdmins_Handler,
 		},
 		{
 			MethodName: "ListModels",
