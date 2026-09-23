@@ -10,6 +10,10 @@ var (
 	ErrPanoramaNotFound  = errors.New("panorama not found")
 	ErrDocumentNotFound  = errors.New("document not found")
 	ErrInvalidInput      = errors.New("invalid input")
+	// ErrImageTooLarge refuses a thumbnail source whose header claims more
+	// pixels than a decode may allocate. It never reaches transport: a
+	// panorama without a thumbnail is still created.
+	ErrImageTooLarge = errors.New("image too large")
 	// ErrSlugConflict means the proposed slug is already taken. The service
 	// retries with the next numbered candidate; it never reaches transport.
 	ErrSlugConflict = errors.New("slug already exists")
