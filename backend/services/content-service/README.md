@@ -20,6 +20,11 @@ with catalog, isolated by its own `content_goose_db_version` table; the
   point in the territory's normalized scene-units space (`position` Vec3 +
   `yaw_offset`). Slug is derived from the title and made unique per territory.
 - Validates that the anchoring territory exists (read-only existence check).
+- **Thumbnails**: makes a 256×128 JPEG of every panorama (`internal/thumbnail`)
+  into the shared `blob-data` volume, mounted read-write at `CONTENT_BLOB_DIR`
+  (default `/var/blob`). It is made at create time, where a failure is logged
+  and the panorama still created, and by a startup backfill of every row whose
+  `thumbnail_blob_hash` is `''`, one at a time.
 
 ## Layout
 
@@ -72,7 +77,7 @@ their migration histories are kept separate by a custom goose version table,
 | Table | Purpose |
 | --- | --- |
 | `territory_documents` | id, `territory_id` → `territories(id)` `ON DELETE CASCADE`, title, `source_blob_hash`, `created_at`. |
-| `panoramas` | id, `territory_id` → `territories(id)` `ON DELETE CASCADE`, slug (`UNIQUE(territory_id, slug)`), title, `source_blob_hash`, `position_{x,y,z}`, `yaw_offset`, timestamps. |
+| `panoramas` | id, `territory_id` → `territories(id)` `ON DELETE CASCADE`, slug (`UNIQUE(territory_id, slug)`), title, `source_blob_hash`, `position_{x,y,z}`, `yaw_offset`, timestamps, thumbnail_blob_hash ('' until made; catalog 00020). |
 
 Because the tables live in the shared DB, the `territories` foreign key cascade
 still deletes a territory's documents/panoramas automatically — no application

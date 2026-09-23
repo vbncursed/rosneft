@@ -27,7 +27,7 @@ func TestDocumentsSuite(t *testing.T) {
 
 func (s *DocumentsSuite) SetupTest() {
 	s.repo = mocks.NewRepositoryMock(minimock.NewController(s.T()))
-	s.svc = service.New(s.repo)
+	s.svc = service.New(s.repo, nil) // documents never make a thumbnail
 	s.ctx = s.T().Context()
 }
 

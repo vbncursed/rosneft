@@ -217,6 +217,10 @@ services:
       dockerfile: services/content-service/Dockerfile
     depends_on:
       postgres: { condition: service_healthy }
+      # Catalog owns the panoramas DDL: content selects thumbnail_blob_hash
+      # (catalog 00020) from its first request, and its thumbnail backfill
+      # runs once, at startup. Catalog migrates before it reports healthy.
+      catalog: { condition: service_healthy }
     expose:
       - "9007"
     environment:
@@ -224,6 +228,7 @@ services:
       CONTENT_GRPC_ADDR: ":9007"
       # Shares the andrey DB with catalog/auth/twofa; isolated by content_goose_db_version.
       CONTENT_DB_DSN: "postgres://andrey:andrey@postgres:5432/andrey?sslmode=disable"
+      CONTENT_BLOB_DIR: "/var/blob"
       CONTENT_AUTO_MIGRATE: "true"
       CONTENT_LOG_LEVEL: "info"
     healthcheck:
@@ -233,6 +238,10 @@ services:
       retries: 3
       # Covers the migration window on boot.
       start_period: 30s
+    volumes:
+      # Read-write: panorama sources are read here and their 256×128
+      # thumbnails written back (internal/thumbnail).
+      - blob-data:/var/blob
 
   audit:
     restart: unless-stopped
