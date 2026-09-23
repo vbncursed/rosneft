@@ -656,8 +656,15 @@ screen.
 
 Rulings from those screens that a later one will meet again:
 
-- **Reset password is not rendered.** No endpoint wires it, and an action with
-  no endpoint is not drawn.
+- **Reset password is drawn only where the gateway would allow it**
+  (`canResetPassword`, `pages/users/model/people.ts`): never on the reader's
+  own row (`/account` asks for the old password), and on a Company Owner's or
+  Root's row only for Root. `PUT /api/auth/users/{id}/password` signs the user
+  out everywhere; the dialog opens holding a generated password, shown.
+- **The role pickers offer `admin` (Company Owner) to Root alone**
+  (`assignableRoles`, same file): the gateway answers anyone else's grant of it
+  with 403. Both the create-user dialog and the add-role dialog read
+  `assignableRoles`; `roles` stays whole because the groups and counts need it.
 - **No owner toggle** — not drawn in the mocks, so not built. The endpoint
   exists (`POST /api/auth/users/{id}/owner`) and is deliberately left unwired
   (plan ruling 5); this is not the "an action with no endpoint is not drawn"

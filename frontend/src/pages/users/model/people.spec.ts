@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { Role } from "@/entities/role";
 import type { User } from "@/entities/user";
-import { coverageOf, groupPeople, inspectorDetails, matchesPerson, statsOf } from "./people";
+import type { Principal } from "@/shared/session";
+import {
+  assignableRoles,
+  canResetPassword,
+  coverageOf,
+  groupPeople,
+  inspectorDetails,
+  matchesPerson,
+  statsOf,
+} from "./people";
 
 const make = (id: string, username: string, roles: string[], over: Partial<User> = {}): User => ({
   id,
@@ -146,5 +155,53 @@ describe("inspectorDetails", () => {
       ["No", "bad"],
       ["no", "dim"],
     ]);
+  });
+});
+
+const me = (over: Partial<Principal> = {}): Principal => ({
+  id: "me",
+  email: "me@x",
+  username: "me",
+  status: "active",
+  totpEnabled: true,
+  totpRequired: false,
+  passkeyEnabled: null,
+  roleSlugs: ["admin"],
+  roleTitles: {},
+  permissions: ["users:write"],
+  isOwner: false,
+  onboardingToursSeen: [],
+  ...over,
+});
+
+describe("canResetPassword", () => {
+  it("lets a manager reset someone else's password", () => {
+    expect(canResetPassword(me(), make("u1", "a", ["guest"]))).toBe(true);
+  });
+
+  it("never offers the reader their own — /account asks for the old one", () => {
+    expect(canResetPassword(me({ isOwner: true }), make("me", "me", ["admin"]))).toBe(false);
+  });
+
+  it("keeps a Company Owner's and Root's password to Root", () => {
+    expect(canResetPassword(me(), make("c2", "c", ["admin"]))).toBe(false);
+    expect(canResetPassword(me(), make("r", "root", [], { isOwner: true }))).toBe(false);
+    expect(canResetPassword(me({ isOwner: true, permissions: [] }), make("c2", "c", ["admin"]))).toBe(true);
+  });
+
+  it("offers nothing without users:write, or with nobody open", () => {
+    expect(canResetPassword(me({ permissions: ["users:read"] }), make("u1", "a", ["guest"]))).toBe(false);
+    expect(canResetPassword(me(), null)).toBe(false);
+    expect(canResetPassword(null, make("u1", "a", ["guest"]))).toBe(false);
+  });
+});
+
+describe("assignableRoles", () => {
+  const roles = [role("admin", "Company Owner"), role("guest", "Guest"), role("auditor", "Auditor", "custom")];
+
+  it("offers the Company Owner role to Root alone — anyone else would get a 403", () => {
+    expect(assignableRoles(me({ isOwner: true }), roles).map((r) => r.slug)).toEqual(["admin", "guest", "auditor"]);
+    expect(assignableRoles(me(), roles).map((r) => r.slug)).toEqual(["guest", "auditor"]);
+    expect(assignableRoles(null, roles).map((r) => r.slug)).toEqual(["guest", "auditor"]);
   });
 });

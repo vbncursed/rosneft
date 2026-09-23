@@ -97,6 +97,14 @@ describe("PasswordField", () => {
       expect.arrayContaining(["enabled:active:scale-95", "transition-[color,scale]"]),
     );
   });
+
+  it("starts shown when asked, and the toggle still hides it", async () => {
+    render(<PasswordField label="Password" defaultValue="x" defaultRevealed />);
+    expect(input()).toHaveAttribute("type", "text");
+
+    await userEvent.click(screen.getByRole("button", { name: "Hide password" }));
+    expect(input()).toHaveAttribute("type", "password");
+  });
 });
 
 describe("PasswordField · tooltip", () => {

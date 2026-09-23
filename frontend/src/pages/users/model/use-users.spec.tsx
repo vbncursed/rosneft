@@ -310,4 +310,47 @@ describe("useUsers", () => {
     await waitFor(() => expect(client.getQueryState(["users"])?.error).not.toBeNull());
     expect(result.current.status).toBe("loading");
   });
+
+  it("resets the open person's password, closes the dialog and says they were signed out", async () => {
+    const answer = fetchMock.getMockImplementation() as (url: string, init?: RequestInit) => Promise<Response>;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) =>
+      init?.method === "PUT" ? new Response(null, { status: 204 }) : answer(url, init),
+    );
+    const { result } = renderHook(() => ({ users: useUsers(), notices: useNotices() }), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.users.status).toBe("ready"));
+    act(() => result.current.users.select("u-1"));
+    expect(result.current.users.canResetPassword).toBe(true);
+    act(() => result.current.users.setResetting(true));
+
+    act(() => result.current.users.resetPassword("N3w-Passw0rd!"));
+    await waitFor(() =>
+      expect(result.current.notices[0]?.message).toBe(
+        "Password changed. The user was signed out everywhere.",
+      ),
+    );
+    expect(result.current.users.resetting).toBe(false);
+    const put = fetchMock.mock.calls.find(([, i]) => (i as RequestInit | undefined)?.method === "PUT");
+    expect(put![0]).toBe("/api/auth/users/u-1/password");
+    expect(JSON.parse(String((put![1] as RequestInit).body))).toEqual({ password: "N3w-Passw0rd!" });
+  });
+
+  it("offers the Company Owner role for assignment to Root alone", async () => {
+    const answer = fetchMock.getMockImplementation() as (url: string, init?: RequestInit) => Promise<Response>;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) =>
+      url === "/api/auth/roles"
+        ? json([{ ...ROLE, slug: "admin", title: "Company Owner" }, ROLE])
+        : answer(url, init),
+    );
+    const { result } = renderHook(() => useUsers(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.roles.map((r) => r.slug)).toEqual(["admin", "guest"]);
+    expect(result.current.assignableRoles.map((r) => r.slug)).toEqual(["guest"]);
+
+    act(() => client.setQueryData(["me"], { ...PRINCIPAL, isOwner: true }));
+    await waitFor(() =>
+      expect(result.current.assignableRoles.map((r) => r.slug)).toEqual(["admin", "guest"]),
+    );
+  });
 });

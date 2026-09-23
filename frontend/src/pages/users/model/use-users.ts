@@ -8,6 +8,7 @@ import {
   meQuery,
   restoreUser,
   setTwoFactorRequired,
+  setUserPassword,
   setUserRoles,
   unfreezeUser,
   usersQuery,
@@ -18,6 +19,7 @@ import { HttpError, messageOf } from "@/shared/api";
 import { notify } from "@/shared/lib/notify";
 import { unanswered } from "@/shared/lib/unanswered";
 import { can } from "@/shared/session";
+import { assignableRoles, canResetPassword } from "./people";
 
 export type ActionKind =
   | "freeze"
@@ -63,6 +65,8 @@ export type UsersState = {
   error: string | null;
   users: User[] | null;
   roles: Role[];
+  /** The roles a picker may offer this reader: `admin` only to Root. */
+  assignableRoles: Role[];
   canManage: boolean;
   query: string;
   setQuery: (q: string) => void;
@@ -82,6 +86,12 @@ export type UsersState = {
   setAddingRole: (open: boolean) => void;
   setRoles: (roleSlugs: string[]) => void;
   rolesBusy: boolean;
+  /** Whether this reader may set the open person's password. */
+  canResetPassword: boolean;
+  resetting: boolean;
+  setResetting: (open: boolean) => void;
+  resetPassword: (password: string) => void;
+  resetBusy: boolean;
 };
 
 /**
@@ -100,6 +110,7 @@ export function useUsers(): UsersState {
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [creating, setCreating] = useState(false);
   const [addingRole, setAddingRole] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const selected = users.data?.find((u) => u.id === selectedId) ?? null;
   const refresh = () => client.invalidateQueries({ queryKey: ["users"] });
@@ -138,6 +149,17 @@ export function useUsers(): UsersState {
     onError: fail,
   });
 
+  // No refresh: nothing on the list changes when a password does.
+  const reset = useMutation({
+    mutationFn: ({ id, password }: { id: string; password: string }) =>
+      setUserPassword(id, password),
+    onSuccess: () => {
+      notify.success("Password changed. The user was signed out everywhere.");
+      setResetting(false);
+    },
+    onError: fail,
+  });
+
   // Both queries, not just the list. With roles still pending — or refused,
   // which `users:read` alone gets — every person would file under "No role"
   // and "Roles in use" would read 0: a confident wrong answer wearing a
@@ -156,6 +178,7 @@ export function useUsers(): UsersState {
     error: failed ? messageOf(failed) : null,
     users: users.data ?? null,
     roles: roles.data ?? [],
+    assignableRoles: assignableRoles(me, roles.data ?? []),
     canManage: can(me, "users:write"),
     query,
     setQuery,
@@ -174,5 +197,10 @@ export function useUsers(): UsersState {
     setAddingRole,
     setRoles: (roleSlugs) => selected && roleChange.mutate({ id: selected.id, roleSlugs }),
     rolesBusy: roleChange.isPending,
+    canResetPassword: canResetPassword(me, selected),
+    resetting,
+    setResetting,
+    resetPassword: (password) => selected && reset.mutate({ id: selected.id, password }),
+    resetBusy: reset.isPending,
   };
 }
