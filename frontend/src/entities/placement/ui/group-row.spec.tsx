@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { GroupRow } from "./group-row";
 
-const group = { model: { slug: "tank", title: "storage-tank-500" }, instances: [{ id: 1, index: 1, label: "" }, { id: 2, index: 2, label: "" }, { id: 3, index: 3, label: "" }] };
+const group = { model: { slug: "tank", title: "storage-tank-500" }, instances: [{ id: 1, index: 1, label: "", hidden: false, groupId: null }, { id: 2, index: 2, label: "", hidden: false, groupId: null }, { id: 3, index: 3, label: "", hidden: false, groupId: null }] };
 
 describe("GroupRow", () => {
   it("is an expandable button naming the model and its count", async () => {

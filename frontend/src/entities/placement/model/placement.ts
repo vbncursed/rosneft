@@ -22,9 +22,13 @@ export type Placement = PlacementTransform & {
   updatedAt: string;
   /**
    * Panorama ids this placement shows in — panorama mode only; the 3D view
-   * always shows every placement. Empty means hidden in every panorama.
+   * shows every placement that is not `hidden`. Empty means hidden in every panorama.
    */
   visiblePanoramaIds: number[];
+  /** Hidden for everyone who opens the territory (G-1): not drawn, not preloaded, not framed. */
+  hidden: boolean;
+  /** The user group it sits in (at most one, G-2); null is "No group". */
+  groupId: number | null;
 };
 
 export const IDENTITY_TRANSFORM: PlacementTransform = {
@@ -57,6 +61,8 @@ export type PlacementCreate = {
   label?: string;
   /** Initial panorama allowlist (e.g. the active panorama). */
   visiblePanoramaIds?: number[];
+  /** The user group it is placed into — a group's own Add (G-4). */
+  groupId?: number;
 };
 
 /** The PUT body: the whole transform, plus the label, every time. */

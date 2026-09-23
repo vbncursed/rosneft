@@ -40,6 +40,8 @@ const placement = (id: number, over: Partial<Placement> = {}): Placement => ({
   label: "",
   updatedAt: "t0",
   visiblePanoramaIds: [],
+  hidden: false,
+  groupId: null,
   ...IDENTITY_TRANSFORM,
   ...over,
 });

@@ -1,10 +1,10 @@
 import { clsx as cx } from "clsx";
 import { Icon } from "@/shared/ui/icon";
 import { Tooltip } from "@/shared/ui/tooltip";
-import { instanceLine, instanceName, type PlacementGroup, type PlacementInstance } from "../model/groups";
+import { instanceLine, instanceName, type ModelGroup, type PlacementInstance } from "../model/groups";
 
 export type InstanceRowProps = {
-  group: PlacementGroup;
+  group: ModelGroup;
   instance: PlacementInstance;
   selected: boolean;
   /** A mutation on this instance is in flight; its controls wait for it. */

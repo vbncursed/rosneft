@@ -33,7 +33,7 @@ export {
   instanceName,
   matchesObjects,
   realWorldScale,
-  type PlacementGroup,
+  type ModelGroup,
   type PlacementInstance,
 } from "./model/groups";
 export { GroupRow, type GroupRowProps } from "./ui/group-row";

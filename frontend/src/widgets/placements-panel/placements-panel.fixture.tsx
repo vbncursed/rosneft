@@ -1,30 +1,30 @@
 import { useState, type ReactNode } from "react";
-import type { PlacementGroup, PlacementTransform } from "@/entities/placement";
+import type { ModelGroup, PlacementTransform } from "@/entities/placement";
 import type { GizmoMode } from "@/features/viewer-mode";
 import { PlacementsPanel, type PlacementVisibility } from "./ui/placements-panel";
 import type { SelectedBlockProps } from "./ui/selected-block";
 
-const GROUPS: PlacementGroup[] = [
+const GROUPS: ModelGroup[] = [
   {
     model: { slug: "pipe-rack-12", title: "pipe-rack-12" },
-    instances: [{ id: 11, index: 1, label: "west run" }],
+    instances: [{ id: 11, index: 1, label: "west run", hidden: false, groupId: null }],
   },
   {
     model: { slug: "storage-tank-500", title: "storage-tank-500" },
     instances: [
-      { id: 1, index: 1, label: "" },
-      { id: 2, index: 2, label: "north row" },
-      { id: 3, index: 3, label: "" },
+      { id: 1, index: 1, label: "", hidden: false, groupId: null },
+      { id: 2, index: 2, label: "north row", hidden: false, groupId: null },
+      { id: 3, index: 3, label: "", hidden: false, groupId: null },
     ],
   },
 ];
 
-const RU_GROUPS: PlacementGroup[] = [
+const RU_GROUPS: ModelGroup[] = [
   {
     model: { slug: "nasos-nm-1250", title: "Насос НМ-1250" },
     instances: [
-      { id: 4, index: 1, label: "" },
-      { id: 5, index: 2, label: "" },
+      { id: 4, index: 1, label: "", hidden: false, groupId: null },
+      { id: 5, index: 2, label: "", hidden: false, groupId: null },
     ],
   },
 ];
@@ -63,7 +63,7 @@ function Live({
   width,
   visibility,
 }: {
-  groups?: PlacementGroup[];
+  groups?: ModelGroup[];
   grants: { create: boolean; write: boolean; delete: boolean };
   selectedId?: number | null;
   selected?: Omit<SelectedBlockProps, "gizmo" | "onGizmo" | "snap" | "onSnap"> | null;
@@ -149,7 +149,7 @@ function Form({
   selectedId?: number;
   start?: PlacementTransform;
   initialLabel?: string;
-  groups?: PlacementGroup[];
+  groups?: ModelGroup[];
   width?: number;
   compact?: boolean;
 }) {

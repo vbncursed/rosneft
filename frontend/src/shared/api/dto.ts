@@ -333,6 +333,99 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/territories/{slug}/placements/hidden": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Hide or show placements, all or none
+         * @description Requires placement:write. One catalog transaction over 1–1000 ids: an id that is unknown or on another territory answers 404 and nothing changes. Hiding is shared by everyone who opens the territory.
+         */
+        put: operations["setPlacementsHidden"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/territories/{slug}/placements/group": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Move placements into a group, or out of every group
+         * @description Requires placement:write. One catalog transaction over 1–1000 ids, all or none; groupId null means "No group". A placement id or group id that is unknown or on another territory answers 404.
+         */
+        put: operations["setPlacementsGroup"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/territories/{slug}/placement-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a placement group
+         * @description Requires placement:write. The groups are read through the scene bundle.
+         */
+        post: operations["createPlacementGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/territories/{slug}/placement-groups/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a placement group; its placements stay, in no group
+         * @description Requires placement:write. An id that belongs to another territory answers 404, the same as an unknown id.
+         */
+        delete: operations["deletePlacementGroup"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename a placement group
+         * @description Requires placement:write. An id that belongs to another territory answers 404, the same as an unknown id.
+         */
+        patch: operations["updatePlacementGroup"];
+        trace?: never;
+    };
     "/api/territories/{slug}/measurements": {
         parameters: {
             query?: never;
@@ -2588,6 +2681,13 @@ export interface components {
             updatedAt?: string;
             /** @description Allowlist of panorama ids this placement is shown in (panorama mode only — the 3D view always shows every placement). Empty means hidden in every panorama. */
             visiblePanoramaIds?: number[];
+            /** @description Shared: a hidden placement is not drawn for anyone who opens the territory. Changed only through PUT …/placements/hidden. */
+            hidden: boolean;
+            /**
+             * Format: int64
+             * @description The placement's group; omitted when it is in none.
+             */
+            groupId?: number;
         };
         PlacementCreate: {
             modelSlug: string;
@@ -2597,6 +2697,11 @@ export interface components {
             label?: string;
             /** @description Initial panorama allowlist (e.g. the active panorama). */
             visiblePanoramaIds?: number[];
+            /**
+             * Format: int64
+             * @description Group the new placement lands in; a group of another territory is 404.
+             */
+            groupId?: number;
         };
         PlacementBatchCreate: {
             items: components["schemas"]["PlacementCreate"][];
@@ -2610,6 +2715,35 @@ export interface components {
         PlacementVisibilityUpdate: {
             /** @description Full replacement allowlist of panorama ids. */
             panoramaIds: number[];
+        };
+        /** @description Hide or show every listed placement of the territory, all or none: an id that is unknown or on another territory answers 404 and nothing changes. A repeated id counts once. */
+        PlacementsHiddenUpdate: {
+            ids: number[];
+            hidden: boolean;
+        };
+        /** @description Move every listed placement into groupId, or out of any group when it is null, all or none. A group of another territory is 404, like an unknown one. */
+        PlacementsGroupUpdate: {
+            ids: number[];
+            /** Format: int64 */
+            groupId: number | null;
+        };
+        PlacementsUpdated: {
+            /** @description How many placements were written. */
+            updated: number;
+        };
+        /** @description A user-made group of placements on a territory. A placement is in at most one; deleting a group returns its placements to no group. */
+        PlacementGroup: {
+            /** Format: int64 */
+            id: number;
+            title: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PlacementGroupWrite: {
+            /** @description Trimmed; 1 to 120 characters must remain, else 400. */
+            title: string;
         };
         /**
          * @description A saved ruler chain on a territory, shared by everyone who can open
@@ -2823,6 +2957,8 @@ export interface components {
             documents?: components["schemas"]["Document"][];
             /** @description Saved measurement chains on this territory, by id; empty when none. */
             measurements: components["schemas"]["Measurement"][];
+            /** @description The territory's placement groups, by id; empty when none. */
+            placementGroups: components["schemas"]["PlacementGroup"][];
         };
         UploadInitiate: {
             /** Format: int64 */
@@ -3769,6 +3905,152 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    setPlacementsHidden: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementsHiddenUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementsUpdated"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    setPlacementsGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementsGroupUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementsUpdated"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    createPlacementGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementGroupWrite"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementGroup"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    deletePlacementGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    updatePlacementGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlacementGroupWrite"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementGroup"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             500: components["responses"]["Internal"];
         };

@@ -1,9 +1,9 @@
 import { clsx as cx } from "clsx";
 import { Icon } from "@/shared/ui/icon";
-import { groupLine, type PlacementGroup } from "../model/groups";
+import { groupLine, type ModelGroup } from "../model/groups";
 
 export type GroupRowProps = {
-  group: PlacementGroup;
+  group: ModelGroup;
   expanded: boolean;
   selectedId: number | null;
   onToggle: () => void;

@@ -2,7 +2,7 @@ import {
   GroupRow,
   InstanceRow,
   matchesObjects,
-  type PlacementGroup,
+  type ModelGroup,
 } from "@/entities/placement";
 import { Button } from "@/shared/ui/button";
 import { EmptyState } from "@/shared/ui/card";
@@ -26,7 +26,7 @@ export type PlacementVisibility = {
 };
 
 export type PlacementsPanelProps = {
-  groups: PlacementGroup[];
+  groups: ModelGroup[];
   query: string;
   onQuery: (query: string) => void;
   expandedModel: string | null;
@@ -79,7 +79,7 @@ export function PlacementsPanel({
 
   // The selection wins over the open model: a placement selected in the scene
   // has to be reachable in the list, whichever group the reader last opened.
-  const isOpen = (group: PlacementGroup) =>
+  const isOpen = (group: ModelGroup) =>
     expandedModel === group.model.slug || group.instances.some((i) => i.id === selectedId);
 
   const addButton = grants.create && canAdd ? (

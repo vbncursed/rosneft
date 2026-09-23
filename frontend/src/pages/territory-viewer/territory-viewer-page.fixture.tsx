@@ -115,6 +115,8 @@ const at = (id: number, modelSlug: string, x: number): ResolvedPlacement => ({
   label: "",
   updatedAt: "2026-09-09T14:00:00Z",
   visiblePanoramaIds: [],
+  hidden: false,
+  groupId: null,
   position: { x, y: 0, z: -8.25 },
   rotation: { x: 0, y: Math.PI / 2, z: 0 },
   scale: { x: 1, y: 1, z: 1 },

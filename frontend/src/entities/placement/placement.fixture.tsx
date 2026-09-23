@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { groupByModel, type PlacementGroup } from "./model/groups";
+import { groupByModel, type ModelGroup } from "./model/groups";
 import { IDENTITY_TRANSFORM, type Placement } from "./model/placement";
 import { GroupRow } from "./ui/group-row";
 import { InstanceRow } from "./ui/instance-row";
@@ -11,6 +11,8 @@ const make = (id: number, modelSlug: string, label = ""): Placement => ({
   label,
   updatedAt: "2026-08-31T14:02:00Z",
   visiblePanoramaIds: [4],
+  hidden: false,
+  groupId: null,
   ...IDENTITY_TRANSFORM,
 });
 
@@ -32,7 +34,7 @@ const noop = () => {};
 const handlers = { onSelect: noop, onRename: noop, onDelete: noop, onFocus: noop };
 
 const instance = (
-  group: PlacementGroup,
+  group: ModelGroup,
   index: number,
   props: { selected: boolean; pending: boolean; canWrite: boolean; canDelete: boolean },
 ) => <InstanceRow group={group} instance={group.instances[index]} {...props} {...handlers} />;
