@@ -152,6 +152,22 @@ describe("useReplaceSource", () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
+  // The gateway may have deleted the artifacts before the call failed: a
+  // cached bundle would still point at a LOD0 that no longer exists.
+  it("drops the cached scene bundle even when the replace call fails", async () => {
+    runChunkedUpload.mockResolvedValue({ hash: "n".repeat(64), size: 2048 });
+    replaceTerritorySource.mockRejectedValue(new Error("nope"));
+    const { result } = renderHook(() => useReplaceSource("t"), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    client.setQueryData(["scene", "t"], { artifact: { lod: 0 } });
+
+    act(() => ready(result.current).onFiles([file()]));
+    act(() => ready(result.current).onSubmit());
+
+    await waitFor(() => expect(ready(result.current).phase).toBe("picked"));
+    expect(client.getQueryData(["scene", "t"])).toBeUndefined();
+  });
+
   // The navigate is the last link in the promise chain, so it must be returned
   // rather than discarded: a rejected one belongs in the same .catch as a
   // rejected upload, not in an unhandled rejection.

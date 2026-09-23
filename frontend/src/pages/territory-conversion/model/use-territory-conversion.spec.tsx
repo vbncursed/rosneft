@@ -150,6 +150,23 @@ describe("useTerritoryConversion", () => {
     await waitFor(() => expect(r.result.current).toMatchObject({ status: "ready", phase: "ready" }));
   });
 
+  // Until the catalog and Home read `lods` off the list, their cards are built
+  // from ["artifacts", kind, slug]: a finish seen here has to stale both.
+  it("marks the catalog's status caches stale for every target that finished", async () => {
+    const MODEL = { ...RUNNING, kind: "model", slug: "m" };
+    listJobs.mockResolvedValue([RUNNING, MODEL]);
+    await ready(render());
+    const spy = vi.spyOn(client, "invalidateQueries");
+
+    listJobs.mockResolvedValue([]);
+    await client.refetchQueries({ queryKey: ["jobs"] });
+    await waitFor(() => expect(spy).toHaveBeenCalledWith({ queryKey: ["artifacts", "model", "m"] }));
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t"] });
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["territories"], refetchType: "none" });
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["models"], refetchType: "none" });
+    expect(spy).not.toHaveBeenCalledWith({ queryKey: ["scene", "m"] });
+  });
+
   // A finish watched on this page opens the viewer, in-app and exactly once.
   // The jobId is dropped with the query: the route branches on its absence, so
   // navigating to the bare path is what turns this page into the viewer.
