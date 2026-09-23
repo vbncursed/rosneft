@@ -559,10 +559,15 @@ type Panorama struct {
 	Slug       string  `json:"slug"`
 
 	// SourceBlobHash BlobStore hash for the equirect JPG/PNG; served via /api/assets/{hash}.
-	SourceBlobHash string     `json:"sourceBlobHash"`
-	TerritorySlug  string     `json:"territorySlug"`
-	Title          string     `json:"title"`
-	UpdatedAt      *time.Time `json:"updatedAt,omitempty"`
+	SourceBlobHash string `json:"sourceBlobHash"`
+	TerritorySlug  string `json:"territorySlug"`
+
+	// ThumbnailBlobHash 256×128 JPEG content-service makes from the source; served via
+	// /api/assets/{hash} under the same territory scope. Omitted until it
+	// has been made, and the SPA draws the panorama glyph instead.
+	ThumbnailBlobHash *string    `json:"thumbnailBlobHash,omitempty"`
+	Title             string     `json:"title"`
+	UpdatedAt         *time.Time `json:"updatedAt,omitempty"`
 
 	// YawOffset Rotation around the sphere's Y axis (radians) to align the
 	// panorama's implicit "north" with the territory's axes.
