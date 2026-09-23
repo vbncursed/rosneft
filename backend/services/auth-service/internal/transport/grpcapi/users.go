@@ -128,3 +128,14 @@ func (s *Server) SetUserTOTPRequired(ctx context.Context, req *authv1.SetUserTOT
 	}
 	return userToProto(u), nil
 }
+
+func (s *Server) SetUserPassword(ctx context.Context, req *authv1.SetUserPasswordRequest) (*authv1.SetUserPasswordResponse, error) {
+	actorID, scopeAll, err := s.actor(ctx, req.GetToken())
+	if err != nil {
+		return nil, mapError(err)
+	}
+	if err := s.users.SetPassword(ctx, actorID, scopeAll, req.GetId(), req.GetPassword()); err != nil {
+		return nil, mapError(err)
+	}
+	return &authv1.SetUserPasswordResponse{}, nil
+}

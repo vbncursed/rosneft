@@ -40,6 +40,7 @@ const (
 	AuthService_RestoreUser_FullMethodName         = "/rosneft.auth.v1.AuthService/RestoreUser"
 	AuthService_SetUserOwner_FullMethodName        = "/rosneft.auth.v1.AuthService/SetUserOwner"
 	AuthService_SetUserTOTPRequired_FullMethodName = "/rosneft.auth.v1.AuthService/SetUserTOTPRequired"
+	AuthService_SetUserPassword_FullMethodName     = "/rosneft.auth.v1.AuthService/SetUserPassword"
 	AuthService_ListRoles_FullMethodName           = "/rosneft.auth.v1.AuthService/ListRoles"
 	AuthService_CreateRole_FullMethodName          = "/rosneft.auth.v1.AuthService/CreateRole"
 	AuthService_UpdateRole_FullMethodName          = "/rosneft.auth.v1.AuthService/UpdateRole"
@@ -89,6 +90,11 @@ type AuthServiceClient interface {
 	RestoreUser(ctx context.Context, in *RestoreUserRequest, opts ...grpc.CallOption) (*User, error)
 	SetUserOwner(ctx context.Context, in *SetUserOwnerRequest, opts ...grpc.CallOption) (*User, error)
 	SetUserTOTPRequired(ctx context.Context, in *SetUserTOTPRequiredRequest, opts ...grpc.CallOption) (*User, error)
+	// SetUserPassword sets another user's password without the old one and signs
+	// them out everywhere. Same owner scope as FreezeUser; only an owner may set an
+	// admin's or an owner's. The caller's own password goes through
+	// ChangePassword, which asks for the old one.
+	SetUserPassword(ctx context.Context, in *SetUserPasswordRequest, opts ...grpc.CallOption) (*SetUserPasswordResponse, error)
 	// --- roles / permissions ---
 	ListRoles(ctx context.Context, in *ListRolesRequest, opts ...grpc.CallOption) (*ListRolesResponse, error)
 	CreateRole(ctx context.Context, in *CreateRoleRequest, opts ...grpc.CallOption) (*Role, error)
@@ -323,6 +329,16 @@ func (c *authServiceClient) SetUserTOTPRequired(ctx context.Context, in *SetUser
 	return out, nil
 }
 
+func (c *authServiceClient) SetUserPassword(ctx context.Context, in *SetUserPasswordRequest, opts ...grpc.CallOption) (*SetUserPasswordResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetUserPasswordResponse)
+	err := c.cc.Invoke(ctx, AuthService_SetUserPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *authServiceClient) ListRoles(ctx context.Context, in *ListRolesRequest, opts ...grpc.CallOption) (*ListRolesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListRolesResponse)
@@ -433,6 +449,11 @@ type AuthServiceServer interface {
 	RestoreUser(context.Context, *RestoreUserRequest) (*User, error)
 	SetUserOwner(context.Context, *SetUserOwnerRequest) (*User, error)
 	SetUserTOTPRequired(context.Context, *SetUserTOTPRequiredRequest) (*User, error)
+	// SetUserPassword sets another user's password without the old one and signs
+	// them out everywhere. Same owner scope as FreezeUser; only an owner may set an
+	// admin's or an owner's. The caller's own password goes through
+	// ChangePassword, which asks for the old one.
+	SetUserPassword(context.Context, *SetUserPasswordRequest) (*SetUserPasswordResponse, error)
 	// --- roles / permissions ---
 	ListRoles(context.Context, *ListRolesRequest) (*ListRolesResponse, error)
 	CreateRole(context.Context, *CreateRoleRequest) (*Role, error)
@@ -519,6 +540,9 @@ func (UnimplementedAuthServiceServer) SetUserOwner(context.Context, *SetUserOwne
 }
 func (UnimplementedAuthServiceServer) SetUserTOTPRequired(context.Context, *SetUserTOTPRequiredRequest) (*User, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetUserTOTPRequired not implemented")
+}
+func (UnimplementedAuthServiceServer) SetUserPassword(context.Context, *SetUserPasswordRequest) (*SetUserPasswordResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetUserPassword not implemented")
 }
 func (UnimplementedAuthServiceServer) ListRoles(context.Context, *ListRolesRequest) (*ListRolesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRoles not implemented")
@@ -940,6 +964,24 @@ func _AuthService_SetUserTOTPRequired_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_SetUserPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetUserPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).SetUserPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_SetUserPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).SetUserPassword(ctx, req.(*SetUserPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AuthService_ListRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListRolesRequest)
 	if err := dec(in); err != nil {
@@ -1156,6 +1198,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetUserTOTPRequired",
 			Handler:    _AuthService_SetUserTOTPRequired_Handler,
+		},
+		{
+			MethodName: "SetUserPassword",
+			Handler:    _AuthService_SetUserPassword_Handler,
 		},
 		{
 			MethodName: "ListRoles",
