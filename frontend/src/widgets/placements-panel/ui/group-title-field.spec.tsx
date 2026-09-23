@@ -62,7 +62,6 @@ describe("NewGroup", () => {
     expect(screen.getByRole("button", { name: "New group" })).toHaveFocus();
   });
 
-  // The toast says why (a duplicate title, say); the typed title stays to be fixed.
   // E14: the field takes the button's 30 px, so nothing below it jumps.
   it("opens a field as tall as the button it replaces", async () => {
     render(<NewGroup busy={false} onCreate={vi.fn(async () => true)} />);
@@ -73,6 +72,7 @@ describe("NewGroup", () => {
     expect(field).not.toHaveClass("py-2.5");
   });
 
+  // The toast says why (a duplicate title, say); the typed title stays to be fixed.
   it("keeps the field and its text when the create is refused", async () => {
     const onCreate = vi.fn(async () => false);
     render(<NewGroup busy={false} onCreate={onCreate} />);
@@ -80,6 +80,20 @@ describe("NewGroup", () => {
     await userEvent.type(screen.getByRole("textbox", { name: "New group title" }), "East yard{Enter}");
     expect(onCreate).toHaveBeenCalledWith("East yard");
     expect(screen.getByRole("textbox", { name: "New group title" })).toHaveValue("East yard");
+  });
+
+  // P1: a create answered after Cancel and a reopen belongs to the old field.
+  it("keeps a reopened field open when the earlier create lands late", async () => {
+    let release!: (ok: boolean) => void;
+    const onCreate = vi.fn(() => new Promise<boolean>((res) => (release = res)));
+    render(<NewGroup busy={false} onCreate={onCreate} />);
+    await userEvent.click(screen.getByRole("button", { name: "New group" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "New group title" }), "West yard{Enter}");
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await userEvent.click(screen.getByRole("button", { name: "New group" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "New group title" }), "North");
+    await act(async () => release(true));
+    expect(screen.getByRole("textbox", { name: "New group title" })).toHaveValue("North");
   });
 
   it("folds back without creating on Cancel", async () => {

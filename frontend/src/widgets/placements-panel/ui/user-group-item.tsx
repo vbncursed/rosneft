@@ -50,12 +50,20 @@ export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemPro
   const [renaming, setRenaming] = useState(false);
   const item = useRef<HTMLLIElement>(null);
   const renamed = useRef(false);
+  // Counts openings: a rename that lands after Cancel and a reopen answers the
+  // old field, and must not close the new one.
+  const session = useRef(0);
+  const startRenaming = () => {
+    session.current += 1;
+    setRenaming(true);
+  };
   // The field leaves the DOM with its focus; hand it back to the row's disclosure,
   // the first expandable button (the kebab after it is one too).
   useEffect(() => {
     if (!renaming && renamed.current) item.current?.querySelector<HTMLButtonElement>("button[aria-expanded]")?.focus();
   }, [renaming]);
-  const stopRenaming = () => {
+  const stopRenaming = (from = session.current) => {
+    if (from !== session.current) return;
     renamed.current = true;
     setRenaming(false);
   };
@@ -73,9 +81,10 @@ export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemPro
       onSubmit={async (title) => {
         // The field hands over a trimmed title; an unchanged one is not a write.
         // A refused rename keeps the field and what was typed; the toast says why.
-        if (title === group.title || (await actions.onRename(group.id, title))) stopRenaming();
+        const from = session.current;
+        if (title === group.title || (await actions.onRename(group.id, title))) stopRenaming(from);
       }}
-      onCancel={stopRenaming}
+      onCancel={() => stopRenaming()}
     />
   ) : (
     <GroupRow
@@ -101,7 +110,7 @@ export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemPro
               // kebab: it holds focus when the write starts, and a natively
               // disabled one drops that focus to <body>.
               items={[
-                { label: "Rename", disabled: actions.busy, onSelect: () => setRenaming(true) },
+                { label: "Rename", disabled: actions.busy, onSelect: startRenaming },
                 {
                   label: DELETE_GROUP,
                   tone: "bad",

@@ -74,7 +74,7 @@ describe("UserGroupItem", () => {
   it("renames inline from its menu, and folds back once the rename lands", async () => {
     let release!: (ok: boolean) => void;
     const a = actions({ onRename: vi.fn(() => new Promise<boolean>((res) => (release = res))) });
-    mount({ a });
+    const { rerender } = mount({ a });
     await userEvent.click(screen.getByRole("button", { name: "Actions for group East yard" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
     const field = screen.getByRole("textbox", { name: "Rename group East yard" });
@@ -82,8 +82,32 @@ describe("UserGroupItem", () => {
     await userEvent.type(field, "North yard{Enter}");
     expect(a.onRename).toHaveBeenCalledWith(4, "North yard");
     expect(screen.getByRole("textbox", { name: "Rename group East yard" })).toHaveValue("North yard");
+    // P3: the parent reports the write in flight; the save cannot fire twice.
+    rerender(
+      <ul>
+        <UserGroupItem section={SECTION} ctx={ctx({ expanded: "group:4" })} onAdd={vi.fn()} actions={{ ...a, busy: true }} />
+      </ul>,
+    );
+    expect(screen.getByRole("button", { name: "Save group title" })).toBeDisabled();
     await act(async () => release(true));
     expect(screen.getByRole("button", { name: "East yard" })).toHaveFocus();
+  });
+
+  // P1: a rename answered after Cancel and a reopen belongs to the old field.
+  it("keeps a reopened rename field open when the earlier rename lands late", async () => {
+    let release!: (ok: boolean) => void;
+    const a = actions({ onRename: vi.fn(() => new Promise<boolean>((res) => (release = res))) });
+    mount({ a });
+    const rename = async () => {
+      await userEvent.click(screen.getByRole("button", { name: "Actions for group East yard" }));
+      await userEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
+    };
+    await rename();
+    await userEvent.type(screen.getByRole("textbox", { name: "Rename group East yard" }), "2{Enter}");
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await rename();
+    await act(async () => release(true));
+    expect(screen.getByRole("textbox", { name: "Rename group East yard" })).toBeInTheDocument();
   });
 
   it("keeps the rename field and its text when the rename is refused", async () => {
