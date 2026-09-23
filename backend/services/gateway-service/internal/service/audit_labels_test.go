@@ -166,3 +166,18 @@ func (s *AuditLabelsSuite) TestMeasurementNamesItsTerritory() {
 	assert.NilError(s.T(), err)
 	assert.Equal(s.T(), out[0].TerritorySlug, "tenant-a-scene")
 }
+
+// A placement group belongs to a territory as a placement does: its journal
+// entry names that territory.
+func (s *AuditLabelsSuite) TestPlacementGroupNamesItsTerritory() {
+	s.page[0].Entity = "placement_group"
+	s.page[0].Action = "placement_group.insert"
+	s.page[0].NewRow = `{"id":4,"territory_id":5,"title":"North"}`
+	s.aut.ResolveUserLoginsMock.Return(map[string]string{}, nil)
+	s.cat.ResolveTerritorySlugsMock.Return(map[int64]string{5: "tenant-a-scene"}, nil)
+
+	out, err := s.list()
+
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), out[0].TerritorySlug, "tenant-a-scene")
+}
