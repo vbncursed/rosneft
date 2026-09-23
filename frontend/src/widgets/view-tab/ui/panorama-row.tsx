@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { clsx as cx } from "clsx";
 import { Icon } from "@/shared/ui/icon";
 import { Tooltip } from "@/shared/ui/tooltip";
@@ -26,6 +27,35 @@ export type PanoramaRowProps = {
 const THUMB =
   "flex h-[34px] w-11 shrink-0 items-center justify-center overflow-hidden rounded-control-sm border bg-panel max-[1281px]:h-8 max-[1281px]:w-10";
 
+/**
+ * The photo, or the glyph when it fails (a 404, a refused blob, offline) — never
+ * the browser's broken-image mark. A photo off the network fades in; one the
+ * cache already holds is complete at mount and shows from the first frame.
+ * Keyed on the URL, so a new thumbnail starts over.
+ */
+function Thumb({ url }: { url: string }) {
+  const [loaded, setLoaded] = useState(false);
+  const [broken, setBroken] = useState(false);
+  if (broken) return <Icon name="panorama" size={16} />;
+  return (
+    // The thumbnail's own size: the box reserves its ratio before the bytes land.
+    <img
+      ref={(el) => {
+        if (el?.complete) setLoaded(true);
+      }}
+      src={url}
+      alt=""
+      width={256}
+      height={128}
+      loading="lazy"
+      decoding="async"
+      onLoad={() => setLoaded(true)}
+      onError={() => setBroken(true)}
+      className={cx("size-full object-cover transition-opacity duration-150 ease-out", !loaded && "opacity-0")}
+    />
+  );
+}
+
 /** One panorama: its photo, its title, and the way into or out of it. */
 export function PanoramaRow({ row, onEnter, onExit, onEdit }: PanoramaRowProps) {
   const { id, title, thumbUrl, active, calibrated, canEdit, editing } = row;
@@ -43,20 +73,7 @@ export function PanoramaRow({ row, onEnter, onExit, onEdit }: PanoramaRowProps) 
       )}
     >
       <span className={cx(THUMB, active ? "border-accent-line text-accent" : "border-line-2 text-dim")}>
-        {thumbUrl ? (
-          // The thumbnail's own size: the box reserves its ratio before the bytes land.
-          <img
-            src={thumbUrl}
-            alt=""
-            width={256}
-            height={128}
-            loading="lazy"
-            decoding="async"
-            className="size-full object-cover"
-          />
-        ) : (
-          <Icon name="panorama" size={16} />
-        )}
+        {thumbUrl ? <Thumb key={thumbUrl} url={thumbUrl} /> : <Icon name="panorama" size={16} />}
       </span>
 
       <span className="min-w-0 flex-1">
