@@ -1,4 +1,4 @@
-import { MathUtils, Spherical, Vector3 } from "three";
+import { MathUtils, Quaternion, Spherical, Vector3 } from "three";
 
 /** Seconds: the rise over the centre, the pause there, the drop to 45°, one full circle. */
 export const RISE_S = 1.2;
@@ -11,7 +11,7 @@ const MARGIN = 1.2;
 /**
  * The top of the rise, as a polar angle from +Y: 0.6° off the pole. Straight
  * down along `camera.up`, `lookAt` has no heading and the view spins; this
- * close it reads as vertical and keeps the reader's heading.
+ * close it reads as vertical and still faces the way the reader was looking.
  */
 const TOP = 0.01;
 /** 45° elevation, as a polar angle from +Y. */
@@ -23,15 +23,23 @@ export type FlightPhase = "rise" | "hold" | "descend" | "orbit";
 export type Flight = {
   center: Vector3;
   distance: number;
-  /** Where the camera stood, around `center`; its azimuth is the heading the flight keeps. */
+  /** Where the camera stood, around `center`. */
   from: Spherical;
   fromTarget: Vector3;
+  /**
+   * The azimuth the flight stands at: behind the centre along the reader's
+   * view, so looking back at the centre faces the way the reader faced.
+   */
+  heading: number;
   reduced: boolean;
 };
 
 export type FlightPose = { position: Vector3; target: Vector3; phase: FlightPhase };
 
-/** How far back the camera stands to fit a sphere in the narrower of the two fields of view. */
+/**
+ * How far back the camera stands to fit a sphere in the narrower of the two
+ * fields of view. `radius` must be finite and > 0; the caller guards it.
+ */
 export function fitDistance(radius: number, fovDeg: number, aspect: number): number {
   const half = MathUtils.degToRad(fovDeg) / 2;
   const narrow = Math.min(half, Math.atan(Math.tan(half) * aspect));
@@ -45,11 +53,15 @@ export function planFlight(
   view: { fov: number; aspect: number },
   reduced: boolean,
 ): Flight {
+  const from = new Spherical().setFromVector3(camera.position.clone().sub(sphere.center));
+  const look = camera.target.clone().sub(camera.position);
+  const vertical = look.x === 0 && look.z === 0;
   return {
     center: sphere.center.clone(),
     distance: fitDistance(sphere.radius, view.fov, view.aspect),
-    from: new Spherical().setFromVector3(camera.position.clone().sub(sphere.center)),
+    from,
     fromTarget: camera.target.clone(),
+    heading: vertical ? from.theta : Math.atan2(-look.x, -look.z),
     reduced,
   };
 }
@@ -62,7 +74,7 @@ export function planFlight(
  * camera is at 45° from the first frame and circles at half speed.
  */
 export function flightPose(t: number, f: Flight): FlightPose {
-  const heading = f.from.theta;
+  const { heading } = f;
   if (f.reduced) return around(f, ORBIT, heading + (RATE / 2) * t, "orbit");
   if (t < RISE_S) return rise(f, MathUtils.smootherstep(t, 0, RISE_S));
   if (t < RISE_S + HOLD_S) return around(f, TOP, heading, "hold");
@@ -74,18 +86,31 @@ export function flightPose(t: number, f: Flight): FlightPose {
   return around(f, ORBIT, heading + RATE * (d - DESCEND_S / 2), "orbit");
 }
 
-/** From the start to the top: distance, tilt and aim all ease together; the heading holds. */
+/**
+ * From the start to the top. The camera eases round to `heading` the short way
+ * while it climbs; the view turns from where the reader looked to the top's
+ * view along one great circle. Both ends share one compass heading, so that
+ * circle is vertical: the view only tilts down and never crosses the pole,
+ * however the reader faced (a lerped target swung it through straight down).
+ */
 function rise(f: Flight, k: number): FlightPose {
+  const turn = MathUtils.euclideanModulo(f.heading - f.from.theta + Math.PI, 2 * Math.PI) - Math.PI;
   const spot = new Spherical(
     MathUtils.lerp(f.from.radius, f.distance, k),
     MathUtils.lerp(f.from.phi, TOP, k),
-    f.from.theta,
+    f.from.theta + turn * k,
   );
-  return {
-    position: new Vector3().setFromSpherical(spot).add(f.center),
-    target: f.fromTarget.clone().lerp(f.center, k),
-    phase: "rise",
-  };
+  const position = new Vector3().setFromSpherical(spot).add(f.center);
+  const start = new Vector3().setFromSpherical(f.from).add(f.center);
+  const top = new Vector3().setFromSphericalCoords(f.distance, TOP, f.heading).add(f.center);
+  const lookFrom = f.fromTarget.clone().sub(start);
+  const reach = MathUtils.lerp(lookFrom.length(), f.distance, k);
+  const swing = new Quaternion().setFromUnitVectors(
+    lookFrom.normalize(),
+    f.center.clone().sub(top).normalize(),
+  );
+  const look = lookFrom.applyQuaternion(new Quaternion().slerp(swing, k));
+  return { position, target: look.multiplyScalar(reach).add(position), phase: "rise" };
 }
 
 function around(f: Flight, polar: number, azimuth: number, phase: FlightPhase): FlightPose {

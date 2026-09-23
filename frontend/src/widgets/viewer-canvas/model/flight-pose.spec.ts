@@ -1,6 +1,7 @@
-import { Spherical, Vector3 } from "three";
+import { MathUtils, Spherical, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
 import {
+  type FlightPose,
   DESCEND_S,
   HOLD_S,
   REVOLUTION_S,
@@ -28,6 +29,13 @@ const offset = (t: number, reduced = false) =>
 /** cos of the angle from straight up: 1 overhead, √½ at 45°. */
 const upness = (v: Vector3) => v.y / v.length();
 const azimuth = (v: Vector3) => new Spherical().setFromVector3(v).theta;
+const look = (p: FlightPose) => p.target.clone().sub(p.position);
+/** The compass heading of the view, the way Spherical measures azimuth. */
+const yaw = (p: FlightPose) => Math.atan2(look(p).x, look(p).z);
+/** The angle between the view and straight down. */
+const offDown = (p: FlightPose) => Math.acos(-look(p).y / look(p).length());
+/** The reader in `plan` looks from (6, 2, 3) at the origin. */
+const READER_YAW = Math.atan2(-6, -3);
 
 const TOP_AT = RISE_S;
 const DOWN_AT = RISE_S + HOLD_S;
@@ -62,7 +70,7 @@ describe("flightPose", () => {
     expect(upness(v)).toBeGreaterThan(0.9999);
     // Never the pole itself: lookAt straight down along `up` has no heading.
     expect(upness(v)).toBeLessThan(1);
-    expect(azimuth(v)).toBeCloseTo(Math.PI / 2, 9);
+    expect(yaw(top)).toBeCloseTo(READER_YAW, 9);
   });
 
   it("holds still over the centre for the pause", () => {
@@ -109,9 +117,39 @@ describe("flightPose", () => {
     expect(pose.phase).toBe("orbit");
     expect(pose.target.distanceTo(CENTER)).toBeLessThan(1e-9);
     expect(upness(v)).toBeCloseTo(Math.SQRT1_2, 9);
-    expect(azimuth(v)).toBeCloseTo(Math.PI / 2, 9);
+    expect(yaw(pose)).toBeCloseTo(READER_YAW, 9);
     // Half a turn after one normal revolution, home after two.
     expect(offset(REVOLUTION_S, true).distanceTo(v)).toBeGreaterThan(1);
     expect(offset(2 * REVOLUTION_S, true).distanceTo(v)).toBeLessThan(1e-9);
+  });
+
+  it("never whips through the zenith when the reader faces away from the centre", () => {
+    // Near overhead, looking outward: the old path turned the view 110° in 0.15 s.
+    const outward = planFlight(
+      { position: new Vector3(1, 6, 0.3), target: new Vector3(6, 0, 0) },
+      { center: new Vector3(0, 0, 0), radius: 5 },
+      { fov: 50, aspect: 1.5 },
+      false,
+    );
+    const frame = 1 / 120;
+    let before = flightPose(0, outward);
+    for (let t = frame; t < DOWN_AT; t += frame) {
+      const now = flightPose(t, outward);
+      const turn = Math.abs(MathUtils.euclideanModulo(yaw(now) - yaw(before) + Math.PI, 2 * Math.PI) - Math.PI);
+      expect(turn).toBeLessThan(MathUtils.degToRad(1));
+      if (t < RISE_S) expect(offDown(now)).toBeGreaterThan(0.0099);
+      before = now;
+    }
+    expect(yaw(before)).toBeCloseTo(Math.atan2(5, -0.3), 9);
+  });
+
+  it("keeps the camera's own side when the reader looks straight down and has no heading", () => {
+    const down = planFlight(
+      { position: new Vector3(6, 2, 3), target: new Vector3(6, -5, 3) },
+      { center: CENTER, radius: 2 },
+      { fov: 50, aspect: 1.5 },
+      false,
+    );
+    expect(azimuth(flightPose(TOP_AT, down).position.clone().sub(CENTER))).toBeCloseTo(Math.PI / 2, 9);
   });
 });
