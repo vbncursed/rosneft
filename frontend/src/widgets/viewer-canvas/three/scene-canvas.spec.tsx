@@ -319,6 +319,12 @@ describe("SceneCanvas", () => {
     await r.fireEvent(wrapper, "click", clickEvent({ x: 1, y: 2, z: 3 }));
     expect(onMeasurePoint).not.toHaveBeenCalled();
   });
+
+  it("hands Play to the camera rig, which lands at once with no mesh to circle", async () => {
+    const onPlayStop = vi.fn();
+    await mount({ playing: true, onPlayStop });
+    expect(onPlayStop).toHaveBeenCalledOnce();
+  });
 });
 
 describe("SceneCanvas inside a panorama", () => {

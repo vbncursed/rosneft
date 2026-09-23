@@ -8,6 +8,7 @@ import {
   RISE_S,
   fitDistance,
   flightPose,
+  landingPivot,
   planFlight,
 } from "./flight-pose";
 
@@ -37,8 +38,9 @@ const offDown = (p: FlightPose) => Math.acos(-look(p).y / look(p).length());
 /** The reader in `plan` looks from (6, 2, 3) at the origin. */
 const READER_YAW = Math.atan2(-6, -3);
 
-const TOP_AT = RISE_S;
-const DOWN_AT = RISE_S + HOLD_S;
+/** The reader in `plan` turns 27° on the way up, which lengthens the rise a little. */
+const TOP_AT = plan().rise;
+const DOWN_AT = TOP_AT + HOLD_S;
 const ORBIT_AT = DOWN_AT + DESCEND_S;
 const RATE = (2 * Math.PI) / REVOLUTION_S;
 
@@ -133,11 +135,11 @@ describe("flightPose", () => {
     );
     const frame = 1 / 120;
     let before = flightPose(0, outward);
-    for (let t = frame; t < DOWN_AT; t += frame) {
+    for (let t = frame; t < outward.rise + HOLD_S; t += frame) {
       const now = flightPose(t, outward);
       const turn = Math.abs(MathUtils.euclideanModulo(yaw(now) - yaw(before) + Math.PI, 2 * Math.PI) - Math.PI);
       expect(turn).toBeLessThan(MathUtils.degToRad(1));
-      if (t < RISE_S) expect(offDown(now)).toBeGreaterThan(0.0099);
+      if (t < outward.rise) expect(offDown(now)).toBeGreaterThan(0.0099);
       before = now;
     }
     expect(yaw(before)).toBeCloseTo(Math.atan2(5, -0.3), 9);
@@ -151,5 +153,36 @@ describe("flightPose", () => {
       false,
     );
     expect(azimuth(flightPose(TOP_AT, down).position.clone().sub(CENTER))).toBeCloseTo(Math.PI / 2, 9);
+  });
+});
+
+describe("planFlight's rise", () => {
+  const facing = (target: Vector3) =>
+    planFlight({ position: new Vector3(6, 2, 3), target }, { center: CENTER, radius: 2 }, { fov: 50, aspect: 1.5 }, false);
+
+  it("takes the base time when the reader already faces the centre", () => {
+    expect(facing(CENTER.clone()).rise).toBeCloseTo(RISE_S, 9);
+  });
+
+  it("takes twice as long for a half turn, so a reader facing away is not whipped round", () => {
+    const away = facing(new Vector3(12, 2, 3));
+    expect(away.rise).toBeCloseTo(2 * RISE_S, 9);
+    expect(flightPose(1.5 * RISE_S, away).phase).toBe("rise");
+    expect(flightPose(2 * RISE_S, away).phase).toBe("hold");
+  });
+});
+
+describe("landingPivot", () => {
+  const SPHERE = { center: CENTER, radius: 2 };
+
+  it("pivots on the point of the view nearest the centre", () => {
+    // From 10 above the centre's level, looking level along -z past it.
+    const pivot = landingPivot(new Vector3(1, 12, 10), new Vector3(0, 0, -1), SPHERE);
+    expect(pivot.toArray()).toEqual([1, 12, 3]);
+  });
+
+  it("stays a radius ahead when the view points away from the centre", () => {
+    const pivot = landingPivot(new Vector3(1, 2, 10), new Vector3(0, 0, 1), SPHERE);
+    expect(pivot.toArray()).toEqual([1, 2, 12]);
   });
 });

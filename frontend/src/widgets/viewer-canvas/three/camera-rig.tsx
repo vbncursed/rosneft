@@ -1,11 +1,29 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import { useThree } from "@react-three/fiber";
+import { Box3, Sphere, Vector3, type Object3D, type PerspectiveCamera } from "three";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useMediaQuery } from "@/shared/lib/use-media-query";
-import { stopCoast } from "./stop-coast";
+import { flightPose, landingPivot, planFlight } from "../model/flight-pose";
+import { holdStill, stopCoast } from "./stop-coast";
 
 interface CameraRigProps {
   resetVersion: number;
+  /** Play: the fly-around is on. */
+  playing: boolean;
+  /** The flight ended here — a grab, or nothing to circle; the page turns Play off. */
+  onPlayStop: () => void;
+  /**
+   * What the flight circles: the territory's own group, not the scene
+   * wrapper — a placement parked far outside the mesh must not widen the circle.
+   */
+  sceneRef: RefObject<Object3D | null>;
+}
+
+/** The territory's bounding sphere, or null when there is nothing with a size to circle. */
+function boundsOf(object: Object3D | null): Sphere | null {
+  if (!object) return null;
+  const sphere = new Box3().setFromObject(object).getBoundingSphere(new Sphere());
+  return sphere.radius > 0 && Number.isFinite(sphere.radius) ? sphere : null;
 }
 
 // CameraRig owns OrbitControls explicitly (not via drei's <OrbitControls>)
@@ -24,7 +42,7 @@ interface CameraRigProps {
 // motion: the camera then stops exactly where the gesture did.
 const DAMPING = 0.08;
 
-export default function CameraRig({ resetVersion }: CameraRigProps) {
+export default function CameraRig({ resetVersion, playing, onPlayStop, sceneRef }: CameraRigProps) {
   const still = useMediaQuery("(prefers-reduced-motion: reduce)");
   const camera = useThree((state) => state.camera);
   const gl = useThree((state) => state.gl);
@@ -81,6 +99,62 @@ export default function CameraRig({ resetVersion }: CameraRigProps) {
     controls.update();
     invalidate();
   }, [resetVersion, invalidate]);
+
+  // Play. Our own frame loop moves the camera, since frameloop="demand" draws
+  // only what is asked for, and OrbitControls is left alone meanwhile. Its
+  // "start" (pointer, wheel, touch) is therefore the reader grabbing the view;
+  // "change" cannot be, because our own update() fires it. A gizmo or marker
+  // drag takes the controls without a "start", by switching them off.
+  // Either way the camera stays where it was caught. The page lands the flight
+  // itself on Reset, Focus, a panorama or a mode change, by turning `playing` off.
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!playing || !controls) return;
+    const sphere = boundsOf(sceneRef.current);
+    if (!sphere) {
+      onPlayStop();
+      return;
+    }
+    // A flick's leftover coast would turn the view under the flight.
+    holdStill(controls, camera);
+    const flight = planFlight(
+      { position: camera.position, target: controls.target },
+      sphere,
+      camera as PerspectiveCamera,
+      still,
+    );
+    let frame = 0;
+    let start: number | null = null;
+    // However it ends, the orbit takes over pivoting on the territory, never
+    // on the rise's own target, which can sit below the ground.
+    const land = () => {
+      cancelAnimationFrame(frame);
+      controls.removeEventListener("start", grab);
+      const view = camera.getWorldDirection(new Vector3());
+      controls.target.copy(landingPivot(camera.position, view, sphere));
+    };
+    const grab = () => {
+      holdStill(controls, camera);
+      land();
+      onPlayStop();
+    };
+    const tick = (now: number) => {
+      if (!controls.enabled) {
+        grab();
+        return;
+      }
+      start ??= now;
+      const pose = flightPose((now - start) / 1000, flight);
+      camera.position.copy(pose.position);
+      controls.target.copy(pose.target);
+      camera.lookAt(pose.target);
+      invalidate();
+      frame = requestAnimationFrame(tick);
+    };
+    controls.addEventListener("start", grab);
+    frame = requestAnimationFrame(tick);
+    return land;
+  }, [playing, still, camera, invalidate, sceneRef, onPlayStop]);
 
   return null;
 }
