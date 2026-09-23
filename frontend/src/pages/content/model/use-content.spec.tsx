@@ -76,6 +76,25 @@ describe("useContent", () => {
     expect(result.current.canCreateTerritory).toBe(false);
   });
 
+  // The gateway omits `lods` when a row has none; that row must read as
+  // pending and add nothing to the storage total rather than throw.
+  it("reads a list row with no lods at all as pending and weightless", async () => {
+    const { lods: _omitted, ...bare } = TERRITORY;
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === "/api/territories") return json([bare]);
+      if (url === "/api/models") return json([MODEL]);
+      if (url === "/api/jobs") return json([]);
+      return json(PRINCIPAL);
+    });
+    const { result } = renderHook(() => useContent(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(result.current.items?.map((i) => [i.slug, i.status, i.size])).toEqual([
+      ["t-1", "pending", "—"],
+      ["m-1", "pending", "—"],
+    ]);
+    expect(result.current.storageBytes).toBe(0);
+  });
+
   it("lets Root create a territory", async () => {
     client.setQueryData(["me"], { ...PRINCIPAL, permissions: [], isOwner: true });
     const { result } = renderHook(() => useContent(), { wrapper });

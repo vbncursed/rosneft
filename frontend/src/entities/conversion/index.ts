@@ -27,7 +27,6 @@ export {
   type PipelineStep,
 } from "./model/pipeline";
 export {
-  finishedSince,
   isLive,
   pollInterval,
   type TargetJob,
@@ -38,6 +37,7 @@ export { listJobs } from "./api/jobs-gateway";
 export { jobsQuery } from "./api/jobs-query";
 export { openJobStream, type JobStreamHandlers, type StreamEnd } from "./api/job-stream";
 export { useJobStream } from "./model/use-job-stream";
+export { LIST_KEY, staleKeysOf, useStaleOnFinish } from "./model/use-stale-on-finish";
 export { ConversionBadge } from "./ui/conversion-badge";
 export { StageList, type StageListProps } from "./ui/stage-list";
 export { Pipeline, type PipelineProps } from "./ui/pipeline";

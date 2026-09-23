@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { finishedSince, jobsQuery, type TargetJob } from "@/entities/conversion";
+import { useState } from "react";
+import { jobsQuery, useStaleOnFinish } from "@/entities/conversion";
 import { deleteTerritory, territoriesQuery, toTerritoryCard, type TerritoryCardModel } from "@/entities/territory";
 import { meQuery } from "@/entities/user";
 import { messageOf } from "@/shared/api";
@@ -68,21 +68,8 @@ export function useTerritoryCatalog(): TerritoryCatalogState {
   const failed = unanswered(territories) ?? unanswered(jobs);
   const loading = territories.isPending || jobs.isPending;
 
-  // A territory whose job just finished has new LODs (or, after a failure,
-  // the same old ones), and they ride on the list: re-read it once, however
-  // many finished. /api/jobs drops a succeeded job on its next poll and
-  // nothing else would ever refetch the list. A model's artifacts are marked
-  // stale too, for the model page to reopen on — nothing reads a territory's.
-  const previousJobs = useRef<TargetJob[] | undefined>(undefined);
-  useEffect(() => {
-    if (!jobs.data) return;
-    const finished = finishedSince(previousJobs.current, jobs.data);
-    if (finished.some((j) => j.kind === "territory"))
-      void client.invalidateQueries({ queryKey: ["territories"] });
-    for (const { slug } of finished.filter((j) => j.kind === "model"))
-      void client.invalidateQueries({ queryKey: ["artifacts", "model", slug] });
-    previousJobs.current = jobs.data;
-  }, [jobs.data, client]);
+  // A finished job's new LODs ride on the lists, a model's on its artifacts.
+  useStaleOnFinish(jobs.data);
 
   return {
     status: loading ? "loading" : failed ? "unavailable" : "ready",

@@ -534,15 +534,22 @@ queries have answered. A conversion is visible while it runs: the row turns
 `converting` with the worker's percentage and stage, the inspector draws the
 bar and the note, a failure puts the worker's message at the top of the
 inspector, and a row whose job just left the live set re-reads the list it
-sits in (`finishedSince`) so LODs and size catch up. A finished *model* also
-marks `["artifacts", "model", slug]` stale, because Model Detail still reads
-it; nothing reads a territory's artifacts, so nothing invalidates them.
+sits in so LODs and size catch up. That effect is one hook,
+`useStaleOnFinish` (`entities/conversion`), shared by Content, both catalogs,
+Home, Model Detail and the conversion page: a finished territory marks its
+list and `["scene", slug]` stale, a finished *model* its list and
+`["artifacts", "model", slug]` (Model Detail still reads it); nothing reads a
+territory's artifacts, so nothing invalidates them. A query on screen
+refetches, one that is not is re-read on its next mount. The conversion page
+passes its streamed terminal job as `handled`: the stream already re-read the
+bundle, so the poll that follows does not ask again. The kind → list-key map
+is its `LIST_KEY`, which Content and `features/edit-entity` reuse.
 
 **The catalogs** (`/territories`, `/models`) share Content's shape — the list,
 with `lods` on every row, plus one `GET /api/jobs` — and layer them through
 the one shared rule, `conversionStatusOf` in `entities/content`: a failed job
 wins outright, a live job reads `converting`, otherwise the `lods` decide
-ready/pending. Both carry the `finishedSince` effect (re-read the list),
+ready/pending. Both call `useStaleOnFinish` (re-read the list),
 without which a conversion finishing on screen flips the card backwards to
 "pending".
 Every card is a link to its page — the conversion page is where a pending,
@@ -616,7 +623,7 @@ lists (territories, models, jobs), the jobs poll, and the first page of
 most recently updated (`recent(...)` in `home-view.ts`) and read their `lods`
 off the list, so no card costs a request of its own. The feed never blocks the
 page: `activity` is `null` when unanswered (a Guest's 403), exactly the
-tri-state `/account` already reads. `finishedSince` re-reads each list a
+tri-state `/account` already reads. `useStaleOnFinish` re-reads each list a
 finished job sits in, same as Content and the catalogs.
 `useConsoleCounters` reads one call, `GET /api/console/summary`
 (`consoleSummaryQuery`, `staleTime: 0` — the route is `no-store`). The gateway
