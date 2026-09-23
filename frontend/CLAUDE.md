@@ -1158,10 +1158,11 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   the coast before a reset or a drag; the Overlays panel and rail fade in
   with an 8 px slide, and the LOD switcher and measure bar glide on `right`
   (one absolute element each) while the PDF layer does not move. Play
-  (`flight-pose.ts`, `camera-rig.tsx`) flies the camera on its own rAF loop
-  — the rise stretches with the turn round to the reader's heading
-  (`Flight.rise`, twice `RISE_S` for a half turn; 1.2 s swung a reader
-  facing away through 180° in a whip) — and ends on OrbitControls `start` or on `controls.enabled` going false — a
+  (`flight-pose.ts`, `camera-rig.tsx`) flies the camera on its own rAF loop.
+  Its rise stretches with the turn round to the reader's heading
+  (`Flight.rise`, twice `RISE_S` for a half turn); a fixed 1.2 s swung a
+  reader facing away through 180° in a whip. The flight ends on
+  OrbitControls `start` or on `controls.enabled` going false, because a
   gizmo or marker drag switches the controls off without a `start`. However
   it ends, the orbit pivots on the view ray's point nearest the territory
   (`landingPivot`): the rise's own target can sit below the ground. A
@@ -1170,9 +1171,12 @@ spec `docs/superpowers/specs/2026-09-10-territory-viewer-v2-design.md`).
   or a panorama (`use-fly-around.ts`).
 - **Loading-state rail tiles are `inert`, as mock state 3 draws them** — dimmed
   and out of the Tab order, except the active tile, Play, and the
-  Panoramas/Documents tiles, which never go inert (a flight must stay
-  stoppable) (`viewer-view.ts`'s `railTools`). An earlier
-  note here recorded them as `idle`; the code and the mock both say `inert`.
+  Panoramas/Documents tiles (`viewer-view.ts`'s `railTools`). Panoramas and
+  Documents never go inert. Play is exempt from the loading dim only, so a
+  flight caught mid-download stays stoppable; it is still inert without
+  geometry, inside a panorama, and in a pointer mode (place or measure). An
+  earlier note here recorded the loading tiles as `idle`; the code and the
+  mock both say `inert`.
 - **`WAITING_NOTE` copy caveat** (`territory-conversion-page.tsx`): "opens the
   viewer by itself" is true for a finish watched on that page
   (`shouldOpenViewer`, `conversion-view.ts`).
