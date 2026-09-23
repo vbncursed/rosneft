@@ -13,7 +13,8 @@ import (
 
 // RenamePlacementGroup retitles group id on territorySlug. The statement is
 // scoped to the slug, so a group of another territory is
-// ErrPlacementGroupNotFound exactly like an unknown id.
+// ErrPlacementGroupNotFound exactly like an unknown id. A title another group
+// there already has is ErrInvalidInput.
 //
 // Wrapped in audittx.Run so the audit trigger can attribute the change.
 func (r *PG) RenamePlacementGroup(ctx context.Context, territorySlug string, id int64, title string) (domain.PlacementGroup, error) {
@@ -40,6 +41,8 @@ func (r *PG) RenamePlacementGroup(ctx context.Context, territorySlug string, id 
 		return domain.PlacementGroup{}, domain.ErrPlacementGroupNotFound
 	case isGroupTitleViolation(err):
 		return domain.PlacementGroup{}, fmt.Errorf("storage.RenamePlacementGroup: %w: a group title is 1 to 120 characters", domain.ErrInvalidInput)
+	case isGroupTitleTaken(err):
+		return domain.PlacementGroup{}, fmt.Errorf("storage.RenamePlacementGroup: %w: a group with this title already exists", domain.ErrInvalidInput)
 	}
 	return domain.PlacementGroup{}, fmt.Errorf("storage.RenamePlacementGroup: %w", err)
 }

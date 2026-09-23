@@ -688,7 +688,7 @@ type PlacementGroup struct {
 
 // PlacementGroupWrite defines model for PlacementGroupWrite.
 type PlacementGroupWrite struct {
-	// Title Trimmed; 1 to 120 characters must remain, else 400.
+	// Title Trimmed; 1 to 120 characters must remain, and no other group on the territory may have it (compared case-insensitively), else 400.
 	Title string `json:"title"`
 }
 

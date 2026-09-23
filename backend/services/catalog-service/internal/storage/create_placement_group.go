@@ -12,7 +12,8 @@ import (
 )
 
 // CreatePlacementGroup adds a group titled title to territorySlug. An unknown
-// territory is ErrTerritoryNotFound; a title placement_groups_title_len refuses
+// territory is ErrTerritoryNotFound; a title placement_groups_title_len refuses,
+// or one another group there already has (placement_groups_territory_title),
 // is ErrInvalidInput.
 //
 // Wrapped in audittx.Run so the audit trigger can attribute the insert.
@@ -39,6 +40,8 @@ func (r *PG) CreatePlacementGroup(ctx context.Context, territorySlug, title stri
 		return domain.PlacementGroup{}, domain.ErrTerritoryNotFound
 	case isGroupTitleViolation(err):
 		return domain.PlacementGroup{}, fmt.Errorf("storage.CreatePlacementGroup: %w: a group title is 1 to 120 characters", domain.ErrInvalidInput)
+	case isGroupTitleTaken(err):
+		return domain.PlacementGroup{}, fmt.Errorf("storage.CreatePlacementGroup: %w: a group with this title already exists", domain.ErrInvalidInput)
 	}
 	return domain.PlacementGroup{}, fmt.Errorf("storage.CreatePlacementGroup: %w", err)
 }
