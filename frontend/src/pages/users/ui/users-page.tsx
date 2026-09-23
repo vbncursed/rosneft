@@ -43,7 +43,7 @@ export type UsersPageProps = {
   inspected?: InspectedPerson | null;
 
   onCreateUser: () => void;
-  /** Absent while no endpoint exists for it — the inspector then omits it. */
+  /** Absent when this reader may not reset the open person's password — the inspector then omits it. */
   onResetPassword?: () => void;
   onRequire2fa: () => void;
   onFreeze: () => void;

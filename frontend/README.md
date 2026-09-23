@@ -61,9 +61,9 @@ watches `GET /api/jobs`, polled
 every five seconds only while a conversion is live, so a row shows its
 progress and stage as it converts and the worker's message when it fails.
 
-Three rulings a reader would otherwise trip on. **Reset password is not
-rendered** — nothing can reset one yet, and an action with no endpoint is not
-drawn. **There is no owner toggle**: it is not drawn in the mocks, and
+Three rulings a reader would otherwise trip on. **Reset password is drawn only
+where the gateway would allow it**: never on your own row, and on a Company
+Owner's or Root's only for Root. **There is no owner toggle**: it is not drawn in the mocks, and
 although the gateway offers the endpoint it is deliberately left unwired.
 (Role delete, by contrast, is wired.) **A role's people count is unknown, not zero,
 without `users:read`** — the people list is never requested, so the card reads
