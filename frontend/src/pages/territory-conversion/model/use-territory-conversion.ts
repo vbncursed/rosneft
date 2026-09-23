@@ -1,7 +1,7 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
-import { finishedSince, jobsQuery, listJobs, useJobStream, type TargetJob } from "@/entities/conversion";
+import { isLive, jobsQuery, listJobs, useJobStream, useStaleOnFinish } from "@/entities/conversion";
 import { getSceneBundle, sceneQuery, sceneReady } from "@/entities/scene";
 import { territoryPath } from "@/entities/territory";
 import { HttpError, messageOf } from "@/shared/api";
@@ -28,7 +28,6 @@ export type TerritoryConversionState =
  * a genuine 404, and a background refetch failure never blanks the page.
  */
 export function useTerritoryConversion(slug: string, jobId: string | null): TerritoryConversionState {
-  const client = useQueryClient();
   const navigate = useNavigate();
   // queryFn stays a direct import so a spec's vi.mock of the barrel reaches the fetch.
   const scene = useQuery({ ...sceneQuery(slug), queryFn: () => getSceneBundle(slug) });
@@ -40,25 +39,11 @@ export function useTerritoryConversion(slug: string, jobId: string | null): Terr
     refetchInterval: (q) => jobsPoll(q.state.data, { slug, hasLod0, streamed }),
   });
 
-  // A target whose job just left the list has a new LOD chain (or, after a
-  // failure, the same old one). Stale the lists the catalog and Home build
-  // their cards from, a model's artifacts for the model page, and re-read the
-  // bundle the route branches on — a territory that finishes under the
-  // reader's eyes has to become the viewer, and this key is the only thing
-  // that tells the route so.
-  const previousJobs = useRef<TargetJob[] | undefined>(undefined);
-  useEffect(() => {
-    if (!jobs.data) return;
-    for (const { kind, slug: targetSlug } of finishedSince(previousJobs.current, jobs.data)) {
-      if (kind === "model") void client.invalidateQueries({ queryKey: ["artifacts", "model", targetSlug] });
-      void client.invalidateQueries({
-        queryKey: [kind === "territory" ? "territories" : "models"],
-        refetchType: "none",
-      });
-      if (kind === "territory") void client.invalidateQueries({ queryKey: ["scene", targetSlug] });
-    }
-    previousJobs.current = jobs.data;
-  }, [jobs.data, client]);
+  // A finish marks the lists and the bundle stale — the bundle is what the
+  // route branches on, so a territory that finishes under the reader's eyes
+  // becomes the viewer. A finish the stream already reported (it re-reads the
+  // bundle itself) is skipped, so the bundle is not asked for twice.
+  useStaleOnFinish(jobs.data, streamed && !isLive(streamed) ? streamed : null);
 
   const polled = jobs.data?.find((j) => j.kind === "territory" && j.slug === slug);
   // The stream, once it has answered, is up to four seconds fresher than the poll.

@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { LIST_KEY } from "@/entities/conversion";
 import { updateModel } from "@/entities/model";
 import { updateTerritory } from "@/entities/territory";
 import { messageOf } from "@/shared/api";
@@ -7,8 +8,6 @@ import { notify } from "@/shared/lib/notify";
 export type EntityKind = "model" | "territory";
 export type DetailsPatch = { title?: string; description?: string };
 type Details = { slug: string; title: string; description?: string };
-
-const LIST_KEY: Record<EntityKind, string> = { model: "models", territory: "territories" };
 
 /**
  * `setQueryData` clears a query's invalidated mark. A copy another write had

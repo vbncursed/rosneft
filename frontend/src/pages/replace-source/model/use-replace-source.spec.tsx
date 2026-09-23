@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { SceneBundle } from "@/entities/scene";
 import { clearNotices, useNotices } from "@/shared/lib/notify";
 import { useReplaceSource, type ReplaceSourceState } from "./use-replace-source";
 
@@ -29,6 +30,28 @@ vi.mock("@/entities/upload", async (importOriginal) => ({
 }));
 // A stand-in for the router context: the hook is rendered on its own.
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => navigate }));
+
+// A converted territory's bundle, the shape the conversion page's spec seeds:
+// the LOD0 is what a bundle from before the replace must not hand back.
+const ZERO = { x: 0, y: 0, z: 0 };
+const OLD_BUNDLE: SceneBundle = {
+  territory: { slug: "t", title: "Tenant A", sourceBlobHash: "o".repeat(64), placementCount: 0 },
+  artifact: {
+    lod: 0,
+    hash: "h0",
+    size: 1,
+    vertices: 1,
+    faces: 1,
+    bboxMin: ZERO,
+    bboxMax: { x: 1, y: 1, z: 1 },
+    chain: [{ lod: 0, hash: "h0", size: 1 }],
+  },
+  placements: [],
+  modelOptions: [],
+  panoramas: [],
+  documents: [],
+  measurements: [],
+};
 
 const PRINCIPAL = {
   id: "me",
@@ -129,7 +152,7 @@ describe("useReplaceSource", () => {
     replaceTerritorySource.mockResolvedValue({ territory: { slug: "t" }, job: { id: "j-9" } });
     const { result } = renderHook(() => useReplaceSource("t"), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
-    client.setQueryData(["scene", "t"], { artifact: { lod: 0 } });
+    client.setQueryData(["scene", "t"], OLD_BUNDLE);
 
     act(() => ready(result.current).onFiles([file()]));
     act(() => ready(result.current).onSubmit());
@@ -159,7 +182,7 @@ describe("useReplaceSource", () => {
     replaceTerritorySource.mockRejectedValue(new Error("nope"));
     const { result } = renderHook(() => useReplaceSource("t"), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("ready"));
-    client.setQueryData(["scene", "t"], { artifact: { lod: 0 } });
+    client.setQueryData(["scene", "t"], OLD_BUNDLE);
 
     act(() => ready(result.current).onFiles([file()]));
     act(() => ready(result.current).onSubmit());

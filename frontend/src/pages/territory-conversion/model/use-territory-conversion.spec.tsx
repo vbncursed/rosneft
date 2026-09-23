@@ -162,9 +162,26 @@ describe("useTerritoryConversion", () => {
     await client.refetchQueries({ queryKey: ["jobs"] });
     await waitFor(() => expect(spy).toHaveBeenCalledWith({ queryKey: ["artifacts", "model", "m"] }));
     expect(spy).not.toHaveBeenCalledWith({ queryKey: ["artifacts", "territory", "t"] });
-    expect(spy).toHaveBeenCalledWith({ queryKey: ["territories"], refetchType: "none" });
-    expect(spy).toHaveBeenCalledWith({ queryKey: ["models"], refetchType: "none" });
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["territories"] });
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["models"] });
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["scene", "t"] });
     expect(spy).not.toHaveBeenCalledWith({ queryKey: ["scene", "m"] });
+  });
+
+  // The stream's terminal frame already re-reads the bundle (useJobStream);
+  // the poll that follows it must not ask for it a second time.
+  it("leaves a finish the stream reported to the stream", async () => {
+    listJobs.mockResolvedValue([RUNNING]);
+    const r = render("j1");
+    await ready(r);
+    const spy = vi.spyOn(client, "invalidateQueries");
+
+    useJobStream.mockReturnValue({ ...RUNNING, status: "succeeded", progress: 1 });
+    r.rerender();
+    listJobs.mockResolvedValue([]);
+    await client.refetchQueries({ queryKey: ["jobs"] });
+    await waitFor(() => expect(r.result.current).toMatchObject({ status: "ready", job: { status: "succeeded" } }));
+    expect(spy).not.toHaveBeenCalledWith({ queryKey: ["scene", "t"] });
   });
 
   // A finish watched on this page opens the viewer, in-app and exactly once.

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { totalSize, type ContentItem, type ContentKind, type LodSummary } from "@/entities/content";
-import { finishedSince, jobsQuery, type TargetJob } from "@/entities/conversion";
+import { jobsQuery, LIST_KEY, useStaleOnFinish, type TargetJob } from "@/entities/conversion";
 import { deleteModel, modelsQuery } from "@/entities/model";
 import { deleteTerritory, territoriesQuery } from "@/entities/territory";
 import { meQuery } from "@/entities/user";
@@ -44,7 +44,6 @@ const DONE: Record<ContentKind, string> = {
   territory: "Territory deleted",
   model: "Model deleted",
 };
-const LIST_KEY: Record<ContentKind, string[]> = { territory: ["territories"], model: ["models"] };
 
 /**
  * Everything the Content screen decides. Two lists — each row carries its own
@@ -85,7 +84,7 @@ export function useContent(): ContentState {
     onSuccess: (_, item) => {
       notify.success(DONE[item.kind]);
       setSelectedKey(null);
-      void client.invalidateQueries({ queryKey: LIST_KEY[item.kind] });
+      void client.invalidateQueries({ queryKey: [LIST_KEY[item.kind]] });
       // A territory's placements go with it, so its models' usageCount drops.
       if (item.kind === "territory") {
         void client.invalidateQueries({ queryKey: ["models"] });
@@ -102,20 +101,8 @@ export function useContent(): ContentState {
   const failed = unanswered(territories) ?? unanswered(models) ?? unanswered(jobs);
   const loading = territories.isPending || models.isPending || jobs.isPending;
 
-  // A row whose job just finished has new LODs, and they ride on its list:
-  // re-read each list a finished job sits in, once. A model's artifacts are
-  // marked stale too, for the model page to reopen on — nothing reads a
-  // territory's.
-  const previousJobs = useRef<TargetJob[] | undefined>(undefined);
-  useEffect(() => {
-    if (!jobs.data) return;
-    const finished = finishedSince(previousJobs.current, jobs.data);
-    for (const kind of new Set(finished.map((j) => j.kind)))
-      void client.invalidateQueries({ queryKey: LIST_KEY[kind] });
-    for (const { slug } of finished.filter((j) => j.kind === "model"))
-      void client.invalidateQueries({ queryKey: ["artifacts", "model", slug] });
-    previousJobs.current = jobs.data;
-  }, [jobs.data, client]);
+  // A finished job's new LODs ride on the lists, a model's on its artifacts.
+  useStaleOnFinish(jobs.data);
 
   return {
     status: loading ? "loading" : failed ? "unavailable" : "ready",

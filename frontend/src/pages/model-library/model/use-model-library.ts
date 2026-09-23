@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { finishedSince, jobsQuery, type TargetJob } from "@/entities/conversion";
+import { useState } from "react";
+import { jobsQuery, useStaleOnFinish } from "@/entities/conversion";
 import { deleteModel, modelsQuery, toModelCard, type ModelCardModel } from "@/entities/model";
 import { meQuery } from "@/entities/user";
 import { messageOf } from "@/shared/api";
@@ -63,19 +63,8 @@ export function useModelLibrary(): ModelLibraryState {
   const failed = unanswered(models) ?? unanswered(jobs);
   const loading = models.isPending || jobs.isPending;
 
-  // A model whose job just finished has new LODs, and they ride on the list:
-  // re-read it once, or the card drops back to "pending" on the stale list.
-  // The row's artifacts are marked stale too, for the model page to reopen on.
-  const previousJobs = useRef<TargetJob[] | undefined>(undefined);
-  useEffect(() => {
-    if (!jobs.data) return;
-    const finished = finishedSince(previousJobs.current, jobs.data);
-    if (finished.some((j) => j.kind === "model"))
-      void client.invalidateQueries({ queryKey: ["models"] });
-    for (const { kind, slug } of finished)
-      void client.invalidateQueries({ queryKey: ["artifacts", kind, slug] });
-    previousJobs.current = jobs.data;
-  }, [jobs.data, client]);
+  // A finished job's new LODs ride on the lists, a model's on its artifacts.
+  useStaleOnFinish(jobs.data);
 
   return {
     status: loading ? "loading" : failed ? "unavailable" : "ready",

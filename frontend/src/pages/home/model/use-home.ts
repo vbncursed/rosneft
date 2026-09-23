@@ -1,8 +1,7 @@
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { myAuditQuery, type AuditEntry } from "@/entities/audit";
 import {
-  finishedSince,
+  useStaleOnFinish,
   jobsQuery,
   sortJobs,
   toJobCard,
@@ -51,7 +50,6 @@ export type HomeState = {
  * The feed never blocks the page.
  */
 export function useHome(): HomeState {
-  const client = useQueryClient();
   const me = useQuery(meQuery).data ?? null;
   const territories = useQuery(territoriesQuery);
   const models = useQuery(modelsQuery);
@@ -60,20 +58,8 @@ export function useHome(): HomeState {
 
   const shown = recent(territories.data ?? [], TERRITORY_CARDS);
 
-  // A shown card whose job just finished has new LODs, and they ride on its
-  // list: re-read each list a finished job sits in, or the card flips back to
-  // pending. A model's artifacts are marked stale too, for the model page to
-  // reopen on — nothing reads a territory's.
-  const previousJobs = useRef<TargetJob[] | undefined>(undefined);
-  useEffect(() => {
-    if (!jobs.data) return;
-    const finished = finishedSince(previousJobs.current, jobs.data);
-    for (const kind of new Set(finished.map((j) => j.kind)))
-      void client.invalidateQueries({ queryKey: [kind === "territory" ? "territories" : "models"] });
-    for (const { slug } of finished.filter((j) => j.kind === "model"))
-      void client.invalidateQueries({ queryKey: ["artifacts", "model", slug] });
-    previousJobs.current = jobs.data;
-  }, [jobs.data, client]);
+  // A finished job's new LODs ride on the lists, a model's on its artifacts.
+  useStaleOnFinish(jobs.data);
 
   const failed = unanswered(territories) ?? unanswered(models) ?? unanswered(jobs);
   const loading = territories.isPending || models.isPending || jobs.isPending;
