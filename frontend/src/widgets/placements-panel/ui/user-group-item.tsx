@@ -34,6 +34,17 @@ export type UserGroupItemProps = {
   actions: GroupActions;
 };
 
+/**
+ * The row leaves once its delete lands, taking the focus Menu handed back to
+ * the kebab. Menu closes before it selects, so moving focus here wins: to the
+ * next (or previous) group's disclosure, else the panel's search.
+ */
+function focusNeighbour(li: HTMLLIElement | null) {
+  const sibling = li?.nextElementSibling ?? li?.previousElementSibling;
+  const next = sibling?.querySelector<HTMLButtonElement>("button[aria-expanded]");
+  (next ?? document.querySelector<HTMLElement>('[aria-label="Search objects"]'))?.focus();
+}
+
 /** One user group: its row (eye and menu for a writer), its members, then its own Add. */
 export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemProps) {
   const [renaming, setRenaming] = useState(false);
@@ -86,10 +97,20 @@ export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemPro
             <Menu
               triggerLabel={`Actions for group ${group.title}`}
               trigger={<Icon name="kebab" size={12} />}
-              disabled={actions.busy}
+              // The items grey while a group write is in flight, never the
+              // kebab: it holds focus when the write starts, and a natively
+              // disabled one drops that focus to <body>.
               items={[
-                { label: "Rename", onSelect: () => setRenaming(true) },
-                { label: DELETE_GROUP, tone: "bad", onSelect: () => actions.onDelete(group.id) },
+                { label: "Rename", disabled: actions.busy, onSelect: () => setRenaming(true) },
+                {
+                  label: DELETE_GROUP,
+                  tone: "bad",
+                  disabled: actions.busy,
+                  onSelect: () => {
+                    focusNeighbour(item.current);
+                    actions.onDelete(group.id);
+                  },
+                },
               ]}
             />
           </>
