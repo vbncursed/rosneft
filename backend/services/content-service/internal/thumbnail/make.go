@@ -32,7 +32,7 @@ const (
 // size a few-MB progressive JPEG could make the decoder use about 2.7 GB.
 //
 // Peak memory at MaxPixels (33.5 M px):
-//   - progressive CMYK JPEG, 20 B/px (4 coefficient planes of 4 B, plus the image): ~0.67 GB, the worst case
+//   - progressive CMYK/YCCK JPEG, 24 B/px (4 coefficient planes of 4 B, the 4 B decoded image, and its 4 B CMYK conversion): ~0.81 GB, the worst case
 //   - progressive 4:4:4 JPEG, 15 B/px (3 planes of 4 B, plus the image): ~0.50 GB
 //   - 16-bit RGBA PNG, 8 B/px (image.RGBA64): ~0.27 GB
 //   - baseline 4:4:4 JPEG, 3 B/px: ~0.10 GB

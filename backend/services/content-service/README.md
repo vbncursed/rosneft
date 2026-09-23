@@ -24,7 +24,9 @@ with catalog, isolated by its own `content_goose_db_version` table; the
   into the shared `blob-data` volume, mounted read-write at `CONTENT_BLOB_DIR`
   (default `/var/blob`). It is made at create time, where a failure is logged
   and the panorama still created, and by a startup backfill of every row whose
-  `thumbnail_blob_hash` is `''`, one at a time.
+  `thumbnail_blob_hash` is `''`, one at a time. A source over 8192×4096 px
+  (by area, `thumbnail.MaxPixels`) never gets a thumbnail: the row keeps
+  showing the panorama glyph, and the backfill logs one WARN for it per boot.
 
 ## Layout
 
@@ -35,6 +37,7 @@ internal/
   domain/      # Document, Panorama, Vec3 + sentinel errors (errors.go)
   migrate/     # embedded goose migrations + up/down/status runners
   slug/        # title → URL-safe slug (Cyrillic transliteration); candidates
+  thumbnail/   # equirect → 256×128 JPEG, header-checked decode budget
   storage/     # PG adapter; one file = one DB method; queries.go = scanners
   service/     # business layer; content.go owns the Repository interface +
                # constructor, one method per file
@@ -95,6 +98,7 @@ All env vars are prefixed `CONTENT_` (layered flag > env > default).
 | `CONTENT_LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error`. |
 | `CONTENT_LOG_FORMAT` | `json` | `json` / `text`. |
 | `CONTENT_AUTO_MIGRATE` | `true` | Run goose migrations on startup. |
+| `CONTENT_BLOB_DIR` | `/var/blob` | BlobStore root (the shared `blob-data` volume, read-write): panorama sources are read and thumbnails written here. |
 | `CONTENT_SHUTDOWN_TIMEOUT` | `15s` | Graceful drain window. |
 
 No Redis. No secret key. Territory existence is validated against the shared DB.

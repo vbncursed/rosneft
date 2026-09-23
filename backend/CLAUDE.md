@@ -22,7 +22,7 @@ Guidance for Claude Code when working in `backend/`.
 | mesh-api | `services/mesh-service` | `mesh-api` | gRPC façade for `SubmitConversion(kind, slug)` / `GetJob`. Writes Redis Streams. |
 | mesh-worker | `services/mesh-service` | `mesh-worker` | Consumes the stream, fetches the source ZIP from BlobStore by hash, extracts to a tmp dir, runs the OBJ→GLB converter, applies optional meshopt / KTX2 / LOD via `gltfpack`, writes each LOD GLB to BlobStore, registers each artifact in catalog (territory_artifacts vs model_artifacts based on Kind). Runs the reconciler that auto-queues entities whose LOD0 GLB is missing. |
 | asset | `services/asset-service` | `asset` | Internal HTTP serving content-addressed GLB blobs with immutable cache headers + ETag. |
-| audit | `services/audit-service` | `audit` | gRPC `:9009`. Owns the append-only `audit_log` plus the generic `audit_capture()` trigger attached to every audited table. Shares the `andrey` DB, isolated by `audit_goose_db_version`. Re-attaches its triggers idempotently on every boot via `ensure_audit_triggers()`, so it needs no ordering against the other services' migrations. Also seals periodic checkpoint digests and witnesses them to a volume outside the database (`audit verify`, `audit export`). |
+| audit | `services/audit-service` | `audit` | gRPC `:9009`. Owns the append-only `audit_log` plus the generic `audit_capture()` trigger attached to every audited table. Shares the `andrey` DB, isolated by `audit_goose_db_version`. Re-attaches its triggers idempotently on every boot via `ensure_audit_triggers()` — and **only** at boot, with no `depends_on` on catalog: after a migration adds an audited table, `docker compose restart audit` once that service is healthy, then check `pg_trigger` for `audit_<table>`, or the table's writes go unjournaled silently. Also seals periodic checkpoint digests and witnesses them to a volume outside the database (`audit verify`, `audit export`). |
 | upload | `services/upload-service` | `upload` | Internal gRPC accepting resumable chunked uploads (`Initiate` / `WriteChunk(stream)` / `GetStatus` / `Finalize` / `Abort`). On Finalize the bytes are SHA-256 hashed and moved into BlobStore; the gateway forwards the resulting hash into `createTerritory` / `createModel`. |
 
 There is a request-path call cycle: `twofa.Setup → auth.GetMe → ValidateToken →
@@ -499,7 +499,7 @@ gets stolen.
 
 - Images are slim distroless (`distroless/static` for static-link Go services, `distroless/cc` for `mesh-worker` because it ships gltfpack alongside).
 - Volumes (all named, Docker-managed for nonroot ownership):
-  - `blob-data:/var/blob` — BlobStore root, shared between mesh-worker (rw), asset (ro), and upload (rw).
+  - `blob-data:/var/blob` — BlobStore root, shared between mesh-worker (rw), asset (ro), upload (rw), and content (rw, panorama thumbnails).
   - `upload-incoming:/var/upload/incoming` — partial-upload session state (per-session subdir, deleted on Finalize/Abort), **and** `uploaded/<hash>/<user>`, the H-1 markers of who finalized which hash. Do not clean `uploaded/` as leftover state: without it users can no longer attach their own earlier uploads that they cannot yet read through `ResolveBlobAccess`.
   - `postgres-data`, `redis-data` — datastore persistence.
 - All services log structured JSON via `log/slog`.

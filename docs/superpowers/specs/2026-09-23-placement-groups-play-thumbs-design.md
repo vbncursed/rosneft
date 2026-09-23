@@ -259,8 +259,19 @@ which opens an inline title field.
 
 ## Deploy order
 
-catalog (00019, 00020) → audit (trigger registration) → content (volume mount,
-backfill) + gateway together → SPA + desktop. The SPA reads `hidden`,
+1. Bring catalog up and wait until it is healthy, so 00019 and 00020 are
+   applied (`placement_groups` exists).
+2. `docker compose restart audit`. Audit attaches its triggers only at boot
+   (`ensure_audit_triggers()` in its bootstrap) and has no `depends_on`
+   catalog, so a one-shot `docker compose up -d --build catalog audit content
+   gateway` can boot audit before 00019 creates `placement_groups`, and every
+   group write then goes unjournaled with no error anywhere.
+3. Verify the trigger: `SELECT tgname FROM pg_trigger WHERE
+   tgname='audit_placement_groups'` returns one row.
+4. content (volume mount, backfill) + gateway together.
+5. SPA + desktop.
+
+The SPA reads `hidden`,
 `groupId`, `placementGroups` and `thumbnailBlobHash`, all of which the new
 gateway always sends (or omits meaning "none"), so SPA-after-gateway is safe;
 the old SPA against the new gateway ignores the new fields.

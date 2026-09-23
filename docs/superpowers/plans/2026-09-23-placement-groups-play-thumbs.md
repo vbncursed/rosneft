@@ -75,7 +75,19 @@
 
 ## Deploy order
 
-catalog (00019, 00020) → audit (00007, restart) → content (blob volume rw, `depends_on` catalog healthy, backfill) + gateway together → SPA + desktop. A new gateway against an old catalog fails `/scene` with `Unimplemented`, so catalog goes first. On the prod host run `docker compose config content` before `up` to check the untracked override does not redefine the `content` service's volumes.
+1. Bring catalog up and wait until it is healthy, so 00019 and 00020 are
+   applied (`placement_groups` exists).
+2. `docker compose restart audit` (00007 applies on that boot). Audit attaches its triggers only at boot
+   (`ensure_audit_triggers()` in its bootstrap) and has no `depends_on`
+   catalog, so a one-shot `docker compose up -d --build catalog audit content
+   gateway` can boot audit before 00019 creates `placement_groups`, and every
+   group write then goes unjournaled with no error anywhere.
+3. Verify the trigger: `SELECT tgname FROM pg_trigger WHERE
+   tgname='audit_placement_groups'` returns one row.
+4. content (blob volume rw, `depends_on` catalog healthy, backfill) + gateway together.
+5. SPA + desktop.
+
+A new gateway against an old catalog fails `/scene` with `Unimplemented`, so catalog goes first. On the prod host run `docker compose config content` before `up` to check the untracked override does not redefine the `content` service's volumes.
 
 ---
 
