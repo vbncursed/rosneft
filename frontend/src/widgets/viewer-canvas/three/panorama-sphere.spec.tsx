@@ -12,6 +12,7 @@ const PANO = {
   position: { x: 1, y: 2, z: 3 },
   yawOffset: 0.5,
   defaultYaw: 0,
+  thumbnailBlobHash: null,
   updatedAt: "",
 };
 

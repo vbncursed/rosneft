@@ -27,6 +27,7 @@ const panorama = (
   position,
   yawOffset,
   defaultYaw: 0,
+  thumbnailBlobHash: null,
   updatedAt: "2026-09-08T11:20:00Z",
 });
 

@@ -26,6 +26,7 @@ const panorama = (id: number, over: Partial<Panorama> = {}): Panorama => ({
   position: { x: 1, y: 0, z: 2 },
   yawOffset: 0,
   defaultYaw: 0,
+  thumbnailBlobHash: `t${id}`,
   updatedAt: "2026-09-14T10:00:00Z",
   ...over,
 });
@@ -54,16 +55,19 @@ describe("viewTabProps · folds", () => {
 });
 
 describe("viewTabProps · panoramas", () => {
-  it("builds one row per capture: its photo, whether it is entered, and whether it is calibrated", () => {
+  it("builds one row per capture: its thumbnail (never the original), whether it is entered, and whether it is calibrated", () => {
     const rows = viewTabProps(
-      withPanoramas([panorama(1), panorama(2, { position: { x: 0, y: 0, z: 0 } })]),
+      withPanoramas([
+        panorama(1),
+        panorama(2, { position: { x: 0, y: 0, z: 0 }, thumbnailBlobHash: null }),
+      ]),
     ).panoramas.rows;
 
     expect(rows).toEqual([
       {
         id: 1,
         title: "Capture 1",
-        thumbUrl: assetUrl("p1"),
+        thumbUrl: assetUrl("t1"),
         active: false,
         calibrated: true,
         canEdit: true,
@@ -72,7 +76,7 @@ describe("viewTabProps · panoramas", () => {
       {
         id: 2,
         title: "Capture 2",
-        thumbUrl: assetUrl("p2"),
+        thumbUrl: null,
         active: false,
         // Nothing has moved this anchor off the origin, so it cannot be entered.
         calibrated: false,

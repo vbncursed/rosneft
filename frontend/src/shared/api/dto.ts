@@ -2790,6 +2790,12 @@ export interface components {
             title: string;
             /** @description BlobStore hash for the equirect JPG/PNG; served via /api/assets/{hash}. */
             sourceBlobHash: string;
+            /**
+             * @description 256×128 JPEG content-service makes from the source; served via
+             *     /api/assets/{hash} under the same territory scope. Omitted until it
+             *     has been made, and the SPA draws the panorama glyph instead.
+             */
+            thumbnailBlobHash?: string;
             position: components["schemas"]["Vec3"];
             /**
              * Format: double

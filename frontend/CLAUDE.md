@@ -1234,9 +1234,12 @@ floated above it.
   hover brightening, and a click writes nothing, so the reader's own choice
   survives. A rail tile and a finished upload `reveal` their section, which
   opens *and* remembers it — an upload must not land in a hidden list. An
-  empty list has no fold at all. The folded list is `hidden`, not
-  unmounted, because the head's `aria-controls` must point at an element
-  that exists.
+  empty list has no fold at all. A folded list keeps its `<ul>`, `hidden` and
+  empty, because the head's `aria-controls` must point at an element that
+  exists. Its rows unmount, so a folded list costs nothing on a re-render. A
+  row's thumbnail is the server-made 256×128 JPEG (`thumbnailBlobHash`,
+  content-service `internal/thumbnail`), never the equirect; without one the
+  row draws the glyph.
 - **The reducer owns where the camera is, not the list hooks.**
   `features/viewer-mode`'s state carries `view` (`{kind:"scene"}` or
   `{kind:"panorama", id}`), `move` (the scene-only sub-mode for dragging

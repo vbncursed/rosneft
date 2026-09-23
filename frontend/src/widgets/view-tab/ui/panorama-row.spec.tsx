@@ -27,12 +27,15 @@ const row = (over: Partial<PanoramaRowView> = {}, handlers: Partial<Parameters<t
   );
 
 describe("PanoramaRow", () => {
-  it("shows the photo when there is one, and does not pull it until it is looked at", () => {
-    // The thumb is the whole equirect — 5-8 MB and a 32 MB decode per capture,
-    // on a tab that opens by default.
+  it("shows the thumbnail at its own size, and does not pull it until it is looked at", () => {
+    // A 256×128 JPEG the server made. The size attributes reserve the box's
+    // ratio before the bytes land; lazy/async keep a list scrolled past off
+    // the wire and off the main thread.
     const { container } = row();
     const img = container.querySelector("img");
     expect(img).toHaveAttribute("src", "/api/assets/abc");
+    expect(img).toHaveAttribute("width", "256");
+    expect(img).toHaveAttribute("height", "128");
     expect(img).toHaveAttribute("loading", "lazy");
     expect(img).toHaveAttribute("decoding", "async");
   });

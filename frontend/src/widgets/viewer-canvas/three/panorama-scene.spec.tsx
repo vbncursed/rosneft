@@ -57,6 +57,7 @@ const PANO: Panorama = {
   position: { x: 1, y: 2, z: 3 },
   yawOffset: 0,
   defaultYaw: 0,
+  thumbnailBlobHash: null,
   updatedAt: "",
 };
 

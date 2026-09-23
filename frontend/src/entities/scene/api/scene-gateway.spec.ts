@@ -76,7 +76,7 @@ describe("getSceneBundle", () => {
     expect(bundle.artifact?.bboxMax).toEqual({ x: 2, y: 1, z: 2 });
     expect(bundle.placements[0]).toMatchObject({ id: 1, label: "", updatedAt: "", visiblePanoramaIds: [] });
     expect(bundle.modelOptions[0].chain).toEqual([]);
-    expect(bundle.panoramas).toEqual([{ ...dto.panoramas[0], updatedAt: "" }]);
+    expect(bundle.panoramas).toEqual([{ ...dto.panoramas[0], updatedAt: "", thumbnailBlobHash: null }]);
     expect(bundle.documents).toEqual([{ ...dto.documents[0], createdAt: "" }]);
     expect(bundle.measurements).toEqual([{ serverId: 5, points: dto.measurements[0].points, closed: false }]);
     expect(bundle.placementGroups).toEqual([{ id: 2, title: "Tank farm" }]);
