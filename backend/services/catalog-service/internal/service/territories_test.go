@@ -188,3 +188,32 @@ func (s *TerritoriesSuite) TestDeleteRemovesExisting() {
 	s.repo.DeleteTerritoryMock.Expect(s.ctx, "t1").Return(nil)
 	assert.NilError(s.T(), s.svc.DeleteTerritory(s.ctx, "t1"))
 }
+
+func (s *TerritoriesSuite) TestUpdateForwardsThePatchAsIs() {
+	patch := domain.TerritoryPatch{Title: new("North"), Description: new(""), SourceBlobHash: new(validBlobHash)}
+	s.repo.UpdateTerritoryMock.Expect(s.ctx, "t1", patch).Return(domain.Territory{Slug: "t1", Title: "North"}, nil)
+	out, err := s.svc.UpdateTerritory(s.ctx, "t1", patch)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), out.Title, "North")
+}
+
+// Every refusal happens before the repository: it carries no expectation, so
+// reaching it fails the test.
+func (s *TerritoriesSuite) TestUpdateRefusesBadInputBeforeWriting() {
+	cases := []struct {
+		name  string
+		slug  string
+		patch domain.TerritoryPatch
+	}{
+		{name: "empty slug", slug: "", patch: domain.TerritoryPatch{Title: new("x")}},
+		{name: "blank title", slug: "t1", patch: domain.TerritoryPatch{Title: new("  ")}},
+		{name: "empty source hash", slug: "t1", patch: domain.TerritoryPatch{SourceBlobHash: new("")}},
+		{name: "non-hex source hash", slug: "t1", patch: domain.TerritoryPatch{SourceBlobHash: new("zz")}},
+	}
+	for _, tc := range cases {
+		s.Run(tc.name, func() {
+			_, err := s.svc.UpdateTerritory(s.ctx, tc.slug, tc.patch)
+			assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+		})
+	}
+}

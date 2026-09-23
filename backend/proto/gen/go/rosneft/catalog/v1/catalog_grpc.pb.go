@@ -25,6 +25,7 @@ const (
 	CatalogService_ResolveBlobAccess_FullMethodName           = "/rosneft.catalog.v1.CatalogService/ResolveBlobAccess"
 	CatalogService_GetTerritory_FullMethodName                = "/rosneft.catalog.v1.CatalogService/GetTerritory"
 	CatalogService_UpsertTerritory_FullMethodName             = "/rosneft.catalog.v1.CatalogService/UpsertTerritory"
+	CatalogService_UpdateTerritory_FullMethodName             = "/rosneft.catalog.v1.CatalogService/UpdateTerritory"
 	CatalogService_DeleteTerritory_FullMethodName             = "/rosneft.catalog.v1.CatalogService/DeleteTerritory"
 	CatalogService_RegisterTerritoryArtifact_FullMethodName   = "/rosneft.catalog.v1.CatalogService/RegisterTerritoryArtifact"
 	CatalogService_ListTerritoryArtifacts_FullMethodName      = "/rosneft.catalog.v1.CatalogService/ListTerritoryArtifacts"
@@ -37,6 +38,7 @@ const (
 	CatalogService_ListModels_FullMethodName                  = "/rosneft.catalog.v1.CatalogService/ListModels"
 	CatalogService_GetModel_FullMethodName                    = "/rosneft.catalog.v1.CatalogService/GetModel"
 	CatalogService_UpsertModel_FullMethodName                 = "/rosneft.catalog.v1.CatalogService/UpsertModel"
+	CatalogService_UpdateModel_FullMethodName                 = "/rosneft.catalog.v1.CatalogService/UpdateModel"
 	CatalogService_DeleteModel_FullMethodName                 = "/rosneft.catalog.v1.CatalogService/DeleteModel"
 	CatalogService_RegisterModelArtifact_FullMethodName       = "/rosneft.catalog.v1.CatalogService/RegisterModelArtifact"
 	CatalogService_ListModelArtifacts_FullMethodName          = "/rosneft.catalog.v1.CatalogService/ListModelArtifacts"
@@ -87,6 +89,7 @@ type CatalogServiceClient interface {
 	ResolveBlobAccess(ctx context.Context, in *ResolveBlobAccessRequest, opts ...grpc.CallOption) (*ResolveBlobAccessResponse, error)
 	GetTerritory(ctx context.Context, in *GetTerritoryRequest, opts ...grpc.CallOption) (*GetTerritoryResponse, error)
 	UpsertTerritory(ctx context.Context, in *UpsertTerritoryRequest, opts ...grpc.CallOption) (*UpsertTerritoryResponse, error)
+	UpdateTerritory(ctx context.Context, in *UpdateTerritoryRequest, opts ...grpc.CallOption) (*UpdateTerritoryResponse, error)
 	DeleteTerritory(ctx context.Context, in *DeleteTerritoryRequest, opts ...grpc.CallOption) (*DeleteTerritoryResponse, error)
 	RegisterTerritoryArtifact(ctx context.Context, in *RegisterTerritoryArtifactRequest, opts ...grpc.CallOption) (*RegisterTerritoryArtifactResponse, error)
 	ListTerritoryArtifacts(ctx context.Context, in *ListTerritoryArtifactsRequest, opts ...grpc.CallOption) (*ListTerritoryArtifactsResponse, error)
@@ -99,6 +102,7 @@ type CatalogServiceClient interface {
 	ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error)
 	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*GetModelResponse, error)
 	UpsertModel(ctx context.Context, in *UpsertModelRequest, opts ...grpc.CallOption) (*UpsertModelResponse, error)
+	UpdateModel(ctx context.Context, in *UpdateModelRequest, opts ...grpc.CallOption) (*UpdateModelResponse, error)
 	DeleteModel(ctx context.Context, in *DeleteModelRequest, opts ...grpc.CallOption) (*DeleteModelResponse, error)
 	RegisterModelArtifact(ctx context.Context, in *RegisterModelArtifactRequest, opts ...grpc.CallOption) (*RegisterModelArtifactResponse, error)
 	ListModelArtifacts(ctx context.Context, in *ListModelArtifactsRequest, opts ...grpc.CallOption) (*ListModelArtifactsResponse, error)
@@ -179,6 +183,16 @@ func (c *catalogServiceClient) UpsertTerritory(ctx context.Context, in *UpsertTe
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpsertTerritoryResponse)
 	err := c.cc.Invoke(ctx, CatalogService_UpsertTerritory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) UpdateTerritory(ctx context.Context, in *UpdateTerritoryRequest, opts ...grpc.CallOption) (*UpdateTerritoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateTerritoryResponse)
+	err := c.cc.Invoke(ctx, CatalogService_UpdateTerritory_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -299,6 +313,16 @@ func (c *catalogServiceClient) UpsertModel(ctx context.Context, in *UpsertModelR
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpsertModelResponse)
 	err := c.cc.Invoke(ctx, CatalogService_UpsertModel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) UpdateModel(ctx context.Context, in *UpdateModelRequest, opts ...grpc.CallOption) (*UpdateModelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateModelResponse)
+	err := c.cc.Invoke(ctx, CatalogService_UpdateModel_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -479,6 +503,7 @@ type CatalogServiceServer interface {
 	ResolveBlobAccess(context.Context, *ResolveBlobAccessRequest) (*ResolveBlobAccessResponse, error)
 	GetTerritory(context.Context, *GetTerritoryRequest) (*GetTerritoryResponse, error)
 	UpsertTerritory(context.Context, *UpsertTerritoryRequest) (*UpsertTerritoryResponse, error)
+	UpdateTerritory(context.Context, *UpdateTerritoryRequest) (*UpdateTerritoryResponse, error)
 	DeleteTerritory(context.Context, *DeleteTerritoryRequest) (*DeleteTerritoryResponse, error)
 	RegisterTerritoryArtifact(context.Context, *RegisterTerritoryArtifactRequest) (*RegisterTerritoryArtifactResponse, error)
 	ListTerritoryArtifacts(context.Context, *ListTerritoryArtifactsRequest) (*ListTerritoryArtifactsResponse, error)
@@ -491,6 +516,7 @@ type CatalogServiceServer interface {
 	ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error)
 	GetModel(context.Context, *GetModelRequest) (*GetModelResponse, error)
 	UpsertModel(context.Context, *UpsertModelRequest) (*UpsertModelResponse, error)
+	UpdateModel(context.Context, *UpdateModelRequest) (*UpdateModelResponse, error)
 	DeleteModel(context.Context, *DeleteModelRequest) (*DeleteModelResponse, error)
 	RegisterModelArtifact(context.Context, *RegisterModelArtifactRequest) (*RegisterModelArtifactResponse, error)
 	ListModelArtifacts(context.Context, *ListModelArtifactsRequest) (*ListModelArtifactsResponse, error)
@@ -535,6 +561,9 @@ func (UnimplementedCatalogServiceServer) GetTerritory(context.Context, *GetTerri
 func (UnimplementedCatalogServiceServer) UpsertTerritory(context.Context, *UpsertTerritoryRequest) (*UpsertTerritoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpsertTerritory not implemented")
 }
+func (UnimplementedCatalogServiceServer) UpdateTerritory(context.Context, *UpdateTerritoryRequest) (*UpdateTerritoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateTerritory not implemented")
+}
 func (UnimplementedCatalogServiceServer) DeleteTerritory(context.Context, *DeleteTerritoryRequest) (*DeleteTerritoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteTerritory not implemented")
 }
@@ -570,6 +599,9 @@ func (UnimplementedCatalogServiceServer) GetModel(context.Context, *GetModelRequ
 }
 func (UnimplementedCatalogServiceServer) UpsertModel(context.Context, *UpsertModelRequest) (*UpsertModelResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpsertModel not implemented")
+}
+func (UnimplementedCatalogServiceServer) UpdateModel(context.Context, *UpdateModelRequest) (*UpdateModelResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateModel not implemented")
 }
 func (UnimplementedCatalogServiceServer) DeleteModel(context.Context, *DeleteModelRequest) (*DeleteModelResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteModel not implemented")
@@ -738,6 +770,24 @@ func _CatalogService_UpsertTerritory_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CatalogServiceServer).UpsertTerritory(ctx, req.(*UpsertTerritoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_UpdateTerritory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateTerritoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).UpdateTerritory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_UpdateTerritory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).UpdateTerritory(ctx, req.(*UpdateTerritoryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -954,6 +1004,24 @@ func _CatalogService_UpsertModel_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CatalogServiceServer).UpsertModel(ctx, req.(*UpsertModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_UpdateModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).UpdateModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_UpdateModel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).UpdateModel(ctx, req.(*UpdateModelRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1242,6 +1310,10 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CatalogService_UpsertTerritory_Handler,
 		},
 		{
+			MethodName: "UpdateTerritory",
+			Handler:    _CatalogService_UpdateTerritory_Handler,
+		},
+		{
 			MethodName: "DeleteTerritory",
 			Handler:    _CatalogService_DeleteTerritory_Handler,
 		},
@@ -1288,6 +1360,10 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpsertModel",
 			Handler:    _CatalogService_UpsertModel_Handler,
+		},
+		{
+			MethodName: "UpdateModel",
+			Handler:    _CatalogService_UpdateModel_Handler,
 		},
 		{
 			MethodName: "DeleteModel",

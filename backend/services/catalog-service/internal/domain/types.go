@@ -33,6 +33,23 @@ type Model struct {
 	UsageCount int `yaml:"-"`
 }
 
+// TerritoryPatch names the territory columns a partial edit writes. Nil keeps
+// the stored value; a pointer to "" clears it. Writing only these columns is
+// what keeps one edit from reverting another made since it read the row.
+type TerritoryPatch struct {
+	Title               *string
+	Description         *string
+	ExternalPanoramaURL *string
+	SourceBlobHash      *string
+}
+
+// ModelPatch names the model columns a partial edit writes — see TerritoryPatch.
+type ModelPatch struct {
+	Title             *string
+	Description       *string
+	ThumbnailBlobHash *string
+}
+
 // Vec3 is a 3D point used for bounding-box corners and placement transforms.
 type Vec3 struct {
 	X, Y, Z float64
