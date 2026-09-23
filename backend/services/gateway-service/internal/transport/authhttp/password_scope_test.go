@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 	"gotest.tools/v3/assert"
 
+	authv1 "github.com/vbncursed/rosneft/backend/proto/gen/go/rosneft/auth/v1"
 	"github.com/vbncursed/rosneft/backend/services/gateway-service/internal/domain"
 )
 
@@ -101,5 +102,55 @@ func (s *SetUserPasswordSuite) TestAnOutOfScopeTargetReadsAsMissing() {
 	rec := s.putAs(stub, catalogScopes{err: errors.New("must not be asked")}, delegate, pw)
 
 	assert.Equal(s.T(), rec.Code, http.StatusNotFound)
+	assert.Equal(s.T(), len(stub.got), 0)
+}
+
+// users:read_all reaches a member of another company, and a member's territories
+// are its Company Owner's, not ones keyed to its own id. Comparing the raw id
+// found none and let the reset through.
+var readAll = TestPrincipal{UserID: "auditor", Perms: []string{"users:write", "users:read_all"}, OwningAdmin: "company-a"}
+
+func (s *SetUserPasswordSuite) TestReadAllIsRefusedForAMemberOfACompanyItCannotSee() {
+	stub := newPasswordAuth(nil)
+	stub.target = &authv1.User{Id: "u-1", TerritoryScopeId: "company-b"}
+	cat := catalogScopes{by: map[string][]string{"company-a": {"yard"}, "company-b": {"rig"}}}
+
+	rec := s.putAs(stub, cat, readAll, pw)
+
+	assert.Equal(s.T(), rec.Code, http.StatusForbidden)
+	assert.Equal(s.T(), len(stub.got), 0)
+}
+
+func (s *SetUserPasswordSuite) TestReadAllResetsAMemberWhoseTerritoriesItAllSees() {
+	stub := newPasswordAuth(nil)
+	stub.target = &authv1.User{Id: "u-1", TerritoryScopeId: "company-b"}
+	cat := catalogScopes{by: map[string][]string{"company-a": {"yard", "rig"}, "company-b": {"rig"}}}
+
+	rec := s.putAs(stub, cat, readAll, pw)
+
+	assert.Equal(s.T(), rec.Code, http.StatusNoContent)
+	assert.Equal(s.T(), len(stub.got), 1)
+}
+
+// A target with no scope key sees nothing, as the gateway reads an empty scope
+// for any non-Root session — never the whole catalog "" means to the catalog.
+func (s *SetUserPasswordSuite) TestATargetWithoutAScopeKeyHoldsNothing() {
+	stub := newPasswordAuth(nil)
+	stub.target = &authv1.User{Id: "u-1"}
+	cat := catalogScopes{by: map[string][]string{"": {"x"}, "company-a": {"yard"}}}
+
+	rec := s.putAs(stub, cat, delegate, pw)
+
+	assert.Equal(s.T(), rec.Code, http.StatusNoContent)
+}
+
+// Root sees every territory; a non-Root caller covers that never.
+func (s *SetUserPasswordSuite) TestARootTargetIsRefused() {
+	stub := newPasswordAuth(nil)
+	stub.target = &authv1.User{Id: "u-1", IsOwner: true}
+
+	rec := s.putAs(stub, catalogScopes{by: map[string][]string{"company-a": {"yard"}}}, readAll, pw)
+
+	assert.Equal(s.T(), rec.Code, http.StatusForbidden)
 	assert.Equal(s.T(), len(stub.got), 0)
 }

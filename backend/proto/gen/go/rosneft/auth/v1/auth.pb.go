@@ -47,9 +47,14 @@ type User struct {
 	RoleTitles map[string]string `protobuf:"bytes,12,rep,name=role_titles,json=roleTitles,proto3" json:"role_titles,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Policy: an administrator requires a second factor of this account.
 	// totp_enabled (field 5) is the separate question of whether one is enrolled.
-	TotpRequired  bool `protobuf:"varint,13,opt,name=totp_required,json=totpRequired,proto3" json:"totp_required,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	TotpRequired bool `protobuf:"varint,13,opt,name=totp_required,json=totpRequired,proto3" json:"totp_required,omitempty"`
+	// The territory-visibility key this user's session would carry: its own id
+	// for a guest, its Company Owner's otherwise, "" when it has none. Set by
+	// GetUser only — the gateway's password reset compares it to the caller's
+	// territories — and never mapped into the gateway's user JSON.
+	TerritoryScopeId string `protobuf:"bytes,14,opt,name=territory_scope_id,json=territoryScopeId,proto3" json:"territory_scope_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *User) Reset() {
@@ -171,6 +176,13 @@ func (x *User) GetTotpRequired() bool {
 		return x.TotpRequired
 	}
 	return false
+}
+
+func (x *User) GetTerritoryScopeId() string {
+	if x != nil {
+		return x.TerritoryScopeId
+	}
+	return ""
 }
 
 type Role struct {
@@ -2629,7 +2641,7 @@ var File_rosneft_auth_v1_auth_proto protoreflect.FileDescriptor
 
 const file_rosneft_auth_v1_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x1arosneft/auth/v1/auth.proto\x12\x0frosneft.auth.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb5\x04\n" +
+	"\x1arosneft/auth/v1/auth.proto\x12\x0frosneft.auth.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe3\x04\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
@@ -2648,7 +2660,8 @@ const file_rosneft_auth_v1_auth_proto_rawDesc = "" +
 	"\x15onboarding_tours_seen\x18\v \x03(\tR\x13onboardingToursSeen\x12F\n" +
 	"\vrole_titles\x18\f \x03(\v2%.rosneft.auth.v1.User.RoleTitlesEntryR\n" +
 	"roleTitles\x12#\n" +
-	"\rtotp_required\x18\r \x01(\bR\ftotpRequired\x1a=\n" +
+	"\rtotp_required\x18\r \x01(\bR\ftotpRequired\x12,\n" +
+	"\x12territory_scope_id\x18\x0e \x01(\tR\x10territoryScopeId\x1a=\n" +
 	"\x0fRoleTitlesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"x\n" +

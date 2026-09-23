@@ -21,12 +21,14 @@ import (
 )
 
 // passwordAuth is an in-process auth-service that records the request it is
-// sent and answers with err. GetUser answers getErr, or the user when nil.
+// sent and answers with err. GetUser answers getErr, or else target — by
+// default a guest, whose territory scope is its own id.
 type passwordAuth struct {
 	authv1.UnimplementedAuthServiceServer
 	got    chan *authv1.SetUserPasswordRequest
 	err    error
 	getErr error
+	target *authv1.User
 }
 
 func newPasswordAuth(err error) passwordAuth {
@@ -37,7 +39,10 @@ func (p passwordAuth) GetUser(_ context.Context, req *authv1.GetUserRequest) (*a
 	if p.getErr != nil {
 		return nil, p.getErr
 	}
-	return &authv1.User{Id: req.GetId()}, nil
+	if p.target != nil {
+		return p.target, nil
+	}
+	return &authv1.User{Id: req.GetId(), TerritoryScopeId: req.GetId()}, nil
 }
 
 func (p passwordAuth) SetUserPassword(_ context.Context, req *authv1.SetUserPasswordRequest) (*authv1.SetUserPasswordResponse, error) {

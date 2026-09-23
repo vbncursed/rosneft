@@ -40,3 +40,19 @@ func TestListUsersPassesTheSessionsRootFlag(t *testing.T) {
 		})
 	}
 }
+
+// GetUser carries the target's territory scope key, so the gateway can compare
+// what signing in as it would open against what the caller can open.
+func TestGetUserCarriesTheTerritoryScope(t *testing.T) {
+	mc := minimock.NewController(t)
+	auth, users := mocks.NewAuthFlowMock(mc), mocks.NewUsersSvcMock(mc)
+	auth.ValidateTokenMock.Expect(t.Context(), "tok").Return("u1", []string{"users:read_all"}, false, "", "", false, nil)
+	member := domain.User{ID: "m1", RoleSlugs: []string{"viewer"}}
+	users.GetMock.Expect(t.Context(), "u1", true, "m1").Return(member, nil)
+	auth.TerritoryScopeMock.Expect(t.Context(), member).Return("co-b", nil)
+
+	out, err := grpcapi.New(auth, users, mocks.NewRolesSvcMock(mc)).
+		GetUser(t.Context(), &authv1.GetUserRequest{Token: "tok", Id: "m1"})
+	assert.NilError(t, err)
+	assert.Equal(t, out.GetTerritoryScopeId(), "co-b")
+}
