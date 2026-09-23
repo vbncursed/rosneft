@@ -63,6 +63,7 @@ const state = (over: Partial<UsersState> = {}): UsersState => ({
   setResetting: vi.fn(),
   resetPassword: vi.fn(),
   resetBusy: false,
+  resetDone: false,
   ...over,
 });
 
@@ -285,6 +286,14 @@ describe("UsersScreen", () => {
     const value = (within(dialog).getByLabelText(/^Password/) as HTMLInputElement).value;
     await userEvent.click(within(dialog).getByRole("button", { name: "Change password" }));
     expect(s.resetPassword).toHaveBeenCalledWith(value);
+  });
+
+  it("keeps the reset dialog open on its done state once the reset lands", async () => {
+    const s = showing({ selected: USER, canResetPassword: true, resetting: true, resetDone: true });
+    const dialog = screen.getByRole("dialog", { name: "New password for a.ivanova" });
+    expect(within(dialog).getByText("Password changed. The user was signed out everywhere.")).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Done" }));
+    expect(s.setResetting).toHaveBeenCalledWith(false);
   });
 
   // `roles` still carries Company Owner (the groups need it); the pickers read

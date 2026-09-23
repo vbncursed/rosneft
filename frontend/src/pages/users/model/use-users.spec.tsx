@@ -345,7 +345,7 @@ describe("useUsers", () => {
     expect(result.current.status).toBe("loading");
   });
 
-  it("resets the open person's password, closes the dialog and says they were signed out", async () => {
+  it("resets the open person's password and keeps the dialog open on its done state", async () => {
     const answer = fetchMock.getMockImplementation() as (url: string, init?: RequestInit) => Promise<Response>;
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) =>
       init?.method === "PUT" ? new Response(null, { status: 204 }) : answer(url, init),
@@ -357,14 +357,13 @@ describe("useUsers", () => {
     act(() => result.current.users.select("u-1"));
     expect(result.current.users.canResetPassword).toBe(true);
     act(() => result.current.users.setResetting(true));
+    expect(result.current.users.resetDone).toBe(false);
 
     act(() => result.current.users.resetPassword("N3w-Passw0rd!"));
-    await waitFor(() =>
-      expect(result.current.notices[0]?.message).toBe(
-        "Password changed. The user was signed out everywhere.",
-      ),
-    );
-    expect(result.current.users.resetting).toBe(false);
+    // The dialog holds the only copy of the password; it must not vanish.
+    await waitFor(() => expect(result.current.users.resetDone).toBe(true));
+    expect(result.current.users.resetting).toBe(true);
+    expect(result.current.notices).toEqual([]);
     const put = fetchMock.mock.calls.find(([, i]) => (i as RequestInit | undefined)?.method === "PUT");
     expect(put![0]).toBe("/api/auth/users/u-1/password");
     expect(JSON.parse(String((put![1] as RequestInit).body))).toEqual({ password: "N3w-Passw0rd!" });
@@ -375,6 +374,22 @@ describe("useUsers", () => {
     const holdsPassword = () =>
       client.getMutationCache().getAll().some((m) => JSON.stringify(m.state.variables ?? null).includes("N3w-Passw0rd!"));
     await waitFor(() => expect(holdsPassword()).toBe(false));
+  });
+
+  it("forgets a finished reset when the dialog closes, so the next one opens on the form", async () => {
+    const answer = fetchMock.getMockImplementation() as (url: string, init?: RequestInit) => Promise<Response>;
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) =>
+      init?.method === "PUT" ? new Response(null, { status: 204 }) : answer(url, init),
+    );
+    const { result } = renderHook(() => useUsers(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("ready"));
+    act(() => result.current.select("u-1"));
+    act(() => result.current.setResetting(true));
+    act(() => result.current.resetPassword("N3w-Passw0rd!"));
+    await waitFor(() => expect(result.current.resetDone).toBe(true));
+
+    act(() => result.current.setResetting(false));
+    expect(result.current.resetDone).toBe(false);
   });
 
   it("offers the Company Owner role for assignment to Root alone", async () => {

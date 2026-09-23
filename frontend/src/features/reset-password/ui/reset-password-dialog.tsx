@@ -11,6 +11,8 @@ export type ResetPasswordDialogProps = {
   /** Whose password this is; named in the title. */
   username: string;
   busy?: boolean;
+  /** The reset landed: the dialog keeps the password on screen until closed. */
+  done?: boolean;
   onClose: () => void;
   onSubmit: (password: string) => void;
 };
@@ -21,8 +23,17 @@ const FORM_ID = "reset-password";
  * Sets someone else's password without asking for the old one. It opens holding
  * a generated password, already shown, so the admin can copy it straight away.
  * Mount it only while open: a fresh mount is what generates a fresh password.
+ * Once `done`, it holds the only copy of what was set, so it stays — revealed,
+ * read-only and copyable — until the reader presses Done.
  */
-export function ResetPasswordDialog({ open, username, busy = false, onClose, onSubmit }: ResetPasswordDialogProps) {
+export function ResetPasswordDialog({
+  open,
+  username,
+  busy = false,
+  done = false,
+  onClose,
+  onSubmit,
+}: ResetPasswordDialogProps) {
   const [password, setPassword] = useState(generatePassword);
   const [attempted, setAttempted] = useState(false);
   const rule = validatePassword(password);
@@ -36,6 +47,7 @@ export function ResetPasswordDialog({ open, username, busy = false, onClose, onS
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (done) return; // Enter in the read-only field must not reset twice.
     setAttempted(true);
     if (!rule) onSubmit(password);
   };
@@ -43,19 +55,30 @@ export function ResetPasswordDialog({ open, username, busy = false, onClose, onS
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      // Escape and the backdrop wait for the reset, as Cancel does.
+      onClose={busy ? () => {} : onClose}
       overline="Reset password"
       title={`New password for ${username}`}
-      description="No old password is needed. They are signed out everywhere and sign in with this one."
+      description={
+        done
+          ? "Password changed. The user was signed out everywhere."
+          : "No old password is needed. They are signed out everywhere and sign in with this one."
+      }
       footer={
-        <>
-          <Button onClick={onClose} disabled={busy}>
-            Cancel
+        done ? (
+          <Button variant="primary" onClick={onClose}>
+            Done
           </Button>
-          <Button type="submit" form={FORM_ID} variant="primary" disabled={password === ""} loading={busy}>
-            Change password
-          </Button>
-        </>
+        ) : (
+          <>
+            <Button onClick={onClose} disabled={busy}>
+              Cancel
+            </Button>
+            <Button type="submit" form={FORM_ID} variant="primary" disabled={password === ""} loading={busy}>
+              Change password
+            </Button>
+          </>
+        )
       }
     >
       <form id={FORM_ID} onSubmit={submit} className="flex flex-col gap-2.5">
@@ -65,17 +88,22 @@ export function ResetPasswordDialog({ open, username, busy = false, onClose, onS
           defaultRevealed
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          readOnly={done}
           disabled={busy}
           error={attempted && rule ? rule : undefined}
-          action={{
-            label: "Generate",
-            onClick: (reveal) => {
-              const next = generatePassword();
-              setPassword(next);
-              reveal();
-              copy(next);
-            },
-          }}
+          action={
+            done
+              ? undefined
+              : {
+                  label: "Generate",
+                  onClick: (reveal) => {
+                    const next = generatePassword();
+                    setPassword(next);
+                    reveal();
+                    copy(next);
+                  },
+                }
+          }
         />
         <Button
           size="sm"

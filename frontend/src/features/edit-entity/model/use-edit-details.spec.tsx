@@ -86,6 +86,24 @@ describe("useEditDetails", () => {
     expect(client.getQueryState(["territory", "yard"])?.isInvalidated).toBe(false);
   });
 
+  // A refetch that left before the save answers with the old title; landing
+  // after the write, it would put it back.
+  it("cancels an in-flight list refetch so it cannot bring the old title back", async () => {
+    client.setQueryData(["territories"], [{ slug: "yard", title: "Yard" }]);
+    let answer: (list: { slug: string; title: string }[]) => void = () => {};
+    void client.fetchQuery({
+      queryKey: ["territories"],
+      queryFn: () => new Promise((resolve) => (answer = resolve)),
+    });
+    updateTerritory.mockResolvedValue({ slug: "yard", title: "North yard" });
+    const { result } = hook("territory", "yard");
+    await act(() => result.current.save.mutateAsync({ title: "North yard" }));
+    answer([{ slug: "yard", title: "Yard" }]);
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(client.getQueryData<{ title: string }[]>(["territories"])?.[0]?.title).toBe("North yard");
+  });
+
   it("renames a model in every cached scene bundle's model options, keeping stale marks", async () => {
     const option = (slug: string, title: string) => ({ slug, title, chain: [] });
     client.setQueryData(["scene", "yard"], { territory: { slug: "yard" }, modelOptions: [option("valve", "Valve"), option("pump", "Pump")] });

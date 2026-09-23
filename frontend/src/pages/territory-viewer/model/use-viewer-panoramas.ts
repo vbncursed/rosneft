@@ -111,7 +111,7 @@ export function useViewerPanoramas({
     decode,
   );
   const markers = useMarkerSwitch();
-  const link = useTerritoryLink(slug, externalUrl);
+  const link = useTerritoryLink(slug, externalUrl, onChanged);
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [step, setStep] = useState<number>(DEFAULT_STEP);

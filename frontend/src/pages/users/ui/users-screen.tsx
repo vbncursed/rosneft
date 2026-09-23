@@ -138,6 +138,7 @@ export function UsersScreen() {
           open
           username={selected.username}
           busy={s.resetBusy}
+          done={s.resetDone}
           onClose={() => s.setResetting(false)}
           onSubmit={s.resetPassword}
         />

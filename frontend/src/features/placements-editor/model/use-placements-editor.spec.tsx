@@ -148,6 +148,38 @@ describe("usePlacementsEditor", () => {
     expect(onChanged).toHaveBeenCalledOnce();
   });
 
+  // A 5xx is not a refusal: a proxy's 502/504 can arrive after the catalog
+  // committed, so it is treated like a dropped line. A 4xx created nothing.
+  it.each([500, 502, 504])("a %i marks the bundle stale and keeps the key for a retry", async (status) => {
+    vi.mocked(createPlacements)
+      .mockRejectedValueOnce(new HttpError(status, null, "upstream timed out"))
+      .mockResolvedValue([]);
+    const { result } = editor([placement(1)]);
+
+    await act(async () => {
+      await result.current.s.create("tank", 2);
+    });
+
+    expect(result.current.notices).toHaveLength(1);
+    expect(onChanged).toHaveBeenCalledOnce();
+    await act(async () => {
+      await result.current.s.create("tank", 2);
+    });
+    const calls = vi.mocked(createPlacements).mock.calls;
+    expect(calls[1][2]).toBe(calls[0][2]);
+  });
+
+  it.each([400, 409])("a %i refusal does not mark the bundle stale", async (status) => {
+    vi.mocked(createPlacements).mockRejectedValue(new HttpError(status, null, "refused"));
+    const { result } = editor([placement(1)]);
+
+    await act(async () => {
+      await result.current.s.create("tank", 2);
+    });
+
+    expect(onChanged).not.toHaveBeenCalled();
+  });
+
   // One key per placing action: the gateway answers a replayed key with the
   // batch it already stored, so a retry after a dropped answer places once.
   describe("idempotency key", () => {
