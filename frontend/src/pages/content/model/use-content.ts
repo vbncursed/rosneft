@@ -114,6 +114,11 @@ export function useContent(): ContentState {
       notify.success(DONE[item.kind]);
       setSelectedKey(null);
       void client.invalidateQueries({ queryKey: LIST_KEY[item.kind] });
+      // A territory's placements go with it, so its models' usageCount drops.
+      if (item.kind === "territory") {
+        void client.invalidateQueries({ queryKey: ["models"] });
+        void client.invalidateQueries({ queryKey: ["model"] });
+      }
     },
     onError: (err) => notify.error(messageOf(err)),
     onSettled: () => setPending(null),

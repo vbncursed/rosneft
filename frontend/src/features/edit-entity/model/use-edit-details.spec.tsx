@@ -64,6 +64,28 @@ describe("useEditDetails", () => {
     expect(client.getQueryData(["models"])).toEqual([{ slug: "yard", title: "A model" }]);
   });
 
+  // setQueryData clears a query's invalidated mark. A placement write marks
+  // the lists and the scene stale without refetching; a rename after it must
+  // not make their old placementCount look fresh again.
+  it("keeps a copy that was marked stale before the save marked stale after it", async () => {
+    client.setQueryData(["territories"], [{ slug: "yard", title: "Yard", placementCount: 1 }]);
+    client.setQueryData(["territory", "yard"], { slug: "yard", title: "Yard" });
+    client.setQueryData(["scene", "yard"], { territory: { slug: "yard", title: "Yard" } });
+    await client.invalidateQueries({ queryKey: ["territories"], refetchType: "none" });
+    await client.invalidateQueries({ queryKey: ["scene", "yard"], refetchType: "none" });
+    updateTerritory.mockResolvedValue({ slug: "yard", title: "North yard" });
+    const { result } = hook("territory", "yard");
+    await act(() => result.current.save.mutateAsync({ title: "North yard" }));
+
+    expect(client.getQueryData(["territories"])).toEqual([
+      { slug: "yard", title: "North yard", description: undefined, placementCount: 1 },
+    ]);
+    expect(client.getQueryState(["territories"])?.isInvalidated).toBe(true);
+    expect(client.getQueryState(["scene", "yard"])?.isInvalidated).toBe(true);
+    // A copy nobody had marked stale is exactly as fresh as the answer.
+    expect(client.getQueryState(["territory", "yard"])?.isInvalidated).toBe(false);
+  });
+
   it("toasts the gateway's reason when the save is refused", async () => {
     updateModel.mockRejectedValue(new HttpError(403, { code: "forbidden", message: "no grant" }, "no grant"));
     const { result } = hook("model", "valve");

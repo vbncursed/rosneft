@@ -56,10 +56,11 @@ export function useViewerDocuments({
     onCreated: useCallback(
       (document: Document) => {
         add(document);
+        onChanged();
         reveal("documents");
         setUploadOpen(false);
       },
-      [add, reveal],
+      [add, onChanged, reveal],
     ),
   });
 

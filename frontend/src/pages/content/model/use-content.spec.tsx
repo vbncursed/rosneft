@@ -125,6 +125,20 @@ describe("useContent", () => {
     );
   });
 
+  // A deleted territory no longer places its models: their usageCount drops,
+  // and a model page that trusted its answer would keep Delete disabled.
+  it("marks the models stale once a territory is deleted", async () => {
+    const spy = vi.spyOn(client, "invalidateQueries");
+    const { result } = renderHook(() => ({ s: useContent(), notices: useNotices() }), { wrapper });
+    await waitFor(() => expect(result.current.s.status).toBe("ready"));
+    act(() => result.current.s.select("territory", "t-1"));
+    act(() => result.current.s.ask());
+    act(() => result.current.s.confirm());
+    await waitFor(() => expect(result.current.notices[0]?.message).toBe("Territory deleted"));
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["models"] });
+    expect(spy).toHaveBeenCalledWith({ queryKey: ["model"] });
+  });
+
   it("reports the gateway's refusal when a model is still placed", async () => {
     const { result } = renderHook(() => ({ s: useContent(), notices: useNotices() }), { wrapper });
     await waitFor(() => expect(result.current.s.status).toBe("ready"));

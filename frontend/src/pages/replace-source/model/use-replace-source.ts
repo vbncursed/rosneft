@@ -87,6 +87,7 @@ export function useReplaceSource(slug: string): ReplaceSourceState {
         await Promise.all([
           client.invalidateQueries({ queryKey: ["jobs"] }),
           client.invalidateQueries({ queryKey: ["territories"] }),
+          client.invalidateQueries({ queryKey: ["territory", slug] }),
         ]);
         return navigate({ href: `/territories/${encodeURIComponent(replaced.slug)}?jobId=${job.id}` });
       })
