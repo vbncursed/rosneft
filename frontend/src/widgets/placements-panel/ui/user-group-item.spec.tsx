@@ -32,7 +32,7 @@ describe("UserGroupItem", () => {
   it("names the group, counts its objects and lists them with their model's numbers", () => {
     mount();
     expect(screen.getByRole("button", { name: "East yard" })).toHaveTextContent("2 objects");
-    expect(screen.getByRole("button", { name: "storage-tank-500 #3 · hidden" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "storage-tank-500 #3 · hidden" })).toHaveTextContent(/^storage-tank-500 #3$/);
   });
 
   it("shows every member again from an all-hidden eye", async () => {
@@ -70,7 +70,21 @@ describe("UserGroupItem", () => {
     await userEvent.clear(field);
     await userEvent.type(field, "North yard{Enter}");
     expect(a.onRename).toHaveBeenCalledWith(4, "North yard");
-    expect(screen.getByRole("button", { name: "East yard" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "East yard" })).toHaveFocus();
+  });
+
+  it("writes nothing for an unchanged title, and hands focus back on Cancel", async () => {
+    const a = actions();
+    mount({ a });
+    await userEvent.click(screen.getByRole("button", { name: "Actions for group East yard" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Rename group East yard" }), "  {Enter}");
+    expect(a.onRename).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "East yard" })).toHaveFocus();
+    await userEvent.click(screen.getByRole("button", { name: "Actions for group East yard" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "East yard" })).toHaveFocus();
   });
 
   it("deletes the group, not its placements, from its menu", async () => {

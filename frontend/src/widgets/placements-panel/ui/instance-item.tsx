@@ -29,7 +29,18 @@ export type RowContext = {
 };
 
 /** One instance under a model row or a user group, with Visible in under it when it is the selection. */
-export function InstanceItem({ model, instance, ctx }: { model: ModelGroup; instance: PlacementInstance; ctx: RowContext }) {
+export function InstanceItem({
+  model,
+  instance,
+  ctx,
+  showModel = false,
+}: {
+  model: ModelGroup;
+  instance: PlacementInstance;
+  ctx: RowContext;
+  /** A user group's rows print their model, since a group mixes models. */
+  showModel?: boolean;
+}) {
   const selected = instance.id === ctx.selectedId;
   const pending = ctx.pendingIds.includes(instance.id);
   return (
@@ -48,6 +59,7 @@ export function InstanceItem({ model, instance, ctx }: { model: ModelGroup; inst
         onFocus={ctx.onFocus}
         onHide={(id, hidden) => ctx.onSetHidden([id], hidden)}
         onMove={(id, groupId) => ctx.onMoveToGroup([id], groupId)}
+        showModel={showModel}
       />
       {ctx.visibility && selected ? (
         <VisibleIn

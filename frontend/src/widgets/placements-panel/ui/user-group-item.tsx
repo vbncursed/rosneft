@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   EyeButton,
   eyeState,
@@ -33,6 +33,17 @@ export type UserGroupItemProps = {
 /** One user group: its row (eye and menu for a writer), its members, then its own Add. */
 export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemProps) {
   const [renaming, setRenaming] = useState(false);
+  const item = useRef<HTMLLIElement>(null);
+  const renamed = useRef(false);
+  // The field leaves the DOM with its focus; hand it back to the row's disclosure,
+  // the first expandable button (the kebab after it is one too).
+  useEffect(() => {
+    if (!renaming && renamed.current) item.current?.querySelector<HTMLButtonElement>("button[aria-expanded]")?.focus();
+  }, [renaming]);
+  const stopRenaming = () => {
+    renamed.current = true;
+    setRenaming(false);
+  };
   const { group, members } = section;
   const ids = members.map((m) => m.instance.id);
   const holdsSelection = ctx.selectedId !== null && ids.includes(ctx.selectedId);
@@ -45,10 +56,11 @@ export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemPro
       initial={group.title}
       busy={actions.busy}
       onSubmit={(title) => {
-        actions.onRename(group.id, title);
-        setRenaming(false);
+        // The field hands over a trimmed title; an unchanged one is not a write.
+        if (title !== group.title) actions.onRename(group.id, title);
+        stopRenaming();
       }}
-      onCancel={() => setRenaming(false)}
+      onCancel={stopRenaming}
     />
   ) : (
     <GroupRow
@@ -82,12 +94,12 @@ export function UserGroupItem({ section, ctx, onAdd, actions }: UserGroupItemPro
   );
 
   return (
-    <li>
+    <li ref={item}>
       {row}
       {open ? (
         <ul role="list" className="m-0 mt-1.5 flex list-none flex-col gap-1.5 p-0">
           {members.map(({ model, instance }) => (
-            <InstanceItem key={instance.id} model={model} instance={instance} ctx={ctx} />
+            <InstanceItem key={instance.id} model={model} instance={instance} ctx={ctx} showModel />
           ))}
           {onAdd ? (
             <li className="ml-3">

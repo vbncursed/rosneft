@@ -40,7 +40,7 @@ describe("NewGroup", () => {
     await userEvent.click(screen.getByRole("button", { name: "New group" }));
     await userEvent.type(screen.getByRole("textbox", { name: "New group title" }), "West yard{Enter}");
     expect(onCreate).toHaveBeenCalledWith("West yard");
-    expect(screen.getByRole("button", { name: "New group" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New group" })).toHaveFocus();
   });
 
   it("folds back without creating on Cancel", async () => {
@@ -50,5 +50,6 @@ describe("NewGroup", () => {
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onCreate).not.toHaveBeenCalled();
     expect(screen.queryByRole("textbox")).toBeNull();
+    expect(screen.getByRole("button", { name: "New group" })).toHaveFocus();
   });
 });
