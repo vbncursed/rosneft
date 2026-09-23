@@ -757,7 +757,9 @@ type TwoFactorStatus struct {
 
 // UpdateRoleRequest defines model for UpdateRoleRequest.
 type UpdateRoleRequest struct {
-	Title string `json:"title"`
+	// PermissionSlugs Optional. Present (even as []) replaces the role's permissions in the rename's transaction, under the same no-escalation check as PUT …/permissions. Absent leaves them untouched.
+	PermissionSlugs *[]string `json:"permissionSlugs,omitempty"`
+	Title           string    `json:"title"`
 }
 
 // UpdateUserRequest defines model for UpdateUserRequest.

@@ -36,21 +36,26 @@ func (s *Store) replacePermissions(ctx context.Context, slug string, permSlugs [
 		if err := tx.QueryRow(ctx, `SELECT id FROM roles WHERE slug = $1`, slug).Scan(&roleID); err != nil {
 			return fmt.Errorf("roles.replacePermissions: role id: %w", err)
 		}
-		if _, err := tx.Exec(ctx, `DELETE FROM role_permissions WHERE role_id = $1`, roleID); err != nil {
-			return fmt.Errorf("roles.replacePermissions: clear: %w", err)
-		}
-		for _, ps := range permSlugs {
-			var permID string
-			if err := tx.QueryRow(ctx, `SELECT id FROM permissions WHERE slug = $1`, ps).Scan(&permID); err != nil {
-				if errors.Is(err, pgx.ErrNoRows) {
-					return domain.ErrPermissionUnknown
-				}
-				return fmt.Errorf("roles.replacePermissions: perm %q: %w", ps, err)
-			}
-			if _, err := tx.Exec(ctx, `INSERT INTO role_permissions (role_id, permission_id) VALUES ($1,$2)`, roleID, permID); err != nil {
-				return fmt.Errorf("roles.replacePermissions: insert: %w", err)
-			}
-		}
-		return nil
+		return writePermissions(ctx, tx, roleID, permSlugs)
 	})
+}
+
+// writePermissions replaces one role's role_permissions rows inside tx.
+func writePermissions(ctx context.Context, tx pgx.Tx, roleID string, permSlugs []string) error {
+	if _, err := tx.Exec(ctx, `DELETE FROM role_permissions WHERE role_id = $1`, roleID); err != nil {
+		return fmt.Errorf("roles.writePermissions: clear: %w", err)
+	}
+	for _, ps := range permSlugs {
+		var permID string
+		if err := tx.QueryRow(ctx, `SELECT id FROM permissions WHERE slug = $1`, ps).Scan(&permID); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return domain.ErrPermissionUnknown
+			}
+			return fmt.Errorf("roles.writePermissions: perm %q: %w", ps, err)
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO role_permissions (role_id, permission_id) VALUES ($1,$2)`, roleID, permID); err != nil {
+			return fmt.Errorf("roles.writePermissions: insert: %w", err)
+		}
+	}
+	return nil
 }

@@ -1921,7 +1921,7 @@ export interface paths {
         };
         options?: never;
         head?: never;
-        /** Rename a role (requires roles:manage) */
+        /** Rename a role and optionally replace its permissions (requires roles:manage) */
         patch: {
             parameters: {
                 query?: never;
@@ -1946,6 +1946,7 @@ export interface paths {
                         "application/json": components["schemas"]["AuthRole"];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
@@ -2971,6 +2972,8 @@ export interface components {
         };
         UpdateRoleRequest: {
             title: string;
+            /** @description Optional. Present (even as []) replaces the role's permissions in the rename's transaction, under the same no-escalation check as PUT …/permissions. Absent leaves them untouched. */
+            permissionSlugs?: string[];
         };
         SetRolePermissionsRequest: {
             permissionSlugs: string[];

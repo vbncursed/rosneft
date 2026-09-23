@@ -93,3 +93,28 @@ func (s *RolesSuite) TestSetPermissionsBlocksEscalation() {
 	_, err := s.svc.SetPermissions(s.ctx, "editor", "viewer", []string{"model:delete"}, "", false)
 	assert.ErrorIs(s.T(), err, domain.ErrPrivilegeEscalation)
 }
+
+// A rename that carries grants is checked like SetPermissions: the PATCH must
+// not become the way around the escalation guard.
+func (s *RolesSuite) TestUpdateWithGrantsBlocksEscalation() {
+	s.actors.GetByIDMock.Expect(s.ctx, "editor").Return(domain.User{ID: "editor", Permissions: []string{"placement:write"}}, nil)
+	_, err := s.svc.Update(s.ctx, "editor", domain.RoleUpdate{
+		Slug: "viewer", Title: "Viewer", PermissionSlugs: []string{"model:delete"}, ReplacePermissions: true,
+	}, "", false)
+	assert.ErrorIs(s.T(), err, domain.ErrPrivilegeEscalation)
+}
+
+// A title-only edit grants nothing, so it asks nobody (no GetByID expectation:
+// minimock fails the test if it is called).
+func (s *RolesSuite) TestATitleOnlyUpdateSkipsTheGrantCheck() {
+	u := domain.RoleUpdate{Slug: "viewer", Title: "Viewer"}
+	s.st.UpdateMock.Expect(s.ctx, u, "admin-1", false).Return(domain.Role{Slug: "viewer", Title: "Viewer"}, nil)
+	r, err := s.svc.Update(s.ctx, "editor", u, "admin-1", false)
+	assert.NilError(s.T(), err)
+	assert.Equal(s.T(), r.Title, "Viewer")
+}
+
+func (s *RolesSuite) TestUpdateRejectsAnEmptyTitle() {
+	_, err := s.svc.Update(s.ctx, "owner", domain.RoleUpdate{Slug: "viewer"}, "", true)
+	assert.ErrorIs(s.T(), err, domain.ErrInvalidInput)
+}
