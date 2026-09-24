@@ -21,6 +21,8 @@ export const EXEMPT_MODULES = [
   "src/shared/api/dto.ts",
   // Wiring: the route tree and the router assembly. Every decision they used
   // to hold — redirectTarget, consoleLanding — lives in guard.ts with a spec.
+  // router.tsx's one setting, notFoundMode, is pinned by router.spec.tsx; it
+  // stays listed because it imports app/query's internals directly.
   "src/app/router/routes.tsx",
   "src/app/router/router.tsx",
   // Wiring: the catalog subtree, split from routes.tsx at the 200-line cap;
