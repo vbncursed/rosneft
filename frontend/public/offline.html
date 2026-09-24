@@ -239,8 +239,15 @@
         };
         // Below 500 only: while the origin is down Cloudflare answers 52x, and
         // reloading into its error page would lose this self-recovering one.
+        // AbortSignal.timeout is missing before Safari 16.
+        const timeout = (ms) => {
+          if (AbortSignal.timeout) return AbortSignal.timeout(ms);
+          const ctl = new AbortController();
+          setTimeout(() => ctl.abort(), ms);
+          return ctl.signal;
+        };
         const reachable = () =>
-          fetch("/", { method: "HEAD", cache: "no-store", signal: AbortSignal.timeout(4000) }).then(
+          fetch("/", { method: "HEAD", cache: "no-store", signal: timeout(4000) }).then(
             (r) => r.status < 500,
             () => false,
           );
@@ -249,7 +256,9 @@
         const reload = () => {
           if (reloading) return;
           reloading = true;
-          location.reload();
+          // Opened directly (bookmark, restored tab), a reload would land here again, forever.
+          if (location.pathname === "/offline.html") location.replace("/");
+          else location.reload();
         };
         let busy = false;
         const check = async (pressed) => {

@@ -25,7 +25,10 @@ WINDOWS_RX = 32 * 4 / 24       # 4 px at 24, as the mock's taskbar tile
 
 def rounded(svg: str, rx: float) -> str:
     """The ground rect with corners, so the tile's corners turn transparent."""
-    return svg.replace('<rect width="32" height="32"', f'<rect width="32" height="32" rx="{rx}"', 1)
+    ground = '<rect width="32" height="32"'
+    if svg.count(ground) != 1:
+        raise SystemExit(f"rounded(): expected exactly one {ground!r} in the source, found {svg.count(ground)}")
+    return svg.replace(ground, f'{ground} rx="{rx}"')
 
 
 def render(page, svg: str, px: int) -> Image.Image:

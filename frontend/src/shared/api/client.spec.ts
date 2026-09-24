@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { httpDelete, httpGet, httpGetBlob, httpHead, httpPost } from "./client";
-import { markAuthed, isAuthed } from "@/shared/session";
+import { enrollBouncedAt, markAuthed, isAuthed } from "@/shared/session";
 import { setCsrfToken, clearCsrfToken } from "./csrf";
 import { HttpError } from "./http-error";
 
@@ -21,6 +21,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   localStorage.clear();
+  sessionStorage.clear();
 });
 
 describe("http client", () => {
@@ -128,6 +129,14 @@ describe("http client", () => {
     );
     await expect(httpGet("/api/territories")).rejects.toBeInstanceOf(HttpError);
     expect(assign).toHaveBeenCalledWith("/two-factor-required");
+  });
+
+  // The gate reads it: a bounce seconds ago means the gateway still gates.
+  it("records when it sent a session to the gate", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(4242);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(403, { code: "twofa_enrollment_required" })));
+    await expect(httpGet("/api/territories")).rejects.toBeInstanceOf(HttpError);
+    expect(enrollBouncedAt()).toBe(4242);
   });
 
   it("does not bounce an ordinary 403", async () => {

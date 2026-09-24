@@ -1,5 +1,5 @@
 import { HttpError, type ApiError } from "./http-error";
-import { clearAuthed, ENROLLMENT_PATH } from "@/shared/session";
+import { clearAuthed, ENROLLMENT_PATH, markEnrollBounce } from "@/shared/session";
 import { ensureCsrfToken } from "./csrf";
 
 const API_BASE = import.meta.env.VITE_API_URL;
@@ -61,11 +61,13 @@ async function send<T>(
     // factor of this account, possibly mid-session. A full load of the gate,
     // like the 401 bounce above: the cached principal is stale, and the load
     // drops it. Never from the gate itself — it would reload onto itself.
+    // The recorded time tells the gate not to send it straight back home.
     if (
       res.status === 403 &&
       body?.code === ENROLLMENT_REQUIRED &&
       location.pathname !== ENROLLMENT_PATH
     ) {
+      markEnrollBounce();
       location.assign(ENROLLMENT_PATH);
     }
     const detail = body?.message ?? (body as { error?: string } | null)?.error;

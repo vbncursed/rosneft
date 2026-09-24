@@ -29,6 +29,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   clearAuthed();
+  sessionStorage.clear();
   vi.unstubAllGlobals();
 });
 
@@ -84,6 +85,17 @@ describe("router", () => {
     it("sends an enrolled session home", async () => {
       const router = renderAt("/two-factor-required");
       await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+    });
+
+    // The gateway's cached requirement outlives /me's by up to 5 s; sent home,
+    // this session would 403 and bounce straight back, again and again.
+    it("keeps a session the client just bounced here on the gate", async () => {
+      sessionStorage.setItem("andrey.enrollBounce", String(Date.now()));
+      const router = renderAt("/two-factor-required", { ...me, totpEnabled: false });
+      expect(
+        await screen.findByRole("heading", { level: 1, name: "Set up two-factor to continue" }),
+      ).toBeInTheDocument();
+      expect(router.state.location.pathname).toBe("/two-factor-required");
     });
 
     it("keeps an enrolled session on the done card", async () => {

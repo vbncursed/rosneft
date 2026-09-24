@@ -1,7 +1,11 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { clearAuthed, isAuthed, markAuthed } from "./session-marker";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { clearAuthed, enrollBouncedAt, isAuthed, markAuthed, markEnrollBounce } from "./session-marker";
 
-afterEach(() => localStorage.clear());
+afterEach(() => {
+  localStorage.clear();
+  sessionStorage.clear();
+  vi.restoreAllMocks();
+});
 
 describe("session marker", () => {
   it("is absent before anyone signs in", () => {
@@ -23,5 +27,34 @@ describe("session marker", () => {
   it("does not treat a foreign value as a session", () => {
     localStorage.setItem("andrey.authed", "yes");
     expect(isAuthed()).toBe(false);
+  });
+});
+
+describe("enrolment bounce", () => {
+  it("is absent until the client bounces", () => {
+    expect(enrollBouncedAt()).toBeNull();
+  });
+
+  it("records when the client bounced", () => {
+    vi.spyOn(Date, "now").mockReturnValue(1234);
+    markEnrollBounce();
+    expect(enrollBouncedAt()).toBe(1234);
+  });
+
+  it("reads a foreign value as no bounce", () => {
+    sessionStorage.setItem("andrey.enrollBounce", "soon");
+    expect(enrollBouncedAt()).toBeNull();
+  });
+
+  // Storage can throw (blocked site data); neither side may take the page down.
+  it("survives a storage that throws", () => {
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    expect(() => markEnrollBounce()).not.toThrow();
+    expect(enrollBouncedAt()).toBeNull();
   });
 });

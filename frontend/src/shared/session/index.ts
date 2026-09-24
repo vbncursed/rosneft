@@ -1,4 +1,4 @@
-export { clearAuthed, isAuthed, markAuthed } from "./session-marker";
+export { clearAuthed, enrollBouncedAt, isAuthed, markAuthed, markEnrollBounce } from "./session-marker";
 export {
   can,
   ENROLLMENT_PATH,
