@@ -45,13 +45,15 @@ function conversionState(s: Exclude<TerritoryConversionState, { status: "missing
  * column this page is written for lives here instead, around all four states
  * rather than only the ready one: a skeleton flush against the window edge is
  * as wrong as a page one. The padding and the scroll live here; the 760 cap
- * lives in the body, which exempts the not-found view from it.
+ * lives in the body, which exempts the not-found view from it. The wrapper
+ * takes the rest of the shell's column and is a column itself, so the view's
+ * flex-1 has the height to centre in.
  */
 export function TerritoryConversionScreen() {
   const { slug } = useParams({ strict: false }) as { slug: string };
   const { jobId } = useSearch({ strict: false }) as { jobId?: string };
   return (
-    <div className="min-h-0 w-full overflow-auto px-4 pb-[72px] pt-8 sm:px-9">
+    <div className="flex min-h-0 w-full flex-1 flex-col overflow-auto px-4 pb-[72px] pt-8 sm:px-9">
       <TerritoryConversionBody key={slug} slug={slug} jobId={jobId ?? null} />
     </div>
   );
