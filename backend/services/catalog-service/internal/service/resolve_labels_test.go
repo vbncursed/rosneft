@@ -117,3 +117,20 @@ func (s *ResolveLabelsSuite) TestUnknownIdIsOmittedNotAnError() {
 	assert.Equal(s.T(), got["model:7"], "pump-01")
 	assert.Equal(s.T(), got["model:999"], "")
 }
+
+// Moving a placement between groups changes group_id; the journal names that
+// id by the group's title.
+func (s *ResolveLabelsSuite) TestPlacementGroupIsAKind() {
+	var seen map[string][]int64
+	s.repo.ResolveLabelsMock.Set(
+		func(_ context.Context, byKind map[string][]int64) (map[string]string, error) {
+			seen = byKind
+			return map[string]string{"placement_group:4": "North"}, nil
+		})
+
+	got, err := s.svc.ResolveLabels(s.ctx, []domain.LabelRef{{Kind: "placement_group", ID: 4}})
+
+	assert.NilError(s.T(), err)
+	assert.DeepEqual(s.T(), seen["placement_group"], []int64{4})
+	assert.Equal(s.T(), got["placement_group:4"], "North")
+}

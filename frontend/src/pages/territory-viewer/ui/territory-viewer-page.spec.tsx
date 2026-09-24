@@ -25,6 +25,7 @@ const PANORAMA: Panorama = {
   position: { x: 4.82, y: 1.7, z: -2.145 },
   yawOffset: 2.4,
   defaultYaw: 0,
+  thumbnailBlobHash: null,
   updatedAt: "2026-09-01T00:00:00Z",
 };
 

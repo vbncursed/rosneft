@@ -6,10 +6,13 @@ export function controlClass({
   invalid = false,
   /** Off when a wrapper already carries the gap under the label. */
   spaced = true,
+  /** A small button's 30 px, for a field that opens in one's place. */
+  compact = false,
   className,
-}: { mono?: boolean; invalid?: boolean; spaced?: boolean; className?: string } = {}) {
+}: { mono?: boolean; invalid?: boolean; spaced?: boolean; compact?: boolean; className?: string } = {}) {
   return cx(
-    "w-full rounded-control border px-3 py-2.5 text-fg outline-none",
+    "w-full rounded-control border px-3 text-fg outline-none",
+    compact ? "py-1" : "py-2.5",
     // Focus lands in one frame — border and ring together. Only a disabled
     // flip (an upload locking the form) eases.
     "focus:border-accent focus:ring-[3px] focus:ring-accent-soft",

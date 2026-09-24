@@ -25,11 +25,13 @@ var refFields = map[string]map[string]string{
 		"territory_id":         "territory",
 		"model_id":             "model",
 		"visible_panorama_ids": "panorama",
+		"group_id":             "placement_group",
 	},
 	// created_by is the author's uuid; it names a user wherever it appears.
-	"measurement": {"territory_id": "territory", "created_by": "user"},
-	"panorama":    {"territory_id": "territory"},
-	"document":    {"territory_id": "territory"},
+	"measurement":     {"territory_id": "territory", "created_by": "user"},
+	"placement_group": {"territory_id": "territory"},
+	"panorama":        {"territory_id": "territory"},
+	"document":        {"territory_id": "territory"},
 }
 
 // refKey is the dictionary key the client rebuilds from the field name and the

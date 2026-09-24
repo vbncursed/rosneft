@@ -17,4 +17,6 @@ export const toPlacement = (d: PlacementDto): Placement => ({
   label: d.label ?? "",
   updatedAt: d.updatedAt ?? "",
   visiblePanoramaIds: d.visiblePanoramaIds ?? [],
+  hidden: d.hidden,
+  groupId: d.groupId ?? null,
 });

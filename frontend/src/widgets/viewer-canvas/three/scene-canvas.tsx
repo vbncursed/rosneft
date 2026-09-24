@@ -42,6 +42,7 @@ export default function SceneCanvas({
   targetLod,
   retryVersion,
   resetVersion,
+  playing,
   placements,
   mode,
   selectedId,
@@ -79,6 +80,7 @@ export default function SceneCanvas({
   onRemoveSegment,
   onRemoveChain,
   onLod,
+  onPlayStop,
 }: SceneCanvasProps) {
   // Orbit is the only mode that edits a selection; every other mode is
   // picking points, so the gizmo hides and clicks reach the wrapper group.
@@ -249,7 +251,7 @@ export default function SceneCanvas({
       {/* The panorama edit panel lives outside the Canvas and reads the live
           view through these refs when the operator captures one. */}
       <CameraTracker positionRef={cameraPositionRef} yawRef={cameraYawRef} />
-      <CameraRig resetVersion={resetVersion} />
+      <CameraRig resetVersion={resetVersion} playing={playing} onPlayStop={onPlayStop} sceneRef={territoryRef} />
       {/* Inside a panorama the floor is the photograph; a grid drawn over it
           reads as a bug. */}
       {activePanorama ? null : <gridHelper args={gridArgs} position={GRID_POSITION} />}

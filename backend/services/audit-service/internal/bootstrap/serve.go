@@ -49,10 +49,10 @@ func RunServe(ctx context.Context, cfg config.Config) error {
 	}
 	defer func() { _ = witness.Close() }()
 
-	// Attach capture triggers to whatever audited tables exist right now.
-	// Ordering-free by design: tables catalog/auth/content have not migrated
-	// yet are skipped and picked up on a later boot, so this service never
-	// needs to be sequenced against the others.
+	// Attach capture triggers to whatever audited tables exist right now, and
+	// only now: a table catalog/auth/content create after this boot is skipped
+	// and stays unjournaled until this service is recreated (with an image
+	// carrying the audit migration that registers it) or restarted.
 	attached, err := store.EnsureTriggers(rootCtx)
 	if err != nil {
 		return fmt.Errorf("ensure audit triggers: %w", err)

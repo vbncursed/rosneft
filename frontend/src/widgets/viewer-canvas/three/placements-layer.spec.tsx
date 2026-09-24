@@ -1,12 +1,24 @@
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { createElement } from "react";
 import { describe, expect, it, vi } from "vitest";
+import type { RootState } from "@react-three/fiber";
 import type { Placement } from "@/entities/placement";
 import type { GizmoMode } from "@/features/viewer-mode";
 import PlacementsLayer from "./placements-layer";
 import { fakePlacement } from "./testing";
 
 vi.mock("@react-three/drei", async (orig) => (await import("./testing")).mockDrei(orig));
+
+// The real store, with invalidate swapped for a spy: every other selector
+// (the gizmo hook reads the camera and controls) still gets the live value.
+const invalidate = vi.hoisted(() => vi.fn());
+vi.mock("@react-three/fiber", async (orig) => {
+  const real = await orig<typeof import("@react-three/fiber")>();
+  return {
+    ...real,
+    useThree: <T,>(select: (s: RootState) => T) => real.useThree((s) => select({ ...s, invalidate })),
+  };
+});
 
 // drei's <Html> does not portal under the test renderer, so the real markers
 // would leave nothing to find. A named group carrying the ids it was handed is
@@ -161,5 +173,40 @@ describe("PlacementsLayer", () => {
 
     const editing = await ReactThreeTestRenderer.create(layer({ markerLabels: { 2: "b" } }));
     expect(markers(editing)).toHaveLength(0);
+  });
+
+  // G-1: hidden is hidden for everyone. The selected one going with it takes
+  // the gizmo too — the ref callback hands the gizmo null on unmount.
+  it("draws no hidden placement, and no gizmo when the hidden one is the selection", async () => {
+    const r = await ReactThreeTestRenderer.create(
+      layer({ placements: [fakePlacement(1), { ...fakePlacement(2), hidden: true }], selectedId: 2 }),
+    );
+    expect(instances(r).map((g) => g.instance.userData.placementId)).toEqual([1]);
+    expect(gizmos(r)).toHaveLength(0);
+  });
+
+  it("marks no hidden placement inside a panorama", async () => {
+    const [one, two] = inPanorama();
+    const r = await ReactThreeTestRenderer.create(
+      layer({ placements: [{ ...one, hidden: true }, { ...two, visiblePanoramaIds: [3] }], activePanoramaId: 3, selectedId: null }),
+    );
+    expect(markers(r)[0].instance.userData.ids).toEqual([2]);
+  });
+
+  // frameloop="demand", and R3F 9 never invalidates on a removal: a hide
+  // unmounted the object from the graph and left it on screen until the next
+  // pointer event. Showing repainted on its own, which is why it was "sometimes".
+  it("repaints when the drawn set shrinks, and not when it stays the same", async () => {
+    const two = [fakePlacement(1), fakePlacement(2)];
+    const r = await ReactThreeTestRenderer.create(layer({ placements: two }));
+    invalidate.mockClear();
+
+    await r.update(layer({ placements: [fakePlacement(1), { ...fakePlacement(2), hidden: true }] }));
+    expect(instances(r)).toHaveLength(1);
+    expect(invalidate).toHaveBeenCalled();
+
+    invalidate.mockClear();
+    await r.update(layer({ placements: [fakePlacement(1), { ...fakePlacement(2), hidden: true }] }));
+    expect(invalidate).not.toHaveBeenCalled();
   });
 });

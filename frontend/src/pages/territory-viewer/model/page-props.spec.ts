@@ -17,6 +17,8 @@ const TANK: ResolvedPlacement = {
   label: "",
   updatedAt: "2026-09-09T14:00:00Z",
   visiblePanoramaIds: [],
+  hidden: false,
+  groupId: null,
   position: { x: 12.4, y: 0, z: -8.25 },
   rotation: { x: 0, y: 0, z: 0 },
   scale: { x: 1, y: 1, z: 1 },
@@ -70,6 +72,8 @@ const HANDLERS: PageHandlers = {
   onRemoveChain: noop,
   onLod: noop,
   onReset: noop,
+  onPlay: noop,
+  onPlayStop: noop,
   onMeasure: noop,
   onAdd: noop,
   onPanoramas: noop,
@@ -93,6 +97,9 @@ const HANDLERS: PageHandlers = {
   onPlace: noop,
   onClosePicker: noop,
   onVisibility: noop,
+  onSetHidden: vi.fn(),
+  onMoveToGroup: vi.fn(),
+  onAddToGroup: vi.fn(),
   onToggleMove: noop,
 };
 
@@ -121,6 +128,7 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
   placements: [TANK],
   pendingIds: [],
   placing: null,
+  placementGroups: { list: [], busy: false, create: vi.fn(), rename: vi.fn(), remove: vi.fn() },
   form: null,
   tour: TOUR,
   panoramaTour: TOUR,
@@ -136,6 +144,7 @@ const parts = (over: Partial<PageParts> = {}): PageParts => ({
     targetLod: 1,
     retryVersion: 0,
     resetVersion: 0,
+    playing: false,
     focusRequest: null,
     pickerOpen: false,
     query: "",
@@ -233,6 +242,7 @@ describe("pageProps · overlays", () => {
   it("lights Reset and offers every tool an owner has", () => {
     expect(pageProps(parts()).overlays.tools).toEqual([
       { key: "reset", state: "active" },
+      { key: "play", state: "idle" },
       { key: "measure", state: "idle" },
       { key: "add", state: "idle" },
       { key: "panoramas", state: "idle" },
@@ -327,6 +337,15 @@ describe("pageProps · overlays", () => {
     });
     expect(overlays.chip).toEqual({ text: "measure · 2 segments · 20.55 m total" });
     expect(overlays.measuring).toMatchObject({ canClose: true });
+  });
+
+  it("hands the flight to the canvas and lights Play", () => {
+    const p = parts();
+    const props = pageProps({ ...p, view: { ...p.view, playing: true } });
+    expect(props.canvas.playing).toBe(true);
+    expect(props.canvas.onPlayStop).toBe(HANDLERS.onPlayStop);
+    expect(props.overlays.onPlay).toBe(HANDLERS.onPlay);
+    expect(props.overlays.tools.find((t) => t.key === "play")?.state).toBe("active");
   });
 });
 
@@ -439,7 +458,7 @@ describe("pageProps · panel", () => {
   it("groups the placements by model and counts them for the tab", () => {
     const { panel } = pageProps(parts());
     expect(panel?.placementsCount).toBe(1);
-    expect(panel?.placements.groups[0].model.title).toBe("storage-tank-500");
+    expect(panel?.placements.sections.modelGroups[0].group.model.title).toBe("storage-tank-500");
   });
 
   it("prints the territory's facts on the View tab, the slug in the accent", () => {

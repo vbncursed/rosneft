@@ -1,33 +1,26 @@
 import { useState, type ReactNode } from "react";
-import type { PlacementGroup, PlacementTransform } from "@/entities/placement";
+import { groupByModel, groupPlacements, IDENTITY_TRANSFORM, type Placement, type PlacementGroup, type PlacementSections, type PlacementTransform } from "@/entities/placement";
 import type { GizmoMode } from "@/features/viewer-mode";
 import { PlacementsPanel, type PlacementVisibility } from "./ui/placements-panel";
 import type { SelectedBlockProps } from "./ui/selected-block";
 
-const GROUPS: PlacementGroup[] = [
-  {
-    model: { slug: "pipe-rack-12", title: "pipe-rack-12" },
-    instances: [{ id: 11, index: 1, label: "west run" }],
-  },
-  {
-    model: { slug: "storage-tank-500", title: "storage-tank-500" },
-    instances: [
-      { id: 1, index: 1, label: "" },
-      { id: 2, index: 2, label: "north row" },
-      { id: 3, index: 3, label: "" },
-    ],
-  },
+const make = (id: number, modelSlug: string, label = "", over: Partial<Placement> = {}): Placement => ({
+  id, territorySlug: "refinery-block-c", modelSlug, label, updatedAt: "", visiblePanoramaIds: [], hidden: false, groupId: null, ...IDENTITY_TRANSFORM, ...over,
+});
+const OPTIONS = [
+  { slug: "pipe-rack-12", title: "pipe-rack-12" },
+  { slug: "storage-tank-500", title: "storage-tank-500" },
+  { slug: "nasos-nm-1250", title: "Насос НМ-1250" },
 ];
+const sectionsOf = (placements: Placement[], groups: PlacementGroup[] = []): PlacementSections =>
+  groupPlacements(groupByModel(placements, OPTIONS), groups);
 
-const RU_GROUPS: PlacementGroup[] = [
-  {
-    model: { slug: "nasos-nm-1250", title: "Насос НМ-1250" },
-    instances: [
-      { id: 4, index: 1, label: "" },
-      { id: 5, index: 2, label: "" },
-    ],
-  },
-];
+const SECTIONS = sectionsOf([make(11, "pipe-rack-12", "west run"), make(1, "storage-tank-500"), make(2, "storage-tank-500", "north row"), make(3, "storage-tank-500")]);
+const RU_SECTIONS = sectionsOf([make(4, "nasos-nm-1250"), make(5, "nasos-nm-1250")]);
+const GROUPED = sectionsOf(
+  [make(11, "pipe-rack-12", "west run", { groupId: 1 }), make(1, "storage-tank-500", "", { groupId: 1, hidden: true }), make(2, "storage-tank-500", "north row"), make(3, "storage-tank-500", "", { hidden: true })],
+  [{ id: 1, title: "West yard" }, { id: 2, title: "Spare parts" }],
+);
 
 const TRANSFORM: PlacementTransform = {
   position: { x: 12.4, y: 0, z: -8.25 },
@@ -56,14 +49,14 @@ function Body({ width = 320, children }: { width?: number; children: ReactNode }
 }
 
 function Live({
-  groups = GROUPS,
+  sections = SECTIONS,
   grants,
   selectedId = null,
   selected,
   width,
   visibility,
 }: {
-  groups?: PlacementGroup[];
+  sections?: PlacementSections;
   grants: { create: boolean; write: boolean; delete: boolean };
   selectedId?: number | null;
   selected?: Omit<SelectedBlockProps, "gizmo" | "onGizmo" | "snap" | "onSnap"> | null;
@@ -72,7 +65,7 @@ function Live({
   visibility?: Pick<PlacementVisibility, "panoramas" | "visiblePanoramaIds">;
 }) {
   const [query, setQuery] = useState("");
-  const [expanded, setExpanded] = useState<string | null>(groups[0]?.model.slug ?? null);
+  const [expanded, setExpanded] = useState<string | null>(sections.modelGroups[0]?.group.model.slug ?? null);
   const [id, setId] = useState<number | null>(selectedId);
   const [gizmo, setGizmo] = useState<GizmoMode>("translate");
   const [snap, setSnap] = useState(true);
@@ -81,7 +74,7 @@ function Live({
   return (
     <Body width={width}>
       <PlacementsPanel
-        groups={groups}
+        sections={sections}
         query={query}
         onQuery={setQuery}
         expandedModel={expanded}
@@ -94,6 +87,10 @@ function Live({
         onRename={() => {}}
         onDelete={() => {}}
         onFocus={() => {}}
+        onSetHidden={() => {}}
+        onMoveToGroup={() => {}}
+        onAddToGroup={() => {}}
+        groupActions={{ busy: false, onCreate: async () => true, onRename: async () => true, onDelete: () => {} }}
         selected={selected ? { ...selected, gizmo, onGizmo: setGizmo, snap, onSnap: setSnap } : null}
         visibility={
           visibility
@@ -139,7 +136,7 @@ function Form({
   selectedId = 3,
   start = NEW_TRANSFORM,
   initialLabel = "Tank 4, north row",
-  groups,
+  sections,
   width,
   compact = false,
 }: {
@@ -149,7 +146,7 @@ function Form({
   selectedId?: number;
   start?: PlacementTransform;
   initialLabel?: string;
-  groups?: PlacementGroup[];
+  sections?: PlacementSections;
   width?: number;
   compact?: boolean;
 }) {
@@ -158,7 +155,7 @@ function Form({
   return (
     <Live
       grants={EDITOR}
-      groups={groups}
+      sections={sections}
       width={width}
       selectedId={selectedId}
       selected={{
@@ -206,8 +203,10 @@ export default {
       visibility={{ panoramas: PANORAMAS, visiblePanoramaIds: [1] }}
     />
   ),
-  empty: <Live grants={EDITOR} groups={[]} />,
+  empty: <Live grants={EDITOR} sections={{ userGroups: [], modelGroups: [] }} />,
   form: <Form kind="new" />,
+  groups: <Live grants={EDITOR} sections={GROUPED} selectedId={2} />,
+  "groups, guest": <Live grants={GUEST} sections={GROUPED} />,
   saving: <Form kind="new" saving />,
   compact: (
     <Form
@@ -216,7 +215,7 @@ export default {
       selectedId={4}
       start={COMPACT_TRANSFORM}
       initialLabel=""
-      groups={RU_GROUPS}
+      sections={RU_SECTIONS}
       width={300}
       compact
     />

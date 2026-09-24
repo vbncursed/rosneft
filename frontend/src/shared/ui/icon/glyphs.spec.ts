@@ -10,10 +10,10 @@ describe("the glyph registry", () => {
   it("carries every name the app draws", () => {
     expect([...ICON_NAMES].sort()).toEqual([
       "arrow-right", "arrow-up", "calendar", "check", "chevron-down", "chevron-left", "chevron-right", "chevron-up",
-      "close", "cube", "documents", "download", "eye", "eye-off", "file", "grid", "grip", "help",
+      "close", "cube", "documents", "download", "eye", "eye-off", "file", "folder-move", "folder-plus", "grid", "grip", "help",
       "info", "kebab", "list", "lock", "magnet", "maximize", "minimize", "minus", "moon", "panorama",
-      "passkey", "pencil", "plus", "refresh", "reset", "ruler", "search", "sun", "trash", "upload",
-      "warning",
+      "passkey", "pause", "pencil", "play", "plus", "refresh", "reset", "ruler", "search", "sun", "trash",
+      "upload", "warning",
     ]);
   });
 

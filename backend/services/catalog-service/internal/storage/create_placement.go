@@ -13,37 +13,27 @@ import (
 )
 
 const createPlacementQuery = `
-	WITH inserted AS (
-		INSERT INTO placements (
+	WITH w AS (
+		INSERT INTO placements AS pl (
 			territory_id, model_id,
 			position_x, position_y, position_z,
 			rotation_x, rotation_y, rotation_z,
 			scale_x, scale_y, scale_z,
 			label, visible_panorama_ids,
-			idempotency_key, batch_index
+			idempotency_key, batch_index, group_id
 		)
 		SELECT t.id, m.id,
 			$3, $4, $5,
 			$6, $7, $8,
 			$9, $10, $11,
 			$12, COALESCE($13::bigint[], '{}'),
-			NULLIF($14::text, ''), CASE WHEN $14::text = '' THEN NULL ELSE $15::int END
+			NULLIF($14::text, ''), CASE WHEN $14::text = '' THEN NULL ELSE $15::int END,
+			$16::bigint
 		FROM territories t, models m
 		WHERE t.slug = $1 AND m.slug = $2
-		RETURNING id, territory_id, model_id,
-			position_x, position_y, position_z,
-			rotation_x, rotation_y, rotation_z,
-			scale_x, scale_y, scale_z,
-			label, created_at, updated_at, visible_panorama_ids
+		RETURNING ` + placementWriteReturning + `
 	)
-	SELECT i.id, t.slug, m.slug,
-		i.position_x, i.position_y, i.position_z,
-		i.rotation_x, i.rotation_y, i.rotation_z,
-		i.scale_x, i.scale_y, i.scale_z,
-		i.label, i.created_at, i.updated_at, i.visible_panorama_ids
-	FROM inserted i
-	JOIN territories t ON t.id = i.territory_id
-	JOIN models m      ON m.id = i.model_id`
+	` + placementFromWrite
 
 // CreatePlacement inserts a new placement and returns the row as stored
 // (including the assigned ID and timestamps). A missing territory or model
@@ -68,7 +58,8 @@ func (r *PG) CreatePlacement(ctx context.Context, p domain.Placement) (domain.Pl
 // is what the caller sees, and wraps anything else with op.
 func createPlacementError(op string, err error) error {
 	if errors.Is(err, domain.ErrTerritoryNotFound) || errors.Is(err, domain.ErrModelNotFound) ||
-		errors.Is(err, domain.ErrInvalidInput) || errors.Is(err, domain.ErrIdempotencyConflict) {
+		errors.Is(err, domain.ErrInvalidInput) || errors.Is(err, domain.ErrIdempotencyConflict) ||
+		errors.Is(err, domain.ErrPlacementGroupNotFound) {
 		return err
 	}
 	return fmt.Errorf("%s: %w", op, err)
@@ -85,7 +76,7 @@ func insertPlacement(ctx context.Context, tx pgx.Tx, p domain.Placement, key str
 		p.Rotation.X, p.Rotation.Y, p.Rotation.Z,
 		p.Scale.X, p.Scale.Y, p.Scale.Z,
 		p.Label, p.VisiblePanoramaIDs,
-		key, index,
+		key, index, p.GroupID,
 	))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Placement{}, missingSide(ctx, tx, p.TerritorySlug)
@@ -109,9 +100,13 @@ func missingSide(ctx context.Context, tx pgx.Tx, territorySlug string) error {
 	return domain.ErrTerritoryNotFound
 }
 
-// placementRefusal maps the scale CHECK onto ErrInvalidInput; any other
-// failure passes through for the caller to wrap.
+// placementRefusal maps the group FK onto ErrPlacementGroupNotFound and the
+// scale CHECK onto ErrInvalidInput; any other failure passes through for the
+// caller to wrap.
 func placementRefusal(err error) error {
+	if isGroupFKViolation(err) {
+		return domain.ErrPlacementGroupNotFound
+	}
 	if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23514" && pgErr.ConstraintName == "placements_scale_positive" {
 		return fmt.Errorf("%w: scale must be positive", domain.ErrInvalidInput)
 	}

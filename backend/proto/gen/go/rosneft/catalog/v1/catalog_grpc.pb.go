@@ -55,6 +55,12 @@ const (
 	CatalogService_UpdateMeasurement_FullMethodName           = "/rosneft.catalog.v1.CatalogService/UpdateMeasurement"
 	CatalogService_DeleteMeasurement_FullMethodName           = "/rosneft.catalog.v1.CatalogService/DeleteMeasurement"
 	CatalogService_DeleteMeasurements_FullMethodName          = "/rosneft.catalog.v1.CatalogService/DeleteMeasurements"
+	CatalogService_SetPlacementsHidden_FullMethodName         = "/rosneft.catalog.v1.CatalogService/SetPlacementsHidden"
+	CatalogService_SetPlacementsGroup_FullMethodName          = "/rosneft.catalog.v1.CatalogService/SetPlacementsGroup"
+	CatalogService_ListPlacementGroups_FullMethodName         = "/rosneft.catalog.v1.CatalogService/ListPlacementGroups"
+	CatalogService_CreatePlacementGroup_FullMethodName        = "/rosneft.catalog.v1.CatalogService/CreatePlacementGroup"
+	CatalogService_RenamePlacementGroup_FullMethodName        = "/rosneft.catalog.v1.CatalogService/RenamePlacementGroup"
+	CatalogService_DeletePlacementGroup_FullMethodName        = "/rosneft.catalog.v1.CatalogService/DeletePlacementGroup"
 )
 
 // CatalogServiceClient is the client API for CatalogService service.
@@ -127,6 +133,17 @@ type CatalogServiceClient interface {
 	UpdateMeasurement(ctx context.Context, in *UpdateMeasurementRequest, opts ...grpc.CallOption) (*UpdateMeasurementResponse, error)
 	DeleteMeasurement(ctx context.Context, in *DeleteMeasurementRequest, opts ...grpc.CallOption) (*DeleteMeasurementResponse, error)
 	DeleteMeasurements(ctx context.Context, in *DeleteMeasurementsRequest, opts ...grpc.CallOption) (*DeleteMeasurementsResponse, error)
+	// Bulk placement writes: one UPDATE over ids on territory_slug in one
+	// transaction. Every id must be on the territory or nothing changes and the
+	// answer is NOT_FOUND; a repeated id counts once; 1–1000 ids.
+	SetPlacementsHidden(ctx context.Context, in *SetPlacementsHiddenRequest, opts ...grpc.CallOption) (*SetPlacementsHiddenResponse, error)
+	SetPlacementsGroup(ctx context.Context, in *SetPlacementsGroupRequest, opts ...grpc.CallOption) (*SetPlacementsGroupResponse, error)
+	// Placement groups are scoped by territory_slug like measurements: an id of
+	// another territory is NOT_FOUND, same as an unknown one.
+	ListPlacementGroups(ctx context.Context, in *ListPlacementGroupsRequest, opts ...grpc.CallOption) (*ListPlacementGroupsResponse, error)
+	CreatePlacementGroup(ctx context.Context, in *CreatePlacementGroupRequest, opts ...grpc.CallOption) (*CreatePlacementGroupResponse, error)
+	RenamePlacementGroup(ctx context.Context, in *RenamePlacementGroupRequest, opts ...grpc.CallOption) (*RenamePlacementGroupResponse, error)
+	DeletePlacementGroup(ctx context.Context, in *DeletePlacementGroupRequest, opts ...grpc.CallOption) (*DeletePlacementGroupResponse, error)
 }
 
 type catalogServiceClient struct {
@@ -497,6 +514,66 @@ func (c *catalogServiceClient) DeleteMeasurements(ctx context.Context, in *Delet
 	return out, nil
 }
 
+func (c *catalogServiceClient) SetPlacementsHidden(ctx context.Context, in *SetPlacementsHiddenRequest, opts ...grpc.CallOption) (*SetPlacementsHiddenResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetPlacementsHiddenResponse)
+	err := c.cc.Invoke(ctx, CatalogService_SetPlacementsHidden_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) SetPlacementsGroup(ctx context.Context, in *SetPlacementsGroupRequest, opts ...grpc.CallOption) (*SetPlacementsGroupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetPlacementsGroupResponse)
+	err := c.cc.Invoke(ctx, CatalogService_SetPlacementsGroup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) ListPlacementGroups(ctx context.Context, in *ListPlacementGroupsRequest, opts ...grpc.CallOption) (*ListPlacementGroupsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPlacementGroupsResponse)
+	err := c.cc.Invoke(ctx, CatalogService_ListPlacementGroups_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) CreatePlacementGroup(ctx context.Context, in *CreatePlacementGroupRequest, opts ...grpc.CallOption) (*CreatePlacementGroupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreatePlacementGroupResponse)
+	err := c.cc.Invoke(ctx, CatalogService_CreatePlacementGroup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) RenamePlacementGroup(ctx context.Context, in *RenamePlacementGroupRequest, opts ...grpc.CallOption) (*RenamePlacementGroupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RenamePlacementGroupResponse)
+	err := c.cc.Invoke(ctx, CatalogService_RenamePlacementGroup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *catalogServiceClient) DeletePlacementGroup(ctx context.Context, in *DeletePlacementGroupRequest, opts ...grpc.CallOption) (*DeletePlacementGroupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeletePlacementGroupResponse)
+	err := c.cc.Invoke(ctx, CatalogService_DeletePlacementGroup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CatalogServiceServer is the server API for CatalogService service.
 // All implementations must embed UnimplementedCatalogServiceServer
 // for forward compatibility.
@@ -567,6 +644,17 @@ type CatalogServiceServer interface {
 	UpdateMeasurement(context.Context, *UpdateMeasurementRequest) (*UpdateMeasurementResponse, error)
 	DeleteMeasurement(context.Context, *DeleteMeasurementRequest) (*DeleteMeasurementResponse, error)
 	DeleteMeasurements(context.Context, *DeleteMeasurementsRequest) (*DeleteMeasurementsResponse, error)
+	// Bulk placement writes: one UPDATE over ids on territory_slug in one
+	// transaction. Every id must be on the territory or nothing changes and the
+	// answer is NOT_FOUND; a repeated id counts once; 1–1000 ids.
+	SetPlacementsHidden(context.Context, *SetPlacementsHiddenRequest) (*SetPlacementsHiddenResponse, error)
+	SetPlacementsGroup(context.Context, *SetPlacementsGroupRequest) (*SetPlacementsGroupResponse, error)
+	// Placement groups are scoped by territory_slug like measurements: an id of
+	// another territory is NOT_FOUND, same as an unknown one.
+	ListPlacementGroups(context.Context, *ListPlacementGroupsRequest) (*ListPlacementGroupsResponse, error)
+	CreatePlacementGroup(context.Context, *CreatePlacementGroupRequest) (*CreatePlacementGroupResponse, error)
+	RenamePlacementGroup(context.Context, *RenamePlacementGroupRequest) (*RenamePlacementGroupResponse, error)
+	DeletePlacementGroup(context.Context, *DeletePlacementGroupRequest) (*DeletePlacementGroupResponse, error)
 	mustEmbedUnimplementedCatalogServiceServer()
 }
 
@@ -684,6 +772,24 @@ func (UnimplementedCatalogServiceServer) DeleteMeasurement(context.Context, *Del
 }
 func (UnimplementedCatalogServiceServer) DeleteMeasurements(context.Context, *DeleteMeasurementsRequest) (*DeleteMeasurementsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteMeasurements not implemented")
+}
+func (UnimplementedCatalogServiceServer) SetPlacementsHidden(context.Context, *SetPlacementsHiddenRequest) (*SetPlacementsHiddenResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetPlacementsHidden not implemented")
+}
+func (UnimplementedCatalogServiceServer) SetPlacementsGroup(context.Context, *SetPlacementsGroupRequest) (*SetPlacementsGroupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetPlacementsGroup not implemented")
+}
+func (UnimplementedCatalogServiceServer) ListPlacementGroups(context.Context, *ListPlacementGroupsRequest) (*ListPlacementGroupsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListPlacementGroups not implemented")
+}
+func (UnimplementedCatalogServiceServer) CreatePlacementGroup(context.Context, *CreatePlacementGroupRequest) (*CreatePlacementGroupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreatePlacementGroup not implemented")
+}
+func (UnimplementedCatalogServiceServer) RenamePlacementGroup(context.Context, *RenamePlacementGroupRequest) (*RenamePlacementGroupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RenamePlacementGroup not implemented")
+}
+func (UnimplementedCatalogServiceServer) DeletePlacementGroup(context.Context, *DeletePlacementGroupRequest) (*DeletePlacementGroupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeletePlacementGroup not implemented")
 }
 func (UnimplementedCatalogServiceServer) mustEmbedUnimplementedCatalogServiceServer() {}
 func (UnimplementedCatalogServiceServer) testEmbeddedByValue()                        {}
@@ -1354,6 +1460,114 @@ func _CatalogService_DeleteMeasurements_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CatalogService_SetPlacementsHidden_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetPlacementsHiddenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).SetPlacementsHidden(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_SetPlacementsHidden_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).SetPlacementsHidden(ctx, req.(*SetPlacementsHiddenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_SetPlacementsGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetPlacementsGroupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).SetPlacementsGroup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_SetPlacementsGroup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).SetPlacementsGroup(ctx, req.(*SetPlacementsGroupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_ListPlacementGroups_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPlacementGroupsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).ListPlacementGroups(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_ListPlacementGroups_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).ListPlacementGroups(ctx, req.(*ListPlacementGroupsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_CreatePlacementGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreatePlacementGroupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).CreatePlacementGroup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_CreatePlacementGroup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).CreatePlacementGroup(ctx, req.(*CreatePlacementGroupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_RenamePlacementGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RenamePlacementGroupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).RenamePlacementGroup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_RenamePlacementGroup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).RenamePlacementGroup(ctx, req.(*RenamePlacementGroupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CatalogService_DeletePlacementGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeletePlacementGroupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CatalogServiceServer).DeletePlacementGroup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CatalogService_DeletePlacementGroup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CatalogServiceServer).DeletePlacementGroup(ctx, req.(*DeletePlacementGroupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CatalogService_ServiceDesc is the grpc.ServiceDesc for CatalogService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1504,6 +1718,30 @@ var CatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteMeasurements",
 			Handler:    _CatalogService_DeleteMeasurements_Handler,
+		},
+		{
+			MethodName: "SetPlacementsHidden",
+			Handler:    _CatalogService_SetPlacementsHidden_Handler,
+		},
+		{
+			MethodName: "SetPlacementsGroup",
+			Handler:    _CatalogService_SetPlacementsGroup_Handler,
+		},
+		{
+			MethodName: "ListPlacementGroups",
+			Handler:    _CatalogService_ListPlacementGroups_Handler,
+		},
+		{
+			MethodName: "CreatePlacementGroup",
+			Handler:    _CatalogService_CreatePlacementGroup_Handler,
+		},
+		{
+			MethodName: "RenamePlacementGroup",
+			Handler:    _CatalogService_RenamePlacementGroup_Handler,
+		},
+		{
+			MethodName: "DeletePlacementGroup",
+			Handler:    _CatalogService_DeletePlacementGroup_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

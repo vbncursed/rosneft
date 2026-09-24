@@ -17,9 +17,10 @@ const resolveLabelsCap = 500
 // than refused: during a rolling deploy a newer gateway may ask for one, and
 // refusing would cost the reader every other label on the page.
 var labelKinds = map[string]struct{}{
-	"territory": {},
-	"model":     {},
-	"panorama":  {},
+	"territory":       {},
+	"model":           {},
+	"panorama":        {},
+	"placement_group": {},
 }
 
 // ResolveLabels names catalog rows for the audit journal.

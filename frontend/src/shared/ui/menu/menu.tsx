@@ -7,6 +7,8 @@ import { Tooltip } from "@/shared/ui/tooltip";
 export type MenuItemTone = "default" | "accent" | "warn" | "ok" | "bad";
 
 export type MenuItem = {
+  /** Keys the item where two may share a label — a group title is the reader's own words. */
+  id?: string;
   label: string;
   onSelect: () => void;
   tone?: MenuItemTone;
@@ -25,6 +27,8 @@ export type MenuProps = {
   triggerClassName?: string;
   /** `false` when the trigger shows its own text — the tooltip would only repeat it. */
   triggerTooltip?: false;
+  /** Greys the trigger while something it would act on is busy; the menu cannot open. */
+  disabled?: boolean;
   className?: string;
 };
 
@@ -44,6 +48,7 @@ export function Menu({
   align = "end",
   triggerClassName,
   triggerTooltip,
+  disabled,
   className,
 }: MenuProps) {
   const menuId = useId();
@@ -96,14 +101,15 @@ export function Menu({
       aria-expanded={open}
       aria-controls={open ? menuId : undefined}
       aria-label={triggerLabel}
+      disabled={disabled}
       onClick={() => setOpen((o) => !o)}
       onKeyDown={onTriggerKeyDown}
       className={cx(
-        "flex cursor-pointer items-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+        "flex cursor-pointer items-center disabled:cursor-not-allowed disabled:opacity-45 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
         triggerClassName ??
           cx(
-            "rounded-[7px] border px-2 py-1.5 transition-[color,background-color,border-color,scale] duration-150 ease-out active:scale-[0.95]",
-            open ? "border-accent-line bg-accent-soft text-accent" : "border-transparent text-muted hover:text-fg",
+            "rounded-[7px] border px-2 py-1.5 transition-[color,background-color,border-color,scale] duration-150 ease-out enabled:active:scale-[0.95]",
+            open ? "border-accent-line bg-accent-soft text-accent" : "border-transparent text-muted enabled:hover:text-fg",
           ),
       )}
     >
@@ -135,7 +141,7 @@ export function Menu({
 
           {items.map((item, index) => (
             <button
-              key={item.label}
+              key={item.id ?? item.label}
               ref={(el) => {
                 entries.current[index] = el;
               }}
@@ -148,7 +154,7 @@ export function Menu({
               }}
               onKeyDown={(e) => onItemKeyDown(index, e)}
               className={cx(
-                "block w-full cursor-pointer rounded-control-sm border-none bg-transparent px-2.5 py-[7px] text-left text-xs transition-[background-color,scale] duration-150 ease-out hover:bg-panel-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent enabled:active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45",
+                "block w-full cursor-pointer rounded-control-sm border-none bg-transparent px-2.5 py-[7px] text-left text-xs transition-[background-color,scale] duration-150 ease-out enabled:hover:bg-panel-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent enabled:active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-45",
                 TONE[item.tone ?? "default"],
               )}
             >

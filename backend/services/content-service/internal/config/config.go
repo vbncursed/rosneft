@@ -16,6 +16,7 @@ type Config struct {
 	GRPCAddr        string        `mapstructure:"grpc-addr"`
 	MetricsAddr     string        `mapstructure:"metrics-addr"`
 	DBDSN           string        `mapstructure:"db-dsn"`
+	BlobDir         string        `mapstructure:"blob-dir"`
 	LogLevel        string        `mapstructure:"log-level"`
 	LogFormat       string        `mapstructure:"log-format"`
 	AutoMigrate     bool          `mapstructure:"auto-migrate"`
@@ -33,6 +34,7 @@ func Load(cmd *cobra.Command) (Config, error) {
 
 	v.SetDefault("grpc-addr", ":9007")
 	v.SetDefault("metrics-addr", ":9101")
+	v.SetDefault("blob-dir", "/var/blob")
 	v.SetDefault("log-level", "info")
 	v.SetDefault("log-format", "json")
 	v.SetDefault("auto-migrate", true)
@@ -56,6 +58,9 @@ func Load(cmd *cobra.Command) (Config, error) {
 func (c Config) Validate() error {
 	if c.DBDSN == "" {
 		return fmt.Errorf("config: db-dsn is required (set --db-dsn or %s_DB_DSN)", envPrefix)
+	}
+	if c.BlobDir == "" {
+		return fmt.Errorf("config: blob-dir is required (set --blob-dir or %s_BLOB_DIR)", envPrefix)
 	}
 	return nil
 }

@@ -128,8 +128,20 @@ export function headerPills(a: {
 export const headerMeta = (slug: string, lods: number, units: string) =>
   `${slug} · ${lods} LODs · ${units}`;
 
-export type RailTool = "reset" | "measure" | "add" | "panoramas" | "documents" | "tour";
+export type RailTool = "reset" | "play" | "measure" | "add" | "panoramas" | "documents" | "tour";
 export type RailToolState = { key: RailTool; state: "active" | "idle" | "inert" };
+
+type RailInputs = {
+  grants: Grants;
+  mode: ViewerMode;
+  geometry: boolean;
+  loading: boolean;
+  tourActive: boolean;
+  view: ViewerView;
+  documentOpen: boolean;
+  /** The camera is flying around the territory. */
+  playing: boolean;
+};
 
 /**
  * The tool rail's tiles and how each is drawn.
@@ -144,21 +156,18 @@ export type RailToolState = { key: RailTool; state: "active" | "idle" | "inert" 
  * `loading` is state 3 — the coarse level is up, the target is not — where the
  * mock draws "reset; others dim". `tourActive` lights nothing at all: the tour
  * is explaining these controls, and a lit tile inside a dimmed page reads as
- * the step's own anchor. Inside a panorama (state 8) Measure and Add objects
- * are inert: neither has a surface to work against.
+ * the step's own anchor. Inside a panorama (state 8) Measure, Add objects and
+ * Play are inert: none has a mesh to work against.
+ *
+ * Play (spec §2) lights on its own, beside the mode's tile, and circles the
+ * mesh from orbit mode only — a pointer mode is using the view. A download
+ * never dims it: a level on screen is a level to circle, and a flight caught
+ * mid-download has to stay stoppable from its tile.
  */
-export function railTools(a: {
-  grants: Grants;
-  mode: ViewerMode;
-  geometry: boolean;
-  loading: boolean;
-  tourActive: boolean;
-  view: ViewerView;
-  documentOpen: boolean;
-}): RailToolState[] {
+export function railTools(a: RailInputs): RailToolState[] {
   const keys: RailTool[] = a.grants.create
-    ? ["reset", "measure", "add", "panoramas", "documents", "tour"]
-    : ["reset", "measure", "panoramas", "documents", "tour"];
+    ? ["reset", "play", "measure", "add", "panoramas", "documents", "tour"]
+    : ["reset", "play", "measure", "panoramas", "documents", "tour"];
   const inside = a.view.kind === "panorama";
   const activeKey: RailTool | null = a.tourActive
     ? null
@@ -175,18 +184,19 @@ export function railTools(a: {
   return keys.map((key) => ({ key, state: stateOf(key, activeKey, inside, a) }));
 }
 
-const NEEDS_MESH: RailTool[] = ["measure", "add"];
+const NEEDS_MESH: RailTool[] = ["play", "measure", "add"];
 
 function stateOf(
   key: RailTool,
   activeKey: RailTool | null,
   inside: boolean,
-  a: { geometry: boolean; loading: boolean },
+  a: RailInputs,
 ): RailToolState["state"] {
   // The two overlay tiles are never inert — see the note above.
   if (key === "panoramas" || key === "documents") return key === activeKey ? "active" : "idle";
   if (!a.geometry) return "inert";
   if (inside && NEEDS_MESH.includes(key)) return "inert";
+  if (key === "play") return a.mode !== "orbit" ? "inert" : a.playing && !a.tourActive ? "active" : "idle";
   if (key === activeKey) return "active";
   return a.loading ? "inert" : "idle";
 }

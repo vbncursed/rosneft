@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { EXIT_PANORAMA, NOT_CALIBRATED, SHOW_IN } from "../model/copy";
@@ -27,12 +27,15 @@ const row = (over: Partial<PanoramaRowView> = {}, handlers: Partial<Parameters<t
   );
 
 describe("PanoramaRow", () => {
-  it("shows the photo when there is one, and does not pull it until it is looked at", () => {
-    // The thumb is the whole equirect — 5-8 MB and a 32 MB decode per capture,
-    // on a tab that opens by default.
+  it("shows the thumbnail at its own size, and does not pull it until it is looked at", () => {
+    // A 256×128 JPEG the server made. The size attributes reserve the box's
+    // ratio before the bytes land; lazy/async keep a list scrolled past off
+    // the wire and off the main thread.
     const { container } = row();
     const img = container.querySelector("img");
     expect(img).toHaveAttribute("src", "/api/assets/abc");
+    expect(img).toHaveAttribute("width", "256");
+    expect(img).toHaveAttribute("height", "128");
     expect(img).toHaveAttribute("loading", "lazy");
     expect(img).toHaveAttribute("decoding", "async");
   });
@@ -41,6 +44,32 @@ describe("PanoramaRow", () => {
     const { container } = row({ thumbUrl: null });
     expect(container.querySelector("img")).toBeNull();
     expect(container.querySelector("svg")).not.toBeNull();
+  });
+
+  // E8: a thumbnail that fails (404, a refused blob, offline) draws the glyph,
+  // not the browser's broken-image mark.
+  it("falls back to the panorama glyph when the thumbnail fails to load", () => {
+    const { container } = row();
+    fireEvent.error(container.querySelector("img")!);
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector("svg")).not.toBeNull();
+  });
+
+  // E13: a photo off the network fades in over 150 ms instead of popping.
+  it("fades a thumbnail in once its bytes land", () => {
+    const { container } = row();
+    const img = container.querySelector("img")!;
+    expect(img).toHaveClass("opacity-0", "transition-opacity", "duration-150", "ease-out");
+    fireEvent.load(img);
+    expect(img).not.toHaveClass("opacity-0");
+  });
+
+  // …but one already in the cache is there from the first frame.
+  it("shows a cached thumbnail at once, without the fade", () => {
+    const complete = vi.spyOn(HTMLImageElement.prototype, "complete", "get").mockReturnValue(true);
+    const { container } = row();
+    expect(container.querySelector("img")).not.toHaveClass("opacity-0");
+    complete.mockRestore();
   });
 
   it("says a panorama is not calibrated yet and still offers the way in", async () => {

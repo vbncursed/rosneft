@@ -1,9 +1,10 @@
 import { type RefObject, useEffect, useRef, useState } from "react";
 import type { Object3D } from "three";
+import { useThree } from "@react-three/fiber";
 import { TransformControls } from "@react-three/drei";
 import type { TransformControls as TransformControlsImpl } from "three-stdlib";
 import type { GizmoMode } from "@/features/viewer-mode";
-import { isVisibleIn, type PlacementTransform, type ResolvedPlacement } from "@/entities/placement";
+import { isShownIn, type PlacementTransform, type ResolvedPlacement } from "@/entities/placement";
 import PlacementInstance from "./placement-instance";
 import PlacementMarkers from "./placement-markers";
 import { useGizmoEvents } from "./use-gizmo-events";
@@ -27,7 +28,7 @@ interface PlacementsLayerProps {
   // The panorama being looked at, or null for the 3D view. Inside a panorama a
   // placement renders only if its allowlist names that panorama — equipment
   // dropped for one panorama must not leak into the others. The 3D view always
-  // shows every placement, so the editor can never lose one.
+  // shows every placement, so the editor can never lose one that is not hidden.
   activePanoramaId: number | null;
   /** `storage-tank-500 #1` by id, for the labels inside a panorama. */
   markerLabels: Record<number, string>;
@@ -57,6 +58,7 @@ export default function PlacementsLayer({
   onSelect,
   onCommit,
 }: PlacementsLayerProps) {
+  const invalidate = useThree((s) => s.invalidate);
   const [target, setTarget] = useState<Object3D | null>(null);
   const tcRef = useRef<TransformControlsImpl | null>(null);
 
@@ -71,7 +73,18 @@ export default function PlacementsLayer({
     return patchScaleGizmo(tc);
   }, [target]);
 
-  const visible = placements.filter((p) => isVisibleIn(p, activePanoramaId));
+  // Hidden placements are not drawn anywhere (G-1); inside a panorama the
+  // allowlist narrows the rest. The markers read this same list.
+  const visible = placements.filter((p) => isShownIn(p, activePanoramaId));
+  const drawnKey = visible.map((p) => p.id).join(",");
+
+  // frameloop="demand", and an R3F removal never requests a frame (removeChild
+  // unlinks the parent before invalidateInstance, which bails without one): a
+  // hide, a delete or a narrowing panorama left the object on screen until the
+  // next pointer event. A mount does invalidate, so only the shrink needed it.
+  useEffect(() => {
+    invalidate();
+  }, [drawnKey, invalidate]);
   const gizmo = canEdit && !measureMode && selectedId != null && target !== null;
   // Without a gizmo — a guest, or an editor measuring — the selection would
   // show only in the panel. The panorama's ring and name mark it instead.

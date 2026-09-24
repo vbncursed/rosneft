@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { creating, idle, isCreating, isMutatingId, mutating } from "./mutation-state";
+import { creating, idle, isCreating, isMutatingId, mutating, pendingIdsOf } from "./mutation-state";
 
 describe("MutationState", () => {
   it("isCreating is true only in the creating state", () => {
@@ -13,5 +13,11 @@ describe("MutationState", () => {
     expect(isMutatingId(mutating(5), 6)).toBe(false);
     expect(isMutatingId(creating, 5)).toBe(false);
     expect(isMutatingId(idle, 5)).toBe(false);
+  });
+
+  it("pendingIdsOf names the one id a single write holds", () => {
+    expect(pendingIdsOf(idle)).toEqual([]);
+    expect(pendingIdsOf(creating)).toEqual([]);
+    expect(pendingIdsOf(mutating(5))).toEqual([5]);
   });
 });
