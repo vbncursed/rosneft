@@ -261,8 +261,9 @@ looking at.
   client-side with no server log.
 - **The PWA shell is in `public/`**, carried over from the old SPA: `sw.js`
   (navigations only; offline falls back to `offline.html`, everything else
-  goes to the network), `offline.html` (inline styles, no JS, the theme
-  tokens copied by hand — bump `CACHE` in `sw.js` when it changes, or
+  goes to the network), `offline.html` (inline styles and a small inline
+  script — theme from `andrey.theme`, a `HEAD /` reachability probe every
+  5 s and on `online`, reload once it answers; the theme tokens copied by hand — bump `CACHE` in `sw.js` when it changes, or
   installed copies keep the old page), `manifest.webmanifest`, `icon.svg`,
   `apple-icon.png`, `og-card.png`, `robots.txt`. `fonts/` came along with
   them and nothing references it. `app/pwa/register-service-worker.ts`
