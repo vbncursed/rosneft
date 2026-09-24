@@ -102,6 +102,7 @@
       button {
         display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border-radius: 10px;
         padding: 10px 18px; font: inherit; font-size: 14px; touch-action: manipulation;
+        user-select: none; -webkit-user-select: none;
         transition: scale 150ms cubic-bezier(0.23, 1, 0.32, 1), background-color 150ms, border-color 150ms;
       }
       button:not([aria-disabled="true"]):active { scale: 0.97; }
@@ -218,6 +219,7 @@
         };
         let stage = "offline";
         const set = (next) => {
+          if (next === stage) return; // announce changes only; auto probes fail every 5 s
           stage = next;
           if (next === "back") {
             const hadFocus = offline.contains(document.activeElement);
@@ -252,7 +254,12 @@
         let busy = false;
         const check = async (pressed) => {
           // One probe at a time, whoever started it; back is terminal.
-          if (busy || stage === "back") return;
+          if (stage === "back") return;
+          if (busy) {
+            // A press during an automatic probe shows; that probe settles it.
+            if (pressed) set("checking");
+            return;
+          }
           busy = true;
           try {
             if (pressed) set("checking");
