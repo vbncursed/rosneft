@@ -1,9 +1,9 @@
 import { clsx as cx } from "clsx";
-import { ThemeToggle } from "@/features/theme-toggle";
 import { Avatar } from "@/shared/ui/avatar";
 import { Badge } from "@/shared/ui/badge";
 import { linkButtonClass } from "@/shared/ui/button";
 import { Icon } from "@/shared/ui/icon";
+import { StandaloneHeader } from "@/widgets/standalone-header";
 
 export type TwoFactorRequiredStage = "gate" | "done";
 
@@ -55,7 +55,7 @@ const STAGE = {
 /**
  * `Two Factor Required v2`: the one screen a session that owes a second factor
  * can open, and the card it lands on once the wizard is through. It sits
- * outside every shell, so it draws its own header — the brand as plain text,
+ * outside every shell, so it draws `StandaloneHeader` — the brand as plain text,
  * the theme toggle and a static identity chip. No account menu: its Account
  * item leads to a page the gateway refuses until enrolment is done.
  */
@@ -68,18 +68,12 @@ export function TwoFactorRequiredPage({
   const s = STAGE[stage];
   return (
     <div className="flex min-h-dvh flex-col gap-10 bg-bg px-4 pb-14 pt-8 text-fg sm:px-8">
-      <header className="flex flex-wrap items-center justify-between gap-5">
-        <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-accent">
-          Andrey Viewer
+      <StandaloneHeader>
+        <span className="flex items-center gap-[9px] rounded-full border border-line-2 bg-panel py-[5px] pl-[5px] pr-[13px]">
+          <Avatar name={username} size={28} variant="soft" />
+          <span className="text-xs font-medium">{username}</span>
         </span>
-        <div className="flex flex-wrap items-center gap-[9px]">
-          <ThemeToggle variant="compact" />
-          <span className="flex items-center gap-[9px] rounded-full border border-line-2 bg-panel py-[5px] pl-[5px] pr-[13px]">
-            <Avatar name={username} size={28} variant="soft" />
-            <span className="text-xs font-medium">{username}</span>
-          </span>
-        </div>
-      </header>
+      </StandaloneHeader>
       <main className="flex flex-1 items-center justify-center">
         <section
           className={cx(

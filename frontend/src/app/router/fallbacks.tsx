@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { ErrorComponentProps } from "@tanstack/react-router";
-import { ThemeToggle } from "@/features/theme-toggle";
 import { NotFoundView } from "@/widgets/not-found";
+import { StandaloneHeader } from "@/widgets/standalone-header";
 
 /**
  * The three dead ends a router can reach. Their own file because the route
@@ -27,21 +27,13 @@ function Panel({ title, children }: { title: string; children: ReactNode }) {
 
 /**
  * `Not Found v2.dc.html`: the only fallback with a design of its own. It sits
- * outside every shell, so it draws the mock's header — the brand as the way
+ * outside every shell, so it draws `StandaloneHeader` — the brand as the way
  * home, and the app's theme toggle (the mock's is local state; ours is not).
  */
 export function NotFound() {
   return (
     <div className="flex min-h-dvh flex-col gap-7 bg-bg px-4 pb-12 pt-8 text-fg sm:px-9">
-      <header className="flex flex-wrap items-center justify-between gap-6">
-        <a
-          href="/"
-          className="font-mono text-[10px] uppercase tracking-[0.24em] text-accent no-underline hover:underline"
-        >
-          Andrey Viewer
-        </a>
-        <ThemeToggle variant="compact" />
-      </header>
+      <StandaloneHeader brandHref="/" />
       <main className="flex flex-1">
         <NotFoundView kind="page" />
       </main>
