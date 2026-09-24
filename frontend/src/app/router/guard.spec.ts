@@ -196,6 +196,11 @@ describe("isCatalogHref", () => {
     expect(isCatalogHref("/account/two-factor")).toBe(true);
     expect(isCatalogHref("/account/two-factor?mode=regenerate")).toBe(true);
   });
+
+  // The wizard's exit and the done card's link must not reload the document.
+  it("routes the enrolment gate in-app, done stage and all", () => {
+    expect(isCatalogHref("/two-factor-required?stage=done")).toBe(true);
+  });
 });
 
 describe("isTerritoryPage", () => {

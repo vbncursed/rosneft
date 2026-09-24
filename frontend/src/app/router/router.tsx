@@ -26,10 +26,12 @@ import {
   consoleUsersRoute,
   loginRoute,
   rootRoute,
+  twoFactorRequiredRoute,
 } from "./routes";
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
+  twoFactorRequiredRoute,
   consoleRoute.addChildren([
     consoleIndexRoute,
     consoleUsersRoute,
