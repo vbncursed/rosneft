@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { httpDelete, httpGet, httpGetBlob, httpHead, httpPost } from "./client";
 import { markAuthed, isAuthed } from "@/shared/session";
 import { setCsrfToken, clearCsrfToken } from "./csrf";
+import { HttpError } from "./http-error";
 
 const jsonResponse = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -114,6 +115,32 @@ describe("http client", () => {
 
     expect(assign).toHaveBeenCalledWith("/login?next=%2Fconsole%2Fusers");
     expect(isAuthed()).toBe(false);
+  });
+
+  // An administrator can require 2FA of a signed-in account; the gateway
+  // applies it on the next request while the SPA holds a stale principal.
+  it("sends a session that must enroll to the gate on its 403", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse(403, { code: "twofa_enrollment_required", message: "enroll a second factor to continue" }),
+      ),
+    );
+    await expect(httpGet("/api/territories")).rejects.toBeInstanceOf(HttpError);
+    expect(assign).toHaveBeenCalledWith("/two-factor-required");
+  });
+
+  it("does not bounce an ordinary 403", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(403, { code: "forbidden", message: "no" })));
+    await expect(httpGet("/api/territories")).rejects.toBeInstanceOf(HttpError);
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it("does not reload the gate onto itself", async () => {
+    vi.stubGlobal("location", { pathname: "/two-factor-required", search: "", assign });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(403, { code: "twofa_enrollment_required" })));
+    await expect(httpGet("/api/x")).rejects.toBeInstanceOf(HttpError);
+    expect(assign).not.toHaveBeenCalled();
   });
 
   it("carries the gateway's own message on a failure", async () => {
