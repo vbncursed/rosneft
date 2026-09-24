@@ -113,7 +113,7 @@ export function TwoFactorRequiredPage({
             <p className="m-0 max-w-[50ch] text-sm leading-[1.6] text-pretty text-muted">{s.body}</p>
           </div>
           {stage === "gate" && (
-            <ol className="m-0 flex list-none flex-col px-[30px] pb-6">
+            <ol role="list" className="m-0 flex list-none flex-col px-[30px] pb-6">
               {STEPS.map((step, i) => (
                 <li
                   key={step.title}

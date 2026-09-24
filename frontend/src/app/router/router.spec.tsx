@@ -67,6 +67,20 @@ describe("router", () => {
       expect(screen.getAllByRole("main")).toHaveLength(1);
     });
 
+    // Unknown is not enrolled: sent home, a gateway 403 there would reload
+    // back to the gate and loop.
+    it("keeps a required session whose enrolment is unknown on the gate", async () => {
+      renderAt("/two-factor-required", { ...me, totpRequired: true, totpEnabled: null });
+      expect(
+        await screen.findByRole("heading", { level: 1, name: "Set up two-factor to continue" }),
+      ).toBeInTheDocument();
+    });
+
+    it("sends a session without two-factor away from the done card", async () => {
+      const router = renderAt("/two-factor-required?stage=done", { ...me, totpEnabled: false });
+      await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+    });
+
     it("sends an enrolled session home", async () => {
       const router = renderAt("/two-factor-required");
       await waitFor(() => expect(router.state.location.pathname).toBe("/"));
