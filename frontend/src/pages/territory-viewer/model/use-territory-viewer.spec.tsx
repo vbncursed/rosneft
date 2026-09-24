@@ -228,7 +228,7 @@ describe("useTerritoryViewer", () => {
 
     it("does not call a 404 from the principal a missing territory", async () => {
       // Only the scene's 404 says "not there, or not yours"; /me answering 404
-      // is a broken session route, and "Territory not found" would be a lie
+      // is a broken session route, and the territory 404 would be a lie
       // about a territory the reader may well be able to see.
       getMe.mockRejectedValue(new HttpError(404, null, "route not found"));
       const r = cold();

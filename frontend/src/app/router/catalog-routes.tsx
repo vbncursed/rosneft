@@ -57,7 +57,8 @@ export const territoryNewRoute = createRoute({
 // screen rather than the conversion page flashing in front of a ready viewer.
 //
 // It swallows every failure and never throws. A 404 and a 503 both have a
-// designed screen already — "Territory not found" with the way back, and
+// designed screen already — the territory 404 view, "No territory at this
+// address", with the way back, and
 // "Territory unavailable: {message}" — and both live behind the conversion
 // screen, which is where `!data` falls through to. Throwing here would replace
 // those with the router's global panels.
