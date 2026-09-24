@@ -69,6 +69,17 @@ describe("TerritoryConversionScreen", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Tenant A" }).closest(CAP)).not.toBeNull();
   });
 
+  // The viewport shell is a flex column; the wrapper must take the rest of it
+  // and be a column itself, or the view's flex-1 has no height to centre in.
+  it("hands the not-found view the whole height of the shell", () => {
+    useParams.mockReturnValue({ slug: "t" });
+    useSearch.mockReturnValue({});
+    useTerritoryConversion.mockReturnValue({ status: "missing" });
+    const { container } = render(<TerritoryConversionScreen />);
+    expect(container.firstElementChild?.className).toMatch(/(^| )flex-1( |$)/);
+    expect(container.firstElementChild?.className).toMatch(/(^| )flex-col( |$)/);
+  });
+
   it("remounts the body on a slug change, so no ref survives into the next territory", () => {
     // The router keeps this component across a $slug change; without the key the
     // hook's previousJobs ref and the stream's frame carry over. The keyed body

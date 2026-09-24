@@ -46,6 +46,17 @@ describe("CatalogShell · viewport layout", () => {
     );
     expect(screen.getByRole("main").className).toContain("px-9");
   });
+
+  // A screen whose body is one flex-1 block (the 404 view) centres in the
+  // window only if the column is at least that tall; otherwise it hugs the top.
+  it("is at least one window tall, so a flex-1 body has height to centre in", () => {
+    render(
+      <CatalogShell>
+        <p>page</p>
+      </CatalogShell>,
+    );
+    expect(screen.getByRole("main").className).toContain("min-h-dvh");
+  });
 });
 
 describe("CatalogShell · full-bleed marker", () => {
