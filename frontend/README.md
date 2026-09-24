@@ -104,7 +104,8 @@ column, and its spec asserts as much.
   `desktop/src-tauri/icons/` is generated from the three SVG sources in
   `icons/` by `python3 frontend/icons/render.py`; edit a source and rerun it,
   never an output.
-- `og-card.png` (rendered from `og-card.svg`) — the link-preview image. The
+- `og-card.png` — the link-preview image, card 1a from `OG Card.dc.html`,
+  rendered from `icons/og-card.html` by the same `render.py`. The
   Open Graph tags in `index.html` are static on purpose: no unfurler runs
   JavaScript, so they cannot vary per route.
 - `robots.txt` — `Allow` plus nginx's `X-Robots-Tag: noindex`; the file
