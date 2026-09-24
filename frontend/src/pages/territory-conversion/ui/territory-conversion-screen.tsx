@@ -1,7 +1,7 @@
 import { useParams, useSearch } from "@tanstack/react-router";
 import { Callout } from "@/shared/ui/callout";
-import { EmptyState } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { NotFoundView } from "@/widgets/not-found";
 import { useTerritoryConversion } from "../model/use-territory-conversion";
 import { TerritoryConversionPage } from "./territory-conversion-page";
 
@@ -18,18 +18,7 @@ function TerritoryConversionBody({ slug, jobId }: { slug: string; jobId: string 
     );
   }
 
-  if (s.status === "missing") {
-    return (
-      <EmptyState
-        title="Territory not found"
-        action={
-          <a href="/territories" className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted no-underline hover:text-fg">
-            ← Territory catalog
-          </a>
-        }
-      />
-    );
-  }
+  if (s.status === "missing") return <NotFoundView kind="territory" />;
 
   if (s.status === "unavailable") {
     return <Callout tone="bad">Territory unavailable: {s.error}</Callout>;

@@ -44,8 +44,10 @@ describe("ReplaceSourceScreen", () => {
   it("says the territory was not found, with a way back", () => {
     useReplaceSource.mockReturnValue({ status: "missing" });
     render(<ReplaceSourceScreen />);
-    expect(screen.getByText("Territory not found")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /territor/i })).toHaveAttribute("href", "/territories");
+    expect(
+      screen.getByRole("heading", { level: 1, name: "No territory at this address" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Browse territories" })).toHaveAttribute("href", "/territories");
   });
 
   it("reports an unavailable territory", () => {

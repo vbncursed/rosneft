@@ -36,8 +36,10 @@ describe("TerritoryConversionScreen", () => {
 
     useTerritoryConversion.mockReturnValue({ status: "missing" });
     rerender(<TerritoryConversionScreen />);
-    expect(screen.getByText("Territory not found")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "← Territory catalog" })).toHaveAttribute("href", "/territories");
+    expect(
+      screen.getByRole("heading", { level: 1, name: "No territory at this address" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Browse territories" })).toHaveAttribute("href", "/territories");
 
     useTerritoryConversion.mockReturnValue({ status: "unavailable", error: "gateway down" });
     rerender(<TerritoryConversionScreen />);

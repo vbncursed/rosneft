@@ -1,7 +1,7 @@
 import { useParams } from "@tanstack/react-router";
 import { Callout } from "@/shared/ui/callout";
-import { EmptyState } from "@/shared/ui/card";
 import { PageSkeleton } from "@/shared/ui/skeleton";
+import { NotFoundView } from "@/widgets/not-found";
 import { useReplaceSource } from "../model/use-replace-source";
 import { ReplaceSourcePage } from "./replace-source-page";
 
@@ -14,21 +14,7 @@ export function ReplaceSourceScreen() {
     return <PageSkeleton shape="form" label="Loading territory" />;
   }
 
-  if (s.status === "missing") {
-    return (
-      <EmptyState
-        title="Territory not found"
-        action={
-          <a
-            href="/territories"
-            className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted no-underline hover:text-fg"
-          >
-            ← Territory catalog
-          </a>
-        }
-      />
-    );
-  }
+  if (s.status === "missing") return <NotFoundView kind="territory" />;
 
   if (s.status === "unavailable") {
     return <Callout tone="bad">Territory unavailable: {s.error}</Callout>;
