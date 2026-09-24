@@ -46,8 +46,10 @@ describe("TerritoryViewerScreen", () => {
     useSceneSeeded.mockReturnValue(false);
     useTerritoryViewer.mockReturnValue({ status: "missing" });
     render(<TerritoryViewerScreen />);
-    expect(screen.getByText("Territory not found")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "← Territory catalog" })).toHaveAttribute(
+    expect(
+      screen.getByRole("heading", { level: 1, name: "No territory at this address" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Browse territories" })).toHaveAttribute(
       "href",
       "/territories",
     );
