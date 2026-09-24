@@ -12,8 +12,9 @@ import { ContentScreen } from "@/pages/content";
 import { MetricsScreen } from "@/pages/metrics";
 import { RolesScreen } from "@/pages/roles";
 import { TerritoryAccessScreen } from "@/pages/territory-access";
+import { TwoFactorRequiredScreen } from "@/pages/two-factor-required";
 import { UsersScreen } from "@/pages/users";
-import { isAuthed } from "@/shared/session";
+import { ENROLLMENT_PATH, isAuthed, mustEnroll } from "@/shared/session";
 import { ConsoleShell } from "./console-shell";
 import { LoginRouteComponent } from "./login-route";
 import { NoConsoleAccess } from "./fallbacks";
@@ -42,6 +43,23 @@ export const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
   component: LoginRouteComponent,
+});
+
+// Outside every shell, like the 404: the page draws its own header, and a
+// session that owes a second factor can load nothing a shell would ask for.
+export const twoFactorRequiredRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ENROLLMENT_PATH,
+  validateSearch: (search: Record<string, unknown>): { stage?: "done" } =>
+    search.stage === "done" ? { stage: "done" } : {},
+  beforeLoad: async ({ context, location, search }) => {
+    const target = redirectTarget(isAuthed(), location.href);
+    if (target) throw redirect(target);
+    const me = await context.queryClient.ensureQueryData(meQuery);
+    // Enrolled: "done" is the one reason to be here; anything else goes home.
+    if (!mustEnroll(me) && search.stage !== "done") throw redirect({ to: "/" });
+  },
+  component: TwoFactorRequiredScreen,
 });
 
 // `/console` draws nothing itself — its index child resolves a landing screen

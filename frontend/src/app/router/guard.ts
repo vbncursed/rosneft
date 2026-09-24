@@ -1,6 +1,6 @@
 import { sceneReady, type SceneBundle } from "@/entities/scene";
 import type { ConsoleNavItem } from "@/widgets/console-nav";
-import { can, type Principal } from "@/shared/session";
+import { can, ENROLLMENT_PATH, type Principal } from "@/shared/session";
 
 type RedirectTarget = { to: "/login"; search: { next: string } };
 
@@ -113,7 +113,11 @@ export function consoleNav(me: Principal): ConsoleNavItem[] {
 export const activeSection = (pathname: string): string =>
   SCREENS.find((s) => pathname === s.path || pathname.startsWith(`${s.path}/`))?.key ?? "";
 
-/** The catalog shell's exact routes — no sidebar, unlike the console. */
+/**
+ * The catalog shell's exact routes — no sidebar, unlike the console — plus the
+ * enrolment gate, which sits outside every shell but is listed so the wizard's
+ * exit to it routes in-app rather than reloading the document.
+ */
 export const CATALOG_PATHS = [
   "/",
   "/territories",
@@ -122,6 +126,7 @@ export const CATALOG_PATHS = [
   "/models/new",
   "/account",
   "/account/two-factor",
+  ENROLLMENT_PATH,
 ] as const;
 
 const MODEL_PAGE = /^\/models\/[^/]+$/;
