@@ -91,6 +91,10 @@ export function useTwoFactor(flow: Flow): TwoFactorState {
       setCodes(issued);
       setStage("codes");
       setError(null);
+      // Enrolled now, whatever a failed refetch leaves behind: done()'s
+      // fallback reads this principal, and a stale one reopens the gate.
+      if (flow === "enable")
+        client.setQueryData(meQuery.queryKey, (old) => old && { ...old, totpEnabled: true });
       void client.invalidateQueries({ queryKey: ["two-factor"] });
       void client.invalidateQueries({ queryKey: ["me"] });
     },

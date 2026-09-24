@@ -14,11 +14,18 @@ import { RolesScreen } from "@/pages/roles";
 import { TerritoryAccessScreen } from "@/pages/territory-access";
 import { TwoFactorRequiredScreen } from "@/pages/two-factor-required";
 import { UsersScreen } from "@/pages/users";
-import { ENROLLMENT_PATH, isAuthed } from "@/shared/session";
+import { enrollBouncedAt, ENROLLMENT_PATH, isAuthed } from "@/shared/session";
 import { ConsoleShell } from "./console-shell";
 import { LoginRouteComponent } from "./login-route";
 import { NoConsoleAccess } from "./fallbacks";
-import { consoleLanding, enrollmentRedirect, redirectTarget, screenAllowed, type ConsolePath } from "./guard";
+import {
+  consoleLanding,
+  enrollmentRedirect,
+  gateExit,
+  redirectTarget,
+  screenAllowed,
+  type ConsolePath,
+} from "./guard";
 
 // One loader for every screen: the console gate is an OR over several grants,
 // so a screen must ask for its own. /console's landing never picks a screen
@@ -56,12 +63,7 @@ export const twoFactorRequiredRoute = createRoute({
     const target = redirectTarget(isAuthed(), location.href);
     if (target) throw redirect(target);
     const me = await context.queryClient.ensureQueryData(meQuery);
-    // Required and not known to be enrolled stays: an unknown (`null`) sent
-    // home would 403 at the gateway and reload straight back here. "done" is
-    // only for a session that has two-factor on; everyone else goes home.
-    if (me.totpRequired && me.totpEnabled !== true) return;
-    if (search.stage === "done" && me.totpEnabled === true) return;
-    throw redirect({ to: "/" });
+    if (gateExit(me, search.stage, enrollBouncedAt(), Date.now())) throw redirect({ to: "/" });
   },
   component: TwoFactorRequiredScreen,
 });

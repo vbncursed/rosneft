@@ -226,9 +226,15 @@ else — a new root-level route has to call it too, or it is a page that 403s
 on every request. `beforeLoad`, not `loader`, because children's loaders run
 beside the parent's and a loader-based redirect would race theirs. The gate
 route itself keeps a required session whose enrolment is unknown, because
-sending it home would 403 and reload it straight back — a loop. Finally,
-`ENROLLMENT_OPEN` in `guard.ts`, and every call the wizard makes, must stay
-inside the gateway's allow-list
+sending it home would 403 and reload it straight back — a loop; and for 10 s
+after `client.ts`'s bounce (`andrey.enrollBounce` in `sessionStorage`) it keeps
+one that no longer owes enrolment too, because auth-service caches
+`totpRequired` for 5 s while `/me` reads it live (`gateExit` in `guard.ts`).
+Only requests made through `shared/api/client.ts` redirect on the enrolment
+403: the viewer's `EventSource`, the three.js/GLB loaders and the pdf.js
+iframe just fail until the next JSON call redirects — accepted, not fixed.
+Finally, `ENROLLMENT_OPEN` in `guard.ts`, and every call the wizard makes,
+must stay inside the gateway's allow-list
 (`backend/services/gateway-service/internal/transport/authhttp/enrollment.go`:
 `me`, `logout`, `2fa/setup`, `2fa/enable`, `2fa/recovery/regenerate`); a
 route or call outside it bounces a gated user to the gate mid-wizard.

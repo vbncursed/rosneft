@@ -49,6 +49,31 @@ export function enrollmentRedirect(me: Principal, pathname: string): typeof ENRO
   return (ENROLLMENT_OPEN as readonly string[]).includes(pathname) ? null : ENROLLMENT_PATH;
 }
 
+/** How long after the client's enrolment bounce the gate stays put. */
+const BOUNCE_WINDOW_MS = 10_000;
+
+/**
+ * The gate's own `beforeLoad`: null keeps the gate, "/" sends the session home.
+ *
+ * Required and not known to be enrolled stays: an unknown (`null`) sent home
+ * would 403 at the gateway and reload straight back. "done" is only for a
+ * session that has two-factor on. And a session `client.ts` bounced here in the
+ * last 10 s stays too: auth-service caches `totpRequired` for 5 s while `/me`
+ * reads it live, so a lifted requirement would otherwise loop gate → home →
+ * 403 → gate until that cache expires.
+ */
+export function gateExit(
+  me: Principal,
+  stage: "done" | undefined,
+  bouncedAt: number | null,
+  now: number,
+): "/" | null {
+  if (me.totpRequired && me.totpEnabled !== true) return null;
+  if (stage === "done") return me.totpEnabled === true ? null : "/";
+  const sinceBounce = bouncedAt === null ? -1 : now - bouncedAt;
+  return sinceBounce >= 0 && sinceBounce < BOUNCE_WINDOW_MS ? null : "/";
+}
+
 /** Every screen the console has, in the order the navigation lists them. */
 export type ConsolePath =
   | "/console/users"

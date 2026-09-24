@@ -7,6 +7,7 @@ import {
   consoleLanding,
   consoleNav,
   enrollmentRedirect,
+  gateExit,
   isCatalogHref,
   isTerritoryPage,
   redirectTarget,
@@ -271,5 +272,36 @@ describe("enrollmentRedirect", () => {
   it("never redirects an account that owes nothing", () => {
     expect(enrollmentRedirect({ ...PRINCIPAL, totpRequired: true, totpEnabled: true }, "/")).toBeNull();
     expect(enrollmentRedirect({ ...PRINCIPAL, totpRequired: false, totpEnabled: false }, "/")).toBeNull();
+  });
+});
+
+// auth-service caches totpRequired for 5 s while /me reads it live: a lifted
+// requirement sends the gate home, home 403s, the client bounces back. A
+// recent bounce keeps the gate on screen until that cache agrees.
+describe("gateExit", () => {
+  const NOW = 1_000_000;
+  const free = { ...PRINCIPAL, totpRequired: false, totpEnabled: false };
+  const owes = { ...free, totpRequired: true };
+  const enrolled = { ...free, totpEnabled: true };
+
+  it("keeps a principal that owes a second factor, or whose enrolment is unknown", () => {
+    expect(gateExit(owes, undefined, null, NOW)).toBeNull();
+    expect(gateExit({ ...owes, totpEnabled: null }, undefined, null, NOW)).toBeNull();
+  });
+  it("keeps an enrolled principal on the done card", () => {
+    expect(gateExit(enrolled, "done", null, NOW)).toBeNull();
+  });
+  it("sends everyone else home", () => {
+    expect(gateExit(free, undefined, null, NOW)).toBe("/");
+    expect(gateExit(free, "done", null, NOW)).toBe("/");
+    expect(gateExit(enrolled, undefined, null, NOW)).toBe("/");
+  });
+  it("stays within 10 s of a bounce from the client", () => {
+    expect(gateExit(free, undefined, NOW - 9_999, NOW)).toBeNull();
+    expect(gateExit(free, undefined, NOW, NOW)).toBeNull();
+  });
+  it("goes home once the bounce is 10 s old, or from the future", () => {
+    expect(gateExit(free, undefined, NOW - 10_000, NOW)).toBe("/");
+    expect(gateExit(free, undefined, NOW + 1, NOW)).toBe("/");
   });
 });
