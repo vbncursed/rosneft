@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { enable2FA, meQuery, regenerateRecoveryCodes, setup2FA } from "@/entities/user";
 import { HttpError, messageOf } from "@/shared/api";
+import { ENROLLMENT_PATH, mustEnroll } from "@/shared/session";
 import type { Flow, Stage } from "./steps";
 
 /** Why the enrolment could not start, and whether pressing again could help. */
@@ -21,6 +22,8 @@ export type TwoFactorState = {
   setupError: SetupFailure | null;
   busy: boolean;
   username: string;
+  /** Where the wizard's back links lead: the gate while it holds, else the account. */
+  exit: { href: string; short: string; long: string };
   onCode: (code: string) => void;
   onConfirm: () => void;
   onRetry: () => void;
@@ -36,6 +39,9 @@ export const ALREADY_ON = "Two-factor is already on for this account.";
 // documented and no server ever sent; the spec was corrected in 89e6517, and
 // reading it here invented a terminal dead end for a status nobody sends.
 const alreadyOn = (err: unknown) => err instanceof HttpError && err.status === 422;
+const ACCOUNT_EXIT = { href: "/account", short: "Account", long: "Back to your account" } as const;
+// While the gate holds, /account is a page this session cannot open.
+const GATE_EXIT = { href: ENROLLMENT_PATH, short: "Overview", long: "Back to the overview" } as const;
 const REFUSED = "Invalid code — check your device clock and try the next one.";
 
 /**
@@ -85,6 +91,10 @@ export function useTwoFactor(flow: Flow): TwoFactorState {
       setCodes(issued);
       setStage("codes");
       setError(null);
+      // Enrolled now, whatever a failed refetch leaves behind: done()'s
+      // fallback reads this principal, and a stale one reopens the gate.
+      if (flow === "enable")
+        client.setQueryData(meQuery.queryKey, (old) => old && { ...old, totpEnabled: true });
       void client.invalidateQueries({ queryKey: ["two-factor"] });
       void client.invalidateQueries({ queryKey: ["me"] });
     },
@@ -97,7 +107,18 @@ export function useTwoFactor(flow: Flow): TwoFactorState {
     },
   });
 
-  const leave = () => void navigate({ to: "/account" });
+  const exit = mustEnroll(me) ? GATE_EXIT : ACCOUNT_EXIT;
+
+  // Confirm only invalidated `me`, and the gate route reads the cached one: a
+  // stale `totpEnabled: false` would show the gate again instead of "done".
+  // A failed fetch still leaves — the gate's own beforeLoad handles it.
+  // `totpRequired` is policy and does not change when enrolment lands.
+  const done = async () => {
+    const fresh = await client.fetchQuery({ ...meQuery, staleTime: 0 }).catch(() => me);
+    void (flow === "enable" && fresh?.totpRequired
+      ? navigate({ to: ENROLLMENT_PATH, search: { stage: "done" } })
+      : navigate({ to: "/account" }));
+  };
 
   return {
     flow,
@@ -110,13 +131,14 @@ export function useTwoFactor(flow: Flow): TwoFactorState {
     otpauthUrl: secret.otpauthUrl,
     busy: confirm.isPending,
     username: me?.username ?? "",
+    exit,
     onCode: setCode,
     onConfirm: () => confirm.mutate(code),
     onRetry: () => {
       provisioned.current = false;
       provision();
     },
-    onDone: leave,
-    onCancel: leave,
+    onDone: () => void done(),
+    onCancel: () => void navigate({ to: exit.href }),
   };
 }

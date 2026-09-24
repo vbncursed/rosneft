@@ -17,6 +17,7 @@ const base: TwoFactorState = {
   setupError: null,
   busy: false,
   username: "t.throwaway",
+  exit: { href: "/account", short: "Account", long: "Back to your account" },
   onCode: () => {},
   onConfirm: () => {},
   onRetry: () => {},
@@ -31,6 +32,22 @@ describe("TwoFactorPage", () => {
     expect(screen.getByText("Step 1 · scan")).toBeInTheDocument();
     expect(screen.getByText("Step 2 · confirm")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "← Account" })).toHaveAttribute("href", "/account");
+  });
+
+  // A gated session cannot open /account; its way back is the gate.
+  it("leads a gated account back to the overview, from the top and from a failed setup", () => {
+    const exit = { href: "/two-factor-required", short: "Overview", long: "Back to the overview" };
+    const { unmount } = render(<TwoFactorPage {...base} exit={exit} />);
+    expect(screen.getByRole("link", { name: "← Overview" })).toHaveAttribute("href", "/two-factor-required");
+    unmount();
+
+    render(
+      <TwoFactorPage {...base} exit={exit} setupError={{ message: "provisioning is down", retryable: true }} />,
+    );
+    expect(screen.getByRole("link", { name: "Back to the overview" })).toHaveAttribute(
+      "href",
+      "/two-factor-required",
+    );
   });
 
   // Nothing is scanned when the app is already paired, and the heading has to

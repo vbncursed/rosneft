@@ -217,7 +217,7 @@ export function useTerritoryViewer(slug: string): TerritoryViewerState {
 
   if (me.isPending || scene.isPending) return { status: "loading" };
   // Only the *scene's* 404 means "no such territory, or not this reader's". A
-  // 404 from /me is a broken session route, and answering "Territory not found"
+  // 404 from /me is a broken session route, and answering with the territory 404
   // there would name the wrong thing.
   const sceneErr = unanswered(scene);
   const err = sceneErr ?? unanswered(me);

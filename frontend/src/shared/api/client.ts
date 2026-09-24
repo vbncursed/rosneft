@@ -1,9 +1,11 @@
 import { HttpError, type ApiError } from "./http-error";
-import { clearAuthed } from "@/shared/session";
+import { clearAuthed, ENROLLMENT_PATH, markEnrollBounce } from "@/shared/session";
 import { ensureCsrfToken } from "./csrf";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+/** The gateway's code for "this account must enroll a second factor first". */
+const ENROLLMENT_REQUIRED = "twofa_enrollment_required";
 
 /** `credentialed`: this request is itself submitting a credential (a login,
  * a password change) — a 401 answers whether that credential was right, not
@@ -54,6 +56,19 @@ async function send<T>(
       body = (await res.json()) as ApiError;
     } catch {
       // body not JSON
+    }
+    // 403 twofa_enrollment_required = an administrator required a second
+    // factor of this account, possibly mid-session. A full load of the gate,
+    // like the 401 bounce above: the cached principal is stale, and the load
+    // drops it. Never from the gate itself — it would reload onto itself.
+    // The recorded time tells the gate not to send it straight back home.
+    if (
+      res.status === 403 &&
+      body?.code === ENROLLMENT_REQUIRED &&
+      location.pathname !== ENROLLMENT_PATH
+    ) {
+      markEnrollBounce();
+      location.assign(ENROLLMENT_PATH);
     }
     const detail = body?.message ?? (body as { error?: string } | null)?.error;
     const fallback =

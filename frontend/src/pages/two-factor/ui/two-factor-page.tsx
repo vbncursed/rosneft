@@ -53,10 +53,10 @@ export function TwoFactorPage(s: TwoFactorPageProps) {
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div className="min-w-0">
           <a
-            href="/account"
+            href={s.exit.href}
             className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted no-underline hover:text-fg"
           >
-            ← Account
+            ← {s.exit.short}
           </a>
           <p className="m-0 mt-4 font-mono text-[10px] uppercase tracking-[0.24em] text-accent">
             Two-factor
@@ -95,10 +95,10 @@ export function TwoFactorPage(s: TwoFactorPageProps) {
               </a>
             ) : null}
             <a
-              href="/account"
+              href={s.exit.href}
               className="font-mono text-[10px] uppercase tracking-[0.14em] text-accent no-underline hover:underline"
             >
-              Back to your account
+              {s.exit.long}
             </a>
           </div>
         </div>

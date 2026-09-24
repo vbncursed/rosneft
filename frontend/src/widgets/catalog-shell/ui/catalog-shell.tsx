@@ -12,7 +12,7 @@ export type CatalogShellProps = {
 };
 
 const MAIN: Record<NonNullable<CatalogShellProps["layout"]>, string> = {
-  page: "flex min-w-0 flex-col gap-[22px] px-9 pb-[72px] pt-8",
+  page: "flex min-h-dvh min-w-0 flex-col gap-[22px] px-9 pb-[72px] pt-8",
   viewport: "flex h-dvh min-w-0 flex-col overflow-hidden",
 };
 

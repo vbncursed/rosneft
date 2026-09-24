@@ -12,12 +12,20 @@ import { ContentScreen } from "@/pages/content";
 import { MetricsScreen } from "@/pages/metrics";
 import { RolesScreen } from "@/pages/roles";
 import { TerritoryAccessScreen } from "@/pages/territory-access";
+import { TwoFactorRequiredScreen } from "@/pages/two-factor-required";
 import { UsersScreen } from "@/pages/users";
-import { isAuthed } from "@/shared/session";
+import { enrollBouncedAt, ENROLLMENT_PATH, isAuthed } from "@/shared/session";
 import { ConsoleShell } from "./console-shell";
 import { LoginRouteComponent } from "./login-route";
 import { NoConsoleAccess } from "./fallbacks";
-import { consoleLanding, redirectTarget, screenAllowed, type ConsolePath } from "./guard";
+import {
+  consoleLanding,
+  enrollmentRedirect,
+  gateExit,
+  redirectTarget,
+  screenAllowed,
+  type ConsolePath,
+} from "./guard";
 
 // One loader for every screen: the console gate is an OR over several grants,
 // so a screen must ask for its own. /console's landing never picks a screen
@@ -44,20 +52,40 @@ export const loginRoute = createRoute({
   component: LoginRouteComponent,
 });
 
+// Outside every shell, like the 404: the page draws its own header, and a
+// session that owes a second factor can load nothing a shell would ask for.
+export const twoFactorRequiredRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: ENROLLMENT_PATH,
+  validateSearch: (search: Record<string, unknown>): { stage?: "done" } =>
+    search.stage === "done" ? { stage: "done" } : {},
+  beforeLoad: async ({ context, location, search }) => {
+    const target = redirectTarget(isAuthed(), location.href);
+    if (target) throw redirect(target);
+    const me = await context.queryClient.ensureQueryData(meQuery);
+    if (gateExit(me, search.stage, enrollBouncedAt(), Date.now())) throw redirect({ to: "/" });
+  },
+  component: TwoFactorRequiredScreen,
+});
+
 // `/console` draws nothing itself — its index child resolves a landing screen
 // and the rest are the screens. Gates the whole subtree with the one decision
 // that matters — redirectTarget — so no child route repeats the check.
 export const consoleRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/console",
-  beforeLoad: ({ location }) => {
+  beforeLoad: async ({ context, location }) => {
     const target = redirectTarget(isAuthed(), location.href);
     if (target) throw redirect(target);
+    // beforeLoad, not loader: children's loaders run beside the parent's, and
+    // the console index's landing redirect would race this one.
+    const to = enrollmentRedirect(await context.queryClient.ensureQueryData(meQuery), location.pathname);
+    if (to) throw redirect({ to });
   },
-  // Entering the console fetches the principal. It feeds the landing redirect
-  // below, and it is what makes the guard real rather than apparent: the
-  // marker is a flag, not proof, so a revoked session gets past `beforeLoad`
-  // and is only caught when something actually calls the gateway.
+  // Returns the principal `beforeLoad` already fetched — a cache hit. That
+  // fetch is what makes the guard real rather than apparent: the marker is a
+  // flag, not proof, and a revoked session is only caught when something
+  // actually calls the gateway.
   loader: ({ context }) => context.queryClient.ensureQueryData(meQuery),
   component: ConsoleShell,
 });

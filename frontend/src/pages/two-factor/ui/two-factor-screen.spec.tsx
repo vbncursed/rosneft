@@ -38,6 +38,7 @@ const state = (flow: TwoFactorState["flow"]): TwoFactorState => ({
   setupError: null,
   busy: false,
   username: "t.throwaway",
+  exit: { href: "/account", short: "Account", long: "Back to your account" },
   onCode: () => {},
   onConfirm: () => {},
   onRetry: () => {},

@@ -11,7 +11,7 @@ import { UploadModelsScreen } from "@/pages/upload-models";
 import { UploadTerritoryScreen } from "@/pages/upload-territory";
 import { isAuthed } from "@/shared/session";
 import { CatalogShellRoute } from "./catalog-shell-route";
-import { redirectTarget } from "./guard";
+import { enrollmentRedirect, redirectTarget } from "./guard";
 import { HomeRoute } from "./home-route";
 import { rootRoute } from "./routes";
 import { TerritoryRoute } from "./territory-route";
@@ -23,10 +23,15 @@ import { TerritoryRoute } from "./territory-route";
 export const catalogRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "catalog",
-  beforeLoad: ({ location }) => {
+  beforeLoad: async ({ context, location }) => {
     const target = redirectTarget(isAuthed(), location.href);
     if (target) throw redirect(target);
+    // beforeLoad, not loader: children's loaders run beside the parent's, so
+    // a loader-based redirect would race theirs.
+    const to = enrollmentRedirect(await context.queryClient.ensureQueryData(meQuery), location.pathname);
+    if (to) throw redirect({ to });
   },
+  // Returns the principal `beforeLoad` already fetched — a cache hit.
   loader: ({ context }) => context.queryClient.ensureQueryData(meQuery),
   component: CatalogShellRoute,
 });
@@ -57,7 +62,8 @@ export const territoryNewRoute = createRoute({
 // screen rather than the conversion page flashing in front of a ready viewer.
 //
 // It swallows every failure and never throws. A 404 and a 503 both have a
-// designed screen already — "Territory not found" with the way back, and
+// designed screen already — the territory 404 view, "No territory at this
+// address", with the way back, and
 // "Territory unavailable: {message}" — and both live behind the conversion
 // screen, which is where `!data` falls through to. Throwing here would replace
 // those with the router's global panels.

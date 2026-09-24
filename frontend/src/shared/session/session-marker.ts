@@ -20,3 +20,25 @@ export function markAuthed(): void {
 export function clearAuthed(): void {
   localStorage.removeItem(KEY);
 }
+
+// When `shared/api/client.ts` last sent this tab to the enrolment gate. Per
+// tab and short-lived, so sessionStorage; the gate reads it to break a loop
+// (see `gateExit` in app/router/guard.ts). Storage can throw — never fatal.
+const BOUNCE_KEY = "andrey.enrollBounce";
+
+export function markEnrollBounce(): void {
+  try {
+    sessionStorage.setItem(BOUNCE_KEY, String(Date.now()));
+  } catch {
+    // no record, no loop guard: the old behaviour
+  }
+}
+
+export function enrollBouncedAt(): number | null {
+  try {
+    const at = Number(sessionStorage.getItem(BOUNCE_KEY));
+    return at > 0 ? at : null;
+  } catch {
+    return null;
+  }
+}

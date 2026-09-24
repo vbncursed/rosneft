@@ -1,33 +1,28 @@
 import { useParams, useSearch } from "@tanstack/react-router";
 import { Callout } from "@/shared/ui/callout";
-import { EmptyState } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
-import { useTerritoryConversion } from "../model/use-territory-conversion";
+import { NotFoundView } from "@/widgets/not-found";
+import { useTerritoryConversion, type TerritoryConversionState } from "../model/use-territory-conversion";
 import { TerritoryConversionPage } from "./territory-conversion-page";
 
-/** Maps the container onto the page — loading skeleton, not-found, unavailable, or the page. */
+/**
+ * Maps the container onto the page — loading skeleton, not-found, unavailable, or the page.
+ * The not-found view takes the full row: its two columns need 788px, and the
+ * 760 the design draws for this page would stack them.
+ */
 function TerritoryConversionBody({ slug, jobId }: { slug: string; jobId: string | null }) {
   const s = useTerritoryConversion(slug, jobId);
+  if (s.status === "missing") return <NotFoundView kind="territory" />;
+  return <div className="mx-auto w-full max-w-[760px]">{conversionState(s)}</div>;
+}
 
+function conversionState(s: Exclude<TerritoryConversionState, { status: "missing" }>) {
   if (s.status === "loading") {
     return (
       <div role="status" aria-busy="true" aria-label="Loading territory" className="flex flex-col gap-3">
         <Skeleton height="34px" width="30%" />
         <Skeleton height="200px" />
       </div>
-    );
-  }
-
-  if (s.status === "missing") {
-    return (
-      <EmptyState
-        title="Territory not found"
-        action={
-          <a href="/territories" className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted no-underline hover:text-fg">
-            ← Territory catalog
-          </a>
-        }
-      />
     );
   }
 
@@ -49,16 +44,16 @@ function TerritoryConversionBody({ slug, jobId }: { slug: string; jobId: string 
  * `viewport` layout — a padding-free `h-dvh overflow-hidden` column. The
  * column this page is written for lives here instead, around all four states
  * rather than only the ready one: a skeleton flush against the window edge is
- * as wrong as a page one.
- *
- * 832 = the 760 the design draws plus its own 2×36 of padding: `px-9` is on
- * the same element as the cap, so it eats into it rather than sitting outside.
+ * as wrong as a page one. The padding and the scroll live here; the 760 cap
+ * lives in the body, which exempts the not-found view from it. The wrapper
+ * takes the rest of the shell's column and is a column itself, so the view's
+ * flex-1 has the height to centre in.
  */
 export function TerritoryConversionScreen() {
   const { slug } = useParams({ strict: false }) as { slug: string };
   const { jobId } = useSearch({ strict: false }) as { jobId?: string };
   return (
-    <div className="mx-auto min-h-0 w-full max-w-[832px] overflow-auto px-9 pb-[72px] pt-8">
+    <div className="flex min-h-0 w-full flex-1 flex-col overflow-auto px-4 pb-[72px] pt-8 sm:px-9">
       <TerritoryConversionBody key={slug} slug={slug} jobId={jobId ?? null} />
     </div>
   );
