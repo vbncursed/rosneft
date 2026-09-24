@@ -6,6 +6,7 @@ import {
   CATALOG_PATHS,
   consoleLanding,
   consoleNav,
+  enrollmentRedirect,
   isCatalogHref,
   isTerritoryPage,
   redirectTarget,
@@ -240,5 +241,35 @@ describe("viewerRoute", () => {
   it("keeps the conversion page when nothing is converted, and before the bundle lands", () => {
     expect(viewerRoute(bundle([]), undefined)).toBe(false);
     expect(viewerRoute(undefined, undefined)).toBe(false);
+  });
+});
+
+const PRINCIPAL: Principal = {
+  id: "u-1",
+  email: "a.ivanova@example.com",
+  username: "a.ivanova",
+  status: "active",
+  totpEnabled: false,
+  totpRequired: false,
+  passkeyEnabled: null,
+  roleSlugs: [],
+  roleTitles: {},
+  permissions: [],
+  isOwner: false,
+  onboardingToursSeen: [],
+};
+
+describe("enrollmentRedirect", () => {
+  const owes = { ...PRINCIPAL, totpRequired: true, totpEnabled: false };
+  it.each(["/", "/territories", "/territories/x", "/models", "/account", "/console", "/console/users"])(
+    "sends a principal that must enroll from %s to the gate",
+    (path) => expect(enrollmentRedirect(owes, path)).toBe("/two-factor-required"),
+  );
+  it.each(["/two-factor-required", "/account/two-factor"])("lets it through at %s", (path) =>
+    expect(enrollmentRedirect(owes, path)).toBeNull(),
+  );
+  it("never redirects an account that owes nothing", () => {
+    expect(enrollmentRedirect({ ...PRINCIPAL, totpRequired: true, totpEnabled: true }, "/")).toBeNull();
+    expect(enrollmentRedirect({ ...PRINCIPAL, totpRequired: false, totpEnabled: false }, "/")).toBeNull();
   });
 });

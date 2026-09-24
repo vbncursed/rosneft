@@ -1,6 +1,6 @@
 import { sceneReady, type SceneBundle } from "@/entities/scene";
 import type { ConsoleNavItem } from "@/widgets/console-nav";
-import { can, ENROLLMENT_PATH, type Principal } from "@/shared/session";
+import { can, ENROLLMENT_PATH, mustEnroll, type Principal } from "@/shared/session";
 
 type RedirectTarget = { to: "/login"; search: { next: string } };
 
@@ -34,6 +34,19 @@ export const viewerRoute = (data: SceneBundle | undefined, jobId: string | undef
 export function redirectTarget(authed: boolean, href: string): RedirectTarget | null {
   if (authed) return null;
   return { to: "/login", search: { next: href } };
+}
+
+/** Where a principal that owes a second factor may stand: the gate, and the wizard. */
+const ENROLLMENT_OPEN = [ENROLLMENT_PATH, "/account/two-factor"] as const;
+
+/**
+ * The gateway answers everything else `403 twofa_enrollment_required` for this
+ * session, so a screen there is a dead end. Exact paths, like the gateway's
+ * own allow-list: a prefix would open whatever is added under them later.
+ */
+export function enrollmentRedirect(me: Principal, pathname: string): typeof ENROLLMENT_PATH | null {
+  if (!mustEnroll(me)) return null;
+  return (ENROLLMENT_OPEN as readonly string[]).includes(pathname) ? null : ENROLLMENT_PATH;
 }
 
 /** Every screen the console has, in the order the navigation lists them. */

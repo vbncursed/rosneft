@@ -18,7 +18,7 @@ import { ENROLLMENT_PATH, isAuthed, mustEnroll } from "@/shared/session";
 import { ConsoleShell } from "./console-shell";
 import { LoginRouteComponent } from "./login-route";
 import { NoConsoleAccess } from "./fallbacks";
-import { consoleLanding, redirectTarget, screenAllowed, type ConsolePath } from "./guard";
+import { consoleLanding, enrollmentRedirect, redirectTarget, screenAllowed, type ConsolePath } from "./guard";
 
 // One loader for every screen: the console gate is an OR over several grants,
 // so a screen must ask for its own. /console's landing never picks a screen
@@ -68,9 +68,13 @@ export const twoFactorRequiredRoute = createRoute({
 export const consoleRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/console",
-  beforeLoad: ({ location }) => {
+  beforeLoad: async ({ context, location }) => {
     const target = redirectTarget(isAuthed(), location.href);
     if (target) throw redirect(target);
+    // beforeLoad, not loader: children's loaders run beside the parent's, and
+    // the console index's landing redirect would race this one.
+    const to = enrollmentRedirect(await context.queryClient.ensureQueryData(meQuery), location.pathname);
+    if (to) throw redirect({ to });
   },
   // Entering the console fetches the principal. It feeds the landing redirect
   // below, and it is what makes the guard real rather than apparent: the

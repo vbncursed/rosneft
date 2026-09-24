@@ -79,6 +79,20 @@ describe("router", () => {
       ).toBeInTheDocument();
     });
 
+    // A session that owes a second factor can open nothing but the gate and the
+    // wizard; everything else 403s at the gateway, so the router sends it on.
+    it.each(["/", "/territories", "/console/users"])("confines it at %s", async (path) => {
+      renderAt(path, owing);
+      expect(
+        await screen.findByRole("heading", { level: 1, name: "Set up two-factor to continue" }),
+      ).toBeInTheDocument();
+    });
+
+    it("lets it open the wizard", async () => {
+      renderAt("/account/two-factor", owing);
+      expect(await screen.findByRole("heading", { level: 1, name: "Enable two-factor" })).toBeInTheDocument();
+    });
+
     it("sends a signed-out visitor to the login", async () => {
       clearAuthed();
       const router = renderAt("/two-factor-required");

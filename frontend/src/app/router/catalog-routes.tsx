@@ -11,7 +11,7 @@ import { UploadModelsScreen } from "@/pages/upload-models";
 import { UploadTerritoryScreen } from "@/pages/upload-territory";
 import { isAuthed } from "@/shared/session";
 import { CatalogShellRoute } from "./catalog-shell-route";
-import { redirectTarget } from "./guard";
+import { enrollmentRedirect, redirectTarget } from "./guard";
 import { HomeRoute } from "./home-route";
 import { rootRoute } from "./routes";
 import { TerritoryRoute } from "./territory-route";
@@ -23,9 +23,13 @@ import { TerritoryRoute } from "./territory-route";
 export const catalogRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "catalog",
-  beforeLoad: ({ location }) => {
+  beforeLoad: async ({ context, location }) => {
     const target = redirectTarget(isAuthed(), location.href);
     if (target) throw redirect(target);
+    // beforeLoad, not loader: children's loaders run beside the parent's, and
+    // the console index's landing redirect would race this one.
+    const to = enrollmentRedirect(await context.queryClient.ensureQueryData(meQuery), location.pathname);
+    if (to) throw redirect({ to });
   },
   loader: ({ context }) => context.queryClient.ensureQueryData(meQuery),
   component: CatalogShellRoute,
