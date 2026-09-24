@@ -263,13 +263,15 @@ looking at.
   (navigations only; offline falls back to `offline.html`, everything else
   goes to the network), `offline.html` (inline styles and a small inline
   script — theme from `andrey.theme`, a `HEAD /` reachability probe every 5 s
-  and on `online`, reload once it answers; the theme tokens copied by hand —
-  bump `CACHE` in `sw.js` when it changes, or installed copies keep the old
-  page), `manifest.webmanifest`, `icon.svg`, `apple-icon.png`, `og-card.png`,
-  `robots.txt`. `fonts/` came along with them and nothing references it.
-  `app/pwa/register-service-worker.ts` registers the worker after `load` and
-  swallows a refusal — the desktop shell answers `/sw.js` with 404 on purpose
-  (`desktop/src-tauri/src/spa.rs`).
+  and on `online`, one probe at a time, each timed out after 4 s, and a reload
+  once it answers below 500 — Cloudflare's 52x means the origin is still down,
+  so counting any answer as back reloads into Cloudflare's error page; the
+  theme tokens copied by hand — bump `CACHE` in `sw.js` when it changes, or
+  installed copies keep the old page), `manifest.webmanifest`, `icon.svg`,
+  `apple-icon.png`, `og-card.png`, `robots.txt`. `fonts/` came along with them
+  and nothing references it. `app/pwa/register-service-worker.ts` registers
+  the worker after `load` and swallows a refusal — the desktop shell answers
+  `/sw.js` with 404 on purpose (`desktop/src-tauri/src/spa.rs`).
 - **The manifest link carries `crossorigin="use-credentials"`**: without the
   cookie, Cloudflare's Bot Fight Mode answers the manifest with 403.
 - **Open Graph/Twitter tags are static in `index.html` and cannot be
