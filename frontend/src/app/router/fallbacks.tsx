@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import type { ErrorComponentProps } from "@tanstack/react-router";
+import { ThemeToggle } from "@/features/theme-toggle";
+import { NotFoundView } from "@/widgets/not-found";
 
 /**
  * The three dead ends a router can reach. Their own file because the route
@@ -7,9 +9,10 @@ import type { ErrorComponentProps } from "@tanstack/react-router";
  * (react/only-export-components) — the same reason `login-route.tsx` is split
  * out.
  *
- * Deliberately plain: one panel, the app's own tokens, an h1 and a sentence.
- * They exist so a mistyped URL, a loader that 500s, or an account with no
- * console screen gets the product rather than the browser's default.
+ * `RouteError` and `NoConsoleAccess` are deliberately plain: one panel, the
+ * app's own tokens, an h1 and a sentence, so a loader that 500s or an account
+ * with no console screen gets the product rather than the browser's default.
+ * The 404 follows its own mock, `Not Found v2.dc.html`.
  */
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -22,15 +25,27 @@ function Panel({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+/**
+ * `Not Found v2.dc.html`: the only fallback with a design of its own. It sits
+ * outside every shell, so it draws the mock's header — the brand as the way
+ * home, and the app's theme toggle (the mock's is local state; ours is not).
+ */
 export function NotFound() {
   return (
-    <Panel title="Page not found">
-      That address does not exist.{" "}
-      <a href="/console" className="text-accent">
-        Go to the console
-      </a>
-      .
-    </Panel>
+    <div className="flex min-h-dvh flex-col gap-7 bg-bg px-4 pb-12 pt-8 text-fg sm:px-9">
+      <header className="flex flex-wrap items-center justify-between gap-6">
+        <a
+          href="/"
+          className="font-mono text-[10px] uppercase tracking-[0.24em] text-accent no-underline hover:underline"
+        >
+          Andrey Viewer
+        </a>
+        <ThemeToggle variant="compact" />
+      </header>
+      <main className="flex flex-1">
+        <NotFoundView kind="page" />
+      </main>
+    </div>
   );
 }
 

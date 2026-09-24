@@ -10,11 +10,16 @@ const errorProps = (error: unknown) =>
 describe("router fallbacks", () => {
   it("offers a mistyped URL a way back into the app", () => {
     render(<NotFound />);
-    expect(screen.getByRole("heading", { level: 1, name: "Page not found" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Go to the console" })).toHaveAttribute(
+    expect(
+      screen.getByRole("heading", { level: 1, name: "This page doesn't exist" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Go to territories" })).toHaveAttribute(
       "href",
-      "/console",
+      "/territories",
     );
+    expect(screen.getByRole("link", { name: "Andrey Viewer" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("button", { name: /^Theme:/ })).toBeInTheDocument();
+    expect(screen.getByRole("main")).toContainElement(screen.getByRole("heading", { level: 1 }));
   });
 
   it("shows what the failure said when it said anything", () => {
