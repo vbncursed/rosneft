@@ -46,6 +46,29 @@ describe("TerritoryConversionScreen", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Territory unavailable: gateway down");
   });
 
+  it("gives the not-found view the full row, and keeps every other state in the 760px column", () => {
+    // Two columns of the view need 2×380 + 28 = 788px; inside the page's 760 it
+    // stacks. The cap class is asserted on purpose — it is the whole finding.
+    const CAP = '[class*="max-w-[760px]"]';
+    useParams.mockReturnValue({ slug: "t" });
+    useSearch.mockReturnValue({});
+    useTerritoryConversion.mockReturnValue({ status: "missing" });
+    const { rerender } = render(<TerritoryConversionScreen />);
+    expect(screen.getByRole("heading", { level: 1 }).closest(CAP)).toBeNull();
+
+    useTerritoryConversion.mockReturnValue({ status: "loading" });
+    rerender(<TerritoryConversionScreen />);
+    expect(screen.getByRole("status", { name: "Loading territory" }).closest(CAP)).not.toBeNull();
+
+    useTerritoryConversion.mockReturnValue({ status: "unavailable", error: "gateway down" });
+    rerender(<TerritoryConversionScreen />);
+    expect(screen.getByRole("alert").closest(CAP)).not.toBeNull();
+
+    useTerritoryConversion.mockReturnValue(READY);
+    rerender(<TerritoryConversionScreen />);
+    expect(screen.getByRole("heading", { level: 1, name: "Tenant A" }).closest(CAP)).not.toBeNull();
+  });
+
   it("remounts the body on a slug change, so no ref survives into the next territory", () => {
     // The router keeps this component across a $slug change; without the key the
     // hook's previousJobs ref and the stream's frame carry over. The keyed body
