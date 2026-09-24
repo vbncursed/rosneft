@@ -1,5 +1,5 @@
 """Render icon 2e (Site Icon.dc.html) into every format the web app and the
-desktop bundle ship. Run from anywhere:  python3 frontend/icons/render.py
+desktop bundle ship, and the link-preview card (OG Card.dc.html, 1a). Run from anywhere:  python3 frontend/icons/render.py
 Needs Python Playwright (Chromium), Pillow, and macOS iconutil for .icns."""
 import math
 import subprocess
@@ -52,6 +52,15 @@ def superellipse(size: int, n: float = 5.0, ss: int = 4) -> Image.Image:
     return m.resize((size, size), Image.LANCZOS)
 
 
+def og_card(page) -> None:
+    """A file:// load, so the card's relative @font-face reaches node_modules."""
+    page.set_viewport_size({"width": 1200, "height": 630})
+    page.goto((HERE / "og-card.html").as_uri())
+    page.evaluate("document.fonts.ready")
+    card = Image.open(BytesIO(page.screenshot())).convert("RGB")
+    card.save(PUBLIC / "og-card.png", optimize=True)
+
+
 def main() -> None:
     fav = 6                  # rx on the 32 grid: 3 px at 16, as the mock's tab
     win = 32 * 4 / 24        # 4 px at 24, as the mock's taskbar tile
@@ -78,6 +87,7 @@ def main() -> None:
 
         # macOS: superellipse, 824 of artwork on a 1024 canvas (Apple grid).
         body = png("main", 824)
+        og_card(page)
         browser.close()
     body.putalpha(superellipse(824))
     master = Image.new("RGBA", (1024, 1024), (0, 0, 0, 0))
