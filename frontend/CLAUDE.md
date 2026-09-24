@@ -267,8 +267,11 @@ looking at.
   once it answers below 500 — Cloudflare's 52x means the origin is still down,
   so counting any answer as back reloads into Cloudflare's error page; the
   theme tokens copied by hand — bump `CACHE` in `sw.js` when it changes, or
-  installed copies keep the old page), `manifest.webmanifest`, `icon.svg`,
-  `apple-icon.png`, `og-card.png`, `robots.txt`. `fonts/` came along with them
+  installed copies keep the old page), `manifest.webmanifest`, the icons
+  (`favicon.ico`, `favicon.svg`, `apple-touch-icon.png`, `icon-192.png`,
+  `icon-512.png`, `icon-maskable-512.png` — generated, with the desktop set,
+  by `icons/render.py` from the SVG sources beside it), `og-card.png`,
+  `robots.txt`. `fonts/` came along with them
   and nothing references it. `app/pwa/register-service-worker.ts` registers
   the worker after `load` and swallows a refusal — the desktop shell answers
   `/sw.js` with 404 on purpose (`desktop/src-tauri/src/spa.rs`).
